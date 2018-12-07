@@ -1,7 +1,6 @@
 set(sup-sources
     affinity.cpp
     concurrency.cpp
-    glob.cpp
     default_gpu.cpp
     ioutil.cpp
     json_meter.cpp
@@ -10,9 +9,15 @@ set(sup-sources
 )
 
 if(ARB_WITH_MPI)
-    list(APPEND sup-sources
-        private_gpu.cpp)
+    list(APPEND sup-sources private_gpu.cpp)
 endif()
+
+if(ARB_USE_POSIX_GLOB)
+    list(APPEND sup-sources glob_posix.cpp)
+else()
+    list(APPEND sup-sources glob_basic.cpp)
+endif()
+
 
 add_library(arbor-sup ${sup-sources})
 

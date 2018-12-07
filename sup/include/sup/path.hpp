@@ -19,8 +19,9 @@
 
 #include <cstddef>
 #include <exception>
-#include <string>
 #include <iostream>
+#include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -84,7 +85,7 @@ public:
 
     // Append posix_path components
     template <typename Source>
-    posix_path& append(const Source& source) {
+        posix_path& append(const Source& source) {
         return append(posix_path(source));
     }
 
@@ -337,67 +338,29 @@ private:
 
 // POSIX implementations of path queries (see path.cpp for implementations).
 
-namespace posix {
-    file_status status(const path&, std::error_code&);
-    file_status symlink_status(const path&, std::error_code&);
+file_status posix_status(const path&, std::error_code&) noexcept;
+file_status posix_symlink_status(const path&, std::error_code&) noexcept;
+
+inline file_status status(const path& p, std::error_code& ec) noexcept {
+    return posix_status(p, ec);
 }
 
-inline file_status status(const path& p, std::error_code& ec) {
-    return posix::status(p, ec);
-}
-
-inline file_status symlink_status(const path& p, std::error_code& ec) {
-    return posix::symlink_status(p, ec);
+inline file_status symlink_status(const path& p, std::error_code& ec) noexcept {
+    return posix_symlink_status(p, ec);
 }
 
 // Wrappers for `status()`, again following std::filesystem.
 
 inline file_status status(const path& p) {
     std::error_code ec;
-    auto r = ::sup::posix::status(p, ec);
+    auto r = status(p, ec);
     if (ec) {
         throw filesystem_error("status()", p, ec);
     }
     return r;
 }
 
-inline bool is_directory(file_status s) {
-    return s.type()==file_type::directory;
-}
-
-inline bool is_directory(const path& p) {
-    return is_directory(status(p));
-}
-
-inline bool is_directory(const path& p, std::error_code& ec) {
-    return is_directory(status(p, ec));
-}
-
-inline bool is_regular_file(file_status s) {
-    return s.type()==file_type::regular;
-}
-
-inline bool is_regular_file(const path& p) {
-    return is_regular_file(status(p));
-}
-
-inline bool is_regular_file(const path& p, std::error_code& ec) {
-    return is_regular_file(status(p, ec));
-}
-
-inline bool is_character_file(file_status s) {
-    return s.type()==file_type::character;
-}
-
-inline bool is_character_file(const path& p) {
-    return is_character_file(status(p));
-}
-
-inline bool is_character_file(const path& p, std::error_code& ec) {
-    return is_character_file(status(p, ec));
-}
-
-inline bool exists(file_status s) {
+inline bool exists(file_status s) noexcept {
     return s.type()!=file_type::not_found;
 }
 
@@ -405,9 +368,241 @@ inline bool exists(const path& p) {
     return exists(status(p));
 }
 
-inline bool exists(const path& p, std::error_code& ec) {
+inline bool exists(const path& p, std::error_code& ec) noexcept {
     return exists(status(p, ec));
 }
 
-} // namespace sup
+inline bool is_block_file(file_status s) noexcept {
+    return s.type()==file_type::block;
+}
 
+inline bool is_block_file(const path& p) {
+    return is_block_file(status(p));
+}
+
+inline bool is_block_file(const path& p, std::error_code& ec) noexcept {
+    return is_block_file(status(p, ec));
+}
+
+inline bool is_character_file(file_status s) noexcept {
+    return s.type()==file_type::character;
+}
+
+inline bool is_character_file(const path& p) {
+    return is_character_file(status(p));
+}
+
+inline bool is_character_file(const path& p, std::error_code& ec) noexcept {
+    return is_character_file(status(p, ec));
+}
+
+inline bool is_directory(file_status s) noexcept {
+    return s.type()==file_type::directory;
+}
+
+inline bool is_directory(const path& p) {
+    return is_directory(status(p));
+}
+
+inline bool is_directory(const path& p, std::error_code& ec) noexcept {
+    return is_directory(status(p, ec));
+}
+
+inline bool is_fifo(file_status s) noexcept {
+    return s.type()==file_type::fifo;
+}
+
+inline bool is_fifo(const path& p) {
+    return is_fifo(status(p));
+}
+
+inline bool is_fifo(const path& p, std::error_code& ec) noexcept {
+    return is_fifo(status(p, ec));
+}
+
+inline bool is_regular_file(file_status s) noexcept {
+    return s.type()==file_type::regular;
+}
+
+inline bool is_regular_file(const path& p) {
+    return is_regular_file(status(p));
+}
+
+inline bool is_regular_file(const path& p, std::error_code& ec) noexcept {
+    return is_regular_file(status(p, ec));
+}
+
+inline bool is_socket(file_status s) noexcept {
+    return s.type()==file_type::regular;
+}
+
+inline bool is_socket(const path& p) {
+    return is_socket(status(p));
+}
+
+inline bool is_socket(const path& p, std::error_code& ec) noexcept {
+    return is_socket(status(p, ec));
+}
+
+inline bool is_symlink(file_status s) noexcept {
+    return s.type()==file_type::regular;
+}
+
+inline bool is_symlink(const path& p) {
+    return is_symlink(status(p));
+}
+
+inline bool is_symlink(const path& p, std::error_code& ec) noexcept {
+    return is_symlink(status(p, ec));
+}
+
+// Directory entries and iterators.
+// (Subset of std::filesystem::directory_entry functionality.)
+
+struct directory_entry {
+    directory_entry() = default;
+    directory_entry(const directory_entry&) = default;
+    directory_entry(directory_entry&&) noexcept = default;
+
+    directory_entry& operator=(const directory_entry&) = default;
+    directory_entry& operator=(directory_entry&&) noexcept = default;
+
+    explicit directory_entry(const path& p) { assign(p); }
+    directory_entry(const path& p, std::error_code& ec) { assign(p, ec); }
+
+    // Set file type explicity: interface for directory_iterator.
+    directory_entry(const path& p, file_type type, std::error_code& ec):
+        path_(p), status_(type)
+    {
+        if (type==file_type::unknown) { // no information from readdir()
+            refresh(ec);
+        }
+    }
+
+    void refresh() {
+        status_ = status(path_);
+    }
+
+    void refresh(std::error_code &ec) {
+        status_ = status(path_, ec);
+    }
+
+    void assign(const path& p) {
+        path_ = p;
+        refresh();
+    }
+
+    void assign(const path& p, std::error_code &ec) {
+        path_ = p;
+        refresh(ec);
+    }
+
+    const sup::path& path() const noexcept { return path_; }
+    operator const sup::path&() const noexcept { return path_; }
+
+    bool is_block_file() const     { return sup::is_block_file(status_); }
+    bool is_directory() const      { return sup::is_directory(status_); }
+    bool is_character_file() const { return sup::is_character_file(status_); }
+    bool is_fifo() const           { return sup::is_fifo(status_); }
+    bool is_regular_file() const   { return sup::is_regular_file(status_); }
+    bool is_socket() const         { return sup::is_socket(status_); }
+    bool is_symlink() const        { return sup::is_symlink(status_); }
+
+    bool operator==(const directory_entry& e) const { return path_==e.path_; }
+    bool operator!=(const directory_entry& e) const { return path_!=e.path_; }
+    bool operator<=(const directory_entry& e) const { return path_<=e.path_; }
+    bool operator>=(const directory_entry& e) const { return path_>=e.path_; }
+    bool operator<(const directory_entry& e) const  { return path_<e.path_; }
+    bool operator>(const directory_entry& e) const  { return path_>e.path_; }
+
+private:
+    sup::path path_;
+    file_status status_;
+};
+
+enum class directory_options: unsigned {
+    none = 0,
+    follow_directory_symlink = 1,
+    skip_permission_denied = 2
+};
+
+inline constexpr directory_options operator|(directory_options a, directory_options b) {
+    return directory_options(unsigned(a)|unsigned(b));
+}
+
+inline constexpr directory_options operator&(directory_options a, directory_options b) {
+    return directory_options(unsigned(a)&unsigned(b));
+}
+
+inline constexpr directory_options operator^(directory_options a, directory_options b) {
+    return directory_options(unsigned(a)^unsigned(b));
+}
+
+inline constexpr directory_options operator~(directory_options a) {
+    return directory_options(~unsigned(a));
+}
+
+inline constexpr directory_options& operator|=(directory_options& a, directory_options b) {
+    return a = directory_options(unsigned(a)|unsigned(b));
+}
+
+inline constexpr directory_options& operator&=(directory_options& a, directory_options b) {
+    return a = directory_options(unsigned(a)&unsigned(b));
+}
+
+inline constexpr directory_options& operator^=(directory_options& a, directory_options b) {
+    return a = directory_options(unsigned(a)^unsigned(b));
+}
+
+inline constexpr bool operator==(directory_options a, unsigned x) {
+    return unsigned(a)==x;
+}
+
+inline constexpr bool operator!=(directory_options a, unsigned x) {
+    return unsigned(a)!=x;
+}
+
+
+struct posix_directory_state;
+
+struct posix_directory_iterator {
+    using value_type = directory_entry;
+    using difference_type = std::ptrdiff_t;
+    using pointer = const directory_entry*;
+    using reference = const directory_entry&;
+    using iterator_category = std::input_iterator_tag;
+
+    posix_directory_iterator() noexcept = default;
+    posix_directory_iterator(const posix_directory_iterator&) = default;
+    posix_directory_iterator(posix_directory_iterator&&) = default;
+
+    posix_directory_iterator(const path&, directory_options);
+    posix_directory_iterator(const path& p):
+        posix_directory_iterator(p, directory_options::none) {}
+
+    posix_directory_iterator(const path&, directory_options, std::error_code&);
+    posix_directory_iterator(const path& p, std::error_code& ec):
+        posix_directory_iterator(p, directory_options::none, ec) {}
+
+    bool operator==(const posix_directory_iterator&) const;
+    bool operator!=(const posix_directory_iterator& i) const {
+        return !(*this==i);
+    }
+
+    value_type operator*() const;
+    const value_type* operator->() const;
+
+    posix_directory_iterator& operator++();
+    posix_directory_iterator& increment(std::error_code &ec);
+
+    posix_directory_iterator& operator=(const posix_directory_iterator&) = default;
+
+private:
+    std::shared_ptr<posix_directory_state> state_;
+};
+
+using directory_iterator = posix_directory_iterator;
+inline directory_iterator begin(directory_iterator i) noexcept { return i; }
+inline directory_iterator end(const directory_iterator& i) noexcept { return directory_iterator{}; }
+
+} // namespace sup
