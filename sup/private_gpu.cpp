@@ -1,9 +1,21 @@
-#include <numeric>
-
-#include <mpi.h>
+#ifndef ARB_HAVE_GPU
 
 #include <sup/gpu.hpp>
+#include <mpi.h>
 
+namespace sup {
+// return -1 -> "no gpu" when compiled without GPU support.
+template <>
+int find_private_gpu(MPI_Comm comm) {
+    return -1;
+}
+}
+
+#else
+
+#include <numeric>
+#include <mpi.h>
+#include <sup/gpu.hpp>
 #include "gpu_uuid.hpp"
 
 namespace sup {
@@ -83,3 +95,6 @@ int find_private_gpu(MPI_Comm comm) {
 }
 
 } // namespace sup
+
+#endif
+

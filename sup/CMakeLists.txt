@@ -9,16 +9,12 @@ set(sup-sources
     spike_emitter.cpp
 )
 
-# Add MPI feature implemententation if MPI is suported in Arbor build.
-if(ARB_WITH_MPI)
-    list(APPEND sup-sources
-        private_gpu.cpp)
+if(ARB_WITH_GPU)
+    list(APPEND sup-sources gpu_uuid.cpp)
 endif()
 
-# Add GPU feature implemententation if GPU is supported in Arbor build.
-if(ARB_WITH_GPU)
-    list(APPEND sup-sources
-        gpu_uuid.cpp)
+if(ARB_WITH_MPI)
+    list(APPEND sup-sources private_gpu.cpp)
 endif()
 
 add_library(arbor-sup ${sup-sources})

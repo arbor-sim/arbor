@@ -72,7 +72,11 @@ std::vector<uuid> get_gpu_uuids() {
     // get number of devices
     int ngpus = 0;
     auto status = cudaGetDeviceCount(&ngpus);
-    if (status!=cudaSuccess) {
+    if (status==cudaErrorNoDevice) {
+        // no GPUs detected: return an empty list.
+        return {};
+    }
+    else if (status!=cudaSuccess) {
         throw make_runtime_error(status);
     }
 
@@ -165,6 +169,7 @@ uuid string_to_uuid(char* str) {
     // Converts a single hex character, i.e. 0123456789abcdef, to int
     // Assumes that input is a valid hex character.
     auto hex_c2i = [](unsigned char c) -> unsigned char {
+        c = std::tolower(c);
         return std::isalpha(c)? c-'a'+10: c-'0';
     };
 
