@@ -111,6 +111,10 @@ private:
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
         }
+        virtual gathered_vector<cell_gid_type>
+        gather_gids(const gid_vector& local_gids) const override {
+            return wrapped.gather_gids(local_gids);
+        }
         int id() const override {
             return wrapped.id();
         }
@@ -143,6 +147,14 @@ struct local_context {
         return gathered_vector<arb::spike>(
             std::vector<arb::spike>(local_spikes),
             {0u, static_cast<count_type>(local_spikes.size())}
+        );
+    }
+    gathered_vector<cell_gid_type>
+    gather_gids(const std::vector<cell_gid_type>& local_gids) const {
+        using count_type = typename gathered_vector<cell_gid_type>::count_type;
+        return gathered_vector<cell_gid_type>(
+                std::vector<cell_gid_type >(local_gids),
+                {0u, static_cast<count_type>(local_gids.size())}
         );
     }
 

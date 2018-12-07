@@ -83,14 +83,23 @@ namespace {
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return cell_kind::cable1d_neuron;
         }
-        std::vector<cell_gid_type> group_with(cell_gid_type gid) const override {
+        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             unsigned shift = (gid/size_)*size_;
             switch (gid % size_) {
-                case 1 :  return {7 + shift};
-                case 2 :  return {6 + shift, 9 + shift};
-                case 6 :  return {2 + shift, 7 + shift};
-                case 7 :  return {6 + shift, 1 + shift};
-                case 9 :  return {2 + shift};
+                case 1 :  return { gap_junction_connection({7 + shift, 0}, 0.1)};
+                case 2 :  return {
+                    gap_junction_connection({6 + shift, 0}, 0.1),
+                    gap_junction_connection({9 + shift, 0}, 0.1)
+                };
+                case 6 :  return {
+                    gap_junction_connection({2 + shift, 0}, 0.1),
+                    gap_junction_connection({7 + shift, 0}, 0.1)
+                };
+                case 7 :  return {
+                    gap_junction_connection({6 + shift, 0}, 0.1),
+                    gap_junction_connection({1 + shift, 0}, 0.1)
+                };
+                case 9 :  return { gap_junction_connection({2 + shift, 0}, 0.1)};
                 default : return {};
             }
         }
@@ -274,4 +283,13 @@ TEST(domain_decomposition, compulsory_groups)
               {8 + shift},
               {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift}
             };
+
+    for (unsigned i = 0; i < 6; i++){
+        EXPECT_EQ(expected_groups[i], D.groups[i].gids);
+    }
+
+    for (unsigned i = rank*R.num_cells(); i < (rank + 1)*R.num_cells(); i++) {
+        EXPECT_EQ(D.gid_domain(i), rank);
+    }
+
 }

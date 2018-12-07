@@ -33,7 +33,7 @@ domain_decomposition partition_load_balance(
                 if(lower != rank_gids.end())
                     return i;
             }
-
+            return -1;
         }
 
         const gathered_vector<cell_gid_type> gid_divisions;
