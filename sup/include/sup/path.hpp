@@ -173,6 +173,12 @@ public:
         return canonical().compare(other.canonical());
     }
 
+    // TODO: add unit test for filename()
+    posix_path filename() const {
+        auto i = p_.rfind('/');
+        return i==std::string::npos? *this: posix_path(p_.substr(i+1));
+    }
+
     // Non-member functions
 
     friend posix_path operator/(const posix_path& a, const posix_path& b) {

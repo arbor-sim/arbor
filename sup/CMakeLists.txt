@@ -2,6 +2,7 @@ set(sup-sources
     affinity.cpp
     concurrency.cpp
     default_gpu.cpp
+    glob_basic.cpp
     ioutil.cpp
     json_meter.cpp
     path.cpp
@@ -15,7 +16,7 @@ endif()
 if(ARB_USE_POSIX_GLOB)
     list(APPEND sup-sources glob_posix.cpp)
 else()
-    list(APPEND sup-sources glob_basic.cpp)
+    list(APPEND sup-sources glob_basic_wrap.cpp)
 endif()
 
 
