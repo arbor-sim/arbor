@@ -243,44 +243,6 @@ TEST(mc_cell, clone) {
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
 
-TEST(mc_cell, gap_junctions) {
-    // make simple cell with multiple segments
-
-    mc_cell c, d;
-    c.add_soma(2.1);
-    c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
-    c.segment(1)->set_compartments(3);
-    c.add_cable(1, section_kind::dendrite, 0.2, 0.15, 20);
-    c.segment(2)->set_compartments(5);
-
-    d.add_soma(2.4);
-    d.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
-    d.segment(1)->set_compartments(4);
-    d.add_cable(1, section_kind::dendrite, 0.2, 0.15, 20);
-    d.segment(2)->set_compartments(2);
-
-    c.add_gap_junction(0, {1, 0.3}, 1, {0, 0.7}, 0.5);
-    d.add_gap_junction(1, {0, 0.7}, 0, {1, 0.3}, 0.5);
-
-    EXPECT_EQ(1u, c.gap_junctions().size());
-    EXPECT_EQ(d.gap_junctions().size(), c.gap_junctions().size());
-
-    EXPECT_EQ(0u, c.gap_junctions()[0].source.gid);
-    EXPECT_EQ(1u, c.gap_junctions()[0].source.lid.segment);
-    EXPECT_EQ(0.3, c.gap_junctions()[0].source.lid.position);
-
-    EXPECT_EQ(1u, c.gap_junctions()[0].dest.gid);
-    EXPECT_EQ(0u, c.gap_junctions()[0].dest.lid.segment);
-    EXPECT_EQ(0.7, c.gap_junctions()[0].dest.lid.position);
-
-    EXPECT_EQ(c.gap_junctions()[0].source, d.gap_junctions()[0].dest);
-    EXPECT_EQ(c.gap_junctions()[0].source, d.gap_junctions()[0].dest);
-    EXPECT_EQ(c.gap_junctions()[0].dest, d.gap_junctions()[0].source);
-
-    EXPECT_EQ(0.5, c.gap_junctions()[0].conductance);
-    EXPECT_EQ(c.gap_junctions()[0].conductance, d.gap_junctions()[0].conductance);
-}
-
 TEST(mc_cell, get_kind) {
     mc_cell c;
     EXPECT_EQ(cell_kind::cable1d_neuron, c.get_cell_kind());

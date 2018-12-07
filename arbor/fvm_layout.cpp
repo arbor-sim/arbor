@@ -238,16 +238,16 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 
 // Get vector of gap_junctions
 
-std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids, const recipe& rec, const fvm_discretization& D) {
+std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids,
+        const recipe& rec, const fvm_discretization& D) {
     using size_type = fvm_size_type;
 
     std::vector<gap_junction> v;
 
     // Map gid to location in the cell group
     std::unordered_map<cell_gid_type, unsigned> gid_to_loc;
-    unsigned i = 0;
-    for (auto gid: gids) {
-        gid_to_loc[gid] = i++;
+    for (unsigned i = 0; i < gids.size(); i++) {
+        gid_to_loc[gids[i]] = i;
     }
 
     // Get gj locations as cv for every cell in group
@@ -267,19 +267,23 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
 
     // Get gj locations as cv from cell's gap_junction connections
     // These represent the second half of the gap junction
-    for (auto cell_idx: make_span(0, D.ncell)) {
-        auto gj = rec.gap_junctions_on(gids[cell_idx]);
-        for(auto gj_idx: make_span(0, gj.size())) {
-            // locate
-            auto shift = gid_to_loc[gj[gj_idx].location.gid];
-            auto offset = gj[gj_idx].location.index;
+    unsigned i = 0;
+    for (auto gid : gids) {
+        auto gj_list = rec.gap_junctions_on(gid);
+        for(auto gj : gj_list) {
+            // Calculate which cv a gj refers to from gj_comps
+            auto shift = gid_to_loc[gj.location.gid];
+            auto offset = gj.location.index;
+            // Second half of the gap junction
             auto cv1 = gj_comps[gj_divisions[shift] + offset];
-            auto cv0 = gj_comps[cell_idx*gj.size() + gj_idx];
+            // Already found first half
+            auto cv0 = gj_comps[i++];
             v.push_back(gap_junction(std::make_pair(cv0, cv1),
                     std::make_pair(D.cv_area[cv0], D.cv_area[cv1]),
-                    gj[gj_idx].ggap));
+                    gj.ggap));
         }
     }
+
     return v;
 }
 

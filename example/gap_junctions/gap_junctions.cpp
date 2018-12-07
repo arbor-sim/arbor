@@ -47,21 +47,14 @@ arb::mc_cell gj_cell(unsigned gid, unsigned ring_size, double delay, double dura
 
 class gj_recipe: public arb::recipe {
 public:
-    gj_recipe(gap_params params):
-    cells_per_ring_(params.cells_per_ring),
-    num_rings_(params.num_rings)
-    {
-        for (unsigned gid = 0; gid < num_rings_*cells_per_ring_; gid++) {
-            cells.push_back(gj_cell(gid, cells_per_ring_, params.delay*gid, params.duration));
-        }
-    }
+    gj_recipe(gap_params params): params_(params) {}
 
     cell_size_type num_cells() const override {
-        return cells_per_ring_*num_rings_;
+        return params_.cells_per_ring * params_.num_rings;
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return std::move(cells[gid]);
+        return gj_cell(gid, params_.cells_per_ring, params_.delay*gid, params_.duration);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -101,9 +94,9 @@ public:
     std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
         std::vector<arb::gap_junction_connection> conns;
 
-        cell_gid_type ring_start_gid = (gid/cells_per_ring_) * cells_per_ring_;
-        cell_gid_type next_cell = (gid + 1) % cells_per_ring_ + ring_start_gid;
-        cell_gid_type prev_cell = (gid - 1 + cells_per_ring_) % cells_per_ring_ + ring_start_gid;
+        cell_gid_type ring_start_gid = (gid/params_.cells_per_ring) * params_.cells_per_ring;
+        cell_gid_type next_cell = (gid + 1) % params_.cells_per_ring + ring_start_gid;
+        cell_gid_type prev_cell = (gid - 1 + params_.cells_per_ring) % params_.cells_per_ring + ring_start_gid;
 
         // Our soma is connected to the next cell's dendrite
         // Our dendrite is connected to the prev cell's soma
@@ -114,9 +107,7 @@ public:
     }
 
 private:
-    cell_size_type cells_per_ring_;
-    cell_size_type num_rings_;
-    std::vector<arb::mc_cell> cells;
+    gap_params params_;
 };
 
 struct cell_stats {

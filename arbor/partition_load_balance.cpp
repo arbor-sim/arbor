@@ -160,27 +160,17 @@ domain_decomposition partition_load_balance(
         }
     }
     // comp_groups handled separately from ind_cells
-    // If all cells are of the same type and have GPU backend, execute group on GPU
-    // Otherwise execute group on multicore
     for (auto cg: comp_groups) {
         cell_kind k = rec.get_cell_kind(cg[0]);
         partition_hint hint;
         if (auto opt_hint = util::value_by_key(hint_map, k)) {
             hint = opt_hint.value();
         }
+        backend_kind backend = backend_kind::multicore;
         if (hint.prefer_gpu && gpu_avail && has_gpu_backend(k)) {
-            backend_kind backend = backend_kind::gpu;
-            for (unsigned gid = 1; gid < cg.size(); ++gid) {
-                if (rec.get_cell_kind(gid) != k) {
-                    backend = backend_kind::multicore;
-                    break;
-                }
-            }
-            groups.push_back({k, std::move(cg), backend});
-        } else {
-            backend_kind backend = backend_kind::multicore;
-            groups.push_back({k, std::move(cg), backend});
+            backend = backend_kind::gpu;
         }
+        groups.push_back({k, std::move(cg), backend});
     }
 
     // calculate the number of local cells

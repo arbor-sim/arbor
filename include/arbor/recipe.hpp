@@ -49,9 +49,9 @@ struct cell_connection {
 
 struct gap_junction_connection {
     cell_member_type location;
-    float ggap;
+    double ggap;
 
-    gap_junction_connection(cell_member_type loc, float g):
+    gap_junction_connection(cell_member_type loc, double g):
             location(loc), ggap(g) {}
 };
 
