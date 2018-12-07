@@ -189,6 +189,76 @@ TEST(path, posix_swap) {
     EXPECT_EQ("/bar", p2.native());
 }
 
+TEST(path, filename) {
+    auto filename = [](auto p) { return posix_path(p).filename().native(); };
+    auto has_filename = [](auto p) { return posix_path(p).has_filename(); };
+
+    EXPECT_EQ("foo", filename("foo"));
+    EXPECT_TRUE(has_filename("foo"));
+
+    EXPECT_EQ("foo", filename("bar/foo"));
+    EXPECT_TRUE(has_filename("bar/foo"));
+
+    EXPECT_EQ("foo", filename("/bar/foo"));
+    EXPECT_TRUE(has_filename("/bar/foo"));
+
+    EXPECT_EQ("foo", filename("./foo"));
+    EXPECT_TRUE(has_filename("./foo"));
+
+    EXPECT_EQ("foo", filename("../foo"));
+    EXPECT_TRUE(has_filename("../foo"));
+
+    EXPECT_EQ(".", filename("."));
+    EXPECT_TRUE(has_filename("."));
+
+    EXPECT_EQ("", filename("foo/"));
+    EXPECT_FALSE(has_filename("foo/"));
+
+    EXPECT_EQ("", filename("foo/bar/"));
+    EXPECT_FALSE(has_filename("foo/bar/"));
+
+    EXPECT_EQ("", filename("/foo/bar/"));
+    EXPECT_FALSE(has_filename("/foo/bar/"));
+
+    EXPECT_EQ("", filename("./"));
+    EXPECT_FALSE(has_filename("./"));
+
+    EXPECT_EQ("", filename("/"));
+    EXPECT_FALSE(has_filename("/"));
+}
+
+TEST(path, parent_path) {
+    auto parent_path = [](auto p) { return posix_path(p).parent_path().native(); };
+    auto has_parent_path = [](auto p) { return posix_path(p).has_parent_path(); };
+
+    EXPECT_EQ("/abc", parent_path("/abc/"));
+    EXPECT_TRUE(has_parent_path("/abc/"));
+
+    EXPECT_EQ("/abc", parent_path("/abc/def"));
+    EXPECT_TRUE(has_parent_path("/abc/def"));
+
+    EXPECT_EQ("/abc", parent_path("/abc/."));
+    EXPECT_TRUE(has_parent_path("/abc/."));
+
+    EXPECT_EQ("/", parent_path("/"));
+    EXPECT_TRUE(has_parent_path("/"));
+
+    EXPECT_EQ("abc", parent_path("abc/def"));
+    EXPECT_TRUE(has_parent_path("abc/def"));
+
+    EXPECT_EQ("abc/def", parent_path("abc/def/ghi"));
+    EXPECT_TRUE(has_parent_path("abc/def/ghi"));
+
+    EXPECT_EQ("", parent_path("abc"));
+    EXPECT_FALSE(has_parent_path("abc"));
+
+    EXPECT_EQ("", parent_path("."));
+    EXPECT_FALSE(has_parent_path("."));
+
+    EXPECT_EQ("", parent_path(""));
+    EXPECT_FALSE(has_parent_path(""));
+}
+
 TEST(path, posix_iostream) {
     std::istringstream ss("/quux/xyzzy");
     posix_path p;

@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -173,10 +174,28 @@ public:
         return canonical().compare(other.canonical());
     }
 
-    // TODO: add unit test for filename()
     posix_path filename() const {
         auto i = p_.rfind('/');
         return i==std::string::npos? *this: posix_path(p_.substr(i+1));
+    }
+
+    bool has_filename() const {
+        if (p_.empty()) return false;
+
+        auto i = p_.rfind('/');
+        return i==std::string::npos || i+1<p_.length();
+    }
+
+    posix_path parent_path() const {
+        auto i = p_.rfind('/');
+
+        if (i==0) return posix_path("/");
+        else if (i==std::string::npos) return posix_path();
+        else return posix_path(p_.substr(0, i));
+    }
+
+    bool has_parent_path() const {
+        return p_.rfind('/')!=std::string::npos;
     }
 
     // Non-member functions
@@ -188,7 +207,7 @@ public:
 
     friend std::size_t hash_value(const posix_path& p) {
         std::hash<posix_path::string_type> hash;
-        return hash(p.p_);
+        return hash(p.canonical());
     }
 
     friend std::ostream& operator<<(std::ostream& o, const posix_path& p) {
@@ -612,3 +631,15 @@ inline directory_iterator begin(directory_iterator i) noexcept { return i; }
 inline directory_iterator end(const directory_iterator& i) noexcept { return directory_iterator{}; }
 
 } // namespace sup
+
+// Hash based on canonical path string in namespace std.
+namespace std {
+    template<> struct hash<::sup::path> {
+        using argument_type = ::sup::path;
+        using result_type = std::size_t;
+        result_type operator()(const argument_type& a) const noexcept {
+            return hash_value(a);
+        }
+    };
+}
+
