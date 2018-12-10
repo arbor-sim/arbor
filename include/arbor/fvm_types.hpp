@@ -18,8 +18,10 @@ struct gap_junction {
     std::pair<value_type, value_type> area;
     value_type ggap; //μS
 
+    gap_junction() {}
     gap_junction(std::pair<index_type, index_type> l, std::pair<value_type, value_type> a,
                  value_type g): loc(l), area(a), ggap(g) {}
+
 };
 
 } // namespace arb

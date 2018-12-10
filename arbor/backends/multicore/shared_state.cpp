@@ -126,6 +126,7 @@ shared_state::shared_state(
     n_cv(cv_to_cell_vec.size()),
     n_gj(gj_vec.size()),
     cv_to_cell(math::round_up(n_cv, alignment), pad(alignment)),
+    gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
     time(n_cell, pad(alignment)),
     time_to(n_cell, pad(alignment)),
     dt_cell(n_cell, pad(alignment)),
@@ -142,9 +143,8 @@ shared_state::shared_state(
         std::fill(cv_to_cell.begin()+n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
     }
     if (n_gj>0) {
-        gap_junctions.reserve(n_gj);
         std::copy(gj_vec.begin(), gj_vec.end(), gap_junctions.begin());
-        //std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
+        std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
     }
 }
 

@@ -42,6 +42,21 @@ __global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt,
     }
 }
 
+template <typename T, typename I>
+__global__ void update_gj_state_impl(unsigned n, const T* gj_info, const I* voltage, I* current_density) {
+    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
+    if (i<n) {
+        auto gj = gj_info[i];
+        auto curr = gj.ggap *
+                    (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
+
+        curr *= (1e3 / gj.area.first); // A/m2
+
+        current_density[gj.loc.first] -= curr;
+
+    }
+}
+
 // Vector minus: x = y - z
 template <typename T>
 __global__ void vec_minus(unsigned n, T* x, const T* y, const T* z) {
@@ -124,6 +139,16 @@ void set_dt_impl(
 
     nblock = block_count(ncomp, block_dim);
     kernel::gather<<<nblock, block_dim>>>(ncomp, dt_comp, dt_cell, cv_to_cell);
+}
+
+void update_gj_state_impl(
+    fvm_size_type n_gj, const gap_junction* gj_info, const fvm_value_type* voltage, fvm_value_type* current_density)
+{
+    if(!n_gj) return;
+
+    constexpr int block_dim = 128;
+    int nblock = block_count(ncell, block_dim);
+    kernel::update_gj_state_impl<<<nblock, block_dim>>>(n_gj, gj_info, voltage, current_density);
 }
 
 void take_samples_impl(
