@@ -34,7 +34,6 @@ struct glob_sup_fs_provider {
 private:
     static directory_iterator get_iterator(const sup::path& p) {
         return directory_iterator(p.empty()? ".": p,
-            directory_options::follow_directory_symlink | // TODO: this is currently ignored
             directory_options::skip_permission_denied);
     }
 };
@@ -69,7 +68,7 @@ static bool match_char_class(const char*& p, char c) {
             continue;
         }
 
-        lrange = c;
+        lrange = *p;
         match = c==*p;
         first = false;
     }
@@ -84,6 +83,7 @@ static bool match_char_class(const char*& p, char c) {
 // by an intial '.' in the pattern.
 
 bool glob_basic_match(const char* p, const char* t) {
+     // NFA state represented by pointers into directly into pattern.
     std::list<const char*> state = {p};
 
     char c;
@@ -189,11 +189,15 @@ static pattern_component tokenize(char*& pattern) {
     return k;
 }
 
+// Return matching paths, unsorted, based on supplied pattern.
+// Performs breadth-first search of the directory tree.
+
 std::vector<path> glob_basic(const std::string& pattern, const glob_fs_provider& fs) {
     if (pattern.empty()) return {};
 
     // Make a mutable copy for tokenization.
     std::vector<char> pcopy(pattern.begin(), pattern.end());
+    pcopy.push_back(0);
 
     char* c = pcopy.data();
     if (!*c) return {};

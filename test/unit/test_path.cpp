@@ -393,3 +393,31 @@ TEST(path, posix_status_perms) {
     EXPECT_NE(perms::none, root_perm&perms::others_exec);
 }
 
+TEST(path, posix_directory_iterators) {
+    // Expect that /dev exists and that iterating on /dev will give
+    // an entry called 'null'. (This is guaranteed by POSIX.)
+    //
+    // Expect that the file type checks as given by is_block_file(),
+    // is_fifo() etc. will agree for directory iterators and paths.
+
+    auto it = directory_iterator("/dev");
+    EXPECT_NE(directory_iterator(), it); // Equal => empty directory.
+
+    bool found_dev_null = false;
+    for (; it!=directory_iterator(); ++it) {
+        if (it->path()=="/dev/null") found_dev_null = true;
+
+        file_status st = symlink_status(it->path());
+
+        // Check file type tests match up.
+        EXPECT_EQ(it->is_block_file(), is_block_file(st));
+        EXPECT_EQ(it->is_directory(), is_directory(st));
+        EXPECT_EQ(it->is_character_file(), is_character_file(st));
+        EXPECT_EQ(it->is_fifo(), is_fifo(st));
+        EXPECT_EQ(it->is_regular_file(), is_regular_file(st));
+        EXPECT_EQ(it->is_socket(), is_socket(st));
+        EXPECT_EQ(it->is_symlink(), is_symlink(st));
+    }
+
+    EXPECT_TRUE(found_dev_null);
+}

@@ -35,6 +35,7 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
   "location of generated validation data")
 
 # For sup::glop, just wrap POSIX glob(3)?
+# Turn off for platforms without glob(3) in libc, e.g. Android Bionic.
 
 option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
 

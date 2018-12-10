@@ -12,7 +12,7 @@ extern "C" {
 namespace sup {
 
 namespace impl {
-    file_status status(const char* p, int r, struct stat& st, std::error_code& ec)  noexcept {
+    file_status status(const char* p, int r, struct stat& st, std::error_code& ec) noexcept {
         if (!r) {
             // Success:
             ec.clear();
@@ -86,6 +86,7 @@ posix_directory_iterator::posix_directory_iterator(const path& p, directory_opti
 {
     ec.clear();
     if ((state_->dir = opendir(p.c_str()))) {
+        state_->dir_path = p;
         increment(ec);
         return;
     }

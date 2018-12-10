@@ -9,6 +9,82 @@ using namespace sup;
 #include <string>
 #include <unordered_map>
 
+TEST(glob, pattern) {
+    EXPECT_TRUE( glob_basic_match( "literal", "literal"));
+    EXPECT_FALSE(glob_basic_match("literal", "Literal"));
+
+    EXPECT_TRUE( glob_basic_match("[a-z][A-Z]", "aA"));
+    EXPECT_TRUE( glob_basic_match("[a-z][A-Z]", "zZ"));
+    EXPECT_TRUE( glob_basic_match("[a-z][A-Z]", "bQ"));
+    EXPECT_FALSE(glob_basic_match("[a-z][A-Z]", "AA"));
+    EXPECT_FALSE(glob_basic_match("[a-z][A-Z]", "A@"));
+
+    EXPECT_TRUE (glob_basic_match("[!0-9a]", "A"));
+    EXPECT_FALSE(glob_basic_match("[!0-9a]", "0"));
+    EXPECT_FALSE(glob_basic_match("[!0-9a]", "5"));
+    EXPECT_FALSE(glob_basic_match("[!0-9a]", "9"));
+    EXPECT_FALSE(glob_basic_match("[!0-9a]", "a"));
+
+    EXPECT_TRUE (glob_basic_match("[-q]", "-"));
+    EXPECT_TRUE (glob_basic_match("[-q]", "q"));
+    EXPECT_FALSE(glob_basic_match("[-q]", "p"));
+
+    EXPECT_TRUE (glob_basic_match("[q-]", "-"));
+    EXPECT_TRUE (glob_basic_match("[q-]", "q"));
+    EXPECT_FALSE(glob_basic_match("[-q]", "p"));
+
+    EXPECT_TRUE (glob_basic_match("[!a-]", "b"));
+    EXPECT_FALSE(glob_basic_match("[!a-]", "a"));
+    EXPECT_FALSE(glob_basic_match("[!a-]", "-"));
+
+    EXPECT_TRUE (glob_basic_match("[]-]z", "-z"));
+    EXPECT_TRUE (glob_basic_match("[]-]z", "]z"));
+    EXPECT_FALSE(glob_basic_match("[]-]z", "[z"));
+
+    EXPECT_TRUE( glob_basic_match("?", "a"));
+    EXPECT_TRUE( glob_basic_match("?", " "));
+    EXPECT_FALSE(glob_basic_match("?", " a"));
+    EXPECT_FALSE(glob_basic_match("?", ""));
+
+    EXPECT_TRUE( glob_basic_match("a*b", "ab"));
+    EXPECT_TRUE( glob_basic_match("a*b", "abb"));
+    EXPECT_TRUE( glob_basic_match("a*b", "a01234b"));
+    EXPECT_FALSE(glob_basic_match("a*b", "ac"));
+    EXPECT_FALSE(glob_basic_match("a*b", "cb"));
+
+    EXPECT_TRUE( glob_basic_match("a****b", "ab"));
+    EXPECT_TRUE( glob_basic_match("a****b", "a01b"));
+    EXPECT_FALSE(glob_basic_match("a****b", "a01"));
+
+    EXPECT_TRUE( glob_basic_match("\\*", "*"));
+    EXPECT_FALSE(glob_basic_match("\\*", "z"));
+
+    EXPECT_TRUE( glob_basic_match("\\?", "?"));
+    EXPECT_FALSE(glob_basic_match("\\?", "z"));
+
+    EXPECT_TRUE( glob_basic_match("\\[p-q]", "[p-q]"));
+    EXPECT_FALSE(glob_basic_match("\\[p-q]", "\\p"));
+    EXPECT_TRUE( glob_basic_match("\\\\[p-q]", "\\p"));
+
+    // Check for dodgy exponential behaviour...
+    EXPECT_FALSE( glob_basic_match(
+        "*x*x*x*x*x*x*x*x*x*x*x*x*x*x_",
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"));
+
+    // Check special-case handling for initial period:
+
+    EXPECT_FALSE(glob_basic_match("*",  ".foo"));
+    EXPECT_TRUE( glob_basic_match(".*", ".foo"));
+
+    EXPECT_FALSE(glob_basic_match("??",  ".f"));
+    EXPECT_TRUE( glob_basic_match(".?",  ".f"));
+
+    EXPECT_FALSE(glob_basic_match("[.a][.a][.a]", "..a"));
+    EXPECT_TRUE( glob_basic_match(".[.a][.a]",  "..a"));
+
+    EXPECT_TRUE( glob_basic_match("\\.*", ".foo"));
+}
+
 struct mock_fs_provider {
     using action_type = glob_fs_provider::action_type;
 

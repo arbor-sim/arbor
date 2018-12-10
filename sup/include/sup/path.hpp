@@ -385,6 +385,15 @@ inline file_status status(const path& p) {
     return r;
 }
 
+inline file_status symlink_status(const path& p) {
+    std::error_code ec;
+    auto r = symlink_status(p, ec);
+    if (ec) {
+        throw filesystem_error("status()", p, ec);
+    }
+    return r;
+}
+
 inline bool exists(file_status s) noexcept {
     return s.type()!=file_type::not_found;
 }
