@@ -86,8 +86,10 @@ struct shared_state {
 
     fvm_size_type n_cell = 0; // Number of distinct cells (integration domains).
     fvm_size_type n_cv = 0;   // Total number of CVs.
+    fvm_size_type n_gj = 0;   // Total number of GJs.
 
     iarray cv_to_cell;        // Maps CV index to cell index.
+    gjarray  gap_junctions;   // Stores gap_junction info.
     array  time;              // Maps cell index to integration start time [ms].
     array  time_to;           // Maps cell index to integration stop time [ms].
     array  dt_cell;           // Maps cell index to (stop time) - (start time) [ms].
@@ -105,6 +107,7 @@ struct shared_state {
     shared_state(
         fvm_size_type n_cell,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
+        const std::vector<gap_junction>& gj_vec,
         unsigned align
     );
 
@@ -125,6 +128,9 @@ struct shared_state {
 
     // Set the per-cell and per-compartment dt from time_to - time.
     void set_dt();
+
+    // Update gap_junction state
+    void update_gj_state();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;

@@ -49,17 +49,17 @@ struct segment_info {
 
 // Discritized gap_junction representation
 
-struct gap_junction {
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
-
-    std::pair<index_type, index_type> loc;
-    std::pair<value_type, value_type> area;
-    value_type ggap; //μS
-
-    gap_junction(std::pair<index_type, index_type> l, std::pair<value_type, value_type> a,
-            value_type g): loc(l), area(a), ggap(g) {}
-};
+//struct gap_junction {
+//    using value_type = fvm_value_type;
+//    using index_type = fvm_index_type;
+//
+//    std::pair<index_type, index_type> loc;
+//    std::pair<value_type, value_type> area;
+//    value_type ggap; //μS
+//
+//    gap_junction(std::pair<index_type, index_type> l, std::pair<value_type, value_type> a,
+//            value_type g): loc(l), area(a), ggap(g) {}
+//};
 
 
 

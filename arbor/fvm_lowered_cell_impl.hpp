@@ -89,7 +89,6 @@ private:
     value_type initial_voltage_ = NAN;
     value_type temperature_ = NAN;
     std::vector<mechanism_ptr> mechanisms_;
-    std::vector<gap_junction> gap_junctions_;
 
     // Non-physical voltage check threshold, 0 => no check.
     value_type check_voltage_mV = 0;
@@ -190,16 +189,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Add current contribution from gap_junctions
-
-        for (auto gj: gap_junctions_) {
-            auto curr = gj.ggap *
-                        (state_->voltage[gj.loc.second] - state_->voltage[gj.loc.first]); // nA
-
-            curr *= (1e3 / gj.area.first); // A/m2
-
-            state_->current_density[gj.loc.first] -= curr;
-        }
-
+        state_->update_gj_state();
 
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
@@ -359,7 +349,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Get list of gap junctions
 
-    gap_junctions_ = fvm_gap_junctions(cells, gids, rec, D);
+    auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
     sample_events_ = sample_event_stream(ncell);
@@ -375,7 +365,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, gj_vector, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 

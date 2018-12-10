@@ -117,12 +117,14 @@ void ion_state::zero_current() {
 shared_state::shared_state(
     fvm_size_type n_cell,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
+    const std::vector<gap_junction>& gj_vec,
     unsigned align
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
     n_cell(n_cell),
     n_cv(cv_to_cell_vec.size()),
+    n_gj(gj_vec.size()),
     cv_to_cell(math::round_up(n_cv, alignment), pad(alignment)),
     time(n_cell, pad(alignment)),
     time_to(n_cell, pad(alignment)),
@@ -138,6 +140,11 @@ shared_state::shared_state(
     if (n_cv>0) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin()+n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
+    }
+    if (n_gj>0) {
+        gap_junctions.reserve(n_gj);
+        std::copy(gj_vec.begin(), gj_vec.end(), gap_junctions.begin());
+        //std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
     }
 }
 
@@ -205,6 +212,18 @@ void shared_state::set_dt() {
 
         simd_value_type dt(simd::indirect(dt_cell.data(), cell_idx));
         dt.copy_to(dt_cv.data()+i);
+    }
+}
+
+void shared_state::update_gj_state() {
+    for (unsigned i = 0; i < n_gj; i++) {
+        auto gj = gap_junctions[i];
+        auto curr = gj.ggap *
+                    (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
+
+        curr *= (1e3 / gj.area.first); // A/m2
+
+        current_density[gj.loc.first] -= curr;
     }
 }
 
