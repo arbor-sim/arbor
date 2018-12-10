@@ -499,7 +499,7 @@ struct directory_entry {
     directory_entry(directory_entry&&) noexcept = default;
 
     directory_entry& operator=(const directory_entry&) = default;
-    directory_entry& operator=(directory_entry&&) noexcept = default;
+    directory_entry& operator=(directory_entry&&) = default; // remove 'noexcept' for clang-4.0
 
     explicit directory_entry(const path& p) { assign(p); }
     directory_entry(const path& p, std::error_code& ec) { assign(p, ec); }

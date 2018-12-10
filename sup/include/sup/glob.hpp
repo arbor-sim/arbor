@@ -52,6 +52,7 @@ private:
         virtual void for_each_directory(const sup::path&, action_type action) const = 0;
         virtual void for_each_entry(const sup::path&, action_type action) const = 0;
         virtual base* clone() const = 0;
+        virtual ~base() {}
     };
 
     template <typename Impl>
