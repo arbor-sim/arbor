@@ -68,9 +68,9 @@ namespace {
         cell_size_type size_;
     };
 
-    class gj_recipe: public recipe {
+    class gj_symmetric: public recipe {
     public:
-        gj_recipe(unsigned num_ranks): ncopies_(num_ranks){}
+        gj_symmetric(unsigned num_ranks): ncopies_(num_ranks){}
 
         cell_size_type num_cells() const override {
             return size_*ncopies_;
@@ -107,6 +107,40 @@ namespace {
     private:
         cell_size_type size_ = 10;
         unsigned ncopies_;
+    };
+
+    class gj_non_symmetric: public recipe {
+    public:
+        gj_non_symmetric(unsigned num_ranks): groups_(num_ranks), size_(num_ranks){}
+
+        cell_size_type num_cells() const override {
+            return size_*groups_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type) const override {
+            return {};
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return cell_kind::cable1d_neuron;
+        }
+        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            unsigned group = gid/groups_;
+            unsigned id = gid%size_;
+            if(id == group && group != (groups_ - 1)) {
+                return {gap_junction_connection({gid + size_, 0}, 0.1)};
+            }
+            else if (id == group - 1) {
+                return {gap_junction_connection({gid - size_, 0}, 0.1)};
+            }
+            else {
+                return {};
+            }
+        }
+
+    private:
+        unsigned groups_;
+        cell_size_type size_;
     };
 }
 
@@ -270,7 +304,7 @@ TEST(domain_decomposition, compulsory_groups)
 #else
     auto ctx = make_context(resources);
 #endif
-    auto R = gj_recipe(nranks);
+    auto R = gj_symmetric(nranks);
     const auto D = partition_load_balance(R, ctx);
     EXPECT_EQ(6u, D.groups.size());
 
@@ -288,8 +322,48 @@ TEST(domain_decomposition, compulsory_groups)
         EXPECT_EQ(expected_groups[i], D.groups[i].gids);
     }
 
-    for (unsigned i = rank*R.num_cells(); i < (rank + 1)*R.num_cells(); i++) {
+    unsigned cells_per_rank = R.num_cells()/nranks;
+    for (unsigned i = rank*cells_per_rank; i < (rank + 1)*cells_per_rank; i++) {
         EXPECT_EQ(D.gid_domain(i), rank);
     }
 
+}
+
+TEST(domain_decomposition, non_symmetric_groups)
+{
+    proc_allocation resources{1, -1};
+    int nranks = 1;
+    int rank = 0;
+#ifdef TEST_MPI
+    auto ctx = make_context(resources, MPI_COMM_WORLD);
+    MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#else
+    auto ctx = make_context(resources);
+#endif
+    if (nranks == 1) {
+        return;
+    }
+
+    auto R = gj_non_symmetric(nranks);
+    const auto D = partition_load_balance(R, ctx);
+
+    unsigned cells_per_rank = R.num_cells()/nranks;
+    unsigned i = 0;
+    for (unsigned gid = rank*cells_per_rank; gid < (rank + 1)*cells_per_rank; gid++) {
+        if (gid % nranks == (unsigned)rank - 1) {
+            continue;
+        }
+        else if (gid % nranks == (unsigned)rank && rank != nranks - 1) {
+            std::vector<cell_gid_type> cg = {gid, gid+cells_per_rank};
+            EXPECT_EQ(cg, D.groups[D.groups.size()-1].gids);
+            EXPECT_EQ(rank, D.gid_domain(gid));
+            EXPECT_EQ(rank, D.gid_domain(gid+cells_per_rank));
+        }
+        else {
+            std::vector<cell_gid_type> cg = {gid};
+            EXPECT_EQ(cg, D.groups[i++].gids);
+            EXPECT_EQ(rank, D.gid_domain(gid));
+        }
+    }
 }
