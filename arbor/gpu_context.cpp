@@ -38,7 +38,12 @@ bool gpu_context::has_gpu() const {
 
 #ifndef ARB_HAVE_GPU
 
+void gpu_context::set_gpu() const {
+    throw arbor_exception("Arbor must be compiled with CUDA support to set a GPU.");
+}
+
 void gpu_context::synchronize_for_managed_access() const {}
+
 gpu_context::gpu_context(int) {
     throw arbor_exception("Arbor must be compiled with CUDA support to select a GPU.");
 }
@@ -52,13 +57,12 @@ gpu_context::gpu_context(int gpu_id) {
         throw arbor_exception("Invalid GPU id " + std::to_string(gpu_id));
     }
 
-    // Set the device
-    status = cudaSetDevice(gpu_id);
-    if (status!=cudaSuccess) {
-        throw arbor_exception("Unable to select GPU id " + std::to_string(gpu_id));
-    }
-
+    // Set the device.
+    // The device will also have to be set for every host thread that uses the
+    // GPU, however performing this call here is a good check that the GPU can
+    // be set and initialized.
     id_ = gpu_id;
+    set_gpu();
 
     // Record the device attributes
     attributes_ = 0;
@@ -73,6 +77,19 @@ gpu_context::gpu_context(int gpu_id) {
 void gpu_context::synchronize_for_managed_access() const {
     if(!has_concurrent_managed_access()) {
         cudaDeviceSynchronize();
+    }
+}
+
+void gpu_context::set_gpu() const {
+    if (!has_gpu()) {
+        throw arbor_exception(
+            "Call to gpu_context::set_gpu() when there is no GPU selected.");
+    }
+    auto status = cudaSetDevice(id_);
+    if (status != cudaSuccess) {
+        throw arbor_exception(
+            "Unable to select GPU id " + std::to_string(id_)
+            + ": " + cudaGetErrorName(status));
     }
 }
 

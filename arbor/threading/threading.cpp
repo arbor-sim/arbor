@@ -1,7 +1,6 @@
 #include <atomic>
 
 #include "threading.hpp"
-#include "thread_info.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
@@ -82,7 +81,8 @@ void task_system::try_run_task() {
     }
 }
 
-task_system::task_system(): task_system(num_threads_init()) {}
+// Default construct with one thread.
+task_system::task_system(): task_system(1) {}
 
 task_system::task_system(int nthreads): count_(nthreads), q_(nthreads) {
     if (nthreads <= 0)

@@ -13,13 +13,10 @@ set(arbor_sources
     common_types_io.cpp
     execution_context.cpp
     gpu_context.cpp
-    local_alloc.cpp
     event_binner.cpp
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
-    hardware/affinity.cpp
     hardware/memory.cpp
-    hardware/node_info.cpp
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
@@ -43,7 +40,6 @@ set(arbor_sources
     spike_source_cell_group.cpp
     swcio.cpp
     threading/threading.cpp
-    threading/thread_info.cpp
     thread_private_spike_store.cpp
     tree.cpp
     util/hostname.cpp
@@ -92,6 +88,10 @@ add_library(arbor-private-headers INTERFACE)
 target_include_directories(arbor-private-headers INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
+if(ARB_WITH_GPU)
+    target_include_directories(arbor-private-headers INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
+
 install(TARGETS arbor-private-headers EXPORT arbor-targets)
 
 # Mechanisms, generated from .mod files; sets arbor_mechanism_sources
@@ -107,6 +107,7 @@ add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
+set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

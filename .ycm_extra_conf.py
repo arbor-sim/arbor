@@ -60,8 +60,8 @@ flags = [
     'python/pybind11/include',
     '-I',
     '/usr/include/python3.6m', # TODO: run a command to find this on "any" system
-    '-DARB_HAVE_GPU'
-    'aux/include',
+    '-I',
+    'sup/include',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

@@ -73,8 +73,9 @@ if (NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
 endif()
 
-# When we find threads, prefer -pthread option.
-set(THREADS_PREFER_PTHREAD_FLAG ON)
+# When we find threads, prefer not to use the -pthread option
+# in order to avoid a CMake 3.12 issue.
+set(THREADS_PREFER_PTHREAD_FLAG OFF)
 
 # Add CUDA as a language if GPU support requested.
 # (This has to be set early so as to enable CUDA tests in generator
@@ -222,7 +223,6 @@ if(ARB_WITH_GPU)
     target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
     target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
     target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
-
 endif()
 
 # Use libunwind if available for pretty printing stack traces
@@ -351,6 +351,27 @@ write_basic_package_version_file(
 # Template file will use contents of arbor_export_dependencies to include the
 # required `find_dependency` statements, and arbor_supported_components will
 # be used to check feature support.
+#
+# To avoid CMake users of the installed arbor library conditionally requiring
+# that they add CUDA to their project language, explicitly munge the import
+# language and library dependencies on the installed target if ARB_WITH_GPU
+# is set, via the variables arbor_override_import_lang and arbor_add_import_libs.
+# arbor_build_config records our build type in a way compatible with the
+# generated export cmake files.
+
+set(arbor_build_config NOCONFIG)
+if(CMAKE_BUILD_TYPE)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" arbor_build_config)
+endif()
+
+set(arbor_override_import_lang)
+set(arbor_add_import_libs)
+
+if(ARB_WITH_GPU)
+    set(arbor_override_import_lang CXX)
+    find_package(CUDA REQUIRED)
+    set(arbor_add_import_libs ${CUDA_LIBRARIES})
+endif()
 
 configure_file(
     cmake/arbor-config.cmake.in
