@@ -88,6 +88,7 @@ struct shared_state {
     shared_state(
         fvm_size_type n_cell,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
+        const std::vector<gap_junction>& gj_vec,
         unsigned align
     );
 

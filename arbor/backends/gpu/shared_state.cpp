@@ -112,11 +112,14 @@ void ion_state::zero_current() {
 shared_state::shared_state(
     fvm_size_type n_cell,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
+    const std::vector<gap_junction>& gj_vec,
     unsigned // alignment parameter ignored.
 ):
     n_cell(n_cell),
     n_cv(cv_to_cell_vec.size()),
+    n_gj(gj_vec.size()),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
+    gap_junctions(make_const_view(gj_vec)),
     time(n_cell),
     time_to(n_cell),
     dt_cell(n_cell),

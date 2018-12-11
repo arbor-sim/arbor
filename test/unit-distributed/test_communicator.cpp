@@ -148,7 +148,7 @@ TEST(communicator, gather_gids_variant) {
 
     constexpr int scale = 10;
     const auto n_local_gids = scale*rank;
-    auto sumn = [](int n) {return scale*n*(n+1)/2;};
+    auto sumn = [](unsigned n) {return scale*n*(n+1)/2;};
 
     std::vector<cell_gid_type > local_gids;
     const auto local_start_id = sumn(rank-1);
@@ -164,7 +164,7 @@ TEST(communicator, gather_gids_variant) {
     EXPECT_EQ(unsigned(num_domains+1), part.size());
     EXPECT_EQ(0, (int)part[0]);
     for (auto i=1u; i<part.size(); ++i) {
-        EXPECT_EQ(sumn(i-1), (int)part[i]);
+        EXPECT_EQ(sumn(i-1), part[i]);
     }
 
     // Test that gids were correctly exchanged
