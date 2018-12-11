@@ -189,10 +189,6 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         gj_recipe recipe(params);
 
-        for(unsigned i = 0; i < recipe.num_cells(); i++){
-            std::cout << "Num gap_junctions for cell " << i << ":" << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
-        }
-
         cell_stats stats(recipe);
         std::cout << stats << "\n";
 

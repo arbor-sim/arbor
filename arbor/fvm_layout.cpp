@@ -242,6 +242,9 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
         const recipe& rec, const fvm_discretization& D) {
     std::vector<gap_junction> v;
 
+    fvm_size_type gj_loc_size = 0;
+    fvm_size_type gj_conn_size = 0;
+
     // Map gid to location in the cell group
     std::unordered_map<cell_gid_type, unsigned> gid_to_loc;
     for (unsigned i = 0; i < gids.size(); i++) {
@@ -253,6 +256,7 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
     std::vector<fvm_index_type> gj_comps;
     for (auto cell_idx: make_span(0, D.ncell)) {
         auto cell_gj = cells[cell_idx].gap_junctions();
+        gj_loc_size += cell_gj.size();
         for (auto gj : cell_gj) {
             auto cv = D.segment_location_cv(cell_idx, gj);
             gj_comps.push_back(cv);
@@ -268,6 +272,7 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
     unsigned i = 0;
     for (auto gid : gids) {
         auto gj_list = rec.gap_junctions_on(gid);
+        gj_conn_size += gj_list.size();
         for(auto gj : gj_list) {
             // Calculate which cv a gj refers to from gj_comps
             auto shift = gid_to_loc[gj.location.gid];
@@ -279,6 +284,10 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
             auto weight = gj.ggap * 1e3 / D.cv_area[cv0];
             v.push_back(gap_junction(std::make_pair(cv0, cv1), weight));
         }
+    }
+
+    if(gj_loc_size != gj_conn_size) {
+        throw arbor_internal_error("Gap junctions: number of gap_junction instances (locations) does not equal number of gap junctions (connections)");
     }
 
     return v;
