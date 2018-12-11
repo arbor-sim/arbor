@@ -249,7 +249,7 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
     }
 
     // Get gj locations as cv for every cell in group
-    // These represent one half of the gap junction
+    // These represent one half of the gap junctions
     std::vector<fvm_index_type> gj_comps;
     for (auto cell_idx: make_span(0, D.ncell)) {
         auto cell_gj = cells[cell_idx].gap_junctions();
@@ -264,7 +264,7 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
     make_partition(gj_divisions, transform_view(gids, num_gj));
 
     // Get gj locations as cv from cell's gap_junction connections
-    // These represent the second half of the gap junction
+    // These represent the second half of the gap junctions
     unsigned i = 0;
     for (auto gid : gids) {
         auto gj_list = rec.gap_junctions_on(gid);

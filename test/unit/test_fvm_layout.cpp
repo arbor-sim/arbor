@@ -847,4 +847,3 @@ TEST(fvm_layout, cell_group_gj) {
         EXPECT_EQ(expected_loc[i], GJ1[i].loc);
     }
 }
-

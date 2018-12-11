@@ -153,7 +153,7 @@ struct local_context {
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;
         return gathered_vector<cell_gid_type>(
-                std::vector<cell_gid_type >(local_gids),
+                std::vector<cell_gid_type>(local_gids),
                 {0u, static_cast<count_type>(local_gids.size())}
         );
     }
