@@ -5,6 +5,7 @@
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 
+#include "cuda_atomic.hpp"
 #include "cuda_common.hpp"
 
 namespace arb {
@@ -48,7 +49,8 @@ __global__ void update_gj_state_impl(unsigned n, const T* gj_info, const I* volt
     if (i<n) {
         auto gj = gj_info[i];
         auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-        current_density[gj.loc.first] -= curr;
+
+        cuda_atomic_sub(current_density + gj.loc.first, curr);
     }
 }
 
