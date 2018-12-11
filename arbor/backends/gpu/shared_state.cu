@@ -47,10 +47,8 @@ __global__ void update_gj_state_impl(unsigned n, const T* gj_info, const I* volt
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         auto gj = gj_info[i];
-        auto curr = gj.ggap *
+        auto curr = gj.weight *
                     (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-
-        curr *= (1e3 / gj.area.first); // A/m2
 
         current_density[gj.loc.first] -= curr;
 

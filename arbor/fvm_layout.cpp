@@ -278,9 +278,8 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
             auto cv1 = gj_comps[gj_divisions[shift] + offset];
             // Already found first half
             auto cv0 = gj_comps[i++];
-            v.push_back(gap_junction(std::make_pair(cv0, cv1),
-                    std::make_pair(D.cv_area[cv0], D.cv_area[cv1]),
-                    gj.ggap));
+            auto weight = gj.ggap * 1e3 / D.cv_area[cv0];
+            v.push_back(gap_junction(std::make_pair(cv0, cv1), weight));
         }
     }
 

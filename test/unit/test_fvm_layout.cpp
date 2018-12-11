@@ -662,11 +662,15 @@ TEST(fvm_layout, gj_coords) {
     std::vector<cell_gid_type> gids = {0, 1};
     auto GJ = fvm_gap_junctions(cells, gids, rec, D);
 
+    auto weight = [&](fvm_value_type g, fvm_index_type i){
+        return g * 1e3 / D.cv_area[i];
+    };
+
     EXPECT_EQ(pair({4,8}), GJ[0].loc);
-    EXPECT_EQ(0.5, GJ[0].ggap);
+    EXPECT_EQ(weight(0.5, 4), GJ[0].weight);
 
     EXPECT_EQ(pair({8,4}), GJ[1].loc);
-    EXPECT_EQ(0.5, GJ[1].ggap);
+    EXPECT_EQ(weight(0.5, 8), GJ[1].weight);
 }
 
 TEST(fvm_layout, gj_coords_2) {
@@ -762,12 +766,19 @@ TEST(fvm_layout, gj_coords_2) {
     auto GJ = fvm_gap_junctions(cells, gids, rec, D);
     EXPECT_EQ(10u, GJ.size());
 
+    auto weight = [&](fvm_value_type g, fvm_index_type i){
+        return g * 1e3 / D.cv_area[i];
+    };
+
     std::vector<pair> expected_loc = {{4, 14}, {4,11}, {2,21}, {14, 4}, {11,4} ,{8,28}, {6, 24}, {21,2}, {28,8}, {24, 6}};
-    std::vector<double> expected_weight = {0.03, 0.04, 0.01, 0.03, 0.04, 0.02, 0.01, 0.01, 0.02, 0.01};
+    std::vector<double> expected_weight = {
+            weight(0.03, 4), weight(0.04, 4), weight(0.01, 2), weight(0.03, 14), weight(0.04, 11),
+            weight(0.02, 8), weight(0.01, 6), weight(0.01, 21), weight(0.02, 28), weight(0.01, 24)
+    };
 
     for (unsigned i = 0; i < GJ.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ[i].loc);
-        EXPECT_EQ(expected_weight[i], GJ[i].ggap);
+        EXPECT_EQ(expected_weight[i], GJ[i].weight);
     }
 }
 

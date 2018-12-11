@@ -218,10 +218,8 @@ void shared_state::set_dt() {
 void shared_state::update_gj_state() {
     for (unsigned i = 0; i < n_gj; i++) {
         auto gj = gap_junctions[i];
-        auto curr = gj.ggap *
+        auto curr = gj.weight *
                     (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-
-        curr *= (1e3 / gj.area.first); // A/m2
 
         current_density[gj.loc.first] -= curr;
     }
