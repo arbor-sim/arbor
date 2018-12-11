@@ -240,8 +240,6 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 
 std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids,
         const recipe& rec, const fvm_discretization& D) {
-    using size_type = fvm_size_type;
-
     std::vector<gap_junction> v;
 
     // Map gid to location in the cell group
@@ -254,16 +252,16 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
     // These represent one half of the gap junction
     std::vector<fvm_index_type> gj_comps;
     for (auto cell_idx: make_span(0, D.ncell)) {
-        auto& cell_gj = cells[cell_idx].gap_junctions();
+        auto cell_gj = cells[cell_idx].gap_junctions();
         for (auto gj : cell_gj) {
-            size_type cv = D.segment_location_cv(cell_idx, gj);
+            auto cv = D.segment_location_cv(cell_idx, gj);
             gj_comps.push_back(cv);
         }
     }
 
     std::vector<unsigned> gj_divisions;
     auto num_gj = [&](cell_gid_type gid) { return rec.num_gap_junctions(gid);};
-    make_partition(gj_divisions, transform_view(make_span(D.ncell), num_gj));
+    make_partition(gj_divisions, transform_view(gids, num_gj));
 
     // Get gj locations as cv from cell's gap_junction connections
     // These represent the second half of the gap junction

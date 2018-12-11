@@ -72,7 +72,6 @@ domain_decomposition partition_load_balance(
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
     for(auto gid: make_span(gid_part[domain_id])) {
-        // If cell has no gap_junctions, put in separate group of independent cells
         if(!rec.gap_junctions_on(gid).empty()) {
             // If cell hasn't been visited yet, must belong to new group
             // Perform BFS starting from that cell
@@ -97,6 +96,7 @@ domain_decomposition partition_load_balance(
             }
         }
         else {
+            // If cell has no gap_junctions, put in separate group of independent cells
             ind_cells.push_back(gid);
         }
     }
@@ -109,7 +109,7 @@ domain_decomposition partition_load_balance(
                 return cg.front() < gid_part[domain_id].first;
             }), comp_groups.end());
 
-    // Collect local gids that belong to us, and sort independent gid into kind lists
+    // Collect local gids that belong to this rank, and sort independent gid into kind lists
     std::vector<cell_gid_type> local_gids;
     std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
     for (auto gid: ind_cells) {
@@ -186,13 +186,10 @@ domain_decomposition partition_load_balance(
         groups.push_back({k, std::move(cg), backend});
     }
 
-    // Calculate the number of local cells
-    cell_size_type num_local_cells = 0;
-    for(auto g : groups) {
-        num_local_cells += g.gids.size();
-    }
+    cell_size_type num_local_cells = local_gids.size();
 
     // Exchange gid list with all other nodes
+
     util::sort(local_gids);
 
     // global all-to-all to gather a local copy of the global gid list on each node.
@@ -204,7 +201,7 @@ domain_decomposition partition_load_balance(
     d.num_local_cells = num_local_cells;
     d.num_global_cells = num_global_cells;
     d.groups = std::move(groups);
-    d.gid_domain = partition_gid_domain(std::move(global_gids), num_domains); // TODO
+    d.gid_domain = partition_gid_domain(std::move(global_gids), num_domains);
 
     return d;
 }

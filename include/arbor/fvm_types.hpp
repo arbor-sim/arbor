@@ -15,7 +15,7 @@ struct gap_junction {
     using index_type = fvm_index_type;
 
     std::pair<index_type, index_type> loc;
-    value_type weight; //μS
+    value_type weight;
 
     gap_junction() {}
     gap_junction(std::pair<index_type, index_type> l, value_type w): loc(l), weight(w) {}

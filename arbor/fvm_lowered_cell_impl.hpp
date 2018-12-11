@@ -347,16 +347,16 @@ void fvm_lowered_cell_impl<B>::initialize(
     fvm_discretization D = fvm_discretize(cells);
     arb_assert(D.ncell == ncell);
 
-    // Get list of gap junctions
-
-    auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
-
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
     sample_events_ = sample_event_stream(ncell);
 
     // Discretize mechanism data.
 
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D);
+
+    // Discritize and build gap junction info
+
+    auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
     // Create shared cell state.
     // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)

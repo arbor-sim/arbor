@@ -292,7 +292,7 @@ TEST(domain_decomposition, heterogeneous_population) {
     }
 }
 
-TEST(domain_decomposition, compulsory_groups)
+TEST(domain_decomposition, symmetric_groups)
 {
     proc_allocation resources{1, -1};
     int nranks = 1;
@@ -323,8 +323,8 @@ TEST(domain_decomposition, compulsory_groups)
     }
 
     unsigned cells_per_rank = R.num_cells()/nranks;
-    for (unsigned i = rank*cells_per_rank; i < (rank + 1)*cells_per_rank; i++) {
-        EXPECT_EQ(D.gid_domain(i), rank);
+    for (unsigned i = 0; i < R.num_cells(); i++) {
+        EXPECT_EQ(i/cells_per_rank, (unsigned)D.gid_domain(i));
     }
 
 }
@@ -348,7 +348,8 @@ TEST(domain_decomposition, non_symmetric_groups)
     auto R = gj_non_symmetric(nranks);
     const auto D = partition_load_balance(R, ctx);
 
-    unsigned cells_per_rank = R.num_cells()/nranks;
+    unsigned cells_per_rank = nranks;
+    // check groups
     unsigned i = 0;
     for (unsigned gid = rank*cells_per_rank; gid < (rank + 1)*cells_per_rank; gid++) {
         if (gid % nranks == (unsigned)rank - 1) {
@@ -357,13 +358,25 @@ TEST(domain_decomposition, non_symmetric_groups)
         else if (gid % nranks == (unsigned)rank && rank != nranks - 1) {
             std::vector<cell_gid_type> cg = {gid, gid+cells_per_rank};
             EXPECT_EQ(cg, D.groups[D.groups.size()-1].gids);
-            EXPECT_EQ(rank, D.gid_domain(gid));
-            EXPECT_EQ(rank, D.gid_domain(gid+cells_per_rank));
         }
         else {
             std::vector<cell_gid_type> cg = {gid};
             EXPECT_EQ(cg, D.groups[i++].gids);
-            EXPECT_EQ(rank, D.gid_domain(gid));
+        }
+    }
+    // check gid_domains
+    for (unsigned gid = 0; gid < R.num_cells(); gid++) {
+        auto group = gid/cells_per_rank;
+        auto idx = gid % cells_per_rank;
+        unsigned ngroups = nranks;
+        if (idx == group - 1) {
+            EXPECT_EQ(group - 1, (unsigned)D.gid_domain(gid));
+        }
+        else if (idx == group && group != ngroups - 1) {
+            EXPECT_EQ(group, (unsigned)D.gid_domain(gid));
+        }
+        else {
+            EXPECT_EQ(group, (unsigned)D.gid_domain(gid));
         }
     }
 }

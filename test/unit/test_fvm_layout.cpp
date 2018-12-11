@@ -13,7 +13,6 @@
 
 #include "common.hpp"
 #include "../common_cells.hpp"
-#include "../simple_recipes.hpp"
 
 using namespace std::string_literals;
 using namespace arb;
@@ -620,10 +619,10 @@ TEST(fvm_layout, ion_weights) {
     }
 }
 
-TEST(fvm_layout, gj_coords) {
+TEST(fvm_layout, gj_coords_simple) {
     using pair = std::pair<int, int>;
 
-    class gap_recipe: public simple_recipe_base {
+    class gap_recipe: public recipe {
     public:
         gap_recipe() {}
 
@@ -673,10 +672,10 @@ TEST(fvm_layout, gj_coords) {
     EXPECT_EQ(weight(0.5, 8), GJ[1].weight);
 }
 
-TEST(fvm_layout, gj_coords_2) {
+TEST(fvm_layout, gj_coords_complex) {
     using pair = std::pair<int, int>;
 
-    class gap_recipe: public simple_recipe_base {
+    class gap_recipe: public recipe {
     public:
         gap_recipe() {}
 
@@ -785,7 +784,7 @@ TEST(fvm_layout, gj_coords_2) {
 TEST(fvm_layout, cell_group_gj) {
     using pair = std::pair<int, int>;
 
-    class gap_recipe: public simple_recipe_base {
+    class gap_recipe: public recipe {
     public:
         gap_recipe() {}
 
@@ -801,7 +800,7 @@ TEST(fvm_layout, cell_group_gj) {
                 auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
                 auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
                 conns.push_back(gap_junction_connection({next_cell, 0}, 0.03));
-                conns.push_back(gap_junction_connection({prev_cell, 0}, 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, 1}, 0.03));
             }
             return conns;
         }
@@ -818,8 +817,10 @@ TEST(fvm_layout, cell_group_gj) {
     for (unsigned i = 0; i < 20; i++) {
         mc_cell c;
         c.add_soma(2.1);
-        c.add_gap_junction({0, 1});
-        c.add_gap_junction({0, 1});
+        if(i%2 == 0) {
+            c.add_gap_junction({0, 1});
+            c.add_gap_junction({0, 1});
+        }
         if (i % 2 == 0) {
             if(i < 10) cell_group0.push_back(std::move(c));
             else cell_group1.push_back(std::move(c));
@@ -842,9 +843,8 @@ TEST(fvm_layout, cell_group_gj) {
     std::vector<pair> expected_loc = {{0, 1}, {0, 4}, {1, 2}, {1, 0}, {2, 3} ,{2, 1}, {3, 4}, {3, 2}, {4, 0}, {4, 3}};
 
     for (unsigned i = 0; i < GJ0.size(); i++) {
-       // std::cout << GJ0[i].loc.first << " " << GJ0[i].loc.second << std::endl;
-//        EXPECT_EQ(expected_loc[i], GJ0[i].loc);
-//        EXPECT_EQ(expected_loc[i], GJ1[i].loc);
+        EXPECT_EQ(expected_loc[i], GJ0[i].loc);
+        EXPECT_EQ(expected_loc[i], GJ1[i].loc);
     }
 }
 

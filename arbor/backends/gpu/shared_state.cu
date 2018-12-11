@@ -47,11 +47,8 @@ __global__ void update_gj_state_impl(unsigned n, const T* gj_info, const I* volt
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         auto gj = gj_info[i];
-        auto curr = gj.weight *
-                    (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-
+        auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
         current_density[gj.loc.first] -= curr;
-
     }
 }
 
@@ -145,7 +142,7 @@ void update_gj_state_impl(
     if(!n_gj) return;
 
     constexpr int block_dim = 128;
-    int nblock = block_count(ncell, block_dim);
+    int nblock = block_count(n_gj, block_dim);
     kernel::update_gj_state_impl<<<nblock, block_dim>>>(n_gj, gj_info, voltage, current_density);
 }
 

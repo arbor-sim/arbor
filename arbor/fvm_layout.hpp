@@ -5,10 +5,10 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/recipe.hpp>
 
 #include "fvm_compartment.hpp"
 #include "util/span.hpp"
-#include "../example/bench/recipe.hpp"
 
 namespace arb {
 
@@ -46,22 +46,6 @@ struct segment_info {
         }
     }
 };
-
-// Discritized gap_junction representation
-
-//struct gap_junction {
-//    using value_type = fvm_value_type;
-//    using index_type = fvm_index_type;
-//
-//    std::pair<index_type, index_type> loc;
-//    std::pair<value_type, value_type> area;
-//    value_type ggap; //μS
-//
-//    gap_junction(std::pair<index_type, index_type> l, std::pair<value_type, value_type> a,
-//            value_type g): loc(l), area(a), ggap(g) {}
-//};
-
-
 
 // Discretization of morphologies and electrical properties for
 // cells in a cell group.
