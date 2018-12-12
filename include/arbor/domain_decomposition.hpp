@@ -18,11 +18,14 @@ struct group_description {
     /// The gids of the cells in the cell_group, sorted in ascending order.
     const std::vector<cell_gid_type> gids;
 
+    /// The dependencies between gids (supercell groupings).
+    const std::vector<int> deps;
+
     /// The back end on which the cell_group is to run.
     const backend_kind backend;
 
-    group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
-        kind(k), gids(std::move(g)), backend(b)
+    group_description(cell_kind k, std::vector<cell_gid_type> g, std::vector<int> d, backend_kind b):
+        kind(k), gids(std::move(g)), deps(std::move(d)), backend(b)
     {
         arb_assert(std::is_sorted(gids.begin(), gids.end()));
     }

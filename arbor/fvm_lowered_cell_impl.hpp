@@ -50,6 +50,7 @@ public:
 
     void initialize(
         const std::vector<cell_gid_type>& gids,
+        const std::vector<int>& deps,
         const recipe& rec,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) override;
@@ -294,6 +295,7 @@ void fvm_lowered_cell_impl<B>::assert_voltage_bounded(fvm_value_type bound) {
 template <typename B>
 void fvm_lowered_cell_impl<B>::initialize(
     const std::vector<cell_gid_type>& gids,
+    const std::vector<int>& deps,
     const recipe& rec,
     std::vector<target_handle>& target_handles,
     probe_association_map<probe_handle>& probe_map)

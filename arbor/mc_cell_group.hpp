@@ -30,7 +30,8 @@ class mc_cell_group: public cell_group {
 public:
     mc_cell_group() = default;
 
-    mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
+    mc_cell_group(const std::vector<cell_gid_type>& gids, const std::vector<int>& deps,
+            const recipe& rec, fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {
         return cell_kind::cable1d_neuron;
@@ -60,6 +61,9 @@ public:
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
+
+    // List of the dependencies of the cells in the group.
+    std::vector<int> deps_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;

@@ -175,25 +175,35 @@ domain_decomposition partition_load_balance(
         }
 
         std::vector<cell_gid_type> group_elements;
+        std::vector<int> group_deps;
         for (auto cell: kind_lists[k]) {
             if (cell.is_super_cell == false) {
                 group_elements.push_back(cell.id);
+                group_deps.push_back(0);
             } else {
                 if (group_elements.size() + super_cells[cell.id].size() > group_size && !group_elements.empty()) {
-                    groups.push_back({k, std::move(group_elements), backend});
+                    groups.push_back({k, std::move(group_elements), std::move(group_deps), backend});
                     group_elements.clear();
+                    group_deps.clear();
                 }
                 for (auto gid: super_cells[cell.id]) {
                     group_elements.push_back(gid);
+                    if (gid == super_cells[cell.id].front()) {
+                       group_deps.push_back(super_cells[cell.id].size());
+                    }
+                    else {
+                        group_deps.push_back(-1);
+                    }
                 }
             }
             if (group_elements.size()>=group_size) {
-                groups.push_back({k, std::move(group_elements), backend});
+                groups.push_back({k, std::move(group_elements), std::move(group_deps), backend});
                 group_elements.clear();
+                group_deps.clear();
             }
         }
         if (!group_elements.empty()) {
-            groups.push_back({k, std::move(group_elements), backend});
+            groups.push_back({k, std::move(group_elements), std::move(group_deps), backend});
         }
     }
 

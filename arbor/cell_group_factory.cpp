@@ -23,31 +23,32 @@ cell_group_factory cell_kind_implementation(
         cell_kind ck, backend_kind bk, const execution_context& ctx)
 {
     using gid_vector = std::vector<cell_gid_type>;
+    using dep_vector = std::vector<int>;
 
     switch (ck) {
     case cell_kind::cable1d_neuron:
-        return [bk, ctx](const gid_vector& gids, const recipe& rec) {
-            return make_cell_group<mc_cell_group>(gids, rec, make_fvm_lowered_cell(bk, ctx));
+        return [bk, ctx](const gid_vector& gids, const dep_vector& deps, const recipe& rec) {
+            return make_cell_group<mc_cell_group>(gids, deps, rec, make_fvm_lowered_cell(bk, ctx));
         };
 
     case cell_kind::spike_source:
         if (bk!=backend_kind::multicore) break;
 
-        return [](const gid_vector& gids, const recipe& rec) {
+        return [](const gid_vector& gids, const dep_vector& deps, const recipe& rec) {
             return make_cell_group<spike_source_cell_group>(gids, rec);
         };
 
     case cell_kind::lif_neuron:
         if (bk!=backend_kind::multicore) break;
 
-        return [](const gid_vector& gids, const recipe& rec) {
+        return [](const gid_vector& gids, const dep_vector& deps, const recipe& rec) {
             return make_cell_group<lif_cell_group>(gids, rec);
         };
 
     case cell_kind::benchmark:
         if (bk!=backend_kind::multicore) break;
 
-        return [](const gid_vector& gids, const recipe& rec) {
+        return [](const gid_vector& gids, const dep_vector& deps, const recipe& rec) {
             return make_cell_group<benchmark_cell_group>(gids, rec);
         };
 

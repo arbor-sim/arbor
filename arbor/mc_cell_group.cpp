@@ -24,8 +24,9 @@
 
 namespace arb {
 
-mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
-    gids_(gids), lowered_(std::move(lowered))
+mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const std::vector<int>& deps,
+        const recipe& rec, fvm_lowered_cell_ptr lowered):
+    gids_(gids), deps_(deps), lowered_(std::move(lowered))
 {
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
@@ -46,7 +47,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
     target_handles_.reserve(n_targets);
 
     // Construct cell implementation, retrieving handles and maps. 
-    lowered_->initialize(gids_, rec, target_handles_, probe_map_);
+    lowered_->initialize(gids_, deps_, rec, target_handles_, probe_map_);
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
