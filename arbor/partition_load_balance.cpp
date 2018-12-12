@@ -43,6 +43,11 @@ domain_decomposition partition_load_balance(
         unsigned num_domains;
     };
 
+    struct cell_identifier {
+        cell_gid_type id;
+        bool is_super_cell;
+    };
+
     using util::make_span;
 
     unsigned num_domains = ctx->distributed->size();
@@ -63,8 +68,8 @@ domain_decomposition partition_load_balance(
 
     // Local load balance
 
-    std::vector<std::vector<cell_gid_type>> comp_groups; //compulsory groups
-    std::vector<cell_gid_type> ind_cells; //independent cells
+    std::vector<std::vector<cell_gid_type>> super_cells; //cells connected by gj
+    std::vector<cell_gid_type> reg_cells; //independent cells
 
     // Map to track visited cells (cells that already belong to a group)
     std::unordered_map<cell_gid_type, bool> visited;
@@ -73,7 +78,7 @@ domain_decomposition partition_load_balance(
     std::queue<cell_gid_type> q;
     for(auto gid: make_span(gid_part[domain_id])) {
         if(!rec.gap_junctions_on(gid).empty()) {
-            // If cell hasn't been visited yet, must belong to new group
+            // If cell hasn't been visited yet, must belong to new super_cell
             // Perform BFS starting from that cell
             if (visited.find(gid) == visited.end()) {
                 std::vector<cell_gid_type> cg;
@@ -92,35 +97,44 @@ domain_decomposition partition_load_balance(
                         }
                     }
                 }
-                comp_groups.push_back(cg);
+                super_cells.push_back(cg);
             }
         }
         else {
             // If cell has no gap_junctions, put in separate group of independent cells
-            ind_cells.push_back(gid);
+            reg_cells.push_back(gid);
         }
     }
 
-    // Sort groups and only keep those where the first element in the group belongs to domain
-    comp_groups.erase(std::remove_if(comp_groups.begin(), comp_groups.end(),
+    // Sort super_cell groups and only keep those where the first element in the group belongs to domain
+    super_cells.erase(std::remove_if(super_cells.begin(), super_cells.end(),
             [gid_part, domain_id](std::vector<cell_gid_type>& cg)
             {
                 std::sort(cg.begin(), cg.end());
                 return cg.front() < gid_part[domain_id].first;
-            }), comp_groups.end());
+            }), super_cells.end());
 
-    // Collect local gids that belong to this rank, and sort independent gid into kind lists
+    // Collect local gids that belong to this rank, and sort gids into kind lists
+    // kind_lists maps a cell_kind to a vector of either:
+    // 1. gids of regular cells (in reg_cells)
+    // 2. indices of supercells (in super_cells)
+
     std::vector<cell_gid_type> local_gids;
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
-    for (auto gid: ind_cells) {
+    std::unordered_map<cell_kind, std::vector<cell_identifier>> kind_lists;
+    for (auto gid: reg_cells) {
         local_gids.push_back(gid);
-        kind_lists[rec.get_cell_kind(gid)].push_back(gid);
+        kind_lists[rec.get_cell_kind(gid)].push_back({gid, false});
     }
 
-    for (auto cg: comp_groups) {
-        for (auto gid: cg) {
+    for (unsigned i = 0; i < super_cells.size(); i++) {
+        auto kind = rec.get_cell_kind(super_cells[i].front());
+        for (auto gid: super_cells[i]) {
+            if(rec.get_cell_kind(gid) != kind) {
+                throw arbor_internal_error("Cells of different kinds connected by gap_junctions: not allowed");
+            }
             local_gids.push_back(gid);
         }
+        kind_lists[kind].push_back({i, true});
     }
 
 
@@ -161,8 +175,18 @@ domain_decomposition partition_load_balance(
         }
 
         std::vector<cell_gid_type> group_elements;
-        for (auto gid: kind_lists[k]) {
-            group_elements.push_back(gid);
+        for (auto cell: kind_lists[k]) {
+            if (cell.is_super_cell == false) {
+                group_elements.push_back(cell.id);
+            } else {
+                if (group_elements.size() + super_cells[cell.id].size() > group_size && !group_elements.empty()) {
+                    groups.push_back({k, std::move(group_elements), backend});
+                    group_elements.clear();
+                }
+                for (auto gid: super_cells[cell.id]) {
+                    group_elements.push_back(gid);
+                }
+            }
             if (group_elements.size()>=group_size) {
                 groups.push_back({k, std::move(group_elements), backend});
                 group_elements.clear();
@@ -171,19 +195,6 @@ domain_decomposition partition_load_balance(
         if (!group_elements.empty()) {
             groups.push_back({k, std::move(group_elements), backend});
         }
-    }
-    // comp_groups handled separately from ind_cells
-    for (auto cg: comp_groups) {
-        cell_kind k = rec.get_cell_kind(cg[0]);
-        partition_hint hint;
-        if (auto opt_hint = util::value_by_key(hint_map, k)) {
-            hint = opt_hint.value();
-        }
-        backend_kind backend = backend_kind::multicore;
-        if (hint.prefer_gpu && gpu_avail && has_gpu_backend(k)) {
-            backend = backend_kind::gpu;
-        }
-        groups.push_back({k, std::move(cg), backend});
     }
 
     cell_size_type num_local_cells = local_gids.size();
@@ -203,6 +214,14 @@ domain_decomposition partition_load_balance(
     d.groups = std::move(groups);
     d.gid_domain = partition_gid_domain(std::move(global_gids), num_domains);
 
+    unsigned i = 0;
+    for(auto g : d.groups) {
+        printf("group %d:\n", i++);
+        for (auto j: g.gids) {
+            printf("%d:\n", j);
+        }
+        printf("\n");
+    }
     return d;
 }
 
