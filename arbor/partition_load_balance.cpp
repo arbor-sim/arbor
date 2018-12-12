@@ -214,14 +214,6 @@ domain_decomposition partition_load_balance(
     d.groups = std::move(groups);
     d.gid_domain = partition_gid_domain(std::move(global_gids), num_domains);
 
-    unsigned i = 0;
-    for(auto g : d.groups) {
-        printf("group %d:\n", i++);
-        for (auto j: g.gids) {
-            printf("%d:\n", j);
-        }
-        printf("\n");
-    }
     return d;
 }
 
