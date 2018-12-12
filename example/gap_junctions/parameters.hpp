@@ -17,6 +17,7 @@ struct gap_params {
     unsigned num_rings = 2;
     double duration = 100;
     double delay = 5;
+    bool print_all = true;
 };
 
 gap_params read_options(int argc, char** argv) {
@@ -47,6 +48,7 @@ gap_params read_options(int argc, char** argv) {
     param_from_json(params.num_rings, "num-rings", json);
     param_from_json(params.duration, "duration", json);
     param_from_json(params.delay, "delay", json);
+    param_from_json(params.print_all, "print-all", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {

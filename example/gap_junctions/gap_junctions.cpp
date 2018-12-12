@@ -40,10 +40,10 @@ using arb::time_type;
 using arb::cell_probe_address;
 
 // Writes voltage trace as a json file.
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
+void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank);
 
 // Generate a cell.
-arb::mc_cell gj_cell(unsigned gid, unsigned ring_size, double delay, double duration);
+arb::mc_cell gj_cell(double delay, double duration);
 
 class gj_recipe: public arb::recipe {
 public:
@@ -54,7 +54,7 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return gj_cell(gid, params_.cells_per_ring, params_.delay*gid, params_.duration);
+        return gj_cell(params_.delay*gid, params_.duration);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -63,7 +63,7 @@ public:
 
     // Each cell has one spike detector (at the soma).
     cell_size_type num_sources(cell_gid_type gid) const override {
-        return 0;
+        return 1;
     }
 
     // The cell has one target synapse, which will be connected to cell gid-1.
@@ -201,12 +201,15 @@ int main(int argc, char** argv) {
 
         auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
-        std::vector<arb::trace_data<double>> voltage(recipe.num_cells());
+        std::vector<arb::trace_data<double>> voltage(decomp.num_local_cells);
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        for(unsigned i = 0; i < recipe.num_cells(); i++) {
-            auto t = recipe.get_probe({i, 0});
-            sim.add_sampler(arb::one_probe(t.id), sched, arb::make_simple_sampler(voltage[i]));
+        unsigned j=0;
+        for(auto g : decomp.groups) {
+            for (auto i : g.gids) {
+                auto t = recipe.get_probe({i, 0});
+                sim.add_sampler(arb::one_probe(t.id), sched, arb::make_simple_sampler(voltage[j++]));
+            }
         }
 
         // Set up recording of spikes to a vector on the root process.
@@ -248,8 +251,8 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        if (root) {
-            write_trace_json(voltage);
+        if(params.print_all) {
+            write_trace_json(voltage, arb::rank(context));
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
@@ -263,9 +266,10 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
+void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank) {
     for (unsigned i = 0; i < trace.size(); i++) {
-        std::string path = "./voltages_imp" + std::to_string(i) + ".json";
+        std::string path = "./voltages_" + std::to_string(rank) +
+                           "_" + std::to_string(i) + ".json";
 
         nlohmann::json json;
         json["name"] = "gj demo: cell " + std::to_string(i);
@@ -286,7 +290,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     }
 }
 
-arb::mc_cell gj_cell(unsigned gid, unsigned cells_per_ring, double delay, double duration) {
+arb::mc_cell gj_cell(double delay, double duration) {
     arb::mc_cell cell;
 
     arb::mechanism_desc nax("nax");
@@ -320,6 +324,8 @@ arb::mc_cell gj_cell(unsigned gid, unsigned cells_per_ring, double delay, double
     dend->set_compartments(1);
     set_reg_params();
     setup_seg(dend);
+
+    cell.add_detector({0,0}, 10);
 
     cell.add_gap_junction({0, 1}); //ggap in μS
     cell.add_gap_junction({1, 1}); //ggap in μS
