@@ -26,9 +26,7 @@ struct group_description {
 
     group_description(cell_kind k, std::vector<cell_gid_type> g, std::vector<int> d, backend_kind b):
         kind(k), gids(std::move(g)), deps(std::move(d)), backend(b)
-    {
-        arb_assert(std::is_sorted(gids.begin(), gids.end()));
-    }
+    {}
 };
 
 /// Meta data that describes a domain decomposition.
