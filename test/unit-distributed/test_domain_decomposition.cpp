@@ -305,11 +305,11 @@ TEST(domain_decomposition, symmetric_groups)
     auto ctx = make_context(resources);
 #endif
     auto R = gj_symmetric(nranks);
-    const auto D = partition_load_balance(R, ctx);
-    EXPECT_EQ(6u, D.groups.size());
+    const auto D0 = partition_load_balance(R, ctx);
+    EXPECT_EQ(6u, D0.groups.size());
 
     unsigned shift = rank*R.num_cells()/nranks;
-    std::vector<std::vector<cell_gid_type>> expected_groups =
+    std::vector<std::vector<cell_gid_type>> expected_groups0 =
             { {0 + shift},
               {3 + shift},
               {4 + shift},
@@ -319,12 +319,47 @@ TEST(domain_decomposition, symmetric_groups)
             };
 
     for (unsigned i = 0; i < 6; i++){
-        EXPECT_EQ(expected_groups[i], D.groups[i].gids);
+        EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
     }
 
     unsigned cells_per_rank = R.num_cells()/nranks;
     for (unsigned i = 0; i < R.num_cells(); i++) {
-        EXPECT_EQ(i/cells_per_rank, (unsigned)D.gid_domain(i));
+        EXPECT_EQ(i/cells_per_rank, (unsigned)D0.gid_domain(i));
+    }
+
+    // Test different group_hints
+    partition_hint_map hints;
+    hints[cell_kind::cable1d_neuron].cpu_group_size = R.num_cells();
+    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+
+    const auto D1 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(1u, D1.groups.size());
+
+    std::vector<cell_gid_type> expected_groups1 =
+            { 0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift,
+              1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift };
+
+    EXPECT_EQ(expected_groups1, D1.groups[0].gids);
+
+    for (unsigned i = 0; i < R.num_cells(); i++) {
+        EXPECT_EQ(i/cells_per_rank, (unsigned)D1.gid_domain(i));
+    }
+
+    hints[cell_kind::cable1d_neuron].cpu_group_size = cells_per_rank/2;
+    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+
+    const auto D2 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(2u, D2.groups.size());
+
+    std::vector<std::vector<cell_gid_type>> expected_groups2 =
+            { { 0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift },
+              { 1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift } };
+
+    for (unsigned i = 0; i < 2u; i++) {
+        EXPECT_EQ(expected_groups2[i], D2.groups[i].gids);
+    }
+    for (unsigned i = 0; i < R.num_cells(); i++) {
+        EXPECT_EQ(i/cells_per_rank, (unsigned)D2.gid_domain(i));
     }
 
 }
@@ -341,9 +376,9 @@ TEST(domain_decomposition, non_symmetric_groups)
 #else
     auto ctx = make_context(resources);
 #endif
-    if (nranks == 1) {
+    /*if (nranks == 1) {
         return;
-    }
+    }*/
 
     auto R = gj_non_symmetric(nranks);
     const auto D = partition_load_balance(R, ctx);

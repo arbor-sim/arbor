@@ -25,9 +25,10 @@ void run_celsius_test() {
     std::vector<fvm_index_type> cv_to_cell(ncv, 0);
 
     std::vector<gap_junction> gj = {};
+    std::vector<int> deps = {0};
     auto celsius_test = cat.instance<backend>("celsius_test");
     auto shared_state = std::make_unique<typename backend::shared_state>(
-        ncell, cv_to_cell, gj, celsius_test->data_alignment());
+        ncell, cv_to_cell, deps, gj, celsius_test->data_alignment());
 
     mechanism::layout layout;
     layout.weight.assign(ncv, 1.);

@@ -95,7 +95,7 @@ TEST(fvm_lowered, matrix_init)
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(cell), targets, probe_map);
+    fvcell.initialize({0}, {0}, cable1d_recipe(cell), targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
     EXPECT_EQ(J.size(), 11u);
@@ -140,7 +140,7 @@ TEST(fvm_lowered, target_handles) {
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0, 1}, cable1d_recipe(cells), targets, probe_map);
+    fvcell.initialize({0, 1}, {0, 0}, cable1d_recipe(cells), targets, probe_map);
 
     mechanism* expsyn = find_mechanism(fvcell, "expsyn");
     ASSERT_TRUE(expsyn);
@@ -204,7 +204,7 @@ TEST(fvm_lowered, stimulus) {
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(cells), targets, probe_map);
+    fvcell.initialize({0}, {0}, cable1d_recipe(cells), targets, probe_map);
 
     mechanism* stim = find_mechanism(fvcell, "_builtin_stimulus");
     ASSERT_TRUE(stim);
@@ -298,7 +298,7 @@ TEST(fvm_lowered, derived_mechs) {
 
         execution_context context;
         fvm_cell fvcell(context);
-        fvcell.initialize({0, 1, 2}, rec, targets, probe_map);
+        fvcell.initialize({0, 1, 2}, {0, 0, 0}, rec, targets, probe_map);
 
         // Both mechanisms will have the same internal name, "test_kin1".
 
@@ -404,7 +404,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
+    fvcell.initialize({0}, {0}, cable1d_recipe(c), targets, probe_map);
 
     auto& state = *(fvcell.*private_state_ptr).get();
     auto& ion = state.ion_data.at(ionKind::ca);

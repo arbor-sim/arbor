@@ -36,13 +36,13 @@ ACCESS_BIND(
     &mc_cell_group::spike_sources_)
 
 TEST(mc_cell_group, get_kind) {
-    mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
+    mc_cell_group group{{0}, {0}, cable1d_recipe(make_cell()), lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable1d_neuron, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
-    mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
+    mc_cell_group group{{0}, {0}, cable1d_recipe(make_cell()), lowered_cell()};
     group.advance(epoch(0, 50), 0.01, {});
 
     // Model is expected to generate 4 spikes as a result of the
@@ -65,7 +65,8 @@ TEST(mc_cell_group, sources) {
     }
 
     std::vector<cell_gid_type> gids = {3u, 4u, 10u, 16u, 17u, 18u};
-    mc_cell_group group{gids, cable1d_recipe(cells), lowered_cell()};
+    std::vector<int> deps = {0, 0, 0, 0, 0, 0};
+    mc_cell_group group{gids, deps, cable1d_recipe(cells), lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero.

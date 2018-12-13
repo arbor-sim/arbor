@@ -71,9 +71,7 @@ namespace {
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2?
-                   cell_kind::spike_source:
-                   cell_kind::cable1d_neuron;
+            return cell_kind::cable1d_neuron;
         }
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
@@ -318,13 +316,40 @@ TEST(domain_decomposition, compulsory_groups)
     auto ctx = make_context(resources);
 
     auto R = gap_recipe();
-    const auto D = partition_load_balance(R, ctx);
-    EXPECT_EQ(9u, D.groups.size());
+    const auto D0 = partition_load_balance(R, ctx);
+    EXPECT_EQ(9u, D0.groups.size());
 
-    std::vector<std::vector<cell_gid_type>> expected_groups =
-            { {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+    std::vector<std::vector<cell_gid_type>> expected_groups0 =
+            { {1}, {5}, {6}, {10}, {12}, {14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
 
-    EXPECT_EQ(expected_groups[0], D.groups[6].gids);
-    EXPECT_EQ(expected_groups[1], D.groups[7].gids);
-    EXPECT_EQ(expected_groups[2], D.groups[8].gids);
+    for (unsigned i = 0; i < 9u; i++) {
+        EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
+    }
+
+    // Test different group_hints
+    partition_hint_map hints;
+    hints[cell_kind::cable1d_neuron].cpu_group_size = 3;
+    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+
+    const auto D1 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(5u, D1.groups.size());
+
+    std::vector<std::vector<cell_gid_type>> expected_groups1 =
+            { {1, 5, 6}, {10, 12, 14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+
+    for (unsigned i = 0; i < 5u; i++) {
+        EXPECT_EQ(expected_groups1[i], D1.groups[i].gids);
+    }
+
+    hints[cell_kind::cable1d_neuron].cpu_group_size = 20;
+    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+
+    const auto D2 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(1u, D2.groups.size());
+
+    std::vector<cell_gid_type> expected_groups2 =
+            { 1, 5, 6, 10, 12, 14, 0, 13, 2, 7, 11, 3, 4, 8, 9 };
+
+    EXPECT_EQ(expected_groups2, D2.groups[0].gids);
+
 }
