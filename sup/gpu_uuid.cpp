@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <functional>
 #include <iomanip>
 #include <ios>
 #include <numeric>
@@ -16,10 +17,10 @@
 
 // CUDA 10 allows GPU uuid to be queried via cudaGetDeviceProperties.
 // Previous versions require the CUDA NVML library to get uuid.
-#if CUDART_VERSION < 10000
+//#if CUDART_VERSION < 10000
     #include <nvml.h>
     #define ARB_USE_NVML
-#endif
+//#endif
 
 namespace sup {
 
@@ -69,21 +70,21 @@ std::runtime_error make_runtime_error(cudaError_t error_code) {
 // For CUDA 10 and later the uuid of all available GPUs is straightforward
 // to obtain by querying cudaGetDeviceProperties for each visible device.
 std::vector<uuid> get_gpu_uuids() {
-    // get number of devices
+    // Get number of devices.
     int ngpus = 0;
     auto status = cudaGetDeviceCount(&ngpus);
     if (status==cudaErrorNoDevice) {
-        // no GPUs detected: return an empty list.
+        // No GPUs detected: return an empty list.
         return {};
     }
     else if (status!=cudaSuccess) {
         throw make_runtime_error(status);
     }
 
-    // store the uuids
+    // Storage for the uuids.
     std::vector<uuid> uuids(ngpus);
 
-    // using CUDA 10 or later, determining uuid of GPUs is easy!
+    // For each GPU query CUDA runtime API for uuid.
     for (int i=0; i<ngpus; ++i) {
         cudaDeviceProp props;
         status = cudaGetDeviceProperties(&props, i);
@@ -91,7 +92,7 @@ std::vector<uuid> get_gpu_uuids() {
             throw make_runtime_error(status);
         }
 
-        // copy the bytes from props.uuid to uuids[i]
+        // Copy the bytes from props.uuid to uuids[i].
         auto b = reinterpret_cast<const unsigned char*>(&props.uuid);
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
     }
@@ -120,34 +121,17 @@ std::runtime_error make_runtime_error(nvmlReturn_t error_code) {
 //      CUDA_VISIBLE_DEVICES="0a,1" -> {0,1}
 //      CUDA_VISIBLE_DEVICES="a0,1" -> {}
 // This doesn't try too hard to check for all possible errors.
-std::vector<int> parse_visible_devices(std::string str, unsigned ngpu) {
-    // Tokenize into a sequence of strings separated by commas
-    std::vector<std::string> strings;
-    std::size_t first = 0;
-    std::size_t last = str.find(',');
-    while (last != std::string::npos) {
-        strings.push_back(str.substr(first, last - first));
-        first = last + 1;
-        last = str.find(',', first);
-    }
-    strings.push_back(str.substr(first, last - first));
-
-    // Convert each token to an integer.
-    // Return partial list of ids on first error:
-    //  - error converting token to string;
-    //  - invalid GPU id found.
+std::vector<int> parse_visible_devices(std::string str, int ngpu) {
     std::vector<int> values;
-    for (auto& s: strings) {
-        try {
-            unsigned v = std::stoi(s);
+    std::istringstream ss(str);
+    while (ss) {
+        int v;
+        if (ss >> v) {
             if (v<0 || v>=ngpu) break;
             values.push_back(v);
-        }
-        catch (std::exception e) {
-            break;
+            while (ss && ss.get()!=',');
         }
     }
-
     return values;
 }
 
@@ -194,11 +178,14 @@ std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
     int ngpus = 0;
     auto cuda_status = cudaGetDeviceCount(&ngpus);
-    if (cuda_status!=cudaSuccess) throw make_runtime_error(cuda_status);
+    if (cuda_status==cudaErrorNoDevice) return {};
+    else if (cuda_status!=cudaSuccess) throw make_runtime_error(cuda_status);
 
     // Attempt to initialize nvml
     auto nvml_status = nvmlInit();
-    if (nvml_status!=NVML_SUCCESS) throw make_runtime_error(nvml_status);
+    if (nvml_status!=NVML_ERROR_ALREADY_INITIALIZED && nvml_status!=NVML_SUCCESS) {
+        throw make_runtime_error(nvml_status);
+    }
     auto nvml_guard = on_scope_exit(nvmlShutdown);
 
     // store the uuids
@@ -256,8 +243,8 @@ std::vector<uuid> get_gpu_uuids() {
 //  -1: some common elements
 //   0: no common elements
 // Each set is described by a pair of iterators.
-template <typename R>
-int compare_gpu_groups(R l, R r) {
+template <typename I>
+int compare_gpu_groups(std::pair<I,I> l, std::pair<I,I> r) {
     auto range_size = [] (auto& rng) { return std::distance(rng.first, rng.second);};
     if (range_size(l)<range_size(r)) {
         std::swap(l, r);
@@ -273,19 +260,6 @@ int compare_gpu_groups(R l, R r) {
     // test for partial match
     if (count) return -1;
     return 0;
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& o, std::vector<T>& vec) {
-    o << "[";
-    for (auto& v: vec) o << v << " ";
-    return o << "]";
-}
-template <typename I>
-std::ostream& operator<<(std::ostream& o, std::pair<I,I>& vec) {
-    o << "[";
-    for (auto it=vec.first; it!=vec.second; ++it) o << *it << " ";
-    return o << "]";
 }
 
 gpu_rank assign_gpu(const std::vector<uuid>& uids,

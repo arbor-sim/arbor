@@ -52,7 +52,12 @@ int find_private_gpu(MPI_Comm comm) {
     // STEP 2: mpi test error on any node.
 
     if (test_global_error(local_error)) {
-        throw std::runtime_error("unable to detect the unique id of visible GPUs: " + msg);
+        if (local_error) {
+            throw std::runtime_error("unable to detect the unique id of visible GPUs: " + msg);
+        }
+        else {
+            throw std::runtime_error("unable to detect the unique id of visible GPUs: error on another MPI rank");
+        }
     }
 
     // STEP 3: Gather all uuids to local rank.
