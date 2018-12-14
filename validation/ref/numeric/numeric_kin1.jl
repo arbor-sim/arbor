@@ -19,7 +19,7 @@ c  = 0.01mA/cm^2
 tau = 10ms
 
 ts = collect(0s: sample_dt: t_end)
-is = area*(1/3*c + (a0-1/3*c)*exp.(-ts/tau))
+is = area*(1/3*c .+ (a0-1/3*c)*exp.(-ts/tau))
 
 trace = Dict(
     :name => "membrane current",

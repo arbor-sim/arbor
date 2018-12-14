@@ -13,10 +13,12 @@ set(validation_sources
     validate.cpp
 )
 
-add_executable(validate ${validation_sources})
+add_executable(validate EXCLUDE_FROM_ALL ${validation_sources})
+add_dependencies(tests validate)
+
 target_compile_options(validate PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(validate PRIVATE "ARB_DATADIR=\"${ARB_VALIDATION_DATA_DIR}\"")
-target_link_libraries(validate PRIVATE gtest arbor arbor-aux ext-json)
+target_link_libraries(validate PRIVATE gtest arbor arbor-sup ext-json)
 
 if(ARB_BUILD_VALIDATION_DATA)
     add_dependencies(validate validation_data)

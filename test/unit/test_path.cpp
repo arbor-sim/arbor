@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include <aux/path.hpp>
+#include <sup/path.hpp>
 
-using namespace aux;
+using namespace sup;
 
 TEST(path, posix_ctor) {
     // test constructor ans assignment overloads with sample character sequences.

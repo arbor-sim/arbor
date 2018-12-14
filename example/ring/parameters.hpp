@@ -7,7 +7,7 @@
 
 #include <arbor/mc_cell.hpp>
 
-#include <aux/json_params.hpp>
+#include <sup/json_params.hpp>
 
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
@@ -22,6 +22,9 @@ struct cell_parameters {
     std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
     std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
+
+    // The number of synapses per cell.
+    unsigned synapses = 1;
 };
 
 struct ring_params {
@@ -35,7 +38,7 @@ struct ring_params {
 };
 
 ring_params read_options(int argc, char** argv) {
-    using aux::param_from_json;
+    using sup::param_from_json;
 
     ring_params params;
     if (argc<2) {
@@ -65,6 +68,7 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.cell.branch_probs, "branch-probs", json);
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
+    param_from_json(params.cell.synapses, "synapses", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {

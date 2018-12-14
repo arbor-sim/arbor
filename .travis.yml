@@ -1,27 +1,132 @@
+######## Testing minimal compiler requirements ########
+# GCC          6.4.0
+# Clang        4.0
+# Apple Clang  900.0.39.2
+#######################################################
+
 language: cpp
 sudo: false
-os: linux
-dist: trusty
-compiler: gcc
 
-addons:
-    apt:
+matrix:
+  include:
+########################## OS X #########################
+## test gcc6 - single node/rank with threading backend ##
+  - name: "osx, gcc, serial"
+    os: osx
+    osx_image: xcode9.2
+    env:
+      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+    compiler: gcc-6
+
+## test gcc6 - mpi with threading backend ##
+  - name: "osx, gcc, mpi"
+    os: osx
+    osx_image: xcode9.2
+    env:
+      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+    compiler: gcc-6
+
+## test clang9 - single node/rank with threading backend ##
+  - name: "osx, apple clang, serial"
+    os: osx
+    osx_image: xcode9.2
+    env:
+      - MATRIX_EVAL="CC=clang && CXX=clang++"
+      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+    compiler: clang
+
+## test clang9 - mpi with threading backend ##
+  - name: "osx, apple clang, mpi"
+    os: osx
+    osx_image: xcode9.2
+    env:
+      - MATRIX_EVAL="CC=clang && CXX=clang++"
+      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+    compiler: clang
+
+######################### LINUX #########################
+## test gcc6 - single node/rank with threading backend ##
+  - name: "linux, gcc, serial"
+    os: linux
+    dist: trusty
+    addons:
+      apt:
         sources:
-            - ubuntu-toolchain-r-test
+          - ubuntu-toolchain-r-test
         packages:
-            - g++-6
-            - openmpi-bin
-            - libopenmpi-dev
+          - g++-6
+          - openmpi-bin
+          - libopenmpi-dev
+    env:
+      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+    compiler: gcc-6
 
-env:
-    # test single node/rank with threading backend
-    - BUILD_NAME=cthread  WITH_DISTRIBUTED=serial
-    # test mpi with threading backend
-    - BUILD_NAME=mpi      WITH_DISTRIBUTED=mpi
+## test gcc6 - mpi with threading backend ##
+  - name: "linux, gcc, mpi"
+    os: linux
+    dist: trusty
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-6
+          - openmpi-bin
+          - libopenmpi-dev
+    env:
+      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+    compiler: gcc-6
 
-before_install:
-    - CC=gcc-6
-    - CXX=g++-6
+## test clang4 - single node/rank with threading backend ##
+  - name: "linux, clang, serial"
+    os: linux
+    dist: trusty
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-trusty-4.0
+        packages:
+          - clang-4.0
+          - g++-6
+          - openmpi-bin
+          - libopenmpi-dev
+    env:
+      - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+    compiler: clang-4.0
+
+## test clang4 - mpi with threading backend ##
+  - name: "linux, clang, mpi"
+    os: linux
+    dist: trusty
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-trusty-4.0
+        packages:
+          - clang-4.0
+          - g++-6
+          - openmpi-bin
+          - libopenmpi-dev
+    env:
+      - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+    compiler: clang-4.0
+
+before_script:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
+  - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
+  - eval "${MATRIX_EVAL}"
 
 script: source ./scripts/travis/build.sh
 
+notifications:
+  email:
+    on_success: never
+    on_failure: always

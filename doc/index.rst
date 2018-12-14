@@ -64,4 +64,5 @@ Some key features include:
    profiler
    sampling_api
    cpp_distributed_context
+   cpp_dry_run
 

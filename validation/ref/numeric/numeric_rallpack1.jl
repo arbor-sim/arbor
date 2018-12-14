@@ -5,7 +5,7 @@ include("PassiveCable.jl")
 using JSON
 using Unitful
 using Unitful.DefaultSymbols
-using PassiveCable
+using Main.PassiveCable
 
 scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 

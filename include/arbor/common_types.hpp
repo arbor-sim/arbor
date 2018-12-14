@@ -47,6 +47,28 @@ using cell_local_size_type = std::make_unsigned_t<cell_lid_type>;
 struct cell_member_type {
     cell_gid_type gid;
     cell_lid_type index;
+
+    cell_member_type& operator= (cell_gid_type inc) {
+        gid = inc;
+        return *this;
+    }
+
+    cell_member_type& operator+= (cell_gid_type inc) {
+        gid += inc;
+        return *this;
+    }
+
+    friend cell_member_type operator+ (const cell_member_type& lhs, const cell_gid_type rhs) {
+        cell_member_type result = lhs;
+        result.gid += rhs;
+        return result;
+    }
+
+    friend cell_member_type operator% (const cell_member_type& lhs, const cell_gid_type rhs) {
+        cell_member_type result = lhs;
+        result.gid %= rhs;
+        return result;
+    }
 };
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))

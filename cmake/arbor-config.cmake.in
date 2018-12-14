@@ -1,0 +1,34 @@
+include(CMakeFindDependencyMacro)
+
+foreach(dep @arbor_export_dependencies@)
+    find_dependency(${dep})
+endforeach()
+
+include("${CMAKE_CURRENT_LIST_DIR}/arbor-targets.cmake")
+
+set(_supported_components @arbor_supported_components@)
+
+foreach(component ${arbor_FIND_COMPONENTS})
+    if(NOT "${component}" IN_LIST _supported_components)
+        set(arbor_FOUND FALSE)
+        set(arbor_NOT_FOUND_MESSAGE "Unsupported component: ${component}")
+    endif()
+endforeach()
+
+# Patch properties to remove unnecessary external CUDA dependencies.
+
+set(_override_lang @arbor_override_import_lang@)
+if(_override_lang)
+    set_target_properties(arbor::arbor PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES_@arbor_build_config@ "${_override_lang}")
+endif()
+
+set(_add_libs @arbor_add_import_libs@)
+if(_add_libs)
+    get_target_property(_arbor_interface_libs arbor::arbor INTERFACE_LINK_LIBRARIES)
+    if(_arbor_interface_libs)
+        list(APPEND _arbor_interface_libs ${_add_libs})
+    else()
+        set(_arbor_interface_libs ${_add_libs})
+    endif()
+    set_target_properties(arbor::arbor PROPERTIES INTERFACE_LINK_LIBRARIES "${_arbor_interface_libs}")
+endif()

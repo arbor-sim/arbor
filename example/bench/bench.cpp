@@ -18,10 +18,12 @@
 #include <arbor/version.hpp>
 
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
+#include <sup/concurrency.hpp>
+#include <sup/gpu.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
 #ifdef ARB_MPI_ENABLED
-#include <aux/with_mpi.hpp>
+#include <sup/with_mpi.hpp>
 #endif
 
 #include "parameters.hpp"
@@ -33,22 +35,28 @@ int main(int argc, char** argv) {
     bool is_root = true;
 
     try {
-#ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
-        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
-        {
-            int rank = 0;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            is_root = rank==0;
+        arb::proc_allocation resources;
+        if (auto nt = sup::get_env_num_threads()) {
+            resources.num_threads = nt;
         }
+        else {
+            resources.num_threads = sup::thread_concurrency();
+        }
+
+#ifdef ARB_MPI_ENABLED
+        sup::with_mpi guard(argc, argv, false);
+        resources.gpu_id = sup::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        is_root = arb::rank(context) == 0;
 #else
-        auto context = arb::make_context();
+        resources.gpu_id = sup::default_gpu();
+        auto context = arb::make_context(resources);
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context);
 #endif
 
-        std::cout << aux::mask_stream(is_root);
+        std::cout << sup::mask_stream(is_root);
 
         bench_params params = read_options(argc, argv);
 
@@ -81,7 +89,7 @@ int main(int argc, char** argv) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << aux::to_json(report) << "\n";
+            fid << std::setw(1) << sup::to_json(report) << "\n";
         }
 
         // output profile and diagnostic feedback
