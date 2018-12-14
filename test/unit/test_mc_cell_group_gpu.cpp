@@ -30,7 +30,7 @@ namespace {
 
 TEST(mc_cell_group, gpu_test)
 {
-    mc_cell_group group({0}, cable1d_recipe(make_cell()), lowered_cell());
+    mc_cell_group group({0}, {0}, cable1d_recipe(make_cell()), lowered_cell());
     group.advance(epoch(0, 50), 0.01, {});
 
     // the model is expected to generate 4 spikes as a result of the

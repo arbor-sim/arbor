@@ -131,12 +131,12 @@ void init_concentration_impl(
     kernel::init_concentration_impl<<<nblock, block_dim>>>(n, Xi, Xo, weight_Xi, weight_Xo, c_int, c_ext);
 }
 
-void sync_time_to_impl(std::size_t n, fvm_value_type* time_to, const fvm_index_type time_deps)
+void sync_time_to_impl(std::size_t n, fvm_value_type* time_to, const fvm_index_type* time_deps)
 {
     if (!n) return;
 
     constexpr int block_dim = 128;
-    int nblock = block_count(ncell, block_dim);
+    int nblock = block_count(n, block_dim);
     kernel::sync_time_to_impl<<<nblock, block_dim>>>(n, time_to, time_deps);
 }
 
