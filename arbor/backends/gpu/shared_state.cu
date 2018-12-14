@@ -34,15 +34,6 @@ void init_concentration_impl(unsigned n, T* Xi, T* Xo, const T* weight_Xi, const
     }
 }
 
-template <typename T>
-__global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt, T tmax) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    if (i<n) {
-        auto t = time[i]+dt;
-        time_to[i] = t<tmax? t: tmax;
-    }
-}
-
 template <typename T, typename I>
 __global__ void sync_time_to_impl(unsigned n, T* time_to, const I* time_deps) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
@@ -58,6 +49,15 @@ __global__ void sync_time_to_impl(unsigned n, T* time_to, const I* time_deps) {
                 time_to[i+j] = min_t;
             }
         }
+    }
+}
+
+template <typename T>
+__global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt, T tmax) {
+    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
+    if (i<n) {
+        auto t = time[i]+dt;
+        time_to[i] = t<tmax? t: tmax;
     }
 }
 
