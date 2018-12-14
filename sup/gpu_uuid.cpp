@@ -17,10 +17,10 @@
 
 // CUDA 10 allows GPU uuid to be queried via cudaGetDeviceProperties.
 // Previous versions require the CUDA NVML library to get uuid.
-//#if CUDART_VERSION < 10000
+#if CUDART_VERSION < 10000
     #include <nvml.h>
     #define ARB_USE_NVML
-//#endif
+#endif
 
 namespace sup {
 
@@ -221,7 +221,7 @@ std::vector<uuid> get_gpu_uuids() {
 
     // For each device id, query NVML for the device's uuid.
     for (int i: device_ids) {
-        char buffer[41];
+        char buffer[NVML_DEVICE_UUID_BUFFER_SIZE];
         // get handle of gpu with index i
         nvmlDevice_t handle;
         nvml_status = nvmlDeviceGetHandleByIndex(i, &handle);

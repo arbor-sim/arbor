@@ -36,7 +36,7 @@ if(ARB_WITH_GPU)
     target_include_directories(arbor-sup PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
     # The sup lib needs to use the CUDA NVML library for CUDA 9
-    #if (${CUDA_VERSION_MAJOR} LESS 10)
+    if (${CUDA_VERSION_MAJOR} LESS 10)
         find_library(nvml_lib_path
                      NAMES nvidia-ml
                      PATHS ${CUDA_TOOLKIT_ROOT_DIR}
@@ -45,7 +45,7 @@ if(ARB_WITH_GPU)
             message(FATAL_ERROR "Unable to find CUDA NVML library: libnvida-ml.so")
         endif()
         target_link_libraries(arbor-sup PUBLIC ${nvml_lib_path})
-    #endif()
+    endif()
 endif()
 
 set_target_properties(arbor-sup PROPERTIES OUTPUT_NAME arborsup)
