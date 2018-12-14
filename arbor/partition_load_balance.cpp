@@ -27,7 +27,7 @@ domain_decomposition partition_load_balance(
 
         int operator()(cell_gid_type gid) const {
             auto gid_part = gid_divisions.partition();
-            for(unsigned i = 0; i < num_domains; i++) {
+            for (unsigned i = 0; i < num_domains; i++) {
                 auto rank_gids = util::subrange_view(gid_divisions.values(), gid_part[i], gid_part[i+1]);
                 auto lower = std::lower_bound(rank_gids.begin(), rank_gids.end(), gid);
                 if (lower != rank_gids.end()) {
@@ -76,8 +76,8 @@ domain_decomposition partition_load_balance(
 
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
-    for(auto gid: make_span(gid_part[domain_id])) {
-        if(!rec.gap_junctions_on(gid).empty()) {
+    for (auto gid: make_span(gid_part[domain_id])) {
+        if (!rec.gap_junctions_on(gid).empty()) {
             // If cell hasn't been visited yet, must belong to new super_cell
             // Perform BFS starting from that cell
             if (visited.find(gid) == visited.end()) {
@@ -129,7 +129,7 @@ domain_decomposition partition_load_balance(
     for (unsigned i = 0; i < super_cells.size(); i++) {
         auto kind = rec.get_cell_kind(super_cells[i].front());
         for (auto gid: super_cells[i]) {
-            if(rec.get_cell_kind(gid) != kind) {
+            if (rec.get_cell_kind(gid) != kind) {
                 throw arbor_internal_error("Cells of different kinds connected by gap_junctions: not allowed");
             }
             local_gids.push_back(gid);

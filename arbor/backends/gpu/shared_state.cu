@@ -49,12 +49,12 @@ __global__ void sync_time_to_impl(unsigned n, T* time_to, const I* time_deps) {
     if (i<n) {
         if (time_deps[i] > 0) {
             auto min_t = time_to[i];
-            for(int j = 1; j < time_deps[i]; j++) {
+            for (int j = 1; j < time_deps[i]; j++) {
                 if (time_to[i+j] < min_t) {
                     min_t = time_to[i+j];
                 }
             }
-            for(int j = 0; j < time_deps[i]; j++) {
+            for (int j = 0; j < time_deps[i]; j++) {
                 time_to[i+j] = min_t;
             }
         }
@@ -168,7 +168,7 @@ void set_dt_impl(
 void update_gj_state_impl(
     fvm_size_type n_gj, const gap_junction* gj_info, const fvm_value_type* voltage, fvm_value_type* current_density)
 {
-    if(!n_gj) return;
+    if (!n_gj) return;
 
     constexpr int block_dim = 128;
     int nblock = block_count(n_gj, block_dim);

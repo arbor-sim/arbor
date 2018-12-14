@@ -34,7 +34,7 @@ struct dry_run_context_impl {
         }
 
         std::vector<count_type> partition;
-        for(count_type i = 0; i <= num_ranks_; i++) {
+        for (count_type i = 0; i <= num_ranks_; i++) {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
@@ -61,7 +61,7 @@ struct dry_run_context_impl {
         }
 
         std::vector<count_type> partition;
-        for(count_type i = 0; i <= num_ranks_; i++) {
+        for (count_type i = 0; i <= num_ranks_; i++) {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 

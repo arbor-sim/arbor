@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         unsigned j=0;
-        for(auto g : decomp.groups) {
+        for (auto g : decomp.groups) {
             for (auto i : g.gids) {
                 auto t = recipe.get_probe({i, 0});
                 sim.add_sampler(arb::one_probe(t.id), sched, arb::make_simple_sampler(voltage[j++]));
@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        if(params.print_all) {
+        if (params.print_all) {
             write_trace_json(voltage, arb::rank(context));
         }
 

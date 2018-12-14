@@ -795,7 +795,7 @@ TEST(fvm_layout, cell_group_gj) {
         }
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
-            if(gid % 2 == 0) {
+            if (gid % 2 == 0) {
                 // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
                 auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
                 auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
@@ -817,13 +817,15 @@ TEST(fvm_layout, cell_group_gj) {
     for (unsigned i = 0; i < 20; i++) {
         mc_cell c;
         c.add_soma(2.1);
-        if(i%2 == 0) {
-            c.add_gap_junction({0, 1});
-            c.add_gap_junction({0, 1});
-        }
         if (i % 2 == 0) {
-            if(i < 10) cell_group0.push_back(std::move(c));
-            else cell_group1.push_back(std::move(c));
+            c.add_gap_junction({0, 1});
+            c.add_gap_junction({0, 1});
+            if (i < 10) {
+                cell_group0.push_back(std::move(c));
+            }
+            else {
+                cell_group1.push_back(std::move(c));
+            }
         }
 
     }

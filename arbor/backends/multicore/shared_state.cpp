@@ -194,15 +194,15 @@ void shared_state::ions_nernst_reversal_potential(fvm_value_type temperature_K) 
 }
 void shared_state::sync_time_to() {
     for (fvm_size_type i = 0; i<n_cell; i++) {
-        if(!time_dep[i]) continue;
+        if (!time_dep[i]) continue;
 
         fvm_value_type min_t = time_to[i];
-        for(int j = 1; j < time_dep[i]; j++) {
+        for (int j = 1; j < time_dep[i]; j++) {
             if (time_to[i+j] < min_t) {
                 min_t = time_to[i+j];
             }
         }
-        for(int j = 0; j < time_dep[i]; j++) {
+        for (int j = 0; j < time_dep[i]; j++) {
             time_to[i+j] = min_t;
         }
     }

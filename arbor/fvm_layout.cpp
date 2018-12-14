@@ -273,7 +273,7 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
     for (auto gid : gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         gj_conn_size += gj_list.size();
-        for(auto gj : gj_list) {
+        for (auto gj : gj_list) {
             // Calculate which cv a gj refers to from gj_comps
             auto shift = gid_to_loc[gj.location.gid];
             auto offset = gj.location.index;
@@ -286,7 +286,7 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
         }
     }
 
-    if(gj_loc_size != gj_conn_size) {
+    if (gj_loc_size != gj_conn_size) {
         throw arbor_internal_error("Gap junctions: number of gap_junction instances (locations) does not equal number of gap junctions (connections)");
     }
 

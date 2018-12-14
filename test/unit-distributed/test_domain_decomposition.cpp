@@ -127,7 +127,7 @@ namespace {
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             unsigned group = gid/groups_;
             unsigned id = gid%size_;
-            if(id == group && group != (groups_ - 1)) {
+            if (id == group && group != (groups_ - 1)) {
                 return {gap_junction_connection({gid + size_, 0}, 0.1)};
             }
             else if (id == group - 1) {
