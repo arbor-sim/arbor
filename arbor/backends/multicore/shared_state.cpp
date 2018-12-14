@@ -202,7 +202,6 @@ void shared_state::sync_time_to() {
                 min_t = time_to[i+j];
             }
         }
-
         for(int j = 0; j < time_dep[i]; j++) {
             time_to[i+j] = min_t;
         }
