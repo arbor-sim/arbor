@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <type_traits>
 #include <utility>
 
@@ -42,9 +43,34 @@ public:
      }
 };
 
+// std::function is not nothrow move constructable before C++20, so, er, cheat.
+namespace impl {
+    template <typename R>
+    struct wrap_std_function {
+        std::function<R ()> f;
+
+        wrap_std_function() noexcept {}
+        wrap_std_function(const std::function<R ()>& f): f(f) {}
+        wrap_std_function(std::function<R ()>&& f): f(std::move(f)) {}
+        wrap_std_function(wrap_std_function&& other) noexcept {
+            try {
+                f = std::move(other.f);
+            }
+            catch (...) {}
+        }
+
+        void operator()() const { f(); }
+    };
+}
+
 template <typename F>
-scope_exit<std::decay_t<F>> on_scope_exit(F&& f) {
+auto on_scope_exit(F&& f) {
     return scope_exit<std::decay_t<F>>(std::forward<F>(f));
+}
+
+template <typename R>
+auto on_scope_exit(std::function<R ()> f) {
+    return on_scope_exit(impl::wrap_std_function<R>(std::move(f)));
 }
 
 } // namespace sup
