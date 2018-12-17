@@ -10,7 +10,6 @@
 #include "context.hpp"
 #include "strings.hpp"
 
-#include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
 
 #ifdef ARB_MPI_ENABLED
