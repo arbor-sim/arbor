@@ -20,7 +20,7 @@ std::string cell_member_string(const arb::cell_member_type&);
 std::string connection_string(const arb::cell_connection&);
 std::string context_string(const arb::context&);
 std::string group_description_string(const arb::group_description&);
-std::string local_resources_string(const arb::local_resources&);
+std::string proc_allocation_string(const arb::proc_allocation&);
 std::string proc_allocation_string(const arb::proc_allocation&);
 std::string segment_location_string(const arb::segment_location&);
 std::string spike_string(const arb::spike&);

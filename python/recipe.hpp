@@ -138,7 +138,7 @@ public:
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;
 
-    arb::probe_info get_probe(arb::cell_member_type id) const override;
+    //arb::probe_info get_probe(arb::cell_member_type id) const override;
 };
 
 } // namespace pyarb

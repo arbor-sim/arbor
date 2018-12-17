@@ -7,21 +7,11 @@ class test_context(unittest.TestCase):
         ctx = arb.context()
 
     def test_resources(self):
-        avail = arb.local_resources()
-
-        # check that there is at least one thread
-        self.assertGreaterEqual(avail.threads, 1)
-
         alloc = arb.proc_allocation()
 
-        # test that by default proc_allocation takes its cues
-        # from local_resources
-        self.assertEqual(avail.threads, alloc.threads)
-        if avail.gpus>0:
-            self.assertTrue(alloc.has_gpu())
-            self.assertEqual(alloc.gpu_id, 0)
-        else:
-            self.assertFalse(alloc.has_gpu)
+        # test that by default proc_allocation has 1 thread and no GPU
+        self.assertEqual(1, alloc.threads)
+        self.assertFalse(alloc.has_gpu)
 
         alloc.threads = 20
         self.assertEqual(alloc.threads, 20)

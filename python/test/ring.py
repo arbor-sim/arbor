@@ -53,7 +53,7 @@ class ring_recipe(arb.recipe):
         return []
 
 # make execution context
-context = arb.context()
+context = arb.context(threads=2, gpu=None)
 
 # this will print out information about the number of threads, and information
 # about GPU and MPI if being used.

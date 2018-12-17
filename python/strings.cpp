@@ -25,18 +25,14 @@ std::string connection_string(const arb::cell_connection& c) {
     return s.str();
 }
 
-std::string local_resources_string(const arb::local_resources& r) {
-    std::stringstream s;
-    s << "<local_resources: threads " << r.num_threads << ", gpus " << r.num_gpus << ">";
-    return s.str();
-}
-
 std::string proc_allocation_string(const arb::proc_allocation& a) {
     std::stringstream s;
-    s << "<local_resources: threads " << a.num_threads
-      << ", gpu " << (a.has_gpu()? "yes": "None");
+    s << "<hardware resource allocation: threads " << a.num_threads << ", gpu ";
     if (a.has_gpu()) {
-        s << " (id " << a.gpu_id << ")";
+        s << a.gpu_id;
+    }
+    else {
+        s << "None";
     }
     s << ">";
     return s.str();
