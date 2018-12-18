@@ -183,10 +183,11 @@ std::vector<uuid> get_gpu_uuids() {
 
     // Attempt to initialize nvml
     auto nvml_status = nvmlInit();
-    if (nvml_status!=NVML_ERROR_ALREADY_INITIALIZED && nvml_status!=NVML_SUCCESS) {
+    const bool nvml_init = (nvml_status==NVML_ERROR_ALREADY_INITIALIZED);
+    if (!nvml_init && nvml_status!=NVML_SUCCESS) {
         throw make_runtime_error(nvml_status);
     }
-    auto nvml_guard = on_scope_exit(nvmlShutdown);
+    auto nvml_guard = on_scope_exit([nvml_init](){if (!nvml_init) nvmlShutdown();});
 
     // store the uuids
     std::vector<uuid> uuids;
