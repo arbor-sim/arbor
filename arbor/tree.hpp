@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <fstream>
 #include <numeric>
 #include <vector>
 
@@ -23,81 +24,21 @@ public:
 
     tree() = default;
 
-    tree& operator=(tree&& other) {
-        std::swap(child_index_, other.child_index_);
-        std::swap(children_, other.children_);
-        std::swap(parents_, other.parents_);
-        return *this;
-    }
-
-    tree& operator=(tree const& other) {
-        children_ = other.children_;
-        child_index_ = other.child_index_;
-        parents_ = other.child_index_;
-        return *this;
-    }
-
-    // copy constructors take advantage of the assignment operators
-    // defined above
-    tree(tree const& other) {
-        *this = other;
-    }
-
-    tree(tree&& other) {
-        *this = std::move(other);
-    }
-
     /// Create the tree from a parent index that lists the parent segment
     /// of each segment in a cell tree.
-    tree(std::vector<int_type> parent_index) {
-        // validate the input
-        if(!algorithms::is_minimal_degree(parent_index)) {
-            throw std::domain_error(
-                "parent index used to build a tree did not satisfy minimal degree ordering"
-            );
-        }
+    tree(std::vector<int_type> parent_index);
 
-        // an empty parent_index implies a single-compartment/segment cell
-        arb_assert(parent_index.size()!=0u);
+    size_type num_children() const;
 
-        init(parent_index.size());
-        memory::copy(parent_index, parents_);
-        parents_[0] = no_parent;
+    size_type num_children(size_t b) const;
 
-        memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
-
-        std::vector<int_type> pos(parents_.size(), 0);
-        for (auto i = 1u; i < parents_.size(); ++i) {
-            auto p = parents_[i];
-            children_[child_index_[p] + pos[p]] = i;
-            ++pos[p];
-        }
-    }
-
-    size_type num_children() const {
-        return static_cast<size_type>(children_.size());
-    }
-
-    size_type num_children(size_t b) const {
-        return child_index_[b+1] - child_index_[b];
-    }
-
-    size_type num_segments() const {
-        // the number of segments/nodes is the size of the child index minus 1
-        // ... except for the case of an empty tree
-        auto sz = static_cast<size_type>(child_index_.size());
-        return sz ? sz - 1 : 0;
-    }
+    size_type num_segments() const;
 
     /// return the child index
-    const iarray& child_index() {
-        return child_index_;
-    }
+    const iarray& child_index();
 
     /// return the list of all children
-    const iarray& children() const {
-        return children_;
-    }
+    const iarray& children() const;
 
     /// return the list of all children of branch i
     auto children(size_type i) const {
@@ -107,44 +48,72 @@ public:
     }
 
     /// return the list of parents
-    const iarray& parents() const {
-        return parents_;
-    }
+    const iarray& parents() const;
 
     /// return the parent of branch b
-    int_type parent(size_t b) const {
-        return parents_[b];
-    }
-    int_type& parent(size_t b) {
-        return parents_[b];
-    }
+    const int_type& parent(size_t b) const;
+    int_type& parent(size_t b);
+
+    // splits the node in two parts. Returns `ix + 1` which is the new index of
+    // the old node.
+    // .-------------------.
+    // |      P         P  |
+    // |     /         /   |
+    // |    A   ~~>   N    |
+    // |   / \        |    |
+    // |  B  C        A    |
+    // |             / \   |
+    // |            B  C   |
+    // '-------------------'
+    int_type split_node(int_type ix);
+
+    // Changes the root node of a tree
+    // .------------------------.
+    // |        A               |
+    // |       / \         R    |
+    // |      R  B        / \   |
+    // |     /     ~~>   A  C   |
+    // |    C           /  / \  |
+    // |   / \         B  D  E  |
+    // |  D  E                  |
+    // '------------------------'
+    // Returns the permutation applied to the nodes,
+    // i.e. `new_node_data[i] = old_node_data[perm[i]]`
+    //
+    // This function has the additional effect, that branches with only one
+    // child branch get merged. That means that `select_new_root(0)` can also
+    // lead to an permutation of the indices of the compartments:
+    // .------------------------------.
+    // |        0               0     |
+    // |       / \             / \    |
+    // |      1  3            1  3    |
+    // |     /    \   ~~>    /    \   |
+    // |    2     4         2     4   |
+    // |   / \     \       / \     \  |
+    // |  5  6     7      6  7     5  |
+    // '------------------------------'
+    iarray select_new_root(int_type root);
+
+    // Selects a new node such that the depth of the graph is minimal.
+    // Returns the permutation applied to the nodes,
+    // i.e. `new_node_data[i] = old_node_data[perm[i]]`
+    iarray minimize_depth();
 
     /// memory used to store tree (in bytes)
-    std::size_t memory() const {
-        return sizeof(int_type)*(children_.size()+child_index_.size()+parents_.size())
-            + sizeof(tree);
-    }
+    std::size_t memory() const;
 
 private:
-    void init(size_type nnode) {
-        if (nnode) {
-            auto nchild = nnode - 1;
-            children_.resize(nchild);
-            child_index_.resize(nnode+1);
-            parents_.resize(nnode);
-        }
-        else {
-            children_.resize(0);
-            child_index_.resize(0);
-            parents_.resize(0);
-        }
-    }
+    void init(size_type nnode);
 
     // state
     iarray children_;
     iarray child_index_;
     iarray parents_;
 };
+
+// Calculates the depth of each branch from the root of a cell segment tree.
+// The root has depth 0, it's children have depth 1, and so on.
+tree::iarray depth_from_root(const tree& t);
 
 template <typename C>
 std::vector<tree::int_type> make_parent_index(tree const& t, C const& counts)

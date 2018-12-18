@@ -55,7 +55,7 @@ flags = [
     '-I',
     'build/include',
     '-I',
-    'aux/include',
+    'sup/include',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

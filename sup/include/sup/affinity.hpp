@@ -3,8 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace arb {
-namespace hw {
+namespace sup {
 
 // The list of logical processors for which the calling thread has affinity.
 // If calling from the main thread at application start up, before
@@ -17,5 +16,4 @@ namespace hw {
 // available cores.
 std::vector<int> get_affinity();
 
-} // namespace util
-} // namespace arb
+} // namespace sup
