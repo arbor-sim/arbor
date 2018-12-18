@@ -94,6 +94,7 @@ set(unit_sources
     test_schedule.cpp
     test_spike_source.cpp
     test_local_context.cpp
+    test_scope_exit.cpp
     test_simd.cpp
     test_span.cpp
     test_spikes.cpp
