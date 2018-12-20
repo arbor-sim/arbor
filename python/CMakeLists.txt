@@ -14,17 +14,9 @@ add_subdirectory(pybind11)
 
 # The python library. MODULE will make a python-exclusive model.
 add_library(pyarb MODULE
-    cells.cpp
     context.cpp
-    event_generator.cpp
-    domain_decomposition.cpp
-    identifiers.cpp
     mpi.cpp
-    profiler.cpp
     pyarb.cpp
-    recipe.cpp
-    simulation.cpp
-    spikes.cpp
     strings.cpp
 )
 

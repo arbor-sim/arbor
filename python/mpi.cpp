@@ -52,6 +52,17 @@ void mpi_finalize() {
     MPI_Finalize();
 }
 
+int mpi_is_initialized() {
+    int initialized;
+    MPI_Initialized(&initialized);
+    return initialized; 
+}
+
+int mpi_is_finalized() {
+    int finalized;
+    MPI_Finalized(&finalized);
+    return finalized;
+}
 // Define the stringifier for mpi_comm_shim here, to minimise the ifdefication
 // elsewhere in this wrapper code.
 
@@ -75,6 +86,8 @@ void register_mpi(pybind11::module& m) {
 
     m.def("mpi_init", &mpi_init, "Initialize MPI with MPI_THREAD_SINGLE, as required by Arbor.");
     m.def("mpi_finalize", &mpi_finalize, "Finalize MPI (calls MPI_Finalize)");
+    m.def("mpi_is_initialized", &mpi_is_initialized, "Check if MPI is initialized.");
+    m.def("mpi_is_finalized", &mpi_is_finalized, "Check if MPI is finalized.");
 
     #ifdef ARB_WITH_MPI4PY
     m.def("mpi_comm_from_mpi4py", comm_from_mpi4py);

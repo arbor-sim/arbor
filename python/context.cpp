@@ -4,7 +4,6 @@
 #include <string>
 
 #include <arbor/context.hpp>
-#include <arbor/domain_decomposition.hpp>
 #include <arbor/version.hpp>
 
 #include "context.hpp"
