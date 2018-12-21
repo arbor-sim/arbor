@@ -15,16 +15,16 @@ try:
 except ModuleNotFoundError:
     from test import options
 
-if options.TEST_MPI4PY == True:
+if options.TEST_MPI4PY == True and options.TEST_MPI == True:
     import mpi4py.MPI as mpi
 
 """
-TestContextMPI4PY
+Contexts_mpi4py
    Goal: collect all tests for testing distributed arb.context using mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
-@unittest.skipIf(options.TEST_MPI4PY == False, "ARB_WITH_MPI4PY=OFF")
-class TestContextsMPI4PY(unittest.TestCase): 
+@unittest.skipIf(options.TEST_MPI == False or options.TEST_MPI4PY == False, "ARB_WITH_MPI/-4PY=OFF")
+class Contexts_mpi4py(unittest.TestCase): 
     def test_initialize_mpi4py(self):
         # test mpi initialization (automatically when including mpi4py: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html)
         self.assertTrue(mpi.Is_initialized())
@@ -52,11 +52,13 @@ class TestContextsMPI4PY(unittest.TestCase):
         self.assertFalse(mpi.Is_finalized())
 
 def suite():
-    suite = unittest.makeSuite(TestContextsMPI4PY, 'test')
+    # specify class and test functions as tuple (here: all tests starting with 'test' from class Contexts_mpi4py
+    suite = unittest.makeSuite(Contexts_mpi4py, ('test'))
     return suite
 
 def run():
-    runner = unittest.TextTestRunner(verbosity = options.verbosity)
+    v = options.parse_arguments().verbosity
+    runner = unittest.TextTestRunner(verbosity = v)
     runner.run(suite())
 
 if __name__ == "__main__":

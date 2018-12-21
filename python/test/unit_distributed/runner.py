@@ -19,22 +19,30 @@ except ModuleNotFoundError:
     from test.unit_distributed import test_contexts_mpi4py
     # add more if needed
 
+test_modules = [\
+    test_contexts_arbmpi,\
+    test_contexts_mpi4py\
+] # add more if needed
+
 """
 suite
     Goal:    add all tests in this directory
     Returns: suite of tests in this directory
 """
 def suite(): 
+    loader = unittest.TestLoader()
 
-    suite = unittest.TestSuite()
+    suites = []
+    for test_module in test_modules:
+        test_module_suite = test_module.suite()
+        suites.append(test_module_suite)
 
-    suite.addTest(test_contexts_arbmpi.suite())
-    suite.addTest(test_contexts_mpi4py.suite())
-    # add more if needed
+    suite = unittest.TestSuite(suites)
 
     return suite
 
+
 if __name__ == "__main__": 
-    
-    runner = unittest.TextTestRunner(verbosity = options.verbosity)
+    v = options.parse_arguments().verbosity 
+    runner = unittest.TextTestRunner(verbosity = v)
     runner.run(suite())

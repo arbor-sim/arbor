@@ -16,11 +16,11 @@ except ModuleNotFoundError:
     from test import options 
 
 """
-TestContext
+Contexts
     Goal: collect all tests for testing non-distributed arb.context 
 """
 
-class TestContexts(unittest.TestCase):
+class Contexts(unittest.TestCase):
     def test_default(self):
         ctx = arb.context()
 
@@ -66,12 +66,17 @@ class TestContexts(unittest.TestCase):
         self.assertEqual(ctx2.rank, 0)       
         #print(ctx2)
       
+'''
+suite to be tested in runner.py
+'''
 def suite():
-    suite = unittest.makeSuite(TestContexts, 'test')
+    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
+    suite = unittest.makeSuite(Contexts, ('test'))
     return suite
 
 def run():
-    runner = unittest.TextTestRunner(verbosity = options.verbosity)
+    v = options.parse_arguments().verbosity
+    runner = unittest.TextTestRunner(verbosity = v)
     runner.run(suite())
 
 if __name__ == "__main__":

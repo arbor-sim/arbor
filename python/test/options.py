@@ -18,7 +18,8 @@ def parse_arguments(args=None, namespace=None):
     parser = argparse.ArgumentParser()
 
     # add arguments as needed (e.g. -d, --dryrun Number of dry run ranks)
-    parser.add_argument("-v", "--verbosity", nargs='?', const=2, type=int, choices=[0, 1, 2], default=2, help="increase output verbosity")
+    parser.add_argument("-v", "--verbosity", nargs='?', const=0, type=int, choices=[0, 1, 2], default=0, help="increase output verbosity")
+    #parser.add_argument("-d", "--dryrun", type=int, default=100 , help="number of dry run ranks")
     args = parser.parse_args()
     return args
 
@@ -45,18 +46,12 @@ def bool_env(var_name, default=False):
 
 """
 ========================= Global options ======================== 
-read and set command line arguments
+read and set environment variables 
+(parsing of arguments in TestClasses (e.g. as setUpClass to pass arguments) 
+  due to interference with unittest arguments)
 """
-args = parse_arguments()
-verbosity = args.verbosity
-print("Verbosity is set to", verbosity)
-# include more if needed
-
-"""
-read and set environment variables
-"""
-TEST_MPI    =  bool_env('ARB_MPI_ENABLED', False)
-TEST_MPI4PY =  bool_env('ARB_WITH_MPI4PY', False)
-print("ARB_MPI_ENABLED is", TEST_MPI)
-print("ARB_WITH_MPI4PY is", TEST_MPI4PY)
+TEST_MPI    =  (bool_env('ARB_MPI_ENABLED', False) or bool_env('TEST_MPI', False))
+TEST_MPI4PY =  (bool_env('ARB_WITH_MPI4PY', False) or bool_env('TEST_MPI4PY', False))
+print("ARB_MPI_ENABLED on?", TEST_MPI)
+print("ARB_WITH_MPI4PY on?", TEST_MPI4PY)
 # include more if needed

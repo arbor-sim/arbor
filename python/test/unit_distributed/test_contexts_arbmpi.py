@@ -16,11 +16,11 @@ except ModuleNotFoundError:
     from test import options
 
 """
-TestContextArbMPI
+Contexts_arbmpi
    Goal: collect all tests for testing distributed arb.context using arbor mpi wrappers
 """
 @unittest.skipIf(options.TEST_MPI == False, "ARB_MPI_ENABLED=OFF")
-class TestContextsArbMPI(unittest.TestCase): 
+class Contexts_arbmpi(unittest.TestCase): 
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
     def setUpClass(self):
@@ -63,11 +63,13 @@ class TestContextsArbMPI(unittest.TestCase):
         self.assertFalse(arb.mpi_is_finalized())
 
 def suite():
-    suite = unittest.makeSuite(TestContextsArbMPI, 'test')
+    # specify class and test functions as tuple (here: all tests starting with 'test' from class Contexts_arbmpi
+    suite = unittest.makeSuite(Contexts_arbmpi, ('test'))
     return suite
 
 def run():
-    runner = unittest.TextTestRunner(verbosity = options.verbosity)
+    v = options.parse_arguments().verbosity
+    runner = unittest.TextTestRunner(verbosity = v)
     runner.run(suite())
 
 if __name__ == "__main__":
