@@ -185,7 +185,8 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
         o << "\n";
         ++cp_index;
     }
-    // Print a final line with the accumulated values
+
+    // Print a final line with the accumulated values of each meter.
     o << strprintf("%-21s", "meter-total");
     for (const auto& v: sums) {
         o << strprintf("%16.3f", v);
