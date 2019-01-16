@@ -29,11 +29,8 @@ domain_decomposition partition_load_balance(
             auto gid_part = gid_divisions.partition();
             for (unsigned i = 0; i < num_domains; i++) {
                 auto rank_gids = util::subrange_view(gid_divisions.values(), gid_part[i], gid_part[i+1]);
-                auto lower = std::lower_bound(rank_gids.begin(), rank_gids.end(), gid);
-                if (lower != rank_gids.end()) {
-                    if (*lower == gid) {
-                        return i;
-                    }
+                if(std::binary_search(rank_gids.begin(), rank_gids.end(), gid)) {
+                    return i;
                 }
             }
             return -1;

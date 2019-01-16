@@ -13,11 +13,11 @@ struct gap_params {
     gap_params() = default;
 
     std::string name = "default";
-    unsigned cells_per_ring = 5;
-    unsigned num_rings = 2;
+    unsigned cells_per_ring = 100;
+    unsigned num_rings = 10;
     double duration = 100;
-    double delay = 5;
-    bool print_all = true;
+    double delay = 0.5;
+    bool print_all = false;
 };
 
 gap_params read_options(int argc, char** argv) {
