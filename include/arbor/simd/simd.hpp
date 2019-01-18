@@ -221,15 +221,14 @@ namespace simd_detail {
                     Impl::copy_to(s, a);
 
                     scalar_type temp = 0;
-                    for (unsigned i = 0; i<width; ++i) {
-                        unsigned curr_index_ = o[i];
-                        unsigned next_index_ = i == width - 1 ? o[i]+1 : o[i+1];
+                    for (unsigned i = 0; i<width-1; ++i) {
                         temp += a[i];
-                        if(curr_index_ != next_index_) {
-                            p[curr_index_] += temp;
+                        if (o[i] != o[i+1]) {
+                            p[o[i]] += temp;
                             temp = 0;
                         }
                     }
+                    p[o[width-1]] = temp;
                 }
                 break;
             case index_constraint::independent:
