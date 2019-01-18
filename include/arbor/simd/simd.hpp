@@ -220,8 +220,15 @@ namespace simd_detail {
                     scalar_type a[width];
                     Impl::copy_to(s, a);
 
+                    scalar_type temp = 0;
                     for (unsigned i = 0; i<width; ++i) {
-                            p[o[i]] += a[i];
+                        unsigned curr_index_ = o[i];
+                        unsigned next_index_ = i == width - 1 ? o[i]+1 : o[i+1];
+                        temp += a[i];
+                        if(curr_index_ != next_index_) {
+                            p[curr_index_] += temp;
+                            temp = 0;
+                        }
                     }
                 }
                 break;
