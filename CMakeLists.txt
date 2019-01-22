@@ -75,6 +75,10 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 # expressions.)
 if(ARB_WITH_GPU)
     enable_language(CUDA)
+    # Despite native CUDA support, the CUDA package is still required to find
+    # the NVML library and to export the cuda library dependencies from the
+    # installed target.
+    find_package(CUDA REQUIRED)
 endif()
 
 # Build paths.
@@ -203,10 +207,14 @@ if(ARB_WITH_GPU)
         target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
     endif()
 
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
 endif()
 
 # Use libunwind if available for pretty printing stack traces
@@ -348,7 +356,6 @@ set(arbor_add_import_libs)
 
 if(ARB_WITH_GPU)
     set(arbor_override_import_lang CXX)
-    find_package(CUDA REQUIRED)
     set(arbor_add_import_libs ${CUDA_LIBRARIES})
 endif()
 
