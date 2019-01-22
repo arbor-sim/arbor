@@ -63,10 +63,14 @@ mc_cell make_basic_cell(
 
     arb_assert(!terminals.empty());
 
-    arb::mechanism_desc syn_default(syn_type);
+    arb::mechanism_desc syn_1("expsyn");
+    arb::mechanism_desc syn_2("exp2syn");
     for (unsigned i=0; i<num_synapses; ++i) {
         unsigned id = terminals[i%terminals.size()];
-        cell.add_synapse({id, distribution(rng)}, syn_default);
+        if(i % 2 == 0)
+            cell.add_synapse({id, distribution(rng)}, syn_1);
+        else
+            cell.add_synapse({id, distribution(rng)}, syn_2);
     }
 
     return cell;

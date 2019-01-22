@@ -390,6 +390,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
         mechanism::layout layout;
         layout.cv = config.cv;
+        layout.cv_loc = config.cv_loc;
         layout.weight.resize(layout.cv.size());
 
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional
@@ -399,14 +400,14 @@ void fvm_lowered_cell_impl<B>::initialize(
         if (config.kind==mechanismKind::point) {
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
-
-            for (auto i: count_along(layout.cv)) {
-                auto cv = layout.cv[i];
-                layout.weight[i] = 1000/D.cv_area[cv];
+            for (auto i: count_along(layout.cv_loc)) {
+                auto cv = layout.cv[layout.cv_loc[i]];
+                layout.weight[layout.cv_loc[i]] = 1000/D.cv_area[cv];
 
                 // (builtin stimulus, for example, has no targets)
                 if (!config.target.empty()) {
-                    target_handles[config.target[i]] = target_handle(mech_id, i, D.cv_to_cell[cv]);
+                    target_handles[config.target[i]] = target_handle(mech_id, config.cv_loc[i], D.cv_to_cell[cv]);
+                    //std::cout << config.target[i] << ":\t" << mech_id << "\t" << config.cv_loc[i] << "\t" << D.cv_to_cell[cv] << "\t" << cv << std::endl;
                 }
             }
         }

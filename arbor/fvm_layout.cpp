@@ -427,6 +427,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     for (const auto& entry: density_mech_table) {
         const std::string& name = entry.first;
         fvm_mechanism_config& config = mechdata.mechanisms[name];
+        config.linear = catalogue[name].linear;
         config.kind = mechanismKind::density;
 
         auto nparam = build_param_data(entry.second.paramset, entry.second.info);
@@ -561,9 +562,26 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
 
         fvm_mechanism_config& config = mechdata.mechanisms[name];
         config.kind = mechanismKind::point;
+        config.linear = catalogue[name].linear;
 
         assign(config.cv,     transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
         assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
+
+        config.cv_loc.resize(config.cv.size());
+        if(config.linear) {
+            unsigned loc = 0;
+            config.cv_loc[0] = loc;
+            for (unsigned i = 1; i < config.cv.size(); ++i) {
+                if (config.cv[i] != config.cv[i - 1]) {
+                    loc++;
+                }
+                config.cv_loc[i] = loc;
+            }
+            config.cv.erase( unique( config.cv.begin(), config.cv.end() ), config.cv.end() );
+        }
+        else {
+            assign(config.cv_loc, count_along(points));
+        }
 
         config.param_values.resize(nparam);
         for (auto pidx: make_span(0, nparam)) {

@@ -101,6 +101,8 @@ struct fvm_mechanism_config {
     // duplicates for point mechanisms.
     std::vector<index_type> cv;
 
+    std::vector<index_type> cv_loc;
+
     // Normalized area contribution in corresponding CV (density mechanisms only).
     std::vector<value_type> norm_area;
 
@@ -109,6 +111,8 @@ struct fvm_mechanism_config {
 
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
+
+    bool linear = false;
 };
 
 // Post-discretization data for ion channel state.
