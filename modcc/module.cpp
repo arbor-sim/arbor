@@ -141,6 +141,8 @@ bool Module::semantic() {
     // symbol table.
     // Returns false if a symbol name clashes with the name of a symbol that
     // is already in the symbol table.
+    bool linear = true;
+    std::vector<std::string> state_vars;
     auto move_symbols = [this] (std::vector<symbol_ptr>& symbol_list) {
         for(auto& symbol: symbol_list) {
             bool is_found = (symbols_.find(symbol->name()) != symbols_.end());
@@ -231,6 +233,7 @@ bool Module::semantic() {
 
         auto state = sym.second->is_variable();
         if (!state || !state->is_state()) continue;
+        state_vars.push_back(state->name());
 
         auto shadowed = state->shadows();
         if (!shadowed) continue;
@@ -334,6 +337,13 @@ bool Module::semantic() {
             }
             else {
                 deriv->body()->accept(solver.get());
+                for (auto& s: deriv->body()->statements()) {
+                    if(s->is_assignment()) {
+                        linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                        linear &= r.is_linear;
+                        linear &= r.is_homogeneous;
+                    }
+                }
             }
 
             if (auto solve_block = solver->as_block(false)) {
@@ -382,6 +392,15 @@ bool Module::semantic() {
         //..........................................................
         NrnCurrentRewriter nrn_current_rewriter;
         breakpoint->accept(&nrn_current_rewriter);
+
+        for (auto& s: breakpoint->body()->statements()) {
+            if(s->is_assignment()) {
+                linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                linear &= r.is_linear;
+                linear &= r.is_homogeneous;
+            }
+        }
+
         auto nrn_current_block = nrn_current_rewriter.as_block();
         if (!nrn_current_block) {
             append_errors(nrn_current_rewriter.errors());
@@ -399,6 +418,21 @@ bool Module::semantic() {
         error("a BREAKPOINT block is required");
         return false;
     }
+
+    if (has_symbol("net_receive", symbolKind::procedure)) {
+        auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");
+        if (net_rec_api.second) {
+            for (auto &s: net_rec_api.second->body()->statements()) {
+                if (s->is_assignment()) {
+                    for (const auto &id: state_vars) {
+                        auto coef = symbolic_pdiff(s->is_assignment()->rhs(), id);
+                        linear &= (coef->is_number()->value() == 1 || coef->is_number()->value() == 0);
+                    }
+                }
+            }
+        }
+    }
+    linear_ = linear;
 
     // Perform semantic analysis and inlining on function and procedure bodies
     // in order to inline calls inside the newly crated API methods.

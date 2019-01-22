@@ -53,6 +53,8 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
     using io::indent;
     using io::popindent;
 
+    std::cout << "here" << m.is_linear() <<std::endl;
+
     std::string name = m.module_name();
     auto ids = public_variable_ids(m);
     auto ns_components = namespace_components(opt.cpp_namespace);
