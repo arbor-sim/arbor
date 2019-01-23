@@ -75,6 +75,7 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 # expressions.)
 if(ARB_WITH_GPU)
     enable_language(CUDA)
+
     # Despite native CUDA support, the CUDA package is still required to find
     # the NVML library and to export the cuda library dependencies from the
     # installed target.
@@ -111,11 +112,26 @@ set(CMAKE_CXX_STANDARD 14)
 # to the 'export set', even the private ones, and this must be done
 # in the same CMakeLists.txt in which the target is defined.
 
+# Interface library `arbor-config-defs` collects configure-time defines
+# for arbor and arborenv, of the form ARB_HAVE_XXX. These defines should
+# _not_ be used in any installed public headers.
+
+add_library(arbor-config-defs INTEFACE)
+install(TARGETS arbor-config-defs EXPORT arbor-targets)
+
 # Interface library `arbor-private-deps` collects dependencies, options etc.
 # for the arbor library.
 
 add_library(arbor-private-deps INTERFACE)
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
+
+# Interface library `arborenv-private-deps` collects dependencies, options etc.
+# for the arborenv library.
+
+add_library(arborenv-private-deps INTERFACE)
+target_link_libraries(arborenv-private-deps INTERFACE arbor-config-defs)
+install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 
 # Interface library `arbor-public-deps` collects requirements for the
 # users of the arbor library (e.g. mpi) that will become part
@@ -128,11 +144,6 @@ install(TARGETS arbor-public-deps EXPORT arbor-targets)
 # Creates interface libraries `ext-json` and `ext-tclap`.
 
 add_subdirectory(ext)
-
-# Support utiliies in `sup` are common across test executables
-# and examples. Creates interface library `arbor-sup`.
-
-add_subdirectory(sup)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
@@ -149,16 +160,17 @@ set(arbor_supported_components)
 if(ARB_ARCH)
     set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
     target_compile_options(arbor-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
+    target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
 endif()
 
 # Profiling and test features
 #-----------------------------
 
 if(ARB_WITH_PROFILING)
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_PROFILING)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_PROFILING)
 endif()
 if(ARB_WITH_ASSERTIONS)
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_ASSERTIONS)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_ASSERTIONS)
 endif()
 
 # Threading model
@@ -175,7 +187,7 @@ list(APPEND arbor_export_dependencies "Threads")
 
 if(ARB_WITH_MPI)
     find_package(MPI REQUIRED CXX)
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_MPI)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_MPI)
 
     # target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
     # target_link_libraries(arbor-public-deps INTERFACE MPI::MPI_CXX)
@@ -186,6 +198,7 @@ if(ARB_WITH_MPI)
     add_library(mpi-wrap INTERFACE)
     target_link_libraries(mpi-wrap INTERFACE MPI::MPI_CXX)
     target_compile_definitions(mpi-wrap INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
+
     target_link_libraries(arbor-public-deps INTERFACE mpi-wrap)
     install(TARGETS mpi-wrap EXPORT arbor-targets)
 
@@ -198,14 +211,34 @@ endif()
 
 if(ARB_WITH_GPU)
     set(ARB_WITH_CUDA TRUE)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
+    if(ARB_WITH_GPU_FINE_MATRIX)
+        target_compile_definitions(arbor-config-deps INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
+    endif()
+
+    # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
+
+    if (${CUDA_VERSION_MAJOR} LESS 10)
+        set(arborenv_requires_nvml)
+    endif()
+    if(arborenv_requires_nvml)
+        set(nvml_names nvidia-ml) # Note: platform dependent? e.g. nvml.lib on Windows.
+        find_library(CUDA_NVML
+                     NAMES ${nvml_names}
+                     NO_DEFAULT_PATH
+                     PATHS ${CMAKE_CUDA_IMPLICIT_DIRECTORIES} ${CUDA_TOOLKIT_ROOT_DIR}
+                     PATH_SUFFIXES lib64/stubs lib/stubs)
+
+        if (NOT CUDA_NVML)
+            message(FATAL_ERROR "Unable to find CUDA NVML library by: ${nvml_names}")
+        endif()
+
+        target_link_libraries(arborenv-private-deps INTERFACE ${CUDA_NVML})
+    endif()
 
     add_compile_options(
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU)
-    if(ARB_WITH_GPU_FINE_MATRIX)
-        target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
-    endif()
 
     target_compile_options(arbor-private-deps INTERFACE
         $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
@@ -294,13 +327,19 @@ endforeach()
 #----------------------------------------------------------
 
 # arbor-public-headers:
-add_subdirectory(include)
+add_subdirectory(arbor/include)
+
+# arbor-sup:
+add_subdirectory(sup)
 
 # modcc, libmodcc:
 add_subdirectory(modcc)
 
 # arbor, arbor-private-headers:
 add_subdirectory(arbor)
+
+# arborenv, arborenv-public-headers:
+add_subdirectory(arborenv)
 
 # unit, unit-mpi, unit-local, unit-modcc, validate
 add_subdirectory(test)
@@ -353,10 +392,16 @@ endif()
 
 set(arbor_override_import_lang)
 set(arbor_add_import_libs)
+set(arborenv_add_import_libs)
 
 if(ARB_WITH_GPU)
     set(arbor_override_import_lang CXX)
     set(arbor_add_import_libs ${CUDA_LIBRARIES})
+    set(arborenv_add_import_libs ${CUDA_LIBRARIES})
+
+    if(arborenv_requires_nvml)
+        list(APPEND arborenv_add_import_libs ${CUDA_NVML})
+    endif()
 endif()
 
 configure_file(

@@ -4,7 +4,7 @@
 #include <ostream>
 #include <vector>
 
-namespace sup {
+namespace arborenv {
 
 // Store cudaUUID_t in a byte array for easy type punning and comparison.
 // 128 bit uuids are not just for GPUs: they are used in many applications,
@@ -38,4 +38,4 @@ struct gpu_rank {
 
 gpu_rank assign_gpu(const std::vector<uuid>& uids, const std::vector<int>&  uid_part, int rank);
 
-} // namespace sup
+} // namespace arborenv

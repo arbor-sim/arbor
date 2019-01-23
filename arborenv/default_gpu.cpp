@@ -2,7 +2,7 @@
 
 #include <cuda_runtime.h>
 
-namespace sup {
+namespace arbenv {
 
 // When arbor does not have CUDA support, return -1, which always
 // indicates that no GPU is available.
@@ -16,17 +16,17 @@ int default_gpu() {
     return -1;
 }
 
-} // namespace sup
+} // namespace arbenv
 
 #else // ifdef ARB_HAVE_GPU
 
-namespace sup {
+namespace arbenv {
 
 int default_gpu() {
     return -1;
 }
 
-} // namespace sup
+} // namespace arbenv
 
 #endif // ifdef ARB_HAVE_GPU
 
