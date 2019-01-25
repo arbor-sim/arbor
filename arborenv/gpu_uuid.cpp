@@ -9,18 +9,23 @@
 #include <stdexcept>
 #include <vector>
 
-#include <arbenv/scope_exit.hpp>
+#include <cuda_runtime.h>
 
+#include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
 
-#include <cuda_runtime.h>
 
 // CUDA 10 allows GPU uuid to be queried via cudaGetDeviceProperties.
 // Previous versions require the CUDA NVML library to get uuid.
-#if CUDART_VERSION < 10000
+//
+// ARBENV_USE_NVML will be defined at configuration time if using
+// CUDA version 9.
+
+#ifdef ARBENV_USE_NVML
     #include <nvml.h>
-    #define ARBENV_USE_NVML
 #endif
+
+using arb::util::on_scope_exit;
 
 namespace arbenv {
 

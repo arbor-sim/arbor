@@ -1,4 +1,4 @@
-envset(arborenv-sources
+set(arborenv-sources
     affinity.cpp
     concurrency.cpp
     default_gpu.cpp
@@ -44,5 +44,12 @@ if(ARB_WITH_GPU)
     endif()
 endif()
 
-set_target_properties(arborenv PROPERTIES OUTPUT_NAME arborenv)
+#set_target_properties(arborenv PROPERTIES OUTPUT_NAME arborenv)
 
+install(DIRECTORY include/arborenv
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.hpp")
+
+
+install(TARGETS arborenv-public-headers EXPORT arbor-targets)
+install(TARGETS arborenv EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

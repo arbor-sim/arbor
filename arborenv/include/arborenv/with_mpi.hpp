@@ -13,7 +13,7 @@ struct with_mpi {
         init(&argc, &argv, fatal_errors);
     }
 
-    with_mpi(bool fatal_errors = true) {
+    explicit with_mpi(bool fatal_errors = true) {
         init(nullptr, nullptr, fatal_errors);
     }
 

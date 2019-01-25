@@ -116,7 +116,7 @@ set(CMAKE_CXX_STANDARD 14)
 # for arbor and arborenv, of the form ARB_HAVE_XXX. These defines should
 # _not_ be used in any installed public headers.
 
-add_library(arbor-config-defs INTEFACE)
+add_library(arbor-config-defs INTERFACE)
 install(TARGETS arbor-config-defs EXPORT arbor-targets)
 
 # Interface library `arbor-private-deps` collects dependencies, options etc.
@@ -213,14 +213,15 @@ if(ARB_WITH_GPU)
     set(ARB_WITH_CUDA TRUE)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
     if(ARB_WITH_GPU_FINE_MATRIX)
-        target_compile_definitions(arbor-config-deps INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
+        target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
     endif()
 
     # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
 
     if (${CUDA_VERSION_MAJOR} LESS 10)
-        set(arborenv_requires_nvml)
+        set(arborenv_requires_nvml TRUE)
     endif()
+
     if(arborenv_requires_nvml)
         set(nvml_names nvidia-ml) # Note: platform dependent? e.g. nvml.lib on Windows.
         find_library(CUDA_NVML
@@ -234,6 +235,7 @@ if(ARB_WITH_GPU)
         endif()
 
         target_link_libraries(arborenv-private-deps INTERFACE ${CUDA_NVML})
+        target_compile_definitions(arborenv-private-deps INTERFACE ARBENV_USE_NVML)
     endif()
 
     add_compile_options(

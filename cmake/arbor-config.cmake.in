@@ -28,15 +28,15 @@ endif()
 # (See though arbor-sim/arbor issue #678).
 
 function(_append_property target property)
-    set(p_append ${ARGVN})
+    set(p_append ${ARGN})
     get_target_property(p ${target} ${property})
     if(p)
         list(APPEND p ${p_append})
     else()
         set(interface_libs ${p_append})
     endif()
-    set_target_properties(${target} PROPERTIES ${property} "${p_append}")
-end_function()
+    set_target_properties(${target} PROPERTIES ${property} "${p}")
+endfunction()
 
 _append_property(arbor::arbor INTERFACE_LINK_LIBRARIES @arbor_add_import_libs@)
 _append_property(arbor::arborenv INTERFACE_LINK_LIBRARIES @arborenv_add_import_libs@)

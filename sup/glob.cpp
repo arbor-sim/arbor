@@ -19,6 +19,8 @@ extern "C" {
 #include <arbor/util/scope_exit.hpp>
 #include <sup/path.hpp>
 
+using arb::util::on_scope_exit;
+
 namespace sup {
 
 std::vector<path> glob(const std::string& pattern) {
