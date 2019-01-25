@@ -18,16 +18,18 @@
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
 
-#include <sup/concurrency.hpp>
-#include <sup/gpu.hpp>
+#include <arborenv/concurrency.hpp>
+#include <arborenv/gpu_env.hpp>
+
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/path.hpp>
 #include <sup/spike_emitter.hpp>
 #include <sup/strsub.hpp>
+
 #ifdef ARB_MPI_ENABLED
-#include <sup/with_mpi.hpp>
 #include <mpi.h>
+#include <arborenv/with_mpi.hpp>
 #endif
 
 #include "io.hpp"
@@ -189,21 +191,21 @@ int main(int argc, char** argv) {
 
     try {
         arb::proc_allocation resources;
-        if (auto nt = sup::get_env_num_threads()) {
+        if (auto nt = arbenv::get_env_num_threads()) {
             resources.num_threads = nt;
         }
         else {
-            resources.num_threads = sup::thread_concurrency();
+            resources.num_threads = arbenv::thread_concurrency();
         }
 
 #ifdef ARB_MPI_ENABLED
-        sup::with_mpi guard(argc, argv, false);
-        resources.gpu_id = sup::find_private_gpu(MPI_COMM_WORLD);
+        arbenv::with_mpi guard(argc, argv, false);
+        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
         rank = arb::rank(context);
         root = rank==0;
 #else
-        resources.gpu_id = sup::default_gpu();
+        resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
 #endif
 
