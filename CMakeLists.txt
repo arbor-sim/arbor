@@ -63,7 +63,6 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(GitSubmodule) # required for check_git_submodule
 include(ErrorTarget)  # reguired for add_error_target
 include(FindThreadsCudaFix) # bug work around
-include(FindPythonModule) # find location of python module
 
 # Set release as the default build type (CMake default is debug.)
 

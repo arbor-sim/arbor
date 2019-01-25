@@ -1,3 +1,5 @@
+include(FindPythonModule) # required for find_python_module
+
 # Set up pybind11 as an external project.
 set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
 check_git_submodule(pybind11 "${pb11_src_dir}")
@@ -6,13 +8,13 @@ if(NOT pybind11_avail)
     message(FATAL_ERROR "The git submodule for pybind11 is not available, required for python support")
 endif()
 
-# Set up pybind11, which is used to generate python bindings.
+# Set up pybind11, which is used to generate Python bindings.
 # Pybind11 has good cmake support, so just add the pybind11 directory,
 # instead of using find_package.
 set(PYBIND11_CPP_STANDARD -std=c++14)
 add_subdirectory(pybind11)
 
-# The python library. MODULE will make a python-exclusive model.
+# The Python library. MODULE will make a Python-exclusive model.
 add_library(pyarb MODULE
     context.cpp
     mpi.cpp
@@ -32,12 +34,7 @@ if (ARB_WITH_MPI)
     endif()
 endif()
 
-# Required to avoid warnings from the linker:
-#       "caused by different translation units being compiled with different visibility settings"
-# Adding this here makes pyarb link without warnings, however it generates warnings for anything else that links against libarbor.
-#target_compile_options(arbor-private-deps INTERFACE -fvisibility=hidden)
-
-# Determine the installation path, according to the python version.
+# Determine the installation path, according to the Python version.
 find_package(PythonInterp REQUIRED)
 set(ARB_PYEXECDIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
 install(TARGETS pyarb LIBRARY DESTINATION ${ARB_PYEXECDIR})
