@@ -28,7 +28,7 @@ public:
     // `concrete_mechanism<B>::instantiate` (v.i.)
     struct layout {
         std::vector<fvm_index_type> cv;     // Maps in-instance index to CV index.
-        std::vector<fvm_index_type> cv_loc;     // Maps in-instance index to CV index.
+        std::vector<fvm_index_type> coalecsed_mult;     // TODO: comment
         std::vector<fvm_value_type> weight; // Maps in-instance index to compartment contribution.
     };
 
@@ -60,6 +60,8 @@ public:
 
     // Non-global parameters can be set post-instantiation:
     virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
+
+    virtual void nrn_coalesce_init() = 0;
 
     // Simulation interfaces:
     virtual void nrn_init() = 0;

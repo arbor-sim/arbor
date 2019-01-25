@@ -141,7 +141,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     set_tmin(0);
 
     for (auto& m: mechanisms_) {
-        m->nrn_init();
+        m->nrn_coalesce_init();
     }
 
     update_ion_state();
@@ -390,7 +390,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
         mechanism::layout layout;
         layout.cv = config.cv;
-        layout.cv_loc = config.cv_loc;
+        layout.coalecsed_mult = config.coalesced_mult;
         layout.weight.resize(layout.cv.size());
 
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional
@@ -400,9 +400,9 @@ void fvm_lowered_cell_impl<B>::initialize(
         if (config.kind==mechanismKind::point) {
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
-            for (auto i: count_along(layout.cv_loc)) {
-                auto cv = layout.cv[layout.cv_loc[i]];
-                layout.weight[layout.cv_loc[i]] = 1000/D.cv_area[cv];
+            for (auto i: count_along(config.cv_loc)) {
+                auto cv = layout.cv[config.cv_loc[i]];
+                layout.weight[config.cv_loc[i]] = 1000/D.cv_area[cv];
 
                 // (builtin stimulus, for example, has no targets)
                 if (!config.target.empty()) {
@@ -421,6 +421,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         }
 
         auto mech = mech_instance(name);
+        //std::cout << name << std::endl;
         mech->instantiate(mech_id, *state_, layout);
 
         for (auto& pv: config.param_values) {

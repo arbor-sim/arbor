@@ -55,6 +55,7 @@ public:
     }
 
     void instantiate(fvm_size_type id, backend::shared_state& shared, const layout& w) override;
+    void nrn_coalesce_init() override;
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
@@ -84,6 +85,7 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
+    iarray coalesced_mult_;
     constraint_partition index_constraints_;
     const value_type* weight_;    // Points within data_ after instantiation.
 
@@ -98,6 +100,9 @@ protected:
 
     using global_table_entry = std::pair<const char*, value_type*>;
     using mechanism_global_table = std::vector<global_table_entry>;
+
+    using state_table_entry = std::pair<const char*, value_type**>;
+    using mechanism_state_table = std::vector<state_table_entry>;
 
     using field_table_entry = std::pair<const char*, value_type**>;
     using mechanism_field_table = std::vector<field_table_entry>;
@@ -121,6 +126,7 @@ protected:
     virtual mechanism_field_table field_table() { return {}; }
     virtual mechanism_field_default_table field_default_table() { return {}; }
     virtual mechanism_global_table global_table() { return {}; }
+    virtual mechanism_state_table state_table() { return {}; }
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
 

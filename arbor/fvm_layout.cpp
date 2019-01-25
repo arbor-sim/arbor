@@ -569,18 +569,30 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
 
         config.cv_loc.resize(config.cv.size());
         if(config.linear) {
+            // Generate map cv_loc: maps synapse instance to cv location in config.cv
+            // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
             unsigned loc = 0;
+            unsigned count = 1;
             config.cv_loc[0] = loc;
             for (unsigned i = 1; i < config.cv.size(); ++i) {
                 if (config.cv[i] != config.cv[i - 1]) {
                     loc++;
+                    config.coalesced_mult.push_back(count);
+                    count = 0;
                 }
+                count++;
                 config.cv_loc[i] = loc;
             }
+            config.coalesced_mult.push_back(count);
+
+            // config.cv only needs to contain the unique cvs after coalescing
+            // TODO: this will need to change, not all synapses in a cv are guaranteed to be able to be coalesced into one
             config.cv.erase( unique( config.cv.begin(), config.cv.end() ), config.cv.end() );
         }
         else {
             assign(config.cv_loc, count_along(points));
+            config.coalesced_mult.resize(config.cv_loc.size());
+            std::fill(config.coalesced_mult.begin(), config.coalesced_mult.end(), 1);
         }
 
         config.param_values.resize(nparam);

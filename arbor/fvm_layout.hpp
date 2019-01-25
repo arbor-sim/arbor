@@ -101,7 +101,11 @@ struct fvm_mechanism_config {
     // duplicates for point mechanisms.
     std::vector<index_type> cv;
 
+    // One-to-many map
     std::vector<index_type> cv_loc;
+
+    // Coalesced synapse multiplier
+    std::vector<index_type> coalesced_mult;
 
     // Normalized area contribution in corresponding CV (density mechanisms only).
     std::vector<value_type> norm_area;

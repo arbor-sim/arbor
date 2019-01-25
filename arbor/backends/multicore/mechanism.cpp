@@ -131,7 +131,10 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
     node_index_ = iarray(width_padded_, pad);
+    coalesced_mult_ = iarray(width_padded_, pad);
+
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
+    copy_extend(pos_data.coalecsed_mult, coalesced_mult_, 1);
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
     index_constraints_ = make_constraint_partition(node_index_, width_, simd_width);
 
@@ -150,7 +153,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
 
         arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width));
     }
-
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
@@ -180,6 +182,21 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
     }
     else {
         throw arbor_internal_error("multicore/mechanism: no such mechanism global");
+    }
+}
+
+void mechanism::nrn_coalesce_init() {
+    std::cout << this->internal_name() << " " << width_ <<std::endl;
+    nrn_init();
+
+    auto states = state_table();
+    std::size_t n_field = states.size();
+
+    for (std::size_t i = 0; i<n_field; ++i) {
+        fvm_value_type*& state_ptr = *(states[i].second);
+        for(std::size_t j = 0; j<width_; ++j) {
+            state_ptr[j] *= coalesced_mult_[j];
+        }
     }
 }
 
