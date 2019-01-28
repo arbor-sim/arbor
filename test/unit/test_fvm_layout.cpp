@@ -312,9 +312,10 @@ TEST(fvm_layout, mech_index) {
     EXPECT_TRUE(testing::seq_almost_eq<double>(norm_area, hh_config.norm_area));
 
     // Three expsyn synapses, two 0.4 along segment 1, and one 0.4 along segment 5.
+    // These two synapses can be coalesced into 1 synapse
     // 0.4 along => second (non-parent) CV for segment.
 
-    EXPECT_EQ(ivec({2, 2, 15}), expsyn_config.cv);
+    EXPECT_EQ(ivec({2, 15}), expsyn_config.cv);
 
     // One exp2syn synapse, 0.4 along segment 4.
 

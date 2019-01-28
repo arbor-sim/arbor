@@ -70,7 +70,6 @@ mc_cell make_basic_cell(
         return mechanism_desc(name).set("e", val);
     };
 
-    std::cout << "num: "<< num_synapses <<std::endl;
     for (unsigned i=0; i<num_synapses; ++i) {
         unsigned id = terminals[i%terminals.size()];
         if(i % 2 == 0)
@@ -97,7 +96,6 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        std::cout << "cell " << i <<std::endl;
         // The last 'cell' is a spike source cell, producing one spike at t = 0.
         if (i == ncell_) {
             return util::unique_any(spike_source_cell{explicit_schedule({0.})});

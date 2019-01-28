@@ -407,21 +407,18 @@ void fvm_lowered_cell_impl<B>::initialize(
                 // (builtin stimulus, for example, has no targets)
                 if (!config.target.empty()) {
                     target_handles[config.target[i]] = target_handle(mech_id, config.cv_loc[i], D.cv_to_cell[cv]);
-                    //std::cout << config.target[i] << ":\t" << mech_id << "\t" << config.cv_loc[i] << "\t" << D.cv_to_cell[cv] << "\t" << cv << std::endl;
                 }
             }
         }
         else {
             // Density Current density contributions from mechanism are in [mA/cm²]
             // (NEURON compatibility). F = [mA/cm²] / [A/m²] = 10.
-
             for (auto i: count_along(layout.cv)) {
                 layout.weight[i] = 10*config.norm_area[i];
             }
         }
 
         auto mech = mech_instance(name);
-        //std::cout << name << std::endl;
         mech->instantiate(mech_id, *state_, layout);
 
         for (auto& pv: config.param_values) {

@@ -623,8 +623,6 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         }
         else {
             assign(config.cv_loc, count_along(points));
-            config.coalesced_mult.resize(config.cv_loc.size());
-            std::fill(config.coalesced_mult.begin(), config.coalesced_mult.end(), 1);
             config.cv = std::move(cv_vec);
             config.param_values = std::move(param_vec);
         }
@@ -638,6 +636,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         auto stim_cv_field = [](cv_clamp p) { return p.first; };
         sort_by(stimuli, stim_cv_field);
         assign(stim_config.cv, transform_view(stimuli, stim_cv_field));
+        assign(stim_config.cv_loc, count_along(stim_config.cv));
 
         stim_config.param_values.resize(3);
 

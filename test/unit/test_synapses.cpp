@@ -94,10 +94,11 @@ TEST(synapses, syn_basic_state) {
     state.set_dt();
 
     std::vector<index_type> syn_cv(num_syn, 0);
+    std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    expsyn->instantiate(0, state, {syn_cv, syn_weight});
-    exp2syn->instantiate(1, state, {syn_cv, syn_weight});
+    expsyn->instantiate(0, state, {syn_cv, syn_mult, syn_weight});
+    exp2syn->instantiate(1, state, {syn_cv, syn_mult, syn_weight});
 
     // Parameters initialized to default values?
 

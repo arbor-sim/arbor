@@ -69,6 +69,10 @@ struct common_impl: concrete_mechanism<B> {
         overrides_[key] = v;
     }
 
+    void nrn_coalesce_init() {
+        nrn_init();
+    }
+
     void nrn_init() override {}
     void nrn_state() override {}
     void nrn_current() override {}
@@ -286,7 +290,7 @@ TEST(mechcat, instantiate) {
     // write its specialized global variables to shared state, but we do in
     // these tests for testing purposes.
 
-    mechanism::layout layout = {{0u, 1u, 2u}, {1., 2., 1.}};
+    mechanism::layout layout = {{0u, 1u, 2u}, {1u, 1u, 1u}, {1., 2., 1.}};
     bar_backend::shared_state bar_state;
 
     auto cat = build_fake_catalogue();

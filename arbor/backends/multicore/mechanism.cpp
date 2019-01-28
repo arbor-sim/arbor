@@ -191,10 +191,12 @@ void mechanism::nrn_coalesce_init() {
     auto states = state_table();
     std::size_t n_field = states.size();
 
-    for (std::size_t i = 0; i<n_field; ++i) {
-        fvm_value_type*& state_ptr = *(states[i].second);
-        for(std::size_t j = 0; j<width_; ++j) {
-            state_ptr[j] *= coalesced_mult_[j];
+    if(coalesced_mult_.size()) {
+        for (std::size_t i = 0; i < n_field; ++i) {
+            fvm_value_type *&state_ptr = *(states[i].second);
+            for (std::size_t j = 0; j < width_; ++j) {
+                state_ptr[j] *= coalesced_mult_[j];
+            }
         }
     }
 }
