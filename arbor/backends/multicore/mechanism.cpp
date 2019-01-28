@@ -186,7 +186,6 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
 }
 
 void mechanism::nrn_coalesce_init() {
-    std::cout << this->internal_name() << " " << width_ <<std::endl;
     nrn_init();
 
     auto states = state_table();

@@ -349,7 +349,6 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             const mechanism_desc& desc = cellsyn.mechanism;
             size_type cv = D.segment_location_cv(cell_idx, cellsyn.location);
             const auto& name = desc.name();
-
             point_mech_data& entry = point_mech_table[name];
             update_paramset_and_validate(desc, entry.info, entry.paramset);
             entry.points.push_back({cv, target_id++, &desc});
@@ -564,47 +563,70 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         config.kind = mechanismKind::point;
         config.linear = catalogue[name].linear;
 
-        assign(config.cv,     transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
         assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
 
-        config.cv_loc.resize(config.cv.size());
+        std::vector<std::pair<std::string, std::vector<value_type>>> param_vec;
+        param_vec.resize(nparam);
+        for (auto pidx: make_span(0, nparam)) {
+            value_type pdefault = param_default[pidx];
+            const std::string& pname = param_name[pidx];
+
+            param_vec[pidx].first = pname;
+
+            auto& values = param_vec[pidx].second;
+            assign(values, transform_view(cv_order,
+                                          [&](size_type j) { return value_by_key(points[j].desc->values(), pname).value_or(pdefault); }));
+        }
+
+        std::vector<index_type> cv_vec;
+        assign(cv_vec, transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
         if(config.linear) {
-            // Generate map cv_loc: maps synapse instance to cv location in config.cv
+            // Generate config.cv_loc: maps synapse instance to cv location in config.cv
+            // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
+            // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
             // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
+
+            config.param_values.resize(param_vec.size());
+
+            // Initialize vars
             unsigned loc = 0;
             unsigned count = 1;
-            config.cv_loc[0] = loc;
-            for (unsigned i = 1; i < config.cv.size(); ++i) {
-                if (config.cv[i] != config.cv[i - 1]) {
-                    loc++;
+            bool coalesce = true;
+            config.cv_loc.push_back(loc);
+
+            for (unsigned i = 1; i < cv_vec.size(); ++i) {
+                coalesce &= cv_vec[i] == cv_vec[i - 1];
+                for (auto pidx: make_span(0, nparam)) {
+                    coalesce &= param_vec[pidx].second[i] == param_vec[pidx].second[i - 1];
+                    if(!coalesce) break;
+                }
+                if (!coalesce) {
                     config.coalesced_mult.push_back(count);
+                    config.cv.push_back(cv_vec[i-1]);
+                    for (auto pidx: make_span(0, nparam)) {
+                        config.param_values[pidx].second.push_back(param_vec[pidx].second[i-1]);
+                    }
+                    // Reset vars
+                    loc++;
                     count = 0;
+                    coalesce = true;
                 }
                 count++;
-                config.cv_loc[i] = loc;
+                config.cv_loc.push_back(loc);
             }
             config.coalesced_mult.push_back(count);
-
-            // config.cv only needs to contain the unique cvs after coalescing
-            // TODO: this will need to change, not all synapses in a cv are guaranteed to be able to be coalesced into one
-            config.cv.erase( unique( config.cv.begin(), config.cv.end() ), config.cv.end() );
+            config.cv.push_back(cv_vec.back());
+            for (auto pidx: make_span(0, nparam)) {
+                config.param_values[pidx].first = param_vec[pidx].first;
+                config.param_values[pidx].second.push_back(param_vec[pidx].second.back());
+            }
         }
         else {
             assign(config.cv_loc, count_along(points));
             config.coalesced_mult.resize(config.cv_loc.size());
             std::fill(config.coalesced_mult.begin(), config.coalesced_mult.end(), 1);
-        }
-
-        config.param_values.resize(nparam);
-        for (auto pidx: make_span(0, nparam)) {
-            value_type pdefault = param_default[pidx];
-            const std::string& pname = param_name[pidx];
-
-            config.param_values[pidx].first = pname;
-
-            auto& values = config.param_values[pidx].second;
-            assign(values, transform_view(cv_order,
-                [&](size_type j) { return value_by_key(points[j].desc->values(), pname).value_or(pdefault); }));
+            config.cv = std::move(cv_vec);
+            config.param_values = std::move(param_vec);
         }
     }
 
