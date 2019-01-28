@@ -332,6 +332,30 @@ TEST(fvm_layout, mech_index) {
     EXPECT_EQ(ivec({0,5}), M.ions.at(ionKind::k).cv);
 }
 
+TEST(fvm_layout, coalescing_synapses) {
+    mc_cell cell = make_cell_ball_and_stick();
+
+    // Add synapses of two varieties.
+    cell.add_synapse({1, 0.1}, "expsyn");
+    cell.add_synapse({1, 0.2}, "expsyn");
+    cell.add_synapse({1, 0.3}, "expsyn");
+    cell.add_synapse({1, 0.4}, "expsyn");
+
+    fvm_discretization D = fvm_discretize({cell});
+    fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+
+    auto& expsyn_config = M.mechanisms.at("expsyn");
+    //auto& exp2syn_config = M.mechanisms.at("exp2syn");
+
+    using ivec = std::vector<fvm_index_type>;
+
+    /*for (auto c: expsyn_config.cv_loc) {
+        std::cout << c << std::endl;
+    }*/
+    EXPECT_EQ(ivec({1, 2, 3, 4}), expsyn_config.cv);
+    //EXPECT_EQ(ivec({11}), exp2syn_config.cv);
+}
+
 TEST(fvm_layout, synapse_targets) {
     std::vector<mc_cell> cells = two_cell_system();
 

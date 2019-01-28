@@ -580,6 +580,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
 
         std::vector<index_type> cv_vec;
         assign(cv_vec, transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
+        for (auto c: cv_vec) {
+            std::cout << c << std::endl;
+        }
         if(config.linear) {
             // Generate config.cv_loc: maps synapse instance to cv location in config.cv
             // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
