@@ -565,29 +565,29 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
 
         assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
 
-        std::vector<std::pair<std::string, std::vector<value_type>>> param_vec;
-        param_vec.resize(nparam);
-        for (auto pidx: make_span(0, nparam)) {
-            value_type pdefault = param_default[pidx];
-            const std::string& pname = param_name[pidx];
-
-            param_vec[pidx].first = pname;
-
-            auto& values = param_vec[pidx].second;
-            assign(values, transform_view(cv_order,
-                                          [&](size_type j) { return value_by_key(points[j].desc->values(), pname).value_or(pdefault); }));
-        }
-
-        std::vector<index_type> cv_vec;
-        assign(cv_vec, transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
-
+        // Generate config.cv_loc: maps synapse instance to cv location in config.cv
+        // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
+        // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
+        // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
         if(config.linear) {
-            // Generate config.cv_loc: maps synapse instance to cv location in config.cv
-            // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
-            // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
-            // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
 
-            config.param_values.resize(param_vec.size());
+            std::vector<std::vector<value_type>> cv_param_vec(cv_order.size(), std::vector<value_type>(nparam + 1));
+            for (unsigned i = 0; i < cv_order.size(); ++i) {
+                auto loc = cv_order[i];
+                cv_param_vec[i][0] = points[loc].cv;
+                for (auto pidx: make_span(0, nparam)) {
+                    value_type pdefault = param_default[pidx];
+                    const std::string& pname = param_name[pidx];
+                    cv_param_vec[i][pidx+1] = value_by_key(points[loc].desc->values(), pname).value_or(pdefault);
+                }
+            }
+
+            std::sort(cv_param_vec.begin(), cv_param_vec.end());
+
+            config.param_values.resize(nparam);
+            for (auto pidx: make_span(0, nparam)) {
+                config.param_values[pidx].first = param_name[pidx];
+            }
 
             // Initialize vars
             unsigned loc = 0;
@@ -595,17 +595,23 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             bool coalesce = true;
             config.cv_loc.push_back(loc);
 
-            for (unsigned i = 1; i < cv_vec.size(); ++i) {
-                coalesce &= cv_vec[i] == cv_vec[i - 1];
-                for (auto pidx: make_span(0, nparam)) {
-                    coalesce &= param_vec[pidx].second[i] == param_vec[pidx].second[i - 1];
-                    if(!coalesce) break;
-                }
+            for (unsigned i = 1; i < cv_param_vec.size(); ++i) {
+                auto identical_synapse = [&nparam, &cv_param_vec](unsigned i, unsigned j){
+                    bool ret = true;
+                    for(unsigned idx = 0; idx < nparam + 1; idx++) {
+                        ret &= cv_param_vec[i][idx] == cv_param_vec[j][idx];
+                        if (!ret) break;
+                    }
+                    return ret;
+                };
+
+                coalesce &= identical_synapse(i, i-1);
+
                 if (!coalesce) {
                     config.coalesced_mult.push_back(count);
-                    config.cv.push_back(cv_vec[i-1]);
+                    config.cv.push_back(cv_param_vec[i-1][0]);
                     for (auto pidx: make_span(0, nparam)) {
-                        config.param_values[pidx].second.push_back(param_vec[pidx].second[i-1]);
+                        config.param_values[pidx].second.push_back(cv_param_vec[i-1][pidx + 1]);
                     }
                     // Reset vars
                     loc++;
@@ -615,17 +621,28 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
                 count++;
                 config.cv_loc.push_back(loc);
             }
+            // Last round results
             config.coalesced_mult.push_back(count);
-            config.cv.push_back(cv_vec.back());
+            config.cv.push_back(cv_param_vec.back()[0]);
             for (auto pidx: make_span(0, nparam)) {
-                config.param_values[pidx].first = param_vec[pidx].first;
-                config.param_values[pidx].second.push_back(param_vec[pidx].second.back());
+                config.param_values[pidx].second.push_back(cv_param_vec.back()[pidx +1]);
             }
         }
         else {
             assign(config.cv_loc, count_along(points));
-            config.cv = std::move(cv_vec);
-            config.param_values = std::move(param_vec);
+            assign(config.cv, transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
+
+            config.param_values.resize(nparam);
+            for (auto pidx: make_span(0, nparam)) {
+                value_type pdefault = param_default[pidx];
+                const std::string& pname = param_name[pidx];
+
+                config.param_values[pidx].first = pname;
+
+                auto& values = config.param_values[pidx].second;
+                assign(values, transform_view(cv_order,
+                                              [&](size_type j) { return value_by_key(points[j].desc->values(), pname).value_or(pdefault); }));
+            }
         }
     }
 
