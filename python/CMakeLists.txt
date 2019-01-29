@@ -23,6 +23,11 @@ add_library(pyarb MODULE
 )
 
 target_link_libraries(pyarb PRIVATE arbor pybind11::module)
+
+# The output name of the pyarb .so file is "arbor", to facilitate "import arbor"
+set_target_properties(pyarb PROPERTIES OUTPUT_NAME arbor)
+# With this, the full name of the library will be something like:
+#   arbor.cpython-37m-x86_64-linux-gnu.so
 set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
 # Add support for mpi4py if available.

@@ -13,8 +13,8 @@ void register_mpi(pybind11::module& m);
 
 }
 
-PYBIND11_MODULE(pyarb, m) {
-    m.doc() = "pyarb: Python bindings for Arbor.";
+PYBIND11_MODULE(arbor, m) {
+    m.doc() = "arbor: Python bindings for Arbor.";
     m.attr("__version__") = ARB_VERSION;
 
     pyarb::register_contexts(m);

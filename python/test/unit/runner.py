@@ -26,19 +26,19 @@ suite
     Goal:    add all tests in this directory
     Returns: suite of tests in this directory
 """
-def suite(): 
+def suite():
     loader = unittest.TestLoader()
-    
+
     suites = []
     for test_module in test_modules:
         test_module_suite = test_module.suite()
         suites.append(test_module_suite)
 
     suite = unittest.TestSuite(suites)
-    
+
     return suite
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     v = options.parse_arguments().verbosity
     runner = unittest.TextTestRunner(verbosity = v)
     runner.run(suite())

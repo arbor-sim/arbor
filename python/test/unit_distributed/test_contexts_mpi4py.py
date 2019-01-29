@@ -4,7 +4,7 @@
 
 import unittest
 
-import pyarb as arb
+import arbor as arb
 
 # to be able to run .py file from child directory
 import sys, os
@@ -24,7 +24,7 @@ Contexts_mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
 @unittest.skipIf(options.TEST_MPI == False or options.TEST_MPI4PY == False, "ARB_WITH_MPI/-4PY=OFF")
-class Contexts_mpi4py(unittest.TestCase): 
+class Contexts_mpi4py(unittest.TestCase):
     def test_initialize_mpi4py(self):
         # test mpi initialization (automatically when including mpi4py: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html)
         self.assertTrue(mpi.Is_initialized())
@@ -42,7 +42,7 @@ class Contexts_mpi4py(unittest.TestCase):
         # test context with mpi usage
         alloc = arb.proc_allocation()
         ctx = arb.context(alloc, comm)
-        
+
         self.assertEqual(ctx.threads, alloc.threads)
         self.assertTrue(ctx.has_mpi)
         #print(ctx)

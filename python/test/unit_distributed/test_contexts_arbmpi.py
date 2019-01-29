@@ -4,7 +4,7 @@
 
 import unittest
 
-import pyarb as arb
+import arbor as arb
 
 # to be able to run .py file from child directory
 import sys, os
@@ -20,12 +20,12 @@ Contexts_arbmpi
    Goal: collect all tests for testing distributed arb.context using arbor mpi wrappers
 """
 @unittest.skipIf(options.TEST_MPI == False, "ARB_MPI_ENABLED=OFF")
-class Contexts_arbmpi(unittest.TestCase): 
+class Contexts_arbmpi(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
     def setUpClass(self):
         #print("setUp --- TestContextMPI class")
-        if(arb.mpi_is_initialized() == False): 
+        if(arb.mpi_is_initialized() == False):
             #print("    Initializing mpi")
             arb.mpi_init()
         #else:
