@@ -59,6 +59,8 @@ public:
 
     void set_global(const std::string& key, fvm_value_type value) override;
 
+    void nrn_coalesce_init() override;
+
 protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)
     size_type num_ions_ = 0;
@@ -87,6 +89,9 @@ protected:
     using global_table_entry = std::pair<const char*, value_type*>;
     using mechanism_global_table = std::vector<global_table_entry>;
 
+    using state_table_entry = std::pair<const char*, value_type**>;
+    using mechanism_state_table = std::vector<state_table_entry>;
+
     using field_table_entry = std::pair<const char*, value_type**>;
     using mechanism_field_table = std::vector<field_table_entry>;
 
@@ -109,6 +114,7 @@ protected:
     virtual mechanism_field_table field_table() { return {}; }
     virtual mechanism_field_default_table field_default_table() { return {}; }
     virtual mechanism_global_table global_table() { return {}; }
+    virtual mechanism_state_table state_table() { return {}; }
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
 

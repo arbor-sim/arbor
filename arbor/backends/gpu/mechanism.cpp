@@ -122,12 +122,15 @@ void mechanism::instantiate(unsigned id,
     }
 
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
-    // (First sub-array of indices_ is used for node_index_.)
+    // (First sub-array of indices_ is used for node_index_, second sub-array used for coalesced_mult_)
 
-    indices_ = iarray((1+num_ions_)*width_padded_);
+    indices_ = iarray((2+num_ions_)*width_padded_);
 
     memory::copy(make_const_view(pos_data.cv), device_view(indices_.data(), width_));
     pp->node_index_ = indices_.data();
+
+    memory::copy(make_const_view(pos_data.coalecsed_mult), device_view(indices_.data() + width_padded_, width_));
+    pp->node_index_ = indices_.data() + width_padded_;
 
     auto ion_index_tbl = ion_index_table();
     arb_assert(num_ions_==ion_index_tbl.size());
@@ -144,7 +147,7 @@ void mechanism::instantiate(unsigned id,
 
         // Take reference to derived (generated) mechanism ion index pointer.
         auto& ion_index_ptr = *ion_index_tbl[i].second;
-        auto index_start = indices_.data()+(i+1)*width_padded_;
+        auto index_start = indices_.data()+(i+2)*width_padded_;
         ion_index_ptr = index_start;
         memory::copy(make_const_view(mech_ion_index), device_view(index_start, width_));
     }
@@ -177,6 +180,23 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
         throw arbor_internal_error("gpu/mechanism: no such mechanism global");
     }
 }
+
+void mechanism::nrn_coalesce_init() {
+    nrn_init();
+
+    auto states = state_table();
+    std::size_t n_field = states.size();
+
+    if(coalesced_mult_.size()) {
+        for (std::size_t i = 0; i < n_field; ++i) {
+            fvm_value_type *&state_ptr = *(states[i].second);
+            for (std::size_t j = 0; j < width_; ++j) {
+                state_ptr[j] *= pp->coalesced_mult_[j];
+            }
+        }
+    }
+}
+
 
 } // namespace multicore
 } // namespace arb
