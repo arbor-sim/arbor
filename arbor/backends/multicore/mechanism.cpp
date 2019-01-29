@@ -134,7 +134,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
     coalesced_mult_ = iarray(width_padded_, pad);
 
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
-    copy_extend(pos_data.coalecsed_mult, coalesced_mult_, 1);
+    copy_extend(pos_data.coalesced_mult, coalesced_mult_, 1);
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
     index_constraints_ = make_constraint_partition(node_index_, width_, simd_width);
 

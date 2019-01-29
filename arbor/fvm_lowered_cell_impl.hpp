@@ -390,7 +390,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
         mechanism::layout layout;
         layout.cv = config.cv;
-        layout.coalecsed_mult = config.coalesced_mult;
+        layout.coalesced_mult = config.coalesced_mult;
         layout.weight.resize(layout.cv.size());
 
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional

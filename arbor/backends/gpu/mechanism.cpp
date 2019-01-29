@@ -129,8 +129,8 @@ void mechanism::instantiate(unsigned id,
     memory::copy(make_const_view(pos_data.cv), device_view(indices_.data(), width_));
     pp->node_index_ = indices_.data();
 
-    memory::copy(make_const_view(pos_data.coalecsed_mult), device_view(indices_.data() + width_padded_, width_));
-    pp->node_index_ = indices_.data() + width_padded_;
+    memory::copy(make_const_view(pos_data.coalesced_mult), device_view(indices_.data() + width_padded_, width_));
+    pp->coalesced_mult_ = indices_.data() + width_padded_;
 
     auto ion_index_tbl = ion_index_table();
     arb_assert(num_ions_==ion_index_tbl.size());
@@ -183,18 +183,6 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
 
 void mechanism::nrn_coalesce_init() {
     nrn_init();
-
-    auto states = state_table();
-    std::size_t n_field = states.size();
-
-    if(coalesced_mult_.size()) {
-        for (std::size_t i = 0; i < n_field; ++i) {
-            fvm_value_type *&state_ptr = *(states[i].second);
-            for (std::size_t j = 0; j < width_; ++j) {
-                state_ptr[j] *= pp->coalesced_mult_[j];
-            }
-        }
-    }
 }
 
 
