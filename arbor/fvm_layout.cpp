@@ -271,7 +271,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     //     3. Pointer to mechanism metadata from catalogue.
 
     struct density_mech_data {
-        std::vector<std::pair<size_type, const mechanism_desc*>> segments; // 
+        std::vector<std::pair<size_type, const mechanism_desc*>> segments; //
         string_set paramset;
         const mechanism_info* info = nullptr;
     };
@@ -563,15 +563,13 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         config.kind = mechanismKind::point;
         config.linear = catalogue[name].linear;
 
-        assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
-
         // Generate config.cv_loc: maps synapse instance to cv location in config.cv
         // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
         // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
         // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
         if(config.linear) {
 
-            std::vector<std::vector<value_type>> cv_param_vec(cv_order.size(), std::vector<value_type>(nparam + 1));
+            std::vector<std::vector<value_type>> cv_param_vec(cv_order.size(), std::vector<value_type>(nparam + 2));
             for (unsigned i = 0; i < cv_order.size(); ++i) {
                 auto loc = cv_order[i];
                 cv_param_vec[i][0] = points[loc].cv;
@@ -580,6 +578,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
                     const std::string& pname = param_name[pidx];
                     cv_param_vec[i][pidx+1] = value_by_key(points[loc].desc->values(), pname).value_or(pdefault);
                 }
+                cv_param_vec[i][nparam + 1] = points[loc].target_index;
             }
 
             std::sort(cv_param_vec.begin(), cv_param_vec.end());
@@ -620,10 +619,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
                 }
                 count++;
                 config.cv_loc.push_back(loc);
+                config.target.push_back(cv_param_vec[i-1][nparam + 1]);
             }
             // Last round results
             config.coalesced_mult.push_back(count);
             config.cv.push_back(cv_param_vec.back()[0]);
+            config.target.push_back(cv_param_vec.back()[nparam + 1]);
             for (auto pidx: make_span(0, nparam)) {
                 config.param_values[pidx].second.push_back(cv_param_vec.back()[pidx +1]);
             }
@@ -631,6 +632,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         else {
             assign(config.cv_loc, count_along(points));
             assign(config.cv, transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
+            assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
 
             config.param_values.resize(nparam);
             for (auto pidx: make_span(0, nparam)) {

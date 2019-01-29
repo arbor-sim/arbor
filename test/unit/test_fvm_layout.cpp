@@ -334,9 +334,20 @@ TEST(fvm_layout, mech_index) {
 
 TEST(fvm_layout, coalescing_synapses) {
     using ivec = std::vector<fvm_index_type>;
+    using fvec = std::vector<fvm_value_type>;
 
-    auto syn_desc = [&](const char* name, double val) {
-        return mechanism_desc(name).set("e", val);
+    auto syn_desc = [&](const char* name, double val0, double val1) {
+        mechanism_desc m(name);
+        m.set("e", val0);
+        m.set("tau", val1);
+        return m;
+    };
+
+    auto syn_desc_2 = [&](const char* name, double val0, double val1) {
+        mechanism_desc m(name);
+        m.set("e", val0);
+        m.set("tau1", val1);
+        return m;
     };
 
     {
@@ -377,27 +388,10 @@ TEST(fvm_layout, coalescing_synapses) {
         mc_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
-        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0));
-        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0.1));
-        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0));
-        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0.1));
-
-        fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
-
-        auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 1, 3, 3}), expsyn_config.cv);
-        EXPECT_EQ(ivec({0, 1, 2, 3}), expsyn_config.cv_loc);
-        EXPECT_EQ(ivec({1, 1, 1, 1}), expsyn_config.coalesced_mult);
-    }
-    {
-        mc_cell cell = make_cell_ball_and_stick();
-
-        // Add synapses of two varieties.
-        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0));
-        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0));
-        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0.1));
-        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0.1));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0, 0.2));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0, 0.2));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0.1, 0.2));
+        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0.1, 0.2));
 
         fvm_discretization D = fvm_discretize({cell});
         fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
@@ -406,29 +400,66 @@ TEST(fvm_layout, coalescing_synapses) {
         EXPECT_EQ(ivec({1, 1, 3}), expsyn_config.cv);
         EXPECT_EQ(ivec({0, 0, 1, 2}), expsyn_config.cv_loc);
         EXPECT_EQ(ivec({2, 1, 1}), expsyn_config.coalesced_mult);
+        EXPECT_EQ(fvec({0, 0.1, 0.1}), expsyn_config.param_values[0].second);
+        EXPECT_EQ(fvec({0.2, 0.2, 0.2}), expsyn_config.param_values[1].second);
     }
     {
         mc_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
-        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0));
-        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0));
-        cell.add_synapse({1, 0.3}, syn_desc("exp2syn", 0.1));
-        cell.add_synapse({1, 0.7}, syn_desc("exp2syn", 0.1));
+        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0, 3));
+        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 1, 3));
+        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0, 3));
+        cell.add_synapse({1, 0.7}, syn_desc("expsyn", 1, 3));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0, 2));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 1, 2));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0, 2));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn", 1, 2));
 
         fvm_discretization D = fvm_discretize({cell});
         fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1}), expsyn_config.cv);
-        EXPECT_EQ(ivec({0, 0}), expsyn_config.cv_loc);
-        EXPECT_EQ(ivec({2}), expsyn_config.coalesced_mult);
+        EXPECT_EQ(ivec({1, 1, 3, 3}), expsyn_config.cv);
+        EXPECT_EQ(ivec({4, 6, 5, 7, 0, 2, 1, 3}), expsyn_config.target);
+        EXPECT_EQ(ivec({0, 0, 1, 1, 2, 2, 3, 3}), expsyn_config.cv_loc);
+        EXPECT_EQ(ivec({2, 2, 2, 2}), expsyn_config.coalesced_mult);
+        EXPECT_EQ(fvec({0, 1, 0, 1}), expsyn_config.param_values[0].second);
+        EXPECT_EQ(fvec({2, 2, 3, 3}), expsyn_config.param_values[1].second);
+    }
+    {
+        mc_cell cell = make_cell_ball_and_stick();
+
+        // Add synapses of two varieties.
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn",  1, 2));
+        cell.add_synapse({1, 0.3}, syn_desc_2("exp2syn", 4, 1));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn",  1, 2));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn",  5, 1));
+        cell.add_synapse({1, 0.3}, syn_desc_2("exp2syn", 1, 3));
+        cell.add_synapse({1, 0.3}, syn_desc("expsyn",  1, 2));
+        cell.add_synapse({1, 0.7}, syn_desc_2("exp2syn", 2, 2));
+        cell.add_synapse({1, 0.7}, syn_desc_2("exp2syn", 2, 1));
+        cell.add_synapse({1, 0.7}, syn_desc_2("exp2syn", 2, 1));
+        cell.add_synapse({1, 0.7}, syn_desc_2("exp2syn", 2, 2));
+
+        fvm_discretization D = fvm_discretize({cell});
+        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+
+        auto &expsyn_config = M.mechanisms.at("expsyn");
+        EXPECT_EQ(ivec({1, 1}), expsyn_config.cv);
+        EXPECT_EQ(ivec({0, 2, 5, 3}), expsyn_config.target);
+        EXPECT_EQ(ivec({0, 0, 0, 1}), expsyn_config.cv_loc);
+        EXPECT_EQ(ivec({3, 1}), expsyn_config.coalesced_mult);
+        EXPECT_EQ(fvec({1, 5}), expsyn_config.param_values[0].second);
+        EXPECT_EQ(fvec({2, 1}), expsyn_config.param_values[1].second);
 
         auto &exp2syn_config = M.mechanisms.at("exp2syn");
-        EXPECT_EQ(ivec({1, 3}), exp2syn_config.cv);
-        EXPECT_EQ(ivec({0, 1}), exp2syn_config.cv_loc);
-        EXPECT_EQ(ivec({1, 1}), exp2syn_config.coalesced_mult);
-
+        EXPECT_EQ(ivec({1, 1, 3, 3}), exp2syn_config.cv);
+        EXPECT_EQ(ivec({4, 1, 7, 8, 6, 9}), exp2syn_config.target);
+        EXPECT_EQ(ivec({0, 1, 2, 2, 3, 3}), exp2syn_config.cv_loc);
+        EXPECT_EQ(ivec({1, 1, 2, 2}), exp2syn_config.coalesced_mult);
+        EXPECT_EQ(fvec({1, 4, 2, 2}), exp2syn_config.param_values[0].second);
+        EXPECT_EQ(fvec({3, 1, 1, 2}), exp2syn_config.param_values[1].second);
     }
 }
 
