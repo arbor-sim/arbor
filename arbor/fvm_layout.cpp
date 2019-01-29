@@ -249,7 +249,7 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 //       IIb. Density mechanism CVs, parameter values; ion channel default concentration contributions.
 //       IIc. Point mechanism CVs, parameter values, and targets.
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D) {
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D, bool coalesce) {
     using util::assign;
     using util::sort_by;
     using util::optional;
@@ -567,7 +567,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
         // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
         // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
-        if(config.linear) {
+        if(config.linear && coalesce) {
 
             std::vector<std::vector<value_type>> cv_param_vec(cv_order.size(), std::vector<value_type>(nparam + 2));
             for (unsigned i = 0; i < cv_order.size(); ++i) {
