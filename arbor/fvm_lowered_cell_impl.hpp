@@ -360,7 +360,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D, global_props.coalesce_synapses);
 
     // Create shared cell state.
     // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)
