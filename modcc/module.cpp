@@ -338,7 +338,7 @@ bool Module::semantic() {
             else {
                 deriv->body()->accept(solver.get());
                 for (auto& s: deriv->body()->statements()) {
-                    if(s->is_assignment()) {
+                    if(s->is_assignment() && !state_vars.empty()) {
                         linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
                         linear &= r.is_linear;
                         linear &= r.is_homogeneous;
@@ -394,7 +394,7 @@ bool Module::semantic() {
         breakpoint->accept(&nrn_current_rewriter);
 
         for (auto& s: breakpoint->body()->statements()) {
-            if(s->is_assignment()) {
+            if(s->is_assignment() && !state_vars.empty()) {
                 linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
                 linear &= r.is_linear;
                 linear &= r.is_homogeneous;
@@ -426,7 +426,9 @@ bool Module::semantic() {
                 if (s->is_assignment()) {
                     for (const auto &id: state_vars) {
                         auto coef = symbolic_pdiff(s->is_assignment()->rhs(), id);
-                        linear &= (coef->is_number()->value() == 1 || coef->is_number()->value() == 0);
+                        if(coef->is_number()) {
+                            linear &= (coef->is_number()->value() == 1 || coef->is_number()->value() == 0);
+                        }
                     }
                 }
             }
