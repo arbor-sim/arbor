@@ -64,6 +64,7 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
 void mechanism::instantiate(unsigned id, backend::shared_state& shared, const layout& pos_data) {
     using util::make_range;
 
+    coalesced_synapses_ = pos_data.coalesced_synapses;
     util::padded_allocator<> pad(shared.alignment);
     mechanism_id_ = id;
     width_ = pos_data.cv.size();
@@ -191,7 +192,7 @@ void mechanism::nrn_coalesce_init() {
     auto states = state_table();
     std::size_t n_field = states.size();
 
-    if(coalesced_mult_.size()) {
+    if(coalesced_synapses_) {
         for (std::size_t i = 0; i < n_field; ++i) {
             fvm_value_type* &state_ptr = *(states[i].second);
             for (std::size_t j = 0; j < width_; ++j) {

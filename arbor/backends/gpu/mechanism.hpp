@@ -80,6 +80,7 @@ protected:
 
     iarray indices_;
     array data_;
+    bool coalesced_synapses_;
 
     // Generated mechanism field, global and ion table lookup types.
     // First component is name, second is pointer to corresponing member in 

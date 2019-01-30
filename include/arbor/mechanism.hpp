@@ -28,8 +28,9 @@ public:
     // `concrete_mechanism<B>::instantiate` (v.i.)
     struct layout {
         std::vector<fvm_index_type> cv;     // Maps in-instance index to CV index.
-        std::vector<fvm_index_type> coalesced_mult;     // TODO: comment
+        std::vector<fvm_index_type> coalesced_mult;     // Used to update state variables for coalesced synapses
         std::vector<fvm_value_type> weight; // Maps in-instance index to compartment contribution.
+        bool coalesced_synapses;
     };
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.

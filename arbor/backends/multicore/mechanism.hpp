@@ -86,6 +86,7 @@ protected:
 
     iarray node_index_;
     iarray coalesced_mult_;
+    bool coalesced_synapses_;
     constraint_partition index_constraints_;
     const value_type* weight_;    // Points within data_ after instantiation.
 

@@ -391,6 +391,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         mechanism::layout layout;
         layout.cv = config.cv;
         layout.coalesced_mult = config.coalesced_mult;
+        layout.coalesced_synapses = config.linear && config.kind==mechanismKind::point;
         layout.weight.resize(layout.cv.size());
 
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional
@@ -400,6 +401,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         if (config.kind==mechanismKind::point) {
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
+
             for (auto i: count_along(config.cv_loc)) {
                 auto cv = layout.cv[config.cv_loc[i]];
                 layout.weight[config.cv_loc[i]] = 1000/D.cv_area[cv];
@@ -413,6 +415,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         else {
             // Density Current density contributions from mechanism are in [mA/cm²]
             // (NEURON compatibility). F = [mA/cm²] / [A/m²] = 10.
+
             for (auto i: count_along(layout.cv)) {
                 layout.weight[i] = 10*config.norm_area[i];
             }

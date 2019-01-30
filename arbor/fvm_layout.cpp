@@ -349,6 +349,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             const mechanism_desc& desc = cellsyn.mechanism;
             size_type cv = D.segment_location_cv(cell_idx, cellsyn.location);
             const auto& name = desc.name();
+
             point_mech_data& entry = point_mech_table[name];
             update_paramset_and_validate(desc, entry.info, entry.paramset);
             entry.points.push_back({cv, target_id++, &desc});
