@@ -43,11 +43,6 @@ Some key features include:
    install
 
 .. toctree::
-   :caption: Users:
-
-   python
-
-.. toctree::
    :caption: C++ API:
 
    cpp_intro
