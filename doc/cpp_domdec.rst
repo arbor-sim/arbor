@@ -101,7 +101,7 @@ Hardware
 
     .. cpp:member:: int gpu_id
 
-        The identifier of the the GPU to use.
+        The identifier of the GPU to use.
         The gpu id corresponds to the ``int device`` parameter used by CUDA API calls
         to identify gpu devices.
         Set to -1 to indicate that no GPU device is to be used.
@@ -117,7 +117,6 @@ Execution Context
 
 The :cpp:class:`proc_allocation` class enumerates the hardware resources on the local hardware
 to use for a simulation.
-A :cpp:class:`arb::context`  ...
 
 .. cpp:namespace:: arb
 
@@ -228,7 +227,6 @@ Documentation for the data structures used to describe domain decompositions.
         .. Note::
             Setting the GPU back end is only meaningful if the
             :cpp:class:`cell_group` type supports the GPU backend.
-            If 
 
 .. cpp:class:: domain_decomposition
 
