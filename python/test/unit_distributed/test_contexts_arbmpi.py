@@ -16,8 +16,7 @@ except ModuleNotFoundError:
     from test import options
 
 """
-Contexts_arbmpi
-   Goal: collect all tests for testing distributed arb.context using arbor mpi wrappers
+all tests for distributed arb.context using arbor mpi wrappers
 """
 @unittest.skipIf(options.TEST_MPI == False, "ARB_MPI_ENABLED=OFF")
 class Contexts_arbmpi(unittest.TestCase):

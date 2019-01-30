@@ -16,8 +16,7 @@ except ModuleNotFoundError:
     from test import options 
 
 """
-Contexts
-    Goal: collect all tests for testing non-distributed arb.context 
+all tests for non-distributed arb.context
 """
 
 class Contexts(unittest.TestCase):
@@ -63,9 +62,7 @@ class Contexts(unittest.TestCase):
         self.assertEqual(ctx2.ranks, 1)
         self.assertEqual(ctx2.rank, 0)
 
-'''
-suite to be tested in runner.py
-'''
+
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
     suite = unittest.makeSuite(Contexts, ('test'))

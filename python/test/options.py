@@ -6,14 +6,6 @@ import argparse
 
 import os
 
-"""
-parse_arguments
-    Goal:       define and read arguments given by the user
-    Arguments:  args      - list of strings to parse, default from sys.argv
-                namespace - object to take the attributes, default new empty namespace object
-    Returns:    attributes of namespace
-    Example:    args = parse_arguments() 
-"""
 def parse_arguments(args=None, namespace=None):
     parser = argparse.ArgumentParser()
 

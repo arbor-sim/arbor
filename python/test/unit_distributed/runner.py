@@ -25,9 +25,7 @@ test_modules = [\
 ] # add more if needed
 
 """
-suite
-    Goal:    add all tests in this directory
-    Returns: suite of tests in this directory
+returns a suite of all the tests
 """
 def suite():
     loader = unittest.TestLoader()

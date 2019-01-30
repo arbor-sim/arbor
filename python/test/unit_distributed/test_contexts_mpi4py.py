@@ -19,8 +19,7 @@ if options.TEST_MPI4PY == True and options.TEST_MPI == True:
     import mpi4py.MPI as mpi
 
 """
-Contexts_mpi4py
-   Goal: collect all tests for testing distributed arb.context using mpi4py
+all tests for distributed arb.context using mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
 @unittest.skipIf(options.TEST_MPI == False or options.TEST_MPI4PY == False, "ARB_WITH_MPI/-4PY=OFF")
