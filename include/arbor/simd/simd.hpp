@@ -211,7 +211,7 @@ namespace simd_detail {
 
         template <typename ImplIndex>
         static void compound_indexed_add(tag<ImplIndex> tag, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, index_constraint constraint) {
-            switch (constraint) { 
+            switch (constraint) {
             case index_constraint::none:
                 {
                     typename ImplIndex::scalar_type o[width];
@@ -228,7 +228,8 @@ namespace simd_detail {
                             temp = 0;
                         }
                     }
-                    p[o[width-1]] = temp;
+                    temp += a[width-1];
+                    p[o[width-1]] += temp;
                 }
                 break;
             case index_constraint::independent:
