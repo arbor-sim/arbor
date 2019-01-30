@@ -116,7 +116,7 @@ struct fvm_mechanism_config {
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
 
-    bool linear = false;
+    bool linear;
 };
 
 // Post-discretization data for ion channel state.

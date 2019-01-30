@@ -249,7 +249,7 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 //       IIb. Density mechanism CVs, parameter values; ion channel default concentration contributions.
 //       IIc. Point mechanism CVs, parameter values, and targets.
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D, bool coalesce) {
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D, bool coalesce_syanpses) {
     using util::assign;
     using util::sort_by;
     using util::optional;
@@ -571,8 +571,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
         // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
         // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
-        if(config.linear && coalesce) {
+        if(config.linear && coalesce_syanpses) {
 
+            // cv_param_vec used to lexicographically sort the cv, parameters and target, in that order
             std::vector<std::vector<value_type>> cv_param_vec(cv_order.size(), std::vector<value_type>(nparam + 2));
             for (unsigned i = 0; i < cv_order.size(); ++i) {
                 auto loc = cv_order[i];
@@ -587,27 +588,24 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
 
             std::sort(cv_param_vec.begin(), cv_param_vec.end());
 
-            config.param_values.resize(nparam);
-            for (auto pidx: make_span(0, nparam)) {
-                config.param_values[pidx].first = param_name[pidx];
-            }
+            auto identical_synapse = [&nparam, &cv_param_vec](unsigned i, unsigned j){
+                bool ret = true;
+                for(unsigned idx = 0; idx < nparam + 1; idx++) {
+                    ret &= cv_param_vec[i][idx] == cv_param_vec[j][idx];
+                    if (!ret) break;
+                }
+                return ret;
+            };
 
             // Initialize vars
             unsigned loc = 0;
             unsigned count = 1;
             bool coalesce = true;
+
+            config.param_values.resize(nparam);
             config.cv_loc.push_back(loc);
 
             for (unsigned i = 1; i < cv_param_vec.size(); ++i) {
-                auto identical_synapse = [&nparam, &cv_param_vec](unsigned i, unsigned j){
-                    bool ret = true;
-                    for(unsigned idx = 0; idx < nparam + 1; idx++) {
-                        ret &= cv_param_vec[i][idx] == cv_param_vec[j][idx];
-                        if (!ret) break;
-                    }
-                    return ret;
-                };
-
                 coalesce &= identical_synapse(i, i-1);
 
                 if (!coalesce) {
@@ -616,7 +614,6 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
                     for (auto pidx: make_span(0, nparam)) {
                         config.param_values[pidx].second.push_back(cv_param_vec[i-1][pidx + 1]);
                     }
-                    // Reset vars
                     loc++;
                     count = 0;
                     coalesce = true;
@@ -630,6 +627,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             config.cv.push_back(cv_param_vec.back()[0]);
             config.target.push_back(cv_param_vec.back()[nparam + 1]);
             for (auto pidx: make_span(0, nparam)) {
+                config.param_values[pidx].first = param_name[pidx];
                 config.param_values[pidx].second.push_back(cv_param_vec.back()[pidx +1]);
             }
         }
