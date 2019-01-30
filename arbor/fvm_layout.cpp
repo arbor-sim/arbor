@@ -519,6 +519,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             }
         }
 
+        config.coalesced_mult.resize(config.cv.size());
+        std::fill(config.coalesced_mult.begin(), config.coalesced_mult.end(), 1);
+
         // Normalize norm_area entries.
 
         for (auto i: count_along(config.cv)) {
@@ -633,6 +636,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             assign(config.cv_loc, count_along(points));
             assign(config.cv, transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
             assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
+
+            config.coalesced_mult.resize(config.cv.size());
+            std::fill(config.coalesced_mult.begin(), config.coalesced_mult.end(), 1);
 
             config.param_values.resize(nparam);
             for (auto pidx: make_span(0, nparam)) {

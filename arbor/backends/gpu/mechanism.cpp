@@ -181,8 +181,18 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
     }
 }
 
+void nrn_mult(mechanism_ppack_base* p, fvm_value_type* s);
+
 void mechanism::nrn_coalesce_init() {
     nrn_init();
+    mechanism_ppack_base* pp = ppack_ptr();
+    auto states = state_table();
+    std::size_t n_field = states.size();
+
+    for (std::size_t i = 0; i < n_field; ++i) {
+        fvm_value_type* state_ptr = *(states[i].second);
+        nrn_mult(pp, state_ptr);
+    }
 }
 
 
