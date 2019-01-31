@@ -262,10 +262,8 @@ int main(int argc, char** argv) {
 
         simulation sim(recipe, decomp, context);
 
-        // Initialize the spike exporting interface
-
+        // Set up spike recording.
         std::vector<arb::spike> recorded_spikes;
-
         if (spike_out) {
             sim.set_global_spike_callback([&recorded_spikes](auto& spikes) {
                     recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
