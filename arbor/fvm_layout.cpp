@@ -571,9 +571,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
         // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
         // Generate coalesced_mult: contains number of synapses in each coalesced group of synapses
+        // Generate target: contains the synapse target number
         if(config.linear && coalesce_syanpses) {
 
-            // cv_param_vec used to lexicographically sort the cv, parameters and target, in that order
+            // cv_param_vec used to lexicographically sort the cv, parameters and target, which are stored in that order
             std::vector<std::vector<value_type>> cv_param_vec(cv_order.size(), std::vector<value_type>(nparam + 2));
             for (unsigned i = 0; i < cv_order.size(); ++i) {
                 auto loc = cv_order[i];
@@ -603,16 +604,20 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             bool coalesce = true;
 
             config.param_values.resize(nparam);
+            config.cv_loc.reserve(cv_param_vec.size());
+            config.target.reserve(cv_param_vec.size());
+
             config.cv_loc.push_back(loc);
+            config.target.push_back((index_type)cv_param_vec.front()[1 + nparam]);
 
             for (unsigned i = 1; i < cv_param_vec.size(); ++i) {
                 coalesce &= identical_synapse(i, i-1);
 
                 if (!coalesce) {
                     config.coalesced_mult.push_back(count);
-                    config.cv.push_back(cv_param_vec[i-1][0]);
+                    config.cv.push_back((index_type)cv_param_vec[i-1][0]);
                     for (auto pidx: make_span(0, nparam)) {
-                        config.param_values[pidx].second.push_back(cv_param_vec[i-1][pidx + 1]);
+                        config.param_values[pidx].second.push_back(cv_param_vec[i-1][pidx+1]);
                     }
                     loc++;
                     count = 0;
@@ -620,12 +625,11 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
                 }
                 count++;
                 config.cv_loc.push_back(loc);
-                config.target.push_back(cv_param_vec[i-1][nparam + 1]);
+                config.target.push_back((index_type)cv_param_vec[i][1+nparam]);
             }
             // Last round results
             config.coalesced_mult.push_back(count);
-            config.cv.push_back(cv_param_vec.back()[0]);
-            config.target.push_back(cv_param_vec.back()[nparam + 1]);
+            config.cv.push_back((index_type)cv_param_vec.back()[0]);
             for (auto pidx: make_span(0, nparam)) {
                 config.param_values[pidx].first = param_name[pidx];
                 config.param_values[pidx].second.push_back(cv_param_vec.back()[pidx +1]);

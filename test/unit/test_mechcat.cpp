@@ -69,10 +69,7 @@ struct common_impl: concrete_mechanism<B> {
         overrides_[key] = v;
     }
 
-    void nrn_coalesce_init() {
-        nrn_init();
-    }
-
+    void nrn_coalesce_init() override {}
     void nrn_init() override {}
     void nrn_state() override {}
     void nrn_current() override {}
