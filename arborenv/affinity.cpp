@@ -12,7 +12,7 @@ extern "C" {
 #include <sched.h>
 }
 
-namespace sup {
+namespace arbenv {
 
 std::vector<int> get_affinity() {
     std::vector<int> cores;
@@ -32,17 +32,17 @@ std::vector<int> get_affinity() {
     return cores;
 }
 
-} // namespace sup
+} // namespace arbenv
 
 #else // def __linux__
 
 // No support for non-linux systems.
-namespace sup {
+namespace arbenv {
 
 std::vector<int> get_affinity() {
     return {};
 }
 
-} // namespace sup
+} // namespace arbenv
 
 #endif // def __linux__
