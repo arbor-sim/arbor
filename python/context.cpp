@@ -24,7 +24,10 @@ void register_contexts(pybind11::module& m) {
     pybind11::class_<arb::proc_allocation> proc_allocation(m, "proc_allocation");
     proc_allocation
         .def(pybind11::init<>())
-        .def(pybind11::init<int, int>(), "threads"_a, "gpu"_a=-1)
+        .def(pybind11::init<int, int>(), "threads"_a, "gpu"_a=-1,
+             "Arguments:\n"
+             "  threads: The number of threads available locally for execution.\n"
+             "  gpu:     The index of the GPU to use, defaults to -1 for no GPU.\n")
         .def_readwrite("threads", &arb::proc_allocation::num_threads,
             "The number of threads available locally for execution.")
         .def_readwrite("gpu_id",   &arb::proc_allocation::gpu_id,
@@ -40,10 +43,17 @@ void register_contexts(pybind11::module& m) {
         .def(pybind11::init<>(
             [](){return context_shim(arb::make_context());}))
         .def(pybind11::init(
-            [](const arb::proc_allocation& alloc){return context_shim(arb::make_context(alloc));}))
+            [](const arb::proc_allocation& alloc){return context_shim(arb::make_context(alloc));}),
+             "alloc"_a,
+             "Argument:\n"
+             "  alloc:   The computational resources to be used for the simulation.\n")
 #ifdef ARB_MPI_ENABLED
         .def(pybind11::init(
-            [](const arb::proc_allocation& alloc, mpi_comm_shim c){return context_shim(arb::make_context(alloc, c.comm));}))
+            [](const arb::proc_allocation& alloc, mpi_comm_shim c){return context_shim(arb::make_context(alloc, c.comm));}),
+             "alloc"_a, "c"_a,
+             "Arguments:\n"
+             "  alloc:   The computational resources to be used for the simulation.\n"
+             "  c:       The MPI communicator.\n")
         .def(pybind11::init(
             [](int threads, pybind11::object gpu, pybind11::object mpi){
                 arb::proc_allocation alloc(threads, gpu.is_none()? -1: pybind11::cast<int>(gpu));
@@ -53,14 +63,21 @@ void register_contexts(pybind11::module& m) {
                 auto& c = pybind11::cast<mpi_comm_shim&>(mpi);
                 return context_shim(arb::make_context(alloc, c.comm));
             }),
-            "threads"_a=1, "gpu"_a=pybind11::none(), "mpi"_a=pybind11::none())
+             "threads"_a=1, "gpu"_a=pybind11::none(), "mpi"_a=pybind11::none(),
+             "Arguments:\n"
+             "  threads: The number of threads available locally for execution.\n"
+             "  gpu:     The index of the GPU to use, defaults to None for no GPU.\n"
+             "  mpi:     The MPI communicator, defaults to None for no MPI.\n")
 #else
         .def(pybind11::init(
             [](int threads, pybind11::object gpu){
                 int gpu_id = gpu.is_none()? -1: pybind11::cast<int>(gpu);
                 return context_shim(arb::make_context(arb::proc_allocation(threads, gpu_id)));
             }),
-            "threads"_a=1, "gpu"_a=pybind11::none())
+             "threads"_a=1, "gpu"_a=pybind11::none(),
+             "Arguments:\n"
+             "  threads: The number of threads available locally for execution.\n"
+             "  gpu:     The index of the GPU to use, defaults to None for no GPU.\n")
 #endif
         .def_property_readonly("has_mpi", [](const context_shim& ctx){return arb::has_mpi(ctx.context);},
             "Whether the context uses MPI for distributed communication.")
@@ -77,4 +94,3 @@ void register_contexts(pybind11::module& m) {
 }
 
 } // namespace pyarb
-
