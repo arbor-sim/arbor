@@ -30,7 +30,7 @@ void register_contexts(pybind11::module& m) {
              "  gpu:     The index of the GPU to use, defaults to -1 for no GPU.\n")
         .def_readwrite("threads", &arb::proc_allocation::num_threads,
             "The number of threads available locally for execution.")
-        .def_readwrite("gpu_id",   &arb::proc_allocation::gpu_id,
+        .def_readwrite("gpu_id", &arb::proc_allocation::gpu_id,
             "The identifier of the GPU to use.\n"
             "Corresponds to the integer index used to identify GPUs in CUDA API calls.")
         .def_property_readonly("has_gpu", &arb::proc_allocation::has_gpu,
