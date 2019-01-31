@@ -24,10 +24,10 @@
 
 namespace arb {
 
-mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const std::vector<int>& deps,
-        const recipe& rec, fvm_lowered_cell_ptr lowered):
-    gids_(gids), deps_(deps), lowered_(std::move(lowered))
+mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
+    gids_(gids), lowered_(std::move(lowered))
 {
+    generate_dependencies(rec);
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
@@ -56,6 +56,61 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const std::
         }
     }
     spike_sources_.shrink_to_fit();
+}
+
+void mc_cell_group::generate_dependencies(const recipe& rec) {
+
+    auto supercell = [&](cell_gid_type gid) {
+
+        std::vector<cell_gid_type> sc;
+        // Map to track visited cells
+        std::unordered_map<cell_gid_type, bool> visited;
+
+        // Connected components algorithm using BFS
+        std::queue<cell_gid_type> q;
+        if (!rec.gap_junctions_on(gid).empty()) {
+            q.push(gid);
+            visited[gid] = true;
+            while (!q.empty()) {
+                auto element = q.front();
+                q.pop();
+                sc.push_back(element);
+                // Adjacency list
+                auto conns = rec.gap_junctions_on(element);
+                for (auto c: conns) {
+                    if (visited.find(c.location.gid) == visited.end()) {
+                        q.push(c.location.gid);
+                        visited[c.location.gid] = true;
+                    }
+                }
+            }
+        }
+        return sc;
+    };
+
+    deps_.resize(gids_.size(), 0);
+
+    for (unsigned i = 0; i < gids_.size();) {
+        auto sc = supercell(gids_[i]);
+        std::sort(sc.begin(), sc.end());
+        if(sc.empty()) {
+            ++i;
+            continue;
+        }
+
+        unsigned count = 1;
+        unsigned j = i + 1;
+        for(; j < gids_.size(); ++j) {
+            if (std::binary_search(sc.begin(), sc.end(), gids_[j])) {
+                count++;
+            }
+            else {
+                break;
+            }
+        }
+        deps_[i] = count;
+        i = j;
+    }
 }
 
 void mc_cell_group::reset() {

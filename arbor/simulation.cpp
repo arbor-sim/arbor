@@ -163,7 +163,7 @@ simulation_state::simulation_state(
         [&](cell_group_ptr& group, int i) {
             const auto& group_info = decomp.groups[i];
             auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
-            group = factory(group_info.gids, group_info.deps, rec);
+            group = factory(group_info.gids, rec);
         });
 
     // Create event lane buffers.

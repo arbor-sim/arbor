@@ -182,7 +182,7 @@ domain_decomposition partition_load_balance(
                 group_deps.push_back(0);
             } else {
                 if (group_elements.size() + super_cells[cell.id].size() > group_size && !group_elements.empty()) {
-                    groups.push_back({k, std::move(group_elements), std::move(group_deps), backend});
+                    groups.push_back({k, std::move(group_elements), backend});
                     group_elements.clear();
                     group_deps.clear();
                 }
@@ -197,13 +197,13 @@ domain_decomposition partition_load_balance(
                 }
             }
             if (group_elements.size()>=group_size) {
-                groups.push_back({k, std::move(group_elements), std::move(group_deps), backend});
+                groups.push_back({k, std::move(group_elements), backend});
                 group_elements.clear();
                 group_deps.clear();
             }
         }
         if (!group_elements.empty()) {
-            groups.push_back({k, std::move(group_elements), std::move(group_deps), backend});
+            groups.push_back({k, std::move(group_elements), backend});
         }
     }
 
