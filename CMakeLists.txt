@@ -216,6 +216,8 @@ if(ARB_WITH_GPU)
         target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
     endif()
 
+    target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+
     # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
 
     if (${CUDA_VERSION_MAJOR} LESS 10)

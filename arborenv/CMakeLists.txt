@@ -24,32 +24,9 @@ target_include_directories(arborenv-public-headers INTERFACE
 target_link_libraries(arborenv PUBLIC arbor arborenv-public-headers)
 target_link_libraries(arborenv PRIVATE arbor-config-defs arborenv-private-deps)
 
-if(ARB_WITH_GPU)
-    # So that cpp and hpp files can use cuda.h and cuda_runtime.h
-    target_include_directories(arborenv PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-
-    # The arborenv lib needs to use the CUDA NVML library for CUDA 9
-    if (${CUDA_VERSION_MAJOR} LESS 10)
-        # TODO: Wrap this in a FindNVML.cmake script?
-        find_library(nvml_lib_path
-                     NAMES nvidia-ml
-                     PATHS ${CUDA_TOOLKIT_ROOT_DIR}
-                     PATH_SUFFIXES lib64/stubs)
-
-        if (NOT nvml_lib_path)
-            message(FATAL_ERROR "Unable to find CUDA NVML library: libnvida-ml.so")
-        endif()
-
-        target_link_libraries(arborenv PUBLIC ${nvml_lib_path})
-    endif()
-endif()
-
-#set_target_properties(arborenv PROPERTIES OUTPUT_NAME arborenv)
-
 install(DIRECTORY include/arborenv
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp")
-
 
 install(TARGETS arborenv-public-headers EXPORT arbor-targets)
 install(TARGETS arborenv EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
