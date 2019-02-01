@@ -79,14 +79,11 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
                 // Adjacency list
                 auto conns = rec.gap_junctions_on(element);
                 for (auto c: conns) {
-                    cell_member_type other;
-                    if (c.source.gid == element) {
-                        other = c.dest;
-                    } else if(c.dest.gid == element) {
-                        other = c.source;
-                    } else {
+                    if(element != c.local.gid && element != c.peer.gid) {
                         throw arb::arbor_exception("Neither of the end points of the gap_junction belong to this cell");
                     }
+                    cell_member_type other = c.local.gid == element ? c.peer : c.local;
+
                     if (visited.find(other.gid) == visited.end()) {
                         q.push(other.gid);
                         visited[other.gid] = true;

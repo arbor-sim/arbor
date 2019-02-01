@@ -236,44 +236,6 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
     return D;
 }
 
-// Get vector of gap_junctions
-
-std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids,
-        const recipe& rec, const fvm_discretization& D) {
-
-    std::vector<gap_junction> v;
-
-    std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
-    for (auto cell_idx: make_span(0, D.ncell)) {
-        auto cell_gj = cells[cell_idx].gap_junctions();
-        for (auto gj : cell_gj) {
-            auto cv = D.segment_location_cv(cell_idx, gj);
-            gid_to_cvs[gids[cell_idx]].push_back(cv);
-        }
-    }
-
-    for(auto gid: gids) {
-        auto gj_list = rec.gap_junctions_on(gid);
-        for(auto g: gj_list) {
-            auto cv0_list = gid_to_cvs[g.source.gid];
-            auto cv0 = cv0_list[g.source.index];
-            auto cv1_list = gid_to_cvs[g.dest.gid];
-            auto cv1 = cv1_list[g.dest.index];
-            if(gid == g.source.gid) {
-                v.push_back(gap_junction(std::make_pair(cv0, cv1), g.ggap * 1e3 / D.cv_area[cv0]));
-            }
-            else if(gid == g.dest.gid) {
-                v.push_back(gap_junction(std::make_pair(cv1, cv0), g.ggap * 1e3 / D.cv_area[cv1]));
-            }
-            else {
-                throw arb::arbor_exception("Neither of the end points of the gap_junction belong to this cell");
-            }
-        }
-    }
-
-    return v;
-}
-
 // Build up mechanisms.
 //
 // Processing procedes in the following stages:

@@ -61,6 +61,12 @@ public:
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) override;
 
+    std::vector<gap_junction> fvm_gap_junctions(
+        const std::vector<mc_cell>& cells,
+        const std::vector<cell_gid_type>& gids,
+        const recipe& rec,
+        const fvm_discretization& D);
+
     value_type time() const override { return tmin_; }
 
     //Exposed for testing purposes
@@ -464,6 +470,44 @@ void fvm_lowered_cell_impl<B>::initialize(
     threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
 
     reset();
+}
+
+// Get vector of gap_junctions
+template <typename B>
+std::vector<gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
+        const std::vector<mc_cell>& cells,
+        const std::vector<cell_gid_type>& gids,
+        const recipe& rec, const fvm_discretization& D) {
+
+    std::vector<gap_junction> v;
+
+    std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
+    for (auto cell_idx: util::make_span(0, D.ncell)) {
+        auto cell_gj = cells[cell_idx].gap_junctions();
+        for (auto gj : cell_gj) {
+            auto cv = D.segment_location_cv(cell_idx, gj);
+            gid_to_cvs[gids[cell_idx]].push_back(cv);
+        }
+    }
+
+    for(auto gid: gids) {
+        auto gj_list = rec.gap_junctions_on(gid);
+        for(auto g: gj_list) {
+            if(gid != g.local.gid && gid != g.peer.gid) {
+                throw arb::arbor_exception("Neither of the end points of the gap_junction belong to this cell");
+            }
+            auto cv0 = gid_to_cvs[g.local.gid][g.local.index];
+            auto cv1 = gid_to_cvs[g.peer.gid][g.peer.index];
+            if(gid == g.local.gid) {
+                v.push_back(gap_junction(std::make_pair(cv0, cv1), g.ggap * 1e3 / D.cv_area[cv0]));
+            }
+            else {
+                v.push_back(gap_junction(std::make_pair(cv1, cv0), g.ggap * 1e3 / D.cv_area[cv1]));
+            }
+        }
+    }
+
+    return v;
 }
 
 } // namespace arb
