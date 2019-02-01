@@ -122,6 +122,131 @@ protected:
     std::vector<mc_cell> cells_;
 };
 
+class gap_recipe_0: public recipe {
+public:
+    gap_recipe_0() {}
+
+    cell_size_type num_cells() const override {
+        return size_;
+    }
+
+    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+        mc_cell c;
+        c.add_soma(20);
+        c.add_gap_junction({0,1});
+        c.add_gap_junction({0,1});
+        return {std::move(c)};
+    }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable1d_neuron;
+    }
+    std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+        switch (gid) {
+            case 0 :
+                return {gap_junction_connection({5, 0}, 0.1)};
+            case 2 :
+                return {
+                        gap_junction_connection({3, 0}, 0.1),
+                        gap_junction_connection({7, 0}, 0.1)
+                };
+            case 3 :
+                return {
+                        gap_junction_connection({7, 0}, 0.1),
+                        gap_junction_connection({2, 0}, 0.1)
+                };
+            case 5 :
+                return {gap_junction_connection({0, 0}, 0.1)};
+            case 7 :
+                return {
+                        gap_junction_connection({3, 0}, 0.1),
+                };
+            default :
+                return {};
+        }
+    }
+
+private:
+    cell_size_type size_ = 12;
+};
+
+class gap_recipe_1: public recipe {
+public:
+    gap_recipe_1() {}
+
+    cell_size_type num_cells() const override {
+        return size_;
+    }
+
+    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+        mc_cell c;
+        c.add_soma(20);
+        return {std::move(c)};
+    }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable1d_neuron;
+    }
+
+private:
+    cell_size_type size_ = 12;
+};
+
+class gap_recipe_2: public recipe {
+public:
+    gap_recipe_2() {}
+
+    cell_size_type num_cells() const override {
+        return size_;
+    }
+
+    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+        mc_cell c;
+        c.add_soma(20);
+        c.add_gap_junction({0,1});
+        c.add_gap_junction({0,1});
+        c.add_gap_junction({0,1});
+        return {std::move(c)};
+    }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable1d_neuron;
+    }
+    std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+        switch (gid) {
+            case 0 :
+                return {
+                    gap_junction_connection({2, 0}, 0.1),
+                    gap_junction_connection({3, 0}, 0.1),
+                    gap_junction_connection({5, 0}, 0.1)
+                };
+            case 2 :
+                return {
+                    gap_junction_connection({0, 0}, 0.1),
+                    gap_junction_connection({3, 0}, 0.1),
+                    gap_junction_connection({5, 0}, 0.1)
+                };
+            case 3 :
+                return {
+                    gap_junction_connection({0, 0}, 0.1),
+                    gap_junction_connection({2, 0}, 0.1),
+                    gap_junction_connection({5, 0}, 0.1)
+                };
+            case 5 :
+                return {
+                    gap_junction_connection({2, 0}, 0.1),
+                    gap_junction_connection({3, 0}, 0.1),
+                    gap_junction_connection({0, 0}, 0.1)
+                };
+            default :
+                return {};
+        }
+    }
+
+private:
+    cell_size_type size_ = 12;
+};
+
 
 } // namespace arb
 

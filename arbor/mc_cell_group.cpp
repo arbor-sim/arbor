@@ -25,9 +25,9 @@
 namespace arb {
 
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
-    gids_(gids), lowered_(std::move(lowered))
+    lowered_(std::move(lowered))
 {
-    generate_dependencies(rec);
+    generate_deps_gids(rec, gids);
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
@@ -58,7 +58,8 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
     spike_sources_.shrink_to_fit();
 }
 
-void mc_cell_group::generate_dependencies(const recipe& rec) {
+// Fills gids_ and deps_: gids_ are sorted such that members of the same supercell are consecutive
+void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_type> gids) {
 
     auto supercell = [&](cell_gid_type gid) {
 
@@ -88,28 +89,30 @@ void mc_cell_group::generate_dependencies(const recipe& rec) {
         return sc;
     };
 
-    deps_.resize(gids_.size(), 0);
+    deps_.reserve(gids_.size());
+    std::sort(gids.begin(), gids.end());
 
-    for (unsigned i = 0; i < gids_.size();) {
-        auto sc = supercell(gids_[i]);
-        std::sort(sc.begin(), sc.end());
+    for(auto it = gids.begin(); it < gids.end();) {
+        auto sc = supercell(*it);
         if(sc.empty()) {
-            ++i;
-            continue;
+            gids_.push_back(*it);
+            deps_.push_back(0);
+            it = gids.erase(it);
         }
-
-        unsigned count = 1;
-        unsigned j = i + 1;
-        for(; j < gids_.size(); ++j) {
-            if (std::binary_search(sc.begin(), sc.end(), gids_[j])) {
-                count++;
+        else {
+            gids_.push_back(sc.front());
+            deps_.push_back(sc.size());
+            for(unsigned i = 1; i < sc.size(); i++) {
+                auto el = std::lower_bound(gids.begin(), gids.end(), sc[i]);
+                if(*el != sc[i]) {
+                    throw arbor_exception("Cells connected via gap-junctions are not in the same cell group");
+                }
+                gids_.push_back(*el);
+                deps_.push_back(0);
+                gids.erase(el);
             }
-            else {
-                break;
-            }
+            it = gids.erase(it);
         }
-        deps_[i] = count;
-        i = j;
     }
 }
 

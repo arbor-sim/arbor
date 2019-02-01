@@ -57,7 +57,15 @@ public:
 
     void remove_all_samplers() override;
 
-    void generate_dependencies(const recipe& rec);
+    void generate_deps_gids(const recipe& rec, std::vector<cell_gid_type>);
+
+    std::vector<cell_gid_type> get_gids() {
+        return gids_;
+    }
+
+    std::vector<int> get_deps() {
+        return deps_;
+    }
 
 private:
     // List of the gids of the cells in the group.
