@@ -21,6 +21,9 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
+#include <arborenv/concurrency.hpp>
+#include <arborenv/gpu_env.hpp>
+
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 
@@ -28,7 +31,7 @@
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
-#include <sup/with_mpi.hpp>
+#include <arborenv/with_mpi.hpp>
 #endif
 
 using arb::cell_gid_type;
@@ -154,21 +157,26 @@ struct cell_stats {
     }
 };
 
-
 int main(int argc, char** argv) {
     try {
         bool root = true;
 
-#ifdef ARB_MPI_ENABLED
-        sup::with_mpi guard(argc, argv, false);
-        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
-        {
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            root = rank==0;
+        arb::proc_allocation resources;
+        if (auto nt = arbenv::get_env_num_threads()) {
+            resources.num_threads = nt;
         }
+        else {
+            resources.num_threads = arbenv::thread_concurrency();
+        }
+
+#ifdef ARB_MPI_ENABLED
+        arbenv::with_mpi guard(argc, argv, false);
+        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        root = arb::rank(context) == 0;
 #else
-        auto context = arb::make_context();
+        resources.gpu_id = arbenv::default_gpu();
+        auto context = arb::make_context(resources);
 #endif
 
 #ifdef ARB_PROFILE_ENABLED
@@ -254,7 +262,7 @@ int main(int argc, char** argv) {
         std::cout << report;
     }
     catch (std::exception& e) {
-        std::cerr << "exception caught in ring miniapp:\n" << e.what() << "\n";
+        std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
         return 1;
     }
 

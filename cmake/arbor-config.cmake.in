@@ -15,3 +15,29 @@ foreach(component ${arbor_FIND_COMPONENTS})
     endif()
 endforeach()
 
+# Patch properties to remove unnecessary external CUDA dependencies.
+
+set(_override_lang @arbor_override_import_lang@)
+if(_override_lang)
+    foreach(target arbor::arbor arbor::arborenv)
+        set_target_properties(${target} PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES_@arbor_build_config@ "${_override_lang}")
+    endforeach()
+endif()
+
+# Explicitly add extra link libraries not covered by dependencies above.
+# (See though arbor-sim/arbor issue #678).
+
+function(_append_property target property)
+    set(p_append ${ARGN})
+    get_target_property(p ${target} ${property})
+    if(p)
+        list(APPEND p ${p_append})
+    else()
+        set(interface_libs ${p_append})
+    endif()
+    set_target_properties(${target} PROPERTIES ${property} "${p}")
+endfunction()
+
+_append_property(arbor::arbor INTERFACE_LINK_LIBRARIES @arbor_add_import_libs@)
+_append_property(arbor::arborenv INTERFACE_LINK_LIBRARIES @arborenv_add_import_libs@)
+

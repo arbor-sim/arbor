@@ -121,6 +121,14 @@ private:
     static unsigned dt_steps(value_type t0, value_type t1, value_type dt) {
         return t0>=t1? 0: 1+(unsigned)((t1-t0)/dt);
     }
+
+    // Sets the GPU used for CUDA calls from the thread that calls it.
+    // The GPU will be the one in the execution context context_.
+    // If not called, the thread may attempt to launch on a different GPU,
+    // leading to crashes.
+    void set_gpu() {
+        if (context_.gpu->has_gpu()) context_.gpu->set_gpu();
+    }
 };
 
 template <typename Backend>
@@ -158,6 +166,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     std::vector<sample_event> staged_samples)
 {
     using util::as_const;
+
+    set_gpu();
 
     // Integration setup
     PE(advance_integrate_setup);
@@ -312,6 +322,8 @@ void fvm_lowered_cell_impl<B>::initialize(
     using util::make_span;
     using util::value_by_key;
     using util::keys;
+
+    set_gpu();
 
     std::vector<mc_cell> cells;
     const std::size_t ncell = gids.size();

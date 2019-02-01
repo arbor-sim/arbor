@@ -229,13 +229,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
 
                     // Parameters for spike output
                     update_option(options.spike_file_output, fopts, "spike_file_output");
-                    if (options.spike_file_output) {
-                        update_option(options.single_file_per_rank, fopts, "single_file_per_rank");
-                        update_option(options.over_write, fopts, "over_write");
-                        update_option(options.output_path, fopts, "output_path");
-                        update_option(options.file_name, fopts, "file_name");
-                        update_option(options.file_extension, fopts, "file_extension");
-                    }
+                    update_option(options.single_file_per_rank, fopts, "single_file_per_rank");
+                    update_option(options.over_write, fopts, "over_write");
+                    update_option(options.output_path, fopts, "output_path");
+                    update_option(options.file_name, fopts, "file_name");
+                    update_option(options.file_extension, fopts, "file_extension");
 
                     update_option(options.dry_run_ranks, fopts, "dry_run_ranks");
                 }

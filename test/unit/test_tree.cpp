@@ -9,6 +9,7 @@
 
 using namespace arb;
 using int_type = tree::int_type;
+using iarray = tree::iarray;
 
 TEST(tree, from_segment_index) {
     auto no_parent = tree::no_parent;
@@ -171,6 +172,88 @@ TEST(tree, from_segment_index) {
         EXPECT_EQ(tree.children(1)[1], 4u);
         EXPECT_EQ(tree.children(4)[0], 5u);
         EXPECT_EQ(tree.children(4)[1], 6u);
+    }
+}
+
+TEST(tree, depth_from_root) {
+    // tree with single branch corresponding to the root node
+    // this is equivalent to a single compartment model
+    //      CASE 1 : single root node in parent_index
+    {
+        std::vector<int_type> parent_index = {0};
+        iarray expected = {0u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
+    }
+
+    {
+        //     0
+        //    / \.
+        //   1   2
+        std::vector<int_type> parent_index = {0, 0, 0};
+        iarray expected = {0u, 1u, 1u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
+    }
+    {
+        //     0-1-2-3
+        std::vector<int_type> parent_index = {0, 0, 1, 2};
+        iarray expected = {0u, 1u, 2u, 3u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
+    }
+    {
+        //
+        //     0
+        //    /|\.
+        //   1 2 3
+        //
+        std::vector<int_type> parent_index = {0, 0, 0, 0};
+        iarray expected = {0u, 1u, 1u, 1u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
+    }
+    {
+        //
+        //   0
+        //  /|\.
+        // 1 2 3
+        //    / \.
+        //   4   5
+        //
+        std::vector<int_type> parent_index = {0, 0, 0, 0, 3, 3};
+        iarray expected = {0u, 1u, 1u, 1u, 2u, 2u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
+    }
+    {
+        //
+        //              0
+        //             /
+        //            1
+        //           / \.
+        //          2   3
+        std::vector<int_type> parent_index = {0,0,1,1};
+        iarray expected = {0u, 1u, 2u, 2u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
+    }
+    {
+        //
+        //              0
+        //             /|\.
+        //            1 4 5
+        //           / \.
+        //          2   3
+        std::vector<int_type> parent_index = {0,0,1,1,0,0};
+        iarray expected = {0u, 1u, 2u, 2u, 1u, 1u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
+    }
+    {
+        //              0
+        //             / \.
+        //            1   2
+        //           / \.
+        //          3   4
+        //             / \.
+        //            5   6
+        std::vector<int_type> parent_index = {0,0,0,1,1,4,4};
+        iarray expected = {0u, 1u, 1u, 2u, 2u, 3u, 3u};
+        EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
     }
 }
 
