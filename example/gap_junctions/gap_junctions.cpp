@@ -28,7 +28,7 @@
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
-#include <sup/with_mpi.hpp>
+#include <arborenv/with_mpi.hpp>
 #endif
 
 using arb::cell_gid_type;
@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
         bool root = true;
 
 #ifdef ARB_MPI_ENABLED
-        sup::with_mpi guard(argc, argv, false);
+        arbenv::with_mpi guard(argc, argv, false);
         auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
             int rank;

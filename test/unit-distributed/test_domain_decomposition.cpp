@@ -86,20 +86,20 @@ namespace {
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             unsigned shift = (gid/size_)*size_;
             switch (gid % size_) {
-                case 1 :  return { gap_junction_connection({7 + shift, 0}, {1, 0}, 0.1)};
+                case 1 :  return { gap_junction_connection({7 + shift, 0}, {gid, 0}, 0.1)};
                 case 2 :  return {
-                    gap_junction_connection({6 + shift, 0}, {2, 0}, 0.1),
-                    gap_junction_connection({9 + shift, 0}, {2, 0}, 0.1)
+                    gap_junction_connection({6 + shift, 0}, {gid, 0}, 0.1),
+                    gap_junction_connection({9 + shift, 0}, {gid, 0}, 0.1)
                 };
                 case 6 :  return {
-                    gap_junction_connection({2 + shift, 0}, {6, 0}, 0.1),
-                    gap_junction_connection({7 + shift, 0}, {6, 0}, 0.1)
+                    gap_junction_connection({2 + shift, 0}, {gid, 0}, 0.1),
+                    gap_junction_connection({7 + shift, 0}, {gid, 0}, 0.1)
                 };
                 case 7 :  return {
-                    gap_junction_connection({6 + shift, 0}, {7, 0}, 0.1),
-                    gap_junction_connection({1 + shift, 0}, {7, 0}, 0.1)
+                    gap_junction_connection({6 + shift, 0}, {gid, 0}, 0.1),
+                    gap_junction_connection({1 + shift, 0}, {gid, 0}, 0.1)
                 };
-                case 9 :  return { gap_junction_connection({2 + shift, 0}, {9, 0}, 0.1)};
+                case 9 :  return { gap_junction_connection({2 + shift, 0}, {gid, 0}, 0.1)};
                 default : return {};
             }
         }
