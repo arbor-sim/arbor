@@ -21,9 +21,6 @@ test_modules = [\
     test_contexts\
 ] # add more if needed
 
-"""
-returns a suite of all the tests
-"""
 def suite():
     loader = unittest.TestLoader()
 

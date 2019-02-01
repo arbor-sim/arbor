@@ -15,14 +15,14 @@ try:
 except ModuleNotFoundError:
     from test import options
 
-if options.TEST_MPI4PY == True and options.TEST_MPI == True:
+if arb.mpi4py_compiled() == True and arb.mpi_compiled() == True:
     import mpi4py.MPI as mpi
 
 """
 all tests for distributed arb.context using mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
-@unittest.skipIf(options.TEST_MPI == False or options.TEST_MPI4PY == False, "ARB_WITH_MPI/-4PY=OFF")
+@unittest.skipIf(arb.mpi_compiled == False or arb.mpi4py_compiled() == False, "MPI/mpi4py not enabled!")
 class Contexts_mpi4py(unittest.TestCase):
     def test_initialize_mpi4py(self):
         # test mpi initialization (automatically when including mpi4py: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html)

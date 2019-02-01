@@ -24,9 +24,6 @@ test_modules = [\
     test_contexts_mpi4py\
 ] # add more if needed
 
-"""
-returns a suite of all the tests
-"""
 def suite():
     loader = unittest.TestLoader()
 

@@ -18,7 +18,7 @@ except ModuleNotFoundError:
 """
 all tests for distributed arb.context using arbor mpi wrappers
 """
-@unittest.skipIf(options.TEST_MPI == False, "ARB_MPI_ENABLED=OFF")
+@unittest.skipIf(arb.mpi_compiled() == False, "MPI not enabled!")
 class Contexts_arbmpi(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
@@ -34,7 +34,7 @@ class Contexts_arbmpi(unittest.TestCase):
     def tearDownClass(self):
         #print("tearDown --- TestContextMPI class")
         #print("    Finalizing mpi")
-        if (options.TEST_MPI4PY == False and arb.mpi_is_finalized() == False):
+        if (arb.mpi4py_compiled() == False and arb.mpi_is_finalized() == False):
             #print("    Finalizing mpi")
             arb.mpi_finalize()
         #else:
