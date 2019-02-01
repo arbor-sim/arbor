@@ -30,11 +30,6 @@ namespace io {
 
         // Parameters for spike output.
         bool spike_file_output = false;
-        bool single_file_per_rank = false;
-        bool over_write = true;
-        std::string output_path = "./";
-        std::string file_name = "spikes";
-        std::string file_extension = "gdf";
 
         // Turn on/off profiling output for all ranks.
         bool profile_only_zero = false;
@@ -57,5 +52,5 @@ namespace io {
 
     std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
-    cl_options read_options(int argc, char** argv, bool allow_write = true);
+    cl_options read_options(int argc, char** argv);
 } // namespace io

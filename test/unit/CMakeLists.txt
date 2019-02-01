@@ -99,7 +99,6 @@ set(unit_sources
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp
-    test_spike_emitter.cpp
     test_stats.cpp
     test_strprintf.cpp
     test_swcio.cpp

@@ -1,6 +1,7 @@
 #include <cmath>
 #include <exception>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -24,7 +25,6 @@
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/path.hpp>
-#include <sup/spike_emitter.hpp>
 #include <sup/strsub.hpp>
 
 #ifdef ARB_MPI_ENABLED
@@ -216,7 +216,12 @@ int main(int argc, char** argv) {
         meters.start(context);
 
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, root);
+        io::cl_options options = io::read_options(argc, argv);
+
+        std::fstream spike_out;
+        if (options.spike_file_output && root) {
+            spike_out = sup::open_or_throw("./spikes.gdf", std::ios_base::out, false);
+        }
 
         meters.checkpoint("setup", context);
 
@@ -257,30 +262,28 @@ int main(int argc, char** argv) {
 
         simulation sim(recipe, decomp, context);
 
-        // Initialize the spike exporting interface
-        std::fstream spike_out;
-        if (options.spike_file_output) {
-            using std::ios_base;
-
-            sup::path p = options.output_path;
-            p /= sup::strsub("%_%.%", options.file_name, rank, options.file_extension);
-
-            if (options.single_file_per_rank) {
-                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_local_spike_callback(sup::spike_emitter(spike_out));
-            }
-            else if (root) {
-                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_global_spike_callback(sup::spike_emitter(spike_out));
-            }
+        // Set up spike recording.
+        std::vector<arb::spike> recorded_spikes;
+        if (spike_out) {
+            sim.set_global_spike_callback([&recorded_spikes](auto& spikes) {
+                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+                });
         }
 
         meters.checkpoint("model-init", context);
 
-        // run simulation
+        // Run simulation.
         sim.run(options.tfinal, options.dt);
 
         meters.checkpoint("model-simulate", context);
+
+        // Output spikes if requested.
+        if (spike_out) {
+            spike_out << std::fixed << std::setprecision(4);
+            for (auto& s: recorded_spikes) {
+                spike_out << s.source.gid << ' ' << s.time << '\n';
+            }
+        }
 
         // output profile and diagnostic feedback
         std::cout << profile::profiler_summary() << "\n";

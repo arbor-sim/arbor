@@ -1,5 +1,6 @@
 #include <cmath>
 #include <exception>
+#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -23,7 +24,6 @@
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/path.hpp>
-#include <sup/spike_emitter.hpp>
 #include <sup/strsub.hpp>
 
 #ifdef ARB_MPI_ENABLED
@@ -62,7 +62,8 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        root = arb::rank(context) == 0;
+        rank = arb::rank(context);
+        root = rank == 0;
 #else
         resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
@@ -84,6 +85,14 @@ int main(int argc, char** argv) {
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
         banner(context);
+
+        // Set up spike output if requested.
+        std::fstream spike_out;
+        if (options.spike_file_output && (root || options.single_file_per_rank)) {
+            sup::path p = options.output_path;
+            p /= sup::strsub("%_%.%", options.file_name, rank, options.file_extension);
+            spike_out = sup::open_or_throw(p, std::ios_base::out, !options.over_write);
+        }
 
         meters.checkpoint("setup", context);
 
@@ -130,37 +139,42 @@ int main(int argc, char** argv) {
 
         sim.set_binning_policy(binning_policy, options.bin_dt);
 
-        // Initialize the spike exporting interface
-        std::fstream spike_out;
-        if (options.spike_file_output) {
-            using std::ios_base;
-
-            sup::path p = options.output_path;
-            p /= sup::strsub("%_%.%", options.file_name, rank, options.file_extension);
+        // Set up spike recording.
+        std::vector<arb::spike> recorded_spikes;
+        if (spike_out) {
+            auto spike_callback = [&recorded_spikes](auto& spikes) {
+                recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+            };
 
             if (options.single_file_per_rank) {
-                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_local_spike_callback(sup::spike_emitter(spike_out));
+                sim.set_local_spike_callback(spike_callback);
             }
-            else if (rank==0) {
-                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_global_spike_callback(sup::spike_emitter(spike_out));
+            else {
+                sim.set_global_spike_callback(spike_callback);
             }
         }
 
         meters.checkpoint("model-init", context);
 
-        // run model
+        // Run model.
         sim.run(options.tfinal, options.dt);
 
         meters.checkpoint("model-simulate", context);
 
-        // output profile and diagnostic feedback
+        // Output profile and diagnostic feedback.
         auto profile = profile::profiler_summary();
         std::cout << profile << "\n";
         std::cout << "\nthere were " << sim.num_spikes() << " spikes\n";
 
-        // save traces
+        // Save spikes.
+        if (spike_out) {
+            spike_out << std::fixed << std::setprecision(4);
+            for (auto& s: recorded_spikes) {
+                spike_out << s.source.gid << ' ' << s.time << '\n';
+            }
+        }
+
+        // Save traces.
         auto write_trace = options.trace_format=="json"? write_trace_json: write_trace_csv;
         for (const auto& trace: sample_traces) {
             write_trace(trace, options.trace_prefix);
