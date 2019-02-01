@@ -240,54 +240,35 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 
 std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids,
         const recipe& rec, const fvm_discretization& D) {
+
     std::vector<gap_junction> v;
 
-    fvm_size_type gj_loc_size = 0;
-    fvm_size_type gj_conn_size = 0;
-
-    // Map gid to location in the cell group
-    std::unordered_map<cell_gid_type, unsigned> gid_to_loc;
-    for (unsigned i = 0; i < gids.size(); i++) {
-        gid_to_loc[gids[i]] = i;
-    }
-
-    // Get gj locations as cv for every cell in group
-    // These represent one half of the gap junctions
-    std::vector<fvm_index_type> gj_comps;
+    std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
     for (auto cell_idx: make_span(0, D.ncell)) {
         auto cell_gj = cells[cell_idx].gap_junctions();
-        gj_loc_size += cell_gj.size();
         for (auto gj : cell_gj) {
             auto cv = D.segment_location_cv(cell_idx, gj);
-            gj_comps.push_back(cv);
+            gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
 
-    std::vector<unsigned> gj_divisions;
-    auto num_gj = [&](cell_gid_type gid) { return rec.num_gap_junctions(gid);};
-    make_partition(gj_divisions, transform_view(gids, num_gj));
-
-    // Get gj locations as cv from cell's gap_junction connections
-    // These represent the second half of the gap junctions
-    unsigned i = 0;
-    for (auto gid : gids) {
+    for(auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
-        gj_conn_size += gj_list.size();
-        for (auto gj : gj_list) {
-            // Calculate which cv a gj refers to from gj_comps
-            auto shift = gid_to_loc[gj.location.gid];
-            auto offset = gj.location.index;
-            // Second half of the gap junction
-            auto cv1 = gj_comps[gj_divisions[shift] + offset];
-            // Already found first half
-            auto cv0 = gj_comps[i++];
-            auto weight = gj.ggap * 1e3 / D.cv_area[cv0];
-            v.push_back(gap_junction(std::make_pair(cv0, cv1), weight));
+        for(auto g: gj_list) {
+            auto cv0_list = gid_to_cvs[g.source.gid];
+            auto cv0 = cv0_list[g.source.index];
+            auto cv1_list = gid_to_cvs[g.dest.gid];
+            auto cv1 = cv1_list[g.dest.index];
+            if(gid == g.source.gid) {
+                v.push_back(gap_junction(std::make_pair(cv0, cv1), g.ggap * 1e3 / D.cv_area[cv0]));
+            }
+            else if(gid == g.dest.gid) {
+                v.push_back(gap_junction(std::make_pair(cv1, cv0), g.ggap * 1e3 / D.cv_area[cv1]));
+            }
+            else {
+                throw arb::arbor_exception("Neither of the end points of the gap_junction belong to this cell");
+            }
         }
-    }
-
-    if (gj_loc_size != gj_conn_size) {
-        throw arbor_internal_error("Gap junctions: number of gap_junction instances (locations) does not equal number of gap junctions (connections)");
     }
 
     return v;

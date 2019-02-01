@@ -48,11 +48,12 @@ struct cell_connection {
 };
 
 struct gap_junction_connection {
-    cell_member_type location;
+    cell_member_type source;
+    cell_member_type dest;
     double ggap;
 
-    gap_junction_connection(cell_member_type loc, double g):
-            location(loc), ggap(g) {}
+    gap_junction_connection(cell_member_type src, cell_member_type dest, double g):
+            source(src), dest(dest), ggap(g) {}
 };
 
 class recipe {

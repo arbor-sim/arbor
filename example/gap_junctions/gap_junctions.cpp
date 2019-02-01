@@ -100,8 +100,8 @@ public:
 
         // Our soma is connected to the next cell's dendrite
         // Our dendrite is connected to the prev cell's soma
-        conns.push_back(arb::gap_junction_connection({next_cell, 1}, 0.0037)); // 1 is the id of the dendrite junction
-        conns.push_back(arb::gap_junction_connection({prev_cell, 0}, 0.0037)); // 0 is the id of the soma junction
+        conns.push_back(arb::gap_junction_connection({next_cell, 1}, {gid, 0}, 0.0037)); // 1 is the id of the dendrite junction
+        conns.push_back(arb::gap_junction_connection({prev_cell, 0}, {gid, 1}, 0.0037)); // 0 is the id of the soma junction
 
         return conns;
     }

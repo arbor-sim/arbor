@@ -88,9 +88,17 @@ domain_decomposition partition_load_balance(
                     // Adjacency list
                     auto conns = rec.gap_junctions_on(element);
                     for (auto c: conns) {
-                        if (visited.find(c.location.gid) == visited.end()) {
-                            q.push(c.location.gid);
-                            visited[c.location.gid] = true;
+                        cell_member_type other;
+                        if (c.source.gid == element) {
+                            other = c.dest;
+                        } else if(c.dest.gid == element) {
+                            other = c.source;
+                        } else {
+                            throw arb::arbor_exception("Neither of the end points of the gap_junction belong to this cell");
+                        }
+                        if (visited.find(other.gid) == visited.end()) {
+                            q.push(other.gid);
+                            visited[other.gid] = true;
                         }
                     }
                 }

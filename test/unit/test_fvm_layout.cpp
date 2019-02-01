@@ -633,7 +633,7 @@ TEST(fvm_layout, gj_coords_simple) {
         }
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
-            conns.push_back(gap_junction_connection({(gid+1)%2, 0}, 0.5));
+            conns.push_back(gap_junction_connection({(gid+1)%2, 0}, {gid, 0}, 0.5));
             return conns;
         }
 
@@ -688,20 +688,20 @@ TEST(fvm_layout, gj_coords_complex) {
             std::vector<gap_junction_connection> conns;
             switch (gid) {
                 case 0 :  return {
-                    gap_junction_connection({1, 0}, 0.03),
-                    gap_junction_connection({1, 1}, 0.04),
-                    gap_junction_connection({2, 0}, 0.01)
+                    gap_junction_connection({2, 0}, {0, 1}, 0.01),
+                    gap_junction_connection({1, 0}, {0, 0}, 0.03),
+                    gap_junction_connection({1, 1}, {0, 0}, 0.04)
                 };
                 case 1 :  return {
-                    gap_junction_connection({0, 0}, 0.03),
-                    gap_junction_connection({0, 1}, 0.04),
-                    gap_junction_connection({2, 1}, 0.02),
-                    gap_junction_connection({2, 2}, 0.01)
+                    gap_junction_connection({0, 0}, {1, 0}, 0.03),
+                    gap_junction_connection({0, 0}, {1, 1}, 0.04),
+                    gap_junction_connection({2, 1}, {1, 2}, 0.02),
+                    gap_junction_connection({2, 2}, {1, 3}, 0.01)
                 };
                 case 2 :  return {
-                    gap_junction_connection({0, 2}, 0.01),
-                    gap_junction_connection({1, 2}, 0.02),
-                    gap_junction_connection({1, 3}, 0.01)
+                    gap_junction_connection({0, 1}, {2, 0}, 0.01),
+                    gap_junction_connection({1, 2}, {2, 1}, 0.02),
+                    gap_junction_connection({1, 3}, {2, 2}, 0.01)
                 };
                 default : return {};
             }
@@ -743,7 +743,6 @@ TEST(fvm_layout, gj_coords_complex) {
 
     // Add 5 gap junctions
     c0.add_gap_junction({1, 1});
-    c0.add_gap_junction({1, 1});
     c0.add_gap_junction({1, 0.5});
 
     c1.add_gap_junction({2, 1});
@@ -776,9 +775,17 @@ TEST(fvm_layout, gj_coords_complex) {
     };
 
     for (unsigned i = 0; i < GJ.size(); i++) {
-        EXPECT_EQ(expected_loc[i], GJ[i].loc);
-        EXPECT_EQ(expected_weight[i], GJ[i].weight);
+        bool found = false;
+        for (unsigned j = 0; j < expected_loc.size(); j++) {
+            if(expected_loc[j].first ==  GJ[i].loc.first && expected_loc[j].second ==  GJ[i].loc.second) {
+                found = true;
+                EXPECT_EQ(expected_weight[j], GJ[i].weight);
+                break;
+            }
+        }
+        EXPECT_TRUE(found);
     }
+    std::cout << std::endl;
 }
 
 TEST(fvm_layout, cell_group_gj) {
@@ -799,8 +806,8 @@ TEST(fvm_layout, cell_group_gj) {
                 // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
                 auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
                 auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
-                conns.push_back(gap_junction_connection({next_cell, 0}, 0.03));
-                conns.push_back(gap_junction_connection({prev_cell, 1}, 0.03));
+                conns.push_back(gap_junction_connection({next_cell, 0}, {gid, 0}, 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, 0}, {gid, 0}, 0.03));
             }
             return conns;
         }
@@ -818,7 +825,6 @@ TEST(fvm_layout, cell_group_gj) {
         mc_cell c;
         c.add_soma(2.1);
         if (i % 2 == 0) {
-            c.add_gap_junction({0, 1});
             c.add_gap_junction({0, 1});
             if (i < 10) {
                 cell_group0.push_back(std::move(c));
