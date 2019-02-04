@@ -1,10 +1,15 @@
 // Check that events are routed correctly to underlying cell implementations.
 //
 // Model:
-// * Ten cells, one synapse each.
+// * N identical cells, one synapse and gap junction site each.
 // * Set up dynamics so that one incoming spike generates one outgoing spike.
 // * Inject events one per cell in a given order, and confirm generated spikes
 //   are in the same order.
+
+// Note: this test anticipates the gap junction PR; the #if guards below
+// will be removed when that PR is merged.
+
+#define NO_GJ_YET
 
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -31,8 +36,9 @@ struct test_recipe: public n_mc_cell_recipe {
         c.add_soma(10.)->add_mechanism("pas");
         c.add_synapse({0, 0.5}, "expsyn");
         c.add_detector({0, 0.5}, -64);
+#ifndef NO_GJ_YET
         c.add_gap_junction({0, 0.5});
-
+#endif
         return c;
     }
 
@@ -94,6 +100,8 @@ TEST(mc_event_delivery, two_interleaved_groups) {
     EXPECT_EQ((gid_vector{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}), spike_gids);
 }
 
+#ifndef NO_GJ_YET
+
 typedef std::vector<std::pair<unsigned, unsigned>> cell_gj_pairs;
 
 struct test_recipe_gj: public test_recipe {
@@ -118,3 +126,5 @@ TEST(mc_event_delivery, gj_reordered) {
     gid_vector spike_gids = run_test_sim(R, {{0, 1, 2, 3, 4}});
     EXPECT_EQ((gid_vector{0, 1, 2, 3, 4}), spike_gids);
 }
+
+#endif // ndef NO_GJ_YET
