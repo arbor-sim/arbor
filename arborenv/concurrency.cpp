@@ -3,20 +3,18 @@
 #include <string>
 #include <thread>
 
-#include <arbor/arbexcept.hpp>
-
-#include <sup/affinity.hpp>
-#include <sup/concurrency.hpp>
+#include <arborenv/concurrency.hpp>
 
 // TODO: C++17 use __has_include(<unistd.h>)
 #if defined(__unix__) || defined(__APPLE__) && defined(__MACH__)
 #include <unistd.h>
 #endif
 
-namespace sup {
+namespace arbenv {
 
 // Test environment variables for user-specified count of threads.
 unsigned get_env_num_threads() {
+    using namespace std::literals;
     const char* str;
 
     // select variable to use:
@@ -43,8 +41,7 @@ unsigned get_env_num_threads() {
         !std::regex_match(str, std::regex("\\s*\\d*[0-9]\\d*\\s*")))
     {
         errno = 0;
-        throw arb::arbor_exception(
-            std::string("Requested number of threads \"") + str + "\" is not a valid value");
+        throw std::runtime_error("Requested number of threads \""s + str + "\" is not a valid value"s);
     }
     errno = 0;
 
@@ -78,4 +75,4 @@ unsigned thread_concurrency() {
     return n;
 }
 
-} // namespace sup
+} // namespace arbenv
