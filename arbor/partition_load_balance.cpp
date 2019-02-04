@@ -178,34 +178,22 @@ domain_decomposition partition_load_balance(
         }
 
         std::vector<cell_gid_type> group_elements;
-        // group_deps provides information about super_cells
         // group_elements are sorted such that the gids of all members of a super_cell are consecutive.
-        // group_deps identifies which cells belong to the same super_cell
-        std::vector<int> group_deps;
         for (auto cell: kind_lists[k]) {
             if (cell.is_super_cell == false) {
                 group_elements.push_back(cell.id);
-                group_deps.push_back(0);
             } else {
                 if (group_elements.size() + super_cells[cell.id].size() > group_size && !group_elements.empty()) {
                     groups.push_back({k, std::move(group_elements), backend});
                     group_elements.clear();
-                    group_deps.clear();
                 }
                 for (auto gid: super_cells[cell.id]) {
                     group_elements.push_back(gid);
-                    if (gid == super_cells[cell.id].front()) {
-                       group_deps.push_back(super_cells[cell.id].size());
-                    }
-                    else {
-                        group_deps.push_back(0);
-                    }
                 }
             }
             if (group_elements.size()>=group_size) {
                 groups.push_back({k, std::move(group_elements), backend});
                 group_elements.clear();
-                group_deps.clear();
             }
         }
         if (!group_elements.empty()) {
