@@ -34,6 +34,11 @@ option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
 set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
   "location of generated validation data")
 
+# For sup::glop, just wrap POSIX glob(3)?
+# Turn off for platforms without glob(3) in libc, e.g. Android Bionic.
+
+option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
+
 #----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
@@ -46,6 +51,7 @@ option(ARB_WITH_MPI "build with MPI support" OFF)
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
+
 
 #----------------------------------------------------------
 # Global CMake configuration

@@ -29,7 +29,7 @@ struct dry_run_context_impl {
 
         for (count_type i = 0; i < num_ranks_; i++) {
             for (count_type j = i*local_size; j < (i+1)*local_size; j++){
-                gathered_spikes[j].source += num_cells_per_tile_*i;
+                gathered_spikes[j].source.gid += num_cells_per_tile_*i;
             }
         }
 
