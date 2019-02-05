@@ -24,7 +24,7 @@ Documentation for the data structures used to describe domain decompositions.
 
     .. Note::
         Setting the GPU back end is only meaningful if the
-        cell_group type supports the GPU backend.
+        :class:`cell_group` type supports the GPU backend.
 
 .. class:: domain_decomposition
 
@@ -46,13 +46,13 @@ Documentation for the data structures used to describe domain decompositions.
         decomposition is correct:
 
         * Every cell in the model appears once in one and only one cell :attr:`groups` on one and only one local :class:`domain_decomposition` object.
-        * `num_local_cells` is the sum of the number of cells in each of the `groups`.
+        * :attr:`num_local_cells` is the sum of the number of cells in each of the :attr:`groups`.
         * The sum of :attr:`num_local_cells` over all domains matches :attr:`num_global_cells`.
 
     .. function:: gid_domain(gid)
 
         A function for querying the domain id that a cell assigned to
-        (using global identifier :attr:`gid`).
+        (using global identifier :attr:`arbor.cell_member.gid`).
 
     .. attribute:: num_domains
 
@@ -76,11 +76,11 @@ Documentation for the data structures used to describe domain decompositions.
     .. attribute:: groups
 
         Descriptions of the cell groups on the local domain.
-        See :class:`group_description`.
+        See :class:`arbor.group_description`.
 
 .. class:: group_description
 
-    The indexes of a set of cells of the same kind that are grouped together in a cell group in a :class:`simulation`.
+    The indexes of a set of cells of the same kind that are grouped together in a cell group in an :class:`arbor.simulation`.
 
         .. function:: group_description(kind, gids, backend)
 
@@ -102,16 +102,16 @@ Documentation for the data structures used to describe domain decompositions.
 Load Balancers
 --------------
 
-Load balancing generates a :class:`domain_decomposition` given a :class:`recipe`
+Load balancing generates an :class:`arbor.domain_decomposition` given an :class:`arbor.recipe`
 and a description of the hardware on which the model will run. Currently Arbor provides
 one load balancer, :func:`partition_load_balance`, and more will be added over time.
 
 If the model is distributed with MPI, the partitioning algorithm for cells is
-distributed with MPI communication. The returned :class:`domain_decomposition`
+distributed with MPI communication. The returned :class:`arbor.domain_decomposition`
 describes the cell groups on the local MPI rank.
 
 .. Note::
-    The :class:`domain_decomposition` type is simple and
+    The :class:`arbor.domain_decomposition` type is simple and
     independent of any load balancing algorithm, so users can supply their
     own domain decomposition without using one of the built-in load balancers.
     This is useful for cases where the provided load balancers are inadequate,
@@ -120,9 +120,9 @@ describes the cell groups on the local MPI rank.
 
 .. function:: partition_load_balance(recipe, context)
 
-    Construct a :class:`domain_decomposition` that distributes the cells
-    in the model described by :class:`recipe` over the distributed and local hardware
-    resources described by :class:`context`.
+    Construct an :class:`arbor.domain_decomposition` that distributes the cells
+    in the model described by an :class:`arbor.recipe` over the distributed and local hardware
+    resources described by an :class:`arbor.context`.
 
     The algorithm counts the number of each cell type in the global model, then
     partitions the cells of each type equally over the available nodes.
@@ -159,7 +159,7 @@ Hardware
 
     .. function:: proc_allocation() = default
 
-        Sets the number of threads to the number detected by :cpp:func:`get_local_resources`, and
+        Sets the number of threads to the number available locally for execution, and
         chooses either the first available GPU, or no GPU if none are available.
 
     .. function:: proc_allocation(threads, gpu_id)
@@ -186,7 +186,7 @@ Hardware
 Execution Context
 -----------------
 
-The :class:`proc_allocation` class enumerates the hardware resources on the local hardware
+The :class:`arbor.proc_allocation` class enumerates the hardware resources on the local hardware
 to use for a simulation.
 
 .. class:: context
@@ -203,12 +203,12 @@ to use for a simulation.
 
     .. function:: context(proc_allocation)
 
-        Local context that uses the local resources described by :class:`proc_allocation`.
+        Local context that uses the local resources described by :class:`arbor.proc_allocation`.
 
     .. function:: context(proc_allocation, mpi_comm)
 
-        A context that uses the local resources described by :class:`proc_allocation`, and
-        uses the MPI communicator :class:`mpi_comm` for distributed calculation.
+        A context that uses the local resources described by :class:`arbor.proc_allocation`, and
+        uses the MPI communicator :class:`arbor.mpi_comm` for distributed calculation.
 
     .. function:: context(threads, gpu)
 
@@ -216,11 +216,11 @@ to use for a simulation.
 
         .. attribute:: threads
 
-            The number of threads in the context's thread pool (default: 1).
+            The number of threads available locally for execution (default: 1).
 
         .. attribute:: gpu
 
-            The GPU id (default: none = -1).
+            The index of the GPU to use (default: none for no GPU).
 
     .. function:: context(threads, gpu, mpi)
 
@@ -228,15 +228,15 @@ to use for a simulation.
 
         .. attribute:: threads
 
-            The number of threads in the context's thread pool (default: 1).
+            The number of threads available locally for execution (default: 1).
 
         .. attribute:: gpu
 
-            The GPU id (default: none = -1).
+            The index of the GPU to use (default: none for no GPU).
 
         .. attribute:: mpi
 
-            MPI communicator :class:`mpi_comm` for distributed calculation (default: none).
+            The MPI communicator :class:`arbor.mpi_comm` (default: none for no MPI).
 
     .. attribute:: has_mpi
 
@@ -248,7 +248,7 @@ to use for a simulation.
 
     .. attribute:: threads
 
-        The number of threads in the context's thread pool.
+        The number of threads available locally for execution.
 
     .. attribute:: ranks
 

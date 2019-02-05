@@ -47,7 +47,13 @@ These types defined below are used as identifiers for cells and members of cell-
 
             import arbor
 
-            gid, index = arbor.cell_member(0, 0)
+            # construct
+            cmem1 = arbor.cell_member()
+            cmem2 = arbor.cell_member(1, 1)
+
+            # set gid and index
+            cmem1.gid = 0
+            cmem1.index = 0
 
 
 .. class:: cell_kind
@@ -71,7 +77,7 @@ These types defined below are used as identifiers for cells and members of cell-
 
         Proxy cell used for benchmarking.
 
-An example of a cell construction of kind :attr:`cable1d` reads as follows:
+An example of a cell construction of :class:`cell_kind.cable1d` reads as follows:
 
     .. container:: example-code
 
