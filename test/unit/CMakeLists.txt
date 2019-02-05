@@ -63,6 +63,7 @@ set(unit_sources
     test_domain_decomposition.cpp
     test_either.cpp
     test_event_binner.cpp
+    test_event_delivery.cpp
     test_event_generators.cpp
     test_event_queue.cpp
     test_filter.cpp
