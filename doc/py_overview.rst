@@ -2,7 +2,7 @@
 
 Overview
 =========
-This section gives insights to the usage of Arbor's python front end ``arbor`` with examples and detailed descriptions of features.
+This section gives insights to the usage of Arbor's python front end :mod:`arbor` with examples and detailed descriptions of features.
 The python front end is the main interface through which Arbor is used.
 
 .. _prerequisites:
@@ -22,7 +22,7 @@ or, in case of installation
 
     export PYTHONPATH="path/to/arbor/install/lib/python3.6/site-packages:$PYTHONPATH"
 
-With this setup, the Arbor python module ``arbor`` can be imported with python3 via
+With this setup, the Arbor python module :mod:`arbor` can be imported with python3 via
 
     >>> import arbor
 
