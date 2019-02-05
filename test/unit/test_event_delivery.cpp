@@ -9,8 +9,6 @@
 // Note: this test anticipates the gap junction PR; the #if guards below
 // will be removed when that PR is merged.
 
-#define NO_GJ_YET
-
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/simulation.hpp>
@@ -36,9 +34,7 @@ struct test_recipe: public n_mc_cell_recipe {
         c.add_soma(10.)->add_mechanism("pas");
         c.add_synapse({0, 0.5}, "expsyn");
         c.add_detector({0, 0.5}, -64);
-#ifndef NO_GJ_YET
         c.add_gap_junction({0, 0.5});
-#endif
         return c;
     }
 
@@ -100,15 +96,13 @@ TEST(mc_event_delivery, two_interleaved_groups) {
     EXPECT_EQ((gid_vector{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}), spike_gids);
 }
 
-#ifndef NO_GJ_YET
-
 typedef std::vector<std::pair<unsigned, unsigned>> cell_gj_pairs;
 
 struct test_recipe_gj: public test_recipe {
     explicit test_recipe_gj(int n, cell_gj_pairs gj_pairs):
         test_recipe(n), gj_pairs_(std::move(gj_pairs)) {}
 
-    cell_size_type num_gap_junctions(cell_gid_type) const override { return 1; }
+    cell_size_type num_gap_junction_sites(cell_gid_type) const override { return 1; }
 
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type i) const override {
         std::vector<gap_junction_connection> gjs;
@@ -126,5 +120,3 @@ TEST(mc_event_delivery, gj_reordered) {
     gid_vector spike_gids = run_test_sim(R, {{0, 1, 2, 3, 4}});
     EXPECT_EQ((gid_vector{0, 1, 2, 3, 4}), spike_gids);
 }
-
-#endif // ndef NO_GJ_YET
