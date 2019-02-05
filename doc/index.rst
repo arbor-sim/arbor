@@ -58,6 +58,7 @@ Some key features include:
    py_common
    py_recipe
    py_domdec
+   py_simulation
 
 .. toctree::
    :caption: C++ API:
