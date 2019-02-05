@@ -43,6 +43,6 @@ Implementations of mechanisms are either hand-coded or a translator (modcc) is u
 subset of NEURONs mechanism specification language NMODL.
 
 Examples
-    Common examples are the *passive/ leaky integrate-and-fire* model, the *Hodgkin-Huxley* mechanism, the *(double-)exponential synapse* model, or the *Natrium current* model for an axon.
+    Common examples are the *passive/ leaky integrate-and-fire* model, the *Hodgkin-Huxley* mechanism, the *(double-) exponential synapse* model, or the *Natrium current* model for an axon.
 
 The detailed documentations and specific best practices for C++ recipes can be found in :ref:`cpprecipe` and in :ref:`pyrecipe` covering python recipes.
