@@ -1,5 +1,5 @@
 #include <functional>
-#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <arbor/assert.hpp>
@@ -61,64 +61,50 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
 // Fills gids_ and deps_: gids_ are sorted such that members of the same supercell are consecutive
 void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_type> gids) {
 
-    std::unordered_map<cell_gid_type, unsigned> gid_to_loc;
-    for (unsigned i = 0; i < gids.size(); i++) {
+    std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
+    for (auto i: util::count_along(gids)) {
         gid_to_loc[gids[i]] = i;
     }
 
     deps_.reserve(gids_.size());
+    std::unordered_set<cell_gid_type> visited;
+    std::queue<cell_gid_type> scq;
+
     std::sort(gids.begin(), gids.end());
 
-    for (auto it = gids.begin(); it < gids.end();) {
+    for (auto gid: gids) {
+        if (visited.count(gid)) continue;
+        visited.insert(gid);
 
-        std::vector<cell_gid_type> sc;
-        // Map to track visited cells
-        std::unordered_map<cell_gid_type, bool> visited;
+        cell_size_type sc_size = 0;
+        scq.push(gid);
+        while (!scq.empty()) {
+            auto g = scq.front();
+            scq.pop();
 
-        // Connected components algorithm using BFS
-        std::queue<cell_gid_type> q;
-        if (!rec.gap_junctions_on(*it).empty()) {
-            q.push(*it);
-            visited[*it] = true;
-            while (!q.empty()) {
-                auto element = q.front();
-                q.pop();
-                sc.push_back(element);
-                // Adjacency list
-                auto conns = rec.gap_junctions_on(element);
-                for (auto c: conns) {
-                    if (element != c.local.gid && element != c.peer.gid) {
-                        throw bad_cell_description(cell_kind::cable1d_neuron, element);
-                    }
-                    cell_member_type other = c.local.gid == element ? c.peer : c.local;
+            gids_.push_back(g);
+            ++sc_size;
 
-                    if (visited.find(other.gid) == visited.end()) {
-                        q.push(other.gid);
-                        visited[other.gid] = true;
-                    }
+            for (auto gj: rec.gap_junctions_on(g)) {
+                cell_gid_type peer =
+                        gj.local.gid==g? gj.peer.gid:
+                        gj.peer.gid==g?  gj.local.gid:
+                        throw bad_cell_description(cell_kind::cable1d_neuron, g);
+
+                if (!gid_to_loc.count(peer)) {
+                    // actually an error in the domain decomposition...
+                    throw bad_cell_description(cell_kind::cable1d_neuron, g);
+                }
+
+                if (!visited.count(peer)) {
+                    visited.insert(peer);
+                    scq.push(peer);
                 }
             }
         }
 
-        if (sc.empty()) {
-            gids_.push_back(*it);
-            deps_.push_back(0);
-            it = gids.erase(it);
-        }
-        else {
-            gids_.push_back(sc.front());
-            deps_.push_back(sc.size());
-            for (unsigned i = 1; i < sc.size(); i++) {
-                auto el = std::lower_bound(gids.begin(), gids.end(), sc[i]);
-                if (*el != sc[i]) {
-                    throw bad_cell_description(cell_kind::cable1d_neuron, *el);
-                }
-                gids_.push_back(*el);
-                deps_.push_back(0);
-                gids.erase(el);
-            }
-            it = gids.erase(it);
-        }
+        deps_.push_back(sc_size>1? sc_size: 0);
+        deps_.insert(deps_.end(), sc_size-1, 0);
     }
 
     perm_gids_.reserve(gids_.size());

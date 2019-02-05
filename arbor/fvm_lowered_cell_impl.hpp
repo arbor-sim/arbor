@@ -513,13 +513,14 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
             if (gid != g.local.gid && gid != g.peer.gid) {
                 throw arb::bad_cell_description(cell_kind::cable1d_neuron, gid);
             }
-            if (g.local.index >= gid_to_cvs[g.local.gid].size() || g.peer.index >= gid_to_cvs[g.peer.gid].size()) {
-                //throw std::out_of_range("index out of range");
-                std::cout << g.local.index << " " << gid_to_cvs[g.local.gid].size() << std::endl;
-                std::cout << g.peer.index << " " << gid_to_cvs[g.peer.gid].size() << std::endl;
+            cell_gid_type cv0, cv1;
+            try {
+                cv0 = gid_to_cvs[g.local.gid].at(g.local.index);
+                cv1 = gid_to_cvs[g.peer.gid].at(g.peer.index);
             }
-            auto cv0 = gid_to_cvs[g.local.gid][g.local.index];
-            auto cv1 = gid_to_cvs[g.peer.gid][g.peer.index];
+            catch (std::out_of_range&) {
+                throw arb::bad_cell_description(cell_kind::cable1d_neuron, gid);
+            }
             if (gid != g.local.gid) {
                 std::swap(cv0, cv1);
             }
