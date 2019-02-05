@@ -71,6 +71,9 @@ private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
+    // Permutation of the gids of the cells in the group.
+    std::vector<cell_gid_type> perm_gids_;
+
     // List of the dependencies of the cells in the group.
     std::vector<int> deps_;
 
