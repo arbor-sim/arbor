@@ -17,7 +17,7 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
     Recipes provide a cell-centric interface for describing a model. This means that
     model properties, such as connections, are queried using the global identifier
     (`gid`) of a cell. In the description below, the term `gid` is used as shorthand
-    for "the cell with global identifier `gid`.
+    for the cell with global identifier `gid`.
 
     **Required Member Functions**
 
@@ -29,7 +29,7 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
 
     .. function:: cell_kind(gid)
 
-        The cell kind of cell with global identifier gid (see :class:`cell_kind`).
+        The cell kind of cell with global identifier gid (type: :class:`arbor.cell_kind`).
 
     .. function:: cell_description(gid)
 
@@ -53,10 +53,17 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
     .. function:: connections_on(gid)
 
         Returns a list of all the incoming connections for `gid`.
-        Each connection should have post-synaptic target :attr:`destination` that matches the argument :attr:`gid`, and a valid synapse id :attr:`index` on `gid`.
-        See :class:`connection`.
+        Each connection should have post-synaptic target :attr:`arbor.connection.destination` that matches the argument :attr:`arbor.cell_member.gid`, and a valid synapse id :attr:`arbor.cell_member.index` on `gid`.
+        See :class:`arbor.connection`.
 
         By default returns an empty list.
+
+    .. function:: event_generator(index, weight, schedule)
+
+        Returns a list of all the event generators that are attached to the gid with cell-local index, weight and schedule :class:`regular_schedule`, :class:`explicit_schedule` or :class:`poisson_schedule`.
+
+        By default returns an empty list.
+
 
 .. class:: connection
 
@@ -70,11 +77,11 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
 
     .. attribute:: source
 
-        The source of the connection (type: :class:`cell_member`).
+        The source of the connection (type: :class:`arbor.cell_member`).
 
     .. attribute:: destination
 
-        The destination of the connection (type: :class:`cell_member`).
+        The destination of the connection (type: :class:`arbor.cell_member`).
 
     .. attribute:: weight
 
@@ -83,6 +90,44 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
     .. attribute:: delay
 
         The delay time of the connection (ms).
+
+.. class:: regular_schedule
+
+    .. function:: regular_schedule()
+
+        Default constructor with empty time range and zero time step size.
+
+    .. function:: regular_schedule(tstart, tstop, dt)
+
+        Constructor creates a list of times from :attr:`tstart` to :attr:`tstop` in :attr:`dt` time steps.
+
+    .. attribute:: tstart
+
+        Start time (in ms).
+
+    .. attribute:: tstop
+
+        End time (in ms).
+
+    .. attribute:: dt
+
+        Time step size (in ms).
+
+
+.. class:: explicit_schedule
+
+    .. function:: explicit_schedule()
+
+        Constructor with empty list.
+
+    .. attribute:: times
+
+        A list of times in the schedule (in ms).
+
+.. class:: poisson_schedule
+
+    To be implemented.
+
 
 Cells
 ------
