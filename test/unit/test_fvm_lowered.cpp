@@ -610,7 +610,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     for (unsigned i = 0; i < GJ.size(); i++) {
         bool found = false;
         for (unsigned j = 0; j < expected_loc.size(); j++) {
-            if(expected_loc[j].first ==  GJ[i].loc.first && expected_loc[j].second ==  GJ[i].loc.second) {
+            if (expected_loc[j].first ==  GJ[i].loc.first && expected_loc[j].second ==  GJ[i].loc.second) {
                 found = true;
                 EXPECT_EQ(expected_weight[j], GJ[i].weight);
                 break;

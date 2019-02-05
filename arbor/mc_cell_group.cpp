@@ -69,7 +69,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
     deps_.reserve(gids_.size());
     std::sort(gids.begin(), gids.end());
 
-    for(auto it = gids.begin(); it < gids.end();) {
+    for (auto it = gids.begin(); it < gids.end();) {
 
         std::vector<cell_gid_type> sc;
         // Map to track visited cells
@@ -87,7 +87,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
                 // Adjacency list
                 auto conns = rec.gap_junctions_on(element);
                 for (auto c: conns) {
-                    if(element != c.local.gid && element != c.peer.gid) {
+                    if (element != c.local.gid && element != c.peer.gid) {
                         throw bad_cell_description(cell_kind::cable1d_neuron, element);
                     }
                     cell_member_type other = c.local.gid == element ? c.peer : c.local;
@@ -100,7 +100,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
             }
         }
 
-        if(sc.empty()) {
+        if (sc.empty()) {
             gids_.push_back(*it);
             deps_.push_back(0);
             it = gids.erase(it);
@@ -108,9 +108,9 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
         else {
             gids_.push_back(sc.front());
             deps_.push_back(sc.size());
-            for(unsigned i = 1; i < sc.size(); i++) {
+            for (unsigned i = 1; i < sc.size(); i++) {
                 auto el = std::lower_bound(gids.begin(), gids.end(), sc[i]);
-                if(*el != sc[i]) {
+                if (*el != sc[i]) {
                     throw bad_cell_description(cell_kind::cable1d_neuron, *el);
                 }
                 gids_.push_back(*el);
@@ -122,7 +122,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
     }
 
     perm_gids_.reserve(gids_.size());
-    for(auto gid: gids_) {
+    for (auto gid: gids_) {
         perm_gids_.push_back(gid_to_loc[gid]);
     }
 }

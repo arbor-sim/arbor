@@ -496,7 +496,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
     std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
     for (auto cell_idx: util::make_span(0, D.ncell)) {
 
-        if(rec.num_gap_junction_sites(gids[cell_idx])) {
+        if (rec.num_gap_junction_sites(gids[cell_idx])) {
             gid_to_cvs[gids[cell_idx]].reserve(rec.num_gap_junction_sites(gids[cell_idx]));
 
             auto cell_gj = cells[cell_idx].gap_junction_sites();
@@ -507,9 +507,9 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
         }
     }
 
-    for(auto gid: gids) {
+    for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
-        for(auto g: gj_list) {
+        for (auto g: gj_list) {
             if (gid != g.local.gid && gid != g.peer.gid) {
                 throw arb::bad_cell_description(cell_kind::cable1d_neuron, gid);
             }

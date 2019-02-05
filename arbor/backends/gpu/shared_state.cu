@@ -166,7 +166,7 @@ void set_dt_impl(
 }
 
 void add_gj_current_impl(
-    fvm_size_type n_gj, const gap_junction* gj_info, const fvm_value_type* voltage, fvm_value_type* current_density)
+    fvm_size_type n_gj, const fvm_gap_junction* gj_info, const fvm_value_type* voltage, fvm_value_type* current_density)
 {
     if (!n_gj) return;
 
