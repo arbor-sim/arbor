@@ -67,7 +67,7 @@ public:
     virtual cell_size_type num_sources(cell_gid_type) const { return 0; }
     virtual cell_size_type num_targets(cell_gid_type) const { return 0; }
     virtual cell_size_type num_probes(cell_gid_type)  const { return 0; }
-    virtual cell_size_type num_gap_junctions(cell_gid_type gid)  const {
+    virtual cell_size_type num_gap_junction_sites(cell_gid_type gid)  const {
         return gap_junctions_on(gid).size();
     }
     virtual std::vector<event_generator> event_generators(cell_gid_type) const {

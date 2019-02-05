@@ -118,7 +118,7 @@ shared_state::shared_state(
     fvm_size_type n_cell,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
     const std::vector<fvm_index_type>& time_dep_vec,
-    const std::vector<gap_junction>& gj_vec,
+    const std::vector<fvm_gap_junction>& gj_vec,
     unsigned align
 ):
     alignment(min_alignment(align)),
@@ -233,7 +233,7 @@ void shared_state::set_dt() {
     }
 }
 
-void shared_state::update_gj_state() {
+void shared_state::add_gj_current() {
     for (unsigned i = 0; i < n_gj; i++) {
         auto gj = gap_junctions[i];
         auto curr = gj.weight *

@@ -35,7 +35,7 @@ TEST(supercell, sync_time_to) {
 
     int num_cell = 10;
 
-    std::vector<gap_junction> gj = {};
+    std::vector<fvm_gap_junction> gj = {};
     std::vector<index_type> deps = {4, 0, 0, 0, 3, 0, 0, 2, 0, 0};
 
     shared_state state(num_cell, std::vector<index_type>(num_cell, 0), deps, gj, 1u);

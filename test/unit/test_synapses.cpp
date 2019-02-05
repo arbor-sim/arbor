@@ -85,7 +85,7 @@ TEST(synapses, syn_basic_state) {
     auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn"));
     ASSERT_TRUE(exp2syn);
 
-    std::vector<gap_junction> gj = {};
+    std::vector<fvm_gap_junction> gj = {};
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
     shared_state state(num_cell, std::vector<index_type>(num_comp, 0), std::vector<index_type>(num_cell, 0), gj, align);
 

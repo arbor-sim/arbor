@@ -22,21 +22,21 @@ domain_decomposition partition_load_balance(
 
     struct partition_gid_domain {
         partition_gid_domain(gathered_vector<cell_gid_type> divs, unsigned domains):
-            gid_divisions(std::move(divs)), num_domains(domains)
+            gids_by_rank(std::move(divs)), num_domains(domains)
         {}
 
         int operator()(cell_gid_type gid) const {
-            auto gid_part = gid_divisions.partition();
-            for (unsigned i = 0; i < num_domains; i++) {
-                auto rank_gids = util::subrange_view(gid_divisions.values(), gid_part[i], gid_part[i+1]);
-                if(std::binary_search(rank_gids.begin(), rank_gids.end(), gid)) {
+            using namespace util;
+            auto rank_part = partition_view(gids_by_rank.partition());
+            for (auto i: count_along(rank_part)) {
+                if (binary_search_index(subrange_view(gids_by_rank.values(), rank_part[i]), gid)) {
                     return i;
                 }
             }
             return -1;
         }
 
-        const gathered_vector<cell_gid_type> gid_divisions;
+        const gathered_vector<cell_gid_type> gids_by_rank;
         unsigned num_domains;
     };
 
@@ -89,8 +89,7 @@ domain_decomposition partition_load_balance(
                     auto conns = rec.gap_junctions_on(element);
                     for (auto c: conns) {
                         if(element != c.local.gid && element != c.peer.gid) {
-                            throw arb::arbor_exception(
-                                    "Neither of the end points of the gap_junction belong to this cell");
+                            throw bad_cell_description(cell_kind::cable1d_neuron, element);
                         }
                         cell_member_type other = c.local.gid == element ? c.peer : c.local;
 
@@ -133,7 +132,7 @@ domain_decomposition partition_load_balance(
         auto kind = rec.get_cell_kind(super_cells[i].front());
         for (auto gid: super_cells[i]) {
             if (rec.get_cell_kind(gid) != kind) {
-                throw arbor_internal_error("Cells of different kinds connected by gap_junctions: not allowed");
+                throw gj_kind_mismatch(gid, super_cells[i].front());
             }
             local_gids.push_back(gid);
         }

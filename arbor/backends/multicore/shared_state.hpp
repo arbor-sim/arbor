@@ -109,7 +109,7 @@ struct shared_state {
         fvm_size_type n_cell,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
         const std::vector<fvm_index_type>& time_dep_vec,
-        const std::vector<gap_junction>& gj_vec,
+        const std::vector<fvm_gap_junction>& gj_vec,
         unsigned align
     );
 
@@ -135,7 +135,7 @@ struct shared_state {
     void set_dt();
 
     // Update gap_junction state
-    void update_gj_state();
+    void add_gj_current();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;

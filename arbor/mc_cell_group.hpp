@@ -63,7 +63,7 @@ public:
         return gids_;
     }
 
-    std::vector<int> get_deps() {
+    std::vector<int> get_dependencies() {
         return deps_;
     }
 

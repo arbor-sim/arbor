@@ -66,7 +66,10 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
         gid_to_loc[gids[i]] = i;
     }
 
-    auto supercell = [&](cell_gid_type gid) {
+    deps_.reserve(gids_.size());
+    std::sort(gids.begin(), gids.end());
+
+    for(auto it = gids.begin(); it < gids.end();) {
 
         std::vector<cell_gid_type> sc;
         // Map to track visited cells
@@ -74,9 +77,9 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
 
         // Connected components algorithm using BFS
         std::queue<cell_gid_type> q;
-        if (!rec.gap_junctions_on(gid).empty()) {
-            q.push(gid);
-            visited[gid] = true;
+        if (!rec.gap_junctions_on(*it).empty()) {
+            q.push(*it);
+            visited[*it] = true;
             while (!q.empty()) {
                 auto element = q.front();
                 q.pop();
@@ -85,7 +88,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
                 auto conns = rec.gap_junctions_on(element);
                 for (auto c: conns) {
                     if(element != c.local.gid && element != c.peer.gid) {
-                        throw arb::arbor_exception("Neither of the end points of the gap_junction belong to this cell");
+                        throw bad_cell_description(cell_kind::cable1d_neuron, element);
                     }
                     cell_member_type other = c.local.gid == element ? c.peer : c.local;
 
@@ -96,14 +99,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
                 }
             }
         }
-        return sc;
-    };
 
-    deps_.reserve(gids_.size());
-    std::sort(gids.begin(), gids.end());
-
-    for(auto it = gids.begin(); it < gids.end();) {
-        auto sc = supercell(*it);
         if(sc.empty()) {
             gids_.push_back(*it);
             deps_.push_back(0);
@@ -115,7 +111,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
             for(unsigned i = 1; i < sc.size(); i++) {
                 auto el = std::lower_bound(gids.begin(), gids.end(), sc[i]);
                 if(*el != sc[i]) {
-                    throw arbor_exception("Cells connected via gap-junctions are not in the same cell group");
+                    throw bad_cell_description(cell_kind::cable1d_neuron, *el);
                 }
                 gids_.push_back(*el);
                 deps_.push_back(0);

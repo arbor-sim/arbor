@@ -125,7 +125,7 @@ public:
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
-        gap_junctions_(other.gap_junctions_),
+        gap_junction_sites_(other.gap_junction_sites_),
         spike_detectors_(other.spike_detectors_)
     {
         // unique_ptr's cannot be copy constructed, do a manual assignment
@@ -217,10 +217,10 @@ public:
     //////////////////
     void add_gap_junction(segment_location location)
     {
-        gap_junctions_.push_back(location);
+        gap_junction_sites_.push_back(location);
     }
-    const std::vector<gap_junction_instance>& gap_junctions() const {
-        return gap_junctions_;
+    const std::vector<gap_junction_instance>& gap_junction_sites() const {
+        return gap_junction_sites_;
     }
 
     //////////////////
@@ -266,7 +266,7 @@ private:
     std::vector<synapse_instance> synapses_;
 
     // the gap_junctions
-    std::vector<gap_junction_instance> gap_junctions_;
+    std::vector<gap_junction_instance> gap_junction_sites_;
 
     // the sensors
     std::vector<detector_instance> spike_detectors_;
