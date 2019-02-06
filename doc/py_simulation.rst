@@ -177,6 +177,10 @@ In order to analyze the simulation output spikes can be recorded.
 
     .. code-block:: python
 
+        import numpy as np
+        import math
+        import matplotlib.pyplot as plot
+
         # Use a raster plot to visualize spiking activity.
         tVec = np.arange(0,tSim,dt)
         SpikeMat_rows = n_cells # number of cells
