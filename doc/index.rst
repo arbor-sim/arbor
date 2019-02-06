@@ -75,7 +75,9 @@ Some key features include:
    library
    simd_api
    profiler
+   py_profiler
    sampling_api
    cpp_distributed_context
    cpp_dry_run
+   py_unittest
 
