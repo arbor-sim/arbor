@@ -6,9 +6,6 @@
 // * Inject events one per cell in a given order, and confirm generated spikes
 //   are in the same order.
 
-// Note: this test anticipates the gap junction PR; the #if guards below
-// will be removed when that PR is merged.
-
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/simulation.hpp>
