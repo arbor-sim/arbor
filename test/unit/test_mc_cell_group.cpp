@@ -212,8 +212,8 @@ TEST(mc_cell_group, generated_gids_deps_) {
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         mc_cell_group group{gids, gap_recipe_0(), lowered_cell()};
 
-        std::vector<cell_gid_type> expected_gids = {0u, 5u, 2u, 3u, 7u, 8u, 11u};
-        std::vector<int> expected_deps = {2, 0, 3, 0, 0, 0, 0};
+        std::vector<cell_gid_type> expected_gids = {11u, 5u, 0u, 2u, 3u, 7u, 8u};
+        std::vector<int> expected_deps = {0, 2, 0, 3, 0, 0, 0};
         EXPECT_EQ(expected_gids, group.get_gids());
         EXPECT_EQ(expected_deps, group.get_dependencies());
     }
@@ -221,18 +221,16 @@ TEST(mc_cell_group, generated_gids_deps_) {
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         mc_cell_group group{gids, gap_recipe_1(), lowered_cell()};
 
-        std::vector<cell_gid_type> expected_gids = {0u, 2u, 3u, 5u, 7u, 8u, 11u};
         std::vector<int> expected_deps = {0, 0, 0, 0, 0, 0, 0};
-        EXPECT_EQ(expected_gids, group.get_gids());
+        EXPECT_EQ(gids, group.get_gids());
         EXPECT_EQ(expected_deps, group.get_dependencies());
     }
     {
         std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
         mc_cell_group group{gids, gap_recipe_2(), lowered_cell()};
 
-        std::vector<cell_gid_type> expected_gids = {0u, 2u, 3u, 5u};
         std::vector<int> expected_deps = {4, 0, 0, 0};
-        EXPECT_EQ(expected_gids, group.get_gids());
+        EXPECT_EQ(gids, group.get_gids());
         EXPECT_EQ(expected_deps, group.get_dependencies());
     }
 }

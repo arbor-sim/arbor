@@ -70,8 +70,6 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
     std::unordered_set<cell_gid_type> visited;
     std::queue<cell_gid_type> scq;
 
-    std::sort(gids.begin(), gids.end());
-
     for (auto gid: gids) {
         if (visited.count(gid)) continue;
         visited.insert(gid);
