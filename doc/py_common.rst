@@ -5,7 +5,7 @@ Common Types
 
 Cell Identifiers and Indexes
 ----------------------------
-These types defined below are used as identifiers for cells and members of cell-local collections.
+The types defined below are used as identifiers for cells and members of cell-local collections.
 
 .. module:: arbor
 
@@ -13,12 +13,11 @@ These types defined below are used as identifiers for cells and members of cell-
 
     .. function:: cell_member()
 
-        Constructor.
+        Construct a cell member with default values :attr:`gid = 0` and :attr:`index = 0`.
 
     .. function:: cell_member(gid, index)
 
-        Constructor with parameters :attr:`gid` and :attr:`index`.
-        For global identification of an item of a cell-local item.
+        Construct a cell member with parameters :attr:`gid` and :attr:`index` for global identification of an item of a cell-local item.
 
         Items of type :class:`cell_member` must:
 
@@ -26,7 +25,7 @@ These types defined below are used as identifiers for cells and members of cell-
         * identify an item within a cell-local collection by the member :attr:`index`.
 
         An example is uniquely identifying a synapse in the model.
-        Each synapse has a post-synaptic cell (:attr:`gid`), and an index (:attr:`index`) into the set of synapses on the post-synaptic cell.
+        Each synapse has a post-synaptic cell (with :attr:`gid`), and an :attr:`index` into the set of synapses on the post-synaptic cell.
 
         Lexographically ordered by :attr:`gid`, then :attr:`index`.
 
@@ -36,7 +35,7 @@ These types defined below are used as identifiers for cells and members of cell-
 
     .. attribute:: index
 
-        Cell-local index of the item.
+        The cell-local index of the item.
         Local indices for items within a particular cell-local collection should be zero-based and numbered contiguously.
 
     An example of a cell member construction reads as follows:
@@ -49,17 +48,16 @@ These types defined below are used as identifiers for cells and members of cell-
 
             # construct
             cmem1 = arbor.cell_member()
-            cmem2 = arbor.cell_member(1, 1)
+            cmem2 = arbor.cell_member(0, 0)
 
             # set gid and index
-            cmem1.gid = 0
-            cmem1.index = 0
+            cmem1.gid = 1
+            cmem1.index = 1
 
 
 .. class:: cell_kind
 
-    Enumeration used to indentify the cell type/kind, used by the model to
-    group equal kinds in the same cell group.
+    Identify the cell type/ kind used by the model to group equal kinds in the same cell group (enumerator).
 
     .. attribute:: cable1d
 
@@ -67,15 +65,15 @@ These types defined below are used as identifiers for cells and members of cell-
 
     .. attribute:: lif
 
-        Leaky-integrate and fire neuron.
+        A leaky-integrate and fire neuron.
 
     .. attribute:: spike_source
 
-        Cell that generates spikes at a user-supplied sequence of time points.
+        A cell that generates spikes at a user-supplied sequence of time points.
 
     .. attribute:: benchmark
 
-        Proxy cell used for benchmarking.
+        A proxy cell used for benchmarking.
 
 An example of a cell construction of :class:`cell_kind.cable1d` reads as follows:
 

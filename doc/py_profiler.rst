@@ -1,7 +1,7 @@
 Python Profiler
 ===============
 
-The Arbor python library has a profiler for fine-grained timings and memory consumptions of regions of interest in the code.
+Arbor's python module :py:mod:`arbor` has a profiler for fine-grained timings and memory consumptions of regions of interest in the code.
 
 Instrumenting Code
 ------------------

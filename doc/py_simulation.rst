@@ -3,19 +3,19 @@
 Simulations
 ===========
 
+A simulation is the executable form of a model.
+
 From recipe to simulation
 -------------------------
 
-To build a simulation the following are needed:
+To build a simulation the following concepts are needed:
 
-    * An :class:`arbor.recipe` that describes the cells and connections
-      in the model.
-    * An :class:`arbor.context` used to execute the simulation.
+    * an :class:`arbor.recipe` that describes the cells and connections in the model;
+    * an :class:`arbor.context` used to execute the simulation.
 
 The workflow to build a simulation is to first generate an
-:class:`arbor.domain_decomposition` that describes the distribution of the model
-over the local and distributed hardware resources (see :ref:`pydomdec`),
-then build the simulation.
+:class:`arbor.domain_decomposition` based on the :class:`arbor.recipe` and :class:`arbor.context` describing the distribution of the model
+over the local and distributed hardware resources (see :ref:`pydomdec`). Then, the simulation is build using the :class:`arbor.domain_decomposition`.
 
 .. container:: example-code
 
@@ -43,12 +43,11 @@ then build the simulation.
         dt = 0.025
         sim.run(tSim, dt)
 
-.. module:: arbor
+.. currentmodule:: arbor
 
 .. class:: simulation
 
-    The executable form of a model. A simulation is constructed
-    from a recipe, and then used to update and monitor model state.
+    A simulation is constructed from a recipe, and then used to update and monitor the model state.
 
     Simulations take the following inputs:
 
@@ -58,28 +57,26 @@ then build the simulation.
 
     Simulations provide an interface for executing and interacting with the model:
 
-        * **Advance model state** from one time to another and reset model
-          state to its original state before simulation was started.
-        * **I/O** interface for sampling simulation state during execution
-          (e.g. compartment voltage and current) and spike output.
+        * **Advance the model state** from one time to another and reset the model state to its original state before simulation was started.
+        * Sample the simulation state during the execution (e.g. compartment voltage and current) and generate spike output by using an **I/O interface**.
 
     **Constructor:**
 
     .. function:: simulation(recipe, dom_dec, context)
 
-        Initialize the model described by a recipe, with cells and network distributed according to dom_dec, and computation resources described by context.
+        Initialize the model described by a :attr:`recipe`, with cells and network distributed according to :attr:`dom_dec`, and computation resources described by :attr:`context`.
 
         .. attribute:: recipe
 
-            See :class:`arbor.recipe`.
+            An :class:`arbor.recipe`.
 
         .. attribute:: dom_dec
 
-            See :class:`arbor.domain_decomposition`.
+            An :class:`arbor.domain_decomposition`.
 
         .. attribute:: context
 
-            See :class:`arbor.context`.
+            An :class:`arbor.context`.
 
     **Updating Model State:**
 
@@ -94,11 +91,11 @@ then build the simulation.
 
         .. attribute:: tfinal
 
-            Final simulation time (in ms).
+            The final simulation time (ms).
 
         .. attribute:: dt
 
-            Time step size (in ms).
+            The time step size (ms).
 
 Recording spikes
 ----------------
@@ -110,31 +107,31 @@ In order to analyze the simulation output spikes can be recorded.
 
     .. function:: spike()
 
-        Constructor.
+        Construct a spike with default :attr:`arbor.cell_member.gid = 0` and :attr:`arbor.cell_member.index = 0`.
 
     .. attribute:: source
 
-        The spike source (type: cell_member with :attr:`arbor.cell_member.gid` (default: 0) and :attr:`arbor.cell_member.index` (default: 0)).
+        The spike source (of type: :class:`arbor.cell_member` with :attr:`arbor.cell_member.gid` and :attr:`arbor.cell_member.index`).
 
     .. attribute:: time
 
-        Spike time (in ms, default: -1 ms).
+        The spike time (ms, default: -1 ms).
 
 .. class:: sprec
 
     .. function:: sprec()
 
-        Constructor.
+        Initialize the spike recorder.
 
     .. attribute:: spikes
 
-        Recorded spikes (type: :class:`spike`).
+        The recorded spikes (of type: :class:`spike`).
 
-**I/O:**
+**I/O interface**:
 
 .. function:: make_spike_recorder(simulation)
 
-       Records all spikes generated over all domains during a simulation (type: :class:`sprec`)
+       Record all spikes generated over all domains during a simulation (of type: :class:`sprec`)
 
 .. container:: example-code
 
@@ -173,13 +170,15 @@ In order to analyze the simulation output spikes can be recorded.
 >>>   cell  8 at   87.975 ms
 >>>   cell  9 at   98.300 ms
 
+The recorded spikes of the neurons with :attr:`gid` can then for instance be visualized in a raster plot over the spike time.
+
 .. container:: example-code
 
     .. code-block:: python
 
         import numpy as np
         import math
-        import matplotlib.pyplot as plot
+        import matplotlib.pyplot as plt
 
         # Use a raster plot to visualize spiking activity.
         tVec = np.arange(0,tSim,dt)
@@ -199,15 +198,15 @@ In order to analyze the simulation output spikes can be recorded.
                 if(SpikeMat[i,j] == 1):
                     x1 = [i,i+0.5]
                     x2 = [j,j]
-                    plot.plot(x2,x1,color = 'black')
+                    plt.plot(x2,x1,color = 'black')
 
-        plot.title('Spike raster plot')
-        plot.xlabel('Spike time (ms)')
+        plt.title('Spike raster plot')
+        plt.xlabel('Spike time (ms)')
         tick = range(0,SpikeMat_cols+10000,10000)
         label = range(0,tSim+250,250)
-        plot.xticks(tick, label)
-        plot.ylabel('Neuron (gid)')
-        plot.show()
+        plt.xticks(tick, label)
+        plt.ylabel('Neuron (gid)')
+        plt.show()
 
 
 .. figure:: Rasterplot

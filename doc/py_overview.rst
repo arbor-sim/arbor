@@ -2,7 +2,7 @@
 
 Overview
 =========
-This section gives insights to the usage of Arbor's python front end :mod:`arbor` with examples and detailed descriptions of features.
+This section gives insights to the usage of Arbor's python front end :py:mod:`arbor` with examples and detailed descriptions of features.
 The python front end is the main interface through which Arbor is used.
 
 .. _prerequisites:
@@ -20,9 +20,9 @@ or, in case of installation
 
 .. code-block:: bash
 
-    export PYTHONPATH="path/to/arbor/install/lib/python3.6/site-packages:$PYTHONPATH"
+    export PYTHONPATH="path/to/arbor/install/lib/python3/site-packages:$PYTHONPATH"
 
-With this setup, the Arbor python module :mod:`arbor` can be imported with python3 via
+With this setup, Arbor's python module :py:mod:`arbor` can be imported with python3 via
 
     >>> import arbor
 
@@ -31,7 +31,7 @@ With this setup, the Arbor python module :mod:`arbor` can be imported with pytho
 Simulation steps
 ~~~~~~~~~~~~~~~~
 
-Then, according to the :ref:`modelsimulation` description the Arbor python module can be utilized to
+Then, according to the :ref:`modelsimulation` description Arbor's python module :py:mod:`arbor` can be utilized to
 
 * first, **describe** the neuron model by defining a recipe;
 * then, get the local **resources**, the **execution context**, and partition the **load balance**;

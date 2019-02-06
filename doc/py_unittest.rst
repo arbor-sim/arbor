@@ -3,7 +3,7 @@
 Python Unit Testing
 ====================
 
-In order to test individual units of the python front end during development with `pybind11 <https://pybind11.readthedocs.io/en/stable/intro.html>`_, python's `unittest <https://docs.python.org/3/library/unittest.html>`_ is deployed.
+In order to test individual units of Arbor's python module :py:mod:`arbor` during development with `pybind11 <https://pybind11.readthedocs.io/en/stable/intro.html>`_, python's `unittest <https://docs.python.org/3/library/unittest.html>`_ is deployed.
 
 Directory Structure
 -------------------

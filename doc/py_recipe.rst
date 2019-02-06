@@ -3,21 +3,20 @@
 Recipes
 =================
 
-A **recipe** describes neuron models in a cell-oriented manner and supplies methods to provide cell information. Details on why Arbor uses recipes and general best practices can be found in :ref:`modelrecipe`.
+A recipe describes neuron models in a cell-oriented manner and supplies methods to provide cell information. Details on why Arbor uses recipes and general best practices can be found in :ref:`modelrecipe`.
 
-.. module:: arbor
+.. currentmodule:: arbor
 
 .. class:: recipe
 
-    A description of a model, describing the cells and network, without any
-    information about how the model is to be represented or executed.
+    Describe a model by describing the cells and network, without any information about how the model is to be represented or executed.
 
     All recipes derive from this abstract base class.
 
     Recipes provide a cell-centric interface for describing a model. This means that
     model properties, such as connections, are queried using the global identifier
-    (`gid`) of a cell. In the description below, the term `gid` is used as shorthand
-    for the cell with global identifier `gid`.
+    (:attr:`arbor.cell_member.gid`) of a cell. In the description below, the term :attr:`gid` is used as shorthand
+    for the cell with global identifier.
 
     **Required Member Functions**
 
@@ -27,13 +26,13 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
 
         The number of cells in the model.
 
-    .. function:: cell_kind(gid)
+    .. function:: cell_kind( gid )
 
-        The cell kind of cell with global identifier gid (type: :class:`arbor.cell_kind`).
+        The cell kind of the cell with global identifier :attr:`gid` (return type: :class:`arbor.cell_kind`).
 
-    .. function:: cell_description(gid)
+    .. function:: cell_description( gid )
 
-        High level decription of the cell with global identifier gid,
+        A high level decription of the cell with global identifier :attr:`gid`,
         for example the morphology, synapses and ion channels required to build a multi-compartment neuron.
         The type used to describe a cell depends on the kind of the cell.
         The interface for querying the kind and description of a cell are seperate
@@ -42,38 +41,38 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
 
     **Optional Member Functions**
 
-    .. function:: num_sources(gid)
+    .. function:: num_sources( gid )
 
-        The number of spike sources on gid.
+        The number of spike sources on :attr:`gid`.
 
-    .. function:: num_targets(gid)
+    .. function:: num_targets( gid )
 
-        The number of event targets on gid (e.g. synapses).
+        The number of event targets on :attr:`gid` (e.g. synapses).
 
-    .. function:: connections_on(gid)
+    .. function:: connections_on( gid )
 
-        Returns a list of all the incoming connections for `gid`.
-        Each connection should have post-synaptic target :attr:`arbor.connection.destination` that matches the argument :attr:`arbor.cell_member.gid`, and a valid synapse id :attr:`arbor.cell_member.index` on `gid`.
-        See :class:`arbor.connection`.
+        A list of all the incoming connections for :attr:`gid`.
+        Each connection should have post-synaptic target :attr:`connection.destination` that matches the argument :attr:`gid`, and a valid synapse id :attr:`arbor.cell_member.index` on :attr:`gid`.
+        See :class:`connection`.
 
         By default returns an empty list.
 
     .. function:: event_generator(index, weight, schedule)
 
-        Returns a list of all the event generators that are attached to the gid with cell-local index, weight and schedule :class:`regular_schedule`, :class:`explicit_schedule` or :class:`poisson_schedule`.
+        A list of all the event generators that are attached to the :attr:`gid` with cell-local :attr:`index`, weight and schedule (:class:`regular_schedule`, :class:`explicit_schedule` or :class:`poisson_schedule`).
 
         By default returns an empty list.
 
 
 .. class:: connection
 
-    Describes a connection between two cells: a pre-synaptic source and a post-synaptic destination.
+    Describe a connection between two cells: a pre-synaptic source and a post-synaptic destination.
     The source is typically a threshold detector on a cell or a spike source.
     The destination is a synapse on the post-synaptic cell.
 
     .. function:: connection(source, destination, weight, delay)
 
-        Constructor.
+        Construct a connection between the :attr:`source` and the :attr:`destination` with a :attr:`weight` and time :attr:`delay`.
 
     .. attribute:: source
 
@@ -95,34 +94,34 @@ A **recipe** describes neuron models in a cell-oriented manner and supplies meth
 
     .. function:: regular_schedule()
 
-        Default constructor with empty time range and zero time step size.
+        Construct a default regular schedule with empty time range and zero time step size.
 
     .. function:: regular_schedule(tstart, tstop, dt)
 
-        Constructor creates a list of times from :attr:`tstart` to :attr:`tstop` in :attr:`dt` time steps.
+        Construct a regular schedule as list of times from :attr:`tstart` to :attr:`tstop` in :attr:`dt` time steps.
 
     .. attribute:: tstart
 
-        Start time (in ms).
+        The start time (ms).
 
     .. attribute:: tstop
 
-        End time (in ms).
+        The end time (ms).
 
     .. attribute:: dt
 
-        Time step size (in ms).
+        The time step size (ms).
 
 
 .. class:: explicit_schedule
 
     .. function:: explicit_schedule()
 
-        Constructor with empty list.
+        Construct a default explicit schedule with an empty list.
 
     .. attribute:: times
 
-        A list of times in the schedule (in ms).
+        Set the list of times in the schedule (ms).
 
 .. class:: poisson_schedule
 
@@ -135,10 +134,10 @@ A multicompartmental cell in Arbor's python front end can be created by making a
 
 .. class:: make_soma_cell
 
-    Make a single compartment cell with properties:
+    Construct a single compartment cell with properties:
 
     - diameter 18.8 µm;
-    - Hodgkin-Huxley (HH) mechanisms (with default parameters);
+    - Hodgkin-Huxley (HH) mechanisms (with default parameters as described below);
     - bulk resistivitiy 100 Ω·cm (default);
     - capacitance 0.01 F⋅m⁻² (default).
 
@@ -149,31 +148,31 @@ A multicompartmental cell in Arbor's python front end can be created by making a
     - passive conductance 0.0003 S⋅m⁻² and
     - passive potential -54.3 mV
 
- .. class:: segment_location(segment, position)
+ .. class:: segment_location( segment, position )
 
-    Sets the location to a cell-local segment and a position.
+    Set the location to a cell-local segment and a position.
 
         .. attribute:: segment
 
-            Segment as cell-local index.
+            The segment as cell-local index.
 
         .. attribute:: position
 
-            Position between 0 and 1.
+            The position between 0 and 1.
 
 .. class:: mccell
 
-        .. function:: add_synapse(location)
+        .. function:: add_synapse( location )
 
             Add an exponential synapse at segment location.
 
-        .. function:: add_stimulus(location, t0, duration, weight)
+        .. function:: add_stimulus( location, t0, duration, weight )
 
-            Add a stimulus to the cell at a specific location, start time t0 (in ms), duration (in ms) with weight (in nA).
+            Add a stimulus to the cell at a specific location, start time t0 (ms), duration (ms) with weight (nA).
 
-        .. function:: add_detector(location, threshold)
+        .. function:: add_detector( location, threshold )
 
-            Add a detector to the cell at a specific location and threshold (in mV).
+            Add a detector to the cell at a specific location and threshold (mV).
 
 
 An example of a recipe construction of a ring network of multicompartmental cells reads as follows:
