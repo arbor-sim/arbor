@@ -26,6 +26,13 @@ bad_probe_id::bad_probe_id(cell_member_type probe_id):
     probe_id(probe_id)
 {}
 
+
+gj_kind_mismatch::gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1):
+        arbor_exception(pprintf("Cells on gid {} and {} connected via gap junction have different cell kinds", gid_0, gid_1)),
+        gid_0(gid_0),
+        gid_1(gid_1)
+{}
+
 bad_event_time::bad_event_time(time_type event_time, time_type sim_time):
     arbor_exception(pprintf("event time {} precedes current simulation time {}", event_time, sim_time)),
     event_time(event_time),

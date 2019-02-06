@@ -117,13 +117,18 @@ void ion_state::zero_current() {
 shared_state::shared_state(
     fvm_size_type n_cell,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
+    const std::vector<fvm_index_type>& time_dep_vec,
+    const std::vector<fvm_gap_junction>& gj_vec,
     unsigned align
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
     n_cell(n_cell),
     n_cv(cv_to_cell_vec.size()),
+    n_gj(gj_vec.size()),
     cv_to_cell(math::round_up(n_cv, alignment), pad(alignment)),
+    time_dep(n_cell),
+    gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
     time(n_cell, pad(alignment)),
     time_to(n_cell, pad(alignment)),
     dt_cell(n_cell, pad(alignment)),
@@ -133,11 +138,16 @@ shared_state::shared_state(
     temperature_degC(NAN),
     deliverable_events(n_cell)
 {
-    // For indices in the padded tail of cv_to_cell, set index to last valid cell index.
+    std::copy(time_dep_vec.begin(), time_dep_vec.end(), time_dep.begin());
 
+    // For indices in the padded tail of cv_to_cell, set index to last valid cell index.
     if (n_cv>0) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
-        std::fill(cv_to_cell.begin()+n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
+        std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
+    }
+    if (n_gj>0) {
+        std::copy(gj_vec.begin(), gj_vec.end(), gap_junctions.begin());
+        std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
     }
 }
 
@@ -182,6 +192,21 @@ void shared_state::ions_nernst_reversal_potential(fvm_value_type temperature_K) 
         i.second.nernst(temperature_K);
     }
 }
+void shared_state::sync_time_to() {
+    for (fvm_size_type i = 0; i<n_cell; i++) {
+        if (!time_dep[i]) continue;
+
+        fvm_value_type min_t = time_to[i];
+        for (int j = 1; j < time_dep[i]; j++) {
+            if (time_to[i+j] < min_t) {
+                min_t = time_to[i+j];
+            }
+        }
+        for (int j = 0; j < time_dep[i]; j++) {
+            time_to[i+j] = min_t;
+        }
+    }
+}
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
     for (fvm_size_type i = 0; i<n_cell; i+=simd_width) {
@@ -205,6 +230,16 @@ void shared_state::set_dt() {
 
         simd_value_type dt(simd::indirect(dt_cell.data(), cell_idx));
         dt.copy_to(dt_cv.data()+i);
+    }
+}
+
+void shared_state::add_gj_current() {
+    for (unsigned i = 0; i < n_gj; i++) {
+        auto gj = gap_junctions[i];
+        auto curr = gj.weight *
+                    (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
+
+        current_density[gj.loc.first] -= curr;
     }
 }
 

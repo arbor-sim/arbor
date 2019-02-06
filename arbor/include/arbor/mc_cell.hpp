@@ -100,6 +100,8 @@ public:
     using value_type = double;
     using point_type = point<value_type>;
 
+    using gap_junction_instance = segment_location;
+
     struct synapse_instance {
         segment_location location;
         mechanism_desc mechanism;
@@ -123,6 +125,7 @@ public:
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
+        gap_junction_sites_(other.gap_junction_sites_),
         spike_detectors_(other.spike_detectors_)
     {
         // unique_ptr's cannot be copy constructed, do a manual assignment
@@ -210,6 +213,17 @@ public:
     }
 
     //////////////////
+    // gap-junction
+    //////////////////
+    void add_gap_junction(segment_location location)
+    {
+        gap_junction_sites_.push_back(location);
+    }
+    const std::vector<gap_junction_instance>& gap_junction_sites() const {
+        return gap_junction_sites_;
+    }
+
+    //////////////////
     // spike detectors
     //////////////////
     void add_detector(segment_location loc, double threshold);
@@ -250,6 +264,9 @@ private:
 
     // the synapses
     std::vector<synapse_instance> synapses_;
+
+    // the gap_junctions
+    std::vector<gap_junction_instance> gap_junction_sites_;
 
     // the sensors
     std::vector<detector_instance> spike_detectors_;
