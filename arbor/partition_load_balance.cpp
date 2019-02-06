@@ -1,3 +1,5 @@
+#include <unordered_set>
+
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
@@ -69,7 +71,7 @@ domain_decomposition partition_load_balance(
     std::vector<cell_gid_type> reg_cells; //independent cells
 
     // Map to track visited cells (cells that already belong to a group)
-    std::unordered_map<cell_gid_type, bool> visited;
+    std::unordered_set<cell_gid_type> visited;
 
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
@@ -77,10 +79,10 @@ domain_decomposition partition_load_balance(
         if (!rec.gap_junctions_on(gid).empty()) {
             // If cell hasn't been visited yet, must belong to new super_cell
             // Perform BFS starting from that cell
-            if (visited.find(gid) == visited.end()) {
+            if (!visited.count(gid)) {
+                visited.insert(gid);
                 std::vector<cell_gid_type> cg;
                 q.push(gid);
-                visited[gid] = true;
                 while (!q.empty()) {
                     auto element = q.front();
                     q.pop();
@@ -93,9 +95,9 @@ domain_decomposition partition_load_balance(
                         }
                         cell_member_type other = c.local.gid == element ? c.peer : c.local;
 
-                        if (visited.find(other.gid) == visited.end()) {
+                        if (!visited.count(other.gid)) {
+                            visited.insert(other.gid);
                             q.push(other.gid);
-                            visited[other.gid] = true;
                         }
                     }
                 }
