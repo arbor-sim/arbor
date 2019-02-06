@@ -90,8 +90,7 @@ void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_t
                         throw bad_cell_description(cell_kind::cable1d_neuron, g);
 
                 if (!gid_to_loc.count(peer)) {
-                    // actually an error in the domain decomposition...
-                    throw bad_cell_description(cell_kind::cable1d_neuron, g);
+                    throw gj_unsupported_domain_decomposition(g, peer);
                 }
 
                 if (!visited.count(peer)) {

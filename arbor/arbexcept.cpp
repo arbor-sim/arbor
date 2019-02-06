@@ -26,11 +26,16 @@ bad_probe_id::bad_probe_id(cell_member_type probe_id):
     probe_id(probe_id)
 {}
 
+gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gid_type gid_0, cell_gid_type gid_1):
+    arbor_exception(pprintf("No support for gap junctions across domain decomposition groups for gid {} and {}", gid_0, gid_1)),
+    gid_0(gid_0),
+    gid_1(gid_1)
+{}
 
 gj_kind_mismatch::gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1):
-        arbor_exception(pprintf("Cells on gid {} and {} connected via gap junction have different cell kinds", gid_0, gid_1)),
-        gid_0(gid_0),
-        gid_1(gid_1)
+    arbor_exception(pprintf("Cells on gid {} and {} connected via gap junction have different cell kinds", gid_0, gid_1)),
+    gid_0(gid_0),
+    gid_1(gid_1)
 {}
 
 bad_event_time::bad_event_time(time_type event_time, time_type sim_time):
