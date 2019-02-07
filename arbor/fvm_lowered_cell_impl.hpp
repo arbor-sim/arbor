@@ -50,7 +50,6 @@ public:
 
     void initialize(
         const std::vector<cell_gid_type>& gids,
-        const std::vector<int>& deps,
         const recipe& rec,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) override;
@@ -215,7 +214,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         state_->update_time_to(dt_max, tfinal);
         state_->deliverable_events.event_time_if_before(state_->time_to);
-        state_->sync_time_to();
         state_->set_dt();
         PL();
 
@@ -312,7 +310,6 @@ void fvm_lowered_cell_impl<B>::assert_voltage_bounded(fvm_value_type bound) {
 template <typename B>
 void fvm_lowered_cell_impl<B>::initialize(
     const std::vector<cell_gid_type>& gids,
-    const std::vector<int>& deps,
     const recipe& rec,
     std::vector<target_handle>& target_handles,
     probe_association_map<probe_handle>& probe_map)
@@ -385,7 +382,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, deps, gj_vector, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, gj_vector, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 

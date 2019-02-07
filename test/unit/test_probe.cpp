@@ -40,7 +40,7 @@ TEST(probe, fvm_lowered_cell) {
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell lcell(context);
-    lcell.initialize({0}, {0}, rec, targets, probe_map);
+    lcell.initialize({0}, rec, targets, probe_map);
 
     EXPECT_EQ(3u, rec.num_probes(0));
     EXPECT_EQ(3u, probe_map.size());
