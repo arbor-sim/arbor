@@ -50,6 +50,7 @@ public:
 
     void initialize(
         const std::vector<cell_gid_type>& gids,
+        const std::vector<int>& deps,
         const recipe& rec,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) override;
@@ -59,6 +60,12 @@ public:
         value_type max_dt,
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) override;
+
+    std::vector<fvm_gap_junction> fvm_gap_junctions(
+        const std::vector<mc_cell>& cells,
+        const std::vector<cell_gid_type>& gids,
+        const recipe& rec,
+        const fvm_discretization& D);
 
     value_type time() const override { return tmin_; }
 
@@ -198,6 +205,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->nrn_current();
         }
 
+        // Add current contribution from gap_junctions
+        state_->add_gj_current();
+
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
 
@@ -205,6 +215,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         state_->update_time_to(dt_max, tfinal);
         state_->deliverable_events.event_time_if_before(state_->time_to);
+        state_->sync_time_to();
         state_->set_dt();
         PL();
 
@@ -301,6 +312,7 @@ void fvm_lowered_cell_impl<B>::assert_voltage_bounded(fvm_value_type bound) {
 template <typename B>
 void fvm_lowered_cell_impl<B>::initialize(
     const std::vector<cell_gid_type>& gids,
+    const std::vector<int>& deps,
     const recipe& rec,
     std::vector<target_handle>& target_handles,
     probe_association_map<probe_handle>& probe_map)
@@ -362,6 +374,10 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D);
 
+    // Discritize and build gap junction info
+
+    auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
+
     // Create shared cell state.
     // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)
 
@@ -369,7 +385,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, deps, gj_vector, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 
@@ -466,6 +482,53 @@ void fvm_lowered_cell_impl<B>::initialize(
     threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
 
     reset();
+}
+
+// Get vector of gap_junctions
+template <typename B>
+std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
+        const std::vector<mc_cell>& cells,
+        const std::vector<cell_gid_type>& gids,
+        const recipe& rec, const fvm_discretization& D) {
+
+    std::vector<fvm_gap_junction> v;
+
+    std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
+    for (auto cell_idx: util::make_span(0, D.ncell)) {
+
+        if (rec.num_gap_junction_sites(gids[cell_idx])) {
+            gid_to_cvs[gids[cell_idx]].reserve(rec.num_gap_junction_sites(gids[cell_idx]));
+
+            auto cell_gj = cells[cell_idx].gap_junction_sites();
+            for (auto gj : cell_gj) {
+                auto cv = D.segment_location_cv(cell_idx, gj);
+                gid_to_cvs[gids[cell_idx]].push_back(cv);
+            }
+        }
+    }
+
+    for (auto gid: gids) {
+        auto gj_list = rec.gap_junctions_on(gid);
+        for (auto g: gj_list) {
+            if (gid != g.local.gid && gid != g.peer.gid) {
+                throw arb::bad_cell_description(cell_kind::cable1d_neuron, gid);
+            }
+            cell_gid_type cv0, cv1;
+            try {
+                cv0 = gid_to_cvs[g.local.gid].at(g.local.index);
+                cv1 = gid_to_cvs[g.peer.gid].at(g.peer.index);
+            }
+            catch (std::out_of_range&) {
+                throw arb::bad_cell_description(cell_kind::cable1d_neuron, gid);
+            }
+            if (gid != g.local.gid) {
+                std::swap(cv0, cv1);
+            }
+            v.push_back(fvm_gap_junction(std::make_pair(cv0, cv1), g.ggap * 1e3 / D.cv_area[cv0]));
+        }
+    }
+
+    return v;
 }
 
 } // namespace arb

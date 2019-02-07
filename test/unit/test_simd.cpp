@@ -981,7 +981,7 @@ TYPED_TEST_P(simd_indirect, scatter) {
         simd s(values);
         s.copy_to(indirect(array, simd_index(offset)));
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
 
@@ -1019,7 +1019,7 @@ TYPED_TEST_P(simd_indirect, masked_scatter) {
         simd_mask m(mask);
         where(m, s).copy_to(indirect(array, simd_index(offset)));
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
 
@@ -1051,7 +1051,7 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         }
 
         indirect(array, simd_index(offset)) += simd(values);
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         fill_random(offset, rng, 0, (int)(buflen-1));
 
@@ -1063,7 +1063,7 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         }
 
         indirect(array, simd_index(offset)) -= simd(values);
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
 
@@ -1115,7 +1115,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         make_test_array();
         indirect(array, simd_index(offset), index_constraint::independent) += simd(values);
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         // Contiguous:
 
@@ -1127,7 +1127,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         make_test_array();
         indirect(array, simd_index(offset), index_constraint::contiguous) += simd(values);
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         // Constant:
 
@@ -1146,7 +1146,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         make_test_array();
         indirect(array, simd_index(offset), index_constraint::constant) += simd(values);
 
-        EXPECT_TRUE(::testing::indexed_almost_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_almost_eq_n(buflen, test, array));
 
     }
 }

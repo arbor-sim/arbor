@@ -29,9 +29,9 @@ namespace {
     // cell_3 (handle 3) has one event at t=3
 
     std::vector<deliverable_event> common_events = {
-        deliverable_event(2.f, handle[1], 2.f),
         deliverable_event(3.f, handle[0], 1.f),
         deliverable_event(3.f, handle[3], 4.f),
+        deliverable_event(2.f, handle[1], 2.f),
         deliverable_event(5.f, handle[2], 3.f)
     };
 }
@@ -51,7 +51,7 @@ TEST(multi_event_stream, init) {
     EXPECT_EQ(n_cell, m.n_streams());
 
     auto events = common_events;
-    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_index(e); }));
     m.init(events);
     EXPECT_FALSE(m.empty());
 
@@ -66,7 +66,7 @@ TEST(multi_event_stream, mark) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events;
-    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_index(e); }));
     m.init(events);
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
@@ -176,7 +176,7 @@ TEST(multi_event_stream, time_if_before) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events;
-    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_index(e); }));
     m.init(events);
 
     // Test times less than all event times (first event at t=2).

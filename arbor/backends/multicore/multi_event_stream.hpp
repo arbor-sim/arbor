@@ -62,9 +62,8 @@ public:
             throw arbor_internal_error("multicore/multi_event_stream: too many events for size type");
         }
 
-        // Sort by index (staged events should already be time-sorted).
-        arb_assert(util::is_sorted_by(staged, [](const Event& ev) { return event_time(ev); }));
-        util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
+        // Staged events should already be sorted by index.
+        arb_assert(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
 
         std::size_t n_ev = staged.size();
         util::assign_by(ev_data_, staged, [](const Event& ev) { return event_data(ev); });

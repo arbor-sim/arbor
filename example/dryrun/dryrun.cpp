@@ -29,7 +29,7 @@
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
-#include <sup/with_mpi.hpp>
+#include <arborenv/with_mpi.hpp>
 #endif
 
 using arb::cell_gid_type;
@@ -189,7 +189,7 @@ struct cell_stats {
 int main(int argc, char** argv) {
     try {
 #ifdef ARB_MPI_ENABLED
-        sup::with_mpi guard(argc, argv, false);
+        arbenv::with_mpi guard(argc, argv, false);
 #endif
         bool root = true;
         auto params = read_options(argc, argv);

@@ -79,9 +79,8 @@ namespace io {
     }
 
     // Read options from (optional) json file and command line arguments.
-    cl_options read_options(int argc, char** argv, bool allow_write) {
+    cl_options read_options(int argc, char** argv) {
         cl_options options;
-        std::string save_file = "";
 
         // Parse command line arguments.
         try {

@@ -1,6 +1,7 @@
 #include <cmath>
 #include <exception>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -18,16 +19,17 @@
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
 
-#include <sup/concurrency.hpp>
-#include <sup/gpu.hpp>
+#include <arborenv/concurrency.hpp>
+#include <arborenv/gpu_env.hpp>
+
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/path.hpp>
-#include <sup/spike_emitter.hpp>
 #include <sup/strsub.hpp>
+
 #ifdef ARB_MPI_ENABLED
-#include <sup/with_mpi.hpp>
 #include <mpi.h>
+#include <arborenv/with_mpi.hpp>
 #endif
 
 #include "io.hpp"
@@ -189,21 +191,21 @@ int main(int argc, char** argv) {
 
     try {
         arb::proc_allocation resources;
-        if (auto nt = sup::get_env_num_threads()) {
+        if (auto nt = arbenv::get_env_num_threads()) {
             resources.num_threads = nt;
         }
         else {
-            resources.num_threads = sup::thread_concurrency();
+            resources.num_threads = arbenv::thread_concurrency();
         }
 
 #ifdef ARB_MPI_ENABLED
-        sup::with_mpi guard(argc, argv, false);
-        resources.gpu_id = sup::find_private_gpu(MPI_COMM_WORLD);
+        arbenv::with_mpi guard(argc, argv, false);
+        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
         rank = arb::rank(context);
         root = rank==0;
 #else
-        resources.gpu_id = sup::default_gpu();
+        resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
 #endif
 
@@ -214,7 +216,12 @@ int main(int argc, char** argv) {
         meters.start(context);
 
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, root);
+        io::cl_options options = io::read_options(argc, argv);
+
+        std::fstream spike_out;
+        if (options.spike_file_output && root) {
+            spike_out = sup::open_or_throw("./spikes.gdf", std::ios_base::out, false);
+        }
 
         meters.checkpoint("setup", context);
 
@@ -255,30 +262,28 @@ int main(int argc, char** argv) {
 
         simulation sim(recipe, decomp, context);
 
-        // Initialize the spike exporting interface
-        std::fstream spike_out;
-        if (options.spike_file_output) {
-            using std::ios_base;
-
-            sup::path p = options.output_path;
-            p /= sup::strsub("%_%.%", options.file_name, rank, options.file_extension);
-
-            if (options.single_file_per_rank) {
-                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_local_spike_callback(sup::spike_emitter(spike_out));
-            }
-            else if (root) {
-                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_global_spike_callback(sup::spike_emitter(spike_out));
-            }
+        // Set up spike recording.
+        std::vector<arb::spike> recorded_spikes;
+        if (spike_out) {
+            sim.set_global_spike_callback([&recorded_spikes](auto& spikes) {
+                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+                });
         }
 
         meters.checkpoint("model-init", context);
 
-        // run simulation
+        // Run simulation.
         sim.run(options.tfinal, options.dt);
 
         meters.checkpoint("model-simulate", context);
+
+        // Output spikes if requested.
+        if (spike_out) {
+            spike_out << std::fixed << std::setprecision(4);
+            for (auto& s: recorded_spikes) {
+                spike_out << s.source.gid << ' ' << s.time << '\n';
+            }
+        }
 
         // output profile and diagnostic feedback
         std::cout << profile::profiler_summary() << "\n";
