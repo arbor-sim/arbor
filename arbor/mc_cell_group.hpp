@@ -61,8 +61,8 @@ private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
-    // Map from gid to supercell id
-    std::vector<cell_gid_type> sc_ids_;
+    // Map from gid to integration domain id
+    std::vector<cell_gid_type> intdom_ids_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;

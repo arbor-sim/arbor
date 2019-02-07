@@ -90,9 +90,9 @@ struct shared_state {
 
     iarray cv_to_intdom;        // Maps CV index to integration domain index.
     gjarray  gap_junctions;   // Stores gap_junction info.
-    array  time;              // Maps cell index to integration start time [ms].
-    array  time_to;           // Maps cell index to integration stop time [ms].
-    array  dt_cell;           // Maps cell index to (stop time) - (start time) [ms].
+    array  time;              // Maps intdom index to integration start time [ms].
+    array  time_to;           // Maps intdom index to integration stop time [ms].
+    array  dt_intdom;           // Maps  index to (stop time) - (start time) [ms].
     array  dt_cv;             // Maps CV index to dt [ms].
     array  voltage;           // Maps CV index to membrane voltage [mV].
     array  current_density;   // Maps CV index to current density [A/m²].
@@ -126,7 +126,7 @@ struct shared_state {
     // Set time_to to earliest of time+dt_step and tmax.
     void update_time_to(fvm_value_type dt_step, fvm_value_type tmax);
 
-    // Set the per-cell and per-compartment dt from time_to - time.
+    // Set the per-integration domain and per-compartment dt from time_to - time.
     void set_dt();
 
     // Update gap_junction state

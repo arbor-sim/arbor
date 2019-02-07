@@ -53,7 +53,7 @@ public:
     void initialize(
         const std::vector<cell_gid_type>& gids,
         const recipe& rec,
-        std::vector<cell_size_type>& supercell_ids,
+        std::vector<cell_size_type>& intdom_ids,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) override;
 
@@ -69,10 +69,10 @@ public:
         const recipe& rec,
         const fvm_discretization& D);
 
-    cell_size_type fvm_supercell(
+    cell_size_type fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
-        std::vector<cell_size_type>& sc_ids);
+        std::vector<cell_size_type>& intdom_ids);
 
     value_type time() const override { return tmin_; }
 
@@ -236,7 +236,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Integrate voltage by matrix solve.
 
         PE(advance_integrate_matrix_build);
-        matrix_.assemble(state_->dt_cell, state_->voltage, state_->current_density);
+        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density);
         PL();
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
@@ -369,9 +369,9 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     check_voltage_mV = global_props.membrane_voltage_limit_mV;
 
-    // Get supercell_id of every gid, the information is used by the discretization to generate cv_to_intdom
+    // Get intdom_id of every gid, the information is used by the discretization to generate cv_to_intdom
 
-    auto num_intdoms = fvm_supercell(rec, gids, intdom_ids);
+    auto num_intdoms = fvm_intdom(rec, gids, intdom_ids);
 
     // Discretize cells, build matrix.
 
@@ -542,12 +542,12 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
 }
 
 template <typename B>
-cell_size_type fvm_lowered_cell_impl<B>::fvm_supercell(
+cell_size_type fvm_lowered_cell_impl<B>::fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
-        std::vector<cell_size_type>& sc_ids) {
+        std::vector<cell_size_type>& intdom_ids) {
 
-    sc_ids.resize(gids.size());
+    intdom_ids.resize(gids.size());
 
     std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
     for (auto i: util::count_along(gids)) {
@@ -555,19 +555,19 @@ cell_size_type fvm_lowered_cell_impl<B>::fvm_supercell(
     }
 
     std::unordered_set<cell_gid_type> visited;
-    std::queue<cell_gid_type> scq;
-    cell_size_type scid = 0;
+    std::queue<cell_gid_type> intdomq;
+    cell_size_type intdom_id = 0;
 
     for (auto gid: gids) {
         if (visited.count(gid)) continue;
         visited.insert(gid);
 
-        scq.push(gid);
-        while (!scq.empty()) {
-            auto g = scq.front();
-            scq.pop();
+        intdomq.push(gid);
+        while (!intdomq.empty()) {
+            auto g = intdomq.front();
+            intdomq.pop();
 
-            sc_ids[gid_to_loc[g]] = scid;
+            intdom_ids[gid_to_loc[g]] = intdom_id;
 
             for (auto gj: rec.gap_junctions_on(g)) {
                 cell_gid_type peer =
@@ -582,14 +582,14 @@ cell_size_type fvm_lowered_cell_impl<B>::fvm_supercell(
 
                 if (!visited.count(peer)) {
                     visited.insert(peer);
-                    scq.push(peer);
+                    intdomq.push(peer);
                 }
             }
         }
-        scid++;
+        intdom_id++;
     }
 
-    return scid;
+    return intdom_id;
 }
 
 } // namespace arb

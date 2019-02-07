@@ -129,14 +129,14 @@ shared_state::shared_state(
     gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
     time(n_intdom, pad(alignment)),
     time_to(n_intdom, pad(alignment)),
-    dt_cell(n_intdom, pad(alignment)),
+    dt_intdom(n_intdom, pad(alignment)),
     dt_cv(n_cv, pad(alignment)),
     voltage(n_cv, pad(alignment)),
     current_density(n_cv, pad(alignment)),
     temperature_degC(NAN),
     deliverable_events(n_intdom)
 {
-    // For indices in the padded tail of cv_to_intdom, set index to last valid cell index.
+    // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
     if (n_cv>0) {
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
         std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
@@ -203,13 +203,13 @@ void shared_state::set_dt() {
         simd_value_type t_to(time_to.data()+j);
 
         auto dt = t_to-t;
-        dt.copy_to(dt_cell.data()+j);
+        dt.copy_to(dt_intdom.data()+j);
     }
 
     for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_index_type cell_idx(cv_to_intdom.data()+i);
+        simd_index_type intdom_idx(cv_to_intdom.data()+i);
 
-        simd_value_type dt(simd::indirect(dt_cell.data(), cell_idx));
+        simd_value_type dt(simd::indirect(dt_intdom.data(), intdom_idx));
         dt.copy_to(dt_cv.data()+i);
     }
 }
@@ -258,7 +258,7 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     out << "cv_to_intdom " << csv(s.cv_to_intdom) << "\n";
     out << "time       " << csv(s.time) << "\n";
     out << "time_to    " << csv(s.time_to) << "\n";
-    out << "dt_cell    " << csv(s.dt_cell) << "\n";
+    out << "dt_intdom    " << csv(s.dt_intdom) << "\n";
     out << "dt_cv      " << csv(s.dt_cv) << "\n";
     out << "voltage    " << csv(s.voltage) << "\n";
     out << "current    " << csv(s.current_density) << "\n";

@@ -125,17 +125,17 @@ void update_time_to_impl(
 }
 
 void set_dt_impl(
-    fvm_size_type ncell, fvm_size_type ncomp, fvm_value_type* dt_cell, fvm_value_type* dt_comp,
-    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_cell)
+    fvm_size_type nintdom, fvm_size_type ncomp, fvm_value_type* dt_intdom, fvm_value_type* dt_comp,
+    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_intdom)
 {
-    if (!ncell || !ncomp) return;
+    if (!nintdom || !ncomp) return;
 
     constexpr int block_dim = 128;
-    int nblock = block_count(ncell, block_dim);
-    kernel::vec_minus<<<nblock, block_dim>>>(ncell, dt_cell, time_to, time);
+    int nblock = block_count(nintdom, block_dim);
+    kernel::vec_minus<<<nblock, block_dim>>>(nintdom, dt_intdom, time_to, time);
 
     nblock = block_count(ncomp, block_dim);
-    kernel::gather<<<nblock, block_dim>>>(ncomp, dt_comp, dt_cell, cv_to_cell);
+    kernel::gather<<<nblock, block_dim>>>(ncomp, dt_comp, dt_intdom, cv_to_intdom);
 }
 
 void add_gj_current_impl(

@@ -36,8 +36,8 @@ void update_time_to_impl(
     fvm_value_type dt, fvm_value_type tmax);
 
 void set_dt_impl(
-    fvm_size_type ncell, fvm_size_type ncomp, fvm_value_type* dt_cell, fvm_value_type* dt_comp,
-    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_cell);
+    fvm_size_type nintdom, fvm_size_type ncomp, fvm_value_type* dt_intdom, fvm_value_type* dt_comp,
+    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_intdom);
 
 void add_gj_current_impl(
     fvm_size_type n_gj, const fvm_gap_junction* gj, const fvm_value_type* v, fvm_value_type* i);
@@ -110,24 +110,24 @@ void ion_state::zero_current() {
 // Shared state methods:
 
 shared_state::shared_state(
-    fvm_size_type n_cell,
-    const std::vector<fvm_index_type>& cv_to_cell_vec,
+    fvm_size_type n_intdom,
+    const std::vector<fvm_index_type>& cv_to_intdom_vec,
     const std::vector<fvm_gap_junction>& gj_vec,
     unsigned // alignment parameter ignored.
 ):
-    n_cell(n_cell),
-    n_cv(cv_to_cell_vec.size()),
+    n_intdom(n_intdom),
+    n_cv(cv_to_intdom_vec.size()),
     n_gj(gj_vec.size()),
-    cv_to_cell(make_const_view(cv_to_cell_vec)),
+    cv_to_intdom(make_const_view(cv_to_intdom_vec)),
     gap_junctions(make_const_view(gj_vec)),
-    time(n_cell),
-    time_to(n_cell),
-    dt_cell(n_cell),
+    time(n_intdom),
+    time_to(n_intdom),
+    dt_intdom(n_intdom),
     dt_cv(n_cv),
     voltage(n_cv),
     current_density(n_cv),
     temperature_degC(1),
-    deliverable_events(n_cell)
+    deliverable_events(n_intdom)
 {}
 
 void shared_state::add_ion(
@@ -173,11 +173,11 @@ void shared_state::ions_nernst_reversal_potential(fvm_value_type temperature_K) 
 }
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
-    update_time_to_impl(n_cell, time_to.data(), time.data(), dt_step, tmax);
+    update_time_to_impl(n_intdom, time_to.data(), time.data(), dt_step, tmax);
 }
 
 void shared_state::set_dt() {
-    set_dt_impl(n_cell, n_cv, dt_cell.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_cell.data());
+    set_dt_impl(n_intdom, n_cv, dt_intdom.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_intdom.data());
 }
 
 void shared_state::add_gj_current() {
@@ -185,7 +185,7 @@ void shared_state::add_gj_current() {
 }
 
 std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
-    return minmax_value_impl(n_cell, time.data());
+    return minmax_value_impl(n_intdom, time.data());
 }
 
 std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
@@ -198,10 +198,10 @@ void shared_state::take_samples(const sample_event_stream::state& s, array& samp
 
 // Debug interface
 std::ostream& operator<<(std::ostream& o, shared_state& s) {
-    o << " cv_to_cell " << s.cv_to_cell << "\n";
+    o << " cv_to_intdom " << s.cv_to_intdom << "\n";
     o << " time       " << s.time << "\n";
     o << " time_to    " << s.time_to << "\n";
-    o << " dt_cell    " << s.dt_cell << "\n";
+    o << " dt_intdom    " << s.dt_intdom << "\n";
     o << " dt_cv      " << s.dt_cv << "\n";
     o << " voltage    " << s.voltage << "\n";
     o << " current    " << s.current_density << "\n";
