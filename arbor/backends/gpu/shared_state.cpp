@@ -35,9 +35,14 @@ void update_time_to_impl(
     std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
     fvm_value_type dt, fvm_value_type tmax);
 
+void sync_time_to_impl(std::size_t n, fvm_value_type* time_to, const fvm_index_type* time_deps);
+
 void set_dt_impl(
     fvm_size_type ncell, fvm_size_type ncomp, fvm_value_type* dt_cell, fvm_value_type* dt_comp,
     const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_cell);
+
+void add_gj_current_impl(
+    fvm_size_type n_gj, const fvm_gap_junction* gj, const fvm_value_type* v, fvm_value_type* i);
 
 void take_samples_impl(
     const multi_event_stream_state<raw_probe_info>& s,
@@ -109,11 +114,16 @@ void ion_state::zero_current() {
 shared_state::shared_state(
     fvm_size_type n_cell,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
+    const std::vector<fvm_index_type>& time_dep_vec,
+    const std::vector<fvm_gap_junction>& gj_vec,
     unsigned // alignment parameter ignored.
 ):
     n_cell(n_cell),
     n_cv(cv_to_cell_vec.size()),
+    n_gj(gj_vec.size()),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
+    time_dep(make_const_view(time_dep_vec)),
+    gap_junctions(make_const_view(gj_vec)),
     time(n_cell),
     time_to(n_cell),
     dt_cell(n_cell),
@@ -170,8 +180,16 @@ void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
     update_time_to_impl(n_cell, time_to.data(), time.data(), dt_step, tmax);
 }
 
+void shared_state::sync_time_to() {
+    sync_time_to_impl(n_cell, time_to.data(), time_dep.data());
+}
+
 void shared_state::set_dt() {
     set_dt_impl(n_cell, n_cv, dt_cell.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_cell.data());
+}
+
+void shared_state::add_gj_current() {
+    add_gj_current_impl(n_gj, gap_junctions.data(), voltage.data(), current_density.data());
 }
 
 std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {

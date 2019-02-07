@@ -6,14 +6,14 @@
 
 #include <arbor/communication/mpi_error.hpp>
 
-namespace sup {
+namespace arbenv {
 
 struct with_mpi {
     with_mpi(int& argc, char**& argv, bool fatal_errors = true) {
         init(&argc, &argv, fatal_errors);
     }
 
-    with_mpi(bool fatal_errors = true) {
+    explicit with_mpi(bool fatal_errors = true) {
         init(nullptr, nullptr, fatal_errors);
     }
 
@@ -48,4 +48,4 @@ private:
     }
 };
 
-} // namespace sup
+} // namespace arbenv

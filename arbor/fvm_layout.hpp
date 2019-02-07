@@ -5,6 +5,7 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/recipe.hpp>
 
 #include "fvm_compartment.hpp"
 #include "util/span.hpp"

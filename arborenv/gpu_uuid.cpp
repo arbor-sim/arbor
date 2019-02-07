@@ -9,20 +9,25 @@
 #include <stdexcept>
 #include <vector>
 
-#include <sup/scope_exit.hpp>
+#include <cuda_runtime.h>
 
+#include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
 
-#include <cuda_runtime.h>
 
 // CUDA 10 allows GPU uuid to be queried via cudaGetDeviceProperties.
 // Previous versions require the CUDA NVML library to get uuid.
-#if CUDART_VERSION < 10000
+//
+// ARBENV_USE_NVML will be defined at configuration time if using
+// CUDA version 9.
+
+#ifdef ARBENV_USE_NVML
     #include <nvml.h>
-    #define ARB_USE_NVML
 #endif
 
-namespace sup {
+using arb::util::on_scope_exit;
+
+namespace arbenv {
 
 // Test GPU uids for equality
 bool operator==(const uuid& lhs, const uuid& rhs) {
@@ -65,7 +70,7 @@ std::runtime_error make_runtime_error(cudaError_t error_code) {
         + cudaGetErrorName(error_code) + ": " + cudaGetErrorString(error_code));
 }
 
-#ifndef ARB_USE_NVML
+#ifndef ARBENV_USE_NVML
 
 // For CUDA 10 and later the uuid of all available GPUs is straightforward
 // to obtain by querying cudaGetDeviceProperties for each visible device.
@@ -237,7 +242,7 @@ std::vector<uuid> get_gpu_uuids() {
 
     return uuids;
 }
-#endif
+#endif // ndef ARBENV_USE_NVML
 
 // Compare two sets of uuids
 //   1: both sets are identical
@@ -308,4 +313,4 @@ gpu_rank assign_gpu(const std::vector<uuid>& uids,
     return pos_in_group<ngpu_in_group? gpu_rank(pos_in_group): gpu_rank(-1);
 }
 
-} // namespace sup
+} // namespace arbenv

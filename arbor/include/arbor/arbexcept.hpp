@@ -45,6 +45,18 @@ struct bad_probe_id: arbor_exception {
     cell_member_type probe_id;
 };
 
+struct gj_kind_mismatch: arbor_exception {
+    gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1);
+    cell_gid_type gid_0, gid_1;
+};
+
+// Domain decomposition errors:
+
+struct gj_unsupported_domain_decomposition: arbor_exception {
+    gj_unsupported_domain_decomposition(cell_gid_type gid_0, cell_gid_type gid_1);
+    cell_gid_type gid_0, gid_1;
+};
+
 // Simulation errors:
 
 struct bad_event_time: arbor_exception {

@@ -6,7 +6,8 @@
 
 // Convenience class for RAII control of resources.
 
-namespace sup {
+namespace arb {
+namespace util {
 
 // `scope_exit` guard object will call provided functional object
 // on destruction. The provided functional object must be nothrow
@@ -73,4 +74,5 @@ auto on_scope_exit(std::function<R ()> f) {
     return on_scope_exit(impl::wrap_std_function<R>(std::move(f)));
 }
 
-} // namespace sup
+} // namespace util
+} // namespace arb

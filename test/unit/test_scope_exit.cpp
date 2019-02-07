@@ -2,9 +2,9 @@
 
 #include "../gtest.h"
 
-#include <sup/scope_exit.hpp>
+#include <arbor/util/scope_exit.hpp>
 
-using sup::on_scope_exit;
+using arb::util::on_scope_exit;
 
 TEST(scope_exit, basic) {
     bool a = false;

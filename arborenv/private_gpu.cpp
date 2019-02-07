@@ -1,24 +1,16 @@
-#ifndef ARB_HAVE_GPU
+#ifdef ARB_HAVE_MPI
 
-#include <sup/gpu.hpp>
-#include <mpi.h>
-
-namespace sup {
-// return -1 -> "no gpu" when compiled without GPU support.
-template <>
-int find_private_gpu(MPI_Comm comm) {
-    return -1;
-}
-}
-
-#else
-
+#include <stdexcept>
 #include <numeric>
+
 #include <mpi.h>
-#include <sup/gpu.hpp>
+
+#include <arborenv/gpu_env.hpp>
 #include "gpu_uuid.hpp"
 
-namespace sup {
+namespace arbenv {
+
+#ifdef ARB_HAVE_GPU
 
 template <>
 int find_private_gpu(MPI_Comm comm) {
@@ -99,7 +91,18 @@ int find_private_gpu(MPI_Comm comm) {
     return gpu.id;
 }
 
-} // namespace sup
+#else
 
-#endif
+// return -1 -> "no gpu" when compiled without GPU support.
+template <>
+int find_private_gpu(MPI_Comm comm) {
+    return -1;
+}
+
+#endif // def ARB_HAVE_GPU
+
+} // namespace arbenv
+
+#endif // def ARB_HAVE_MPI
+
 

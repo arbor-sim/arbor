@@ -97,3 +97,23 @@ TEST(dry_run_context, gather_spikes)
     EXPECT_EQ(part[3], spikes.size()*3);
     EXPECT_EQ(part[4], spikes.size()*4);
 }
+
+TEST(dry_run_context, gather_gids)
+{
+    distributed_context_handle ctx = arb::make_dry_run_context(4, 4);
+    using gvec = std::vector<arb::cell_gid_type>;
+
+    gvec gids = {0, 1, 2, 3};
+    gvec gathered_gids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+
+    auto s = ctx->gather_gids(gids);
+    auto& part = s.partition();
+
+    EXPECT_EQ(s.values(), gathered_gids);
+    EXPECT_EQ(part.size(), 5u);
+    EXPECT_EQ(part[0], 0u);
+    EXPECT_EQ(part[1], gids.size());
+    EXPECT_EQ(part[2], gids.size()*2);
+    EXPECT_EQ(part[3], gids.size()*3);
+    EXPECT_EQ(part[4], gids.size()*4);
+}

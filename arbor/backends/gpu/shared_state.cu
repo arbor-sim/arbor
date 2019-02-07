@@ -5,6 +5,7 @@
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 
+#include "cuda_atomic.hpp"
 #include "cuda_common.hpp"
 
 namespace arb {
@@ -33,12 +34,41 @@ void init_concentration_impl(unsigned n, T* Xi, T* Xo, const T* weight_Xi, const
     }
 }
 
+template <typename T, typename I>
+__global__ void sync_time_to_impl(unsigned n, T* time_to, const I* time_deps) {
+    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
+    if (i<n) {
+        if (time_deps[i] > 0) {
+            auto min_t = time_to[i];
+            for (int j = 1; j < time_deps[i]; j++) {
+                if (time_to[i+j] < min_t) {
+                    min_t = time_to[i+j];
+                }
+            }
+            for (int j = 0; j < time_deps[i]; j++) {
+                time_to[i+j] = min_t;
+            }
+        }
+    }
+}
+
 template <typename T>
 __global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt, T tmax) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         auto t = time[i]+dt;
         time_to[i] = t<tmax? t: tmax;
+    }
+}
+
+template <typename T, typename I>
+__global__ void add_gj_current_impl(unsigned n, const T* gj_info, const I* voltage, I* current_density) {
+    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
+    if (i<n) {
+        auto gj = gj_info[i];
+        auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
+
+        cuda_atomic_sub(current_density + gj.loc.first, curr);
     }
 }
 
@@ -101,6 +131,15 @@ void init_concentration_impl(
     kernel::init_concentration_impl<<<nblock, block_dim>>>(n, Xi, Xo, weight_Xi, weight_Xo, c_int, c_ext);
 }
 
+void sync_time_to_impl(std::size_t n, fvm_value_type* time_to, const fvm_index_type* time_deps)
+{
+    if (!n) return;
+
+    constexpr int block_dim = 128;
+    int nblock = block_count(n, block_dim);
+    kernel::sync_time_to_impl<<<nblock, block_dim>>>(n, time_to, time_deps);
+}
+
 void update_time_to_impl(
     std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
     fvm_value_type dt, fvm_value_type tmax)
@@ -124,6 +163,16 @@ void set_dt_impl(
 
     nblock = block_count(ncomp, block_dim);
     kernel::gather<<<nblock, block_dim>>>(ncomp, dt_comp, dt_cell, cv_to_cell);
+}
+
+void add_gj_current_impl(
+    fvm_size_type n_gj, const fvm_gap_junction* gj_info, const fvm_value_type* voltage, fvm_value_type* current_density)
+{
+    if (!n_gj) return;
+
+    constexpr int block_dim = 128;
+    int nblock = block_count(n_gj, block_dim);
+    kernel::add_gj_current_impl<<<nblock, block_dim>>>(n_gj, gj_info, voltage, current_density);
 }
 
 void take_samples_impl(
