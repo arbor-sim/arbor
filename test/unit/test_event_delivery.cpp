@@ -69,7 +69,31 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
 
     pse_vector cell_events;
     for (unsigned i = 0; i<n; ++i) {
-        cell_events.push_back({{i, 0u}, i*ev_delta_t, 1.f});
+        switch(i) {
+            case 0:
+                cell_events.push_back({{i, 0u}, 0.1, 1.f});
+                break;
+            case 1:
+                cell_events.push_back({{i, 0u}, 0.1, 1.f});
+                cell_events.push_back({{i, 0u}, 0.2, 1.f});
+                break;
+            case 2:
+                cell_events.push_back({{i, 0u}, 0.1, 1.f});
+                cell_events.push_back({{i, 0u}, 0.2, 1.f});
+                break;
+            case 3:
+                cell_events.push_back({{i, 0u}, 0.05, 1.f});
+                cell_events.push_back({{i, 0u}, 0.15, 1.f});
+                cell_events.push_back({{i, 0u}, 0.17, 1.f});
+                cell_events.push_back({{i, 0u}, 0.3,  1.f});
+                break;
+            case 4:
+                cell_events.push_back({{i, 0u}, 0.01, 1.f});
+                cell_events.push_back({{i, 0u}, 0.3, 1.f});
+                cell_events.push_back({{i, 0u}, 0.4, 1.f});
+                break;
+            default: break;
+        }
     }
 
     sim.inject_events(cell_events);

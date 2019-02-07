@@ -28,7 +28,7 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.i
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
 
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
-    lowered_(std::move(lowered))
+    gids_(gids), lowered_(std::move(lowered))
 {
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
@@ -90,57 +90,48 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // skip event binning if empty lanes are passed
     if (event_lanes.size()) {
 
-        std::vector<cell_size_type> sorted_intdom(sc_ids_.size());
+        std::vector<cell_size_type> idx_sorted_by_intdom(sc_ids_.size());
         cell_size_type n = 0;
-        std::generate(sorted_intdom.begin(), sorted_intdom.end(), [&]{ return n++; });
-        std::sort(sorted_intdom.begin(), sorted_intdom.end(),
+        std::generate(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), [&]{ return n++; });
+        std::sort(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(),
             [&](cell_size_type a, cell_size_type b) {
             return sc_ids_[a] < sc_ids_[b];
         });
 
-        for(auto j: sorted_intdom) {
-            printf("%d\n", j);
-        }
-        printf("\n");
+        cell_size_type prev_intdom = -1;
+        for (auto i: util::count_along(gids_)) {
+            unsigned count_staged = 0;
 
-        /*for (auto lid: util::count_along(gids_)) {
-            auto& lane = event_lanes[perm_gids_[lid]];
+            auto lid = idx_sorted_by_intdom[i];
+            auto& lane = event_lanes[lid];
+            auto curr_intdom = sc_ids_[lid];
+
             for (auto e: lane) {
                 if (e.time>=ep.tfinal) break;
                 e.time = binners_[lid].bin(e.time, tstart);
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
+                count_staged++;
             }
-        }*/
 
-       /* cell_size_type cg_id=0;
+            ev_end += count_staged;
 
-        auto sc_part = util::partition_view(sc_bounds_);
-        for (auto sci: count_along(sc_part)) {
-
-            for(auto dd_id : util::subrange_view(perm_gids_, sc_part[sci])) {
-                unsigned count_staged = 0;
-                auto& lane = event_lanes[dd_id];
-                for (auto e: lane) {
-                    if (e.time>=ep.tfinal) break;
-                    e.time = binners_[cg_id].bin(e.time, tstart);
-                    auto h = target_handles_[target_handle_divisions_[cg_id]+e.target.index];
-                    auto ev = deliverable_event(e.time, h, e.weight);
-                    staged_events_.push_back(ev);
-                    count_staged++;
-                }
-                cg_id++;
-
-                ev_end += count_staged;
+            if (curr_intdom != prev_intdom) {
+                ev_begin = ev_end - count_staged;
+                prev_intdom = curr_intdom;
+            }
+            else {
                 std::inplace_merge(staged_events_.begin() + ev_begin,
                                    staged_events_.begin() + ev_mid,
                                    staged_events_.begin() + ev_end);
-
-                ev_mid += count_staged;
             }
-            ev_begin = ev_end;
-        }*/
+
+            ev_mid = ev_end;
+        }
+    }
+    for(auto s: staged_events_) {
+        printf("%d\n", s.handle.intdom_index);
     }
     PL();
 
