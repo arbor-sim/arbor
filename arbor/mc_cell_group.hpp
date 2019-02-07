@@ -71,7 +71,7 @@ private:
     // perm_gids_[i] is the index of gids_[i] in the original gids vector passed to the ctor
     std::vector<cell_size_type> perm_gids_;
 
-    std::vector<cell_gid_type> sc_bounds_;
+    std::vector<cell_size_type> sc_bounds_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
@@ -90,6 +90,8 @@ private:
 
     // List of events to deliver
     std::vector<deliverable_event> staged_events_;
+
+    std::vector<cell_size_type> staged_events_bounds_;
 
     // Pending samples to be taken.
     event_queue<sample_event> sample_events_;

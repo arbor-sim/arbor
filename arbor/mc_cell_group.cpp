@@ -24,6 +24,9 @@
 
 namespace arb {
 
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.cell_index),(b.mech_id,b.mech_index,b.cell_index))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
+
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
     lowered_(std::move(lowered))
 {
@@ -105,15 +108,6 @@ void mc_cell_group::permute_gids(const recipe& rec, std::vector<cell_gid_type> g
     for (auto gid: gids_) {
         perm_gids_.push_back(gid_to_loc[gid]);
     }
-
-    auto sc_part = util::partition_view(sc_bounds_);
-    for (auto i: count_along(sc_part)) {
-        printf("%d, %d:\t", sc_part[i].first, sc_part[i].second);
-        for(auto j : util::subrange_view(perm_gids_, sc_part[i])) {
-            printf("%d ", j);
-        }
-        printf("\n");
-    }
 }
 
 void mc_cell_group::reset() {
@@ -141,12 +135,19 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     PE(advance_eventsetup);
     staged_events_.clear();
+    staged_events_bounds_.clear();
+    staged_events_bounds_.push_back(0);
+
+    cell_size_type ev_begin = 0, ev_mid = 0, ev_end = 0;
     // skip event binning if empty lanes are passed
     if (event_lanes.size()) {
-        auto sc_part = util::partition_view(sc_bounds_);
         cell_size_type cg_id=0;
+
+        auto sc_part = util::partition_view(sc_bounds_);
         for (auto sci: count_along(sc_part)) {
+
             for(auto dd_id : util::subrange_view(perm_gids_, sc_part[sci])) {
+                unsigned count_staged = 0;
                 auto& lane = event_lanes[dd_id];
                 for (auto e: lane) {
                     if (e.time>=ep.tfinal) break;
@@ -154,12 +155,23 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                     auto h = target_handles_[target_handle_divisions_[cg_id]+e.target.index];
                     auto ev = deliverable_event(e.time, h, e.weight);
                     staged_events_.push_back(ev);
+                    count_staged++;
                 }
                 cg_id++;
+
+                ev_end += count_staged;
+                std::inplace_merge(staged_events_.begin() + ev_begin,
+                                   staged_events_.begin() + ev_mid,
+                                   staged_events_.begin() + ev_end);
+
+                ev_mid += count_staged;
             }
+            ev_begin = ev_end;
+            staged_events_bounds_.push_back(ev_end);
         }
     }
     PL();
+
 
     // Create sample events and delivery information.
     //
