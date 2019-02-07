@@ -51,7 +51,7 @@ struct backend {
         const execution_context& context)
     {
         return threshold_watcher(
-            state.cv_to_cell.data(),
+            state.cv_to_intdom.data(),
             state.time.data(),
             state.time_to.data(),
             state.voltage.data(),

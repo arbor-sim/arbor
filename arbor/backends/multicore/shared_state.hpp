@@ -84,11 +84,11 @@ struct shared_state {
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
 
-    fvm_size_type n_cell = 0; // Number of distinct cells (integration domains).
+    fvm_size_type n_intdom = 0; // Number of integration domains.
     fvm_size_type n_cv = 0;   // Total number of CVs.
     fvm_size_type n_gj = 0;   // Total number of GJs.
 
-    iarray cv_to_cell;        // Maps CV index to cell index.
+    iarray cv_to_intdom;        // Maps CV index to integration domain index.
     gjarray  gap_junctions;   // Stores gap_junction info.
     array  time;              // Maps cell index to integration start time [ms].
     array  time_to;           // Maps cell index to integration stop time [ms].
@@ -105,8 +105,8 @@ struct shared_state {
     shared_state() = default;
 
     shared_state(
-        fvm_size_type n_cell,
-        const std::vector<fvm_index_type>& cv_to_cell_vec,
+        fvm_size_type n_intdom,
+        const std::vector<fvm_index_type>& cv_to_intdom_vec,
         const std::vector<fvm_gap_junction>& gj_vec,
         unsigned align
     );

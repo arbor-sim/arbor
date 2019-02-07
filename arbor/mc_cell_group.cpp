@@ -130,9 +130,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             ev_mid = ev_end;
         }
     }
-    for(auto s: staged_events_) {
-        printf("%d\n", s.handle.intdom_index);
-    }
     PL();
 
 

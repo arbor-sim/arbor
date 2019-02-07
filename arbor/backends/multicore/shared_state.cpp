@@ -115,31 +115,31 @@ void ion_state::zero_current() {
 // shared_state methods:
 
 shared_state::shared_state(
-    fvm_size_type n_cell,
-    const std::vector<fvm_index_type>& cv_to_cell_vec,
+    fvm_size_type n_intdom,
+    const std::vector<fvm_index_type>& cv_to_intdom_vec,
     const std::vector<fvm_gap_junction>& gj_vec,
     unsigned align
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
-    n_cell(n_cell),
-    n_cv(cv_to_cell_vec.size()),
+    n_intdom(n_intdom),
+    n_cv(cv_to_intdom_vec.size()),
     n_gj(gj_vec.size()),
-    cv_to_cell(math::round_up(n_cv, alignment), pad(alignment)),
+    cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
     gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
-    time(n_cell, pad(alignment)),
-    time_to(n_cell, pad(alignment)),
-    dt_cell(n_cell, pad(alignment)),
+    time(n_intdom, pad(alignment)),
+    time_to(n_intdom, pad(alignment)),
+    dt_cell(n_intdom, pad(alignment)),
     dt_cv(n_cv, pad(alignment)),
     voltage(n_cv, pad(alignment)),
     current_density(n_cv, pad(alignment)),
     temperature_degC(NAN),
-    deliverable_events(n_cell)
+    deliverable_events(n_intdom)
 {
-    // For indices in the padded tail of cv_to_cell, set index to last valid cell index.
+    // For indices in the padded tail of cv_to_intdom, set index to last valid cell index.
     if (n_cv>0) {
-        std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
-        std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
+        std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
+        std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
     }
     if (n_gj>0) {
         std::copy(gj_vec.begin(), gj_vec.end(), gap_junctions.begin());
@@ -190,7 +190,7 @@ void shared_state::ions_nernst_reversal_potential(fvm_value_type temperature_K) 
 }
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
-    for (fvm_size_type i = 0; i<n_cell; i+=simd_width) {
+    for (fvm_size_type i = 0; i<n_intdom; i+=simd_width) {
         simd_value_type t(time.data()+i);
         t = min(t+dt_step, simd_value_type(tmax));
         t.copy_to(time_to.data()+i);
@@ -198,7 +198,7 @@ void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
 }
 
 void shared_state::set_dt() {
-    for (fvm_size_type j = 0; j<n_cell; j+=simd_width) {
+    for (fvm_size_type j = 0; j<n_intdom; j+=simd_width) {
         simd_value_type t(time.data()+j);
         simd_value_type t_to(time_to.data()+j);
 
@@ -207,7 +207,7 @@ void shared_state::set_dt() {
     }
 
     for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_index_type cell_idx(cv_to_cell.data()+i);
+        simd_index_type cell_idx(cv_to_intdom.data()+i);
 
         simd_value_type dt(simd::indirect(dt_cell.data(), cell_idx));
         dt.copy_to(dt_cv.data()+i);
@@ -253,9 +253,9 @@ void shared_state::take_samples(
 std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using io::csv;
 
-    out << "n_cell     " << s.n_cell << "\n";
+    out << "n_intdom     " << s.n_intdom << "\n";
     out << "n_cv       " << s.n_cv << "\n";
-    out << "cv_to_cell " << csv(s.cv_to_cell) << "\n";
+    out << "cv_to_intdom " << csv(s.cv_to_intdom) << "\n";
     out << "time       " << csv(s.time) << "\n";
     out << "time_to    " << csv(s.time_to) << "\n";
     out << "dt_cell    " << csv(s.dt_cell) << "\n";

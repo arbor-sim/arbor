@@ -395,7 +395,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, gj_vector, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(ncell, D.cv_to_intdom, gj_vector, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 
@@ -432,7 +432,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
                 // (builtin stimulus, for example, has no targets)
                 if (!config.target.empty()) {
-                    target_handles[config.target[i]] = target_handle(mech_id, i, D.cv_to_cell[cv]);
+                    target_handles[config.target[i]] = target_handle(mech_id, i, D.cv_to_intdom[cv]);
                 }
             }
         }
