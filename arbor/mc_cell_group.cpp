@@ -24,13 +24,12 @@
 
 namespace arb {
 
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.cell_index),(b.mech_id,b.mech_index,b.cell_index))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.intdom_index),(b.mech_id,b.mech_index,b.intdom_index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
 
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
     lowered_(std::move(lowered))
 {
-    permute_gids(rec, gids);
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
@@ -50,7 +49,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
     target_handles_.reserve(n_targets);
 
     // Construct cell implementation, retrieving handles and maps. 
-    lowered_->initialize(gids_, rec, target_handles_, probe_map_);
+    lowered_->initialize(gids_, rec, sc_ids_, target_handles_, probe_map_);
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
@@ -59,55 +58,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
         }
     }
     spike_sources_.shrink_to_fit();
-}
-
-// Fills gids_ and deps_: gids_ are sorted such that members of the same supercell are consecutive
-void mc_cell_group::permute_gids(const recipe& rec, std::vector<cell_gid_type> gids) {
-
-    std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
-    for (auto i: util::count_along(gids)) {
-        gid_to_loc[gids[i]] = i;
-    }
-
-    std::unordered_set<cell_gid_type> visited;
-    std::queue<cell_gid_type> scq;
-    cell_size_type count = 0;
-    sc_bounds_.push_back(0);
-    for (auto gid: gids) {
-        if (visited.count(gid)) continue;
-        visited.insert(gid);
-
-        scq.push(gid);
-        while (!scq.empty()) {
-            auto g = scq.front();
-            scq.pop();
-
-            gids_.push_back(g);
-            ++count;
-
-            for (auto gj: rec.gap_junctions_on(g)) {
-                cell_gid_type peer =
-                        gj.local.gid==g? gj.peer.gid:
-                        gj.peer.gid==g?  gj.local.gid:
-                        throw bad_cell_description(cell_kind::cable1d_neuron, g);
-
-                if (!gid_to_loc.count(peer)) {
-                    throw gj_unsupported_domain_decomposition(g, peer);
-                }
-
-                if (!visited.count(peer)) {
-                    visited.insert(peer);
-                    scq.push(peer);
-                }
-            }
-        }
-        sc_bounds_.push_back(count);
-    }
-
-    perm_gids_.reserve(gids_.size());
-    for (auto gid: gids_) {
-        perm_gids_.push_back(gid_to_loc[gid]);
-    }
 }
 
 void mc_cell_group::reset() {
@@ -135,13 +85,36 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     PE(advance_eventsetup);
     staged_events_.clear();
-    staged_events_bounds_.clear();
-    staged_events_bounds_.push_back(0);
 
     cell_size_type ev_begin = 0, ev_mid = 0, ev_end = 0;
     // skip event binning if empty lanes are passed
     if (event_lanes.size()) {
-        cell_size_type cg_id=0;
+
+        std::vector<cell_size_type> sorted_intdom(sc_ids_.size());
+        cell_size_type n = 0;
+        std::generate(sorted_intdom.begin(), sorted_intdom.end(), [&]{ return n++; });
+        std::sort(sorted_intdom.begin(), sorted_intdom.end(),
+            [&](cell_size_type a, cell_size_type b) {
+            return sc_ids_[a] < sc_ids_[b];
+        });
+
+        for(auto j: sorted_intdom) {
+            printf("%d\n", j);
+        }
+        printf("\n");
+
+        /*for (auto lid: util::count_along(gids_)) {
+            auto& lane = event_lanes[perm_gids_[lid]];
+            for (auto e: lane) {
+                if (e.time>=ep.tfinal) break;
+                e.time = binners_[lid].bin(e.time, tstart);
+                auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
+                auto ev = deliverable_event(e.time, h, e.weight);
+                staged_events_.push_back(ev);
+            }
+        }*/
+
+       /* cell_size_type cg_id=0;
 
         auto sc_part = util::partition_view(sc_bounds_);
         for (auto sci: count_along(sc_part)) {
@@ -167,8 +140,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                 ev_mid += count_staged;
             }
             ev_begin = ev_end;
-            staged_events_bounds_.push_back(ev_end);
-        }
+        }*/
     }
     PL();
 

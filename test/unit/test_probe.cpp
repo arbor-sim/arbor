@@ -37,10 +37,11 @@ TEST(probe, fvm_lowered_cell) {
     rec.add_probe(0, 30, cell_probe_address{loc2, cell_probe_address::membrane_current});
 
     std::vector<target_handle> targets;
+    std::vector<cell_size_type> sc_ids;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell lcell(context);
-    lcell.initialize({0}, rec, targets, probe_map);
+    lcell.initialize({0}, rec, sc_ids, targets, probe_map);
 
     EXPECT_EQ(3u, rec.num_probes(0));
     EXPECT_EQ(3u, probe_map.size());

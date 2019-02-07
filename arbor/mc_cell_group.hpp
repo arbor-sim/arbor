@@ -57,21 +57,12 @@ public:
 
     void remove_all_samplers() override;
 
-    void permute_gids(const recipe& rec, std::vector<cell_gid_type>);
-
-    std::vector<cell_gid_type> get_gids() {
-        return gids_;
-    }
-
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
-    // Permutation of the gids of the cells in the group.
-    // perm_gids_[i] is the index of gids_[i] in the original gids vector passed to the ctor
-    std::vector<cell_size_type> perm_gids_;
-
-    std::vector<cell_size_type> sc_bounds_;
+    // Map from gid to supercell id
+    std::vector<cell_gid_type> sc_ids_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
@@ -90,8 +81,6 @@ private:
 
     // List of events to deliver
     std::vector<deliverable_event> staged_events_;
-
-    std::vector<cell_size_type> staged_events_bounds_;
 
     // Pending samples to be taken.
     event_queue<sample_event> sample_events_;

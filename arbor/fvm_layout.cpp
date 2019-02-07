@@ -110,7 +110,11 @@ namespace {
 //       = 1/R · hV₁V₂/(h₂²V₁+h₁²V₂)
 //
 
-fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
+fvm_discretization fvm_discretize(
+        const std::vector<mc_cell>& cells,
+        const std::vector<cell_size_type>& intdom_ids,
+        const cell_size_type num_intdoms) {
+
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
@@ -125,6 +129,7 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
         transform_view(cells, [](const mc_cell& c) { return c.num_compartments(); }));
 
     D.ncell = cells.size();
+    D.nintdom = num_intdoms;
     D.ncomp = cell_comp_part.bounds().second;
 
     D.face_conductance.assign(D.ncomp, 0.);
@@ -135,6 +140,9 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
     for (auto i: make_span(0, D.ncell)) {
         util::fill(subrange_view(D.cv_to_cell, cell_comp_part[i]), static_cast<index_type>(i));
     }
+    D.cv_to_intdom.resize(D.ncomp);
+    std::transform(D.cv_to_cell.begin(), D.cv_to_cell.end(), D.cv_to_intdom.begin(),
+        [&intdom_ids](index_type i){ return intdom_ids[i]; });
 
     std::vector<size_type> seg_comp_bounds;
     for (auto i: make_span(0, D.ncell)) {

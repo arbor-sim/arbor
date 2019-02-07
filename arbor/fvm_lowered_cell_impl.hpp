@@ -10,9 +10,11 @@
 #include <cmath>
 #include <iterator>
 #include <memory>
+#include <queue>
 #include <stdexcept>
 #include <utility>
 #include <vector>
+#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -51,6 +53,7 @@ public:
     void initialize(
         const std::vector<cell_gid_type>& gids,
         const recipe& rec,
+        std::vector<cell_size_type>& supercell_ids,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) override;
 
@@ -65,6 +68,11 @@ public:
         const std::vector<cell_gid_type>& gids,
         const recipe& rec,
         const fvm_discretization& D);
+
+    cell_size_type fvm_supercell(
+        const recipe& rec,
+        const std::vector<cell_gid_type>& gids,
+        std::vector<cell_size_type>& sc_ids);
 
     value_type time() const override { return tmin_; }
 
@@ -311,6 +319,7 @@ template <typename B>
 void fvm_lowered_cell_impl<B>::initialize(
     const std::vector<cell_gid_type>& gids,
     const recipe& rec,
+    std::vector<cell_size_type>& intdom_ids,
     std::vector<target_handle>& target_handles,
     probe_association_map<probe_handle>& probe_map)
 {
@@ -360,9 +369,13 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     check_voltage_mV = global_props.membrane_voltage_limit_mV;
 
+    // Get supercell_id of every gid, the information is used by the discretization to generate cv_to_intdom
+
+    auto num_intdoms = fvm_supercell(rec, gids, intdom_ids);
+
     // Discretize cells, build matrix.
 
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, intdom_ids, num_intdoms);
     arb_assert(D.ncell == ncell);
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
     sample_events_ = sample_event_stream(ncell);
@@ -526,6 +539,57 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
     }
 
     return v;
+}
+
+template <typename B>
+cell_size_type fvm_lowered_cell_impl<B>::fvm_supercell(
+        const recipe& rec,
+        const std::vector<cell_gid_type>& gids,
+        std::vector<cell_size_type>& sc_ids) {
+
+    sc_ids.resize(gids.size());
+
+    std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
+    for (auto i: util::count_along(gids)) {
+        gid_to_loc[gids[i]] = i;
+    }
+
+    std::unordered_set<cell_gid_type> visited;
+    std::queue<cell_gid_type> scq;
+    cell_size_type scid = 0;
+
+    for (auto gid: gids) {
+        if (visited.count(gid)) continue;
+        visited.insert(gid);
+
+        scq.push(gid);
+        while (!scq.empty()) {
+            auto g = scq.front();
+            scq.pop();
+
+            sc_ids[gid_to_loc[g]] = scid;
+
+            for (auto gj: rec.gap_junctions_on(g)) {
+                cell_gid_type peer =
+                        gj.local.gid==g? gj.peer.gid:
+                        gj.peer.gid==g?  gj.local.gid:
+                        throw bad_cell_description(cell_kind::cable1d_neuron, g);
+
+                if (!gid_to_loc.count(peer)) {
+                    // actually an error in the domain decomposition...
+                    throw bad_cell_description(cell_kind::cable1d_neuron, g);
+                }
+
+                if (!visited.count(peer)) {
+                    visited.insert(peer);
+                    scq.push(peer);
+                }
+            }
+        }
+        scid++;
+    }
+
+    return scid;
 }
 
 } // namespace arb
