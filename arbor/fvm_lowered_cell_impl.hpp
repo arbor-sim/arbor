@@ -53,7 +53,7 @@ public:
     void initialize(
         const std::vector<cell_gid_type>& gids,
         const recipe& rec,
-        std::vector<cell_size_type>& intdom_ids,
+        std::vector<fvm_index_type>& intdom_ids,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) override;
 
@@ -69,10 +69,10 @@ public:
         const recipe& rec,
         const fvm_discretization& D);
 
-    cell_size_type fvm_intdom(
+    fvm_index_type fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
-        std::vector<cell_size_type>& intdom_ids);
+        std::vector<fvm_index_type>& intdom_ids);
 
     value_type time() const override { return tmin_; }
 
@@ -319,7 +319,7 @@ template <typename B>
 void fvm_lowered_cell_impl<B>::initialize(
     const std::vector<cell_gid_type>& gids,
     const recipe& rec,
-    std::vector<cell_size_type>& intdom_ids,
+    std::vector<fvm_index_type>& intdom_ids,
     std::vector<target_handle>& target_handles,
     probe_association_map<probe_handle>& probe_map)
 {
@@ -377,7 +377,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     fvm_discretization D = fvm_discretize(cells, intdom_ids, num_intdoms);
     arb_assert(D.ncell == ncell);
-    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
+    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, intdom_ids);
     sample_events_ = sample_event_stream(ncell);
 
     // Discretize mechanism data.
@@ -542,10 +542,10 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
 }
 
 template <typename B>
-cell_size_type fvm_lowered_cell_impl<B>::fvm_intdom(
+fvm_index_type fvm_lowered_cell_impl<B>::fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
-        std::vector<cell_size_type>& intdom_ids) {
+        std::vector<fvm_index_type>& intdom_ids) {
 
     intdom_ids.resize(gids.size());
 

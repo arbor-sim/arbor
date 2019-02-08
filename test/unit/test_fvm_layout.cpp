@@ -132,7 +132,7 @@ namespace {
 TEST(fvm_layout, topology) {
     std::vector<mc_cell> cells = two_cell_system();
     check_two_cell_system(cells);
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
 
@@ -213,7 +213,7 @@ TEST(fvm_layout, topology) {
 TEST(fvm_layout, area) {
     std::vector<mc_cell> cells = two_cell_system();
     check_two_cell_system(cells);
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
 
@@ -294,7 +294,7 @@ TEST(fvm_layout, mech_index) {
     cells[1].add_synapse({2, 0.4}, "exp2syn");
     cells[1].add_synapse({3, 0.4}, "expsyn");
 
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
     fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
@@ -362,7 +362,7 @@ TEST(fvm_layout, synapse_targets) {
     cells[1].add_synapse({3, 0.4}, syn_desc("expsyn", 5));
     cells[1].add_synapse({3, 0.7}, syn_desc("exp2syn", 6));
 
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
     fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
@@ -521,7 +521,7 @@ TEST(fvm_layout, density_norm_area) {
     expected_gl[8] = seg3_gl;
     expected_gl[9] = seg3_gl;
 
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
     fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
@@ -613,7 +613,7 @@ TEST(fvm_layout, ion_weights) {
         for (auto i: mech_segs[run]) {
             c.segments()[i]->add_mechanism("test_ca");
         }
-        std::vector<cell_size_type> intdom_id(cells.size());
+        std::vector<fvm_index_type> intdom_id(cells.size());
 
         fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
         fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);

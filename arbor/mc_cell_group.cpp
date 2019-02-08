@@ -98,7 +98,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             return intdom_ids_[a] < intdom_ids_[b];
         });
 
-        cell_size_type prev_intdom = -1;
+        int prev_intdom = -1;
         for (auto i: util::count_along(gids_)) {
             unsigned count_staged = 0;
 

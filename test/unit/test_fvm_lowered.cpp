@@ -214,7 +214,7 @@ TEST(fvm_lowered, matrix_init)
     cell.segment(1)->set_compartments(10);
 
     std::vector<target_handle> targets;
-    std::vector<cell_size_type> intdom_id;
+    std::vector<fvm_index_type> intdom_id;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
@@ -260,7 +260,7 @@ TEST(fvm_lowered, target_handles) {
     cells[1].add_detector({0, 0}, 3.3);
 
     std::vector<target_handle> targets;
-    std::vector<cell_size_type> intdom_id;
+    std::vector<fvm_index_type> intdom_id;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
@@ -320,7 +320,7 @@ TEST(fvm_lowered, stimulus) {
     // The implementation of the stimulus is tested by creating a lowered cell, then
     // testing that the correct currents are injected at the correct control volumes
     // as during the stimulus windows.
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
     const auto& A = D.cv_area;
@@ -420,7 +420,7 @@ TEST(fvm_lowered, derived_mechs) {
         // Test initialization and global parameter values.
 
         std::vector<target_handle> targets;
-        std::vector<cell_size_type> intdom_id;
+        std::vector<fvm_index_type> intdom_id;
         probe_association_map<probe_handle> probe_map;
 
         execution_context context;
@@ -528,7 +528,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     c.segments()[3] ->add_mechanism("test_ca");
 
     std::vector<target_handle> targets;
-    std::vector<cell_size_type> intdom_id;
+    std::vector<fvm_index_type> intdom_id;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
@@ -613,7 +613,7 @@ TEST(fvm_lowered, gj_coords_simple) {
     d.segment(1)->set_compartments(2);
     d.add_gap_junction({1, 1});
     cells.push_back(std::move(d));
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
 
@@ -720,7 +720,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     cells.push_back(std::move(c1));
     cells.push_back(std::move(c2));
 
-    std::vector<cell_size_type> intdom_id(cells.size());
+    std::vector<fvm_index_type> intdom_id(cells.size());
 
     fvm_discretization D = fvm_discretize(cells, intdom_id, 1);
     std::vector<cell_gid_type> gids = {0, 1, 2};
@@ -805,8 +805,8 @@ TEST(fvm_lowered, cell_group_gj) {
     std::vector<cell_gid_type> gids_cg0 = { 0, 2, 4, 6, 8};
     std::vector<cell_gid_type> gids_cg1 = {10,12,14,16,18};
 
-    std::vector<cell_size_type> intdom_id0(gids_cg0.size());
-    std::vector<cell_size_type> intdom_id1(gids_cg0.size());
+    std::vector<fvm_index_type> intdom_id0(gids_cg0.size());
+    std::vector<fvm_index_type> intdom_id1(gids_cg0.size());
 
     fvm_discretization D0 = fvm_discretize(cell_group0, intdom_id0, 1);
     fvm_discretization D1 = fvm_discretize(cell_group1, intdom_id1, 1);
@@ -830,33 +830,33 @@ TEST(fvm_lowered, super_cells) {
         execution_context context;
         fvm_cell fvcell(context);
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
-        std::vector<cell_size_type> intdom_id;
+        std::vector<fvm_index_type> intdom_id;
         auto num_sc = fvcell.fvm_intdom(gap_recipe_0(), gids, intdom_id);
 
-        std::vector<cell_size_type> expected_sc= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
-        EXPECT_EQ(4u, num_sc);
+        std::vector<fvm_index_type> expected_sc= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
+        EXPECT_EQ(4, num_sc);
         EXPECT_EQ(expected_sc, intdom_id);
     }
     {
         execution_context context;
         fvm_cell fvcell(context);
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
-        std::vector<cell_size_type> intdom_id;
+        std::vector<fvm_index_type> intdom_id;
         auto num_sc = fvcell.fvm_intdom(gap_recipe_1(), gids, intdom_id);
 
-        std::vector<cell_size_type> expected_sc= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
-        EXPECT_EQ(7u, num_sc);
+        std::vector<fvm_index_type> expected_sc= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
+        EXPECT_EQ(7, num_sc);
         EXPECT_EQ(expected_sc, intdom_id);
     }
     {
         execution_context context;
         fvm_cell fvcell(context);
         std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
-        std::vector<cell_size_type> intdom_id;
+        std::vector<fvm_index_type> intdom_id;
         auto num_sc = fvcell.fvm_intdom(gap_recipe_2(), gids, intdom_id);
 
-        std::vector<cell_size_type> expected_sc= {0u, 0u, 0u, 0u};
-        EXPECT_EQ(1u, num_sc);
+        std::vector<fvm_index_type> expected_sc= {0u, 0u, 0u, 0u};
+        EXPECT_EQ(1, num_sc);
         EXPECT_EQ(expected_sc, intdom_id);
     }
 }

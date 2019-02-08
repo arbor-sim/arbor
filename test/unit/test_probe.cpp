@@ -37,7 +37,7 @@ TEST(probe, fvm_lowered_cell) {
     rec.add_probe(0, 30, cell_probe_address{loc2, cell_probe_address::membrane_current});
 
     std::vector<target_handle> targets;
-    std::vector<cell_size_type> intdom_id;
+    std::vector<fvm_index_type> intdom_id;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell lcell(context);
