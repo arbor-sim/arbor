@@ -142,7 +142,7 @@ public:
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& face_conductance,
                  const std::vector<value_type>& area,
-                 const std::vector<size_type>& cell_to_intdom)
+                 const std::vector<size_type>& cell_intdom)
     {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
@@ -424,7 +424,7 @@ public:
         // to be stored in flat format
         cv_capacitance = memory::make_const_view(cap);
         invariant_d = memory::make_const_view(invariant_d_tmp);
-        cell_to_intdom = memory::make_const_view(cell_to_intdom);
+        cell_to_intdom = memory::make_const_view(cell_intdom);
 
         // calculte the cv -> cell mappings
         std::vector<size_type> cv_to_cell_tmp(matrix_size);
