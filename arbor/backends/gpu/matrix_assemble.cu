@@ -24,14 +24,15 @@ void assemble_matrix_flat(
         const T* cv_capacitance,
         const T* area,
         const I* cv_to_cell,
-        const T* dt_cell,
+        const T* dt_intdom,
+        const T* intdom_ids,
         unsigned n)
 {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (tid<n) {
         auto cid = cv_to_cell[tid];
-        auto dt = dt_cell[cid];
+        auto dt = dt_intdom[intdom_ids[cid]];
 
         // Note: dt==0 case is expected only at the end of a mindelay/2
         // integration period, and consequently divergence is unlikely
@@ -73,7 +74,8 @@ void assemble_matrix_interleaved(
         const I* sizes,
         const I* starts,
         const I* matrix_to_cell,
-        const T* dt_cell,
+        const T* dt_intdom,
+        const T* intdom_ids,
         unsigned padded_size, unsigned num_mtx)
 {
     static_assert(BlockWidth*LoadWidth==Threads,
@@ -107,7 +109,7 @@ void assemble_matrix_interleaved(
 
     if (permuted_cid<num_mtx) {
         auto cid = matrix_to_cell[permuted_cid];
-        dt = dt_cell[cid];
+        dt = dt_intdom[intdom_id[cid]];
 
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).
@@ -155,7 +157,8 @@ void assemble_matrix_flat(
         const fvm_value_type* cv_capacitance,
         const fvm_value_type* area,
         const fvm_index_type* cv_to_cell,
-        const fvm_value_type* dt_cell,
+        const fvm_value_type* dt_intdom,
+        const fvm_index_type* intdom_ids,
         unsigned n)
 {
     constexpr unsigned block_dim = 128;
@@ -165,7 +168,7 @@ void assemble_matrix_flat(
         <fvm_value_type, fvm_index_type>
         <<<grid_dim, block_dim>>>
         (d, rhs, invariant_d, voltage, current, cv_capacitance,
-         area, cv_to_cell, dt_cell, n);
+         area, cv_to_cell, dt_intdom, intdom_ids, n);
 }
 
 //template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned Threads>
@@ -180,7 +183,8 @@ void assemble_matrix_interleaved(
     const fvm_index_type* sizes,
     const fvm_index_type* starts,
     const fvm_index_type* matrix_to_cell,
-    const fvm_value_type* dt_cell,
+    const fvm_value_type* dt_intdom,
+    const fvm_index_type* intdom_ids,
     unsigned padded_size, unsigned num_mtx)
 {
     constexpr unsigned bd = impl::matrices_per_block();
@@ -195,7 +199,7 @@ void assemble_matrix_interleaved(
         <<<grid_dim, block_dim>>>
         (d, rhs, invariant_d, voltage, current, cv_capacitance, area,
          sizes, starts, matrix_to_cell,
-         dt_cell, padded_size, num_mtx);
+         dt_intdom, intdom_ids, padded_size, num_mtx);
 }
 
 } // namespace gpu

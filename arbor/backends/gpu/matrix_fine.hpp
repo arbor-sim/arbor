@@ -58,7 +58,8 @@ void assemble_matrix_fine(
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
     const fvm_index_type* cv_to_cell,
-    const fvm_value_type* dt_cell,
+    const fvm_value_type* dt_intdom,
+    const fvm_index_type* intdom_ids,
     const fvm_index_type* perm,
     unsigned n);
 

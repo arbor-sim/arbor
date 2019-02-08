@@ -104,6 +104,8 @@ public:
     // for storing the solution in unpacked format
     array solution_;
 
+    iarray intdom_ids;
+
     // the maximum nuber of branches in each level per block
     unsigned max_branches_per_level;
 
@@ -139,7 +141,8 @@ public:
                  const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& face_conductance,
-                 const std::vector<value_type>& area)
+                 const std::vector<value_type>& area,
+                 const std::vector<size_type>& intdomids)
     {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
@@ -421,6 +424,7 @@ public:
         // to be stored in flat format
         cv_capacitance = memory::make_const_view(cap);
         invariant_d = memory::make_const_view(invariant_d_tmp);
+        intdom_ids = memory::make_const_view(intdomids);
 
         // calculte the cv -> cell mappings
         std::vector<size_type> cv_to_cell_tmp(matrix_size);
@@ -434,10 +438,10 @@ public:
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current
-    //   dt_cell [ms] (per cell)
+    //   dt_intdom [ms] (per cell)
     //   voltage [mV]
     //   current [nA]
-    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
         assemble_matrix_fine(
             d.data(),
             rhs.data(),
@@ -447,7 +451,8 @@ public:
             cv_capacitance.data(),
             cv_area.data(),
             cv_to_cell.data(),
-            dt_cell.data(),
+            dt_intdom.data(),
+            intdom_ids.data(),
             perm.data(),
             size());
     }
