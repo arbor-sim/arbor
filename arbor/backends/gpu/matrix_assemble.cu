@@ -25,7 +25,7 @@ void assemble_matrix_flat(
         const T* area,
         const I* cv_to_cell,
         const T* dt_intdom,
-        const T* intdom_ids,
+        const I* intdom_ids,
         unsigned n)
 {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
@@ -75,7 +75,7 @@ void assemble_matrix_interleaved(
         const I* starts,
         const I* matrix_to_cell,
         const T* dt_intdom,
-        const T* intdom_ids,
+        const I* intdom_ids,
         unsigned padded_size, unsigned num_mtx)
 {
     static_assert(BlockWidth*LoadWidth==Threads,
@@ -109,7 +109,7 @@ void assemble_matrix_interleaved(
 
     if (permuted_cid<num_mtx) {
         auto cid = matrix_to_cell[permuted_cid];
-        dt = dt_intdom[intdom_id[cid]];
+        dt = dt_intdom[intdom_ids[cid]];
 
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).

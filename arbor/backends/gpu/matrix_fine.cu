@@ -54,7 +54,7 @@ void assemble_matrix_fine(
         const T* area,
         const I* cv_to_cell,
         const T* dt_intdom,
-        const T* intdom_ids,
+        const I* intdom_ids,
         const I* perm,
         unsigned n)
 {
