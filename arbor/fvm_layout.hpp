@@ -91,7 +91,7 @@ struct fvm_discretization {
 
 fvm_discretization fvm_discretize(
         const std::vector<mc_cell>& cells,
-        const std::vector<fvm_index_type>& intdom_ids,
+        const std::vector<fvm_index_type>& cell_to_intdom,
         const cell_size_type num_intdoms);
 
 

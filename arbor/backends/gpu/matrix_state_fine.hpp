@@ -104,7 +104,7 @@ public:
     // for storing the solution in unpacked format
     array solution_;
 
-    iarray intdom_ids;
+    iarray cell_to_intdom;
 
     // the maximum nuber of branches in each level per block
     unsigned max_branches_per_level;
@@ -142,7 +142,7 @@ public:
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& face_conductance,
                  const std::vector<value_type>& area,
-                 const std::vector<size_type>& intdomids)
+                 const std::vector<size_type>& cell_to_intdom)
     {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
@@ -424,7 +424,7 @@ public:
         // to be stored in flat format
         cv_capacitance = memory::make_const_view(cap);
         invariant_d = memory::make_const_view(invariant_d_tmp);
-        intdom_ids = memory::make_const_view(intdomids);
+        cell_to_intdom = memory::make_const_view(cell_to_intdom);
 
         // calculte the cv -> cell mappings
         std::vector<size_type> cv_to_cell_tmp(matrix_size);
@@ -452,7 +452,7 @@ public:
             cv_area.data(),
             cv_to_cell.data(),
             dt_intdom.data(),
-            intdom_ids.data(),
+            cell_to_intdom.data(),
             perm.data(),
             size());
     }

@@ -49,7 +49,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
     target_handles_.reserve(n_targets);
 
     // Construct cell implementation, retrieving handles and maps. 
-    lowered_->initialize(gids_, rec, intdom_ids_, target_handles_, probe_map_);
+    lowered_->initialize(gids_, rec, cell_to_intdom_, target_handles_, probe_map_);
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
@@ -90,12 +90,12 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // skip event binning if empty lanes are passed
     if (event_lanes.size()) {
 
-        std::vector<cell_size_type> idx_sorted_by_intdom(intdom_ids_.size());
+        std::vector<cell_size_type> idx_sorted_by_intdom(cell_to_intdom_.size());
         cell_size_type n = 0;
         std::generate(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), [&]{ return n++; });
         std::sort(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(),
             [&](cell_size_type a, cell_size_type b) {
-            return intdom_ids_[a] < intdom_ids_[b];
+            return cell_to_intdom_[a] < cell_to_intdom_[b];
         });
 
         int prev_intdom = -1;
@@ -104,7 +104,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
             auto lid = idx_sorted_by_intdom[i];
             auto& lane = event_lanes[lid];
-            auto curr_intdom = intdom_ids_[lid];
+            auto curr_intdom = cell_to_intdom_[lid];
 
             for (auto e: lane) {
                 if (e.time>=ep.tfinal) break;

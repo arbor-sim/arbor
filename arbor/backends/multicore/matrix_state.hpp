@@ -29,7 +29,7 @@ public:
     array face_conductance;    // [μS]
     array cv_area;             // [μm^2]
 
-    iarray intdom_ids;
+    iarray cell_to_intdom;
 
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -41,14 +41,14 @@ public:
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
                  const std::vector<value_type>& area,
-                 const std::vector<index_type>& intdom_ids):
+                 const std::vector<index_type>& cell_to_intdom):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
         cv_area(area.begin(), area.end()),
-        intdom_ids(intdom_ids.begin(), intdom_ids.end())
+        cell_to_intdom(cell_to_intdom.begin(), cell_to_intdom.end())
     {
         arb_assert(cap.size() == size());
         arb_assert(cond.size() == size());
@@ -83,7 +83,7 @@ public:
 
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
-            auto dt = dt_intdom[intdom_ids[m]];
+            auto dt = dt_intdom[cell_to_intdom[m]];
 
             if (dt>0) {
                 value_type factor = 1e-3/dt;

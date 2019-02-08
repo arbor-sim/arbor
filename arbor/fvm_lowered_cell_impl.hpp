@@ -53,7 +53,7 @@ public:
     void initialize(
         const std::vector<cell_gid_type>& gids,
         const recipe& rec,
-        std::vector<fvm_index_type>& intdom_ids,
+        std::vector<fvm_index_type>& cell_to_intdom,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) override;
 
@@ -72,7 +72,7 @@ public:
     fvm_index_type fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
-        std::vector<fvm_index_type>& intdom_ids);
+        std::vector<fvm_index_type>& cell_to_intdom);
 
     value_type time() const override { return tmin_; }
 
@@ -319,7 +319,7 @@ template <typename B>
 void fvm_lowered_cell_impl<B>::initialize(
     const std::vector<cell_gid_type>& gids,
     const recipe& rec,
-    std::vector<fvm_index_type>& intdom_ids,
+    std::vector<fvm_index_type>& cell_to_intdom,
     std::vector<target_handle>& target_handles,
     probe_association_map<probe_handle>& probe_map)
 {
@@ -369,15 +369,15 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     check_voltage_mV = global_props.membrane_voltage_limit_mV;
 
-    // Get intdom_id of every gid, the information is used by the discretization to generate cv_to_intdom
+    // Get intdom index of every gid, the information is used by the discretization to generate cv_to_intdom
 
-    auto num_intdoms = fvm_intdom(rec, gids, intdom_ids);
+    auto num_intdoms = fvm_intdom(rec, gids, cell_to_intdom);
 
     // Discretize cells, build matrix.
 
-    fvm_discretization D = fvm_discretize(cells, intdom_ids, num_intdoms);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, num_intdoms);
     arb_assert(D.ncell == ncell);
-    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, intdom_ids);
+    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
     sample_events_ = sample_event_stream(ncell);
 
     // Discretize mechanism data.
@@ -545,9 +545,9 @@ template <typename B>
 fvm_index_type fvm_lowered_cell_impl<B>::fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
-        std::vector<fvm_index_type>& intdom_ids) {
+        std::vector<fvm_index_type>& cell_to_intdom) {
 
-    intdom_ids.resize(gids.size());
+    cell_to_intdom.resize(gids.size());
 
     std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
     for (auto i: util::count_along(gids)) {
@@ -567,7 +567,7 @@ fvm_index_type fvm_lowered_cell_impl<B>::fvm_intdom(
             auto g = intdomq.front();
             intdomq.pop();
 
-            intdom_ids[gid_to_loc[g]] = intdom_id;
+            cell_to_intdom[gid_to_loc[g]] = intdom_id;
 
             for (auto gj: rec.gap_junctions_on(g)) {
                 cell_gid_type peer =

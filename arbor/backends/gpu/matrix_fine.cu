@@ -54,7 +54,7 @@ void assemble_matrix_fine(
         const T* area,
         const I* cv_to_cell,
         const T* dt_intdom,
-        const I* intdom_ids,
+        const I* cell_to_intdom,
         const I* perm,
         unsigned n)
 {
@@ -62,7 +62,7 @@ void assemble_matrix_fine(
 
     if (tid<n) {
         auto cid = cv_to_cell[tid];
-        auto dt = dt_intdom[intdom_ids[cid]];
+        auto dt = dt_intdom[cell_to_intdom[cid]];
 
         if (dt>0) {
             // The 1e-3 is a constant of proportionality required to ensure that the
@@ -266,7 +266,7 @@ void assemble_matrix_fine(
     const fvm_value_type* area,
     const fvm_index_type* cv_to_cell,
     const fvm_value_type* dt_intdom,
-    const fvm_index_type* intdom_ids,
+    const fvm_index_type* cell_to_intdom,
     const fvm_index_type* perm,
     unsigned n)
 {
@@ -275,7 +275,7 @@ void assemble_matrix_fine(
 
     kernels::assemble_matrix_fine<<<num_blocks, block_dim>>>(
         d, rhs, invariant_d, voltage, current, cv_capacitance, area,
-        cv_to_cell, dt_intdom, intdom_ids,
+        cv_to_cell, dt_intdom, cell_to_intdom,
         perm, n);
 }
 

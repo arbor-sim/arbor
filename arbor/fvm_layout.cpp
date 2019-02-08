@@ -112,7 +112,7 @@ namespace {
 
 fvm_discretization fvm_discretize(
         const std::vector<mc_cell>& cells,
-        const std::vector<fvm_index_type>& intdom_ids,
+        const std::vector<fvm_index_type>& cell_to_intdom,
         const cell_size_type num_intdoms) {
 
     using value_type = fvm_value_type;
@@ -142,7 +142,7 @@ fvm_discretization fvm_discretize(
     }
     D.cv_to_intdom.resize(D.ncomp);
     std::transform(D.cv_to_cell.begin(), D.cv_to_cell.end(), D.cv_to_intdom.begin(),
-        [&intdom_ids](index_type i){ return intdom_ids[i]; });
+        [&cell_to_intdom](index_type i){ return cell_to_intdom[i]; });
 
     std::vector<size_type> seg_comp_bounds;
     for (auto i: make_span(0, D.ncell)) {

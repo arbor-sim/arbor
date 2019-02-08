@@ -29,7 +29,7 @@ void assemble_matrix_interleaved(
     const fvm_index_type* starts,
     const fvm_index_type* matrix_to_cell,
     const fvm_value_type* dt_intdom,
-    const fvm_index_type* intdom_ids,
+    const fvm_index_type* cell_to_intdom,
     unsigned padded_size, unsigned num_mtx);
 
 // host side wrapper for interleaved matrix solver kernel
@@ -123,7 +123,7 @@ struct matrix_state_interleaved {
     // the invariant part of the matrix diagonal
     array invariant_d;    // [μS]
 
-    iarray intdom_ids;
+    iarray cell_to_intdom;
 
     // the length of a vector required to store values for one
     // matrix with padding
@@ -148,8 +148,7 @@ struct matrix_state_interleaved {
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
                  const std::vector<value_type>& area,
-                 const std::vector<index_type>& intdom_ids):
-        intdom_ids(memory::make_const_view(intdom_ids))
+                 const std::vector<index_type>& cell_to_intdom):
     {
         arb_assert(cv_cap.size()    == p.size());
         arb_assert(face_cond.size() == p.size());
@@ -253,6 +252,7 @@ struct matrix_state_interleaved {
         matrix_sizes = memory::make_const_view(sizes_p);
         matrix_index = memory::make_const_view(cell_to_cv_p);
         matrix_to_cell_index = memory::make_const_view(perm);
+        cell_to_intdom = memory::make_const_view(cell_to_intdom);
 
         // Allocate space for storing the un-interleaved solution.
         solution_ = array(p.size());
@@ -273,7 +273,7 @@ struct matrix_state_interleaved {
              voltage.data(), current.data(), cv_capacitance.data(), cv_area.data(),
              matrix_sizes.data(), matrix_index.data(),
              matrix_to_cell_index.data(),
-             dt_intdom.data(), intdom_ids.data(), padded_matrix_size(), num_matrices());
+             dt_intdom.data(), cell_to_intdom.data(), padded_matrix_size(), num_matrices());
 
     }
 

@@ -256,7 +256,7 @@ TEST(matrix, backends)
 
     std::vector<I> p;
     std::vector<I> cell_cv_divs;
-    std::vector<I> intdom_ids;
+    std::vector<I> cell_to_intdom;
     for (auto m=0; m<num_mtx; ++m) {
         auto &p_ref = p_base[m%2];
         auto first = p.size();
@@ -264,7 +264,7 @@ TEST(matrix, backends)
             p.push_back(i + first);
         }
         cell_cv_divs.push_back(first);
-        intdom_ids.push_back(m);
+        cell_to_intdom.push_back(m);
     }
     cell_cv_divs.push_back(p.size());
 
@@ -288,9 +288,9 @@ TEST(matrix, backends)
     std::generate(i.begin(), i.end(), [&](){return dist(gen);});
 
     // Make the reference matrix and the gpu matrix
-    auto flat = state_flat(p, cell_cv_divs, Cm, g, area, intdom_ids); // flat
-    auto intl = state_intl(p, cell_cv_divs, Cm, g, area, intdom_ids); // interleaved
-    auto fine = state_fine(p, cell_cv_divs, Cm, g, area, intdom_ids); // interleaved
+    auto flat = state_flat(p, cell_cv_divs, Cm, g, area, cell_to_intdom); // flat
+    auto intl = state_intl(p, cell_cv_divs, Cm, g, area, cell_to_intdom); // interleaved
+    auto fine = state_fine(p, cell_cv_divs, Cm, g, area, cell_to_intdom); // interleaved
 
     // Set the integration times for the cells to be between 0.01 and 0.02 ms.
     std::vector<T> dt(num_mtx, 0);

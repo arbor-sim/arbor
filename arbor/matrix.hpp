@@ -36,11 +36,11 @@ public:
            const std::vector<value_type>& cv_capacitance,
            const std::vector<value_type>& face_conductance,
            const std::vector<value_type>& cv_area,
-           const std::vector<index_type>& intdom_ids):
+           const std::vector<index_type>& cell_to_intdom):
         parent_index_(pi.begin(), pi.end()),
         cell_index_(ci.begin(), ci.end()),
-        intdom_index_(intdom_ids.begin(), intdom_ids.end()),
-        state_(pi, ci, cv_capacitance, face_conductance, cv_area, intdom_ids)
+        cell_to_intdom_(cell_to_intdom.begin(), cell_to_intdom.end()),
+        state_(pi, ci, cv_capacitance, face_conductance, cv_area, cell_to_intdom)
     {
         arb_assert(cell_index_[num_cells()] == index_type(parent_index_.size()));
     }
@@ -84,7 +84,7 @@ private:
     iarray cell_index_;
 
     /// indexes that point to the index of the integration domain
-    iarray intdom_index_;
+    iarray cell_to_intdom_;
 
 public:
     // Provide via public interface to make testing much easier.
