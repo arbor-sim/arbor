@@ -24,9 +24,11 @@ class Contexts_arbmpi(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         #print("setUp --- TestContextMPI class")
-        if(arb.mpi_is_initialized() == False):
+        self.local_mpi = False
+        if not arb.mpi_is_initialized():
             #print("    Initializing mpi")
             arb.mpi_init()
+            self.local_mpi = True
         #else:
             #print("    mpi already initialized")
     # Finalize mpi only once in this class (when adding classes move finalization to setUpModule()
@@ -34,7 +36,8 @@ class Contexts_arbmpi(unittest.TestCase):
     def tearDownClass(self):
         #print("tearDown --- TestContextMPI class")
         #print("    Finalizing mpi")
-        if (arb.mpi4py_compiled() == False and arb.mpi_is_finalized() == False):
+        #if (arb.mpi4py_compiled() == False and arb.mpi_is_finalized() == False):
+        if self.local_mpi: 
             #print("    Finalizing mpi")
             arb.mpi_finalize()
         #else:
@@ -68,8 +71,25 @@ def suite():
 
 def run():
     v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
+    
+    if not arb.mpi_is_initialized():
+        arb.mpi_init()
+
+    comm = arb.mpi_comm()
+    alloc = arb.proc_allocation()
+    ctx = arb.context(alloc, comm)
+    rank = ctx.rank
+    
+    if rank == 0:
+        runner = unittest.TextTestRunner(verbosity = v)
+    else:
+        sys.stdout = open(os.devnull, 'w')
+        runner = unittest.TextTestRunner(stream=sys.stdout)
+
     runner.run(suite())
+
+    if not arb.mpi_is_finalized():
+        arb.mpi_finalize()
 
 if __name__ == "__main__":
     run()
