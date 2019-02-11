@@ -132,9 +132,9 @@ namespace {
 TEST(fvm_layout, topology) {
     std::vector<mc_cell> cells = two_cell_system();
     check_two_cell_system(cells);
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
 
     // Expected CV layouts for cells, segment indices in paren.
     //
@@ -213,9 +213,9 @@ TEST(fvm_layout, topology) {
 TEST(fvm_layout, area) {
     std::vector<mc_cell> cells = two_cell_system();
     check_two_cell_system(cells);
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
 
     // Note: stick models have constant diameter segments.
     // Refer to comment above for CV vs. segment layout.
@@ -294,9 +294,9 @@ TEST(fvm_layout, mech_index) {
     cells[1].add_synapse({2, 0.4}, "exp2syn");
     cells[1].add_synapse({3, 0.4}, "expsyn");
 
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
     fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
 
     auto& hh_config = M.mechanisms.at("hh");
@@ -362,9 +362,9 @@ TEST(fvm_layout, synapse_targets) {
     cells[1].add_synapse({3, 0.4}, syn_desc("expsyn", 5));
     cells[1].add_synapse({3, 0.7}, syn_desc("exp2syn", 6));
 
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
     fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
 
     ASSERT_EQ(1u, M.mechanisms.count("expsyn"));
@@ -521,9 +521,9 @@ TEST(fvm_layout, density_norm_area) {
     expected_gl[8] = seg3_gl;
     expected_gl[9] = seg3_gl;
 
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
     fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
 
     // Check CV area assumptions.
@@ -613,9 +613,9 @@ TEST(fvm_layout, ion_weights) {
         for (auto i: mech_segs[run]) {
             c.segments()[i]->add_mechanism("test_ca");
         }
-        std::vector<fvm_index_type> cell_to_intdom(cells.size());
+        std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-        fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+        fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
         fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
 
         ASSERT_EQ(1u, M.ions.count(ionKind::ca));

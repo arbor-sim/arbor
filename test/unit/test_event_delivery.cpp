@@ -75,10 +75,6 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
     sim.inject_events(cell_events);
     sim.run((n+1)*ev_delta_t, 0.01);
 
-    for (auto s: spikes) {
-        std::cout << s.source.gid << " at " << s.time << std::endl;
-    }
-
     std::vector<cell_gid_type> spike_gids;
     util::sort_by(spikes, [](auto s) { return s.time; });
     util::assign(spike_gids, util::transform_view(spikes, [](auto s) { return s.source.gid; }));

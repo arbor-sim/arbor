@@ -56,7 +56,6 @@ struct fvm_discretization {
     using index_type = fvm_index_type; // In particular, used for CV indices.
 
     size_type ncell;
-    size_type nintdom;
     size_type ncomp;
 
     // Note: if CV j has no parent, parent_cv[j] = j. TODO: confirm!
@@ -91,8 +90,7 @@ struct fvm_discretization {
 
 fvm_discretization fvm_discretize(
         const std::vector<mc_cell>& cells,
-        const std::vector<fvm_index_type>& cell_to_intdom,
-        const cell_size_type num_intdoms);
+        const std::vector<fvm_index_type>& cell_to_intdom);
 
 
 // Post-discretization data for point and density mechanism instantiation.

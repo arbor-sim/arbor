@@ -112,8 +112,7 @@ namespace {
 
 fvm_discretization fvm_discretize(
         const std::vector<mc_cell>& cells,
-        const std::vector<fvm_index_type>& cell_to_intdom,
-        const cell_size_type num_intdoms) {
+        const std::vector<fvm_index_type>& cell_to_intdom) {
 
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
@@ -129,7 +128,6 @@ fvm_discretization fvm_discretize(
         transform_view(cells, [](const mc_cell& c) { return c.num_compartments(); }));
 
     D.ncell = cells.size();
-    D.nintdom = num_intdoms;
     D.ncomp = cell_comp_part.bounds().second;
 
     D.face_conductance.assign(D.ncomp, 0.);

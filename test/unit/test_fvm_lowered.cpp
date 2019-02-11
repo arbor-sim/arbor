@@ -320,9 +320,9 @@ TEST(fvm_lowered, stimulus) {
     // The implementation of the stimulus is tested by creating a lowered cell, then
     // testing that the correct currents are injected at the correct control volumes
     // as during the stimulus windows.
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
     const auto& A = D.cv_area;
 
     std::vector<target_handle> targets;
@@ -613,9 +613,9 @@ TEST(fvm_lowered, gj_coords_simple) {
     d.segment(1)->set_compartments(2);
     d.add_gap_junction({1, 1});
     cells.push_back(std::move(d));
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
 
     std::vector<cell_gid_type> gids = {0, 1};
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
@@ -720,10 +720,12 @@ TEST(fvm_lowered, gj_coords_complex) {
     cells.push_back(std::move(c1));
     cells.push_back(std::move(c2));
 
-    std::vector<fvm_index_type> cell_to_intdom(cells.size());
+    std::vector<fvm_index_type> cell_to_intdom;
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, 1);
     std::vector<cell_gid_type> gids = {0, 1, 2};
+
+    fvcell.fvm_intdom(rec, gids, cell_to_intdom);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
 
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
     EXPECT_EQ(10u, GJ.size());
@@ -792,24 +794,25 @@ TEST(fvm_lowered, cell_group_gj) {
         c.add_soma(2.1);
         if (i % 2 == 0) {
             c.add_gap_junction({0, 1});
-            if (i < 10) {
-                cell_group0.push_back(std::move(c));
-            }
-            else {
-                cell_group1.push_back(std::move(c));
-            }
         }
-
+        if (i < 10) {
+            cell_group0.push_back(std::move(c));
+        }
+        else {
+            cell_group1.push_back(std::move(c));
+        }
     }
 
-    std::vector<cell_gid_type> gids_cg0 = { 0, 2, 4, 6, 8};
-    std::vector<cell_gid_type> gids_cg1 = {10,12,14,16,18};
+    std::vector<cell_gid_type> gids_cg0 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    std::vector<cell_gid_type> gids_cg1 = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
 
-    std::vector<fvm_index_type> cell_to_intdom0(gids_cg0.size());
-    std::vector<fvm_index_type> cell_to_intdom1(gids_cg0.size());
+    std::vector<fvm_index_type> cell_to_intdom0, cell_to_intdom1;
 
-    fvm_discretization D0 = fvm_discretize(cell_group0, cell_to_intdom0, 1);
-    fvm_discretization D1 = fvm_discretize(cell_group1, cell_to_intdom1, 1);
+    auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
+    auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
+
+    fvm_discretization D0 = fvm_discretize(cell_group0, cell_to_intdom0);
+    fvm_discretization D1 = fvm_discretize(cell_group1, cell_to_intdom1);
 
     auto GJ0 = fvcell.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
     auto GJ1 = fvcell.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);
@@ -817,47 +820,102 @@ TEST(fvm_lowered, cell_group_gj) {
     EXPECT_EQ(10u, GJ0.size());
     EXPECT_EQ(10u, GJ1.size());
 
-    std::vector<pair> expected_loc = {{0, 1}, {0, 4}, {1, 2}, {1, 0}, {2, 3} ,{2, 1}, {3, 4}, {3, 2}, {4, 0}, {4, 3}};
+    std::vector<pair> expected_loc = {{0, 2}, {0, 8}, {2, 4}, {2, 0}, {4, 6} ,{4, 2}, {6, 8}, {6, 4}, {8, 0}, {8, 6}};
 
     for (unsigned i = 0; i < GJ0.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ0[i].loc);
         EXPECT_EQ(expected_loc[i], GJ1[i].loc);
     }
+
+    std::vector<fvm_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
+    EXPECT_EQ(6, num_dom0);
+    EXPECT_EQ(6, num_dom1);
+
+    EXPECT_EQ(expected_doms, cell_to_intdom0);
+    EXPECT_EQ(expected_doms, cell_to_intdom1);
+
+    EXPECT_EQ(expected_doms, D0.cv_to_intdom);
+    EXPECT_EQ(expected_doms, D1.cv_to_intdom);
 }
 
-TEST(fvm_lowered, super_cells) {
+TEST(fvm_lowered, integration_domains) {
     {
         execution_context context;
         fvm_cell fvcell(context);
+
+        std::vector<mc_cell> cells;
+        for (unsigned i = 0; i < 7; i++) {
+            mc_cell c;
+            c.add_soma(2.1);
+            auto dend = c.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300);
+            dend->set_compartments((i % 3) + 1);
+            cells.push_back(std::move(c));
+        }
+
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         std::vector<fvm_index_type> cell_to_intdom;
-        auto num_sc = fvcell.fvm_intdom(gap_recipe_0(), gids, cell_to_intdom);
 
-        std::vector<fvm_index_type> expected_sc= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
-        EXPECT_EQ(4, num_sc);
-        EXPECT_EQ(expected_sc, cell_to_intdom);
+        auto num_dom = fvcell.fvm_intdom(gap_recipe_0(), gids, cell_to_intdom);
+        fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
+
+        std::vector<fvm_index_type> expected_doms= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
+        std::vector<fvm_index_type> expected_cv_to_intdom = {0u, 0u, 1u, 1u, 1u, 2u, 2u, 2u, 2u, 2u,
+                                                             2u, 1u, 1u, 1u, 3u, 3u, 3u, 3u, 2u, 2u};
+        EXPECT_EQ(4, num_dom);
+        EXPECT_EQ(expected_doms, cell_to_intdom);
+        EXPECT_EQ(expected_cv_to_intdom, D.cv_to_intdom);
     }
     {
         execution_context context;
         fvm_cell fvcell(context);
+
+        std::vector<mc_cell> cells;
+        for (unsigned i = 0; i < 7; i++) {
+            mc_cell c;
+            c.add_soma(2.1);
+            auto dend = c.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300);
+            dend->set_compartments((i % 3) + 1);
+            cells.push_back(std::move(c));
+        }
+
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         std::vector<fvm_index_type> cell_to_intdom;
-        auto num_sc = fvcell.fvm_intdom(gap_recipe_1(), gids, cell_to_intdom);
 
-        std::vector<fvm_index_type> expected_sc= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
-        EXPECT_EQ(7, num_sc);
-        EXPECT_EQ(expected_sc, cell_to_intdom);
+        auto num_dom = fvcell.fvm_intdom(gap_recipe_1(), gids, cell_to_intdom);
+        fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
+
+        std::vector<fvm_index_type> expected_doms= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
+        std::vector<fvm_index_type> expected_cv_to_intdom = {0u, 0u, 1u, 1u, 1u, 2u, 2u, 2u, 2u, 3u,
+                                                             3u, 4u, 4u, 4u, 5u, 5u, 5u, 5u, 6u, 6u};
+        EXPECT_EQ(7, num_dom);
+        EXPECT_EQ(expected_doms, cell_to_intdom);
+        EXPECT_EQ(expected_cv_to_intdom, D.cv_to_intdom);
+        EXPECT_EQ(expected_cv_to_intdom, D.cv_to_cell);
     }
     {
         execution_context context;
         fvm_cell fvcell(context);
+
+        std::vector<mc_cell> cells;
+        for (unsigned i = 0; i < 4; i++) {
+            mc_cell c;
+            c.add_soma(2.1);
+            auto dend = c.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300);
+            dend->set_compartments((i % 3) + 1);
+            cells.push_back(std::move(c));
+        }
+
         std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
         std::vector<fvm_index_type> cell_to_intdom;
-        auto num_sc = fvcell.fvm_intdom(gap_recipe_2(), gids, cell_to_intdom);
 
-        std::vector<fvm_index_type> expected_sc= {0u, 0u, 0u, 0u};
-        EXPECT_EQ(1, num_sc);
-        EXPECT_EQ(expected_sc, cell_to_intdom);
+        auto num_dom = fvcell.fvm_intdom(gap_recipe_2(), gids, cell_to_intdom);
+        fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
+
+        std::vector<fvm_index_type> expected_doms= {0u, 0u, 0u, 0u};
+        std::vector<fvm_index_type> expected_cv_to_intdom = {0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u};
+        EXPECT_EQ(1, num_dom);
+        EXPECT_EQ(expected_doms, cell_to_intdom);
+        EXPECT_EQ(expected_cv_to_intdom, D.cv_to_intdom);
     }
 }
 

@@ -375,10 +375,10 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize cells, build matrix.
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom, num_intdoms);
+    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
     arb_assert(D.ncell == ncell);
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
-    sample_events_ = sample_event_stream(ncell);
+    sample_events_ = sample_event_stream(num_intdoms);
 
     // Discretize mechanism data.
 
@@ -395,7 +395,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(ncell, D.cv_to_intdom, gj_vector, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(num_intdoms, D.cv_to_intdom, gj_vector, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 
@@ -576,8 +576,7 @@ fvm_index_type fvm_lowered_cell_impl<B>::fvm_intdom(
                         throw bad_cell_description(cell_kind::cable1d_neuron, g);
 
                 if (!gid_to_loc.count(peer)) {
-                    // actually an error in the domain decomposition...
-                    throw bad_cell_description(cell_kind::cable1d_neuron, g);
+                    throw gj_unsupported_domain_decomposition(g, peer);
                 }
 
                 if (!visited.count(peer)) {
