@@ -179,7 +179,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times});
 
             for (auto t: sample_times) {
-                sample_event ev{t, cell_index, {p.handle, n_samples++}};
+                sample_event ev{t, (cell_gid_type)cell_to_intdom_[cell_index], {p.handle, n_samples++}};
                 sample_events.push_back(ev);
             }
         }
