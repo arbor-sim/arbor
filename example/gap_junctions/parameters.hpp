@@ -13,11 +13,13 @@ struct gap_params {
     gap_params() = default;
 
     std::string name = "default";
-    unsigned cells_per_ring = 100;
-    unsigned num_rings = 10;
-    double duration = 100;
-    double delay = 0.5;
-    bool print_all = false;
+    unsigned n_cables = 3;
+    unsigned n_cells_per_cable = 5;
+    double stim_duration = 30;
+    double event_min_delay = 10;
+    double event_weight = 0.05;
+    double sim_duration = 100;
+    bool print_all = true;
 };
 
 gap_params read_options(int argc, char** argv) {
@@ -44,10 +46,12 @@ gap_params read_options(int argc, char** argv) {
     json << f;
 
     param_from_json(params.name, "name", json);
-    param_from_json(params.cells_per_ring, "num-cells", json);
-    param_from_json(params.num_rings, "num-rings", json);
-    param_from_json(params.duration, "duration", json);
-    param_from_json(params.delay, "delay", json);
+    param_from_json(params.n_cables, "n-cables", json);
+    param_from_json(params.n_cells_per_cable, "n-cells-per-cable", json);
+    param_from_json(params.stim_duration, "stim-duration", json);
+    param_from_json(params.event_min_delay, "event-min-delay", json);
+    param_from_json(params.event_weight, "event-weight", json);
+    param_from_json(params.sim_duration, "sim-duration", json);
     param_from_json(params.print_all, "print-all", json);
 
     if (!json.empty()) {
