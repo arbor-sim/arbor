@@ -148,7 +148,7 @@ struct matrix_state_interleaved {
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
                  const std::vector<value_type>& area,
-                 const std::vector<index_type>& cell_to_intdom):
+                 const std::vector<index_type>& cell_intdom)
     {
         arb_assert(cv_cap.size()    == p.size());
         arb_assert(face_cond.size() == p.size());
@@ -252,7 +252,7 @@ struct matrix_state_interleaved {
         matrix_sizes = memory::make_const_view(sizes_p);
         matrix_index = memory::make_const_view(cell_to_cv_p);
         matrix_to_cell_index = memory::make_const_view(perm);
-        cell_to_intdom = memory::make_const_view(cell_to_intdom);
+        cell_to_intdom = memory::make_const_view(cell_intdom);
 
         // Allocate space for storing the un-interleaved solution.
         solution_ = array(p.size());
