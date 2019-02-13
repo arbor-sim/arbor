@@ -16,8 +16,10 @@ extern "C" {
 
 #include <cerrno>
 
+#include <arbor/util/scope_exit.hpp>
 #include <sup/path.hpp>
-#include <sup/scope_exit.hpp>
+
+using arb::util::on_scope_exit;
 
 namespace sup {
 

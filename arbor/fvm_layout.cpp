@@ -236,7 +236,6 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
     return D;
 }
 
-
 // Build up mechanisms.
 //
 // Processing procedes in the following stages:

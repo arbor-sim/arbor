@@ -54,6 +54,62 @@ namespace {
     private:
         cell_size_type size_;
     };
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe() {}
+
+        cell_size_type num_cells() const override {
+            return size_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type) const override {
+            mc_cell c;
+            c.add_soma(20);
+            c.add_gap_junction({0,1});
+            return {std::move(c)};
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return cell_kind::cable1d_neuron;
+        }
+        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            switch (gid) {
+                case 0 :  return {gap_junction_connection({13, 0}, {0, 0}, 0.1)};
+                case 2 :  return {
+                    gap_junction_connection({7, 0}, {2, 0}, 0.1),
+                    gap_junction_connection({11, 0}, {2, 0}, 0.1)
+                };
+                case 3 :  return {
+                    gap_junction_connection({4, 0}, {3, 0}, 0.1),
+                    gap_junction_connection({8, 0}, {3, 0}, 0.1)
+                };
+                case 4 :  return {
+                    gap_junction_connection({3, 0}, {4, 0}, 0.1),
+                    gap_junction_connection({8, 0}, {4, 0}, 0.1),
+                    gap_junction_connection({9, 0}, {4, 0}, 0.1)
+                };
+                case 7 :  return {
+                    gap_junction_connection({2, 0}, {7, 0}, 0.1),
+                    gap_junction_connection({11, 0}, {7, 0}, 0.1)
+                };;
+                case 8 :  return {
+                    gap_junction_connection({3, 0}, {8, 0}, 0.1),
+                    gap_junction_connection({4, 0}, {8, 0}, 0.1)
+                };;
+                case 9 :  return {gap_junction_connection({4, 0}, {9, 0}, 0.1)};
+                case 11 : return {
+                    gap_junction_connection({2, 0}, {11, 0}, 0.1),
+                    gap_junction_connection({7, 0}, {11, 0}, 0.1)
+                };
+                case 13 : return {gap_junction_connection({0, 0}, {13, 0}, 0.1)};
+                default : return {};
+            }
+        }
+
+    private:
+        cell_size_type size_ = 15;
+    };
 }
 
 // test assumes one domain
@@ -250,4 +306,50 @@ TEST(domain_decomposition, hints) {
 
     EXPECT_EQ(expected_c1d_groups, c1d_groups);
     EXPECT_EQ(expected_ss_groups, ss_groups);
+}
+
+TEST(domain_decomposition, compulsory_groups)
+{
+    proc_allocation resources;
+    resources.num_threads = 1;
+    resources.gpu_id = -1; // disable GPU if available
+    auto ctx = make_context(resources);
+
+    auto R = gap_recipe();
+    const auto D0 = partition_load_balance(R, ctx);
+    EXPECT_EQ(9u, D0.groups.size());
+
+    std::vector<std::vector<cell_gid_type>> expected_groups0 =
+            { {1}, {5}, {6}, {10}, {12}, {14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+
+    for (unsigned i = 0; i < 9u; i++) {
+        EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
+    }
+
+    // Test different group_hints
+    partition_hint_map hints;
+    hints[cell_kind::cable1d_neuron].cpu_group_size = 3;
+    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+
+    const auto D1 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(5u, D1.groups.size());
+
+    std::vector<std::vector<cell_gid_type>> expected_groups1 =
+            { {1, 5, 6}, {10, 12, 14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+
+    for (unsigned i = 0; i < 5u; i++) {
+        EXPECT_EQ(expected_groups1[i], D1.groups[i].gids);
+    }
+
+    hints[cell_kind::cable1d_neuron].cpu_group_size = 20;
+    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+
+    const auto D2 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(1u, D2.groups.size());
+
+    std::vector<cell_gid_type> expected_groups2 =
+            { 1, 5, 6, 10, 12, 14, 0, 13, 2, 7, 11, 3, 4, 8, 9 };
+
+    EXPECT_EQ(expected_groups2, D2.groups[0].gids);
+
 }

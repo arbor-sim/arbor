@@ -77,3 +77,19 @@ TEST(local_context, gather_spikes)
     EXPECT_EQ(part[0], 0u);
     EXPECT_EQ(part[1], spikes.size());
 }
+
+TEST(local_context, gather_gids)
+{
+    arb::local_context ctx;
+    using gvec = std::vector<arb::cell_gid_type>;
+
+    gvec gids = {0, 1, 2, 3, 4};
+
+    auto s = ctx.gather_gids(gids);
+
+    auto& part = s.partition();
+    EXPECT_EQ(s.values(), gids);
+    EXPECT_EQ(part.size(), 2u);
+    EXPECT_EQ(part[0], 0u);
+    EXPECT_EQ(part[1], gids.size());
+}

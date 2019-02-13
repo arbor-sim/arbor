@@ -90,5 +90,5 @@ PROCEDURE trates(vm,sh2,celsius) {
 
 FUNCTION trap0(v,th,a,q) {
     : trap0 = a * (v - th) / (1 - exp(-(v - th)/q))
-    trap0 = -a*q*exprelr((v-th)/q)
+    trap0 = a*q*exprelr(-(v-th)/q)
 }
