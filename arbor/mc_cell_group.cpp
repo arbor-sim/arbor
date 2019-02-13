@@ -86,19 +86,15 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PE(advance_eventsetup);
     staged_events_.clear();
 
-    cell_size_type ev_begin = 0, ev_mid = 0, ev_end = 0;
+    fvm_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
     // skip event binning if empty lanes are passed
     if (event_lanes.size()) {
 
         std::vector<cell_size_type> idx_sorted_by_intdom(cell_to_intdom_.size());
-        cell_size_type n = 0;
-        std::generate(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), [&]{ return n++; });
-        std::sort(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(),
-            [&](cell_size_type a, cell_size_type b) {
-            return cell_to_intdom_[a] < cell_to_intdom_[b];
-        });
+        std::iota(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), 0);
+        util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return cell_to_intdom_[i]; });
 
-        int prev_intdom = -1;
+        fvm_index_type prev_intdom = -1;
         for (auto i: util::count_along(gids_)) {
             unsigned count_staged = 0;
 

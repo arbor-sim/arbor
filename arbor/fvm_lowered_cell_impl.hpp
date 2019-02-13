@@ -69,7 +69,9 @@ public:
         const recipe& rec,
         const fvm_discretization& D);
 
-    fvm_index_type fvm_intdom(
+    // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
+    // Fills cell_to_intdom map; returns number of intdoms
+    fvm_size_type fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
         std::vector<fvm_index_type>& cell_to_intdom);
@@ -369,13 +371,16 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     check_voltage_mV = global_props.membrane_voltage_limit_mV;
 
-    // Get intdom index of every gid, the information is used by the discretization to generate cv_to_intdom
-
     auto num_intdoms = fvm_intdom(rec, gids, cell_to_intdom);
 
     // Discretize cells, build matrix.
 
-    fvm_discretization D = fvm_discretize(cells, cell_to_intdom);
+    fvm_discretization D = fvm_discretize(cells);
+
+    std::vector<index_type> cv_to_intdom(D.ncomp);
+    std::transform(D.cv_to_cell.begin(), D.cv_to_cell.end(), cv_to_intdom.begin(),
+                   [&cell_to_intdom](index_type i){ return cell_to_intdom[i]; });
+
     arb_assert(D.ncell == ncell);
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
     sample_events_ = sample_event_stream(num_intdoms);
@@ -395,7 +400,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(num_intdoms, D.cv_to_intdom, gj_vector, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(num_intdoms, cv_to_intdom, gj_vector, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 
@@ -432,7 +437,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
                 // (builtin stimulus, for example, has no targets)
                 if (!config.target.empty()) {
-                    target_handles[config.target[i]] = target_handle(mech_id, i, D.cv_to_intdom[cv]);
+                    target_handles[config.target[i]] = target_handle(mech_id, i, cv_to_intdom[cv]);
                 }
             }
         }
@@ -542,7 +547,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
 }
 
 template <typename B>
-fvm_index_type fvm_lowered_cell_impl<B>::fvm_intdom(
+fvm_size_type fvm_lowered_cell_impl<B>::fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
         std::vector<fvm_index_type>& cell_to_intdom) {

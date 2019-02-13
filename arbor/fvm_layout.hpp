@@ -61,7 +61,6 @@ struct fvm_discretization {
     // Note: if CV j has no parent, parent_cv[j] = j. TODO: confirm!
     std::vector<index_type> parent_cv;
     std::vector<index_type> cv_to_cell;
-    std::vector<index_type> cv_to_intdom;
 
     std::vector<value_type> face_conductance; // [µS]
     std::vector<value_type> cv_area;          // [µm²]
@@ -88,9 +87,7 @@ struct fvm_discretization {
     }
 };
 
-fvm_discretization fvm_discretize(
-        const std::vector<mc_cell>& cells,
-        const std::vector<fvm_index_type>& cell_to_intdom);
+fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells);
 
 
 // Post-discretization data for point and density mechanism instantiation.
