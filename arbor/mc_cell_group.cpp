@@ -94,6 +94,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         std::iota(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), 0);
         util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return cell_to_intdom_[i]; });
 
+        /// Event merging on integration domain could benefit from the use of the logic from `tree_merge_events`
         fvm_index_type prev_intdom = -1;
         for (auto i: util::count_along(gids_)) {
             unsigned count_staged = 0;

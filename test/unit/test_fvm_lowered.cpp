@@ -839,15 +839,6 @@ TEST(fvm_lowered, integration_domains) {
         execution_context context;
         fvm_cell fvcell(context);
 
-        std::vector<mc_cell> cells;
-        for (unsigned i = 0; i < 7; i++) {
-            mc_cell c;
-            c.add_soma(2.1);
-            auto dend = c.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300);
-            dend->set_compartments((i % 3) + 1);
-            cells.push_back(std::move(c));
-        }
-
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         std::vector<fvm_index_type> cell_to_intdom;
 
@@ -861,15 +852,6 @@ TEST(fvm_lowered, integration_domains) {
         execution_context context;
         fvm_cell fvcell(context);
 
-        std::vector<mc_cell> cells;
-        for (unsigned i = 0; i < 7; i++) {
-            mc_cell c;
-            c.add_soma(2.1);
-            auto dend = c.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300);
-            dend->set_compartments((i % 3) + 1);
-            cells.push_back(std::move(c));
-        }
-
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         std::vector<fvm_index_type> cell_to_intdom;
 
@@ -882,15 +864,6 @@ TEST(fvm_lowered, integration_domains) {
     {
         execution_context context;
         fvm_cell fvcell(context);
-
-        std::vector<mc_cell> cells;
-        for (unsigned i = 0; i < 4; i++) {
-            mc_cell c;
-            c.add_soma(2.1);
-            auto dend = c.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300);
-            dend->set_compartments((i % 3) + 1);
-            cells.push_back(std::move(c));
-        }
 
         std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
         std::vector<fvm_index_type> cell_to_intdom;
