@@ -24,10 +24,12 @@
 
 namespace arb {
 
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.intdom_index),(b.mech_id,b.mech_index,b.intdom_index))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
+
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
-    lowered_(std::move(lowered))
+    gids_(gids), lowered_(std::move(lowered))
 {
-    generate_deps_gids(rec, gids);
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
@@ -47,7 +49,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
     target_handles_.reserve(n_targets);
 
     // Construct cell implementation, retrieving handles and maps. 
-    lowered_->initialize(gids_, deps_, rec, target_handles_, probe_map_);
+    lowered_->initialize(gids_, rec, cell_to_intdom_, target_handles_, probe_map_);
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
@@ -56,58 +58,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
         }
     }
     spike_sources_.shrink_to_fit();
-}
-
-// Fills gids_ and deps_: gids_ are sorted such that members of the same supercell are consecutive
-void mc_cell_group::generate_deps_gids(const recipe& rec, std::vector<cell_gid_type> gids) {
-
-    std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
-    for (auto i: util::count_along(gids)) {
-        gid_to_loc[gids[i]] = i;
-    }
-
-    deps_.reserve(gids_.size());
-    std::unordered_set<cell_gid_type> visited;
-    std::queue<cell_gid_type> scq;
-
-    for (auto gid: gids) {
-        if (visited.count(gid)) continue;
-        visited.insert(gid);
-
-        cell_size_type sc_size = 0;
-        scq.push(gid);
-        while (!scq.empty()) {
-            auto g = scq.front();
-            scq.pop();
-
-            gids_.push_back(g);
-            ++sc_size;
-
-            for (auto gj: rec.gap_junctions_on(g)) {
-                cell_gid_type peer =
-                        gj.local.gid==g? gj.peer.gid:
-                        gj.peer.gid==g?  gj.local.gid:
-                        throw bad_cell_description(cell_kind::cable1d_neuron, g);
-
-                if (!gid_to_loc.count(peer)) {
-                    throw gj_unsupported_domain_decomposition(g, peer);
-                }
-
-                if (!visited.count(peer)) {
-                    visited.insert(peer);
-                    scq.push(peer);
-                }
-            }
-        }
-
-        deps_.push_back(sc_size>1? sc_size: 0);
-        deps_.insert(deps_.end(), sc_size-1, 0);
-    }
-
-    perm_gids_.reserve(gids_.size());
-    for (auto gid: gids_) {
-        perm_gids_.push_back(gid_to_loc[gid]);
-    }
 }
 
 void mc_cell_group::reset() {
@@ -135,20 +85,50 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     PE(advance_eventsetup);
     staged_events_.clear();
+
+    fvm_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
     // skip event binning if empty lanes are passed
     if (event_lanes.size()) {
-        for (auto lid: util::count_along(gids_)) {
-            auto& lane = event_lanes[perm_gids_[lid]];
+
+        std::vector<cell_size_type> idx_sorted_by_intdom(cell_to_intdom_.size());
+        std::iota(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), 0);
+        util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return cell_to_intdom_[i]; });
+
+        /// Event merging on integration domain could benefit from the use of the logic from `tree_merge_events`
+        fvm_index_type prev_intdom = -1;
+        for (auto i: util::count_along(gids_)) {
+            unsigned count_staged = 0;
+
+            auto lid = idx_sorted_by_intdom[i];
+            auto& lane = event_lanes[lid];
+            auto curr_intdom = cell_to_intdom_[lid];
+
             for (auto e: lane) {
                 if (e.time>=ep.tfinal) break;
                 e.time = binners_[lid].bin(e.time, tstart);
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
+                count_staged++;
             }
+
+            ev_end += count_staged;
+
+            if (curr_intdom != prev_intdom) {
+                ev_begin = ev_end - count_staged;
+                prev_intdom = curr_intdom;
+            }
+            else {
+                std::inplace_merge(staged_events_.begin() + ev_begin,
+                                   staged_events_.begin() + ev_mid,
+                                   staged_events_.begin() + ev_end);
+            }
+
+            ev_mid = ev_end;
         }
     }
     PL();
+
 
     // Create sample events and delivery information.
     //
@@ -196,7 +176,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times});
 
             for (auto t: sample_times) {
-                sample_event ev{t, cell_index, {p.handle, n_samples++}};
+                sample_event ev{t, (cell_gid_type)cell_to_intdom_[cell_index], {p.handle, n_samples++}};
                 sample_events.push_back(ev);
             }
         }
