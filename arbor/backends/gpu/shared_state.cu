@@ -34,24 +34,6 @@ void init_concentration_impl(unsigned n, T* Xi, T* Xo, const T* weight_Xi, const
     }
 }
 
-template <typename T, typename I>
-__global__ void sync_time_to_impl(unsigned n, T* time_to, const I* time_deps) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    if (i<n) {
-        if (time_deps[i] > 0) {
-            auto min_t = time_to[i];
-            for (int j = 1; j < time_deps[i]; j++) {
-                if (time_to[i+j] < min_t) {
-                    min_t = time_to[i+j];
-                }
-            }
-            for (int j = 0; j < time_deps[i]; j++) {
-                time_to[i+j] = min_t;
-            }
-        }
-    }
-}
-
 template <typename T>
 __global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt, T tmax) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
@@ -131,15 +113,6 @@ void init_concentration_impl(
     kernel::init_concentration_impl<<<nblock, block_dim>>>(n, Xi, Xo, weight_Xi, weight_Xo, c_int, c_ext);
 }
 
-void sync_time_to_impl(std::size_t n, fvm_value_type* time_to, const fvm_index_type* time_deps)
-{
-    if (!n) return;
-
-    constexpr int block_dim = 128;
-    int nblock = block_count(n, block_dim);
-    kernel::sync_time_to_impl<<<nblock, block_dim>>>(n, time_to, time_deps);
-}
-
 void update_time_to_impl(
     std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
     fvm_value_type dt, fvm_value_type tmax)
@@ -152,17 +125,17 @@ void update_time_to_impl(
 }
 
 void set_dt_impl(
-    fvm_size_type ncell, fvm_size_type ncomp, fvm_value_type* dt_cell, fvm_value_type* dt_comp,
-    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_cell)
+    fvm_size_type nintdom, fvm_size_type ncomp, fvm_value_type* dt_intdom, fvm_value_type* dt_comp,
+    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_intdom)
 {
-    if (!ncell || !ncomp) return;
+    if (!nintdom || !ncomp) return;
 
     constexpr int block_dim = 128;
-    int nblock = block_count(ncell, block_dim);
-    kernel::vec_minus<<<nblock, block_dim>>>(ncell, dt_cell, time_to, time);
+    int nblock = block_count(nintdom, block_dim);
+    kernel::vec_minus<<<nblock, block_dim>>>(nintdom, dt_intdom, time_to, time);
 
     nblock = block_count(ncomp, block_dim);
-    kernel::gather<<<nblock, block_dim>>>(ncomp, dt_comp, dt_cell, cv_to_cell);
+    kernel::gather<<<nblock, block_dim>>>(ncomp, dt_comp, dt_intdom, cv_to_intdom);
 }
 
 void add_gj_current_impl(
