@@ -439,7 +439,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
                 // (builtin stimulus, for example, has no targets)
                 if (!config.target.empty()) {
-                    target_handles[config.target[i]] = target_handle(mech_id, config.cv_loc[i], D.cv_to_intdom[cv]);
+                    target_handles[config.target[i]] = target_handle(mech_id, config.cv_loc[i], cv_to_intdom[cv]);
                 }
             }
         }
