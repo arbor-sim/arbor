@@ -1,5 +1,5 @@
-# 3.8 requirement for CUDA language support.
-cmake_minimum_required(VERSION 3.8)
+# 3.9 requirement for CUDA language support and MPI support.
+cmake_minimum_required(VERSION 3.9)
 
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
