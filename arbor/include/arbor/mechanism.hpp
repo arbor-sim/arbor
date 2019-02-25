@@ -28,9 +28,9 @@ public:
     // `concrete_mechanism<B>::instantiate` (v.i.)
     struct layout {
         std::vector<fvm_index_type> cv;     // Maps in-instance index to CV index.
-        std::vector<fvm_index_type> coalesced_mult;     // Used to update state variables for coalesced synapses
         std::vector<fvm_value_type> weight; // Maps in-instance index to compartment contribution.
-        bool coalesced_synapses;
+        std::vector<fvm_index_type> multiplicity; // Number of logical point processes at in-instance index;
+                                                  // if empty point processes are not coalesced, all multipliers are 1
     };
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.
@@ -62,10 +62,8 @@ public:
     // Non-global parameters can be set post-instantiation:
     virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
 
-    virtual void nrn_coalesce_init() = 0;
-
     // Simulation interfaces:
-    virtual void nrn_init() = 0;
+    virtual void initialize() = 0;
     virtual void nrn_state() = 0;
     virtual void nrn_current() = 0;
     virtual void deliver_events() {};

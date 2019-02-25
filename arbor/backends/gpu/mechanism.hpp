@@ -59,7 +59,7 @@ public:
 
     void set_global(const std::string& key, fvm_value_type value) override;
 
-    void nrn_coalesce_init() override;
+    void initialize() override;
 
 protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)
@@ -80,7 +80,7 @@ protected:
 
     iarray indices_;
     array data_;
-    bool coalesced_synapses_;
+    bool mult_in_place_;
 
     // Generated mechanism field, global and ion table lookup types.
     // First component is name, second is pointer to corresponing member in 
@@ -104,6 +104,8 @@ protected:
 
     using ion_index_entry = std::pair<ionKind, const index_type**>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
+
+    virtual void nrn_init() = 0;
 
     // Generated mechanisms must implement the following methods, together with
     // fingerprint(), clone(), kind(), nrn_init(), nrn_state(), nrn_current()

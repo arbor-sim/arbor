@@ -64,7 +64,7 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
 void mechanism::instantiate(unsigned id, backend::shared_state& shared, const layout& pos_data) {
     using util::make_range;
 
-    coalesced_synapses_ = pos_data.coalesced_synapses;
+    mult_in_place_ = !pos_data.multiplicity.empty();
     util::padded_allocator<> pad(shared.alignment);
     mechanism_id_ = id;
     width_ = pos_data.cv.size();
@@ -132,12 +132,15 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
     node_index_ = iarray(width_padded_, pad);
-    coalesced_mult_ = iarray(width_padded_, pad);
 
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
-    copy_extend(pos_data.coalesced_mult, coalesced_mult_, 1);
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
     index_constraints_ = make_constraint_partition(node_index_, width_, simd_width);
+
+    if (mult_in_place_) {
+        multiplicity_ = iarray(width_padded_, pad);
+        copy_extend(pos_data.multiplicity, multiplicity_, 1);
+    }
 
     for (auto i: ion_index_table()) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, i.first);
@@ -186,17 +189,15 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
     }
 }
 
-void mechanism::nrn_coalesce_init() {
+void mechanism::initialize() {
     nrn_init();
 
     auto states = state_table();
-    std::size_t n_field = states.size();
 
-    if(coalesced_synapses_) {
-        for (std::size_t i = 0; i < n_field; ++i) {
-            fvm_value_type* &state_ptr = *(states[i].second);
+    if(mult_in_place_) {
+        for (auto& state: states) {
             for (std::size_t j = 0; j < width_; ++j) {
-                state_ptr[j] *= coalesced_mult_[j];
+                (*state.second)[j] *= multiplicity_[j];
             }
         }
     }

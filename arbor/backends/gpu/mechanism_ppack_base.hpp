@@ -38,7 +38,7 @@ struct mechanism_ppack_base {
     const value_type* temperature_degC_;
 
     const index_type* node_index_;
-    const index_type* coalesced_mult_;
+    const index_type* multiplicity_;
 
     const value_type* weight_;
 };

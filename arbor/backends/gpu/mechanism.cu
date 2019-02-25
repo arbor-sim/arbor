@@ -10,20 +10,18 @@ namespace arb {
 namespace gpu {
 
 __global__
-void nrn_mult_(const fvm_index_type* params_, fvm_value_type* state_, int n) {
+void multiply_in_place_(fvm_value_type* s, const fvm_index_type* p, int n) {
     int tid_ = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid_<n) {
-        state_[tid_] *= params_[tid_];
-        //printf("%d %d\n", tid_, params_[tid_]);
+        s[tid_] *= p[tid_];
     }
 }
 
-void nrn_mult(mechanism_ppack_base* p, fvm_value_type* s) {
-    auto n = p->width_;
+void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) {
     unsigned block_dim = 128;
     unsigned grid_dim = gpu::impl::block_count(n, block_dim);
 
-    nrn_mult_<<<grid_dim, block_dim>>>(p->coalesced_mult_, s, n);
+    multiply_in_place_<<<grid_dim, block_dim>>>(s, p, n);
 }
 
 } // namespace gpu

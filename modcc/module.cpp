@@ -427,7 +427,16 @@ bool Module::semantic() {
                     for (const auto &id: state_vars) {
                         auto coef = symbolic_pdiff(s->is_assignment()->rhs(), id);
                         if(coef->is_number()) {
-                            linear &= (coef->is_number()->value() == 1 || coef->is_number()->value() == 0);
+                            if (!s->is_assignment()->lhs()->is_identifier()) {
+                                error(pprintf("Left hand side of assignment is not an identifier"));
+                                return false;
+                            }
+                            linear &= s->is_assignment()->lhs()->is_identifier()->name() == id ?
+                                      coef->is_number()->value() == 1 :
+                                      coef->is_number()->value() == 0;
+                        }
+                        else {
+                            linear = false;
                         }
                     }
                 }

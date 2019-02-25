@@ -55,7 +55,7 @@ public:
     }
 
     void instantiate(fvm_size_type id, backend::shared_state& shared, const layout& w) override;
-    void nrn_coalesce_init() override;
+    void initialize() override;
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
@@ -85,8 +85,8 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
-    iarray coalesced_mult_;
-    bool coalesced_synapses_;
+    iarray multiplicity_;
+    bool mult_in_place_;
     constraint_partition index_constraints_;
     const value_type* weight_;    // Points within data_ after instantiation.
 
@@ -116,6 +116,8 @@ protected:
 
     using ion_index_entry = std::pair<ionKind, iarray*>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
+
+    virtual void nrn_init() = 0;
 
     // Generated mechanisms must implement the following methods, together with
     // fingerprint(), clone(), kind(), nrn_init(), nrn_state(), nrn_current()

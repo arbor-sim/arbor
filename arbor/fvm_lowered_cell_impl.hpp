@@ -157,7 +157,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     set_tmin(0);
 
     for (auto& m: mechanisms_) {
-        m->nrn_coalesce_init();
+        m->initialize();
     }
 
     update_ion_state();
@@ -421,9 +421,11 @@ void fvm_lowered_cell_impl<B>::initialize(
 
         mechanism::layout layout;
         layout.cv = config.cv;
-        layout.coalesced_mult = config.coalesced_mult;
-        layout.coalesced_synapses = config.linear && config.kind==mechanismKind::point && global_props.coalesce_synapses;
+        layout.multiplicity = config.multiplicity;
         layout.weight.resize(layout.cv.size());
+
+        std::vector<fvm_index_type> multiplicity_divs;
+        auto multiplicity_part = util::make_partition(multiplicity_divs, layout.multiplicity);
 
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional
         // contribution in the CV, and F is the scaling factor required
@@ -433,13 +435,16 @@ void fvm_lowered_cell_impl<B>::initialize(
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
-            for (auto i: count_along(config.cv_loc)) {
-                auto cv = layout.cv[config.cv_loc[i]];
-                layout.weight[config.cv_loc[i]] = 1000/D.cv_area[cv];
+            for (auto i: count_along(config.cv)) {
+                auto cv = layout.cv[i];
+                layout.weight[i] = 1000/D.cv_area[cv];
 
                 // (builtin stimulus, for example, has no targets)
+
                 if (!config.target.empty()) {
-                    target_handles[config.target[i]] = target_handle(mech_id, config.cv_loc[i], cv_to_intdom[cv]);
+                    for (auto j: make_span(multiplicity_part[i])) {
+                        target_handles[config.target[j]] = target_handle(mech_id, i, cv_to_intdom[cv]);
+                    }
                 }
             }
         }
