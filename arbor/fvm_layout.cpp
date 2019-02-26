@@ -591,16 +591,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
 
             std::sort(cv_param_vec.begin(), cv_param_vec.end());
 
-            auto identical_synapse = [&nparam](cv_param i, cv_param j) {
-                if (i.cv != j.cv) {
-                    return false;
-                }
-                bool ret = true;
-                for(unsigned idx = 0; idx < nparam; idx++) {
-                    ret &= i.params[idx] == j.params[idx];
-                    if (!ret) break;
-                }
-                return ret;
+            auto identical_synapse = [](const cv_param& i, const cv_param& j) {
+                return i.cv==j.cv && i.params==j.params;
             };
 
             config.param_values.resize(nparam);
