@@ -52,6 +52,7 @@ Class Documentation
     Simulations take the following inputs:
 
         * The **constructor** takes:
+
             *   an :cpp:class:`arb::recipe` that describes the model;
             *   an :cpp:class:`arb::domain_decomposition` that describes how the
                 cells in the model are assigned to hardware resources;

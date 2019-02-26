@@ -78,6 +78,128 @@ ACCESS_BIND(\
 
 using namespace arb;
 
+class gap_recipe_0: public recipe {
+public:
+    gap_recipe_0() {}
+
+    cell_size_type num_cells() const override {
+        return size_;
+    }
+
+    arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
+        mc_cell c;
+        c.add_soma(20);
+        c.add_gap_junction({0, 1});
+        return {std::move(c)};
+    }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable1d_neuron;
+    }
+    std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+        switch (gid) {
+            case 0 :
+                return {gap_junction_connection({5, 0}, {0, 0}, 0.1)};
+            case 2 :
+                return {
+                        gap_junction_connection({3, 0}, {2, 0}, 0.1),
+                };
+            case 3 :
+                return {
+                        gap_junction_connection({7, 0}, {3, 0}, 0.1),
+                        gap_junction_connection({3, 0}, {2, 0}, 0.1)
+                };
+            case 5 :
+                return {gap_junction_connection({5, 0}, {0, 0}, 0.1)};
+            case 7 :
+                return {
+                        gap_junction_connection({3, 0}, {7, 0}, 0.1),
+                };
+            default :
+                return {};
+        }
+    }
+
+private:
+    cell_size_type size_ = 12;
+};
+
+class gap_recipe_1: public recipe {
+public:
+    gap_recipe_1() {}
+
+    cell_size_type num_cells() const override {
+        return size_;
+    }
+
+    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+        mc_cell c;
+        c.add_soma(20);
+        return {std::move(c)};
+    }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable1d_neuron;
+    }
+
+private:
+    cell_size_type size_ = 12;
+};
+
+class gap_recipe_2: public recipe {
+public:
+    gap_recipe_2() {}
+
+    cell_size_type num_cells() const override {
+        return size_;
+    }
+
+    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+        mc_cell c;
+        c.add_soma(20);
+        c.add_gap_junction({0,1});
+        return {std::move(c)};
+    }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable1d_neuron;
+    }
+    std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+        switch (gid) {
+            case 0 :
+                return {
+                        gap_junction_connection({2, 0}, {0, 0}, 0.1),
+                        gap_junction_connection({3, 0}, {0, 0}, 0.1),
+                        gap_junction_connection({5, 0}, {0, 0}, 0.1)
+                };
+            case 2 :
+                return {
+                        gap_junction_connection({0, 0}, {2, 0}, 0.1),
+                        gap_junction_connection({3, 0}, {2, 0}, 0.1),
+                        gap_junction_connection({5, 0}, {2, 0}, 0.1)
+                };
+            case 3 :
+                return {
+                        gap_junction_connection({0, 0}, {3, 0}, 0.1),
+                        gap_junction_connection({2, 0}, {3, 0}, 0.1),
+                        gap_junction_connection({5, 0}, {3, 0}, 0.1)
+                };
+            case 5 :
+                return {
+                        gap_junction_connection({2, 0}, {5, 0}, 0.1),
+                        gap_junction_connection({3, 0}, {5, 0}, 0.1),
+                        gap_junction_connection({0, 0}, {5, 0}, 0.1)
+                };
+            default :
+                return {};
+        }
+    }
+
+private:
+    cell_size_type size_ = 12;
+};
+
+
 TEST(fvm_lowered, matrix_init)
 {
     execution_context context;
@@ -92,10 +214,11 @@ TEST(fvm_lowered, matrix_init)
     cell.segment(1)->set_compartments(10);
 
     std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(cell), targets, probe_map);
+    fvcell.initialize({0}, cable1d_recipe(cell), cell_to_intdom, targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
     EXPECT_EQ(J.size(), 11u);
@@ -137,10 +260,11 @@ TEST(fvm_lowered, target_handles) {
     cells[1].add_detector({0, 0}, 3.3);
 
     std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0, 1}, cable1d_recipe(cells), targets, probe_map);
+    fvcell.initialize({0, 1}, cable1d_recipe(cells), cell_to_intdom, targets, probe_map);
 
     mechanism* expsyn = find_mechanism(fvcell, "expsyn");
     ASSERT_TRUE(expsyn);
@@ -154,19 +278,19 @@ TEST(fvm_lowered, target_handles) {
 
     EXPECT_EQ(expsyn_id, targets[0].mech_id);
     EXPECT_EQ(1u, targets[0].mech_index);
-    EXPECT_EQ(0u, targets[0].cell_index);
+    EXPECT_EQ(0u, targets[0].intdom_index);
 
     EXPECT_EQ(expsyn_id, targets[1].mech_id);
     EXPECT_EQ(0u, targets[1].mech_index);
-    EXPECT_EQ(0u, targets[1].cell_index);
+    EXPECT_EQ(0u, targets[1].intdom_index);
 
     EXPECT_EQ(exp2syn_id, targets[2].mech_id);
     EXPECT_EQ(0u, targets[2].mech_index);
-    EXPECT_EQ(1u, targets[2].cell_index);
+    EXPECT_EQ(1u, targets[2].intdom_index);
 
     EXPECT_EQ(expsyn_id, targets[3].mech_id);
     EXPECT_EQ(2u, targets[3].mech_index);
-    EXPECT_EQ(1u, targets[3].cell_index);
+    EXPECT_EQ(1u, targets[3].intdom_index);
 }
 
 TEST(fvm_lowered, stimulus) {
@@ -196,6 +320,7 @@ TEST(fvm_lowered, stimulus) {
     // The implementation of the stimulus is tested by creating a lowered cell, then
     // testing that the correct currents are injected at the correct control volumes
     // as during the stimulus windows.
+    std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
     fvm_discretization D = fvm_discretize(cells);
     const auto& A = D.cv_area;
@@ -204,7 +329,7 @@ TEST(fvm_lowered, stimulus) {
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(cells), targets, probe_map);
+    fvcell.initialize({0}, cable1d_recipe(cells), cell_to_intdom, targets, probe_map);
 
     mechanism* stim = find_mechanism(fvcell, "_builtin_stimulus");
     ASSERT_TRUE(stim);
@@ -294,11 +419,12 @@ TEST(fvm_lowered, derived_mechs) {
         // Test initialization and global parameter values.
 
         std::vector<target_handle> targets;
+        std::vector<fvm_index_type> cell_to_intdom;
         probe_association_map<probe_handle> probe_map;
 
         execution_context context;
         fvm_cell fvcell(context);
-        fvcell.initialize({0, 1, 2}, rec, targets, probe_map);
+        fvcell.initialize({0, 1, 2}, rec, cell_to_intdom, targets, probe_map);
 
         // Both mechanisms will have the same internal name, "test_kin1".
 
@@ -401,10 +527,11 @@ TEST(fvm_lowered, weighted_write_ion) {
     c.segments()[3] ->add_mechanism("test_ca");
 
     std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
+    fvcell.initialize({0}, cable1d_recipe(c), cell_to_intdom, targets, probe_map);
 
     auto& state = *(fvcell.*private_state_ptr).get();
     auto& ion = state.ion_data.at(ionKind::ca);
@@ -444,5 +571,308 @@ TEST(fvm_lowered, weighted_write_ion) {
     test_ca->write_ions();
     std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
     EXPECT_EQ(expected_iconc, ion_iconc);
+}
+
+TEST(fvm_lowered, gj_coords_simple) {
+    using pair = std::pair<int, int>;
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe() {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable1d_neuron; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return {};
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            conns.push_back(gap_junction_connection({(gid+1)%2, 0}, {gid, 0}, 0.5));
+            return conns;
+        }
+
+    protected:
+        cell_size_type n_ = 2;
+    };
+
+    execution_context context;
+    fvm_cell fvcell(context);
+
+    gap_recipe rec;
+    std::vector<mc_cell> cells;
+    mc_cell c, d;
+    c.add_soma(2.1);
+    c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
+    c.segment(1)->set_compartments(5);
+    c.add_gap_junction({1, 0.8});
+    cells.push_back(std::move(c));
+
+    d.add_soma(2.4);
+    d.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
+    d.segment(1)->set_compartments(2);
+    d.add_gap_junction({1, 1});
+    cells.push_back(std::move(d));
+
+    fvm_discretization D = fvm_discretize(cells);
+
+    std::vector<cell_gid_type> gids = {0, 1};
+    auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
+
+    auto weight = [&](fvm_value_type g, fvm_index_type i){
+        return g * 1e3 / D.cv_area[i];
+    };
+
+    EXPECT_EQ(pair({4,8}), GJ[0].loc);
+    EXPECT_EQ(weight(0.5, 4), GJ[0].weight);
+
+    EXPECT_EQ(pair({8,4}), GJ[1].loc);
+    EXPECT_EQ(weight(0.5, 8), GJ[1].weight);
+}
+
+TEST(fvm_lowered, gj_coords_complex) {
+    using pair = std::pair<int, int>;
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe() {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable1d_neuron; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return {};
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            switch (gid) {
+                case 0 :  return {
+                            gap_junction_connection({2, 0}, {0, 1}, 0.01),
+                            gap_junction_connection({1, 0}, {0, 0}, 0.03),
+                            gap_junction_connection({1, 1}, {0, 0}, 0.04)
+                    };
+                case 1 :  return {
+                            gap_junction_connection({0, 0}, {1, 0}, 0.03),
+                            gap_junction_connection({0, 0}, {1, 1}, 0.04),
+                            gap_junction_connection({2, 1}, {1, 2}, 0.02),
+                            gap_junction_connection({2, 2}, {1, 3}, 0.01)
+                    };
+                case 2 :  return {
+                            gap_junction_connection({0, 1}, {2, 0}, 0.01),
+                            gap_junction_connection({1, 2}, {2, 1}, 0.02),
+                            gap_junction_connection({1, 3}, {2, 2}, 0.01)
+                    };
+                default : return {};
+            }
+            return conns;
+        }
+
+    protected:
+        cell_size_type n_ = 3;
+    };
+
+    execution_context context;
+    fvm_cell fvcell(context);
+
+    gap_recipe rec;
+    mc_cell c0, c1, c2;
+    std::vector<mc_cell> cells;
+
+    // Make 3 cells
+    c0.add_soma(2.1);
+    c0.add_cable(0, section_kind::dendrite, 0.3, 0.2, 8);
+    c0.segment(1)->set_compartments(4);
+
+    c1.add_soma(1.4);
+    c1.add_cable(0, section_kind::dendrite, 0.3, 0.5, 12);
+    c1.segment(1)->set_compartments(6);
+    c1.add_cable(1, section_kind::dendrite, 0.3, 0.2, 9);
+    c1.segment(2)->set_compartments(3);
+    c1.add_cable(1, section_kind::dendrite, 0.2, 0.2, 15);
+    c1.segment(3)->set_compartments(5);
+
+    c2.add_soma(2.9);
+    c2.add_cable(0, section_kind::dendrite, 0.3, 0.5, 4);
+    c2.segment(1)->set_compartments(2);
+    c2.add_cable(1, section_kind::dendrite, 0.4, 0.2, 6);
+    c2.segment(2)->set_compartments(2);
+    c2.add_cable(1, section_kind::dendrite, 0.1, 0.2, 8);
+    c2.segment(3)->set_compartments(2);
+    c2.add_cable(2, section_kind::dendrite, 0.2, 0.2, 4);
+    c2.segment(4)->set_compartments(2);
+    c2.add_cable(2, section_kind::dendrite, 0.2, 0.2, 4);
+    c2.segment(5)->set_compartments(2);
+
+    // Add 5 gap junctions
+    c0.add_gap_junction({1, 1});
+    c0.add_gap_junction({1, 0.5});
+
+    c1.add_gap_junction({2, 1});
+    c1.add_gap_junction({1, 1});
+    c1.add_gap_junction({1, 0.45});
+    c1.add_gap_junction({1, 0.1});
+
+    c2.add_gap_junction({1, 0.5});
+    c2.add_gap_junction({4, 1});
+    c2.add_gap_junction({2, 1});
+
+    cells.push_back(std::move(c0));
+    cells.push_back(std::move(c1));
+    cells.push_back(std::move(c2));
+
+    std::vector<fvm_index_type> cell_to_intdom;
+
+    std::vector<cell_gid_type> gids = {0, 1, 2};
+
+    fvcell.fvm_intdom(rec, gids, cell_to_intdom);
+    fvm_discretization D = fvm_discretize(cells);
+
+    auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
+    EXPECT_EQ(10u, GJ.size());
+
+    auto weight = [&](fvm_value_type g, fvm_index_type i){
+        return g * 1e3 / D.cv_area[i];
+    };
+
+    std::vector<pair> expected_loc = {{4, 14}, {4,11}, {2,21}, {14, 4}, {11,4} ,{8,28}, {6, 24}, {21,2}, {28,8}, {24, 6}};
+    std::vector<double> expected_weight = {
+            weight(0.03, 4), weight(0.04, 4), weight(0.01, 2), weight(0.03, 14), weight(0.04, 11),
+            weight(0.02, 8), weight(0.01, 6), weight(0.01, 21), weight(0.02, 28), weight(0.01, 24)
+    };
+
+    for (unsigned i = 0; i < GJ.size(); i++) {
+        bool found = false;
+        for (unsigned j = 0; j < expected_loc.size(); j++) {
+            if (expected_loc[j].first ==  GJ[i].loc.first && expected_loc[j].second ==  GJ[i].loc.second) {
+                found = true;
+                EXPECT_EQ(expected_weight[j], GJ[i].weight);
+                break;
+            }
+        }
+        EXPECT_TRUE(found);
+    }
+    std::cout << std::endl;
+}
+
+TEST(fvm_lowered, cell_group_gj) {
+    using pair = std::pair<int, int>;
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe() {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable1d_neuron; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return {};
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            if (gid % 2 == 0) {
+                // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
+                auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
+                auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
+                conns.push_back(gap_junction_connection({next_cell, 0}, {gid, 0}, 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, 0}, {gid, 0}, 0.03));
+            }
+            return conns;
+        }
+
+    protected:
+        cell_size_type n_ = 20;
+    };
+    execution_context context;
+    fvm_cell fvcell(context);
+
+    gap_recipe rec;
+    std::vector<mc_cell> cell_group0;
+    std::vector<mc_cell> cell_group1;
+
+    // Make 20 cells
+    for (unsigned i = 0; i < 20; i++) {
+        mc_cell c;
+        c.add_soma(2.1);
+        if (i % 2 == 0) {
+            c.add_gap_junction({0, 1});
+        }
+        if (i < 10) {
+            cell_group0.push_back(std::move(c));
+        }
+        else {
+            cell_group1.push_back(std::move(c));
+        }
+    }
+
+    std::vector<cell_gid_type> gids_cg0 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    std::vector<cell_gid_type> gids_cg1 = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+
+    std::vector<fvm_index_type> cell_to_intdom0, cell_to_intdom1;
+
+    auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
+    auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
+
+    fvm_discretization D0 = fvm_discretize(cell_group0);
+    fvm_discretization D1 = fvm_discretize(cell_group1);
+
+    auto GJ0 = fvcell.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
+    auto GJ1 = fvcell.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);
+
+    EXPECT_EQ(10u, GJ0.size());
+    EXPECT_EQ(10u, GJ1.size());
+
+    std::vector<pair> expected_loc = {{0, 2}, {0, 8}, {2, 4}, {2, 0}, {4, 6} ,{4, 2}, {6, 8}, {6, 4}, {8, 0}, {8, 6}};
+
+    for (unsigned i = 0; i < GJ0.size(); i++) {
+        EXPECT_EQ(expected_loc[i], GJ0[i].loc);
+        EXPECT_EQ(expected_loc[i], GJ1[i].loc);
+    }
+
+    std::vector<fvm_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
+    EXPECT_EQ(6u, num_dom0);
+    EXPECT_EQ(6u, num_dom1);
+
+    EXPECT_EQ(expected_doms, cell_to_intdom0);
+    EXPECT_EQ(expected_doms, cell_to_intdom1);
+
+}
+
+TEST(fvm_lowered, integration_domains) {
+    {
+        execution_context context;
+        fvm_cell fvcell(context);
+
+        std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
+        std::vector<fvm_index_type> cell_to_intdom;
+
+        auto num_dom = fvcell.fvm_intdom(gap_recipe_0(), gids, cell_to_intdom);
+        std::vector<fvm_index_type> expected_doms= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
+
+        EXPECT_EQ(4u, num_dom);
+        EXPECT_EQ(expected_doms, cell_to_intdom);
+    }
+    {
+        execution_context context;
+        fvm_cell fvcell(context);
+
+        std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
+        std::vector<fvm_index_type> cell_to_intdom;
+
+        auto num_dom = fvcell.fvm_intdom(gap_recipe_1(), gids, cell_to_intdom);
+        std::vector<fvm_index_type> expected_doms= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
+
+        EXPECT_EQ(7u, num_dom);
+        EXPECT_EQ(expected_doms, cell_to_intdom);
+    }
+    {
+        execution_context context;
+        fvm_cell fvcell(context);
+
+        std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
+        std::vector<fvm_index_type> cell_to_intdom;
+
+        auto num_dom = fvcell.fvm_intdom(gap_recipe_2(), gids, cell_to_intdom);
+        std::vector<fvm_index_type> expected_doms= {0u, 0u, 0u, 0u};
+
+        EXPECT_EQ(1u, num_dom);
+        EXPECT_EQ(expected_doms, cell_to_intdom);
+    }
 }
 

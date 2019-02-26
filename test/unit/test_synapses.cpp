@@ -77,7 +77,7 @@ TEST(synapses, syn_basic_state) {
 
     int num_syn = 4;
     int num_comp = 4;
-    int num_cell = 1;
+    int num_intdom = 1;
 
     auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn"));
     ASSERT_TRUE(expsyn);
@@ -85,8 +85,9 @@ TEST(synapses, syn_basic_state) {
     auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn"));
     ASSERT_TRUE(exp2syn);
 
+    std::vector<fvm_gap_junction> gj = {};
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
-    shared_state state(num_cell, std::vector<index_type>(num_comp, 0), align);
+    shared_state state(num_intdom, std::vector<index_type>(num_comp, 0), gj, align);
 
     state.reset(-65., constant::hh_squid_temp);
     fill(state.current_density, 1.0);

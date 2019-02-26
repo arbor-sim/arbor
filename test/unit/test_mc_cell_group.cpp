@@ -84,3 +84,4 @@ TEST(mc_cell_group, sources) {
         }
     }
 }
+

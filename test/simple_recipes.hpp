@@ -122,6 +122,5 @@ protected:
     std::vector<mc_cell> cells_;
 };
 
-
 } // namespace arb
 

@@ -22,7 +22,7 @@ namespace gpu {
 
 void test_thresholds_impl(
     int size,
-    const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
+    const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
@@ -44,7 +44,7 @@ public:
     threshold_watcher(const execution_context& ctx): stack_(ctx.gpu) {}
 
     threshold_watcher(
-        const fvm_index_type* cv_to_cell,
+        const fvm_index_type* cv_to_intdom,
         const fvm_value_type* t_before,
         const fvm_value_type* t_after,
         const fvm_value_type* values,
@@ -52,7 +52,7 @@ public:
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& ctx
     ):
-        cv_to_cell_(cv_to_cell),
+        cv_to_intdom_(cv_to_intdom),
         t_before_(t_before),
         t_after_(t_after),
         values_(values),
@@ -109,7 +109,7 @@ public:
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
-                cv_to_cell_, t_after_, t_before_,
+                cv_to_intdom_, t_after_, t_before_,
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
                 cv_index_.data(), values_, thresholds_.data());
@@ -129,7 +129,7 @@ public:
 private:
     /// Non-owning pointers to gpu-side cv-to-cell map, per-cell time data,
     /// and the values for to test against thresholds.
-    const fvm_index_type* cv_to_cell_ = nullptr;
+    const fvm_index_type* cv_to_intdom_ = nullptr;
     const fvm_value_type* t_before_ = nullptr;
     const fvm_value_type* t_after_ = nullptr;
     const fvm_value_type* values_ = nullptr;
