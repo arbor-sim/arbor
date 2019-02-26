@@ -1,3 +1,5 @@
+.. _cppcommon:
+
 Common Types
 ============
 

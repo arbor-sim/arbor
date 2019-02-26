@@ -7,7 +7,7 @@ Arbor
 What is Arbor?
 --------------
 
-Arbor is a high-performance library for computational neurscience simulations.
+Arbor is a high-performance library for computational neuroscience simulations.
 
 The development team is from from high-performance computing (HPC) centers:
 
@@ -43,6 +43,24 @@ Some key features include:
    install
 
 .. toctree::
+   :caption: Arbor Models:
+
+   model_intro
+   model_common
+   model_recipe
+   model_domdec
+   model_simulation
+
+.. toctree::
+   :caption: Python:
+
+   py_overview
+   py_common
+   py_recipe
+   py_domdec
+   py_simulation
+
+.. toctree::
    :caption: C++ API:
 
    cpp_intro
@@ -57,7 +75,9 @@ Some key features include:
    library
    simd_api
    profiler
+   py_profiler
    sampling_api
    cpp_distributed_context
    cpp_dry_run
+   py_unittest
 

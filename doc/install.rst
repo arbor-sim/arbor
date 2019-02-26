@@ -1,3 +1,5 @@
+.. _installarbor:
+
 Installing Arbor
 ################
 
@@ -112,6 +114,13 @@ Distributed
 Arbor uses MPI to run on HPC cluster systems.
 Arbor has been tested on MVAPICH2, OpenMPI, Cray MPI, and IBM MPI.
 More information on building with MPI is in the `HPC cluster section <cluster_>`_.
+
+Python
+~~~~~~
+
+Arbor has a python front end, for which Python 3.6 is required.
+In order to use MPI in combination with the python frontend `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_ is required as a site-package of python.
+
 
 Documentation
 ~~~~~~~~~~~~~~
@@ -325,8 +334,41 @@ example:
     export CPATH="/opt/cuda/include:$CPATH"
     cmake -DARB_WITH_GPU=ON
 
+
 .. Note::
     Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
+
+
+Python Front End
+----------------
+
+Arbor can be used with a python front end which is enabled by setting the
+CMake ``ARB_WITH_PYTHON`` option:
+
+.. code-block:: bash
+
+    cmake .. -ARB_WITH_PYTHON=ON
+
+By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a python module called :py:mod:`arbor` is built.
+
+Depending on the configuration of the system where Arbor is being built, the
+C++ compiler may not be able to find ``mpi4py`` when Arbor is configured with both, python ``-ARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
+The easiest workaround is to add the path to the include directory containing the header to the
+``CPATH`` environment variable before configuring and building Arbor, for
+example:
+
+.. code-block:: bash
+
+    # search for path tp python's site-package mpi4py
+    for p in `python3 -c 'import sys; print("\n".join(sys.path))'`; do echo ===== $p; ls $p | grep mpi4py; done
+
+    ===== /path/to/python3/site-packages
+    mpi4py
+
+    # set CPATH and run cmake
+    export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
+
+    cmake .. -ARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
 
 .. _install:
 
