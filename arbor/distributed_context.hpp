@@ -42,6 +42,7 @@ namespace arb {
 class distributed_context {
 public:
     using spike_vector = std::vector<arb::spike>;
+    using gid_vector = std::vector<cell_gid_type>;
 
     // default constructor uses a local context: see below.
     distributed_context();
@@ -56,6 +57,10 @@ public:
 
     gathered_vector<arb::spike> gather_spikes(const spike_vector& local_spikes) const {
         return impl_->gather_spikes(local_spikes);
+    }
+
+    gathered_vector<cell_gid_type> gather_gids(const gid_vector& local_gids) const {
+        return impl_->gather_gids(local_gids);
     }
 
     int id() const {
@@ -84,6 +89,8 @@ private:
     struct interface {
         virtual gathered_vector<arb::spike>
             gather_spikes(const spike_vector& local_spikes) const = 0;
+        virtual gathered_vector<cell_gid_type>
+            gather_gids(const gid_vector& local_gids) const = 0;
         virtual int id() const = 0;
         virtual int size() const = 0;
         virtual void barrier() const = 0;
@@ -103,6 +110,10 @@ private:
         gathered_vector<arb::spike>
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
+        }
+        virtual gathered_vector<cell_gid_type>
+        gather_gids(const gid_vector& local_gids) const override {
+            return wrapped.gather_gids(local_gids);
         }
         int id() const override {
             return wrapped.id();
@@ -136,6 +147,14 @@ struct local_context {
         return gathered_vector<arb::spike>(
             std::vector<arb::spike>(local_spikes),
             {0u, static_cast<count_type>(local_spikes.size())}
+        );
+    }
+    gathered_vector<cell_gid_type>
+    gather_gids(const std::vector<cell_gid_type>& local_gids) const {
+        using count_type = typename gathered_vector<cell_gid_type>::count_type;
+        return gathered_vector<cell_gid_type>(
+                std::vector<cell_gid_type>(local_gids),
+                {0u, static_cast<count_type>(local_gids.size())}
         );
     }
 

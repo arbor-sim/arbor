@@ -28,7 +28,8 @@ void assemble_matrix_interleaved(
     const fvm_index_type* sizes,
     const fvm_index_type* starts,
     const fvm_index_type* matrix_to_cell,
-    const fvm_value_type* dt_cell,
+    const fvm_value_type* dt_intdom,
+    const fvm_index_type* cell_to_intdom,
     unsigned padded_size, unsigned num_mtx);
 
 // host side wrapper for interleaved matrix solver kernel
@@ -122,6 +123,8 @@ struct matrix_state_interleaved {
     // the invariant part of the matrix diagonal
     array invariant_d;    // [μS]
 
+    iarray cell_to_intdom;
+
     // the length of a vector required to store values for one
     // matrix with padding
     unsigned padded_size;
@@ -144,7 +147,8 @@ struct matrix_state_interleaved {
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
-                 const std::vector<value_type>& area)
+                 const std::vector<value_type>& area,
+                 const std::vector<index_type>& cell_intdom)
     {
         arb_assert(cv_cap.size()    == p.size());
         arb_assert(face_cond.size() == p.size());
@@ -248,6 +252,7 @@ struct matrix_state_interleaved {
         matrix_sizes = memory::make_const_view(sizes_p);
         matrix_index = memory::make_const_view(cell_to_cv_p);
         matrix_to_cell_index = memory::make_const_view(perm);
+        cell_to_intdom = memory::make_const_view(cell_intdom);
 
         // Allocate space for storing the un-interleaved solution.
         solution_ = array(p.size());
@@ -259,16 +264,16 @@ struct matrix_state_interleaved {
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
-    //   dt_cell         [ms]     (per cell)
-    //   voltage         [mV]     (per compartment)
-    //   current density [A.m^-2] (per compartment)
-    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+    //   dt_intdom         [ms]     (per integration domain)
+    //   voltage           [mV]     (per compartment)
+    //   current density   [A.m^-2] (per compartment)
+    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
         assemble_matrix_interleaved
             (d.data(), rhs.data(), invariant_d.data(),
              voltage.data(), current.data(), cv_capacitance.data(), cv_area.data(),
              matrix_sizes.data(), matrix_index.data(),
              matrix_to_cell_index.data(),
-             dt_cell.data(), padded_matrix_size(), num_matrices());
+             dt_intdom.data(), cell_to_intdom.data(), padded_matrix_size(), num_matrices());
 
     }
 

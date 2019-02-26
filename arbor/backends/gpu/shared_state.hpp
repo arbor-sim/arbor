@@ -65,13 +65,15 @@ struct ion_state {
 };
 
 struct shared_state {
-    fvm_size_type n_cell = 0; // Number of distinct cells (integration domains).
+    fvm_size_type n_intdom = 0; // Number of distinct integration domains.
     fvm_size_type n_cv = 0;   // Total number of CVs.
+    fvm_size_type n_gj = 0;   // Total number of GJs.
 
-    iarray cv_to_cell;        // Maps CV index to cell index.
-    array  time;              // Maps cell index to integration start time [ms].
-    array  time_to;           // Maps cell index to integration stop time [ms].
-    array  dt_cell;           // Maps cell index to (stop time) - (start time) [ms].
+    iarray cv_to_intdom;        // Maps CV index to intdom index.
+    gjarray  gap_junctions;   // Stores gap_junction info.
+    array  time;              // Maps intdom index to integration start time [ms].
+    array  time_to;           // Maps intdom index to integration stop time [ms].
+    array  dt_intdom;         // Maps intdom index to (stop time) - (start time) [ms].
     array  dt_cv;             // Maps CV index to dt [ms].
     array  voltage;           // Maps CV index to membrane voltage [mV].
     array  current_density;   // Maps CV index to current density [A/m²].
@@ -84,8 +86,9 @@ struct shared_state {
     shared_state() = default;
 
     shared_state(
-        fvm_size_type n_cell,
-        const std::vector<fvm_index_type>& cv_to_cell_vec,
+        fvm_size_type n_intdom,
+        const std::vector<fvm_index_type>& cv_to_intdom_vec,
+        const std::vector<fvm_gap_junction>& gj_vec,
         unsigned align
     );
 
@@ -104,8 +107,11 @@ struct shared_state {
     // Set time_to to earliest of time+dt_step and tmax.
     void update_time_to(fvm_value_type dt_step, fvm_value_type tmax);
 
-    // Set the per-cell and per-compartment dt from time_to - time.
+    // Set the per-intdom and per-compartment dt from time_to - time.
     void set_dt();
+
+    // Update gap_junction state
+    void add_gj_current();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;

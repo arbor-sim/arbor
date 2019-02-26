@@ -111,6 +111,7 @@ namespace {
 //
 
 fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
+
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
@@ -235,7 +236,6 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
     D.cell_cv_bounds = std::move(cell_comp_bounds);
     return D;
 }
-
 
 // Build up mechanisms.
 //

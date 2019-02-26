@@ -141,31 +141,58 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
         else if (m.name.find("energy")!=std::string::npos) {
             o << strprintf("%16s", m.name+"(kJ)");
         }
+        else {
+            o << strprintf("%16s(avg)", m.name);
+        }
     }
     o << "\n-------------------------------------------------------------------------------------------\n";
+    std::vector<double> sums(report.meters.size());
     int cp_index = 0;
     for (auto name: report.checkpoints) {
         name.resize(20);
         o << strprintf("%-21s", name);
+        int m_index = 0;
         for (const auto& m: report.meters) {
             if (m.name=="time") {
-                std::vector<double> times = m.measurements[cp_index];
-                o << strprintf("%16.3f", algorithms::mean(times));
+                // Calculate the average time per rank in s.
+                double time = algorithms::mean(m.measurements[cp_index]);
+                sums[m_index] += time;
+                o << strprintf("%16.3f", time);
             }
             else if (m.name.find("memory")!=std::string::npos) {
-                std::vector<double> mem = m.measurements[cp_index];
-                o << strprintf("%16.3f", algorithms::mean(mem)*1e-6);
+                // Calculate the average memory per rank in MB.
+                double mem = algorithms::mean(m.measurements[cp_index])*1e-6;
+                sums[m_index] += mem;
+                o << strprintf("%16.3f", mem);
             }
             else if (m.name.find("energy")!=std::string::npos) {
-                std::vector<double> e = m.measurements[cp_index];
-                // TODO: this is an approximation: better reduce a subset of measurements
                 auto doms_per_host = double(report.num_domains)/report.num_hosts;
-                o << strprintf("%16.3f", algorithms::sum(e)/doms_per_host*1e-3);
+                // Calculate the total energy consumed accross all ranks in kJ 
+                // Energy measurements are per "per node", so only normalise
+                // by the number of ranks per node. TODO, this is an
+                // approximation: better reduce a subset of measurements.
+                double energy = algorithms::sum(m.measurements[cp_index])/doms_per_host*1e-3;
+                sums[m_index] += energy;
+                o << strprintf("%16.3f", energy);
             }
+            else {
+                double value = algorithms::mean(m.measurements[cp_index]);
+                sums[m_index] += value;
+                o << strprintf("%16.3f", value);
+            }
+            ++m_index;
         }
         o << "\n";
         ++cp_index;
     }
+
+    // Print a final line with the accumulated values of each meter.
+    o << strprintf("%-21s", "meter-total");
+    for (const auto& v: sums) {
+        o << strprintf("%16.3f", v);
+    }
+    o << "\n";
+
     return o;
 }
 

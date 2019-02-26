@@ -210,7 +210,7 @@ void expsyn_1_branch_current(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_expsyn_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_expsyn_1_branch, target_handles, probe_handles);
 
     auto& m = find_mechanism("expsyn", cell);
 
@@ -229,7 +229,7 @@ void expsyn_1_branch_state(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_expsyn_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_expsyn_1_branch, target_handles, probe_handles);
 
     auto& m = find_mechanism("expsyn", cell);
 
@@ -247,7 +247,7 @@ void pas_1_branch_current(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_pas_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_pas_1_branch, target_handles, probe_handles);
 
     auto& m = find_mechanism("pas", cell);
 
@@ -265,7 +265,7 @@ void pas_3_branches_current(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_pas_3_branches, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_pas_3_branches, target_handles, probe_handles);
 
     auto& m = find_mechanism("pas", cell);
 
@@ -283,7 +283,7 @@ void hh_1_branch_state(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_hh_1_branch, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -301,7 +301,7 @@ void hh_1_branch_current(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_hh_1_branch, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -319,7 +319,7 @@ void hh_3_branches_state(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_3_branches, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_hh_3_branches, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -337,7 +337,7 @@ void hh_3_branches_current(benchmark::State& state) {
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_3_branches, target_handles, probe_handles);
+    cell.initialize(gids, {0}, rec_hh_3_branches, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 

@@ -29,16 +29,43 @@ struct dry_run_context_impl {
 
         for (count_type i = 0; i < num_ranks_; i++) {
             for (count_type j = i*local_size; j < (i+1)*local_size; j++){
-                gathered_spikes[j].source += num_cells_per_tile_*i;
+                gathered_spikes[j].source.gid += num_cells_per_tile_*i;
             }
         }
 
         std::vector<count_type> partition;
-        for(count_type i = 0; i <= num_ranks_; i++) {
+        for (count_type i = 0; i <= num_ranks_; i++) {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
         return gathered_vector<arb::spike>(std::move(gathered_spikes), std::move(partition));
+    }
+
+    gathered_vector<cell_gid_type>
+    gather_gids(const std::vector<cell_gid_type>& local_gids) const {
+        using count_type = typename gathered_vector<cell_gid_type>::count_type;
+
+        count_type local_size = local_gids.size();
+
+        std::vector<cell_gid_type> gathered_gids;
+        gathered_gids.reserve(local_size*num_ranks_);
+
+        for (count_type i = 0; i < num_ranks_; i++) {
+            gathered_gids.insert(gathered_gids.end(), local_gids.begin(), local_gids.end());
+        }
+
+        for (count_type i = 0; i < num_ranks_; i++) {
+            for (count_type j = i*local_size; j < (i+1)*local_size; j++){
+                gathered_gids[j] += num_cells_per_tile_*i;
+            }
+        }
+
+        std::vector<count_type> partition;
+        for (count_type i = 0; i <= num_ranks_; i++) {
+            partition.push_back(static_cast<count_type>(i*local_size));
+        }
+
+        return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
     int id() const { return 0; }
