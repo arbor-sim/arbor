@@ -64,6 +64,7 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
 void mechanism::instantiate(unsigned id, backend::shared_state& shared, const layout& pos_data) {
     using util::make_range;
 
+    mult_in_place_ = !pos_data.multiplicity.empty();
     util::padded_allocator<> pad(shared.alignment);
     mechanism_id_ = id;
     width_ = pos_data.cv.size();
@@ -131,9 +132,15 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
     node_index_ = iarray(width_padded_, pad);
+
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
     index_constraints_ = make_constraint_partition(node_index_, width_, simd_width);
+
+    if (mult_in_place_) {
+        multiplicity_ = iarray(width_padded_, pad);
+        copy_extend(pos_data.multiplicity, multiplicity_, 1);
+    }
 
     for (auto i: ion_index_table()) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, i.first);
@@ -150,7 +157,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
 
         arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width));
     }
-
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
@@ -180,6 +186,20 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
     }
     else {
         throw arbor_internal_error("multicore/mechanism: no such mechanism global");
+    }
+}
+
+void mechanism::initialize() {
+    nrn_init();
+
+    auto states = state_table();
+
+    if(mult_in_place_) {
+        for (auto& state: states) {
+            for (std::size_t j = 0; j < width_; ++j) {
+                (*state.second)[j] *= multiplicity_[j];
+            }
+        }
     }
 }
 

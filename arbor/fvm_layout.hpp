@@ -102,6 +102,9 @@ struct fvm_mechanism_config {
     // duplicates for point mechanisms.
     std::vector<index_type> cv;
 
+    // Coalesced synapse multiplier
+    std::vector<index_type> multiplicity;
+
     // Normalized area contribution in corresponding CV (density mechanisms only).
     std::vector<value_type> norm_area;
 
@@ -137,6 +140,6 @@ struct fvm_mechanism_data {
     std::size_t ntarget = 0;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D);
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D, bool coalesce = true);
 
 } // namespace arb

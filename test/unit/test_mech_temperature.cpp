@@ -44,7 +44,7 @@ void run_celsius_test() {
 
     // expect 0 value in state 'c' after init:
 
-    celsius_test->nrn_init();
+    celsius_test->initialize();
     std::vector<fvm_value_type> expected_c_values(ncv, 0.);
 
     EXPECT_EQ(expected_c_values, mechanism_field(celsius_test.get(), "c"));
@@ -62,7 +62,7 @@ void run_celsius_test() {
     temperature_C = temperature_K-273.15;
 
     shared_state->reset(-65., temperature_K);
-    celsius_test->nrn_init();
+    celsius_test->initialize();
 
     celsius_test->nrn_state();
     expected_c_values.assign(ncv, temperature_C);

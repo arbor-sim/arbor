@@ -90,6 +90,7 @@ struct mc_cell_global_properties {
 
     double temperature_K = constant::hh_squid_temp; // [K]
     double init_membrane_potential_mV = -65; // [mV]
+    bool coalesce_synapses = true;
 };
 
 /// high-level abstract representation of a cell and its segments

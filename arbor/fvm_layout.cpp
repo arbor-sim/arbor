@@ -46,6 +46,14 @@ namespace {
             segment_index = algorithms::make_index(counts);
         }
     };
+
+    struct cv_param {
+        fvm_size_type cv;
+        std::vector<fvm_value_type> params;
+        fvm_size_type target;
+    };
+
+    ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cv_param,(a.cv,a.params,a.target),(b.cv,b.params,b.target))
 } // namespace
 
 // Cable segment discretization
@@ -249,7 +257,7 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 //       IIb. Density mechanism CVs, parameter values; ion channel default concentration contributions.
 //       IIc. Point mechanism CVs, parameter values, and targets.
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D) {
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D, bool coalesce_syanpses) {
     using util::assign;
     using util::sort_by;
     using util::optional;
@@ -271,7 +279,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     //     3. Pointer to mechanism metadata from catalogue.
 
     struct density_mech_data {
-        std::vector<std::pair<size_type, const mechanism_desc*>> segments; // 
+        std::vector<std::pair<size_type, const mechanism_desc*>> segments; //
         string_set paramset;
         const mechanism_info* info = nullptr;
     };
@@ -562,19 +570,69 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         fvm_mechanism_config& config = mechdata.mechanisms[name];
         config.kind = mechanismKind::point;
 
-        assign(config.cv,     transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
-        assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
+        // Generate config.cv: contains cv of group of synapses that can be coalesced into one instance
+        // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
+        // Generate multiplicity: contains number of synapses in each coalesced group of synapses
+        // Generate target: contains the synapse target number
+        if(catalogue[name].linear && coalesce_syanpses) {
+            // cv_param_vec used to lexicographically sort the cv, parameters and target, which are stored in that order
+            std::vector<cv_param> cv_param_vec(cv_order.size());
 
-        config.param_values.resize(nparam);
-        for (auto pidx: make_span(0, nparam)) {
-            value_type pdefault = param_default[pidx];
-            const std::string& pname = param_name[pidx];
+            for (unsigned i = 0; i < cv_order.size(); ++i) {
+                auto loc = cv_order[i];
+                std::vector<value_type> p(nparam);
+                for (auto pidx: make_span(0, nparam)) {
+                    value_type pdefault = param_default[pidx];
+                    const std::string& pname = param_name[pidx];
+                    p[pidx] = value_by_key(points[loc].desc->values(), pname).value_or(pdefault);
+                }
+                cv_param_vec[i] = cv_param{points[loc].cv, p, points[loc].target_index};
+            }
 
-            config.param_values[pidx].first = pname;
+            std::sort(cv_param_vec.begin(), cv_param_vec.end());
 
-            auto& values = config.param_values[pidx].second;
-            assign(values, transform_view(cv_order,
-                [&](size_type j) { return value_by_key(points[j].desc->values(), pname).value_or(pdefault); }));
+            auto identical_synapse = [](const cv_param& i, const cv_param& j) {
+                return i.cv==j.cv && i.params==j.params;
+            };
+
+            config.param_values.resize(nparam);
+            for (auto pidx: make_span(0, nparam)) {
+                config.param_values[pidx].first = param_name[pidx];
+            }
+            config.target.reserve(cv_param_vec.size());
+
+            for (auto i = cv_param_vec.begin(), j = i; i!=cv_param_vec.end(); i = j) {
+                ++j;
+                while (j!=cv_param_vec.end() && identical_synapse(*i, *j)) ++j;
+
+                auto mergeable = util::make_range(i, j);
+
+                config.cv.push_back((*i).cv);
+                for (auto pidx: make_span(0, nparam)) {
+                    config.param_values[pidx].second.push_back((*i).params[pidx]);
+                }
+                config.multiplicity.push_back(mergeable.size());
+
+                for (auto e: mergeable) {
+                    config.target.push_back(e.target);
+                }
+            }
+        }
+        else {
+            assign(config.cv, transform_view(cv_order, [&](size_type j) { return points[j].cv; }));
+            assign(config.target, transform_view(cv_order, [&](size_type j) { return points[j].target_index; }));
+
+            config.param_values.resize(nparam);
+            for (auto pidx: make_span(0, nparam)) {
+                value_type pdefault = param_default[pidx];
+                const std::string& pname = param_name[pidx];
+
+                config.param_values[pidx].first = pname;
+
+                auto& values = config.param_values[pidx].second;
+                assign(values, transform_view(cv_order,
+                                              [&](size_type j) { return value_by_key(points[j].desc->values(), pname).value_or(pdefault); }));
+            }
         }
     }
 
