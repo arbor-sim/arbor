@@ -63,18 +63,18 @@ BREAKPOINT {
 }
 
 INITIAL {
-    trates(v,sh)
+    trates(v,sh,celsius)
     m=minf
     h=hinf
 }
 
 DERIVATIVE states {
-    trates(v,sh)
+    trates(v,sh,celsius)
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
 }
 
-PROCEDURE trates(vm,sh2) {
+PROCEDURE trates(vm,sh2,celsius) {
     LOCAL  a, b, qt
     qt=q10^((celsius-24)/10)
     a = trap0(vm,tha+sh2,Ra,qa)
@@ -90,5 +90,5 @@ PROCEDURE trates(vm,sh2) {
 
 FUNCTION trap0(v,th,a,q) {
     : trap0 = a * (v - th) / (1 - exp(-(v - th)/q))
-    trap0 = -a*q*exprelr((v-th)/q)
+    trap0 = a*q*exprelr(-(v-th)/q)
 }

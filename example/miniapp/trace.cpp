@@ -1,10 +1,10 @@
 #include <fstream>
+#include <iomanip>
 #include <string>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <common_types.hpp>
-#include <util/strprintf.hpp>
+#include <arbor/common_types.hpp>
 
 #include "trace.hpp"
 
@@ -22,8 +22,10 @@ void write_trace_csv(const sample_trace& trace, const std::string& prefix) {
     file << "# probe: " << trace.probe_id.index << "\n";
     file << "time_ms, " << trace.name << "_" << trace.units << "\n";
 
+    file.precision(15);
+    file << std::fixed;
     for (const auto& sample: trace.samples) {
-        file << util::strprintf("% 20.15f, % 20.15f\n", sample.t, sample.v);
+        file << std::setw(20) << sample.t << ',' << std::setw(20) << sample.v << '\n';
     }
 }
 

@@ -1,17 +1,18 @@
 #include <fstream>
+#include <iomanip>
 #include <iterator>
 #include <map>
+#include <ostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
-#include <morphology.hpp>
-#include <swcio.hpp>
-#include <util/strprintf.hpp>
+#include <arbor/morphology.hpp>
+#include <arbor/swcio.hpp>
 
 #include "morphio.hpp"
 
-using arb::io::swc_record;
-using arb::util::strprintf;
+using arb::swc_record;
 
 std::vector<swc_record> as_swc(const arb::morphology& morph);
 
@@ -24,21 +25,10 @@ multi_file::multi_file(const std::string& pattern, int digits) {
     use_stdout_ = pattern.empty() || pattern=="-";
 
     if (!concat_) {
-        std::string nfmt = digits? "%0"+std::to_string(digits)+"d": "%d";
-        std::string::size_type i = 0;
-        for (;;) {
-            auto p = pattern.find("%", i);
-
-            if (p==npos) {
-                fmt_ += pattern.substr(i);
-                break;
-            }
-            else {
-                fmt_ += pattern.substr(i, p-i);
-                fmt_ += i==0? nfmt: "%%";
-                i = p+1;
-            }
-        }
+        auto p = pattern.find("%");
+        fmt_prefix_ = pattern.substr(0, p);
+        fmt_suffix_ = pattern.substr(p+1);
+        fmt_digits_ = digits;
     }
     else {
         filename_ = pattern;
@@ -52,15 +42,28 @@ void multi_file::open(unsigned n) {
 
     if (file_.is_open()) file_.close();
 
-    std::string fname = concat_? filename_: strprintf(fmt_, n);
+    std::string fname;
+    if (concat_) {
+        fname = filename_;
+    }
+    else {
+        std::stringstream ss;
+        ss << fmt_prefix_ << std::setfill('0') << std::setw(fmt_digits_) << n << fmt_suffix_;
+        fname = ss.str();
+    }
+
     file_.open(fname);
 
     current_n_ = n;
 }
 
-// SWC transform
+static std::string short_cable_message(int id, unsigned sz) {
+    std::stringstream ss;
+    ss << "surprisingly short cable: id=" << id << ", size=" << sz;
+    return ss.str();
+}
 
-using arb::io::swc_record;
+// SWC transform
 
 // TODO: Move this functionality to arbor library.
 std::vector<swc_record> as_swc(const arb::morphology& morph) {
@@ -81,7 +84,7 @@ std::vector<swc_record> as_swc(const arb::morphology& morph) {
         const auto& points = sec.points;
         auto n = points.size();
         if (n<2) {
-            throw std::runtime_error(strprintf("surprisingly short cable: id=%d, size=%ul", sec.id, n));
+            throw std::runtime_error(short_cable_message(sec.id, n));
         }
 
         // Include first point only for dendrites segments attached to soma.
@@ -139,7 +142,7 @@ std::vector<int> as_pvector(const arb::morphology& morph, unsigned offset) {
 
         auto n = sec.points.size();
         if (n<2) {
-            throw std::runtime_error(strprintf("surprisingly short cable: id=%d, size=%ul", sec.id, n));
+            throw std::runtime_error(short_cable_message(sec.id, n));
         }
 
         for (unsigned i = 1; i<n; ++i) {

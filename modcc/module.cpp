@@ -2,7 +2,9 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <set>
+#include <string>
 #include <unordered_set>
 
 #include "errorvisitor.hpp"
@@ -312,13 +314,13 @@ bool Module::semantic() {
 
             switch(solve_expression->method()) {
             case solverMethod::cnexp:
-                solver = make_unique<CnexpSolverVisitor>();
+                solver = std::make_unique<CnexpSolverVisitor>();
                 break;
             case solverMethod::sparse:
-                solver = make_unique<SparseSolverVisitor>();
+                solver = std::make_unique<SparseSolverVisitor>();
                 break;
             case solverMethod::none:
-                solver = make_unique<DirectSolverVisitor>();
+                solver = std::make_unique<DirectSolverVisitor>();
                 break;
             }
 
@@ -466,16 +468,31 @@ void Module::add_variables_to_symbols() {
             continue;
         }
 
-        // Parameters are scalar by default, but may later be changed to range.
-        linkageKind linkage = linkageKind::local;
-        auto& sym = create_variable(id.token,
-            accessKind::read, visibilityKind::global, linkage, rangeKind::scalar);
+        // Special case: 'celsius' is an external indexed-variable with a special
+        // data source. Retrieval of value is handled especially by printers.
 
-        // set default value if one was specified
-        if (id.has_value()) {
-            sym->is_variable()->value(std::stod(id.value));
+        if (id.name() == "celsius") {
+            create_indexed_variable("celsius", "celsius",
+                sourceKind::temperature, tok::eq, accessKind::read, ionKind::none, Location());
+        }
+        else {
+            // Parameters are scalar by default, but may later be changed to range.
+            auto& sym = create_variable(id.token,
+                accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
+
+            // Set default value if one was specified.
+            if (id.has_value()) {
+                sym->is_variable()->value(std::stod(id.value));
+            }
         }
     }
+
+    // Remove `celsius` from the parameter block, as it is not a true parameter anymore.
+    parameter_block_.parameters.erase(
+        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
+            [](const Id& id) { return id.name() == "celsius"; }),
+        parameter_block_.end()
+    );
 
     // Add 'assigned' variables, ignoring built-in voltage variable "v".
     for (const Id& id: assigned_block_) {

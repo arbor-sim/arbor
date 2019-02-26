@@ -2,9 +2,11 @@
 #include <memory>
 #include <vector>
 
-#include <morphology.hpp>
-#include <swcio.hpp>
-#include <util/path.hpp>
+#include <arbor/morphology.hpp>
+#include <arbor/swcio.hpp>
+
+#include <sup/glob.hpp>
+#include <sup/path.hpp>
 
 #include "morphology_pool.hpp"
 
@@ -29,22 +31,22 @@ static morphology make_basic_y_morphology() {
 
 morphology_pool default_morphology_pool(make_basic_y_morphology());
 
-void load_swc_morphology(morphology_pool& pool, const util::path& swc_path) {
+void load_swc_morphology(morphology_pool& pool, const sup::path& swc_path) {
     std::ifstream fi;
     fi.exceptions(std::ifstream::failbit);
 
     fi.open(swc_path.c_str());
-    pool.insert(io::swc_as_morphology(io::parse_swc_file(fi)));
+    pool.insert(swc_as_morphology(parse_swc_file(fi)));
 }
 
 void load_swc_morphology_glob(morphology_pool& pool, const std::string& swc_pattern) {
     std::ifstream fi;
     fi.exceptions(std::ifstream::failbit);
 
-    auto swc_paths = util::glob(swc_pattern);
+    auto swc_paths = sup::glob(swc_pattern);
     for (const auto& p: swc_paths) {
         fi.open(p.c_str());
-        pool.insert(io::swc_as_morphology(io::parse_swc_file(fi)));
+        pool.insert(swc_as_morphology(parse_swc_file(fi)));
         pool[pool.size()-1].assert_valid();
         fi.close();
     }

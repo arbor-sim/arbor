@@ -3,7 +3,10 @@
 include("HHChannels.jl")
 
 using JSON
-using SIUnits.ShortUnits
+using Unitful
+using Unitful.DefaultSymbols
+
+scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
 radius = 20µm/2
 area = 4*pi*radius^2
@@ -16,7 +19,7 @@ c  = 0.01mA/cm^2
 tau = 10ms
 
 ts = collect(0s: sample_dt: t_end)
-is = area*(1/3*c + (a0-1/3*c)*exp(-ts/tau))
+is = area*(1/3*c .+ (a0-1/3*c)*exp.(-ts/tau))
 
 trace = Dict(
     :name => "membrane current",
@@ -24,8 +27,8 @@ trace = Dict(
     :model => "test_kin1",
     :units => "nA",
     :data => Dict(
-        :time => map(t->t/ms, ts),
-        Symbol("soma.mid") => map(i->i/nA, is)
+        :time => scale.(ts, 1ms),
+        Symbol("soma.mid") => scale.(is, 1nA)
     )
 )
 

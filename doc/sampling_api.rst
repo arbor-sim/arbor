@@ -225,12 +225,20 @@ A ``schedule`` object has two methods:
 
        void schedule::reset();
 
-       std::vector<time_type> events(time_type t0, time_type t1)
+       time_event_span events(time_type t0, time_type t1)
 
-The ``events(t0, t1)`` method returns a vector of monotonically
+A ``time_event_span`` is a ``std::pair`` of pointers `const time_type*`,
+representing a view into an internally maintained collection of generated
+time values.
+
+The ``events(t0, t1)`` method returns a view of monotonically
 increasing time values in the half-open interval ``[t0, t1)``.
 Successive calls to ``events`` — without an intervening call to ``reset()``
 —  must request strictly subsequent intervals.
+
+The data represented by the returned ``time_event_span`` view is valid
+for the lifetime of the ``schedule`` object, and is invalidated by any
+subsequent call to ``reset()`` or ``events()``.
 
 The ``reset()`` method resets the state such that events can be retrieved
 from again from time zero. A schedule that is reset must then produce

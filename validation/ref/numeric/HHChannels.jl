@@ -3,9 +3,10 @@ module HHChannels
 export Stim, run_hh
 
 using Sundials
-using SIUnits.ShortUnits
+using Unitful
+using Unitful.DefaultSymbols
 
-immutable HHParam
+struct HHParam
     c_m       # membrane spacific capacitance
     gnabar    # Na channel cross-membrane conductivity
     gkbar     # K channel cross-membrane conductivity
@@ -46,7 +47,7 @@ immutable HHParam
 
 end
 
-immutable Stim
+struct Stim
     t0        # start time of stimulus
     t1        # stop time of stimulus
     i_e       # stimulus current density
@@ -54,6 +55,8 @@ immutable Stim
     Stim() = new(0s, 0s, 0A/m^2)
     Stim(t0, t1, i_e) = new(t0, t1, i_e)
 end
+
+scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
 vtrap(x,y) = x/(exp(x/y) - 1.0)
 
@@ -148,10 +151,9 @@ function run_hh(t_end; v0=-65mV, stim=Stim(), param=HHParam(), sample_dt=0.01ms)
     # Ideally would run with vector absolute tolerance to account for v_scale,
     # but this would prevent us using the nice cvode wrapper.
 
-    res = Sundials.cvode(fbis, y0, map(t->t/t_scale, samples), abstol=1e-6, reltol=5e-10)
+    res = Sundials.cvode(fbis, y0, scale.(samples, t_scale), abstol=1e-6, reltol=5e-10)
 
-    # Use map here because of issues with type deduction with arrays and SIUnits.
-    return samples, map(v->v*v_scale, res[:, 1])
+    return samples, res[:, 1]*v_scale
 end
 
 end # module HHChannels

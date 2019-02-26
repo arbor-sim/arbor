@@ -8,7 +8,8 @@ function(check_git_submodule name path)
     set(success_var "${name}_avail")
     set(${success_var} ON PARENT_SCOPE)
 
-    if(NOT EXISTS "${path}/.git")
+    get_filename_component(dotgit "${path}/.git" ABSOLUTE)
+    if(NOT EXISTS ${dotgit})
         message(
             "\nThe git submodule for ${name} is not available.\n"
             "To check out all submodules use the following commands:\n"

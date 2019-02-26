@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#include <common_types.hpp>
-#include <simple_sampler.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/simple_sampler.hpp>
 
 struct sample_trace {
     arb::cell_member_type probe_id;

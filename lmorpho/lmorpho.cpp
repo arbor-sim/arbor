@@ -5,15 +5,14 @@
 #include <sstream>
 #include <vector>
 
-#include <tinyopt.hpp>
-#include <util/optional.hpp>
+#include <arbor/morphology.hpp>
+#include <arbor/util/optional.hpp>
+#include <sup/tinyopt.hpp>
 
-#include "morphology.hpp"
 #include "morphio.hpp"
 #include "lsystem.hpp"
 #include "lsys_models.hpp"
 
-namespace to = arb::to;
 using arb::util::optional;
 using arb::util::nullopt;
 using arb::util::just;

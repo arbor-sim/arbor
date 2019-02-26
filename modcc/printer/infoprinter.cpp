@@ -23,14 +23,14 @@ std::ostream& operator<<(std::ostream& out, const id_field_info& wrap) {
     const Id& id = wrap.id;
 
     out << "{" << quote(id.name()) << ", "
-        << "spec(spec::" << wrap.kind << ", " << quote(id.unit_string()) << ", "
+        << "{spec::" << wrap.kind << ", " << quote(id.unit_string()) << ", "
         << (id.has_value()? id.value: "0");
 
     if (id.has_range()) {
         out << ", " << id.range.first.spelling << "," << id.range.second.spelling;
     }
 
-    out << ")}";
+    out << "}}";
     return out;
 }
 
@@ -49,16 +49,13 @@ std::ostream& operator<<(std::ostream& out, const ion_dep_info& wrap) {
         << boolalpha[ion.writes_concentration_ext()] << "}}";
 }
 
-std::string build_info_header(const Module& m, const std::string& qual_namespace) {
+std::string build_info_header(const Module& m, const printer_options& opt) {
     using io::indent;
     using io::popindent;
 
-    // TODO: When arbor headers are moved into a named hierarchy, change this prefix.
-    const char* arb_header_prefix = "";
-
     std::string name = m.module_name();
     auto ids = public_variable_ids(m);
-    auto ns_components = namespace_components(qual_namespace);
+    auto ns_components = namespace_components(opt.cpp_namespace);
 
     io::pfxstringstream out;
 
@@ -66,8 +63,8 @@ std::string build_info_header(const Module& m, const std::string& qual_namespace
         "#pragma once\n"
         "#include <memory>\n"
         "\n"
-        "#include <" << arb_header_prefix << "mechanism.hpp>\n"
-        "#include <" << arb_header_prefix << "mechinfo.hpp>\n"
+        "#include <" << arb_header_prefix() << "mechanism.hpp>\n"
+        "#include <" << arb_header_prefix() << "mechinfo.hpp>\n"
         "\n"
         << namespace_declaration_open(ns_components) <<
         "\n"

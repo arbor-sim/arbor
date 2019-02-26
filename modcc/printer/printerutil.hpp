@@ -14,6 +14,14 @@
 std::vector<std::string> namespace_components(const std::string& qualified_namespace);
 
 inline const char* arb_header_prefix() {
+    static const char* prefix = "arbor/";
+    return prefix;
+}
+
+// TODO: this function will be obsoleted once arbor private/public headers are
+// properly split.
+
+inline const char* arb_private_header_prefix() {
     static const char* prefix = "";
     return prefix;
 }
@@ -109,6 +117,7 @@ NetReceiveExpression* find_net_receive(const Module& m);
 struct indexed_variable_info {
     std::string data_var;
     std::string index_var;
+    bool scalar() const { return index_var.empty(); }
 };
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym);

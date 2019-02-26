@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#include <morphology.hpp>
+#include <arbor/morphology.hpp>
 
 // Manage access to a single file, std::cout, or an indexed
 // sequence of files.
@@ -14,8 +14,12 @@ private:
     std::ofstream file_;
     bool concat_ = false;
     bool use_stdout_ = false;
-    std::string fmt_;       // use if not concat_
-    std::string filename_;  // use if concat_
+    // use if not concat_:
+    std::string fmt_prefix_;
+    std::string fmt_suffix_;
+    int fmt_digits_ = 0;
+    // use if concat_:
+    std::string filename_;   // use if concat_
     unsigned current_n_ = 0;
 
 public:

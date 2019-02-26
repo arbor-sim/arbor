@@ -48,11 +48,11 @@ static std::string ion_state_index(std::string ion_name) {
     return "ion_"+ion_name+"_index_";
 }
 
-std::string emit_cuda_cpp_source(const Module& module_, const std::string& ns) {
+std::string emit_cuda_cpp_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
-    auto ns_components = namespace_components(ns);
+    auto ns_components = namespace_components(opt.cpp_namespace);
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
 
@@ -64,12 +64,12 @@ std::string emit_cuda_cpp_source(const Module& module_, const std::string& ns) {
     io::pfxstringstream out;
 
     net_receive && out <<
-        "#include <" << arb_header_prefix() << "backends/event.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
+        "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
 
     out <<
-        "#include <" << arb_header_prefix() << "backends/gpu/mechanism.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
+        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
@@ -194,11 +194,11 @@ std::string emit_cuda_cpp_source(const Module& module_, const std::string& ns) {
     return out.str();
 }
 
-std::string emit_cuda_cu_source(const Module& module_, const std::string& ns) {
+std::string emit_cuda_cu_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
-    auto ns_components = namespace_components(ns);
+    auto ns_components = namespace_components(opt.cpp_namespace);
     const bool is_point_proc = module_.kind() == moduleKind::point;
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
@@ -215,14 +215,14 @@ std::string emit_cuda_cu_source(const Module& module_, const std::string& ns) {
 
     out <<
         "#include <iostream>\n"
-        "#include <" << arb_header_prefix() << "backends/event.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/gpu/cuda_common.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/gpu/math.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
+        "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/cuda_common.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/math_cu.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
 
     is_point_proc && out <<
-        "#include <" << arb_header_prefix() << "backends/gpu/reduce_by_key.hpp>\n";
+        "#include <" << arb_private_header_prefix() << "backends/gpu/reduce_by_key.hpp>\n";
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
@@ -372,7 +372,10 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
 
     std::unordered_set<std::string> indices;
     for (auto& sym: indexed_vars) {
-        indices.insert(decode_indexed_variable(sym->external_variable()).index_var);
+        auto d = decode_indexed_variable(sym->external_variable());
+        if (!d.scalar()) {
+            indices.insert(d.index_var);
+        }
     }
 
     if (!body->statements().empty()) {
@@ -420,6 +423,10 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     const bool is_minus = external->op()==tok::minus;
     auto d = decode_indexed_variable(external);
 
+    if (d.scalar()) {
+        throw compiler_exception("Cannot assign to global scalar: "+external->to_string());
+    }
+
     if (is_point_proc) {
         out << "arb::gpu::reduce_by_key(";
         is_minus && out << "-";
@@ -439,7 +446,12 @@ void CudaPrinter::visit(VariableExpression *sym) {
 
 void CudaPrinter::visit(IndexedVariable *e) {
     auto d = decode_indexed_variable(e);
-    out_ << "params_." << d.data_var << "[" << index_i_name(d.index_var) <<  "]";
+    if (d.scalar()) {
+        out_ << "params_." << d.data_var << "[0]";
+    }
+    else {
+        out_ << "params_." << d.data_var << "[" << index_i_name(d.index_var) <<  "]";
+    }
 }
 
 void CudaPrinter::visit(CallExpression* e) {

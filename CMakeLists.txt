@@ -1,326 +1,447 @@
-cmake_minimum_required(VERSION 3.0)
+# 3.9 requirement for CUDA language support and MPI support.
+cmake_minimum_required(VERSION 3.9)
 
-# project info
-project(arbor)
+file(READ VERSION FULL_VERSION_STRING)
+string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
+string(REGEX MATCH "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?" numeric_version "${FULL_VERSION_STRING}")
+
+project(arbor VERSION ${numeric_version})
 enable_language(CXX)
 
-# Hide warnings about mixing old and new signatures for target_link_libraries.
-# These can't be avoided, because the FindCUDA packed provided by CMake before
-# version 3.9 uses the old signature, while other packages use the new signature.
-if ("${CMAKE_VERSION}" MATCHES "^3.[0-9].")
-    cmake_policy(SET CMP0023 OLD)
-endif()
-
-# Set release as the default build type.
-# Otherwise, CMake will default to debug.
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
-endif()
-
-# compilation flags
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-include("CompilerOptions")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
-
-# this generates a .json file with full compilation command for each file
-set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
-
-# generated .a and .so go into /lib
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 #----------------------------------------------------------
-# Option to enable assertions
+# Configure-time build options for Arbor:
 #----------------------------------------------------------
-option(ARB_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
-if(ARB_WITH_ASSERTIONS)
-    add_definitions("-DARB_HAVE_ASSERTIONS")
-endif()
 
-#----------------------------------------------------------
-# Option to enable traces
-#----------------------------------------------------------
-option(ARB_WITH_TRACE "enable TRACE() macros in code" OFF)
-if(ARB_WITH_TRACE)
-    add_definitions("-DARB_HAVE_TRACE")
-endif()
+# Specify target archiecture.
 
-#----------------------------------------------------------
-# Option to disable auto running of modcc compiler
-#----------------------------------------------------------
-option(ARB_AUTO_RUN_MODCC_ON_CHANGES
-  "Rerun modcc compiler whenever *.mod file or modcc compiler change" ON)
+set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
 
-#----------------------------------------------------------
-# prepare list of libraries/includes needed by external libs
-#----------------------------------------------------------
-set(EXTERNAL_LIBRARIES "")
-set(EXTERNAL_INCLUDES "")
+# Perform explicit vectorization?
 
-#----------------------------------------------------------
-# list of libraries built inside Arbor
-#----------------------------------------------------------
-set(ARB_LIBRARIES "")
-
-#----------------------------------------------------------
-# Threading model selection
-#----------------------------------------------------------
-set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
-set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
-
-if(ARB_THREADING_MODEL MATCHES "tbb")
-    include(GitSubmodule) # required for check_git_submodule
-    check_git_submodule(tbb "${CMAKE_SOURCE_DIR}/tbb")
-    if(NOT tbb_avail)
-        message(FATAL_ERROR "TBB git submodule required.")
-    endif()
-
-    # turn off proxy malloc library and test compilation
-    option(TBB_BUILD_TBBMALLOC_PROXY OFF)
-    option(TBB_BUILD_TESTS           OFF)
-
-    # Use the CMake configuration in the TBB submodule
-    # Reset the CXX flags, to avoid the litany of warnings that -Wall
-    # gives when compiling TBB.
-    set(CMAKE_CXX_FLAGS_TBB_BACK "${CMAKE_CXX_FLAGS}")
-    unset(CMAKE_CXX_FLAGS)
-    add_subdirectory(tbb)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_TBB_BACK}")
-
-    # set flags for TBB
-    add_definitions(-DARB_HAVE_TBB)
-    set(ARB_WITH_TBB TRUE)
-
-    include_directories(${CMAKE_SOURCE_DIR}/tbb/include)
-
-    list(APPEND EXTERNAL_LIBRARIES tbb_static tbbmalloc_static)
-    list(APPEND EXTERNAL_LIBRARIES pthread dl)
-
-    # TODO add support for user-supplied tbb implementation,
-    # e.g. using an TBB_ROOT variable.
-
-elseif(ARB_THREADING_MODEL MATCHES "cthread")
-    find_package(Threads REQUIRED)
-    add_definitions(-DARB_HAVE_CTHREAD)
-    set(ARB_WITH_CTHREAD TRUE)
-    list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-
-    if(CMAKE_USE_PTHREADS_INIT)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    endif()
-endif()
-
-#----------------------------------------------------------
-# libunwind for pretty printing stack traces
-#----------------------------------------------------------
-find_package(Unwind)
-if(UNWIND_FOUND)
-    add_definitions(-DWITH_UNWIND)
-    include_directories(${UNWIND_INCLUDE_DIR})
-    list(APPEND EXTERNAL_LIBRARIES ${UNWIND_LIBRARIES})
-endif()
-
-#----------------------------------------------------------
-# CUDA support
-#----------------------------------------------------------
-set(ARB_GPU_MODEL "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
-set_property(CACHE ARB_GPU_MODEL PROPERTY STRINGS none K20 K80 P100 )
-
-set(ARB_WITH_CUDA FALSE)
-
-if(NOT ARB_GPU_MODEL MATCHES "none")
-    find_package(CUDA REQUIRED)
-
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-        -Xcudafe --diag_suppress=integer_sign_change
-        -Xcudafe --diag_suppress=unsigned_compare_with_zero)
-
-    set(ARB_WITH_CUDA TRUE)
-    add_definitions(-DARB_HAVE_GPU)
-    include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
-    list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
-endif()
-
-if(ARB_GPU_MODEL MATCHES "K20")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
-    add_definitions(-DARB_CUDA_ARCH=350)
-elseif(ARB_GPU_MODEL MATCHES "K80")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_37)
-    add_definitions(-DARB_CUDA_ARCH=370)
-elseif(ARB_GPU_MODEL MATCHES "P100")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
-    add_definitions(-DARB_CUDA_ARCH=600)
-elseif(NOT ARB_GPU_MODEL MATCHES "none")
-    message( FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
-endif()
-
-#----------------------------------------------------------
-# Cray/BGQ/Generic Linux/other flag?
-#----------------------------------------------------------
-set(ARB_SYSTEM_TYPE "Generic" CACHE STRING
-    "Choose a system type to customize flags")
-set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
-
-# Cray specific flags
-if(${ARB_SYSTEM_TYPE} MATCHES "Cray")
-    # we no longer set the -dynamic flag for the compilere here, instead dynamic
-    # linking should be enabled by the user by setting the environment variable:
-    #   CRAYPE_LINK_TYPE=dynamic
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
-    add_definitions(-DARB_HAVE_CRAY)
-endif()
-
-#----------------------------------------------------------
-# MPI support
-#----------------------------------------------------------
-set(ARB_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
-set_property(CACHE ARB_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
-
-if(ARB_DISTRIBUTED_MODEL MATCHES "mpi")
-   # BGQ specific flags
-   if(${ARB_SYSTEM_TYPE} MATCHES "BGQ" )
-      # On BGQ, set CXX to the mpi wrapper, and pass it a static
-      add_definitions(-DMPICH2_CONST=const)
-      set(MPI_FOUND TRUE)
-    endif()
-
-    if (NOT MPI_FOUND)
-      find_package(MPI REQUIRED)
-    endif()
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
-    add_definitions(-DARB_HAVE_MPI)
-
-    # unfortunate workaround for C++ detection in system mpi.h
-    add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
-    set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
-
-    set(ARB_WITH_MPI TRUE)
-
-elseif(ARB_DISTRIBUTED_MODEL MATCHES "dryrun")
-    add_definitions(-DARB_HAVE_DRYRUN)
-    set(ARB_WITH_DRYRUN TRUE)
-
-elseif(ARB_DISTRIBUTED_MODEL MATCHES "serial")
-    # no additional set up needed
-
-else()
-    message( FATAL_ERROR "-- Distributed communication model '${ARB_DISTRIBUTED_MODEL}' not supported, use one of serial/mpi/dryrun")
-endif()
-
-#----------------------------------------------------------
-# Built-in profiler
-#----------------------------------------------------------
-option(ARB_WITH_PROFILING "use built-in profiling" OFF)
-if(ARB_WITH_PROFILING)
-    add_definitions(-DARB_HAVE_PROFILING)
-endif()
-
-#----------------------------------------------------------
-# Modcc vectorization target
-#----------------------------------------------------------
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
-#----------------------------------------------------------
-# Target microarchitecture for building arbor libraries
-#----------------------------------------------------------
-set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
-if(ARB_ARCH)
-    # Sets CXXOPT_ARCH variable accordingly:
-    set_arch_target("${ARB_ARCH}")
-endif()
+# Use externally built modcc?
 
-#----------------------------------------------------------
-# Only build modcc if it has not already been installed.
-# This is useful if cross compiling for KNL, when it is not desirable to compile
-# modcc with the same flags that are used for the KNL target.
-#----------------------------------------------------------
-set(use_external_modcc OFF)
-find_program(MODCC_BIN modcc)
-if(MODCC_BIN)
-    set(use_external_modcc ON)
-    set(modcc "${MODCC_BIN}")
-else()
-    set(modcc $<TARGET_FILE:modcc>)
-endif()
+set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
-#----------------------------------------------------------
-# Validation data generation
-#----------------------------------------------------------
-# destination directory for generated data
+# Generate validation data for validation tests?
+
+option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
+
+# Where to generate and find validation data?
+
 set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
   "location of generated validation data")
 
+# For sup::glop, just wrap POSIX glob(3)?
+# Turn off for platforms without glob(3) in libc, e.g. Android Bionic.
+
+option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
+
 #----------------------------------------------------------
-# Whether to build validation data
+# Configure-time features for Arbor:
 #----------------------------------------------------------
-# turn off by default
-option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
-if (ARB_BUILD_VALIDATION_DATA)
-    # Whether to attempt to use julia to build validation data
-    find_program(JULIA_BIN julia)
-    if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
-        message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
-        set(ARB_BUILD_JULIA_VALIDATION_DATA FALSE)
-    else()
-        set(ARB_BUILD_JULIA_VALIDATION_DATA TRUE)
+
+option(ARB_WITH_GPU "build with GPU support" OFF)
+option(ARB_WITH_GPU_FINE_MATRIX "use optimized fine matrix solver" ON)
+
+option(ARB_WITH_MPI "build with MPI support" OFF)
+
+option(ARB_WITH_PROFILING "use built-in profiling" OFF)
+
+option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
+
+
+#----------------------------------------------------------
+# Python front end for Arbor:
+#----------------------------------------------------------
+
+option(ARB_WITH_PYTHON "enable Python front end" OFF)
+
+#----------------------------------------------------------
+# Global CMake configuration
+#----------------------------------------------------------
+
+# Include own CMake modules in search path, load common modules.
+
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include(GitSubmodule) # required for check_git_submodule
+include(ErrorTarget)  # reguired for add_error_target
+include(FindThreadsCudaFix) # bug work around
+
+# Set release as the default build type (CMake default is debug.)
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
+endif()
+
+# When we find threads, prefer not to use the -pthread option
+# in order to avoid a CMake 3.12 issue.
+set(THREADS_PREFER_PTHREAD_FLAG OFF)
+
+# Add CUDA as a language if GPU support requested.
+# (This has to be set early so as to enable CUDA tests in generator
+# expressions.)
+if(ARB_WITH_GPU)
+    enable_language(CUDA)
+
+    # Despite native CUDA support, the CUDA package is still required to find
+    # the NVML library and to export the cuda library dependencies from the
+    # installed target.
+    find_package(CUDA REQUIRED)
+endif()
+
+# Build paths.
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Generate a .json file with full compilation command for each file.
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
+
+# Detect and deprecate xlC.
+
+include("CheckCompilerXLC")
+
+# Compiler options common to library, examples, tests, etc.
+
+include("CompilerOptions")
+add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_DEBUG}>"
+    "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
+set(CMAKE_CXX_STANDARD 14)
+
+#----------------------------------------------------------
+# Set up flags and dependencies:
+#----------------------------------------------------------
+
+# Note: any target dependency of arbor needs to be explicitly added
+# to the 'export set', even the private ones, and this must be done
+# in the same CMakeLists.txt in which the target is defined.
+
+# Interface library `arbor-config-defs` collects configure-time defines
+# for arbor and arborenv, of the form ARB_HAVE_XXX. These defines should
+# _not_ be used in any installed public headers.
+
+add_library(arbor-config-defs INTERFACE)
+install(TARGETS arbor-config-defs EXPORT arbor-targets)
+
+# Interface library `arbor-private-deps` collects dependencies, options etc.
+# for the arbor library.
+
+add_library(arbor-private-deps INTERFACE)
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs)
+install(TARGETS arbor-private-deps EXPORT arbor-targets)
+
+# Interface library `arborenv-private-deps` collects dependencies, options etc.
+# for the arborenv library.
+
+add_library(arborenv-private-deps INTERFACE)
+target_link_libraries(arborenv-private-deps INTERFACE arbor-config-defs)
+install(TARGETS arborenv-private-deps EXPORT arbor-targets)
+
+# Interface library `arbor-public-deps` collects requirements for the
+# users of the arbor library (e.g. mpi) that will become part
+# of arbor's PUBLIC interface.
+
+add_library(arbor-public-deps INTERFACE)
+install(TARGETS arbor-public-deps EXPORT arbor-targets)
+
+# External libraries in `ext` sub-directory: json and tclap.
+# Creates interface libraries `ext-json` and `ext-tclap`.
+
+add_subdirectory(ext)
+
+# Keep track of packages we need to add to the generated CMake config
+# file for arbor.
+
+set(arbor_export_dependencies)
+
+# Keep track of which 'components' of arbor are included (this is
+# currently just captures MPI support)
+
+set(arbor_supported_components)
+
+# Target microarchitecture for building arbor libraries, tests and examples
+#---------------------------------------------------------------------------
+if(ARB_ARCH)
+    set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
+    target_compile_options(arbor-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
+    target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
+endif()
+
+# Profiling and test features
+#-----------------------------
+
+if(ARB_WITH_PROFILING)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_PROFILING)
+endif()
+if(ARB_WITH_ASSERTIONS)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_ASSERTIONS)
+endif()
+
+# Python bindings
+#----------------------------------------------------------
+option(ARB_WITH_PYTHON "enable python front end" OFF)
+if(ARB_WITH_PYTHON)
+    # Required to link the dynamic libraries for python modules.
+    # Effectively adds '-fpic' flag to CXX_FLAGS.
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+# Threading model
+#-----------------
+
+find_package(Threads REQUIRED)
+find_threads_cuda_fix()
+target_link_libraries(arbor-private-deps INTERFACE Threads::Threads)
+
+list(APPEND arbor_export_dependencies "Threads")
+
+# MPI support
+#-------------------
+
+if(ARB_WITH_MPI)
+    find_package(MPI REQUIRED CXX)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_MPI)
+
+    # target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
+    # target_link_libraries(arbor-public-deps INTERFACE MPI::MPI_CXX)
+
+    # CMake 3.9 does not allow us to add definitions to an import target.
+    # so wrap MPI::MPI_CXX in an interface library 'mpi-wrap' instead.
+
+    add_library(mpi-wrap INTERFACE)
+    target_link_libraries(mpi-wrap INTERFACE MPI::MPI_CXX)
+    target_compile_definitions(mpi-wrap INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
+
+    target_link_libraries(arbor-public-deps INTERFACE mpi-wrap)
+    install(TARGETS mpi-wrap EXPORT arbor-targets)
+
+    list(APPEND arbor_export_dependencies "MPI\;COMPONENTS\;CXX")
+    list(APPEND arbor_supported_components "MPI")
+endif()
+
+# CUDA support
+#--------------
+
+if(ARB_WITH_GPU)
+    set(ARB_WITH_CUDA TRUE)
+    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
+    if(ARB_WITH_GPU_FINE_MATRIX)
+        target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
     endif()
 
-    # Whether to attempt to use nrniv to build validation data
-    # (if we find nrniv, do)
-    find_program(NRNIV_BIN nrniv)
-    if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
-        message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
-        set(ARB_BUILD_NRN_VALIDATION_DATA FALSE)
-    else()
-        set(ARB_BUILD_NRN_VALIDATION_DATA TRUE)
+    target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+
+    # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
+
+    if (${CUDA_VERSION_MAJOR} LESS 10)
+        set(arborenv_requires_nvml TRUE)
     endif()
+
+    if(arborenv_requires_nvml)
+        set(nvml_names nvidia-ml) # Note: platform dependent? e.g. nvml.lib on Windows.
+        find_library(CUDA_NVML
+                     NAMES ${nvml_names}
+                     NO_DEFAULT_PATH
+                     PATHS ${CMAKE_CUDA_IMPLICIT_DIRECTORIES} ${CUDA_TOOLKIT_ROOT_DIR}
+                     PATH_SUFFIXES lib64/stubs lib/stubs)
+
+        if (NOT CUDA_NVML)
+            message(FATAL_ERROR "Unable to find CUDA NVML library by: ${nvml_names}")
+        endif()
+
+        target_link_libraries(arborenv-private-deps INTERFACE ${CUDA_NVML})
+        target_compile_definitions(arborenv-private-deps INTERFACE ARBENV_USE_NVML)
+    endif()
+
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
+        "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
+
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+endif()
+
+# Use libunwind if available for pretty printing stack traces
+#-------------------------------------------------------------
+
+find_package(Unwind)
+if(Unwind_FOUND)
+    target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
+    target_compile_definitions(arbor-private-deps ARB_WITH_UNWIND)
+
+    list(APPEND arbor_export_dependencies "Unwind")
+endif()
+
+# Build and use modcc unless explicit path given
+#------------------------------------------------
+
+if(ARB_MODCC)
+    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    if(NOT modcc)
+        message(FATAL_ERROR "Unable to find modcc executable.")
+    endif()
+    set(ARB_WITH_EXTERNAL_MODCC TRUE)
+else()
+    set(modcc $<TARGET_FILE:modcc>)
+    set(ARB_WITH_EXTERNAL_MODCC FALSE)
+endif()
+
+set(ARB_MODCC_FLAGS)
+if(ARB_VECTORIZE)
+    list(APPEND ARB_MODCC_FLAGS "--simd")
+endif()
+if(ARB_WITH_PROFILING)
+    list(APPEND ARB_MODCC_FLAGS "--profile")
 endif()
 
 #----------------------------------------------------------
-# Setup include dirs
+# Set up install paths, permissions.
 #----------------------------------------------------------
-include_directories(
-    "${PROJECT_SOURCE_DIR}/tclap"
-    "${PROJECT_SOURCE_DIR}/include"
-    "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/modcc"
-    "${PROJECT_SOURCE_DIR}")
-if(EXTERNAL_INCLUDES)
-  include_directories("${EXTERNAL_INCLUDES}")
+
+# Set up install paths according to GNU conventions.
+#
+# GNUInstallDirs picks (e.g.) `lib64` for the library install path on some
+# systems where this is definitely not correct (e.g. Arch Linux). If there
+# are cases where `lib` is inappropriate, we will have to incorporate special
+# case behaviour here.
+
+if(NOT CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR lib)
 endif()
+include(GNUInstallDirs)
+
+# Implicitly created directories require permissions to be set explicitly
+# via this CMake variable.
+#
+# Note that this has no effect until CMake version 3.11.
+
+set(CMAKE_INSTALL_DEFAULT_DIRECTORY_PERMISSIONS
+    OWNER_READ
+    OWNER_WRITE
+    OWNER_EXECUTE
+    GROUP_READ
+    GROUP_EXECUTE
+    WORLD_READ
+    WORLD_EXECUTE)
+
+# CMake versions 3.11 and 3.12 ignore this variable for directories
+# implicitly created by install(DIRECTORY ...), which for us corresponds
+# to our doc and include directories. Work-around by trying to install
+# a non-existant file to these locations.
+
+foreach(directory "${CMAKE_INSTALL_DOCDIR}" "${CMAKE_INSTALL_INCLUDEDIR}")
+    install(FILES _no_such_file_ OPTIONAL DESTINATION "${directory}")
+endforeach()
 
 #----------------------------------------------------------
-# Setup subdirs
+# Configure targets in sub-directories.
 #----------------------------------------------------------
-# only include validation data if flag is set
+
+# arbor-public-headers:
+add_subdirectory(arbor/include)
+
+# arbor-sup:
+add_subdirectory(sup)
+
+# modcc, libmodcc:
+add_subdirectory(modcc)
+
+# arbor, arbor-private-headers:
+add_subdirectory(arbor)
+
+# arborenv, arborenv-public-headers:
+add_subdirectory(arborenv)
+
+# unit, unit-mpi, unit-local, unit-modcc, validate
+add_subdirectory(test)
+
+# miniapp, brunel-minapp, event-gen:
+add_subdirectory(example)
+
+# lmorpho:
+add_subdirectory(lmorpho)
+
+# html:
+add_subdirectory(doc)
+
+# validation-data:
 if(ARB_BUILD_VALIDATION_DATA)
     add_subdirectory(validation)
 endif()
 
-# only compile modcc if it is not provided externally
-if(NOT use_external_modcc)
-    add_subdirectory(modcc)
-endif()
+# python interface:
+if (ARB_WITH_PYTHON)
+    add_subdirectory(python)
+endif ()
 
 #----------------------------------------------------------
-# set up for targets that require git submodules.
+# Generate CMake config/version files for install.
 #----------------------------------------------------------
-include(GitSubmodule) # required for check_git_submodule
-include(ErrorTarget)  # reguired for add_error_target
-check_git_submodule(rtdtheme "${PROJECT_SOURCE_DIR}/doc/rtd_theme")
 
-add_subdirectory(src)
-add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
-add_subdirectory(tests)
-add_subdirectory(example)
-add_subdirectory(lmorpho)
-if (rtdtheme_avail)
-    add_subdirectory(doc)
-else()
-    add_error_target( docs
-        "Generating Sphinx documentation"
-        "The git submodule for read the docs is not available")
+# Note: each dependency for the arbor library target, private or otherwise,
+# needs to add itself to the arbor-exports EXPORT target in the subdirectory
+# in which they are defined, or none of this will work.
+
+set(cmake_config_dir "${CMAKE_INSTALL_LIBDIR}/cmake/arbor")
+install(EXPORT arbor-targets NAMESPACE arbor:: DESTINATION "${cmake_config_dir}")
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/arbor-config-version.cmake"
+    COMPATIBILITY SameMajorVersion)
+
+# Template file will use contents of arbor_export_dependencies to include the
+# required `find_dependency` statements, and arbor_supported_components will
+# be used to check feature support.
+#
+# To avoid CMake users of the installed arbor library conditionally requiring
+# that they add CUDA to their project language, explicitly munge the import
+# language and library dependencies on the installed target if ARB_WITH_GPU
+# is set, via the variables arbor_override_import_lang and arbor_add_import_libs.
+# arbor_build_config records our build type in a way compatible with the
+# generated export cmake files.
+
+set(arbor_build_config NOCONFIG)
+if(CMAKE_BUILD_TYPE)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" arbor_build_config)
 endif()
+
+set(arbor_override_import_lang)
+set(arbor_add_import_libs)
+set(arborenv_add_import_libs)
+
+if(ARB_WITH_GPU)
+    set(arbor_override_import_lang CXX)
+    set(arbor_add_import_libs ${CUDA_LIBRARIES})
+    set(arborenv_add_import_libs ${CUDA_LIBRARIES})
+
+    if(arborenv_requires_nvml)
+        list(APPEND arborenv_add_import_libs ${CUDA_NVML})
+    endif()
+endif()
+
+configure_file(
+    cmake/arbor-config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
+    @ONLY)
+
+install(
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/arbor-config-version.cmake"
+    DESTINATION "${cmake_config_dir}")
 

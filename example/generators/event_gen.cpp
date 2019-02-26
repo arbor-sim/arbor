@@ -10,16 +10,17 @@
 #include <iomanip>
 #include <iostream>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <cell.hpp>
-#include <common_types.hpp>
-#include <event_generator.hpp>
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <simple_sampler.hpp>
+#include <arbor/context.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/load_balance.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/simple_sampler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -46,7 +47,7 @@ public:
     //    capacitance: 0.01 F/m² [default]
     //    synapses: 1 * expsyn
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::cell c;
+        arb::mc_cell c;
 
         c.add_soma(18.8/2.0); // convert 18.8 μm diameter to radius
         c.soma()->add_mechanism("pas");
@@ -60,22 +61,21 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return cell_kind::cable1d_neuron;
     }
 
     // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
     cell_size_type num_targets(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     // Return two generators attached to the one cell.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
 
         using RNG = std::mt19937_64;
-        using pgen = arb::poisson_generator<RNG>;
 
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
@@ -91,28 +91,28 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            pgen(cell_member_type{0,0}, // Target synapse (gid, local_id).
-                 w_e,                   // Weight of events to deliver
-                 RNG(29562872),         // Random number generator to use
-                 t0,                    // Events start being delivered from this time
-                 lambda_e));            // Expected frequency (events per ms)
+            poisson_generator(cell_member_type{0,0}, // Target synapse (gid, local_id).
+                              w_e,                   // Weight of events to deliver
+                              t0,                    // Events start being delivered from this time
+                              lambda_e,              // Expected frequency (kHz)
+                              RNG(29562872)));       // Random number generator to use
 
         // Add inhibitory generator
         gens.emplace_back(
-            pgen(cell_member_type{0,0}, w_i, RNG(86543891), t0, lambda_i));
+            poisson_generator(cell_member_type{0,0}, w_i, t0, lambda_i,  RNG(86543891)));
 
         return gens;
     }
 
     // There is one probe (for measuring voltage at the soma) on the cell
     cell_size_type num_probes(cell_gid_type gid)  const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        EXPECTS(id.gid==0);     // There is one cell,
-        EXPECTS(id.index==0);   // with one probe.
+        arb_assert(id.gid==0);     // There is one cell,
+        arb_assert(id.index==0);   // with one probe.
 
         // Get the appropriate kind for measuring voltage
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
@@ -124,15 +124,19 @@ public:
 };
 
 int main() {
+    // A distributed_context is required for distributed computation (e.g. MPI).
+    // For this simple one-cell example, non-distributed context is suitable,
+    // which is what we get with a default-constructed distributed_context.
+    auto context = arb::make_context();
+
     // Create an instance of our recipe.
     generator_recipe recipe;
 
     // Make the domain decomposition for the model
-    auto node = arb::hw::get_node_info();
-    auto decomp = arb::partition_load_balance(recipe, node);
+    auto decomp = arb::partition_load_balance(recipe, context);
 
     // Construct the model.
-    arb::simulation sim(recipe, decomp);
+    arb::simulation sim(recipe, decomp, context);
 
     // Set up the probe that will measure voltage in the cell.
 

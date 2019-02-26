@@ -9,14 +9,15 @@
 #include "printer/cprinter.hpp"
 #include "printer/cudaprinter.hpp"
 #include "printer/infoprinter.hpp"
+#include "printer/printeropt.hpp"
 #include "printer/simd.hpp"
 
-#include "modccutil.hpp"
 #include "module.hpp"
 #include "parser.hpp"
 #include "perfvisitor.hpp"
 
 #include "io/bulkio.hpp"
+#include "io/pprintf.hpp"
 
 using std::cout;
 using std::cerr;
@@ -67,8 +68,7 @@ struct Options {
     std::string modulename;
     bool verbose = true;
     bool analysis = false;
-    simd_spec simd = simd_spec::none;
-    std::unordered_set<targetKind, enum_hash> targets;
+    std::unordered_set<targetKind> targets;
 };
 
 // Helper for formatting tabulated output (option reporting).
@@ -89,7 +89,6 @@ std::ostream& operator<<(std::ostream& out, simd_spec simd) {
 std::ostream& operator<<(std::ostream& out, const Options& opt) {
     static const char* noyes[2] = {"no", "yes"};
     static const std::string line_end = cyan(" |") + "\n";
-    static const std::string tableline = cyan("."+std::string(60, '-')+".")+"\n";
 
     std::string targets;
     for (targetKind t: opt.targets) {
@@ -97,14 +96,21 @@ std::ostream& operator<<(std::ostream& out, const Options& opt) {
     }
 
     return out <<
-        tableline <<
         table_prefix{"file"} << opt.modfile << line_end <<
         table_prefix{"output"} << (opt.outprefix.empty()? "-": opt.outprefix) << line_end <<
         table_prefix{"verbose"} << noyes[opt.verbose] << line_end <<
         table_prefix{"targets"} << targets << line_end <<
-        table_prefix{"simd"} << opt.simd << line_end <<
-        table_prefix{"analysis"} << noyes[opt.analysis] << line_end <<
-        tableline;
+        table_prefix{"analysis"} << noyes[opt.analysis] << line_end;
+}
+
+std::ostream& operator<<(std::ostream& out, const printer_options& popt) {
+    static const char* noyes[2] = {"no", "yes"};
+    static const std::string line_end = cyan(" |") + "\n";
+
+    return out <<
+        table_prefix{"namespace"} << popt.cpp_namespace << line_end <<
+        table_prefix{"profile"} << noyes[popt.profile] << line_end <<
+        table_prefix{"simd"} << popt.simd << line_end;
 }
 
 // Constraints for TCLAP arguments that are names for enumertion values.
@@ -155,6 +161,7 @@ struct SimdAbiConstraint: public TCLAP::Constraint<std::string> {
 
 int main(int argc, char **argv) {
     Options opt;
+    printer_options popt;
 
     try {
         TCLAP::CmdLine cmd("modcc code generator for arbor", ' ', "0.1");
@@ -164,6 +171,9 @@ int main(int argc, char **argv) {
 
         TCLAP::ValueArg<std::string>
             fout_arg("o", "output", "prefix for output file names", false, "", "filename", cmd);
+
+        TCLAP::ValueArg<std::string>
+            namespace_arg("N", "namespace", "namespace for generated code", false, "arb", "name", cmd);
 
         MapConstraint targets_arg_constraint(targetKindMap);
         TCLAP::MultiArg<std::string>
@@ -175,6 +185,8 @@ int main(int argc, char **argv) {
         SimdAbiConstraint simd_abi_constraint;
         TCLAP::ValueArg<std::string>
             simd_abi_arg("S", "simd-abi", "override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...", false, "", &simd_abi_constraint, cmd);
+
+        TCLAP::SwitchArg profile_arg("P","profile","build with profiled kernels", cmd, false);
 
         TCLAP::SwitchArg verbose_arg("V","verbose","toggle verbose mode", cmd, false);
 
@@ -191,10 +203,13 @@ int main(int argc, char **argv) {
         opt.verbose = verbose_arg.getValue();
         opt.analysis = analysis_arg.getValue();
 
+        popt.cpp_namespace = namespace_arg.getValue();
+        popt.profile = profile_arg.getValue();
+
         if (simd_arg.getValue()) {
-            opt.simd = simd_spec(simd_spec::native);
+            popt.simd = simd_spec(simd_spec::native);
             if (!simd_abi_arg.getValue().empty()) {
-                opt.simd = parse_simd_spec(simd_abi_arg.getValue());
+                popt.simd = parse_simd_spec(simd_abi_arg.getValue());
             }
         }
 
@@ -203,7 +218,7 @@ int main(int argc, char **argv) {
         }
     }
     catch(TCLAP::ArgException &e) {
-        return report_error(e.error()+" for argument "+to_string(e.argId()));
+        return report_error(pprintf("% for argument %", e.error(), e.argId()));
     }
 
     try {
@@ -214,7 +229,11 @@ int main(int argc, char **argv) {
         };
 
         if (opt.verbose) {
+            static const std::string tableline = cyan("."+std::string(60, '-')+".")+"\n";
+            cout << tableline;
             cout << opt;
+            cout << popt;
+            cout << tableline;
         }
 
         // Load module file and initialize Module object.
@@ -254,17 +273,16 @@ int main(int argc, char **argv) {
         // If no output prefix given, use the module name.
         std::string prefix = opt.outprefix.empty()? m.module_name(): opt.outprefix;
 
-        io::write_all(build_info_header(m, "arb"), prefix+".hpp");
-
+        io::write_all(build_info_header(m, popt), prefix+".hpp");
         for (targetKind target: opt.targets) {
             std::string outfile = prefix;
             switch (target) {
             case targetKind::gpu:
-                io::write_all(emit_cuda_cpp_source(m, "arb"), outfile+"_gpu.cpp");
-                io::write_all(emit_cuda_cu_source(m, "arb"), outfile+"_gpu.cu");
+                io::write_all(emit_cuda_cpp_source(m, popt), outfile+"_gpu.cpp");
+                io::write_all(emit_cuda_cu_source(m, popt), outfile+"_gpu.cu");
                 break;
             case targetKind::cpu:
-                io::write_all(emit_cpp_source(m, "arb", opt.simd), outfile+"_cpu.cpp");
+                io::write_all(emit_cpp_source(m, popt), outfile+"_cpu.cpp");
                 break;
             }
         }
@@ -290,13 +308,16 @@ int main(int argc, char **argv) {
             }
         }
     }
-    catch(compiler_exception& e) {
-        return report_ice(e.what()+std::string(" @ ")+to_string(e.location()));
+    catch (io::bulkio_error& e) {
+        return report_error(e.what());
     }
-    catch(std::exception& e) {
+    catch (compiler_exception& e) {
+        return report_ice(pprintf("% @ %", e.what(), e.location()));
+    }
+    catch (std::exception& e) {
         return report_ice(e.what());
     }
-    catch(...) {
+    catch (...) {
         return report_ice("");
     }
 

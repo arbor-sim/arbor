@@ -1,9 +1,9 @@
-#include <math.hpp>
+#include <cmath>
 
 #include "lsystem.hpp"
 #include "lsys_models.hpp"
 
-static constexpr double inf = arb::math::infinity<double>();
+static constexpr double inf = INFINITY;
 
 // Predefined parameters for two classes of neurons. Numbers taken primarily
 // from Ascoli et al. 2001, but some details (soma diameters for example)

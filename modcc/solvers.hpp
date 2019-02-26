@@ -49,6 +49,9 @@ public:
                    " but no METHOD was specified in the SOLVE statement",
                    deriv->location()});
         }
+        else {
+            visit((Expression*)e);
+        }
     }
 };
 

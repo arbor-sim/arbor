@@ -1,39 +1,42 @@
 #include <cmath>
 #include <exception>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <set>
 #include <vector>
 
-#include <common_types.hpp>
-#include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
-#include <event_generator.hpp>
-#include <hardware/gpu.hpp>
-#include <hardware/node_info.hpp>
-#include <io/exporter_spike_file.hpp>
-#include <json/json.hpp>
-#include <lif_cell_description.hpp>
-#include <profiling/profiler.hpp>
-#include <profiling/meter_manager.hpp>
-#include <recipe.hpp>
-#include <simulation.hpp>
-#include <threading/threading.hpp>
-#include <util/config.hpp>
-#include <util/debug.hpp>
-#include <util/ioutil.hpp>
-#include <util/nop.hpp>
+#include <arbor/context.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/lif_cell.hpp>
+#include <arbor/load_balance.hpp>
+#include <arbor/profile/meter_manager.hpp>
+#include <arbor/profile/profiler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
+#include <arbor/version.hpp>
 
-#include "partitioner.hpp"
+#include <arborenv/concurrency.hpp>
+#include <arborenv/gpu_env.hpp>
+
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
+#include <sup/path.hpp>
+#include <sup/strsub.hpp>
+
+#ifdef ARB_MPI_ENABLED
+#include <mpi.h>
+#include <arborenv/with_mpi.hpp>
+#endif
+
 #include "io.hpp"
 
 using namespace arb;
 
-using global_policy = communication::global_policy;
-using file_export_type = io::exporter_spike_file<global_policy>;
-void banner(hw::node_info);
-using communicator_type = communication::communicator<communication::global_policy>;
+void banner(const context& ctx);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -64,7 +67,7 @@ class brunel_recipe: public recipe {
 public:
     brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
                   float weight, float delay, float rel_inh_strength, double poiss_lambda, int seed = 42):
-        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay), seed_(seed) {
+        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -110,7 +113,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell_description();
+        auto cell = lif_cell();
         cell.tau_m = 10;
         cell.V_th = 10;
         cell.C_m = 20;
@@ -127,12 +130,10 @@ public:
         std::mt19937_64 G;
         G.seed(gid + seed_);
 
-        using pgen = poisson_generator<std::mt19937_64>;
-
         time_type t0 = 0;
         cell_member_type target{gid, 0};
 
-        gens.emplace_back(pgen(target, weight_ext_, G, t0, lambda_));
+        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
         return gens;
     }
 
@@ -159,9 +160,6 @@ private:
     // Number of inhibitory cells.
     cell_size_type ncells_inh_;
 
-    // Number of Poisson connections each neuron receives 
-    cell_size_type ncells_ext_;
-
     // Weight of excitatory synapses.
     float weight_exc_;
 
@@ -187,25 +185,45 @@ private:
     int seed_;
 };
 
-using util::any_cast;
-using util::make_span;
-using global_policy = communication::global_policy;
-using file_export_type = io::exporter_spike_file<global_policy>;
-
 int main(int argc, char** argv) {
-    arb::communication::global_policy_guard global_guard(argc, argv);
-    try {
-        arb::util::meter_manager meters;
-        meters.start();
-        std::cout << util::mask_stream(global_policy::id()==0);
-        // read parameters
-        io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
-        hw::node_info nd;
-        nd.num_cpu_cores = threading::num_threads();
-        nd.num_gpus = hw::num_gpus()>0? 1: 0;
-        banner(nd);
+    bool root = true;
+    int rank = 0;
 
-        meters.checkpoint("setup");
+    try {
+        arb::proc_allocation resources;
+        if (auto nt = arbenv::get_env_num_threads()) {
+            resources.num_threads = nt;
+        }
+        else {
+            resources.num_threads = arbenv::thread_concurrency();
+        }
+
+#ifdef ARB_MPI_ENABLED
+        arbenv::with_mpi guard(argc, argv, false);
+        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        rank = arb::rank(context);
+        root = rank==0;
+#else
+        resources.gpu_id = arbenv::default_gpu();
+        auto context = arb::make_context(resources);
+#endif
+
+        std::cout << sup::mask_stream(root);
+        banner(context);
+
+        arb::profile::meter_manager meters;
+        meters.start(context);
+
+        // read parameters
+        io::cl_options options = io::read_options(argc, argv);
+
+        std::fstream spike_out;
+        if (options.spike_file_output && root) {
+            spike_out = sup::open_or_throw("./spikes.gdf", std::ios_base::out, false);
+        }
+
+        meters.checkpoint("setup", context);
 
         // The size of excitatory population.
         cell_size_type nexc = options.nexc;
@@ -238,60 +256,51 @@ int main(int argc, char** argv) {
 
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
-        auto register_exporter = [] (const io::cl_options& options) {
-            return util::make_unique<file_export_type>
-                       (options.file_name, options.output_path,
-                        options.file_extension, options.over_write);
-        };
+        partition_hint_map hints;
+        hints[cell_kind::lif_neuron].cpu_group_size = group_size;
+        auto decomp = partition_load_balance(recipe, context, hints);
 
-        auto decomp = decompose(recipe, group_size);
-        simulation sim(recipe, decomp);
+        simulation sim(recipe, decomp, context);
 
-        // Initialize the spike exporting interface
-        std::unique_ptr<file_export_type> file_exporter;
-        if (options.spike_file_output) {
-            if (options.single_file_per_rank) {
-                file_exporter = register_exporter(options);
-
-                sim.set_local_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    }
-                );
-            }
-            else if(communication::global_policy::id()==0) {
-                file_exporter = register_exporter(options);
-
-                sim.set_global_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    }
-                );
-            }
+        // Set up spike recording.
+        std::vector<arb::spike> recorded_spikes;
+        if (spike_out) {
+            sim.set_global_spike_callback([&recorded_spikes](auto& spikes) {
+                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+                });
         }
-        meters.checkpoint("model-init");
 
-        // run simulation
+        meters.checkpoint("model-init", context);
+
+        // Run simulation.
         sim.run(options.tfinal, options.dt);
 
-        meters.checkpoint("model-simulate");
+        meters.checkpoint("model-simulate", context);
+
+        // Output spikes if requested.
+        if (spike_out) {
+            spike_out << std::fixed << std::setprecision(4);
+            for (auto& s: recorded_spikes) {
+                spike_out << s.source.gid << ' ' << s.time << '\n';
+            }
+        }
 
         // output profile and diagnostic feedback
-        std::cout << util::profiler_summary() << "\n";
+        std::cout << profile::profiler_summary() << "\n";
         std::cout << "\nThere were " << sim.num_spikes() << " spikes\n";
 
-        auto report = util::make_meter_report(meters);
+        auto report = profile::make_meter_report(meters, context);
         std::cout << report;
-        if (global_policy::id()==0) {
+        if (root) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << util::to_json(report) << "\n";
+            fid << std::setw(1) << sup::to_json(report) << "\n";
         }
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(global_policy::id()==0);
+        std::cerr << sup::mask_stream(root);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -302,14 +311,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd) {
+void banner(const context& ctx) {
     std::cout << "==========================================\n";
-    std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << global_policy::size()
-              << " (" << std::to_string(global_policy::kind()) << ")\n";
-    std::cout << "  - threads     : " << nd.num_cpu_cores
-              << " (" << threading::description() << ")\n";
-    std::cout << "  - gpus        : " << nd.num_gpus << "\n";
+    std::cout << "  Brunel model miniapp\n";
+    std::cout << "  - distributed : " << arb::num_ranks(ctx)
+              << (arb::has_mpi(ctx)? " (mpi)": " (serial)") << "\n";
+    std::cout << "  - threads     : " << arb::num_threads(ctx) << "\n";
+    std::cout << "  - gpus        : " << (arb::has_gpu(ctx)? "yes": "no") << "\n";
     std::cout << "==========================================\n";
 }
-

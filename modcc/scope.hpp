@@ -1,10 +1,11 @@
 #pragma once
 
-#include "modccutil.hpp"
-
 #include <memory>
 #include <string>
 #include <unordered_map>
+
+#include "io/pprintf.hpp"
+
 
 // Scope is templated to avoid circular compilation issues.
 // When performing semantic analysis of expressions via traversal of the AST
@@ -30,9 +31,18 @@ public:
     symbol_map& locals();
     symbol_map* globals();
 
+    bool in_api_context() const {
+        return api_context_;
+    }
+
+    void in_api_context(bool flag) {
+        api_context_ = flag;
+    }
+
 private:
     symbol_map* global_symbols_=nullptr;
     symbol_map  local_symbols_;
+    bool api_context_ = false;
 };
 
 template<typename Symbol>

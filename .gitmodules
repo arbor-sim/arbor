@@ -1,9 +1,9 @@
-[submodule "tests/ubench/google-benchmark"]
-	path = tests/ubench/google-benchmark
+[submodule "google-benchmark"]
+	path = ext/google-benchmark
 	url = https://github.com/google/benchmark
-[submodule "doc/rtd_theme"]
-	path = doc/rtd_theme
+[submodule "sphinx_rtd_theme"]
+	path = ext/sphinx_rtd_theme
 	url = https://github.com/rtfd/sphinx_rtd_theme.git
-[submodule "tbb"]
-	path = tbb
-	url = https://github.com/wjakob/tbb.git
+[submodule "python/pybind11"]
+	path = python/pybind11
+	url = https://github.com/pybind/pybind11.git

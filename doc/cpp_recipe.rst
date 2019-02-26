@@ -1,13 +1,7 @@
+.. _cpprecipe:
+
 Recipes
 ===============
-
-An Arbor **recipe** is a description of a model. The recipe is queried during the model
-building phase to provide cell information, such as:
-
-  * the number of cells in the model;
-  * the type of a cell;
-  * a description of a cell;
-  * incoming network connections on a cell.
 
 The :cpp:class:`arb::recipe` class documentation is below.
 
@@ -139,7 +133,7 @@ Class Documentation
 
         The type used to describe a cell depends on the kind of the cell.
         The interface for querying the kind and description of a cell are
-        seperate to allow the the cell type to be provided without building
+        seperate to allow the cell type to be provided without building
         a full cell description, which can be very expensive.
 
     **Optional Member Functions**
@@ -148,7 +142,7 @@ Class Documentation
 
         Returns a list of all the **incoming** connections for `gid` .
         Each connection ``con`` should have post-synaptic target ``con.dest.gid`` that matches
-        the argument :cpp:var:`gid`, and a valid synapse id ``con.dest.index`` on `gid`.
+        the argument :cpp:any:`gid`, and a valid synapse id ``con.dest.index`` on `gid`.
         See :cpp:type:`cell_connection`.
 
         By default returns an empty list.

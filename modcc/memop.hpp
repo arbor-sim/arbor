@@ -1,7 +1,8 @@
 #pragma once
 
-#include "modccutil.hpp"
+#include "io/pprintf.hpp"
 #include "lexer.hpp"
+#include "util.hpp"
 
 /// Defines a memory operation that is to performed by an APIMethod.
 /// Kernels can read/write global state via an index, e.g.

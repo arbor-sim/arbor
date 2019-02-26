@@ -3,12 +3,10 @@ module LVAChannels
 export Stim, run_lva, LVAParam
 
 using Sundials
-using SIUnits
-using SIUnits.ShortUnits
+using Unitful
+using Unitful.DefaultSymbols
 
-const mS = Milli*Siemens
-
-immutable LVAParam
+struct LVAParam
     c_m       # membrane spacific capacitance
     gbar      # Ca channel cross-membrane conductivity
     eca       # Ca channel reversal potential
@@ -34,7 +32,7 @@ immutable LVAParam
 
 end
 
-immutable Stim
+struct Stim
     t0        # start time of stimulus
     t1        # stop time of stimulus
     i_e       # stimulus current density
@@ -42,6 +40,8 @@ immutable Stim
     Stim() = new(0s, 0s, 0A/m^2)
     Stim(t0, t1, i_e) = new(t0, t1, i_e)
 end
+
+scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
 # 'm' activation gate
 function m_lims(v, q10)
@@ -112,7 +112,7 @@ function run_lva(t_end; stim=Stim(), param=LVAParam(), sample_dt=0.01ms)
     t_scale = 1s
 
     v0, m0, h0, d0 = initial_conditions(param.vrest, param.q10_1, param.q10_2)
-    y0 = [ v0/v_scale, m0, h0, d0 ]
+    y0 = [ scale(v0, v_scale), m0, h0, d0 ]
 
 
     fbis(t, y, ydot, istim) = begin
@@ -137,7 +137,7 @@ function run_lva(t_end; stim=Stim(), param=LVAParam(), sample_dt=0.01ms)
     t1 = clamp(stim.t0, 0s, t_end)
     if t1>0s
         ts = make_range(0s, sample_dt, t1)
-        r = Sundials.cvode(fbis_nostim, y0, map(t->t/t_scale, ts), abstol=1e-6, reltol=5e-10)
+        r = Sundials.cvode(fbis_nostim, y0, scale.(ts, t_scale), abstol=1e-6, reltol=5e-10)
         y0 = vec(r[size(r)[1], :])
         push!(res, r)
         push!(samples, ts)
@@ -145,14 +145,14 @@ function run_lva(t_end; stim=Stim(), param=LVAParam(), sample_dt=0.01ms)
     t2 = clamp(stim.t1, t1, t_end)
     if t2>t1
         ts = make_range(t1, sample_dt, t2)
-        r = Sundials.cvode(fbis_stim, y0, map(t->t/t_scale, ts), abstol=1e-6, reltol=5e-10)
+        r = Sundials.cvode(fbis_stim, y0, scale.(ts, t_scale), abstol=1e-6, reltol=5e-10)
         y0 = vec(r[size(r)[1], :])
         push!(res, r)
         push!(samples, ts)
     end
     if t_end>t2
         ts = make_range(t2, sample_dt, t_end)
-        r = Sundials.cvode(fbis_nostim, y0, map(t->t/t_scale, ts), abstol=1e-6, reltol=5e-10)
+        r = Sundials.cvode(fbis_nostim, y0, scale.(ts, t_scale), abstol=1e-6, reltol=5e-10)
         y0 = vec(r[size(r)[1], :])
         push!(res, r)
         push!(samples, ts)
@@ -161,8 +161,7 @@ function run_lva(t_end; stim=Stim(), param=LVAParam(), sample_dt=0.01ms)
     res = vcat(res...)
     samples = vcat(samples...)
 
-    # Use map here because of issues with type deduction with arrays and SIUnits.
-    return samples, map(v->v*v_scale, res[:, 1]), res[:, 2], res[:, 3], res[:, 4]
+    return samples, res[:, 1]*v_scale, res[:, 2], res[:, 3], res[:, 4]
 end
 
 end # module LVAChannels

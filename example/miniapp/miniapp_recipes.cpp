@@ -3,17 +3,17 @@
 #include <vector>
 #include <utility>
 
-#include <cell.hpp>
-#include <dss_cell_description.hpp>
-#include <event_generator.hpp>
-#include <rss_cell.hpp>
-#include <morphology.hpp>
-#include <util/debug.hpp>
+#include <arbor/assert.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/morphology.hpp>
+#include <arbor/schedule.hpp>
+#include <arbor/spike_source_cell.hpp>
+
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
-
 
 namespace arb {
 
@@ -21,14 +21,14 @@ namespace arb {
 // description for greater data reuse.
 
 template <typename RNG>
-cell make_basic_cell(
+mc_cell make_basic_cell(
     const morphology& morph,
     unsigned compartments_per_segment,
     unsigned num_synapses,
     const std::string& syn_type,
     RNG& rng)
 {
-    arb::cell cell = make_cell(morph, true);
+    mc_cell cell = make_mc_cell(morph, true);
 
     for (auto& segment: cell.segments()) {
         if (compartments_per_segment!=0) {
@@ -61,7 +61,7 @@ cell make_basic_cell(
         }
     }
 
-    EXPECTS(!terminals.empty());
+    arb_assert(!terminals.empty());
 
     arb::mechanism_desc syn_default(syn_type);
     for (unsigned i=0; i<num_synapses; ++i) {
@@ -77,7 +77,7 @@ public:
     basic_cell_recipe(cell_gid_type ncell, basic_recipe_param param, probe_distribution pdist):
         ncell_(ncell), param_(std::move(param)), pdist_(std::move(pdist))
     {
-        EXPECTS(param_.morphologies.size()>0);
+        arb_assert(param_.morphologies.size()>0);
         delay_distribution_param_ = exp_param{param_.mean_connection_delay_ms
                             - param_.min_connection_delay_ms};
     }
@@ -87,15 +87,9 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        // The last 'cell' is a spike source cell. Either a regular spiking
-        // or a spikes from file.
+        // The last 'cell' is a spike source cell, producing one spike at t = 0.
         if (i == ncell_) {
-            if (param_.input_spike_path) {
-                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.value());
-                return util::unique_any(dss_cell_description(spike_times));
-            }
-
-            return util::unique_any(rss_cell{0.0, 0.1, 0.1});
+            return util::unique_any(spike_source_cell{explicit_schedule({0.})});
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
@@ -106,16 +100,16 @@ public:
         auto cell = make_basic_cell(morph, param_.num_compartments, param_.num_synapses,
                         param_.synapse_type, gen);
 
-        EXPECTS(cell.num_segments()==cell_segments);
-        EXPECTS(cell.synapses().size()==num_targets(i));
-        EXPECTS(cell.detectors().size()==num_sources(i));
+        arb_assert(cell.num_segments()==cell_segments);
+        arb_assert(cell.synapses().size()==num_targets(i));
+        arb_assert(cell.detectors().size()==num_sources(i));
 
         return util::unique_any(std::move(cell));
     }
 
     probe_info get_probe(cell_member_type probe_id) const override {
         if (probe_id.index>=num_probes(probe_id.gid)) {
-            throw invalid_recipe_error("invalid probe id");
+            throw arb::bad_probe_id(probe_id);
         }
 
         // if we have both voltage and current probes, then order them
@@ -131,7 +125,7 @@ public:
                 cell_probe_address::membrane_voltage: cell_probe_address::membrane_current;
         }
         else {
-            EXPECTS(stride==2);
+            arb_assert(stride==2);
             // Both kinds available.
             kind = (probe_id.index%stride==0)?
                 cell_probe_address::membrane_voltage: cell_probe_address::membrane_current;
@@ -145,13 +139,9 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type i) const override {
-        // The last 'cell' is a rss_cell with one spike at t=0
+        // The last 'cell' is a regular spike source with one spike at t=0
         if (i == ncell_) {
-            if (param_.input_spike_path) {
-                return cell_kind::data_spike_source;
-            }
-
-            return cell_kind::regular_spike_source;
+            return cell_kind::spike_source;
         }
         return cell_kind::cable1d_neuron;
     }
@@ -269,7 +259,7 @@ public:
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
 
-        // The rss_cell does not have inputs
+        // The regular spike cell does not have inputs
         if (i == ncell_) {
             return conns;
         }
@@ -287,7 +277,7 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The rss_cell spikes at t=0, with these connections it looks like
+            // The regular spike source spikes at t=0, with these connections it looks like
             // (source % 20) == 0 spikes at that moment.
             if (source % 20 == 0) {
                 cc.source = {ncell_, 0};
@@ -315,14 +305,14 @@ public:
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
         if (std::size_t(param.num_synapses) != ncell-1) {
-            throw invalid_recipe_error("number of synapses per cell must equal number "
+            throw std::runtime_error("number of synapses per cell must equal number "
                 "of cells minus one in complete graph model");
         }
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        // The rss_cell does not have inputs
+        // The spike source does not have inputs
         if (i == ncell_) {
             return conns;
         }
@@ -330,14 +320,14 @@ public:
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;
-            EXPECTS(source<ncell_);
+            arb_assert(source<ncell_);
 
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The rss_cell spikes at t=0, with these connections it looks like
+            // The spike source spikes at t=0, with these connections it looks like
             // (source % 20) == 0 spikes at that moment.
             if (source % 20 == 0) {
                 cc.source = {ncell_, 0};

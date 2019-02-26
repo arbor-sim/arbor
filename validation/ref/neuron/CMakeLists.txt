@@ -14,6 +14,6 @@ foreach(model ${models})
     add_validation_data(
         OUTPUT "neuron_${model}.json"
         DEPENDS "${script}" "nrn_validation.py"
-        COMMAND ${NRNIV_BIN} -nobanner -python "${script}")
+        COMMAND ${Nrniv_EXECUTABLE} -nobanner -python "${script}")
 endforeach()
 

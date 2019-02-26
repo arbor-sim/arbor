@@ -3,8 +3,11 @@
 include("LVAChannels.jl")
 
 using JSON
-using SIUnits.ShortUnits
-using LVAChannels
+using Unitful
+using Unitful.DefaultSymbols
+using Main.LVAChannels
+
+scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
 radius = 20µm/2
 area = 4*pi*radius^2
@@ -19,8 +22,8 @@ trace = Dict(
     :model => "test_kinlva",
     :units => "mV",
     :data => Dict(
-        :time => map(t->t/ms, ts),
-        Symbol("soma.mid") => map(v->v/mV, vs)
+        :time => scale.(ts, 1ms),
+        Symbol("soma.mid") => scale.(vs, 1mV)
     )
 )
 
@@ -30,7 +33,7 @@ state = Dict(
     :model => "kinlva",
     :units => "1",
     :data => Dict(
-        :time => map(t->t/ms, ts),
+        :time => scale.(ts, 1ms),
         Symbol("m") => m,
         Symbol("d") => d,
         Symbol("h") => h

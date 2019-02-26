@@ -4,8 +4,8 @@
 #include <memory>
 #include <stdexcept>
 
-#include <recipe.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
+#include <arbor/recipe.hpp>
 
 #include "morphology_pool.hpp"
 
@@ -39,10 +39,6 @@ struct basic_recipe_param {
 
     // If true, iterate through morphologies rather than select randomly.
     bool morphology_round_robin = false;
-
-    // If set we are importing the spikes injected in the network from file
-    // instead of a single spike at t==0
-    util::optional<std::string> input_spike_path;  // Path to file with spikes
 };
 
 std::unique_ptr<recipe> make_basic_ring_recipe(

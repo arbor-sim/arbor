@@ -1,3 +1,5 @@
+.. _cppdomdec:
+
 Domain Decomposition
 ====================
 
@@ -28,45 +30,140 @@ Load balancer
 Hardware
 --------
 
-.. cpp:namespace:: arb::hw
+.. cpp:namespace:: arb
 
-.. cpp:class:: node_info
+.. cpp:class:: local_resources
 
-    Information about the computational resources available to a simulation, typically a
-    subset of the resources available on a physical hardware node.
-    When used for distributed simulations, where a model will be distributed over more than
-    one node, a :cpp:class:`hw::node_info` represents the resources available to the local
-    MPI rank.
+    Enumerates the computational resources available locally, specifically the
+    number of hardware threads and the number of GPUs.
+
+    The function :cpp:func:`arb::get_local_resources` can be used to automatically
+    detect the available resources are available :cpp:class:`local_resources` 
 
     .. container:: example-code
 
         .. code-block:: cpp
 
-            // Make node that uses one thread for each available hardware thread,
-            // and one GPU if any GPUs are available.
-            hw::node_info node;
-            node.num_cpu_cores = threading::num_threads();
-            node.num_gpus = hw::num_gpus()>0? 1: 0;
+            auto resources = arb::get_local_resources();
+            std::cout << "This node supports " << resources.num_threads " threads," <<
+                      << " and " << resources.num_gpus << " gpus.";
 
-    .. cpp:function:: node_info() = default
+    .. cpp:function:: local_resources(unsigned threads, unsigned gpus)
 
-        Default constructor (sets 1 CPU core and 0 GPUs).
+        Constructor.
 
-    .. cpp:function:: node_info(unsigned cores, unsigned gpus)
+    .. cpp:member:: const unsigned num_threads
 
-        Constructor that sets the number of :cpp:var:`cores` and :cpp:var:`gpus` available.
+        The number of threads available.
 
-    .. cpp:member:: unsigned num_cpu_cores = 1
-
-        The number of CPU cores available.
-
-        By default it is assumed that there is one core available.
-
-    .. cpp:member:: unsigned num_gpus = 0
+    .. cpp:member:: const unsigned num_gpus
 
         The number of GPUs available.
 
-        By default it is assumed that there are no GPUs.
+.. cpp:function:: local_resources get_local_resources()
+
+    Returns an instance of :cpp:class:`local_resources` with the following:
+
+    * ``num_threads`` is determined from the ``ARB_NUM_THREADS`` environment variable if
+      set, otherwise Arbor attempts to detect the number of available hardware cores.
+      If Arbor can't determine the available threads it defaults to 1 thread.
+    * ``num_gpus`` is the number of GPUs detected using the CUDA ``cudaGetDeviceCount`` that
+      `API call <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
+
+.. cpp:class:: proc_allocation
+
+    Enumerates the computational resources to be used for a simulation, typically a
+    subset of the resources available on a physical hardware node.
+
+    .. container:: example-code
+
+        .. code-block:: cpp
+
+            // Default construction uses all detected cores/threads, and the first GPU, if available.
+            arb::proc_allocation resources;
+
+            // Remove any GPU from the resource description.
+            resources.gpu_id = -1;
+
+
+    .. cpp:function:: proc_allocation() = default
+
+        Sets the number of threads to the number detected by :cpp:func:`get_local_resources`, and
+        chooses either the first available GPU, or no GPU if none are available.
+
+    .. cpp:function:: proc_allocation(unsigned threads, int gpu_id)
+
+        Constructor that sets the number of :cpp:var:`threads` and selects :cpp:var:`gpus` available.
+
+    .. cpp:member:: unsigned num_threads
+
+        The number of CPU threads available.
+
+    .. cpp:member:: int gpu_id
+
+        The identifier of the GPU to use.
+        The gpu id corresponds to the ``int device`` parameter used by CUDA API calls
+        to identify gpu devices.
+        Set to -1 to indicate that no GPU device is to be used.
+        See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
+        `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
+
+    .. cpp:function:: bool has_gpu() const
+
+        Indicates whether a GPU is selected (i.e. whether :cpp:member:`gpu_id` is ``-1``).
+
+Execution Context
+-----------------
+
+The :cpp:class:`proc_allocation` class enumerates the hardware resources on the local hardware
+to use for a simulation.
+
+.. cpp:namespace:: arb
+
+.. cpp:class:: context
+
+    A handle for the interfaces to the hardware resources used in a simulation.
+    A :cpp:class:`context` contains the local thread pool, and optionally the GPU state
+    and MPI communicator, if available. Users of the library do not directly use the functionality
+    provided by :cpp:class:`context`, instead they configure contexts, which are passed to
+    Arbor methods and types.
+
+.. cpp:function:: context make_context()
+
+    Local context that uses all detected threads and a GPU if any are available.
+
+.. cpp:function:: context make_context(proc_allocation alloc)
+
+    Local context that uses the local resources described by :cpp:var:`alloc`.
+
+.. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm)
+
+    A context that uses the local resources described by :cpp:var:`alloc`, and
+    uses the MPI communicator :cpp:var:`comm` for distributed calculation.
+
+
+Here are some examples of how to create a :cpp:class:`arb::context`:
+
+    .. container:: example-code
+
+        .. code-block:: cpp
+
+            #include <arbor/context.hpp>
+
+            // Construct a non-distributed context that uses all detected available resources.
+            auto context = arb::make_context();
+
+            // Construct a context that:
+            //  * does not use a GPU, reguardless of whether one is available;
+            //  * uses 8 threads in its thread pool.
+            arb::proc_allocation resources(8, -1);
+            auto context = arb::make_context(resources);
+
+            // Construct a context that:
+            //  * uses all available local hardware resources;
+            //  * uses the standard MPI communicator MPI_COMM_WORLD for distributed computation.
+            arb::proc_allocation resources; // defaults to all detected local resources
+            auto context = arb::make_context(resources, MPI_COMM_WORLD);
 
 Load Balancers
 --------------
@@ -89,11 +186,11 @@ describes the cell groups on the local MPI rank.
 
 .. cpp:namespace:: arb
 
-.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd)
+.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, const arb::context& ctx)
 
     Construct a :cpp:class:`domain_decomposition` that distributes the cells
-    in the model described by :cpp:var:`rec` over the hardware resources described
-    by `hw::node_info`.
+    in the model described by :cpp:any:`rec` over the distributed and local hardware
+    resources described by :cpp:any:`ctx`.
 
     The algorithm counts the number of each cell type in the global model, then
     partitions the cells of each type equally over the available nodes.
@@ -130,7 +227,6 @@ Documentation for the data structures used to describe domain decompositions.
         .. Note::
             Setting the GPU back end is only meaningful if the
             :cpp:class:`cell_group` type supports the GPU backend.
-            If 
 
 .. cpp:class:: domain_decomposition
 

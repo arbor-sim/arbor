@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-#include <morphology.hpp>
-#include <util/path.hpp>
+#include <arbor/morphology.hpp>
+#include <sup/path.hpp>
 
 namespace arb {
 
@@ -34,7 +34,7 @@ public:
 
 extern morphology_pool default_morphology_pool;
 
-void load_swc_morphology(morphology_pool& pool, const util::path& swc_path);
+void load_swc_morphology(morphology_pool& pool, const sup::path& swc_path);
 void load_swc_morphology_glob(morphology_pool& pool, const std::string& pattern);
 
 } // namespace arb
