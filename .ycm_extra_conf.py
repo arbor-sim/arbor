@@ -55,6 +55,12 @@ flags = [
     '-I',
     'build/include',
     '-I',
+    '/cm/shared/apps/cuda/8.0.44/include', # TODO: run a command to find this on "any" system
+    '-I',
+    'python/pybind11/include',
+    '-I',
+    '/usr/include/python3.6m', # TODO: run a command to find this on "any" system
+    '-I',
     'sup/include',
 ]
 
