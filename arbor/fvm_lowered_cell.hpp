@@ -28,8 +28,8 @@ struct fvm_lowered_cell {
 
     virtual void initialize(
         const std::vector<cell_gid_type>& gids,
-        const std::vector<int>& deps,
         const recipe& rec,
+        std::vector<fvm_index_type>& cell_to_intdom,
         std::vector<target_handle>& target_handles,
         probe_association_map<probe_handle>& probe_map) = 0;
 

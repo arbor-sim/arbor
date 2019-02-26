@@ -21,6 +21,9 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
+#include <arborenv/concurrency.hpp>
+#include <arborenv/gpu_env.hpp>
+
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 
@@ -43,18 +46,18 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank);
 
 // Generate a cell.
-arb::mc_cell gj_cell(double delay, double duration);
+arb::mc_cell gj_cell(cell_gid_type gid, unsigned ncells, double stim_duration);
 
 class gj_recipe: public arb::recipe {
 public:
     gj_recipe(gap_params params): params_(params) {}
 
     cell_size_type num_cells() const override {
-        return params_.cells_per_ring * params_.num_rings;
+        return params_.n_cells_per_cable * params_.n_cables;
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return gj_cell(params_.delay*gid, params_.duration);
+        return gj_cell(gid, params_.n_cells_per_cable, params_.stim_duration);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -66,9 +69,16 @@ public:
         return 1;
     }
 
-    // The cell has one target synapse, which will be connected to cell gid-1.
+    // The cell has one target synapse, which will be connected to a cell in another cable.
     cell_size_type num_targets(cell_gid_type gid) const override {
-        return 0;
+        return 1;
+    }
+
+    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
+            return{};
+        }
+        return {arb::cell_connection({gid - 1, 0}, {gid, 0}, params_.event_weight, params_.event_min_delay)};
     }
 
     // There is one probe (for measuring voltage at the soma) on the cell.
@@ -94,14 +104,22 @@ public:
     std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
         std::vector<arb::gap_junction_connection> conns;
 
-        cell_gid_type ring_start_gid = (gid/params_.cells_per_ring) * params_.cells_per_ring;
-        cell_gid_type next_cell = (gid + 1) % params_.cells_per_ring + ring_start_gid;
-        cell_gid_type prev_cell = (gid - 1 + params_.cells_per_ring) % params_.cells_per_ring + ring_start_gid;
+        int cable_begin = (gid/params_.n_cells_per_cable) * params_.n_cells_per_cable;
+        int cable_end = cable_begin + params_.n_cells_per_cable;
 
-        // Our soma is connected to the next cell's dendrite
-        // Our dendrite is connected to the prev cell's soma
-        conns.push_back(arb::gap_junction_connection({next_cell, 1}, {gid, 0}, 0.0037)); // 1 is the id of the dendrite junction
-        conns.push_back(arb::gap_junction_connection({prev_cell, 0}, {gid, 1}, 0.0037)); // 0 is the id of the soma junction
+        int next_cell = gid + 1;
+        int prev_cell = gid - 1;
+
+        // Soma is connected to the prev cell's dendrite
+        // Dendrite is connected to the next cell's soma
+        // Gap junction conductance in μS
+
+        if (next_cell < cable_end) {
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, 0}, {gid, 1}, 0.015));
+        }
+        if (prev_cell >= cable_begin) {
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, 1}, {gid, 0}, 0.015));
+        }
 
         return conns;
     }
@@ -157,16 +175,26 @@ int main(int argc, char** argv) {
     try {
         bool root = true;
 
+        arb::proc_allocation resources;
+        if (auto nt = arbenv::get_env_num_threads()) {
+            resources.num_threads = nt;
+        }
+        else {
+            resources.num_threads = arbenv::thread_concurrency();
+        }
+
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
-        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
+        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(resources, MPI_COMM_WORLD);
         {
             int rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             root = rank==0;
         }
 #else
-        auto context = arb::make_context();
+        resources.gpu_id = arbenv::default_gpu();
+        auto context = arb::make_context(resources);
 #endif
 
 #ifdef ARB_PROFILE_ENABLED
@@ -225,7 +253,7 @@ int main(int argc, char** argv) {
 
         std::cout << "running simulation" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.025);
+        sim.run(params.sim_duration, 0.025);
 
         meters.checkpoint("model-run", context);
 
@@ -234,7 +262,7 @@ int main(int argc, char** argv) {
         // Write spikes to file
         if (root) {
             std::cout << "\n" << ns << " spikes generated at rate of "
-                      << params.duration/ns << " ms between spikes\n";
+                      << params.sim_duration/ns << " ms between spikes\n";
             std::ofstream fid("spikes.gdf");
             if (!fid.good()) {
                 std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
@@ -275,6 +303,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
         json["name"] = "gj demo: cell " + std::to_string(i);
         json["units"] = "mV";
         json["cell"] = std::to_string(i);
+        json["group"] = std::to_string(rank);
         json["probe"] = "0";
 
         auto &jt = json["data"]["time"];
@@ -290,7 +319,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
     }
 }
 
-arb::mc_cell gj_cell(double delay, double duration) {
+arb::mc_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
     arb::mc_cell cell;
 
     arb::mechanism_desc nax("nax");
@@ -327,11 +356,16 @@ arb::mc_cell gj_cell(double delay, double duration) {
 
     cell.add_detector({0,0}, 10);
 
-    cell.add_gap_junction({0, 1}); //ggap in μS
-    cell.add_gap_junction({1, 1}); //ggap in μS
+    cell.add_gap_junction({0, 1});
+    cell.add_gap_junction({1, 1});
 
-    arb::i_clamp stim(delay, duration, 0.2);
-    cell.add_stimulus({1, 0.95}, stim);
+    if (!gid) {
+        arb::i_clamp stim(0, stim_duration, 0.4);
+        cell.add_stimulus({0, 0.5}, stim);
+    }
+
+    // Add a synapse to the mid point of the first dendrite.
+    cell.add_synapse({1, 0.5}, "expsyn");
 
     return cell;
 }

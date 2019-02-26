@@ -43,7 +43,7 @@ Some key features include:
    install
 
 .. toctree::
-   :caption: Model Basics:
+   :caption: Arbor Models:
 
    model_intro
    model_common

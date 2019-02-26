@@ -30,7 +30,7 @@ inline T lerp(T a, T b, T u) {
 __global__
 void test_thresholds_impl(
     int size,
-    const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
+    const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
@@ -43,7 +43,7 @@ void test_thresholds_impl(
     if (i<size) {
         // Test for threshold crossing
         const auto cv     = cv_index[i];
-        const auto cell   = cv_to_cell[cv];
+        const auto cell   = cv_to_intdom[cv];
         const auto v_prev = prev_values[i];
         const auto v      = values[cv];
         const auto thresh = thresholds[i];
@@ -86,7 +86,7 @@ extern void reset_crossed_impl(
 
 void test_thresholds_impl(
     int size,
-    const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
+    const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
@@ -95,7 +95,7 @@ void test_thresholds_impl(
         constexpr int block_dim = 128;
         const int grid_dim = impl::block_count(size, block_dim);
         kernel::test_thresholds_impl<<<grid_dim, block_dim>>>(
-            size, cv_to_cell, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
+            size, cv_to_intdom, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
     }
 }
 

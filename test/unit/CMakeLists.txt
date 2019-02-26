@@ -103,7 +103,6 @@ set(unit_sources
     test_spike_store.cpp
     test_stats.cpp
     test_strprintf.cpp
-    test_supercell.cpp
     test_swcio.cpp
     test_synapses.cpp
     test_thread.cpp

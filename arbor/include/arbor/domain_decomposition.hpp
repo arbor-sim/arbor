@@ -13,13 +13,13 @@ namespace arb {
 /// Metadata for a local cell group.
 struct group_description {
     /// The kind of cell in the group. All cells in a cell_group have the same type.
-    const cell_kind kind;
+    cell_kind kind;
 
     /// The gids of the cells in the cell_group, sorted in ascending order.
-    const std::vector<cell_gid_type> gids;
+    std::vector<cell_gid_type> gids;
 
     /// The back end on which the cell_group is to run.
-    const backend_kind backend;
+    backend_kind backend;
 
     group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
         kind(k), gids(std::move(g)), backend(b)

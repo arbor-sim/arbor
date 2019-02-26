@@ -164,14 +164,22 @@ private:
 // Convenience routines for making schedule_generator:
 
 inline event_generator regular_generator(
-    cell_member_type target, float weight, time_type tstart, time_type dt, time_type tstop=terminal_time)
+    cell_member_type target,
+    float weight,
+    time_type tstart,
+    time_type dt,
+    time_type tstop=terminal_time)
 {
     return schedule_generator(target, weight, regular_schedule(tstart, dt, tstop));
 }
 
 template <typename RNG>
 inline event_generator poisson_generator(
-    cell_member_type target, float weight, time_type tstart, time_type rate_kHz, const RNG& rng)
+    cell_member_type target,
+    float weight,
+    time_type tstart,
+    time_type rate_kHz,
+    const RNG& rng)
 {
     return schedule_generator(target, weight, poisson_schedule(tstart, rate_kHz, rng));
 }
