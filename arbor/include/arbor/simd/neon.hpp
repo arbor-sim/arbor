@@ -8,8 +8,8 @@
 #include <cstdint>
 
 #include <iostream>
-#include <simd/approx.hpp>
-#include <simd/implbase.hpp>
+#include <arbor/simd/approx.hpp>
+#include <arbor/simd/implbase.hpp>
 
 namespace arb {
 namespace simd {
