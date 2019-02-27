@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -87,6 +88,7 @@ int main(int argc, char** argv) {
 
         sim.run(opt.t_end, opt.dt);
 
+        std::cout << std::fixed << std::setprecision(4);
         for (auto entry: trace) {
             std::cout << entry.t << ", " << entry.v << "\n";
         }
