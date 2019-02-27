@@ -1,4 +1,4 @@
-.. _cppdistcontext:
+.. _cppdryrun:
 
 .. Note::
     This is a developer feature for benchmarking, and is not useful for scientific use cases.
@@ -57,15 +57,15 @@ To support dry-run mode we use the following classes:
 
     .. cpp:function:: gathered_vector<arb::spike>  gather_spikes(const std::vector<arb::spike>& local_spikes) const
 
-        The vector of :cpp:var:`local_spikes` represents the spikes obtained from running a
+        The vector of :cpp:any:`local_spikes` represents the spikes obtained from running a
         simulation of :cpp:member:`num_cells_per_tile_` on the local domain.
         The returned vector should contain the spikes obtained from all domains in the dry-run.
-        The spikes from the non-simulated domains are obtained by copying :cpp:var:`local_spikes`
+        The spikes from the non-simulated domains are obtained by copying :cpp:any:`local_spikes`
         and modifying the gids of each spike to refer to the corresponding gids on each domain.
         The obtained vectors of spikes from each domain are concatenated along with the original
-        :cpp:var:`local_spikes` and returned.
+        :cpp:any:`local_spikes` and returned.
 
-    .. cpp:function:: distributed_context_handle  make_dry_run_context(unsigned num_ranks, unsigned num_cells_per_tile)
+    .. cpp:function:: distributed_context_handle make_dry_run_context(unsigned num_ranks, unsigned num_cells_per_tile)
 
         Convenience function that returns a handle to a :cpp:class:`dry_run_context`.
 
@@ -76,28 +76,21 @@ To support dry-run mode we use the following classes:
         rules: it allows connection from gids greater than the total number of cells in a recipe,
         :cpp:var:`ncells`.
 
-    :cpp:class:`arb::tile` describes the model on a single domain containing :cpp:var:`ncells` =
-    :cpp:var:`num_cells_per_tile` cells, which is to be duplicated over :cpp:var:`num_ranks`
+    :cpp:class:`arb::tile` describes the model on a single domain containing :cpp:expr:`num_cells =
+    num_cells_per_tile` cells, which is to be duplicated over :cpp:var:`num_ranks`
     domains in dry-run mode. It contains information about :cpp:var:`num_ranks` which is provided
     by the following function:
 
     .. cpp:function:: cell_size_type num_tiles() const
 
-Most of the overloaded functions in :cpp:class:`arb::tile` should describe a recipe on the local
-domain, as if it was the only domain in the simulation. The exceptions are the following 2 functions:
+    Most of the overloaded functions in :cpp:class:`arb::tile` describe a recipe on the local
+    domain, as if it was the only domain in the simulation, except for the following two
+    functions that accept :cpp:any:`gid` arguments in the half open interval
+    ``[0, num_cells*num_tiles)``:
 
-    .. cpp:function:: std::vector<cell_connection> connections_on(cell_gid_type  i) const
+    .. cpp:function:: std::vector<cell_connection> connections_on(cell_gid_type gid) const
 
-    Returns the connections on 0 <= i < :cpp:var:`ncells`. But allows connections from gids
-    outside the local domain (gid > :cpp:var:`ncells`). This is in order to create a realistic
-    network with communication between domains.
-
-    .. cpp:function:: std::vector<event_generator> event_generators(cell_gid_type i) const
-
-    Describes event generators for all gids from all domains: 0 <= i < :cpp:var:`ncells` *
-    :cpp:var:`num_tiles()`. Unlike other functions, has knowledge of the mimicked domains,
-    namely their event generators.
-
+    .. cpp:function:: std::vector<event_generator> event_generators(cell_gid_type gid) const
 
 .. cpp:class:: symmetric_recipe: public recipe
 

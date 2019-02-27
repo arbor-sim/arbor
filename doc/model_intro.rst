@@ -2,17 +2,17 @@
 
 Overview
 =========
-Arbor's design model was created to enable scalability through abtraction.
+Arbor's design aims to enable scalability through abtraction.
 
-Thereby, Arbor makes a distinction between the **description** of a model, and the
+To achieve this, Arbor makes a distinction between the **description** of a model, and the
 **execution** of a model:
 a *recipe* describes a model, and a *simulation* is an executable instatiation of a model.
 
 To be able to simulate a model, three basic steps need to be considered:
 
 * first, describe the neuron model by defining a recipe;
-* then, get the local computational resources, the execution context, and partition the load balance;
-* finally, execute the model by initiating and running the simulation.
+* then, define the computational resources available to execute the model;
+* finally, initiate and execute a simulation of the recipe on the chosen hardware resources.
 
 .. topic:: Concepts
 
