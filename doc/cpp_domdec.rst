@@ -3,72 +3,112 @@
 Domain Decomposition
 ====================
 
-Definitions
------------
+The C++ API for defining hardware resources and partitioning a model over
+distributed and local hardware is described here.
+Arbor provides two library APIs for working with hardware resources:
 
-Domain decomposition
-    A description of the distribution of the model over the available
-    computational resources. The description partitions the
-    cells in the model as follows:
+* The core *libarbor* is used to *describe* the hardware resources
+  and their contexts for use in Arbor simulations.
+* The *libarborenv* provides an API for querying available hardware
+  resources (e.g. the number of available GPUs), and initializing MPI.
 
-        * group the cells into *cell groups* of the same kind of cell;
-        * assign each cell group to either a CPU core or GPU on a specific MPI rank.
 
-    The number of cells in each cell group depends on different factors,
-    including the type of the cell, and whether the cell group will run on a CPU
-    core or the GPU.
+Managing Hardware
+-----------------
 
-    See :cpp:class:`arb::domain_decomposition`.
+The *libarborenv* API for querying and managing hardware resources is in the
+:cpp:any:`arbenv` namespace. This functionality is in a seperate
+library because the main Arbor library should only
+present an interface for running simulations on hardware resources provided
+by the calling application. As such, it should not provide access to how
+it manages hardware resources internally, or place restrictions on how
+the calling application selects or manages resources such as GPUs and MPI communicators.
 
-Load balancer
-    A distributed algorithm that determines the domain decomposition using the
-    model recipe and a description of the available computational resources as
-    inputs.
+However, for the purpose of writing tests, examples, benchmarks and validation
+tests, functionality for detecting GPUs, managing MPI lifetimes and the like
+is neccesary. This functionality is kept in a separate library to ensure
+separation of concerns, and to provide examples of quality implementations
+of such functionality for users of the library to reuse.
 
-    See :cpp:func:`arb::partition_load_balance`.
+.. cpp:namespace:: arbenv
 
-Hardware
---------
+.. cpp:function:: arb::optional<int> get_env_num_threads()
 
-.. cpp:namespace:: arb
+    Tests whether the number of threads to use has been set in an environment variable.
+    First checks ``ARB_NUM_THREADS``, and if that is not set checks ``OMP_NUM_THREADS``.
 
-.. cpp:class:: local_resources
+    Return value:
 
-    Enumerates the computational resources available locally, specifically the
-    number of hardware threads and the number of GPUs.
+    * no value: the :cpp:any:`optional` return value contains no value if the
+    * has value: the number of threads set by the environment variable.
 
-    The function :cpp:func:`arb::get_local_resources` can be used to automatically
-    detect the available resources are available :cpp:class:`local_resources` 
+    Exceptions:
+
+    * throws :cpp:any:`std::runtime_error` if environment variable set with invalid
+      number of threads.
 
     .. container:: example-code
 
-        .. code-block:: cpp
+       .. code-block:: cpp
 
-            auto resources = arb::get_local_resources();
-            std::cout << "This node supports " << resources.num_threads " threads," <<
-                      << " and " << resources.num_gpus << " gpus.";
+         if (auto nt = arbenv::get_env_num_threads()) {
+            std::cout << "requested " << nt.value() << "threads \n";
+         }
+         else {
+            std::cout << "no enviroment variable set\n";
+         }
 
-    .. cpp:function:: local_resources(unsigned threads, unsigned gpus)
+.. cpp:function:: int thread_concurrency()
 
-        Constructor.
+   Attempts to detect the number of available CPU cores. Returns 1 if unable to detect
+   the number of cores.
 
-    .. cpp:member:: const unsigned num_threads
+    .. container:: example-code
 
-        The number of threads available.
+       .. code-block:: cpp
 
-    .. cpp:member:: const unsigned num_gpus
+         // Set num_threads to value from environment variable if set,
+         // otherwise set it to the available number of cores.
+         int num_threads = 0;
+         if (auto nt = arbenv::get_env_num_threads()) {
+            num_threads = nt.value();
+         }
+         else {
+            num_threads = arbenv::thread_concurrency();
+         }
 
-        The number of GPUs available.
+.. cpp:function:: int default_gpu()
 
-.. cpp:function:: local_resources get_local_resources()
+   Detects if a GPU is available, and returns the 
 
-    Returns an instance of :cpp:class:`local_resources` with the following:
+   Return value:
 
-    * ``num_threads`` is determined from the ``ARB_NUM_THREADS`` environment variable if
-      set, otherwise Arbor attempts to detect the number of available hardware cores.
-      If Arbor can't determine the available threads it defaults to 1 thread.
-    * ``num_gpus`` is the number of GPUs detected using the CUDA ``cudaGetDeviceCount`` that
-      `API call <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
+   * non-negative value: if a GPU is available, the index of the selected GPU is returned. The index will be in the range ``[0, num_gpus)`` where ``num_gpus`` is the number of GPUs detected using the ``cudaGetDeviceCount`` `CUDA API call <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
+   * -1: if no GPU available, or if Arbor was built without GPU support.
+
+    .. container:: example-code
+
+       .. code-block:: cpp
+
+         if (arbenv::default_gpu()>-1) {}
+            std::cout << "a GPU is available\n";
+         }
+
+.. cpp:function:: int find_private_gpu(MPI_Comm comm)
+
+   stuff.
+
+.. cpp:class:: with_mpi
+
+   Purpose and functionality
+
+   Constructor
+
+   Usage notes.
+
+Blurb for the *libarbor*
+
+.. cpp:namespace:: arb
 
 .. cpp:class:: proc_allocation
 

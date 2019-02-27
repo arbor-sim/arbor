@@ -124,8 +124,8 @@ Class Documentation
 
     .. cpp:function:: std::vector<std::string> gather(std::string value, int root) const
 
-        Special overload for gathering a string provided by each domain into a vector
-        of strings on domain :cpp:var:`root`.
+        Overload for gathering a string from each domain into a vector
+        of strings on domain :cpp:any:`root`.
 
     .. cpp:function:: T min(T value) const
 
@@ -186,7 +186,7 @@ Class Documentation
 
     .. cpp:function:: mpi_context(MPI_Comm comm)
 
-        Create a context that will uses the MPI communicator :cpp:var:`comm`.
+        Create a context that will uses the MPI communicator :cpp:any:`comm`.
 
 .. cpp:function:: distributed_context_handle make_mpi_context(MPI_Comm comm)
 
