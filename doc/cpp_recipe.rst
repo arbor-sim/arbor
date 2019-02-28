@@ -84,8 +84,8 @@ Class Documentation
 
         Returns a list of all the gap junctions connected to `gid`.
         Each gap junction ``gj`` should have one of the two gap junction sites ``gj.local.gid`` or
-        ``gj.peer.gid`` that matches the argument :cpp:any:`gid`, and a corresponding valid synapse id
-        ``gj.local.index`` or ``gj.peer.index`` on `gid`.
+        ``gj.peer.gid`` matching the argument :cpp:any:`gid`, and the corresponding synapse id
+        ``gj.local.index`` or ``gj.peer.index`` should be valid on `gid`.
         See :cpp:type:`gap_junction_connection`.
 
         By default returns an empty list.
@@ -173,7 +173,7 @@ Class Documentation
 .. cpp:class:: gap_junction_connections
 
     Describes a gap junction between two gap junction sites on two cells.
-    Gap junction sites are represented by cell_member_type (cell index, gap junction site index on cell).
+    Gap junction sites are represented by cell_member_type.
 
     .. cpp:member:: cell_member_type local
 

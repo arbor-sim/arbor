@@ -58,37 +58,50 @@ Cell Kinds
     ========================  ======================  ===========================================================
     Identifier                Type                    Description
     ========================  ======================  ===========================================================
-    cell kind                 enum                    * **cable_cell**: cell with morphology described by branching
+    cell kind                 enum                    * **cable**: cell with morphology described by branching
                                                         1D cable segments.
-                                                      * **lif_cell**: leaky-integrate and fire neuron.
-                                                      * **spike_source**: spike source from values inserted via
+                                                      * **lif**: leaky-integrate and fire neuron.
+                                                      * **spiking**: spike source from values inserted via
                                                         description.
                                                       * **benchmark**: proxy cell used for benchmarking.
     ========================  ======================  ===========================================================
 
-1. **Cable Cell**
+1. **Cable**
 
    Cable cells are morphologically detailed cells represented as branching linear 1D segments. They allow the addition of
    point and density mechanisms. They allow having *gap junctions* and *connections* to other cable cells.
 
+   Key concepts:
+
    * **Morphology**: The morphology of a cable cell is built from the soma outwards; a child branch cannot be constructed before its parent.
+     density mechanisms can be added to already constructed cables.
    * **Detectors**: These refer to the **sources** of :ref:`connections <modelconnections>`.
      They are declared by specifying a location on a branch of the cell, and a threshold voltage for spike detection.
      They have a local index (:cpp:type:`cell_member::index`) relative to other detectors on the cell.
    * **Synapses**: These refer to the **targets** of :ref:`connections <modelconnections>`.
-     They are declared by specifying a location on a branch of the cell, and a synapse mechanism.
+     They are declared by specifying a location on a branch of the cell, and a synapse (point) mechanism.
      They have a local index (:cpp:type:`cell_member::index`) relative to other synapses on the cell.
    * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <modelgapjunctions>`.
      They are declared by specifying a location on a branch of the cell.
      They have a local index (:cpp:type:`cell_member::index`) relative to other **gap junction sites** on the cell.
 
-2. **LIF Cell**
+2. **LIF**
 
-   Leaky integrate and fire neuron.
+   Leaky integrate and fire neuron. It is a point neuron with one built-in **source** and one built-in **target**.
+   It does not support adding additional **sources** or **targets**. It does not support gap junctions.
 
-3. **Spike Source**
+3. **Spiking**
+
+   Spike source from values inserted via a `schedule description`. It is a point neuron with one built-in **source** and no **targets**.
+   It does not support adding additional **sources** or **targets**. It does not support gap junctions.
 
 4. **Benchmark**
+
+   Proxy cell used for benchmarking. Similarly to a spiking cell, a benchmark cell generates spikes according to values
+   inserted via a `schedule description`. It also accepts a `realtime ratio` parameter that represents the ratio of
+   real cell advancement time to simulation time (if equal to 1, then a single cell can be advanced in realtime).
+   A benchmark cell has one built-in **source** and one built-in **target**.
+   It does not support adding additional **sources** or **targets**. It does not support gap junctions.
 
 .. _modelconnections:
 
@@ -96,12 +109,12 @@ Connections
 ===========
 
 Connections represent one of the two types of cell interactions supported in Arbor (the other being :ref:`gap junctions <modelgapjunctions>`).
-They implement chemical synapses between **source** and **target** cells and are typically characterized by having a transmission delay.
+They implement chemical synapses between **source** and **target** cells and are characterized by having a transmission delay.
 
 Connections in Arbor are defined in two steps:
 
 1. **Source** and **Target** instantiation on the cells: A connection is formed between two locations on two cells.
-   These locations need to be declared at the level of the cell.
+   These locations need to be declared on the :ref:`cell <modelcells>`.
 2. Connection instantiation in the :ref:`recipe <modelrecipe>`: The **sources** and **targets** are indexed using :cpp:type:`cell_member`,
    which identifies a specific instance (:cpp:type:`cell_member::index`) on a specific cell (:cpp:type:`cell_member::gid`). A connection is
    instantiated by providing the **source** :cpp:type:`cell_member` and the **target** :cpp:type:`cell_member`, as well as a weight.
@@ -119,10 +132,10 @@ They are modeled as a conductance between two **gap junction sites** on two cell
 Similarly to `Connections`, Gap Junctions in Arbor are defined in two steps:
 
 1. **Gap junction site** instantiation on the cells: A gap junction is formed between two locations on two cells.
-   These locations need to be declared at the level of the cell.
+   These locations need to be declared on the :ref:`cell <modelcells>`.
 2. Gap Junction instantiation in the :ref:`recipe <modelrecipe>`: The **gap junction sites** are indexed using :cpp:type:`cell_member`,
    which identifies a specific instance (:cpp:type:`cell_member::index`) on a specific cell (:cpp:type:`cell_member::gid`). A gap junction is
-   instantiated by providing 2 **gap junction sites'** *cell_members*, as well as a conductance in μS.
+   instantiated by providing 2 **gap junction sites'** :cpp:type:`cell_member`, as well as a conductance in μS.
    In the recipe, each cell has access to all of the gap junctions where at least one :cpp:type:`cell_member::gid` refers to that cell.
 
-Arbor has Gap Junctions implemented only for cable_cells as of now.
+Arbor has Gap Junctions implemented only for cable cells as of now.
