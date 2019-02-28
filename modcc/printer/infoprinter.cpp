@@ -116,7 +116,8 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
     std::string fingerprint = "<placeholder>";
     out << popindent << "\n"
         "},\n"
-        "// fingerprint\n" << quote(fingerprint) << "\n"
+        "// fingerprint\n" << quote(fingerprint) << ",\n"
+        "// linear, homogeneous mechanism\n" << m.is_linear() << "\n"
         << popindent <<
         "};\n"
         "\n"

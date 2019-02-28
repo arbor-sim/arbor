@@ -60,6 +60,8 @@ struct mechanism_info {
     std::unordered_map<ionKind, ion_dependency> ions;
 
     mechanism_fingerprint fingerprint;
+
+    bool linear = false;
 };
 
 } // namespace arb

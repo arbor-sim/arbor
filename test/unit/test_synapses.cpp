@@ -95,10 +95,11 @@ TEST(synapses, syn_basic_state) {
     state.set_dt();
 
     std::vector<index_type> syn_cv(num_syn, 0);
+    std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    expsyn->instantiate(0, state, {syn_cv, syn_weight});
-    exp2syn->instantiate(1, state, {syn_cv, syn_weight});
+    expsyn->instantiate(0, state, {syn_cv, syn_weight, syn_mult});
+    exp2syn->instantiate(1, state, {syn_cv, syn_weight, syn_mult});
 
     // Parameters initialized to default values?
 
@@ -130,10 +131,10 @@ TEST(synapses, syn_basic_state) {
 
     // Initialize state then check g, A, B have been set to zero.
 
-    expsyn->nrn_init();
+    expsyn->initialize();
     EXPECT_TRUE(all_equal_to(mechanism_field(expsyn, "g"), 0.));
 
-    exp2syn->nrn_init();
+    exp2syn->initialize();
     EXPECT_TRUE(all_equal_to(mechanism_field(exp2syn, "A"), 0.));
     EXPECT_TRUE(all_equal_to(mechanism_field(exp2syn, "B"), 0.));
 

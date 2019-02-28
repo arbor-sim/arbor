@@ -55,6 +55,7 @@ public:
     }
 
     void instantiate(fvm_size_type id, backend::shared_state& shared, const layout& w) override;
+    void initialize() override;
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
@@ -84,6 +85,8 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
+    iarray multiplicity_;
+    bool mult_in_place_;
     constraint_partition index_constraints_;
     const value_type* weight_;    // Points within data_ after instantiation.
 
@@ -99,6 +102,9 @@ protected:
     using global_table_entry = std::pair<const char*, value_type*>;
     using mechanism_global_table = std::vector<global_table_entry>;
 
+    using state_table_entry = std::pair<const char*, value_type**>;
+    using mechanism_state_table = std::vector<state_table_entry>;
+
     using field_table_entry = std::pair<const char*, value_type**>;
     using mechanism_field_table = std::vector<field_table_entry>;
 
@@ -111,6 +117,8 @@ protected:
     using ion_index_entry = std::pair<ionKind, iarray*>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
+    virtual void nrn_init() = 0;
+
     // Generated mechanisms must implement the following methods, together with
     // fingerprint(), clone(), kind(), nrn_init(), nrn_state(), nrn_current()
     // and deliver_events() (if required) from arb::mechanism.
@@ -121,6 +129,7 @@ protected:
     virtual mechanism_field_table field_table() { return {}; }
     virtual mechanism_field_default_table field_default_table() { return {}; }
     virtual mechanism_global_table global_table() { return {}; }
+    virtual mechanism_state_table state_table() { return {}; }
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
 

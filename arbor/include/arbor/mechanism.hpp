@@ -29,6 +29,8 @@ public:
     struct layout {
         std::vector<fvm_index_type> cv;     // Maps in-instance index to CV index.
         std::vector<fvm_value_type> weight; // Maps in-instance index to compartment contribution.
+        std::vector<fvm_index_type> multiplicity; // Number of logical point processes at in-instance index;
+                                                  // if empty point processes are not coalesced, all multipliers are 1
     };
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.
@@ -61,7 +63,7 @@ public:
     virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
 
     // Simulation interfaces:
-    virtual void nrn_init() = 0;
+    virtual void initialize() = 0;
     virtual void nrn_state() = 0;
     virtual void nrn_current() = 0;
     virtual void deliver_events() {};

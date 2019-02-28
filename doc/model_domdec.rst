@@ -18,4 +18,3 @@ A *load balancer* generates the domain decomposition using the
 model recipe and a description of the available computational resources on which the model will run described by an execution context.
 Currently Arbor provides one load balancer and more will be added over time.
 
-
