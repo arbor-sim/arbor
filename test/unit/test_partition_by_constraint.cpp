@@ -104,7 +104,7 @@ TEST(partition_by_constraint, partition_none) {
 
     EXPECT_EQ(0u, output.independent.size());
     EXPECT_EQ(0u, output.constant.size());
-    if(simd_width_ != 1) {
+    if(simd_width_ > 2) {
         EXPECT_EQ(0u, output.contiguous.size());
         EXPECT_EQ(expected, output.none);
     }
@@ -127,8 +127,14 @@ TEST(partition_by_constraint, partition_random) {
                          i<input_size_/2   ? i*2:
                          i<input_size_*3/4 ? c:
                          i;
-        if (i < input_size_ / 4 && i % simd_width_ == 0)
-            expected_none.push_back(i);
+        if (i < input_size_ / 4 && i % simd_width_ == 0) {
+            if (simd_width_ > 2) {
+                expected_none.push_back(i);
+            }
+            else {
+                expected_contiguous.push_back(i);
+            }
+        }
         else if (i < input_size_ / 2 && i % simd_width_ == 0)
             expected_independent.push_back(i);
         else if (i < input_size_* 3/ 4 && i % simd_width_ == 0)

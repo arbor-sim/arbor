@@ -50,6 +50,7 @@ set(arbor_sources
 if(ARB_WITH_CUDA)
     list(APPEND arbor_sources
         backends/gpu/mechanism.cpp
+        backends/gpu/mechanism.cu
         backends/gpu/shared_state.cpp
         backends/gpu/stimulus.cpp
         backends/gpu/stimulus.cu

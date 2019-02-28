@@ -31,4 +31,4 @@ Execution Context
 
 An *execution context* contains the local thread pool, and optionally the GPU state and MPI communicator, if available. Users of the library configure contexts, which are passed to Arbor methods and types.
 
-Detailed documentations can be found in :ref:`cppdomdec` for C++ and in :ref:`pydomdec` for python.
+See :ref:`cppdomdec` for documentation of the C++ interface for domain decomposition.

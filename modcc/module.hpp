@@ -103,6 +103,7 @@ public:
         return find_ion(k) != neuron_block().ions.end();
     };
 
+    bool is_linear() const { return linear_; }
 
 private:
     moduleKind kind_;
@@ -116,6 +117,7 @@ private:
     UnitsBlock units_block_;
     ParameterBlock parameter_block_;
     AssignedBlock assigned_block_;
+    bool linear_;
 
     // AST storage.
     std::vector<symbol_ptr> callables_;
