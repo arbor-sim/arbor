@@ -1,8 +1,8 @@
 Arbor
 =====
 
-.. image:: https://travis-ci.org/eth-cscs/arbor.svg?branch=master
-    :target: https://travis-ci.org/eth-cscs/arbor
+.. image:: https://travis-ci.org/arbor-sim/arbor.svg?branch=master
+    :target: https://travis-ci.org/arbor-sim/arbor
 
 What is Arbor?
 --------------
@@ -26,7 +26,7 @@ Arbor is designed from the ground up for **many core**  architectures:
 Features
 --------
 
-We are actively developing `Arbor <https://github.com/eth-cscs/arbor>`_, improving performance and adding features.
+We are actively developing `Arbor <https://github.com/arbor-sim/arbor>`_, improving performance and adding features.
 Some key features include:
 
     * Optimized back ends for CUDA, KNL and AVX2 intrinsics.
@@ -47,6 +47,7 @@ Some key features include:
 
    model_intro
    model_common
+   model_hardware
    model_recipe
    model_domdec
    model_simulation
@@ -59,6 +60,7 @@ Some key features include:
 
    cpp_intro
    cpp_common
+   cpp_hardware
    cpp_recipe
    cpp_domdec
    cpp_simulation
