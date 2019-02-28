@@ -83,7 +83,7 @@ cells and members of cell-local collections.
 
         Leaky-integrate and fire neuron.
 
-    .. cpp:enumerator:: spike_source
+    .. cpp:enumerator:: spiking
 
         Spike source from values inserted via description.
 
