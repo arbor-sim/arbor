@@ -224,6 +224,19 @@ describes the cell groups on the local MPI rank.
     and when the user has specific insight into running their model on the
     target computer.
 
+.. Important::
+    When users supply their own :cpp:class:`domain_decomposition`, if they have
+    **Gap Junction connections**, they have to be careful to place all cells that
+    are connected via gap junctions in the same group.
+    Example:
+    ``A -gj- B -gj- C``  and ``D -gj- E``.
+    Cells A, B and C need to be in a single group; and cells D and E need to be in a
+    single group. They may all be placed in the same group but not necessarily.
+    Be mindful that smaller cell groups perform better on multi-core systems and
+    try not to overcrowd cell groups if not needed.
+    Arbor provided load balancers such as :cpp:func:`partition_load_balance`
+    guarantee that this rule is obeyed.
+
 .. cpp:namespace:: arb
 
 .. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, const arb::context& ctx)

@@ -46,7 +46,7 @@ Some key features include:
    :caption: Arbor Models:
 
    model_intro
-   model_common
+   model_concepts
    model_recipe
    model_domdec
    model_simulation

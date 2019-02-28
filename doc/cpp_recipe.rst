@@ -80,6 +80,16 @@ Class Documentation
 
         By default returns an empty list.
 
+    .. cpp:function:: virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const
+
+        Returns a list of all the gap junctions connected to `gid`.
+        Each gap junction ``gj`` should have one of the two gap junction sites ``gj.local.gid`` or
+        ``gj.peer.gid`` that matches the argument :cpp:any:`gid`, and a corresponding valid synapse id
+        ``gj.local.index`` or ``gj.peer.index`` on `gid`.
+        See :cpp:type:`gap_junction_connection`.
+
+        By default returns an empty list.
+
     .. cpp:function:: virtual std::vector<event_generator> event_generators(cell_gid_type gid) const
 
         Returns a list of all the event generators that are attached to `gid`.
@@ -105,6 +115,12 @@ Class Documentation
     .. cpp:function:: virtual cell_size_type num_probes(cell_gid_type gid) const
 
         The number of probes attached to the cell.
+
+        By default returns 0.
+
+    .. cpp:function:: virtual cell_size_type num_gap_junction_sites(cell_gid_type gid) const
+
+        Returns the number of gap junction sites on `gid`.
 
         By default returns 0.
 
@@ -154,3 +170,19 @@ Class Documentation
 
         Delay of the connection (milliseconds).
 
+.. cpp:class:: gap_junction_connections
+
+    Describes a gap junction between two gap junction sites on two cells.
+    Gap junction sites are represented by cell_member_type (cell index, gap junction site index on cell).
+
+    .. cpp:member:: cell_member_type local
+
+        gap junction site: one half of the gap junction connection.
+
+    .. cpp:member:: cell_member_type peer
+
+        gap junction site: other half of the gap junction connection.
+
+    .. cpp:member:: float ggap
+
+        gap junction conductance in μS.
