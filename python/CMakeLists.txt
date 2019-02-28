@@ -16,6 +16,7 @@ add_subdirectory(pybind11)
 
 # The Python library. MODULE will make a Python-exclusive model.
 add_library(pyarb MODULE
+    config.cpp
     context.cpp
     exception.cpp
     mpi.cpp
