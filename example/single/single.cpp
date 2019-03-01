@@ -36,6 +36,9 @@ struct single_recipe: public arb::recipe {
         arb::segment_location mid_soma = {0, 0.5};
         arb::cell_probe_address probe = {mid_soma, arb::cell_probe_address::membrane_voltage};
 
+        // Probe info consists of: the probe id, a tag value to distinguish this probe
+        // from others for any attached sampler (unused), and the cell probe address.
+
         return {probe_id, 0, probe};
     }
 
@@ -46,6 +49,9 @@ struct single_recipe: public arb::recipe {
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
         arb::mc_cell c = make_mc_cell(morpho);
 
+        // Add HH mechanism to soma, passive channels to dendrites.
+        // Discretize dendrites according to the NEURON d-lambda rule.
+
         for (auto& segment: c.segments()) {
             if (segment->is_soma()) {
                 segment->add_mechanism("hh");
@@ -53,7 +59,6 @@ struct single_recipe: public arb::recipe {
             else {
                 segment->add_mechanism("pas");
 
-                // Discretize via NEURON d-lambda rule.
                 double dx = segment->length_constant(100.)*0.3;
                 unsigned n = std::ceil(segment->as_cable()->length()/dx);
                 segment->set_compartments(n);
@@ -62,6 +67,7 @@ struct single_recipe: public arb::recipe {
         }
 
         // Add synapse to last segment.
+
         arb::cell_lid_type last_segment = morpho.components()-1;
         arb::segment_location end_last_segment = { last_segment, 1. };
         c.add_synapse(end_last_segment, "exp2syn");
@@ -80,10 +86,15 @@ int main(int argc, char** argv) {
         auto context = arb::make_context();
         arb::simulation sim(R, arb::partition_load_balance(R, context), context);
 
+        // Attach a sampler to the probe described in the recipe, sampling every 0.1 ms.
+
         arb::trace_data<double> trace;
         sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), arb::make_simple_sampler(trace));
 
-        arb::spike_event spike = {{0, 0}, 1., opt.syn_weight}; // target, time, weight.
+        // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms with
+        // the given weight.
+
+        arb::spike_event spike = {{0, 0}, 1., opt.syn_weight};
         sim.inject_events({spike});
 
         sim.run(opt.t_end, opt.dt);
@@ -125,8 +136,17 @@ options parse_options(int argc, char** argv) {
     return opt;
 }
 
+// If no SWC file is given, the default morphology consists
+// of a soma of radius 6.3 µm and a single unbranched dendrite
+// of length 200 µm and radius decreasing linearly from 0.5 µm
+// to 0.2 µm.
+
 arb::morphology default_morphology() {
     arb::morphology m;
+
+    // Points in a morphology are expressed as (x, y, z, r),
+    // with r being the radius. Units are µm.
+
     m.soma = {0., 0., 0., 6.3};
 
     std::vector<arb::section_point> dendrite = {

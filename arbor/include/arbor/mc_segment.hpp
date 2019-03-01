@@ -302,6 +302,8 @@ public:
         // Neuroscientist 7, pp. 123-135.
         //
         // λ(f) = approx. sqrt(diameter/(pi*f*rL*cm))/2.
+        //
+        // Pick smallest non-zero diameter in the segment.
 
         value_type r_min = 0;
         for (auto r: radii_) {

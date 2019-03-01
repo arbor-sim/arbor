@@ -1,13 +1,14 @@
 # 'single' example.
 
-Example of simulating a single neuron with morphology described be an SWC file.
+Example of simulating a single neuron with morphology described by an SWC file.
 
 A cell is constructed from a supplied morphology with H–H channels
 on the soma and passive channels on the dendrites. A simple exponential
 synapse is added at the end of the last dendrite in the morphology,
 and is triggered at time t = 1 ms.
 
-The simulation outputs a voltage trace in simple CSV format.
+The simulation outputs a trace of the soma membrane voltage in a simple CSV
+format.
 
 ## Features
 
