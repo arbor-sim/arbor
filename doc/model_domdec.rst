@@ -18,17 +18,3 @@ A *load balancer* generates the domain decomposition using the
 model recipe and a description of the available computational resources on which the model will run described by an execution context.
 Currently Arbor provides one load balancer and more will be added over time.
 
-
-Hardware
---------
-
-*Local resources* are locally available computational resources, specifically the number of hardware threads and the number of GPUs.
-
-An *allocation* enumerates the computational resources to be used for a simulation, typically a subset of the resources available on a physical hardware node.
-
-Execution Context
------------------
-
-An *execution context* contains the local thread pool, and optionally the GPU state and MPI communicator, if available. Users of the library configure contexts, which are passed to Arbor methods and types.
-
-See :ref:`cppdomdec` for documentation of the C++ interface for domain decomposition.

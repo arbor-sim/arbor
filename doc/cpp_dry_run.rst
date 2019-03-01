@@ -74,11 +74,11 @@ To support dry-run mode we use the following classes:
     .. Note::
         While this class inherits from :cpp:class:`arb::recipe`, it breaks one of its implicit
         rules: it allows connection from gids greater than the total number of cells in a recipe,
-        :cpp:var:`ncells`.
+        :cpp:any:`ncells`.
 
     :cpp:class:`arb::tile` describes the model on a single domain containing :cpp:expr:`num_cells =
-    num_cells_per_tile` cells, which is to be duplicated over :cpp:var:`num_ranks`
-    domains in dry-run mode. It contains information about :cpp:var:`num_ranks` which is provided
+    num_cells_per_tile` cells, which is to be duplicated over :cpp:any:`num_ranks`
+    domains in dry-run mode. It contains information about :cpp:any:`num_ranks` which is provided
     by the following function:
 
     .. cpp:function:: cell_size_type num_tiles() const
