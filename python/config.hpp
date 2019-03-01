@@ -37,7 +37,9 @@ void print_config(const pybind11::dict &d) {
     s << "Arbor's configuration:" << std::endl;
 
     for (auto x: d) {
-        s << "     " << std::left << std::setw(7) << x.first << ": " << std::right << std::setw(10) << x.second << "\n";
+        s << "     "
+          << std::left << std::setw(7) << x.first << ": "
+          << std::right << std::setw(10) << x.second << "\n";
     }
 
     pybind11::print(s.str());
