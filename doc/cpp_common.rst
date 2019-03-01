@@ -85,7 +85,7 @@ cells and members of cell-local collections.
 
     .. cpp:enumerator:: spiking
 
-        Spike source from values inserted via description.
+        Proxy cell that generates spikes from a spike sequence provided by the user.
 
     .. cpp:enumerator:: benchmark
 

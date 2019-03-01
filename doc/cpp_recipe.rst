@@ -170,10 +170,10 @@ Class Documentation
 
         Delay of the connection (milliseconds).
 
-.. cpp:class:: gap_junction_connections
+.. cpp:class:: gap_junction_connection
 
-    Describes a gap junction between two gap junction sites on two cells.
-    Gap junction sites are represented by cell_member_type.
+    Describes a gap junction between two gap junction sites.
+    Gap junction sites are represented by :cpp:type:cell_member_type.
 
     .. cpp:member:: cell_member_type local
 

@@ -68,8 +68,12 @@ Cell Kinds
 
 1. **Cable**
 
-   Cable cells are morphologically detailed cells represented as branching linear 1D segments. They allow the addition of
-   point and density mechanisms. They allow having *gap junctions* and *connections* to other cable cells.
+   Cable cells are morphologically detailed cells represented as branching linear 1D segments. Cable cells can be coupled
+   to other cell types via spike exchange, e.g. a cable cell can receive spikes from a *spiking* cell, and spikes
+   form a cable cell can be sent to an *LIF* cell. Cable cells are coupled to other cells by two different mechanisms:
+
+   1. Spike exchange over a **connection** with fixed latency.
+   2. Direct electrical coupling between two cable cells via **gap junctions**.
 
    Key concepts:
 
