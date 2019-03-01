@@ -40,7 +40,7 @@ Class Documentation
 
     .. Warning::
         All member functions must be **thread safe**, because the recipe is used
-        by the multithreaded model builing stage. In practice, this means that
+        by the multithreaded model building stage. In practice, this means that
         multiple threads should be able to call member functions of a recipe
         simultaneously. Model building is multithreaded to reduce model building times,
         so recipe implementations should avoid using locks and mutexes to introduce
@@ -66,7 +66,7 @@ Class Documentation
 
         The type used to describe a cell depends on the kind of the cell.
         The interface for querying the kind and description of a cell are
-        seperate to allow the cell type to be provided without building
+        separate to allow the cell type to be provided without building
         a full cell description, which can be very expensive.
 
     **Optional Member Functions**
@@ -131,7 +131,7 @@ Class Documentation
         information in the concrete cell implementations to allow monitoring.
 
         By default throws :cpp:type:`std::logic_error`. If ``arb::recipe::num_probes``
-        returns a non-zero value, this must also be overriden.
+        returns a non-zero value, this must also be overridden.
 
     .. cpp:function:: virtual util::any get_global_properties(cell_kind) const
 

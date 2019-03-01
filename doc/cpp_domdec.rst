@@ -83,14 +83,14 @@ Documentation for the data structures used to describe domain decompositions.
 
 .. cpp:class:: domain_decomposition
 
-    Describes a domain decomposition and is soley responsible for describing the
+    Describes a domain decomposition and is solely responsible for describing the
     distribution of cells across cell groups and domains.
     It holds cell group descriptions (:cpp:member:`groups`) for cells assigned to
     the local domain, and a helper function (:cpp:member:`gid_domain`) used to
     look up which domain a cell has been assigned to.
     The :cpp:class:`domain_decomposition` object also has meta-data about the
     number of cells in the global model, and the number of domains over which
-    the model is destributed.
+    the model is distributed.
 
     .. Note::
         The domain decomposition represents a division **all** of the cells in

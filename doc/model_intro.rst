@@ -2,11 +2,11 @@
 
 Overview
 =========
-Arbor's design aims to enable scalability through abtraction.
+Arbor's design aims to enable scalability through abstraction.
 
 To achieve this, Arbor makes a distinction between the **description** of a model, and the
 **execution** of a model:
-a *recipe* describes a model, and a *simulation* is an executable instatiation of a model.
+a *recipe* describes a model, and a *simulation* is an executable instantiation of a model.
 
 To be able to simulate a model, three basic steps need to be considered:
 
