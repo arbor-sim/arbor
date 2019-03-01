@@ -18,30 +18,6 @@
 #endif
 
 namespace pyarb {
-
-// Some helper functions to determine how Arbor was compiled
-bool mpi_compiled() {
-    #ifdef ARB_MPI_ENABLED
-    return true;
-    #else
-    return false;
-    #endif
-}
-
-bool mpi4py_compiled() {
-    #ifdef ARB_WITH_MPI4PY
-    return true;
-    #else
-    return false;
-    #endif
-}
-
-void register_queryenvvars(pybind11::module& m) {
-    using namespace std::string_literals;
-    
-    m.def("mpi_compiled", &mpi_compiled, "Check if Arbor was compiled with MPI.");
-    m.def("mpi4py_compiled", &mpi4py_compiled, "Check if Arbor was compiled with MPI4PY.");
-}
     
 #ifdef ARB_MPI_ENABLED
 #ifdef ARB_WITH_MPI4PY

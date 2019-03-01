@@ -3,6 +3,7 @@
 # test_contexts_mpi4py.py
 
 import unittest
+from collections import namedtuple
 
 import arbor as arb
 
@@ -15,14 +16,19 @@ try:
 except ModuleNotFoundError:
     from test import options
 
-if (arb.mpi4py_compiled() and arb.mpi_compiled()):
+# check Arbor's configuration of mpi
+dict = arb.config()
+Config = namedtuple('Config', sorted(dict))
+config = Config(**dict)
+
+if (config.mpi and config.mpi4py):
     import mpi4py.MPI as mpi
 
 """
 all tests for distributed arb.context using mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
-@unittest.skipIf(arb.mpi_compiled() == False or arb.mpi4py_compiled() == False, "MPI/mpi4py not enabled!")
+@unittest.skipIf(config.mpi == False or config.mpi4py == False, "MPI/mpi4py not enabled!")
 class Contexts_mpi4py(unittest.TestCase):
     def test_initialize_mpi4py(self):
         # test mpi initialization (automatically when including mpi4py: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html)
