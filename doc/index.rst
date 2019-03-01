@@ -29,7 +29,8 @@ Features
 We are actively developing `Arbor <https://github.com/arbor-sim/arbor>`_, improving performance and adding features.
 Some key features include:
 
-    * Optimized back ends for CUDA, KNL and AVX2 intrinsics.
+    * Optimized back end for CUDA
+    * Optimized vector back ends for Intel (KNL, AVX, AVX2) and Arm (ARMv8-A NEON) intrinsics.
     * Asynchronous spike exchange that overlaps compute and communication.
     * Efficient sampling of voltage and current on all back ends.
     * Efficient implementation of all features on GPU.

@@ -299,11 +299,11 @@ and `ARM options <https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html>`_.
      cmake -DARB_ARCH=skylake-avx512   # skylake with avx512 (Xeon server)
      cmake -DARB_ARCH=knl              # Xeon Phi KNL
 
-     # IBM Power8
-     cmake -DARB_ARCH=power8
-
      # ARM Arm8a
      cmake -DARB_ARCH=armv8-a
+
+     # IBM Power8
+     cmake -DARB_ARCH=power8
 
 ..  _vectorize:
 
