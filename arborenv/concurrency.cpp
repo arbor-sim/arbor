@@ -19,7 +19,7 @@ unsigned get_env_num_threads() {
 
     // select variable to use:
     //   If ARB_NUM_THREADS_VAR is set, use $ARB_NUM_THREADS_VAR
-    //   else if ARB_NUM_THREAD set, use it
+    //   else if ARB_NUM_THREADS set, use it
     //   else if OMP_NUM_THREADS set, use it
     if (auto nthreads_var_name = std::getenv("ARB_NUM_THREADS_VAR")) {
         str = std::getenv(nthreads_var_name);

@@ -54,12 +54,6 @@ Some key features include:
 .. toctree::
    :caption: Python:
 
-   py_overview
-   py_common
-   py_recipe
-   py_domdec
-   py_simulation
-
 .. toctree::
    :caption: C++ API:
 
@@ -75,9 +69,7 @@ Some key features include:
    library
    simd_api
    profiler
-   py_profiler
    sampling_api
    cpp_distributed_context
    cpp_dry_run
-   py_unittest
 

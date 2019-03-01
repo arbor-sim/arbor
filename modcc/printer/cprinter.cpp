@@ -258,6 +258,19 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         }
         out << popindent << "\n};" << popindent << "\n}\n";
 
+        out <<
+            "mechanism_state_table state_table() override {\n" << indent <<
+            "return {" << indent;
+
+        sep.reset();
+        for (const auto& array: vars.arrays) {
+            auto memb = array->name();
+            if(array->is_state()) {
+                out << sep << "{" << quote(memb) << ", &" << memb << "}";
+            }
+        }
+        out << popindent << "\n};" << popindent << "\n}\n";
+
     }
 
     if (!ion_deps.empty()) {

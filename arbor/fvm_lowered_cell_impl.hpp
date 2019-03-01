@@ -157,7 +157,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     set_tmin(0);
 
     for (auto& m: mechanisms_) {
-        m->nrn_init();
+        m->initialize();
     }
 
     update_ion_state();
@@ -387,7 +387,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D, global_props.coalesce_synapses);
 
     // Discritize and build gap junction info
 
@@ -421,7 +421,11 @@ void fvm_lowered_cell_impl<B>::initialize(
 
         mechanism::layout layout;
         layout.cv = config.cv;
+        layout.multiplicity = config.multiplicity;
         layout.weight.resize(layout.cv.size());
+
+        std::vector<fvm_index_type> multiplicity_divs;
+        auto multiplicity_part = util::make_partition(multiplicity_divs, layout.multiplicity);
 
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional
         // contribution in the CV, and F is the scaling factor required
@@ -431,13 +435,16 @@ void fvm_lowered_cell_impl<B>::initialize(
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
-            for (auto i: count_along(layout.cv)) {
+            for (auto i: count_along(config.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = 1000/D.cv_area[cv];
 
                 // (builtin stimulus, for example, has no targets)
+
                 if (!config.target.empty()) {
-                    target_handles[config.target[i]] = target_handle(mech_id, i, cv_to_intdom[cv]);
+                    for (auto j: make_span(multiplicity_part[i])) {
+                        target_handles[config.target[j]] = target_handle(mech_id, i, cv_to_intdom[cv]);
+                    }
                 }
             }
         }
