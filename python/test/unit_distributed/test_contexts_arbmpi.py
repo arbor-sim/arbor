@@ -3,6 +3,7 @@
 # test_contexts_arbmpi.py
 
 import unittest
+from collections import namedtuple
 
 import arbor as arb
 
@@ -15,34 +16,28 @@ try:
 except ModuleNotFoundError:
     from test import options
 
+# check Arbor's configuration of mpi
+dict = arb.config()
+mpi_check = dict["mpi"]
+
 """
 all tests for distributed arb.context using arbor mpi wrappers
 """
-@unittest.skipIf(arb.mpi_compiled() == False, "MPI not enabled!")
+@unittest.skipIf(mpi_check == False, "MPI not enabled!")
 class Contexts_arbmpi(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
     def setUpClass(self):
-        #print("setUp --- TestContextMPI class")
         self.local_mpi = False
         if not arb.mpi_is_initialized():
-            #print("    Initializing mpi")
             arb.mpi_init()
             self.local_mpi = True
-        #else:
-            #print("    mpi already initialized")
     # Finalize mpi only once in this class (when adding classes move finalization to setUpModule()
     @classmethod
     def tearDownClass(self):
-        #print("tearDown --- TestContextMPI class")
-        #print("    Finalizing mpi")
-        #if (arb.mpi4py_compiled() == False and arb.mpi_is_finalized() == False):
-        if self.local_mpi: 
-            #print("    Finalizing mpi")
+        if self.local_mpi:
             arb.mpi_finalize()
-        #else:
-            #print("    No finalizing due to further testing with mpi4py")
-    
+
     def test_initialized_arbmpi(self):
         self.assertTrue(arb.mpi_is_initialized())
 
@@ -51,7 +46,6 @@ class Contexts_arbmpi(unittest.TestCase):
 
         # test that by default communicator is MPI_COMM_WORLD
         self.assertEqual(str(comm), '<mpi_comm: MPI_COMM_WORLD>')
-        #print(comm)
 
         # test context with mpi
         alloc = arb.proc_allocation()
@@ -59,7 +53,6 @@ class Contexts_arbmpi(unittest.TestCase):
 
         self.assertEqual(ctx.threads, alloc.threads)
         self.assertTrue(ctx.has_mpi)
-        #print(ctx)
 
     def test_finalized_arbmpi(self):
         self.assertFalse(arb.mpi_is_finalized())
@@ -71,7 +64,7 @@ def suite():
 
 def run():
     v = options.parse_arguments().verbosity
-    
+
     if not arb.mpi_is_initialized():
         arb.mpi_init()
 
@@ -79,7 +72,7 @@ def run():
     alloc = arb.proc_allocation()
     ctx = arb.context(alloc, comm)
     rank = ctx.rank
-    
+
     if rank == 0:
         runner = unittest.TextTestRunner(verbosity = v)
     else:

@@ -12,7 +12,7 @@ std::string context_string(const arb::context& c) {
     const bool gpu = arb::has_gpu(c);
     const bool mpi = arb::has_mpi(c);
     s << "<context: threads " << arb::num_threads(c)
-      << ", gpu " << (gpu? "yes": "None") 
+      << ", gpu " << (gpu? "yes": "None")
       << ", distributed " << (mpi? "MPI": "Local")
       << " ranks " << arb::num_ranks(c)
       << ">";
