@@ -18,17 +18,17 @@ except ModuleNotFoundError:
 
 # check Arbor's configuration of mpi
 dict = arb.config()
-Config = namedtuple('Config', sorted(dict))
-config = Config(**dict)
+config_mpi = dict["mpi"]
+config_mpi4py = dict["mpi4py"]
 
-if (config.mpi and config.mpi4py):
+if (config_mpi and config_mpi4py):
     import mpi4py.MPI as mpi
 
 """
 all tests for distributed arb.context using mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
-@unittest.skipIf(config.mpi == False or config.mpi4py == False, "MPI/mpi4py not enabled!")
+@unittest.skipIf(config_mpi == False or config_mpi4py == False, "MPI/mpi4py not enabled!")
 class Contexts_mpi4py(unittest.TestCase):
     def test_initialize_mpi4py(self):
         # test mpi initialization (automatically when including mpi4py: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html)
@@ -39,7 +39,6 @@ class Contexts_mpi4py(unittest.TestCase):
 
         # test that set communicator is MPI_COMM_WORLD
         self.assertEqual(str(comm), '<mpi_comm: MPI_COMM_WORLD>')
-        #print(comm)
 
     def test_context_mpi4py(self):
         comm = arb.mpi_comm_from_mpi4py(mpi.COMM_WORLD)
@@ -50,7 +49,6 @@ class Contexts_mpi4py(unittest.TestCase):
 
         self.assertEqual(ctx.threads, alloc.threads)
         self.assertTrue(ctx.has_mpi)
-        #print(ctx)
 
     def test_finalize_mpi4py(self):
         # test mpi finalization (automatically when including mpi4py, but only just before the Python process terminates)
@@ -68,11 +66,11 @@ def run():
     alloc = arb.proc_allocation()
     ctx = arb.context(alloc, comm)
     rank = ctx.rank
-    
+
     if rank == 0:
         runner = unittest.TextTestRunner(verbosity = v)
     else:
-        sys.stdout = open(os.devnull, 'w') 
+        sys.stdout = open(os.devnull, 'w')
         runner = unittest.TextTestRunner(stream=sys.stdout)
 
     runner.run(suite())

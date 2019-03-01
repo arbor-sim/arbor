@@ -41,8 +41,8 @@ def suite():
 
 
 if __name__ == "__main__":
-    v = options.parse_arguments().verbosity 
-    
+    v = options.parse_arguments().verbosity
+
     if not arb.mpi_is_initialized():
         print(" Runner initializing mpi")
         arb.mpi_init()

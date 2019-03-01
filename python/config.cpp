@@ -8,8 +8,10 @@
 #include <pybind11/stl.h>
 
 namespace pyarb {
-    
-// Create and return a dictionary
+
+// Returns a python dictionary that python users can use to look up
+// which options the Arbor library was configured with at compile time.
+
 pybind11::dict config() {
     pybind11::dict dict;
 #ifdef ARB_MPI_ENABLED
@@ -33,14 +35,14 @@ pybind11::dict config() {
 
 void print_config(const pybind11::dict &d) {
     std::stringstream s;
-    s << "Arbor's configuration:" << std::endl;
-    
+    s << "Arbor's configuration:\n";
+
     for (auto x: d) {
         s << "     "
         << std::left << std::setw(7) << x.first << ": "
         << std::right << std::setw(10) << x.second << "\n";
     }
-    
+
     pybind11::print(s.str());
 }
 

@@ -18,7 +18,7 @@
 #endif
 
 namespace pyarb {
-    
+
 #ifdef ARB_MPI_ENABLED
 #ifdef ARB_WITH_MPI4PY
 
@@ -57,7 +57,7 @@ void mpi_finalize() {
 int mpi_is_initialized() {
     int initialized;
     MPI_Initialized(&initialized);
-    return initialized; 
+    return initialized;
 }
 
 int mpi_is_finalized() {
