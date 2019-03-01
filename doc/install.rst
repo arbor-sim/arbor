@@ -299,11 +299,11 @@ and `ARM options <https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html>`_.
      cmake -DARB_ARCH=skylake-avx512   # skylake with avx512 (Xeon server)
      cmake -DARB_ARCH=knl              # Xeon Phi KNL
 
+     # ARM Arm8a
+     cmake -DARB_ARCH=armv8-a
+
      # IBM Power8
      cmake -DARB_ARCH=power8
-
-     # IBM Arm8a
-     cmake -DARB_ARCH=armv8-a
 
 ..  _vectorize:
 
@@ -321,7 +321,7 @@ for the architecture, enabling ``ARB_VECTORIZE`` will lead to a compilation erro
 
 With this flag set, the library will use architecture-specific vectorization intrinsics
 to implement these kernels. Arbor currently has vectorization support for x86 architectures
-with AVX, AVX2 or AVX512 ISA extensions.
+with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support for AArch64 NEON intrinsincs (first available on ARMv8-A).
 
 .. _gpu:
 
