@@ -3,8 +3,7 @@
 Domain Decomposition
 ====================
 
-The C++ API for
-and partitioning a model over distributed and local hardware is described here.
+The C++ API for partitioning a model over distributed and local hardware is described here.
 
 Load Balancers
 --------------

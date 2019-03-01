@@ -124,8 +124,8 @@ Utility Wrappers and Containers
 
 .. cpp:class:: template <typename T> optional
 
-    A wrapper around a containted value of type :cpp:type:`T`, that may or may not be set.
-    A faithfull copy of the C++17 ``std::optional`` type.
+    A wrapper around a contained value of type :cpp:type:`T`, that may or may not be set.
+    A faithful copy of the C++17 ``std::optional`` type.
     See the online C++ standard documentation
     `<https://en.cppreference.com/w/cpp/utility/optional>`_
     for more information.
@@ -136,7 +136,7 @@ Utility Wrappers and Containers
     Used in the Arbor API where a type of a value passed to or from the API
     is decided at run time.
 
-    A faithfull copy of the C++17 ``std::any`` type.
+    A faithful copy of the C++17 ``std::any`` type.
     See the online C++ standard documentation
     `<https://en.cppreference.com/w/cpp/utility/any>`_
     for more information.

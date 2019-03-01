@@ -30,8 +30,9 @@ own code for managing MPI, GPUs, and thread counts.
 
     Return value:
 
-    * no value: the :cpp:any:`optional` return value contains no value if the
-    * has value: the number of threads set by the environment variable.
+    * **no value**: the :cpp:any:`optional` return value contains no value if the
+      no thread count was specified by an environment variable.
+    * **has value**: the number of threads set by the environment variable.
 
     Throws:
 
@@ -48,7 +49,7 @@ own code for managing MPI, GPUs, and thread counts.
             std::cout << "requested " << nt.value() << "threads \n";
          }
          else {
-            std::cout << "no enviroment variable set\n";
+            std::cout << "no environment variable set\n";
          }
 
 .. cpp:function:: int thread_concurrency()
@@ -78,8 +79,8 @@ own code for managing MPI, GPUs, and thread counts.
 
    Return value:
 
-   * non-negative value: if a GPU is available, the index of the selected GPU is returned. The index will be in the range ``[0, num_gpus)`` where ``num_gpus`` is the number of GPUs detected using the ``cudaGetDeviceCount`` `CUDA API call <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
-   * -1: if no GPU available, or if Arbor was built without GPU support.
+   * **non-negative value**: if a GPU is available, the index of the selected GPU is returned. The index will be in the range ``[0, num_gpus)`` where ``num_gpus`` is the number of GPUs detected using the ``cudaGetDeviceCount`` `CUDA API call <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
+   * **-1**: if no GPU available, or if Arbor was built without GPU support.
 
     .. container:: example-code
 
@@ -113,8 +114,8 @@ own code for managing MPI, GPUs, and thread counts.
 
    Return value:
 
-     * non-negative integer: the identifier of the GPU assigned to this rank.
-     * -1: no GPU was available for this MPI rank.
+     * **non-negative integer**: the identifier of the GPU assigned to this rank.
+     * **-1**: no GPU was available for this MPI rank.
 
    Throws:
 
@@ -125,7 +126,7 @@ own code for managing MPI, GPUs, and thread counts.
 .. cpp:class:: with_mpi
 
    The :cpp:class:`with_mpi` type is a simple RAII scoped guard for MPI initialization
-   and finalize. On creation :cpp:class:`with_mpi` will call :cpp:any:`MPI_Init_thread`
+   and finalization. On creation :cpp:class:`with_mpi` will call :cpp:any:`MPI_Init_thread`
    to initialize MPI with the minimum level thread support required by Arbor, that is
    ``MPI_THREAD_SERIALIZED``. When it goes out of scope it will automatically call
    :cpp:any:`MPI_Finalize`.
@@ -150,7 +151,7 @@ own code for managing MPI, GPUs, and thread counts.
       block, the deadlock stops the exception from being handled.
       For this reason the destructor of :cpp:class:`with_mpi` only calls
       :cpp:any:`MPI_Finalize` if there are no uncaught exceptions.
-      This isn't perfect because the other MPI ranks still still deadlock,
+      This isn't perfect because the other MPI ranks still deadlock,
       however it gives the exception handling code to report the error for debugging.
 
    An example workflow that uses the MPI scope guard. Note that this code will
@@ -321,7 +322,7 @@ Here are some simple examples of how to create a :cpp:class:`arb::context` using
 
       // Construct a context that:
       //  * uses 8 threads in its thread pool.
-      //  * does not use a GPU, reguardless of whether one is available;
+      //  * does not use a GPU, regardless of whether one is available;
       //  * does not use MPI
       arb::proc_allocation resources(8, -1);
       auto context = arb::make_context(resources);

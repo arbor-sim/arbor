@@ -12,10 +12,11 @@ An *allocation* enumerates the computational resources to be used for a simulati
    New users can find using contexts a little verbose.
    The design is very deliberate, to allow fine-grained control over which
    computational resources an Arbor simulation should use.
-   As a result Arbor it much easier to integrate into workflows that
+   As a result Arbor is much easier to integrate into workflows that
    run multiple applications or libraries on the same node, because
-   Arbor has a direct API for assigning on node resources (threads and GPU)
-   and distributed resources (MPI).
+   Arbor has a direct API for using on node resources (threads and GPU)
+   and distributed resources (MPI) that have been partitioned between
+   applications/libraries.
 
 
 Execution Context
