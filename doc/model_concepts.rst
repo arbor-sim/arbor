@@ -23,31 +23,34 @@ Common Types
 
 .. table:: Cell identifiers
 
-    ========================  ======================  ===========================================================
-    Identifier                Type                    Description
-    ========================  ======================  ===========================================================
-    gid                       integral                The global identifier of the cell associated with the item.
-    index                     integral                The index of the item in a cell-local collection.
-    cell_member               tuple (gid, index)      The global identification of a cell-local item
-                                                      associated with a unique cell, identified by the member `gid`,
-                                                      and identifying an item within a cell-local collection by the
-                                                      member `index`.
-    ========================  ======================  ===========================================================
+    ========================  ================================  ===========================================================
+    Identifier                Type                              Description
+    ========================  ================================  ===========================================================
+    .. generic:: gid          integral                          The global identifier of the cell associated with the item.
+    .. generic:: index        integral                          The index of the item in a cell-local collection.
+    .. generic:: cell_member  tuple (:gen:`gid`, :gen:`index`)  The global identification of a cell-local item
+                                                                associated with a unique cell, identified by the member `gid`,
+                                                                and identifying an item within a cell-local collection by the
+                                                                member `index`.
+    ========================  ================================  ===========================================================
 
 
-Each cell has a global identifier :cpp:type:`gid` associated to it. The :cpp:type:`gid` is used by the :ref:`recipe <modelrecipe>`
-to build the global network. Cells may interact with other cells via :ref:`connections <modelconnections>` or
-:ref:`gap junctions <modelgapjunctions>`. These interactions happen at specific positions on the cell which can
-be one of three types:
+Each cell has a global identifier :gen:`gid` associated to it. The :gen:`gid` is used by the :ref:`recipe <modelrecipe>`
+to build the global network. Certain locations on a cell can be pinpointed and potentially used in cell-to-cell interaction.
+We identify three kinds of locations on a cell:
 
-1. **Source**: A spike source associated to a *connection*. It detects spikes; if part of a connection, it sends the spikes to **targets**.
-2. **Target**: A synapse associated to a *connection*. It has an associated synaptic mechanism that can respond to spikes from **sources**.
-3. **Gap Junction Site**: A site associated to a *gap junction*. It represents one half of the gap junction.
+1. **Source**
+2. **Target**
+3. **Gap Junction Site**
 
-Each of these positions is located on a specific point on a cell. It has an :cpp:type:`index` relative to all other positions of
-the same type on that cell. That cell, as previously mentioned, has a :cpp:type:`gid` to index it relative to other cells in the simulation.
-The (:cpp:type:`gid`, :cpp:type:`index`) pairs make up the :cpp:type:`cell_member` type used to index **sources**, **targets** and **gap junctions sites**
-for all cells in a simulation.
+A cell has potentially many sources, targets and gap junction sites. Each of these has a local :gen:`index` relative to other points of
+the same type on that cell. That cell, as previously mentioned, has a :gen:`gid` to index it relative to other cells in the simulation.
+The (:gen:`gid`, :gen:`index`) pairs make up the :gen:`cell_member` type used to index sources, targets and gap junctions sites
+globally in a simulation.
+
+Cells may interact with other cells via :ref:`connections <modelconnections>` or
+:ref:`gap junctions <modelgapjunctions>`. Connections are formed from **sources** to **targets**. Gap junctions
+are formed between two **gap junction sites**.
 
 
 Cell Kinds
@@ -68,9 +71,9 @@ Cell Kinds
 
 1. **Cable**
 
-   Cable cells are morphologically detailed cells represented as branching linear 1D segments. Cable cells can be coupled
+   Cable cells are morphologically detailed cells represented as branching linear 1D segments. They can be coupled
    to other cell types via spike exchange, e.g. a cable cell can receive spikes from a *spiking* cell, and spikes
-   form a cable cell can be sent to an *LIF* cell. Cable cells are coupled to other cells by two different mechanisms:
+   form a cable cell can be sent to an *LIF* cell. This coupling happens by two different mechanisms:
 
    1. Spike exchange over a **connection** with fixed latency.
    2. Direct electrical coupling between two cable cells via **gap junctions**.
@@ -78,16 +81,13 @@ Cell Kinds
    Key concepts:
 
    * **Morphology**: The morphology of a cable cell is built from the soma outwards; a child branch cannot be constructed before its parent.
-     density mechanisms can be added to already constructed cables.
+     Density mechanisms can be added to already constructed cables.
    * **Detectors**: These refer to the **sources** of :ref:`connections <modelconnections>`.
      They are declared by specifying a location on a branch of the cell, and a threshold voltage for spike detection.
-     They have a local index (:cpp:type:`cell_member::index`) relative to other detectors on the cell.
    * **Synapses**: These refer to the **targets** of :ref:`connections <modelconnections>`.
      They are declared by specifying a location on a branch of the cell, and a synapse (point) mechanism.
-     They have a local index (:cpp:type:`cell_member::index`) relative to other synapses on the cell.
    * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <modelgapjunctions>`.
      They are declared by specifying a location on a branch of the cell.
-     They have a local index (:cpp:type:`cell_member::index`) relative to other **gap junction sites** on the cell.
 
 2. **LIF**
 
@@ -119,9 +119,9 @@ Connections in Arbor are defined in two steps:
 
 1. **Source** and **Target** instantiation on the cells: A connection is formed between two locations on two cells.
    These locations need to be declared on the :ref:`cell <modelcells>`.
-2. Connection instantiation in the :ref:`recipe <modelrecipe>`: The **sources** and **targets** are indexed using :cpp:type:`cell_member`,
-   which identifies a specific instance (:cpp:type:`cell_member::index`) on a specific cell (:cpp:type:`cell_member::gid`). A connection is
-   instantiated by providing the **source** :cpp:type:`cell_member` and the **target** :cpp:type:`cell_member`, as well as a weight.
+2. Connection instantiation in the :ref:`recipe <modelrecipe>`: The **sources** and **targets** are indexed using :gen:`cell_member`,
+   which identifies a specific instance (:gen:`index`) on a specific cell (:gen:`gid`). A connection is
+   instantiated by providing the **source** :gen:`cell_member` and the **target** :gen:`cell_member`, as well as a weight.
    In the recipe, each cell has access to all of the connections whose **targets** are on that cell.
 
 .. _modelgapjunctions:
@@ -137,9 +137,10 @@ Similarly to `Connections`, Gap Junctions in Arbor are defined in two steps:
 
 1. **Gap junction site** instantiation on the cells: A gap junction is formed between two locations on two cells.
    These locations need to be declared on the :ref:`cell <modelcells>`.
-2. Gap Junction instantiation in the :ref:`recipe <modelrecipe>`: The **gap junction sites** are indexed using :cpp:type:`cell_member`,
-   which identifies a specific instance (:cpp:type:`cell_member::index`) on a specific cell (:cpp:type:`cell_member::gid`). A gap junction is
-   instantiated by providing 2 **gap junction sites'** :cpp:type:`cell_member`, as well as a conductance in μS.
-   In the recipe, each cell has access to all of the gap junctions where at least one :cpp:type:`cell_member::gid` refers to that cell.
+2. Gap Junction instantiation in the :ref:`recipe <modelrecipe>`: The **gap junction sites** are indexed using :gen:`cell_member`,
+   which identifies a specific instance (:gen:`index`) on a specific cell (:gen:`gid`). A gap junction is
+   instantiated by providing 2 **gap junction sites'** :gen:`cell_member`, as well as a conductance in μS.
+   In the recipe, each cell has access to all of the gap junctions where at least one :gen:`cell_member::gid` refers to that cell.
 
-Arbor has Gap Junctions implemented only for cable cells as of now.
+.. Note::
+   Arbor has Gap Junctions implemented only for cable cells as of now.
