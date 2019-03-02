@@ -37,7 +37,7 @@ cell_group_factory cell_kind_implementation(
             return make_cell_group<spike_source_cell_group>(gids, rec);
         };
 
-    case cell_kind::lif_neuron:
+    case cell_kind::lif:
         if (bk!=backend_kind::multicore) break;
 
         return [](const gid_vector& gids, const recipe& rec) {

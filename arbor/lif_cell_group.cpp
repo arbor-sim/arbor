@@ -21,7 +21,7 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
 }
 
 cell_kind lif_cell_group::get_cell_kind() const {
-    return cell_kind::lif_neuron;
+    return cell_kind::lif;
 }
 
 void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
