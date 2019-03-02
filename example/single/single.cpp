@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/morphology.hpp>
 #include <arbor/swcio.hpp>
 #include <arbor/simulation.hpp>
@@ -43,11 +43,11 @@ struct single_recipe: public arb::recipe {
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
-        return arb::cell_kind::cable1d_neuron;
+        return arb::cell_kind::cable;
     }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
-        arb::mc_cell c = make_mc_cell(morpho);
+        arb::cable_cell c = make_cable_cell(morpho);
 
         // Add HH mechanism to soma, passive channels to dendrites.
         // Discretize dendrites according to the NEURON d-lambda rule.

@@ -7,7 +7,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
@@ -35,7 +35,7 @@ void run_ncomp_convergence_test(
     const char* model_name,
     const sup::path& ref_data_path,
     context& context,
-    const mc_cell& c,
+    const cable_cell& c,
     ProbePointSeq& probe_points,
     float t_end=100.f)
 {
@@ -89,7 +89,7 @@ void run_ncomp_convergence_test(
 void validate_ball_and_stick(context& ctx) {
     using namespace arb;
 
-    mc_cell c = make_cell_ball_and_stick();
+    cable_cell c = make_cell_ball_and_stick();
     probe_point points[] = {
         {"soma.mid", {0u, 0.5}},
         {"dend.mid", {1u, 0.5}},
@@ -107,7 +107,7 @@ void validate_ball_and_stick(context& ctx) {
 void validate_ball_and_taper(context& ctx) {
     using namespace arb;
 
-    mc_cell c = make_cell_ball_and_taper();
+    cable_cell c = make_cell_ball_and_taper();
     probe_point points[] = {
         {"soma.mid",  {0u, 0.5}},
         {"taper.mid", {1u, 0.5}},
@@ -125,7 +125,7 @@ void validate_ball_and_taper(context& ctx) {
 void validate_ball_and_3stick(context& ctx) {
     using namespace arb;
 
-    mc_cell c = make_cell_ball_and_3stick();
+    cable_cell c = make_cell_ball_and_3stick();
     probe_point points[] = {
         {"soma.mid",  {0u, 0.5}},
         {"dend1.mid", {1u, 0.5}},
@@ -147,7 +147,7 @@ void validate_ball_and_3stick(context& ctx) {
 void validate_rallpack1(context& ctx) {
     using namespace arb;
 
-    mc_cell c = make_cell_simple_cable();
+    cable_cell c = make_cell_simple_cable();
     probe_point points[] = {
         {"cable.x0.0", {1u, 0.0}},
         {"cable.x0.3", {1u, 0.3}},
@@ -166,7 +166,7 @@ void validate_rallpack1(context& ctx) {
 void validate_ball_and_squiggle(context& ctx) {
     using namespace arb;
 
-    mc_cell c = make_cell_ball_and_squiggle();
+    cable_cell c = make_cell_ball_and_squiggle();
     probe_point points[] = {
         {"soma.mid", {0u, 0.5}},
         {"dend.mid", {1u, 0.5}},

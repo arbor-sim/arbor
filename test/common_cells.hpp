@@ -1,6 +1,6 @@
 #include <cmath>
 
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/mc_segment.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/recipe.hpp>
@@ -20,8 +20,8 @@ namespace arb {
  *    soma centre, t=[10 ms, 110 ms), 0.1 nA
  */
 
-inline mc_cell make_cell_soma_only(bool with_stim = true) {
-    mc_cell c;
+inline cable_cell make_cell_soma_only(bool with_stim = true) {
+    cable_cell c;
 
     auto soma = c.add_soma(18.8/2.0);
     soma->add_mechanism("hh");
@@ -54,8 +54,8 @@ inline mc_cell make_cell_soma_only(bool with_stim = true) {
  *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
  */
 
-inline mc_cell make_cell_ball_and_stick(bool with_stim = true) {
-    mc_cell c;
+inline cable_cell make_cell_ball_and_stick(bool with_stim = true) {
+    cable_cell c;
 
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism("hh");
@@ -98,8 +98,8 @@ inline mc_cell make_cell_ball_and_stick(bool with_stim = true) {
  *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
  */
 
-inline mc_cell make_cell_ball_and_taper(bool with_stim = true) {
-    mc_cell c;
+inline cable_cell make_cell_ball_and_taper(bool with_stim = true) {
+    cable_cell c;
 
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism("hh");
@@ -140,14 +140,14 @@ inline mc_cell make_cell_ball_and_taper(bool with_stim = true) {
  *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
  */
 
-inline mc_cell make_cell_ball_and_squiggle(bool with_stim = true) {
-    mc_cell c;
+inline cable_cell make_cell_ball_and_squiggle(bool with_stim = true) {
+    cable_cell c;
 
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism("hh");
 
-    std::vector<mc_cell::value_type> radii;
-    std::vector<mc_cell::point_type> points;
+    std::vector<cable_cell::value_type> radii;
+    std::vector<cable_cell::point_type> points;
 
     double length = 100.0;
     int npoints = 200;
@@ -201,8 +201,8 @@ inline mc_cell make_cell_ball_and_squiggle(bool with_stim = true) {
  *    end of second terminal branch, t=[40 ms, 50 ms), -0.2 nA
  */
 
-inline mc_cell make_cell_ball_and_3stick(bool with_stim = true) {
-    mc_cell c;
+inline cable_cell make_cell_ball_and_3stick(bool with_stim = true) {
+    cable_cell c;
 
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism("hh");
@@ -246,8 +246,8 @@ inline mc_cell make_cell_ball_and_3stick(bool with_stim = true) {
  * work-around for some existing fvm modelling issues.
  */
 
-inline mc_cell make_cell_simple_cable(bool with_stim = true) {
-    mc_cell c;
+inline cable_cell make_cell_simple_cable(bool with_stim = true) {
+    cable_cell c;
 
     c.add_soma(0);
     c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 1000);

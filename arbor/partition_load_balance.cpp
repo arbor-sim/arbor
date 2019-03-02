@@ -91,7 +91,7 @@ domain_decomposition partition_load_balance(
                     auto conns = rec.gap_junctions_on(element);
                     for (auto c: conns) {
                         if (element != c.local.gid && element != c.peer.gid) {
-                            throw bad_cell_description(cell_kind::cable1d_neuron, element);
+                            throw bad_cell_description(cell_kind::cable, element);
                         }
                         cell_member_type other = c.local.gid == element ? c.peer : c.local;
 

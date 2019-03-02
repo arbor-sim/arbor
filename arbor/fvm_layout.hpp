@@ -1,7 +1,7 @@
 #pragma once
 
 #include <arbor/fvm_types.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
@@ -87,7 +87,7 @@ struct fvm_discretization {
     }
 };
 
-fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells);
+fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells);
 
 
 // Post-discretization data for point and density mechanism instantiation.
@@ -140,6 +140,6 @@ struct fvm_mechanism_data {
     std::size_t ntarget = 0;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D, bool coalesce = true);
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<cable_cell>& cells, const fvm_discretization& D, bool coalesce = true);
 
 } // namespace arb

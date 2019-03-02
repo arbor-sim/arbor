@@ -7,7 +7,7 @@
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/util/optional.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
@@ -32,7 +32,7 @@ ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanis
 TEST(synapses, add_to_cell) {
     using namespace arb;
 
-    mc_cell cell;
+    cable_cell cell;
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);

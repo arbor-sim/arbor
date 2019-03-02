@@ -1,4 +1,4 @@
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/mc_segment.hpp>
 #include <arbor/morphology.hpp>
 
@@ -6,23 +6,23 @@
 
 namespace arb {
 
-using value_type = mc_cell::value_type;
-using index_type = mc_cell::index_type;
-using size_type = mc_cell::size_type;
+using value_type = cable_cell::value_type;
+using index_type = cable_cell::index_type;
+using size_type = cable_cell::size_type;
 
-mc_cell::mc_cell() {
+cable_cell::cable_cell() {
     // insert a placeholder segment for the soma
     segments_.push_back(make_segment<placeholder_segment>());
     parents_.push_back(0);
 }
 
-void mc_cell::assert_valid_segment(index_type i) const {
+void cable_cell::assert_valid_segment(index_type i) const {
     if (i>=num_segments()) {
-        throw mc_cell_error("no such segment");
+        throw cable_cell_error("no such segment");
     }
 }
 
-size_type mc_cell::num_segments() const {
+size_type cable_cell::num_segments() const {
     return segments_.size();
 }
 
@@ -30,21 +30,21 @@ size_type mc_cell::num_segments() const {
 // note: I think that we have to enforce that the soma is the first
 //       segment that is added
 //
-soma_segment* mc_cell::add_soma(value_type radius, point_type center) {
+soma_segment* cable_cell::add_soma(value_type radius, point_type center) {
     if (has_soma()) {
-        throw mc_cell_error("cell already has soma");
+        throw cable_cell_error("cell already has soma");
     }
     segments_[0] = make_segment<soma_segment>(radius, center);
     return segments_[0]->as_soma();
 }
 
-cable_segment* mc_cell::add_cable(index_type parent, mc_segment_ptr&& cable) {
+cable_segment* cable_cell::add_cable(index_type parent, mc_segment_ptr&& cable) {
     if (!cable->as_cable()) {
-        throw mc_cell_error("segment is not a cable segment");
+        throw cable_cell_error("segment is not a cable segment");
     }
 
     if (parent>num_segments()) {
-        throw mc_cell_error("parent index out of range");
+        throw cable_cell_error("parent index out of range");
     }
 
     segments_.push_back(std::move(cable));
@@ -53,35 +53,35 @@ cable_segment* mc_cell::add_cable(index_type parent, mc_segment_ptr&& cable) {
     return segments_.back()->as_cable();
 }
 
-mc_segment* mc_cell::segment(index_type index) {
+mc_segment* cable_cell::segment(index_type index) {
     assert_valid_segment(index);
     return segments_[index].get();
 }
 
-mc_segment const* mc_cell::segment(index_type index) const {
+mc_segment const* cable_cell::segment(index_type index) const {
     assert_valid_segment(index);
     return segments_[index].get();
 }
 
-bool mc_cell::has_soma() const {
+bool cable_cell::has_soma() const {
     return !segment(0)->is_placeholder();
 }
 
-soma_segment* mc_cell::soma() {
+soma_segment* cable_cell::soma() {
     return has_soma()? segment(0)->as_soma(): nullptr;
 }
 
-const soma_segment* mc_cell::soma() const {
+const soma_segment* cable_cell::soma() const {
     return has_soma()? segment(0)->as_soma(): nullptr;
 }
 
-cable_segment* mc_cell::cable(index_type index) {
+cable_segment* cable_cell::cable(index_type index) {
     assert_valid_segment(index);
     auto cable = segment(index)->as_cable();
-    return cable? cable: throw mc_cell_error("segment is not a cable segment");
+    return cable? cable: throw cable_cell_error("segment is not a cable segment");
 }
 
-std::vector<size_type> mc_cell::compartment_counts() const {
+std::vector<size_type> cable_cell::compartment_counts() const {
     std::vector<size_type> comp_count;
     comp_count.reserve(num_segments());
     for (const auto& s: segments()) {
@@ -90,26 +90,26 @@ std::vector<size_type> mc_cell::compartment_counts() const {
     return comp_count;
 }
 
-size_type mc_cell::num_compartments() const {
+size_type cable_cell::num_compartments() const {
     return util::sum_by(segments_,
             [](const mc_segment_ptr& s) { return s->num_compartments(); });
 }
 
-void mc_cell::add_stimulus(segment_location loc, i_clamp stim) {
+void cable_cell::add_stimulus(segment_location loc, i_clamp stim) {
     (void)segment(loc.segment); // assert loc.segment in range
     stimuli_.push_back({loc, std::move(stim)});
 }
 
-void mc_cell::add_detector(segment_location loc, double threshold) {
+void cable_cell::add_detector(segment_location loc, double threshold) {
     spike_detectors_.push_back({loc, threshold});
 }
 
 
 // Construct cell from flat morphology specification.
 
-mc_cell make_mc_cell(const morphology& morph, bool compartments_from_discretization) {
-    using point3d = mc_cell::point_type;
-    mc_cell newcell;
+cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization) {
+    using point3d = cable_cell::point_type;
+    cable_cell newcell;
 
     if (!morph) {
         return newcell;
@@ -127,7 +127,7 @@ mc_cell make_mc_cell(const morphology& morph, bool compartments_from_discretizat
             kind = section_kind::dendrite;
             break;
         case section_kind::soma:
-            throw mc_cell_error("no support for complex somata");
+            throw cable_cell_error("no support for complex somata");
             break;
         default: ;
         }

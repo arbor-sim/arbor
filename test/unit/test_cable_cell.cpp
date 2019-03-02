@@ -1,6 +1,6 @@
 #include "../gtest.h"
 
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
 
 #include "tree.hpp"
@@ -8,11 +8,11 @@
 using namespace arb;
 using ::arb::math::pi;
 
-TEST(mc_cell, soma) {
+TEST(cable_cell, soma) {
     // test that insertion of a soma works
     //      define with no centre point
     {
-        mc_cell c;
+        cable_cell c;
         auto soma_radius = 2.1;
 
         EXPECT_EQ(c.has_soma(), false);
@@ -27,7 +27,7 @@ TEST(mc_cell, soma) {
     // test that insertion of a soma works
     //      define with centre point @ (0,0,1)
     {
-        mc_cell c;
+        cable_cell c;
         auto soma_radius = 3.2;
 
         EXPECT_EQ(c.has_soma(), false);
@@ -43,10 +43,10 @@ TEST(mc_cell, soma) {
     }
 }
 
-TEST(mc_cell, add_segment) {
+TEST(cable_cell, add_segment) {
     //  add a pre-defined segment
     {
-        mc_cell c;
+        cable_cell c;
 
         auto soma_radius  = 2.1;
         auto cable_radius = 0.1;
@@ -67,7 +67,7 @@ TEST(mc_cell, add_segment) {
 
     //  add segment on the fly
     {
-        mc_cell c;
+        cable_cell c;
 
         auto soma_radius  = 2.1;
         auto cable_radius = 0.1;
@@ -84,7 +84,7 @@ TEST(mc_cell, add_segment) {
         EXPECT_EQ(c.num_segments(), 2u);
     }
     {
-        mc_cell c;
+        cable_cell c;
 
         auto soma_radius  = 2.1;
         auto cable_radius = 0.1;
@@ -104,7 +104,7 @@ TEST(mc_cell, add_segment) {
     }
 }
 
-TEST(mc_cell, multiple_cables) {
+TEST(cable_cell, multiple_cables) {
     // generate a cylindrical cable segment of length 1/pi and radius 1
     //      volume = 1
     //      area   = 2
@@ -114,7 +114,7 @@ TEST(mc_cell, multiple_cables) {
 
     //  add a pre-defined segment
     {
-        mc_cell c;
+        cable_cell c;
 
         auto soma_radius = std::pow(3./(4.*pi<double>), 1./3.);
 
@@ -158,8 +158,8 @@ TEST(mc_cell, multiple_cables) {
     }
 }
 
-TEST(mc_cell, unbranched_chain) {
-    mc_cell c;
+TEST(cable_cell, unbranched_chain) {
+    cable_cell c;
 
     auto soma_radius = std::pow(3./(4.*pi<double>), 1./3.);
 
@@ -191,10 +191,10 @@ TEST(mc_cell, unbranched_chain) {
     EXPECT_EQ(con.num_children(2), 0u);
 }
 
-TEST(mc_cell, clone) {
+TEST(cable_cell, clone) {
     // make simple cell with multiple segments
 
-    mc_cell c;
+    cable_cell c;
     c.add_soma(2.1);
     c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
     c.segment(1)->set_compartments(3);
@@ -207,7 +207,7 @@ TEST(mc_cell, clone) {
 
     // make clone
 
-    mc_cell d(c);
+    cable_cell d(c);
 
     // check equality
 
@@ -243,7 +243,7 @@ TEST(mc_cell, clone) {
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
 
-TEST(mc_cell, get_kind) {
-    mc_cell c;
-    EXPECT_EQ(cell_kind::cable1d_neuron, c.get_cell_kind());
+TEST(cable_cell, get_kind) {
+    cable_cell c;
+    EXPECT_EQ(cell_kind::cable, c.get_cell_kind());
 }

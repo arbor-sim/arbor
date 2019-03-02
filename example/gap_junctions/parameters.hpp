@@ -5,7 +5,7 @@
 #include <fstream>
 #include <random>
 
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include <sup/json_params.hpp>
 

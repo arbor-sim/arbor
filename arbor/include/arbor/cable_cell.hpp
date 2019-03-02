@@ -16,9 +16,9 @@ namespace arb {
 
 // Specialize arbor exception for errors in cell building.
 
-struct mc_cell_error: arbor_exception {
-    mc_cell_error(const std::string& what):
-        arbor_exception("mc_cell: "+what)
+struct cable_cell_error: arbor_exception {
+    cable_cell_error(const std::string& what):
+        arbor_exception("cable_cell: "+what)
     {}
 };
 
@@ -66,7 +66,7 @@ struct cell_probe_address {
 
 // Global parameter type for cell descriptions.
 
-struct mc_cell_global_properties {
+struct cable_cell_global_properties {
     const mechanism_catalogue* catalogue = &global_default_catalogue();
 
     // If >0, check membrane voltage magnitude is less than limit
@@ -94,7 +94,7 @@ struct mc_cell_global_properties {
 };
 
 /// high-level abstract representation of a cell and its segments
-class mc_cell {
+class cable_cell {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
@@ -119,10 +119,10 @@ public:
     };
 
     /// Default constructor
-    mc_cell();
+    cable_cell();
 
     /// Copy constructor
-    mc_cell(const mc_cell& other):
+    cable_cell(const cable_cell& other):
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
@@ -137,11 +137,11 @@ public:
     }
 
     /// Move constructor
-    mc_cell(mc_cell&& other) = default;
+    cable_cell(cable_cell&& other) = default;
 
     /// Return the kind of cell, used for grouping into cell_groups
     cell_kind get_cell_kind() const  {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
     /// add a soma to the cell
@@ -173,7 +173,7 @@ public:
     const soma_segment* soma() const;
 
     /// access pointer to a cable segment
-    /// will throw an mc_cell_error exception if
+    /// will throw an cable_cell_error exception if
     /// the cable index is not valid
     cable_segment* cable(index_type index);
 
@@ -244,7 +244,7 @@ public:
     //  - volume and area properties of each segment
     //  - number of compartments in each segment
     // (note: just used for testing: move to test code?)
-    friend bool cell_basic_equality(const mc_cell&, const mc_cell&);
+    friend bool cell_basic_equality(const cable_cell&, const cable_cell&);
 
     // Public view of parent indices vector.
     const std::vector<index_type>& parents() const {
@@ -275,11 +275,11 @@ private:
 
 // create a cable by forwarding cable construction parameters provided by the user
 template <typename... Args>
-cable_segment* mc_cell::add_cable(mc_cell::index_type parent, Args&&... args)
+cable_segment* cable_cell::add_cable(cable_cell::index_type parent, Args&&... args)
 {
     // check for a valid parent id
     if (parent>=num_segments()) {
-        throw mc_cell_error("parent index of cell segment is out of range");
+        throw cable_cell_error("parent index of cell segment is out of range");
     }
     segments_.push_back(make_segment<cable_segment>(std::forward<Args>(args)...));
     parents_.push_back(parent);
@@ -291,6 +291,6 @@ cable_segment* mc_cell::add_cable(mc_cell::index_type parent, Args&&... args)
 // If compartments_from_discretization is true, set number of compartments in
 // each segment to be the number of piecewise linear sections in the corresponding
 // section of the morphologu.
-mc_cell make_mc_cell(const morphology&, bool compartments_from_discretization=false);
+cable_cell make_cable_cell(const morphology&, bool compartments_from_discretization=false);
 
 } // namespace arb

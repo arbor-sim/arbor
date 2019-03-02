@@ -4,7 +4,7 @@
 #include <arbor/util/optional.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/math.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include "fvm_layout.hpp"
 #include "util/maputil.hpp"
@@ -56,8 +56,8 @@ namespace {
         }
     }
 
-    std::vector<mc_cell> two_cell_system() {
-        std::vector<mc_cell> cells;
+    std::vector<cable_cell> two_cell_system() {
+        std::vector<cable_cell> cells;
 
         // Cell 0: simple ball and stick (see common_cells.hpp)
         cells.push_back(make_cell_ball_and_stick());
@@ -90,7 +90,7 @@ namespace {
         //
         // All dendrite segments with 4 compartments.
 
-        mc_cell c2;
+        cable_cell c2;
         mc_segment* s;
 
         s = c2.add_soma(14./2);
@@ -119,7 +119,7 @@ namespace {
         return cells;
     }
 
-    void check_two_cell_system(std::vector<mc_cell>& cells) {
+    void check_two_cell_system(std::vector<cable_cell>& cells) {
         ASSERT_EQ(2u, cells[0].num_segments());
         ASSERT_EQ(cells[0].segment(1)->num_compartments(), 4u);
         ASSERT_EQ(cells[1].num_segments(), 4u);
@@ -130,7 +130,7 @@ namespace {
 } // namespace
 
 TEST(fvm_layout, topology) {
-    std::vector<mc_cell> cells = two_cell_system();
+    std::vector<cable_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
     fvm_discretization D = fvm_discretize(cells);
@@ -210,7 +210,7 @@ TEST(fvm_layout, topology) {
 }
 
 TEST(fvm_layout, area) {
-    std::vector<mc_cell> cells = two_cell_system();
+    std::vector<cable_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
     fvm_discretization D = fvm_discretize(cells);
@@ -283,7 +283,7 @@ TEST(fvm_layout, area) {
 }
 
 TEST(fvm_layout, mech_index) {
-    std::vector<mc_cell> cells = two_cell_system();
+    std::vector<cable_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
     // Add four synapses of two varieties across the cells.
@@ -351,7 +351,7 @@ TEST(fvm_layout, coalescing_synapses) {
     };
 
     {
-        mc_cell cell = make_cell_ball_and_stick();
+        cable_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -367,7 +367,7 @@ TEST(fvm_layout, coalescing_synapses) {
         EXPECT_EQ(ivec({1, 1, 1, 1}), expsyn_config.multiplicity);
     }
     {
-        mc_cell cell = make_cell_ball_and_stick();
+        cable_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -387,7 +387,7 @@ TEST(fvm_layout, coalescing_synapses) {
         EXPECT_EQ(ivec({1, 1}), exp2syn_config.multiplicity);
     }
     {
-        mc_cell cell = make_cell_ball_and_stick();
+        cable_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -403,7 +403,7 @@ TEST(fvm_layout, coalescing_synapses) {
         EXPECT_EQ(ivec({2, 2}), expsyn_config.multiplicity);
     }
     {
-        mc_cell cell = make_cell_ball_and_stick();
+        cable_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0, 0.2));
@@ -421,7 +421,7 @@ TEST(fvm_layout, coalescing_synapses) {
         EXPECT_EQ(fvec({0.2, 0.2, 0.2}), expsyn_config.param_values[1].second);
     }
     {
-        mc_cell cell = make_cell_ball_and_stick();
+        cable_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0, 3));
@@ -444,7 +444,7 @@ TEST(fvm_layout, coalescing_synapses) {
         EXPECT_EQ(fvec({2, 2, 3, 3}), expsyn_config.param_values[1].second);
     }
     {
-        mc_cell cell = make_cell_ball_and_stick();
+        cable_cell cell = make_cell_ball_and_stick();
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, syn_desc("expsyn",  1, 2));
@@ -478,7 +478,7 @@ TEST(fvm_layout, coalescing_synapses) {
 }
 
 TEST(fvm_layout, synapse_targets) {
-    std::vector<mc_cell> cells = two_cell_system();
+    std::vector<cable_cell> cells = two_cell_system();
 
     // Add synapses with different parameter values so that we can
     // ensure: 1) CVs for each synapse mechanism are sorted while
@@ -587,8 +587,8 @@ TEST(fvm_layout, density_norm_area) {
     //
     // Use divided compartment view on segments to compute area contributions.
 
-    std::vector<mc_cell> cells(1);
-    mc_cell& c = cells[0];
+    std::vector<cable_cell> cells(1);
+    cable_cell& c = cells[0];
     auto soma = c.add_soma(12.6157/2.0);
 
     c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
@@ -717,7 +717,7 @@ TEST(fvm_layout, ion_weights) {
     // the same as a 100µm dendrite, which makes it easier to describe the
     // expected weights.
 
-    auto construct_cell = [](mc_cell& c) {
+    auto construct_cell = [](cable_cell& c) {
         c.add_soma(5);
 
         c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
@@ -744,8 +744,8 @@ TEST(fvm_layout, ion_weights) {
     };
 
     for (auto run: count_along(mech_segs)) {
-        std::vector<mc_cell> cells(1);
-        mc_cell& c = cells[0];
+        std::vector<cable_cell> cells(1);
+        cable_cell& c = cells[0];
         construct_cell(c);
 
         for (auto i: mech_segs[run]) {
