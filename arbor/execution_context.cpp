@@ -14,20 +14,12 @@
 
 namespace arb {
 
-execution_context::execution_context():
-    execution_context(proc_allocation())
-{}
-
 execution_context::execution_context(const proc_allocation& resources):
     distributed(make_local_context()),
     thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
     gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                            : std::make_shared<gpu_context>())
 {}
-
-context make_context() {
-    return context(new execution_context(), [](execution_context* p){delete p;});
-}
 
 context make_context(const proc_allocation& p) {
     return context(new execution_context(p), [](execution_context* p){delete p;});

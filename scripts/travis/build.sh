@@ -74,8 +74,4 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
 fi
 
-progress "Miniapp spike comparison test"
-make miniapp -j4                     || error "building miniapp"
-${launch} ./bin/miniapp -n 20 -t 100 || error "running miniapp"
-
 cd $base_path

@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 # check Arbor's configuration of mpi
 dict = arb.config()
 config_mpi = dict["mpi"]
+mpi_check = dict["mpi"]
 
 """
 all tests for distributed arb.context using arbor mpi wrappers

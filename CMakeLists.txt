@@ -369,7 +369,7 @@ add_subdirectory(arborenv)
 # unit, unit-mpi, unit-local, unit-modcc, validate
 add_subdirectory(test)
 
-# miniapp, brunel-minapp, event-gen:
+# self contained examples:
 add_subdirectory(example)
 
 # lmorpho:
