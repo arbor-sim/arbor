@@ -17,18 +17,18 @@ except ModuleNotFoundError:
     from test import options
 
 # check Arbor's configuration of mpi
-dict = arb.config()
-config_mpi = dict["mpi"]
-config_mpi4py = dict["mpi4py"]
+config = arb.config()
+mpi_enabled = config["mpi"]
+mpi4py_enabled = config["mpi4py"]
 
-if (config_mpi and config_mpi4py):
+if (mpi_enabled and mpi4py_enabled):
     import mpi4py.MPI as mpi
 
 """
 all tests for distributed arb.context using mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
-@unittest.skipIf(config_mpi == False or config_mpi4py == False, "MPI/mpi4py not enabled!")
+@unittest.skipIf(mpi_enabled == False or mpi4py_enabled == False, "MPI/mpi4py not enabled")
 class Contexts_mpi4py(unittest.TestCase):
     def test_initialize_mpi4py(self):
         # test mpi initialization (automatically when including mpi4py: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html)
