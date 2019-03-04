@@ -4,7 +4,13 @@
 
 import unittest
 import arbor as arb
-if (arb.mpi4py_compiled() and arb.mpi_compiled()):
+
+# check Arbor's configuration of mpi
+dict = arb.config()
+config_mpi = dict["mpi"]
+config_mpi4py = dict["mpi4py"]
+
+if (config_mpi and config_mpi4py):
     import mpi4py.MPI as mpi
 
 # to be able to run .py file from child directory
@@ -47,9 +53,9 @@ if __name__ == "__main__":
         print(" Runner initializing mpi")
         arb.mpi_init()
 
-    if arb.mpi4py_compiled():
+    if config_mpi4py:
         comm = arb.mpi_comm_from_mpi4py(mpi.COMM_WORLD)
-    elif arb.mpi_compiled():
+    elif config_mpi:
         comm = arb.mpi_comm()
 
     alloc = arb.proc_allocation()

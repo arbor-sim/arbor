@@ -18,12 +18,12 @@ except ModuleNotFoundError:
 
 # check Arbor's configuration of mpi
 dict = arb.config()
-mpi_check = dict["mpi"]
+config_mpi = dict["mpi"]
 
 """
 all tests for distributed arb.context using arbor mpi wrappers
 """
-@unittest.skipIf(mpi_check == False, "MPI not enabled!")
+@unittest.skipIf(config_mpi == False, "MPI not enabled!")
 class Contexts_arbmpi(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
