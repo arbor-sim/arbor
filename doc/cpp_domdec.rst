@@ -24,6 +24,19 @@ describes the cell groups on the local MPI rank.
     or when the user has specific insight into running their model on the
     target computer.
 
+.. Important::
+    When users supply their own :cpp:class:`domain_decomposition`, if they have
+    **Gap Junction connections**, they have to be careful to place all cells that
+    are connected via gap junctions in the same group.
+    Example:
+    ``A -gj- B -gj- C``  and ``D -gj- E``.
+    Cells A, B and C need to be in a single group; and cells D and E need to be in a
+    single group. They may all be placed in the same group but not necessarily.
+    Be mindful that smaller cell groups perform better on multi-core systems and
+    try not to overcrowd cell groups if not needed.
+    Arbor provided load balancers such as :cpp:func:`partition_load_balance`
+    guarantee that this rule is obeyed.
+
 .. cpp:namespace:: arb
 
 .. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, const arb::context& ctx)
@@ -70,14 +83,14 @@ Documentation for the data structures used to describe domain decompositions.
 
 .. cpp:class:: domain_decomposition
 
-    Describes a domain decomposition and is soley responsible for describing the
+    Describes a domain decomposition and is solely responsible for describing the
     distribution of cells across cell groups and domains.
     It holds cell group descriptions (:cpp:member:`groups`) for cells assigned to
     the local domain, and a helper function (:cpp:member:`gid_domain`) used to
     look up which domain a cell has been assigned to.
     The :cpp:class:`domain_decomposition` object also has meta-data about the
     number of cells in the global model, and the number of domains over which
-    the model is destributed.
+    the model is distributed.
 
     .. Note::
         The domain decomposition represents a division **all** of the cells in

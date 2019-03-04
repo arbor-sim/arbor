@@ -17,7 +17,7 @@ cells and members of cell-local collections.
     :cpp:type:`cell_local_size_type` at the time of writing, however
     this could change, e.g. to handle models that cell gid that don't
     fit into a 32 bit unsigned integer.
-    It is thus recomended that these type aliases be used whenever identifying
+    It is thus recommended that these type aliases be used whenever identifying
     or counting cells and cell members.
 
 
@@ -58,7 +58,7 @@ cells and members of cell-local collections.
     Each synapse has a post-synaptic cell (:cpp:member:`gid`), and an index
     (:cpp:member:`index`) into the set of synapses on the post-synaptic cell.
 
-    Lexographically ordered by :cpp:member:`gid`,
+    Lexicographically ordered by :cpp:member:`gid`,
     then :cpp:member:`index`.
 
     .. cpp:member:: cell_gid_type   gid
@@ -72,24 +72,24 @@ cells and members of cell-local collections.
 
 .. cpp:enum-class:: cell_kind
 
-    Enumeration used to indentify the cell type/kind, used by the model to
+    Enumeration used to identify the cell type/kind, used by the model to
     group equal kinds in the same cell group.
 
-    .. cpp:enumerator:: cable1d_neuron
+    .. cpp:enumerator:: cable
 
         A cell with morphology described by branching 1D cable segments.
 
-    .. cpp:enumerator:: lif_neuron
+    .. cpp:enumerator:: lif
 
         Leaky-integrate and fire neuron.
 
-    .. cpp:enumerator:: regular_spike_source
+    .. cpp:enumerator:: spiking
 
-        Regular spiking source.
+        Proxy cell that generates spikes from a spike sequence provided by the user.
 
-    .. cpp:enumerator:: data_spike_source
+    .. cpp:enumerator:: benchmark
 
-        Spike source from values inserted via description.
+        Proxy cell used for benchmarking.
 
 Probes
 ------

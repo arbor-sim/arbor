@@ -321,7 +321,7 @@ for the architecture, enabling ``ARB_VECTORIZE`` will lead to a compilation erro
 
 With this flag set, the library will use architecture-specific vectorization intrinsics
 to implement these kernels. Arbor currently has vectorization support for x86 architectures
-with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support for AArch64 NEON intrinsincs (first available on ARMv8-A).
+with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support for AArch64 NEON intrinsics (first available on ARMv8-A).
 
 .. _gpu:
 
@@ -472,7 +472,7 @@ Cray Systems
 The compiler used by the MPI wrappers is set using a "programming environment" module.
 The first thing to do is change this module, which by default is set to the Cray
 programming environment, to a compiler that can compile Arbor.
-For example, to use the GCC compilers, select the GNU programming enviroment:
+For example, to use the GCC compilers, select the GNU programming environment:
 
 .. code-block:: bash
 
@@ -504,7 +504,7 @@ respectively on Cray systems.
 CMake detects that it is being run in the Cray programming environment, which makes
 our lives a little bit more difficult (CMake sometimes tries a bit too hard to help).
 To get CMake to correctly link our code, we need to set the ``CRAYPE_LINK_TYPE``
-enviroment variable to ``dynamic``.
+environment variable to ``dynamic``.
 
 .. code-block:: bash
 
