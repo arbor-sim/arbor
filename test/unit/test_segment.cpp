@@ -3,11 +3,11 @@
 #include "../gtest.h"
 
 #include <arbor/math.hpp>
-#include <arbor/mc_segment.hpp>
+#include <arbor/segment.hpp>
 
 using namespace arb;
 
-TEST(mc_segment, kinfs) {
+TEST(segment, kinfs) {
     using ::arb::math::pi;
 
     {

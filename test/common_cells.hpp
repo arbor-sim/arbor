@@ -1,7 +1,7 @@
 #include <cmath>
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/mc_segment.hpp>
+#include <arbor/segment.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/recipe.hpp>
 

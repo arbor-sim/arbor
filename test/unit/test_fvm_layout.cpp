@@ -22,7 +22,7 @@ using util::count_along;
 using util::value_by_key;
 
 namespace {
-    double area(const mc_segment* s) {
+    double area(const segment* s) {
         if (auto soma = s->as_soma()) {
             return math::area_sphere(soma->radius());
         }
@@ -39,7 +39,7 @@ namespace {
         }
     }
 
-    double volume(const mc_segment* s) {
+    double volume(const segment* s) {
         if (auto soma = s->as_soma()) {
             return math::volume_sphere(soma->radius());
         }
@@ -91,7 +91,7 @@ namespace {
         // All dendrite segments with 4 compartments.
 
         cable_cell c2;
-        mc_segment* s;
+        segment* s;
 
         s = c2.add_soma(14./2);
         s->add_mechanism("hh");
@@ -606,7 +606,7 @@ TEST(fvm_layout, density_norm_area) {
     double seg3_gl = .0004;
 
     for (int i = 0; i<4; ++i) {
-        mc_segment& seg = *segs[i];
+        segment& seg = *segs[i];
         seg.set_compartments(3);
 
         mechanism_desc hh("hh");

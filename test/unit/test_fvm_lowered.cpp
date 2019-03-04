@@ -9,7 +9,7 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/math.hpp>
 #include <arbor/cable_cell.hpp>
-#include <arbor/mc_segment.hpp>
+#include <arbor/segment.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>

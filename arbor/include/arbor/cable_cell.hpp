@@ -10,7 +10,7 @@
 #include <arbor/ion.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morphology.hpp>
-#include <arbor/mc_segment.hpp>
+#include <arbor/segment.hpp>
 
 namespace arb {
 
@@ -151,7 +151,7 @@ public:
     /// add a cable
     /// parent is the index of the parent segment for the cable section
     /// cable is the segment that will be moved into the cell
-    cable_segment* add_cable(index_type parent, mc_segment_ptr&& cable);
+    cable_segment* add_cable(index_type parent, segment_ptr&& cable);
 
     /// add a cable by constructing it in place
     /// parent is the index of the parent segment for the cable section
@@ -164,8 +164,8 @@ public:
 
     bool has_soma() const;
 
-    class mc_segment* segment(index_type index);
-    const class mc_segment* segment(index_type index) const;
+    class segment* segment(index_type index);
+    const class segment* segment(index_type index) const;
 
     /// access pointer to the soma
     /// returns nullptr if the cell has no soma
@@ -180,7 +180,7 @@ public:
     /// the total number of compartments over all segments
     size_type num_compartments() const;
 
-    std::vector<mc_segment_ptr> const& segments() const {
+    std::vector<segment_ptr> const& segments() const {
         return segments_;
     }
 
@@ -258,7 +258,7 @@ private:
     std::vector<index_type> parents_;
 
     // the segments
-    std::vector<mc_segment_ptr> segments_;
+    std::vector<segment_ptr> segments_;
 
     // the stimuli
     std::vector<stimulus_instance> stimuli_;

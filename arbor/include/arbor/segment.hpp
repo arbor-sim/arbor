@@ -77,14 +77,14 @@ class soma_segment;
 class cable_segment;
 
 // abstract base class for a cell segment
-class mc_segment {
+class segment {
 public:
     using value_type = double;
     using size_type = cell_local_size_type;
     using point_type = point<value_type>;
 
     // (Yet more motivation for a separate morphology description class!)
-    virtual std::unique_ptr<mc_segment> clone() const = 0;
+    virtual std::unique_ptr<segment> clone() const = 0;
 
     section_kind kind() const {
         return kind_;
@@ -108,7 +108,7 @@ public:
     virtual size_type num_compartments() const = 0;
     virtual void set_compartments(size_type) = 0;
 
-    virtual ~mc_segment() = default;
+    virtual ~segment() = default;
 
     virtual cable_segment* as_cable()
     {
@@ -169,17 +169,17 @@ public:
     value_type cm = 0.01;    // capacitance [F/m^2] : 10 nF/mm^2 = 0.01 F/m^2
 
 protected:
-    mc_segment(section_kind kind): kind_(kind) {}
+    segment(section_kind kind): kind_(kind) {}
 
     section_kind kind_;
     std::vector<mechanism_desc> mechanisms_;
 };
 
-class placeholder_segment : public mc_segment {
+class placeholder_segment : public segment {
 public:
-    placeholder_segment(): mc_segment(section_kind::none) {}
+    placeholder_segment(): segment(section_kind::none) {}
 
-    std::unique_ptr<mc_segment> clone() const override {
+    std::unique_ptr<segment> clone() const override {
         // use default copy constructor
         return std::make_unique<placeholder_segment>(*this);
     }
@@ -197,14 +197,14 @@ public:
     virtual void set_compartments(size_type) override {}
 };
 
-class soma_segment : public mc_segment {
+class soma_segment : public segment {
 public:
     soma_segment() = delete;
 
     explicit soma_segment(value_type r, point_type c = point_type{}):
-       mc_segment(section_kind::soma), radius_{r}, center_(c) {}
+       segment(section_kind::soma), radius_{r}, center_(c) {}
 
-    std::unique_ptr<mc_segment> clone() const override {
+    std::unique_ptr<segment> clone() const override {
         // use default copy constructor
         return std::make_unique<soma_segment>(*this);
     }
@@ -244,9 +244,9 @@ private :
     point_type center_;
 };
 
-class cable_segment : public mc_segment {
+class cable_segment : public segment {
 public:
-    using base = mc_segment;
+    using base = segment;
     using base::kind_;
     using base::value_type;
     using base::point_type;
@@ -256,7 +256,7 @@ public:
 
     // constructors for a cable with no location information
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<value_type> lens):
-        mc_segment(k), radii_(std::move(r)), lengths_(std::move(lens))
+        segment(k), radii_(std::move(r)), lengths_(std::move(lens))
     {
         arb_assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
     }
@@ -268,7 +268,7 @@ public:
     // constructor that lets the user describe the cable as a
     // seriew of radii and locations
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<point_type> p):
-        mc_segment(k), radii_(std::move(r)), locations_(std::move(p))
+        segment(k), radii_(std::move(r)), locations_(std::move(p))
     {
         arb_assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
         update_lengths();
@@ -287,7 +287,7 @@ public:
         cable_segment(k, {r1, r2}, {p1, p2})
     {}
 
-    std::unique_ptr<mc_segment> clone() const override {
+    std::unique_ptr<segment> clone() const override {
         // use default copy constructor
         return std::make_unique<cable_segment>(*this);
     }
@@ -404,14 +404,14 @@ private:
     std::vector<point_type> locations_;
 };
 
-using mc_segment_ptr = std::unique_ptr<mc_segment>;
+using segment_ptr = std::unique_ptr<segment>;
 
 /// Helper for constructing segments in a segment_ptr unique pointer wrapper.
 /// Forwards the supplied arguments to construct a segment of type SegmentType.
 /// e.g. auto my_cable = make_segment<cable>(section_kind::dendrite, ... );
 template <typename SegmentType, typename... Args>
-mc_segment_ptr make_segment(Args&&... args) {
-    return mc_segment_ptr(new SegmentType(std::forward<Args>(args)...));
+segment_ptr make_segment(Args&&... args) {
+    return segment_ptr(new SegmentType(std::forward<Args>(args)...));
 }
 
 } // namespace arb

@@ -160,7 +160,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
         seg_comp_bounds.clear();
         auto seg_comp_part = make_partition(
             seg_comp_bounds,
-            transform_view(c.segments(), [](const mc_segment_ptr& s) { return s->num_compartments(); }),
+            transform_view(c.segments(), [](const segment_ptr& s) { return s->num_compartments(); }),
             cell_comp_base);
 
         const auto nseg = seg_comp_part.size();

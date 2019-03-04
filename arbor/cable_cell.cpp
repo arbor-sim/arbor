@@ -1,5 +1,5 @@
 #include <arbor/cable_cell.hpp>
-#include <arbor/mc_segment.hpp>
+#include <arbor/segment.hpp>
 #include <arbor/morphology.hpp>
 
 #include "util/rangeutil.hpp"
@@ -38,7 +38,7 @@ soma_segment* cable_cell::add_soma(value_type radius, point_type center) {
     return segments_[0]->as_soma();
 }
 
-cable_segment* cable_cell::add_cable(index_type parent, mc_segment_ptr&& cable) {
+cable_segment* cable_cell::add_cable(index_type parent, segment_ptr&& cable) {
     if (!cable->as_cable()) {
         throw cable_cell_error("segment is not a cable segment");
     }
@@ -53,12 +53,12 @@ cable_segment* cable_cell::add_cable(index_type parent, mc_segment_ptr&& cable) 
     return segments_.back()->as_cable();
 }
 
-mc_segment* cable_cell::segment(index_type index) {
+segment* cable_cell::segment(index_type index) {
     assert_valid_segment(index);
     return segments_[index].get();
 }
 
-mc_segment const* cable_cell::segment(index_type index) const {
+segment const* cable_cell::segment(index_type index) const {
     assert_valid_segment(index);
     return segments_[index].get();
 }
@@ -92,7 +92,7 @@ std::vector<size_type> cable_cell::compartment_counts() const {
 
 size_type cable_cell::num_compartments() const {
     return util::sum_by(segments_,
-            [](const mc_segment_ptr& s) { return s->num_compartments(); });
+            [](const segment_ptr& s) { return s->num_compartments(); });
 }
 
 void cable_cell::add_stimulus(segment_location loc, i_clamp stim) {
