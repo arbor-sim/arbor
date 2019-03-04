@@ -33,7 +33,7 @@ public:
     mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
     void reset() override;

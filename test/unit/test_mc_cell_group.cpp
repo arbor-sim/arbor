@@ -20,7 +20,7 @@ namespace {
         return make_fvm_lowered_cell(backend_kind::multicore, context);
     }
 
-    mc_cell make_cell() {
+    cable_cell make_cell() {
         auto c = make_cell_ball_and_stick();
 
         c.add_detector({0, 0}, 0);
@@ -38,7 +38,7 @@ ACCESS_BIND(
 TEST(mc_cell_group, get_kind) {
     mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
 
-    EXPECT_EQ(cell_kind::cable1d_neuron, group.get_cell_kind());
+    EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
@@ -53,7 +53,7 @@ TEST(mc_cell_group, test) {
 TEST(mc_cell_group, sources) {
     // Make twenty cells, with an extra detector on gids 0, 3 and 17
     // to make things more interesting.
-    std::vector<mc_cell> cells;
+    std::vector<cable_cell> cells;
 
     for (int i=0; i<20; ++i) {
         cells.push_back(make_cell());

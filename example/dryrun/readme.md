@@ -4,7 +4,7 @@ A miniapp that demonstrates how to use dry-run mode on a simple network
 duplicated across `num_ranks`.
 
 It uses the `arb::tile` to build a network of `num_cells_per_rank` cells of type
-`arb::mc_cell`. The network is translated over `num_ranks` domains using
+`arb::cable_cell`. The network is translated over `num_ranks` domains using
 `arb::symmetric_recipe`.
 
 Example:

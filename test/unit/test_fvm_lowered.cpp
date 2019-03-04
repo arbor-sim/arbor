@@ -8,8 +8,8 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/math.hpp>
-#include <arbor/mc_cell.hpp>
-#include <arbor/mc_segment.hpp>
+#include <arbor/cable_cell.hpp>
+#include <arbor/segment.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
@@ -87,14 +87,14 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
         c.add_soma(20);
         c.add_gap_junction({0, 1});
         return {std::move(c)};
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
         switch (gid) {
@@ -133,13 +133,13 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
-        mc_cell c;
+        cable_cell c;
         c.add_soma(20);
         return {std::move(c)};
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 private:
@@ -155,14 +155,14 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
-        mc_cell c;
+        cable_cell c;
         c.add_soma(20);
         c.add_gap_junction({0,1});
         return {std::move(c)};
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
         switch (gid) {
@@ -208,7 +208,7 @@ TEST(fvm_lowered, matrix_init)
     auto ispos = [](auto v) { return v>0; };
     auto isneg = [](auto v) { return v<0; };
 
-    mc_cell cell = make_cell_ball_and_stick();
+    cable_cell cell = make_cell_ball_and_stick();
 
     ASSERT_EQ(2u, cell.num_segments());
     cell.segment(1)->set_compartments(10);
@@ -243,7 +243,7 @@ TEST(fvm_lowered, target_handles) {
 
     execution_context context;
 
-    mc_cell cells[] = {
+    cable_cell cells[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_3stick()
     };
@@ -305,7 +305,7 @@ TEST(fvm_lowered, stimulus) {
 
     execution_context context;
 
-    std::vector<mc_cell> cells;
+    std::vector<cable_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
 
     cells[0].add_stimulus({1,1},   {5., 80., 0.3});
@@ -381,9 +381,9 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
-    std::vector<mc_cell> cells(3);
+    std::vector<cable_cell> cells(3);
     for (int i = 0; i<3; ++i) {
-        mc_cell& c = cells[i];
+        cable_cell& c = cells[i];
         c.add_soma(6.0);
         c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
 
@@ -508,7 +508,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     execution_context context;
 
-    mc_cell c;
+    cable_cell c;
     c.add_soma(5);
 
     c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
@@ -581,7 +581,7 @@ TEST(fvm_lowered, gj_coords_simple) {
         gap_recipe() {}
 
         cell_size_type num_cells() const override { return n_; }
-        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable1d_neuron; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
         util::unique_any get_cell_description(cell_gid_type gid) const override {
             return {};
         }
@@ -599,8 +599,8 @@ TEST(fvm_lowered, gj_coords_simple) {
     fvm_cell fvcell(context);
 
     gap_recipe rec;
-    std::vector<mc_cell> cells;
-    mc_cell c, d;
+    std::vector<cable_cell> cells;
+    cable_cell c, d;
     c.add_soma(2.1);
     c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
     c.segment(1)->set_compartments(5);
@@ -637,7 +637,7 @@ TEST(fvm_lowered, gj_coords_complex) {
         gap_recipe() {}
 
         cell_size_type num_cells() const override { return n_; }
-        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable1d_neuron; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
         util::unique_any get_cell_description(cell_gid_type gid) const override {
             return {};
         }
@@ -673,8 +673,8 @@ TEST(fvm_lowered, gj_coords_complex) {
     fvm_cell fvcell(context);
 
     gap_recipe rec;
-    mc_cell c0, c1, c2;
-    std::vector<mc_cell> cells;
+    cable_cell c0, c1, c2;
+    std::vector<cable_cell> cells;
 
     // Make 3 cells
     c0.add_soma(2.1);
@@ -760,7 +760,7 @@ TEST(fvm_lowered, cell_group_gj) {
         gap_recipe() {}
 
         cell_size_type num_cells() const override { return n_; }
-        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable1d_neuron; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
         util::unique_any get_cell_description(cell_gid_type gid) const override {
             return {};
         }
@@ -783,12 +783,12 @@ TEST(fvm_lowered, cell_group_gj) {
     fvm_cell fvcell(context);
 
     gap_recipe rec;
-    std::vector<mc_cell> cell_group0;
-    std::vector<mc_cell> cell_group1;
+    std::vector<cable_cell> cell_group0;
+    std::vector<cable_cell> cell_group1;
 
     // Make 20 cells
     for (unsigned i = 0; i < 20; i++) {
-        mc_cell c;
+        cable_cell c;
         c.add_soma(2.1);
         if (i % 2 == 0) {
             c.add_gap_junction({0, 1});

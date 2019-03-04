@@ -13,7 +13,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -46,7 +46,7 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank);
 
 // Generate a cell.
-arb::mc_cell gj_cell(cell_gid_type gid, unsigned ncells, double stim_duration);
+arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncells, double stim_duration);
 
 class gj_recipe: public arb::recipe {
 public:
@@ -61,7 +61,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
     // Each cell has one spike detector (at the soma).
@@ -96,7 +96,7 @@ public:
     }
 
     arb::util::any get_global_properties(cell_kind k) const override {
-        arb::mc_cell_global_properties a;
+        arb::cable_cell_global_properties a;
         a.temperature_K = 308.15;
         return a;
     }
@@ -146,7 +146,7 @@ struct cell_stats {
         size_type nsegs_tmp = 0;
         size_type ncomp_tmp = 0;
         for (size_type i=b; i<e; ++i) {
-            auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
             nsegs_tmp += c.num_segments();
             ncomp_tmp += c.num_compartments();
         }
@@ -155,7 +155,7 @@ struct cell_stats {
 #else
         ncells = r.num_cells();
         for (size_type i=0; i<ncells; ++i) {
-            auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
             nsegs += c.num_segments();
             ncomp += c.num_compartments();
         }
@@ -319,8 +319,8 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
     }
 }
 
-arb::mc_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
-    arb::mc_cell cell;
+arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
+    arb::cable_cell cell;
 
     arb::mechanism_desc nax("nax");
     arb::mechanism_desc kdrmt("kdrmt");

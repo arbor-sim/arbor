@@ -77,7 +77,7 @@ set(unit_sources
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
-    test_mc_cell.cpp
+    test_cable_cell.cpp
     test_mechanisms.cpp
     test_mech_temperature.cpp
     test_mechcat.cpp

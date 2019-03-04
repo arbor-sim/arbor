@@ -21,7 +21,7 @@ set(arbor_sources
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     lif_cell_group.cpp
-    mc_cell.cpp
+    cable_cell.cpp
     mc_cell_group.cpp
     mechcat.cpp
     memory/cuda_wrappers.cpp

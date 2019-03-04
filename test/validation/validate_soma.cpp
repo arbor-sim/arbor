@@ -4,7 +4,7 @@
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
@@ -24,7 +24,7 @@ using namespace arb;
 void validate_soma(const context& context) {
     float sample_dt = g_trace_io.sample_dt();
 
-    mc_cell c = make_cell_soma_only();
+    cable_cell c = make_cell_soma_only();
 
     cable1d_recipe rec{c};
     rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});

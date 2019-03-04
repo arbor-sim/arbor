@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <arbor/event_generator.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/recipe.hpp>
 
 namespace arb {
@@ -39,7 +39,7 @@ public:
 
     util::any get_global_properties(cell_kind k) const override {
         switch (k) {
-        case cell_kind::cable1d_neuron:
+        case cell_kind::cable:
             return cell_gprop_;
         default:
             return util::any{};
@@ -52,7 +52,7 @@ public:
 
 protected:
     std::unordered_map<cell_gid_type, std::vector<probe_info>> probes_;
-    mc_cell_global_properties cell_gprop_;
+    cable_cell_global_properties cell_gprop_;
     mechanism_catalogue catalogue_;
 };
 
@@ -84,7 +84,7 @@ protected:
     Description desc_;
 };
 
-// Recipe for a set of `cable1d_neuron` neurons without connections,
+// Recipe for a set of `cable` neurons without connections,
 // and probes which can be added by `add_probe()` (similar to above).
 //
 // Cell descriptions passed to the constructor are cloned.
@@ -98,13 +98,13 @@ public:
         }
     }
 
-    explicit cable1d_recipe(const mc_cell& c) {
+    explicit cable1d_recipe(const cable_cell& c) {
         cells_.reserve(1);
         cells_.emplace_back(c);
     }
 
     cell_size_type num_cells() const override { return cells_.size(); }
-    cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable1d_neuron; }
+    cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
 
     cell_size_type num_sources(cell_gid_type i) const override {
         return cells_.at(i).detectors().size();
@@ -115,11 +115,11 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        return util::make_unique_any<mc_cell>(cells_[i]);
+        return util::make_unique_any<cable_cell>(cells_[i]);
     }
 
 protected:
-    std::vector<mc_cell> cells_;
+    std::vector<cable_cell> cells_;
 };
 
 } // namespace arb

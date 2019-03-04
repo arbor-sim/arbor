@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
 #include "benchmark/benchmark.h"
@@ -40,7 +40,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -64,7 +64,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -79,7 +79,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -96,7 +96,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -111,7 +111,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -130,7 +130,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -145,7 +145,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("hh");
@@ -162,7 +162,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -177,7 +177,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -196,7 +196,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 };
 

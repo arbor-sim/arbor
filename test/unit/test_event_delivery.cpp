@@ -9,7 +9,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/spike_event.hpp>
 
@@ -21,13 +21,13 @@
 
 using namespace arb;
 
-using n_mc_cell_recipe = homogeneous_recipe<cell_kind::cable1d_neuron, mc_cell>;
+using n_cable_cell_recipe = homogeneous_recipe<cell_kind::cable, cable_cell>;
 
-struct test_recipe: public n_mc_cell_recipe {
-    explicit test_recipe(int n): n_mc_cell_recipe(n, test_cell()) {}
+struct test_recipe: public n_cable_cell_recipe {
+    explicit test_recipe(int n): n_cable_cell_recipe(n, test_cell()) {}
 
-    static mc_cell test_cell() {
-        mc_cell c;
+    static cable_cell test_cell() {
+        cable_cell c;
         c.add_soma(10.)->add_mechanism("pas");
         c.add_synapse({0, 0.5}, "expsyn");
         c.add_detector({0, 0.5}, -64);
@@ -53,7 +53,7 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
     D.num_global_cells = n;
 
     for (const auto& gidvec: group_gids) {
-        group_description group{cell_kind::cable1d_neuron, gidvec, backend_kind::multicore};
+        group_description group{cell_kind::cable, gidvec, backend_kind::multicore};
         D.groups.push_back(group);
     }
 

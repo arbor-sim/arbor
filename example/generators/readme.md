@@ -46,7 +46,7 @@ which returns an empty list of connections for a cell.
 
 Above you can see the definition of `recipe::num_cells()`, which is trivial for this model, which has only once cell.
 The `recipe::get_cell_description(gid)` and `recipe::get_cell_kind(gid)` methods are defined to return a single
-compartment cell with one synapse, and a `arb::cell_kind::cable1d_neuron` respectively:
+compartment cell with one synapse, and a `arb::cell_kind::cable` respectively:
 
 ```C++
     // Return an arb::cell that describes a single compartment cell with
@@ -66,7 +66,7 @@ compartment cell with one synapse, and a `arb::cell_kind::cable1d_neuron` respec
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
     // There is one synapse, i.e. target, on the cell.

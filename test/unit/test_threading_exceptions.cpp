@@ -7,7 +7,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/context.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/version.hpp>
 
 #include "threading/threading.hpp"
