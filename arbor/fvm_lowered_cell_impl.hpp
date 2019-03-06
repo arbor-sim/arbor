@@ -35,7 +35,6 @@
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
-
 namespace arb {
 
 template <class Backend>
@@ -260,8 +259,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Update time and test for spike threshold crossings.
 
         PE(advance_integrate_threshold);
-        memory::copy(state_->time_to, state_->time);
         threshold_watcher_.test();
+        memory::copy(state_->time_to, state_->time);
         PL();
 
         // Check for non-physical solutions:
