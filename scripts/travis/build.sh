@@ -6,6 +6,7 @@ error()    {>&2 echo -e "${RED}ERROR${CLEAR}: $1"; exit 1;}
 progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
 
 base_path=`pwd`
+python_path=$base_path/python
 build_path=build-${BUILD_NAME}
 
 #
@@ -43,6 +44,15 @@ else
     WITH_MPI="OFF"
 fi
 
+if [[ "${WITH_PYTHON}" = "on" ]]; then
+    echo "python      : on"
+    WITH_PYTHON="ON"
+    export PYTHONPATH=$basepath/$build_path/lib
+else
+    echo "python      : off"
+    WITH_PYTHON="OFF"
+fi
+
 #
 # make build path
 #
@@ -54,7 +64,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_WITH_MPI=${WITH_MPI} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${WITH_PYTHON} ${CXX_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
@@ -73,5 +83,12 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     make unit-mpi -j4        || error "building MPI distributed unit tests"
     ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
 fi
+
+if [[ "${WITH_PYTHON}" = "on" && "${WITH_DISTRIBUTED}" = "serial" ]]; then
+    progress "Python unit tests (serial)"
+    python $python_path/test/unit/runner.py
+elif [[ "${WITH_PYTHON}" = "on" && "${WITH_DISTRIBUTED}" = "mpi" ]]; then
+    progress "Python distributed unit tests (MPI)"
+    python $python_path/test/unit_distributed/runner.py
 
 cd $base_path
