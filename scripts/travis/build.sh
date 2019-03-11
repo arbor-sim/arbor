@@ -90,5 +90,6 @@ if [[ "${WITH_PYTHON}" = "on" && "${WITH_DISTRIBUTED}" = "serial" ]]; then
 elif [[ "${WITH_PYTHON}" = "on" && "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     progress "Python distributed unit tests (MPI)"
     python $python_path/test/unit_distributed/runner.py
+fi
 
 cd $base_path
