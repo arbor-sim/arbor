@@ -159,7 +159,7 @@ matrix:
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
-  - if [[ "$WITH_PYTHON" == "on"]]; then pyenv global system 3.6; fi
+  - if [[ "$WITH_PYTHON" == "on" ]]; then pyenv global system 3.6; fi
   - eval "${MATRIX_EVAL}"
 
 script: source ./scripts/travis/build.sh
