@@ -11,7 +11,9 @@ building phase to provide information about cells in the model, such as:
   * a description of a cell, e.g. with soma, synapses, detectors, stimuli;
   * the number of spike targets;
   * the number of spike sources;
-  * incoming network connections from other cells terminating on a cell.
+  * the number of gap junction sites;
+  * incoming network connections from other cells terminating on a cell;
+  * gap junction connections on a cell.
 
 Why Recipes?
 --------------
@@ -65,7 +67,7 @@ General Best Practices
 .. topic:: Be lazy
 
     A recipe does not have to contain a complete description of the model in
-    memory; precompute as little as possible, and use
+    memory. Precompute as little as possible, and use
     `lazy evaluation <https://en.wikipedia.org/wiki/Lazy_evaluation>`_ to generate
     information only when requested.
     This has multiple benefits, including:
@@ -75,12 +77,12 @@ General Best Practices
 
 .. topic:: Be reproducible
 
-    Arbor is designed to give reproduceable results when the same model is run on a
+    Arbor is designed to give reproducible results when the same model is run on a
     different number of MPI ranks or threads, or on different hardware (e.g. GPUs).
     This only holds when a recipe provides a reproducible model description, which
     can be a challenge when a description uses random numbers, e.g. to pick incoming
     connections to a cell from a random subset of a cell population.
-    To get a reproduceable model, use the cell `gid` (or a hash based on the `gid`)
+    To get a reproducible model, use the cell `gid` (or a hash based on the `gid`)
     to seed random number generators, including those for :cpp:type:`event_generator` s.
 
 
@@ -89,7 +91,7 @@ Mechanisms
 The description of multi-compartment cells also includes the specification of ion channel and synapse dynamics.
 In the recipe, these specifications are called *mechanisms*.
 Implementations of mechanisms are either hand-coded or a translator (modcc) is used to compile a
-subset of NEURONs mechanism specification language NMODL.
+subset of NEURON's mechanism specification language NMODL.
 
 Examples
     Common examples are the *passive/ leaky integrate-and-fire* model, the *Hodgkin-Huxley* mechanism, the *(double-) exponential synapse* model, or the *Natrium current* model for an axon.

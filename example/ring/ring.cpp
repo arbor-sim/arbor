@@ -13,7 +13,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -46,7 +46,7 @@ using arb::cell_probe_address;
 void write_trace_json(const arb::trace_data<double>& trace);
 
 // Generate a cell.
-arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
+arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
 
 class ring_recipe: public arb::recipe {
 public:
@@ -65,7 +65,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
     // Each cell has one spike detector (at the soma).
@@ -133,7 +133,7 @@ struct cell_stats {
         size_type nsegs_tmp = 0;
         size_type ncomp_tmp = 0;
         for (size_type i=b; i<e; ++i) {
-            auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
             nsegs_tmp += c.num_segments();
             ncomp_tmp += c.num_compartments();
         }
@@ -142,7 +142,7 @@ struct cell_stats {
 #else
         ncells = r.num_cells();
         for (size_type i=0; i<ncells; ++i) {
-            auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
             nsegs += c.num_segments();
             ncomp += c.num_compartments();
         }
@@ -299,8 +299,8 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    arb::mc_cell cell;
+arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
+    arb::cable_cell cell;
 
     // Add soma.
     auto soma = cell.add_soma(12.6157/2.0); // For area of 500 μm².

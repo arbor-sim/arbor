@@ -4,7 +4,13 @@
 
 import unittest
 import arbor as arb
-if (arb.mpi4py_compiled() and arb.mpi_compiled()):
+
+# check Arbor's configuration of mpi
+config = arb.config()
+mpi_enabled = config["mpi"]
+mpi4py_enabled = config["mpi4py"]
+
+if (mpi_enabled and mpi4py_enabled):
     import mpi4py.MPI as mpi
 
 # to be able to run .py file from child directory
@@ -41,15 +47,15 @@ def suite():
 
 
 if __name__ == "__main__":
-    v = options.parse_arguments().verbosity 
-    
+    v = options.parse_arguments().verbosity
+
     if not arb.mpi_is_initialized():
         print(" Runner initializing mpi")
         arb.mpi_init()
 
-    if arb.mpi4py_compiled():
+    if mpi4py_enabled:
         comm = arb.mpi_comm_from_mpi4py(mpi.COMM_WORLD)
-    elif arb.mpi_compiled():
+    elif mpi_enabled:
         comm = arb.mpi_comm()
 
     alloc = arb.proc_allocation()
@@ -65,7 +71,4 @@ if __name__ == "__main__":
     runner.run(suite())
 
     if not arb.mpi_is_finalized():
-        #print(" Runner finalizing mpi")
        arb.mpi_finalize()
-    #else:
-       #print(" mpi already finalized!")

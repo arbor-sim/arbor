@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 try:
     import options
 except ModuleNotFoundError:
-    from test import options 
+    from test import options
 
 """
 all tests for non-distributed arb.context

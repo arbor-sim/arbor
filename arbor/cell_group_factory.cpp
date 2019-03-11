@@ -25,7 +25,7 @@ cell_group_factory cell_kind_implementation(
     using gid_vector = std::vector<cell_gid_type>;
 
     switch (ck) {
-    case cell_kind::cable1d_neuron:
+    case cell_kind::cable:
         return [bk, ctx](const gid_vector& gids, const recipe& rec) {
             return make_cell_group<mc_cell_group>(gids, rec, make_fvm_lowered_cell(bk, ctx));
         };
@@ -37,7 +37,7 @@ cell_group_factory cell_kind_implementation(
             return make_cell_group<spike_source_cell_group>(gids, rec);
         };
 
-    case cell_kind::lif_neuron:
+    case cell_kind::lif:
         if (bk!=backend_kind::multicore) break;
 
         return [](const gid_vector& gids, const recipe& rec) {

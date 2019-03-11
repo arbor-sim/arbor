@@ -3,6 +3,7 @@
 
 def setup(app):
     app.add_stylesheet('custom.css')
+    app.add_object_type('generic', 'gen', 'pair: %s; generic')
 
 extensions = ['sphinx.ext.todo', 'sphinx.ext.mathjax']
 source_suffix = '.rst'

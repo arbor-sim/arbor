@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include "algorithms.hpp"
 #include "fvm_compartment.hpp"
@@ -39,7 +39,7 @@ namespace {
         std::vector<tree::int_type> parent_index;
         std::vector<tree::int_type> segment_index;
 
-        explicit compartment_model(const mc_cell& cell) {
+        explicit compartment_model(const cable_cell& cell) {
             tree = arb::tree(cell.parents());
             auto counts = cell.compartment_counts();
             parent_index = make_parent_index(tree, counts);
@@ -118,7 +118,7 @@ namespace {
 //       = 1/R · hV₁V₂/(h₂²V₁+h₁²V₂)
 //
 
-fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
+fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
 
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
@@ -127,11 +127,11 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
     fvm_discretization D;
 
     util::make_partition(D.cell_segment_bounds,
-        transform_view(cells, [](const mc_cell& c) { return c.num_segments(); }));
+        transform_view(cells, [](const cable_cell& c) { return c.num_segments(); }));
 
     std::vector<index_type> cell_comp_bounds;
     auto cell_comp_part = make_partition(cell_comp_bounds,
-        transform_view(cells, [](const mc_cell& c) { return c.num_compartments(); }));
+        transform_view(cells, [](const cable_cell& c) { return c.num_compartments(); }));
 
     D.ncell = cells.size();
     D.ncomp = cell_comp_part.bounds().second;
@@ -160,7 +160,7 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
         seg_comp_bounds.clear();
         auto seg_comp_part = make_partition(
             seg_comp_bounds,
-            transform_view(c.segments(), [](const mc_segment_ptr& s) { return s->num_compartments(); }),
+            transform_view(c.segments(), [](const segment_ptr& s) { return s->num_compartments(); }),
             cell_comp_base);
 
         const auto nseg = seg_comp_part.size();
@@ -257,7 +257,7 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 //       IIb. Density mechanism CVs, parameter values; ion channel default concentration contributions.
 //       IIc. Point mechanism CVs, parameter values, and targets.
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D, bool coalesce_syanpses) {
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<cable_cell>& cells, const fvm_discretization& D, bool coalesce_syanpses) {
     using util::assign;
     using util::sort_by;
     using util::optional;

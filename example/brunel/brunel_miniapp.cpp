@@ -89,7 +89,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::lif_neuron;
+        return cell_kind::lif;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -187,7 +187,6 @@ private:
 
 int main(int argc, char** argv) {
     bool root = true;
-    int rank = 0;
 
     try {
         arb::proc_allocation resources;
@@ -202,8 +201,7 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        rank = arb::rank(context);
-        root = rank==0;
+        root = arb::rank(context)==0;
 #else
         resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
@@ -257,7 +255,7 @@ int main(int argc, char** argv) {
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
         partition_hint_map hints;
-        hints[cell_kind::lif_neuron].cpu_group_size = group_size;
+        hints[cell_kind::lif].cpu_group_size = group_size;
         auto decomp = partition_load_balance(recipe, context, hints);
 
         simulation sim(recipe, decomp, context);

@@ -101,8 +101,8 @@ own code for managing MPI, GPUs, and thread counts.
       Arbor allows at most one GPU per MPI rank, and furthermore requires that
       an MPI rank has exclusive access to a GPU, i.e. two MPI ranks can not
       share a GPU.
-      The task of assigning a unique GPU to each rank when more than one rank
-      have access to the same GPU(s).
+      This function assigns a unique GPU to each rank when more than one rank
+      has access to the same GPU(s).
       An example use case is on systems with "fat" nodes with multiple GPUs
       per node, in which case Arbor should be run with multiple MPI ranks
       per node.

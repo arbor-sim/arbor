@@ -27,7 +27,7 @@ namespace {
     // Dummy recipes types for testing.
 
     struct dummy_cell {};
-    using homo_recipe = homogeneous_recipe<cell_kind::cable1d_neuron, dummy_cell>;
+    using homo_recipe = homogeneous_recipe<cell_kind::cable, dummy_cell>;
 
     // Heterogenous cell population of cable and rss cells.
     // Interleaved so that cells with even gid are cable cells, and even gid are
@@ -48,7 +48,7 @@ namespace {
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return gid%2?
                 cell_kind::spike_source:
-                cell_kind::cable1d_neuron;
+                cell_kind::cable;
         }
 
         cell_size_type num_sources(cell_gid_type) const override { return 0; }
@@ -81,7 +81,7 @@ namespace {
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return cell_kind::cable1d_neuron;
+            return cell_kind::cable;
         }
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             unsigned shift = (gid/size_)*size_;
@@ -122,7 +122,7 @@ namespace {
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return cell_kind::cable1d_neuron;
+            return cell_kind::cable;
         }
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             unsigned group = gid/groups_;
@@ -175,7 +175,7 @@ TEST(domain_decomposition, homogeneous_population_mc) {
         EXPECT_EQ(I, (unsigned)D.gid_domain(gid));
     }
 
-    // Each cell group contains 1 cell of kind cable1d_neuron
+    // Each cell group contains 1 cell of kind cable
     // Each group should also be tagged for cpu execution
     for (auto i: gids) {
         auto local_group = i-b;
@@ -183,7 +183,7 @@ TEST(domain_decomposition, homogeneous_population_mc) {
         EXPECT_EQ(grp.gids.size(), 1u);
         EXPECT_EQ(grp.gids.front(), unsigned(i));
         EXPECT_EQ(grp.backend, backend_kind::multicore);
-        EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
+        EXPECT_EQ(grp.kind, cell_kind::cable);
     }
 }
 
@@ -226,7 +226,7 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
         EXPECT_EQ(I, (unsigned)D.gid_domain(gid));
     }
 
-    // Each cell group contains 1 cell of kind cable1d_neuron
+    // Each cell group contains 1 cell of kind cable
     // Each group should also be tagged for cpu execution
     auto grp = D.groups[0u];
 
@@ -234,7 +234,7 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
     EXPECT_EQ(grp.gids.front(), b);
     EXPECT_EQ(grp.gids.back(), e-1);
     EXPECT_EQ(grp.backend, backend_kind::gpu);
-    EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
+    EXPECT_EQ(grp.kind, cell_kind::cable);
 }
 #endif
 
@@ -272,7 +272,7 @@ TEST(domain_decomposition, heterogeneous_population) {
         EXPECT_EQ(I, (unsigned)D.gid_domain(gid));
     }
 
-    // Each cell group contains 1 cell of kind cable1d_neuron
+    // Each cell group contains 1 cell of kind cable
     // Each group should also be tagged for cpu execution
     auto grps = util::make_span(0, n_local_grps);
     std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
@@ -283,7 +283,7 @@ TEST(domain_decomposition, heterogeneous_population) {
         EXPECT_EQ(grp.backend, backend_kind::multicore);
     }
 
-    for (auto k: {cell_kind::cable1d_neuron, cell_kind::spike_source}) {
+    for (auto k: {cell_kind::cable, cell_kind::spike_source}) {
         const auto& gids = kind_lists[k];
         EXPECT_EQ(gids.size(), n_local/2);
         for (auto gid: gids) {
@@ -329,8 +329,8 @@ TEST(domain_decomposition, symmetric_groups)
 
     // Test different group_hints
     partition_hint_map hints;
-    hints[cell_kind::cable1d_neuron].cpu_group_size = R.num_cells();
-    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+    hints[cell_kind::cable].cpu_group_size = R.num_cells();
+    hints[cell_kind::cable].prefer_gpu = false;
 
     const auto D1 = partition_load_balance(R, ctx, hints);
     EXPECT_EQ(1u, D1.groups.size());
@@ -345,8 +345,8 @@ TEST(domain_decomposition, symmetric_groups)
         EXPECT_EQ(i/cells_per_rank, (unsigned)D1.gid_domain(i));
     }
 
-    hints[cell_kind::cable1d_neuron].cpu_group_size = cells_per_rank/2;
-    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+    hints[cell_kind::cable].cpu_group_size = cells_per_rank/2;
+    hints[cell_kind::cable].prefer_gpu = false;
 
     const auto D2 = partition_load_balance(R, ctx, hints);
     EXPECT_EQ(2u, D2.groups.size());

@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/morphology.hpp>
 #include <arbor/swcio.hpp>
 
@@ -457,7 +457,7 @@ TEST(swc_io, cell_construction) {
     // swc -> morphology
     auto morph = swc_as_morphology(parse_swc_file(is));
 
-    mc_cell cell = make_mc_cell(morph, true);
+    cable_cell cell = make_cable_cell(morph, true);
     EXPECT_TRUE(cell.has_soma());
     EXPECT_EQ(4u, cell.num_segments());
 

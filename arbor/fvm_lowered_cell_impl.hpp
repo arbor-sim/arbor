@@ -35,7 +35,6 @@
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
-
 namespace arb {
 
 template <class Backend>
@@ -64,7 +63,7 @@ public:
         std::vector<sample_event> staged_samples) override;
 
     std::vector<fvm_gap_junction> fvm_gap_junctions(
-        const std::vector<mc_cell>& cells,
+        const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
         const recipe& rec,
         const fvm_discretization& D);
@@ -260,8 +259,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Update time and test for spike threshold crossings.
 
         PE(advance_integrate_threshold);
-        memory::copy(state_->time_to, state_->time);
         threshold_watcher_.test();
+        memory::copy(state_->time_to, state_->time);
         PL();
 
         // Check for non-physical solutions:
@@ -333,28 +332,28 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     set_gpu();
 
-    std::vector<mc_cell> cells;
+    std::vector<cable_cell> cells;
     const std::size_t ncell = gids.size();
 
     cells.reserve(ncell);
     for (auto gid: gids) {
         try {
-            cells.push_back(any_cast<mc_cell>(rec.get_cell_description(gid)));
+            cells.push_back(any_cast<cable_cell>(rec.get_cell_description(gid)));
         }
         catch (util::bad_any_cast&) {
             throw bad_cell_description(rec.get_cell_kind(gid), gid);
         }
     }
 
-    mc_cell_global_properties global_props;
+    cable_cell_global_properties global_props;
     try {
-        util::any rec_props = rec.get_global_properties(cell_kind::cable1d_neuron);
+        util::any rec_props = rec.get_global_properties(cell_kind::cable);
         if (rec_props.has_value()) {
-            global_props = any_cast<mc_cell_global_properties>(rec_props);
+            global_props = any_cast<cable_cell_global_properties>(rec_props);
         }
     }
     catch (util::bad_any_cast&) {
-        throw bad_global_property(cell_kind::cable1d_neuron);
+        throw bad_global_property(cell_kind::cable);
     }
 
     const mechanism_catalogue* catalogue = global_props.catalogue;
@@ -509,7 +508,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 // Get vector of gap_junctions
 template <typename B>
 std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
-        const std::vector<mc_cell>& cells,
+        const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
         const recipe& rec, const fvm_discretization& D) {
 
@@ -533,7 +532,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {
             if (gid != g.local.gid && gid != g.peer.gid) {
-                throw arb::bad_cell_description(cell_kind::cable1d_neuron, gid);
+                throw arb::bad_cell_description(cell_kind::cable, gid);
             }
             cell_gid_type cv0, cv1;
             try {
@@ -541,7 +540,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
                 cv1 = gid_to_cvs[g.peer.gid].at(g.peer.index);
             }
             catch (std::out_of_range&) {
-                throw arb::bad_cell_description(cell_kind::cable1d_neuron, gid);
+                throw arb::bad_cell_description(cell_kind::cable, gid);
             }
             if (gid != g.local.gid) {
                 std::swap(cv0, cv1);
@@ -585,7 +584,7 @@ fvm_size_type fvm_lowered_cell_impl<B>::fvm_intdom(
                 cell_gid_type peer =
                         gj.local.gid==g? gj.peer.gid:
                         gj.peer.gid==g?  gj.local.gid:
-                        throw bad_cell_description(cell_kind::cable1d_neuron, g);
+                        throw bad_cell_description(cell_kind::cable, g);
 
                 if (!gid_to_loc.count(peer)) {
                     throw gj_unsupported_domain_decomposition(g, peer);
