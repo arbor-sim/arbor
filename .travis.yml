@@ -132,10 +132,6 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
-          - python-argparse
-          - python-os
-          - python-sys
-          - python-unittest
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-linux-gcc-py WITH_DISTRIBUTED=serial WITH_PYTHON=on
@@ -154,10 +150,6 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
-          - python-argparse
-          - python-os
-          - python-sys
-          - python-unittest
           - python-mpi4py
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"

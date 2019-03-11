@@ -45,11 +45,11 @@ else
 fi
 
 if [[ "${WITH_PYTHON}" = "on" ]]; then
-    echo "python      : on"
+    echo "python    : on"
     WITH_PYTHON="ON"
     export PYTHONPATH=$basepath/$build_path/lib
 else
-    echo "python      : off"
+    echo "python    : off"
     WITH_PYTHON="OFF"
 fi
 
