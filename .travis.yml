@@ -121,48 +121,48 @@ matrix:
 
 ## test python: gcc6 - single node ##
   - name: "python, linux, gcc, serial"
-     os: linux
-     dist: trusty
-     python: 3.6.8
-     addons:
-       apt:
-         sources:
-           - ubuntu-toolchain-r-test
-         packages:
-           - g++-6
-           - openmpi-bin
-           - libopenmpi-dev
-           - python-argparse
-           - python-os
-           - python-sys
-           - python-unittest
-     env:
-       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-       - BUILD_NAME=cthread-linux-gcc-py WITH_DISTRIBUTED=serial WITH_PYTHON=on
-     compiler: gcc-6
+    os: linux
+    dist: trusty
+    python: 3.6.8
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-6
+          - openmpi-bin
+          - libopenmpi-dev
+          - python-argparse
+          - python-os
+          - python-sys
+          - python-unittest
+    env:
+      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=cthread-linux-gcc-py WITH_DISTRIBUTED=serial WITH_PYTHON=on
+    compiler: gcc-6
 
 ## test python: gcc6 - mpi ##
   - name: "python, linux, gcc, mpi"
-     os: linux
-     dist: trusty
-     python: 3.6.8
-     addons:
-       apt:
-         sources:
-           - ubuntu-toolchain-r-test
-         packages:
-           - g++-6
-           - openmpi-bin
-           - libopenmpi-dev
-           - python-argparse
-           - python-os
-           - python-sys
-           - python-unittest
-           - python-mpi4py
-     env:
-       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-       - BUILD_NAME=mpi-linux-gcc-py WITH_DISTRIBUTED=mpi WITH_PYTHON=on
-     compiler: gcc-6
+    os: linux
+    dist: trusty
+    python: 3.6.8
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-6
+          - openmpi-bin
+          - libopenmpi-dev
+          - python-argparse
+          - python-os
+          - python-sys
+          - python-unittest
+          - python-mpi4py
+    env:
+      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=mpi-linux-gcc-py WITH_DISTRIBUTED=mpi WITH_PYTHON=on
+    compiler: gcc-6
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
