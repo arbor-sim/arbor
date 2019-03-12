@@ -85,15 +85,15 @@ if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
 fi
 
 if [[ "${WITH_PYTHON}" == "on" ]]; then
+    echo "python     : on!!!"
     progress "Python unit testing:"
+    make pyarb -j4                                                           || error "building pyarb"
     if [[ "${WITH_DISTRIBUTED}" == "serial" ]]; then
         progress "serial unit tests"
-        make pyarb -j4
-        python$PY $python_path/test/unit/runner.py -v2
+        python$PY $python_path/test/unit/runner.py -v2                       || error "running python unit tests (serial)"
     elif [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
         progress "distributed unit tests (MPI)"
-        make pyarb -j4
-        ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2
+        ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
     fi
 fi
 
