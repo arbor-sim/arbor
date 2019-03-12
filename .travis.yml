@@ -156,7 +156,7 @@ matrix:
     compiler: gcc-6
 
 before_install:
-  - if [[ "$WITH_PYTHON" == "on" ]]; then pyenv global system 3.6; source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
+  - if [[ "$WITH_PYTHON" == "on" ]]; then source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
