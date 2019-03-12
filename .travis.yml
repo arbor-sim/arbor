@@ -150,13 +150,14 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
-          - python3-mpi4py
+          - python-mpi4py
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-linux-gcc-py WITH_DISTRIBUTED=mpi WITH_PYTHON=on PY=3.6
     compiler: gcc-6
 
 before_install:
+  - if [[ "$WITH_DISTRIBUTED" == "mpi" ]]; then ./conf/ci/travis-ci/install-mpi.sh openmpi; ompi_info; fi
   - if [[ "$WITH_PYTHON" == "on" ]]; then pyenv global system 3.6; source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
 
 before_script:
