@@ -84,6 +84,9 @@ if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
     ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
 fi
 
+echo "DEBUG: going into python ifs ..."
+echo "       if WITH_PYTHON: "
+echo $WITH_PYTHON
 if [[ "${WITH_PYTHON}" == "on" ]]; then
     echo "python     : on!!!"
     progress "Python unit testing:"
