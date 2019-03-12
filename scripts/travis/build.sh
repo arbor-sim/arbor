@@ -43,16 +43,16 @@ else
     WITH_MPI="OFF"
 fi
 
-if [[ "${WITH_PYTHON}" == "on" ]]; then
+if [[ "${WITH_PYTHON}" == "true" ]]; then
     echo "python     : on"
-    WITH_PYTHON="ON"
+    ARB_WITH_PYTHON="ON"
     export PYTHONPATH=$PYTHONPATH:${base_path}/${build_path}/lib
     python_path=$base_path/python
     echo "python path: ${python_path}"
     echo "PYTHONPATH : ${PYTHONPATH}"
 else
     echo "python     : off"
-    WITH_PYTHON="OFF"
+    ARB_WITH_PYTHON="OFF"
 fi
 
 #
@@ -66,7 +66,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${WITH_PYTHON} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} ${CXX_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
@@ -86,14 +86,14 @@ if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
     ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
 fi
 
-if [[ "${WITH_PYTHON}" == "ON" ]]; then
+if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Python unit testing"
     make pyarb -j4                                                           || error "building pyarb"
     if [[ "${WITH_DISTRIBUTED}" == "serial" ]]; then
-        progress "serial unit tests"
+        progress "serial python unit tests"
         python$PY $python_path/test/unit/runner.py -v2                       || error "running python unit tests (serial)"
     elif [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
-        progress "distributed unit tests (MPI)"
+        progress "distributed python unit tests (MPI)"
         ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
     fi
 fi
