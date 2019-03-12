@@ -6,7 +6,6 @@ error()    {>&2 echo -e "${RED}ERROR${CLEAR}: $1"; exit 1;}
 progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
 
 base_path=`pwd`
-python_path=$base_path/python
 build_path=build-${BUILD_NAME}
 
 #
@@ -47,7 +46,9 @@ fi
 if [[ "${WITH_PYTHON}" == "on" ]]; then
     echo "python     : on"
     WITH_PYTHON="ON"
-    export PYTHONPATH=$PYTHONPATH:$basepath/$build_path/lib
+    export PYTHONPATH=$PYTHONPATH:${base_path}/${build_path}/lib
+    python_path=$base_path/python
+    echo "python path: ${python_path}"
 else
     echo "python     : off"
     WITH_PYTHON="OFF"
