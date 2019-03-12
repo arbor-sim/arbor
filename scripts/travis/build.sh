@@ -49,6 +49,7 @@ if [[ "${WITH_PYTHON}" == "on" ]]; then
     export PYTHONPATH=$PYTHONPATH:${base_path}/${build_path}/lib
     python_path=$base_path/python
     echo "python path: ${python_path}"
+    echo "PYTHONPATH : ${PYTHONPATH}"
 else
     echo "python     : off"
     WITH_PYTHON="OFF"
