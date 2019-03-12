@@ -158,7 +158,6 @@ matrix:
 
 before_install:
   - if [[ "$WITH_PYTHON" == "on" ]]; then pyenv global system 3.6; source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
-  - if [[ ( "$WITH_PYTHON" == "on" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then for p in `python3 -c 'import sys; print("\n".join(sys.path))'`; do echo ===== $p; ls $p | grep mpi4py; done; fi
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
