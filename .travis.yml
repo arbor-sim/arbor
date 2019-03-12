@@ -50,6 +50,26 @@ matrix:
       - WITH_DISTRIBUTED=mpi WITH_PYTHON=false
     compiler: clang
 
+## test python: gcc6 - single node ##
+  - name: "py, osx, gcc, serial"
+    os: osx
+    osx_image: xcode9.2
+    env:
+      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=cthread-osx-gcc-py
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true
+    compiler: gcc-6
+
+## test python: gcc6 - mpi ##
+  - name: "py, osx, gcc, mpi"
+    os: osx
+    osx_image: xcode9.2
+    env:
+      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
+      - BUILD_NAME=mpi-osx-gcc-py
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true
+    compiler: gcc-6
+
 ######################### LINUX #########################
 ## test gcc6 - single node/rank with threading backend ##
   - name: "linux, gcc, serial"
@@ -128,7 +148,7 @@ matrix:
     compiler: clang-4.0
 
 ## test python: gcc6 - single node ##
-  - name: "python, linux, gcc, serial"
+  - name: "py, linux, gcc, serial"
     os: linux
     dist: trusty
     python: 3.6
@@ -147,7 +167,7 @@ matrix:
     compiler: gcc-6
 
 ## test python: gcc6 - mpi ##
-  - name: "python, linux, gcc, mpi"
+  - name: "py, linux, gcc, mpi"
     os: linux
     dist: trusty
     python: 3.6
@@ -168,14 +188,14 @@ matrix:
 before_install:
   - if [[ "$WITH_PYTHON" == "true" ]]; then source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
 
+install:
+  - if [[ "$WITH_PYTHON" == "true" ]]; then pip install --upgrade pip; fi
+  - if [[ ( "$WITH_PYTHON" == "true" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then pip install mpi4py; fi
+
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
   - eval "${MATRIX_EVAL}"
-
-install:
-  - if [[ "$WITH_PYTHON" == "true" ]]; then pip install --upgrade pip; fi
-  - if [[ ( "$WITH_PYTHON" == "true" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then pip install mpi4py; fi
 
 script: source ./scripts/travis/build.sh
 

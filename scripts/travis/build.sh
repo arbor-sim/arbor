@@ -72,28 +72,28 @@ cmake .. ${cmake_flags} || error "unable to configure cmake"
 
 export NMC_NUM_THREADS=2
 
-progress "Unit tests"
+progress "C++ unit tests"
 make unit -j4                || error "building unit tests"
 ./bin/unit --gtest_color=no  || error "running unit tests"
 
-progress "Distributed unit tests (local)"
+progress "C++ distributed unit tests (local)"
 make unit-local -j4          || error "building local distributed unit tests"
 ./bin/unit-local             || error "running local distributed unit tests"
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
-    progress "Distributed unit tests (MPI)"
+    progress "C++ distributed unit tests (MPI)"
     make unit-mpi -j4        || error "building MPI distributed unit tests"
     ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
 fi
 
 if [[ "${WITH_PYTHON}" == "true" ]]; then
-    progress "Python unit testing"
+    progress "Building python module"
     make pyarb -j4                                                           || error "building pyarb"
     if [[ "${WITH_DISTRIBUTED}" == "serial" ]]; then
-        progress "serial python unit tests"
+        progress "Python unit tests"
         python$PY $python_path/test/unit/runner.py -v2                       || error "running python unit tests (serial)"
     elif [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
-        progress "distributed python unit tests (MPI)"
+        progress "Python distributed unit tests (MPI)"
         ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
     fi
 fi
