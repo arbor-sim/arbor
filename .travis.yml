@@ -132,7 +132,6 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
-          - python3
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-linux-gcc-py WITH_DISTRIBUTED=serial WITH_PYTHON=on PY=3
@@ -151,7 +150,6 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
-          - python3
           - python3-mpi4py
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
@@ -161,7 +159,7 @@ matrix:
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
-  - if [[ "$WITH_PYTHON" == "on" ]]; then pyenv global system 3.6; python$PY --version; fi
+  - if [[ "$WITH_PYTHON" == "on" ]]; then pyenv global system 3.6; source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
   - eval "${MATRIX_EVAL}"
 
 script: source ./scripts/travis/build.sh
