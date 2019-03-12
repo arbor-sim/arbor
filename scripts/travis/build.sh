@@ -34,7 +34,7 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     # --mca btl tcp,self for Open MPI to use the "tcp" and "self" Byte Transfer Layers for transporting MPI messages
     # "self" to deliver messages to the same rank as the sender
     # "tcp" sends messages across TCP-based networks (Transmission Control Protocol with Internet Protocol)
-    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
         launch="${launch} --oversubscribe --mca btl tcp,self"
     fi
     WITH_MPI="ON"
@@ -45,11 +45,12 @@ else
 fi
 
 if [[ "${WITH_PYTHON}" = "on" ]]; then
-    echo "python    : on"
+    echo "python     : on"
     WITH_PYTHON="ON"
-    export PYTHONPATH=$basepath/$build_path/lib
+    export PYTHONPATH=$PYTHONPATH:$basepath/$build_path/lib
+    echo $PYTHONPATH
 else
-    echo "python    : off"
+    echo "python     : off"
     WITH_PYTHON="OFF"
 fi
 
@@ -64,7 +65,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${WITH_PYTHON} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${WITH_PYTHON} ${CXX_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
@@ -84,12 +85,14 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
 fi
 
-if [[ "${WITH_PYTHON}" = "on" && "${WITH_DISTRIBUTED}" = "serial" ]]; then
+if [[ "${WITH_PYTHON}" = "on" &&  "${WITH_DISTRIBUTED}" = "serial" ]]; then
     progress "Python unit tests (serial)"
-    python $python_path/test/unit/runner.py
+    make pyarb -j4
+    python$PY $python_path/test/unit/runner.py -v2
 elif [[ "${WITH_PYTHON}" = "on" && "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     progress "Python distributed unit tests (MPI)"
-    python $python_path/test/unit_distributed/runner.py
+    make pyarb -j4
+    ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2
 fi
 
 cd $base_path
