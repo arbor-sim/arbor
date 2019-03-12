@@ -54,6 +54,7 @@ matrix:
   - name: "py, osx, gcc, serial"
     os: osx
     osx_image: xcode9.2
+    python: 3.6
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-osx-gcc-py
@@ -64,6 +65,7 @@ matrix:
   - name: "py, osx, gcc, mpi"
     os: osx
     osx_image: xcode9.2
+    python: 3.6
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-osx-gcc-py
