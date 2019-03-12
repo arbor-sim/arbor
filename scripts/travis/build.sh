@@ -87,7 +87,7 @@ fi
 echo "DEBUG: going into python ifs ..."
 echo "       if WITH_PYTHON: "
 echo $WITH_PYTHON
-if [[ "${WITH_PYTHON}" == "on" ]]; then
+if [[ "${WITH_PYTHON}" == "ON" ]]; then
     echo "python     : on!!!"
     progress "Python unit testing:"
     make pyarb -j4                                                           || error "building pyarb"
