@@ -48,7 +48,6 @@ if [[ "${WITH_PYTHON}" = "on" ]]; then
     echo "python     : on"
     WITH_PYTHON="ON"
     export PYTHONPATH=$PYTHONPATH:$basepath/$build_path/lib
-    echo $PYTHONPATH
 else
     echo "python     : off"
     WITH_PYTHON="OFF"
@@ -85,11 +84,11 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
 fi
 
-if [[ "${WITH_PYTHON}" = "on" &&  "${WITH_DISTRIBUTED}" = "serial" ]]; then
+if [[ "${WITH_PYTHON}" = "on" -a "${WITH_DISTRIBUTED}" = "serial" ]]; then
     progress "Python unit tests (serial)"
     make pyarb -j4
     python$PY $python_path/test/unit/runner.py -v2
-elif [[ "${WITH_PYTHON}" = "on" && "${WITH_DISTRIBUTED}" = "mpi" ]]; then
+elif [[ "${WITH_PYTHON}" = "on" -a "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     progress "Python distributed unit tests (MPI)"
     make pyarb -j4
     ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2
