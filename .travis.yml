@@ -150,7 +150,6 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
-          - python3-mpi4py
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-linux-gcc-py WITH_DISTRIBUTED=mpi WITH_PYTHON=on PY=3.6
@@ -163,6 +162,9 @@ before_script:
   - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
   - eval "${MATRIX_EVAL}"
 
+install:
+  - if [[ "$WITH_PYTHON" == "on" ]]; then pip install --upgrade pip; fi
+  - if [[ ( "$WITH_PYTHON" == "on" ) && ( "$WITH_DISTRIBUTED" == "mpi"     ) ]]; then pip install mpi4py; fi
 script: source ./scripts/travis/build.sh
 
 notifications:
