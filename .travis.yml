@@ -156,7 +156,8 @@ matrix:
     compiler: gcc-6
 
 before_install:
-  - if [[ "$WITH_PYTHON" == "on" ]]; then pyenv global system 3.6; source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
+  - if [[ "$WITH_PYTHON" == "on" ]]; source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
+
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
@@ -164,7 +165,8 @@ before_script:
 
 install:
   - if [[ "$WITH_PYTHON" == "on" ]]; then pip install --upgrade pip; fi
-  - if [[ ( "$WITH_PYTHON" == "on" ) && ( "$WITH_DISTRIBUTED" == "mpi"     ) ]]; then pip install mpi4py; fi
+  - if [[ ( "$WITH_PYTHON" == "on" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then pip install mpi4py; fi
+
 script: source ./scripts/travis/build.sh
 
 notifications:
