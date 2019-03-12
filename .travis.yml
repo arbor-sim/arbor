@@ -189,8 +189,27 @@ matrix:
 
 before_install:
   - if [[ "$WITH_PYTHON" == "true" ]]; then source ~/virtualenv/python3.6/bin/activate; python$PY --version; fi
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update
+      # Per the `pyenv homebrew recommendations <https://github.com/yyuu/pyenv/wiki#suggested-build-environment>`_.
+      brew install openssl readline
+      # See https://docs.travis-ci.com/user/osx-ci-environment/#A-note-on-upgrading-packages.
+      brew outdated pyenv || brew upgrade pyenv
+      # virtualenv doesn't work without pyenv knowledge. venv in Python 3.3
+      # doesn't provide Pip by default. So, use `pyenv-virtualenv <https://github.com/yyuu/pyenv-virtualenv/blob/master/README.md>`_.
+      brew install pyenv-virtualenv
+      pyenv install $PY
+      export PYENV_VERSION=$PY
+      export PATH="/Users/travis/.pyenv/shims:${PATH}"
+      pyenv-virtualenv venv
+      source venv/bin/activate
+      # A manual check that the correct version of Python is running.
+      python --version
+    fi
 
 install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then python -m easy_install -U setuptools; fi
   - if [[ "$WITH_PYTHON" == "true" ]]; then pip install --upgrade pip; fi
   - if [[ ( "$WITH_PYTHON" == "true" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then pip install mpi4py; fi
 
