@@ -81,7 +81,7 @@ matrix:
   - name: "linux, gcc, mpi, py"
     os: linux
     dist: trusty
-    python: 3.6
+    python: '3.6'
     addons:
       apt:
         sources:
