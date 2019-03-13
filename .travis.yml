@@ -68,9 +68,6 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
-          - python3.6
-          - python3-venv
-          - python3.6-venv
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-linux-gcc-py
