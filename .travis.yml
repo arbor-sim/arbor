@@ -58,7 +58,7 @@ matrix:
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-osx-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3.6
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test python: gcc6 - mpi ##
@@ -69,7 +69,7 @@ matrix:
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-osx-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true, PY=3.6
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true, PY=3
     compiler: gcc-6
 
 ######################### LINUX #########################
@@ -192,18 +192,9 @@ before_install:
     if [[ ( "$TRAVIS_OS_NAME" == "linux" ) && ( "$WITH_PYTHON" == "true" ) ]]; then
       source ~/virtualenv/python3.6/bin/activate; python$PY --version;
     fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - |
     if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_PYTHON" == "true" ) ]]; then
-      #brew update
-      #brew install openssl readline
-      #brew outdated pyenv || brew upgrade pyenv
-      #brew install pyenv-virtualenv
-      #pyenv install $PY
-      #export PYENV_VERSION=$PY
-      #export PATH="/Users/travis/.pyenv/shims:${PATH}"
-      #pyenv-virtualenv venv
-      #source venv/bin/activate
-      #brew install python$PY
       brew upgrade python
       python$PY --version
     fi
@@ -216,7 +207,6 @@ install:
     fi
 
 before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
   - eval "${MATRIX_EVAL}"
 
