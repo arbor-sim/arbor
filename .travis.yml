@@ -59,7 +59,7 @@ matrix:
   - name: "linux, gcc, serial, py"
     os: linux
     dist: trusty
-    python: 3.6
+    python: '3.6'
     addons:
       apt:
         sources:
@@ -68,6 +68,8 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
+          - python3.6
+          - python3.6-dev
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-linux-gcc-py
