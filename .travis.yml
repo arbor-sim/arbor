@@ -154,7 +154,7 @@ install:
     if [["$WITH_DISTRIBUTED" == "mpi" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew install open-mpi;
-        if [[ $WITH_PYTHON" == "true" ]]; then
+        if [[ "$WITH_PYTHON" == "true" ]]; then
           pip$PY install mpi4py;
         fi
       elif [[ ( "$TRAVIS_OS_NAME" == "linux" ) && ( "$WITH_PYTHON" == "true" ) ]]; then
