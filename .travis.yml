@@ -195,8 +195,10 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
   - |
     if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_PYTHON" == "true" ) ]]; then
-      brew upgrade python
-      python$PY --version
+      brew unlink python
+      brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
+      brew switch python 3.6.5
+      python --version
     fi
 
 install:
