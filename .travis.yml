@@ -140,8 +140,9 @@ before_install:
   - |
     if [[ "$WITH_PYTHON" == "true" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        pyenv global system 3.6;
-        source ~/virtualenv/python3.6/bin/activate;
+        source ~/virtualenv/python3.6/bin/activate
+        which python$PY
+        python$PY --version
       elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew unlink python
         brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
