@@ -68,6 +68,9 @@ matrix:
           - g++-6
           - openmpi-bin
           - libopenmpi-dev
+          - python3.6
+          - python3-venv
+          - python3.6-venv
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-linux-gcc-py
@@ -140,9 +143,9 @@ before_install:
   - |
     if [[ "$WITH_PYTHON" == "true" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        source ~/virtualenv/python3.6/bin/activate
-        which python$PY
-        python$PY --version
+#        source ~/virtualenv/python3.6/bin/activate
+         python3.6 -m venv myenv
+         . myenv/bin/activate
       elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew unlink python
         brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
