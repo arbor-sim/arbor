@@ -198,7 +198,7 @@ before_install:
       brew unlink python
       brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
       brew switch python 3.6.5
-      python --version
+      python$PY --version
     fi
 
 install:
@@ -206,6 +206,10 @@ install:
   - |
     if [[ ( "$TRAVIS_OS_NAME" == "linux" ) && ( "$WITH_PYTHON" == "true" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then
       pip install mpi4py;
+    fi
+  - |
+    if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_PYTHON" == "true" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then
+      pip$PY install mpi4py;
     fi
 
 before_script:
