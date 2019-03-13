@@ -142,9 +142,13 @@ before_install:
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         source ~/virtualenv/python3.6/bin/activate;
       elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        brew unlink python
-        brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
-        brew switch python 3.6.5
+        brew install pyenv, pyenv-virtualenv
+        pyenv install 3.6.5
+        pyenv virtualenv 3.6.5 my-virtualenv
+        pyenv activate my-virtualenv
+        #brew unlink python
+        #brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
+        #brew switch python 3.6.5
       fi
     fi
 
