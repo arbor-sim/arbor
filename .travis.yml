@@ -143,6 +143,7 @@ before_install:
   - |
     if [[ "$WITH_PYTHON" == "true" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+         brew install pyenv-virtualenv
          pyenv virtualenv -p python3.6 3.6.6 py36
          pyenv shell py36
          python3.6 -m venv venv
