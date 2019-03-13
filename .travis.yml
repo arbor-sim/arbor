@@ -149,7 +149,8 @@ before_install:
     fi
 
 install:
-  - if [[ "$WITH_PYTHON" == "true" ]]; then pip install --upgrade pip; fi
+#  - if [[ "$WITH_PYTHON" == "true" ]]; then pip install --upgrade pip; fi
+  - if [[ "$WITH_PYTHON" == "true" ]]; then python$PY -m pip install --upgrade pip; fi
   - |
     if [[ "$WITH_DISTRIBUTED" == "mpi" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
