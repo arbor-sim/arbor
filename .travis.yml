@@ -81,7 +81,7 @@ matrix:
   - name: "linux, gcc, mpi, py"
     os: linux
     dist: trusty
-    python: '3.6'
+    python: 3.6
     addons:
       apt:
         sources:
@@ -143,8 +143,10 @@ before_install:
   - |
     if [[ "$WITH_PYTHON" == "true" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-         python3.6 -m venv myenv
-         source myenv/bin/activate
+         pyenv virtualenv -p python3.6 3.6.6 py36
+         pyenv shell py36
+         python3.6 -m venv venv
+         source ./venv/bin/activate
       elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew unlink python
         brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
