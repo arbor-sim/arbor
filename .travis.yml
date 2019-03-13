@@ -71,7 +71,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-linux-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3.6
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test gcc6 - mpi with threading backend ##
@@ -90,7 +90,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-linux-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3.6
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test clang4 - single node/rank with threading backend ##
@@ -111,7 +111,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
       - BUILD_NAME=cthread-linux-clang-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3.6
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: clang-4.0
 
 ## test clang4 - mpi with threading backend ##
@@ -132,7 +132,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
       - BUILD_NAME=mpi-linux-clang-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3.6
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: clang-4.0
 
 before_install:
@@ -149,7 +149,6 @@ before_install:
     fi
 
 install:
-#  - if [[ "$WITH_PYTHON" == "true" ]]; then pip install --upgrade pip; fi
   - if [[ "$WITH_PYTHON" == "true" ]]; then curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py; python$PY get-pip.py; pip --version; fi
   - |
     if [[ "$WITH_DISTRIBUTED" == "mpi" ]]; then
@@ -159,7 +158,7 @@ install:
           pip$PY install mpi4py;
         fi
       elif [[ ( "$TRAVIS_OS_NAME" == "linux" ) && ( "$WITH_PYTHON" == "true" ) ]]; then
-        pip install mpi4py;
+        pip$PY install mpi4py;
       fi
     fi
 
