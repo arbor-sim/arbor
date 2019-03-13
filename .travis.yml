@@ -151,7 +151,7 @@ before_install:
 install:
   - if [[ "$WITH_PYTHON" == "true" ]]; then pip install --upgrade pip; fi
   - |
-    if [["$WITH_DISTRIBUTED" == "mpi" ]]; then
+    if [[ "$WITH_DISTRIBUTED" == "mpi" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew install open-mpi;
         if [[ "$WITH_PYTHON" == "true" ]]; then
