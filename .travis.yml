@@ -142,7 +142,8 @@ before_install:
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         source ~/virtualenv/python3.6/bin/activate;
       elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        brew install pyenv, pyenv-virtualenv
+        brew install pyenv
+        brew install pyenv-virtualenv
         pyenv install 3.6.5
         pyenv virtualenv 3.6.5 my-virtualenv
         pyenv activate my-virtualenv
