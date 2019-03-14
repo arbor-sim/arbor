@@ -8,7 +8,7 @@
 
 namespace arb {
 namespace simd {
-namespace simd_detail {
+namespace detail {
 
 template <typename Impl>
 std::ostream& operator<<(std::ostream& o, const simd_impl<Impl>& s) {
@@ -23,6 +23,6 @@ std::ostream& operator<<(std::ostream& o, const simd_impl<Impl>& s) {
     return o;
 }
 
-} // namespace simd_detail
+} // namespace detail
 } // namespace simd
 } // namespace arb
