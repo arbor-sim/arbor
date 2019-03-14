@@ -13,7 +13,7 @@
 
 namespace arb {
 namespace simd {
-namespace simd_detail {
+namespace detail {
 
 struct avx512_double8;
 struct avx512_int8;
@@ -742,12 +742,12 @@ protected:
     }
 };
 
-} // namespace simd_detail
+} // namespace detail
 
 namespace simd_abi {
     template <typename T, unsigned N> struct avx512;
-    template <> struct avx512<double, 8> { using type = simd_detail::avx512_double8; };
-    template <> struct avx512<int, 8> { using type = simd_detail::avx512_int8; };
+    template <> struct avx512<double, 8> { using type = detail::avx512_double8; };
+    template <> struct avx512<int, 8> { using type = detail::avx512_int8; };
 } // namespace simd_abi
 
 } // namespace simd

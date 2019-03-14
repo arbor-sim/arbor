@@ -74,18 +74,18 @@ Three user-facing template classes are provided:
 
    The result of a ``where`` expression, used for masked assignment.
 
-There is, in addition, a templated class ``simd_detail::indirect_expression``
+There is, in addition, a templated class ``detail::indirect_expression``
 that holds the result of an `indirect(...)` expression. These arise in
 gather and scatter operations, and are detailed below.
 
 Implementation typemaps live in the ``simd_abi`` namespace, while concrete
-implementation classes live in ``simd_detail``. A particular specialization
+implementation classes live in ``detail``. A particular specialization
 for an architecture, for example 4-wide double on AVX, then requires:
 
-*  A concrete implementation class, e.g. ``simd_detail::avx_double4``.
+*  A concrete implementation class, e.g. ``detail::avx_double4``.
 
 *  A specialization of its ABI map, so that ``simd_abi::avx<double, 4>::type``
-   is an alias for ``simd_detail::avx_double4``.
+   is an alias for ``detail::avx_double4``.
 
 *  A specialization of the native ABI map, so that
    ``simd_abi::native<double, 4>::type`` is an alias for ``simd_abi::avx<double, 4>::type``.
@@ -124,8 +124,8 @@ promises certain guarantees on the index values in *k*:
 Class ``simd``
 ^^^^^^^^^^^^^^
 
-The class ``simd<V, N, I>`` is an alias for ``simd_detail::simd_impl<I<V, N>::type>``;
-the class ``simd_detail::simd_impl<C>`` provides the public interface and
+The class ``simd<V, N, I>`` is an alias for ``detail::simd_impl<I<V, N>::type>``;
+the class ``detail::simd_impl<C>`` provides the public interface and
 arithmetic operators for a concrete implementation class `C`.
 
 In the following:
@@ -331,9 +331,9 @@ Class ``simd_mask``
 ^^^^^^^^^^^^^^^^^^^
 
 ``simd_mask<V, N, I>`` is an alias for ``simd<V, N, I>::simd_mask``, which in turn
-will be an alias for a class ``simd_detail::simd_mask_impl<D>``, where *D* is
+will be an alias for a class ``detail::simd_mask_impl<D>``, where *D* is
 a concrete implementation class for the SIMD mask representation. ``simd_mask_impl<D>``
-inherits from, and is implemented in terms of, ``simd_detail::simd_impl<D>``,
+inherits from, and is implemented in terms of, ``detail::simd_impl<D>``,
 but note that the concrete implementation class *D* may or may not be the same
 as the concrete implementation class ``I<V, N>::type`` used by ``simd<V, N, I>``.
 
@@ -592,14 +592,14 @@ Each specific architecture is represented by a templated class *I*, with
 ``I<V, N>::type`` being the concrete implementation for an *N*-wide
 SIMD value with ``scalar_type`` *V*.
 
-A concrete implementation class *C* inherits from ``simd_detail::implbase<C>``,
+A concrete implementation class *C* inherits from ``detail::implbase<C>``,
 which provides (via CRTP) generic implementations of most of the SIMD
 functionality. The base class ``implbase<C>`` in turn relies upon
-``simd_detail::simd_traits<C>`` to look up the SIMD width, and associated types.
+``detail::simd_traits<C>`` to look up the SIMD width, and associated types.
 
 All the required SIMD operations are given by static member functions of *C*.
 
-Some arguments to static member functions use a tag class (``simd_detail::tag``)
+Some arguments to static member functions use a tag class (``detail::tag``)
 parameterized on a concrete implementation class for dispatch purposes.
 
 Minimal implementation
@@ -609,7 +609,7 @@ In the following, let *C* be the concrete implementation class for a
 *N*-wide vector of scalar_type *V*, with low-level representation
 ``archvec``.
 
-The specialization of ``simd_detail::simd_traits<C>`` then exposes these
+The specialization of ``detail::simd_traits<C>`` then exposes these
 types and values, and also provides the concrete implementation class *M*
 for masks associated with *C*:
 
@@ -627,9 +627,9 @@ for masks associated with *C*:
 
 
 The mask implementation class *M* may or may not be the same as *C*.
-For example, ``simd_detail::avx_double4`` provides both the arithmetic operations and mask
+For example, ``detail::avx_double4`` provides both the arithmetic operations and mask
 operations for an AVX 4 × double SIMD vector, while the mask
-implementation for ``simd_detail::avx512_double8`` is ``simd_detail::avx512_mask8``.
+implementation for ``detail::avx512_double8`` is ``detail::avx512_mask8``.
 
 The concrete implementation class must provide at minimum implementations
 of ``copy_to`` and ``copy_from`` (see the section below for semantics):
@@ -1053,7 +1053,7 @@ Implementation of vector transcendental functions
 -------------------------------------------------
 
 When building with the Intel C++ compiler, transcendental
-functions on SIMD values in ``simd<double, 8, simd_detail::avx512>``
+functions on SIMD values in ``simd<double, 8, detail::avx512>``
 wrap calls to the Intel scalar vector mathematics library (SVML).
 
 Outside of this case, the functions *exp*, *log*, *expm1* and

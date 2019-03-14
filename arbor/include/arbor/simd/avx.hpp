@@ -13,7 +13,7 @@
 
 namespace arb {
 namespace simd {
-namespace simd_detail {
+namespace detail {
 
 struct avx_int4;
 struct avx_double4;
@@ -968,19 +968,19 @@ protected:
 };
 #endif // defined(__AVX2__) && defined(__FMA__)
 
-} // namespace simd_detail
+} // namespace detail
 
 namespace simd_abi {
     template <typename T, unsigned N> struct avx;
 
-    template <> struct avx<int, 4> { using type = simd_detail::avx_int4; };
-    template <> struct avx<double, 4> { using type = simd_detail::avx_double4; };
+    template <> struct avx<int, 4> { using type = detail::avx_int4; };
+    template <> struct avx<double, 4> { using type = detail::avx_double4; };
 
 #if defined(__AVX2__) && defined(__FMA__)
     template <typename T, unsigned N> struct avx2;
 
-    template <> struct avx2<int, 4> { using type = simd_detail::avx2_int4; };
-    template <> struct avx2<double, 4> { using type = simd_detail::avx2_double4; };
+    template <> struct avx2<int, 4> { using type = detail::avx2_int4; };
+    template <> struct avx2<double, 4> { using type = detail::avx2_double4; };
 #endif
 } // namespace simd_abi
 
