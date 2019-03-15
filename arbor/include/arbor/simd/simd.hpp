@@ -11,7 +11,7 @@
 namespace arb {
 namespace simd {
 
-namespace simd_detail {
+namespace detail {
     template <typename Impl>
     struct simd_impl;
 
@@ -19,7 +19,7 @@ namespace simd_detail {
     struct simd_mask_impl;
 }
 
-namespace simd_detail {
+namespace detail {
     template <typename Impl, typename V>
     struct indirect_expression {
         V* p;
@@ -615,7 +615,7 @@ namespace simd_detail {
             return a;
         }
     };
-} // namespace simd_detail
+} // namespace detail
 
 namespace simd_abi {
     // Note: `simd_abi::native` template class defined in `simd/native.hpp`,
@@ -631,7 +631,7 @@ namespace simd_abi {
 }
 
 template <typename Value, unsigned N, template <class, unsigned> class Abi = simd_abi::default_abi>
-using simd = simd_detail::simd_impl<typename Abi<Value, N>::type>;
+using simd = detail::simd_impl<typename Abi<Value, N>::type>;
 
 template <typename Value, unsigned N>
 using simd_mask = typename simd<Value, N>::simd_mask;
@@ -648,14 +648,14 @@ template <typename>
 struct is_simd: std::false_type {};
 
 template <typename Impl>
-struct is_simd<simd_detail::simd_impl<Impl>>: std::true_type {};
+struct is_simd<detail::simd_impl<Impl>>: std::true_type {};
 
 // Casting is dispatched to simd_cast_impl in order to handle conversions to
 // and from std::array.
 
 template <typename To, typename From>
 To simd_cast(const From& s) {
-    return simd_detail::simd_cast_impl<To>::cast(s);
+    return detail::simd_cast_impl<To>::cast(s);
 }
 
 // Gather/scatter indexed memory specification.
@@ -665,12 +665,12 @@ template <
     typename PtrLike,
     typename V = std::remove_reference_t<decltype(*std::declval<PtrLike>())>
 >
-simd_detail::indirect_expression<IndexImpl, V> indirect(
+detail::indirect_expression<IndexImpl, V> indirect(
     PtrLike p,
-    const simd_detail::simd_impl<IndexImpl>& index,
+    const detail::simd_impl<IndexImpl>& index,
     index_constraint constraint = index_constraint::none)
 {
-    return simd_detail::indirect_expression<IndexImpl, V>(p, index, constraint);
+    return detail::indirect_expression<IndexImpl, V>(p, index, constraint);
 }
 
 

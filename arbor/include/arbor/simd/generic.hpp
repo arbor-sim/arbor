@@ -8,7 +8,7 @@
 
 namespace arb {
 namespace simd {
-namespace simd_detail {
+namespace detail {
 
 template <typename T, unsigned N>
 struct generic;
@@ -54,12 +54,12 @@ struct generic: implbase<generic<T, N>> {
     }
 };
 
-} // namespace simd_detail
+} // namespace detail
 
 namespace simd_abi {
 
     template <typename T, unsigned N> struct generic {
-        using type = simd_detail::generic<T, N>;
+        using type = detail::generic<T, N>;
     };
 
 } // namespace simd_abi

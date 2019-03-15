@@ -13,7 +13,7 @@
 
 namespace arb {
 namespace simd {
-namespace simd_detail {
+namespace detail {
 
 struct neon_double2;
 struct neon_int2;
@@ -642,7 +642,7 @@ struct neon_double2 : implbase<neon_double2> {
     }
 };
 
-}  // namespace simd_detail
+}  // namespace detail
 
 namespace simd_abi {
 template <typename T, unsigned N>
@@ -650,11 +650,11 @@ struct neon;
 
 template <>
 struct neon<double, 2> {
-    using type = simd_detail::neon_double2;
+    using type = detail::neon_double2;
 };
 template <>
 struct neon<int, 2> {
-    using type = simd_detail::neon_int2;
+    using type = detail::neon_int2;
 };
 
 }  // namespace simd_abi

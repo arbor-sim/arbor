@@ -4,7 +4,7 @@
 // classes, with default implementations based on
 // copy_to/copy_from.
 //
-// Also provides simd_detail::simd_traits type map.
+// Also provides detail::simd_traits type map.
 //
 // Maths functions are implemented in terms of
 // arithmetic primitives or lane-wise invocation of
@@ -66,7 +66,7 @@ enum class index_constraint {
     constant     // k[i]==k[j] ∀ i, j
 };
 
-namespace simd_detail {
+namespace detail {
 
 // The simd_traits class provides the mapping between a concrete SIMD
 // implementation I and its associated classes. This must be specialized
@@ -534,6 +534,6 @@ struct implbase {
     }
 };
 
-} // namespace simd_detail
+} // namespace detail
 } // namespace simd
 } // namespace arb
