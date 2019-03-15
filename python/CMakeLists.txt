@@ -18,7 +18,9 @@ add_subdirectory(pybind11)
 add_library(pyarb MODULE
     config.cpp
     context.cpp
+    event_generator.cpp
     exception.cpp
+    identifiers.cpp
     mpi.cpp
     pyarb.cpp
     strings.cpp
