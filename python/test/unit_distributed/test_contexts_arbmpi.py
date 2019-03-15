@@ -3,7 +3,6 @@
 # test_contexts_arbmpi.py
 
 import unittest
-from collections import namedtuple
 
 import arbor as arb
 
