@@ -10,19 +10,15 @@
 
 namespace pyarb {
 
-// ===================================== Helper ==========================================
-// build an event generator given a lid, a weight, and a schedule shim.
-
 template <typename Sched>
 event_generator make_event_generator(
-        arb::cell_lid_type lid,
+        arb::cell_member_type target,
         double weight,
         const Sched& sched)
 {
-    return event_generator(lid, weight, sched.schedule());
+    return event_generator(target, weight, sched.schedule());
 }
 
-// ===================================== Register =====================================
 void register_event_generators(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -44,15 +40,17 @@ void register_event_generators(pybind11::module& m) {
         .def(pybind11::init<arb::time_type, arb::time_type, arb::time_type>(),
             "tstart"_a, "tstop"_a, "dt"_a,
             "Construct a regular schedule with arguments:\n"
-            "  tstart:  The first time in the regular sequence (in ms).\n"
-            "  tstop:   The latest possible time in the regular sequence (in ms).\n"
+            "  tstart:  Events in the regular sequence start being delivered from this time (in ms).\n"
+            "  tstop:   Events in the regular sequence stop being delivered after this time (in ms).\n"
             "  dt:      The distance between time points in the regular sequence (in ms).\n")
         .def_readwrite("tstart", &regular_schedule_shim::tstart,
-            "The first time in the regular sequence (in ms).")
+            "Events in the regular sequence start being delivered from this time (in ms).")
         .def_readwrite("tstop",  &regular_schedule_shim::tstop,
-            "The latest possible time in the regular sequence (in ms).")
+            "Events in the regular sequence stop being delivered after this time (in ms).")
         .def_readwrite("dt",     &regular_schedule_shim::dt,
-            "The distance between time points in the regular sequence (in ms).");
+            "The distance between time points in the regular sequence (in ms).")
+        .def("__str__", [](const regular_schedule_shim&){return "<arbor.regular_schedule>";})
+        .def("__repr__",[](const regular_schedule_shim&){return "<arbor.regular_schedule>";});
 
     // Explicit schedule
     pybind11::class_<explicit_schedule_shim> explicit_schedule(m, "explicit_schedule",
@@ -65,7 +63,9 @@ void register_event_generators(pybind11::module& m) {
             "Construct an explicit schedule with argument:\n"
             "  times: A list of times in the explicit schedule (in ms).")
         .def_readwrite("times", &explicit_schedule_shim::py_times,
-            "A list of times in the explicit schedule (in ms).");
+            "A list of times in the explicit schedule (in ms).")
+        .def("__str__", [](const explicit_schedule_shim&){return "<arbor.explicit_schedule>";})
+        .def("__repr__",[](const explicit_schedule_shim&){return "<arbor.explicit_schedule>";});
 
     // Poisson schedule
     pybind11::class_<poisson_schedule_shim> poisson_schedule(m, "poisson_schedule",
@@ -80,54 +80,57 @@ void register_event_generators(pybind11::module& m) {
         .def(pybind11::init<arb::time_type, std::mt19937_64::result_type>(),
             "freq"_a, "seed"_a,
             "Construct a Poisson schedule with arguments:\n"
-            "  freq:   The frequency (in Hz).\n"
+            "  freq:   The expected frequency (in Hz).\n"
             "  seed:   The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
         .def(pybind11::init<arb::time_type, arb::time_type, std::mt19937_64::result_type>(),
             "tstart"_a, "freq"_a, "seed"_a,
             "Construct a Poisson schedule with arguments:\n"
-            "  tstart: The first time in the Poisson schedule (in ms).\n"
-            "  freq:   The frequency (in Hz).\n"
-            "  seed:   The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937     bits.")
+            "  tstart: Events in the Poisson schedule start being delivered from this time(in ms).\n"
+            "  freq:   The expected frequency (in Hz).\n"
+            "  seed:   The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
         .def_readwrite("tstart", &poisson_schedule_shim::tstart,
-            "The first time in the Poisson schedule (in ms).")
+            "Events in the Poisson schedule start being delivered from this time (in ms).")
         .def_readwrite("freq", &poisson_schedule_shim::freq,
-            "The frequency (in Hz).")
+            "The expected frequency (in Hz).")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
-            "The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.");
+            "The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
+        .def("__str__", [](const poisson_schedule_shim&){return "<arbor.poisson_schedule>";})
+        .def("__repr__",[](const poisson_schedule_shim&){return "<arbor.poisson_schedule>";});
 
 // Event generator
     pybind11::class_<event_generator> event_generator(m, "event_generator");
 
     event_generator
         .def(pybind11::init<>(
-            [](arb::cell_lid_type lid, double weight, const regular_schedule_shim& sched){
-                return make_event_generator(lid, weight, sched);}),
-            "lid"_a, "weight"_a, "sched"_a,
+            [](arb::cell_member_type target, double weight, const regular_schedule_shim& sched){
+                return make_event_generator(target, weight, sched);}),
+            "target"_a, "weight"_a, "sched"_a,
             "Construct an event generator with arguments:\n"
-            "  lid:    The cell-local index of the event's target.\n"
-            "  weight: The weight of the event.\n"
-            "  sched:  The regular schedule of the event.")
+            "  target: The target synapse (gid, local_id).\n"
+            "  weight: The weight of events to deliver.\n"
+            "  sched:  A regular schedule of the events.")
         .def(pybind11::init<>(
-            [](arb::cell_lid_type lid, double weight, const explicit_schedule_shim& sched){
-                return make_event_generator(lid, weight, sched);}),
-            "lid"_a, "weight"_a, "sched"_a,
+            [](arb::cell_member_type target, double weight, const explicit_schedule_shim& sched){
+                return make_event_generator(target, weight, sched);}),
+            "target"_a, "weight"_a, "sched"_a,
             "Construct an event generator with arguments:\n"
-            "  lid:    The cell-local index of the event's target.\n"
-            "  weight: The weight of the event.\n"
-            "  sched:  The explicit schedule of the event.")
+            "  target: The target synapse (gid, local_id).\n"
+            "  weight: The weight of events to deliver.\n"
+            "  sched:  An explicit schedule of the event.")
         .def(pybind11::init<>(
-            [](arb::cell_lid_type lid, double weight, const poisson_schedule_shim& sched){
-                return make_event_generator(lid, weight, sched);}),
-            "lid"_a, "weight"_a, "sched"_a,
+            [](arb::cell_member_type target, double weight, const poisson_schedule_shim& sched){
+                return make_event_generator(target, weight, sched);}),
+            "target"_a, "weight"_a, "sched"_a,
             "Construct an event generator with arguments:\n"
-            "  lid:    The cell-local index of the event's target.\n"
-            "  weight: The weight of the event.\n"
-            "  sched:  The poisson schedule of the event.")
-        .def_readwrite("lid", &event_generator::lid,
-             "The cell-local index of the event's target.")
+            "  target: The target synapse (gid, local_id).\n"
+            "  weight: The weight of events to deliver.\n"
+            "  sched:  A poisson schedule of the event.")
+        .def_readwrite("target", &event_generator::target,
+             "The target synapse (gid, local_id).")
         .def_readwrite("weight", &event_generator::weight,
-             "The weight of the event.");
-        //TODO: find a way to represent sched in python for all schedulers
+             "The weight of events to deliver.")
+        .def("__str__", [](){return "<arbor.event_generator>";})
+        .def("__repr__", [](){return "<arbor.event_generator>";});
 }
 
 } // namespace pyarb

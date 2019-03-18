@@ -100,14 +100,14 @@ struct poisson_schedule_shim {
 };
 
 struct event_generator {
-    arb::cell_lid_type lid;
+    arb::cell_member_type target;
     double weight;
-    arb::schedule time_seq;
+    arb::schedule sched;
 
-    event_generator(arb::cell_lid_type lid, double weight, arb::schedule seq):
-        lid(lid),
+    event_generator(arb::cell_member_type target, double weight, arb::schedule sched):
+        target(target),
         weight(weight),
-        time_seq(std::move(seq))
+        sched(std::move(sched))
     {}
 };
 

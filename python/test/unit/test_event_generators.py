@@ -50,9 +50,13 @@ class RegularSchedule(unittest.TestCase):
         self.assertEqual(rs.tstop, 42)
 
     def test_event_generator(self):
+        cm = arb.cell_member()
+        cm.gid = 0
+        cm.index = 23
         rs = arb.regular_schedule(17,1,42)
-        rg = arb.event_generator(23, 0.01, rs)
-        self.assertEqual(rg.lid, 23)
+        rg = arb.event_generator(cm, 0.01, rs)
+        self.assertEqual(rg.target.gid, 0)
+        self.assertEqual(rg.target.index, 23)
         self.assertEqual(rg.weight, 0.01)
 
 class ExplicitSchedule(unittest.TestCase):
@@ -70,9 +74,13 @@ class ExplicitSchedule(unittest.TestCase):
         self.assertEqual(es.times, [42, 43, 44, 55.5, 100])
 
     def test_event_generator(self):
+        cm = arb.cell_member()
+        cm.gid = 0
+        cm.index = 42
         es = arb.explicit_schedule([0,1,2,3,4.4])
-        rg = arb.event_generator(42, -0.01, es)
-        self.assertEqual(rg.lid, 42)
+        rg = arb.event_generator(cm, -0.01, es)
+        self.assertEqual(rg.target.gid, 0)
+        self.assertEqual(rg.target.index, 42)
         self.assertEqual(rg.weight, -0.01)
 
 class PoissonSchedule(unittest.TestCase):
@@ -104,9 +112,13 @@ class PoissonSchedule(unittest.TestCase):
         self.assertEqual(ps.seed, 83)
 
     def test_event_generator(self):
+        cm = arb.cell_member()
+        cm.gid = 42
+        cm.index = 42
         es = arb.explicit_schedule([0,1,2,3,4.4])
-        rg = arb.event_generator(42, -0.01, es)
-        self.assertEqual(rg.lid, 42)
+        rg = arb.event_generator(cm, -0.01, es)
+        self.assertEqual(rg.target.gid, 42)
+        self.assertEqual(rg.target.index, 42)
         self.assertEqual(rg.weight, -0.01)
 
 def suite():
