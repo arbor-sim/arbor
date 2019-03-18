@@ -156,6 +156,7 @@ install:
       python$PY get-pip.py
       pip --version
     fi
+  - if [[ ( "$WITH_PYTHON" == "true" ) && ( "$TRAVIS_OS_NAME" == "osx" ) ]]; then pip$PY install numpy;
   - |
     if [[ "$WITH_DISTRIBUTED" == "mpi" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
