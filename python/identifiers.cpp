@@ -38,14 +38,6 @@ void register_identifiers(pybind11::module& m) {
             "Cell-local index of the item.")
         .def("__str__",  &cell_member_string)
         .def("__repr__", &cell_member_string);
-
-    // Wrap the cell_kind enum type.
-    pybind11::enum_<arb::cell_kind>(m, "cell_kind",
-        "Enumeration used to indentify the cell type/kind, used by the model to group equal kinds in the same cell group.")
-        .value("benchmark", arb::cell_kind::benchmark)
-        .value("cable", arb::cell_kind::cable)
-        .value("lif", arb::cell_kind::lif)
-        .value("spike_source", arb::cell_kind::spike_source);
 }
 
 } // namespace pyarb

@@ -21,26 +21,26 @@ all tests for event generators (regular, explicit, poisson)
 """
 
 class RegularSchedule(unittest.TestCase):
-    def test_default(self):
+    def test_default_regular_schedule(self):
         rs = arb.regular_schedule()
         self.assertEqual(rs.tstart, np.finfo(np.float32).max)
         self.assertEqual(rs.dt, 0)
         self.assertEqual(rs.tstop, np.finfo(np.float32).max)
         self.assertEqual(rs.tstart, rs.tstop)
 
-    def test_dt_contor(self):
+    def test_dt_contor_regular_schedule(self):
         rs = arb.regular_schedule(0.025)
         self.assertEqual(rs.tstart, 0)
         self.assertEqual(float("{0:.3f}".format(rs.dt)), 0.025)
         self.assertEqual(rs.tstop, np.finfo(np.float32).max)
 
-    def test_tstart_dt_tstop_contor(self):
-        rs = arb.regular_schedule(10,1,20)
+    def test_tstart_dt_tstop_contor_regular_schedule(self):
+        rs = arb.regular_schedule(10, 1, 20)
         self.assertEqual(rs.tstart, 10)
         self.assertEqual(rs.dt, 1)
         self.assertEqual(rs.tstop, 20)
 
-    def test_set_tstart_dt_tstop(self):
+    def test_set_tstart_dt_tstop_regular_schedule(self):
         rs = arb.regular_schedule()
         rs.tstart = 17
         rs.dt = 0.5
@@ -49,60 +49,60 @@ class RegularSchedule(unittest.TestCase):
         self.assertEqual(rs.dt, 0.5)
         self.assertEqual(rs.tstop, 42)
 
-    def test_event_generator(self):
+    def test_event_generator_regular_schedule(self):
         cm = arb.cell_member()
-        cm.gid = 0
-        cm.index = 23
-        rs = arb.regular_schedule(17,1,42)
-        rg = arb.event_generator(cm, 0.01, rs)
-        self.assertEqual(rg.target.gid, 0)
-        self.assertEqual(rg.target.index, 23)
-        self.assertEqual(rg.weight, 0.01)
+        cm.gid = 42
+        cm.index = 3
+        rs = arb.regular_schedule(2.0, 1, 100)
+        rg = arb.event_generator(cm, 3.14, rs)
+        self.assertEqual(rg.target.gid, 42)
+        self.assertEqual(rg.target.index, 3)
+        self.assertEqual(rg.weight, 3.14)
 
 class ExplicitSchedule(unittest.TestCase):
-    def test_default(self):
+    def test_default_explicit_schedule(self):
         es = arb.explicit_schedule()
         self.assertEqual(es.times, [])
 
-    def test_times_contor(self):
+    def test_times_contor_explicit_schedule(self):
         es = arb.explicit_schedule([1, 2, 3, 4.5])
         self.assertEqual(es.times, [1, 2, 3, 4.5])
 
-    def test_set_times(self):
+    def test_set_times_explicit_schedule(self):
         es = arb.explicit_schedule()
         es.times = [42, 43, 44, 55.5, 100]
         self.assertEqual(es.times, [42, 43, 44, 55.5, 100])
 
-    def test_event_generator(self):
+    def test_event_generator_explicit_schedule(self):
         cm = arb.cell_member()
         cm.gid = 0
         cm.index = 42
         es = arb.explicit_schedule([0,1,2,3,4.4])
-        rg = arb.event_generator(cm, -0.01, es)
-        self.assertEqual(rg.target.gid, 0)
-        self.assertEqual(rg.target.index, 42)
-        self.assertEqual(rg.weight, -0.01)
+        eg = arb.event_generator(cm, -0.01, es)
+        self.assertEqual(eg.target.gid, 0)
+        self.assertEqual(eg.target.index, 42)
+        self.assertEqual(eg.weight, -0.01)
 
 class PoissonSchedule(unittest.TestCase):
-    def test_default(self):
+    def test_default_poisson_schedule(self):
         ps = arb.poisson_schedule()
         self.assertEqual(ps.tstart, 0)
         self.assertEqual(ps.freq, 10)
         self.assertEqual(ps.seed, 0)
 
-    def test_freq_seed_contor(self):
+    def test_freq_seed_contor_poisson_schedule(self):
         ps = arb.poisson_schedule(5, 42)
         self.assertEqual(ps.tstart, 0)
         self.assertEqual(ps.freq, 5)
         self.assertEqual(ps.seed, 42)
 
-    def test_tstart_freq_seed_contor(self):
-       ps = arb.poisson_schedule(10, 100, 1000)
-       self.assertEqual(ps.tstart, 10)
-       self.assertEqual(ps.freq, 100)
-       self.assertEqual(ps.seed, 1000)
+    def test_tstart_freq_seed_contor_poisson_schedule(self):
+        ps = arb.poisson_schedule(10, 100, 1000)
+        self.assertEqual(ps.tstart, 10)
+        self.assertEqual(ps.freq, 100)
+        self.assertEqual(ps.seed, 1000)
 
-    def test_set_tstart_freq_seed(self):
+    def test_set_tstart_freq_seed_poisson_schedule(self):
         ps = arb.poisson_schedule()
         ps.tstart = 4.5
         ps.freq = 5.5
@@ -111,15 +111,15 @@ class PoissonSchedule(unittest.TestCase):
         self.assertEqual(ps.freq, 5.5)
         self.assertEqual(ps.seed, 83)
 
-    def test_event_generator(self):
+    def test_event_generator_poisson_schedule(self):
         cm = arb.cell_member()
-        cm.gid = 42
-        cm.index = 42
-        es = arb.explicit_schedule([0,1,2,3,4.4])
-        rg = arb.event_generator(cm, -0.01, es)
-        self.assertEqual(rg.target.gid, 42)
-        self.assertEqual(rg.target.index, 42)
-        self.assertEqual(rg.weight, -0.01)
+        cm.gid = 4
+        cm.index = 2
+        ps = arb.poisson_schedule(0, 10, 0)
+        pg = arb.event_generator(cm, 42, ps)
+        self.assertEqual(pg.target.gid, 4)
+        self.assertEqual(pg.target.index, 2)
+        self.assertEqual(pg.weight, 42)
 
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from classes RegularSchedule, ExplicitSchedule and PoissonSchedule
