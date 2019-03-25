@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <arbor/common_types.hpp>
 #include <arbor/event_generator.hpp>
@@ -22,15 +23,15 @@ struct regular_schedule_shim {
 
     regular_schedule_shim() = default;
 
-    regular_schedule_shim(time_type t0, time_type dt, time_type t1):
+    regular_schedule_shim(time_type t0, time_type deltat, time_type t1):
         tstart(t0),
-        dt(dt),
+        dt(deltat),
         tstop(t1)
     {}
 
-    regular_schedule_shim(time_type dt):
+    regular_schedule_shim(time_type deltat):
         tstart(0),
-        dt(dt)
+        dt(deltat)
     {}
 
     arb::schedule schedule() const {
@@ -81,16 +82,16 @@ struct poisson_schedule_shim {
 
     poisson_schedule_shim() = default;
 
-    poisson_schedule_shim(arb::time_type freq, rng_type::result_type seed):
+    poisson_schedule_shim(arb::time_type frequency, rng_type::result_type seeding):
         tstart(0),
-        freq(freq),
-        seed(seed)
+        freq(frequency),
+        seed(seeding)
     {}
 
-    poisson_schedule_shim(arb::time_type t0, arb::time_type freq, rng_type::result_type seed):
+    poisson_schedule_shim(arb::time_type t0, arb::time_type frequency, rng_type::result_type seeding):
         tstart(t0),
-        freq(freq),
-        seed(seed)
+        freq(frequency),
+        seed(seeding)
     {}
 
     arb::schedule schedule() const {
@@ -99,15 +100,15 @@ struct poisson_schedule_shim {
     }
 };
 
-struct event_generator {
+struct event_generator_shim {
     arb::cell_member_type target;
     double weight;
-    arb::schedule sched;
+    arb::schedule time_sched;
 
-    event_generator(arb::cell_member_type target, double weight, arb::schedule sched):
-        target(target),
-        weight(weight),
-        sched(std::move(sched))
+    event_generator_shim(arb::cell_member_type cell, double event_weight, arb::schedule sched):
+        target(cell),
+        weight(event_weight),
+        time_sched(std::move(sched))
     {}
 };
 

@@ -7,16 +7,17 @@
 #include <arbor/schedule.hpp>
 
 #include "event_generator.hpp"
+#include "strings.hpp"
 
 namespace pyarb {
 
 template <typename Sched>
-event_generator make_event_generator(
+event_generator_shim make_event_generator(
         arb::cell_member_type target,
         double weight,
         const Sched& sched)
 {
-    return event_generator(target, weight, sched.schedule());
+    return event_generator_shim(target, weight, sched.schedule());
 }
 
 void register_event_generators(pybind11::module& m) {
@@ -40,17 +41,17 @@ void register_event_generators(pybind11::module& m) {
         .def(pybind11::init<arb::time_type, arb::time_type, arb::time_type>(),
             "tstart"_a, "tstop"_a, "dt"_a,
             "Construct a regular schedule with arguments:\n"
-            "  tstart:  Events in the regular sequence start being delivered from this time (in ms).\n"
-            "  tstop:   Events in the regular sequence stop being delivered after this time (in ms).\n"
-            "  dt:      The distance between time points in the regular sequence (in ms).\n")
+            "  tstart: Events in the regular sequence start being delivered from this time (in ms).\n"
+            "  tstop:  Events in the regular sequence stop being delivered after this time (in ms).\n"
+            "  dt:     The distance between time points in the regular sequence (in ms).\n")
         .def_readwrite("tstart", &regular_schedule_shim::tstart,
             "Events in the regular sequence start being delivered from this time (in ms).")
-        .def_readwrite("tstop",  &regular_schedule_shim::tstop,
+        .def_readwrite("tstop", &regular_schedule_shim::tstop,
             "Events in the regular sequence stop being delivered after this time (in ms).")
-        .def_readwrite("dt",     &regular_schedule_shim::dt,
+        .def_readwrite("dt", &regular_schedule_shim::dt,
             "The distance between time points in the regular sequence (in ms).")
-        .def("__str__", [](const regular_schedule_shim&){return "<arbor.regular_schedule>";})
-        .def("__repr__",[](const regular_schedule_shim&){return "<arbor.regular_schedule>";});
+        .def("__str__", &schedule_regular_string)
+        .def("__repr__",&schedule_regular_string);
 
     // Explicit schedule
     pybind11::class_<explicit_schedule_shim> explicit_schedule(m, "explicit_schedule",
@@ -64,8 +65,8 @@ void register_event_generators(pybind11::module& m) {
             "  times: A list of times in the explicit schedule (in ms).")
         .def_readwrite("times", &explicit_schedule_shim::py_times,
             "A list of times in the explicit schedule (in ms).")
-        .def("__str__", [](const explicit_schedule_shim&){return "<arbor.explicit_schedule>";})
-        .def("__repr__",[](const explicit_schedule_shim&){return "<arbor.explicit_schedule>";});
+        .def("__str__", &schedule_explicit_string)
+        .def("__repr__",&schedule_explicit_string);
 
     // Poisson schedule
     pybind11::class_<poisson_schedule_shim> poisson_schedule(m, "poisson_schedule",
@@ -80,8 +81,8 @@ void register_event_generators(pybind11::module& m) {
         .def(pybind11::init<arb::time_type, std::mt19937_64::result_type>(),
             "freq"_a, "seed"_a,
             "Construct a Poisson schedule with arguments:\n"
-            "  freq:   The expected frequency (in Hz).\n"
-            "  seed:   The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
+            "  freq: The expected frequency (in Hz).\n"
+            "  seed: The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
         .def(pybind11::init<arb::time_type, arb::time_type, std::mt19937_64::result_type>(),
             "tstart"_a, "freq"_a, "seed"_a,
             "Construct a Poisson schedule with arguments:\n"
@@ -94,11 +95,11 @@ void register_event_generators(pybind11::module& m) {
             "The expected frequency (in Hz).")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
-        .def("__str__", [](const poisson_schedule_shim&){return "<arbor.poisson_schedule>";})
-        .def("__repr__",[](const poisson_schedule_shim&){return "<arbor.poisson_schedule>";});
+        .def("__str__", &schedule_poisson_string)
+        .def("__repr__",&schedule_poisson_string);
 
 // Event generator
-    pybind11::class_<event_generator> event_generator(m, "event_generator");
+    pybind11::class_<event_generator_shim> event_generator(m, "event_generator");
 
     event_generator
         .def(pybind11::init<>(
@@ -125,12 +126,12 @@ void register_event_generators(pybind11::module& m) {
             "  target: The target synapse (gid, local_id).\n"
             "  weight: The weight of events to deliver.\n"
             "  sched:  A poisson schedule of the event.")
-        .def_readwrite("target", &event_generator::target,
+        .def_readwrite("target", &event_generator_shim::target,
              "The target synapse (gid, local_id).")
-        .def_readwrite("weight", &event_generator::weight,
+        .def_readwrite("weight", &event_generator_shim::weight,
              "The weight of events to deliver.")
-        .def("__str__", [](){return "<arbor.event_generator>";})
-        .def("__repr__", [](){return "<arbor.event_generator>";});
+        .def("__str__", [](const event_generator_shim&){return "<arbor.event_generator>";})
+        .def("__repr__", [](const event_generator_shim&){return "<arbor.event_generator>";});
 }
 
 } // namespace pyarb

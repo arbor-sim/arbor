@@ -4,6 +4,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 
+#include "event_generator.hpp"
 #include "strings.hpp"
 
 namespace pyarb {
@@ -38,6 +39,28 @@ std::string proc_allocation_string(const arb::proc_allocation& a) {
     }
     s << ">";
     return s.str();
+}
+
+std::string schedule_explicit_string(const explicit_schedule_shim& e) {
+  std::stringstream s;
+  s << "<explicit_schedule: times " << e.py_times << " ms>";
+  return s.str();
+}
+
+std::string schedule_regular_string(const regular_schedule_shim& r) {
+  std::stringstream s;
+  s << "<regular_schedule: tstart " << r.tstart << " ms"
+    << ", dt " << r.dt << " ms"
+    << ", tstop " << r.tstop << " ms" << ">";
+  return s.str();
+}
+
+std::string schedule_poisson_string(const poisson_schedule_shim& p) {
+  std::stringstream s;
+  s << "<regular_schedule: tstart " << p.tstart << " ms"
+    << ", freq " << p.freq << " Hz"
+    << ", seed " << p.seed << ">";
+  return s.str();
 }
 
 } // namespace pyarb
