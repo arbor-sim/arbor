@@ -23,6 +23,7 @@ void assemble_matrix_interleaved(
     const fvm_value_type* invariant_d,
     const fvm_value_type* voltage,
     const fvm_value_type* current,
+    const fvm_value_type* conductivitt,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
     const fvm_index_type* sizes,
@@ -267,10 +268,10 @@ struct matrix_state_interleaved {
     //   dt_intdom         [ms]     (per integration domain)
     //   voltage           [mV]     (per compartment)
     //   current density   [A.m^-2] (per compartment)
-    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
+    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductivitt) {
         assemble_matrix_interleaved
             (d.data(), rhs.data(), invariant_d.data(),
-             voltage.data(), current.data(), cv_capacitance.data(), cv_area.data(),
+             voltage.data(), current.data(), conductivitt.data(), cv_capacitance.data(), cv_area.data(),
              matrix_sizes.data(), matrix_index.data(),
              matrix_to_cell_index.data(),
              dt_intdom.data(), cell_to_intdom.data(), padded_matrix_size(), num_matrices());

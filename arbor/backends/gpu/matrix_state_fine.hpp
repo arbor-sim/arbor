@@ -437,17 +437,19 @@ public:
     }
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current
+    // Afterwards the diagonal and RHS will have been set given dt, voltage, current, and conductivity.
     //   dt_intdom [ms] (per cell)
     //   voltage [mV]
-    //   current [nA]
-    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
+    //   current density [A/m²]
+    //   conductivity [kS/m²]
+    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
         assemble_matrix_fine(
             d.data(),
             rhs.data(),
             invariant_d.data(),
             voltage.data(),
             current.data(),
+            conductivity.data(),
             cv_capacitance.data(),
             cv_area.data(),
             cv_to_cell.data(),
