@@ -45,16 +45,25 @@ public:
 
     virtual void finalize() override {
         if (has_current_update_) {
-            // Initialize current_ as first statement.
+            // Initialize current_ and conductivity_ as first statements.
+            statements_.push_front(make_expression<AssignmentExpression>(loc_,
+                    id("conductivity_"),
+                    make_expression<NumberExpression>(loc_, 0.0)));
             statements_.push_front(make_expression<AssignmentExpression>(loc_,
                     id("current_"),
                     make_expression<NumberExpression>(loc_, 0.0)));
 
+            // Scale current and conductivity contributions by weight.
             statements_.push_back(make_expression<AssignmentExpression>(loc_,
                 id("current_"),
                 make_expression<MulBinaryExpression>(loc_,
                     id("weight_"),
                     id("current_"))));
+            statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                id("conductivity_"),
+                make_expression<MulBinaryExpression>(loc_,
+                    id("weight_"),
+                    id("conductivity_"))));
 
             for (auto& v: ion_current_vars_) {
                 statements_.push_back(make_expression<AssignmentExpression>(loc_,
@@ -79,7 +88,8 @@ public:
             }
             has_current_update_ = true;
 
-            if (!linear_test(e->rhs(), {"v"}).is_linear) {
+            linear_test_result L = linear_test(e->rhs(), {"v"});
+            if (!L.is_linear) {
                 error({"current update expressions must be linear in v: "+e->rhs()->to_string(),
                        e->location()});
                 return;
@@ -90,6 +100,13 @@ public:
                     make_expression<AddBinaryExpression>(loc,
                         id("current_", loc),
                         e->lhs()->clone())));
+                if (L.coef.count("v")) {
+                    statements_.push_back(make_expression<AssignmentExpression>(loc,
+                        id("conductivity_", loc),
+                        make_expression<AddBinaryExpression>(loc,
+                            id("conductivity_", loc),
+                            L.coef.at("v")->clone())));
+                }
             }
         }
     }
@@ -491,6 +508,8 @@ void Module::add_variables_to_symbols() {
     };
 
     create_indexed_variable("current_", "vec_i", sourceKind::current, tok::plus,
+                            accessKind::write, ionKind::none, Location());
+    create_indexed_variable("conductivity_", "vec_g", sourceKind::conductivity, tok::plus,
                             accessKind::write, ionKind::none, Location());
     create_indexed_variable("v", "vec_v", sourceKind::voltage, tok::eq,
                             accessKind::read,  ionKind::none, Location());
