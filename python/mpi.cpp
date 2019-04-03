@@ -6,9 +6,9 @@
 #include <pybind11/pybind11.h>
 
 #ifdef ARB_MPI_ENABLED
-#include <arbor/communication/mpi_error.hpp>
-
 #include <mpi.h>
+
+#include <arbor/communication/mpi_error.hpp>
 
 #include "mpi.hpp"
 

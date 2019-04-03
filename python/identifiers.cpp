@@ -1,7 +1,8 @@
-#include <pybind11/pybind11.h>
 #include <string>
 
 #include <arbor/common_types.hpp>
+
+#include <pybind11/pybind11.h>
 
 #include "strings.hpp"
 
@@ -10,7 +11,6 @@ namespace pyarb {
 void register_identifiers(pybind11::module& m) {
     using namespace pybind11::literals;
 
-    // Wrap the cell_member.
     pybind11::class_<arb::cell_member_type> cell_member(m, "cell_member",
         "For global identification of a cell-local item.\n\n"
         "Items of cell_member must:\n"

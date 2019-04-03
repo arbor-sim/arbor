@@ -1,5 +1,5 @@
-#include <string>
 #include <sstream>
+#include <string>
 
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
