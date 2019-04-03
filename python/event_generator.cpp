@@ -155,71 +155,71 @@ void register_event_generators(pybind11::module& m) {
 
     regular_schedule
         .def(pybind11::init<>(),
-            "Construct a regular schedule with default arguments:\n"
-            "  tstart: maximal numerical number.\n"
+            "Construct an empty regular schedule with default arguments:\n"
+            "  tstart: None.\n"
             "  dt:     0 ms.\n"
-            "  tstop:  tstart.")
+            "  tstop:  None.")
         .def(pybind11::init<arb::time_type>(),
             "dt"_a,
-            "Construct a regular schedule starting at tstart=0 ms, ending at tstop=maximal numerical number (in ms) with argument:\n"
-            "  dt:      The distance between time points in the regular sequence (in ms).\n")
+            "Construct a regular schedule starting at 0 ms and never ending with argument:\n"
+            "  dt:     The interval between time points (in ms).\n")
         .def(pybind11::init<arb::time_type, arb::time_type, arb::time_type>(),
             "tstart"_a, "tstop"_a, "dt"_a,
             "Construct a regular schedule with arguments:\n"
-            "  tstart: Events in the regular sequence start being delivered from this time (in ms).\n"
-            "  tstop:  Events in the regular sequence stop being delivered after this time (in ms).\n"
-            "  dt:     The distance between time points in the regular sequence (in ms).\n")
+            "  tstart: The delivery time of the first event in the sequence (in ms).\n"
+            "  tstop:  No events delivered after this time (in ms).\n"
+            "  dt:     The interval between time points (in ms).\n")
         .def_readwrite("tstart", &regular_schedule_shim::tstart,
-            "Events in the regular sequence start being delivered from this time (in ms).")
+            "The delivery time of the first event in the sequence (in ms).")
         .def_readwrite("tstop", &regular_schedule_shim::tstop,
-            "Events in the regular sequence stop being delivered after this time (in ms).")
+            "No events delivered after this time (in ms).")
         .def_readwrite("dt", &regular_schedule_shim::dt,
-            "The distance between time points in the regular sequence (in ms).")
+            "The interval between time points (in ms).")
         .def("__str__", &schedule_regular_string)
         .def("__repr__",&schedule_regular_string);
 
     // Explicit schedule
     pybind11::class_<explicit_schedule_shim> explicit_schedule(m, "explicit_schedule",
-        "Describes an explicit schedule at times given explicitly via a provided sorted sequence.");
+        "Describes an explicit schedule at a predetermined (sorted) sequence of times.");
 
     explicit_schedule
         .def(pybind11::init<>(), "Construct an explicit schedule with an empty list of times.")
         .def(pybind11::init<pybind11::list>(),
             "times"_a,
             "Construct an explicit schedule with argument:\n"
-            "  times: A list of times in the explicit schedule (in ms).")
+            "  times: A list of times (in ms).")
         .def_readwrite("times", &explicit_schedule_shim::py_times,
-            "A list of times in the explicit schedule (in ms).")
+            "A list of times (in ms).")
         .def("__str__", &schedule_explicit_string)
         .def("__repr__",&schedule_explicit_string);
 
     // Poisson schedule
     pybind11::class_<poisson_schedule_shim> poisson_schedule(m, "poisson_schedule",
-        "Describes a schedule at Poisson point process with rate 1/mean_dt, restricted to non-negative times.");
+        "Describes a schedule according to a Poisson process.");
 
     poisson_schedule
         .def(pybind11::init<>(),
             "Construct a Poisson schedule with default arguments:\n"
             "  tstart: 0 ms.\n"
             "  freq:   10 Hz.\n"
-            "  seed:   0 for a Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
+            "  seed:   Seed 0 for the random number generator.")
         .def(pybind11::init<arb::time_type, std::mt19937_64::result_type>(),
             "freq"_a, "seed"_a,
             "Construct a Poisson schedule with arguments:\n"
-            "  freq: The expected frequency (in Hz).\n"
-            "  seed: The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
+            "  freq:   The expected frequency (in Hz).\n"
+            "  seed:   The seed for the random number generator.")
         .def(pybind11::init<arb::time_type, arb::time_type, std::mt19937_64::result_type>(),
             "tstart"_a, "freq"_a, "seed"_a,
             "Construct a Poisson schedule with arguments:\n"
-            "  tstart: Events in the Poisson schedule start being delivered from this time(in ms).\n"
+            "  tstart: The delivery time of the first event in the sequence (in ms).\n"
             "  freq:   The expected frequency (in Hz).\n"
-            "  seed:   The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
+            "  seed:   The seed for the random number generator.")
         .def_readwrite("tstart", &poisson_schedule_shim::tstart,
-            "Events in the Poisson schedule start being delivered from this time (in ms).")
+            "The delivery time of the first event in the sequence (in ms).")
         .def_readwrite("freq", &poisson_schedule_shim::freq,
             "The expected frequency (in Hz).")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
-            "The seed of the Mersenne Twister pseudo-random generator of 64-bit numbers with a state size of 19937 bits.")
+            "The seed for the random number generator.")
         .def("__str__", &schedule_poisson_string)
         .def("__repr__",&schedule_poisson_string);
 
@@ -242,7 +242,7 @@ void register_event_generators(pybind11::module& m) {
             "Construct an event generator with arguments:\n"
             "  target: The target synapse (gid, local_id).\n"
             "  weight: The weight of events to deliver.\n"
-            "  sched:  An explicit schedule of the event.")
+            "  sched:  An explicit schedule of the events.")
         .def(pybind11::init<>(
             [](arb::cell_member_type target, double weight, const poisson_schedule_shim& sched){
                 return make_event_generator(target, weight, sched);}),
@@ -250,7 +250,7 @@ void register_event_generators(pybind11::module& m) {
             "Construct an event generator with arguments:\n"
             "  target: The target synapse (gid, local_id).\n"
             "  weight: The weight of events to deliver.\n"
-            "  sched:  A poisson schedule of the event.")
+            "  sched:  A poisson schedule of the events.")
         .def_readwrite("target", &event_generator_shim::target,
              "The target synapse (gid, local_id).")
         .def_readwrite("weight", &event_generator_shim::weight,
