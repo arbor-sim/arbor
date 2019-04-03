@@ -21,13 +21,6 @@ all tests for event generators (regular, explicit, poisson)
 """
 
 class RegularSchedule(unittest.TestCase):
-    def test_default_regular_schedule(self):
-        rs = arb.regular_schedule()
-        self.assertEqual(rs.tstart, np.finfo(np.float32).max)
-        self.assertEqual(rs.dt, 0)
-        self.assertEqual(rs.tstop, np.finfo(np.float32).max)
-        self.assertEqual(rs.tstart, rs.tstop)
-
     def test_dt_contor_regular_schedule(self):
         rs = arb.regular_schedule(0.025)
         self.assertEqual(rs.tstart, 0)
@@ -60,10 +53,6 @@ class RegularSchedule(unittest.TestCase):
         self.assertAlmostEqual(rg.weight, 3.14)
 
 class ExplicitSchedule(unittest.TestCase):
-    def test_default_explicit_schedule(self):
-        es = arb.explicit_schedule()
-        self.assertEqual(es.times, [])
-
     def test_times_contor_explicit_schedule(self):
         es = arb.explicit_schedule([1, 2, 3, 4.5])
         self.assertEqual(es.times, [1, 2, 3, 4.5])
@@ -84,12 +73,6 @@ class ExplicitSchedule(unittest.TestCase):
         self.assertAlmostEqual(eg.weight, -0.01)
 
 class PoissonSchedule(unittest.TestCase):
-    def test_default_poisson_schedule(self):
-        ps = arb.poisson_schedule()
-        self.assertEqual(ps.tstart, 0)
-        self.assertEqual(ps.freq, 10)
-        self.assertEqual(ps.seed, 0)
-
     def test_freq_seed_contor_poisson_schedule(self):
         ps = arb.poisson_schedule(5, 42)
         self.assertEqual(ps.tstart, 0)
