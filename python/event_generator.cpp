@@ -162,13 +162,13 @@ void register_event_generators(pybind11::module& m) {
         .def(pybind11::init<arb::time_type>(),
             "dt"_a,
             "Construct a regular schedule starting at 0 ms and never ending with argument:\n"
-            "  dt:     The interval between time points (in ms).\n")
+            "  dt:     The interval between time points (in ms).")
         .def(pybind11::init<arb::time_type, arb::time_type, arb::time_type>(),
             "tstart"_a, "tstop"_a, "dt"_a,
             "Construct a regular schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence (in ms).\n"
             "  tstop:  No events delivered after this time (in ms).\n"
-            "  dt:     The interval between time points (in ms).\n")
+            "  dt:     The interval between time points (in ms).")
         .def_readwrite("tstart", &regular_schedule_shim::tstart,
             "The delivery time of the first event in the sequence (in ms).")
         .def_readwrite("tstop", &regular_schedule_shim::tstop,
