@@ -19,25 +19,25 @@ namespace pyarb {
 struct regular_schedule_shim {
     using time_type = arb::time_type;
 
-    time_type tstart = arb::terminal_time;
-    time_type dt = 0;
-    time_type tstop = arb::terminal_time;
+    pybind11::object tstart = pybind11::none();
+    time_type dt = 0.;
+    pybind11::object tstop = pybind11::none();
 
     regular_schedule_shim() = default;
 
-    regular_schedule_shim(time_type t0, time_type deltat, time_type t1):
+    regular_schedule_shim(time_type deltat):
+        tstart(pybind11::cast<time_type>(0.)),
+        dt(deltat)
+    {}
+
+    regular_schedule_shim(pybind11::object t0, time_type deltat, pybind11::object t1):
         tstart(t0),
         dt(deltat),
         tstop(t1)
     {}
 
-    regular_schedule_shim(time_type deltat):
-        tstart(0),
-        dt(deltat)
-    {}
-
     arb::schedule schedule() const {
-        return arb::regular_schedule(tstart, dt, tstop);
+        return arb::regular_schedule(tstart.is_none()? arb::terminal_time: pybind11::cast<time_type>(tstart), dt, tstop.is_none()? arb::terminal_time: pybind11::cast<time_type>(tstop));
     }
 };
 
@@ -78,14 +78,14 @@ struct poisson_schedule_shim {
     using rng_type = std::mt19937_64;
 
     // default empty time range
-    arb::time_type tstart = 0;
-    arb::time_type freq = 10; // 10 Hz.
+    arb::time_type tstart = 0.;
+    arb::time_type freq = 10.; // 10 Hz.
     rng_type::result_type seed = 0;
 
     poisson_schedule_shim() = default;
 
     poisson_schedule_shim(arb::time_type frequency, rng_type::result_type seeding):
-        tstart(0),
+        tstart(0.),
         freq(frequency),
         seed(seeding)
     {}
@@ -102,17 +102,17 @@ struct poisson_schedule_shim {
     }
 };
 
-std::string schedule_explicit_string(const explicit_schedule_shim& e) {
+std::string schedule_regular_string(const regular_schedule_shim& r) {
   std::stringstream s;
-  s << "<explicit_schedule: times " << e.py_times << " ms>";
+  s << "<regular_schedule: tstart " << r.tstart << (r.tstart.is_none()? "": " ms")
+    << ", dt " << r.dt << " ms"
+    << ", tstop " << r.tstop << (r.tstop.is_none()? "": " ms") << ">";
   return s.str();
 };
 
-std::string schedule_regular_string(const regular_schedule_shim& r) {
+std::string schedule_explicit_string(const explicit_schedule_shim& e) {
   std::stringstream s;
-  s << "<regular_schedule: tstart " << r.tstart << " ms"
-    << ", dt " << r.dt << " ms"
-    << ", tstop " << r.tstop << " ms" << ">";
+  s << "<explicit_schedule: times " << e.py_times << " ms>";
   return s.str();
 };
 
@@ -163,7 +163,7 @@ void register_event_generators(pybind11::module& m) {
             "dt"_a,
             "Construct a regular schedule starting at 0 ms and never ending with argument:\n"
             "  dt:     The interval between time points (in ms).")
-        .def(pybind11::init<arb::time_type, arb::time_type, arb::time_type>(),
+        .def(pybind11::init<pybind11::object, arb::time_type, pybind11::object>(),
             "tstart"_a, "tstop"_a, "dt"_a,
             "Construct a regular schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence (in ms).\n"
