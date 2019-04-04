@@ -47,7 +47,7 @@ flags = [
     '-I',
     'modcc',
     '-I',
-    'include',
+    'arbor/include',
     '-I',
     'arbor',
     '-I',

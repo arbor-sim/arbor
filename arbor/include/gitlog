@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if gitlog=$(git log -1 --pretty=format:'%ci %H'); then
+    git diff --quiet HEAD || gitlog="${gitlog} modified"
+else
+    gitlog='unknown commit'
+fi
+
+echo "$gitlog $FOO"
