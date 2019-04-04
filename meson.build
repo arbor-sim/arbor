@@ -12,8 +12,12 @@ inc_arbpublic  = include_directories('arbor/include')
 inc_arbenv     = include_directories('arborenv/include')
 inc_arbsup     = include_directories('sup/include')
 
+dep_threads = dependency('threads')
+
 subdir('modcc')
 subdir('mechanisms')
 subdir('arbor')
 subdir('arborenv')
 subdir('sup')
+
+subdir('example/ring')

@@ -1,8 +1,10 @@
 # configure headers
+# todo: find how to install "assert_macro.hpp"
+assert_macro_path=meson.current_build_dir()+'/assert_macro.hpp'
 if with_assertions.enabled()
-  run_command('cp', 'assert_macro.hpp.enabled', 'assert_macro.hpp')
+  run_command('cp', 'assert_macro.hpp.enabled', assert_macro_path)
 else
-  run_command('cp', 'assert_macro.hpp.disabled', 'assert_macro.hpp')
+  run_command('cp', 'assert_macro.hpp.disabled', assert_macro_path)
 endif
 
 conf = configuration_data()
