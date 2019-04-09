@@ -23,7 +23,7 @@ void assemble_matrix_flat(
         const T* current,
         const T* conductivity,
         const T* cv_capacitance,
-        const T* area,
+        const T* cv_area,
         const I* cv_to_cell,
         const T* dt_intdom,
         const I* cell_to_intdom,
