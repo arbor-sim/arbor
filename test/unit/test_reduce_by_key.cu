@@ -106,7 +106,7 @@ TEST(reduce_by_key, scatter)
 
 // 'reduce_twice' added to isolate a thread desynchronization issue on V100.
 
-#if true
+#if 1
 template <typename T, typename I>
 __global__
 void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
