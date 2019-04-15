@@ -50,7 +50,7 @@ arb_src = [
 subdir('include/arbor')
 
 arb = library('arbor',
-              sources: [arb_src, arb_mechs, mech_catalogue],
+              sources: [arb_src, mech_srcs, mech_catalogue],
               include_directories: [inc_arbpublic, inc_arbprivate],
               dependencies : dep_threads)
 

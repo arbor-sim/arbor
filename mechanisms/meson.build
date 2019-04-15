@@ -1,18 +1,13 @@
 mechs = ['pas', 'hh', 'expsyn', 'exp2syn', 'test_kin1', 'test_kinlva', 'test_ca', 'nax', 'kdrmt', 'kamt']
 modcc_flags = ['-t', 'cpu']
 
-mech_gen = generator(modcc,
-                     output : ['@BASENAME@.hpp', '@BASENAME@_cpu.cpp'],
-                     arguments : ['@INPUT@', '-o', '@BUILD_DIR@/@BASENAME@']+modcc_flags)
-
-# Make a list of the mod files packaged with Arbor
-modfiles = []
+mech_srcs = []
 foreach m: mechs
-  modfiles += 'mod/'+m+'.mod'
+  modfile = meson.current_source_dir()+'/mod/'+m+'.mod'
+  mech_srcs += custom_target(m+'.mod',
+                             output : [m+'.hpp', m+'_cpu.cpp'],
+                             command : [modcc, modfile, '-o', meson.current_build_dir()+'/'+m, modcc_flags])
 endforeach
-
-# Generate the header and source files for mechanisms
-arb_mechs = mech_gen.process(modfiles)
 
 # Make the catalog
 # ... todo: we hack the "-I ''" flag, and rely on meson including the path used for the output of mechgen.
