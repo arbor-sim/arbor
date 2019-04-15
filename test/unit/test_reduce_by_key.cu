@@ -106,7 +106,6 @@ TEST(reduce_by_key, scatter)
 
 // 'reduce_twice' added to isolate a thread desynchronization issue on V100.
 
-#if 1
 template <typename T, typename I>
 __global__
 void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
@@ -117,20 +116,6 @@ void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
         gpu::reduce_by_key(src[tid], dst, index[tid]);
     }
 }
-#else
-template <typename T, typename I>
-__global__
-void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
-    if (n==0) return;
-    unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-    T value = tid<n? src[tid]: 0;
-    I idx = tid<n? index[tid]: index[n-1];
-
-    gpu::reduce_by_key(value, dst, idx);
-    gpu::reduce_by_key(value, dst, idx);
-}
-#endif
 
 template <typename T>
 std::vector<T> reduce_twice(const std::vector<T>& in, size_t n_out, const std::vector<int>& index, unsigned block_dim=128) {
