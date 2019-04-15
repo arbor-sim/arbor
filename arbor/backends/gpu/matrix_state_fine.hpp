@@ -438,7 +438,7 @@ public:
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage, current, and conductivity.
-    //   dt_intdom [ms] (per cell)
+    //   dt_intdom [ms] (per integration domain)
     //   voltage [mV]
     //   current density [A/m²]
     //   conductivity [kS/m²]
