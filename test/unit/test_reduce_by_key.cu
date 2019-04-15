@@ -103,3 +103,66 @@ TEST(reduce_by_key, scatter)
 
     EXPECT_EQ(out, expected);
 }
+
+// 'reduce_twice' added to isolate a thread desynchronization issue on V100.
+
+#if true
+template <typename T, typename I>
+__global__
+void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
+    unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
+
+    if (tid<n) {
+        gpu::reduce_by_key(src[tid], dst, index[tid]);
+        gpu::reduce_by_key(src[tid], dst, index[tid]);
+    }
+}
+#else
+template <typename T, typename I>
+__global__
+void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
+    if (n==0) return;
+    unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
+
+    T value = tid<n? src[tid]: 0;
+    I idx = tid<n? index[tid]: index[n-1];
+
+    gpu::reduce_by_key(value, dst, idx);
+    gpu::reduce_by_key(value, dst, idx);
+}
+#endif
+
+template <typename T>
+std::vector<T> reduce_twice(const std::vector<T>& in, size_t n_out, const std::vector<int>& index, unsigned block_dim=128) {
+    EXPECT_EQ(in.size(), index.size());
+    EXPECT_TRUE(std::is_sorted(index.begin(), index.end()));
+
+    using array = memory::device_vector<T>;
+    using iarray = memory::device_vector<int>;
+
+    int n = in.size();
+
+    array  src = memory::make_const_view(in);
+    iarray idx = memory::make_const_view(index);
+    array  dst(n_out, 0);
+
+    unsigned grid_dim = (n-1)/block_dim + 1;
+    reduce_twice_kernel<<<grid_dim, block_dim>>>(src.data(), dst.data(), idx.data(), n);
+
+    std::vector<T> out(n_out);
+    memory::copy(dst, memory::make_view(out));
+
+    return out;
+}
+
+TEST(reduce_by_key, scatter_twice)
+{
+    std::vector<int> index = {1, 3, 4, 7, 9, 12, 20, 23, 24, 33};
+    std::vector<double> in(index.size(), 1);
+
+    std::vector<double> expected(1+*std::max_element(index.begin(), index.end()));
+    for (int i = 0; i<index.size(); ++i) { expected[index[i]] += 2*in[i]; }
+
+    auto out = reduce_twice(in, expected.size(), index, 32);
+    EXPECT_EQ(out, expected);
+}
