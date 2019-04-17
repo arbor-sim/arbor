@@ -11,13 +11,27 @@ namespace impl{
 
 constexpr unsigned mask_all = 0xFFFFFFFF;
 
-// return the power of 2 that is less than or equal to i
+// return the first power of 2 that is less than or equal to i
 __device__ __inline__
 unsigned rounddown_power_of_2(std::uint32_t i) {
     // handle power of 2 and zero
     if(__popc(i)<2) return i;
 
     return 1u<<(31u - __clz(i));
+}
+
+// Return the first power of 2 that is larger than or equal to i
+// input i is in the closed interval [0, 2^31]
+// The result for i>2^31 is invalid, because it can't be stored in an
+// unsigned 32 bit integer.
+// This isn't a problem for the use case that we will use it for, because
+// it will be used for values in the range [0, threads_per_warp]
+__device__ __inline__
+unsigned roundup_power_of_2(std::uint32_t i) {
+    // handle power of 2 and zero
+    if(__popc(i)<2) return i;
+
+    return 1u<<(32u - __clz(i));
 }
 
 // run_length_type Stores information about a run length.
@@ -54,6 +68,7 @@ struct run_length_type {
     run_length_type(I1 idx) {
         lane_id = threadIdx.x%threads_per_warp();
         __syncwarp();
+        // TODO: calculate key mask directly from array sizes (outside main loop)
         key_mask = __activemask();
         unsigned num_lanes = threads_per_warp()-__clz(key_mask);
 
@@ -75,7 +90,7 @@ struct run_length_type {
         right = right_limit(roots, lane_id+1);
         left  = threads_per_warp()-1-right_limit(__brev(roots), threads_per_warp()-1-lane_id);
         width = rounddown_power_of_2(right - left);
-        //printf("%3d: key_mask Ox%08X roots left %d  right %d width %d : %d %d\n", lane_id, roots, left, right, width, __ffs(key_mask), __clz(key_mask));
+        //printf("%3d: key_mask Ox%08X / %d roots left %d  right %d width %d\n", lane_id, key_mask, key_mask, left, right, width);
     }
 };
 
@@ -90,11 +105,11 @@ void reduce_by_key(T contribution, T* target, I idx) {
     auto rhs = run.right;
     auto width = run.width;
 
-    while (width) {
+    while (__any_sync(run.key_mask, width)) {
         unsigned source_lane = run.lane_id + width;
 
         T source_value = __shfl_sync(run.key_mask, contribution, source_lane);
-        if (source_lane<rhs) {
+        if (width && source_lane<rhs) {
             contribution += source_value;
         }
 
