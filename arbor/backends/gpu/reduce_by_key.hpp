@@ -11,12 +11,10 @@ namespace impl{
 
 constexpr unsigned mask_all = 0xFFFFFFFF;
 
-// return the first power of 2 that is less than or equal to i
+// Return the largest power of 2 that is less than i
+// Caveat: i must be non-zero.
 __device__ __inline__
 unsigned rounddown_power_of_2(std::uint32_t i) {
-    // handle power of 2 and zero
-    if(__popc(i)<2) return i;
-
     return 1u<<(31u - __clz(i));
 }
 
@@ -33,6 +31,8 @@ unsigned roundup_power_of_2(std::uint32_t i) {
 
     return 1u<<(32u - __clz(i));
 }
+
+} // namespace impl
 
 // run_length Stores information about a run length.
 //
@@ -59,20 +59,18 @@ struct run_length {
     }
 
     __device__
-    run_length(int idx) {
-        lane_id = threadIdx.x%threads_per_warp();
-        __syncwarp();
-        // TODO: calculate key mask directly from array sizes (outside main loop)
-        key_mask = __activemask();
-        unsigned num_lanes = threads_per_warp()-__clz(key_mask);
+    run_length(int idx, unsigned mask) {
+        key_mask = mask;
+        lane_id = threadIdx.x%impl::threads_per_warp();
+        unsigned num_lanes = impl::threads_per_warp()-__clz(key_mask);
 
         auto right_limit = [num_lanes] (unsigned roots, unsigned shift) {
             unsigned zeros_right  = __ffs(roots>>shift);
             return zeros_right ? shift -1 + zeros_right : num_lanes;
         };
 
-        // determine if this thread is the root
-        int left_idx  = __shfl_up_sync(key_mask, idx, 1);
+        // determine if this thread is the root (i.e. first thread with this key)
+        int left_idx  = __shfl_up_sync(key_mask, idx, lane_id? 1: 0);
         int is_root = 1;
         if(lane_id>0) {
             is_root = (left_idx != idx);
@@ -83,24 +81,48 @@ struct run_length {
 
         // determine the bounds of the lanes with the same key as idx
         right = right_limit(roots, lane_id+1);
-        left  = threads_per_warp()-1-right_limit(__brev(roots), threads_per_warp()-1-lane_id);
+        left  = impl::threads_per_warp()-1-right_limit(__brev(roots), impl::threads_per_warp()-1-lane_id);
 
         // find the largest power of two that is less than or equal to the run length
-        shift = rounddown_power_of_2(right - left);
+        shift = impl::rounddown_power_of_2(right - left);
     }
 };
 
-} // namespace impl
-
 template <typename T, typename I>
 __device__ __inline__
-void reduce_by_key(T contribution, T* target, I i) {
-    impl::run_length run(i);
-
+void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
+    run_length run(i, mask);
     unsigned shift = run.shift;
     const unsigned key_lane = run.lane_id - run.left;
 
-    bool participate = run.lane_id+shift<run.right;
+    bool participate = run.shift && run.lane_id+shift<run.right;
+
+    while (__any_sync(run.key_mask, shift)) {
+        const unsigned w = participate? shift: 0;
+        const unsigned source_lane = run.lane_id + w;
+
+        T source_value = __shfl_sync(run.key_mask, contribution, source_lane);
+        if (participate) {
+            contribution += source_value;
+        }
+
+        shift >>= 1;
+        participate = key_lane<shift;
+    }
+
+    if(run.is_root()) {
+        // The update must be atomic, because the run may span multiple warps.
+        cuda_atomic_add(target+i, contribution);
+    }
+}
+
+template <typename T, typename I>
+__device__ __inline__
+void reduce_by_key(T contribution, T* target, I i, const run_length& run) {
+    unsigned shift = run.shift;
+    const unsigned key_lane = run.lane_id - run.left;
+
+    bool participate = run.shift && run.lane_id+shift<run.right;
 
     while (__any_sync(run.key_mask, shift)) {
         const unsigned w = participate? shift: 0;

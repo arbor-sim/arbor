@@ -394,6 +394,10 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
 
     if (!body->statements().empty()) {
         out << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
+        if (is_point_proc && indexed_vars.size()) {
+            out << "unsigned lane_mask_ = __ballot_sync(0xffffffff, tid_<n_);\n";
+        }
+
         out << "if (tid_<n_) {\n" << indent;
 
         for (auto& index: indices) {
@@ -445,7 +449,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         out << "arb::gpu::reduce_by_key(";
         is_minus && out << "-";
         out << from->name()
-            << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ");\n";
+            << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";
     }
     else {
         out << cuprint(external) << (is_minus? " -= ": " += ") << from->name() << ";\n";
