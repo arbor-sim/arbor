@@ -34,7 +34,7 @@ unsigned roundup_power_of_2(std::uint32_t i) {
     return 1u<<(32u - __clz(i));
 }
 
-// run_length_type Stores information about a run length.
+// run_length Stores information about a run length.
 //
 // A run length is a set of identical adjacent indexes in an index array.
 //
@@ -46,7 +46,7 @@ unsigned roundup_power_of_2(std::uint32_t i) {
 // and the threads work cooperatively using warp shuffles to determine
 // their run length information, so that each thread will have unique
 // information that describes its run length and its position therein.
-struct run_length_type {
+struct run_length {
     unsigned left;
     unsigned right;
     unsigned shift;
@@ -58,9 +58,8 @@ struct run_length_type {
         return left == lane_id;
     }
 
-    template <typename I1>
     __device__
-    run_length_type(I1 idx) {
+    run_length(int idx) {
         lane_id = threadIdx.x%threads_per_warp();
         __syncwarp();
         // TODO: calculate key mask directly from array sizes (outside main loop)
@@ -96,7 +95,7 @@ struct run_length_type {
 template <typename T, typename I>
 __device__ __inline__
 void reduce_by_key(T contribution, T* target, I i) {
-    impl::run_length_type run(i);
+    impl::run_length run(i);
 
     unsigned shift = run.shift;
     const unsigned key_lane = run.lane_id - run.left;
