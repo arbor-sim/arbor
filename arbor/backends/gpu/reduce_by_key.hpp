@@ -49,18 +49,13 @@ unsigned roundup_power_of_2(std::uint32_t i) {
 struct run_length_type {
     unsigned left;
     unsigned right;
-    unsigned width;
+    unsigned shift;
     unsigned lane_id;
     unsigned key_mask;
 
     __device__ __inline__
     bool is_root() const {
         return left == lane_id;
-    }
-
-    __device__ __inline__
-    bool may_cross_warp() const {
-        return left==0 || right==threads_per_warp();
     }
 
     template <typename I1>
@@ -87,10 +82,12 @@ struct run_length_type {
         // determine the range this thread contributes to
         unsigned roots = __ballot_sync(key_mask, is_root);
 
+        // determine the bounds of the lanes with the same key as idx
         right = right_limit(roots, lane_id+1);
         left  = threads_per_warp()-1-right_limit(__brev(roots), threads_per_warp()-1-lane_id);
-        width = rounddown_power_of_2(right - left);
-        //printf("%3d: key_mask Ox%08X / %d roots left %d  right %d width %d\n", lane_id, key_mask, key_mask, left, right, width);
+
+        // find the largest power of two that is less than or equal to the run length
+        shift = rounddown_power_of_2(right - left);
     }
 };
 
@@ -98,28 +95,30 @@ struct run_length_type {
 
 template <typename T, typename I>
 __device__ __inline__
-void reduce_by_key(T contribution, T* target, I idx) {
-    impl::run_length_type run(idx);
+void reduce_by_key(T contribution, T* target, I i) {
+    impl::run_length_type run(i);
 
-    // get local copies of right and width, which are modified in the reduction loop
-    auto rhs = run.right;
-    auto width = run.width;
+    unsigned shift = run.shift;
+    const unsigned key_lane = run.lane_id - run.left;
 
-    while (__any_sync(run.key_mask, width)) {
-        unsigned source_lane = run.lane_id + width;
+    bool participate = run.lane_id+shift<run.right;
+
+    while (__any_sync(run.key_mask, shift)) {
+        const unsigned w = participate? shift: 0;
+        const unsigned source_lane = run.lane_id + w;
 
         T source_value = __shfl_sync(run.key_mask, contribution, source_lane);
-        if (width && source_lane<rhs) {
+        if (participate) {
             contribution += source_value;
         }
 
-        rhs = run.left + width;
-        width >>= 1;
+        shift >>= 1;
+        participate = key_lane<shift;
     }
 
     if(run.is_root()) {
-        // Update atomically in case the run spans multiple warps.
-        cuda_atomic_add(target+idx, contribution);
+        // The update must be atomic, because the run may span multiple warps.
+        cuda_atomic_add(target+i, contribution);
     }
 }
 

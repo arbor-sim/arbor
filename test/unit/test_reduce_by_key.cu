@@ -112,7 +112,8 @@ TEST(reduce_by_key, scatter)
     EXPECT_EQ(expected, out);
 }
 
-// 'reduce_twice' added to isolate a thread desynchronization issue on V100.
+// Test kernels that perform more than one reduction in a single invokation.
+// Used to reproduce and test for synchronization issues on V100 GPUs.
 
 template <typename T, typename I>
 __global__
@@ -150,12 +151,24 @@ std::vector<T> reduce_twice(const std::vector<T>& in, size_t n_out, const std::v
 
 TEST(reduce_by_key, scatter_twice)
 {
-    std::vector<int> index = {1, 3, 4, 7, 9, 12, 20, 23, 24, 33};
+    std::vector<int> index = {0,0,0,1,2,2,3,7,7,7,11};
+    unsigned n = util::max_value(index)+1;
     std::vector<double> in(index.size(), 1);
+    std::vector<double> expected = {6., 2., 4., 2., 0., 0., 0., 6., 0., 0., 0., 2.};
 
-    std::vector<double> expected(1+*std::max_element(index.begin(), index.end()));
-    for (int i = 0; i<index.size(); ++i) { expected[index[i]] += 2*in[i]; }
+    unsigned m = index.size();
+    auto mask = make_mask(m);
 
-    auto out = reduce_twice(in, expected.size(), index, 32);
-    EXPECT_EQ(out, expected);
+    EXPECT_EQ(n, expected.size());
+
+    auto out = reduce_twice(in, n, index);
+    EXPECT_EQ(expected, out);
+
+    // rerun with 7 threads per thread block, to test
+    //  * using more than one thread block
+    //  * thread blocks that are not a multiple of 32
+    //  * thread blocks that are less than 32
+
+    out = reduce_twice(in, n, index, 7);
+    EXPECT_EQ(expected, out);
 }
