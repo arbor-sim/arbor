@@ -116,32 +116,5 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
     }
 }
 
-template <typename T, typename I>
-__device__ __inline__
-void reduce_by_key(T contribution, T* target, I i, const run_length& run) {
-    unsigned shift = run.shift;
-    const unsigned key_lane = run.lane_id - run.left;
-
-    bool participate = run.shift && run.lane_id+shift<run.right;
-
-    while (__any_sync(run.key_mask, shift)) {
-        const unsigned w = participate? shift: 0;
-        const unsigned source_lane = run.lane_id + w;
-
-        T source_value = __shfl_sync(run.key_mask, contribution, source_lane);
-        if (participate) {
-            contribution += source_value;
-        }
-
-        shift >>= 1;
-        participate = key_lane<shift;
-    }
-
-    if(run.is_root()) {
-        // The update must be atomic, because the run may span multiple warps.
-        cuda_atomic_add(target+i, contribution);
-    }
-}
-
 } // namespace gpu
 } // namespace arb
