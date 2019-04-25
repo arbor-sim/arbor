@@ -107,6 +107,7 @@ namespace detail {
         using const_rvalue_reference = typename data_type::const_rvalue_reference;
 
     public:
+        using value_type = X;
         using reference = typename data_type::reference;
         using const_reference = typename data_type::const_reference;
         using pointer = typename data_type::pointer;
@@ -164,6 +165,15 @@ namespace detail {
                 data.destruct();
             }
             set = false;
+        }
+
+        template <typename Y>
+        void emplace(Y&& y) {
+            if (set) {
+                data.destruct();
+            }
+            data.construct(std::forward<Y>(y));
+            set = true;
         }
     };
 
