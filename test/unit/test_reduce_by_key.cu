@@ -9,11 +9,6 @@
 
 using namespace arb;
 
-unsigned make_mask(unsigned bits) {
-    unsigned m = 0xFFFFFFFF;
-    return m>>(32-bits);
-}
-
 template <typename T, typename I>
 __global__
 void reduce_kernel(const T* src, T* dst, const I* index, int n) {
@@ -97,7 +92,6 @@ TEST(reduce_by_key, scatter)
     std::vector<double> expected = {3., 1., 4., 2., 0., 0., 0., 5., 0., 0., 0., 1.};
 
     unsigned m = index.size();
-    auto mask = make_mask(m);
 
     EXPECT_EQ(n, expected.size());
 
@@ -109,10 +103,8 @@ TEST(reduce_by_key, scatter)
     //  * thread blocks that are not a multiple of 32
     //  * thread blocks that are less than 32
 
-    /*
     out = reduce(in, n, index, 7);
     EXPECT_EQ(expected, out);
-    */
 }
 
 // Test kernels that perform more than one reduction in a single invokation.
@@ -161,7 +153,6 @@ TEST(reduce_by_key, scatter_twice)
     std::vector<double> expected = {6., 2., 4., 2., 0., 0., 0., 6., 0., 0., 0., 2.};
 
     unsigned m = index.size();
-    auto mask = make_mask(m);
 
     EXPECT_EQ(n, expected.size());
 

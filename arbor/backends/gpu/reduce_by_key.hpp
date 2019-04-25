@@ -7,34 +7,7 @@
 namespace arb {
 namespace gpu {
 
-namespace impl{
-
-constexpr unsigned mask_all = 0xFFFFFFFF;
-
-// Return the largest power of 2 that is less than i
-// Caveat: i must be non-zero.
-__device__ __inline__
-unsigned rounddown_power_of_2(std::uint32_t i) {
-    return 1u<<(31u - __clz(i));
-}
-
-// Return the first power of 2 that is larger than or equal to i
-// input i is in the closed interval [0, 2^31]
-// The result for i>2^31 is invalid, because it can't be stored in an
-// unsigned 32 bit integer.
-// This isn't a problem for the use case that we will use it for, because
-// it will be used for values in the range [0, threads_per_warp]
-__device__ __inline__
-unsigned roundup_power_of_2(std::uint32_t i) {
-    // handle power of 2 and zero
-    if(__popc(i)<2) return i;
-
-    return 1u<<(32u - __clz(i));
-}
-
-} // namespace impl
-
-// run_length Stores information about a run length.
+// run_length stores information about a run length.
 //
 // A run length is a set of identical adjacent indexes in an index array.
 //
@@ -47,16 +20,10 @@ unsigned roundup_power_of_2(std::uint32_t i) {
 // their run length information, so that each thread will have unique
 // information that describes its run length and its position therein.
 struct run_length {
-    unsigned left;
-    unsigned right;
-    unsigned shift;
-    unsigned lane_id;
-    unsigned key_mask;
-
-    __device__ __inline__
-    bool is_root() const {
-        return left == lane_id;
-    }
+    unsigned width;         // distance to one past the end of this run
+    unsigned lane_id;       // id of this warp lane
+    unsigned key_mask;      // warp mask of threads participating in reduction
+    unsigned is_root;       // if this lane is the first in the run
 
     __device__
     run_length(int idx, unsigned mask) {
@@ -64,27 +31,18 @@ struct run_length {
         lane_id = threadIdx.x%impl::threads_per_warp();
         unsigned num_lanes = impl::threads_per_warp()-__clz(key_mask);
 
-        auto right_limit = [num_lanes] (unsigned roots, unsigned shift) {
-            unsigned zeros_right  = __ffs(roots>>shift);
-            return zeros_right ? shift -1 + zeros_right : num_lanes;
-        };
-
-        // determine if this thread is the root (i.e. first thread with this key)
+        // Determine if this thread is the root (i.e. first thread with this key).
         int left_idx  = __shfl_up_sync(key_mask, idx, lane_id? 1: 0);
-        int is_root = 1;
-        if(lane_id>0) {
-            is_root = (left_idx != idx);
-        }
 
-        // determine the range this thread contributes to
+        is_root = lane_id? left_idx!=idx: 1;
+
+        // Determine the range this thread contributes to.
         unsigned roots = __ballot_sync(key_mask, is_root);
 
-        // determine the bounds of the lanes with the same key as idx
-        right = right_limit(roots, lane_id+1);
-        left  = impl::threads_per_warp()-1-right_limit(__brev(roots), impl::threads_per_warp()-1-lane_id);
-
-        // find the largest power of two that is less than or equal to the run length
-        shift = impl::rounddown_power_of_2(right - left);
+        // Find the distance to the lane id one past the end of the run.
+        // Take care if this is the last run in the warp.
+        width = __ffs(roots>>(lane_id+1));
+        if (!width) width = num_lanes-lane_id;
     }
 };
 
@@ -92,25 +50,21 @@ template <typename T, typename I>
 __device__ __inline__
 void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
     run_length run(i, mask);
-    unsigned shift = run.shift;
-    const unsigned key_lane = run.lane_id - run.left;
+    unsigned shift = 1;
+    const unsigned width = run.width;
 
-    bool participate = run.shift && run.lane_id+shift<run.right;
+    unsigned w = shift<width? shift: 0;
 
-    while (__any_sync(run.key_mask, shift)) {
-        const unsigned w = participate? shift: 0;
-        const unsigned source_lane = run.lane_id + w;
+    while (__any_sync(run.key_mask, w)) {
+        T source_value = __shfl_down_sync(run.key_mask, contribution, w);
 
-        T source_value = __shfl_sync(run.key_mask, contribution, source_lane);
-        if (participate) {
-            contribution += source_value;
-        }
+        if (w) contribution += source_value;
 
-        shift >>= 1;
-        participate = key_lane<shift;
+        shift <<= 1;
+        w = shift<width? shift: 0;
     }
 
-    if(run.is_root()) {
+    if(run.is_root) {
         // The update must be atomic, because the run may span multiple warps.
         cuda_atomic_add(target+i, contribution);
     }
