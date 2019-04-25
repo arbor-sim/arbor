@@ -102,12 +102,12 @@ namespace detail {
         template <typename Y> friend struct optional;
 
     protected:
-        using value_type = X;
         using data_type = util::uninitialized<X>;
         using rvalue_reference = typename data_type::rvalue_reference;
         using const_rvalue_reference = typename data_type::const_rvalue_reference;
 
     public:
+        using value_type = X;
         using reference = typename data_type::reference;
         using const_reference = typename data_type::const_reference;
         using pointer = typename data_type::pointer;
