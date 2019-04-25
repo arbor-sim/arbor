@@ -21,11 +21,8 @@ all tests for event generators (regular, explicit, poisson)
 """
 
 class RegularSchedule(unittest.TestCase):
-    def test_dt_contor_regular_schedule(self):
-        rs = arb.regular_schedule(0.025)
-        self.assertEqual(rs.tstart, 0.)
-        self.assertAlmostEqual(rs.dt, 0.025)
-        self.assertEqual(rs.tstop, None)
+    def test_none_contor_regular_schedule(self):
+        rs = arb.regular_schedule(tstart=None, tstop=None)
 
     def test_tstart_dt_tstop_contor_regular_schedule(self):
         rs = arb.regular_schedule(10., 1., 20.)
@@ -74,8 +71,7 @@ class ExplicitSchedule(unittest.TestCase):
 
 class PoissonSchedule(unittest.TestCase):
     def test_freq_seed_contor_poisson_schedule(self):
-        ps = arb.poisson_schedule(5., 42)
-        self.assertEqual(ps.tstart, 0.)
+        ps = arb.poisson_schedule(freq = 5., seed = 42)
         self.assertEqual(ps.freq, 5.)
         self.assertEqual(ps.seed, 42)
 

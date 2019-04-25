@@ -102,6 +102,7 @@ namespace detail {
         template <typename Y> friend struct optional;
 
     protected:
+        using value_type = X;
         using data_type = util::uninitialized<X>;
         using rvalue_reference = typename data_type::rvalue_reference;
         using const_rvalue_reference = typename data_type::const_rvalue_reference;
@@ -164,6 +165,14 @@ namespace detail {
                 data.destruct();
             }
             set = false;
+        }
+
+        template <typename Y>
+        void emplace(Y&& y) {
+            if (set)
+                data.destruct();
+            data.construct(std::forward<Y>(y));
+            set = true;
         }
     };
 

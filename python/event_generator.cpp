@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include <sstream>
 #include <string>
 
@@ -9,6 +10,8 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include "exception.hpp"
+
 namespace pyarb {
 
 // A Python shim that holds the information that describes an
@@ -16,29 +19,41 @@ namespace pyarb {
 // a regular_schedule in python are manipulating this type. This is converted to
 // an arb::regular_schedule when a C++ recipe is created from a Python recipe.
 
+auto is_nonneg = [](auto&& t){ return t>=0.; };
+
 struct regular_schedule_shim {
     using time_type = arb::time_type;
+    using opt_time_type = arb::util::optional<time_type>;
+    static constexpr time_type default_tstart = arb::terminal_time;
+    static constexpr time_type default_dt = 0.;
+    static constexpr time_type default_tstop = arb::terminal_time;
 
-    pybind11::object tstart = pybind11::none();
-    time_type dt = 0.;
-    pybind11::object tstop = pybind11::none();
+    time_type tstart, dt, tstop;
 
-    regular_schedule_shim() = default;
+    // getter and setter (in order to assert when being set)
+    void set_tstart(const opt_time_type t0) {
+        tstart = pyarb::assert_predicate(t0.value_or(default_tstart), is_nonneg, "tstart must be None, or a non-negative number.");
+    };
+    void set_tstop(const opt_time_type t1) {
+        tstop = pyarb::assert_predicate(t1.value_or(default_tstop), is_nonneg, "tstop must be None, or a non-negative number.");
+    };
+    void set_dt(const time_type deltat) {
+        dt = pyarb::assert_predicate(deltat, is_nonneg, "dt must be a non-negative number.");
+    };
+    const time_type get_tstart() const { return tstart; }
+    const time_type get_tstop()  const { return tstop; }
+    const time_type get_dt()     const { return dt; }
 
-    regular_schedule_shim(time_type deltat):
-        tstart(pybind11::cast<time_type>(0.)),
-        dt(deltat)
-    {}
-
-    regular_schedule_shim(pybind11::object t0, time_type deltat, pybind11::object t1):
-        tstart(t0),
-        dt(deltat),
-        tstop(t1)
-    {}
+    regular_schedule_shim(opt_time_type t0, time_type deltat, opt_time_type t1):
+        tstart(pyarb::assert_predicate(t0.value_or(default_tstart), is_nonneg, "tstart must be None, or a non-negative number.")),
+        dt(    pyarb::assert_predicate(deltat,                      is_nonneg, "dt must be a non-negative number.")),
+        tstop( pyarb::assert_predicate(t1.value_or(default_tstop),  is_nonneg, "tstop must be None, or a non-negative number."))
+        {}
 
     arb::schedule schedule() const {
-        return arb::regular_schedule(tstart.is_none()? arb::terminal_time: pybind11::cast<time_type>(tstart), dt, tstop.is_none()? arb::terminal_time: pybind11::cast<time_type>(tstop));
+        return arb::regular_schedule(tstart, dt, tstop);
     }
+
 };
 
 // A Python shim for arb::explicit_schedule.
@@ -48,23 +63,30 @@ struct regular_schedule_shim {
 
 struct explicit_schedule_shim {
     using time_type = arb::time_type;
-    pybind11::list py_times;
 
-    explicit_schedule_shim() = default;
+    std::list<time_type> times;
 
-    arb::schedule schedule() const {
-        std::vector<time_type> times;
-
-        times.reserve(py_times.size());
-        for (auto& t: py_times) {
-            times.push_back(pybind11::cast<time_type>(t));
+    explicit_schedule_shim(std::list<time_type> l) {
+        for (auto& t: l) {
+            times.push_back(pyarb::assert_predicate(t, is_nonneg, "time must be a non-negative number."));
         }
 
         // Sort the times in ascending order if necessary
         if (!std::is_sorted(times.begin(), times.end())) {
-            std::sort(times.begin(), times.end());
+            times.sort();
         }
 
+    }
+
+    // getter and setter (in order to assert when being set)
+    void set_times(const std::list<time_type> t0) {
+        for (auto& t: t0) {
+            times.push_back(pyarb::assert_predicate(t, is_nonneg, "time must be a non-negative number."));
+        }
+    };
+    const std::list<time_type> get_times() const { return times; }
+
+    arb::schedule schedule() const {
         return arb::explicit_schedule(times);
     }
 };
@@ -76,25 +98,26 @@ struct explicit_schedule_shim {
 
 struct poisson_schedule_shim {
     using rng_type = std::mt19937_64;
+    using time_type = arb::time_type;
 
-    // default empty time range
-    arb::time_type tstart = 0.;
-    arb::time_type freq = 10.; // 10 Hz.
+    time_type tstart = 0.;
+    time_type freq = 10.;
     rng_type::result_type seed = 0;
 
-    poisson_schedule_shim() = default;
-
-    poisson_schedule_shim(arb::time_type frequency, rng_type::result_type seeding):
-        tstart(0.),
-        freq(frequency),
+    poisson_schedule_shim(time_type t0, time_type frequency, rng_type::result_type seeding):
+        tstart(pyarb::assert_predicate(t0, is_nonneg, "tstart must be a non-negative number.")),
+        freq(pyarb::assert_predicate(frequency, is_nonneg, "freq must be a non-negative number.")),
         seed(seeding)
     {}
 
-    poisson_schedule_shim(arb::time_type t0, arb::time_type frequency, rng_type::result_type seeding):
-        tstart(t0),
-        freq(frequency),
-        seed(seeding)
-    {}
+    void set_tstart(const time_type t0) {
+        tstart = pyarb::assert_predicate(t0, is_nonneg, "tstart must be a non-negative number.");
+    };
+    void set_freq(const time_type f) {
+        freq = pyarb::assert_predicate(f, is_nonneg, "freq must be a non-negative number.");
+    };
+    const time_type get_tstart() const { return tstart; }
+    const time_type get_freq() const { return freq; }
 
     arb::schedule schedule() const {
         // convert frequency to kHz.
@@ -103,25 +126,43 @@ struct poisson_schedule_shim {
 };
 
 std::string schedule_regular_string(const regular_schedule_shim& r) {
-  std::stringstream s;
-  s << "<regular_schedule: tstart " << r.tstart << (r.tstart.is_none()? "": " ms")
-    << ", dt " << r.dt << " ms"
-    << ", tstop " << r.tstop << (r.tstop.is_none()? "": " ms") << ">";
-  return s.str();
+    std::stringstream s;
+    s << "<regular_schedule: tstart ";
+    if (r.tstart == arb::terminal_time) {
+        s << "None";
+    }
+    else
+        s << r.tstart << " ms";
+    s << ", dt " << r.dt << " ms"
+    << ", tstop ";
+    if (r.tstop == arb::terminal_time) {
+        s << "None";
+    }
+    else
+        s << r.tstop << " ms";
+    s << ">";
+    return s.str();
 };
 
 std::string schedule_explicit_string(const explicit_schedule_shim& e) {
-  std::stringstream s;
-  s << "<explicit_schedule: times " << e.py_times << " ms>";
-  return s.str();
+    std::stringstream s;
+    s << "<explicit_schedule: times [";
+    std::list<arb::time_type>::const_iterator it = e.times.begin();
+    for (auto t: e.times) {
+        s << t;
+        ++it;
+        if (it != e.times.end()) s << " ";
+    }
+    s << "] ms>";
+    return s.str();
 };
 
 std::string schedule_poisson_string(const poisson_schedule_shim& p) {
-  std::stringstream s;
-  s << "<regular_schedule: tstart " << p.tstart << " ms"
-    << ", freq " << p.freq << " Hz"
-    << ", seed " << p.seed << ">";
-  return s.str();
+    std::stringstream s;
+    s << "<poisson_schedule: tstart " << p.tstart << " ms"
+      << ", freq " << p.freq << " Hz"
+      << ", seed " << p.seed << ">";
+    return s.str();
 };
 
 struct event_generator_shim {
@@ -147,6 +188,8 @@ event_generator_shim make_event_generator(
 
 void register_event_generators(pybind11::module& m) {
     using namespace pybind11::literals;
+    using time_type = arb::time_type;
+    using opt_time_type = arb::util::optional<time_type>;
 
 // Common schedules
     // Regular schedule
@@ -154,26 +197,17 @@ void register_event_generators(pybind11::module& m) {
         "Describes a regular schedule with multiples of dt within the interval [tstart, tstop).");
 
     regular_schedule
-        .def(pybind11::init<>(),
-            "Construct an empty regular schedule with default arguments:\n"
-            "  tstart: None.\n"
-            "  dt:     0 ms.\n"
-            "  tstop:  None.")
-        .def(pybind11::init<arb::time_type>(),
-            "dt"_a,
-            "Construct a regular schedule starting at 0 ms and never ending with argument:\n"
-            "  dt:     The interval between time points (in ms).")
-        .def(pybind11::init<pybind11::object, arb::time_type, pybind11::object>(),
-            "tstart"_a, "tstop"_a, "dt"_a,
+        .def(pybind11::init<opt_time_type, time_type, opt_time_type>(),
+            "tstart"_a = pybind11::none(), "dt"_a = 0., "tstop"_a = pybind11::none(),
             "Construct a regular schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence (in ms).\n"
-            "  tstop:  No events delivered after this time (in ms).\n"
-            "  dt:     The interval between time points (in ms).")
-        .def_readwrite("tstart", &regular_schedule_shim::tstart,
+            "  tstart: The delivery time of the first event in the sequence (in ms, default None [terminal time]).\n"
+            "  dt:     The interval between time points (in ms, default 0).\n"
+            "  tstop:  No events delivered after this time (in ms, default None [terminal time]).")
+        .def_property("tstart", &regular_schedule_shim::get_tstart, &regular_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence (in ms).")
-        .def_readwrite("tstop", &regular_schedule_shim::tstop,
+        .def_property("tstop", &regular_schedule_shim::get_tstop, &regular_schedule_shim::set_tstop,
             "No events delivered after this time (in ms).")
-        .def_readwrite("dt", &regular_schedule_shim::dt,
+        .def_property("dt", &regular_schedule_shim::get_dt, &regular_schedule_shim::set_dt,
             "The interval between time points (in ms).")
         .def("__str__", &schedule_regular_string)
         .def("__repr__",&schedule_regular_string);
@@ -183,12 +217,11 @@ void register_event_generators(pybind11::module& m) {
         "Describes an explicit schedule at a predetermined (sorted) sequence of times.");
 
     explicit_schedule
-        .def(pybind11::init<>(), "Construct an explicit schedule with an empty list of times.")
-        .def(pybind11::init<pybind11::list>(),
-            "times"_a,
+        .def(pybind11::init<std::list<time_type>>(),
+            "times"_a = pybind11::list(),
             "Construct an explicit schedule with argument:\n"
-            "  times: A list of times (in ms).")
-        .def_readwrite("times", &explicit_schedule_shim::py_times,
+            "  times: A list of times (in ms, default []).")
+        .def_property("times", &explicit_schedule_shim::get_times, &explicit_schedule_shim::set_times,
             "A list of times (in ms).")
         .def("__str__", &schedule_explicit_string)
         .def("__repr__",&schedule_explicit_string);
@@ -198,25 +231,15 @@ void register_event_generators(pybind11::module& m) {
         "Describes a schedule according to a Poisson process.");
 
     poisson_schedule
-        .def(pybind11::init<>(),
-            "Construct a Poisson schedule with default arguments:\n"
-            "  tstart: 0 ms.\n"
-            "  freq:   10 Hz.\n"
-            "  seed:   Seed 0 for the random number generator.")
-        .def(pybind11::init<arb::time_type, std::mt19937_64::result_type>(),
-            "freq"_a, "seed"_a,
+        .def(pybind11::init<time_type, time_type, std::mt19937_64::result_type>(),
+            "tstart"_a = 0., "freq"_a = 10., "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
-            "  freq:   The expected frequency (in Hz).\n"
-            "  seed:   The seed for the random number generator.")
-        .def(pybind11::init<arb::time_type, arb::time_type, std::mt19937_64::result_type>(),
-            "tstart"_a, "freq"_a, "seed"_a,
-            "Construct a Poisson schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence (in ms).\n"
-            "  freq:   The expected frequency (in Hz).\n"
-            "  seed:   The seed for the random number generator.")
-        .def_readwrite("tstart", &poisson_schedule_shim::tstart,
+            "  tstart: The delivery time of the first event in the sequence (in ms, default 0 ms).\n"
+            "  freq:   The expected frequency (in Hz, default 10 Hz).\n"
+            "  seed:   The seed for the random number generator (default 0).")
+        .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence (in ms).")
-        .def_readwrite("freq", &poisson_schedule_shim::freq,
+        .def_property("freq", &poisson_schedule_shim::get_freq, &poisson_schedule_shim::set_freq,
             "The expected frequency (in Hz).")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed for the random number generator.")
