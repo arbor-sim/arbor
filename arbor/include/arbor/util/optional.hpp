@@ -169,8 +169,9 @@ namespace detail {
 
         template <typename Y>
         void emplace(Y&& y) {
-            if (set)
+            if (set) {
                 data.destruct();
+            }
             data.construct(std::forward<Y>(y));
             set = true;
         }
