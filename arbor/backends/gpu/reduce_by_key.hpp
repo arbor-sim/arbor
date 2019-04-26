@@ -7,26 +7,30 @@
 namespace arb {
 namespace gpu {
 
-// run_length stores information about a run length.
+// key_set_pos stores information required by a thread to calculate its
+// contribution to a reduce by key operation.
 //
-// A run length is a set of identical adjacent indexes in an index array.
+// In reduce_by_key each thread performs a reduction with threads that have the same
+// index in a sorted index array.
+// The algorithm for reduce_by_key implemented here requires that each thread
+// knows how far it is from the end of the key set, and whether it is the first
+// thread in the warp with the key.
 //
-// When doing a parallel reduction by index each thread must know about
-// which of its neighbour threads are contributiing to the same global
-// location (i.e. which neighbours have the same index).
-//
-// The constructor takes the thread id and index of each thread
-// and the threads work cooperatively using warp shuffles to determine
-// their run length information, so that each thread will have unique
-// information that describes its run length and its position therein.
-struct run_length {
+// As currently implemented, this could be performed inline inside the reduce_by_key
+// function, however it is in a separate data type as a first step towards reusing
+// the same key set information for multipe reduction kernel calls.
+struct key_set_pos {
     unsigned width;         // distance to one past the end of this run
     unsigned lane_id;       // id of this warp lane
     unsigned key_mask;      // warp mask of threads participating in reduction
     unsigned is_root;       // if this lane is the first in the run
 
+    // The constructor takes the index of each thread and a mask of which threads
+    // in the warp are participating in the reduction, and the threads work cooperatively
+    // using warp intrinsics and bit twiddling, so that each thread will have unique
+    // information that describes its position in the key set.
     __device__
-    run_length(int idx, unsigned mask) {
+    key_set_pos(int idx, unsigned mask) {
         key_mask = mask;
         lane_id = threadIdx.x%impl::threads_per_warp();
         unsigned num_lanes = impl::threads_per_warp()-__clz(key_mask);
@@ -49,7 +53,7 @@ struct run_length {
 template <typename T, typename I>
 __device__ __inline__
 void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
-    run_length run(i, mask);
+    key_set_pos run(i, mask);
     unsigned shift = 1;
     const unsigned width = run.width;
 
