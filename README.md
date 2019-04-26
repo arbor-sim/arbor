@@ -21,9 +21,9 @@ The following BibTeX can be used to cite Arbor:
     paper:arbor2019,
     author={N. A. {Akar} and B. {Cumming} and V. {Karakasis} and A. {Küsters} and W. {Klijn} and A. {Peyser} and S. {Yates}},
     booktitle={2019 27th Euromicro International Conference on Parallel, Distributed and Network-Based Processing (PDP)},
-    title={{Arbor -- A Morphologically-Detailed Neural Network Simulation Library for Contemporary High-Performance Computing Architectures}},
-    year={2019}, month={Feb}, volume={}, number={},
-    pages={274-282},
+    title={{Arbor --- A Morphologically-Detailed Neural Network Simulation Library for Contemporary High-Performance Computing Architectures}},
+    year={2019}, month={feb}, volume={}, number={},
+    pages={274--282},
     doi={10.1109/EMPDP.2019.8671560},
     ISSN={2377-5750}}
 ```
