@@ -7,6 +7,7 @@
 
 #include <arbor/simd/simd.hpp>
 #include <arbor/simd/avx.hpp>
+#include <arbor/simd/neon.hpp>
 #include <arbor/util/compat.hpp>
 
 #include "common.hpp"
@@ -580,6 +581,10 @@ typedef ::testing::Types<
     simd<int, 8, simd_abi::avx512>,
     simd<double, 8, simd_abi::avx512>,
 #endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd<int, 2, simd_abi::neon>,
+    simd<double, 2, simd_abi::neon>,
+#endif
 
     simd<int, 4, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
@@ -862,6 +867,9 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd<double, 8, simd_abi::avx512>,
 #endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd<double, 2, simd_abi::neon>,
+#endif
 
     simd<float, 2, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
@@ -981,7 +989,7 @@ TYPED_TEST_P(simd_indirect, scatter) {
         simd s(values);
         s.copy_to(indirect(array, simd_index(offset)));
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
 
@@ -1019,7 +1027,7 @@ TYPED_TEST_P(simd_indirect, masked_scatter) {
         simd_mask m(mask);
         where(m, s).copy_to(indirect(array, simd_index(offset)));
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
 
@@ -1051,7 +1059,7 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         }
 
         indirect(array, simd_index(offset)) += simd(values);
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         fill_random(offset, rng, 0, (int)(buflen-1));
 
@@ -1063,7 +1071,7 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         }
 
         indirect(array, simd_index(offset)) -= simd(values);
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
 
@@ -1115,7 +1123,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         make_test_array();
         indirect(array, simd_index(offset), index_constraint::independent) += simd(values);
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         // Contiguous:
 
@@ -1127,7 +1135,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         make_test_array();
         indirect(array, simd_index(offset), index_constraint::contiguous) += simd(values);
 
-        EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         // Constant:
 
@@ -1146,7 +1154,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         make_test_array();
         indirect(array, simd_index(offset), index_constraint::constant) += simd(values);
 
-        EXPECT_TRUE(::testing::indexed_almost_eq_n(N, test, array));
+        EXPECT_TRUE(::testing::indexed_almost_eq_n(buflen, test, array));
 
     }
 }
@@ -1177,6 +1185,13 @@ typedef ::testing::Types<
 
     simd_and_index<simd<int, 8, simd_abi::avx512>,
                    simd<int, 8, simd_abi::avx512>>,
+#endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd_and_index<simd<double, 2, simd_abi::neon>,
+                   simd<int, 2, simd_abi::neon>>,
+
+    simd_and_index<simd<int, 2, simd_abi::neon>,
+                   simd<int, 2, simd_abi::neon>>,
 #endif
 
     simd_and_index<simd<float, 4, simd_abi::generic>,
@@ -1256,6 +1271,10 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd_pair<simd<double, 8, simd_abi::avx512>,
               simd<int, 8, simd_abi::avx512>>,
+#endif
+#if defined(__ARM_NEON__) || defined(__aarch64__)
+    simd_pair<simd<double, 2, simd_abi::neon>,
+              simd<int, 2, simd_abi::neon>>,
 #endif
 
     simd_pair<simd<double, 4, simd_abi::default_abi>,

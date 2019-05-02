@@ -28,7 +28,7 @@ public:
         if (gid == 0) {
             return cell_kind::spike_source;
         }
-        return cell_kind::lif_neuron;
+        return cell_kind::lif;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -99,7 +99,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::lif_neuron;
+        return cell_kind::lif;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {

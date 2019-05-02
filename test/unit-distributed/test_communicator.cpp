@@ -140,6 +140,45 @@ TEST(communicator, gather_spikes_variant) {
     }
 }
 
+// Test low level gids_gather function when the number of gids per domain
+// are not equal.
+TEST(communicator, gather_gids_variant) {
+    const auto num_domains = g_context->distributed->size();
+    const auto rank = g_context->distributed->id();
+
+    constexpr int scale = 10;
+    const auto n_local_gids = scale*rank;
+    auto sumn = [](unsigned n) {return scale*n*(n+1)/2;};
+
+    std::vector<cell_gid_type > local_gids;
+    const auto local_start_id = sumn(rank-1);
+    for (auto i=0; i<n_local_gids; ++i) {
+        local_gids.push_back(local_start_id + i);
+    }
+
+    // Perform exchange
+    const auto global_gids = g_context->distributed->gather_gids(local_gids);
+
+    // Test that partition information is correct
+    const auto& part =global_gids.partition();
+    EXPECT_EQ(unsigned(num_domains+1), part.size());
+    EXPECT_EQ(0, (int)part[0]);
+    for (auto i=1u; i<part.size(); ++i) {
+        EXPECT_EQ(sumn(i-1), part[i]);
+    }
+
+    // Test that gids were correctly exchanged
+    for (auto domain=0; domain<num_domains; ++domain) {
+        auto source = sumn(domain-1);
+        const auto first_gid = global_gids.values().begin() + sumn(domain-1);
+        const auto last_gid  = global_gids.values().begin() + sumn(domain);
+        const auto gids = util::make_range(first_gid, last_gid);
+        for (auto s: gids) {
+            EXPECT_EQ(s, source++);
+        }
+    }
+}
+
 namespace {
     // Population of cable and rss cells with ring connection topology.
     // Even gid are rss, and odd gid are cable cells.
@@ -159,7 +198,7 @@ namespace {
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2? cell_kind::cable1d_neuron: cell_kind::spike_source;
+            return gid%2? cell_kind::cable: cell_kind::spike_source;
         }
 
         cell_size_type num_sources(cell_gid_type) const override { return 1; }
@@ -222,7 +261,7 @@ namespace {
             return {};
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2? cell_kind::cable1d_neuron: cell_kind::spike_source;
+            return gid%2? cell_kind::cable: cell_kind::spike_source;
         }
 
         cell_size_type num_sources(cell_gid_type) const override { return 1; }

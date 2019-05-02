@@ -43,7 +43,7 @@ communicator for distributed communication, it can be initialised with the commu
         // Partition model over the distributed system.
         arb::domain_decomposition decomp = arb::partition_load_balance(recipe, context);
 
-        // Instatitate the simulation over the distributed system.
+        // Instantiate the simulation over the distributed system.
         arb::simulation sim(recipe, decomp, context);
 
         // Run the simulation for 100ms over the distributed system.
@@ -65,7 +65,7 @@ A distributed context can then be generated using helper functions :cpp:func:`ar
         // Create a context that uses only local resources (is non-distributed).
         auto dist_ctx  arb::make_local_context();
 
-        // Create an MPI context that uses the standared MPI_COMM_WORLD communicator.
+        // Create an MPI context that uses the standard MPI_COMM_WORLD communicator.
         auto dist_ctx = arb::make_mpi_context(MPI_COMM_WORLD);
 
 
@@ -87,7 +87,7 @@ Class Documentation
 
     .. cpp:function:: distributed_context()
 
-        Default contstructor initializes the context as a :cpp:class:`local_context`.
+        Default constructor initializes the context as a :cpp:class:`local_context`.
 
     .. cpp:function:: distributed_context(distributed_context&& other)
 
@@ -124,8 +124,8 @@ Class Documentation
 
     .. cpp:function:: std::vector<std::string> gather(std::string value, int root) const
 
-        Special overload for gathering a string provided by each domain into a vector
-        of strings on domain :cpp:var:`root`.
+        Overload for gathering a string from each domain into a vector
+        of strings on domain :cpp:any:`root`.
 
     .. cpp:function:: T min(T value) const
 
@@ -186,7 +186,7 @@ Class Documentation
 
     .. cpp:function:: mpi_context(MPI_Comm comm)
 
-        Create a context that will uses the MPI communicator :cpp:var:`comm`.
+        Create a context that will uses the MPI communicator :cpp:any:`comm`.
 
 .. cpp:function:: distributed_context_handle make_mpi_context(MPI_Comm comm)
 

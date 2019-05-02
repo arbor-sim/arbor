@@ -33,7 +33,7 @@ public:
     mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
     void reset() override;
@@ -60,6 +60,9 @@ public:
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
+
+    // Map from gid to integration domain id
+    std::vector<fvm_index_type> cell_to_intdom_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;

@@ -2,6 +2,7 @@
 # GCC          6.4.0
 # Clang        4.0
 # Apple Clang  900.0.39.2
+# Python       3.6
 #######################################################
 
 language: cpp
@@ -11,46 +12,55 @@ matrix:
   include:
 ########################## OS X #########################
 ## test gcc6 - single node/rank with threading backend ##
-  - name: "osx, gcc, serial"
+  - name: "osx, gcc, serial, py"
     os: osx
     osx_image: xcode9.2
+    python: 3.6
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
-      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      - BUILD_NAME=cthread-osx-gcc-py
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test gcc6 - mpi with threading backend ##
-  - name: "osx, gcc, mpi"
+  - name: "osx, gcc, mpi, py"
     os: osx
     osx_image: xcode9.2
+    python: 3.6
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
-      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      - BUILD_NAME=mpi-osx-gcc-py
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test clang9 - single node/rank with threading backend ##
-  - name: "osx, apple clang, serial"
+  - name: "osx, apple clang, serial, py"
     os: osx
     osx_image: xcode9.2
+    python: 3.6
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
-      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      - BUILD_NAME=cthread-osx-clang-py
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: clang
 
 ## test clang9 - mpi with threading backend ##
-  - name: "osx, apple clang, mpi"
+  - name: "osx, apple clang, mpi, py"
     os: osx
     osx_image: xcode9.2
+    python: 3.6
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
-      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      - BUILD_NAME=mpi-osx-clang
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: clang
 
 ######################### LINUX #########################
 ## test gcc6 - single node/rank with threading backend ##
-  - name: "linux, gcc, serial"
+  - name: "linux, gcc, serial, py"
     os: linux
     dist: trusty
+    python: 3.6
     addons:
       apt:
         sources:
@@ -61,13 +71,15 @@ matrix:
           - libopenmpi-dev
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      - BUILD_NAME=cthread-linux-gcc-py
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test gcc6 - mpi with threading backend ##
-  - name: "linux, gcc, mpi"
+  - name: "linux, gcc, mpi, py"
     os: linux
     dist: trusty
+    python: 3.6
     addons:
       apt:
         sources:
@@ -78,13 +90,15 @@ matrix:
           - libopenmpi-dev
     env:
       - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      - BUILD_NAME=mpi-linux-gcc-py
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test clang4 - single node/rank with threading backend ##
-  - name: "linux, clang, serial"
+  - name: "linux, clang, serial, py"
     os: linux
     dist: trusty
+    python: 3.6
     addons:
       apt:
         sources:
@@ -97,13 +111,15 @@ matrix:
           - libopenmpi-dev
     env:
       - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
-      - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      - BUILD_NAME=cthread-linux-clang-py
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: clang-4.0
 
 ## test clang4 - mpi with threading backend ##
-  - name: "linux, clang, mpi"
+  - name: "linux, clang, mpi, py"
     os: linux
     dist: trusty
+    python: 3.6
     addons:
       apt:
         sources:
@@ -116,12 +132,43 @@ matrix:
           - libopenmpi-dev
     env:
       - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
-      - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      - BUILD_NAME=mpi-linux-clang-py
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: clang-4.0
 
-before_script:
+before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
-  - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
+  - |
+    if [[ "$WITH_PYTHON" == "true" ]]; then
+      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        source ~/virtualenv/python3.6/bin/activate
+      elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        brew unlink python
+        brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
+        brew switch python 3.6.5
+      fi
+    fi
+
+install:
+  - |
+    if [[ "$WITH_PYTHON" == "true" ]]; then
+      curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+      python$PY get-pip.py
+      pip --version
+    fi
+  - |
+    if [[ "$WITH_DISTRIBUTED" == "mpi" ]]; then
+      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        brew install open-mpi;
+        if [[ "$WITH_PYTHON" == "true" ]]; then
+          pip$PY install mpi4py
+        fi
+      elif [[ ( "$TRAVIS_OS_NAME" == "linux" ) && ( "$WITH_PYTHON" == "true" ) ]]; then
+        pip$PY install mpi4py
+      fi
+    fi
+
+before_script:
   - eval "${MATRIX_EVAL}"
 
 script: source ./scripts/travis/build.sh

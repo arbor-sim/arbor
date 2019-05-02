@@ -1,13 +1,13 @@
 Arbor
 =====
 
-.. image:: https://travis-ci.org/eth-cscs/arbor.svg?branch=master
-    :target: https://travis-ci.org/eth-cscs/arbor
+.. image:: https://travis-ci.org/arbor-sim/arbor.svg?branch=master
+    :target: https://travis-ci.org/arbor-sim/arbor
 
 What is Arbor?
 --------------
 
-Arbor is a high-performance library for computational neurscience simulations.
+Arbor is a high-performance library for computational neuroscience simulations.
 
 The development team is from from high-performance computing (HPC) centers:
 
@@ -26,10 +26,11 @@ Arbor is designed from the ground up for **many core**  architectures:
 Features
 --------
 
-We are actively developing `Arbor <https://github.com/eth-cscs/arbor>`_, improving performance and adding features.
+We are actively developing `Arbor <https://github.com/arbor-sim/arbor>`_, improving performance and adding features.
 Some key features include:
 
-    * Optimized back ends for CUDA, KNL and AVX2 intrinsics.
+    * Optimized back end for CUDA
+    * Optimized vector back ends for Intel (KNL, AVX, AVX2) and Arm (ARMv8-A NEON) intrinsics.
     * Asynchronous spike exchange that overlaps compute and communication.
     * Efficient sampling of voltage and current on all back ends.
     * Efficient implementation of all features on GPU.
@@ -43,15 +44,24 @@ Some key features include:
    install
 
 .. toctree::
-   :caption: Users:
+   :caption: Arbor Models:
 
-   users
+   model_intro
+   model_concepts
+   model_hardware
+   model_recipe
+   model_domdec
+   model_simulation
+
+.. toctree::
+   :caption: Python:
 
 .. toctree::
    :caption: C++ API:
 
    cpp_intro
    cpp_common
+   cpp_hardware
    cpp_recipe
    cpp_domdec
    cpp_simulation

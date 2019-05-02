@@ -13,10 +13,10 @@ std::ostream& operator<<(std::ostream& o, arb::cell_kind k) {
     switch (k) {
     case arb::cell_kind::spike_source:
         return o << "spike_source";
-    case arb::cell_kind::cable1d_neuron:
-        return o << "cable1d_neuron";
-    case arb::cell_kind::lif_neuron:
-        return o << "lif_neuron";
+    case arb::cell_kind::cable:
+        return o << "cable";
+    case arb::cell_kind::lif:
+        return o << "lif";
     case arb::cell_kind::benchmark:
         return o << "benchmark_cell";
     }

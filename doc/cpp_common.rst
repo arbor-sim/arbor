@@ -1,3 +1,5 @@
+.. _cppcommon:
+
 Common Types
 ============
 
@@ -15,7 +17,7 @@ cells and members of cell-local collections.
     :cpp:type:`cell_local_size_type` at the time of writing, however
     this could change, e.g. to handle models that cell gid that don't
     fit into a 32 bit unsigned integer.
-    It is thus recomended that these type aliases be used whenever identifying
+    It is thus recommended that these type aliases be used whenever identifying
     or counting cells and cell members.
 
 
@@ -56,7 +58,7 @@ cells and members of cell-local collections.
     Each synapse has a post-synaptic cell (:cpp:member:`gid`), and an index
     (:cpp:member:`index`) into the set of synapses on the post-synaptic cell.
 
-    Lexographically ordered by :cpp:member:`gid`,
+    Lexicographically ordered by :cpp:member:`gid`,
     then :cpp:member:`index`.
 
     .. cpp:member:: cell_gid_type   gid
@@ -70,24 +72,24 @@ cells and members of cell-local collections.
 
 .. cpp:enum-class:: cell_kind
 
-    Enumeration used to indentify the cell type/kind, used by the model to
+    Enumeration used to identify the cell type/kind, used by the model to
     group equal kinds in the same cell group.
 
-    .. cpp:enumerator:: cable1d_neuron
+    .. cpp:enumerator:: cable
 
         A cell with morphology described by branching 1D cable segments.
 
-    .. cpp:enumerator:: lif_neuron
+    .. cpp:enumerator:: lif
 
         Leaky-integrate and fire neuron.
 
-    .. cpp:enumerator:: regular_spike_source
+    .. cpp:enumerator:: spiking
 
-        Regular spiking source.
+        Proxy cell that generates spikes from a spike sequence provided by the user.
 
-    .. cpp:enumerator:: data_spike_source
+    .. cpp:enumerator:: benchmark
 
-        Spike source from values inserted via description.
+        Proxy cell used for benchmarking.
 
 Probes
 ------
@@ -113,3 +115,40 @@ Probes
     .. cpp:member:: util::any address
 
            Cell-type specific location info, specific to cell kind of ``id.gid``.
+
+Utility Wrappers and Containers
+--------------------------------
+
+.. cpp:namespace:: arb::util
+
+
+.. cpp:class:: template <typename T> optional
+
+    A wrapper around a contained value of type :cpp:type:`T`, that may or may not be set.
+    A faithful copy of the C++17 ``std::optional`` type.
+    See the online C++ standard documentation
+    `<https://en.cppreference.com/w/cpp/utility/optional>`_
+    for more information.
+
+.. cpp:class:: any
+
+    A container for a single value of any type that is copy constructable.
+    Used in the Arbor API where a type of a value passed to or from the API
+    is decided at run time.
+
+    A faithful copy of the C++17 ``std::any`` type.
+    See the online C++ standard documentation
+    `<https://en.cppreference.com/w/cpp/utility/any>`_
+    for more information.
+
+    The :cpp:any:`arb::util` namespace also implementations of the
+    :cpp:any:`any_cast`, :cpp:any:`make_any` and :cpp:any:`bad_any_cast`
+    helper functions and types from C++17.
+
+.. cpp:class:: unique_any
+
+   Equivalent to :cpp:class:`util::any`, except that:
+      * it can store any type that is move constructable;
+      * it is move only, that is it can't be copied.
+
+

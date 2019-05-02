@@ -1,96 +1,23 @@
+.. _cpprecipe:
+
 Recipes
 ===============
 
-An Arbor **recipe** is a description of a model. The recipe is queried during the model
-building phase to provide cell information, such as:
-
-  * the number of cells in the model;
-  * the type of a cell;
-  * a description of a cell;
-  * incoming network connections on a cell.
-
 The :cpp:class:`arb::recipe` class documentation is below.
 
-Why Recipes?
---------------
+.. _cpp_recipe_best_practice:
 
-The interface and design of Arbor recipes was motivated by the following aims:
+C++ Best Practices
+------------------
 
-    * Building a simulation from a recipe description must be possible in a
-      distributed system efficiently with minimal communication.
-    * To minimise the amount of memory used in model building, to make it
-      possible to build and run simulations in one run.
-
-Recipe descriptions are cell-oriented, in order that the building phase can
-be efficiently distributed and that the model can be built independently of any
-runtime execution environment.
-
-During model building, the recipe is queried first by a load balancer,
-then later when building the low-level cell groups and communication network.
-The cell-centered recipe interface, whereby cell and network properties are
-specified "per-cell", facilitates this.
-
-The steps of building a simulation from a recipe are:
-
-.. topic:: 1. Load balancing
-
-    First, the cells are partitioned over MPI ranks, and each rank parses
-    the cells assigned to it to build a cost model.
-    The ranks then coordinate to redistribute cells over MPI ranks so that
-    each rank has a balanced workload. Finally, each rank groups its local
-    cells into :cpp:type:`cell_group` s that balance the work over threads (and
-    GPU accelerators if available).
-
-.. topic:: 2. Model building
-
-    The model building phase takes the cells assigned to the local rank, and builds the
-    local cell groups and the part of the communication network by querying the recipe
-    for more information about the cells assigned to it.
-
-.. _recipe_best_practice:
-
-Best Practices
---------------
-
-Here is a set of rules of thumb to keep in mind when making recipes. The first is
-mandatory, and following the others will lead to better performance.
+Here we collect rules of thumb to keep in mind when making recipes in C++.
 
 .. topic:: Stay thread safe
 
     The load balancing and model construction are multithreaded, that is
     multiple threads query the recipe simultaneously.
     Hence calls to a recipe member should not have side effects, and should use
-    lazy evaluation when possible (see `Be lazy <recipe_lazy_>`_).
-
-.. _recipe_lazy:
-
-.. topic:: Be lazy
-
-    A recipe does not have to contain a complete description of the model in
-    memory; precompute as little as possible, and use
-    `lazy evaluation <https://en.wikipedia.org/wiki/Lazy_evaluation>`_ to generate
-    information only when requested.
-    This has multiple benefits, including:
-
-        * thread safety;
-        * minimising the memory footprint of the recipe.
-
-.. topic:: Think of the cells
-
-    When formulating a model, think cell-first, and try to formulate the model and
-    the associated workflow from a cell-centered perspective. If this isn't possible,
-    please contact the developers, because we would like to develop tools that help
-    make this simpler.
-
-.. topic:: Be reproducible
-
-    Arbor is designed to give reproduceable results when the same model is run on a
-    different number of MPI ranks or threads, or on different hardware (e.g. GPUs).
-    This only holds when a recipe provides a reproducible model description, which
-    can be a challenge when a description uses random numbers, e.g. to pick incoming
-    connections to a cell from a random subset of a cell population.
-    To get a reproduceable model, use the cell `gid` (or a hash based on the `gid`)
-    to seed random number generators, including those for :cpp:type:`event_generator` s.
+    lazy evaluation when possible (see `Be lazy <_recipe_lazy>`_).
 
 
 Class Documentation
@@ -113,11 +40,11 @@ Class Documentation
 
     .. Warning::
         All member functions must be **thread safe**, because the recipe is used
-        by the multithreaded model builing stage. In practice, this means that
+        by the multithreaded model building stage. In practice, this means that
         multiple threads should be able to call member functions of a recipe
         simultaneously. Model building is multithreaded to reduce model building times,
         so recipe implementations should avoid using locks and mutexes to introduce
-        thread safety. See `recipe best practices <recipe_best_practice_>`_ for more
+        thread safety. See `recipe best practices <cpp_recipe_best_practice_>`_ for more
         information.
 
     **Required Member Functions**
@@ -139,7 +66,7 @@ Class Documentation
 
         The type used to describe a cell depends on the kind of the cell.
         The interface for querying the kind and description of a cell are
-        seperate to allow the the cell type to be provided without building
+        separate to allow the cell type to be provided without building
         a full cell description, which can be very expensive.
 
     **Optional Member Functions**
@@ -150,6 +77,16 @@ Class Documentation
         Each connection ``con`` should have post-synaptic target ``con.dest.gid`` that matches
         the argument :cpp:any:`gid`, and a valid synapse id ``con.dest.index`` on `gid`.
         See :cpp:type:`cell_connection`.
+
+        By default returns an empty list.
+
+    .. cpp:function:: virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const
+
+        Returns a list of all the gap junctions connected to `gid`.
+        Each gap junction ``gj`` should have one of the two gap junction sites ``gj.local.gid`` or
+        ``gj.peer.gid`` matching the argument :cpp:any:`gid`, and the corresponding synapse id
+        ``gj.local.index`` or ``gj.peer.index`` should be valid on `gid`.
+        See :cpp:type:`gap_junction_connection`.
 
         By default returns an empty list.
 
@@ -181,6 +118,12 @@ Class Documentation
 
         By default returns 0.
 
+    .. cpp:function:: virtual cell_size_type num_gap_junction_sites(cell_gid_type gid) const
+
+        Returns the number of gap junction sites on `gid`.
+
+        By default returns 0.
+
     .. cpp:function:: virtual probe_info get_probe(cell_member_type) const
 
         Intended for use by cell group implementations to set up sampling data
@@ -188,7 +131,7 @@ Class Documentation
         information in the concrete cell implementations to allow monitoring.
 
         By default throws :cpp:type:`std::logic_error`. If ``arb::recipe::num_probes``
-        returns a non-zero value, this must also be overriden.
+        returns a non-zero value, this must also be overridden.
 
     .. cpp:function:: virtual util::any get_global_properties(cell_kind) const
 
@@ -227,3 +170,19 @@ Class Documentation
 
         Delay of the connection (milliseconds).
 
+.. cpp:class:: gap_junction_connection
+
+    Describes a gap junction between two gap junction sites.
+    Gap junction sites are represented by :cpp:type:cell_member_type.
+
+    .. cpp:member:: cell_member_type local
+
+        gap junction site: one half of the gap junction connection.
+
+    .. cpp:member:: cell_member_type peer
+
+        gap junction site: other half of the gap junction connection.
+
+    .. cpp:member:: float ggap
+
+        gap junction conductance in μS.

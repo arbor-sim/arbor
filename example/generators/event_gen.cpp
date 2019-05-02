@@ -17,7 +17,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
@@ -47,7 +47,7 @@ public:
     //    capacitance: 0.01 F/m² [default]
     //    synapses: 1 * expsyn
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::mc_cell c;
+        arb::cable_cell c;
 
         c.add_soma(18.8/2.0); // convert 18.8 μm diameter to radius
         c.soma()->add_mechanism("pas");
@@ -62,7 +62,7 @@ public:
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         arb_assert(gid==0); // There is only one cell in the model
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
     // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.

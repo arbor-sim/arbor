@@ -287,3 +287,18 @@ TEST(optional, just) {
     EXPECT_EQ(3, o2.value());
     EXPECT_EQ(4, o3.value());
 }
+
+TEST(optional, emplace) {
+    optional<int> o1(7);
+    optional<std::array<double, 3>> o2{{22., 22., 22.}};
+    int x = 42;
+    std::array<double, 3> arr{{4.5, 7.1, 1.2}};
+
+    o1.emplace(x);
+    o2.emplace(arr);
+
+    EXPECT_EQ(42, o1.value());
+    EXPECT_EQ(4.5, o2.value()[0]);
+    EXPECT_EQ(7.1, o2.value()[1]);
+    EXPECT_EQ(1.2, o2.value()[2]);
+}

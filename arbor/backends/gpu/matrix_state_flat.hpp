@@ -30,7 +30,8 @@ void assemble_matrix_flat(
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* cv_area,
     const fvm_index_type* cv_to_cell,
-    const fvm_value_type* dt_cell,
+    const fvm_value_type* dt_intdom,
+    const fvm_index_type* cell_to_intdom,
     unsigned n);
 
 /// matrix state
@@ -57,6 +58,8 @@ struct matrix_state_flat {
     array face_conductance;  // [μS]
     array cv_area;           // [μm^2]
 
+    iarray cell_to_intdom;
+
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
@@ -66,7 +69,8 @@ struct matrix_state_flat {
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
-                 const std::vector<value_type>& area):
+                 const std::vector<value_type>& area,
+                 const std::vector<index_type>& cell_to_intdom):
         parent_index(memory::make_const_view(p)),
         cell_cv_divs(memory::make_const_view(cell_cv_divs)),
         cv_to_cell(p.size()),
@@ -74,7 +78,8 @@ struct matrix_state_flat {
         u(p.size()),
         rhs(p.size()),
         cv_capacitance(memory::make_const_view(cv_cap)),
-        cv_area(memory::make_const_view(area))
+        cv_area(memory::make_const_view(area)),
+        cell_to_intdom(memory::make_const_view(cell_to_intdom))
     {
         arb_assert(cv_cap.size() == size());
         arb_assert(face_cond.size() == size());
@@ -115,15 +120,15 @@ struct matrix_state_flat {
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
-    //   dt_cell [ms] (per cell)
-    //   voltage [mV]
-    //   current [nA]
-    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+    //   dt_intdom [ms] (per integration domain)
+    //   voltage   [mV]
+    //   current   [nA]
+    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
         // perform assembly on the gpu
         assemble_matrix_flat(
             d.data(), rhs.data(), invariant_d.data(), voltage.data(),
             current.data(), cv_capacitance.data(), cv_area.data(),
-            cv_to_cell.data(), dt_cell.data(), size());
+            cv_to_cell.data(), dt_intdom.data(), cell_to_intdom.data(), size());
     }
 
     void solve() {

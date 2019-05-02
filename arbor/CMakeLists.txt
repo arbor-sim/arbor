@@ -21,7 +21,7 @@ set(arbor_sources
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     lif_cell_group.cpp
-    mc_cell.cpp
+    cable_cell.cpp
     mc_cell_group.cpp
     mechcat.cpp
     memory/cuda_wrappers.cpp
@@ -50,6 +50,7 @@ set(arbor_sources
 if(ARB_WITH_CUDA)
     list(APPEND arbor_sources
         backends/gpu/mechanism.cpp
+        backends/gpu/mechanism.cu
         backends/gpu/shared_state.cpp
         backends/gpu/stimulus.cpp
         backends/gpu/stimulus.cu

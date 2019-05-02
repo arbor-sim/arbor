@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include "backends/event.hpp"
 #include "backends/multicore/fvm.hpp"
@@ -21,7 +21,7 @@ ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, fvm_state_ptr, &fvm_cell:
 TEST(probe, fvm_lowered_cell) {
     execution_context context;
 
-    mc_cell bs = make_cell_ball_and_stick(false);
+    cable_cell bs = make_cell_ball_and_stick(false);
 
     i_clamp stim(0, 100, 0.3);
     bs.add_stimulus({1, 1}, stim);
@@ -37,10 +37,11 @@ TEST(probe, fvm_lowered_cell) {
     rec.add_probe(0, 30, cell_probe_address{loc2, cell_probe_address::membrane_current});
 
     std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell lcell(context);
-    lcell.initialize({0}, rec, targets, probe_map);
+    lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
 
     EXPECT_EQ(3u, rec.num_probes(0));
     EXPECT_EQ(3u, probe_map.size());

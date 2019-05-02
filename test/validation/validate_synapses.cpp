@@ -3,7 +3,7 @@
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
@@ -38,7 +38,7 @@ void run_synapse_test(
         {"backend_kind", arb::has_gpu(context)? "gpu": "multicore"}
     };
 
-    mc_cell c = make_cell_ball_and_stick(false); // no stimuli
+    cable_cell c = make_cell_ball_and_stick(false); // no stimuli
     mechanism_desc syn_default(syn_type);
     c.add_synapse({1, 0.5}, syn_default);
 

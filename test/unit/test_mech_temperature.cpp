@@ -22,11 +22,12 @@ void run_celsius_test() {
 
     fvm_size_type ncell = 1;
     fvm_size_type ncv = 3;
-    std::vector<fvm_index_type> cv_to_cell(ncv, 0);
+    std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
+    std::vector<fvm_gap_junction> gj = {};
     auto celsius_test = cat.instance<backend>("celsius_test");
     auto shared_state = std::make_unique<typename backend::shared_state>(
-        ncell, cv_to_cell, celsius_test->data_alignment());
+        ncell, cv_to_intdom, gj, celsius_test->data_alignment());
 
     mechanism::layout layout;
     layout.weight.assign(ncv, 1.);
@@ -43,7 +44,7 @@ void run_celsius_test() {
 
     // expect 0 value in state 'c' after init:
 
-    celsius_test->nrn_init();
+    celsius_test->initialize();
     std::vector<fvm_value_type> expected_c_values(ncv, 0.);
 
     EXPECT_EQ(expected_c_values, mechanism_field(celsius_test.get(), "c"));
@@ -61,7 +62,7 @@ void run_celsius_test() {
     temperature_C = temperature_K-273.15;
 
     shared_state->reset(-65., temperature_K);
-    celsius_test->nrn_init();
+    celsius_test->initialize();
 
     celsius_test->nrn_state();
     expected_c_values.assign(ncv, temperature_C);

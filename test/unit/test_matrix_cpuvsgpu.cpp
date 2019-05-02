@@ -86,6 +86,7 @@ TEST(matrix, assemble)
 
     std::vector<I> p;
     std::vector<I> cell_index;
+    std::vector<I> intdom_index;
     for (auto m=0; m<num_mtx; ++m) {
         auto &p_ref = p_base[m%p_base.size()];
         auto first = p.size();
@@ -93,6 +94,7 @@ TEST(matrix, assemble)
             p.push_back(i + first);
         }
         cell_index.push_back(first);
+        intdom_index.push_back(m);
     }
     cell_index.push_back(p.size());
 
@@ -112,8 +114,8 @@ TEST(matrix, assemble)
     std::vector<T> area(group_size, 1e3);
 
     // Make the reference matrix and the gpu matrix
-    auto m_mc  = mc_state( p, cell_index, Cm, g, area); // on host
-    auto m_gpu = gpu_state(p, cell_index, Cm, g, area); // on gpu
+    auto m_mc  = mc_state( p, cell_index, Cm, g, area, intdom_index); // on host
+    auto m_gpu = gpu_state(p, cell_index, Cm, g, area, intdom_index); // on gpu
 
     // Set the integration times for the cells to be between 0.1 and 0.2 ms.
     std::vector<T> dt(num_mtx);

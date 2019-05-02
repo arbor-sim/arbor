@@ -1,10 +1,11 @@
 #pragma once
 
 #include <arbor/fvm_types.hpp>
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/recipe.hpp>
 
 #include "fvm_compartment.hpp"
 #include "util/span.hpp"
@@ -86,7 +87,7 @@ struct fvm_discretization {
     }
 };
 
-fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells);
+fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells);
 
 
 // Post-discretization data for point and density mechanism instantiation.
@@ -100,6 +101,9 @@ struct fvm_mechanism_config {
     // Ordered CV indices where mechanism is present; may contain
     // duplicates for point mechanisms.
     std::vector<index_type> cv;
+
+    // Coalesced synapse multiplier
+    std::vector<index_type> multiplicity;
 
     // Normalized area contribution in corresponding CV (density mechanisms only).
     std::vector<value_type> norm_area;
@@ -136,6 +140,6 @@ struct fvm_mechanism_data {
     std::size_t ntarget = 0;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D);
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<cable_cell>& cells, const fvm_discretization& D, bool coalesce = true);
 
 } // namespace arb

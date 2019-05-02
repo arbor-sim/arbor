@@ -246,7 +246,7 @@ the same sequence of time points, that is, it must exhibit repeatable
 and deterministic behaviour.
 
 The ``schedule`` object itself uses type-erasure to wrap any schedule
-implementation class, which can be any copy--constructible class that
+implementation class, which can be any copy--constructable class that
 provides the methods ``reset()`` and ``events(t0, t1)`` above. Three
 schedule implementations are provided by the engine:
 
@@ -275,11 +275,11 @@ Helper classes for probe/sampler management
 The ``simulation`` and ``mc_cell_group`` classes use classes defined in ``scheduler_map.hpp`` to simplify
 the management of sampler--probe associations and probe metdata.
 
-``sampler_association_map`` wraps an ``unordered_map`` between sampler assocation
+``sampler_association_map`` wraps an ``unordered_map`` between sampler association
 handles and tuples (*schedule*, *sampler*, *probe set*), with thread-safe
 accessors.
 
-``probe_assocation_map<Handle>`` is a type alias for an unordered map between
+``probe_association_map<Handle>`` is a type alias for an unordered map between
 probe ids and tuples (*probe handle*, *probe tag*), where the *probe handle*
 is a cell-group specific accessor that allows efficient polling.
 

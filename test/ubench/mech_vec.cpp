@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-#include <arbor/mc_cell.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
 #include "benchmark/benchmark.h"
@@ -40,7 +40,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -64,7 +64,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -79,7 +79,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -96,7 +96,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -111,7 +111,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -130,7 +130,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -145,7 +145,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("hh");
@@ -162,7 +162,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 
 };
@@ -177,7 +177,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        mc_cell c;
+        cable_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -196,7 +196,7 @@ public:
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
+        return cell_kind::cable;
     }
 };
 
@@ -207,10 +207,11 @@ void expsyn_1_branch_current(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_expsyn_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, rec_expsyn_1_branch, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("expsyn", cell);
 
@@ -226,10 +227,11 @@ void expsyn_1_branch_state(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_expsyn_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, rec_expsyn_1_branch, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("expsyn", cell);
 
@@ -244,10 +246,11 @@ void pas_1_branch_current(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_pas_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, rec_pas_1_branch, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("pas", cell);
 
@@ -262,10 +265,11 @@ void pas_3_branches_current(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_pas_3_branches, target_handles, probe_handles);
+    cell.initialize(gids, rec_pas_3_branches, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("pas", cell);
 
@@ -280,10 +284,11 @@ void hh_1_branch_state(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, rec_hh_1_branch, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -298,10 +303,11 @@ void hh_1_branch_current(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_1_branch, target_handles, probe_handles);
+    cell.initialize(gids, rec_hh_1_branch, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -316,10 +322,11 @@ void hh_3_branches_state(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_3_branches, target_handles, probe_handles);
+    cell.initialize(gids, rec_hh_3_branches, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -334,10 +341,11 @@ void hh_3_branches_current(benchmark::State& state) {
 
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
+    std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_handles;
 
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_3_branches, target_handles, probe_handles);
+    cell.initialize(gids, rec_hh_3_branches, cell_to_intdom, target_handles, probe_handles);
 
     auto& m = find_mechanism("hh", cell);
 

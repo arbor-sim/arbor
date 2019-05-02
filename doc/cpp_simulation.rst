@@ -35,7 +35,7 @@ then build the simulation.
         // (and gpu if available) on node.
         arb::domain_decomposition decomp = arb::partition_load_balance(recipe, context);
 
-        // Instatitate the simulation.
+        // Instantiate the simulation.
         arb::simulation sim(recipe, decomp, context);
 
 
@@ -52,6 +52,7 @@ Class Documentation
     Simulations take the following inputs:
 
         * The **constructor** takes:
+
             *   an :cpp:class:`arb::recipe` that describes the model;
             *   an :cpp:class:`arb::domain_decomposition` that describes how the
                 cells in the model are assigned to hardware resources;
@@ -70,7 +71,7 @@ Class Documentation
 
     .. cpp:type:: spike_export_function = std::function<void(const std::vector<spike>&)>
 
-        User-supplied callack function used as a sink for spikes generated
+        User-supplied callback function used as a sink for spikes generated
         during a simulation. See :cpp:func:`set_local_spike_callback` and
         :cpp:func:`set_global_spike_callback`.
 

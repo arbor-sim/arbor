@@ -1,7 +1,9 @@
+.. _installarbor:
+
 Installing Arbor
 ################
 
-Installation of Arbor is done by obtaining the source code and compiling it on
+Arbor is installed by obtaining the source code and compiling it on
 the target system.
 
 This guide starts with an overview of the building process, and the various options
@@ -26,7 +28,7 @@ with very few tools.
     Tool        Notes
     =========== ============================================
     Git         To check out the code, minimum version 2.0.
-    CMake       To set up the build, minimum version 3.8 (3.9 for MPI).
+    CMake       To set up the build, minimum version 3.9
     compiler    A C++14 compiler. See `compilers <compilers_>`_.
     =========== ============================================
 
@@ -44,9 +46,8 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     Compiler    Min version  Notes
     =========== ============ ============================================
     GCC         6.1.0
-    Clang       4.0          Needs GCC 6 or later for standard library. 
+    Clang       4.0          Needs GCC 6 or later for standard library.
     Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
-    Intel       17.0.1       Needs GCC 5 or later for standard library.
     =========== ============ ============================================
 
 .. _note_CC:
@@ -91,12 +92,12 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     `NMODL <https://www.neuron.yale.edu/neuron/static/docs/help/neuron/nmodl/nmodl.html>`_.
     The generated code is explicitly vectorised, obviating the need for vendor compilers,
     and we can take advantage of their benefits of GCC and Clang:
-    faster compilation times; fewer compiler bugs; and support for recent C++ standards.
+    faster compilation times; fewer compiler bugs; and better support for C++ standards.
 
 .. Note::
-    The IBM XL C/C++ compiler for Linux up to version 14 is not supported, owing to unresolved
+    The IBM XL C++ compiler and Intel C++ compiler are not supported, owing to unresolved
     compiler issues. We strongly recommend building with GCC or Clang instead on PowerPC
-    platforms.
+    and Intel platforms.
 
 Optional Requirements
 ---------------------
@@ -104,7 +105,7 @@ Optional Requirements
 GPU Support
 ~~~~~~~~~~~
 
-Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 8 is required.
+Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 9 is required.
 
 Distributed
 ~~~~~~~~~~~
@@ -112,6 +113,14 @@ Distributed
 Arbor uses MPI to run on HPC cluster systems.
 Arbor has been tested on MVAPICH2, OpenMPI, Cray MPI, and IBM MPI.
 More information on building with MPI is in the `HPC cluster section <cluster_>`_.
+
+Python
+~~~~~~
+
+Arbor has a Python front end, for which Python 3.6 is required.
+In order to use MPI in combination with the python frontend the
+`mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
+Python package is also recommended.
 
 Documentation
 ~~~~~~~~~~~~~~
@@ -125,11 +134,11 @@ Getting the Code
 ================
 
 The easiest way to acquire the latest version of Arbor is to check the code out from
-the `Github repository <https://github.com/eth-cscs/arbor>`_:
+the `Github repository <https://github.com/arbor-sim/arbor>`_:
 
 .. code-block:: bash
 
-    git clone https://github.com/eth-cscs/arbor.git --recurse-submodules
+    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
 
 We recommend using a recursive checkout, because Arbor uses Git submodules for some
 of its library dependencies.
@@ -146,7 +155,7 @@ recursive checkout:
     git submodule update --init --recursive
 
 You can also point your browser to Arbor's
-`Github page <https://github.com/eth-cscs/arbor>`_ and download a zip file.
+`Github page <https://github.com/arbor-sim/arbor>`_ and download a zip file.
 If you use the zip file, then don't forget to run Git submodule update manually.
 
 .. _building:
@@ -154,7 +163,7 @@ If you use the zip file, then don't forget to run Git submodule update manually.
 Building and Installing Arbor
 =============================
 
-Once the Arbor code has been checked out, it can be built by first running CMake to configure the build, then running make.
+Once the Arbor code has been checked out, first run CMake to configure the build, then run make.
 
 Below is a simple workflow for: **1)** getting the source; **2)** configuring the build;
 **3)** building; **4)** running tests; **5)** install.
@@ -164,7 +173,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
 .. code-block:: bash
 
     # 1) Clone.
-    git clone https://github.com/eth-cscs/arbor.git --recurse-submodules
+    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
     cd arbor
 
     # Make a path for building
@@ -176,8 +185,10 @@ For more detailed build configuration options, see the `quick start <quickstart_
     # Release mode should be used for installing and benchmarking Arbor.
     cmake ..
 
-    # 3) Build Arbor.
+    # 3.1) Build Arbor library.
     make -j 4
+    # 3.2) Build Arbor unit tests.
+    make -j 4 tests
 
     # 4) Run tests.
     ./bin/unit
@@ -202,14 +213,14 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
     .. code-block:: bash
 
-        cmake .. -DARB_WITH_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=debug
+        cmake -DARB_WITH_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=debug
 
 .. topic:: `Release <buildtarget_>`_ mode (compiler optimizations enabled) with the default
            compiler, optimized for the local `system architecture <architecture_>`_.
 
     .. code-block:: bash
 
-        cmake .. -DARB_ARCH=native
+        cmake -DARB_ARCH=native
 
 .. topic:: `Release <buildtarget_>`_ mode with `Clang <compilers_>`_.
 
@@ -217,27 +228,27 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         export CC=`which clang`
         export CXX=`which clang++`
-        cmake ..
+        cmake
 
 .. topic:: `Release <buildtarget_>`_ mode for the `Haswell architecture <architecture_>`_ and `explicit vectorization <vectorize_>`_ of kernels.
 
     .. code-block:: bash
 
-        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=haswell
+        cmake -DARB_VECTORIZE=ON -DARB_ARCH=haswell
 
-.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, targeting the `Broadwell architecture <vectorize_>`_, with support for `P100 GPUs <gpu_>`_, and building with `GCC 5 <compilers_>`_.
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, targeting the `Broadwell architecture <vectorize_>`_, with support for `P100 GPUs <gpu_>`_, and building with `GCC 6 <compilers_>`_.
 
     .. code-block:: bash
 
-        export CC=gcc-5
-        export CXX=g++-5
-        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_WITH_GPU=ON
+        export CC=gcc-6
+        export CXX=g++-6
+        cmake -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_WITH_GPU=ON
 
 .. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, optimized for the `local system architecture <architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
 
     .. code-block:: bash
 
-        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=native -DCMAKE_INSTALL_PREFIX=/opt/arbor
+        cmake -DARB_VECTORIZE=ON -DARB_ARCH=native -DCMAKE_INSTALL_PREFIX=/opt/arbor
 
 .. _buildtarget:
 
@@ -270,8 +281,8 @@ is to set ``ARB_ARCH`` to ``native``:
 
     cmake -DARB_ARCH=native
 
-When deploying on a different machine, one should, for an optimized library, specify
-the specific architecture of that machine. The valid values correspond to those given
+When deploying on a different machine (cross-compiling) specify
+the specific architecture of the target machine. The valid values correspond to those given
 to the ``-mcpu`` or ``-march`` options for GCC and Clang; the build system will translate
 these names to corresponding values for other supported compilers.
 
@@ -280,6 +291,19 @@ Specific recent x86-family Intel CPU architectures include ``broadwell``, ``skyl
 for example GCC `x86 options <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_,
 `PowerPC options <https://gcc.gnu.org/onlinedocs/gcc/RS_002f6000-and-PowerPC-Options.html#RS_002f6000-and-PowerPC-Options>`_,
 and `ARM options <https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html>`_.
+
+.. code-block:: bash
+
+     # Intel architectures
+     cmake -DARB_ARCH=broadwell        # broadwell with avx2
+     cmake -DARB_ARCH=skylake-avx512   # skylake with avx512 (Xeon server)
+     cmake -DARB_ARCH=knl              # Xeon Phi KNL
+
+     # ARM Arm8a
+     cmake -DARB_ARCH=armv8-a
+
+     # IBM Power8
+     cmake -DARB_ARCH=power8
 
 ..  _vectorize:
 
@@ -297,7 +321,7 @@ for the architecture, enabling ``ARB_VECTORIZE`` will lead to a compilation erro
 
 With this flag set, the library will use architecture-specific vectorization intrinsics
 to implement these kernels. Arbor currently has vectorization support for x86 architectures
-with AVX, AVX2 or AVX512 ISA extensions.
+with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support for AArch64 NEON intrinsics (first available on ARMv8-A).
 
 .. _gpu:
 
@@ -325,8 +349,42 @@ example:
     export CPATH="/opt/cuda/include:$CPATH"
     cmake -DARB_WITH_GPU=ON
 
+
 .. Note::
     Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
+
+
+Python Front End
+----------------
+
+Arbor can be used with a python front end which is enabled by toggling the
+CMake ``ARB_WITH_PYTHON`` option:
+
+.. code-block:: bash
+
+    cmake -ARB_WITH_PYTHON=ON
+
+By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a python module called :py:mod:`arbor` is built.
+
+The Arbor Python wrapper has optional support for the ``mpi4py`` Python module
+for MPI. CMake will attempt to automatically detect ``mpi4py`` if configured
+with both ``-ARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
+If CMake fails to find ``mpi4py`` when it should, the easiest workaround is to
+add the path to the include directory for ``mpi4py`` to the ``CPATH`` environment
+variable before configuring and building Arbor:
+
+.. code-block:: bash
+
+    # search for path tp python's site-package mpi4py
+    for p in `python3 -c 'import sys; print("\n".join(sys.path))'`; do echo ===== $p; ls $p | grep mpi4py; done
+
+    ===== /path/to/python3/site-packages
+    mpi4py
+
+    # set CPATH and run cmake
+    export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
+
+    cmake -ARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
 
 .. _install:
 
@@ -336,12 +394,14 @@ Installation
 Arbor can be installed with ``make install`` after configuration. The
 installation comprises:
 
-- The static library ``libarbor.a``.
+- The static libraries ``libarbor.a`` and ``libarborenv.a``.
 - Public header files.
+- The ``lmorpho`` l-system morphology generation utility
 - The ``modcc`` NMODL compiler if built.
+- The python module if built.
 - The HTML documentation if built.
 
-The default install path (``/usr/local``) can be overridden with the standard
+The default install path (``/usr/local``) can be overridden with the
 ``CMAKE_INSTALL_PREFIX`` configuration option.
 
 Provided that Sphinx is available, HTML documentation for Arbor can be built
@@ -362,7 +422,7 @@ HPC Clusters
 HPC clusters offer their own unique challenges when compiling and running
 software, so we cover some common issues in this section.  If you have problems
 on your target system that are not covered here, please make an issue on the
-Arbor `Github issues <https://github.com/eth-cscs/arbor/issues>`_ page.
+Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
 
 MPI
@@ -379,7 +439,7 @@ An example of building a 'release' (optimized) version of Arbor with MPI is:
     export CXX=`which mpicxx`
 
     # configure with mpi
-    cmake .. -DARB_WITH_MPI=ON
+    cmake -DARB_WITH_MPI=ON
 
     # run MPI-specific unit tests on 2 MPI ranks
     mpirun -n 2 ./bin/unit-mpi
@@ -398,8 +458,8 @@ using the supplied MPI compiler wrappers in preference.
 
     The wrapper forwards the compilation to a compiler, like GCC, and
     you have to ensure that this compiler is able to compile Arbor. For wrappers
-    that call GCC, Intel or Clang compilers, you can pass the ``--version`` flag
-    to the wrapper. For example, on a Cray system where the C++ wrapper is called ``CC``:
+    that call GCC or Clang compilers, pass the ``--version`` flag
+    to the wrapper. For example, on a Cray system, where the C++ wrapper is called ``CC``:
 
     .. code-block:: bash
 
@@ -412,7 +472,7 @@ Cray Systems
 The compiler used by the MPI wrappers is set using a "programming environment" module.
 The first thing to do is change this module, which by default is set to the Cray
 programming environment, to a compiler that can compile Arbor.
-For example, to use the GCC compilers, select the GNU programming enviroment:
+For example, to use the GCC compilers, select the GNU programming environment:
 
 .. code-block:: bash
 
@@ -444,7 +504,7 @@ respectively on Cray systems.
 CMake detects that it is being run in the Cray programming environment, which makes
 our lives a little bit more difficult (CMake sometimes tries a bit too hard to help).
 To get CMake to correctly link our code, we need to set the ``CRAYPE_LINK_TYPE``
-enviroment variable to ``dynamic``.
+environment variable to ``dynamic``.
 
 .. code-block:: bash
 
@@ -458,7 +518,7 @@ Putting it all together, a typical workflow to build Arbor on a Cray system is:
     module swap PrgEnv-cray PrgEnv-gnu
     moudle swap gcc/7.1.0
     export CC=`which cc`; export CXX=`which CC`;
-    cmake .. -DARB_WITH_MPI=ON    # MPI support
+    cmake -DARB_WITH_MPI=ON    # MPI support
 
 .. Note::
     If ``CRAYPE_LINK_TYPE`` isn't set, there will be warnings like the following when linking:
@@ -511,7 +571,7 @@ example:
 
 .. code-block:: bash
 
-   cmake .. -DARB_MODCC=path-to-local-modcc 
+   cmake -DARB_MODCC=path-to-local-modcc
 
 Here we will use the example of compiling for Intel KNL on a Cray system, which
 has Intel Sandy Bridge CPUs on login nodes that don't support the AVX512
@@ -627,7 +687,7 @@ and have to be turned on by setting the ``ARB_WITH_ASSERTIONS`` CMake option:
     library, caused either by a logic error in Arbor, or incorrectly checked user input.
 
     If this occurs, it is highly recommended that you attach the output to the
-    `bug report <https://github.com/eth-cscs/arbor/issues>`_ you send to the Arbor developers!
+    `bug report <https://github.com/arbor-sim/arbor/issues>`_ you send to the Arbor developers!
 
 
 CMake Git Submodule Warnings
@@ -643,23 +703,5 @@ need to be `updated <downloading_>`_.
         git submodule init
         git submodule update
     Or download submodules recursively when checking out:
-        git clone --recurse-submodules https://github.com/eth-cscs/arbor.git
+        git clone --recurse-submodules https://github.com/arbor-sim/arbor.git
 
-
-Wrong Headers for Intel Compiler
-------------------------------------
-
-The Intel C++ compiler does not provide its own copy of the C++ standard library,
-instead it uses the implementation from GCC. You can see what the default version of
-GCC is by ``g++ --version``.
-
-If the Intel compiler uses an old version of the standard library,
-errors like the following occur:
-
-.. code-block:: none
-
-    /users/bcumming/arbor_knl/src/util/meta.hpp(127): error: namespace "std" has no member "is_trivially_copyable"
-      enable_if_t<std::is_trivially_copyable<T>::value>;
-
-On clusters, a GCC module with a full C++11 implementation of the standard library,
-i.e. version 5.1 or later, can be loaded to fix the issue.

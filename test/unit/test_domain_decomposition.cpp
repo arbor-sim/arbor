@@ -28,7 +28,7 @@ namespace {
     // Dummy recipes types for testing.
 
     struct dummy_cell {};
-    using homo_recipe = homogeneous_recipe<cell_kind::cable1d_neuron, dummy_cell>;
+    using homo_recipe = homogeneous_recipe<cell_kind::cable, dummy_cell>;
 
     // Heterogenous cell population of cable and spike source cells.
     // Interleaved so that cells with even gid are cable cells, and odd gid are
@@ -48,11 +48,67 @@ namespace {
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return gid%2?
                 cell_kind::spike_source:
-                cell_kind::cable1d_neuron;
+                cell_kind::cable;
         }
 
     private:
         cell_size_type size_;
+    };
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe() {}
+
+        cell_size_type num_cells() const override {
+            return size_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type) const override {
+            cable_cell c;
+            c.add_soma(20);
+            c.add_gap_junction({0,1});
+            return {std::move(c)};
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return cell_kind::cable;
+        }
+        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            switch (gid) {
+                case 0 :  return {gap_junction_connection({13, 0}, {0, 0}, 0.1)};
+                case 2 :  return {
+                    gap_junction_connection({7, 0}, {2, 0}, 0.1),
+                    gap_junction_connection({11, 0}, {2, 0}, 0.1)
+                };
+                case 3 :  return {
+                    gap_junction_connection({4, 0}, {3, 0}, 0.1),
+                    gap_junction_connection({8, 0}, {3, 0}, 0.1)
+                };
+                case 4 :  return {
+                    gap_junction_connection({3, 0}, {4, 0}, 0.1),
+                    gap_junction_connection({8, 0}, {4, 0}, 0.1),
+                    gap_junction_connection({9, 0}, {4, 0}, 0.1)
+                };
+                case 7 :  return {
+                    gap_junction_connection({2, 0}, {7, 0}, 0.1),
+                    gap_junction_connection({11, 0}, {7, 0}, 0.1)
+                };;
+                case 8 :  return {
+                    gap_junction_connection({3, 0}, {8, 0}, 0.1),
+                    gap_junction_connection({4, 0}, {8, 0}, 0.1)
+                };;
+                case 9 :  return {gap_junction_connection({4, 0}, {9, 0}, 0.1)};
+                case 11 : return {
+                    gap_junction_connection({2, 0}, {11, 0}, 0.1),
+                    gap_junction_connection({7, 0}, {11, 0}, 0.1)
+                };
+                case 13 : return {gap_junction_connection({0, 0}, {13, 0}, 0.1)};
+                default : return {};
+            }
+        }
+
+    private:
+        cell_size_type size_ = 15;
     };
 }
 
@@ -79,7 +135,7 @@ TEST(domain_decomposition, homogenous_population)
             EXPECT_EQ(0, D.gid_domain(gid));
         }
 
-        // Each cell group contains 1 cell of kind cable1d_neuron
+        // Each cell group contains 1 cell of kind cable
         // Each group should also be tagged for cpu execution
         auto grp = D.groups[0u];
 
@@ -87,7 +143,7 @@ TEST(domain_decomposition, homogenous_population)
         EXPECT_EQ(grp.gids.front(), 0u);
         EXPECT_EQ(grp.gids.back(), num_cells-1);
         EXPECT_EQ(grp.backend, backend_kind::gpu);
-        EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
+        EXPECT_EQ(grp.kind, cell_kind::cable);
     }
     {
         resources.gpu_id = -1; // disable GPU if available
@@ -110,14 +166,14 @@ TEST(domain_decomposition, homogenous_population)
             EXPECT_EQ(0, D.gid_domain(gid));
         }
 
-        // Each cell group contains 1 cell of kind cable1d_neuron
+        // Each cell group contains 1 cell of kind cable
         // Each group should also be tagged for cpu execution
         for (auto i: gids) {
             auto& grp = D.groups[i];
             EXPECT_EQ(grp.gids.size(), 1u);
             EXPECT_EQ(grp.gids.front(), unsigned(i));
             EXPECT_EQ(grp.backend, backend_kind::multicore);
-            EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
+            EXPECT_EQ(grp.kind, cell_kind::cable);
         }
     }
 }
@@ -149,7 +205,7 @@ TEST(domain_decomposition, heterogenous_population)
         for (auto i: grps) {
             auto& grp = D.groups[i];
             auto k = grp.kind;
-            if (k==cell_kind::cable1d_neuron) {
+            if (k==cell_kind::cable) {
                 EXPECT_EQ(grp.backend, backend_kind::gpu);
                 EXPECT_EQ(grp.gids.size(), num_cells/2);
                 for (auto gid: grp.gids) {
@@ -188,7 +244,7 @@ TEST(domain_decomposition, heterogenous_population)
             EXPECT_EQ(0, D.gid_domain(gid));
         }
 
-        // Each cell group contains 1 cell of kind cable1d_neuron
+        // Each cell group contains 1 cell of kind cable
         // Each group should also be tagged for cpu execution
         auto grps = make_span(num_cells);
         std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
@@ -200,7 +256,7 @@ TEST(domain_decomposition, heterogenous_population)
             EXPECT_EQ(grp.backend, backend_kind::multicore);
         }
 
-        for (auto k: {cell_kind::cable1d_neuron, cell_kind::spike_source}) {
+        for (auto k: {cell_kind::cable, cell_kind::spike_source}) {
             const auto& gids = kind_lists[k];
             EXPECT_EQ(gids.size(), num_cells/2);
             for (auto gid: gids) {
@@ -220,8 +276,8 @@ TEST(domain_decomposition, hints) {
     auto ctx = make_context();
 
     partition_hint_map hints;
-    hints[cell_kind::cable1d_neuron].cpu_group_size = 3;
-    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+    hints[cell_kind::cable].cpu_group_size = 3;
+    hints[cell_kind::cable].prefer_gpu = false;
     hints[cell_kind::spike_source].cpu_group_size = 4;
 
     domain_decomposition D = partition_load_balance(
@@ -238,9 +294,9 @@ TEST(domain_decomposition, hints) {
     std::vector<std::vector<cell_gid_type>> c1d_groups, ss_groups;
 
     for (auto& g: D.groups) {
-        EXPECT_TRUE(g.kind==cell_kind::cable1d_neuron || g.kind==cell_kind::spike_source);
+        EXPECT_TRUE(g.kind==cell_kind::cable || g.kind==cell_kind::spike_source);
 
-        if (g.kind==cell_kind::cable1d_neuron) {
+        if (g.kind==cell_kind::cable) {
             c1d_groups.push_back(g.gids);
         }
         else if (g.kind==cell_kind::spike_source) {
@@ -250,4 +306,50 @@ TEST(domain_decomposition, hints) {
 
     EXPECT_EQ(expected_c1d_groups, c1d_groups);
     EXPECT_EQ(expected_ss_groups, ss_groups);
+}
+
+TEST(domain_decomposition, compulsory_groups)
+{
+    proc_allocation resources;
+    resources.num_threads = 1;
+    resources.gpu_id = -1; // disable GPU if available
+    auto ctx = make_context(resources);
+
+    auto R = gap_recipe();
+    const auto D0 = partition_load_balance(R, ctx);
+    EXPECT_EQ(9u, D0.groups.size());
+
+    std::vector<std::vector<cell_gid_type>> expected_groups0 =
+            { {1}, {5}, {6}, {10}, {12}, {14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+
+    for (unsigned i = 0; i < 9u; i++) {
+        EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
+    }
+
+    // Test different group_hints
+    partition_hint_map hints;
+    hints[cell_kind::cable].cpu_group_size = 3;
+    hints[cell_kind::cable].prefer_gpu = false;
+
+    const auto D1 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(5u, D1.groups.size());
+
+    std::vector<std::vector<cell_gid_type>> expected_groups1 =
+            { {1, 5, 6}, {10, 12, 14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+
+    for (unsigned i = 0; i < 5u; i++) {
+        EXPECT_EQ(expected_groups1[i], D1.groups[i].gids);
+    }
+
+    hints[cell_kind::cable].cpu_group_size = 20;
+    hints[cell_kind::cable].prefer_gpu = false;
+
+    const auto D2 = partition_load_balance(R, ctx, hints);
+    EXPECT_EQ(1u, D2.groups.size());
+
+    std::vector<cell_gid_type> expected_groups2 =
+            { 1, 5, 6, 10, 12, 14, 0, 13, 2, 7, 11, 3, 4, 8, 9 };
+
+    EXPECT_EQ(expected_groups2, D2.groups[0].gids);
+
 }

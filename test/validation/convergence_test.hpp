@@ -159,7 +159,7 @@ public:
  * Extract time points to exclude from current stimulus end-points.
  */
 
-inline std::vector<float> stimulus_ends(const mc_cell& c) {
+inline std::vector<float> stimulus_ends(const cable_cell& c) {
     std::vector<float> ts;
 
     for (const auto& stimulus: c.stimuli()) {
