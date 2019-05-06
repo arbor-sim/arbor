@@ -38,6 +38,36 @@ Some key features include:
     * An API for addition of new cell types, e.g. LIF and Poisson spike generators.
     * Validation tests against numeric/analytic models and NEURON.
 
+Citing Arbor
+------------
+
+.. |DOI-v0.1| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459679.svg
+     :target: https://doi.org/10.5281/zenodo.1459679
+
+.. |DOI-v0.2| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2583709.svg
+    :target: https://doi.org/10.5281/zenodo.2583709
+
+Specific versions of Arbor can be cited via Zenodo:
+
+   * v0.2:  |DOI-v0.2|
+   * v0.1:  |DOI-v0.1|
+
+The following BibTeX can be used to cite Arbor:
+
+.. code-block:: latex
+
+    @INPROCEEDINGS{
+        paper:arbor2019,
+        author={N. A. {Akar} and B. {Cumming} and V. {Karakasis} and A. {Küsters} and W. {Klijn} and A. {Peyser} and S. {Yates}},
+        booktitle={2019 27th Euromicro International Conference on Parallel, Distributed and Network-Based Processing (PDP)},
+        title={{Arbor --- A Morphologically-Detailed Neural Network Simulation Library for Contemporary High-Performance Computing Architectures}},
+        year={2019}, month={feb}, volume={}, number={},
+        pages={274--282},
+        doi={10.1109/EMPDP.2019.8671560},
+        ISSN={2377-5750}}
+
+Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
+
 .. toctree::
    :caption: Getting Stared:
 
