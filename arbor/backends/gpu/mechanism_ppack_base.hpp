@@ -35,6 +35,7 @@ struct mechanism_ppack_base {
     const value_type* vec_dt_;
     const value_type* vec_v_;
     value_type* vec_i_;
+    value_type* vec_g_;
     const value_type* temperature_degC_;
 
     const index_type* node_index_;

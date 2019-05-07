@@ -76,6 +76,7 @@ void mechanism::instantiate(unsigned id,
 
     pp->vec_v_    = shared.voltage.data();
     pp->vec_i_    = shared.current_density.data();
+    pp->vec_g_    = shared.conductivity.data();
 
     pp->temperature_degC_ = shared.temperature_degC.data();
 

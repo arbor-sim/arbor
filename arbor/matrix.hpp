@@ -67,8 +67,8 @@ public:
     }
 
     /// Assemble the matrix for given dt
-    void assemble(const array& dt_cell, const array& voltage, const array& current) {
-        state_.assemble(dt_cell, voltage, current);
+    void assemble(const array& dt_cell, const array& voltage, const array& current, const array& conductivity) {
+        state_.assemble(dt_cell, voltage, current, conductivity);
     }
 
     /// Get a view of the solution

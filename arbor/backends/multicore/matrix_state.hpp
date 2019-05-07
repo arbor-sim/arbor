@@ -74,10 +74,11 @@ public:
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
-    //   dt_intdom       [ms]     (per integration domain)
-    //   voltage         [mV]     (per compartment)
-    //   current density [A.m^-2] (per compartment)
-    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
+    //   dt_intdom       [ms]      (per integration domain)
+    //   voltage         [mV]      (per control volume)
+    //   current density [A.m^-2]  (per control volume)
+    //   conductivity    [kS.m^-2] (per control volume)
+    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         const index_type ncells = cell_cv_part.size();
 
@@ -86,13 +87,15 @@ public:
             auto dt = dt_intdom[cell_to_intdom[m]];
 
             if (dt>0) {
-                value_type factor = 1e-3/dt;
+                value_type oodt_factor = 1e-3/dt; // [1/µs]
                 for (auto i: util::make_span(cell_cv_part[m])) {
-                    auto gi = factor*cv_capacitance[i];
+                    auto area_factor = 1e-3*cv_area[i]; // [1e-9·m²]
+
+                    auto gi = oodt_factor*cv_capacitance[i] + area_factor*conductivity[i]; // [μS]
 
                     d[i] = gi + invariant_d[i];
                     // convert current to units nA
-                    rhs[i] = gi*voltage[i] - 1e-3*cv_area[i]*current[i];
+                    rhs[i] = gi*voltage[i] - area_factor*current[i];
                 }
             }
             else {

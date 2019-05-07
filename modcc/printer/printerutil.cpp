@@ -129,6 +129,9 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     case sourceKind::current:
         data_var="vec_i_";
         break;
+    case sourceKind::conductivity:
+        data_var="vec_g_";
+        break;
     case sourceKind::dt:
         data_var="vec_dt_";
         break;

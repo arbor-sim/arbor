@@ -123,10 +123,10 @@ TEST(matrix, assemble)
     auto dt_dist = std::uniform_real_distribution<T>(0.1, 0.2);
     std::generate(dt.begin(), dt.end(), [&](){return dt_dist(gen);});
 
-    // Voltage and current values
-    m_mc.assemble(host_array(dt.begin(), dt.end()), host_array(group_size, -64), host_array(group_size, 10));
+    // Voltage, current, and conductance values
+    m_mc.assemble(host_array(dt.begin(), dt.end()), host_array(group_size, -64), host_array(group_size, 10), host_array(group_size, 3));
     m_mc.solve();
-    m_gpu.assemble(on_gpu(dt), gpu_array(group_size, -64), gpu_array(group_size, 10));
+    m_gpu.assemble(on_gpu(dt), gpu_array(group_size, -64), gpu_array(group_size, 10), gpu_array(group_size, 3));
     m_gpu.solve();
 
     // Compare the GPU and CPU results.

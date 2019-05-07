@@ -46,6 +46,7 @@ enum class ionKind {
 enum class sourceKind {
     voltage,
     current,
+    conductivity,
     dt,
     ion_current,
     ion_revpot,

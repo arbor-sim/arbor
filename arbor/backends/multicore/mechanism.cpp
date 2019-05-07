@@ -78,6 +78,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
 
     vec_v_    = shared.voltage.data();
     vec_i_    = shared.current_density.data();
+    vec_g_    = shared.conductivity.data();
 
     temperature_degC_ = &shared.temperature_degC;
 
