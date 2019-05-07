@@ -1,15 +1,14 @@
 #include <iostream>
-
 #include <sstream>
 #include <string>
 
 #include <arbor/context.hpp>
 #include <arbor/version.hpp>
 
+#include <pybind11/pybind11.h>
+
 #include "context.hpp"
 #include "strings.hpp"
-
-#include <pybind11/pybind11.h>
 
 #ifdef ARB_MPI_ENABLED
 #include "mpi.hpp"
