@@ -270,8 +270,8 @@ TEST(matrix, backends)
 
     auto group_size = cell_cv_divs.back();
 
-    // Build the capacitance and conductance vectors and
-    // populate with nonzero random values
+    // Build the capacitance, (axial) conductance, voltage, current density,
+    // and membrane conductance vectors. Populate them with nonzero random values.
     auto gen  = std::mt19937();
     gen.seed(100);
     auto dist = std::uniform_real_distribution<T>(1, 200);
@@ -280,12 +280,14 @@ TEST(matrix, backends)
     std::vector<T> g(group_size);
     std::vector<T> v(group_size);
     std::vector<T> i(group_size);
+    std::vector<T> mg(group_size);
     std::vector<T> area(group_size, 1e3);
 
     std::generate(Cm.begin(), Cm.end(), [&](){return dist(gen);});
     std::generate(g.begin(), g.end(), [&](){return dist(gen);});
     std::generate(v.begin(), v.end(), [&](){return dist(gen);});
     std::generate(i.begin(), i.end(), [&](){return dist(gen);});
+    std::generate(mg.begin(), mg.end(), [&](){return dist(gen);});
 
     // Make the reference matrix and the gpu matrix
     auto flat = state_flat(p, cell_cv_divs, Cm, g, area, cell_to_intdom); // flat
@@ -298,14 +300,15 @@ TEST(matrix, backends)
     auto dt_dist = std::uniform_real_distribution<T>(0.01, 0.02);
     std::generate(dt.begin(), dt.end(), [&](){return dt_dist(gen);});
 
-    // Voltage and current values.
+    // Voltage, current, and membrane conductance values.
     auto gpu_dt = on_gpu(dt);
     auto gpu_v = on_gpu(v);
     auto gpu_i = on_gpu(i);
+    auto gpu_mg = on_gpu(mg);
 
-    flat.assemble(gpu_dt, gpu_v, gpu_i);
-    intl.assemble(gpu_dt, gpu_v, gpu_i);
-    fine.assemble(gpu_dt, gpu_v, gpu_i);
+    flat.assemble(gpu_dt, gpu_v, gpu_i, gpu_mg);
+    intl.assemble(gpu_dt, gpu_v, gpu_i, gpu_mg);
+    fine.assemble(gpu_dt, gpu_v, gpu_i, gpu_mg);
 
     flat.solve();
     intl.solve();

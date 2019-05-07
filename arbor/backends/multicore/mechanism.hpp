@@ -79,6 +79,7 @@ protected:
     const value_type* vec_dt_;    // CV to integration time step.
     const value_type* vec_v_;     // CV to cell membrane voltage.
     value_type* vec_i_;           // CV to cell membrane current density.
+    value_type* vec_g_;           // CV to cell membrane conductivity.
     const value_type* temperature_degC_; // Pointer to global temperature scalar.
     deliverable_event_stream* event_stream_ptr_;
 
