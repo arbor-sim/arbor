@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <arbor/arbexcept.hpp>
 #include <arbor/util/optional.hpp>
 
 #include <pybind11/pybind11.h>
@@ -18,18 +17,16 @@ namespace pybind11 { namespace detail {
 
 namespace pyarb {
 
-using arb::arbor_exception;
-
 // Python wrapper errors
 
-struct python_error: arbor_exception {
-    explicit python_error(const std::string& message);
+struct pyarb_error: std::runtime_error {
+    pyarb_error(const std::string& what_msg):
+        std::runtime_error(what_msg) {}
 };
 
-template <typename T, typename F>
-T&& assert_predicate(T&& t, F&& f, const char* msg) {
-    if (!f(t)) throw std::runtime_error(msg);
-    return std::forward<T>(t);
+static
+void assert_throw(bool pred, const char* msg) {
+    if (!pred) throw pyarb_error(msg);
 }
 
 } // namespace pyarb

@@ -10,48 +10,56 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
-#include "exception.hpp"
+#include "conversion.hpp"
+#include "error.hpp"
 
 namespace pyarb {
+
+auto is_nonneg = [](auto&& t){ return t>=0.; };
 
 // A Python shim that holds the information that describes an
 // arb::regular_schedule. This is wrapped in pybind11, and users constructing
 // a regular_schedule in python are manipulating this type. This is converted to
 // an arb::regular_schedule when a C++ recipe is created from a Python recipe.
-
-auto is_nonneg = [](auto&& t){ return t>=0.; };
-
 struct regular_schedule_shim {
     using time_type = arb::time_type;
     using opt_time_type = arb::util::optional<time_type>;
-    time_type default_tstart = arb::terminal_time;
-    time_type default_dt = 0.;
-    time_type default_tstop = arb::terminal_time;
 
-    time_type tstart, dt, tstop;
+    opt_time_type tstart = {};
+    opt_time_type tstop = {};
+    time_type dt = 0;
+
+    regular_schedule_shim() = default;
+
+    regular_schedule_shim(pybind11::object t0, time_type deltat, pybind11::object t1) {
+        set_tstart(t0);
+        set_tstop(t1);
+        set_dt(deltat);
+    }
 
     // getter and setter (in order to assert when being set)
-    void set_tstart(const opt_time_type t0) {
-        tstart = pyarb::assert_predicate(t0.value_or(default_tstart), is_nonneg, "tstart must be None, or a non-negative number.");
+    void set_tstart(pybind11::object t) {
+        tstart = py2optional<time_type>(t, is_nonneg,
+                        "tstart must a non-negative number, or None.");
     };
-    void set_tstop(const opt_time_type t1) {
-        tstop = pyarb::assert_predicate(t1.value_or(default_tstop), is_nonneg, "tstop must be None, or a non-negative number.");
+    void set_tstop(pybind11::object t) {
+        tstop = py2optional<time_type>(t, is_nonneg,
+                        "tstop must a non-negative number, or None.");
     };
-    void set_dt(const time_type deltat) {
-        dt = pyarb::assert_predicate(deltat, is_nonneg, "dt must be a non-negative number.");
+    void set_dt(time_type delta_t) {
+        pyarb::assert_throw(is_nonneg(delta_t), "dt must be a non-negative number.");
+        dt = delta_t;
     };
-    const time_type get_tstart() const { return tstart; }
-    const time_type get_tstop()  const { return tstop; }
-    const time_type get_dt()     const { return dt; }
 
-    regular_schedule_shim(opt_time_type t0, time_type deltat, opt_time_type t1):
-        tstart(pyarb::assert_predicate(t0.value_or(default_tstart), is_nonneg, "tstart must be None, or a non-negative number.")),
-        dt(    pyarb::assert_predicate(deltat,                      is_nonneg, "dt must be a non-negative number.")),
-        tstop( pyarb::assert_predicate(t1.value_or(default_tstop),  is_nonneg, "tstop must be None, or a non-negative number."))
-        {}
+    opt_time_type get_tstart() const { return tstart; }
+    opt_time_type get_dt()     const { return dt; }
+    opt_time_type get_tstop()  const { return tstop; }
 
     arb::schedule schedule() const {
-        return arb::regular_schedule(tstart, dt, tstop);
+        return arb::regular_schedule(
+                tstart.value_or(arb::terminal_time),
+                dt,
+                tstop.value_or(arb::terminal_time));
     }
 
 };
@@ -64,27 +72,29 @@ struct regular_schedule_shim {
 struct explicit_schedule_shim {
     using time_type = arb::time_type;
 
-    std::list<time_type> times;
+    std::vector<time_type> times;
 
-    explicit_schedule_shim(std::list<time_type> l) {
-        for (auto& t: l) {
-            times.push_back(pyarb::assert_predicate(t, is_nonneg, "time must be a non-negative number."));
-        }
+    explicit_schedule_shim() = default;
 
-        // Sort the times in ascending order if necessary
-        if (!std::is_sorted(times.begin(), times.end())) {
-            times.sort();
-        }
-
+    explicit_schedule_shim(std::vector<time_type> t) {
+        set_times(t);
     }
 
     // getter and setter (in order to assert when being set)
-    void set_times(const std::list<time_type> t0) {
-        for (auto& t: t0) {
-            times.push_back(pyarb::assert_predicate(t, is_nonneg, "time must be a non-negative number."));
+    void set_times(std::vector<time_type> t) {
+        times = std::move(t);
+        // Sort the times in ascending order if necessary
+        if (!std::is_sorted(times.begin(), times.end())) {
+            std::sort(times.begin(), times.end());
+        }
+        // Assert that there are no negative times
+        if (times.size()) {
+            pyarb::assert_throw(is_nonneg(times[0]),
+                    "explicit time schedule can not contain negative values.");
         }
     };
-    const std::list<time_type> get_times() const { return times; }
+
+    std::vector<time_type> get_times() const { return times; }
 
     arb::schedule schedule() const {
         return arb::explicit_schedule(times);
@@ -100,22 +110,28 @@ struct poisson_schedule_shim {
     using rng_type = std::mt19937_64;
     using time_type = arb::time_type;
 
-    time_type tstart = 0.;
+    time_type tstart = arb::terminal_time;
     time_type freq = 10.;
     rng_type::result_type seed = 0;
 
-    poisson_schedule_shim(time_type t0, time_type frequency, rng_type::result_type seeding):
-        tstart(pyarb::assert_predicate(t0, is_nonneg, "tstart must be a non-negative number.")),
-        freq(pyarb::assert_predicate(frequency, is_nonneg, "freq must be a non-negative number.")),
-        seed(seeding)
-    {}
+    poisson_schedule_shim() = default;
 
-    void set_tstart(const time_type t0) {
-        tstart = pyarb::assert_predicate(t0, is_nonneg, "tstart must be a non-negative number.");
+    poisson_schedule_shim(time_type ts, time_type f, rng_type::result_type s) {
+        set_tstart(ts);
+        set_freq(f);
+        seed = s;
+    }
+
+    void set_tstart(time_type t) {
+        pyarb::assert_throw(is_nonneg(t), "tstart must be a non-negative number.");
+        tstart = t;
     };
-    void set_freq(const time_type f) {
-        freq = pyarb::assert_predicate(f, is_nonneg, "freq must be a non-negative number.");
+
+    void set_freq(time_type f) {
+        pyarb::assert_throw(is_nonneg(f), "frequency must be a non-negative number.");
+        freq = f;
     };
+
     const time_type get_tstart() const { return tstart; }
     const time_type get_freq() const { return freq; }
 
@@ -125,33 +141,36 @@ struct poisson_schedule_shim {
     }
 };
 
+// Helper template for printing C++ optional types in Python.
+// Prints either the value, or None if optional value is not set.
+template <typename T>
+std::string to_string(const arb::util::optional<T>& o) {
+    if (!o) return "None";
+
+    std::stringstream s;
+    s << *o;
+    return s.str();
+}
+
 std::string schedule_regular_string(const regular_schedule_shim& r) {
     std::stringstream s;
-    s << "<regular_schedule: tstart ";
-    if (r.tstart == arb::terminal_time) {
-        s << "None";
-    }
-    else
-        s << r.tstart << " ms";
-    s << ", dt " << r.dt << " ms"
-    << ", tstop ";
-    if (r.tstop == arb::terminal_time) {
-        s << "None";
-    }
-    else
-        s << r.tstop << " ms";
-    s << ">";
+    s << "<regular_schedule: "
+      << "tstart " << to_string(r.tstart) << "ms, "
+      << "dt " << r.dt << " ms, "
+      << "tstop " << to_string(r.tstop) << " ms>";
     return s.str();
 };
 
 std::string schedule_explicit_string(const explicit_schedule_shim& e) {
     std::stringstream s;
     s << "<explicit_schedule: times [";
-    std::list<arb::time_type>::const_iterator it = e.times.begin();
+    bool first = true;
     for (auto t: e.times) {
+        if (!first) {
+            first = false;
+            s << " ";
+        }
         s << t;
-        ++it;
-        if (it != e.times.end()) s << " ";
     }
     s << "] ms>";
     return s.str();
@@ -189,20 +208,18 @@ event_generator_shim make_event_generator(
 void register_event_generators(pybind11::module& m) {
     using namespace pybind11::literals;
     using time_type = arb::time_type;
-    using opt_time_type = arb::util::optional<time_type>;
 
-// Common schedules
     // Regular schedule
     pybind11::class_<regular_schedule_shim> regular_schedule(m, "regular_schedule",
         "Describes a regular schedule with multiples of dt within the interval [tstart, tstop).");
 
     regular_schedule
-        .def(pybind11::init<opt_time_type, time_type, opt_time_type>(),
+        .def(pybind11::init<pybind11::object, time_type, pybind11::object>(),
             "tstart"_a = pybind11::none(), "dt"_a = 0., "tstop"_a = pybind11::none(),
             "Construct a regular schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence (in ms, default None [terminal time]).\n"
+            "  tstart: The delivery time of the first event in the sequence (in ms, default None).\n"
             "  dt:     The interval between time points (in ms, default 0).\n"
-            "  tstop:  No events delivered after this time (in ms, default None [terminal time]).")
+            "  tstop:  No events delivered after this time (in ms, default None).")
         .def_property("tstart", &regular_schedule_shim::get_tstart, &regular_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence (in ms).")
         .def_property("tstop", &regular_schedule_shim::get_tstop, &regular_schedule_shim::set_tstop,
@@ -217,8 +234,10 @@ void register_event_generators(pybind11::module& m) {
         "Describes an explicit schedule at a predetermined (sorted) sequence of times.");
 
     explicit_schedule
-        .def(pybind11::init<std::list<time_type>>(),
-            "times"_a = pybind11::list(),
+        .def(pybind11::init<>(),
+            "Construct an empty explicit schedule.\n")
+        .def(pybind11::init<std::vector<time_type>>(),
+            "times"_a,
             "Construct an explicit schedule with argument:\n"
             "  times: A list of times (in ms, default []).")
         .def_property("times", &explicit_schedule_shim::get_times, &explicit_schedule_shim::set_times,
