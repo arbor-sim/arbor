@@ -15,7 +15,9 @@
 
 namespace pyarb {
 
+namespace {
 auto is_nonneg = [](auto&& t){ return t>=0.; };
+}
 
 // A Python shim that holds the information that describes an
 // arb::regular_schedule. This is wrapped in pybind11, and users constructing
@@ -39,12 +41,10 @@ struct regular_schedule_shim {
 
     // getter and setter (in order to assert when being set)
     void set_tstart(pybind11::object t) {
-        tstart = py2optional<time_type>(t, is_nonneg,
-                        "tstart must a non-negative number, or None.");
+        tstart = py2optional<time_type>(t, "tstart must a non-negative number, or None.", is_nonneg);
     };
     void set_tstop(pybind11::object t) {
-        tstop = py2optional<time_type>(t, is_nonneg,
-                        "tstop must a non-negative number, or None.");
+        tstop = py2optional<time_type>(t, "tstop must a non-negative number, or None.", is_nonneg);
     };
     void set_dt(time_type delta_t) {
         pyarb::assert_throw(is_nonneg(delta_t), "dt must be a non-negative number.");
