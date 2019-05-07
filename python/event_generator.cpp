@@ -144,20 +144,20 @@ struct poisson_schedule_shim {
 // Helper template for printing C++ optional types in Python.
 // Prints either the value, or None if optional value is not set.
 template <typename T>
-std::string to_string(const arb::util::optional<T>& o) {
+std::string to_string(const arb::util::optional<T>& o, std::string unit) {
     if (!o) return "None";
 
     std::stringstream s;
-    s << *o;
+    s << *o << " " << unit;
     return s.str();
 }
 
 std::string schedule_regular_string(const regular_schedule_shim& r) {
     std::stringstream s;
     s << "<regular_schedule: "
-      << "tstart " << to_string(r.tstart) << "ms, "
+      << "tstart " << to_string(r.tstart, "ms") << ", "
       << "dt " << r.dt << " ms, "
-      << "tstop " << to_string(r.tstop) << " ms>";
+      << "tstop " << to_string(r.tstop, "ms") << ">";
     return s.str();
 };
 
@@ -167,10 +167,10 @@ std::string schedule_explicit_string(const explicit_schedule_shim& e) {
     bool first = true;
     for (auto t: e.times) {
         if (!first) {
-            first = false;
             s << " ";
         }
         s << t;
+        first = false;
     }
     s << "] ms>";
     return s.str();
