@@ -1,11 +1,19 @@
-#include <string>
 #include <sstream>
+#include <string>
 
+#include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 
 #include "strings.hpp"
 
 namespace pyarb {
+
+std::string cell_member_string(const arb::cell_member_type& m) {
+    std::stringstream s;
+    s << "<cell_member: gid " << m.gid
+      << ", index " << m.index << ">";
+    return s.str();
+}
 
 std::string context_string(const arb::context& c) {
     std::stringstream s;
