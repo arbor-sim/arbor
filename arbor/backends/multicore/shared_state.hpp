@@ -14,7 +14,6 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
-#include "event_queue.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 

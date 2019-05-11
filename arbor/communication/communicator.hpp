@@ -17,7 +17,6 @@
 #include "communication/gathered_vector.hpp"
 #include "connection.hpp"
 #include "distributed_context.hpp"
-#include "event_queue.hpp"
 #include "execution_context.hpp"
 #include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
