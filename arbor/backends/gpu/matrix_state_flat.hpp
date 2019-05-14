@@ -27,6 +27,7 @@ void assemble_matrix_flat(
     const fvm_value_type* invariant_d,
     const fvm_value_type* voltage,
     const fvm_value_type* current,
+    const fvm_value_type* conductivity,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* cv_area,
     const fvm_index_type* cv_to_cell,
@@ -123,11 +124,11 @@ struct matrix_state_flat {
     //   dt_intdom [ms] (per integration domain)
     //   voltage   [mV]
     //   current   [nA]
-    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
+    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductance) {
         // perform assembly on the gpu
         assemble_matrix_flat(
             d.data(), rhs.data(), invariant_d.data(), voltage.data(),
-            current.data(), cv_capacitance.data(), cv_area.data(),
+            current.data(), conductance.data(), cv_capacitance.data(), cv_area.data(),
             cv_to_cell.data(), dt_intdom.data(), cell_to_intdom.data(), size());
     }
 

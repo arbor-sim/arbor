@@ -66,18 +66,19 @@ struct ion_state {
 
 struct shared_state {
     fvm_size_type n_intdom = 0; // Number of distinct integration domains.
-    fvm_size_type n_cv = 0;   // Total number of CVs.
-    fvm_size_type n_gj = 0;   // Total number of GJs.
+    fvm_size_type n_cv = 0;  // Total number of CVs.
+    fvm_size_type n_gj = 0;  // Total number of GJs.
 
-    iarray cv_to_intdom;        // Maps CV index to intdom index.
-    gjarray  gap_junctions;   // Stores gap_junction info.
-    array  time;              // Maps intdom index to integration start time [ms].
-    array  time_to;           // Maps intdom index to integration stop time [ms].
-    array  dt_intdom;         // Maps intdom index to (stop time) - (start time) [ms].
-    array  dt_cv;             // Maps CV index to dt [ms].
-    array  voltage;           // Maps CV index to membrane voltage [mV].
-    array  current_density;   // Maps CV index to current density [A/m²].
-    array  temperature_degC;  // Global temperature [°C] (length 1 array).
+    iarray cv_to_intdom;     // Maps CV index to intdom index.
+    gjarray gap_junctions;   // Stores gap_junction info.
+    array time;              // Maps intdom index to integration start time [ms].
+    array time_to;           // Maps intdom index to integration stop time [ms].
+    array dt_intdom;         // Maps intdom index to (stop time) - (start time) [ms].
+    array dt_cv;             // Maps CV index to dt [ms].
+    array voltage;           // Maps CV index to membrane voltage [mV].
+    array current_density;   // Maps CV index to current density [A/m²].
+    array conductivity;      // Maps CV index to membrane conductivity [kS/m²].
+    array temperature_degC;  // Global temperature [°C] (length 1 array).
 
     std::unordered_map<ionKind, ion_state> ion_data;
 

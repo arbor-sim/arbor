@@ -126,6 +126,7 @@ shared_state::shared_state(
     dt_cv(n_cv),
     voltage(n_cv),
     current_density(n_cv),
+    conductivity(n_cv),
     temperature_degC(1),
     deliverable_events(n_intdom)
 {}
@@ -144,6 +145,7 @@ void shared_state::add_ion(
 void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperature_K) {
     memory::fill(voltage, initial_voltage);
     memory::fill(current_density, 0);
+    memory::fill(conductivity, 0);
     memory::fill(time, 0);
     memory::fill(time_to, 0);
     memory::fill(temperature_degC, temperature_K - 273.15);
@@ -155,6 +157,7 @@ void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperat
 
 void shared_state::zero_currents() {
     memory::fill(current_density, 0);
+    memory::fill(conductivity, 0);
     for (auto& i: ion_data) {
         i.second.zero_current();
     }
@@ -205,6 +208,7 @@ std::ostream& operator<<(std::ostream& o, shared_state& s) {
     o << " dt_cv      " << s.dt_cv << "\n";
     o << " voltage    " << s.voltage << "\n";
     o << " current    " << s.current_density << "\n";
+    o << " conductivity " << s.conductivity << "\n";
     for (auto& ki: s.ion_data) {
         auto kn = to_string(ki.first);
         auto& i = const_cast<ion_state&>(ki.second);

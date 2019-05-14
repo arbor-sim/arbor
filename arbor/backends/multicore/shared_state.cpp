@@ -133,6 +133,7 @@ shared_state::shared_state(
     dt_cv(n_cv, pad(alignment)),
     voltage(n_cv, pad(alignment)),
     current_density(n_cv, pad(alignment)),
+    conductivity(n_cv, pad(alignment)),
     temperature_degC(NAN),
     deliverable_events(n_intdom)
 {
@@ -161,6 +162,7 @@ void shared_state::add_ion(
 void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperature_K) {
     util::fill(voltage, initial_voltage);
     util::fill(current_density, 0);
+    util::fill(conductivity, 0);
     util::fill(time, 0);
     util::fill(time_to, 0);
     temperature_degC = temperature_K - 273.15;
@@ -172,6 +174,7 @@ void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperat
 
 void shared_state::zero_currents() {
     util::fill(current_density, 0);
+    util::fill(conductivity, 0);
     for (auto& i: ion_data) {
         i.second.zero_current();
     }
@@ -262,6 +265,7 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     out << "dt_cv      " << csv(s.dt_cv) << "\n";
     out << "voltage    " << csv(s.voltage) << "\n";
     out << "current    " << csv(s.current_density) << "\n";
+    out << "conductivity " << csv(s.conductivity) << "\n";
     for (auto& ki: s.ion_data) {
         auto kn = to_string(ki.first);
         auto& i = const_cast<ion_state&>(ki.second);

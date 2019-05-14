@@ -20,7 +20,7 @@ all tests for non-distributed arb.context
 """
 
 class Contexts(unittest.TestCase):
-    def test_default(self):
+    def test_default_context(self):
         ctx = arb.context()
 
     def test_resources(self):
