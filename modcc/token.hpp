@@ -59,7 +59,7 @@ enum class tok {
     // keywoards inside blocks
     unitsoff, unitson,
     suffix, nonspecific_current, useion,
-    read, write,
+    read, write, valence,
     range, local, conserve,
     solve, method,
     threadsafe, global,

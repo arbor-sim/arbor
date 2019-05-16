@@ -35,6 +35,27 @@ bool Parser::expect(tok tok, std::string const& str) {
     return false;
 }
 
+void Parser::parse_unit() {
+    if(token_.type == tok::lparen) {
+        get_token(); // consume '('
+
+        // Take care of empty paranthesis
+        if (token_.type == tok::rparen) {
+            get_token(); // consume ')'
+            return;
+        }
+
+        get_token(); // consume first part of unit
+        if (token_.type == tok::divide) { // unit may be of the form 1/unit
+            get_token(); // consume / part of unit
+            get_token(); // consume second part of the unit
+        }
+
+        expect(tok::rparen);
+        get_token(); // consume ')'
+    }
+}
+
 void Parser::error(std::string msg) {
     std::string location_info = pprintf(
             "%:% ", module_ ? module_->source_name() : "", token_.location);
@@ -228,6 +249,7 @@ void Parser::parse_neuron_block() {
     // to handle the case of an empty block {}
     get_token();
     while(token_.type!=tok::rbrace) {
+        //std::cout << " - " << std::endl;
         switch(token_.type) {
             case tok::threadsafe :
                 neuron_block.threadsafe = true;
@@ -317,6 +339,13 @@ void Parser::parse_neuron_block() {
                             target.push_back(id);
                         }
                     }
+
+                    if(token_.type == tok::valence) {
+                        //Consume "Valence"
+                        get_token();
+                        ion.valence == value_literal();
+                    }
+
                     // add the ion dependency to the NEURON block
                     neuron_block.ions.push_back(std::move(ion));
                 }
@@ -716,10 +745,14 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
         get_token(); // consume the identifier
 
         // look for a comma
-        if(!(token_.type == tok::comma || token_.type==tok::rparen)) {
+        if(!(token_.type == tok::comma || token_.type==tok::rparen || token_.type==tok::lparen)) {
             error(  "expected a comma or closing parenthesis, found '"
                   + yellow(token_.spelling) + "'");
             return nullptr;
+        }
+
+        if(token_.type == tok::lparen) {
+            parse_unit();
         }
 
         if(token_.type == tok::comma) {
@@ -838,6 +871,8 @@ symbol_ptr Parser::parse_function() {
     // parse the prototype
     auto p = parse_prototype();
     if(p==nullptr) return nullptr;
+
+    parse_unit();
 
     // check for opening left brace {
     if(!expect(tok::lbrace)) return nullptr;
