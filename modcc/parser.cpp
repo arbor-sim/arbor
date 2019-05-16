@@ -146,6 +146,12 @@ bool Parser::parse() {
                 module_->add_callable(std::move(f));
                 }
                 break;
+            case tok::unitson :
+                get_token();
+                break;
+            case tok::unitsoff :
+                get_token();
+                break;
             default :
                 error(pprintf("expected block type, found '%'", token_.spelling));
                 break;
