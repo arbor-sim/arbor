@@ -37,21 +37,9 @@ bool Parser::expect(tok tok, std::string const& str) {
 
 void Parser::parse_unit() {
     if(token_.type == tok::lparen) {
-        get_token(); // consume '('
-
-        // Take care of empty paranthesis
-        if (token_.type == tok::rparen) {
-            get_token(); // consume ')'
-            return;
+        while (token_.type != tok::rparen) {
+            get_token();
         }
-
-        get_token(); // consume first part of unit
-        if (token_.type == tok::divide) { // unit may be of the form 1/unit
-            get_token(); // consume / part of unit
-            get_token(); // consume second part of the unit
-        }
-
-        expect(tok::rparen);
         get_token(); // consume ')'
     }
 }
@@ -749,15 +737,13 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
 
         get_token(); // consume the identifier
 
+        parse_unit(); // consume the unit if provided
+
         // look for a comma
-        if(!(token_.type == tok::comma || token_.type==tok::rparen || token_.type==tok::lparen)) {
+        if(!(token_.type == tok::comma || token_.type==tok::rparen)) {
             error(  "expected a comma or closing parenthesis, found '"
                   + yellow(token_.spelling) + "'");
             return nullptr;
-        }
-
-        if(token_.type == tok::lparen) {
-            parse_unit();
         }
 
         if(token_.type == tok::comma) {
