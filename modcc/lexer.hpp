@@ -67,7 +67,6 @@ public:
 
     void get_token() {
         token_ = parse();
-        //std::cout << token_.spelling << std::endl;
     }
 
     // return the next token in the stream without advancing the current position

@@ -255,7 +255,6 @@ void Parser::parse_neuron_block() {
     // to handle the case of an empty block {}
     get_token();
     while(token_.type!=tok::rbrace) {
-        //std::cout << " - " << std::endl;
         switch(token_.type) {
             case tok::threadsafe :
                 neuron_block.threadsafe = true;
