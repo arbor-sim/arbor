@@ -17,6 +17,7 @@ struct IonDep {
     std::string name;         // name of ion channel
     std::vector<Token> read;  // name of channels parameters to write
     std::vector<Token> write; // name of channels parameters to read
+    std::string valence;
 
     bool has_variable(std::string const& name) const {
         return writes_variable(name) || reads_variable(name);

@@ -35,6 +35,15 @@ bool Parser::expect(tok tok, std::string const& str) {
     return false;
 }
 
+void Parser::parse_unit() {
+    if(token_.type == tok::lparen) {
+        while (token_.type != tok::rparen) {
+            get_token();
+        }
+        get_token(); // consume ')'
+    }
+}
+
 void Parser::error(std::string msg) {
     std::string location_info = pprintf(
             "%:% ", module_ ? module_->source_name() : "", token_.location);
@@ -124,6 +133,12 @@ bool Parser::parse() {
                 if(!f) break;
                 module_->add_callable(std::move(f));
                 }
+                break;
+            case tok::unitson :
+                get_token();
+                break;
+            case tok::unitsoff :
+                get_token();
                 break;
             default :
                 error(pprintf("expected block type, found '%'", token_.spelling));
@@ -317,6 +332,13 @@ void Parser::parse_neuron_block() {
                             target.push_back(id);
                         }
                     }
+
+                    if(token_.type == tok::valence) {
+                        //Consume "Valence"
+                        get_token();
+                        ion.valence == value_literal();
+                    }
+
                     // add the ion dependency to the NEURON block
                     neuron_block.ions.push_back(std::move(ion));
                 }
@@ -715,6 +737,8 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
 
         get_token(); // consume the identifier
 
+        parse_unit(); // consume the unit if provided
+
         // look for a comma
         if(!(token_.type == tok::comma || token_.type==tok::rparen)) {
             error(  "expected a comma or closing parenthesis, found '"
@@ -838,6 +862,8 @@ symbol_ptr Parser::parse_function() {
     // parse the prototype
     auto p = parse_prototype();
     if(p==nullptr) return nullptr;
+
+    parse_unit();
 
     // check for opening left brace {
     if(!expect(tok::lbrace)) return nullptr;

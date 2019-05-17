@@ -590,7 +590,11 @@ void Module::add_variables_to_symbols() {
         VariableExpression* state = nullptr;
         if (has_symbol(name)) {
             state = symbols_[name].get()->is_variable();
-            if (!state || !state->is_state()) {
+            if (!state) {
+                error(pprintf("the symbol defined % can't be redeclared", yellow(name)), tkn.location);
+                return;
+            }
+            if (!state->is_state()) {
                 error(pprintf("the symbol defined % at % can't be redeclared",
                     state->location(), yellow(name)), tkn.location);
                 return;
