@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <arbor/fvm_types.hpp>
-#include <arbor/ion.hpp>
+#include <arbor/ion_info.hpp>
 
 #include "backends/gpu/gpu_store_types.hpp"
 
@@ -80,7 +80,7 @@ struct shared_state {
     array conductivity;      // Maps CV index to membrane conductivity [kS/m²].
     array temperature_degC;  // Global temperature [°C] (length 1 array).
 
-    std::unordered_map<ionKind, ion_state> ion_data;
+    std::unordered_map<std::string, ion_state> ion_data;
 
     deliverable_event_stream deliverable_events;
 
@@ -94,6 +94,7 @@ struct shared_state {
     );
 
     void add_ion(
+        const std::string& ion_name,
         ion_info info,
         const std::vector<fvm_index_type>& cv,
         const std::vector<fvm_value_type>& iconc_norm_area,

@@ -306,10 +306,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     // Record for each stimulus the CV and clamp data.
     std::vector<std::pair<size_type, i_clamp>> stimuli;
 
-    // Temporary table for presence of ion channels, mapping ionKind to _sorted_
+    // Temporary table for presence of ion channels, mapping ion name to _sorted_
     // collection of segment indices.
 
-    std::unordered_map<ionKind, std::set<size_type>> ion_segments;
+    std::unordered_map<std::string, std::set<size_type>> ion_segments;
 
     auto update_paramset_and_validate =
         [&catalogue]

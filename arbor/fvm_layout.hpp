@@ -133,8 +133,8 @@ struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
 
-    // Ion config, indexed by ionKind.
-    std::unordered_map<ionKind, fvm_ion_config> ions;
+    // Ion config, indexed by ion name.
+    std::unordered_map<std::string, fvm_ion_config> ions;
 
     // Total number of targets (point-mechanism points)
     std::size_t ntarget = 0;
