@@ -118,7 +118,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     std::string index_var = "node_index_";
 
     if (sym->is_ion()) {
-        ion_pfx = "ion_"+to_string(sym->ion_channel())+"_";
+        ion_pfx = "ion_"+sym->ion_channel()+"_";
         index_var = ion_pfx+"index_";
     }
 

@@ -455,8 +455,8 @@ public:
     void range(rangeKind r) {
         range_kind_ = r;
     }
-    void ion_channel(ionKind i) {
-        ion_channel_ = i;
+    void ion_channel(std::string i) {
+        ion_channel_ = std::move(i);
     }
     void state(bool s) {
         is_state_ = s;
@@ -474,7 +474,7 @@ public:
     linkageKind linkage() const {
         return linkage_;
     }
-    ionKind ion_channel() const {
+    const std::string& ion_channel() const {
         return ion_channel_;
     }
 
@@ -482,7 +482,7 @@ public:
         return shadows_;
     }
 
-    bool is_ion()       const {return ion_channel_ != ionKind::none;}
+    bool is_ion()       const {return !ion_channel_.empty();}
     bool is_state()     const {return is_state_;}
     bool is_range()     const {return range_kind_  == rangeKind::range;}
     bool is_scalar()    const {return !is_range();}
@@ -507,7 +507,7 @@ protected:
     visibilityKind visibility_  = visibilityKind::local;
     linkageKind    linkage_     = linkageKind::external;
     rangeKind      range_kind_  = rangeKind::range;
-    ionKind        ion_channel_ = ionKind::none;
+    std::string    ion_channel_ = "";
     double         value_       = std::numeric_limits<double>::quiet_NaN();
     Symbol*        shadows_     = nullptr;
 };
@@ -521,11 +521,11 @@ public:
                     sourceKind data_source,
                     accessKind acc,
                     tok o=tok::eq,
-                    ionKind channel=ionKind::none)
+                    std::string channel="")
     :   Symbol(std::move(loc), std::move(lookup_name), symbolKind::indexed_variable),
         access_(acc),
-        ion_channel_(channel),
-        index_name_(index_name), // (TODO: deprecate/remove this...)
+        ion_channel_(std::move(channel)),
+        index_name_(std::move(index_name)), // (TODO: deprecate/remove this...)
         data_source_(data_source),
         op_(o)
     {
@@ -558,12 +558,12 @@ public:
     std::string to_string() const override;
 
     accessKind access() const { return access_; }
-    ionKind ion_channel() const { return ion_channel_; }
+    std::string ion_channel() const { return ion_channel_; }
     sourceKind data_source() const { return data_source_; }
     std::string const& index_name() const { return index_name_; }
     tok op() const { return op_; }
 
-    bool is_ion()   const { return ion_channel_ != ionKind::none; }
+    bool is_ion()   const { return !ion_channel_.empty(); }
     bool is_read()  const { return access_ == accessKind::read;   }
     bool is_write() const { return access_ == accessKind::write;  }
 
@@ -573,7 +573,7 @@ public:
     ~IndexedVariable() {}
 protected:
     accessKind  access_;
-    ionKind     ion_channel_;
+    std::string ion_channel_;
     std::string index_name_; // hint to printer only
     sourceKind  data_source_;
     tok op_;
@@ -597,12 +597,11 @@ public :
     }
 
     bool is_indexed() const {
-        return external_!=nullptr && ion_channel()!=ionKind::nonspecific;
+        return external_!=nullptr;
     }
 
-    ionKind ion_channel() const {
-        if(external_) return external_->ion_channel();
-        return ionKind::none;
+    std::string ion_channel() const {
+        return external_? external_->ion_channel(): "";
     }
 
     bool is_read() const {
@@ -695,20 +694,20 @@ public:
     ConductanceExpression(
             Location loc,
             std::string name,
-            ionKind channel)
-    :   Expression(loc), name_(std::move(name)), ion_channel_(channel)
+            std::string channel)
+    :   Expression(loc), name_(std::move(name)), ion_channel_(std::move(channel))
     {}
 
     std::string to_string() const override {
         return blue("conductance") + "(" + yellow(name_) + ", "
-            + green(::to_string(ion_channel_)) + ")";
+            + green(ion_channel_.empty()? "none": ion_channel_) + ")";
     }
 
     std::string const& name() const {
         return name_;
     }
 
-    ionKind ion_channel() const {
+    std::string const& ion_channel() const {
         return ion_channel_;
     }
 
@@ -725,7 +724,7 @@ public:
 private:
     /// pointer to the variable symbol for the state variable to be solved for
     std::string name_;
-    ionKind ion_channel_;
+    std::string ion_channel_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

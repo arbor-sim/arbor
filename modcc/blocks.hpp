@@ -11,9 +11,6 @@
 
 // describes a relationship with an ion channel
 struct IonDep {
-    ionKind kind() const {
-        return to_ionKind(name);
-    }
     std::string name;         // name of ion channel
     std::vector<Token> read;  // name of channels parameters to write
     std::vector<Token> write; // name of channels parameters to read
@@ -39,6 +36,9 @@ struct IonDep {
     };
     bool writes_concentration_ext() const {
         return writes_variable(name+"o");
+    };
+    bool writes_rev_potential() const {
+        return writes_variable("e"+name);
     };
 
     bool reads_variable(const std::string& name) const {
