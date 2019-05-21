@@ -53,7 +53,7 @@ class Contexts_arbmpi(unittest.TestCase):
         ctx = arb.context(mpi=comm)
         self.assertTrue(ctx.has_mpi)
 
-    def test_context_alloc_arbmpi(self):
+    def test_context_allocation_arbmpi(self):
         comm = arb.mpi_comm()
 
         # test context with alloc and mpi

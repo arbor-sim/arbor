@@ -28,7 +28,7 @@ class Contexts(unittest.TestCase):
         self.assertEqual(alloc.gpu_id, None)
         self.assertFalse(alloc.has_gpu)
 
-    def test_set_alloc(self):
+    def test_set_allocation(self):
         alloc = arb.proc_allocation()
 
         # test changing allocation
@@ -40,7 +40,7 @@ class Contexts(unittest.TestCase):
         alloc.gpu_id = None
         self.assertFalse(alloc.has_gpu)
 
-    def test_exceptions_alloc(self):
+    def test_exceptions_allocation(self):
         with self.assertRaisesRegex(RuntimeError,
             "gpu id must be None, or a non-negative integer."):
             arb.proc_allocation(gpu_id = 1.)
@@ -53,8 +53,8 @@ class Contexts(unittest.TestCase):
         with self.assertRaises(TypeError):
             arb.proc_allocation(threads = 1.)
         with self.assertRaisesRegex(RuntimeError,
-            "threads must be a non-negative integer."):
-             arb.proc_allocation(threads = -1)
+            "threads must be a positive integer."):
+             arb.proc_allocation(threads = 0)
         with self.assertRaises(TypeError):
             arb.proc_allocation(threads = None)
 
@@ -77,7 +77,7 @@ class Contexts(unittest.TestCase):
         self.assertEqual(ctx.ranks, 1)
         self.assertEqual(ctx.rank, 0)
 
-    def test_context_alloc(self):
+    def test_context_allocation(self):
         alloc = arb.proc_allocation()
 
         # test context construction with proc_allocation()

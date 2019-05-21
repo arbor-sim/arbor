@@ -46,7 +46,7 @@ class Contexts_mpi4py(unittest.TestCase):
         ctx = arb.context(mpi=comm)
         self.assertTrue(ctx.has_mpi)
 
-    def test_context_alloc_mpi4py(self):
+    def test_context_allocation_mpi4py(self):
         comm = arb.mpi_comm_from_mpi4py(mpi.COMM_WORLD)
 
         # test context with alloc and mpi
