@@ -9,8 +9,8 @@
 
 #include "error.hpp"
 #include "identifier.hpp"
-#include "memop.hpp"
 #include "scope.hpp"
+#include "token.hpp"
 
 #include "io/pprintf.hpp"
 
@@ -560,6 +560,7 @@ public:
     accessKind access() const { return access_; }
     std::string ion_channel() const { return ion_channel_; }
     sourceKind data_source() const { return data_source_; }
+    void data_source(sourceKind k) { data_source_ = k; }
     std::string const& index_name() const { return index_name_; }
     tok op() const { return op_; }
 
@@ -597,7 +598,7 @@ public :
     }
 
     bool is_indexed() const {
-        return external_!=nullptr;
+        return external_!=nullptr && external_->data_source()!=sourceKind::no_source;
     }
 
     std::string ion_channel() const {
@@ -1040,8 +1041,6 @@ protected:
 
 class APIMethod : public ProcedureExpression {
 public:
-    using memop_type = MemOp<Symbol>;
-
     APIMethod( Location loc,
                std::string name,
                std::vector<expression_ptr>&& args,

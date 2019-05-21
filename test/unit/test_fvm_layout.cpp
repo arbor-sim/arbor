@@ -324,12 +324,12 @@ TEST(fvm_layout, mech_index) {
     // There should be a K and Na ion channel associated with each
     // hh mechanism node.
 
-    ASSERT_EQ(1u, M.ions.count(ionKind::na));
-    ASSERT_EQ(1u, M.ions.count(ionKind::k));
-    EXPECT_EQ(0u, M.ions.count(ionKind::ca));
+    ASSERT_EQ(1u, M.ions.count("na"s));
+    ASSERT_EQ(1u, M.ions.count("k"s));
+    EXPECT_EQ(0u, M.ions.count("ca"s));
 
-    EXPECT_EQ(ivec({0,5}), M.ions.at(ionKind::na).cv);
-    EXPECT_EQ(ivec({0,5}), M.ions.at(ionKind::k).cv);
+    EXPECT_EQ(ivec({0,5}), M.ions.at("na"s).cv);
+    EXPECT_EQ(ivec({0,5}), M.ions.at("k"s).cv);
 }
 
 TEST(fvm_layout, coalescing_synapses) {
@@ -755,8 +755,8 @@ TEST(fvm_layout, ion_weights) {
         fvm_discretization D = fvm_discretize(cells);
         fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
 
-        ASSERT_EQ(1u, M.ions.count(ionKind::ca));
-        auto& ca = M.ions.at(ionKind::ca);
+        ASSERT_EQ(1u, M.ions.count("ca"s));
+        auto& ca = M.ions.at("ca"s);
 
         EXPECT_EQ(expected_ion_cv[run], ca.cv);
         EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(expected_iconc_norm_area[run], ca.iconc_norm_area));

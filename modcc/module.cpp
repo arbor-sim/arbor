@@ -88,10 +88,18 @@ public:
 
         sourceKind current_source = current_update(e);
         if (current_source != sourceKind::no_source) {
+            has_current_update_ = true;
+
             if (current_source==sourceKind::ion_current) {
                 ion_current_vars_.insert(e->lhs()->is_identifier()->name());
             }
-            has_current_update_ = true;
+            else {
+                // A 'nonspecific' current contribution.
+                // Remove data source; currents accumulated into `current_` instead.
+
+                e->lhs()->is_identifier()->symbol()->is_local_variable()
+                    ->external_variable()->data_source(sourceKind::no_source);
+            }
 
             linear_test_result L = linear_test(e->rhs(), {"v"});
             if (!L.is_linear) {
@@ -615,7 +623,12 @@ void Module::add_variables_to_symbols() {
         }
     };
 
-    // check for nonspecific current
+    // Nonspecific current variables are represented by an indexed variable
+    // with a 'current' data source. Assignments in the NrnCurrent block will
+    // later be rewritten so that these contributions are accumulated in `current_`
+    // (potentially saving some weight multiplications); at that point the
+    // data source for the nonspecific current variable will be reset to 'no_source'.
+
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
         create_indexed_variable(i.spelling, "", sourceKind::current, tok::plus, accessKind::write, "", i.location);
