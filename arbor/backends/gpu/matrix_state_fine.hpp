@@ -149,9 +149,6 @@ public:
 
         max_branches_per_level = 128;
 
-        // for now we have single cell per cell group
-        arb_assert(cell_cv_divs.size()==2);
-
         num_cells = cell_cv_divs.size()-1;
 
         forest trees(p, cell_cv_divs);
