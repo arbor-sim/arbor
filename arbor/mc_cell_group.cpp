@@ -11,7 +11,6 @@
 #include "backends/event.hpp"
 #include "cell_group.hpp"
 #include "event_binner.hpp"
-#include "event_queue.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "mc_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
