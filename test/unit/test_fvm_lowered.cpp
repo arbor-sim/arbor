@@ -58,7 +58,7 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, const std::string& name) {
 
 using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
 using mechanism_field_table = std::vector<std::pair<const char*, arb::fvm_value_type**>>;
-using mechanism_ion_index_table = std::vector<std::pair<arb::ionKind, backend::iarray*>>;
+using mechanism_ion_index_table = std::vector<std::pair<const char*, backend::iarray*>>;
 
 ACCESS_BIND(\
     mechanism_global_table (arb::multicore::mechanism::*)(),\
@@ -534,7 +534,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     fvcell.initialize({0}, cable1d_recipe(c), cell_to_intdom, targets, probe_map);
 
     auto& state = *(fvcell.*private_state_ptr).get();
-    auto& ion = state.ion_data.at(ionKind::ca);
+    auto& ion = state.ion_data.at("ca"s);
     ion.default_int_concentration = con_int;
     ion.default_ext_concentration = con_ext;
     ion.init_concentration();
@@ -553,7 +553,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 
-    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_index_table_ptr)(), ionKind::ca);
+    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_index_table_ptr)(), "ca"s);
     ASSERT_TRUE(opt_ca_index_ptr);
     auto& test_ca_ca_index = *opt_ca_index_ptr.value();
 

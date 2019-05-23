@@ -8,6 +8,7 @@
 #include "error.hpp"
 #include "expression.hpp"
 #include "symdiff.hpp"
+#include "util.hpp"
 #include "visitor.hpp"
 
 class FindIdentifierVisitor: public Visitor {

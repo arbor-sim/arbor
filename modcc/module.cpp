@@ -26,15 +26,20 @@ class NrnCurrentRewriter: public BlockRewriterBase {
         return id(name, loc_);
     }
 
-    static ionKind is_ion_update(Expression* e) {
+    static sourceKind current_update(Expression* e) {
         if(auto a = e->is_assignment()) {
             if(auto sym = a->lhs()->is_identifier()->symbol()) {
                 if(auto var = sym->is_local_variable()) {
-                    return var->ion_channel();
+                    if(auto ext = var->external_variable()) {
+                        sourceKind src = ext->data_source();
+                        if (src==sourceKind::current || src==sourceKind::ion_current) {
+                            return src;
+                        }
+                    }
                 }
             }
         }
-        return ionKind::none;
+        return sourceKind::no_source;
     }
 
     bool has_current_update_ = false;
@@ -81,12 +86,20 @@ public:
         statements_.push_back(e->clone());
         auto loc = e->location();
 
-        auto update_kind = is_ion_update(e);
-        if (update_kind!=ionKind::none) {
-            if (update_kind!=ionKind::nonspecific) {
+        sourceKind current_source = current_update(e);
+        if (current_source != sourceKind::no_source) {
+            has_current_update_ = true;
+
+            if (current_source==sourceKind::ion_current) {
                 ion_current_vars_.insert(e->lhs()->is_identifier()->name());
             }
-            has_current_update_ = true;
+            else {
+                // A 'nonspecific' current contribution.
+                // Remove data source; currents accumulated into `current_` instead.
+
+                e->lhs()->is_identifier()->symbol()->is_local_variable()
+                    ->external_variable()->data_source(sourceKind::no_source);
+            }
 
             linear_test_result L = linear_test(e->rhs(), {"v"});
             if (!L.is_linear) {
@@ -497,7 +510,7 @@ void Module::add_variables_to_symbols() {
     // add indexed variables to the table
     auto create_indexed_variable = [this]
         (std::string const& name, std::string const& indexed_name, sourceKind data_source,
-         tok op, accessKind acc, ionKind ch, Location loc) -> symbol_ptr&
+         tok op, accessKind acc, std::string ch, Location loc) -> symbol_ptr&
     {
         if(symbols_.count(name)) {
             throw compiler_exception(
@@ -508,13 +521,13 @@ void Module::add_variables_to_symbols() {
     };
 
     create_indexed_variable("current_", "vec_i", sourceKind::current, tok::plus,
-                            accessKind::write, ionKind::none, Location());
+                            accessKind::write, "", Location());
     create_indexed_variable("conductivity_", "vec_g", sourceKind::conductivity, tok::plus,
-                            accessKind::write, ionKind::none, Location());
+                            accessKind::write, "", Location());
     create_indexed_variable("v", "vec_v", sourceKind::voltage, tok::eq,
-                            accessKind::read,  ionKind::none, Location());
+                            accessKind::read,  "", Location());
     create_indexed_variable("dt", "vec_dt", sourceKind::dt, tok::eq,
-                            accessKind::read,  ionKind::none, Location());
+                            accessKind::read,  "", Location());
 
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
@@ -537,7 +550,7 @@ void Module::add_variables_to_symbols() {
 
         if (id.name() == "celsius") {
             create_indexed_variable("celsius", "celsius",
-                sourceKind::temperature, tok::eq, accessKind::read, ionKind::none, Location());
+                sourceKind::temperature, tok::eq, accessKind::read, "", Location());
         }
         else {
             // Parameters are scalar by default, but may later be changed to range.
@@ -575,7 +588,7 @@ void Module::add_variables_to_symbols() {
     // first the ION channels
     // add ion channel variables
     auto update_ion_symbols = [this, create_indexed_variable]
-            (Token const& tkn, accessKind acc, ionKind channel)
+            (Token const& tkn, accessKind acc, const std::string& channel)
     {
         std::string name = tkn.spelling;
         sourceKind data_source = ion_source(channel, name);
@@ -610,18 +623,23 @@ void Module::add_variables_to_symbols() {
         }
     };
 
-    // check for nonspecific current
+    // Nonspecific current variables are represented by an indexed variable
+    // with a 'current' data source. Assignments in the NrnCurrent block will
+    // later be rewritten so that these contributions are accumulated in `current_`
+    // (potentially saving some weight multiplications); at that point the
+    // data source for the nonspecific current variable will be reset to 'no_source'.
+
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
-        update_ion_symbols(i, accessKind::write, ionKind::nonspecific);
+        create_indexed_variable(i.spelling, "", sourceKind::current, tok::plus, accessKind::write, "", i.location);
     }
 
     for(auto const& ion : neuron_block_.ions) {
         for(auto const& var : ion.read) {
-            update_ion_symbols(var, accessKind::read, ion.kind());
+            update_ion_symbols(var, accessKind::read, ion.name);
         }
         for(auto const& var : ion.write) {
-            update_ion_symbols(var, accessKind::write, ion.kind());
+            update_ion_symbols(var, accessKind::write, ion.name);
         }
     }
 

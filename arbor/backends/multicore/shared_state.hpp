@@ -10,7 +10,7 @@
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
-#include <arbor/ion.hpp>
+#include <arbor/ion_info.hpp>
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
@@ -42,15 +42,15 @@ namespace multicore {
 struct ion_state {
     unsigned alignment = 1; // Alignment and padding multiple.
 
-    iarray node_index_; // Instance to CV map.
-    array iX_;          // (nA) current
-    array eX_;          // (mV) reversal potential
-    array Xi_;          // (mM) internal concentration
-    array Xo_;          // (mM) external concentration
-    array weight_Xi_;   // (1) concentration weight internal
-    array weight_Xo_;   // (1) concentration weight external
+    iarray node_index_;     // Instance to CV map.
+    array iX_;              // (nA) current
+    array eX_;              // (mV) reversal potential
+    array Xi_;              // (mM) internal concentration
+    array Xo_;              // (mM) external concentration
+    array weight_Xi_;       // (1) concentration weight internal
+    array weight_Xo_;       // (1) concentration weight external
 
-    int charge;    // charge of ionic species
+    int charge;             // charge of ionic species
     fvm_value_type default_int_concentration; // (mM) default internal concentration
     fvm_value_type default_ext_concentration; // (mM) default external concentration
 
@@ -99,7 +99,7 @@ struct shared_state {
     array conductivity;       // Maps CV index to membrane conductivity [kS/m²].
     fvm_value_type temperature_degC;  // Global temperature [°C].
 
-    std::unordered_map<ionKind, ion_state> ion_data;
+    std::unordered_map<std::string, ion_state> ion_data;
 
     deliverable_event_stream deliverable_events;
 
@@ -113,6 +113,7 @@ struct shared_state {
     );
 
     void add_ion(
+        const std::string& ion_name,
         ion_info info,
         const std::vector<fvm_index_type>& cv,
         const std::vector<fvm_value_type>& iconc_norm_area,

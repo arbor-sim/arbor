@@ -265,8 +265,8 @@ std::string VariableExpression::to_string() const {
           + colorize("write", is_writeable() ? stringColor::green : stringColor::red) + ", "
           + colorize("read", is_readable() ? stringColor::green : stringColor::red)   + ", "
           + (is_range() ? "range" : "scalar")                 + ", "
-          + "ion" + colorize(::to_string(ion_channel()),
-                             (ion_channel()==ionKind::none) ? stringColor::red : stringColor::green) + ", "
+          + "ion" + (is_ion()? colorize(ion_channel(), stringColor::green)
+                             : colorize("none", stringColor::red)) + ", "
           + "vis "  + ::to_string(visibility()) + ", "
           + "link " + ::to_string(linkage())    + ", "
           + colorize("state", is_state() ? stringColor::green : stringColor::red) + ")";
@@ -278,11 +278,11 @@ std::string VariableExpression::to_string() const {
 *******************************************************************************/
 
 std::string IndexedVariable::to_string() const {
-    auto ch = ::to_string(ion_channel());
     return
         blue("indexed") + " " + yellow(name()) + "->" + yellow(index_name()) + "("
         + (is_write() ? " write-only" : " read-only")
-        + ", ion" + (ion_channel()==ionKind::none ? red(ch) : green(ch)) + ") ";
+        + ", ion" + (is_ion()? colorize(ion_channel(), stringColor::green)
+                             : colorize("none", stringColor::red)) + ") ";
 }
 
 /*******************************************************************************

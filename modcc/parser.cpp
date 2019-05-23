@@ -304,16 +304,10 @@ void Parser::parse_neuron_block() {
                     get_token();
                     // check this is an identifier token
                     if(token_.type != tok::identifier) {
-                        error(pprintf("invalid name for an ion chanel '%'",
-                                      token_.spelling));
+                        error(pprintf("invalid name for an ion chanel '%'", token_.spelling));
                         return;
                     }
-                    // check that the ion type is valid (insist on lower case?)
-                    if(!(token_.spelling == "k" || token_.spelling == "ca" || token_.spelling == "na")) {
-                        error(pprintf("invalid ion type % must be on eof 'k' 'ca' or 'na'",
-                                      yellow(token_.spelling)));
-                        return;
-                    }
+
                     ion.name = token_.spelling;
                     get_token(); // consume the ion name
 
@@ -1464,7 +1458,7 @@ expression_ptr Parser::parse_conductance() {
     int line = location_.line;
     Location loc = location_; // solve location for expression
     std::string name;
-    ionKind channel;
+    std::string channel;
 
     get_token(); // consume the CONDUCTANCE keyword
 
@@ -1473,20 +1467,11 @@ expression_ptr Parser::parse_conductance() {
     name = token_.spelling; // save name of variable
     get_token(); // consume the variable identifier
 
-    if(token_.type != tok::useion) { // no ion channel was provided
-        // we set nonspecific not none because ionKind::none marks
-        // any variable that is not associated with an ion channel
-        channel = ionKind::nonspecific;
-    }
-    else {
+    if(token_.type == tok::useion) {
         get_token(); // consume the USEION keyword
         if(token_.type!=tok::identifier) goto conductance_statement_error;
 
-        if     (token_.spelling == "na") channel = ionKind::Na;
-        else if(token_.spelling == "ca") channel = ionKind::Ca;
-        else if(token_.spelling == "k")  channel = ionKind::K;
-        else goto conductance_statement_error;
-
+        channel = token_.spelling;
         get_token(); // consume the ion channel type
     }
     // check that the rest of the line was empty
