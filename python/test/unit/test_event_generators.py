@@ -52,17 +52,17 @@ class RegularSchedule(unittest.TestCase):
     def test_exceptions_regular_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
             "tstart must a non-negative number, or None."):
-            arb.regular_schedule(tstart=-1.)
+            arb.regular_schedule(tstart = -1.)
         with self.assertRaisesRegex(RuntimeError,
             "dt must be a non-negative number."):
-            arb.regular_schedule(dt=-0.1)
+            arb.regular_schedule(dt = -0.1)
         with self.assertRaises(TypeError):
-            arb.regular_schedule(dt=None)
+            arb.regular_schedule(dt = None)
         with self.assertRaises(TypeError):
-            arb.regular_schedule(dt="dt")
+            arb.regular_schedule(dt = 'dt')
         with self.assertRaisesRegex(RuntimeError,
             "tstop must a non-negative number, or None."):
-            arb.regular_schedule(tstop='tstop')
+            arb.regular_schedule(tstop = 'tstop')
 
 class ExplicitSchedule(unittest.TestCase):
     def test_times_contor_explicit_schedule(self):
@@ -129,24 +129,24 @@ class PoissonSchedule(unittest.TestCase):
     def test_exceptions_poisson_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
             "tstart must be a non-negative number."):
-            arb.poisson_schedule(tstart=-10.)
+            arb.poisson_schedule(tstart = -10.)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(tstart=None)
+            arb.poisson_schedule(tstart = None)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(tstart="tstart")
+            arb.poisson_schedule(tstart = 'tstart')
         with self.assertRaisesRegex(RuntimeError,
             "frequency must be a non-negative number."):
-            arb.poisson_schedule(freq=-100.)
+            arb.poisson_schedule(freq = -100.)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(freq="freq")
+            arb.poisson_schedule(freq = 'freq')
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed=-1)
+            arb.poisson_schedule(seed = -1)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed=10.)
+            arb.poisson_schedule(seed = 10.)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed="seed")
+            arb.poisson_schedule(seed = 'seed')
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed=None)
+            arb.poisson_schedule(seed = None)
 
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from classes RegularSchedule, ExplicitSchedule and PoissonSchedule

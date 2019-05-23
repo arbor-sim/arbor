@@ -40,18 +40,38 @@ class Contexts_arbmpi(unittest.TestCase):
     def test_initialized_arbmpi(self):
         self.assertTrue(arb.mpi_is_initialized())
 
-    def test_context_arbmpi(self):
+    def test_communicator_arbmpi(self):
         comm = arb.mpi_comm()
 
         # test that by default communicator is MPI_COMM_WORLD
         self.assertEqual(str(comm), '<mpi_comm: MPI_COMM_WORLD>')
 
+    def test_context_arbmpi(self):
+        comm = arb.mpi_comm()
+
         # test context with mpi
+        ctx = arb.context(mpi=comm)
+        self.assertTrue(ctx.has_mpi)
+
+    def test_context_allocation_arbmpi(self):
+        comm = arb.mpi_comm()
+
+        # test context with alloc and mpi
         alloc = arb.proc_allocation()
         ctx = arb.context(alloc, comm)
 
         self.assertEqual(ctx.threads, alloc.threads)
         self.assertTrue(ctx.has_mpi)
+
+    def test_exceptions_context_arbmpi(self):
+        alloc = arb.proc_allocation()
+
+        with self.assertRaisesRegex(RuntimeError,
+            "mpi must be None, or an MPI communicator."):
+            arb.context(mpi='MPI_COMM_WORLD')
+        with self.assertRaisesRegex(RuntimeError,
+            "mpi must be None, or an MPI communicator."):
+            arb.context(alloc, mpi=0)
 
     def test_finalized_arbmpi(self):
         self.assertFalse(arb.mpi_is_finalized())
