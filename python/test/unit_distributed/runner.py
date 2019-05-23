@@ -54,7 +54,7 @@ if __name__ == "__main__":
         arb.mpi_init()
 
     if mpi4py_enabled:
-        comm = arb.mpi_comm_from_mpi4py(mpi.COMM_WORLD)
+        comm = arb.mpi_comm(mpi.COMM_WORLD)
     elif mpi_enabled:
         comm = arb.mpi_comm()
 
