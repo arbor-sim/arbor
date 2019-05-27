@@ -18,7 +18,6 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/ion.hpp>
 #include <arbor/recipe.hpp>
 
 #include "builtin_mechanisms.hpp"
@@ -237,7 +236,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Integrate voltage by matrix solve.
 
         PE(advance_integrate_matrix_build);
-        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density);
+        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
         PL();
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
@@ -404,10 +403,13 @@ void fvm_lowered_cell_impl<B>::initialize(
     // Instantiate mechanisms and ions.
 
     for (auto& i: mech_data.ions) {
-        ionKind kind = i.first;
+        const std::string& ion_name = i.first;
 
-        if (auto ion = value_by_key(global_props.ion_default, to_string(kind))) {
-            state_->add_ion(ion.value(), i.second.cv, i.second.iconc_norm_area, i.second.econc_norm_area);
+        if (auto ion = value_by_key(global_props.ion_default, ion_name)) {
+            state_->add_ion(ion_name, ion.value(), i.second.cv, i.second.iconc_norm_area, i.second.econc_norm_area);
+        }
+        else {
+            throw cable_cell_error("unrecognized ion '"+ion_name+"' in mechanism");
         }
     }
 

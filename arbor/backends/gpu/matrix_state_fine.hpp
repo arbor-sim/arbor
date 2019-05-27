@@ -149,9 +149,6 @@ public:
 
         max_branches_per_level = 128;
 
-        // for now we have single cell per cell group
-        arb_assert(cell_cv_divs.size()==2);
-
         num_cells = cell_cv_divs.size()-1;
 
         forest trees(p, cell_cv_divs);
@@ -437,17 +434,19 @@ public:
     }
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current
-    //   dt_intdom [ms] (per cell)
+    // Afterwards the diagonal and RHS will have been set given dt, voltage, current, and conductivity.
+    //   dt_intdom [ms] (per integration domain)
     //   voltage [mV]
-    //   current [nA]
-    void assemble(const_view dt_intdom, const_view voltage, const_view current) {
+    //   current density [A/m²]
+    //   conductivity [kS/m²]
+    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
         assemble_matrix_fine(
             d.data(),
             rhs.data(),
             invariant_d.data(),
             voltage.data(),
             current.data(),
+            conductivity.data(),
             cv_capacitance.data(),
             cv_area.data(),
             cv_to_cell.data(),

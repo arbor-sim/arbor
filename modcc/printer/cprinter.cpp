@@ -216,7 +216,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out <<
         "\n" << popindent <<
         "protected:\n" << indent <<
-        "using ionKind = ::arb::ionKind;\n\n"
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n";
 
     io::separator sep("\n", ",\n");
@@ -280,14 +279,14 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
         sep.reset();
         for (const auto& dep: ion_deps) {
-            out << sep << "{ionKind::" << dep.name << ", &" << ion_state_field(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &" << ion_state_field(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
 
         sep.reset();
         out << "mechanism_ion_index_table ion_index_table() override {\n" << indent << "return {" << indent;
         for (const auto& dep: ion_deps) {
-            out << sep << "{ionKind::" << dep.name << ", &" << ion_state_index(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &" << ion_state_index(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
     }

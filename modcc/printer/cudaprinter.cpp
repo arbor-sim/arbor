@@ -40,11 +40,11 @@ std::string make_ppack_name(const std::string& module_name) {
     return make_class_name(module_name)+"_pp_";
 }
 
-static std::string ion_state_field(std::string ion_name) {
+static std::string ion_state_field(const std::string& ion_name) {
     return "ion_"+ion_name+"_";
 }
 
-static std::string ion_state_index(std::string ion_name) {
+static std::string ion_state_index(const std::string& ion_name) {
     return "ion_"+ion_name+"_index_";
 }
 
@@ -117,7 +117,6 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
 
     out << popindent <<
         "protected:\n" << indent <<
-        "using ionKind = ::arb::ionKind;\n\n"
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n"
         "::arb::gpu::mechanism_ppack_base* ppack_ptr() { return &pp_; }\n\n";
 
@@ -183,14 +182,14 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
 
         sep.reset();
         for (const auto& dep: ion_deps) {
-            out << sep << "{ionKind::" << dep.name << ", &pp_." << ion_state_field(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &pp_." << ion_state_field(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
 
         sep.reset();
         out << "mechanism_ion_index_table ion_index_table() override {\n" << indent << "return {" << indent;
         for (const auto& dep: ion_deps) {
-            out << sep << "{ionKind::" << dep.name << ", &pp_." << ion_state_index(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &pp_." << ion_state_index(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
     }
@@ -394,6 +393,17 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
 
     if (!body->statements().empty()) {
         out << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
+        if (is_point_proc) {
+            // The run length information is only required if this method will
+            // update an indexed variable, like current or conductance.
+            // This is the case if one of the external variables "is_write".
+            auto it = std::find_if(indexed_vars.begin(), indexed_vars.end(),
+                      [](auto& sym){return sym->external_variable()->is_write();});
+            if (it!=indexed_vars.end()) {
+                out << "unsigned lane_mask_ = __ballot_sync(0xffffffff, tid_<n_);\n";
+            }
+        }
+
         out << "if (tid_<n_) {\n" << indent;
 
         for (auto& index: indices) {
@@ -445,7 +455,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         out << "arb::gpu::reduce_by_key(";
         is_minus && out << "-";
         out << from->name()
-            << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ");\n";
+            << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";
     }
     else {
         out << cuprint(external) << (is_minus? " -= ": " += ") << from->name() << ";\n";

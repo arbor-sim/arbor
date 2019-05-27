@@ -44,9 +44,10 @@ std::ostream& operator<<(std::ostream& out, const ion_dep_info& wrap) {
     const char* boolalpha[2] = {"false", "true"};
     const IonDep& ion = wrap.ion;
 
-    return out << "{ionKind::" << ion.name << ", {"
+    return out << "{\"" << ion.name << "\", {"
         << boolalpha[ion.writes_concentration_int()] << ", "
-        << boolalpha[ion.writes_concentration_ext()] << "}}";
+        << boolalpha[ion.writes_concentration_ext()] << ", "
+        << boolalpha[ion.writes_rev_potential()] << "}}";
 }
 
 std::string build_info_header(const Module& m, const printer_options& opt) {
@@ -73,7 +74,6 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         "\n"
         "inline const ::arb::mechanism_info& mechanism_" << name << "_info() {\n"
         << indent <<
-        "using ::arb::ionKind;\n"
         "using spec = ::arb::mechanism_field_spec;\n"
         "static mechanism_info info = {\n"
         << indent <<

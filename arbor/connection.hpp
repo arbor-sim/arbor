@@ -5,8 +5,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 
-#include "event_queue.hpp"
-
 namespace arb {
 
 class connection {

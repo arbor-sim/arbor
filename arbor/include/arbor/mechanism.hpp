@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <arbor/fvm_types.hpp>
-#include <arbor/ion.hpp>
 #include <arbor/mechinfo.hpp>
 
 namespace arb {

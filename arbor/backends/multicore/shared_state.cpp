@@ -10,7 +10,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
-#include <arbor/ion.hpp>
+#include <arbor/ion_info.hpp>
 #include <arbor/math.hpp>
 #include <arbor/simd/simd.hpp>
 
@@ -133,6 +133,7 @@ shared_state::shared_state(
     dt_cv(n_cv, pad(alignment)),
     voltage(n_cv, pad(alignment)),
     current_density(n_cv, pad(alignment)),
+    conductivity(n_cv, pad(alignment)),
     temperature_degC(NAN),
     deliverable_events(n_intdom)
 {
@@ -148,19 +149,21 @@ shared_state::shared_state(
 }
 
 void shared_state::add_ion(
+    const std::string& ion_name,
     ion_info info,
     const std::vector<fvm_index_type>& cv,
     const std::vector<fvm_value_type>& iconc_norm_area,
     const std::vector<fvm_value_type>& econc_norm_area)
 {
     ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(info.kind),
+        std::forward_as_tuple(ion_name),
         std::forward_as_tuple(info, cv, iconc_norm_area, econc_norm_area, alignment));
 }
 
 void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperature_K) {
     util::fill(voltage, initial_voltage);
     util::fill(current_density, 0);
+    util::fill(conductivity, 0);
     util::fill(time, 0);
     util::fill(time_to, 0);
     temperature_degC = temperature_K - 273.15;
@@ -172,6 +175,7 @@ void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperat
 
 void shared_state::zero_currents() {
     util::fill(current_density, 0);
+    util::fill(conductivity, 0);
     for (auto& i: ion_data) {
         i.second.zero_current();
     }
@@ -262,8 +266,9 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     out << "dt_cv      " << csv(s.dt_cv) << "\n";
     out << "voltage    " << csv(s.voltage) << "\n";
     out << "current    " << csv(s.current_density) << "\n";
-    for (auto& ki: s.ion_data) {
-        auto kn = to_string(ki.first);
+    out << "conductivity " << csv(s.conductivity) << "\n";
+    for (const auto& ki: s.ion_data) {
+        auto& kn = ki.first;
         auto& i = const_cast<ion_state&>(ki.second);
         out << kn << ".current_density        " << csv(i.iX_) << "\n";
         out << kn << ".reversal_potential     " << csv(i.eX_) << "\n";

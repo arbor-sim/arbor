@@ -118,7 +118,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     std::string index_var = "node_index_";
 
     if (sym->is_ion()) {
-        ion_pfx = "ion_"+to_string(sym->ion_channel())+"_";
+        ion_pfx = "ion_"+sym->ion_channel()+"_";
         index_var = ion_pfx+"index_";
     }
 
@@ -128,6 +128,9 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         break;
     case sourceKind::current:
         data_var="vec_i_";
+        break;
+    case sourceKind::conductivity:
+        data_var="vec_g_";
         break;
     case sourceKind::dt:
         data_var="vec_dt_";

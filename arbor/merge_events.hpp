@@ -6,7 +6,6 @@
 #include <arbor/event_generator.hpp>
 #include <arbor/spike_event.hpp>
 
-#include "event_queue.hpp"
 #include "profile/profiler_macro.hpp"
 #include "util/range.hpp"
 

@@ -99,10 +99,10 @@ protected:
     using field_default_entry = std::pair<const char*, value_type>;
     using mechanism_field_default_table = std::vector<field_default_entry>;
 
-    using ion_state_entry = std::pair<ionKind, ion_state_view*>;
+    using ion_state_entry = std::pair<const char*, ion_state_view*>;
     using mechanism_ion_state_table = std::vector<ion_state_entry>;
 
-    using ion_index_entry = std::pair<ionKind, const index_type**>;
+    using ion_index_entry = std::pair<const char*, const index_type**>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
     virtual void nrn_init() = 0;

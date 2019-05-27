@@ -79,6 +79,7 @@ protected:
     const value_type* vec_dt_;    // CV to integration time step.
     const value_type* vec_v_;     // CV to cell membrane voltage.
     value_type* vec_i_;           // CV to cell membrane current density.
+    value_type* vec_g_;           // CV to cell membrane conductivity.
     const value_type* temperature_degC_; // Pointer to global temperature scalar.
     deliverable_event_stream* event_stream_ptr_;
 
@@ -111,10 +112,10 @@ protected:
     using field_default_entry = std::pair<const char*, value_type>;
     using mechanism_field_default_table = std::vector<field_default_entry>;
 
-    using ion_state_entry = std::pair<ionKind, ion_state_view*>;
+    using ion_state_entry = std::pair<const char*, ion_state_view*>;
     using mechanism_ion_state_table = std::vector<ion_state_entry>;
 
-    using ion_index_entry = std::pair<ionKind, iarray*>;
+    using ion_index_entry = std::pair<const char*, iarray*>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
     virtual void nrn_init() = 0;
