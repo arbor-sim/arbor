@@ -92,15 +92,17 @@ protected:
 class cable1d_recipe: public simple_recipe_base {
 public:
     template <typename Seq>
-    explicit cable1d_recipe(const Seq& cells) {
+    explicit cable1d_recipe(const Seq& cells, bool coalesce = true) {
         for (const auto& c: cells) {
             cells_.emplace_back(c);
         }
+        cell_gprop_.coalesce_synapses = coalesce;
     }
 
-    explicit cable1d_recipe(const cable_cell& c) {
+    explicit cable1d_recipe(const cable_cell& c, bool coalesce = true) {
         cells_.reserve(1);
         cells_.emplace_back(c);
+        cell_gprop_.coalesce_synapses = coalesce;
     }
 
     cell_size_type num_cells() const override { return cells_.size(); }

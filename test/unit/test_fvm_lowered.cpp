@@ -263,34 +263,42 @@ TEST(fvm_lowered, target_handles) {
     std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell(context);
-    fvcell.initialize({0, 1}, cable1d_recipe(cells), cell_to_intdom, targets, probe_map);
+    auto test_target_handles = [&](fvm_cell& cell) {
+        mechanism *expsyn = find_mechanism(cell, "expsyn");
+        ASSERT_TRUE(expsyn);
+        mechanism *exp2syn = find_mechanism(cell, "exp2syn");
+        ASSERT_TRUE(exp2syn);
 
-    mechanism* expsyn = find_mechanism(fvcell, "expsyn");
-    ASSERT_TRUE(expsyn);
-    mechanism* exp2syn = find_mechanism(fvcell, "exp2syn");
-    ASSERT_TRUE(exp2syn);
+        unsigned expsyn_id = expsyn->mechanism_id();
+        unsigned exp2syn_id = exp2syn->mechanism_id();
 
-    unsigned expsyn_id = expsyn->mechanism_id();
-    unsigned exp2syn_id = exp2syn->mechanism_id();
+        EXPECT_EQ(4u, targets.size());
 
-    EXPECT_EQ(4u, targets.size());
+        EXPECT_EQ(expsyn_id, targets[0].mech_id);
+        EXPECT_EQ(1u, targets[0].mech_index);
+        EXPECT_EQ(0u, targets[0].intdom_index);
 
-    EXPECT_EQ(expsyn_id, targets[0].mech_id);
-    EXPECT_EQ(1u, targets[0].mech_index);
-    EXPECT_EQ(0u, targets[0].intdom_index);
+        EXPECT_EQ(expsyn_id, targets[1].mech_id);
+        EXPECT_EQ(0u, targets[1].mech_index);
+        EXPECT_EQ(0u, targets[1].intdom_index);
 
-    EXPECT_EQ(expsyn_id, targets[1].mech_id);
-    EXPECT_EQ(0u, targets[1].mech_index);
-    EXPECT_EQ(0u, targets[1].intdom_index);
+        EXPECT_EQ(exp2syn_id, targets[2].mech_id);
+        EXPECT_EQ(0u, targets[2].mech_index);
+        EXPECT_EQ(1u, targets[2].intdom_index);
 
-    EXPECT_EQ(exp2syn_id, targets[2].mech_id);
-    EXPECT_EQ(0u, targets[2].mech_index);
-    EXPECT_EQ(1u, targets[2].intdom_index);
+        EXPECT_EQ(expsyn_id, targets[3].mech_id);
+        EXPECT_EQ(2u, targets[3].mech_index);
+        EXPECT_EQ(1u, targets[3].intdom_index);
+    };
 
-    EXPECT_EQ(expsyn_id, targets[3].mech_id);
-    EXPECT_EQ(2u, targets[3].mech_index);
-    EXPECT_EQ(1u, targets[3].intdom_index);
+    fvm_cell fvcell0(context);
+    fvcell0.initialize({0, 1}, cable1d_recipe(cells, true), cell_to_intdom, targets, probe_map);
+    test_target_handles(fvcell0);
+
+    fvm_cell fvcell1(context);
+    fvcell1.initialize({0, 1}, cable1d_recipe(cells, false), cell_to_intdom, targets, probe_map);
+    test_target_handles(fvcell1);
+
 }
 
 TEST(fvm_lowered, stimulus) {
