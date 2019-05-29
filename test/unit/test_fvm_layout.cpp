@@ -352,6 +352,7 @@ TEST(fvm_layout, coalescing_synapses) {
 
     {
         cable_cell cell = make_cell_ball_and_stick();
+        bool coalesce_synapses = true;
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -360,7 +361,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.9}, "expsyn");
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 2, 3, 4}), expsyn_config.cv);
@@ -368,6 +369,7 @@ TEST(fvm_layout, coalescing_synapses) {
     }
     {
         cable_cell cell = make_cell_ball_and_stick();
+        bool coalesce_synapses = true;
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -376,7 +378,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.9}, "exp2syn");
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
@@ -385,6 +387,44 @@ TEST(fvm_layout, coalescing_synapses) {
         auto &exp2syn_config = M.mechanisms.at("exp2syn");
         EXPECT_EQ(ivec({2, 4}), exp2syn_config.cv);
         EXPECT_EQ(ivec({1, 1}), exp2syn_config.multiplicity);
+    }
+    {
+        cable_cell cell = make_cell_ball_and_stick();
+        bool coalesce_synapses = false;
+
+        // Add synapses of two varieties.
+        cell.add_synapse({1, 0.3}, "expsyn");
+        cell.add_synapse({1, 0.5}, "expsyn");
+        cell.add_synapse({1, 0.7}, "expsyn");
+        cell.add_synapse({1, 0.9}, "expsyn");
+
+        fvm_discretization D = fvm_discretize({cell});
+        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
+
+        auto &expsyn_config = M.mechanisms.at("expsyn");
+        EXPECT_EQ(ivec({1, 2, 3, 4}), expsyn_config.cv);
+        EXPECT_TRUE(expsyn_config.multiplicity.empty());
+    }
+    {
+        cable_cell cell = make_cell_ball_and_stick();
+        bool coalesce_synapses = false;
+
+        // Add synapses of two varieties.
+        cell.add_synapse({1, 0.3}, "expsyn");
+        cell.add_synapse({1, 0.5}, "exp2syn");
+        cell.add_synapse({1, 0.7}, "expsyn");
+        cell.add_synapse({1, 0.9}, "exp2syn");
+
+        fvm_discretization D = fvm_discretize({cell});
+        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
+
+        auto &expsyn_config = M.mechanisms.at("expsyn");
+        EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
+        EXPECT_TRUE(expsyn_config.multiplicity.empty());
+
+        auto &exp2syn_config = M.mechanisms.at("exp2syn");
+        EXPECT_EQ(ivec({2, 4}), exp2syn_config.cv);
+        EXPECT_TRUE(exp2syn_config.multiplicity.empty());
     }
     {
         cable_cell cell = make_cell_ball_and_stick();

@@ -441,9 +441,13 @@ void fvm_lowered_cell_impl<B>::initialize(
                 // (builtin stimulus, for example, has no targets)
 
                 if (!config.target.empty()) {
-                    for (auto j: make_span(multiplicity_part[i])) {
-                        target_handles[config.target[j]] = target_handle(mech_id, i, cv_to_intdom[cv]);
-                    }
+                    if(!config.multiplicity.empty()) {
+                        for (auto j: make_span(multiplicity_part[i])) {
+                            target_handles[config.target[j]] = target_handle(mech_id, i, cv_to_intdom[cv]);
+                        }
+                    } else {
+                        target_handles[config.target[i]] = target_handle(mech_id, i, cv_to_intdom[cv]);
+                    };
                 }
             }
         }
