@@ -7,7 +7,7 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
-#include <arbor/ion.hpp>
+#include <arbor/ion_info.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morphology.hpp>
 #include <arbor/segment.hpp>
@@ -81,11 +81,10 @@ struct cable_cell_global_properties {
     //
     // Defaults below chosen to match NEURON.
 
-    // Ion species currently limited to just "ca", "na", "k".
     std::unordered_map<std::string, ion_info> ion_default = {
-        {"ca", { ionKind::ca, 2, 5e-5, 2.  }},
-        {"na", { ionKind::na, 1, 10.,  140.}},
-        {"k",  { ionKind::k,  1, 54.4, 2.5 }}
+        {"ca", { 2, 5e-5, 2.  }},
+        {"na", { 1, 10.,  140.}},
+        {"k",  { 1, 54.4, 2.5 }}
     };
 
     double temperature_K = constant::hh_squid_temp; // [K]

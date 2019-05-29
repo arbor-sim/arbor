@@ -18,6 +18,13 @@ expression_ptr inline_function_call(Expression* e)
                 "can only inline functions with one statement", func->location()
             );
         }
+
+        if(body.front()->is_if()) {
+            throw compiler_exception(
+                    "can not inline functions with if statements", func->location()
+            );
+        }
+
         // assume that the function body is correctly formed, with the last
         // statement being an assignment expression
         auto last = body.front()->is_assignment();

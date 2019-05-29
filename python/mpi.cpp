@@ -20,19 +20,35 @@
 namespace pyarb {
 
 #ifdef ARB_MPI_ENABLED
+
+// Convert a Python object an MPI Communicator.
+// Used to construct mpi_comm_shim from arbitrary Python types.
+// Currently only supports mpi4py communicators, but could be extended to
+// other types.
+MPI_Comm convert_to_mpi_comm(pybind11::object o) {
 #ifdef ARB_WITH_MPI4PY
-
-mpi_comm_shim comm_from_mpi4py(pybind11::object& o) {
     import_mpi4py();
-
-    // If object is already a mpi4py communicator, return
     if (PyObject_TypeCheck(o.ptr(), &PyMPIComm_Type)) {
-        return mpi_comm_shim(*PyMPIComm_Get(o.ptr()));
+        return *PyMPIComm_Get(o.ptr());
     }
-    throw arb::mpi_error(MPI_ERR_OTHER, "The argument is not an mpi4py communicator");
+#endif
+    throw arb::mpi_error(MPI_ERR_OTHER, "Unable to convert to an MPI Communicatior.");
 }
 
+mpi_comm_shim::mpi_comm_shim(pybind11::object o) {
+    comm = convert_to_mpi_comm(o);
+}
+
+// Test if a Python object can be converted to an mpi_comm_shim.
+bool can_convert_to_mpi_comm(pybind11::object o) {
+#ifdef ARB_WITH_MPI4PY
+    import_mpi4py();
+    if (PyObject_TypeCheck(o.ptr(), &PyMPIComm_Type)) {
+        return true;
+    }
 #endif
+    return false;
+}
 
 // Some helper functions for initializing and finalizing MPI.
 // Arbor requires at least MPI_THREAD_SERIALIZED, because the communication task
@@ -83,6 +99,7 @@ void register_mpi(pybind11::module& m) {
     pybind11::class_<mpi_comm_shim> mpi_comm(m, "mpi_comm");
     mpi_comm
         .def(pybind11::init<>())
+        .def(pybind11::init([](pybind11::object o){return mpi_comm_shim(o);}))
         .def("__str__", &mpi_comm_string)
         .def("__repr__", &mpi_comm_string);
 
@@ -90,10 +107,6 @@ void register_mpi(pybind11::module& m) {
     m.def("mpi_finalize", &mpi_finalize, "Finalize MPI (calls MPI_Finalize)");
     m.def("mpi_is_initialized", &mpi_is_initialized, "Check if MPI is initialized.");
     m.def("mpi_is_finalized", &mpi_is_finalized, "Check if MPI is finalized.");
-
-    #ifdef ARB_WITH_MPI4PY
-    m.def("mpi_comm_from_mpi4py", comm_from_mpi4py);
-    #endif
 }
 #endif
 } // namespace pyarb

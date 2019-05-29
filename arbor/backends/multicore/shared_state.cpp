@@ -10,7 +10,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
-#include <arbor/ion.hpp>
+#include <arbor/ion_info.hpp>
 #include <arbor/math.hpp>
 #include <arbor/simd/simd.hpp>
 
@@ -149,13 +149,14 @@ shared_state::shared_state(
 }
 
 void shared_state::add_ion(
+    const std::string& ion_name,
     ion_info info,
     const std::vector<fvm_index_type>& cv,
     const std::vector<fvm_value_type>& iconc_norm_area,
     const std::vector<fvm_value_type>& econc_norm_area)
 {
     ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(info.kind),
+        std::forward_as_tuple(ion_name),
         std::forward_as_tuple(info, cv, iconc_norm_area, econc_norm_area, alignment));
 }
 
@@ -266,8 +267,8 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     out << "voltage    " << csv(s.voltage) << "\n";
     out << "current    " << csv(s.current_density) << "\n";
     out << "conductivity " << csv(s.conductivity) << "\n";
-    for (auto& ki: s.ion_data) {
-        auto kn = to_string(ki.first);
+    for (const auto& ki: s.ion_data) {
+        auto& kn = ki.first;
         auto& i = const_cast<ion_state&>(ki.second);
         out << kn << ".current_density        " << csv(i.iX_) << "\n";
         out << kn << ".reversal_potential     " << csv(i.eX_) << "\n";

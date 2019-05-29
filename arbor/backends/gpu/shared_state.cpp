@@ -3,7 +3,7 @@
 
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
-#include <arbor/ion.hpp>
+#include <arbor/ion_info.hpp>
 
 #include "backends/event.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
@@ -132,13 +132,14 @@ shared_state::shared_state(
 {}
 
 void shared_state::add_ion(
+    const std::string& ion_name,
     ion_info info,
     const std::vector<fvm_index_type>& cv,
     const std::vector<fvm_value_type>& iconc_norm_area,
     const std::vector<fvm_value_type>& econc_norm_area)
 {
     ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(info.kind),
+        std::forward_as_tuple(ion_name),
         std::forward_as_tuple(info, cv, iconc_norm_area, econc_norm_area, 1u));
 }
 
@@ -210,7 +211,7 @@ std::ostream& operator<<(std::ostream& o, shared_state& s) {
     o << " current    " << s.current_density << "\n";
     o << " conductivity " << s.conductivity << "\n";
     for (auto& ki: s.ion_data) {
-        auto kn = to_string(ki.first);
+        auto& kn = ki.first;
         auto& i = const_cast<ion_state&>(ki.second);
         o << " " << kn << ".current_density        " << i.iX_ << "\n";
         o << " " << kn << ".reversal_potential     " << i.eX_ << "\n";

@@ -12,7 +12,6 @@
 
 #include "epoch.hpp"
 #include "event_binner.hpp"
-#include "event_queue.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {

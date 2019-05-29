@@ -96,9 +96,10 @@ bool is_strictly_monotonic_decreasing(C const& c)
     );
 }
 
-// check if c[0] == 0 and c[i] < 0 holds for i != 0
-// this means that children of a node always have larger indices than their
-// parent
+// Check if c[0] == 0 and c[i] < 0 holds for i != 0
+// Also handle the valid case of c[0]==value_type(-1)
+// This means that children of a node always have larger indices than their
+// parent.
 template <
     typename C,
     typename = typename std::enable_if<std::is_integral<typename C::value_type>::value>
@@ -115,7 +116,7 @@ bool is_minimal_degree(C const& c)
     }
 
     using value_type = typename C::value_type;
-    if (c[0] != value_type(0)) {
+    if (!(c[0]==value_type(0) || c[0]==value_type(-1))) {
         return false;
     }
     auto i = value_type(1);
