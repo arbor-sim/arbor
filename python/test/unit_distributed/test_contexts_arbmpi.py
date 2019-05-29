@@ -67,10 +67,10 @@ class Contexts_arbmpi(unittest.TestCase):
         alloc = arb.proc_allocation()
 
         with self.assertRaisesRegex(RuntimeError,
-            "mpi must be None, or an MPI communicator."):
+            "mpi must be None, or an MPI communicator"):
             arb.context(mpi='MPI_COMM_WORLD')
         with self.assertRaisesRegex(RuntimeError,
-            "mpi must be None, or an MPI communicator."):
+            "mpi must be None, or an MPI communicator"):
             arb.context(alloc, mpi=0)
 
     def test_finalized_arbmpi(self):
