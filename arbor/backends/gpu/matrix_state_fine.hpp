@@ -346,12 +346,10 @@ public:
             levels_start.push_back(prev_end + branch_map.size());
             data_partition.push_back(pos);
         }
+	data_size = pos;
 
         // set matrix state
         matrix_size = p.size();
-
-	// set data partition size
-	data_size = data_partition.back();
 
         // form the permutation index used to reorder vectors to/from the
         // ordering used by the fine grained matrix storage.
