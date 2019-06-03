@@ -42,18 +42,18 @@ class Contexts(unittest.TestCase):
 
     def test_exceptions_allocation(self):
         with self.assertRaisesRegex(RuntimeError,
-            "gpu id must be None, or a non-negative integer."):
+            "gpu_id must be None, or a non-negative integer"):
             arb.proc_allocation(gpu_id = 1.)
         with self.assertRaisesRegex(RuntimeError,
-            "gpu id must be None, or a non-negative integer."):
+            "gpu_id must be None, or a non-negative integer"):
             arb.proc_allocation(gpu_id = -1)
         with self.assertRaisesRegex(RuntimeError,
-            "gpu id must be None, or a non-negative integer."):
+            "gpu_id must be None, or a non-negative integer"):
             arb.proc_allocation(gpu_id = 'gpu_id')
         with self.assertRaises(TypeError):
             arb.proc_allocation(threads = 1.)
         with self.assertRaisesRegex(RuntimeError,
-            "threads must be a positive integer."):
+            "threads must be a positive integer"):
              arb.proc_allocation(threads = 0)
         with self.assertRaises(TypeError):
             arb.proc_allocation(threads = None)

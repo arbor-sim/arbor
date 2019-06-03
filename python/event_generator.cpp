@@ -41,13 +41,13 @@ struct regular_schedule_shim {
 
     // getter and setter (in order to assert when being set)
     void set_tstart(pybind11::object t) {
-        tstart = py2optional<time_type>(t, "tstart must a non-negative number, or None.", is_nonneg);
+        tstart = py2optional<time_type>(t, "tstart must a non-negative number, or None", is_nonneg);
     };
     void set_tstop(pybind11::object t) {
-        tstop = py2optional<time_type>(t, "tstop must a non-negative number, or None.", is_nonneg);
+        tstop = py2optional<time_type>(t, "tstop must a non-negative number, or None", is_nonneg);
     };
     void set_dt(time_type delta_t) {
-        pyarb::assert_throw(is_nonneg(delta_t), "dt must be a non-negative number.");
+        pyarb::assert_throw(is_nonneg(delta_t), "dt must be a non-negative number");
         dt = delta_t;
     };
 
@@ -90,7 +90,7 @@ struct explicit_schedule_shim {
         // Assert that there are no negative times
         if (times.size()) {
             pyarb::assert_throw(is_nonneg(times[0]),
-                    "explicit time schedule can not contain negative values.");
+                    "explicit time schedule can not contain negative values");
         }
     };
 
@@ -123,12 +123,12 @@ struct poisson_schedule_shim {
     }
 
     void set_tstart(time_type t) {
-        pyarb::assert_throw(is_nonneg(t), "tstart must be a non-negative number.");
+        pyarb::assert_throw(is_nonneg(t), "tstart must be a non-negative number");
         tstart = t;
     };
 
     void set_freq(time_type f) {
-        pyarb::assert_throw(is_nonneg(f), "frequency must be a non-negative number.");
+        pyarb::assert_throw(is_nonneg(f), "frequency must be a non-negative number");
         freq = f;
     };
 
