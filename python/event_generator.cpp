@@ -142,6 +142,15 @@ struct poisson_schedule_shim {
     }
 };
 
+template <typename Sched>
+event_generator_shim make_event_generator(
+        arb::cell_member_type target,
+        double weight,
+        const Sched& sched)
+{
+    return event_generator_shim(target, weight, sched.schedule());
+}
+
 // Helper template for printing C++ optional types in Python.
 // Prints either the value, or None if optional value is not set.
 template <typename T>

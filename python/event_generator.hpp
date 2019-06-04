@@ -19,13 +19,4 @@ struct event_generator_shim {
     {}
 };
 
-template <typename Sched>
-event_generator_shim make_event_generator(
-        arb::cell_member_type target,
-        double weight,
-        const Sched& sched)
-{
-    return event_generator_shim(target, weight, sched.schedule());
-}
-
 } // namespace pyarb
