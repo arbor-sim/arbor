@@ -55,6 +55,26 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
                         + "\" which does not describe a known Arbor cell type");
 }
 
+// The py::recipe::global_properties returns a pybind11::object, that is
+// unwrapped and copied into a arb::util::any.
+arb::util::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const {
+    using pybind11::isinstance;
+    using pybind11::cast;
+
+    // Aquire the GIL because it must be held when calling isinstance and cast.
+    auto guard = pybind11::gil_scoped_acquire();
+
+    // Get the python object pyarb::global_properties from the python front end
+    pybind11::object o = impl_->global_properties(kind);
+
+    if (kind == arb::cell_kind::cable) {
+        return arb::util::any(cast<arb::cable_cell_global_properties>(o));
+    }
+
+    else return arb::util::any{};
+
+}
+
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
     using namespace std::string_literals;
     using pybind11::isinstance;
@@ -200,7 +220,9 @@ void register_recipe(pybind11::module& m) {
             "gid"_a,
             "A list of the gap junctions connected to gid (default []).")
         // TODO: py_recipe::get_probe
-        // TODO: py_recipe::get_global_properties
+        .def("global_properties", &py_recipe::global_properties, pybind11::return_value_policy::copy,
+            "cell_kind"_a,
+            "Global property type specific to a given cell kind.")
         .def("__str__", [](const py_recipe&){return "<pyarb.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<pyarb.recipe>";});
 }
