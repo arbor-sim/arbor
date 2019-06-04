@@ -38,11 +38,11 @@ struct proc_allocation_shim {
 
     // getter and setter (in order to assert when being set)
     void set_gpu_id(pybind11::object gpu) {
-        gpu_id = py2optional<int>(gpu, "gpu id must be None, or a non-negative integer.", is_nonneg_int);
+        gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg_int);
     };
 
     void set_num_threads(int threads) {
-        pyarb::assert_throw([](int n) { return n>0; }(threads), "threads must be a positive integer.");
+        pyarb::assert_throw([](int n) { return n>0; }(threads), "threads must be a positive integer");
         num_threads = threads;
     };
 
@@ -153,8 +153,7 @@ void register_contexts(pybind11::module& m) {
 #else
         .def(pybind11::init(
             [](int threads, pybind11::object gpu){
-                auto gpu_id = py2optional<int>(gpu,
-                        "gpu id must be None, or a non-negative integer.", is_nonneg_int);
+                auto gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg_int);
                 return context_shim(arb::make_context(arb::proc_allocation(threads, gpu_id.value_or(-1))));
             }),
              "threads"_a=1, "gpu_id"_a=pybind11::none(),

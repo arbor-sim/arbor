@@ -19,7 +19,6 @@
 
 namespace pyarb {
 
-// ========================================= Unwrap =========================================
 // The py::recipe::cell_decription returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::unique_any.
 
@@ -106,9 +105,7 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
         auto& p = cast<const pyarb::event_generator_shim&>(g);
 
         // convert the event_generator to an arb::event_generator
-        gens.push_back(
-                       arb::schedule_generator(
-                                               {gid, p.target.index}, p.weight, std::move(p.time_sched)));
+        gens.push_back(arb::schedule_generator({gid, p.target.index}, p.weight, std::move(p.time_sched)));
     }
 
     return gens;

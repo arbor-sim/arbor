@@ -15,9 +15,7 @@ namespace pyarb {
 std::string group_description_string(const arb::group_description& g) {
     std::stringstream s;
     const auto ncells = g.gids.size();
-    s << "<cell group: "
-      << ncells << " " << g.kind
-      << " on " << g.backend;
+    s << "<cell group: " << ncells << " " << g.kind << " on " << g.backend;
     if (ncells==1) {
         s << " gid " << g.gids[0];
     }
@@ -48,7 +46,8 @@ void register_domain_decomposition(pybind11::module& m) {
         "The indexes of a set of cells of the same kind that are grouped together in a cell group.");
     group_description
         .def(pybind11::init<arb::cell_kind, std::vector<arb::cell_gid_type>, arb::backend_kind>(),
-            "Construct a group description with cell kind, list of gids, and backend kind.")
+            "Construct a group description with cell kind, list of gids, and backend kind."
+            "kind"_a, "gids"_a, "backend"_a)
         .def_readonly("kind", &arb::group_description::kind,
             "The type of cell in the cell group.")
         .def_readonly("gids", &arb::group_description::gids,
@@ -62,6 +61,12 @@ void register_domain_decomposition(pybind11::module& m) {
     pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition");
     domain_decomposition
         .def(pybind11::init<>())
+        .def("gid_domain",
+            [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
+                return d.gid_domain(gid);
+            },
+            "The domain of cell with global identifier gid.",
+            "gid"_a)
         .def_readwrite("num_domains", &arb::domain_decomposition::num_domains,
             "Number of distrubuted domains.")
         .def_readwrite("domain_id", &arb::domain_decomposition::domain_id,
@@ -70,10 +75,6 @@ void register_domain_decomposition(pybind11::module& m) {
             "Total number of cells in the local domain.")
         .def_readwrite("num_global_cells", &arb::domain_decomposition::num_global_cells,
             "Total number of cells in the global model (sum over all domains).")
-        .def("gid_domain",
-            [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
-                return d.gid_domain(gid);
-            }, "The domain of cell with global identifier gid.", "gid"_a)
         .def_readwrite("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain.");
 
