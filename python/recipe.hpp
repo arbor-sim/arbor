@@ -43,9 +43,8 @@ public:
     };
 
     virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const { return {}; }
+    virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const { return {}; }
 
-
-    //TODO: virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const { return {}; }
     //TODO: virtual pybind11::object get_probe (arb::cell_member_type id) const {...}
     //TODO: virtual pybind11::object get_global_properties(cell_kind) const { return pybind11::object{}; }
 };
@@ -84,8 +83,10 @@ public:
         PYBIND11_OVERLOAD(std::vector<arb::cell_connection>, py_recipe, connections_on, gid);
     }
 
+    std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
+    }
 
-    //TODO: std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type)
     //TODO: pybind11::object get_probe(arb::cell_member_type id)
     //TODO: pybind11::object get_global_properties(cell_kind)
 };
@@ -137,8 +138,10 @@ public:
         return impl_->connections_on(gid);
     }
 
+    std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
+        return impl_->gap_junctions_on(gid);
+    }
 
-    //TODO: std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type)
     //TODO: arb::probe_info get_probe(arb::cell_member_type id) const override
     //TODO: arb::util::any get_global_properties(cell_kind)
 

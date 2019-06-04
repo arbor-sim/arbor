@@ -178,24 +178,26 @@ void register_recipe(pybind11::module& m) {
         .def(pybind11::init<>())
         .def("num_cells", &py_recipe::num_cells, "The number of cells in the model (default 0).")
         .def("cell_description", &py_recipe::cell_description, pybind11::return_value_policy::copy,
-             "gid"_a,
-             "High level description of the cell with global identifier gid.")
+            "gid"_a,
+            "High level description of the cell with global identifier gid.")
         .def("cell_kind", &py_recipe::cell_kind,
-             "gid"_a,
-             "The kind of cell with global identifier gid.")
+            "gid"_a,
+            "The kind of cell with global identifier gid.")
         .def("num_sources", &py_recipe::num_sources,
-             "gid"_a,
-             "The number of spike sources on gid (default 0).")
+            "gid"_a,
+            "The number of spike sources on gid (default 0).")
         .def("num_targets", &py_recipe::num_targets,
-             "gid"_a,
-             "The number of event targets on gid (e.g. synapses, default 0).")
+            "gid"_a,
+            "The number of event targets on gid (e.g. synapses, default 0).")
         // TODO: py_recipe::num_probes
         // TODO: py_recipe::num_gap_junction_sites
         // TODO: py_recipe::event_generators
         .def("connections_on", &py_recipe::connections_on,
-             "gid"_a,
-             "A list of the incoming connections to gid.")
-        // TODO: py_recipe::gap_connections_on
+            "gid"_a,
+            "A list of the incoming connections to gid.")
+        .def("gap_junctions_on", &py_recipe::gap_junctions_on,
+            "gid"_a,
+            "A list of the incoming gap connections to gid.")
         // TODO: py_recipe::get_probe
         // TODO: py_recipe::get_global_properties
         .def("__str__", [](const py_recipe&){return "<pyarb.recipe>";})
