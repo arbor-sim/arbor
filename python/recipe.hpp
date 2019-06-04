@@ -47,7 +47,7 @@ public:
 
     //TODO: virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const { return {}; }
     //TODO: virtual pybind11::object get_probe (arb::cell_member_type id) const {...}
-    //TODO: virtual pybind11::object get_global_properties(cell_kind) const { return pybind11::object{}; };
+    //TODO: virtual pybind11::object get_global_properties(cell_kind) const { return pybind11::object{}; }
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -139,7 +139,7 @@ public:
 
 
     //TODO: std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type)
-    //TODO: arb::probe_info get_probe(arb::cell_member_type id) const override;
+    //TODO: arb::probe_info get_probe(arb::cell_member_type id) const override
     //TODO: arb::util::any get_global_properties(cell_kind)
 
 };

@@ -153,6 +153,7 @@ void register_contexts(pybind11::module& m) {
 #else
         .def(pybind11::init(
             [](int threads, pybind11::object gpu){
+                const char* gpu_err_str = "gpu_id must be None, or a non-negative integer";
                 auto gpu_id = py2optional<int>(gpu, gpu_err_str, is_nonneg_int);
                 return context_shim(arb::make_context(arb::proc_allocation(threads, gpu_id.value_or(-1))));
             }),

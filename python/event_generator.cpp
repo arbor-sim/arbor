@@ -185,27 +185,6 @@ std::string schedule_poisson_string(const poisson_schedule_shim& p) {
     return s.str();
 };
 
-//struct event_generator_shim {
-//    arb::cell_member_type target;
-//    double weight;
-//    arb::schedule time_sched;
-//
-//    event_generator_shim(arb::cell_member_type cell, double event_weight, arb::schedule sched):
-//        target(cell),
-//        weight(event_weight),
-//        time_sched(std::move(sched))
-//    {}
-//};
-
-//template <typename Sched>
-//event_generator_shim make_event_generator(
-//        arb::cell_member_type target,
-//        double weight,
-//        const Sched& sched)
-//{
-//    return event_generator_shim(target, weight, sched.schedule());
-//}
-
 void register_event_generators(pybind11::module& m) {
     using namespace pybind11::literals;
     using time_type = arb::time_type;
