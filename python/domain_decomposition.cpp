@@ -78,7 +78,9 @@ void register_domain_decomposition(pybind11::module& m) {
         .def_readwrite("num_global_cells", &arb::domain_decomposition::num_global_cells,
             "Total number of cells in the global model (sum of num_local_cells over all domains).")
         .def_readwrite("groups", &arb::domain_decomposition::groups,
-            "Descriptions of the cell groups on the local domain.");
+            "Descriptions of the cell groups on the local domain.")
+        .def("__str__", [](arb::domain_decomposition&){return "<arbor.domain_decomposition>";})
+        .def("__repr__", [](arb::domain_decomposition&){return "<arbor.domain_decomposition>";});
 
     // Partition load balancer
     // The Python recipe has to be shimmed for passing to the function that

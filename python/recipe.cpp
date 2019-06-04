@@ -225,7 +225,7 @@ void register_recipe(pybind11::module& m) {
         .def("global_properties", &py_recipe::global_properties, pybind11::return_value_policy::copy,
             "cell_kind"_a,
             "Global property type specific to a given cell kind.")
-        .def("__str__", [](const py_recipe&){return "<pyarb.recipe>";})
-        .def("__repr__", [](const py_recipe&){return "<pyarb.recipe>";});
+        .def("__str__", [](const py_recipe&){return "<arbor.recipe>";})
+        .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
 }
 } // namespace pyarb
