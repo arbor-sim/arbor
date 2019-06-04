@@ -52,7 +52,7 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
     throw pyarb_error(
                         "recipe.cell_description returned \""
                         + std::string(pybind11::str(o))
-                        + "\" which does not describe a known Arbor cell type.");
+                        + "\" which does not describe a known Arbor cell type");
 }
 
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
@@ -110,26 +110,25 @@ std::string gap_junction_connection_string(const arb::gap_junction_connection& g
 void register_recipe(pybind11::module& m) {
     using namespace pybind11::literals;
 
-// Connections
+    // Connections
     pybind11::class_<arb::cell_connection> cell_connection(m, "cell_connection",
         "Describes a connection between two cells:\n"
         "a pre-synaptic source and a post-synaptic destination.");
-
     cell_connection
         .def(pybind11::init<>(
             [](){return arb::cell_connection({0u,0u}, {0u,0u}, 0.f, 0.f);}),
             "Construct a connection with default arguments:\n"
             "  source:      gid 0, index 0.\n"
             "  destination: gid 0, index 0.\n"
-            "  weight:      0. S⋅cm⁻².\n"
-            "  delay:       0. ms.\n")
+            "  weight:      0.\n"
+            "  delay:       0 ms.\n")
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
             "source"_a, "destination"_a, "weight"_a = 0.f, "delay"_a = 0.f,
             "Construct a connection with arguments:\n"
-            "  source:      The source of the connection.\n"
-            "  destination: The destination of the connection.\n"
-            "  weight:      The weight of the connection     (unit: S⋅cm⁻², default 0.).\n"
-            "  delay:       The delay time of the connection (unit: ms, default 0.).\n")
+            "  source:      The source end point of the connection.\n"
+            "  destination: The destination end point of the connection.\n"
+            "  weight:      The weight delivered to the target synapse (dimensionless with interpretation specific to synapse type of target, default 0.).\n"
+            "  delay:       The delay of the connection (unit: ms, default 0.).\n")
         .def_readwrite("source", &arb::cell_connection::source,
             "The source of the connection.")
         .def_readwrite("destination", &arb::cell_connection::dest,
@@ -141,10 +140,9 @@ void register_recipe(pybind11::module& m) {
         .def("__str__", &connection_string)
         .def("__repr__", &connection_string);
 
-// Gap Junction Connections
+    // Gap Junction Connections
     pybind11::class_<arb::gap_junction_connection> gap_junction_connection(m, "gap_junction_connection",
-        "Describes a gap junction between two gap junction sites. \n"
-        "Gap junction sites are represented by pyarb::cell_member.");
+        "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
         .def(pybind11::init<>(
             [](){return arb::gap_junction_connection({0u,0u}, {0u,0u}, 0.f);}),
@@ -167,13 +165,13 @@ void register_recipe(pybind11::module& m) {
         .def("__str__", &gap_junction_connection_string)
         .def("__repr__", &gap_junction_connection_string);
 
-// Recipes
+    // Recipes
     pybind11::class_<py_recipe,
                      py_recipe_trampoline,
                      std::shared_ptr<py_recipe>>
         recipe(m, "recipe", pybind11::dynamic_attr(),
         "A description of a model, describing the cells and the network via a cell-centric interface.");
-   recipe
+    recipe
         .def(pybind11::init<>())
         .def("num_cells", &py_recipe::num_cells, "The number of cells in the model.")
         .def("cell_description", &py_recipe::cell_description, pybind11::return_value_policy::copy,
@@ -187,7 +185,7 @@ void register_recipe(pybind11::module& m) {
             "The number of spike sources on gid (default 0).")
         .def("num_targets", &py_recipe::num_targets,
             "gid"_a,
-            "The number of event targets on gid (e.g. synapses, default 0).")
+            "The number of post-synaptic sites on gid (default 0).")
         // TODO: py_recipe::num_probes
         .def("num_gap_junction_sites", &py_recipe::num_gap_junction_sites,
             "gid"_a,
