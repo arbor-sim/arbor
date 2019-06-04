@@ -22,6 +22,7 @@ add_library(pyarb MODULE
     identifiers.cpp
     mpi.cpp
     pyarb.cpp
+    recipe.cpp
     strings.cpp
 )
 
