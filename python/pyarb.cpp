@@ -8,6 +8,7 @@ namespace pyarb {
 
 void register_config(pybind11::module& m);
 void register_contexts(pybind11::module& m);
+void register_domain_decomposition(pybind11::module& m);
 void register_event_generators(pybind11::module& m);
 void register_identifiers(pybind11::module& m);
 #ifdef ARB_MPI_ENABLED
@@ -22,6 +23,7 @@ PYBIND11_MODULE(arbor, m) {
 
     pyarb::register_config(m);
     pyarb::register_contexts(m);
+    pyarb::register_domain_decomposition(m);
     pyarb::register_event_generators(m);
     pyarb::register_identifiers(m);
     #ifdef ARB_MPI_ENABLED

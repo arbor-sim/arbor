@@ -3,7 +3,6 @@
 #include <string>
 
 #include <arbor/common_types.hpp>
-//#include <arbor/event_generator.hpp>
 #include <arbor/schedule.hpp>
 
 #include <pybind11/pybind11.h>
