@@ -40,7 +40,7 @@ void register_identifiers(pybind11::module& m) {
         .def("__repr__", &cell_member_string);
 
     pybind11::enum_<arb::cell_kind>(m, "cell_kind",
-        "Enumeration used to indentify the cell kind, used by the model to group equal kinds in the same cell group.")
+        "Enumeration used to identify the cell kind, used by the model to group equal kinds in the same cell group.")
         .value("benchmark", arb::cell_kind::benchmark,
             "Proxy cell used for benchmarking.")
         .value("cable", arb::cell_kind::cable,
