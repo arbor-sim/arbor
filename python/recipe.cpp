@@ -73,6 +73,11 @@ arb::util::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const 
 
     else return arb::util::any{};
 
+    throw pyarb_error(
+                        "recipe.global_properties returned \""
+                        + std::string(pybind11::str(o))
+                        + "\" which does not describe a known Arbor global property description");
+
 }
 
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
