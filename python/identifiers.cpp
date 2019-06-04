@@ -38,6 +38,17 @@ void register_identifiers(pybind11::module& m) {
             "Cell-local index of the item.")
         .def("__str__",  &cell_member_string)
         .def("__repr__", &cell_member_string);
+
+    pybind11::enum_<arb::cell_kind>(m, "cell_kind",
+        "Enumeration used to indentify the cell kind, used by the model to group equal kinds in the same cell group.")
+        .value("benchmark", arb::cell_kind::benchmark,
+            "Proxy cell used for benchmarking.")
+        .value("cable", arb::cell_kind::cable,
+            "A cell with morphology described by branching 1D cable segments.")
+        .value("lif", arb::cell_kind::lif,
+            "Leaky-integrate and fire neuron.")
+        .value("spike_source", arb::cell_kind::spike_source,
+            "Proxy cell that generates spikes from a spike sequence provided by the user.");
 }
 
 } // namespace pyarb
