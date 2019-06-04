@@ -14,6 +14,7 @@ void register_identifiers(pybind11::module& m);
 void register_mpi(pybind11::module& m);
 #endif
 void register_recipe(pybind11::module& m);
+void register_simulation(pybind11::module& m);
 }
 
 PYBIND11_MODULE(arbor, m) {
@@ -28,4 +29,5 @@ PYBIND11_MODULE(arbor, m) {
     pyarb::register_mpi(m);
     #endif
     pyarb::register_recipe(m);
+    pyarb::register_simulation(m);
 }
