@@ -58,23 +58,25 @@ void register_domain_decomposition(pybind11::module& m) {
         .def("__repr__", &group_description_string);
 
     // Domain decomposition
-    pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition");
+    pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition",
+        "The domain decomposition is responsible for describing the distribution of cells across cell groups and domains.");
     domain_decomposition
         .def(pybind11::init<>())
         .def("gid_domain",
             [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
                 return d.gid_domain(gid);
             },
-            "The domain of cell with global identifier gid.",
+            "A function for querying the domain id that a cell assigned to (using global identifier gid).",
             "gid"_a)
         .def_readwrite("num_domains", &arb::domain_decomposition::num_domains,
-            "Number of distrubuted domains.")
+            "Number of domains that the model is distributed over.")
         .def_readwrite("domain_id", &arb::domain_decomposition::domain_id,
-            "The index of the local domain.")
+            "The index of the local domain.\n
+            "Always 0 for non-distributed models, and corresponds to the MPI rank for distributed runs.")
         .def_readwrite("num_local_cells", &arb::domain_decomposition::num_local_cells,
             "Total number of cells in the local domain.")
         .def_readwrite("num_global_cells", &arb::domain_decomposition::num_global_cells,
-            "Total number of cells in the global model (sum over all domains).")
+            "Total number of cells in the global model (sum of num_local_cells over all domains).")
         .def_readwrite("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain.");
 
@@ -82,10 +84,11 @@ void register_domain_decomposition(pybind11::module& m) {
     // The Python recipe has to be shimmed for passing to the function that
     // takes a C++ recipe.
     m.def("partition_load_balance",
-        [](std::shared_ptr<py_recipe>& r, const context_shim& ctx) {
-            return arb::partition_load_balance(py_recipe_shim(r), ctx.context);
+        [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx) {
+            return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context);
         },
-        "Simple load balancer.",
+        "Construct a domain_decomposition that distributes the cells in the model described by recipe\n
+        "over the distributed and local hardware resources described by context.",
         "recipe"_a, "context"_a);
 }
 
