@@ -17,7 +17,7 @@ namespace pyarb {
 // util::unique_any, util::any, std::unique_ptr, etc.)
 // For example, requests for cell description return pybind11::object, instead
 // of util::unique_any used by the C++ recipe interface.
-// The py_recipe_shim defined unwraps the python objects, and forwards them
+// The py_recipe_shim unwraps the python objects, and forwards them
 // to the C++ back end.
 
 class py_recipe {
@@ -63,6 +63,7 @@ public:
     arb::cell_kind cell_kind(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD_PURE(arb::cell_kind, py_recipe, cell_kind, gid);
     }
+    
     arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_sources, gid);
     }

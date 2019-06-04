@@ -13,10 +13,9 @@
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
 
-#include "exception.hpp"
+#include "error.hpp"
 #include "event_generator.hpp"
 #include "recipe.hpp"
-#include "strings.hpp"
 
 namespace pyarb {
 
@@ -50,7 +49,7 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
         return arb::util::unique_any(cast<arb::benchmark_cell>(o));
     }
 
-    throw python_error(
+    throw pyarb_error(
                         "recipe.cell_description returned \""
                         + std::string(pybind11::str(o))
                         + "\" which does not describe a known Arbor cell type.");
@@ -64,7 +63,7 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     // Aquire the GIL because it must be held when calling isinstance and cast.
     auto guard = pybind11::gil_scoped_acquire();
 
-    // Get the python list of pyarb::event_generator from the python front end.
+    // Get the python list of pyarb::event_generator_shim from the python front end.
     auto pygens = impl_->event_generators(gid);
 
     std::vector<arb::event_generator> gens;
@@ -72,25 +71,41 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
 
     for (auto& g: pygens) {
         // check that a valid Python event_generator was passed.
-        if (!isinstance<pyarb::event_generator>(g)) {
+        if (!isinstance<pyarb::event_generator_shim>(g)) {
             std::stringstream s;
             s << "recipe supplied an invalid event generator for gid "
             << gid << ": " << pybind11::str(g);
-            throw python_error(s.str());
+            throw pyarb_error(s.str());
         }
         // get a reference to the python event_generator
-        auto& p = cast<const pyarb::event_generator&>(g);
+        auto& p = cast<const pyarb::event_generator_shim&>(g);
 
         // convert the event_generator to an arb::event_generator
         gens.push_back(
                        arb::schedule_generator(
-                                               {gid, p.lid}, p.weight, std::move(p.time_seq)));
+                                               {gid, p.target.index}, p.weight, std::move(p.time_sched)));
     }
 
     return gens;
 }
 
 // TODO: implement py_recipe_shim::get_probe_info
+
+std::string connection_string(const arb::cell_connection& c) {
+    std::stringstream s;
+    s << "<connection: (" << c.source.gid << "," << c.source.index << ")"
+      << " -> (" << c.dest.gid << "," << c.dest.index << ")"
+      << " , delay " << c.delay << ", weight " << c.weight << ">";
+    return s.str();
+}
+
+std::string gap_junction_connection_string(const arb::gap_junction_connection& gc) {
+    std::stringstream s;
+    s << "<connection: (" << gc.local.gid << "," << gc.local.index << ")"
+    << " -> (" << gc.peer.gid << "," << gc.peer.index << ")"
+    << " , conductance " << gc.ggap << ">";
+    return s.str();
+}
 
 // ========================================= Register =========================================
 void register_recipe(pybind11::module& m) {
