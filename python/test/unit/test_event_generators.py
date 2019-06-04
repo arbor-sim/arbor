@@ -51,17 +51,17 @@ class RegularSchedule(unittest.TestCase):
 
     def test_exceptions_regular_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
-            "tstart must a non-negative number, or None."):
+            "tstart must a non-negative number, or None"):
             arb.regular_schedule(tstart = -1.)
         with self.assertRaisesRegex(RuntimeError,
-            "dt must be a non-negative number."):
+            "dt must be a non-negative number"):
             arb.regular_schedule(dt = -0.1)
         with self.assertRaises(TypeError):
             arb.regular_schedule(dt = None)
         with self.assertRaises(TypeError):
             arb.regular_schedule(dt = 'dt')
         with self.assertRaisesRegex(RuntimeError,
-            "tstop must a non-negative number, or None."):
+            "tstop must a non-negative number, or None"):
             arb.regular_schedule(tstop = 'tstop')
 
 class ExplicitSchedule(unittest.TestCase):
@@ -86,7 +86,7 @@ class ExplicitSchedule(unittest.TestCase):
 
     def test_exceptions_explicit_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
-            "explicit time schedule can not contain negative values."):
+            "explicit time schedule can not contain negative values"):
             arb.explicit_schedule([-1])
         with self.assertRaises(TypeError):
             arb.explicit_schedule(['times'])
@@ -128,14 +128,14 @@ class PoissonSchedule(unittest.TestCase):
 
     def test_exceptions_poisson_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
-            "tstart must be a non-negative number."):
+            "tstart must be a non-negative number"):
             arb.poisson_schedule(tstart = -10.)
         with self.assertRaises(TypeError):
             arb.poisson_schedule(tstart = None)
         with self.assertRaises(TypeError):
             arb.poisson_schedule(tstart = 'tstart')
         with self.assertRaisesRegex(RuntimeError,
-            "frequency must be a non-negative number."):
+            "frequency must be a non-negative number"):
             arb.poisson_schedule(freq = -100.)
         with self.assertRaises(TypeError):
             arb.poisson_schedule(freq = 'freq')

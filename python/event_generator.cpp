@@ -3,7 +3,6 @@
 #include <string>
 
 #include <arbor/common_types.hpp>
-#include <arbor/event_generator.hpp>
 #include <arbor/schedule.hpp>
 
 #include <pybind11/pybind11.h>
@@ -12,6 +11,7 @@
 
 #include "conversion.hpp"
 #include "error.hpp"
+#include "event_generator.hpp"
 
 namespace pyarb {
 
@@ -41,13 +41,13 @@ struct regular_schedule_shim {
 
     // getter and setter (in order to assert when being set)
     void set_tstart(pybind11::object t) {
-        tstart = py2optional<time_type>(t, "tstart must a non-negative number, or None.", is_nonneg);
+        tstart = py2optional<time_type>(t, "tstart must a non-negative number, or None", is_nonneg);
     };
     void set_tstop(pybind11::object t) {
-        tstop = py2optional<time_type>(t, "tstop must a non-negative number, or None.", is_nonneg);
+        tstop = py2optional<time_type>(t, "tstop must a non-negative number, or None", is_nonneg);
     };
     void set_dt(time_type delta_t) {
-        pyarb::assert_throw(is_nonneg(delta_t), "dt must be a non-negative number.");
+        pyarb::assert_throw(is_nonneg(delta_t), "dt must be a non-negative number");
         dt = delta_t;
     };
 
@@ -90,7 +90,7 @@ struct explicit_schedule_shim {
         // Assert that there are no negative times
         if (times.size()) {
             pyarb::assert_throw(is_nonneg(times[0]),
-                    "explicit time schedule can not contain negative values.");
+                    "explicit time schedule can not contain negative values");
         }
     };
 
@@ -123,12 +123,12 @@ struct poisson_schedule_shim {
     }
 
     void set_tstart(time_type t) {
-        pyarb::assert_throw(is_nonneg(t), "tstart must be a non-negative number.");
+        pyarb::assert_throw(is_nonneg(t), "tstart must be a non-negative number");
         tstart = t;
     };
 
     void set_freq(time_type f) {
-        pyarb::assert_throw(is_nonneg(f), "frequency must be a non-negative number.");
+        pyarb::assert_throw(is_nonneg(f), "frequency must be a non-negative number");
         freq = f;
     };
 
@@ -140,6 +140,15 @@ struct poisson_schedule_shim {
         return arb::poisson_schedule(tstart, freq/1000., rng_type(seed));
     }
 };
+
+template <typename Sched>
+event_generator_shim make_event_generator(
+        arb::cell_member_type target,
+        double weight,
+        const Sched& sched)
+{
+    return event_generator_shim(target, weight, sched.schedule());
+}
 
 // Helper template for printing C++ optional types in Python.
 // Prints either the value, or None if optional value is not set.
@@ -183,27 +192,6 @@ std::string schedule_poisson_string(const poisson_schedule_shim& p) {
       << ", seed " << p.seed << ">";
     return s.str();
 };
-
-struct event_generator_shim {
-    arb::cell_member_type target;
-    double weight;
-    arb::schedule time_sched;
-
-    event_generator_shim(arb::cell_member_type cell, double event_weight, arb::schedule sched):
-        target(cell),
-        weight(event_weight),
-        time_sched(std::move(sched))
-    {}
-};
-
-template <typename Sched>
-event_generator_shim make_event_generator(
-        arb::cell_member_type target,
-        double weight,
-        const Sched& sched)
-{
-    return event_generator_shim(target, weight, sched.schedule());
-}
 
 void register_event_generators(pybind11::module& m) {
     using namespace pybind11::literals;
