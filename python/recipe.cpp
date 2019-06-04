@@ -114,7 +114,7 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
-// TODO: implement py_recipe_shim::get_probe_info
+// TODO: implement py_recipe_shim::probe_info
 
 std::string connection_string(const arb::cell_connection& c) {
     std::stringstream s;
