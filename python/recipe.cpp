@@ -19,7 +19,6 @@
 
 namespace pyarb {
 
-// ========================================= Unwrap =========================================
 // The py::recipe::cell_decription returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::unique_any.
 
