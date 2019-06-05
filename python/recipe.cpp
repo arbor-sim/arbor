@@ -116,13 +116,6 @@ struct cell_connection_shim {
     float weight;
     float delay;
 
-    cell_connection_shim(float t) {
-        source = {0u,0u};
-        dest   = {0u,0u};
-        weight = 0.f;
-        set_delay(t);
-    }
-
     cell_connection_shim(arb::cell_member_type s, arb::cell_member_type d, float w, float t) {
         source = s;
         dest   = d;
@@ -141,7 +134,7 @@ struct cell_connection_shim {
 
 // TODO: implement py_recipe_shim::probe_info
 
-std::string con_to_string(const arb::cell_connection& c) {
+std::string con_to_string(const cell_connection_shim& c) {
     return util::pprintf("<connection: ({},{}) -> ({},{}), delay {}, weight {}>",
          c.source.gid, c.source.index, c.dest.gid, c.dest.index, c.delay, c.weight);
 }
@@ -160,7 +153,7 @@ void register_recipe(pybind11::module& m) {
         "a pre-synaptic source and a post-synaptic destination.");
     cell_connection
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
-            "source"_a = arb::cell_member_type{0,0}, "destination"_a = arb::cell_member_type{0,0}, "weight"_a = 0.f, "delay"_a,
+            "source"_a = arb::cell_member_type{0,0}, "dest"_a = arb::cell_member_type{0,0}, "weight"_a = 0.f, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection (default (0,0)).\n"
             "  dest:        The destination end point of the connection (default (0,0)).\n"
