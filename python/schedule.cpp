@@ -42,7 +42,7 @@ regular_schedule_shim::opt_time_type regular_schedule_shim::get_tstart() const {
     return tstart;
 }
 
-regular_schedule_shim::opt_time_type regular_schedule_shim::get_dt() const {
+regular_schedule_shim::time_type regular_schedule_shim::get_dt() const {
     return dt;
 }
 

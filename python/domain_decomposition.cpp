@@ -71,18 +71,18 @@ void register_domain_decomposition(pybind11::module& m) {
             [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
                 return d.gid_domain(gid);
             },
-            "A function for querying the domain id that a cell assigned to (using global identifier gid).",
+            "Query the domain id that a cell assigned to (using global identifier gid).",
             "gid"_a)
-        .def_readwrite("num_domains", &arb::domain_decomposition::num_domains,
+        .def_readonly("num_domains", &arb::domain_decomposition::num_domains,
             "Number of domains that the model is distributed over.")
-        .def_readwrite("domain_id", &arb::domain_decomposition::domain_id,
+        .def_readonly("domain_id", &arb::domain_decomposition::domain_id,
             "The index of the local domain.\n"
             "Always 0 for non-distributed models, and corresponds to the MPI rank for distributed runs.")
-        .def_readwrite("num_local_cells", &arb::domain_decomposition::num_local_cells,
+        .def_readonly("num_local_cells", &arb::domain_decomposition::num_local_cells,
             "Total number of cells in the local domain.")
-        .def_readwrite("num_global_cells", &arb::domain_decomposition::num_global_cells,
+        .def_readonly("num_global_cells", &arb::domain_decomposition::num_global_cells,
             "Total number of cells in the global model (sum of num_local_cells over all domains).")
-        .def_readwrite("groups", &arb::domain_decomposition::groups,
+        .def_readonly("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain.")
         .def("__str__", [](arb::domain_decomposition&){return "<arbor.domain_decomposition>";})
         .def("__repr__", [](arb::domain_decomposition&){return "<arbor.domain_decomposition>";});
