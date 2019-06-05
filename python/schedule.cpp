@@ -44,12 +44,12 @@ regular_schedule_shim::regular_schedule_shim(
 
 void regular_schedule_shim::set_tstart(pybind11::object t) {
     tstart = py2optional<time_type>(
-            t, "tstart must a non-negative number, or None", is_nonneg());
+            t, "tstart must be a non-negative number, or None", is_nonneg());
 };
 
 void regular_schedule_shim::set_tstop(pybind11::object t) {
     tstop = py2optional<time_type>(
-            t, "tstop must a non-negative number, or None", is_nonneg());
+            t, "tstop must be a non-negative number, or None", is_nonneg());
 };
 
 void regular_schedule_shim::set_dt(arb::time_type delta_t) {
@@ -97,7 +97,7 @@ void explicit_schedule_shim::set_times(std::vector<arb::time_type> t) {
     // Assert that there are no negative times
     if (times.size()) {
         pyarb::assert_throw(is_nonneg()(times[0]),
-                "explicit time schedule can not contain negative values");
+                "explicit time schedule cannot contain negative values");
     }
 };
 
