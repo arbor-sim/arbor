@@ -8,7 +8,6 @@
 
 #include <pybind11/pybind11.h>
 
-
 #include "context.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
@@ -20,25 +19,21 @@
 
 namespace pyarb {
 
-namespace {
-auto is_nonneg_int = [](int n){ return n>=0; };
-}
-
 // A Python shim that holds the information that describes an arb::proc_allocation.
 struct proc_allocation_shim {
     arb::util::optional<int> gpu_id = {};
     int num_threads = 1;
-
-    proc_allocation_shim(): proc_allocation_shim(1, pybind11::none()) {}
 
     proc_allocation_shim(int threads, pybind11::object gpu) {
         set_num_threads(threads);
         set_gpu_id(gpu);
     }
 
+    proc_allocation_shim(): proc_allocation_shim(1, pybind11::none()) {}
+
     // getter and setter (in order to assert when being set)
     void set_gpu_id(pybind11::object gpu) {
-        gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg_int);
+        gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
     };
 
     void set_num_threads(int threads) {
@@ -133,7 +128,7 @@ void register_contexts(pybind11::module& m) {
                 const char* gpu_err_str = "gpu_id must be None, or a non-negative integer";
                 const char* mpi_err_str = "mpi must be None, or an MPI communicator";
 
-                auto gpu_id = py2optional<int>(gpu, gpu_err_str, is_nonneg_int);
+                auto gpu_id = py2optional<int>(gpu, gpu_err_str, is_nonneg());
                 arb::proc_allocation alloc(threads, gpu_id.value_or(-1));
 
                 if (can_convert_to_mpi_comm(mpi)) {
@@ -153,7 +148,7 @@ void register_contexts(pybind11::module& m) {
 #else
         .def(pybind11::init(
             [](int threads, pybind11::object gpu){
-                auto gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg_int);
+                auto gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
                 return context_shim(arb::make_context(arb::proc_allocation(threads, gpu_id.value_or(-1))));
             }),
              "threads"_a=1, "gpu_id"_a=pybind11::none(),
