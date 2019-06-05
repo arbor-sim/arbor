@@ -2,10 +2,26 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
+#include <pybind11/stl.h>
 
+#include <arbor/util/optional.hpp>
 #include "error.hpp"
 
+// from https://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html?highlight=boost%3A%3Aoptional#c-17-library-containers
+namespace pybind11 { namespace detail {
+    template <typename T>
+    struct type_caster<arb::util::optional<T>>: optional_caster<arb::util::optional<T>> {};
+}}
+
 namespace pyarb {
+
+struct is_nonneg {
+    template<typename T>
+    constexpr
+    bool operator()(const T& v) {
+        return v>=T(0);
+    }
+};
 
 // A helper function for converting from a Python object to a C++ optional wrapper.
 // Throws an runtime_error exception with msg if either the Python object
