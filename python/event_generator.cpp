@@ -52,7 +52,7 @@ struct regular_schedule_shim {
     };
 
     opt_time_type get_tstart() const { return tstart; }
-    opt_time_type get_dt()     const { return dt; }
+    time_type get_dt()         const { return dt; }
     opt_time_type get_tstop()  const { return tstop; }
 
     arb::schedule schedule() const {

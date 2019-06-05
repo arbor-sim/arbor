@@ -111,9 +111,42 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
+namespace {
+auto is_pos = [](auto&& t){ return t>0.; };
+}
+
+struct cell_connection_shim {
+    arb::cell_member_type source;
+    arb::cell_member_type dest;
+    float weight;
+    float delay;
+
+    cell_connection_shim(float t) {
+        source = {0u,0u};
+        dest   = {0u,0u};
+        weight = 0.f;
+        set_delay(t);
+    }
+
+    cell_connection_shim(arb::cell_member_type s, arb::cell_member_type d, float w, float t) {
+        source = s;
+        dest   = d;
+        weight = w;
+        set_delay(t);
+    }
+
+    // getter and setter (in order to assert when being set)
+    void set_delay(float t) {
+        pyarb::assert_throw(is_pos(t), "delay must be positive");
+        delay = t;
+    }
+
+    float get_delay() const { return delay; }
+};
+
 // TODO: implement py_recipe_shim::probe_info
 
-std::string connection_string(const arb::cell_connection& c) {
+std::string connection_string(const cell_connection_shim& c) {
     std::stringstream s;
     s << "<connection: (" << c.source.gid << "," << c.source.index << ")"
       << " -> (" << c.dest.gid << "," << c.dest.index << ")"
@@ -133,31 +166,29 @@ void register_recipe(pybind11::module& m) {
     using namespace pybind11::literals;
 
     // Connections
-    pybind11::class_<arb::cell_connection> cell_connection(m, "cell_connection",
+    pybind11::class_<cell_connection_shim> cell_connection(m, "cell_connection",
         "Describes a connection between two cells:\n"
         "a pre-synaptic source and a post-synaptic destination.");
     cell_connection
-        .def(pybind11::init<>(
-            [](){return arb::cell_connection({0u,0u}, {0u,0u}, 0.f, 0.f);}),
-            "Construct a connection with default arguments:\n"
-            "  source:      gid 0, index 0.\n"
-            "  destination: gid 0, index 0.\n"
-            "  weight:      0.\n"
-            "  delay:       0 ms.\n")
+        .def(pybind11::init<float>(),
+            "Construct a connection with delay and defaults:\n"
+            "  source: gid 0, index 0.\n"
+            "  dest:   gid 0, index 0.\n"
+            "  weight: 0.")
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
-            "source"_a, "destination"_a, "weight"_a = 0.f, "delay"_a = 0.f,
+            "source"_a, "destination"_a, "weight"_a = 0.f, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection.\n"
-            "  destination: The destination end point of the connection.\n"
+            "  dest:        The destination end point of the connection.\n"
             "  weight:      The weight delivered to the target synapse (dimensionless with interpretation specific to synapse type of target, default 0.).\n"
-            "  delay:       The delay of the connection (unit: ms, default 0.).\n")
-        .def_readwrite("source", &arb::cell_connection::source,
+            "  delay:       The delay of the connection (unit: ms).")
+        .def_readwrite("source", &cell_connection_shim::source,
             "The source of the connection.")
-        .def_readwrite("destination", &arb::cell_connection::dest,
+        .def_readwrite("dest", &cell_connection_shim::dest,
             "The destination of the connection.")
-        .def_readwrite("weight", &arb::cell_connection::weight,
-            "The weight of the connection (unit: S⋅cm⁻²).")
-        .def_readwrite("delay", &arb::cell_connection::delay,
+        .def_readwrite("weight", &cell_connection_shim::weight,
+            "The weight of the connection.")
+        .def_property("delay", &cell_connection_shim::get_delay, &cell_connection_shim::set_delay,
             "The delay time of the connection (unit: ms).")
         .def("__str__", &connection_string)
         .def("__repr__", &connection_string);
@@ -171,13 +202,13 @@ void register_recipe(pybind11::module& m) {
             "Construct a gap junction connection with default arguments:\n"
             "  local: gid 0, index 0.\n"
             "  peer:  gid 0, index 0.\n"
-            "  ggap:  0 μS.\n")
+            "  ggap:  0 μS.")
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, double>(),
             "local"_a, "peer"_a, "ggap"_a = 0.f,
             "Construct a gap junction connection with arguments:\n"
             "  local: One half of the gap junction connection.\n"
             "  peer:  Other half of the gap junction connection.\n"
-            "  ggap:  Gap junction conductance (unit: μS, default 0.).\n")
+            "  ggap:  Gap junction conductance (unit: μS, default 0.).")
         .def_readwrite("local", &arb::gap_junction_connection::local,
             "One half of the gap junction connection.")
         .def_readwrite("peer", &arb::gap_junction_connection::peer,

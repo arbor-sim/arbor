@@ -15,15 +15,20 @@ namespace pyarb {
 std::string group_description_string(const arb::group_description& g) {
     std::stringstream s;
     const auto ncells = g.gids.size();
-    s << "<cell group: " << ncells << " " << g.kind << " on " << g.backend;
-    if (ncells==1) {
+    s << "<cell group: " << ncells << " cells of " << g.kind << " on " << g.backend;
+    if (ncells == 1) {
         s << " gid " << g.gids[0];
     }
 
-    else if (ncells<5) {
+    else if (ncells < 5) {
         s << ", gids {";
+        bool first = true;
         for (auto i: g.gids) {
-            s << i << " ";
+            if(!first) {
+                s << " ";
+            }
+            s << i;
+            first = false;
         }
         s << "}";
     }
@@ -46,7 +51,7 @@ void register_domain_decomposition(pybind11::module& m) {
         "The indexes of a set of cells of the same kind that are grouped together in a cell group.");
     group_description
         .def(pybind11::init<arb::cell_kind, std::vector<arb::cell_gid_type>, arb::backend_kind>(),
-            "Construct a group description with cell kind, list of gids, and backend kind."
+            "Construct a group description with cell kind, list of gids, and backend kind.",
             "kind"_a, "gids"_a, "backend"_a)
         .def_readonly("kind", &arb::group_description::kind,
             "The type of cell in the cell group.")
