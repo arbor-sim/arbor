@@ -109,10 +109,6 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
-namespace {
-auto is_pos = [](auto&& t){ return t>0.; };
-}
-
 struct cell_connection_shim {
     arb::cell_member_type source;
     arb::cell_member_type dest;
@@ -135,7 +131,7 @@ struct cell_connection_shim {
 
     // getter and setter (in order to assert when being set)
     void set_delay(float t) {
-        pyarb::assert_throw(is_pos(t), "delay must be positive");
+        pyarb::assert_throw([](auto&& t){ return t>0.; }(t), "delay must be positive");
         delay = t;
     }
 
