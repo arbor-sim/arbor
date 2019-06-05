@@ -1,6 +1,8 @@
 #include <string>
 #include <sstream>
 
+#include <pybind11/pybind11.h>
+
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
@@ -8,8 +10,6 @@
 #include "context.hpp"
 #include "recipe.hpp"
 //#include "strprintf.hpp"
-
-#include <pybind11/pybind11.h>
 
 namespace pyarb {
 

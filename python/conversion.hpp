@@ -5,6 +5,7 @@
 #include <pybind11/stl.h>
 
 #include <arbor/util/optional.hpp>
+
 #include "error.hpp"
 
 // from https://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html?highlight=boost%3A%3Aoptional#c-17-library-containers

@@ -11,13 +11,25 @@
 #include "context.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
-#include "strings.hpp"
+#include "strprintf.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include "mpi.hpp"
 #endif
 
 namespace pyarb {
+
+std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
+    auto& c = ctx.context;
+    const bool gpu = arb::has_gpu(c);
+    const bool mpi = arb::has_mpi(c);
+    return
+        o << "<context: threads " << arb::num_threads(c)
+          << ", gpu " << (gpu? "yes": "no")
+          << ", mpi " << (mpi? "yes": "no")
+          << " ranks " << arb::num_ranks(c)
+          << ">";
+}
 
 // A Python shim that holds the information that describes an arb::proc_allocation.
 struct proc_allocation_shim {
@@ -51,23 +63,9 @@ struct proc_allocation_shim {
     }
 };
 
-// Helper template for printing C++ optional types in Python.
-// Prints either the value, or None if optional value is not set.
-template <typename T>
-std::string to_string(const arb::util::optional<T>& o) {
-    if (!o) return "None";
-
-    std::stringstream s;
-    s << *o;
-    return s.str();
-}
-
-std::string proc_alloc_string(const proc_allocation_shim& a) {
-    std::stringstream s;
-    s << "<hardware resource allocation: threads " << a.num_threads
-      << ", gpu id " << to_string(a.gpu_id);
-    s << ">";
-    return s.str();
+std::ostream& operator<<(std::ostream& o, const proc_allocation_shim& alloc) {
+    return o << "<hardware resource allocation: threads " << alloc.num_threads
+      << ", gpu id " << alloc.gpu_id << ">";
 }
 
 void register_contexts(pybind11::module& m) {
@@ -90,8 +88,8 @@ void register_contexts(pybind11::module& m) {
             "Corresponds to the integer index used to identify GPUs in CUDA API calls.")
         .def_property_readonly("has_gpu", &proc_allocation_shim::has_gpu,
             "Whether a GPU is being used (True/False).")
-        .def("__str__", &proc_alloc_string)
-        .def("__repr__", &proc_alloc_string);
+        .def("__str__",  util::to_string<proc_allocation_shim>)
+        .def("__repr__", util::to_string<proc_allocation_shim>);
 
     // context
     pybind11::class_<context_shim> context(m, "context", "An opaque handle for the hardware resources used in a simulation.");
@@ -166,8 +164,8 @@ void register_contexts(pybind11::module& m) {
             "The number of distributed domains (equivalent to the number of MPI ranks).")
         .def_property_readonly("rank", [](const context_shim& ctx){return arb::rank(ctx.context);},
             "The numeric id of the local domain (equivalent to MPI rank).")
-        .def("__str__", [](const context_shim& c){return context_string(c.context);})
-        .def("__repr__", [](const context_shim& c){return context_string(c.context);});
+        .def("__str__", util::to_string<context_shim>)
+        .def("__repr__", util::to_string<context_shim>);
 }
 
 } // namespace pyarb

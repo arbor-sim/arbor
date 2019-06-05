@@ -6,8 +6,27 @@
 
 #include "conversion.hpp"
 #include "schedule.hpp"
+#include "strprintf.hpp"
 
 namespace pyarb {
+
+std::ostream& operator<<(std::ostream& o, const regular_schedule_shim& x) {
+    return o << "<regular_schedule: tstart "
+             << x.tstart << " ms, dt "
+             << x.dt << " ms, tstop "
+             << x.tstop << " ms>";
+}
+
+std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
+    o << "<explicit_schedule: times [";
+    return util::csv(o, e.times) << "] ms>";
+};
+
+std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
+    return o << "<poisson_schedule: tstart " << p.tstart << " ms"
+             << ", freq " << p.freq << " Hz"
+             << ", seed " << p.seed << ">";
+};
 
 //
 // regular_schedule shim
@@ -148,8 +167,8 @@ void register_schedules(pybind11::module& m) {
             "No events delivered after this time (in ms).")
         .def_property("dt", &regular_schedule_shim::get_dt, &regular_schedule_shim::set_dt,
             "The interval between time points (in ms).")
-        ; //.def("__str__", &schedule_regular_string)
-        //.def("__repr__",&schedule_regular_string);
+        .def("__str__",  util::to_string<regular_schedule_shim>)
+        .def("__repr__", util::to_string<regular_schedule_shim>);
 
     // Explicit schedule
     pybind11::class_<explicit_schedule_shim> explicit_schedule(m, "explicit_schedule",
@@ -164,8 +183,8 @@ void register_schedules(pybind11::module& m) {
             "  times: A list of times (in ms, default []).")
         .def_property("times", &explicit_schedule_shim::get_times, &explicit_schedule_shim::set_times,
             "A list of times (in ms).")
-        ; //.def("__str__", &schedule_explicit_string)
-        //.def("__repr__",&schedule_explicit_string);
+        .def("__str__",  util::to_string<explicit_schedule_shim>)
+        .def("__repr__", util::to_string<explicit_schedule_shim>);
 
     // Poisson schedule
     pybind11::class_<poisson_schedule_shim> poisson_schedule(m, "poisson_schedule",
@@ -184,53 +203,9 @@ void register_schedules(pybind11::module& m) {
             "The expected frequency (in Hz).")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed for the random number generator.")
-        ; //.def("__str__", &schedule_poisson_string)
-        //.def("__repr__",&schedule_poisson_string);
+        .def("__str__",  util::to_string<poisson_schedule_shim>)
+        .def("__repr__", util::to_string<poisson_schedule_shim>);
 }
 
 
 }
-/*
-// Helper template for printing C++ optional types in Python.
-// Prints either the value, or None if optional value is not set.
-template <typename T>
-std::string to_string(const arb::util::optional<T>& o, std::string unit) {
-    if (!o) return "None";
-
-    std::stringstream s;
-    s << *o << " " << unit;
-    return s.str();
-}
-
-std::string schedule_regular_string(const regular_schedule_shim& r) {
-    std::stringstream s;
-    s << "<regular_schedule: "
-      << "tstart " << to_string(r.tstart, "ms") << ", "
-      << "dt " << r.dt << " ms, "
-      << "tstop " << to_string(r.tstop, "ms") << ">";
-    return s.str();
-};
-
-std::string schedule_explicit_string(const explicit_schedule_shim& e) {
-    std::stringstream s;
-    s << "<explicit_schedule: times [";
-    bool first = true;
-    for (auto t: e.times) {
-        if (!first) {
-            s << " ";
-        }
-        s << t;
-        first = false;
-    }
-    s << "] ms>";
-    return s.str();
-};
-
-std::string schedule_poisson_string(const poisson_schedule_shim& p) {
-    std::stringstream s;
-    s << "<poisson_schedule: tstart " << p.tstart << " ms"
-      << ", freq " << p.freq << " Hz"
-      << ", seed " << p.seed << ">";
-    return s.str();
-};
-*/
