@@ -57,10 +57,9 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
 // The py::recipe::global_properties returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::any.
 arb::util::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const {
-    using pybind11::isinstance;
     using pybind11::cast;
 
-    // Aquire the GIL because it must be held when calling isinstance and cast.
+    // Aquire the GIL because it must be held when calling cast.
     auto guard = pybind11::gil_scoped_acquire();
 
     // Get the python object pyarb::global_properties from the python front end
@@ -72,10 +71,9 @@ arb::util::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const 
 
     else return arb::util::any{};
 
-    throw pyarb_error(
-                        "recipe.global_properties returned \""
-                        + std::string(pybind11::str(o))
-                        + "\" which does not describe a known Arbor global property description");
+    throw pyarb_error( "recipe.global_properties returned \""
+                       + std::string(pybind11::str(o))
+                       + "\" which does not describe a known Arbor global property description");
 
 }
 
