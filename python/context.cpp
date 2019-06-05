@@ -2,11 +2,11 @@
 #include <sstream>
 #include <string>
 
+#include <pybind11/pybind11.h>
+
 #include <arbor/context.hpp>
 #include <arbor/version.hpp>
 #include <arbor/util/optional.hpp>
-
-#include <pybind11/pybind11.h>
 
 #include "context.hpp"
 #include "conversion.hpp"

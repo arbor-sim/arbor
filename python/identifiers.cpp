@@ -1,9 +1,9 @@
 #include <ostream>
 #include <string>
 
-#include <arbor/common_types.hpp>
-
 #include <pybind11/pybind11.h>
+
+#include <arbor/common_types.hpp>
 
 #include "strprintf.hpp"
 

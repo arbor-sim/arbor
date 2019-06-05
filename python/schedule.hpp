@@ -1,10 +1,10 @@
 #pragma once
 
+#include <pybind11/pybind11.h>
+
 #include <arbor/schedule.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
-
-#include <pybind11/pybind11.h>
 
 namespace pyarb {
 

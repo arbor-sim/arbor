@@ -1,6 +1,6 @@
-#include <arbor/version.hpp>
-
 #include <pybind11/pybind11.h>
+
+#include <arbor/version.hpp>
 
 // Forward declarations of functions used to register API
 // types and functions to be exposed to Python.
