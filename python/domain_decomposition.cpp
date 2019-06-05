@@ -7,41 +7,57 @@
 
 #include "context.hpp"
 #include "recipe.hpp"
+//#include "strprintf.hpp"
 
 #include <pybind11/pybind11.h>
 
 namespace pyarb {
 
-std::string group_description_string(const arb::group_description& g) {
-    std::stringstream s;
-    const auto ncells = g.gids.size();
-    s << "<cell group: " << ncells << " cells of " << g.kind << " on " << g.backend;
-    if (ncells == 1) {
-        s << " gid " << g.gids[0];
-    }
+//std::ostream& operator<<(std::ostream& o, const arb::group_description& g) {
+//    o << "<cell group: " << ncells
+//      << " cells of " << g.kind
+//      << " on " << g.backend;
+//    if (ncells == 1) {
+//        o << ", gid " << g.gids[0];
+//    }
+//    else if (ncells < 5) {
+//        o << ", gids [" << util::csv(o, gids) << "]";
+//    }
+//    else {
+//        o << ", gids [" << util::csv(o, gids, 3) << "]";
+//    }
+//}
 
-    else if (ncells < 5) {
-        s << ", gids {";
-        bool first = true;
-        for (auto i: g.gids) {
-            if(!first) {
-                s << " ";
-            }
-            s << i;
-            first = false;
-        }
-        s << "}";
-    }
-    else {
-        s << ", gids {";
-        s << g.gids[0] << " " << g.gids[1] << " " << g.gids[2] << " ... " << g.gids.back();
-        s << "}";
-    }
-
-    s << ">";
-
-    return s.str();
-}
+//std::string group_description_string(const arb::group_description& g) {
+//    std::stringstream s;
+//    const auto ncells = g.gids.size();
+//    s << "<cell group: " << ncells << " cells of " << g.kind << " on " << g.backend;
+//    if (ncells == 1) {
+//        s << " gid " << g.gids[0];
+//    }
+//
+//    else if (ncells < 5) {
+//        s << ", gids {";
+//        bool first = true;
+//        for (auto i: g.gids) {
+//            if(!first) {
+//                s << " ";
+//            }
+//            s << i;
+//            first = false;
+//        }
+//        s << "}";
+//    }
+//    else {
+//        s << ", gids {";
+//        s << g.gids[0] << " " << g.gids[1] << " " << g.gids[2] << " ... " << g.gids.back();
+//        s << "}";
+//    }
+//
+//    s << ">";
+//
+//    return s.str();
+//}
 
 void register_domain_decomposition(pybind11::module& m) {
     using namespace pybind11::literals;
@@ -58,9 +74,9 @@ void register_domain_decomposition(pybind11::module& m) {
         .def_readonly("gids", &arb::group_description::gids,
             "The gids of the cells in the group in ascending order.")
         .def_readonly("backend", &arb::group_description::backend,
-            "The hardware backend on which the cell group will run.")
-        .def("__str__",  &group_description_string)
-        .def("__repr__", &group_description_string);
+            "The hardware backend on which the cell group will run.");
+//        .def("__str__",  util::to_string<arb::group_description>)
+//        .def("__repr__", util::to_string<arb::group_description>);
 
     // Domain decomposition
     pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition",
