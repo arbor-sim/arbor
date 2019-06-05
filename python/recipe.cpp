@@ -15,6 +15,7 @@
 
 #include "error.hpp"
 #include "event_generator.hpp"
+#include "strprintf.hpp"
 #include "recipe.hpp"
 
 namespace pyarb {
@@ -111,20 +112,14 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
 
 // TODO: implement py_recipe_shim::probe_info
 
-std::string connection_string(const arb::cell_connection& c) {
-    std::stringstream s;
-    s << "<connection: (" << c.source.gid << "," << c.source.index << ")"
-      << " -> (" << c.dest.gid << "," << c.dest.index << ")"
-      << " , delay " << c.delay << ", weight " << c.weight << ">";
-    return s.str();
+std::string con_to_string(const arb::cell_connection& c) {
+    return util::pprintf("<connection: ({},{}) -> ({},{}), delay {}, weight {}>",
+         c.source.gid, c.source.index, c.dest.gid, c.dest.index, c.delay, c.weight);
 }
 
-std::string gap_junction_connection_string(const arb::gap_junction_connection& gc) {
-    std::stringstream s;
-    s << "<connection: (" << gc.local.gid << "," << gc.local.index << ")"
-    << " -> (" << gc.peer.gid << "," << gc.peer.index << ")"
-    << " , conductance " << gc.ggap << ">";
-    return s.str();
+std::string gj_to_string(const arb::gap_junction_connection& gc) {
+    return util::pprintf("<gap junction: ({},{}) <-> ({},{}), conductance {}>",
+         gc.local.gid, gc.local.index, gc.peer.gid, gc.peer.index, gc.ggap);
 }
 
 void register_recipe(pybind11::module& m) {
@@ -157,8 +152,8 @@ void register_recipe(pybind11::module& m) {
             "The weight of the connection (unit: S⋅cm⁻²).")
         .def_readwrite("delay", &arb::cell_connection::delay,
             "The delay time of the connection (unit: ms).")
-        .def("__str__", &connection_string)
-        .def("__repr__", &connection_string);
+        .def("__str__",  &con_to_string)
+        .def("__repr__", &con_to_string);
 
     // Gap Junction Connections
     pybind11::class_<arb::gap_junction_connection> gap_junction_connection(m, "gap_junction_connection",
@@ -182,8 +177,8 @@ void register_recipe(pybind11::module& m) {
             "Other half of the gap junction connection.")
         .def_readwrite("ggap", &arb::gap_junction_connection::ggap,
             "Gap junction conductance (unit: μS).")
-        .def("__str__", &gap_junction_connection_string)
-        .def("__repr__", &gap_junction_connection_string);
+        .def("__str__",  &gj_to_string)
+        .def("__repr__", &gj_to_string);
 
     // Recipes
     pybind11::class_<py_recipe,
