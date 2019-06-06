@@ -11,31 +11,26 @@
 #include "recipe.hpp"
 #include "strprintf.hpp"
 
-namespace arb {
-
-std::ostream& operator<<(std::ostream& o, const arb::group_description& g) {
-    const auto ncells = g.gids.size();
-
-    o << "<cell group: " << ncells << " cells";
-    if (ncells == 1) {
-        o << ", gid " << g.gids[0];
-    }
-    else if (ncells < 5) {
-        o << ", gids [";
-        pyarb::util::csv(o, g.gids) << "]";
-    }
-    else {
-        o << ", gids [";
-        pyarb::util::csv(o, g.gids, 3) << "]";
-    }
-    o << ", " << g.kind << ", " << g.backend;
-    o << ">";
-
-    return o;
-}
-}
-
 namespace pyarb {
+
+std::string gd_string(const arb::group_description& g) {
+    std::stringstream s;
+    s << "<cell group: " << g.gids.size()
+      << " cells, gids [" << util::csv(g.gids, 5) << "]"
+      << ", " << g.kind << ", " << g.backend << ">";
+    return s.str();
+}
+
+std::string dd_string(const arb::domain_decomposition& d) {
+    std::stringstream s;
+    s << "<domain decomposition: domain "
+      << d.domain_id << " of "
+      << d.num_domains << ", "
+      << d.num_local_cells << "/" << d.num_global_cells << " loc/glob cells, "
+      << d.groups.size() << " groups>";
+
+    return s.str();
+}
 
 void register_domain_decomposition(pybind11::module& m) {
     using namespace pybind11::literals;
@@ -53,8 +48,8 @@ void register_domain_decomposition(pybind11::module& m) {
             "The gids of the cells in the group in ascending order.")
         .def_readonly("backend", &arb::group_description::backend,
             "The hardware backend on which the cell group will run.")
-        .def("__str__",  util::to_string<arb::group_description>)
-        .def("__repr__", util::to_string<arb::group_description>);
+        .def("__str__",  &gd_string)
+        .def("__repr__", &gd_string);
 
     // Domain decomposition
     pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition",
@@ -78,8 +73,8 @@ void register_domain_decomposition(pybind11::module& m) {
             "Total number of cells in the global model (sum of num_local_cells over all domains).")
         .def_readonly("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain.")
-        .def("__str__", [](arb::domain_decomposition&){return "<arbor.domain_decomposition>";})
-        .def("__repr__", [](arb::domain_decomposition&){return "<arbor.domain_decomposition>";});
+        .def("__str__",  &dd_string)
+        .def("__repr__", &dd_string);
 
     // Partition load balancer
     // The Python recipe has to be shimmed for passing to the function that

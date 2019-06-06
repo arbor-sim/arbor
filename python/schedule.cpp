@@ -19,7 +19,7 @@ std::ostream& operator<<(std::ostream& o, const regular_schedule_shim& x) {
 
 std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
     o << "<explicit_schedule: times [";
-    return util::csv(o, e.times) << "] ms>";
+    return o << util::csv(e.times) << "] ms>";
 };
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
