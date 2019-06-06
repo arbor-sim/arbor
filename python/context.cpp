@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
         o << "<context: threads " << arb::num_threads(c)
           << ", gpu " << (gpu? "yes": "no")
           << ", mpi " << (mpi? "yes": "no")
-          << " ranks " << arb::num_ranks(c)
+          << ", ranks " << arb::num_ranks(c)
           << ">";
 }
 
