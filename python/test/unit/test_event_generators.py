@@ -53,8 +53,7 @@ class EventGenerator(unittest.TestCase):
 
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class EventGenerator
-    suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(EventGenerator, ('test')))
+    suite = unittest.makeSuite(EventGenerator, ('test'))
     return suite
 
 def run():
