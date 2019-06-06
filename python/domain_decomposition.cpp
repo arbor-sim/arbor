@@ -11,7 +11,7 @@
 #include "recipe.hpp"
 #include "strprintf.hpp"
 
-namespace pyarb {
+namespace arb {
 
 std::ostream& operator<<(std::ostream& o, const arb::group_description& g) {
     const auto ncells = g.gids.size();
@@ -22,17 +22,20 @@ std::ostream& operator<<(std::ostream& o, const arb::group_description& g) {
     }
     else if (ncells < 5) {
         o << ", gids [";
-        util::csv(o, g.gids) << "]";
+        pyarb::util::csv(o, g.gids) << "]";
     }
     else {
         o << ", gids [";
-        util::csv(o, g.gids, 3) << "]";
+        pyarb::util::csv(o, g.gids, 3) << "]";
     }
     o << ", " << g.kind << ", " << g.backend;
     o << ">";
 
     return o;
 }
+}
+
+namespace pyarb {
 
 void register_domain_decomposition(pybind11::module& m) {
     using namespace pybind11::literals;

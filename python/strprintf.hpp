@@ -146,8 +146,8 @@ namespace impl {
             for (auto& x: s.seq_) {
                 if (!first) {
                     o << s.sep_;
-                    first = false;
                 }
+                first = false;
                 if (!n) {
                     return o << "...";
                 }
