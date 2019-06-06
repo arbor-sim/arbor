@@ -3,7 +3,6 @@
 # test_event_generators.py
 
 import unittest
-import numpy as np
 
 import arbor as arb
 
