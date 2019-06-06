@@ -90,14 +90,10 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Building python module"
     make pyarb -j4                                                           || error "building pyarb"
     progress "Python unit tests"
-    cd $python_path/test/unit
-    python$PY -m runner -v2                           || error "running python unit tests (serial)"
-    cd -
+    python$PY $python_path/test/unit/runner.py -v2                           || error "running python unit tests (serial)"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
         progress "Python distributed unit tests (MPI)"
-        cd $python_path/test/unit_distributed
-        ${launch} python$PY -m runner -v2 || error "running python distributed unit tests (MPI)"
-        cd -
+        ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
     fi
 fi
 
