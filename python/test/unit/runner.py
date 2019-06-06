@@ -30,7 +30,7 @@ test_modules = [\
     test_event_generators,\
     test_identifiers,\
     test_tests
-#    test_schedules\
+#    test_schedules
 ] # add more if needed
 
 def suite():
