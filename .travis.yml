@@ -155,7 +155,6 @@ install:
       curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
       python$PY get-pip.py
       pip --version
-      pip install -e .
     fi
   - if [[ ( "$WITH_PYTHON" == "true" ) && ( "$TRAVIS_OS_NAME" == "osx" ) ]]; then pip$PY install numpy; fi
   - |
