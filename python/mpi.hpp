@@ -13,7 +13,12 @@ struct mpi_comm_shim {
 
     mpi_comm_shim() = default;
     mpi_comm_shim(MPI_Comm c): comm(c) {}
+
+    mpi_comm_shim(pybind11::object o);
 };
+
+bool can_convert_to_mpi_comm(pybind11::object o);
+MPI_Comm convert_to_mpi_comm(pybind11::object o);
 
 } // namespace pyarb
 #endif
