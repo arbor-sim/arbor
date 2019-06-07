@@ -1,9 +1,9 @@
+#include <pybind11/pybind11.h>
+
 #include <arbor/simulation.hpp>
 
 #include "context.hpp"
 #include "recipe.hpp"
-
-#include <pybind11/pybind11.h>
 
 namespace pyarb {
 
@@ -33,7 +33,9 @@ void register_simulation(pybind11::module& m) {
         .def("run", &arb::simulation::run,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal, with maximum time step size dt.",
-            "tfinal"_a, "dt"_a);
+            "tfinal"_a, "dt"_a)
+        .def("__str__", [](const arb::simulation&){ return "<arbor.simulation>"; })
+        .def("__repr__", [](const arb::simulation&){ return "<arbor.simulation>"; });
 }
 
 } // namespace pyarb
