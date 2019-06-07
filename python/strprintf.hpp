@@ -146,8 +146,8 @@ namespace impl {
             for (auto& x: s.seq_) {
                 if (!first) {
                     o << s.sep_;
-                    first = false;
                 }
+                first = false;
                 if (!n) {
                     return o << "...";
                 }
@@ -160,23 +160,23 @@ namespace impl {
 }
 
 template <typename Seq>
-std::ostream& sepval(std::ostream& o, const char* sep, const Seq& seq) {
-    return o << impl::sepval<Seq>(seq, sep);
+impl::sepval<Seq> sepval(const char* sep, const Seq& seq) {
+    return impl::sepval<Seq>(seq, sep);
 }
 
 template <typename Seq>
-std::ostream& sepval(std::ostream& o, const char* sep, const Seq& seq, unsigned n) {
-    return o << impl::sepval_lim<Seq>(seq, sep, n);
+impl::sepval_lim<Seq> sepval(const char* sep, const Seq& seq, unsigned n) {
+    return impl::sepval_lim<Seq>(seq, sep, n);
 }
 
 template <typename Seq>
-std::ostream& csv(std::ostream& o, const Seq& seq) {
-    return o << impl::sepval<Seq>(seq, ", ");
+impl::sepval<Seq> csv(const Seq& seq) {
+    return impl::sepval<Seq>(seq, ", ");
 }
 
 template <typename Seq>
-std::ostream& csv(std::ostream& o, const Seq& seq, unsigned n) {
-    return o << impl::sepval_lim<Seq>(seq, ", ", n);
+impl::sepval_lim<Seq> csv(const Seq& seq, unsigned n) {
+    return impl::sepval_lim<Seq>(seq, ", ", n);
 }
 
 } // namespace util

@@ -1,10 +1,10 @@
 #pragma once
 
+#include <pybind11/pybind11.h>
+
 #include <arbor/schedule.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
-
-#include <pybind11/pybind11.h>
 
 namespace pyarb {
 
@@ -30,7 +30,7 @@ struct regular_schedule_shim {
     void set_dt(time_type delta_t);
 
     opt_time_type get_tstart() const;
-    opt_time_type get_dt()     const;
+    time_type get_dt()         const;
     opt_time_type get_tstop()  const;
 
     arb::schedule schedule() const;

@@ -76,6 +76,10 @@ progress "C++ unit tests"
 make unit -j4                || error "building unit tests"
 ./bin/unit --gtest_color=no  || error "running unit tests"
 
+progress "C++ modcc unit testss"
+make unit-modcc -j4                || error "building modcc unit tests"
+./bin/unit-modcc --gtest_color=no  || error "running modcc unit tests"
+
 progress "C++ distributed unit tests (local)"
 make unit-local -j4          || error "building local distributed unit tests"
 ./bin/unit-local             || error "running local distributed unit tests"
