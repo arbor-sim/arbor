@@ -25,7 +25,7 @@ void init_concentration_impl(
 
 void nernst_impl(
     std::size_t n, fvm_value_type factor,
-    const fvm_value_type* Xi, const fvm_value_type* Xo, fvm_value_type* eX);
+    const fvm_value_type* charge, const fvm_value_type* Xi, const fvm_value_type* Xo, fvm_value_type* eX);
 
 void update_time_to_impl(
     std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,

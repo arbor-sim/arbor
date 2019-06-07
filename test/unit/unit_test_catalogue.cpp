@@ -18,7 +18,7 @@
 c.add(#x, mechanism_##x##_info());\
 c.register_implementation(#x, make_mechanism_##x<multicore::backend>());
 #else
-#define ADD_MECH(x)\
+#define ADD_MECH(c, x)\
 c.add(#x, mechanism_##x##_info());\
 c.register_implementation(#x, make_mechanism_##x<multicore::backend>());\
 c.register_implementation(#x, make_mechanism_##x<gpu::backend>());
