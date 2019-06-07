@@ -2,7 +2,7 @@
 
 NEURON {
     SUFFIX test_ca
-    USEION ca READ ica WRITE cai
+    USEION ca READ ica WRITE cai VALENCE 2
 }
 
 UNITS {

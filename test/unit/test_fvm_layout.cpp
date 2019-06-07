@@ -12,6 +12,7 @@
 #include "util/span.hpp"
 
 #include "common.hpp"
+#include "unit_test_catalogue.hpp"
 #include "../common_cells.hpp"
 
 using namespace std::string_literals;
@@ -292,8 +293,9 @@ TEST(fvm_layout, mech_index) {
     cells[1].add_synapse({2, 0.4}, "exp2syn");
     cells[1].add_synapse({3, 0.4}, "expsyn");
 
+    cable_cell_global_properties gprop;
     fvm_discretization D = fvm_discretize(cells);
-    fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     auto& hh_config = M.mechanisms.at("hh");
     auto& expsyn_config = M.mechanisms.at("expsyn");
@@ -350,9 +352,14 @@ TEST(fvm_layout, coalescing_synapses) {
         return m;
     };
 
+    cable_cell_global_properties gprop_no_coalesce;
+    gprop_no_coalesce.coalesce_synapses = false;
+
+    cable_cell_global_properties gprop_coalesce;
+    gprop_coalesce.coalesce_synapses = true;
+
     {
         cable_cell cell = make_cell_ball_and_stick();
-        bool coalesce_synapses = true;
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -361,7 +368,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.9}, "expsyn");
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 2, 3, 4}), expsyn_config.cv);
@@ -369,7 +376,6 @@ TEST(fvm_layout, coalescing_synapses) {
     }
     {
         cable_cell cell = make_cell_ball_and_stick();
-        bool coalesce_synapses = true;
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -378,7 +384,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.9}, "exp2syn");
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
@@ -390,7 +396,6 @@ TEST(fvm_layout, coalescing_synapses) {
     }
     {
         cable_cell cell = make_cell_ball_and_stick();
-        bool coalesce_synapses = false;
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -399,7 +404,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.9}, "expsyn");
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 2, 3, 4}), expsyn_config.cv);
@@ -407,7 +412,6 @@ TEST(fvm_layout, coalescing_synapses) {
     }
     {
         cable_cell cell = make_cell_ball_and_stick();
-        bool coalesce_synapses = false;
 
         // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
@@ -416,7 +420,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.9}, "exp2syn");
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D, coalesce_synapses);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
@@ -436,7 +440,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, "expsyn");
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
@@ -452,7 +456,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0.1, 0.2));
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 1, 3}), expsyn_config.cv);
@@ -474,7 +478,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.3}, syn_desc("expsyn", 1, 2));
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 1, 3, 3}), expsyn_config.cv);
@@ -499,7 +503,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, syn_desc_2("exp2syn", 2, 2));
 
         fvm_discretization D = fvm_discretize({cell});
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({1, 1}), expsyn_config.cv);
@@ -544,8 +548,9 @@ TEST(fvm_layout, synapse_targets) {
     cells[1].add_synapse({3, 0.4}, syn_desc("expsyn", 5));
     cells[1].add_synapse({3, 0.7}, syn_desc("exp2syn", 6));
 
+    cable_cell_global_properties gprop;
     fvm_discretization D = fvm_discretize(cells);
-    fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     ASSERT_EQ(1u, M.mechanisms.count("expsyn"));
     ASSERT_EQ(1u, M.mechanisms.count("exp2syn"));
@@ -701,8 +706,9 @@ TEST(fvm_layout, density_norm_area) {
     expected_gl[8] = seg3_gl;
     expected_gl[9] = seg3_gl;
 
+    cable_cell_global_properties gprop;
     fvm_discretization D = fvm_discretize(cells);
-    fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     // Check CV area assumptions.
     // Note: area integrator used here and in `fvm_multicell` may differ, and so areas computed may
@@ -730,6 +736,27 @@ TEST(fvm_layout, density_norm_area) {
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gkbar, gkbar));
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gl, gl));
+}
+
+TEST(fvm_layout, valence_verify) {
+    std::vector<cable_cell> cells(1);
+    cable_cell& c = cells[0];
+    auto soma = c.add_soma(6);
+
+    soma->add_mechanism("test_cl_valence");
+    fvm_discretization D = fvm_discretize(cells);
+
+    mechanism_catalogue testcat = make_unit_test_catalogue();
+    cable_cell_global_properties gprop;
+    gprop.catalogue = &testcat;
+
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
+
+    gprop.ion_default["cl"] = { -1, 1., 1. };
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
+
+    gprop.ion_default["cl"] = { -2, 1., 1. };
+    EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, D));
 }
 
 TEST(fvm_layout, ion_weights) {
@@ -783,6 +810,8 @@ TEST(fvm_layout, ion_weights) {
         {1./3}, {1./3, 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0.}, {3./4, 0.}
     };
 
+    cable_cell_global_properties gprop;
+
     for (auto run: count_along(mech_segs)) {
         std::vector<cable_cell> cells(1);
         cable_cell& c = cells[0];
@@ -793,7 +822,7 @@ TEST(fvm_layout, ion_weights) {
         }
 
         fvm_discretization D = fvm_discretize(cells);
-        fvm_mechanism_data M = fvm_build_mechanism_data(global_default_catalogue(), cells, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
         ASSERT_EQ(1u, M.ions.count("ca"s));
         auto& ca = M.ions.at("ca"s);

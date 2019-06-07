@@ -47,7 +47,11 @@ std::ostream& operator<<(std::ostream& out, const ion_dep_info& wrap) {
     return out << "{\"" << ion.name << "\", {"
         << boolalpha[ion.writes_concentration_int()] << ", "
         << boolalpha[ion.writes_concentration_ext()] << ", "
-        << boolalpha[ion.writes_rev_potential()] << "}}";
+        << boolalpha[ion.uses_rev_potential()] << ", "
+        << boolalpha[ion.writes_rev_potential()] << ", "
+        << boolalpha[ion.uses_valence()] << ", "
+        << boolalpha[ion.verifies_valence()] << ", "
+        << ion.expected_valence << "}}";
 }
 
 std::string build_info_header(const Module& m, const printer_options& opt) {
@@ -57,6 +61,11 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
     std::string name = m.module_name();
     auto ids = public_variable_ids(m);
     auto ns_components = namespace_components(opt.cpp_namespace);
+
+    bool any_fields =
+        !ids.global_parameter_ids.empty() ||
+        !ids.range_parameter_ids.empty() ||
+        !ids.state_ids.empty();
 
     io::pfxstringstream out;
 
@@ -73,8 +82,12 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         "::arb::concrete_mech_ptr<Backend> make_mechanism_" << name << "();\n"
         "\n"
         "inline const ::arb::mechanism_info& mechanism_" << name << "_info() {\n"
-        << indent <<
-        "using spec = ::arb::mechanism_field_spec;\n"
+        << indent;
+
+   any_fields && out <<
+        "using spec = ::arb::mechanism_field_spec;\n";
+
+   out <<
         "static mechanism_info info = {\n"
         << indent <<
         "// globals\n"
