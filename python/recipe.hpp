@@ -65,7 +65,7 @@ public:
     arb::cell_kind cell_kind(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD_PURE(arb::cell_kind, py_recipe, cell_kind, gid);
     }
-    
+
     arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_sources, gid);
     }

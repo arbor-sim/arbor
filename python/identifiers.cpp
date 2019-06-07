@@ -1,9 +1,9 @@
 #include <ostream>
 #include <string>
 
-#include <arbor/common_types.hpp>
-
 #include <pybind11/pybind11.h>
+
+#include <arbor/common_types.hpp>
 
 #include "strprintf.hpp"
 
@@ -52,6 +52,13 @@ void register_identifiers(pybind11::module& m) {
             "Leaky-integrate and fire neuron.")
         .value("spike_source", arb::cell_kind::spike_source,
             "Proxy cell that generates spikes from a spike sequence provided by the user.");
+
+    pybind11::enum_<arb::backend_kind>(m, "backend_kind",
+        "Enumeration used to indicate which hardware backend to use for running a cell_group.")
+        .value("gpu", arb::backend_kind::gpu,
+            "Use GPU backend.")
+        .value("multicore", arb::backend_kind::multicore,
+            "Use multicore backend.");
 }
 
 } // namespace pyarb

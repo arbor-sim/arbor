@@ -2,10 +2,10 @@
 #include <ios>
 #include <sstream>
 
-#include <arbor/version.hpp>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
+#include <arbor/version.hpp>
 
 namespace pyarb {
 

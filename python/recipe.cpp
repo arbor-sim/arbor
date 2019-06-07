@@ -110,11 +110,39 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
+// Wrap arb::cell_connection in a shim that asserts constraints on connection
+// delay when the user attempts to set them in Python.
+struct cell_connection_shim {
+    arb::cell_member_type source;
+    arb::cell_member_type destination;
+    float weight;
+    arb::time_type delay;
+
+    cell_connection_shim(arb::cell_member_type src, arb::cell_member_type dst, float w, arb::time_type del) {
+        source = src;
+        destination = dst;
+        weight = w;
+        set_delay(del);
+    }
+
+    // getter and setter
+    void set_delay(arb::time_type t) {
+        pyarb::assert_throw([](arb::time_type f){ return f>arb::time_type(0); }(t), "connection delay must be positive");
+        delay = t;
+    }
+
+    arb::time_type get_delay() const { return delay; }
+
+    operator arb::cell_connection() const {
+        return arb::cell_connection(source, destination, weight, delay);
+    }
+};
+
 // TODO: implement py_recipe_shim::probe_info
 
-std::string con_to_string(const arb::cell_connection& c) {
+std::string con_to_string(const cell_connection_shim& c) {
     return util::pprintf("<connection: ({},{}) -> ({},{}), delay {}, weight {}>",
-         c.source.gid, c.source.index, c.dest.gid, c.dest.index, c.delay, c.weight);
+         c.source.gid, c.source.index, c.destination.gid, c.destination.index, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
@@ -126,31 +154,24 @@ void register_recipe(pybind11::module& m) {
     using namespace pybind11::literals;
 
     // Connections
-    pybind11::class_<arb::cell_connection> cell_connection(m, "cell_connection",
+    pybind11::class_<cell_connection_shim> cell_connection(m, "cell_connection",
         "Describes a connection between two cells:\n"
-        "a pre-synaptic source and a post-synaptic destination.");
+        "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
-        .def(pybind11::init<>(
-            [](){return arb::cell_connection({0u,0u}, {0u,0u}, 0.f, 0.f);}),
-            "Construct a connection with default arguments:\n"
-            "  source:      gid 0, index 0.\n"
-            "  destination: gid 0, index 0.\n"
-            "  weight:      0.\n"
-            "  delay:       0 ms.\n")
-        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
-            "source"_a, "destination"_a, "weight"_a = 0.f, "delay"_a = 0.f,
+        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, arb::time_type>(),
+            "source"_a = arb::cell_member_type{0,0}, "dest"_a = arb::cell_member_type{0,0}, "weight"_a = 0.f, "delay"_a,
             "Construct a connection with arguments:\n"
-            "  source:      The source end point of the connection.\n"
-            "  destination: The destination end point of the connection.\n"
+            "  source:      The source end point of the connection (default (0,0)).\n"
+            "  dest:        The destination end point of the connection (default (0,0)).\n"
             "  weight:      The weight delivered to the target synapse (dimensionless with interpretation specific to synapse type of target, default 0.).\n"
-            "  delay:       The delay of the connection (unit: ms, default 0.).\n")
-        .def_readwrite("source", &arb::cell_connection::source,
+            "  delay:       The delay of the connection (unit: ms).")
+        .def_readwrite("source", &cell_connection_shim::source,
             "The source of the connection.")
-        .def_readwrite("destination", &arb::cell_connection::dest,
+        .def_readwrite("dest", &cell_connection_shim::destination,
             "The destination of the connection.")
-        .def_readwrite("weight", &arb::cell_connection::weight,
-            "The weight of the connection (unit: S⋅cm⁻²).")
-        .def_readwrite("delay", &arb::cell_connection::delay,
+        .def_readwrite("weight", &cell_connection_shim::weight,
+            "The weight of the connection.")
+        .def_property("delay", &cell_connection_shim::get_delay, &cell_connection_shim::set_delay,
             "The delay time of the connection (unit: ms).")
         .def("__str__",  &con_to_string)
         .def("__repr__", &con_to_string);
@@ -159,18 +180,12 @@ void register_recipe(pybind11::module& m) {
     pybind11::class_<arb::gap_junction_connection> gap_junction_connection(m, "gap_junction_connection",
         "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
-        .def(pybind11::init<>(
-            [](){return arb::gap_junction_connection({0u,0u}, {0u,0u}, 0.f);}),
-            "Construct a gap junction connection with default arguments:\n"
-            "  local: gid 0, index 0.\n"
-            "  peer:  gid 0, index 0.\n"
-            "  ggap:  0 μS.\n")
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, double>(),
-            "local"_a, "peer"_a, "ggap"_a = 0.f,
+            "local"_a = arb::cell_member_type{0,0}, "peer"_a = arb::cell_member_type{0,0}, "ggap"_a = 0.f,
             "Construct a gap junction connection with arguments:\n"
-            "  local: One half of the gap junction connection.\n"
-            "  peer:  Other half of the gap junction connection.\n"
-            "  ggap:  Gap junction conductance (unit: μS, default 0.).\n")
+            "  local: One half of the gap junction connection (default (0,0)).\n"
+            "  peer:  Other half of the gap junction connection (default (0,0)).\n"
+            "  ggap:  Gap junction conductance (unit: μS, default 0.).")
         .def_readwrite("local", &arb::gap_junction_connection::local,
             "One half of the gap junction connection.")
         .def_readwrite("peer", &arb::gap_junction_connection::peer,
@@ -218,7 +233,7 @@ void register_recipe(pybind11::module& m) {
         .def("global_properties", &py_recipe::global_properties, pybind11::return_value_policy::copy,
             "cell_kind"_a,
             "Global property type specific to a given cell kind.")
-        .def("__str__", [](const py_recipe&){return "<pyarb.recipe>";})
-        .def("__repr__", [](const py_recipe&){return "<pyarb.recipe>";});
+        .def("__str__", [](const py_recipe&){return "<arbor.recipe>";})
+        .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
 }
 } // namespace pyarb

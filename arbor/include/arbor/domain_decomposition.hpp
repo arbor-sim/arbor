@@ -15,7 +15,7 @@ struct group_description {
     /// The kind of cell in the group. All cells in a cell_group have the same type.
     cell_kind kind;
 
-    /// The gids of the cells in the cell_group, sorted in ascending order.
+    /// The gids of the cells in the cell_group. Does not need to be sorted.
     std::vector<cell_gid_type> gids;
 
     /// The back end on which the cell_group is to run.
