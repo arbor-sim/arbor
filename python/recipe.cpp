@@ -6,13 +6,12 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
-#include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/event_generator.hpp>
-#include <arbor/lif_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
 
+#include "cells.hpp"
 #include "error.hpp"
 #include "event_generator.hpp"
 #include "strprintf.hpp"
@@ -22,37 +21,12 @@ namespace pyarb {
 
 // The py::recipe::cell_decription returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::unique_any.
-
 arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
-    using pybind11::isinstance;
-    using pybind11::cast;
-
     // Aquire the GIL because it must be held when calling isinstance and cast.
     auto guard = pybind11::gil_scoped_acquire();
 
     // Get the python object pyarb::cell_description from the python front end
-    pybind11::object o = impl_->cell_description(gid);
-
-    if (isinstance<arb::cable_cell>(o)) {
-        return arb::util::unique_any(cast<arb::cable_cell>(o));
-    }
-
-    else if (isinstance<arb::lif_cell>(o)) {
-        return arb::util::unique_any(cast<arb::lif_cell>(o));
-    }
-
-    else if (isinstance<arb::spike_source_cell>(o)) {
-        return arb::util::unique_any(cast<arb::spike_source_cell>(o));
-    }
-
-    else if (isinstance<arb::benchmark_cell>(o)) {
-        return arb::util::unique_any(cast<arb::benchmark_cell>(o));
-    }
-
-    throw pyarb_error(
-                        "recipe.cell_description returned \""
-                        + std::string(pybind11::str(o))
-                        + "\" which does not describe a known Arbor cell type");
+    return convert_cell(impl_->cell_description(gid));
 }
 
 // The py::recipe::global_properties returns a pybind11::object, that is
