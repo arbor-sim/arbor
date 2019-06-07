@@ -33,11 +33,9 @@ arb::util::unique_any convert_cell(pybind11::object o) {
     if (isinstance<arb::lif_cell>(o)) {
         return arb::util::unique_any(cast<arb::lif_cell>(o));
     }
-    /*
     if (isinstance<arb::cable_cell>(o)) {
         return arb::util::unique_any(cast<arb::cable_cell>(o));
     }
-    */
 
     throw pyarb_error("recipe.cell_description returned \""
                       + std::string(pybind11::str(o))
