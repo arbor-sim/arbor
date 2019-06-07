@@ -1,9 +1,11 @@
 #include <sstream>
 #include <string>
 
+#include <pybind11/pybind11.h>
+
 #include <arbor/version.hpp>
 
-#include <pybind11/pybind11.h>
+#include "strprintf.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
@@ -84,13 +86,13 @@ int mpi_is_finalized() {
 // Define the stringifier for mpi_comm_shim here, to minimise the ifdefication
 // elsewhere in this wrapper code.
 
-std::string mpi_comm_string(const mpi_comm_shim& c) {
-    std::stringstream s;
-
-    s << "<mpi_comm: ";
-    if (c.comm==MPI_COMM_WORLD) s << "MPI_COMM_WORLD>";
-    else s << c.comm << ">";
-    return s.str();
+std::ostream& operator<<(std::ostream& o, const mpi_comm_shim& c) {
+    if (c.comm==MPI_COMM_WORLD) {
+        return o << "<mpi communicator: MPI_COMM_WORLD>";
+    }
+    else {
+        return o << "<mpi communicator: " << c.comm << ">";
+    }
 }
 
 void register_mpi(pybind11::module& m) {
@@ -100,8 +102,8 @@ void register_mpi(pybind11::module& m) {
     mpi_comm
         .def(pybind11::init<>())
         .def(pybind11::init([](pybind11::object o){return mpi_comm_shim(o);}))
-        .def("__str__", &mpi_comm_string)
-        .def("__repr__", &mpi_comm_string);
+        .def("__str__",  util::to_string<mpi_comm_shim>)
+        .def("__repr__", util::to_string<mpi_comm_shim>);
 
     m.def("mpi_init", &mpi_init, "Initialize MPI with MPI_THREAD_SINGLE, as required by Arbor.");
     m.def("mpi_finalize", &mpi_finalize, "Finalize MPI (calls MPI_Finalize)");
