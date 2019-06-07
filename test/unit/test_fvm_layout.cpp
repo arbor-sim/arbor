@@ -752,10 +752,10 @@ TEST(fvm_layout, valence_verify) {
 
     EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
 
-    gprop.ion_default["cl"] = { -1, 1., 1. };
+    gprop.ion_default["cl"] = { -2, 1., 1. };
     EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
 
-    gprop.ion_default["cl"] = { -2, 1., 1. };
+    gprop.ion_default["cl"] = { -1, 1., 1. };
     EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, D));
 }
 

@@ -2,7 +2,7 @@
 
 NEURON {
     SUFFIX test_cl_valence
-    USEION cl WRITE icl VALENCE -2
+    USEION cl WRITE icl VALENCE -1
 }
 
 PARAMETER {}
