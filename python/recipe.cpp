@@ -158,7 +158,7 @@ void register_recipe(pybind11::module& m) {
         "Describes a connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
-        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
+        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, arb::time_type>(),
             "source"_a = arb::cell_member_type{0,0}, "dest"_a = arb::cell_member_type{0,0}, "weight"_a = 0.f, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection (default (0,0)).\n"
