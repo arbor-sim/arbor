@@ -164,13 +164,13 @@ TEST(Parser, parse_conductance) {
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_conductance, "CONDUCTANCE g USEION na"));
     if (s) {
-        EXPECT_EQ(s->ion_channel(), ionKind::Na);
+        EXPECT_EQ(s->ion_channel(), "na");
         EXPECT_EQ(s->name(), "g");
     }
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_conductance, "CONDUCTANCE gnda"));
     if (s) {
-        EXPECT_EQ(s->ion_channel(), ionKind::nonspecific);
+        EXPECT_EQ(s->ion_channel(), "");
         EXPECT_EQ(s->name(), "gnda");
     }
 }

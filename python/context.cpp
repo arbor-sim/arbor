@@ -2,11 +2,11 @@
 #include <sstream>
 #include <string>
 
+#include <pybind11/pybind11.h>
+
 #include <arbor/context.hpp>
 #include <arbor/version.hpp>
 #include <arbor/util/optional.hpp>
-
-#include <pybind11/pybind11.h>
 
 #include "context.hpp"
 #include "conversion.hpp"
@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
         o << "<context: threads " << arb::num_threads(c)
           << ", gpu " << (gpu? "yes": "no")
           << ", mpi " << (mpi? "yes": "no")
-          << " ranks " << arb::num_ranks(c)
+          << ", ranks " << arb::num_ranks(c)
           << ">";
 }
 

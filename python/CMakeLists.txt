@@ -18,6 +18,7 @@ add_subdirectory(pybind11)
 add_library(pyarb MODULE
     config.cpp
     context.cpp
+    domain_decomposition.cpp
     event_generator.cpp
     identifiers.cpp
     mpi.cpp
