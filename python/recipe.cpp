@@ -110,33 +110,39 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
+// Wrap arb::cell_connection in a shim that asserts constraints on connection
+// delay when the user attempts to set them in Python.
 struct cell_connection_shim {
     arb::cell_member_type source;
-    arb::cell_member_type dest;
+    arb::cell_member_type destination;
     float weight;
-    float delay;
+    arb::time_type delay;
 
-    cell_connection_shim(arb::cell_member_type s, arb::cell_member_type d, float w, float t) {
-        source = s;
-        dest   = d;
+    cell_connection_shim(arb::cell_member_type src, arb::cell_member_type dst, float w, arb::time_type del) {
+        source = src;
+        destination = dst;
         weight = w;
-        set_delay(t);
+        set_delay(del);
     }
 
-    // getter and setter (in order to assert when being set)
-    void set_delay(float t) {
-        pyarb::assert_throw([](auto&& f){ return f>0.; }(t), "delay must be positive");
+    // getter and setter
+    void set_delay(arb::time_type t) {
+        pyarb::assert_throw([](arb::time_type f){ return f>arb::time_type(0); }(t), "connection delay must be positive");
         delay = t;
     }
 
-    float get_delay() const { return delay; }
+    arb::time_type get_delay() const { return delay; }
+
+    operator arb::cell_connection() const {
+        return arb::cell_connection(source, destination, weight, delay);
+    }
 };
 
 // TODO: implement py_recipe_shim::probe_info
 
 std::string con_to_string(const cell_connection_shim& c) {
     return util::pprintf("<connection: ({},{}) -> ({},{}), delay {}, weight {}>",
-         c.source.gid, c.source.index, c.dest.gid, c.dest.index, c.delay, c.weight);
+         c.source.gid, c.source.index, c.destination.gid, c.destination.index, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
@@ -150,7 +156,7 @@ void register_recipe(pybind11::module& m) {
     // Connections
     pybind11::class_<cell_connection_shim> cell_connection(m, "cell_connection",
         "Describes a connection between two cells:\n"
-        "a pre-synaptic source and a post-synaptic destination.");
+        "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
             "source"_a = arb::cell_member_type{0,0}, "dest"_a = arb::cell_member_type{0,0}, "weight"_a = 0.f, "delay"_a,
@@ -161,7 +167,7 @@ void register_recipe(pybind11::module& m) {
             "  delay:       The delay of the connection (unit: ms).")
         .def_readwrite("source", &cell_connection_shim::source,
             "The source of the connection.")
-        .def_readwrite("dest", &cell_connection_shim::dest,
+        .def_readwrite("dest", &cell_connection_shim::destination,
             "The destination of the connection.")
         .def_readwrite("weight", &cell_connection_shim::weight,
             "The weight of the connection.")

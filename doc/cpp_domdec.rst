@@ -154,7 +154,7 @@ Documentation for the data structures used to describe domain decompositions.
 
     .. cpp:member:: const std::vector<cell_gid_type> gids
 
-        The gids of the cells in the cell group, **sorted in ascending order**.
+        The gids of the cells in the cell group.
 
     .. cpp:member:: const backend_kind backend
 
