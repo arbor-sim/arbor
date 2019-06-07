@@ -24,7 +24,7 @@ add_library(pyarb MODULE
     pyarb.cpp
     recipe.cpp
     simulation.cpp
-    strings.cpp
+    schedule.cpp
 )
 
 target_link_libraries(pyarb PRIVATE arbor pybind11::module)

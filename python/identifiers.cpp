@@ -1,12 +1,15 @@
+#include <ostream>
 #include <string>
 
 #include <arbor/common_types.hpp>
 
 #include <pybind11/pybind11.h>
 
-#include "strings.hpp"
+#include "strprintf.hpp"
 
 namespace pyarb {
+
+using util::pprintf;
 
 void register_identifiers(pybind11::module& m) {
     using namespace pybind11::literals;
@@ -36,8 +39,8 @@ void register_identifiers(pybind11::module& m) {
             "The global identifier of the cell.")
         .def_readwrite("index", &arb::cell_member_type::index,
             "Cell-local index of the item.")
-        .def("__str__",  &cell_member_string)
-        .def("__repr__", &cell_member_string);
+        .def("__str__", [](arb::cell_member_type m) {return pprintf("<cell member: gid {}, index {}>", m.gid, m.index);})
+        .def("__repr__",[](arb::cell_member_type m) {return pprintf("<cell member: gid {}, index {}>", m.gid, m.index);});
 
     pybind11::enum_<arb::cell_kind>(m, "cell_kind",
         "Enumeration used to identify the cell kind, used by the model to group equal kinds in the same cell group.")
