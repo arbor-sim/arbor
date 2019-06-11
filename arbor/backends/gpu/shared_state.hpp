@@ -34,7 +34,7 @@ struct ion_state {
     array weight_Xi_;   // (1) concentration weight internal
     array weight_Xo_;   // (1) concentration weight external
 
-    int charge;    // charge of ionic species
+    array charge;       // charge of ionic species (global, length 1)
     fvm_value_type default_int_concentration; // (mM) default internal concentration
     fvm_value_type default_ext_concentration; // (mM) default external concentration
 

@@ -606,6 +606,89 @@ TEST(Parser, parse_state_block) {
     }
 }
 
+static std::vector<IonDep> extract_useion(const std::string& neuron_block) {
+    Module m(neuron_block, "dummy");
+    Parser p(m, false);
+    p.parse_neuron_block();
+    EXPECT_EQ(lexerStatus::happy, p.status());
+    verbose_print(expression_ptr{}, p, neuron_block.c_str());
+
+    return m.neuron_block().ions;
+}
+
+TEST(Parser, parse_neuron_block_useion) {
+    {
+        const char* neuron_block = "NEURON { USEION x }";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(true, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x READ ix, xi, xo }";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(false, ion.read.empty());
+        EXPECT_EQ(true, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+
+        EXPECT_EQ(true, ion.uses_current());
+        EXPECT_EQ(true, ion.uses_concentration_int());
+        EXPECT_EQ(true, ion.uses_concentration_ext());
+        EXPECT_EQ(false, ion.writes_concentration_int());
+        EXPECT_EQ(false, ion.writes_concentration_ext());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x WRITE xi, xo }";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(false, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+
+        EXPECT_EQ(false, ion.uses_current());
+        EXPECT_EQ(true, ion.uses_concentration_int());
+        EXPECT_EQ(true, ion.uses_concentration_ext());
+        EXPECT_EQ(true, ion.writes_concentration_int());
+        EXPECT_EQ(true, ion.writes_concentration_ext());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x WRITE ex VALENCE -2}";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(false, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(true, ion.verifies_valence());
+        EXPECT_EQ(-2, ion.expected_valence);
+
+        EXPECT_EQ(false, ion.uses_current());
+        EXPECT_EQ(false, ion.uses_concentration_int());
+        EXPECT_EQ(false, ion.uses_concentration_ext());
+        EXPECT_EQ(true, ion.uses_rev_potential());
+        EXPECT_EQ(true, ion.writes_rev_potential());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x WRITE ex VALENCE zx}";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(false, ion.write.empty());
+        EXPECT_EQ(true, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+        EXPECT_EQ("zx", ion.valence_var.spelling);
+    }
+}
+
 TEST(Parser, parse_kinetic) {
     char str[] =
         "KINETIC kin {\n"

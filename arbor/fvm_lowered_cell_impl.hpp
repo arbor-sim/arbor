@@ -385,7 +385,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D, global_props.coalesce_synapses);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props,  cells, D);
 
     // Discritize and build gap junction info
 

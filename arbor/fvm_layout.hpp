@@ -140,6 +140,6 @@ struct fvm_mechanism_data {
     std::size_t ntarget = 0;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<cable_cell>& cells, const fvm_discretization& D, bool coalesce = true);
+fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_discretization& D);
 
 } // namespace arb
