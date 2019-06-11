@@ -14,7 +14,7 @@
 // 1. Collection of mechanism metadata indexed by name.
 //
 // 2. A further hierarchy of 'derived' mechanisms, that allow specialization of
-//    global parameters and implementations.
+//    global parameters, ion bindings, and implementations.
 //
 // 3. A map taking mechanism names x back-end class -> mechanism implementation
 //    prototype object.
@@ -66,19 +66,31 @@ public:
     const mechanism_fingerprint& fingerprint(const std::string& name) const;
 
     // Construct a schema for a mechanism derived from an existing entry,
-    // with a sequence of overrides for global scalar parameter settings.
-    void derive(const std::string& name, const std::string& parent, const std::vector<std::pair<std::string, double>>& global_params);
+    // with a sequence of overrides for global scalar parameter settings
+    // and a set of ion renamings.
+    void derive(const std::string& name, const std::string& parent,
+                const std::vector<std::pair<std::string, double>>& global_params,
+                const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
 
     // Remove mechanism from catalogue, together with any derived.
     void remove(const std::string& name);
 
     // Clone the implementation associated with name (search derivation hierarchy starting from
-    // most derived) and set global parameters according to derivations.
+    // most derived) and return together with any global overrides.
     template <typename B>
-    std::unique_ptr<concrete_mechanism<B>> instance(const std::string& name) const {
-        mechanism_ptr mech = instance_impl(std::type_index(typeid(B)), name);
+    struct cat_instance {
+        std::unique_ptr<concrete_mechanism<B>> mech;
+        mechanism_overrides overrides;
+    };
 
-        return std::unique_ptr<concrete_mechanism<B>>(dynamic_cast<concrete_mechanism<B>*>(mech.release()));
+    template <typename B>
+    cat_instance<B> instance(const std::string& name) const {
+        auto mech = instance_impl(std::type_index(typeid(B)), name);
+
+        return cat_instance<B>{
+            std::unique_ptr<concrete_mechanism<B>>(dynamic_cast<concrete_mechanism<B>*>(mech.first.release())),
+            std::move(mech.second)
+        };
     }
 
     // Associate a concrete (prototype) mechanism for a given back-end B with a (possibly derived)
@@ -100,7 +112,8 @@ private:
 
     struct derivation {
         std::string parent;
-        string_map<value_type> globals;  // global overrides relative to parent
+        string_map<value_type> globals;    // global overrides relative to parent
+        string_map<std::string> ion_remap; // ion name remap overrides relative to parent
         mechanism_info_ptr derived_info;
     };
 
@@ -111,12 +124,17 @@ private:
     string_map<std::unordered_map<std::type_index, mechanism_ptr>> impl_map_;
 
     // Concrete-type erased helper methods.
-    mechanism_ptr instance_impl(std::type_index, const std::string&) const;
+    std::pair<mechanism_ptr, mechanism_overrides> instance_impl(std::type_index, const std::string&) const;
     void register_impl(std::type_index, const std::string&, mechanism_ptr);
 
     // Perform copy and prototype clone from other catalogue (overwrites all entries).
     void copy_impl(const mechanism_catalogue&);
 };
+
+// Convenience routine for deriving a single-ion dependency mechanism 'name'
+// over a new ion 'ion', and adding it to the catalogue as 'name/ion'.
+
+void parameterize_over_ion(mechanism_catalogue&, const std::string& name, const std::string& ion);
 
 // Reference to global default mechanism catalogue.
 

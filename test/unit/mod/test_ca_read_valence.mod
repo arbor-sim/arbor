@@ -10,11 +10,11 @@ PARAMETER {}
 ASSIGNED {}
 
 STATE {
-    record_zca
+    record_z
 }
 
 INITIAL {
-    record_zca = zca
+    record_z = zca
 }
 
 BREAKPOINT  {

@@ -46,7 +46,7 @@ public:
         return s;
     }
 
-    void instantiate(fvm_size_type id, backend::shared_state& shared, const layout& w) override;
+    void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
@@ -54,8 +54,6 @@ public:
     }
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
-
-    void set_global(const std::string& key, fvm_value_type value) override;
 
     void initialize() override;
 

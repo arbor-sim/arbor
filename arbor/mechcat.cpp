@@ -7,6 +7,7 @@
 #include <arbor/mechcat.hpp>
 
 #include "util/maputil.hpp"
+#include "io/trace.hpp"
 
 namespace arb {
 
@@ -45,7 +46,10 @@ const mechanism_fingerprint& mechanism_catalogue::fingerprint(const std::string&
     throw no_such_mechanism(name);
 }
 
-void mechanism_catalogue::derive(const std::string& name, const std::string& parent, const std::vector<std::pair<std::string, double>>& global_params) {
+void mechanism_catalogue::derive(const std::string& name, const std::string& parent,
+    const std::vector<std::pair<std::string, double>>& global_params,
+    const std::vector<std::pair<std::string, std::string>>& ion_remap_vec)
+{
     if (has(name)) {
         throw duplicate_mechanism(name);
     }
@@ -54,7 +58,8 @@ void mechanism_catalogue::derive(const std::string& name, const std::string& par
         throw no_such_mechanism(parent);
     }
 
-    derivation deriv = {parent, {}, nullptr};
+    std::unordered_map<std::string, std::string> ion_remap_map(ion_remap_vec.begin(), ion_remap_vec.end());
+    derivation deriv = {parent, {}, ion_remap_map, nullptr};
     mechanism_info_ptr info = mechanism_info_ptr(new mechanism_info((*this)[deriv.parent]));
 
     for (const auto& kv: global_params) {
@@ -73,6 +78,33 @@ void mechanism_catalogue::derive(const std::string& name, const std::string& par
         deriv.globals[param] = value;
         info->globals.at(param).default_value = value;
     }
+
+    for (const auto& kv: ion_remap_vec) {
+        if (!info->ions.count(kv.first)) {
+            throw invalid_ion_remap(name, kv.first, kv.second);
+        }
+    }
+
+    std::unordered_map<std::string, ion_dependency> new_ions;
+    for (const auto& kv: info->ions) {
+        if (auto new_ion = value_by_key(ion_remap_map, kv.first)) {
+            if (!new_ions.insert({*new_ion, kv.second}).second) {
+                throw invalid_ion_remap(name, kv.first, *new_ion);
+            }
+        }
+        else {
+            if (!new_ions.insert(kv).second) {
+                // find offending remap to report in exception
+                for (const auto& entry: ion_remap_map) {
+                    if (entry.second==kv.first) {
+                        throw invalid_ion_remap(name, kv.first, entry.second);
+                    }
+                }
+                throw arbor_internal_error("inconsistent catalogue ion remap state");
+            }
+        }
+    }
+    info->ions = std::move(new_ions);
 
     deriv.derived_info = std::move(info);
     derived_map_[name] = std::move(deriv);
@@ -108,7 +140,10 @@ void mechanism_catalogue::remove(const std::string& name) {
     } while (n_delete>0);
 }
 
-std::unique_ptr<mechanism> mechanism_catalogue::instance_impl(std::type_index tidx, const std::string& name) const {
+std::pair<std::unique_ptr<mechanism>, mechanism_overrides>
+mechanism_catalogue::instance_impl(std::type_index tidx, const std::string& name) const {
+    std::pair<std::unique_ptr<mechanism>, mechanism_overrides> mech;
+
     // Find implementation associated with this name or its closest ancestor.
 
     auto impl_name = name;
@@ -131,18 +166,34 @@ std::unique_ptr<mechanism> mechanism_catalogue::instance_impl(std::type_index ti
         }
     }
 
-    std::unique_ptr<mechanism> mech = prototype->clone();
+    mech.first = prototype->clone();
 
-    auto apply_globals = [this](auto& self, const std::string& name, mechanism* mptr) -> void {
+    auto apply_globals = [this](auto& self, const std::string& name, mechanism_overrides& over) -> void {
         if (auto p = value_by_key(derived_map_, name)) {
-            self(self, p->parent, mptr);
+            self(self, p->parent, over);
 
             for (auto& kv: p->globals) {
-                mptr->set_global(kv.first, kv.second);
+                over.globals[kv.first] = kv.second;
+            }
+
+            if (!p->ion_remap.empty()) {
+                std::unordered_map<std::string, std::string> new_rebind = p->ion_remap;
+                for (auto& kv: over.ion_rebind) {
+                    if (auto opt_v = value_by_key(p->ion_remap, kv.second)) {
+                        new_rebind.erase(kv.second);
+                        new_rebind[kv.first] = *opt_v;
+                    }
+                }
+                for (auto& kv: over.ion_rebind) {
+                    if (!value_by_key(p->ion_remap, kv.second)) {
+                        new_rebind[kv.first] = kv.second;
+                    }
+                }
+                std::swap(new_rebind, over.ion_rebind);
             }
         }
     };
-    apply_globals(apply_globals, name, mech.get());
+    apply_globals(apply_globals, name, mech.second);
     return mech;
 }
 
@@ -165,7 +216,7 @@ void mechanism_catalogue::copy_impl(const mechanism_catalogue& other) {
     derived_map_.clear();
     for (const auto& kv: other.derived_map_) {
         const derivation& v = kv.second;
-        derived_map_[kv.first] = {v.parent, v.globals, make_unique<mechanism_info>(*v.derived_info)};
+        derived_map_[kv.first] = {v.parent, v.globals, v.ion_remap, make_unique<mechanism_info>(*v.derived_info)};
     }
 
     impl_map_.clear();
@@ -177,6 +228,16 @@ void mechanism_catalogue::copy_impl(const mechanism_catalogue& other) {
 
         impl_map_[name_impls.first] = std::move(impls);
     }
+}
+
+void parameterize_over_ion(mechanism_catalogue& cat, const std::string& name, const std::string& ion) {
+    mechanism_info info = cat[name];
+    if (info.ions.size()!=1) {
+        throw invalid_ion_remap(name);
+    }
+
+    std::string from_ion = info.ions.begin()->first;
+    cat.derive(name+"/"+ion, name, {}, {{from_ion, ion}});
 }
 
 } // namespace arb

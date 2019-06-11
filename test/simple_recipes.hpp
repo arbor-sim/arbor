@@ -50,6 +50,10 @@ public:
         return catalogue_;
     }
 
+    void add_ion(const char* name, int charge, double iconc, double econc) {
+        cell_gprop_.ion_default[name] = {charge, iconc, econc};
+    }
+
 protected:
     std::unordered_map<cell_gid_type, std::vector<probe_info>> probes_;
     cable_cell_global_properties cell_gprop_;
