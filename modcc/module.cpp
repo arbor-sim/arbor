@@ -641,6 +641,12 @@ void Module::add_variables_to_symbols() {
         for(auto const& var : ion.write) {
             update_ion_symbols(var, accessKind::write, ion.name);
         }
+
+        if(ion.uses_valence()) {
+            Token valence_var = ion.valence_var;
+            create_indexed_variable(valence_var.spelling, "ion_valence", sourceKind::ion_valence,
+                    tok::eq, accessKind::read, ion.name, valence_var.location);
+        }
     }
 
     // then GLOBAL variables

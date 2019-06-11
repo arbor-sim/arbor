@@ -2,6 +2,8 @@
 
 set(test_mechanisms
     celsius_test
+    test_cl_valence
+    test_ca_read_valence
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)

@@ -39,6 +39,7 @@ protected:
         value_type* reversal_potential;
         value_type* internal_concentration;
         value_type* external_concentration;
+        value_type* ionic_charge;
     };
 
 public:

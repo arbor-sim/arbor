@@ -147,6 +147,10 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     case sourceKind::ion_econc:
         data_var=ion_pfx+".external_concentration";
         break;
+    case sourceKind::ion_valence:
+        data_var=ion_pfx+".ionic_charge";
+        index_var=""; // scalar global
+        break;
     case sourceKind::temperature:
         data_var="temperature_degC_";
         index_var=""; // scalar global

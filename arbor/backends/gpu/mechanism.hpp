@@ -33,8 +33,6 @@ protected:
     using array  = arb::gpu::array;
     using iarray = arb::gpu::iarray;
 
-    using ion_state_vuew = arb::gpu::ion_state_view;
-
 public:
     std::size_t size() const override {
         return width_;
