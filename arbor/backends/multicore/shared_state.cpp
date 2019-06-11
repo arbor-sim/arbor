@@ -61,7 +61,7 @@ ion_state::ion_state(
     Xo_(cv.size(), NAN, pad(alignment)),
     weight_Xi_(iconc_norm_area.begin(), iconc_norm_area.end(), pad(alignment)),
     weight_Xo_(econc_norm_area.begin(), econc_norm_area.end(), pad(alignment)),
-    charge(info.charge),
+    charge(1u, info.charge, pad(alignment)),
     default_int_concentration(info.default_int_concentration),
     default_ext_concentration(info.default_ext_concentration)
 {
@@ -84,7 +84,7 @@ void ion_state::nernst(fvm_value_type temperature_K) {
     // 1e3 factor required to scale from V -> mV.
     constexpr fvm_value_type RF = 1e3*constant::gas_constant/constant::faraday;
 
-    simd_value_type factor = RF*temperature_K/charge;
+    simd_value_type factor = RF*temperature_K/charge[0];
     for (std::size_t i=0; i<Xi_.size(); i+=simd_width) {
         simd_value_type xi(Xi_.data()+i);
         simd_value_type xo(Xo_.data()+i);

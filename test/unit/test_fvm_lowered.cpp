@@ -27,6 +27,7 @@
 #include "util/rangeutil.hpp"
 
 #include "common.hpp"
+#include "unit_test_catalogue.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
@@ -486,6 +487,35 @@ TEST(fvm_lowered, derived_mechs) {
     }
 }
 
+// Test that ion charge is propagated into mechanism variable.
+
+TEST(fvm_lowered, read_valence) {
+    std::vector<cable_cell> cells(1);
+
+    cable_cell& c = cells[0];
+    c.add_soma(6.0)->add_mechanism("test_ca_read_valence");
+
+    cable1d_recipe rec(cells);
+    rec.catalogue() = make_unit_test_catalogue();
+
+    std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
+    probe_association_map<probe_handle> probe_map;
+
+    execution_context context;
+    fvm_cell fvcell(context);
+    fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+    // test_ca_read_valence initialization should write ca ion valence
+    // to state variable 'record_zca':
+
+    auto mech_ptr = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca_read_valence"));
+    auto opt_record_zca_ptr = util::value_by_key((mech_ptr->*private_field_table_ptr)(), "record_zca"s);
+
+    ASSERT_TRUE(opt_record_zca_ptr);
+    auto& record_zca = *opt_record_zca_ptr.value();
+    ASSERT_EQ(2.0, record_zca[0]);
+}
 
 // Test area-weighted linear combination of ion species concentrations
 

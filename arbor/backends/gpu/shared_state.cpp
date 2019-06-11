@@ -25,7 +25,7 @@ void init_concentration_impl(
 
 void nernst_impl(
     std::size_t n, fvm_value_type factor,
-    const fvm_value_type* Xi, const fvm_value_type* Xo, fvm_value_type* eX);
+    const fvm_value_type* charge, const fvm_value_type* Xi, const fvm_value_type* Xo, fvm_value_type* eX);
 
 void update_time_to_impl(
     std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
@@ -68,7 +68,7 @@ ion_state::ion_state(
     Xo_(cv.size(), NAN),
     weight_Xi_(make_const_view(iconc_norm_area)),
     weight_Xo_(make_const_view(econc_norm_area)),
-    charge(info.charge),
+    charge(1u, info.charge),
     default_int_concentration(info.default_int_concentration),
     default_ext_concentration(info.default_ext_concentration)
 {
@@ -91,8 +91,8 @@ void ion_state::nernst(fvm_value_type temperature_K) {
     // 1e3 factor required to scale from V -> mV.
     constexpr fvm_value_type RF = 1e3*constant::gas_constant/constant::faraday;
 
-    fvm_value_type factor = RF*temperature_K/charge;
-    nernst_impl(Xi_.size(), factor, Xo_.data(), Xi_.data(), eX_.data());
+    fvm_value_type factor = RF*temperature_K;
+    nernst_impl(Xi_.size(), factor, charge.data(), Xo_.data(), Xi_.data(), eX_.data());
 }
 
 void ion_state::init_concentration() {

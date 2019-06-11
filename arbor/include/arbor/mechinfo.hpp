@@ -32,7 +32,15 @@ struct mechanism_field_spec {
 struct ion_dependency {
     bool write_concentration_int;
     bool write_concentration_ext;
+
+    bool read_reversal_potential;
     bool write_reversal_potential;
+
+    bool read_ion_charge;
+
+    // Support for NMODL 'VALENCE n' construction.
+    bool verify_ion_charge;
+    int expected_ion_charge;
 };
 
 // A hash of the mechanism dynamics description is used to ensure that offline-compiled

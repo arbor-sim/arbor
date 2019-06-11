@@ -28,7 +28,6 @@ std::string dd_string(const arb::domain_decomposition& d) {
       << d.num_domains << ", "
       << d.num_local_cells << "/" << d.num_global_cells << " loc/glob cells, "
       << d.groups.size() << " groups>";
-
     return s.str();
 }
 
