@@ -95,7 +95,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
         ion_view.reversal_potential = oion->eX_.data();
         ion_view.internal_concentration = oion->Xi_.data();
         ion_view.external_concentration = oion->Xo_.data();
-        ion_view.ionic_charge = oion->Xo_.data();
+        ion_view.ionic_charge = oion->charge.data();
     }
 
     event_stream_ptr_ = &shared.deliverable_events;
