@@ -37,7 +37,7 @@ void register_simulation(pybind11::module& m) {
         .def("set_binning_policy", &arb::simulation::set_binning_policy,
             "Set event binning policy on all our groups.",
             "policy"_a, "bin_interval"_a)
-        .def("__str__", [](const arb::simulation&){ return "<arbor.simulation>"; })
+        .def("__str__",  [](const arb::simulation&){ return "<arbor.simulation>"; })
         .def("__repr__", [](const arb::simulation&){ return "<arbor.simulation>"; });
 }
 
