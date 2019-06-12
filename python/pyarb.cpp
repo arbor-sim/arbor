@@ -6,6 +6,7 @@
 // types and functions to be exposed to Python.
 namespace pyarb {
 
+void register_cells(pybind11::module& m);
 void register_config(pybind11::module& m);
 void register_contexts(pybind11::module& m);
 void register_domain_decomposition(pybind11::module& m);
@@ -24,6 +25,7 @@ PYBIND11_MODULE(arbor, m) {
     m.doc() = "arbor: Python bindings for Arbor.";
     m.attr("__version__") = ARB_VERSION;
 
+    pyarb::register_cells(m);
     pyarb::register_config(m);
     pyarb::register_contexts(m);
     pyarb::register_domain_decomposition(m);
