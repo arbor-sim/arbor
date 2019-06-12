@@ -115,12 +115,12 @@ struct cell_connection_shim {
 // TODO: implement py_recipe_shim::probe_info
 
 std::string con_to_string(const cell_connection_shim& c) {
-    return util::pprintf("<connection: ({},{}) -> ({},{}), delay {}, weight {}>",
+    return util::pprintf("<arbor.connection: source ({},{}), destination ({},{}), delay {}, weight {}>",
          c.source.gid, c.source.index, c.destination.gid, c.destination.index, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<gap junction: ({},{}) <-> ({},{}), conductance {}>",
+    return util::pprintf("<arbor.gap_junction_connection: local ({},{}), peer ({},{}), ggap {}>",
          gc.local.gid, gc.local.index, gc.peer.gid, gc.peer.index, gc.ggap);
 }
 
@@ -128,7 +128,7 @@ void register_recipe(pybind11::module& m) {
     using namespace pybind11::literals;
 
     // Connections
-    pybind11::class_<cell_connection_shim> cell_connection(m, "cell_connection",
+    pybind11::class_<cell_connection_shim> cell_connection(m, "connection",
         "Describes a connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection

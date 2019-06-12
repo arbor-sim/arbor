@@ -88,10 +88,10 @@ int mpi_is_finalized() {
 
 std::ostream& operator<<(std::ostream& o, const mpi_comm_shim& c) {
     if (c.comm==MPI_COMM_WORLD) {
-        return o << "<mpi communicator: MPI_COMM_WORLD>";
+        return o << "<arbor.mpi_comm: MPI_COMM_WORLD>";
     }
     else {
-        return o << "<mpi communicator: " << c.comm << ">";
+        return o << "<arbor.mpi_comm: " << c.comm << ">";
     }
 }
 

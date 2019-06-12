@@ -11,19 +11,19 @@
 namespace pyarb {
 
 std::ostream& operator<<(std::ostream& o, const regular_schedule_shim& x) {
-    return o << "<regular_schedule: tstart "
+    return o << "<arbor.regular_schedule: tstart "
              << x.tstart << " ms, dt "
              << x.dt << " ms, tstop "
              << x.tstop << " ms>";
 }
 
 std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
-    o << "<explicit_schedule: times [";
+    o << "<arbor.explicit_schedule: times [";
     return o << util::csv(e.times) << "] ms>";
 };
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
-    return o << "<poisson_schedule: tstart " << p.tstart << " ms"
+    return o << "<arbor.poisson_schedule: tstart " << p.tstart << " ms"
              << ", freq " << p.freq << " Hz"
              << ", seed " << p.seed << ">";
 };
