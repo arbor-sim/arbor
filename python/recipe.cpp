@@ -141,12 +141,12 @@ struct cell_connection_shim {
 // TODO: implement py_recipe_shim::probe_info
 
 std::string con_to_string(const cell_connection_shim& c) {
-    return util::pprintf("<connection: ({},{}) -> ({},{}), delay {}, weight {}>",
+    return util::pprintf("<arbor.cell_connection: source ({},{}), destination ({},{}), delay {}, weight {}>",
          c.source.gid, c.source.index, c.destination.gid, c.destination.index, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<gap junction: ({},{}) <-> ({},{}), conductance {}>",
+    return util::pprintf("<arbor.gap_junction_connection: local ({},{}), peer ({},{}), ggap {}>",
          gc.local.gid, gc.local.index, gc.peer.gid, gc.peer.index, gc.ggap);
 }
 
