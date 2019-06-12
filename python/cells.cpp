@@ -46,10 +46,6 @@ arb::util::unique_any convert_cell(pybind11::object o) {
 // Somewhat hacky bit of code for generating cells with random morphologies.
 //
 
-struct foo {
-    std::array<int, 2> vals;
-};
-
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
     cell_parameters() = default;
@@ -144,6 +140,16 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     return cell;
 }
 
+//
+// string printers
+//
+
+std::string lif_str(const arb::lif_cell& c){
+    return util::pprintf(
+                "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}, V_reset {}>",
+                c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref, c.V_reset);
+}
+
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -154,36 +160,43 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init<>(
             [](const regular_schedule_shim& sched){
                 return arb::spike_source_cell{sched.schedule()};}),
-            "schedule"_a, "Construct a spike source cell that generates spikes at regular intervals")
+            "schedule"_a, "Construct a spike source cell that generates spikes at regular intervals.")
         .def(pybind11::init<>(
             [](const explicit_schedule_shim& sched){
                 return arb::spike_source_cell{sched.schedule()};}),
-            "schedule"_a, "Construct a spike source cell that generates spikes at a sequence of user-defined times")
+            "schedule"_a, "Construct a spike source cell that generates spikes at a sequence of user-defined times.")
         .def(pybind11::init<>(
             [](const poisson_schedule_shim& sched){
                 return arb::spike_source_cell{sched.schedule()};}),
-            "schedule"_a, "Construct a spike source cell that generates spikes at times defined by a Poisson sequence")
-        .def("__repr__", [](const arb::spike_source_cell&){return "<spike_source_cell>";})
-        .def("__str__",  [](const arb::spike_source_cell&){return "<spike_source_cell>";});
+            "schedule"_a, "Construct a spike source cell that generates spikes at times defined by a Poisson sequence.")
+        .def("__repr__", [](const arb::spike_source_cell&){return "<arbor.spike_source_cell>";})
+        .def("__str__",  [](const arb::spike_source_cell&){return "<arbor.spike_source_cell>";});
 
     pybind11::class_<arb::benchmark_cell> benchmark_cell(m, "benchmark_cell",
-        "A benchmarking cell, used by Arbor developers to test communication performance.");
+        "A benchmarking cell, used by Arbor developers to test communication performance.\n"
+        "A benchmark cell generates spikes at a user-defined sequence of time points, and\n"
+        "the time taken to integrate a cell can be tuned by setting the real_time ratio,\n"
+        "for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to\n"
+        "simulate 1 second.\n");
 
     benchmark_cell
         .def(pybind11::init<>(
             [](const regular_schedule_shim& sched, double ratio){
                 return arb::benchmark_cell{sched.schedule(), ratio};}),
-            "schedule"_a, "realtime_ratio"_a)
+            "schedule"_a, "realtime_ratio"_a=1.0,
+            "Construct a benchmark cell that generates spikes at regular intervals.")
         .def(pybind11::init<>(
             [](const explicit_schedule_shim& sched, double ratio){
                 return arb::benchmark_cell{sched.schedule(), ratio};}),
-            "schedule"_a, "realtime_ratio"_a)
+            "schedule"_a, "realtime_ratio"_a=1.0,
+            "Construct a benchmark cell that generates spikes at a sequence of user-defined times.")
         .def(pybind11::init<>(
             [](const poisson_schedule_shim& sched, double ratio){
                 return arb::benchmark_cell{sched.schedule(), ratio};}),
-            "schedule"_a, "realtime_ratio"_a)
-        .def("__repr__", [](const arb::spike_source_cell&){return "<benchmark_cell>";})
-        .def("__str__",  [](const arb::spike_source_cell&){return "<benchmark_cell>";});
+            "schedule"_a, "realtime_ratio"_a=1.0,
+            "Construct a benchmark cell that generates spikes at times defined by a Poisson sequence.")
+        .def("__repr__", [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";})
+        .def("__str__",  [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";});
 
     pybind11::class_<arb::lif_cell> lif_cell(m, "lif_cell",
         "A benchmarking cell, used by Arbor developers to test communication performance.");
@@ -197,8 +210,8 @@ void register_cells(pybind11::module& m) {
         .def_readwrite("V_m",   &arb::lif_cell::V_m,    "Initial value of the Membrane potential [mV].")
         .def_readwrite("t_ref", &arb::lif_cell::t_ref,  "Refractory period [ms].")
         .def_readwrite("V_reset", &arb::lif_cell::V_reset, "Reset potential [mV].")
-        .def("__repr__", [](const arb::lif_cell&){return "<lif_cell>";})
-        .def("__str__",  [](const arb::lif_cell&){return "<lif_cell>";});
+        .def("__repr__", &lif_str)
+        .def("__str__",  &lif_str);
 
     pybind11::class_<cell_parameters> cell_params(m, "cell_parameters", "Parameters used to generate the random cell morphologies.");
     cell_params
@@ -215,11 +228,16 @@ void register_cells(pybind11::module& m) {
     // Cable cells are going to be replaced with a saner API, so we don't go
     // adding much in the way of interface. Instead we just provide a helper
     // that will generate random cell morphologies for benchmarking.
-    pybind11::class_<arb::cable_cell> cablecell(m, "cable_cell");
+    pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell");
+
+    cable_cell
+        .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
+        .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});
+
     m.def("branch_cell", &branch_cell,
         "Construct a branching cell with a random morphology and synapse end points locations described by params.\n"
-        "gid is an integral value used to seed the random number generator. The unique global identifier of a cell is a good value to use.",
-        "gid"_a,
+        "seed is an integral value used to seed the random number generator, for which the gid of the cell is a good default.",
+        "seed"_a,
         "params"_a=cell_parameters());
 }
 
