@@ -31,7 +31,9 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
 
 // The py::recipe::global_properties returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::any.
+/*
 arb::util::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const {
+    // TODO: handle none case
     using pybind11::cast;
 
     // Aquire the GIL because it must be held when calling cast.
@@ -40,6 +42,9 @@ arb::util::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const 
     // Get the python object pyarb::global_properties from the python front end
     pybind11::object o = impl_->global_properties(kind);
 
+    if (o.is_none()) {
+        return {};
+    }
     if (kind == arb::cell_kind::cable) {
         return arb::util::any(cast<arb::cable_cell_global_properties>(o));
     }
@@ -51,6 +56,7 @@ arb::util::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const 
                        + "\" which does not describe a known Arbor global property description");
 
 }
+*/
 
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
     using namespace std::string_literals;
@@ -112,6 +118,28 @@ struct cell_connection_shim {
     }
 };
 
+std::vector<arb::cell_connection> py_recipe_shim::connections_on(arb::cell_gid_type gid) const {
+    using pybind11::isinstance;
+    using pybind11::cast;
+
+    // Aquire the GIL because it must be held when calling isinstance and cast.
+    auto guard = pybind11::gil_scoped_acquire();
+
+    // TODO: acquire gil
+    auto pycons = impl_->connections_on(gid);
+    std::vector<arb::cell_connection> cons;
+    cons.reserve(pycons.size());
+    for (const auto& c: pycons) {
+        if (isinstance<cell_connection_shim>(c)) {
+            cons.push_back(cast<cell_connection_shim>(c));
+        }
+        else {
+            throw std::runtime_error("that isn't a connection.'");
+        }
+    }
+    return cons;
+}
+
 // TODO: implement py_recipe_shim::probe_info
 
 std::string con_to_string(const cell_connection_shim& c) {
@@ -133,7 +161,7 @@ void register_recipe(pybind11::module& m) {
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, arb::time_type>(),
-            "source"_a = arb::cell_member_type{0,0}, "dest"_a = arb::cell_member_type{0,0}, "weight"_a = 0.f, "delay"_a,
+            "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection (default (0,0)).\n"
             "  dest:        The destination end point of the connection (default (0,0)).\n"
@@ -155,7 +183,7 @@ void register_recipe(pybind11::module& m) {
         "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, double>(),
-            "local"_a = arb::cell_member_type{0,0}, "peer"_a = arb::cell_member_type{0,0}, "ggap"_a = 0.f,
+            "local"_a, "peer"_a, "ggap"_a,
             "Construct a gap junction connection with arguments:\n"
             "  local: One half of the gap junction connection (default (0,0)).\n"
             "  peer:  Other half of the gap junction connection (default (0,0)).\n"
@@ -204,10 +232,8 @@ void register_recipe(pybind11::module& m) {
             "gid"_a,
             "A list of the gap junctions connected to gid (default []).")
         // TODO: py_recipe::get_probe
-        .def("global_properties", &py_recipe::global_properties, pybind11::return_value_policy::copy,
-            "cell_kind"_a,
-            "Global property type specific to a given cell kind.")
-        .def("__str__", [](const py_recipe&){return "<arbor.recipe>";})
+        // TODO: py_recipe::global_properties
+        .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
 }
 } // namespace pyarb

@@ -48,7 +48,7 @@ void register_identifiers(pybind11::module& m) {
             "Proxy cell that generates spikes from a spike sequence provided by the user.");
 
     pybind11::enum_<arb::backend_kind>(m, "backend",
-        "Enumeration used to indicate which hardware backend to use for running a cell_group.")
+        "Enumeration used to indicate which hardware backend to execute a cell group on.")
         .value("gpu", arb::backend_kind::gpu,
             "Use GPU backend.")
         .value("multicore", arb::backend_kind::multicore,
