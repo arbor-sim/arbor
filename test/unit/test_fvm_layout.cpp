@@ -94,23 +94,24 @@ namespace {
         cable_cell c2;
         segment* s;
 
+        c2.default_parameters.axial_resistivity = 90;
+
         s = c2.add_soma(14./2);
         s->add_mechanism("hh");
 
         s = c2.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200);
-        s->cm = 0.017;
+        s->parameters.membrane_capacitance = 0.017;
 
         s = c2.add_cable(1, section_kind::dendrite, 0.8/2, 0.8/2, 300);
-        s->cm = 0.013;
+        s->parameters.membrane_capacitance = 0.013;
 
         s = c2.add_cable(1, section_kind::dendrite, 0.7/2, 0.7/2, 180);
-        s->cm = 0.018;
+        s->parameters.membrane_capacitance = 0.018;
 
         c2.add_stimulus({2,1}, {5.,  80., 0.45});
         c2.add_stimulus({3,1}, {40., 10.,-0.2});
 
         for (auto& seg: c2.segments()) {
-            seg->rL = 90.;
             if (seg->is_dendrite()) {
                 seg->add_mechanism("pas");
                 seg->set_compartments(4);
@@ -134,7 +135,7 @@ TEST(fvm_layout, topology) {
     std::vector<cable_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
     // Expected CV layouts for cells, segment indices in paren.
     //
@@ -214,7 +215,7 @@ TEST(fvm_layout, area) {
     std::vector<cable_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
     // Note: stick models have constant diameter segments.
     // Refer to comment above for CV vs. segment layout.
@@ -253,9 +254,7 @@ TEST(fvm_layout, area) {
     // capacitance from segments 3, 4 and 5 (cell 1 segments
     // 1, 2 and 3 respectively).
 
-    double cm1 = cells[1].segment(1)->cm;
-    double cm2 = cells[1].segment(2)->cm;
-    double cm3 = cells[1].segment(3)->cm;
+    double cm1 = 0.017, cm2 = 0.013, cm3 = 0.018;
 
     double c = A[3]/(2*n)*cm1+A[4]/(2*n)*cm2+A[5]/(2*n)*cm3;
     EXPECT_FLOAT_EQ(c, D.cv_capacitance[9]);
@@ -263,7 +262,7 @@ TEST(fvm_layout, area) {
     // CV 5 should be a weighted sum of soma and first segment
     // capacitcance from cell 1.
 
-    double cm0 = cells[1].soma()->cm;
+    double cm0 = 0.01;
     c = A[2]*cm0+A[3]/(2*n)*cm1;
     EXPECT_FLOAT_EQ(c, D.cv_capacitance[5]);
 
@@ -276,8 +275,9 @@ TEST(fvm_layout, area) {
     double a = volume(cable)/cable->length();
     EXPECT_FLOAT_EQ(math::pi<double>*0.8*0.8/4, a);
 
+    double rL = 90;
     double h = cable->length()/4;
-    double g = a/h/cable->rL; // [µm·S/cm]
+    double g = a/h/rL; // [µm·S/cm]
     g *= 100; // [µS]
 
     EXPECT_FLOAT_EQ(g, D.face_conductance[11]);
@@ -294,7 +294,9 @@ TEST(fvm_layout, mech_index) {
     cells[1].add_synapse({3, 0.4}, "expsyn");
 
     cable_cell_global_properties gprop;
-    fvm_discretization D = fvm_discretize(cells);
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     auto& hh_config = M.mechanisms.at("hh");
@@ -353,9 +355,11 @@ TEST(fvm_layout, coalescing_synapses) {
     };
 
     cable_cell_global_properties gprop_no_coalesce;
+    gprop_no_coalesce.default_parameters = neuron_parameter_defaults;
     gprop_no_coalesce.coalesce_synapses = false;
 
     cable_cell_global_properties gprop_coalesce;
+    gprop_coalesce.default_parameters = neuron_parameter_defaults;
     gprop_coalesce.coalesce_synapses = true;
 
     {
@@ -367,7 +371,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, "expsyn");
         cell.add_synapse({1, 0.9}, "expsyn");
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -383,7 +387,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, "expsyn");
         cell.add_synapse({1, 0.9}, "exp2syn");
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -403,7 +407,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, "expsyn");
         cell.add_synapse({1, 0.9}, "expsyn");
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -419,7 +423,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, "expsyn");
         cell.add_synapse({1, 0.9}, "exp2syn");
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -439,7 +443,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, "expsyn");
         cell.add_synapse({1, 0.7}, "expsyn");
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -455,7 +459,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0.1, 0.2));
         cell.add_synapse({1, 0.7}, syn_desc("expsyn", 0.1, 0.2));
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -477,7 +481,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.3}, syn_desc("expsyn", 0, 2));
         cell.add_synapse({1, 0.3}, syn_desc("expsyn", 1, 2));
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -502,7 +506,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.add_synapse({1, 0.7}, syn_desc_2("exp2syn", 2, 1));
         cell.add_synapse({1, 0.7}, syn_desc_2("exp2syn", 2, 2));
 
-        fvm_discretization D = fvm_discretize({cell});
+        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -549,7 +553,9 @@ TEST(fvm_layout, synapse_targets) {
     cells[1].add_synapse({3, 0.7}, syn_desc("exp2syn", 6));
 
     cable_cell_global_properties gprop;
-    fvm_discretization D = fvm_discretize(cells);
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     ASSERT_EQ(1u, M.mechanisms.count("expsyn"));
@@ -707,7 +713,9 @@ TEST(fvm_layout, density_norm_area) {
     expected_gl[9] = seg3_gl;
 
     cable_cell_global_properties gprop;
-    fvm_discretization D = fvm_discretize(cells);
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     // Check CV area assumptions.
@@ -744,19 +752,26 @@ TEST(fvm_layout, valence_verify) {
     auto soma = c.add_soma(6);
 
     soma->add_mechanism("test_cl_valence");
-    fvm_discretization D = fvm_discretize(cells);
+
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
     mechanism_catalogue testcat = make_unit_test_catalogue();
-    cable_cell_global_properties gprop;
     gprop.catalogue = &testcat;
 
+    // Missing the 'cl' ion:
     EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
 
-    gprop.ion_default["cl"] = { -2, 1., 1. };
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
-
-    gprop.ion_default["cl"] = { -1, 1., 1. };
+    // Adding ion, should be fine now:
+    gprop.default_parameters.ion_data["cl"] = { 1., 1., 0. };
+    gprop.ion_species["cl"] = -1;
     EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, D));
+
+    // 'cl' ion has wrong charge:
+    gprop.ion_species["cl"] = -2;
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
 }
 
 TEST(fvm_layout, ion_weights) {
@@ -806,13 +821,24 @@ TEST(fvm_layout, ion_weights) {
         {0}, {0, 1, 2}, {1, 2, 3}, {0, 1, 2, 3}, {1, 3}
     };
 
-    fvec expected_iconc_norm_area[] = {
+    fvec expected_init_iconc[] = {
         {1./3}, {1./3, 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0.}, {3./4, 0.}
     };
 
     cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration;
+    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration;
+
+    for (auto& v: expected_init_iconc) {
+        for (auto& iconc: v) {
+            iconc *= cai;
+        }
+    }
 
     for (auto run: count_along(mech_segs)) {
+        SCOPED_TRACE("run "+std::to_string(run));
         std::vector<cable_cell> cells(1);
         cable_cell& c = cells[0];
         construct_cell(c);
@@ -821,15 +847,16 @@ TEST(fvm_layout, ion_weights) {
             c.segments()[i]->add_mechanism("test_ca");
         }
 
-        fvm_discretization D = fvm_discretize(cells);
+        fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
         ASSERT_EQ(1u, M.ions.count("ca"s));
         auto& ca = M.ions.at("ca"s);
 
         EXPECT_EQ(expected_ion_cv[run], ca.cv);
-        EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(expected_iconc_norm_area[run], ca.iconc_norm_area));
 
-        EXPECT_TRUE(util::all_of(ca.econc_norm_area, [](fvm_value_type v) { return v==1.; }));
+        EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(expected_init_iconc[run], ca.init_iconc));
+
+        EXPECT_TRUE(util::all_of(ca.init_econc, [cao](fvm_value_type v) { return v==cao; }));
     }
 }

@@ -9,6 +9,8 @@ set(arbor_sources
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
     builtin_mechanisms.cpp
+    cable_cell.cpp
+    cable_cell_param.cpp
     cell_group_factory.cpp
     common_types_io.cpp
     execution_context.cpp
@@ -21,7 +23,6 @@ set(arbor_sources
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     lif_cell_group.cpp
-    cable_cell.cpp
     mc_cell_group.cpp
     mechcat.cpp
     memory/cuda_wrappers.cpp

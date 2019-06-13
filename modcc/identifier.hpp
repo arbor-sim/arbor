@@ -90,7 +90,7 @@ inline sourceKind ion_source(const std::string& ion, const std::string& var) {
     else if (var=="i"+ion) return sourceKind::ion_current;
     else if (var=="e"+ion) return sourceKind::ion_revpot;
     else if (var==ion+"i") return sourceKind::ion_iconc;
-    else if (var==ion+"e") return sourceKind::ion_econc;
+    else if (var==ion+"o") return sourceKind::ion_econc;
     else return sourceKind::no_source;
 }
 

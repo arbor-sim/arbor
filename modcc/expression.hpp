@@ -542,8 +542,8 @@ public:
                             yellow(lookup_name));
             goto compiler_error;
         }
-        // write only variables must be update via addition/subtraction
-        if(is_write() && (op()!=tok::plus && op()!=tok::minus)) {
+        // write only variables must be update via addition/subtraction/assignment
+        if(is_write() && (op()!=tok::plus && op()!=tok::minus && op()!=tok::eq)) {
             msg = pprintf("write only index %  must use addition or subtraction",
                           yellow(lookup_name));
             goto compiler_error;

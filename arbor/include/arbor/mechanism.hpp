@@ -9,7 +9,7 @@
 
 namespace arb {
 
-enum class mechanismKind {point, density};
+enum class mechanismKind {point, density, revpot};
 
 class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;

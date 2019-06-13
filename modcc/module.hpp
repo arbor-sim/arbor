@@ -139,6 +139,9 @@ private:
         return s == symbols_.end() ? false : s->second->kind() == kind;
     }
 
+    // Check requirements for reversal potential setters.
+    void check_revpot_mechanism();
+
     // Perform semantic analysis on functions and procedures.
     // Returns the number of errors that were encountered.
     int semantic_func_proc();

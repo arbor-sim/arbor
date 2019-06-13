@@ -81,6 +81,12 @@ cable_segment* cable_cell::cable(index_type index) {
     return cable? cable: throw cable_cell_error("segment is not a cable segment");
 }
 
+const cable_segment* cable_cell::cable(index_type index) const {
+    assert_valid_segment(index);
+    auto cable = segment(index)->as_cable();
+    return cable? cable: throw cable_cell_error("segment is not a cable segment");
+}
+
 std::vector<size_type> cable_cell::compartment_counts() const {
     std::vector<size_type> comp_count;
     comp_count.reserve(num_segments());
@@ -102,6 +108,55 @@ void cable_cell::add_stimulus(segment_location loc, i_clamp stim) {
 
 void cable_cell::add_detector(segment_location loc, double threshold) {
     spike_detectors_.push_back({loc, threshold});
+}
+
+// Approximating wildly by ignoring O(x) effects entirely, the attenuation b
+// over a single cable segment with constant resistivity R and membrane
+// capacitance C is given by:
+//
+// b = 2√(πRCf) · Σ 2L/(√d₀ + √d₁)
+//
+// where the sum is taken over each piecewise linear segment of length L
+// with diameters d₀ and d₁ at each end.
+
+value_type cable_cell::segment_mean_attenuation(
+    value_type frequency, index_type segidx,
+    const cable_cell_parameter_set& global_defaults) const
+{
+    value_type R = default_parameters.axial_resistivity.value_or(global_defaults.axial_resistivity.value());
+    value_type C = default_parameters.membrane_capacitance.value_or(global_defaults.membrane_capacitance.value());
+
+    value_type length_factor = 0; // [1/√µm]
+
+    if (segidx==0) {
+        if (const soma_segment* s = soma()) {
+            R = s->parameters.axial_resistivity.value_or(R);
+            C = s->parameters.membrane_capacitance.value_or(C);
+
+            value_type d = 2*s->radius();
+            length_factor = 1/std::sqrt(d);
+        }
+    }
+    else {
+        const cable_segment* s = cable(segidx);
+        const auto& lengths = s->lengths();
+        const auto& radii = s->radii();
+
+        value_type total_length = 0;
+        R = s->parameters.axial_resistivity.value_or(R);
+        C = s->parameters.membrane_capacitance.value_or(C);
+
+        for (std::size_t i = 0; i<lengths.size(); ++i) {
+            length_factor += 2*lengths[i]/(std::sqrt(radii[i])+std::sqrt(radii[i+1]));
+            total_length += lengths[i];
+        }
+        length_factor /= total_length;
+    }
+
+    // R*C is in [s·cm/m²]; need to convert to [s/µm]
+    value_type tau_per_um = R*C*1e-8;
+
+    return 2*std::sqrt(math::pi<double>*tau_per_um*frequency)*length_factor; // [1/µm]
 }
 
 

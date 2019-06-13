@@ -34,6 +34,9 @@ struct IonDep {
     bool uses_concentration_ext() const {
         return has_variable(name+"o");
     };
+    bool writes_current() const {
+        return writes_variable("i"+name);
+    };
     bool writes_concentration_int() const {
         return writes_variable(name+"i");
     };
@@ -63,7 +66,8 @@ struct IonDep {
 
 enum class moduleKind {
     point,
-    density
+    density,
+    revpot   // A specialized density mechanism for computing only ionic reversal potentials.
 };
 
 typedef std::vector<Token> unit_tokens;

@@ -464,6 +464,16 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     }
 }
 
+static const char* external_op_to_assign_op(enum tok op_tok) {
+    switch (op_tok) {
+    case tok::plus: return "+=";
+    case tok::minus: return "-=";
+    case tok::eq: return "=";
+    default:
+        throw compiler_exception(std::string("External update operator token must be +, -, or =."));
+    }
+}
+
 void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
     if (!external->is_write()) return;
 
@@ -471,7 +481,7 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
         throw compiler_exception("Cannot assign to global scalar: "+external->to_string());
     }
 
-    const char* op = external->op()==tok::plus? " += ": " -= ";
+    const char* op = external_op_to_assign_op(external->op());
     out << cprint(external) << op << from->name() << ";\n";
 }
 
@@ -628,7 +638,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
 void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, simd_expr_constraint constraint) {
     if (!external->is_write()) return;
 
-    const char* op = external->op()==tok::plus? " += ": " -= ";
+    const char* op = external_op_to_assign_op(external->op());
     indexed_variable_info v = decode_indexed_variable(external);
 
     if (v.scalar()) {

@@ -249,11 +249,12 @@ inline cable_cell make_cell_ball_and_3stick(bool with_stim = true) {
 inline cable_cell make_cell_simple_cable(bool with_stim = true) {
     cable_cell c;
 
+    c.default_parameters.axial_resistivity = 100;
+    c.default_parameters.membrane_capacitance = 0.01;
+
     c.add_soma(0);
     c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 1000);
 
-    double r_L  = 100;
-    double c_m  = 0.01;
     double gbar = 0.000025;
     double I = 0.1;
 
@@ -262,8 +263,6 @@ inline cable_cell make_cell_simple_cable(bool with_stim = true) {
 
     for (auto& seg: c.segments()) {
         seg->add_mechanism(pas);
-        seg->rL = r_L;
-        seg->cm = c_m;
 
         if (seg->is_dendrite()) {
             seg->set_compartments(4);

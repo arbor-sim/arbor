@@ -81,7 +81,6 @@ ACCESS_BIND(\
     private_ion_index_table_ptr,\
     &arb::multicore::mechanism::ion_index_table)
 
-
 using namespace arb;
 
 class gap_recipe_0: public recipe {
@@ -336,7 +335,10 @@ TEST(fvm_lowered, stimulus) {
     // as during the stimulus windows.
     std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells);
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
     const auto& A = D.cv_area;
 
     std::vector<target_handle> targets;
@@ -537,8 +539,8 @@ TEST(fvm_lowered, read_valence) {
         rec.catalogue() = make_unit_test_catalogue();
 
         rec.catalogue().derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
-        rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "cr"}});
-        rec.add_ion("cr", 7, 0, 0);
+        rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "mn"}});
+        rec.add_ion("mn", 7, 0, 0, 0);
 
         fvm_cell fvcell(context);
         fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
@@ -559,12 +561,12 @@ TEST(fvm_lowered, weighted_write_ion) {
     //   - Soma (segment 0) plus three dendrites (1, 2, 3) meeting at a branch point.
     //   - Dendritic segments are given 1 compartments each.
     //
-    //         /
-    //        d2
-    //       /
+    //          /
+    //         d2
+    //        /
     //   s0-d1
-    //       \.
-    //        d3
+    //        \.
+    //         d3
     //
     // The CV corresponding to the branch point should comprise the terminal
     // 1/2 of segment 1 and the initial 1/2 of segments 2 and 3.
@@ -576,7 +578,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     //   dend 3: 100 µm long, 1 µm diameter cylinder
     //
     // The radius of the soma is chosen such that the surface area of soma is
-    // the same as a 100µm dendrite, which makes it easier to describe the
+    // the same as a 100 µm dendrite, which makes it easier to describe the
     // expected weights.
 
     execution_context context;
@@ -599,26 +601,27 @@ TEST(fvm_lowered, weighted_write_ion) {
     // Ca ion writer test_ca on CV 1 and 3 via segment 3:
     c.segments()[3] ->add_mechanism("test_ca");
 
+    cable1d_recipe rec(c);
+    rec.add_ion("ca", 2, con_int, con_ext, 0.0);
+
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(c), cell_to_intdom, targets, probe_map);
+    fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
 
     auto& state = *(fvcell.*private_state_ptr).get();
     auto& ion = state.ion_data.at("ca"s);
-    ion.default_int_concentration = con_int;
-    ion.default_ext_concentration = con_ext;
     ion.init_concentration();
 
     std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index_);
     std::vector<unsigned> expected_ion_nodes = {1, 2, 3};
     EXPECT_EQ(expected_ion_nodes, ion_nodes);
 
-    std::vector<double> ion_iconc_weights = util::assign_from(ion.weight_Xi_);
-    std::vector<double> expected_ion_iconc_weights = {0.75, 1., 0};
-    EXPECT_EQ(expected_ion_iconc_weights, ion_iconc_weights);
+    std::vector<double> ion_init_iconc = util::assign_from(ion.init_Xi_);
+    std::vector<double> expected_init_iconc = {0.75*con_int, 1.*con_int, 0};
+    EXPECT_EQ(expected_init_iconc, ion_init_iconc);
 
     auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
 
@@ -631,13 +634,15 @@ TEST(fvm_lowered, weighted_write_ion) {
     auto& test_ca_ca_index = *opt_ca_index_ptr.value();
 
     double cai_contrib[3] = {200., 0., 300.};
+    double test_ca_weight[3] = {0.25, 0., 1.};
+
     for (int i = 0; i<2; ++i) {
         test_ca_cai[i] = cai_contrib[test_ca_ca_index[i]];
     }
 
     std::vector<double> expected_iconc(3);
     for (int i = 0; i<3; ++i) {
-        expected_iconc[i] = math::lerp(cai_contrib[i], con_int, ion_iconc_weights[i]);
+        expected_iconc[i] = test_ca_weight[i]*cai_contrib[i] + ion_init_iconc[i];
     }
 
     ion.init_concentration();
@@ -686,7 +691,7 @@ TEST(fvm_lowered, gj_coords_simple) {
     d.add_gap_junction({1, 1});
     cells.push_back(std::move(d));
 
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
     std::vector<cell_gid_type> gids = {0, 1};
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
@@ -796,7 +801,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     std::vector<cell_gid_type> gids = {0, 1, 2};
 
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
     EXPECT_EQ(10u, GJ.size());
@@ -882,8 +887,8 @@ TEST(fvm_lowered, cell_group_gj) {
     auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
     auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
 
-    fvm_discretization D0 = fvm_discretize(cell_group0);
-    fvm_discretization D1 = fvm_discretize(cell_group1);
+    fvm_discretization D0 = fvm_discretize(cell_group0, neuron_parameter_defaults);
+    fvm_discretization D1 = fvm_discretize(cell_group1, neuron_parameter_defaults);
 
     auto GJ0 = fvcell.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
     auto GJ1 = fvcell.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);
