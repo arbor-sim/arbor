@@ -235,7 +235,6 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         auto local_spikes = local_spikes_->previous().gather();
         PL();
         auto global_spikes = communicator_.exchange(local_spikes);
-        std::cout << "****** " << global_spikes.size() << " spikes generated in epoch " << epoch_.id << "\n";
 
         PE(communication_spikeio);
         if (local_export_callback_) {
