@@ -85,6 +85,9 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
 .. toctree::
    :caption: Python:
+   
+   py_intro
+   py_common
 
 .. toctree::
    :caption: C++ API:

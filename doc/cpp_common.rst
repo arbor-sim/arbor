@@ -83,7 +83,7 @@ cells and members of cell-local collections.
 
         Leaky-integrate and fire neuron.
 
-    .. cpp:enumerator:: spiking
+    .. cpp:enumerator:: spike_source
 
         Proxy cell that generates spikes from a spike sequence provided by the user.
 
