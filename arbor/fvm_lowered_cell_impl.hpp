@@ -396,7 +396,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     unsigned data_alignment = util::max_value(
         util::transform_view(keys(mech_data.mechanisms),
-            [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
+            [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     state_ = std::make_unique<shared_state>(num_intdoms, cv_to_intdom, gj_vector, data_alignment? data_alignment: 1u);
 
@@ -420,7 +420,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         auto& config = m.second;
         unsigned mech_id = mechanisms_.size();
 
-        mechanism::layout layout;
+        mechanism_layout layout;
         layout.cv = config.cv;
         layout.multiplicity = config.multiplicity;
         layout.weight.resize(layout.cv.size());
@@ -462,13 +462,13 @@ void fvm_lowered_cell_impl<B>::initialize(
             }
         }
 
-        auto mech = mech_instance(name);
-        mech->instantiate(mech_id, *state_, layout);
+        auto minst = mech_instance(name);
+        minst.mech->instantiate(mech_id, *state_, minst.overrides, layout);
 
         for (auto& pv: config.param_values) {
-            mech->set_parameter(pv.first, pv.second);
+            minst.mech->set_parameter(pv.first, pv.second);
         }
-        mechanisms_.push_back(mechanism_ptr(mech.release()));
+        mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
     }
 
     // Collect detectors, probe handles.
