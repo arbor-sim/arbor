@@ -25,17 +25,21 @@ void run_celsius_test() {
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
     std::vector<fvm_gap_junction> gj = {};
-    auto celsius_test = cat.instance<backend>("celsius_test");
+    auto instance = cat.instance<backend>("celsius_test");
+    auto& celsius_test = instance.mech;
+
     auto shared_state = std::make_unique<typename backend::shared_state>(
         ncell, cv_to_intdom, gj, celsius_test->data_alignment());
 
-    mechanism::layout layout;
+    mechanism_layout layout;
+    mechanism_overrides overrides;
+
     layout.weight.assign(ncv, 1.);
     for (fvm_size_type i = 0; i<ncv; ++i) {
         layout.cv.push_back(i);
     }
 
-    celsius_test->instantiate(0, *shared_state, layout);
+    celsius_test->instantiate(0, *shared_state, overrides, layout);
 
     double temperature_K = 300.;
     double temperature_C = temperature_K-273.15;
