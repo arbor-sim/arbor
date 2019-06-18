@@ -1,4 +1,4 @@
-.. _pyrecipe:
+.. _pyRecipe:
 
 Recipes
 =================
