@@ -158,15 +158,15 @@ void register_schedules(pybind11::module& m) {
         .def(pybind11::init<pybind11::object, time_type, pybind11::object>(),
             "tstart"_a = pybind11::none(), "dt"_a = 0., "tstop"_a = pybind11::none(),
             "Construct a regular schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence (in ms, default None).\n"
-            "  dt:     The interval between time points (in ms, default 0).\n"
-            "  tstop:  No events delivered after this time (in ms, default None).")
+            "  tstart: The delivery time of the first event in the sequence [ms], by default None.\n"
+            "  dt:     The interval between time points [ms], by default 0.\n"
+            "  tstop:  No events delivered after this time [ms], by default None.")
         .def_property("tstart", &regular_schedule_shim::get_tstart, &regular_schedule_shim::set_tstart,
-            "The delivery time of the first event in the sequence (in ms).")
+            "The delivery time of the first event in the sequence [ms].")
         .def_property("tstop", &regular_schedule_shim::get_tstop, &regular_schedule_shim::set_tstop,
-            "No events delivered after this time (in ms).")
+            "No events delivered after this time [ms].")
         .def_property("dt", &regular_schedule_shim::get_dt, &regular_schedule_shim::set_dt,
-            "The interval between time points (in ms).")
+            "The interval between time points [ms].")
         .def("__str__",  util::to_string<regular_schedule_shim>)
         .def("__repr__", util::to_string<regular_schedule_shim>);
 
@@ -180,9 +180,9 @@ void register_schedules(pybind11::module& m) {
         .def(pybind11::init<std::vector<time_type>>(),
             "times"_a,
             "Construct an explicit schedule with argument:\n"
-            "  times: A list of times (in ms, default []).")
+            "  times: A list of times [ms], by default [].")
         .def_property("times", &explicit_schedule_shim::get_times, &explicit_schedule_shim::set_times,
-            "A list of times (in ms).")
+            "A list of times [ms].")
         .def("__str__",  util::to_string<explicit_schedule_shim>)
         .def("__repr__", util::to_string<explicit_schedule_shim>);
 
@@ -194,18 +194,17 @@ void register_schedules(pybind11::module& m) {
         .def(pybind11::init<time_type, time_type, std::mt19937_64::result_type>(),
             "tstart"_a = 0., "freq"_a = 10., "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence (in ms, default 0 ms).\n"
-            "  freq:   The expected frequency (in Hz, default 10 Hz).\n"
-            "  seed:   The seed for the random number generator (default 0).")
+            "  tstart: The delivery time of the first event in the sequence [ms], by default 0 ms.\n"
+            "  freq:   The expected frequency [Hz], by default 10 Hz.\n"
+            "  seed:   The seed for the random number generator, by default 0.")
         .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
-            "The delivery time of the first event in the sequence (in ms).")
+            "The delivery time of the first event in the sequence [ms].")
         .def_property("freq", &poisson_schedule_shim::get_freq, &poisson_schedule_shim::set_freq,
-            "The expected frequency (in Hz).")
+            "The expected frequency [Hz].")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed for the random number generator.")
         .def("__str__",  util::to_string<poisson_schedule_shim>)
         .def("__repr__", util::to_string<poisson_schedule_shim>);
 }
-
 
 }
