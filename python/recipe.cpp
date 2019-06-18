@@ -129,12 +129,16 @@ std::vector<arb::cell_connection> py_recipe_shim::connections_on(arb::cell_gid_t
     auto pycons = impl_->connections_on(gid);
     std::vector<arb::cell_connection> cons;
     cons.reserve(pycons.size());
-    for (const auto& c: pycons) {
+    for (unsigned i=0; i<pycons.size(); ++i) {
+        const auto& c = pycons[i];
         if (isinstance<cell_connection_shim>(c)) {
             cons.push_back(cast<cell_connection_shim>(c));
         }
         else {
-            throw std::runtime_error("that isn't a connection.'");
+            throw std::runtime_error(
+                    util::pprintf(
+                        "connection {} on cell gid {} is not an arbor.connection (it is '{}')",
+                        i, gid, pybind11::repr(c)));
         }
     }
     return cons;
