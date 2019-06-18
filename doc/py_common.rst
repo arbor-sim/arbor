@@ -1,4 +1,4 @@
-.. _pyCommon:
+.. _pycommon:
 
 Common Types
 =====================
