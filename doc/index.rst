@@ -88,6 +88,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    
    py_intro
    py_common
+   py_recipe
 
 .. toctree::
    :caption: C++ API:

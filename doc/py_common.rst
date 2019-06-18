@@ -78,8 +78,3 @@ The types defined below are used as identifiers for cells and members of cell-lo
             import arbor
 
             kind = arbor.cell_kind.cable
-
-Probes
-------
-
-Yet to be implemented.
