@@ -132,7 +132,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     // Add a synapse to the mid point of the first dendrite.
     cell.add_synapse({1, 0.5}, "expsyn");
 
-    // Add additional synapses that will not be connected to anything.
+    // Add additional synapses.
     for (unsigned i=1u; i<params.synapses; ++i) {
         cell.add_synapse({1, 0.5}, "expsyn");
     }
@@ -175,7 +175,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::benchmark_cell> benchmark_cell(m, "benchmark_cell",
         "A benchmarking cell, used by Arbor developers to test communication performance.\n"
         "A benchmark cell generates spikes at a user-defined sequence of time points, and\n"
-        "the time taken to integrate a cell can be tuned by setting the real_time ratio,\n"
+        "the time taken to integrate a cell can be tuned by setting the realtime_ratio,\n"
         "for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to\n"
         "simulate 1 second.\n");
 
@@ -203,24 +203,24 @@ void register_cells(pybind11::module& m) {
 
     lif_cell
         .def(pybind11::init<>())
-        .def_readwrite("tau_m", &arb::lif_cell::tau_m,  "Membrane potential decaying constant [ms].")
-        .def_readwrite("V_th",  &arb::lif_cell::V_th,   "Firing threshold [mV].")
-        .def_readwrite("C_m",   &arb::lif_cell::C_m,    "Membrane capacitance [pF].")
-        .def_readwrite("E_L",   &arb::lif_cell::E_L,    "Resting potential [mV].")
-        .def_readwrite("V_m",   &arb::lif_cell::V_m,    "Initial value of the Membrane potential [mV].")
-        .def_readwrite("t_ref", &arb::lif_cell::t_ref,  "Refractory period [ms].")
-        .def_readwrite("V_reset", &arb::lif_cell::V_reset, "Reset potential [mV].")
+        .def_readwrite("tau_m",     &arb::lif_cell::tau_m,      "Membrane potential decaying constant [ms].")
+        .def_readwrite("V_th",      &arb::lif_cell::V_th,       "Firing threshold [mV].")
+        .def_readwrite("C_m",       &arb::lif_cell::C_m,        "Membrane capacitance [pF].")
+        .def_readwrite("E_L",       &arb::lif_cell::E_L,        "Resting potential [mV].")
+        .def_readwrite("V_m",       &arb::lif_cell::V_m,        "Initial value of the Membrane potential [mV].")
+        .def_readwrite("t_ref",     &arb::lif_cell::t_ref,      "Refractory period [ms].")
+        .def_readwrite("V_reset",   &arb::lif_cell::V_reset,    "Reset potential [mV].")
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
     pybind11::class_<cell_parameters> cell_params(m, "cell_parameters", "Parameters used to generate the random cell morphologies.");
     cell_params
         .def(pybind11::init<>())
-        .def_readwrite("depth", &cell_parameters::max_depth,"The maximum depth of the branch structure.")
-        .def_readwrite("lengths",   &cell_parameters::lengths,  "Length of branch in μm [range].")
-        .def_readwrite("synapses",  &cell_parameters::synapses, "The number of randomly generated synapses on the cell.")
-        .def_readwrite("branch_probs", &cell_parameters::branch_probs, "Probability of a branch occuring [range].")
-        .def_readwrite("compartments", &cell_parameters::compartments, "Compartment count on a branch [range].")
+        .def_readwrite("depth",        &cell_parameters::max_depth,     "The maximum depth of the branch structure.")
+        .def_readwrite("lengths",      &cell_parameters::lengths,       "Length of branch [μm], given as range.")
+        .def_readwrite("synapses",     &cell_parameters::synapses,      "The number of randomly generated synapses on the cell.")
+        .def_readwrite("branch_probs", &cell_parameters::branch_probs,  "Probability of a branch occuring, given as range.")
+        .def_readwrite("compartments", &cell_parameters::compartments,  "Compartment count on a branch, given as range.")
         .def("__repr__", util::to_string<cell_parameters>)
         .def("__str__",  util::to_string<cell_parameters>);
 

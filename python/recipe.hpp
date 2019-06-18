@@ -39,17 +39,16 @@ public:
         return gap_junctions_on(gid).size();
     }
 
-    virtual std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const {
-        auto guard = pybind11::gil_scoped_acquire();
-        return {};
-    }
+    virtual std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const { return {}; }
 
-    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const { return {}; }
+    //virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const { return {}; }
+    virtual std::vector<pybind11::object> connections_on(arb::cell_gid_type gid) const { return {}; }
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const { return {}; }
 
     //TODO: virtual pybind11::object get_probe (arb::cell_member_type id) const {...}
 
-    virtual pybind11::object global_properties(arb::cell_kind kind) const = 0;
+    // TODO: global properties need to be set
+    //virtual pybind11::object global_properties(arb::cell_kind kind) const {return pybind11::none();};
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -84,8 +83,8 @@ public:
         PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, event_generators, gid);
     }
 
-    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<arb::cell_connection>, py_recipe, connections_on, gid);
+    std::vector<pybind11::object> connections_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, connections_on, gid);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
@@ -94,9 +93,11 @@ public:
 
     //TODO: pybind11::object get_probe(arb::cell_member_type id)
 
+    /*
     pybind11::object global_properties(arb::cell_kind kind) const override {
         PYBIND11_OVERLOAD_PURE(pybind11::object, py_recipe, global_properties, kind);
     }
+    */
 };
 
 // A recipe shim that holds a pyarb::recipe implementation.
@@ -134,19 +135,18 @@ public:
         return impl_->num_targets(gid);
     }
 
-/* //TODO: arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
-        return impl_->num_probes(gid);
-    }
-*/
+    //TODO
+        //arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
+        //    return impl_->num_probes(gid);
+        //}
+
     arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
         return impl_->num_gap_junction_sites(gid);
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;
 
-    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
-        return impl_->connections_on(gid);
-    }
+    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override;
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
         return impl_->gap_junctions_on(gid);
@@ -154,9 +154,9 @@ public:
 
     //TODO: arb::probe_info get_probe(arb::cell_member_type id) const override
 
-    // The pyarb::recipe::global_properties returns a pybind11::object, that is
-    // unwrapped and copied into a util::any.
-    arb::util::any get_global_properties(arb::cell_kind kind) const override;
+    // TODO:
+    //arb::util::any get_global_properties(arb::cell_kind kind) const override;
+    arb::util::any get_global_properties(arb::cell_kind kind) const override {return arb::util::any{};};
 
 };
 
