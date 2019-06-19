@@ -254,9 +254,9 @@ Cells
 
 .. class:: cable_cell
 
-.. function:: branch_cell(seed, params)
+.. function:: make_cable_cell(seed, params)
 
-    Construct a branching cell (of type :class:`cable_cell`) with a random morphology and
+    Construct a branching cable cell with a random morphology and
     synapse end points locations described by :attr:`params`.
 
     The soma has an area of 500 μm², a bulk resistivity of 100 Ω·cm,
@@ -417,7 +417,7 @@ An example of a recipe construction of a ring network of multicompartmental cell
 
             # The cell_description method returns a cell
             def cell_description(self, gid):
-                return arbor.branch_cell(gid, self.params)
+                return arbor.make_cable_cell(gid, self.params)
 
             def num_targets(self, gid):
                 return 1

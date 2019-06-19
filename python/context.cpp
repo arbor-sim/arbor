@@ -79,12 +79,12 @@ void register_contexts(pybind11::module& m) {
             "threads"_a=1, "gpu_id"_a=pybind11::none(),
             "Construct an allocation with arguments:\n"
             "  threads: The number of threads available locally for execution, 1 by default.\n"
-            "  gpu_id:  The index of the GPU to use, None by default.\n")
+            "  gpu_id:  The identifier of the GPU to use, None by default.\n")
         .def_property("threads", &proc_allocation_shim::get_num_threads, &proc_allocation_shim::set_num_threads,
             "The number of threads available locally for execution.")
         .def_property("gpu_id", &proc_allocation_shim::get_gpu_id, &proc_allocation_shim::set_gpu_id,
             "The identifier of the GPU to use.\n"
-            "Corresponds to the integer index used to identify GPUs in CUDA API calls.")
+            "Corresponds to the integer parameter used to identify GPUs in CUDA API calls.")
         .def_property_readonly("has_gpu", &proc_allocation_shim::has_gpu,
             "Whether a GPU is being used (True/False).")
         .def("__str__",  util::to_string<proc_allocation_shim>)
@@ -140,7 +140,7 @@ void register_contexts(pybind11::module& m) {
             "threads"_a=1, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
             "Construct a distributed context with arguments:\n"
             "  threads: The number of threads available locally for execution, 1 by default.\n"
-            "  gpu_id:  The index of the GPU to use, None by default.\n"
+            "  gpu_id:  The identifier of the GPU to use, None by default.\n"
             "  mpi:     The MPI communicator, None by default.\n")
 #else
         .def(pybind11::init(
@@ -151,7 +151,7 @@ void register_contexts(pybind11::module& m) {
              "threads"_a=1, "gpu_id"_a=pybind11::none(),
              "Construct a local context with arguments:\n"
              "  threads: The number of threads available locally for execution, 1 by default.\n"
-             "  gpu_id:  The index of the GPU to use, None by default.\n")
+             "  gpu_id:  The identifier of the GPU to use, None by default.\n")
 #endif
         .def_property_readonly("has_mpi", [](const context_shim& ctx){return arb::has_mpi(ctx.context);},
             "Whether the context uses MPI for distributed communication.")
