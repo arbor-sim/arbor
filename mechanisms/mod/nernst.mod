@@ -21,7 +21,7 @@ ASSIGNED {
 }
 
 INITIAL {
-    coeff = R*(celsius+273.16)/(zx*F)*1000
+    coeff = R*(celsius+273.15)/(zx*F)*1000
 }
 
 STATE {
