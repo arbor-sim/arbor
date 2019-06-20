@@ -64,17 +64,11 @@ communicator::communicator(const recipe& rec,
     // Build the connection information for local cells in parallel.
     std::vector<gid_info> gid_infos;
     gid_infos.resize(num_local_cells_);
-    for (unsigned i=0; i<gids.size(); ++i) {
-        auto gid = gids[i];
-        gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
-    }
-    /*
     threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
         [&](cell_size_type i) {
             auto gid = gids[i];
             gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
         });
-    */
 
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
