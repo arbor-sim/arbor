@@ -6,6 +6,7 @@ set(arbor_sources
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
     backends/multicore/stimulus.cpp
+    communication/communicator.cpp
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
     builtin_mechanisms.cpp
