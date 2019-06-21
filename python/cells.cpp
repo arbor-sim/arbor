@@ -24,6 +24,7 @@ arb::util::unique_any convert_cell(pybind11::object o) {
     using pybind11::isinstance;
     using pybind11::cast;
 
+    pybind11::gil_scoped_acquire guard;
     if (isinstance<arb::spike_source_cell>(o)) {
         return arb::util::unique_any(cast<arb::spike_source_cell>(o));
     }
