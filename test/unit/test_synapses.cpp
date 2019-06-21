@@ -79,10 +79,10 @@ TEST(synapses, syn_basic_state) {
     int num_comp = 4;
     int num_intdom = 1;
 
-    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn"));
+    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn").mech);
     ASSERT_TRUE(expsyn);
 
-    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn"));
+    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn").mech);
     ASSERT_TRUE(exp2syn);
 
     std::vector<fvm_gap_junction> gj = {};
@@ -98,8 +98,8 @@ TEST(synapses, syn_basic_state) {
     std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    expsyn->instantiate(0, state, {syn_cv, syn_weight, syn_mult});
-    exp2syn->instantiate(1, state, {syn_cv, syn_weight, syn_mult});
+    expsyn->instantiate(0, state, {}, {syn_cv, syn_weight, syn_mult});
+    exp2syn->instantiate(1, state, {}, {syn_cv, syn_weight, syn_mult});
 
     // Parameters initialized to default values?
 

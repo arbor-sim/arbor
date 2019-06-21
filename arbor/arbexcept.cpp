@@ -72,6 +72,16 @@ invalid_parameter_value::invalid_parameter_value(const std::string& mech_name, c
     value(value)
 {}
 
+invalid_ion_remap::invalid_ion_remap(const std::string& mech_name):
+    arbor_exception(pprintf("invalid ion parameter remapping for mechanism {}", mech_name))
+{}
+
+invalid_ion_remap::invalid_ion_remap(const std::string& mech_name, const std::string& from_ion = "", const std::string& to_ion = ""):
+    arbor_exception(pprintf("invalid ion parameter remapping for mechanism {}: {} -> {}", mech_name, from_ion, to_ion)),
+    from_ion(from_ion),
+    to_ion(to_ion)
+{}
+
 no_such_implementation::no_such_implementation(const std::string& mech_name):
     arbor_exception(pprintf("missing implementation for mechanism {} in catalogue", mech_name)),
     mech_name(mech_name)
