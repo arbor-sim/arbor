@@ -43,10 +43,9 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     for (auto& g: pygens) {
         // check that a valid Python event_generator was passed.
         if (!isinstance<pyarb::event_generator_shim>(g)) {
-            std::stringstream s;
-            s << "recipe supplied an invalid event generator for gid "
-              << gid << ": " << pybind11::str(g);
-            throw pyarb_error(s.str());
+            throw pyarb_error(
+                util::pprintf(
+                    "recipe supplied an invalid event generator for gid {}: {}", gid, pybind11::str(g)));
         }
         // get a reference to the python event_generator
         auto& p = cast<const pyarb::event_generator_shim&>(g);
