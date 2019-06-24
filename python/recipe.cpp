@@ -134,10 +134,10 @@ void register_recipe(pybind11::module& m) {
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, arb::time_type>(),
             "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
-            "  source:      The source end point of the connection.\n"
-            "  dest:        The destination end point of the connection.\n"
-            "  weight:      The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
-            "  delay:       The delay of the connection [ms].")
+            "  source: The source end point of the connection.\n"
+            "  dest:   The destination end point of the connection.\n"
+            "  weight: The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
+            "  delay:  The delay of the connection [ms].")
         .def_readwrite("source", &arb::cell_connection::source,
             "The source of the connection.")
         .def_readwrite("dest", &arb::cell_connection::dest,

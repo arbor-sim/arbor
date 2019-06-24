@@ -63,7 +63,7 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
     .. function:: event_generators(gid)
 
-        A list of all the :class:`event_generator`s that are attached to :attr:`gid`.
+        A list of all the :class:`event_generator` s that are attached to :attr:`gid`.
 
         By default returns an empty list.
 
@@ -87,10 +87,9 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
 .. class:: connection
 
-    Describes a connection between two cells: a pre-synaptic source and a post-synaptic destination.
-    The source is typically a threshold detector on a cell or a spike source.
-    The destination is a synapse on the post-synaptic cell.
-    Connection end-points are represented by pairs (cell index, source/target index on cell).
+    Describes a connection between two cells:
+    Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
+    a connection weight and a delay time.
 
     .. function:: connection(source, destination, weight, delay)
 
@@ -100,19 +99,19 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
         The source end point of the connection (type: :class:`cell_member`).
 
-    .. attribute:: destination
+    .. attribute:: dest
 
         The destination end point of the connection (type: :class:`cell_member`).
 
     .. attribute:: weight
 
         The weight delivered to the target synapse.
-        The weight is dimensionless, and its interpretation is specific to the synapse type of the target.
+        The weight is dimensionless, and its interpretation is specific to the type of the synapse target.
         For example, the expsyn synapse interprets it as a conductance with units μS (micro-Siemens).
 
     .. attribute:: delay
 
-        The delay of the connection [ms].
+        The delay time of the connection [ms].
 
     An example of a connection reads as follows:
 
@@ -256,8 +255,8 @@ Cells
 
 .. function:: make_cable_cell(seed, params)
 
-    Construct a branching cable cell with a random morphology and
-    synapse end points locations described by :attr:`params`.
+    Construct a branching cable cell with a random morphology (via parameter :attr:`seed`) and
+    synapse end points locations described by parameter :attr:`params`.
 
     The soma has an area of 500 μm², a bulk resistivity of 100 Ω·cm,
     and the ion channel and synapse dynamics are described by a Hodgkin-Huxley (HH) mechanism.
@@ -282,14 +281,9 @@ Cells
 
     Additional synapses are added based on the number of randomly generated :attr:`cell_parameters.synapses` on the cell.
 
-    .. attribute:: seed
+    :param seed: The seed is an integral value used to seed the random number generator, for which the :attr:`cell_member.gid` of the cell is a good default.
 
-        The seed is an integral value used to seed the random number generator,
-        for which the :attr:`cell_member.gid` of the cell is a good default.
-
-    .. attribute:: params
-
-        By default set to :class:`cell_parameters()`
+    :param params: By default set to :class:`cell_parameters()`.
 
 .. class:: cell_parameters
 
