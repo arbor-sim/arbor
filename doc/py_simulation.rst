@@ -122,7 +122,7 @@ In order to analyze the simulation output spikes can be recorded.
 
     .. attribute:: source
 
-        The spike source (of type: :class:`arbor.cell_member` with :attr:`arbor.cell_member.gid` and :attr:`arbor.cell_member.index`).
+        The spike source (type: :class:`arbor.cell_member`).
 
     .. attribute:: time
 
@@ -136,7 +136,7 @@ In order to analyze the simulation output spikes can be recorded.
 
     .. attribute:: spikes
 
-        The recorded spikes (of type: :class:`spike`).
+        The recorded spikes (type: :class:`spike`).
 
 **I/O interface**:
 
