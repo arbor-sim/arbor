@@ -27,6 +27,7 @@
 #include "util/rangeutil.hpp"
 
 #include "common.hpp"
+#include "unit_test_catalogue.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
@@ -52,6 +53,11 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, const std::string& name) {
         }
     }
     return nullptr;
+}
+
+arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
+    auto& mechs = fvcell.*private_mechanisms_ptr;
+    return index<(int)mechs.size()? mechs[index].get(): nullptr;
 }
 
 // Access to mechanism-internal data:
@@ -486,6 +492,65 @@ TEST(fvm_lowered, derived_mechs) {
     }
 }
 
+// Test that ion charge is propagated into mechanism variable.
+
+TEST(fvm_lowered, read_valence) {
+    execution_context context;
+
+    std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
+    probe_association_map<probe_handle> probe_map;
+
+    {
+        std::vector<cable_cell> cells(1);
+
+        cable_cell& c = cells[0];
+        auto soma = c.add_soma(6.0);
+        soma->add_mechanism("test_ca_read_valence");
+
+        cable1d_recipe rec(cells);
+        rec.catalogue() = make_unit_test_catalogue();
+
+        fvm_cell fvcell(context);
+        fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+        // test_ca_read_valence initialization should write ca ion valence
+        // to state variable 'record_zca':
+
+        auto mech_ptr = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca_read_valence"));
+        auto opt_record_z_ptr = util::value_by_key((mech_ptr->*private_field_table_ptr)(), "record_z"s);
+
+        ASSERT_TRUE(opt_record_z_ptr);
+        auto& record_z = *opt_record_z_ptr.value();
+        ASSERT_EQ(2.0, record_z[0]);
+    }
+
+    {
+        // Check ion renaming.
+        std::vector<cable_cell> cells(1);
+
+        cable_cell& c = cells[0];
+        auto soma = c.add_soma(6.0);
+        soma->add_mechanism("cr_read_valence");
+
+        cable1d_recipe rec(cells);
+        rec.catalogue() = make_unit_test_catalogue();
+
+        rec.catalogue().derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
+        rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "cr"}});
+        rec.add_ion("cr", 7, 0, 0);
+
+        fvm_cell fvcell(context);
+        fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+        auto cr_mech_ptr = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, 0));
+        auto cr_opt_record_z_ptr = util::value_by_key((cr_mech_ptr->*private_field_table_ptr)(), "record_z"s);
+
+        ASSERT_TRUE(cr_opt_record_z_ptr);
+        auto& cr_record_z = *cr_opt_record_z_ptr.value();
+        ASSERT_EQ(7.0, cr_record_z[0]);
+    }
+}
 
 // Test area-weighted linear combination of ion species concentrations
 

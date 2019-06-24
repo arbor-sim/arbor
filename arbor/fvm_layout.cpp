@@ -257,7 +257,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
 //       IIb. Density mechanism CVs, parameter values; ion channel default concentration contributions.
 //       IIc. Point mechanism CVs, parameter values, and targets.
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<cable_cell>& cells, const fvm_discretization& D, bool coalesce_syanpses) {
+fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_discretization& D) {
     using util::assign;
     using util::sort_by;
     using util::optional;
@@ -268,6 +268,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
 
     using string_set = std::unordered_set<std::string>;
     using string_index_map = std::unordered_map<std::string, size_type>;
+
+    const mechanism_catalogue& catalogue = *gprop.catalogue;
 
     fvm_mechanism_data mechdata;
 
@@ -332,6 +334,29 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         }
     };
 
+    auto verify_ion_usage =
+        [&gprop](const std::string& mech_name, const mechanism_info* info)
+    {
+        const auto& global_ions = gprop.ion_default;
+
+        for (const auto& ion: info->ions) {
+            const auto& ion_name = ion.first;
+            const auto& ion_dep = ion.second;
+
+            if (!global_ions.count(ion_name)) {
+                throw cable_cell_error(
+                    "mechanism "+mech_name+" uses ion "+ion_name+ " which is missing in global properties");
+            }
+
+            if (ion_dep.verify_ion_charge) {
+                if (ion_dep.expected_ion_charge!=global_ions.at(ion_name).charge) {
+                    throw cable_cell_error(
+                        "mechanism "+mech_name+" uses ion "+ion_name+ " expecting a different valence");
+                }
+            }
+        }
+    };
+
     auto cell_segment_part = D.cell_segment_part();
     size_type target_id = 0;
 
@@ -372,6 +397,14 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             size_type cv = D.segment_location_cv(cell_idx, stimulus.location);
             stimuli.push_back({cv, stimulus.clamp});
         }
+    }
+
+    for (auto& entry: density_mech_table) {
+        verify_ion_usage(entry.first, entry.second.info);
+    }
+
+    for (auto& entry: point_mech_table) {
+        verify_ion_usage(entry.first, entry.second.info);
     }
 
     // II. Build ion and mechanism configs.
@@ -574,7 +607,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         // Generate config.param_values: contains parameters of group of synapses that can be coalesced into one instance
         // Generate multiplicity: contains number of synapses in each coalesced group of synapses
         // Generate target: contains the synapse target number
-        if(catalogue[name].linear && coalesce_syanpses) {
+        if(catalogue[name].linear && gprop.coalesce_synapses) {
             // cv_param_vec used to lexicographically sort the cv, parameters and target, which are stored in that order
             std::vector<cv_param> cv_param_vec(cv_order.size());
 

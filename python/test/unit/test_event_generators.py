@@ -22,9 +22,7 @@ all tests for event generators (regular, explicit, poisson)
 class EventGenerator(unittest.TestCase):
 
     def test_event_generator_regular_schedule(self):
-        cm = arb.cell_member()
-        cm.gid = 42
-        cm.index = 3
+        cm = arb.cell_member(42,3)
         rs = arb.regular_schedule(2.0, 1., 100.)
         rg = arb.event_generator(cm, 3.14, rs)
         self.assertEqual(rg.target.gid, 42)
@@ -32,9 +30,7 @@ class EventGenerator(unittest.TestCase):
         self.assertAlmostEqual(rg.weight, 3.14)
 
     def test_event_generator_explicit_schedule(self):
-        cm = arb.cell_member()
-        cm.gid = 0
-        cm.index = 42
+        cm = arb.cell_member(0,42)
         es = arb.explicit_schedule([0,1,2,3,4.4])
         eg = arb.event_generator(cm, -0.01, es)
         self.assertEqual(eg.target.gid, 0)
@@ -42,9 +38,7 @@ class EventGenerator(unittest.TestCase):
         self.assertAlmostEqual(eg.weight, -0.01)
 
     def test_event_generator_poisson_schedule(self):
-        cm = arb.cell_member()
-        cm.gid = 4
-        cm.index = 2
+        cm = arb.cell_member(4,2)
         ps = arb.poisson_schedule(0., 10., 0)
         pg = arb.event_generator(cm, 42., ps)
         self.assertEqual(pg.target.gid, 4)

@@ -15,11 +15,11 @@ namespace kernel {
 
 template <typename T>
 __global__
-void nernst_impl(unsigned n, T factor, const T* Xo, const T* Xi, T* eX) {
+void nernst_impl(unsigned n, T factor, const T* charge, const T* Xo, const T* Xi, T* eX) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
 
     if (i<n) {
-        eX[i] = factor*std::log(Xo[i]/Xi[i]);
+        eX[i] = factor*std::log(Xo[i]/Xi[i])/charge[0];
     }
 }
 
@@ -93,13 +93,13 @@ using impl::block_count;
 
 void nernst_impl(
     std::size_t n, fvm_value_type factor,
-    const fvm_value_type* Xo, const fvm_value_type* Xi, fvm_value_type* eX)
+    const fvm_value_type* charge, const fvm_value_type* Xo, const fvm_value_type* Xi, fvm_value_type* eX)
 {
     if (!n) return;
 
     constexpr int block_dim = 128;
     int nblock = block_count(n, block_dim);
-    kernel::nernst_impl<<<nblock, block_dim>>>(n, factor, Xo, Xi, eX);
+    kernel::nernst_impl<<<nblock, block_dim>>>(n, factor, charge, Xo, Xi, eX);
 }
 
 void init_concentration_impl(

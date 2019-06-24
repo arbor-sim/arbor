@@ -11,7 +11,7 @@ namespace arb {
 using arb::util::pprintf;
 
 bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
-    arbor_exception(pprintf("bad description for cell kind {} on gid {}", kind, gid)),
+    arbor_exception(pprintf("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, kind, gid)),
     gid(gid),
     kind(kind)
 {}
@@ -70,6 +70,16 @@ invalid_parameter_value::invalid_parameter_value(const std::string& mech_name, c
     mech_name(mech_name),
     param_name(param_name),
     value(value)
+{}
+
+invalid_ion_remap::invalid_ion_remap(const std::string& mech_name):
+    arbor_exception(pprintf("invalid ion parameter remapping for mechanism {}", mech_name))
+{}
+
+invalid_ion_remap::invalid_ion_remap(const std::string& mech_name, const std::string& from_ion = "", const std::string& to_ion = ""):
+    arbor_exception(pprintf("invalid ion parameter remapping for mechanism {}: {} -> {}", mech_name, from_ion, to_ion)),
+    from_ion(from_ion),
+    to_ion(to_ion)
 {}
 
 no_such_implementation::no_such_implementation(const std::string& mech_name):

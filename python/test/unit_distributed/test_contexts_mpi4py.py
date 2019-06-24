@@ -37,7 +37,7 @@ class Contexts_mpi4py(unittest.TestCase):
         comm = arb.mpi_comm(mpi.COMM_WORLD)
 
         # test that set communicator is MPI_COMM_WORLD
-        self.assertEqual(str(comm), '<mpi communicator: MPI_COMM_WORLD>')
+        self.assertEqual(str(comm), '<arbor.mpi_comm: MPI_COMM_WORLD>')
 
     def test_context_mpi4py(self):
         comm = arb.mpi_comm(mpi.COMM_WORLD)

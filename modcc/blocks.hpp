@@ -14,7 +14,10 @@ struct IonDep {
     std::string name;         // name of ion channel
     std::vector<Token> read;  // name of channels parameters to write
     std::vector<Token> write; // name of channels parameters to read
-    std::string valence;
+
+    Token valence_var;        // optional variable name following VALENCE
+    int expected_valence = 0; // optional integer following VALENCE
+    bool has_valence_expr = false;
 
     bool has_variable(std::string const& name) const {
         return writes_variable(name) || reads_variable(name);
@@ -40,6 +43,13 @@ struct IonDep {
     bool writes_rev_potential() const {
         return writes_variable("e"+name);
     };
+
+    bool uses_valence() const {
+        return valence_var.type==tok::identifier;
+    }
+    bool verifies_valence() const {
+        return has_valence_expr && !uses_valence();
+    }
 
     bool reads_variable(const std::string& name) const {
         return std::find_if(read.begin(), read.end(),

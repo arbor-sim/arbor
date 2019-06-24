@@ -21,13 +21,13 @@ namespace pyarb {
 
 std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
     auto& c = ctx.context;
-    const bool gpu = arb::has_gpu(c);
-    const bool mpi = arb::has_mpi(c);
+    const char* gpu = arb::has_gpu(c)? "True": "False";
+    const char* mpi = arb::has_mpi(c)? "True": "False";
     return
-        o << "<context: threads " << arb::num_threads(c)
-          << ", gpu " << (gpu? "yes": "no")
-          << ", mpi " << (mpi? "yes": "no")
-          << ", ranks " << arb::num_ranks(c)
+        o << "<arbor.context: num_threads " << arb::num_threads(c)
+          << ", has_gpu " << gpu
+          << ", has_mpi " << mpi
+          << ", num_ranks " << arb::num_ranks(c)
           << ">";
 }
 
@@ -64,8 +64,7 @@ struct proc_allocation_shim {
 };
 
 std::ostream& operator<<(std::ostream& o, const proc_allocation_shim& alloc) {
-    return o << "<hardware resource allocation: threads " << alloc.num_threads
-      << ", gpu id " << alloc.gpu_id << ">";
+    return o << "<arbor.proc_allocation: threads " << alloc.num_threads << ", gpu_id " << alloc.gpu_id << ">";
 }
 
 void register_contexts(pybind11::module& m) {

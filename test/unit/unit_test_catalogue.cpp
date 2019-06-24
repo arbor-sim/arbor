@@ -8,20 +8,30 @@
 
 #include "unit_test_catalogue.hpp"
 #include "mechanisms/celsius_test.hpp"
+#include "mechanisms/test_cl_valence.hpp"
+#include "mechanisms/test_ca_read_valence.hpp"
 
 #include "../gtest.h"
+
+#ifndef ARB_GPU_ENABLED
+#define ADD_MECH(c, x)\
+c.add(#x, mechanism_##x##_info());\
+c.register_implementation(#x, make_mechanism_##x<multicore::backend>());
+#else
+#define ADD_MECH(c, x)\
+c.add(#x, mechanism_##x##_info());\
+c.register_implementation(#x, make_mechanism_##x<multicore::backend>());\
+c.register_implementation(#x, make_mechanism_##x<gpu::backend>());
+#endif
 
 using namespace arb;
 
 mechanism_catalogue make_unit_test_catalogue() {
     mechanism_catalogue cat;
 
-    cat.add("celsius_test", mechanism_celsius_test_info());
-
-    cat.register_implementation("celsius_test", make_mechanism_celsius_test<multicore::backend>());
-#ifdef ARB_GPU_ENABLED
-    cat.register_implementation("celsius_test", make_mechanism_celsius_test<gpu::backend>());
-#endif
+    ADD_MECH(cat, celsius_test)
+    ADD_MECH(cat, test_cl_valence)
+    ADD_MECH(cat, test_ca_read_valence)
 
     return cat;
 }

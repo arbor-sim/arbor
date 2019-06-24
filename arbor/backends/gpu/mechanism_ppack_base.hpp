@@ -18,6 +18,7 @@ struct ion_state_view {
     value_type* reversal_potential;
     value_type* internal_concentration;
     value_type* external_concentration;
+    value_type* ionic_charge;
 };
 
 // Parameter pack base:

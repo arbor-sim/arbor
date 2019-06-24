@@ -39,6 +39,7 @@ protected:
         value_type* reversal_potential;
         value_type* internal_concentration;
         value_type* external_concentration;
+        value_type* ionic_charge;
     };
 
 public:
@@ -54,7 +55,7 @@ public:
         return s;
     }
 
-    void instantiate(fvm_size_type id, backend::shared_state& shared, const layout& w) override;
+    void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void initialize() override;
 
     void deliver_events() override {
@@ -63,8 +64,6 @@ public:
     }
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
-
-    void set_global(const std::string& key, fvm_value_type value) override;
 
 protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)

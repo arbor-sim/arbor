@@ -1,5 +1,5 @@
-#include <list>
 #include <cstring>
+#include <string>
 
 #include "parser.hpp"
 #include "perfvisitor.hpp"
@@ -328,9 +328,19 @@ void Parser::parse_neuron_block() {
                     }
 
                     if(token_.type == tok::valence) {
-                        //Consume "Valence"
+                        ion.has_valence_expr = true;
+
+                        // consume "Valence"
                         get_token();
-                        ion.valence == value_literal();
+
+                        // take and consume variable name or signed integer
+                        if(token_.type == tok::identifier) {
+                            ion.valence_var = token_;
+                            get_token();
+                        }
+                        else {
+                            ion.expected_valence = value_signed_integer();
+                        }
                     }
 
                     // add the ion dependency to the NEURON block
@@ -631,6 +641,29 @@ std::string Parser::value_literal() {
         value += token_.spelling;
         get_token();
         return value;
+    }
+}
+
+// Parse an integral value with possible preceding unary plus or minus,
+// and return as an int.
+int Parser::value_signed_integer() {
+    std::string value;
+
+    if(token_.type==tok::minus) {
+        value = "-";
+        get_token();
+    }
+    else if(token_.type==tok::plus) {
+        get_token();
+    }
+    if(token_.type != tok::integer) {
+        error(pprintf("numeric constant not an integer '%'", token_));
+        return 0;
+    }
+    else {
+        value += token_.spelling;
+        get_token();
+        return std::stoi(value);
     }
 }
 
