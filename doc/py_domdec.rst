@@ -6,7 +6,9 @@ Domain Decomposition
 Load Balancers
 --------------
 
-Load balancing generates a :class:`domain_decomposition` given a :class:`recipe`
+.. currentmodule:: arbor
+
+Load balancing generates a :class:`domain_decomposition` given an :class:`arbor.recipe`
 and a description of the hardware on which the model will run. Currently Arbor provides
 one load balancer, :func:`partition_load_balance`, and more will be added over time.
 
@@ -17,8 +19,8 @@ describes the cell groups on the local MPI rank.
 .. function:: partition_load_balance(recipe, context)
 
     Construct a :class:`domain_decomposition` that distributes the cells
-    in the model described by a :class:`recipe` over the distributed and local hardware
-    resources described by a :class:`context`.
+    in the model described by an :class:`arbor.recipe` over the distributed and local hardware
+    resources described by an :class:`arbor.context`.
 
     The algorithm counts the number of each cell type in the global model, then
     partitions the cells of each type equally over the available nodes.
@@ -37,8 +39,6 @@ Decomposition
 -------------
 As defined in :ref:`modeldomdec` a domain decomposition is a description of the distribution of the model over the available computational resources.
 Therefore, the following data structures are used to describe domain decompositions.
-
-.. currentmodule:: arbor
 
 .. class:: backend
 
@@ -73,7 +73,7 @@ Therefore, the following data structures are used to describe domain decompositi
 
     .. function:: gid_domain(gid)
 
-        A function for querying the domain id that a cell is assigned to (using global identifier :attr:`cell_member.gid`).
+        A function for querying the domain id that a cell is assigned to (using global identifier :attr:`arbor.cell_member.gid`).
 
     .. attribute:: num_domains
 

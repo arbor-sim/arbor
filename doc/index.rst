@@ -91,6 +91,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    py_hardware
    py_recipe
    py_domdec
+   py_simulation
 
 .. toctree::
    :caption: C++ API:

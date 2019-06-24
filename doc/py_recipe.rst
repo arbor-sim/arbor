@@ -15,8 +15,8 @@ Details on why Arbor uses recipes and general best practices can be found in :re
     All recipes derive from this abstract base class.
 
     Recipes provide a cell-centric interface for describing a model.
-    This means that model properties, such as connections, are queried using the global identifier (:attr:`cell_member.gid`) of a cell.
-    In the description below, the term :attr:`gid` is used as shorthand for the cell with global identifier.
+    This means that model properties, such as connections, are queried using the global identifier (:attr:`arbor.cell_member.gid`) of a cell.
+    In the description below, the term ``gid`` is used as shorthand for the cell with global identifier.
 
     **Required Member Functions**
 
@@ -28,11 +28,11 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
     .. function:: cell_kind(gid)
 
-        The cell kind of the cell with global identifier :attr:`gid` (return type: :class:`cell_kind`).
+        The cell kind of the cell with global identifier :attr:`arbor.cell_member.gid` (return type: :class:`arbor.cell_kind`).
 
     .. function:: cell_description(gid)
 
-        A high level decription of the cell with global identifier :attr:`gid`,
+        A high level decription of the cell with global identifier :attr:`arbor.cell_member.gid`,
         for example the morphology, synapses and ion channels required to build a multi-compartment neuron.
         The type used to describe a cell depends on the kind of the cell.
         The interface for querying the kind and description of a cell are seperate
@@ -43,45 +43,45 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
     .. function:: connections_on(gid)
 
-        Returns a list of all the **incoming** connections to :attr:`gid`.
-        Each connection should have post-synaptic target :attr:`connection.destination.gid`
-        that matches the argument :attr:`gid`,
-        and a valid synapse id :attr:`connection.destination.index` on :attr:`gid`.
+        Returns a list of all the **incoming** connections to :attr:`arbor.cell_member.gid`.
+        Each connection should have post-synaptic target ``connection.dest.gid``
+        that matches the argument :attr:`arbor.cell_member.gid`,
+        and a valid synapse id ``connection.dest.index`` on :attr:`arbor.cell_member.gid`.
         See :class:`connection`.
 
         By default returns an empty list.
 
     .. function:: gap_junctions_on(gid)
 
-        Returns a list of all the gap junctions connected to :attr:`gid`.
+        Returns a list of all the gap junctions connected to :attr:`arbor.cell_member.gid`.
         Each gap junction ``gj`` should have one of the two gap junction sites ``gj.local.gid``
-        or ``gj.peer.gid`` matching the argument :attr:`gid`,
-        and the corresponding synapse id ``gj.local.index`` or ``gj.peer.index`` should be valid on :attr:`gid`.
+        or ``gj.peer.gid`` matching the argument :attr:`arbor.cell_member.gid`,
+        and the corresponding synapse id ``gj.local.index`` or ``gj.peer.index`` should be valid on :attr:`arbor.cell_member.gid`.
         See :class:`gap_junction_connection`.
 
         By default returns an empty list.
 
     .. function:: event_generators(gid)
 
-        A list of all the :class:`event_generator` s that are attached to :attr:`gid`.
+        A list of all the :class:`event_generator` s that are attached to :attr:`arbor.cell_member.gid`.
 
         By default returns an empty list.
 
     .. function:: num_sources(gid)
 
-        The number of spike sources on :attr:`gid`.
+        The number of spike sources on :attr:`arbor.cell_member.gid`.
 
         By default returns 0.
 
     .. function:: num_targets(gid)
 
-        The number of post-synaptic sites on :attr:`gid`, which corresponds to the number of synapses.
+        The number of post-synaptic sites on :attr:`arbor.cell_member.gid`, which corresponds to the number of synapses.
 
         By default returns 0.
 
     .. function:: num_gap_junction_sites(gid)
 
-        Returns the number of gap junction sites on :attr:`gid`.
+        Returns the number of gap junction sites on :attr:`arbor.cell_member.gid`.
 
         By default returns 0.
 
@@ -93,15 +93,15 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
     .. function:: connection(source, destination, weight, delay)
 
-        Construct a connection between the :attr:`source` and the :attr:`destination` with a :attr:`weight` and :attr:`delay`.
+        Construct a connection between the :attr:`source` and the :attr:`dest` with a :attr:`weight` and :attr:`delay`.
 
     .. attribute:: source
 
-        The source end point of the connection (type: :class:`cell_member`).
+        The source end point of the connection (type: :class:`arbor.cell_member`).
 
     .. attribute:: dest
 
-        The destination end point of the connection (type: :class:`cell_member`).
+        The destination end point of the connection (type: :class:`arbor.cell_member`).
 
     .. attribute:: weight
 
@@ -111,7 +111,7 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
     .. attribute:: delay
 
-        The delay time of the connection [ms].
+        The delay time of the connection [ms]. Must be positive.
 
     An example of a connection reads as follows:
 
@@ -131,7 +131,7 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 .. class:: gap_junction_connection
 
     Describes a gap junction between two gap junction sites.
-    Gap junction sites are represented by :class:`cell_member`.
+    Gap junction sites are represented by :class:`arbor.cell_member`.
 
     .. function::gap_junction_connection(local, peer, ggap)
 
@@ -156,11 +156,11 @@ Event Generator and Schedules
 
     .. function:: event_generator(target, weight, schedule)
 
-        Construct an event generator for a :attr:`target` synapse with :attr:`weight` of the events to deliver based on a schedule (i.e., :class:`regular_schedule`, :class:`explicit_schedule`, :class:`poisson_schedule`).
+        Construct an event generator for a :attr:`target` synapse with :attr:`weight` of the events to deliver based on a schedule (i.e., :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, :class:`arbor.poisson_schedule`).
 
     .. attribute:: target
 
-        The target synapse of type :class:`cell_member`.
+        The target synapse of type :class:`arbor.cell_member`.
 
     .. attribute:: weight
 
@@ -255,8 +255,8 @@ Cells
 
 .. function:: make_cable_cell(seed, params)
 
-    Construct a branching cable cell with a random morphology (via parameter :attr:`seed`) and
-    synapse end points locations described by parameter :attr:`params`.
+    Construct a branching cable cell with a random morphology (via parameter ``seed``) and
+    synapse end points locations described by parameter ``params``.
 
     The soma has an area of 500 μm², a bulk resistivity of 100 Ω·cm,
     and the ion channel and synapse dynamics are described by a Hodgkin-Huxley (HH) mechanism.
@@ -281,7 +281,7 @@ Cells
 
     Additional synapses are added based on the number of randomly generated :attr:`cell_parameters.synapses` on the cell.
 
-    :param seed: The seed is an integral value used to seed the random number generator, for which the :attr:`cell_member.gid` of the cell is a good default.
+    :param seed: The seed is an integral value used to seed the random number generator, for which the :attr:`arbor.cell_member.gid` of the cell is a good default.
 
     :param params: By default set to :class:`cell_parameters()`.
 
@@ -355,13 +355,11 @@ Cells
 
         Construct a spike source cell that generates spikes
 
-        - at regular intervals (using a :class:`regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`explicit_schedule`)
-        - at times defined by a Poisson sequence (using a :class:`poisson_schedule`)
+        - at regular intervals (using an :class:`arbor.regular_schedule`)
+        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
+        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
 
-        .. attribute:: schedule
-
-            User-defined sequence of time points (choose from :class:`regular_schedule`, :class:`explicit_schedule`, or :class:`poisson_schedule`).
+        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
 
 .. class:: benchmark_cell
 
@@ -371,20 +369,15 @@ Cells
 
         A benchmark cell generates spikes at a user-defined sequence of time points:
 
-        - at regular intervals (using a :class:`regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`explicit_schedule`)
-        - at times defined by a Poisson sequence (using a :class:`poisson_schedule`)
+        - at regular intervals (using an :class:`arbor.regular_schedule`)
+        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
+        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
 
-        and the time taken to integrate a cell can be tuned by setting the :attr:`realtime_ratio`.
+        and the time taken to integrate a cell can be tuned by setting the parameter ``realtime_ratio``.
 
-        .. attribute:: schedule
+        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
 
-            User-defined sequence of time points (choose from :class:`regular_schedule`, :class:`explicit_schedule`, or :class:`poisson_schedule`).
-
-        .. attribute:: realtime_ratio
-
-            Time taken to integrate a cell, for example if :attr:`realtime_ratio` = 2,
-            a cell will take 2 seconds of CPU time to simulate 1 second.
+        :param realtime_ratio: Time taken to integrate a cell, for example if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.
 
 An example of a recipe construction of a ring network of multicompartmental cells reads as follows:
 

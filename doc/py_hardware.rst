@@ -13,6 +13,8 @@ Available Resources
 
 Helper functions for checking cmake or environment variables, as well as configuring and checking MPI are the following:
 
+.. currentmodule:: arbor
+
 .. function:: config()
 
     Returns a dictionary to check which options the Arbor library was configured with at compile time:
@@ -87,11 +89,11 @@ The Python wrapper provides an API for:
     .. attribute:: gpu_id
 
         The identifier of the GPU to use.
-        Must be None, or a non-negative integer.
+        Must be ``None``, or a non-negative integer.
 
         The :attr:`gpu_id` corresponds to the ``int device`` parameter used by CUDA API calls
         to identify gpu devices.
-        Set to None to indicate that no GPU device is to be used.
+        Set to ``None`` to indicate that no GPU device is to be used.
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
         `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
 
@@ -148,8 +150,8 @@ The Python wrapper provides an API for:
 
         .. attribute:: mpi
 
-            The MPI communicator (see :class:`arbor.mpi_comm`).
-            mpi must be None, or an MPI communicator.
+            The MPI communicator (see :class:`mpi_comm`).
+            mpi must be ``None``, or an MPI communicator.
 
     .. function:: context(threads, gpu_id)
 
@@ -161,26 +163,26 @@ The Python wrapper provides an API for:
 
         .. attribute:: gpu_id
 
-            The identifier of the GPU to use, None by default.
-            Must be None, or a non-negative integer.
+            The identifier of the GPU to use, ``None`` by default.
+            Must be ``None``, or a non-negative integer.
 
     .. function:: context(threads, gpu_id, mpi)
 
-        Create a context that uses a set number of :attr:`threads` and gpu identifier :attr:`gpu` and MPI communicator :attr:`mpi` for distributed calculation.
+        Create a context that uses a set number of :attr:`threads` and gpu identifier :attr:`gpu_id` and MPI communicator :attr:`mpi` for distributed calculation.
 
         .. attribute:: threads
 
             The number of threads available locally for execution, 1 by default.
 
-        .. attribute:: gpu
+        .. attribute:: gpu_id
 
-            The identifier of the GPU to use, None by default.
-            Must be None, or a non-negative integer.
+            The identifier of the GPU to use, ``None`` by default.
+            Must be ``None``, or a non-negative integer.
 
         .. attribute:: mpi
 
-            The MPI communicator (see :class:`arbor.mpi_comm`).
-            mpi must be None, or an MPI communicator.
+            The MPI communicator (see :class:`mpi_comm`).
+            mpi must be ``None``, or an MPI communicator.
 
     Contexts can be queried for information about which features a context has enabled,
     whether it has a GPU, how many threads are in its thread pool.
