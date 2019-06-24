@@ -26,30 +26,31 @@ public:
     virtual ~py_recipe() {}
 
     virtual arb::cell_size_type num_cells() const = 0;
-
     virtual pybind11::object cell_description(arb::cell_gid_type gid) const = 0;
     virtual arb::cell_kind cell_kind(arb::cell_gid_type gid) const = 0;
 
-    virtual arb::cell_size_type num_sources(arb::cell_gid_type) const { return 0; }
-    virtual arb::cell_size_type num_targets(arb::cell_gid_type) const { return 0; }
-
-    //TODO: virtual arb::cell_size_type num_probes(arb::cell_gid_type) const { return 0; }
-
+    virtual arb::cell_size_type num_sources(arb::cell_gid_type) const {
+        return 0;
+    }
+    virtual arb::cell_size_type num_targets(arb::cell_gid_type) const {
+        return 0;
+    }
     virtual arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const {
         return gap_junctions_on(gid).size();
     }
-
     virtual std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const {
-        auto guard = pybind11::gil_scoped_acquire();
+        return {};
+    }
+    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const {
+        return {};
+    }
+    virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const {
         return {};
     }
 
-    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const { return {}; }
-    virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const { return {}; }
-
+    //TODO: virtual arb::cell_size_type num_probes(arb::cell_gid_type) const { return 0; }
     //TODO: virtual pybind11::object get_probe (arb::cell_member_type id) const {...}
-
-    virtual pybind11::object global_properties(arb::cell_kind kind) const = 0;
+    //TODO: virtual pybind11::object global_properties(arb::cell_kind kind) const {return pybind11::none();};
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -74,8 +75,6 @@ public:
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_targets, gid);
     }
 
-    //TODO: arb::cell_size_type num_probes(arb::cell_gid_type)
-
     arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_gap_junction_sites, gid);
     }
@@ -92,11 +91,8 @@ public:
         PYBIND11_OVERLOAD(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
     }
 
+    //TODO: arb::cell_size_type num_probes(arb::cell_gid_type)
     //TODO: pybind11::object get_probe(arb::cell_member_type id)
-
-    pybind11::object global_properties(arb::cell_kind kind) const override {
-        PYBIND11_OVERLOAD_PURE(pybind11::object, py_recipe, global_properties, kind);
-    }
 };
 
 // A recipe shim that holds a pyarb::recipe implementation.
@@ -134,10 +130,8 @@ public:
         return impl_->num_targets(gid);
     }
 
-/* //TODO: arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
-        return impl_->num_probes(gid);
-    }
-*/
+    //TODO: arb::cell_size_type num_probes(arb::cell_gid_type gid)
+
     arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
         return impl_->num_gap_junction_sites(gid);
     }
@@ -152,12 +146,12 @@ public:
         return impl_->gap_junctions_on(gid);
     }
 
-    //TODO: arb::probe_info get_probe(arb::cell_member_type id) const override
+    //TODO: arb::probe_info get_probe(arb::cell_member_type id)
 
-    // The pyarb::recipe::global_properties returns a pybind11::object, that is
-    // unwrapped and copied into a util::any.
-    arb::util::any get_global_properties(arb::cell_kind kind) const override;
-
+    // TODO: wrap
+    arb::util::any get_global_properties(arb::cell_kind kind) const override {
+        return arb::util::any{};
+    }
 };
 
 } // namespace pyarb

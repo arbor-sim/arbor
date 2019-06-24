@@ -24,6 +24,7 @@ arb::util::unique_any convert_cell(pybind11::object o) {
     using pybind11::isinstance;
     using pybind11::cast;
 
+    pybind11::gil_scoped_acquire guard;
     if (isinstance<arb::spike_source_cell>(o)) {
         return arb::util::unique_any(cast<arb::spike_source_cell>(o));
     }
@@ -132,7 +133,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     // Add a synapse to the mid point of the first dendrite.
     cell.add_synapse({1, 0.5}, "expsyn");
 
-    // Add additional synapses that will not be connected to anything.
+    // Add additional synapses.
     for (unsigned i=1u; i<params.synapses; ++i) {
         cell.add_synapse({1, 0.5}, "expsyn");
     }
