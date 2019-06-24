@@ -255,7 +255,7 @@ Cells
 
 .. function:: make_cable_cell(seed, params)
 
-    Construct a branching cable cell with a random morphology (via parameter ``seed``) and
+    Construct a branching :class:`cable_cell` with a random morphology (via parameter ``seed``) and
     synapse end points locations described by parameter ``params``.
 
     The soma has an area of 500 μm², a bulk resistivity of 100 Ω·cm,
