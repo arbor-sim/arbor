@@ -85,32 +85,6 @@ struct cell_connection_shim {
     }
 };
 
-std::vector<arb::cell_connection> py_recipe_shim::connections_on(arb::cell_gid_type gid) const {
-        using pybind11::isinstance;
-        using pybind11::cast;
-
-        // Aquire the GIL because it must be held when calling isinstance and cast.
-        auto guard = pybind11::gil_scoped_acquire();
-
-        // TODO: acquire gil
-        auto pycons = impl_->connections_on(gid);
-        std::vector<arb::cell_connection> cons;
-        cons.reserve(pycons.size());
-        for (unsigned i=0; i<pycons.size(); ++i) {
-            const auto& c = pycons[i];
-            if (isinstance<cell_connection_shim>(c)) {
-                cons.push_back(cast<cell_connection_shim>(c));
-            }
-            else {
-                throw std::runtime_error(
-                    util::pprintf(
-                            "connection {} on cell gid {} is not an arbor.connection (it is '{}')",
-                            i, gid, pybind11::repr(c)));
-            }
-        }
-        return cons;
-    }
-
 // TODO: implement py_recipe_shim::probe_info
 
 std::string con_to_string(const cell_connection_shim& c) {
@@ -134,10 +108,10 @@ void register_recipe(pybind11::module& m) {
         .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, arb::time_type>(),
             "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
-            "  source: The source end point of the connection.\n"
-            "  dest:   The destination end point of the connection.\n"
-            "  weight: The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
-            "  delay:  The delay of the connection [ms].")
+            "  source:      The source end point of the connection.\n"
+            "  dest:        The destination end point of the connection.\n"
+            "  weight:      The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
+            "  delay:       The delay of the connection [ms].")
         .def_readwrite("source", &arb::cell_connection::source,
             "The source of the connection.")
         .def_readwrite("dest", &arb::cell_connection::dest,

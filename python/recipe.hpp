@@ -83,8 +83,8 @@ public:
         PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, event_generators, gid);
     }
 
-    std::vector<pybind11::object> connections_on(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, connections_on, gid);
+    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD(std::vector<arb::cell_connection>, py_recipe, connections_on, gid);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
@@ -138,7 +138,9 @@ public:
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;
 
-    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override;
+    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
+        return impl_->connections_on(gid);
+    }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
         return impl_->gap_junctions_on(gid);
