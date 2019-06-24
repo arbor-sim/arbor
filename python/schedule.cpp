@@ -158,9 +158,9 @@ void register_schedules(pybind11::module& m) {
         .def(pybind11::init<pybind11::object, time_type, pybind11::object>(),
             "tstart"_a = pybind11::none(), "dt"_a = 0., "tstop"_a = pybind11::none(),
             "Construct a regular schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence [ms], by default None.\n"
-            "  dt:     The interval between time points [ms], by default 0.\n"
-            "  tstop:  No events delivered after this time [ms], by default None.")
+            "  tstart: The delivery time of the first event in the sequence [ms], None by default.\n"
+            "  dt:     The interval between time points [ms], 0 by default.\n"
+            "  tstop:  No events delivered after this time [ms], None by default.")
         .def_property("tstart", &regular_schedule_shim::get_tstart, &regular_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence [ms].")
         .def_property("tstop", &regular_schedule_shim::get_tstop, &regular_schedule_shim::set_tstop,
@@ -180,7 +180,7 @@ void register_schedules(pybind11::module& m) {
         .def(pybind11::init<std::vector<time_type>>(),
             "times"_a,
             "Construct an explicit schedule with argument:\n"
-            "  times: A list of times [ms], by default [].")
+            "  times: A list of times [ms], [] by default.")
         .def_property("times", &explicit_schedule_shim::get_times, &explicit_schedule_shim::set_times,
             "A list of times [ms].")
         .def("__str__",  util::to_string<explicit_schedule_shim>)
@@ -194,9 +194,9 @@ void register_schedules(pybind11::module& m) {
         .def(pybind11::init<time_type, time_type, std::mt19937_64::result_type>(),
             "tstart"_a = 0., "freq"_a = 10., "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence [ms], by default 0 ms.\n"
+            "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
             "  freq:   The expected frequency [Hz], by default 10 Hz.\n"
-            "  seed:   The seed for the random number generator, by default 0.")
+            "  seed:   The seed for the random number generator, 0 by default.")
         .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence [ms].")
         .def_property("freq", &poisson_schedule_shim::get_freq, &poisson_schedule_shim::set_freq,

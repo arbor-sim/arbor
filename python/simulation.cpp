@@ -31,10 +31,10 @@ void register_simulation(pybind11::module& m) {
             "Reset the state of the simulation to its initial state.")
         .def("run", &arb::simulation::run,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
-            "Run the simulation from current simulation time to tfinal (unit: ms), with maximum time step size dt (unit: ms).",
+            "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, "dt"_a=0.025)
         .def("set_binning_policy", &arb::simulation::set_binning_policy,
-            "Set the binning policy for event delivery, and the binning time interval if applicable (unit: ms).",
+            "Set the binning policy for event delivery, and the binning time interval if applicable [ms].",
             "policy"_a, "bin_interval"_a)
         .def("__str__",  [](const arb::simulation&){ return "<arbor.simulation>"; })
         .def("__repr__", [](const arb::simulation&){ return "<arbor.simulation>"; });
