@@ -195,7 +195,7 @@ void register_schedules(pybind11::module& m) {
             "tstart"_a = 0., "freq"_a = 10., "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
-            "  freq:   The expected frequency [Hz], by default 10 Hz.\n"
+            "  freq:   The expected frequency [Hz], 10 by default.\n"
             "  seed:   The seed for the random number generator, 0 by default.")
         .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence [ms].")
