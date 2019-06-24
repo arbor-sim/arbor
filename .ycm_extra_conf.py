@@ -66,6 +66,8 @@ flags = [
     '/usr/include/python3.6m', # TODO: run a command to find this on "any" system
     '-I',
     'sup/include',
+    '-I',
+    '/usr/include/python3.7m',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
