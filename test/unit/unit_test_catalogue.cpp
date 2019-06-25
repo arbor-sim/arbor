@@ -8,6 +8,8 @@
 
 #include "unit_test_catalogue.hpp"
 #include "mechanisms/celsius_test.hpp"
+#include "mechanisms/fixed_ica_current.hpp"
+#include "mechanisms/linear_ca_conc.hpp"
 #include "mechanisms/test_cl_valence.hpp"
 #include "mechanisms/test_ca_read_valence.hpp"
 
@@ -30,6 +32,8 @@ mechanism_catalogue make_unit_test_catalogue() {
     mechanism_catalogue cat;
 
     ADD_MECH(cat, celsius_test)
+    ADD_MECH(cat, fixed_ica_current)
+    ADD_MECH(cat, linear_ca_conc)
     ADD_MECH(cat, test_cl_valence)
     ADD_MECH(cat, test_ca_read_valence)
 

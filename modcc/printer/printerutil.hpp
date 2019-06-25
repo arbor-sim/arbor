@@ -117,6 +117,13 @@ NetReceiveExpression* find_net_receive(const Module& m);
 struct indexed_variable_info {
     std::string data_var;
     std::string index_var;
+
+    bool accumulate = true; // true => add with weight_ factor on assignment
+    bool readonly = false;  // true => can never be assigned to by a mechanism
+
+    // Scale is the conversion factor from the data variable
+    // to the NMODL value.
+    double scale = 1;
     bool scalar() const { return index_var.empty(); }
 };
 

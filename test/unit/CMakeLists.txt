@@ -2,6 +2,8 @@
 
 set(test_mechanisms
     celsius_test
+    fixed_ica_current
+    linear_ca_conc
     test_cl_valence
     test_ca_read_valence
 )

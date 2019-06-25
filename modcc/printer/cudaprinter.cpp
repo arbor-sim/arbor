@@ -428,37 +428,66 @@ void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* e) {
     out << cuprint(e->body());
 }
 
+namespace {
+    // Convenience I/O wrapper for emitting indexed access to an external variable.
+
+    struct deref {
+        indexed_variable_info v;
+
+        deref(indexed_variable_info v): v(v) {}
+        friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
+            return o << "params_." << wrap.v.data_var << '['
+                     << (wrap.v.scalar()? "0": index_i_name(wrap.v.index_var)) << ']';
+        }
+    };
+}
+
 void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
     out << "value_type " << cuprint(local) << " = ";
 
     if (local->is_read()) {
-        out << cuprint(local->external_variable()) << ";\n";
+        auto d = decode_indexed_variable(local->external_variable());
+        if (d.scale != 1) {
+            out << as_c_double(d.scale) << "*";
+        }
+        out << deref(d) << ";\n";
     }
     else {
         out << "0;\n";
     }
 }
 
+
 void emit_state_update_cu(std::ostream& out, Symbol* from,
                           IndexedVariable* external, bool is_point_proc)
 {
     if (!external->is_write()) return;
 
-    const bool is_minus = external->op()==tok::minus;
     auto d = decode_indexed_variable(external);
+    double coeff = 1./d.scale;
 
-    if (d.scalar()) {
-        throw compiler_exception("Cannot assign to global scalar: "+external->to_string());
+    if (d.readonly) {
+        throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
 
-    if (is_point_proc) {
+    if (is_point_proc && d.accumulate) {
         out << "::arb::gpu::reduce_by_key(";
-        is_minus && out << "-";
-        out << from->name()
-            << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << "params_.weight_[tid_]*" << from->name() << ',';
+        out << "params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";
+    }
+    else if (d.accumulate) {
+        out << deref(d) << " = fma(";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << "params_.weight_[tid_], " << from->name() << ", " << deref(d) << ");\n";
     }
     else {
-        out << cuprint(external) << (is_minus? " -= ": " += ") << from->name() << ";\n";
+        out << deref(d) << " = ";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << from->name() << ";\n";
     }
 }
 
@@ -466,16 +495,6 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
 
 void CudaPrinter::visit(VariableExpression *sym) {
     out_ << "params_." << sym->name() << (sym->is_range()? "[tid_]": "");
-}
-
-void CudaPrinter::visit(IndexedVariable *e) {
-    auto d = decode_indexed_variable(e);
-    if (d.scalar()) {
-        out_ << "params_." << d.data_var << "[0]";
-    }
-    else {
-        out_ << "params_." << d.data_var << "[" << index_i_name(d.index_var) <<  "]";
-    }
 }
 
 void CudaPrinter::visit(CallExpression* e) {
