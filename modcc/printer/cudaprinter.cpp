@@ -323,7 +323,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
             << "\n" << indent
             << "auto n = p.width_;\n"
             << "unsigned block_dim = 128;\n"
-            << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+            << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
             << e->name() << "<<<grid_dim, block_dim>>>(p);\n"
             << popindent;
 
@@ -340,7 +340,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
         << ppack_name << "& p, deliverable_event_stream_state events) {\n" << indent
         << "auto n = events.n;\n"
         << "unsigned block_dim = 128;\n"
-        << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+        << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
         << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
         << popindent << "}\n\n";
 
