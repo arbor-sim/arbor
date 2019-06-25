@@ -196,13 +196,13 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out <<
         "class " << class_name << ": public base {\n"
         "public:\n" << indent <<
-        "const mechanism_fingerprint& fingerprint() const override {\n" << indent <<
-        "static mechanism_fingerprint hash = " << quote(fingerprint) << ";\n"
+        "const ::arb::mechanism_fingerprint& fingerprint() const override {\n" << indent <<
+        "static ::arb::mechanism_fingerprint hash = " << quote(fingerprint) << ";\n"
         "return hash;\n" << popindent <<
         "}\n"
         "std::string internal_name() const override { return " << quote(name) << "; }\n"
-        "mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
-        "mechanism_ptr clone() const override { return mechanism_ptr(new " << class_name << "()); }\n"
+        "::arb::mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
+        "::arb::mechanism_ptr clone() const override { return ::arb::mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
         "void nrn_init() override;\n"
         "void nrn_state() override;\n"
