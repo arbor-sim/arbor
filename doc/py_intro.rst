@@ -39,7 +39,7 @@ Then, according to the :ref:`modelsimulation` description Arbor's python module 
 
 .. In order to visualise the result a **spike recorder** can be used and to analyse Arbor's performance a **meter manager** is available.
 
-These steps are described and examples are given in the next subsections :ref:`pycommon`, :ref:`pyrecipe`, :ref:`pydomdec` and :ref:`pysimulation`.
+These steps are described and examples are given in the next subsections :ref:`pycommon`, :ref:`pyrecipe`, :ref:`pydomdec`, :ref:`pysimulation`, and :ref:`pyprofiler`.
 
 .. note::
 

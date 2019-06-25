@@ -92,6 +92,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    py_recipe
    py_domdec
    py_simulation
+   py_profiler
 
 .. toctree::
    :caption: C++ API:
