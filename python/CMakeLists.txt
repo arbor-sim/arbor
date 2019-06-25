@@ -23,6 +23,7 @@ add_library(pyarb MODULE
     event_generator.cpp
     identifiers.cpp
     mpi.cpp
+    profiler.cpp
     pyarb.cpp
     recipe.cpp
     schedule.cpp
