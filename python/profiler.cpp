@@ -14,16 +14,10 @@ std::string report_str(const arb::profile::meter_report& report) {
     return util::pprintf("<arbor.meter_report>: {}", report);
 }
 
-
-//auto to_string = [](const arb::profile::meter_report& report) {
-//    std::stringstream s;
-//    s << report;
-//    return s.str();
-//};
-
 void register_profiler(pybind11::module& m) {
     using namespace pybind11::literals;
 
+    // meter manager
     pybind11::class_<arb::profile::meter_manager> meter_manager(m, "meter_manager",
         "Manage metering by setting checkpoints and starting the timing region.");
     meter_manager
@@ -50,6 +44,7 @@ void register_profiler(pybind11::module& m) {
         .def("__str__",  [](const arb::profile::meter_manager&){return "<arbor.meter_manager>";})
         .def("__repr__", [](const arb::profile::meter_manager&){return "<arbor.meter_manager>";});
 
+    // meter report
     pybind11::class_<arb::profile::meter_report> meter_report(m, "meter_report", "Gather distributed meter information.");
     meter_report
         .def("__str__",  &report_str)
