@@ -69,8 +69,8 @@ void register_spike_handling(pybind11::module& m) {
     pybind11::class_<arb::spike> spike(m, "spike");
     spike
         .def(pybind11::init<>())
-        .def_readwrite("source", "The spike source (type: cell_member).", &arb::spike::source)
-        .def_readwrite("time", "The spike time [ms].", &arb::spike::time)
+        .def_readwrite("source", &arb::spike::source, "The spike source (type: cell_member).")
+        .def_readwrite("time", &arb::spike::time, "The spike time [ms].")
         .def("__str__",  &spike_str)
         .def("__repr__", &spike_str);
 
@@ -80,7 +80,7 @@ void register_spike_handling(pybind11::module& m) {
     pybind11::class_<spike_recorder, std::shared_ptr<spike_recorder>> sprec(m, "spike_recorder");
     sprec
         .def(pybind11::init<>())
-        .def_property_readonly("spikes", "A list of the recorded spikes.", &spike_recorder::spikes);
+        .def_property_readonly("spikes", &spike_recorder::spikes, "A list of the recorded spikes.");
 
     m.def("attach_spike_recorder", &attach_spike_recorder,
           "sim"_a,
