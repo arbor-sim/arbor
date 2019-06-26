@@ -83,7 +83,7 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
+arb::cable_cell make_cable_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     arb::cable_cell cell;
 
     // Add soma.
@@ -235,7 +235,7 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});
 
-    m.def("branch_cell", &branch_cell,
+    m.def("make_cable_cell", &make_cable_cell,
         "Construct a branching cell with a random morphology and synapse end points locations described by params.\n"
         "seed is an integral value used to seed the random number generator, for which the gid of the cell is a good default.",
         "seed"_a,
