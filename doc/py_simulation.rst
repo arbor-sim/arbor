@@ -165,13 +165,13 @@ In order to analyze the simulation output spikes can be recorded.
         for s in recorder.spikes:
             print(s)
 
->>> <arbor.spike: source (0,0), time 2.15168>
->>> <arbor.spike: source (1,0), time 14.5235>
->>> <arbor.spike: source (2,0), time 26.9051>
->>> <arbor.spike: source (3,0), time 39.4083>
->>> <arbor.spike: source (4,0), time 51.9081>
->>> <arbor.spike: source (5,0), time 64.2902>
->>> <arbor.spike: source (6,0), time 76.7706>
->>> <arbor.spike: source (7,0), time 89.1529>
->>> <arbor.spike: source (8,0), time 101.641>
->>> <arbor.spike: source (9,0), time 114.125>
+>>> <arbor.spike: source (0,0), time 2.15168 ms>
+>>> <arbor.spike: source (1,0), time 14.5235 ms>
+>>> <arbor.spike: source (2,0), time 26.9051 ms>
+>>> <arbor.spike: source (3,0), time 39.4083 ms>
+>>> <arbor.spike: source (4,0), time 51.9081 ms>
+>>> <arbor.spike: source (5,0), time 64.2902 ms>
+>>> <arbor.spike: source (6,0), time 76.7706 ms>
+>>> <arbor.spike: source (7,0), time 89.1529 ms>
+>>> <arbor.spike: source (8,0), time 101.641 ms>
+>>> <arbor.spike: source (9,0), time 114.125 ms>
