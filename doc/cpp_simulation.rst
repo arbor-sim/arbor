@@ -84,7 +84,7 @@ Class Documentation
     .. cpp:function:: void inject_events(const pse_vector& events)
 
         Add events directly to targets.
-        Must be called before calling :cpp:func:`simulation::run`, and must contain events that
+        Must be called before calling :cpp:func:`run`, and must contain events that
         are to be delivered at or after the current simulation time.
 
     **Updating Model State:**
@@ -111,7 +111,7 @@ Class Documentation
                         sampling_policy policy = sampling_policy::lax)
 
         Note: sampler functions may be invoked from a different thread than that
-        which called :cpp:func:`simulation::run`.
+        which called :cpp:func:`run`.
 
         (see the :ref:`sampling_api` documentation.)
 
@@ -128,7 +128,7 @@ Class Documentation
     .. cpp:function:: std::size_t num_spikes() const
 
         The total number of spikes generated since either construction or
-        the last call to :cpp:func:`simulation::reset`.
+        the last call to :cpp:func:`reset`.
 
     .. cpp:function:: void set_global_spike_callback(spike_export_function export_callback)
 

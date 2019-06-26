@@ -148,6 +148,7 @@ Utility Wrappers and Containers
 .. cpp:class:: unique_any
 
    Equivalent to :cpp:class:`util::any`, except that:
+   
       * it can store any type that is move constructable;
       * it is move only, that is it can't be copied.
 

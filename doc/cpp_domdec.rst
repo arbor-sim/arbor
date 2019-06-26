@@ -10,7 +10,7 @@ The C++ API for partitioning a model over distributed and local hardware is desc
 Load Balancers
 --------------
 
-Load balancing generates a :cpp:class:`domain_decomposition` given a :cpp:class:`recipe`
+Load balancing generates a :cpp:class:`domain_decomposition` given an :cpp:class:`arb::recipe`
 and a description of the hardware on which the model will run. Currently Arbor provides
 one load balancer, :cpp:func:`partition_load_balance`, and more will be added over time.
 
