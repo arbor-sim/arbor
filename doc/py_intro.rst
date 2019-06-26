@@ -2,8 +2,8 @@
 
 Overview
 =========
-This section gives insights to the usage of Arbor's python front end :py:mod:`arbor` with examples and detailed descriptions of features.
-The python front end is the main interface through which Arbor is used.
+This section gives insights to the usage of Arbor's python frontend :py:mod:`arbor` with examples and detailed descriptions of features.
+The python frontend is the main interface through which Arbor is used.
 
 .. _prerequisites:
 

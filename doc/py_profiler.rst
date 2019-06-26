@@ -81,13 +81,19 @@ For instance, the following python code will record and summarize the total time
 
         meter_manager.checkpoint('simulation run', context)
 
-        print(arbor.make_meter_report(meter_manager, context))
 
 Metering Output
 ------------------
 
-Calling :func:`make_meter_report` will generate a profile summary, which can be printed using ``print``.
+Calling :func:`make_meter_report` will generate a measurement summary, which can be printed using ``print``.
 Take the example output from above:
+
+.. container:: example-code
+
+    .. code-block:: python
+
+        print(arbor.make_meter_report(meter_manager, context))
+
 
 >>> <arbor.meter_report>:
 >>> ---- meters -------------------------------------------------------------------------------
