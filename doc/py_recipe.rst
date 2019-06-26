@@ -3,10 +3,12 @@
 Recipes
 =================
 
+.. currentmodule:: arbor
+
+The :class:`recipe` class documentation is below.
+
 A recipe describes neuron models in a cell-oriented manner and supplies methods to provide cell information.
 Details on why Arbor uses recipes and general best practices can be found in :ref:`modelrecipe`.
-
-.. currentmodule:: arbor
 
 .. class:: recipe
 

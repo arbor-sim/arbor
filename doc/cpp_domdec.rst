@@ -1,5 +1,7 @@
 .. _cppdomdec:
 
+.. cpp:namespace:: arb
+
 Domain Decomposition
 ====================
 
@@ -36,8 +38,6 @@ describes the cell groups on the local MPI rank.
     try not to overcrowd cell groups if not needed.
     Arbor provided load balancers such as :cpp:func:`partition_load_balance`
     guarantee that this rule is obeyed.
-
-.. cpp:namespace:: arb
 
 .. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, const arb::context& ctx)
 

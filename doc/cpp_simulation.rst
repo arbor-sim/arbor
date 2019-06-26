@@ -6,7 +6,7 @@ Simulations
 From recipe to simulation
 -------------------------
 
-To build a simulation the following are needed:
+To build a simulation the following concepts are needed:
 
     * An :cpp:class:`arb::recipe` that describes the cells and connections
       in the model.

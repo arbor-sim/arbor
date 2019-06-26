@@ -3,8 +3,6 @@
 Simulations
 ===========
 
-A simulation is the executable form of a model.
-
 From recipe to simulation
 -------------------------
 
