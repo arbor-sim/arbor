@@ -88,7 +88,7 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         "using spec = ::arb::mechanism_field_spec;\n";
 
    out <<
-        "static mechanism_info info = {\n"
+        "static ::arb::mechanism_info info = {\n"
         << indent <<
         "// globals\n"
         "{\n"
