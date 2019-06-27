@@ -89,13 +89,13 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
         "\n"
         "class " << class_name << ": public ::arb::gpu::mechanism {\n"
         "public:\n" << indent <<
-        "const mechanism_fingerprint& fingerprint() const override {\n" << indent <<
-        "static mechanism_fingerprint hash = " << quote(fingerprint) << ";\n"
+        "const ::arb::mechanism_fingerprint& fingerprint() const override {\n" << indent <<
+        "static ::arb::mechanism_fingerprint hash = " << quote(fingerprint) << ";\n"
         "return hash;\n" << popindent <<
         "}\n\n"
         "std::string internal_name() const override { return " << quote(name) << "; }\n"
-        "mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
-        "mechanism_ptr clone() const override { return mechanism_ptr(new " << class_name << "()); }\n"
+        "::arb::mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
+        "::arb::mechanism_ptr clone() const override { return ::arb::mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
         "void nrn_init() override {\n" << indent <<
         class_name << "_nrn_init_(pp_);\n" << popindent <<
@@ -252,9 +252,9 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
 
     out << "namespace {\n\n"; // place inside an anonymous namespace
 
-    out << "using arb::gpu::exprelr;\n";
-    out << "using arb::gpu::min;\n";
-    out << "using arb::gpu::max;\n\n";
+    out << "using ::arb::gpu::exprelr;\n";
+    out << "using ::arb::gpu::min;\n";
+    out << "using ::arb::gpu::max;\n\n";
 
     // Procedures as __device__ functions.
     auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
@@ -323,7 +323,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
             << "\n" << indent
             << "auto n = p.width_;\n"
             << "unsigned block_dim = 128;\n"
-            << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+            << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
             << e->name() << "<<<grid_dim, block_dim>>>(p);\n"
             << popindent;
 
@@ -340,7 +340,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
         << ppack_name << "& p, deliverable_event_stream_state events) {\n" << indent
         << "auto n = events.n;\n"
         << "unsigned block_dim = 128;\n"
-        << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+        << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
         << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
         << popindent << "}\n\n";
 
@@ -452,7 +452,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     }
 
     if (is_point_proc) {
-        out << "arb::gpu::reduce_by_key(";
+        out << "::arb::gpu::reduce_by_key(";
         is_minus && out << "-";
         out << from->name()
             << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";

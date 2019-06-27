@@ -8,7 +8,11 @@ import re
 import numpy as np
 import neuron
 from neuron import h
-from builtins import range
+
+try:
+    from builtins import range
+except ImportError:
+    from __builtin__ import range
 
 # This is super annoying: without neuron.gui, need
 # to explicit load 'standard' hoc routines like 'run',
