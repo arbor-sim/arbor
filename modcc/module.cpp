@@ -34,7 +34,8 @@ class NrnCurrentRewriter: public BlockRewriterBase {
                         sourceKind src = ext->data_source();
                         if (src==sourceKind::current_density ||
                             src==sourceKind::current ||
-                            src==sourceKind::ion_current_density)
+                            src==sourceKind::ion_current_density ||
+                            src==sourceKind::ion_current)
                         {
                             return src;
                         }
@@ -73,7 +74,7 @@ public:
         if (current_source != sourceKind::no_source) {
             has_current_update_ = true;
 
-            if (current_source==sourceKind::ion_current_density) {
+            if (current_source==sourceKind::ion_current_density || current_source==sourceKind::ion_current) {
                 ion_current_vars_.insert(e->lhs()->is_identifier()->name());
             }
             else {
@@ -550,7 +551,7 @@ void Module::add_variables_to_symbols() {
             (Token const& tkn, accessKind acc, const std::string& channel)
     {
         std::string name = tkn.spelling;
-        sourceKind data_source = ion_source(channel, name);
+        sourceKind data_source = ion_source(channel, name, kind_);
 
         // If the symbol already exists and is not a state variable,
         // it is an error.

@@ -4,6 +4,10 @@
 #include <string>
 #include <stdexcept>
 
+enum class moduleKind {
+    point, density
+};
+
 /// indicate how a variable is accessed
 /// access is (read, written, or both)
 /// the distinction between write only and read only is required because
@@ -41,6 +45,7 @@ enum class sourceKind {
     conductivity,
     conductance,
     dt,
+    ion_current,
     ion_current_density,
     ion_revpot,
     ion_iconc,
@@ -83,6 +88,7 @@ inline std::string to_string(sourceKind v) {
     case sourceKind::conductivity:        return "conductivity";
     case sourceKind::conductance:         return "conductance";
     case sourceKind::dt:                  return "dt";
+    case sourceKind::ion_current:         return "ion_current";
     case sourceKind::ion_current_density: return "ion_current_density";
     case sourceKind::ion_revpot:          return "ion_revpot";
     case sourceKind::ion_iconc:           return "ion_iconc";
@@ -106,9 +112,9 @@ inline std::ostream& operator<< (std::ostream& os, linkageKind l) {
 
 /// ion variable to data source kind
 
-inline sourceKind ion_source(const std::string& ion, const std::string& var) {
+inline sourceKind ion_source(const std::string& ion, const std::string& var, moduleKind mkind) {
     if (ion.empty()) return sourceKind::no_source;
-    else if (var=="i"+ion) return sourceKind::ion_current_density;
+    else if (var=="i"+ion) return mkind==moduleKind::point? sourceKind::ion_current: sourceKind::ion_current_density;
     else if (var=="e"+ion) return sourceKind::ion_revpot;
     else if (var==ion+"i") return sourceKind::ion_iconc;
     else if (var==ion+"e") return sourceKind::ion_econc;

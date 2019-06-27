@@ -131,23 +131,25 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.data_var="vec_v_";
         v.readonly = true;
         break;
-    case sourceKind::current:
-        v.data_var = "vec_i_";
-        v.readonly = false;
-        break;
-    case sourceKind::conductance:
-        v.data_var = "vec_g_";
-        v.readonly = false;
-        break;
     case sourceKind::current_density:
         v.data_var = "vec_i_";
         v.readonly = false;
         v.scale = 0.1;
         break;
+    case sourceKind::current:
+        // unit scale; sourceKind for point processes updating current variable.
+        v.data_var = "vec_i_";
+        v.readonly = false;
+        break;
     case sourceKind::conductivity:
         v.data_var = "vec_g_";
         v.readonly = false;
         v.scale = 0.1;
+        break;
+    case sourceKind::conductance:
+        // unit scale; sourceKind for point processes updating conductivity.
+        v.data_var = "vec_g_";
+        v.readonly = false;
         break;
     case sourceKind::dt:
         v.data_var = "vec_dt_";
@@ -156,6 +158,11 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     case sourceKind::ion_current_density:
         v.data_var = ion_pfx+".current_density";
         v.scale = 0.1;
+        v.readonly = false;
+        break;
+    case sourceKind::ion_current:
+        // unit scale; sourceKind for point processes updating an ionic current variable.
+        v.data_var = ion_pfx+".current_density";
         v.readonly = false;
         break;
     case sourceKind::ion_revpot:
