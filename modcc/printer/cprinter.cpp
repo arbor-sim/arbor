@@ -171,7 +171,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "static constexpr unsigned simd_width_ = ";
 
         if (!opt.simd.width) {
-            out << "S::simd_abi::native_width<fvm_value_type>::value;\n";
+            out << "S::simd_abi::native_width<::arb::fvm_value_type>::value;\n";
         }
         else {
             out << opt.simd.width << ";\n";
@@ -188,8 +188,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         }
 
         out <<
-            "using simd_value = S::simd<fvm_value_type, simd_width_, " << abi << ">;\n"
-            "using simd_index = S::simd<fvm_index_type, simd_width_, " << abi << ">;\n"
+            "using simd_value = S::simd<::arb::fvm_value_type, simd_width_, " << abi << ">;\n"
+            "using simd_index = S::simd<::arb::fvm_index_type, simd_width_, " << abi << ">;\n"
             "\n";
     }
 
