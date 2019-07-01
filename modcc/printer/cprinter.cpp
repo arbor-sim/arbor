@@ -556,7 +556,10 @@ void SimdPrinter::visit(IndexedVariable *sym) {
 }
 
 void SimdPrinter::visit(CallExpression* e) {
-    out_ << e->name() << "(index_";
+    if(is_indirect_index_)
+        out_ << e->name() << "(index_";
+    else
+        out_ << e->name() << "(i_";
     for (auto& arg: e->args()) {
         out_ << ", ";
         arg->accept(this);
