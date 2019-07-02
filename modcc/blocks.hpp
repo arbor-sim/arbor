@@ -61,11 +61,6 @@ struct IonDep {
     }
 };
 
-enum class moduleKind {
-    point,
-    density
-};
-
 typedef std::vector<Token> unit_tokens;
 struct Id {
     Token token;
