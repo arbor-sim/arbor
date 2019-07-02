@@ -27,7 +27,7 @@ namespace gpu {
 
 struct ion_state {
     iarray node_index_; // Instance to CV map.
-    array iX_;          // (nA) current
+    array iX_;          // (A/m²) current density
     array eX_;          // (mV) reversal potential
     array Xi_;          // (mM) internal concentration
     array Xo_;          // (mM) external concentration
