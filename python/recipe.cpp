@@ -110,8 +110,8 @@ void register_recipe(pybind11::module& m) {
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection.\n"
             "  dest:        The destination end point of the connection.\n"
-            "  weight:      The weight delivered to the target synapse (unit: defined by the type of synapse target).\n"
-            "  delay:       The delay of the connection (unit: ms).")
+            "  weight:      The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
+            "  delay:       The delay of the connection [ms].")
         .def_readwrite("source", &arb::cell_connection::source,
             "The source of the connection.")
         .def_readwrite("dest", &arb::cell_connection::dest,
@@ -119,7 +119,7 @@ void register_recipe(pybind11::module& m) {
         .def_readwrite("weight", &arb::cell_connection::weight,
             "The weight of the connection.")
         .def_readwrite("delay", &arb::cell_connection::delay,
-            "The delay time of the connection (unit: ms).")
+            "The delay time of the connection [ms].")
         .def("__str__",  &con_to_string)
         .def("__repr__", &con_to_string);
 
@@ -132,13 +132,13 @@ void register_recipe(pybind11::module& m) {
             "Construct a gap junction connection with arguments:\n"
             "  local: One half of the gap junction connection.\n"
             "  peer:  Other half of the gap junction connection.\n"
-            "  ggap:  Gap junction conductance (unit: μS).")
+            "  ggap:  Gap junction conductance [μS].")
         .def_readwrite("local", &arb::gap_junction_connection::local,
             "One half of the gap junction connection.")
         .def_readwrite("peer", &arb::gap_junction_connection::peer,
             "Other half of the gap junction connection.")
         .def_readwrite("ggap", &arb::gap_junction_connection::ggap,
-            "Gap junction conductance (unit: μS).")
+            "Gap junction conductance [μS].")
         .def("__str__",  &gj_to_string)
         .def("__repr__", &gj_to_string);
 
@@ -159,23 +159,23 @@ void register_recipe(pybind11::module& m) {
             "The kind of cell with global identifier gid.")
         .def("num_sources", &py_recipe::num_sources,
             "gid"_a,
-            "The number of spike sources on gid (default 0).")
+            "The number of spike sources on gid, 0 by default.")
         .def("num_targets", &py_recipe::num_targets,
             "gid"_a,
-            "The number of post-synaptic sites on gid (default 0).")
+            "The number of post-synaptic sites on gid, 0 by default.")
         // TODO: py_recipe::num_probes
         .def("num_gap_junction_sites", &py_recipe::num_gap_junction_sites,
             "gid"_a,
-            "The number of gap junction sites on gid (default 0).")
+            "The number of gap junction sites on gid, 0 by default.")
         .def("event_generators", &py_recipe::event_generators,
             "gid"_a,
-            "A list of all the event generators that are attached to gid (default []).")
+            "A list of all the event generators that are attached to gid, [] by default.")
         .def("connections_on", &py_recipe::connections_on,
             "gid"_a,
-            "A list of all the incoming connections to gid (default []).")
+            "A list of all the incoming connections to gid, [] by default.")
         .def("gap_junctions_on", &py_recipe::gap_junctions_on,
             "gid"_a,
-            "A list of the gap junctions connected to gid (default []).")
+            "A list of the gap junctions connected to gid, [] by default.")
         // TODO: py_recipe::get_probe
         // TODO: py_recipe::global_properties
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
