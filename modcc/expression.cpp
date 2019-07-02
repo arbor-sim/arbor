@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "expression.hpp"
+#include "identifier.hpp"
 
 inline std::string to_string(symbolKind k) {
     switch (k) {
@@ -68,7 +69,7 @@ std::string Symbol::to_string() const {
 std::string LocalVariable::to_string() const {
     std::string s = blue("Local Variable") + " " + yellow(name());
     if(is_indexed()) {
-        s += " ->(" + token_string(external_->op()) + ") " + yellow(external_->index_name());
+        s += " -> " + yellow(external_->name());
     }
     return s;
 }
@@ -279,9 +280,9 @@ std::string VariableExpression::to_string() const {
 
 std::string IndexedVariable::to_string() const {
     return
-        blue("indexed") + " " + yellow(name()) + "->" + yellow(index_name()) + "("
+        blue("indexed") + " " + yellow(name()) + "->" + yellow(::to_string(data_source())) + "("
         + (is_write() ? " write-only" : " read-only")
-        + ", ion" + (is_ion()? colorize(ion_channel(), stringColor::green)
+        + ", ion " + (is_ion()? colorize(ion_channel(), stringColor::green)
                              : colorize("none", stringColor::red)) + ") ";
 }
 

@@ -117,10 +117,10 @@ More information on building with MPI is in the `HPC cluster section <cluster_>`
 Python
 ~~~~~~
 
-Arbor has a Python front end, for which Python 3.6 is required.
+Arbor has a Python frontend, for which Python 3.6 is required.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
-Python package is also recommended.
+Python package is recommended.
 
 Documentation
 ~~~~~~~~~~~~~~
@@ -354,10 +354,10 @@ example:
     Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
 
 
-Python Front End
+Python Frontend
 ----------------
 
-Arbor can be used with a python front end which is enabled by toggling the
+Arbor can be used with a python frontend which is enabled by toggling the
 CMake ``ARB_WITH_PYTHON`` option:
 
 .. code-block:: bash

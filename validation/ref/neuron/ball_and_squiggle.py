@@ -4,7 +4,11 @@
 import json
 import math
 import nrn_validation as V
-from builtins import range
+
+try:
+    from builtins import range
+except ImportError:
+    from __builtin__ import range
 
 V.override_defaults_from_args()
 

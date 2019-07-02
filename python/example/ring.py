@@ -17,7 +17,7 @@ class ring_recipe (arbor.recipe):
 
     # The cell_description method returns a cell
     def cell_description(self, gid):
-        return arbor.branch_cell(gid, self.params)
+        return arbor.make_cable_cell(gid, self.params)
 
     def num_targets(self, gid):
         return 1

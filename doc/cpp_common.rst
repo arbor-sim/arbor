@@ -83,7 +83,7 @@ cells and members of cell-local collections.
 
         Leaky-integrate and fire neuron.
 
-    .. cpp:enumerator:: spiking
+    .. cpp:enumerator:: spike_source
 
         Proxy cell that generates spikes from a spike sequence provided by the user.
 
@@ -148,6 +148,7 @@ Utility Wrappers and Containers
 .. cpp:class:: unique_any
 
    Equivalent to :cpp:class:`util::any`, except that:
+   
       * it can store any type that is move constructable;
       * it is move only, that is it can't be copied.
 

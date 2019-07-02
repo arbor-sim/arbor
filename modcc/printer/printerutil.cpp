@@ -114,50 +114,83 @@ NetReceiveExpression* find_net_receive(const Module& m) {
 }
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
-    std::string data_var, ion_pfx;
-    std::string index_var = "node_index_";
+    indexed_variable_info v;
+    v.index_var = "node_index_";
+    v.scale = 1;
+    v.accumulate = true;
+    v.readonly = true;
 
+    std::string ion_pfx;
     if (sym->is_ion()) {
         ion_pfx = "ion_"+sym->ion_channel()+"_";
-        index_var = ion_pfx+"index_";
+        v.index_var = ion_pfx+"index_";
     }
 
     switch (sym->data_source()) {
     case sourceKind::voltage:
-        data_var="vec_v_";
+        v.data_var="vec_v_";
+        v.readonly = true;
+        break;
+    case sourceKind::current_density:
+        v.data_var = "vec_i_";
+        v.readonly = false;
+        v.scale = 0.1;
         break;
     case sourceKind::current:
-        data_var="vec_i_";
+        // unit scale; sourceKind for point processes updating current variable.
+        v.data_var = "vec_i_";
+        v.readonly = false;
         break;
     case sourceKind::conductivity:
-        data_var="vec_g_";
+        v.data_var = "vec_g_";
+        v.readonly = false;
+        v.scale = 0.1;
+        break;
+    case sourceKind::conductance:
+        // unit scale; sourceKind for point processes updating conductivity.
+        v.data_var = "vec_g_";
+        v.readonly = false;
         break;
     case sourceKind::dt:
-        data_var="vec_dt_";
+        v.data_var = "vec_dt_";
+        v.readonly = true;
+        break;
+    case sourceKind::ion_current_density:
+        v.data_var = ion_pfx+".current_density";
+        v.scale = 0.1;
+        v.readonly = false;
         break;
     case sourceKind::ion_current:
-        data_var=ion_pfx+".current_density";
+        // unit scale; sourceKind for point processes updating an ionic current variable.
+        v.data_var = ion_pfx+".current_density";
+        v.readonly = false;
         break;
     case sourceKind::ion_revpot:
-        data_var=ion_pfx+".reversal_potential";
+        v.data_var = ion_pfx+".reversal_potential";
+        v.accumulate = false;
+        v.readonly = false;
         break;
     case sourceKind::ion_iconc:
-        data_var=ion_pfx+".internal_concentration";
+        v.data_var = ion_pfx+".internal_concentration";
+        v.readonly = false;
         break;
     case sourceKind::ion_econc:
-        data_var=ion_pfx+".external_concentration";
+        v.data_var = ion_pfx+".external_concentration";
+        v.readonly = false;
         break;
     case sourceKind::ion_valence:
-        data_var=ion_pfx+".ionic_charge";
-        index_var=""; // scalar global
+        v.data_var = ion_pfx+".ionic_charge";
+        v.index_var = ""; // scalar global
+        v.readonly = true;
         break;
     case sourceKind::temperature:
-        data_var="temperature_degC_";
-        index_var=""; // scalar global
+        v.data_var = "temperature_degC_";
+        v.index_var = ""; // scalar global
+        v.readonly = true;
         break;
     default:
         throw compiler_exception(pprintf("unrecognized indexed data source: %", sym), sym->location());
     }
 
-    return {data_var, index_var};
+    return v;
 }
