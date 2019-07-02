@@ -83,7 +83,7 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
+arb::cable_cell make_cable_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     arb::cable_cell cell;
 
     // Add soma.
@@ -176,7 +176,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::benchmark_cell> benchmark_cell(m, "benchmark_cell",
         "A benchmarking cell, used by Arbor developers to test communication performance.\n"
         "A benchmark cell generates spikes at a user-defined sequence of time points, and\n"
-        "the time taken to integrate a cell can be tuned by setting the real_time ratio,\n"
+        "the time taken to integrate a cell can be tuned by setting the realtime_ratio,\n"
         "for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to\n"
         "simulate 1 second.\n");
 
@@ -204,24 +204,24 @@ void register_cells(pybind11::module& m) {
 
     lif_cell
         .def(pybind11::init<>())
-        .def_readwrite("tau_m", &arb::lif_cell::tau_m,  "Membrane potential decaying constant [ms].")
-        .def_readwrite("V_th",  &arb::lif_cell::V_th,   "Firing threshold [mV].")
-        .def_readwrite("C_m",   &arb::lif_cell::C_m,    "Membrane capacitance [pF].")
-        .def_readwrite("E_L",   &arb::lif_cell::E_L,    "Resting potential [mV].")
-        .def_readwrite("V_m",   &arb::lif_cell::V_m,    "Initial value of the Membrane potential [mV].")
-        .def_readwrite("t_ref", &arb::lif_cell::t_ref,  "Refractory period [ms].")
-        .def_readwrite("V_reset", &arb::lif_cell::V_reset, "Reset potential [mV].")
+        .def_readwrite("tau_m",     &arb::lif_cell::tau_m,      "Membrane potential decaying constant [ms].")
+        .def_readwrite("V_th",      &arb::lif_cell::V_th,       "Firing threshold [mV].")
+        .def_readwrite("C_m",       &arb::lif_cell::C_m,        "Membrane capacitance [pF].")
+        .def_readwrite("E_L",       &arb::lif_cell::E_L,        "Resting potential [mV].")
+        .def_readwrite("V_m",       &arb::lif_cell::V_m,        "Initial value of the Membrane potential [mV].")
+        .def_readwrite("t_ref",     &arb::lif_cell::t_ref,      "Refractory period [ms].")
+        .def_readwrite("V_reset",   &arb::lif_cell::V_reset,    "Reset potential [mV].")
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
     pybind11::class_<cell_parameters> cell_params(m, "cell_parameters", "Parameters used to generate the random cell morphologies.");
     cell_params
         .def(pybind11::init<>())
-        .def_readwrite("depth", &cell_parameters::max_depth,"The maximum depth of the branch structure.")
-        .def_readwrite("lengths",   &cell_parameters::lengths,  "Length of branch in μm [range].")
-        .def_readwrite("synapses",  &cell_parameters::synapses, "The number of randomly generated synapses on the cell.")
-        .def_readwrite("branch_probs", &cell_parameters::branch_probs, "Probability of a branch occuring [range].")
-        .def_readwrite("compartments", &cell_parameters::compartments, "Compartment count on a branch [range].")
+        .def_readwrite("depth",        &cell_parameters::max_depth,     "The maximum depth of the branch structure.")
+        .def_readwrite("lengths",      &cell_parameters::lengths,       "Length of branch [μm], given as range.")
+        .def_readwrite("synapses",     &cell_parameters::synapses,      "The number of randomly generated synapses on the cell.")
+        .def_readwrite("branch_probs", &cell_parameters::branch_probs,  "Probability of a branch occuring, given as range.")
+        .def_readwrite("compartments", &cell_parameters::compartments,  "Compartment count on a branch, given as range.")
         .def("__repr__", util::to_string<cell_parameters>)
         .def("__str__",  util::to_string<cell_parameters>);
 
@@ -235,7 +235,7 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});
 
-    m.def("branch_cell", &branch_cell,
+    m.def("make_cable_cell", &make_cable_cell,
         "Construct a branching cell with a random morphology and synapse end points locations described by params.\n"
         "seed is an integral value used to seed the random number generator, for which the gid of the cell is a good default.",
         "seed"_a,

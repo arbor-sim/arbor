@@ -96,4 +96,5 @@ subset of NEURON's mechanism specification language NMODL.
 Examples
     Common examples are the *passive/ leaky integrate-and-fire* model, the *Hodgkin-Huxley* mechanism, the *(double-) exponential synapse* model, or the *Natrium current* model for an axon.
 
-Detailed documentation and best practices for C++ recipes can be found in :ref:`cpprecipe`.
+Detailed documentation for Python recipes can be found in :ref:`pyrecipe`.
+C++ :ref:`cpprecipe` are documented and best practices are shown as well.

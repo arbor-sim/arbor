@@ -38,7 +38,7 @@ void register_domain_decomposition(pybind11::module& m) {
         .def_readonly("kind", &arb::group_description::kind,
             "The type of cell in the cell group.")
         .def_readonly("gids", &arb::group_description::gids,
-            "The gids of the cells in the group in ascending order.")
+            "The list of gids of the cells in the group.")
         .def_readonly("backend", &arb::group_description::backend,
             "The hardware backend on which the cell group will run.")
         .def("__str__",  &gd_string)
@@ -70,8 +70,7 @@ void register_domain_decomposition(pybind11::module& m) {
         .def("__repr__", &dd_string);
 
     // Partition load balancer
-    // The Python recipe has to be shimmed for passing to the function that
-    // takes a C++ recipe.
+    // The Python recipe has to be shimmed for passing to the function that takes a C++ recipe.
     m.def("partition_load_balance",
         [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx) {
             return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context);

@@ -1,5 +1,7 @@
 .. _cppdomdec:
 
+.. cpp:namespace:: arb
+
 Domain Decomposition
 ====================
 
@@ -8,7 +10,7 @@ The C++ API for partitioning a model over distributed and local hardware is desc
 Load Balancers
 --------------
 
-Load balancing generates a :cpp:class:`domain_decomposition` given a :cpp:class:`recipe`
+Load balancing generates a :cpp:class:`domain_decomposition` given an :cpp:class:`arb::recipe`
 and a description of the hardware on which the model will run. Currently Arbor provides
 one load balancer, :cpp:func:`partition_load_balance`, and more will be added over time.
 
@@ -36,8 +38,6 @@ describes the cell groups on the local MPI rank.
     try not to overcrowd cell groups if not needed.
     Arbor provided load balancers such as :cpp:func:`partition_load_balance`
     guarantee that this rule is obeyed.
-
-.. cpp:namespace:: arb
 
 .. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, const arb::context& ctx)
 
