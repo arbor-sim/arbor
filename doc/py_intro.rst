@@ -31,7 +31,7 @@ The workflow for defining and running a model defined in :ref:`modelsimulation` 
 in Python as follows:
 
 1. Describe the neuron model by defining an :class:`arbor.recipe`;
-2. Describe the compuational resources to use for simulation using :class:`arbor.proc_allocation` and :class:`arbor.context`;
+2. Describe the computational resources to use for simulation using :class:`arbor.proc_allocation` and :class:`arbor.context`;
 3. Partition the model over the hardware resources using :class:`arbor.partition_load_balance`;
 4. Run the model by initiating then running the :class:`arbor.simulation`.
 
