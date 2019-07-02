@@ -10,11 +10,11 @@ a *recipe* describes a model, and a *simulation* is an executable instantiation 
 
 To be able to simulate a model, three basic steps need to be considered:
 
-* first, describe the model by defining a recipe;
-* second, define the computational resources available to execute the model;
-* finally, initiate and execute a simulation of the recipe on the chosen hardware resources.
+1. Describe the model by defining a recipe;
+2. Define the computational resources available to execute the model;
+3. Initiate and execute a simulation of the recipe on the chosen hardware resources.
 
-:ref:`modelrecipe` represent a set of neuron constructions and connections with *mechanisms* specifying ion channel and synapse dynamics in a cell-oriented manner. This has the advantage that cell data can be initiated in parallel.
+:ref:`Recipes <modelrecipe>` represent a set of neuron constructions and connections with *mechanisms* specifying ion channel and synapse dynamics in a cell-oriented manner. This has the advantage that cell data can be initiated in parallel.
 
 A cell represents the smallest unit of computation and forms the smallest unit of work distributed across processes. Arbor has built-in support for different :ref:`cell types <modelcells>`, which can be extended by adding new cell types to the C++ cell group interface.
 

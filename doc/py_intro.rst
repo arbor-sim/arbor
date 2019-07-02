@@ -31,14 +31,13 @@ With this setup, Arbor's python module :py:mod:`arbor` can be imported with pyth
 Simulation steps
 ~~~~~~~~~~~~~~~~
 
-Then, according to the :ref:`modelsimulation` description Arbor's python module :py:mod:`arbor` can be utilized to
+The workflow for defining and running a model defined in :ref:`modelsimulation` can be performed
+in Python as follows:
 
-* first, describe the neuron model by defining an :class:`arbor.recipe`;
-* then, get the local resources (:class:`arbor.proc_allocation`), the execution :class:`arbor.context`, and :class:`arbor.partition_load_balance`;
-* finally, execute the model by initiating and running the :class:`arbor.simulation`.
-
-In order to visualise the result a spike recorder can be attached using :func:`arbor.attach_spike_recorder`.
-To analyse Arbor's performance an :class:`arbor.meter_manager` is available generating a measurement summary using :func:`arbor.make_meter_report`.
+1. Describe the neuron model by defining an :class:`arbor.recipe`;
+2. Describe the compuational resources to use for simulation using :class:`arbor.proc_allocation` and :class:`arbor.context`;
+3. Partition the model over the hardware resources using :class:`arbor.partition_load_balance`;
+4. Run the model by initiating then running the :class:`arbor.simulation`.
 
 These details are described and examples are given in the next sections :ref:`pycommon`, :ref:`pyrecipe`, :ref:`pydomdec`, :ref:`pysimulation`, and :ref:`pyprofiler`.
 
@@ -46,4 +45,11 @@ These details are described and examples are given in the next sections :ref:`py
 
     Detailed information on Arbor's python features can also be obtained with Python's ``help`` function, e.g.
 
-    >>> help(arbor)
+    .. code-block:: python3
+
+        >>> help(arbor.proc_allocation)
+        Help on class proc_allocation in module arbor:
+
+        class proc_allocation(pybind11_builtins.pybind11_object)
+        |  Enumerates the computational resources on a node to be used for simulation.
+        |...
