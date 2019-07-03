@@ -2,7 +2,7 @@
 
 Overview
 =========
-The Python frontend for Arbor is interface that the vast majority of users will use to interact with Arbor.
+The Python frontend for Arbor is an interface that the vast majority of users will use to interact with Arbor.
 This section covers how to use the frontend with examples and detailed descriptions of features.
 
 .. _prerequisites:
