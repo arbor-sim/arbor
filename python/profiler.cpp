@@ -10,10 +10,6 @@
 
 namespace pyarb {
 
-std::string report_str(const arb::profile::meter_report& report) {
-    return util::pprintf("<arbor.meter_report>: {}", report);
-}
-
 void register_profiler(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -45,15 +41,17 @@ void register_profiler(pybind11::module& m) {
         .def("__repr__", [](const arb::profile::meter_manager&){return "<arbor.meter_manager>";});
 
     // meter report
-    pybind11::class_<arb::profile::meter_report> meter_report(m, "meter_report", "Gather distributed meter information.");
+    pybind11::class_<arb::profile::meter_report> meter_report(m, "meter_report",
+        "Summarises the performance meter results, used to print a report to screen or file.\n"
+        "If a distributed context is used, the report will contain a summary of results from all MPI ranks.");
     meter_report
-        .def("__str__",  &report_str)
-        .def("__repr__", &report_str);
-    m.def("make_meter_report",
+        .def(pybind11::init<>(
         [](const arb::profile::meter_manager& manager, const context_shim& ctx){
             return arb::profile::make_meter_report(manager, ctx.context);
-        },
-        "manager"_a, "context"_a, "Generate a meter report.");
+            }),
+            "manager"_a, "context"_a)
+        .def("__str__",  [](arb::profile::meter_report& r){return util::pprintf("{}", r);})
+        .def("__repr__", [](arb::profile::meter_report& r){return "<arbor.meter_report>";});
 }
 
 } // namespace pyarb

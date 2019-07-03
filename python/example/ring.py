@@ -49,31 +49,30 @@ context = arbor.context(threads=4, gpu_id=None)
 print(context)
 
 meters = arbor.meter_manager()
-print(meters)
-
 meters.start(context)
 
 recipe = ring_recipe(100)
-print(recipe)
+print(f'{recipe}')
 
-meters.checkpoint('recipe create', context)
+meters.checkpoint('recipe-create', context)
 
 decomp = arbor.partition_load_balance(recipe, context)
-print(decomp)
+print(f'{decomp}')
 
-meters.checkpoint('load balance', context)
+meters.checkpoint('load-balance', context)
 
 sim = arbor.simulation(recipe, decomp, context)
-print(sim)
+print(f'{sim}')
 
-meters.checkpoint('simulation init', context)
+meters.checkpoint('simulation-init', context)
 
 recorder = arbor.attach_spike_recorder(sim)
 
 sim.run(1000)
 
-meters.checkpoint('simulation run', context)
-print(arbor.make_meter_report(meters, context))
+meters.checkpoint('simulation-run', context)
+
+print(f'{arbor.meter_report(meters, context)}')
 
 for s in recorder.spikes:
     print(s)
