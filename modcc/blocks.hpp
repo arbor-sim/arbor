@@ -64,12 +64,6 @@ struct IonDep {
     }
 };
 
-enum class moduleKind {
-    point,
-    density,
-    revpot   // A specialized density mechanism for computing only ionic reversal potentials.
-};
-
 typedef std::vector<Token> unit_tokens;
 struct Id {
     Token token;

@@ -32,7 +32,11 @@ class NrnCurrentRewriter: public BlockRewriterBase {
                 if(auto var = sym->is_local_variable()) {
                     if(auto ext = var->external_variable()) {
                         sourceKind src = ext->data_source();
-                        if (src==sourceKind::current || src==sourceKind::ion_current) {
+                        if (src==sourceKind::current_density ||
+                            src==sourceKind::current ||
+                            src==sourceKind::ion_current_density ||
+                            src==sourceKind::ion_current)
+                        {
                             return src;
                         }
                     }
@@ -50,33 +54,13 @@ public:
 
     virtual void finalize() override {
         if (has_current_update_) {
-            // Initialize current_ and conductivity_ as first statements.
+            // Initialize conductivity_ as first statement.
             statements_.push_front(make_expression<AssignmentExpression>(loc_,
                     id("conductivity_"),
                     make_expression<NumberExpression>(loc_, 0.0)));
             statements_.push_front(make_expression<AssignmentExpression>(loc_,
                     id("current_"),
                     make_expression<NumberExpression>(loc_, 0.0)));
-
-            // Scale current and conductivity contributions by weight.
-            statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                id("current_"),
-                make_expression<MulBinaryExpression>(loc_,
-                    id("weight_"),
-                    id("current_"))));
-            statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                id("conductivity_"),
-                make_expression<MulBinaryExpression>(loc_,
-                    id("weight_"),
-                    id("conductivity_"))));
-
-            for (auto& v: ion_current_vars_) {
-                statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                    id(v),
-                    make_expression<MulBinaryExpression>(loc_,
-                        id("weight_"),
-                        id(v))));
-            }
         }
     }
 
@@ -90,7 +74,7 @@ public:
         if (current_source != sourceKind::no_source) {
             has_current_update_ = true;
 
-            if (current_source==sourceKind::ion_current) {
+            if (current_source==sourceKind::ion_current_density || current_source==sourceKind::ion_current) {
                 ion_current_vars_.insert(e->lhs()->is_identifier()->name());
             }
             else {
@@ -254,10 +238,6 @@ bool Module::semantic() {
         return id;
     };
 
-    auto numeric_literal = [](double v) -> expression_ptr {
-        return make_expression<NumberExpression>(Location{}, v);
-    };
-
     for (auto& sym: symbols_) {
         Location loc;
 
@@ -271,17 +251,9 @@ bool Module::semantic() {
         auto ionvar = shadowed->is_indexed_variable();
         if (!ionvar || !ionvar->is_ion() || !ionvar->is_write()) continue;
 
-        auto weight = symbols_["weight_"].get();
-        if (!weight) throw compiler_exception("missing weight_ global", loc);
-
         ion_assignments.push_back(
             make_expression<AssignmentExpression>(loc,
-                sym_to_id(ionvar),
-                make_expression<MulBinaryExpression>(loc,
-                    make_expression<MulBinaryExpression>(loc,
-                        numeric_literal(0.1),
-                        sym_to_id(weight)),
-                    sym_to_id(state))));
+                sym_to_id(ionvar), sym_to_id(state)));
     }
 
     symbols_["write_ions"] = make_symbol<APIMethod>(Location{}, "write_ions",
@@ -503,37 +475,26 @@ void Module::add_variables_to_symbols() {
             return symbols_[var->name()] = symbol_ptr{var};
         };
 
-    // mechanisms use a vector of weights to:
-    //  density mechs:
-    //      - convert current densities from 10.A.m^-2 to A.m^-2
-    //      - density or proportion of a CV's area affected by the mechansim
-    //  point procs:
-    //      - convert current in nA to current densities in A.m^-2
-
-    create_variable(Token(tok::identifier, "weight_"),
-        accessKind::read, visibilityKind::global, linkageKind::external, rangeKind::range);
-
     // add indexed variables to the table
     auto create_indexed_variable = [this]
-        (std::string const& name, std::string const& indexed_name, sourceKind data_source,
-         tok op, accessKind acc, std::string ch, Location loc) -> symbol_ptr&
+        (std::string const& name, sourceKind data_source,
+         accessKind acc, std::string ch, Location loc) -> symbol_ptr&
     {
         if(symbols_.count(name)) {
             throw compiler_exception(
                 pprintf("the symbol % already exists", yellow(name)), loc);
         }
         return symbols_[name] =
-            make_symbol<IndexedVariable>(loc, name, indexed_name, data_source, acc, op, ch);
+            make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
     };
 
-    create_indexed_variable("current_", "vec_i", sourceKind::current, tok::plus,
-                            accessKind::write, "", Location());
-    create_indexed_variable("conductivity_", "vec_g", sourceKind::conductivity, tok::plus,
-                            accessKind::write, "", Location());
-    create_indexed_variable("v", "vec_v", sourceKind::voltage, tok::eq,
-                            accessKind::read,  "", Location());
-    create_indexed_variable("dt", "vec_dt", sourceKind::dt, tok::eq,
-                            accessKind::read,  "", Location());
+    sourceKind current_kind = kind_==moduleKind::point? sourceKind::current: sourceKind::current_density;
+    sourceKind conductance_kind = kind_==moduleKind::point? sourceKind::conductance: sourceKind::conductivity;
+
+    create_indexed_variable("current_", current_kind, accessKind::write, "", Location());
+    create_indexed_variable("conductivity_", conductance_kind, accessKind::write, "", Location());
+    create_indexed_variable("v", sourceKind::voltage, accessKind::read,  "", Location());
+    create_indexed_variable("dt", sourceKind::dt, accessKind::read,  "", Location());
 
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
@@ -555,8 +516,7 @@ void Module::add_variables_to_symbols() {
         // data source. Retrieval of value is handled especially by printers.
 
         if (id.name() == "celsius") {
-            create_indexed_variable("celsius", "celsius",
-                sourceKind::temperature, tok::eq, accessKind::read, "", Location());
+            create_indexed_variable("celsius", sourceKind::temperature, accessKind::read, "", Location());
         }
         else {
             // Parameters are scalar by default, but may later be changed to range.
@@ -597,7 +557,7 @@ void Module::add_variables_to_symbols() {
             (Token const& tkn, accessKind acc, const std::string& channel)
     {
         std::string name = tkn.spelling;
-        sourceKind data_source = ion_source(channel, name);
+        sourceKind data_source = ion_source(channel, name, kind_);
 
         // If the symbol already exists and is not a state variable,
         // it is an error.
@@ -621,12 +581,7 @@ void Module::add_variables_to_symbols() {
             name += "_shadowed_";
         }
 
-        enum tok op = tok::plus;
-        if (acc==accessKind::read || data_source==sourceKind::ion_revpot) {
-            op = tok::eq;
-        }
-
-        auto& sym = create_indexed_variable(name, "ion_"+name, data_source, op, acc, channel, tkn.location);
+        auto& sym = create_indexed_variable(name, data_source, acc, channel, tkn.location);
 
         if (state) {
             state->shadows(sym.get());
@@ -641,7 +596,7 @@ void Module::add_variables_to_symbols() {
 
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
-        create_indexed_variable(i.spelling, "", sourceKind::current, tok::plus, accessKind::write, "", i.location);
+        create_indexed_variable(i.spelling, sourceKind::current, accessKind::write, "", i.location);
     }
 
     for(auto const& ion : neuron_block_.ions) {
@@ -654,8 +609,8 @@ void Module::add_variables_to_symbols() {
 
         if(ion.uses_valence()) {
             Token valence_var = ion.valence_var;
-            create_indexed_variable(valence_var.spelling, "ion_valence", sourceKind::ion_valence,
-                    tok::eq, accessKind::read, ion.name, valence_var.location);
+            create_indexed_variable(valence_var.spelling, sourceKind::ion_valence,
+                    accessKind::read, ion.name, valence_var.location);
         }
     }
 

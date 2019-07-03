@@ -512,47 +512,28 @@ protected:
     Symbol*        shadows_     = nullptr;
 };
 
-// an indexed variable
+// Indexed variables refer to data held in the shared simulation state.
+// Printers will rewrite reads from or assignments from indexed variables
+// according to its data source and ion channel.
+
 class IndexedVariable : public Symbol {
 public:
     IndexedVariable(Location loc,
                     std::string lookup_name,
-                    std::string index_name,
                     sourceKind data_source,
                     accessKind acc,
-                    tok o=tok::eq,
                     std::string channel="")
     :   Symbol(std::move(loc), std::move(lookup_name), symbolKind::indexed_variable),
         access_(acc),
         ion_channel_(std::move(channel)),
-        index_name_(std::move(index_name)), // (TODO: deprecate/remove this...)
-        data_source_(data_source),
-        op_(o)
+        data_source_(data_source)
     {
-        std::string msg;
         // external symbols are either read or write only
         if(access()==accessKind::readwrite) {
-            msg = pprintf("attempt to generate an index % with readwrite access",
-                          yellow(lookup_name));
-           goto compiler_error;
+            throw compiler_exception(
+                pprintf("attempt to generate an index % with readwrite access", yellow(lookup_name)),
+                location_);
         }
-        // read only variables must be assigned via equality
-        if(is_read() && op()!=tok::eq) {
-            msg = pprintf("read only indexes % must use assignment",
-                            yellow(lookup_name));
-            goto compiler_error;
-        }
-        // write only variables must be update via addition/subtraction/assignment
-        if(is_write() && (op()!=tok::plus && op()!=tok::minus && op()!=tok::eq)) {
-            msg = pprintf("write only index %  must use addition or subtraction",
-                          yellow(lookup_name));
-            goto compiler_error;
-        }
-
-        return;
-
-    compiler_error:
-        throw(compiler_exception(msg, location_));
     }
 
     std::string to_string() const override;
@@ -561,8 +542,6 @@ public:
     std::string ion_channel() const { return ion_channel_; }
     sourceKind data_source() const { return data_source_; }
     void data_source(sourceKind k) { data_source_ = k; }
-    std::string const& index_name() const { return index_name_; }
-    tok op() const { return op_; }
 
     bool is_ion()   const { return !ion_channel_.empty(); }
     bool is_read()  const { return access_ == accessKind::read;   }
@@ -575,9 +554,7 @@ public:
 protected:
     accessKind  access_;
     std::string ion_channel_;
-    std::string index_name_; // hint to printer only
     sourceKind  data_source_;
-    tok op_;
 };
 
 class LocalVariable : public Symbol {

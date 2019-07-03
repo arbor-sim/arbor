@@ -15,6 +15,7 @@ void register_identifiers(pybind11::module& m);
 void register_recipe(pybind11::module& m);
 void register_schedules(pybind11::module& m);
 void register_simulation(pybind11::module& m);
+void register_spike_handling(pybind11::module& m);
 
 #ifdef ARB_MPI_ENABLED
 void register_mpi(pybind11::module& m);
@@ -37,4 +38,5 @@ PYBIND11_MODULE(arbor, m) {
     pyarb::register_recipe(m);
     pyarb::register_schedules(m);
     pyarb::register_simulation(m);
+    pyarb::register_spike_handling(m);
 }

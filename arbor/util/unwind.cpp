@@ -73,6 +73,7 @@ std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
             break;
         }
     }
+    return out;
 }
 
 #if 0

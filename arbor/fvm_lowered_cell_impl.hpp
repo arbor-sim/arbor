@@ -471,11 +471,10 @@ void fvm_lowered_cell_impl<B>::initialize(
             }
             break;
         case mechanismKind::density:
-            // Density Current density contributions from mechanism are in [mA/cm²]
-            // (NEURON compatibility). F = [mA/cm²] / [A/m²] = 10.
+            // Current density contributions from mechanism are already in [A/m²].
 
             for (auto i: count_along(layout.cv)) {
-                layout.weight[i] = 10*config.norm_area[i];
+                layout.weight[i] = config.norm_area[i];
             }
             break;
         case mechanismKind::revpot:

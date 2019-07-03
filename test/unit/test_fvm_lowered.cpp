@@ -554,6 +554,96 @@ TEST(fvm_lowered, read_valence) {
     }
 }
 
+// Test correct scaling of ionic currents in reading and writing
+
+TEST(fvm_lowered, ionic_currents) {
+    cable_cell c;
+    auto soma = c.add_soma(6.0);
+
+    // Mechanism parameter is in NMODL units, i.e. mA/cm².
+
+    const double jca = 1.5;
+    soma->add_mechanism(mechanism_desc("fixed_ica_current").set("ica_density", jca));
+
+    // Mechanism models a well-mixed fixed-depth volume without replenishment,
+    // giving a linear response to ica over time.
+    //
+    //     cai' = - coeff · ica
+    //
+    // with NMODL units: cai' [mM/ms]; ica [mA/cm²], giving coeff in [mol/cm/C].
+
+    const double coeff = 0.5;
+    soma->add_mechanism(mechanism_desc("linear_ca_conc").set("coeff", coeff));
+
+    cable1d_recipe rec(c);
+    rec.catalogue() = make_unit_test_catalogue();
+
+    execution_context context;
+
+    std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
+    probe_association_map<probe_handle> probe_map;
+
+    fvm_cell fvcell(context);
+    fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+    auto& state = *(fvcell.*private_state_ptr).get();
+    auto& ion = state.ion_data.at("ca"s);
+
+    // Ionic current should be 15 A/m², and initial concentration zero.
+    EXPECT_EQ(15, ion.iX_[0]);
+    EXPECT_EQ(0, ion.Xi_[0]);
+
+    // Integration should be (effectively) exact, so check for linear response.
+    const double time = 12; // [ms]
+    (void)fvcell.integrate(time, 0.1, {}, {});
+    double expected_Xi = -time*coeff*jca;
+    EXPECT_NEAR(expected_Xi, ion.Xi_[0], 1e-6);
+}
+
+// Test correct scaling of an ionic current updated via a point mechanism
+
+TEST(fvm_lowered, point_ionic_current) {
+    cable_cell c;
+
+    double r = 6.0; // [µm]
+    c.add_soma(6.0);
+
+    double soma_area_m2 = 4*math::pi<double>*r*r*1e-12; // [m²]
+
+    // Event weight is translated by point_ica_current into a current contribution in nA.
+    c.add_synapse({0u, 0.5}, "point_ica_current");
+
+    cable1d_recipe rec(c);
+    rec.catalogue() = make_unit_test_catalogue();
+
+    execution_context context;
+
+    std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
+    probe_association_map<probe_handle> probe_map;
+
+    fvm_cell fvcell(context);
+    fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+    // Only one target, corresponding to our point process on soma.
+    double ica_nA = 12.3;
+    deliverable_event ev = {0.04, target_handle{0, 0, 0}, (float)ica_nA};
+
+    auto& state = *(fvcell.*private_state_ptr).get();
+    auto& ion = state.ion_data.at("ca"s);
+
+    // Ionic current should be 0 A/m² after initialization.
+    EXPECT_EQ(0, ion.iX_[0]);
+
+    // Ionic current should be ica_nA/soma_area after integrating past event time.
+    const double time = 0.5; // [ms]
+    (void)fvcell.integrate(time, 0.01, {ev}, {});
+
+    double expected_iX = ica_nA*1e-9/soma_area_m2;
+    EXPECT_FLOAT_EQ(expected_iX, ion.iX_[0]);
+}
+
 // Test area-weighted linear combination of ion species concentrations
 
 TEST(fvm_lowered, weighted_write_ion) {

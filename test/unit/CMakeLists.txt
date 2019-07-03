@@ -2,6 +2,9 @@
 
 set(test_mechanisms
     celsius_test
+    fixed_ica_current
+    point_ica_current
+    linear_ca_conc
     test_cl_valence
     test_ca_read_valence
 )
@@ -19,7 +22,7 @@ build_modules(
     SOURCE_DIR mod
     DEST_DIR "${test_mech_dir}"
     ${external_modcc}
-    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
+    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N testing
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     TARGET build_test_mods
 )

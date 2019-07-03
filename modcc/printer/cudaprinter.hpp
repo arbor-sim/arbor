@@ -15,6 +15,5 @@ public:
 
     void visit(CallExpression*) override;
     void visit(VariableExpression*) override;
-    void visit(IndexedVariable*) override;
 };
 
