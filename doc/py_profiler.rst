@@ -32,8 +32,8 @@ Checkpoints are defined by a string describing the process to be measured.
 
     .. function:: checkpoint(name, context)
 
-        Create a new checkpoint ``name`` using the the chosen execution :class:`arbor.context`.
-        Records the time since the last checkpoint (or the call to start if no previous checkpoints),
+        Create a new checkpoint ``name`` using the chosen execution :class:`arbor.context`.
+        Records the time since the last checkpoint (or the call to start if no previous checkpoints exist),
         and restarts the timer for the next checkpoint.
 
     .. function:: checkpoint_names
@@ -43,12 +43,6 @@ Checkpoints are defined by a string describing the process to be measured.
     .. function:: times
 
         Returns a list of all metering times.
-
-At any point a summary of the timing regions can be obtained by the :func:`make_meter_report`.
-
-.. function:: make_meter_report(meter_manager, context)
-
-    Generate a meter report based on the :class:`meter_manager` and chosen execution :class:`arbor.context`.
 
 For instance, the following python code will record and summarize the total time (and memory) spent:
 
@@ -65,42 +59,49 @@ For instance, the following python code will record and summarize the total time
         n_cells = 100
         recipe = my_recipe(n_cells)
 
-        meter_manager.checkpoint('recipe create', context)
+        meter_manager.checkpoint('recipe-create', context)
 
         decomp = arbor.partition_load_balance(recipe, context)
 
-        meter_manager.checkpoint('load balance', context)
+        meter_manager.checkpoint('load-balance', context)
 
         sim = arbor.simulation(recipe, decomp, context)
 
-        meter_manager.checkpoint('simulation init', context)
+        meter_manager.checkpoint('simulation-init', context)
 
         tSim = 2000
         dt = 0.025
         sim.run(tSim, dt)
 
-        meter_manager.checkpoint('simulation run', context)
+        meter_manager.checkpoint('simulation-run', context)
 
 
 Metering Output
 ------------------
 
-Calling :func:`make_meter_report` will generate a measurement summary, which can be printed using ``print``.
+At any point a summary of the timing regions can be obtained by the :class:`meter_report`.
+
+.. class:: meter_report
+
+    .. function:: meter_report(meter_manager, context)
+
+    Summarises the performance meter results, used to print a report to screen or file.
+    If a distributed context is used, the report will contain a summary of results from all MPI ranks.
+
 Take the example output from above:
 
 .. container:: example-code
 
     .. code-block:: python
 
-        print(arbor.make_meter_report(meter_manager, context))
+        print(arbor.meter_report(meter_manager, context))
 
 
->>> <arbor.meter_report>:
 >>> ---- meters -------------------------------------------------------------------------------
 >>> meter                         time(s)      memory(MB)
 >>> -------------------------------------------------------------------------------------------
->>> recipe create                   0.000           0.001
->>> load balance                    0.000           0.009
->>> simulation init                 0.026           3.604
->>> simulation run                  4.171           0.021
+>>> recipe-create                   0.000           0.001
+>>> load-balance                    0.000           0.009
+>>> simulation-init                 0.026           3.604
+>>> simulation-run                  4.171           0.021
 >>> meter-total                     4.198           3.634
