@@ -44,15 +44,6 @@ Checkpoints are defined by a string describing the process to be measured.
 
         Returns a list of all metering times.
 
-At any point a summary of the timing regions can be obtained by the :class:`meter_report`.
-
-.. class:: meter_report
-
-    .. function:: meter_report(meter_manager, context)
-
-    Summarises the performance meter results, used to print a report to screen or file.
-    If a distributed context is used, the report will contain a summary of results from all MPI ranks.
-
 For instance, the following python code will record and summarize the total time (and memory) spent:
 
 .. container:: example-code
@@ -88,7 +79,15 @@ For instance, the following python code will record and summarize the total time
 Metering Output
 ------------------
 
-The class::`meter_report` will generate a summary of the performance meter results, which can be printed using ``print``.
+At any point a summary of the timing regions can be obtained by the :class:`meter_report`.
+
+.. class:: meter_report
+
+    .. function:: meter_report(meter_manager, context)
+
+    Summarises the performance meter results, used to print a report to screen or file.
+    If a distributed context is used, the report will contain a summary of results from all MPI ranks.
+
 Take the example output from above:
 
 .. container:: example-code
@@ -101,8 +100,8 @@ Take the example output from above:
 >>> ---- meters -------------------------------------------------------------------------------
 >>> meter                         time(s)      memory(MB)
 >>> -------------------------------------------------------------------------------------------
->>> recipe create                   0.000           0.001
->>> load balance                    0.000           0.009
->>> simulation init                 0.026           3.604
->>> simulation run                  4.171           0.021
+>>> recipe-create                   0.000           0.001
+>>> load-balance                    0.000           0.009
+>>> simulation-init                 0.026           3.604
+>>> simulation-run                  4.171           0.021
 >>> meter-total                     4.198           3.634
