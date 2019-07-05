@@ -4,7 +4,7 @@ Python Cable Cells
 ====================
 
 The interface for specifying cell morphologies with the distribution of ion channels
-and syanpses is a key part of the user interface. Arbor will have an advanced and user-friendly
+and synapses is a key part of the user interface. Arbor will have an advanced and user-friendly
 interface for this, which is currently under construction.
 
 To allow users to experiment will multi-compartment cells, we provide some helpers

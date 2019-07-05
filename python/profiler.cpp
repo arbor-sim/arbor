@@ -31,7 +31,7 @@ void register_profiler(pybind11::module& m) {
             },
             "name"_a, "context"_a,
             "Create a new checkpoint. Records the time since the last checkpoint\
-             (or the call to start if no previous checkpoints),\
+             (or the call to start if no previous checkpoints exist),\
              and restarts the timer for the next checkpoint.")
         .def_property_readonly("checkpoint_names", &arb::profile::meter_manager::checkpoint_names,
             "A list of all metering checkpoint names.")
