@@ -57,39 +57,11 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
-// Wrap arb::cell_connection in a shim that asserts constraints on connection
-// delay when the user attempts to set them in Python.
-struct cell_connection_shim {
-    arb::cell_member_type source;
-    arb::cell_member_type destination;
-    float weight;
-    arb::time_type delay;
-
-    cell_connection_shim(arb::cell_member_type src, arb::cell_member_type dst, float w, arb::time_type del) {
-        source = src;
-        destination = dst;
-        weight = w;
-        set_delay(del);
-    }
-
-    // getter and setter
-    void set_delay(arb::time_type t) {
-        pyarb::assert_throw([](arb::time_type f){ return f>arb::time_type(0); }(t), "connection delay must be positive");
-        delay = t;
-    }
-
-    arb::time_type get_delay() const { return delay; }
-
-    operator arb::cell_connection() const {
-        return arb::cell_connection(source, destination, weight, delay);
-    }
-};
-
 // TODO: implement py_recipe_shim::probe_info
 
-std::string con_to_string(const cell_connection_shim& c) {
+std::string con_to_string(const arb::cell_connection& c) {
     return util::pprintf("<arbor.connection: source ({},{}), destination ({},{}), delay {}, weight {}>",
-         c.source.gid, c.source.index, c.destination.gid, c.destination.index, c.delay, c.weight);
+         c.source.gid, c.source.index, c.dest.gid, c.dest.index, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
