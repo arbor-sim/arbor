@@ -181,9 +181,6 @@ protected:
         if (x>=seg.second) {
             return sub_segment_index(i, 1);
         }
-//        std::cout << "\t" << i << " at " << (x-seg.first)/(seg.second-seg.first) << std::endl;
-//        std::cout << "\t\t" << (x-seg.first) << " " << (seg.second-seg.first) << std::endl;
-
         return sub_segment_index(i, (x-seg.first)/(seg.second-seg.first));
     }
 
@@ -215,26 +212,22 @@ public:
                 sleft   = locate(soma_l/2);
                 scentre = locate(soma_l);
                 sright  = locate(soma_l + scale_/4);
-//                std::cout << "i: " << i << " " <<  soma_l/2 << ", " << soma_l << ", " << soma_l + scale_/4 << std::endl;
 
             } else if (i == 1) {
                 sleft   = locate(soma_l + scale_/4);
                 scentre = locate(soma_l + scale_/2);
                 sright  = locate(soma_l + scale_);
-//                std::cout << "i: " << i << " " << soma_l + scale_/4 << ", " << soma_l + scale_/2 << ", " << soma_l + scale_ << std::endl;
 
             } else {
                 sleft   = locate(soma_l + scale_ * (i-1));
                 scentre = locate(soma_l + scale_ * (i-0.5));
                 sright  = locate(soma_l + scale_ * i);
-//                std::cout << "i: " << i << " " << soma_l + scale_ * (i-1) << ", " << soma_l + scale_ * (i-0.5) << ", " << soma_l + scale_ * i << std::endl;
 
             }
         } else {
             sleft   = locate(scale_ * i);
             scentre = locate(scale_ * (i + 0.5));
             sright  = locate(scale_ * (i + 1));
-//            std::cout << "i: " << i << " " << scale_ * i << ", " << scale_ * (i + 0.5) << ", " << scale_ * (i + 1) << std::endl;
 
         }
 
@@ -257,28 +250,13 @@ protected:
         sub_segment_index x = std::min(b, sub_segment_index(a.i, 1));
 
         auto s = sub_segment_frustrum(a, x);
-//        std::cout << "frust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
-//        std::cout << "\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
-//        std::cout << "\ts : l = " << s.length << std::endl;
-//        std::cout << "\ts : a = " << s.area << std::endl;
-//        std::cout << "\ts : a = " << s.volume << std::endl << std::endl;
 
         while (a.i<b.i) {
             ++a.i;
             a.p = 0;
             x = std::min(b, sub_segment_index(a.i, 1));
             s += sub_segment_frustrum(a, x);
-//            std::cout << "\tfrust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
-//            std::cout << "\t\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
-//            std::cout << "\t\ts : l = " << s.length << std::endl;
-//            std::cout << "\t\ts : a = " << s.area << std::endl;
-//            std::cout << "\t\ts : v = " << s.volume << std::endl;
         }
-
-//        std::cout << "\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
-//        std::cout << "\ts : l = " << s.length << std::endl;
-//        std::cout << "\ts : a = " << s.area << std::endl;
-//        std::cout << "\ts : a = " << s.volume << std::endl << std::endl;
 
         return s;
     }

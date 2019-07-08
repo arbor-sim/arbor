@@ -910,8 +910,6 @@ TEST(fvm_lowered, gj_coords_complex) {
                 break;
             }
         }
-        if (!found)
-            std::cout << GJ[i].loc.first  << " " << GJ[i].loc.second << std::endl;
         EXPECT_TRUE(found);
     }
 }

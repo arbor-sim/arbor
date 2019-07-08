@@ -242,11 +242,8 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
 
             D.segments.push_back(seg_info);
 
-            auto first = seg_cv_ival.first;
-            auto second = seg_cv_ival.second;
-
-            for (auto i: make_span(first, second)) {
-                const auto& div = divs(i-first);
+            for (auto i: make_span(seg_cv_ival)) {
+                const auto& div = divs(i-seg_cv_ival.first);
                 auto j = D.parent_cv[i];
 
                 auto h1 = div.left.length;       // [µm]
