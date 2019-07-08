@@ -151,7 +151,7 @@ TEST(fvm_layout, topology) {
     //                                   | 14 | 15 | 16 | 17|
 
     EXPECT_EQ(2u, D.ncell);
-    EXPECT_EQ(18u, D.ncomp);
+    EXPECT_EQ(18u, D.ncv);
 
     unsigned nseg = 6;
     EXPECT_EQ(nseg, D.segments.size());
@@ -161,11 +161,11 @@ TEST(fvm_layout, topology) {
     ASSERT_EQ(D.ncell, D.cell_segment_part().size());
     ASSERT_EQ(D.ncell, D.cell_cv_part().size());
 
-    ASSERT_EQ(D.ncomp, D.parent_cv.size());
-    ASSERT_EQ(D.ncomp, D.cv_to_cell.size());
-    ASSERT_EQ(D.ncomp, D.face_conductance.size());
-    ASSERT_EQ(D.ncomp, D.cv_area.size());
-    ASSERT_EQ(D.ncomp, D.cv_capacitance.size());
+    ASSERT_EQ(D.ncv, D.parent_cv.size());
+    ASSERT_EQ(D.ncv, D.cv_to_cell.size());
+    ASSERT_EQ(D.ncv, D.face_conductance.size());
+    ASSERT_EQ(D.ncv, D.cv_area.size());
+    ASSERT_EQ(D.ncv, D.cv_capacitance.size());
 
     // Partitions of CVs and segments by cell:
 
@@ -176,7 +176,7 @@ TEST(fvm_layout, topology) {
     EXPECT_EQ(spair(2, nseg), D.cell_segment_part()[1]);
 
     EXPECT_EQ(ipair(0, 5),       D.cell_cv_part()[0]);
-    EXPECT_EQ(ipair(5, D.ncomp), D.cell_cv_part()[1]);
+    EXPECT_EQ(ipair(5, D.ncv), D.cell_cv_part()[1]);
 
     // Segment and CV parent relationships:
 
