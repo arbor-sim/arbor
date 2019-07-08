@@ -57,7 +57,7 @@ inline cable_cell make_cell_soma_only(bool with_stim = true) {
 inline cable_cell make_cell_ball_and_stick(bool with_stim = true) {
     cable_cell c;
 
-    auto soma = c.add_soma(12.6157/2.0);
+    auto soma = c.add_soma(10/2.0);
     soma->add_mechanism("hh");
 
     c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);

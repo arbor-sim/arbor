@@ -68,6 +68,7 @@ struct div_compartment {
 /// Divided compartments can be made from cables with sub-segments by 
 /// sampling or integrating or by approximating cable as a single frustrum.
 
+//TODO : fix?
 class div_compartment_by_ends {
 public:
     using value_type = div_compartment::value_type;
@@ -111,19 +112,23 @@ public:
     // `lengths` must be a sequence of length at least one.
     // `radii` must be a sequence of length `size(lengths)+1`.
     template <typename Radii, typename Lengths>
-    div_compartment_sampler(size_type n, const Radii& radii, const Lengths& lengths) {
+    div_compartment_sampler(size_type n, const Radii& radii, const Lengths& lengths, bool with_soma = false) {
         // set up offset-to-subsegment lookup and interpolation
         using namespace util;
+
+        with_soma_ = with_soma;
 
         segs_ = make_partition(offsets_, lengths);
         compat::compiler_barrier_if_icc_leq(20160415u);
 
         nseg_ = size(segs_);
-        scale_ = segs_.bounds().second/n;
+        scale_ = with_soma_? (segs_.bounds().second - segs_.front().second)/(n-1): segs_.bounds().second/n;
+
         assign(radii_, radii);
         arb_assert(size(radii_)==size(offsets_));
     }
 
+    //TODO : fix?
     div_compartment operator()(size_type i) const {
         using namespace math;
 
@@ -144,12 +149,15 @@ protected:
         size_type i;   // index
         value_type p;  // proportion [0,1] along sub-segment
 
+        sub_segment_index(): i(0), p(0) {}
+
         sub_segment_index(size_type i_, value_type p_): i(i_), p(p_) {}
         bool operator<(sub_segment_index x) const {
             return i<x.i || (i==x.i && p<x.p);
         }
     };
 
+    //TODO: fix?
     sub_segment_index locate(value_type x) const {
         arb_assert(x>=0);
 
@@ -169,6 +177,7 @@ protected:
         return math::lerp(radii_[s.i], radii_[s.i+1], s.p);
     }
 
+    bool with_soma_ = false;
     size_type nseg_ = 0;
     std::vector<value_type> offsets_;
     std::vector<value_type> radii_;
@@ -180,15 +189,40 @@ protected:
 class div_compartment_integrator: public div_compartment_sampler {
 public:
     template <typename Radii, typename Lengths>
-    div_compartment_integrator(size_type n, const Radii& radii, const Lengths& lengths):
-        div_compartment_sampler(n, radii, lengths) {}
+    div_compartment_integrator(size_type n, const Radii& radii, const Lengths& lengths, bool with_soma = false):
+        div_compartment_sampler(n, radii, lengths, with_soma) {}
 
     div_compartment operator()(size_type i) const {
         using namespace math;
+        sub_segment_index sleft, scentre, sright;
+        if (with_soma_) {
+            auto soma_l = segs_.front().second;
+            if (i == 0) {
+                sleft   = locate(soma_l/2);
+                scentre = locate(soma_l);
+                sright  = locate(soma_l + scale_/4);
+                std::cout << "i: " << i << " " <<  soma_l/2 << ", " << soma_l << ", " << soma_l + scale_/4 << std::endl;
 
-        auto sleft = locate(scale_*i);
-        auto scentre = locate(scale_*(i+0.5));
-        auto sright = locate(scale_*(i+1));
+            } else if (i == 1) {
+                sleft   = locate(soma_l + scale_/4);
+                scentre = locate(soma_l + scale_/2);
+                sright  = locate(soma_l + scale_);
+                std::cout << "i: " << i << " " << soma_l + scale_/4 << ", " << soma_l + scale_/2 << ", " << soma_l + scale_ << std::endl;
+
+            } else {
+                sleft   = locate(soma_l + scale_ * (i-1));
+                scentre = locate(soma_l + scale_ * (i-0.5));
+                sright  = locate(soma_l + scale_ * i);
+                std::cout << "i: " << i << " " << soma_l + scale_ * (i-1) << ", " << soma_l + scale_ * (i-0.5) << ", " << soma_l + scale_ * i << std::endl;
+
+            }
+        } else {
+            sleft   = locate(scale_ * i);
+            scentre = locate(scale_ * (i + 0.5));
+            sright  = locate(scale_ * (i + 1));
+            std::cout << "i: " << i << " " << scale_ * i << ", " << scale_ * (i + 0.5) << ", " << scale_ * (i + 1) << std::endl;
+
+        }
 
         return div_compartment(i, integrate(sleft, scentre), integrate(scentre, sright));
     }

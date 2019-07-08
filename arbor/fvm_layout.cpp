@@ -42,6 +42,11 @@ namespace {
         explicit compartment_model(const cable_cell& cell) {
             tree = arb::tree(cell.parents());
             auto counts = cell.compartment_counts();
+            for (unsigned i = 0; i < cell.segments().size(); i++) {
+                if (!cell.segment(i)->is_soma() && cell.parent(i)->is_soma()) {
+                    counts[i]++;
+                }
+            }
             parent_index = make_parent_index(tree, counts);
             segment_index = algorithms::make_index(counts);
         }
@@ -129,12 +134,22 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
     util::make_partition(D.cell_segment_bounds,
         transform_view(cells, [](const cable_cell& c) { return c.num_segments(); }));
 
-    std::vector<index_type> cell_cv_bounds;
-    auto cell_cv_part = make_partition(cell_cv_bounds,
-        transform_view(cells, [](const cable_cell& c) { return c.num_compartments(); }));
+    std::vector<index_type> cell_comp_bounds;
+    auto cell_cv_part = make_partition(cell_comp_bounds,
+        transform_view(cells, [](const cable_cell& c) {
+            unsigned ncv = 0;
+            for (unsigned i = 0; i < c.segments().size(); i++) {
+                ncv += c.segment(i)->num_compartments();
+                if (!c.segment(i)->is_soma() && c.parent(i)->is_soma()) {
+                    ncv++;
+                }
+            }
+            return ncv;
+        }));
 
     D.ncell = cells.size();
     D.ncv = cell_cv_part.bounds().second;
+    std::cout << "ncv = " << D.ncv << std::endl;
 
     D.face_conductance.assign(D.ncv, 0.);
     D.cv_area.assign(D.ncv, 0.);
@@ -160,7 +175,12 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
         seg_cv_bounds.clear();
         auto seg_cv_part = make_partition(
             seg_cv_bounds,
-            transform_view(c.segments(), [](const segment_ptr& s) { return s->num_compartments(); }),
+            transform_view(make_span(c.num_segments()), [&c](const unsigned s) {
+                if (!c.segment(s)->is_soma() && c.parent(s)->is_soma()) {
+                    return c.segment(s)->num_compartments() + 1;
+                }
+                return c.segment(s)->num_compartments();
+            }),
             cell_cv_base);
 
         const auto nseg = seg_cv_part.size();
@@ -193,7 +213,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
         // Other segments must all be cable segments.
         for (size_type j = 1; j<nseg; ++j) {
             const auto& seg_cv_ival = seg_cv_part[j];
-            const auto ncv = seg_cv_ival.second-seg_cv_ival.first;
+            auto ncv = seg_cv_ival.second-seg_cv_ival.first;
 
             segment_info seg_info;
 
@@ -204,18 +224,34 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
             auto cm = cable->cm;    // [F/m²]
             auto rL = cable->rL;    // [Ω·cm]
 
-            auto divs = div_compartment_integrator(ncv, cable->radii(), cable->lengths());
+            bool soma_child = c.parent(j)->as_soma() ? true : false; //segment's parent is a soma
+
+            std::cout << "soma r = " << soma->radius() << " ; soma_child = " <<  soma_child << std::endl;
+
+            auto radii = cable->radii();
+            auto lengths = cable->lengths();
+
+            if(soma_child) {
+                radii.insert(radii.begin(), soma->radius());
+                lengths.insert(lengths.begin(), soma->radius() * 2);
+            }
+
+            auto divs = div_compartment_integrator(ncv, radii, lengths, soma_child);
 
             seg_info.parent_cv = D.parent_cv[seg_cv_ival.first];
-            seg_info.parent_cv_area = divs(0).left.area;
+            seg_info.parent_cv_area = soma_child ? 0 : divs(0).left.area;
+
             seg_info.proximal_cv = seg_cv_ival.first;
             seg_info.distal_cv = seg_cv_ival.second-1;
             seg_info.distal_cv_area = divs(ncv-1).right.area;
 
             D.segments.push_back(seg_info);
 
-            for (auto i: make_span(seg_cv_ival)) {
-                const auto& div = divs(i-seg_cv_ival.first);
+            auto first = seg_cv_ival.first;
+            auto second = seg_cv_ival.second;
+
+            for (auto i: make_span(first, second)) {
+                const auto& div = divs(i-first);
                 auto j = D.parent_cv[i];
 
                 auto h1 = div.left.length;       // [µm]
@@ -237,10 +273,11 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
                 D.cv_capacitance[i] += ar * cm;  // [pF]
             }
         }
+        std::cout << std::endl;
     }
 
     // Number of CVs per cell is exactly number of compartments.
-    D.cell_cv_bounds = std::move(cell_cv_bounds);
+    D.cell_cv_bounds = std::move(cell_comp_bounds);
     return D;
 }
 
