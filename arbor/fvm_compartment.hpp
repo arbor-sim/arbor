@@ -34,17 +34,18 @@ struct semi_compartment {
         return *this;
     }
 
-    static semi_compartment frustrum(value_type l, value_type r1, value_type r2, bool soma=false) {
+    static semi_compartment half_sphere(value_type r1, value_type r2) {
         using namespace math;
-        if (soma) {
-            arb_assert(r1==r2);
-            return semi_compartment{
-                    l,
-                    area_sphere(r1)/2,
-                    volume_sphere(r1)/2,
-                    {r1, r2}
-            };
-        }
+        return semi_compartment{
+            r1,
+            area_sphere(r1)/2,
+            volume_sphere(r1)/2,
+            {r1, r2}
+        };
+    }
+
+    static semi_compartment frustrum(value_type l, value_type r1, value_type r2) {
+        using namespace math;
         return semi_compartment{
             l,
             area_frustrum(l, r1, r2),
@@ -135,7 +136,6 @@ public:
 
         assign(radii_, radii);
 
-        std::cout << "size : " << size(radii_) << " " << size(offsets_) << std::endl;
         arb_assert(size(radii_)==size(offsets_));
     }
 
@@ -188,9 +188,6 @@ protected:
     }
 
     value_type radius_at(sub_segment_index s) const {
-        if (with_soma_ && s.i == 0) {
-            return radii_[s.i];
-        }
         return math::lerp(radii_[s.i], radii_[s.i+1], s.p);
     }
 
@@ -218,26 +215,26 @@ public:
                 sleft   = locate(soma_l/2);
                 scentre = locate(soma_l);
                 sright  = locate(soma_l + scale_/4);
-                std::cout << "i: " << i << " " <<  soma_l/2 << ", " << soma_l << ", " << soma_l + scale_/4 << std::endl;
+//                std::cout << "i: " << i << " " <<  soma_l/2 << ", " << soma_l << ", " << soma_l + scale_/4 << std::endl;
 
             } else if (i == 1) {
                 sleft   = locate(soma_l + scale_/4);
                 scentre = locate(soma_l + scale_/2);
                 sright  = locate(soma_l + scale_);
-                std::cout << "i: " << i << " " << soma_l + scale_/4 << ", " << soma_l + scale_/2 << ", " << soma_l + scale_ << std::endl;
+//                std::cout << "i: " << i << " " << soma_l + scale_/4 << ", " << soma_l + scale_/2 << ", " << soma_l + scale_ << std::endl;
 
             } else {
                 sleft   = locate(soma_l + scale_ * (i-1));
                 scentre = locate(soma_l + scale_ * (i-0.5));
                 sright  = locate(soma_l + scale_ * i);
-                std::cout << "i: " << i << " " << soma_l + scale_ * (i-1) << ", " << soma_l + scale_ * (i-0.5) << ", " << soma_l + scale_ * i << std::endl;
+//                std::cout << "i: " << i << " " << soma_l + scale_ * (i-1) << ", " << soma_l + scale_ * (i-0.5) << ", " << soma_l + scale_ * i << std::endl;
 
             }
         } else {
             sleft   = locate(scale_ * i);
             scentre = locate(scale_ * (i + 0.5));
             sright  = locate(scale_ * (i + 1));
-            std::cout << "i: " << i << " " << scale_ * i << ", " << scale_ * (i + 0.5) << ", " << scale_ * (i + 1) << std::endl;
+//            std::cout << "i: " << i << " " << scale_ * i << ", " << scale_ * (i + 0.5) << ", " << scale_ * (i + 1) << std::endl;
 
         }
 
@@ -250,32 +247,32 @@ protected:
 
         auto seg = segs_[a.i];
         auto l = (b.p-a.p)*(seg.second-seg.first);
-        return semi_compartment::frustrum(l, radius_at(a), radius_at(b), (with_soma_ && a.i==0));
+        if (with_soma_ && a.i==0) {
+            return semi_compartment::half_sphere(radii_.front(), radius_at(b));
+        }
+        return semi_compartment::frustrum(l, radius_at(a), radius_at(b));
     }
 
     semi_compartment integrate(sub_segment_index a, sub_segment_index b) const {
-        if (a.i != b.i) {
-            std::cout << "\ta!=b : " << a.i << " " << b.i << std::endl;
-        }
         sub_segment_index x = std::min(b, sub_segment_index(a.i, 1));
 
         auto s = sub_segment_frustrum(a, x);
-        std::cout << "frust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
-        std::cout << "\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
-        std::cout << "\ts : l = " << s.length << std::endl;
-        std::cout << "\ts : a = " << s.area << std::endl;
-        std::cout << "\ts : a = " << s.volume << std::endl << std::endl;
+//        std::cout << "frust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
+//        std::cout << "\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
+//        std::cout << "\ts : l = " << s.length << std::endl;
+//        std::cout << "\ts : a = " << s.area << std::endl;
+//        std::cout << "\ts : a = " << s.volume << std::endl << std::endl;
 
         while (a.i<b.i) {
             ++a.i;
             a.p = 0;
             x = std::min(b, sub_segment_index(a.i, 1));
             s += sub_segment_frustrum(a, x);
-            std::cout << "\tfrust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
-            std::cout << "\t\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
-            std::cout << "\t\ts : l = " << s.length << std::endl;
-            std::cout << "\t\ts : a = " << s.area << std::endl;
-            std::cout << "\t\ts : v = " << s.volume << std::endl;
+//            std::cout << "\tfrust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
+//            std::cout << "\t\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
+//            std::cout << "\t\ts : l = " << s.length << std::endl;
+//            std::cout << "\t\ts : a = " << s.area << std::endl;
+//            std::cout << "\t\ts : v = " << s.volume << std::endl;
         }
 
 //        std::cout << "\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;

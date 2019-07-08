@@ -220,20 +220,21 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
             auto cm = cable->cm;    // [F/m²]
             auto rL = cable->rL;    // [Ω·cm]
 
-            bool soma_child = c.parent(j)->as_soma() ? true : false; //segment's parent is a soma
+            bool soma_parent = c.parent(j)->as_soma() ? true : false; //segment's parent is a soma
 
             auto radii = cable->radii();
             auto lengths = cable->lengths();
 
-            if(soma_child) {
+            if(soma_parent) {
                 radii.insert(radii.begin(), soma->radius());
                 lengths.insert(lengths.begin(), soma->radius()*2);
             }
 
-            auto divs = div_compartment_integrator(ncv, radii, lengths, soma_child);
+            auto divs = div_compartment_integrator(ncv, radii, lengths, soma_parent);
 
             seg_info.parent_cv = D.parent_cv[seg_cv_ival.first];
-            seg_info.parent_cv_area = soma_child ? 0 : divs(0).left.area;
+            seg_info.parent_cv_area = soma_parent ? 0 : divs(0).left.area;
+            seg_info.soma_parent = soma_parent;
 
             seg_info.proximal_cv = seg_cv_ival.first;
             seg_info.distal_cv = seg_cv_ival.second-1;

@@ -151,7 +151,7 @@ TEST(fvm_layout, topology) {
     //                                   | 14 | 15 | 16 | 17|
 
     EXPECT_EQ(2u, D.ncell);
-    EXPECT_EQ(18u, D.ncv);
+    EXPECT_EQ(20u, D.ncv);
 
     unsigned nseg = 6;
     EXPECT_EQ(nseg, D.segments.size());
@@ -175,31 +175,32 @@ TEST(fvm_layout, topology) {
     EXPECT_EQ(spair(0, 2),    D.cell_segment_part()[0]);
     EXPECT_EQ(spair(2, nseg), D.cell_segment_part()[1]);
 
-    EXPECT_EQ(ipair(0, 5),       D.cell_cv_part()[0]);
-    EXPECT_EQ(ipair(5, D.ncv), D.cell_cv_part()[1]);
+    EXPECT_EQ(ipair(0, 6),       D.cell_cv_part()[0]);
+    EXPECT_EQ(ipair(6, D.ncv), D.cell_cv_part()[1]);
 
     // Segment and CV parent relationships:
 
     using ivec = std::vector<fvm_index_type>;
 
-    EXPECT_EQ(ivec({0,0,1,2,3,5,5,6,7,8,9,10,11,12,9,14,15,16}), D.parent_cv);
+    EXPECT_EQ(ivec({0,0,1,2,3,4,6,6,7,8,9,10,11,12,13,14,11,16,17,18}), D.parent_cv);
+
 
     EXPECT_FALSE(D.segments[0].has_parent());
     EXPECT_EQ(0, D.segments[1].parent_cv);
 
     EXPECT_FALSE(D.segments[2].has_parent());
-    EXPECT_EQ(5, D.segments[3].parent_cv);
-    EXPECT_EQ(9, D.segments[4].parent_cv);
-    EXPECT_EQ(9, D.segments[5].parent_cv);
+    EXPECT_EQ(6, D.segments[3].parent_cv);
+    EXPECT_EQ(11, D.segments[4].parent_cv);
+    EXPECT_EQ(11, D.segments[5].parent_cv);
 
     // Segment CV ranges (half-open, exclusing parent):
 
     EXPECT_EQ(ipair(0,1), D.segments[0].cv_range());
-    EXPECT_EQ(ipair(1,5), D.segments[1].cv_range());
-    EXPECT_EQ(ipair(5,6), D.segments[2].cv_range());
-    EXPECT_EQ(ipair(6,10), D.segments[3].cv_range());
-    EXPECT_EQ(ipair(10,14), D.segments[4].cv_range());
-    EXPECT_EQ(ipair(14,18), D.segments[5].cv_range());
+    EXPECT_EQ(ipair(1,6), D.segments[1].cv_range());
+    EXPECT_EQ(ipair(6,7), D.segments[2].cv_range());
+    EXPECT_EQ(ipair(7,12), D.segments[3].cv_range());
+    EXPECT_EQ(ipair(12,16), D.segments[4].cv_range());
+    EXPECT_EQ(ipair(16,20), D.segments[5].cv_range());
 
     // CV to cell index:
 
@@ -227,25 +228,27 @@ TEST(fvm_layout, area) {
     }
 
     unsigned n = 4; // compartments per dendritic segment
-    EXPECT_FLOAT_EQ(A[0]+A[1]/(2*n), D.cv_area[0]);
-    EXPECT_FLOAT_EQ(A[1]/n,     D.cv_area[1]);
+    EXPECT_FLOAT_EQ(A[0],       D.cv_area[0]);
+    EXPECT_FLOAT_EQ(A[1]/(2*n), D.cv_area[1]);
     EXPECT_FLOAT_EQ(A[1]/n,     D.cv_area[2]);
     EXPECT_FLOAT_EQ(A[1]/n,     D.cv_area[3]);
-    EXPECT_FLOAT_EQ(A[1]/(2*n), D.cv_area[4]);
+    EXPECT_FLOAT_EQ(A[1]/n,     D.cv_area[4]);
+    EXPECT_FLOAT_EQ(A[1]/(2*n), D.cv_area[5]);
 
-    EXPECT_FLOAT_EQ(A[2]+A[3]/(2*n), D.cv_area[5]);
-    EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[6]);
-    EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[7]);
+    EXPECT_FLOAT_EQ(A[2],       D.cv_area[6]);
+    EXPECT_FLOAT_EQ(A[3]/(2*n),     D.cv_area[7]);
     EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[8]);
-    EXPECT_FLOAT_EQ((A[3]+A[4]+A[5])/(2*n), D.cv_area[9]);
-    EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[10]);
-    EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[11]);
+    EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[9]);
+    EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[10]);
+    EXPECT_FLOAT_EQ((A[3]+A[4]+A[5])/(2*n), D.cv_area[11]);
     EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[12]);
-    EXPECT_FLOAT_EQ(A[4]/(2*n), D.cv_area[13]);
-    EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[14]);
-    EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[15]);
+    EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[13]);
+    EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[14]);
+    EXPECT_FLOAT_EQ(A[4]/(2*n), D.cv_area[15]);
     EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[16]);
-    EXPECT_FLOAT_EQ(A[5]/(2*n), D.cv_area[17]);
+    EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[17]);
+    EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[18]);
+    EXPECT_FLOAT_EQ(A[5]/(2*n), D.cv_area[19]);
 
     // Confirm proportional allocation of surface capacitance:
 
@@ -258,14 +261,11 @@ TEST(fvm_layout, area) {
     double cm3 = cells[1].segment(3)->cm;
 
     double c = A[3]/(2*n)*cm1+A[4]/(2*n)*cm2+A[5]/(2*n)*cm3;
-    EXPECT_FLOAT_EQ(c, D.cv_capacitance[9]);
-
-    // CV 5 should be a weighted sum of soma and first segment
-    // capacitcance from cell 1.
+    EXPECT_FLOAT_EQ(c, D.cv_capacitance[11]);
 
     double cm0 = cells[1].soma()->cm;
-    c = A[2]*cm0+A[3]/(2*n)*cm1;
-    EXPECT_FLOAT_EQ(c, D.cv_capacitance[5]);
+    c = A[2]*cm0;
+    EXPECT_FLOAT_EQ(c, D.cv_capacitance[6]);
 
     // Confirm face conductance within a constant diameter
     // equals a/h·1/rL where a is the cross sectional
@@ -280,7 +280,7 @@ TEST(fvm_layout, area) {
     double g = a/h/cable->rL; // [µm·S/cm]
     g *= 100; // [µS]
 
-    EXPECT_FLOAT_EQ(g, D.face_conductance[11]);
+    EXPECT_FLOAT_EQ(g, D.face_conductance[13]);
 }
 
 TEST(fvm_layout, mech_index) {
@@ -308,20 +308,20 @@ TEST(fvm_layout, mech_index) {
     // Proportional area contrib: soma area/CV area.
 
     EXPECT_EQ(mechanismKind::density, hh_config.kind);
-    EXPECT_EQ(ivec({0,5}), hh_config.cv);
+    EXPECT_EQ(ivec({0,6}), hh_config.cv);
 
-    fvec norm_area({area(cells[0].soma())/D.cv_area[0], area(cells[1].soma())/D.cv_area[5]});
+    fvec norm_area({area(cells[0].soma())/D.cv_area[0], area(cells[1].soma())/D.cv_area[6]});
     EXPECT_TRUE(testing::seq_almost_eq<double>(norm_area, hh_config.norm_area));
 
     // Three expsyn synapses, two 0.4 along segment 1, and one 0.4 along segment 5.
     // These two synapses can be coalesced into 1 synapse
     // 0.4 along => second (non-parent) CV for segment.
 
-    EXPECT_EQ(ivec({2, 15}), expsyn_config.cv);
+    EXPECT_EQ(ivec({3, 17}), expsyn_config.cv);
 
     // One exp2syn synapse, 0.4 along segment 4.
 
-    EXPECT_EQ(ivec({11}), exp2syn_config.cv);
+    EXPECT_EQ(ivec({13}), exp2syn_config.cv);
 
     // There should be a K and Na ion channel associated with each
     // hh mechanism node.
@@ -330,8 +330,8 @@ TEST(fvm_layout, mech_index) {
     ASSERT_EQ(1u, M.ions.count("k"s));
     EXPECT_EQ(0u, M.ions.count("ca"s));
 
-    EXPECT_EQ(ivec({0,5}), M.ions.at("na"s).cv);
-    EXPECT_EQ(ivec({0,5}), M.ions.at("k"s).cv);
+    EXPECT_EQ(ivec({0,6}), M.ions.at("na"s).cv);
+    EXPECT_EQ(ivec({0,6}), M.ions.at("k"s).cv);
 }
 
 TEST(fvm_layout, coalescing_synapses) {

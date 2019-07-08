@@ -18,6 +18,7 @@ struct segment_info {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
 
+    bool soma_parent = false;
     value_type parent_cv_area = 0;
     value_type distal_cv_area = 0;
 
@@ -36,8 +37,11 @@ struct segment_info {
 
     // Position is proportional distal distance along segment, in [0, 1).
     index_type cv_by_position(double pos) const {
-        index_type n = distal_cv+1-proximal_cv;
+        index_type n = soma_parent ? distal_cv-proximal_cv : distal_cv+1-proximal_cv;
         index_type i = static_cast<index_type>(n*pos+0.5);
+        if (soma_parent) {
+            return proximal_cv+i;
+        }
         if (i>0) {
             return proximal_cv+(i-1);
         }
