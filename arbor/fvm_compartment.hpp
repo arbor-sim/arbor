@@ -34,8 +34,17 @@ struct semi_compartment {
         return *this;
     }
 
-    static semi_compartment frustrum(value_type l, value_type r1, value_type r2) {
+    static semi_compartment frustrum(value_type l, value_type r1, value_type r2, bool soma=false) {
         using namespace math;
+        if (soma) {
+            arb_assert(r1==r2);
+            return semi_compartment{
+                    l,
+                    area_sphere(r1)/2,
+                    volume_sphere(r1)/2,
+                    {r1, r2}
+            };
+        }
         return semi_compartment{
             l,
             area_frustrum(l, r1, r2),
@@ -125,6 +134,8 @@ public:
         scale_ = with_soma_? (segs_.bounds().second - segs_.front().second)/(n-1): segs_.bounds().second/n;
 
         assign(radii_, radii);
+
+        std::cout << "size : " << size(radii_) << " " << size(offsets_) << std::endl;
         arb_assert(size(radii_)==size(offsets_));
     }
 
@@ -170,10 +181,16 @@ protected:
         if (x>=seg.second) {
             return sub_segment_index(i, 1);
         }
+//        std::cout << "\t" << i << " at " << (x-seg.first)/(seg.second-seg.first) << std::endl;
+//        std::cout << "\t\t" << (x-seg.first) << " " << (seg.second-seg.first) << std::endl;
+
         return sub_segment_index(i, (x-seg.first)/(seg.second-seg.first));
     }
 
     value_type radius_at(sub_segment_index s) const {
+        if (with_soma_ && s.i == 0) {
+            return radii_[s.i];
+        }
         return math::lerp(radii_[s.i], radii_[s.i+1], s.p);
     }
 
@@ -233,19 +250,38 @@ protected:
 
         auto seg = segs_[a.i];
         auto l = (b.p-a.p)*(seg.second-seg.first);
-        return semi_compartment::frustrum(l, radius_at(a), radius_at(b));
+        return semi_compartment::frustrum(l, radius_at(a), radius_at(b), (with_soma_ && a.i==0));
     }
 
     semi_compartment integrate(sub_segment_index a, sub_segment_index b) const {
+        if (a.i != b.i) {
+            std::cout << "\ta!=b : " << a.i << " " << b.i << std::endl;
+        }
         sub_segment_index x = std::min(b, sub_segment_index(a.i, 1));
 
         auto s = sub_segment_frustrum(a, x);
+        std::cout << "frust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
+        std::cout << "\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
+        std::cout << "\ts : l = " << s.length << std::endl;
+        std::cout << "\ts : a = " << s.area << std::endl;
+        std::cout << "\ts : a = " << s.volume << std::endl << std::endl;
+
         while (a.i<b.i) {
             ++a.i;
             a.p = 0;
             x = std::min(b, sub_segment_index(a.i, 1));
             s += sub_segment_frustrum(a, x);
+            std::cout << "\tfrust: " << a.i << ", " << a.p << " and " << x.i << ", "<< x.p << std::endl << std::endl;
+            std::cout << "\t\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
+            std::cout << "\t\ts : l = " << s.length << std::endl;
+            std::cout << "\t\ts : a = " << s.area << std::endl;
+            std::cout << "\t\ts : v = " << s.volume << std::endl;
         }
+
+//        std::cout << "\ts : r = (" << s.radii.first << ", " << s.radii.second << ")" << std::endl;
+//        std::cout << "\ts : l = " << s.length << std::endl;
+//        std::cout << "\ts : a = " << s.area << std::endl;
+//        std::cout << "\ts : a = " << s.volume << std::endl << std::endl;
 
         return s;
     }
