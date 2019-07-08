@@ -371,7 +371,7 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 2, 3, 4}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 3, 4, 5}), expsyn_config.cv);
         EXPECT_EQ(ivec({1, 1, 1, 1}), expsyn_config.multiplicity);
     }
     {
@@ -387,17 +387,16 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
         EXPECT_EQ(ivec({1, 1}), expsyn_config.multiplicity);
 
         auto &exp2syn_config = M.mechanisms.at("exp2syn");
-        EXPECT_EQ(ivec({2, 4}), exp2syn_config.cv);
+        EXPECT_EQ(ivec({3, 5}), exp2syn_config.cv);
         EXPECT_EQ(ivec({1, 1}), exp2syn_config.multiplicity);
     }
     {
         cable_cell cell = make_cell_ball_and_stick();
 
-        // Add synapses of two varieties.
         cell.add_synapse({1, 0.3}, "expsyn");
         cell.add_synapse({1, 0.5}, "expsyn");
         cell.add_synapse({1, 0.7}, "expsyn");
@@ -407,7 +406,7 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 2, 3, 4}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 3, 4, 5}), expsyn_config.cv);
         EXPECT_TRUE(expsyn_config.multiplicity.empty());
     }
     {
@@ -423,11 +422,11 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
         EXPECT_TRUE(expsyn_config.multiplicity.empty());
 
         auto &exp2syn_config = M.mechanisms.at("exp2syn");
-        EXPECT_EQ(ivec({2, 4}), exp2syn_config.cv);
+        EXPECT_EQ(ivec({3, 5}), exp2syn_config.cv);
         EXPECT_TRUE(exp2syn_config.multiplicity.empty());
     }
     {
@@ -443,7 +442,7 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 3}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
         EXPECT_EQ(ivec({2, 2}), expsyn_config.multiplicity);
     }
     {
@@ -459,7 +458,7 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 1, 3}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 2, 4}), expsyn_config.cv);
         EXPECT_EQ(ivec({2, 1, 1}), expsyn_config.multiplicity);
         EXPECT_EQ(fvec({0, 0.1, 0.1}), expsyn_config.param_values[0].second);
         EXPECT_EQ(fvec({0.2, 0.2, 0.2}), expsyn_config.param_values[1].second);
@@ -481,7 +480,7 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 1, 3, 3}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 2, 4, 4}), expsyn_config.cv);
         EXPECT_EQ(ivec({4, 6, 5, 7, 0, 2, 1, 3}), expsyn_config.target);
         EXPECT_EQ(ivec({2, 2, 2, 2}), expsyn_config.multiplicity);
         EXPECT_EQ(fvec({0, 1, 0, 1}), expsyn_config.param_values[0].second);
@@ -506,14 +505,14 @@ TEST(fvm_layout, coalescing_synapses) {
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
-        EXPECT_EQ(ivec({1, 1}), expsyn_config.cv);
+        EXPECT_EQ(ivec({2, 2}), expsyn_config.cv);
         EXPECT_EQ(ivec({0, 2, 5, 3}), expsyn_config.target);
         EXPECT_EQ(ivec({3, 1}), expsyn_config.multiplicity);
         EXPECT_EQ(fvec({1, 5}), expsyn_config.param_values[0].second);
         EXPECT_EQ(fvec({2, 1}), expsyn_config.param_values[1].second);
 
         auto &exp2syn_config = M.mechanisms.at("exp2syn");
-        EXPECT_EQ(ivec({1, 1, 3, 3}), exp2syn_config.cv);
+        EXPECT_EQ(ivec({2, 2, 4, 4}), exp2syn_config.cv);
         EXPECT_EQ(ivec({4, 1, 7, 8, 6, 9}), exp2syn_config.target);
         EXPECT_EQ(ivec({1, 1, 2, 2}), exp2syn_config.multiplicity);
         EXPECT_EQ(fvec({1, 4, 2, 2}), exp2syn_config.param_values[0].second);
@@ -671,7 +670,7 @@ TEST(fvm_layout, density_norm_area) {
         seg.add_mechanism(hh);
     }
 
-    int ncv = 10;
+    int ncv = 11; //ncomp + 1
     std::vector<double> expected_gkbar(ncv, dflt_gkbar);
     std::vector<double> expected_gl(ncv, dflt_gl);
 
@@ -683,28 +682,30 @@ TEST(fvm_layout, density_norm_area) {
     auto seg2_divs = div_by_ends(segs[2]->as_cable());
     auto seg3_divs = div_by_ends(segs[3]->as_cable());
 
-    // CV 0: mix of soma and left of segment 1
-    expected_gl[0] = wmean(soma_area, dflt_gl, seg1_divs(0).left.area, seg1_gl);
-
+    // CV 0: soma
+    // CV1: left of segment 1
+    expected_gl[0] = dflt_gl;
     expected_gl[1] = seg1_gl;
+
     expected_gl[2] = seg1_gl;
+    expected_gl[3] = seg1_gl;
 
-    // CV 3: mix of right of segment 1 and left of segments 2 and 3.
-    expected_gkbar[3] = wmean(seg1_divs(2).right.area, dflt_gkbar, seg2_divs(0).left.area, seg2_gkbar, seg3_divs(0).left.area, seg3_gkbar);
-    expected_gl[3] = wmean(seg1_divs(2).right.area, seg1_gl, seg2_divs(0).left.area, dflt_gl, seg3_divs(0).left.area, seg3_gl);
+    // CV 4: mix of right of segment 1 and left of segments 2 and 3.
+    expected_gkbar[4] = wmean(seg1_divs(2).right.area, dflt_gkbar, seg2_divs(0).left.area, seg2_gkbar, seg3_divs(0).left.area, seg3_gkbar);
+    expected_gl[4] = wmean(seg1_divs(2).right.area, seg1_gl, seg2_divs(0).left.area, dflt_gl, seg3_divs(0).left.area, seg3_gl);
 
-    // CV 4-6: just segment 2
-    expected_gkbar[4] = seg2_gkbar;
+    // CV 5-7: just segment 2
     expected_gkbar[5] = seg2_gkbar;
     expected_gkbar[6] = seg2_gkbar;
+    expected_gkbar[7] = seg2_gkbar;
 
-    // CV 7-9: just segment 3
-    expected_gkbar[7] = seg3_gkbar;
+    // CV 8-10: just segment 3
     expected_gkbar[8] = seg3_gkbar;
     expected_gkbar[9] = seg3_gkbar;
-    expected_gl[7] = seg3_gl;
+    expected_gkbar[10] = seg3_gkbar;
     expected_gl[8] = seg3_gl;
     expected_gl[9] = seg3_gl;
+    expected_gl[10] = seg3_gl;
 
     cable_cell_global_properties gprop;
     fvm_discretization D = fvm_discretize(cells);
@@ -717,12 +718,14 @@ TEST(fvm_layout, density_norm_area) {
 
     double area_relerr = 10*std::numeric_limits<double>::epsilon();
     EXPECT_TRUE(testing::near_relative(D.cv_area[0],
-        soma_area+seg1_divs(0).left.area, area_relerr));
+        soma_area, area_relerr));
     EXPECT_TRUE(testing::near_relative(D.cv_area[1],
+        seg1_divs(0).left.area, area_relerr));
+    EXPECT_TRUE(testing::near_relative(D.cv_area[2],
         seg1_divs(0).right.area+seg1_divs(1).left.area, area_relerr));
-    EXPECT_TRUE(testing::near_relative(D.cv_area[3],
+    EXPECT_TRUE(testing::near_relative(D.cv_area[4],
         seg1_divs(2).right.area+seg2_divs(0).left.area+seg3_divs(0).left.area, area_relerr));
-    EXPECT_TRUE(testing::near_relative(D.cv_area[6],
+    EXPECT_TRUE(testing::near_relative(D.cv_area[7],
         seg2_divs(2).right.area, area_relerr));
 
     // Grab the HH parameters from the mechanism.
@@ -803,11 +806,11 @@ TEST(fvm_layout, ion_weights) {
     };
 
     ivec expected_ion_cv[] = {
-        {0}, {0, 1, 2}, {1, 2, 3}, {0, 1, 2, 3}, {1, 3}
+        {0}, {0, 2, 3}, {2, 3, 4}, {0, 1, 2, 3, 4}, {2, 4}
     };
 
     fvec expected_iconc_norm_area[] = {
-        {1./3}, {1./3, 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0.}, {3./4, 0.}
+        {0.}, {0., 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0., 0.}, {3./4, 0.}
     };
 
     cable_cell_global_properties gprop;
@@ -828,6 +831,7 @@ TEST(fvm_layout, ion_weights) {
         auto& ca = M.ions.at("ca"s);
 
         EXPECT_EQ(expected_ion_cv[run], ca.cv);
+
         EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(expected_iconc_norm_area[run], ca.iconc_norm_area));
 
         EXPECT_TRUE(util::all_of(ca.econc_norm_area, [](fvm_value_type v) { return v==1.; }));
