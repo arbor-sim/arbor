@@ -134,8 +134,8 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
     util::make_partition(D.cell_segment_bounds,
         transform_view(cells, [](const cable_cell& c) { return c.num_segments(); }));
 
-    std::vector<index_type> cell_comp_bounds;
-    auto cell_cv_part = make_partition(cell_comp_bounds,
+    std::vector<index_type> cell_cv_bounds;
+    auto cell_cv_part = make_partition(cell_cv_bounds,
         transform_view(cells, [](const cable_cell& c) {
             unsigned ncv = 0;
             for (unsigned i = 0; i < c.segments().size(); i++) {
@@ -209,7 +209,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
         // Other segments must all be cable segments.
         for (size_type j = 1; j<nseg; ++j) {
             const auto& seg_cv_ival = seg_cv_part[j];
-            auto ncv = seg_cv_ival.second-seg_cv_ival.first;
+            const auto ncv = seg_cv_ival.second-seg_cv_ival.first;
 
             segment_info seg_info;
 
@@ -271,7 +271,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
     }
 
     // Number of CVs per cell is exactly number of compartments.
-    D.cell_cv_bounds = std::move(cell_comp_bounds);
+    D.cell_cv_bounds = std::move(cell_cv_bounds);
     return D;
 }
 

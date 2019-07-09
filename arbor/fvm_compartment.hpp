@@ -78,7 +78,6 @@ struct div_compartment {
 /// Divided compartments can be made from cables with sub-segments by 
 /// sampling or integrating or by approximating cable as a single frustrum.
 
-//TODO : fix?
 class div_compartment_by_ends {
 public:
     using value_type = div_compartment::value_type;
@@ -139,7 +138,6 @@ public:
         arb_assert(size(radii_)==size(offsets_));
     }
 
-    //TODO : fix?
     div_compartment operator()(size_type i) const {
         using namespace math;
 
@@ -168,7 +166,6 @@ protected:
         }
     };
 
-    //TODO: fix?
     sub_segment_index locate(value_type x) const {
         arb_assert(x>=0);
 
