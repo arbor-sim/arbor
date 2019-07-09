@@ -32,16 +32,16 @@ struct segment_info {
 
     // Range of CV-indices for segment, excluding parent.
     std::pair<index_type, index_type> cv_range() const {
+        if (soma_parent) {
+            return {proximal_cv-1, 1+distal_cv};
+        }
         return {proximal_cv, 1+distal_cv};
     }
 
     // Position is proportional distal distance along segment, in [0, 1).
     index_type cv_by_position(double pos) const {
-        index_type n = soma_parent ? distal_cv-proximal_cv : distal_cv+1-proximal_cv;
+        index_type n = distal_cv+1-proximal_cv;
         index_type i = static_cast<index_type>(n*pos+0.5);
-        if (soma_parent) {
-            return proximal_cv+i;
-        }
         if (i>0) {
             return proximal_cv+(i-1);
         }
