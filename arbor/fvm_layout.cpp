@@ -233,8 +233,8 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
 
             auto divs = div_compartment_integrator(ncv, radii, lengths, soma_parent);
 
-            seg_info.parent_cv = D.parent_cv[seg_cv_ival.first];
-            seg_info.parent_cv_area = soma_parent ? 0 : divs(0).left.area;
+            seg_info.parent_cv = soma_parent ? seg_cv_ival.first : D.parent_cv[seg_cv_ival.first];
+            seg_info.parent_cv_area = soma_parent ? divs(0).right.area + divs(1).left.area : divs(0).left.area;
             seg_info.soma_parent = soma_parent;
 
             seg_info.proximal_cv = soma_parent ? seg_cv_ival.first + 1 : seg_cv_ival.first;

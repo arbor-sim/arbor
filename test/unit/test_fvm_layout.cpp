@@ -186,19 +186,19 @@ TEST(fvm_layout, topology) {
 
 
     EXPECT_FALSE(D.segments[0].has_parent());
-    EXPECT_EQ(0, D.segments[1].parent_cv);
+    EXPECT_EQ(1, D.segments[1].parent_cv);
 
     EXPECT_FALSE(D.segments[2].has_parent());
-    EXPECT_EQ(6, D.segments[3].parent_cv);
+    EXPECT_EQ(7, D.segments[3].parent_cv);
     EXPECT_EQ(11, D.segments[4].parent_cv);
     EXPECT_EQ(11, D.segments[5].parent_cv);
 
     // Segment CV ranges (half-open, exclusing parent):
 
     EXPECT_EQ(ipair(0,1), D.segments[0].cv_range());
-    EXPECT_EQ(ipair(1,6), D.segments[1].cv_range());
+    EXPECT_EQ(ipair(2,6), D.segments[1].cv_range());
     EXPECT_EQ(ipair(6,7), D.segments[2].cv_range());
-    EXPECT_EQ(ipair(7,12), D.segments[3].cv_range());
+    EXPECT_EQ(ipair(8,12), D.segments[3].cv_range());
     EXPECT_EQ(ipair(12,16), D.segments[4].cv_range());
     EXPECT_EQ(ipair(16,20), D.segments[5].cv_range());
 

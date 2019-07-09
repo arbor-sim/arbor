@@ -32,9 +32,6 @@ struct segment_info {
 
     // Range of CV-indices for segment, excluding parent.
     std::pair<index_type, index_type> cv_range() const {
-        if (soma_parent) {
-            return {proximal_cv-1, 1+distal_cv};
-        }
         return {proximal_cv, 1+distal_cv};
     }
 

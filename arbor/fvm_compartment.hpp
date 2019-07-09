@@ -233,8 +233,8 @@ protected:
         auto seg = segs_[a.i];
         auto l = (b.p-a.p)*(seg.second-seg.first);
 
-        // If segment includes the soma, the soma is at index 0
-        // the soma is treated as a half-sphere
+        // If segment includes the soma it will be at index 0
+        // The soma is represented as a sphere
         if (with_soma_ && a.i==0) {
             return semi_compartment::half_sphere(radii_.front());
         }
