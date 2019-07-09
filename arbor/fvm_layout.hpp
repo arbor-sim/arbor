@@ -18,7 +18,7 @@ struct segment_info {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
 
-    bool soma_parent = false;
+    bool soma_parent = false; // segments parent is soma
     value_type parent_cv_area = 0;
     value_type distal_cv_area = 0;
 

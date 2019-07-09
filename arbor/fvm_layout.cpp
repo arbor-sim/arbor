@@ -225,6 +225,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells) {
             auto radii = cable->radii();
             auto lengths = cable->lengths();
 
+            // If segment has soma parent, send soma information to div_compartment_integrator
             if(soma_parent) {
                 radii.insert(radii.begin(), soma->radius());
                 lengths.insert(lengths.begin(), soma->radius()*2);
