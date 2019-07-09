@@ -8,6 +8,7 @@
 
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
+#include <arbor/util/optional.hpp>
 
 // Mechanism catalogue maintains:
 //
@@ -28,39 +29,38 @@
 // There is in addition a global default mechanism catalogue object that is
 // populated with any builtin mechanisms and mechanisms generated from
 // module files included with arbor.
+//
+// When a mechanism name of the form "mech/param=value,..." is requested, if the
+// mechanism of that name does not already exist in the catalogue, it will be
+// implicitly derived from an existing mechanism "mech", with global parameters
+// and ion bindings overridden by the supplied assignments that follow the slash.
+// If the mechanism in question has a single ion dependence, then that ion name
+// can be omitted in the assignments; "mech/oldion=newion" will make the same
+// derived mechanism as simply "mech/newion".
 
 namespace arb {
+
+// catalogue_state comprises the private implementation of mechanism_catalogue.
+struct catalogue_state;
 
 class mechanism_catalogue {
 public:
     using value_type = double;
 
-    mechanism_catalogue() = default;
-    mechanism_catalogue(mechanism_catalogue&& other) = default;
-    mechanism_catalogue& operator=(mechanism_catalogue&& other) = default;
+    mechanism_catalogue();
+    mechanism_catalogue(mechanism_catalogue&& other);
+    mechanism_catalogue& operator=(mechanism_catalogue&& other);
 
-    // Copying a catalogue requires cloning the prototypes.
-    mechanism_catalogue(const mechanism_catalogue& other) {
-        copy_impl(other);
-    }
-
-    mechanism_catalogue& operator=(const mechanism_catalogue& other) {
-        copy_impl(other);
-        return *this;
-    }
+    mechanism_catalogue(const mechanism_catalogue& other);
+    mechanism_catalogue& operator=(const mechanism_catalogue& other);
 
     void add(const std::string& name, mechanism_info info);
 
-    bool has(const std::string& name) const {
-        return info_map_.count(name) || is_derived(name);
-    }
-
-    bool is_derived(const std::string& name) const {
-        return derived_map_.count(name);
-    }
+    bool has(const std::string& name) const;
+    bool is_derived(const std::string& name) const;
 
     // Read-only access to mechanism info.
-    const mechanism_info& operator[](const std::string& name) const;
+    mechanism_info operator[](const std::string& name) const;
 
     // Read-only access to mechanism fingerprint.
     const mechanism_fingerprint& fingerprint(const std::string& name) const;
@@ -101,40 +101,15 @@ public:
         register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
     }
 
+    ~mechanism_catalogue();
+
 private:
-    using mechanism_info_ptr = std::unique_ptr<mechanism_info>;
+    std::unique_ptr<catalogue_state> state_;
 
-    template <typename V>
-    using string_map = std::unordered_map<std::string, V>;
-
-    // Schemata for (un-derived) mechanisms.
-    string_map<mechanism_info_ptr> info_map_;
-
-    struct derivation {
-        std::string parent;
-        string_map<value_type> globals;    // global overrides relative to parent
-        string_map<std::string> ion_remap; // ion name remap overrides relative to parent
-        mechanism_info_ptr derived_info;
-    };
-
-    // Parent and global setting values for derived mechanisms.
-    string_map<derivation> derived_map_;
-
-    // Prototype register, keyed on mechanism name, then backend type (index).
-    string_map<std::unordered_map<std::type_index, mechanism_ptr>> impl_map_;
-
-    // Concrete-type erased helper methods.
     std::pair<mechanism_ptr, mechanism_overrides> instance_impl(std::type_index, const std::string&) const;
     void register_impl(std::type_index, const std::string&, mechanism_ptr);
-
-    // Perform copy and prototype clone from other catalogue (overwrites all entries).
-    void copy_impl(const mechanism_catalogue&);
 };
 
-// Convenience routine for deriving a single-ion dependency mechanism 'name'
-// over a new ion 'ion', and adding it to the catalogue as 'name/ion'.
-
-void parameterize_over_ion(mechanism_catalogue&, const std::string& name, const std::string& ion);
 
 // Reference to global default mechanism catalogue.
 

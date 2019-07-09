@@ -384,22 +384,51 @@ TEST(mechcat, bad_ion_rename) {
     EXPECT_THROW(cat.derive("alas", "fleeb", {}, {{"a", "b"}}), invalid_ion_remap);
 }
 
-TEST(mechcat, parameterize_over_ion) {
+TEST(mechcat, implicit_deriv) {
     auto cat = build_fake_catalogue();
 
-    // Can only use parametrize_over_ion with mechanisms that depend on exactly
-    // one ion.
+    mechanism_info burble_derived_info = cat["burble/quux=3,xyzzy=4"];
+    EXPECT_EQ(3, burble_derived_info.globals["quux"].default_value);
+    EXPECT_EQ(4, burble_derived_info.globals["xyzzy"].default_value);
 
-    EXPECT_THROW(parameterize_over_ion(cat, "fleeb", "nope"), invalid_ion_remap);
+    // If the mechanism is already in the catalogue though, don't make a new derivation.
+    cat.derive("fleeb/plugh=5", "fleeb", {{"plugh", 7.0}}, {});
+    mechanism_info deceptive = cat["fleeb/plugh=5"];
+    EXPECT_EQ(7, deceptive.globals["plugh"].default_value);
 
-    parameterize_over_ion(cat, "burble", "one");
-    parameterize_over_ion(cat, "burble", "two");
+    // Check ion rebinds, too.
+    mechanism_info fleeb_derived_info = cat["fleeb/plugh=2,a=foo,b=bar"];
+    EXPECT_EQ(2, fleeb_derived_info.globals["plugh"].default_value);
+    EXPECT_FALSE(fleeb_derived_info.ions.count("a"));
+    EXPECT_FALSE(fleeb_derived_info.ions.count("b"));
+    EXPECT_TRUE(fleeb_derived_info.ions.count("foo"));
+    EXPECT_TRUE(fleeb_derived_info.ions.count("bar"));
 
-    auto b1 = cat["burble/one"];
-    EXPECT_EQ("one", b1.ions.begin()->first);
+    // If only one ion, don't need to give lhs in reassignment.
+    mechanism_info bleeble_derived_info = cat["bleeble/fish,quux=9"];
+    EXPECT_EQ(9, bleeble_derived_info.globals["quux"].default_value);
+    EXPECT_EQ(-20, bleeble_derived_info.globals["xyzzy"].default_value);
+    EXPECT_EQ(1u, bleeble_derived_info.ions.size());
+    EXPECT_TRUE(bleeble_derived_info.ions.count("fish"));
 
-    auto b2 = cat["burble/two"];
-    EXPECT_EQ("two", b2.ions.begin()->first);
+    // Can't omit lhs if there is more than one ion though.
+    EXPECT_THROW(cat["fleeb/fish"], invalid_ion_remap);
+
+    // Implicitly derived mechanisms should inherit implementations.
+    auto fleeb2 = cat.instance<foo_backend>("fleeb2");
+    auto fleeb2_derived = cat.instance<foo_backend>("fleeb2/plugh=4.5");
+    EXPECT_EQ("special fleeb", fleeb2.mech->internal_name());
+    EXPECT_EQ("special fleeb", fleeb2_derived.mech->internal_name());
+    EXPECT_EQ(4.5, fleeb2_derived.overrides.globals.at("plugh"));
+
+    // Requesting an implicitly derived instance with improper parameters should throw.
+    EXPECT_THROW(cat.instance<foo_backend>("fleeb2/fidget=7"), no_such_parameter);
+
+    // Testing for implicit derivation though should not throw.
+    EXPECT_TRUE(cat.has("fleeb2/plugh=7"));
+    EXPECT_FALSE(cat.has("fleeb2/fidget=7"));
+    EXPECT_TRUE(cat.is_derived("fleeb2/plugh=7"));
+    EXPECT_FALSE(cat.is_derived("fleeb2/fidget=7"));
 }
 
 TEST(mechcat, copy) {
