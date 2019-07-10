@@ -89,9 +89,11 @@ struct no_such_parameter: arbor_exception {
 };
 
 struct invalid_parameter_value: arbor_exception {
+    invalid_parameter_value(const std::string& mech_name, const std::string& param_name, const std::string& value_str);
     invalid_parameter_value(const std::string& mech_name, const std::string& param_name, double value);
     std::string mech_name;
     std::string param_name;
+    std::string value_str;
     double value;
 };
 

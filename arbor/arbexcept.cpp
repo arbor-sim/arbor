@@ -69,7 +69,16 @@ invalid_parameter_value::invalid_parameter_value(const std::string& mech_name, c
     arbor_exception(pprintf("invalid parameter value for mechanism {} parameter {}: {}", mech_name, param_name, value)),
     mech_name(mech_name),
     param_name(param_name),
+    value_str(),
     value(value)
+{}
+
+invalid_parameter_value::invalid_parameter_value(const std::string& mech_name, const std::string& param_name, const std::string& value_str):
+    arbor_exception(pprintf("invalid parameter value for mechanism {} parameter {}: {}", mech_name, param_name, value_str)),
+    mech_name(mech_name),
+    param_name(param_name),
+    value_str(value_str),
+    value(0)
 {}
 
 invalid_ion_remap::invalid_ion_remap(const std::string& mech_name):

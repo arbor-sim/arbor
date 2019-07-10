@@ -18,7 +18,7 @@ namespace arb {
 
 using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
-// simulation_state comprises private implentation for simulation class.
+// simulation_state comprises private implementation for simulation class.
 class simulation_state;
 
 class simulation {
