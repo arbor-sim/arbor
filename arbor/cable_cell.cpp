@@ -57,6 +57,10 @@ segment* cable_cell::segment(index_type index) {
     assert_valid_segment(index);
     return segments_[index].get();
 }
+segment const* cable_cell::parent(index_type index) const {
+    assert_valid_segment(index);
+    return segments_[parents_[index]].get();
+}
 
 segment const* cable_cell::segment(index_type index) const {
     assert_valid_segment(index);

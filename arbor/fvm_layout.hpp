@@ -18,6 +18,7 @@ struct segment_info {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
 
+    bool soma_parent = false; // segments parent is soma
     value_type parent_cv_area = 0;
     value_type distal_cv_area = 0;
 
@@ -56,7 +57,7 @@ struct fvm_discretization {
     using index_type = fvm_index_type; // In particular, used for CV indices.
 
     size_type ncell;
-    size_type ncomp;
+    size_type ncv;
 
     // Note: if CV j has no parent, parent_cv[j] = j. TODO: confirm!
     std::vector<index_type> parent_cv;

@@ -227,7 +227,7 @@ TEST(fvm_lowered, matrix_init)
     fvcell.initialize({0}, cable1d_recipe(cell), cell_to_intdom, targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
-    EXPECT_EQ(J.size(), 11u);
+    EXPECT_EQ(J.size(), 12u);
 
     // Test that the matrix is initialized with sensible values
 
@@ -315,7 +315,7 @@ TEST(fvm_lowered, stimulus) {
     // delay     |   5  |    1
     // duration  |  80  |    2
     // amplitude | 0.3  |  0.1
-    // CV        |   4  |    0
+    // CV        |   5  |    0
 
     execution_context context;
 
@@ -326,7 +326,7 @@ TEST(fvm_lowered, stimulus) {
     cells[0].add_stimulus({0,0.5}, {1., 2.,  0.1});
 
     const fvm_size_type soma_cv = 0u;
-    const fvm_size_type tip_cv = 4u;
+    const fvm_size_type tip_cv = 5u;
 
     // now we have two stims :
     //
@@ -683,10 +683,10 @@ TEST(fvm_lowered, weighted_write_ion) {
     const double con_int = 80;
     const double con_ext = 120;
 
-    // Ca ion reader test_kinlva on CV 1 and 2 via segment 2:
+    // Ca ion reader test_kinlva on CV 2 and 3 via segment 2:
     c.segments()[2] ->add_mechanism("test_kinlva");
 
-    // Ca ion writer test_ca on CV 1 and 3 via segment 3:
+    // Ca ion writer test_ca on CV 2 and 4 via segment 3:
     c.segments()[3] ->add_mechanism("test_ca");
 
     std::vector<target_handle> targets;
@@ -703,7 +703,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     ion.init_concentration();
 
     std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index_);
-    std::vector<unsigned> expected_ion_nodes = {1, 2, 3};
+    std::vector<unsigned> expected_ion_nodes = {2, 3, 4};
     EXPECT_EQ(expected_ion_nodes, ion_nodes);
 
     std::vector<double> ion_iconc_weights = util::assign_from(ion.weight_Xi_);
@@ -785,11 +785,11 @@ TEST(fvm_lowered, gj_coords_simple) {
         return g * 1e3 / D.cv_area[i];
     };
 
-    EXPECT_EQ(pair({4,8}), GJ[0].loc);
-    EXPECT_EQ(weight(0.5, 4), GJ[0].weight);
+    EXPECT_EQ(pair({5,10}), GJ[0].loc);
+    EXPECT_EQ(weight(0.5, 5), GJ[0].weight);
 
-    EXPECT_EQ(pair({8,4}), GJ[1].loc);
-    EXPECT_EQ(weight(0.5, 8), GJ[1].weight);
+    EXPECT_EQ(pair({10,5}), GJ[1].loc);
+    EXPECT_EQ(weight(0.5, 10), GJ[1].weight);
 }
 
 TEST(fvm_lowered, gj_coords_complex) {
@@ -895,10 +895,10 @@ TEST(fvm_lowered, gj_coords_complex) {
         return g * 1e3 / D.cv_area[i];
     };
 
-    std::vector<pair> expected_loc = {{4, 14}, {4,11}, {2,21}, {14, 4}, {11,4} ,{8,28}, {6, 24}, {21,2}, {28,8}, {24, 6}};
+    std::vector<pair> expected_loc = {{5, 16}, {5,13}, {3,24}, {16, 5}, {13,5} ,{10,31}, {8, 27}, {24,3}, {31,10}, {27, 8}};
     std::vector<double> expected_weight = {
-            weight(0.03, 4), weight(0.04, 4), weight(0.01, 2), weight(0.03, 14), weight(0.04, 11),
-            weight(0.02, 8), weight(0.01, 6), weight(0.01, 21), weight(0.02, 28), weight(0.01, 24)
+            weight(0.03, 5), weight(0.04, 5), weight(0.01, 3), weight(0.03, 16), weight(0.04, 13),
+            weight(0.02, 10), weight(0.01, 8), weight(0.01, 24), weight(0.02, 31), weight(0.01, 27)
     };
 
     for (unsigned i = 0; i < GJ.size(); i++) {
@@ -912,7 +912,6 @@ TEST(fvm_lowered, gj_coords_complex) {
         }
         EXPECT_TRUE(found);
     }
-    std::cout << std::endl;
 }
 
 TEST(fvm_lowered, cell_group_gj) {

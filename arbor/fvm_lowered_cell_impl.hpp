@@ -375,7 +375,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     fvm_discretization D = fvm_discretize(cells);
 
-    std::vector<index_type> cv_to_intdom(D.ncomp);
+    std::vector<index_type> cv_to_intdom(D.ncv);
     std::transform(D.cv_to_cell.begin(), D.cv_to_cell.end(), cv_to_intdom.begin(),
                    [&cell_to_intdom](index_type i){ return cell_to_intdom[i]; });
 
