@@ -70,7 +70,7 @@ public:
 
     /// Remove all stored crossings that were detected in previous calls to test()
     void clear_crossings() {
-        stack.refresh_host_copy();
+        stack_.refresh_host_copy();
         stack_.clear();
     }
 
