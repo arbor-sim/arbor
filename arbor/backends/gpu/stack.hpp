@@ -37,7 +37,7 @@ class stack {
 
     using gpu_context_handle = std::shared_ptr<arb::gpu_context>;
 
-protected:
+private:
     // pointer in GPU memory
     storage_type* storage_;
     storage_type host_copy_;
@@ -92,7 +92,7 @@ public:
         if (capacity() != 0u) {
 
             auto num = std::min(host_copy_.stores, host_copy_.capacity);
-            std::vector<T> buf(host_copy_.stores);
+            std::vector<T> buf(num);
             auto bytes = num*sizeof(T);
             memory::cuda_memcpy_d2h(buf.data(), host_copy_.data, bytes);
             
