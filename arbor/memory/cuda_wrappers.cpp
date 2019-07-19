@@ -71,6 +71,10 @@ void cuda_free(void* ptr) {
     }
 }
 
+void cuda_sync() {
+    cudaDeviceSynchronize();
+}
+
 } // namespace memory
 } // namespace arb
 
@@ -114,6 +118,10 @@ void* cuda_malloc_managed(std::size_t n) {
 }
 
 void cuda_free(void* ptr) {
+    NOCUDA;
+}
+
+void cuda_sync() {
     NOCUDA;
 }
 
