@@ -5,22 +5,14 @@
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
+#include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
-#include <arbor/ion_info.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morphology.hpp>
 #include <arbor/segment.hpp>
 
 namespace arb {
-
-// Specialize arbor exception for errors in cell building.
-
-struct cable_cell_error: arbor_exception {
-    cable_cell_error(const std::string& what):
-        arbor_exception("cable_cell: "+what)
-    {}
-};
 
 // Location specification for point processes.
 
@@ -64,34 +56,6 @@ struct cell_probe_address {
     probe_kind kind;
 };
 
-// Global parameter type for cell descriptions.
-
-struct cable_cell_global_properties {
-    const mechanism_catalogue* catalogue = &global_default_catalogue();
-
-    // If >0, check membrane voltage magnitude is less than limit
-    // during integration.
-    double membrane_voltage_limit_mV = 0;
-
-    // TODO: consider making some/all of the following parameters
-    // cell or even segment-local.
-    // 
-    // Consider also a model-level dictionary of default values that
-    // can be used to initialize per-cell-kind info?
-    //
-    // Defaults below chosen to match NEURON.
-
-    std::unordered_map<std::string, ion_info> ion_default = {
-        {"ca", { 2, 5e-5, 2.  }},
-        {"na", { 1, 10.,  140.}},
-        {"k",  { 1, 54.4, 2.5 }}
-    };
-
-    double temperature_K = constant::hh_squid_temp; // [K]
-    double init_membrane_potential_mV = -65; // [mV]
-    bool coalesce_synapses = true;
-};
-
 /// high-level abstract representation of a cell and its segments
 class cable_cell {
 public:
@@ -117,11 +81,14 @@ public:
         double threshold;
     };
 
+    cable_cell_parameter_set default_parameters;
+
     /// Default constructor
     cable_cell();
 
     /// Copy constructor
     cable_cell(const cable_cell& other):
+        default_parameters(other.default_parameters),
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
@@ -176,6 +143,7 @@ public:
     /// will throw an cable_cell_error exception if
     /// the cable index is not valid
     cable_segment* cable(index_type index);
+    const cable_segment* cable(index_type index) const;
 
     /// the total number of compartments over all segments
     size_type num_compartments() const;
@@ -249,6 +217,20 @@ public:
     // Public view of parent indices vector.
     const std::vector<index_type>& parents() const {
         return parents_;
+    }
+
+    // Approximate per-segment mean attenuation b(f) at given frequency f,
+    // ignoring membrane resistance [1/µm].
+    value_type segment_mean_attenuation(value_type frequency, index_type segidx,
+        const cable_cell_parameter_set& global_defaults) const;
+
+    // Estimate of length constant λ(f) = 1/2 · 1/b(f), following
+    // Hines and Carnevale (2001), "NEURON: A Tool for Neuroscientists",
+    // Neuroscientist 7, pp. 123-135.
+    value_type segment_length_constant(value_type frequency, index_type segidx,
+        const cable_cell_parameter_set& global_defaults) const
+    {
+        return 0.5/segment_mean_attenuation(frequency, segidx, global_defaults);
     }
 
 private:

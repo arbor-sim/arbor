@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 enum class moduleKind {
-    point, density
+    point, density, revpot
 };
 
 /// indicate how a variable is accessed
@@ -117,7 +117,7 @@ inline sourceKind ion_source(const std::string& ion, const std::string& var, mod
     else if (var=="i"+ion) return mkind==moduleKind::point? sourceKind::ion_current: sourceKind::ion_current_density;
     else if (var=="e"+ion) return sourceKind::ion_revpot;
     else if (var==ion+"i") return sourceKind::ion_iconc;
-    else if (var==ion+"e") return sourceKind::ion_econc;
+    else if (var==ion+"o") return sourceKind::ion_econc;
     else return sourceKind::no_source;
 }
 

@@ -13,6 +13,9 @@
 #include "mechanisms/linear_ca_conc.hpp"
 #include "mechanisms/test_cl_valence.hpp"
 #include "mechanisms/test_ca_read_valence.hpp"
+#include "mechanisms/read_eX.hpp"
+#include "mechanisms/write_multiple_eX.hpp"
+#include "mechanisms/write_eX.hpp"
 
 #include "../gtest.h"
 
@@ -38,6 +41,9 @@ mechanism_catalogue make_unit_test_catalogue() {
     ADD_MECH(cat, linear_ca_conc)
     ADD_MECH(cat, test_cl_valence)
     ADD_MECH(cat, test_ca_read_valence)
+    ADD_MECH(cat, read_eX)
+    ADD_MECH(cat, write_multiple_eX)
+    ADD_MECH(cat, write_eX)
 
     return cat;
 }

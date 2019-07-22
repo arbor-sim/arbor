@@ -447,6 +447,12 @@ bool Module::semantic() {
     }
     linear_ = linear;
 
+    // Are we writing an ionic reversal potential? If so, change the moduleKind to
+    // `revpot` and assert that the mechanism is 'pure': it has no state variables;
+    // it contributes to no currents, ionic or otherwise; it isn't a point mechanism;
+    // and it writes to only one ionic reversal potential.
+    check_revpot_mechanism();
+
     // Perform semantic analysis and inlining on function and procedure bodies
     // in order to inline calls inside the newly crated API methods.
     semantic_func_proc();
@@ -764,4 +770,44 @@ int Module::semantic_func_proc() {
     }
     return errors;
 }
+
+void Module::check_revpot_mechanism() {
+    int n_write_revpot = 0;
+    for (auto& iondep: neuron_block_.ions) {
+        if (iondep.writes_rev_potential()) ++n_write_revpot;
+    }
+
+    if (n_write_revpot==0) return;
+
+    bool pure = true;
+
+    // Are we marked as a point mechanism?
+    if (kind()==moduleKind::point) {
+        error("Cannot write reversal potential from a point mechanism.");
+        return;
+    }
+
+    // Do we write any other ionic variables or a nonspecific current?
+    for (auto& iondep: neuron_block_.ions) {
+        pure &= !iondep.writes_concentration_int();
+        pure &= !iondep.writes_concentration_ext();
+        pure &= !iondep.writes_current();
+    }
+    pure &= !neuron_block_.has_nonspecific_current();
+
+    if (!pure) {
+        error("Cannot write reversal potential and also to other currents or ionic state.");
+        return;
+    }
+
+    // Do we have any state variables?
+    pure &= state_block_.state_variables.size()==0;
+    if (!pure) {
+        error("Cannot write reversal potential and also maintain state variables.");
+        return;
+    }
+
+    kind_ = moduleKind::revpot;
+}
+
 
