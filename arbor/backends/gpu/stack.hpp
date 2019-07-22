@@ -39,7 +39,7 @@ class stack {
 
 private:
     // pointer in GPU memory
-    storage_type* storage_;
+    storage_type* device_storage_;
     storage_type host_copy_;
     gpu_context_handle gpu_context_;
 
@@ -66,22 +66,21 @@ public:
     stack(const stack& other) = delete;
 
     stack(const gpu_context_handle& gpu_ctx):
-        storage_(create_storage(0)), gpu_context_(gpu_ctx) {}
+        device_storage_(create_storage(0)), gpu_context_(gpu_ctx) {}
 
-    stack(stack&& other): storage_(create_storage(0)), gpu_context_(other.gpu_context_) {
-        std::swap(storage_, other.storage_);
+    stack(stack&& other): device_storage_(create_storage(0)), gpu_context_(other.gpu_context_) {
+        std::swap(device_storage_, other.device_storage_);
     }
 
     stack& operator=(stack&& other) {
-        std::swap(storage_, other.storage_);
+        std::swap(device_storage_, other.device_storage_);
         return *this;
     }
 
     explicit stack(unsigned capacity, const gpu_context_handle& gpu_ctx):
-        storage_(create_storage(capacity)), gpu_context_(gpu_ctx) {}
+        device_storage_(create_storage(capacity)), gpu_context_(gpu_ctx) {}
 
     ~stack() {
-        memory::cuda_sync();
         auto st = get_storage_copy();
         if (st.data) {
             allocator<value_type>().deallocate(st.data, st.capacity);
@@ -105,21 +104,18 @@ public:
     }
 
     storage_type get_storage_copy() const {
-        storage_type st;
-        memory::cuda_memcpy_d2h(&st, storage_, sizeof(storage_type));
-
-        return st;
+        return host_copy_;
     }
 
 
-    void refresh_host_copy() {
+    void update_host() {
         host_copy_ = get_storage_copy();
         data_ = get_data();
     }
 
     void clear() {
         host_copy_.stores = 0u;
-        memory::cuda_memcpy_h2d(storage_, &host_copy_, sizeof(storage_type));
+        memory::cuda_memcpy_h2d(device_storage_, &host_copy_, sizeof(storage_type));
     }
 
     // The number of items that have been pushed back on the stack.
@@ -145,7 +141,7 @@ public:
     }
 
     storage_type& storage() {
-        return *storage_;
+        return *device_storage_;
     }
 
     value_type& operator[](unsigned i) {

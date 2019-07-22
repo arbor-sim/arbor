@@ -68,7 +68,7 @@ TEST(stack, push_back) {
 
     
     kernels::push_back<<<1, n>>>(sstorage, kernels::all_ftor());
-    s.refresh_host_copy();
+    s.update_host();
     EXPECT_EQ(n, s.size());
     std::sort(s.begin(), s.end());
     for (auto i=0; i<int(s.size()); ++i) {
@@ -78,7 +78,7 @@ TEST(stack, push_back) {
     
     s.clear();
     kernels::push_back<<<1, n>>>(sstorage, kernels::even_ftor());
-    s.refresh_host_copy();
+    s.update_host();
     EXPECT_EQ(n/2, s.size());
     std::sort(s.begin(), s.end());
     for (auto i=0; i<int(s.size())/2; ++i) {
@@ -87,7 +87,7 @@ TEST(stack, push_back) {
 
     s.clear();
     kernels::push_back<<<1, n>>>(sstorage, kernels::odd_ftor());
-    s.refresh_host_copy();
+    s.update_host();
     EXPECT_EQ(n/2, s.size());
     std::sort(s.begin(), s.end());
     for (auto i=0; i<int(s.size())/2; ++i) {
@@ -109,7 +109,7 @@ TEST(stack, overflow) {
 
     // push 2n items into a stack of size n
     kernels::push_back<<<1, 2*n>>>(sstorage, kernels::all_ftor());
-    s.refresh_host_copy();
+    s.update_host();
     EXPECT_EQ(n, s.size());
     EXPECT_EQ(2*n, s.pushes());
     EXPECT_TRUE(s.overflow());

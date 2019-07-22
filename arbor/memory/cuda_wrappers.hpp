@@ -11,7 +11,6 @@ void cuda_host_unregister(void* ptr);
 void* cuda_malloc(std::size_t n);
 void* cuda_malloc_managed(std::size_t n);
 void cuda_free(void* ptr);
-void cuda_sync();
 
 } // namespace memory
 } // namespace arb

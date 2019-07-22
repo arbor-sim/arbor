@@ -70,7 +70,7 @@ public:
 
     /// Remove all stored crossings that were detected in previous calls to test()
     void clear_crossings() {
-        stack_.refresh_host_copy();
+        stack_.update_host();
         stack_.clear();
     }
 
@@ -90,7 +90,7 @@ public:
     }
 
     const std::vector<threshold_crossing>& crossings() const {
-        stack_.refresh_host_copy();
+        stack_.update_host();
 
         if (stack_.overflow()) {
             throw arbor_internal_error("gpu/threshold_watcher: gpu spike buffer overflow");
