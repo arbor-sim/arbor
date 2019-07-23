@@ -692,15 +692,21 @@ ass_exit:
 // Parse a value (integral or real) with possible preceding unary minus,
 // and return as a string.
 std::string Parser::value_literal() {
-    std::string value;
+    bool negate = false;
 
     if(token_.type==tok::minus) {
-        value = "-";
+        negate = true;
         get_token();
     }
 
     if (constants_map_.find(token_.spelling) != constants_map_.end()) {
-        value  += constants_map_.at(token_.spelling);
+        // Remove double negation
+        auto v = constants_map_.at(token_.spelling);
+        if (v.at(0) == '-' && negate) {
+            v.erase(0,1);
+            negate = false;
+        }
+        auto value = negate ? "-" + v : v;
         get_token();
         return value;
     }
@@ -710,7 +716,7 @@ std::string Parser::value_literal() {
         return "";
     }
     else {
-        value += token_.spelling;
+        auto value = negate ? "-" + token_.spelling : token_.spelling;
         get_token();
         return value;
     }
