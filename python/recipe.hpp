@@ -7,6 +7,7 @@
 #include <pybind11/stl.h>
 
 #include <arbor/event_generator.hpp>
+#include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
 
 namespace pyarb {
@@ -150,6 +151,11 @@ public:
 
     // TODO: wrap
     arb::util::any get_global_properties(arb::cell_kind kind) const override {
+        if (kind==arb::cell_kind::cable) {
+            arb::cable_cell_global_properties gprop;
+            gprop.default_parameters = arb::neuron_parameter_defaults;
+            return gprop;
+        }
         return arb::util::any{};
     }
 };
