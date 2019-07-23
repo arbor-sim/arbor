@@ -147,7 +147,7 @@ TEST(Parser, parameters_from_constant) {
     Parser p(m, false);
     p.constants_map_.insert({"t0","-0.5"});
     p.constants_map_.insert({"t1","1.2"});
-    p.parse_solve();
+    p.parse_parameter_block();
 
     EXPECT_EQ(lexerStatus::happy, p.status());
 
