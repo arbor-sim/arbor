@@ -516,11 +516,7 @@ void Parser::parse_parameter_block() {
         // look for equality
         if(token_.type==tok::eq) {
             get_token(); // consume '='
-            if (constants_map_.find(token_.spelling) != constants_map_.end()) {
-                parm.value = constants_map_.at(token_.spelling);
-            } else {
-                parm.value = value_literal();
-            }
+            parm.value = value_literal();
             if(status_ == lexerStatus::error) {
                 success = 0;
                 goto parm_exit;
@@ -575,7 +571,6 @@ void Parser::parse_constant_block() {
     }
 
     int success = 1;
-    // there are no use cases for curly brace in a UNITS block, so we don't have to count them
     get_token();
     while(token_.type!=tok::rbrace && token_.type!=tok::eof) {
         int line = location_.line;
@@ -703,6 +698,13 @@ std::string Parser::value_literal() {
         value = "-";
         get_token();
     }
+
+    if (constants_map_.find(token_.spelling) != constants_map_.end()) {
+        value  += constants_map_.at(token_.spelling);
+        get_token();
+        return value;
+    }
+
     if(token_.type != tok::integer && token_.type != tok::real) {
         error(pprintf("numeric constant not an integer or real number '%'", token_));
         return "";
