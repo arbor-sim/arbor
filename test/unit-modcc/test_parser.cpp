@@ -108,6 +108,60 @@ TEST(Parser, procedure) {
     }
 }
 
+TEST(Parser, load_constant) {
+    char str[] = {
+            "CONSTANT {\n"
+            "  t0 = -1.2\n"
+            "  t1 = 0.5\n"
+            "  t2 = -t0\n"
+            "  t3 = -t1\n"
+            "}"
+    };
+
+    Parser p(str);
+    p.parse_constant_block();
+    EXPECT_TRUE(p.status()==lexerStatus::happy);
+
+    EXPECT_TRUE(p.constants_map_.find("t0") != p.constants_map_.end());
+    EXPECT_EQ("-1.2", p.constants_map_.at("t0"));
+
+    EXPECT_TRUE(p.constants_map_.find("t1") != p.constants_map_.end());
+    EXPECT_EQ("0.5", p.constants_map_.at("t1"));
+
+    EXPECT_TRUE(p.constants_map_.find("t2") != p.constants_map_.end());
+    EXPECT_EQ("1.2", p.constants_map_.at("t2"));
+
+    EXPECT_TRUE(p.constants_map_.find("t3") != p.constants_map_.end());
+    EXPECT_EQ("-0.5", p.constants_map_.at("t3"));
+}
+
+TEST(Parser, parameters_from_constant) {
+    char str[] =
+            "PARAMETER {   \n"
+            "  tau = -t0   \n"
+            "  e = t1      \n"
+            "}";
+
+    expression_ptr null;
+    Module m(str, str+std::strlen(str), "");
+    Parser p(m, false);
+    p.constants_map_.insert({"t0","-0.5"});
+    p.constants_map_.insert({"t1","1.2"});
+    p.parse_solve();
+
+    EXPECT_EQ(lexerStatus::happy, p.status());
+
+    if (p.status()==lexerStatus::error) {
+        verbose_print("in ", red(str), "\t", p.error_message());
+    }
+
+    auto param_block = m.parameter_block();
+    EXPECT_EQ("tau", param_block.parameters[0].name());
+    EXPECT_EQ("0.5", param_block.parameters[0].value);
+    EXPECT_EQ("e", param_block.parameters[1].name());
+    EXPECT_EQ("1.2", param_block.parameters[1].value);
+}
+
 TEST(Parser, net_receive) {
     char str[] =
         "NET_RECEIVE (x, y) {   \n"

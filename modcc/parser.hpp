@@ -57,9 +57,10 @@ public:
     void parse_assigned_block();
     void parse_title();
 
+    std::unordered_map<std::string, std::string> constants_map_;
+
 private:
     Module *module_;
-    std::unordered_map<std::string, std::string> constants_map_;
 
     std::vector<Token> comma_separated_identifiers();
     std::vector<Token> unit_description();

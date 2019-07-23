@@ -9,10 +9,14 @@ NEURON {
     RANGE g, e
 }
 
+CONSTANT {
+    l = 0.5
+}
+
 INITIAL {}
 
 PARAMETER {
-    g = .001 (S/cm2)
+    g = l (S/cm2)
     e = -65  (mV) : we use -65 for the ball and stick model, instead of Neuron default of -70
 }
 

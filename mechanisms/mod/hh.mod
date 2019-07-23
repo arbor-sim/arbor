@@ -12,8 +12,16 @@ UNITS {
     (S) = (siemens)
 }
 
+CONSTANT {
+    t0 = -0.032
+    t1 = -t0
+    t2 = 2.1
+    t3 = 0.6
+    t4 = 9.2
+}
+
 PARAMETER {
-    gnabar = .12 (S/cm2)
+    gnabar = -t0 (S/cm2)
     gkbar = .036 (S/cm2)
     gl = .0003 (S/cm2)
     el = -54.3 (mV)
@@ -40,7 +48,7 @@ ASSIGNED {
 BREAKPOINT {
     SOLVE states METHOD cnexp
     gna = gnabar*m*m*m*h
-    ina = gna*(v - ena)
+    ina = gna*(v - t0)
     gk = gkbar*n*n*n*n
     ik = gk*(v - ek)
     il = gl*(v - el)
@@ -55,7 +63,7 @@ INITIAL {
 
 DERIVATIVE states {
     rates(v, celsius)
-    m' = (minf-m)/mtau
+    m' = (minf-m)/t1
     h' = (hinf-h)/htau
     n' = (ninf-n)/ntau
 }
@@ -67,7 +75,7 @@ PROCEDURE rates(v, celsius)
     q10 = 3^((celsius - 6.3)/10)
 
     :"m" sodium activation system
-    alpha = .1 * vtrap(-(v+40),10)
+    alpha = .1 * vtrap(-(v+40),t3)
     beta =  4 * exp(-(v+65)/18)
     sum = alpha + beta
     mtau = 1/(q10*sum)
@@ -90,6 +98,6 @@ PROCEDURE rates(v, celsius)
 
 FUNCTION vtrap(x,y) {
     : use built in exprelr(z) = z/(exp(z)-1), which handles the z=0 case correctly
-    vtrap = y*exprelr(x/y)
+    vtrap = t4*exprelr(x/y)
 }
 

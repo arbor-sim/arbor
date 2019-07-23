@@ -570,7 +570,6 @@ void Parser::parse_constant_block() {
         return;
     }
 
-    int success = 1;
     get_token();
     while(token_.type!=tok::rbrace && token_.type!=tok::eof) {
         int line = location_.line;
@@ -578,8 +577,8 @@ void Parser::parse_constant_block() {
 
         // read the constant name
         if(token_.type != tok::identifier) {
-            success = 0;
-            goto parm_exit;
+            error(pprintf("CONSTANT block unexpected symbol '%s'", token_.spelling));
+            return;
         }
         name = token_.spelling; // save full token
 
@@ -590,8 +589,7 @@ void Parser::parse_constant_block() {
             get_token(); // consume '='
             value = value_literal();
             if(status_ == lexerStatus::error) {
-                success = 0;
-                goto parm_exit;
+                return;
             }
         }
 
@@ -599,8 +597,7 @@ void Parser::parse_constant_block() {
         if(line==location_.line && token_.type == tok::lparen) {
             unit_description();
             if(status_ == lexerStatus::error) {
-                success = 0;
-                goto parm_exit;
+                return;
             }
         }
 
@@ -610,16 +607,11 @@ void Parser::parse_constant_block() {
     // error if EOF before closing curly brace
     if(token_.type==tok::eof) {
         error("CONSTANT block must have closing '}'");
-        goto parm_exit;
+        return;
     }
 
     get_token(); // consume closing brace
 
-    parm_exit:
-    // only write error message if one hasn't already been logged by the lexer
-    if(!success && status_==lexerStatus::happy) {
-        error(pprintf("CONSTANT block unexpected symbol '%s'", token_.spelling));
-    }
     return;
 }
 
