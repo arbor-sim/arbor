@@ -107,6 +107,9 @@ bool Parser::parse() {
             case tok::units :
                 parse_units_block();
                 break;
+            case tok::constant :
+                parse_constant_block();
+                break;
             case tok::parameter :
                 parse_parameter_block();
                 break;
@@ -513,7 +516,11 @@ void Parser::parse_parameter_block() {
         // look for equality
         if(token_.type==tok::eq) {
             get_token(); // consume '='
-            parm.value = value_literal();
+            if (constants_map_.find(token_.spelling) != constants_map_.end()) {
+                parm.value = constants_map_.at(token_.spelling);
+            } else {
+                parm.value = value_literal();
+            }
             if(status_ == lexerStatus::error) {
                 success = 0;
                 goto parm_exit;
@@ -554,6 +561,69 @@ parm_exit:
     // only write error message if one hasn't already been logged by the lexer
     if(!success && status_==lexerStatus::happy) {
         error(pprintf("PARAMETER block unexpected symbol '%s'", token_.spelling));
+    }
+    return;
+}
+
+void Parser::parse_constant_block() {
+    get_token();
+
+    // assert that the block starts with a curly brace
+    if(token_.type != tok::lbrace) {
+        error(pprintf("CONSTANT block must start with a curly brace {, found '%'", token_.spelling));
+        return;
+    }
+
+    int success = 1;
+    // there are no use cases for curly brace in a UNITS block, so we don't have to count them
+    get_token();
+    while(token_.type!=tok::rbrace && token_.type!=tok::eof) {
+        int line = location_.line;
+        std::string name, value;
+
+        // read the constant name
+        if(token_.type != tok::identifier) {
+            success = 0;
+            goto parm_exit;
+        }
+        name = token_.spelling; // save full token
+
+        get_token();
+
+        // look for equality
+        if(token_.type==tok::eq) {
+            get_token(); // consume '='
+            value = value_literal();
+            if(status_ == lexerStatus::error) {
+                success = 0;
+                goto parm_exit;
+            }
+        }
+
+        // get the units
+        if(line==location_.line && token_.type == tok::lparen) {
+            unit_description();
+            if(status_ == lexerStatus::error) {
+                success = 0;
+                goto parm_exit;
+            }
+        }
+
+        constants_map_.insert({name, value});
+    }
+
+    // error if EOF before closing curly brace
+    if(token_.type==tok::eof) {
+        error("CONSTANT block must have closing '}'");
+        goto parm_exit;
+    }
+
+    get_token(); // consume closing brace
+
+    parm_exit:
+    // only write error message if one hasn't already been logged by the lexer
+    if(!success && status_==lexerStatus::happy) {
+        error(pprintf("CONSTANT block unexpected symbol '%s'", token_.spelling));
     }
     return;
 }
@@ -936,6 +1006,16 @@ expression_ptr Parser::parse_statement() {
 }
 
 expression_ptr Parser::parse_identifier() {
+    if (constants_map_.find(token_.spelling) != constants_map_.end()) {
+        // save location and value of the identifier
+        auto id = make_expression<NumberExpression>(token_.location, constants_map_.at(token_.spelling));
+
+        // consume the number
+        get_token();
+
+        // return the value of the constant
+        return id;
+    }
     // save name and location of the identifier
     auto id = make_expression<IdentifierExpression>(token_.location, token_.spelling);
 

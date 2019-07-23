@@ -53,11 +53,13 @@ public:
     void parse_state_block();
     void parse_units_block();
     void parse_parameter_block();
+    void parse_constant_block();
     void parse_assigned_block();
     void parse_title();
 
 private:
     Module *module_;
+    std::unordered_map<std::string, std::string> constants_map_;
 
     std::vector<Token> comma_separated_identifiers();
     std::vector<Token> unit_description();
