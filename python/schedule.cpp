@@ -1,5 +1,3 @@
-#include <limits>
-
 #include <arbor/schedule.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
@@ -30,6 +28,10 @@ std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
              << ", freq " << p.freq << " Hz"
              << ", seed " << p.seed << ">";
 };
+
+static std::vector<arb::time_type> as_vector(std::pair<const arb::time_type*, const arb::time_type*> ts) {
+    return std::vector<arb::time_type>(ts.first, ts.second);
+}
 
 //
 // regular_schedule shim
@@ -79,23 +81,18 @@ arb::schedule regular_schedule_shim::schedule() const {
             tstop.value_or(arb::terminal_time));
 }
 
-std::list<arb::time_type> regular_schedule_shim::events(pybind11::object t0, pybind11::object t1) {
+std::vector<arb::time_type> regular_schedule_shim::events(pybind11::object t0, pybind11::object t1) {
     regular_schedule_shim::opt_time_type t0_opt = py2optional<time_type>(t0,
         "t0 must be a non-negative number, or None", is_nonneg());
     regular_schedule_shim::opt_time_type t1_opt = py2optional<time_type>(t1,
         "t1 must be a non-negative number, or None", is_nonneg());
-    arb::time_type max_float = std::numeric_limits<float>::max();
 
-    arb::time_type t0_time = t0_opt.value_or(max_float);
-    arb::time_type t1_time = t1_opt.value_or(max_float);
+    arb::time_type t0_time = t0_opt.value_or(arb::terminal_time);
+    arb::time_type t1_time = t1_opt.value_or(arb::terminal_time);
 
     arb::schedule sched = regular_schedule_shim::schedule();
-    auto it_begin = sched.events(t0_time, t1_time).first;
-    auto it_end   = sched.events(t0_time, t1_time).second;
 
-    std::list<arb::time_type> event_list(it_begin, it_end);
-
-    return event_list;
+    return as_vector(sched.events(t0_time, t1_time));
 }
 
 //
@@ -131,18 +128,13 @@ arb::schedule explicit_schedule_shim::schedule() const {
     return arb::explicit_schedule(times);
 }
 
-std::list<arb::time_type> explicit_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
+std::vector<arb::time_type> explicit_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
     pyarb::assert_throw(is_nonneg()(t0), "t0 must be a non-negative number");
     pyarb::assert_throw(is_nonneg()(t1), "t1 must be a non-negative number");
 
     arb::schedule sched = explicit_schedule_shim::schedule();
 
-    auto it_begin = sched.events(t0, t1).first;
-    auto it_end   = sched.events(t0, t1).second;
-
-    std::list<arb::time_type> event_list(it_begin, it_end);
-
-    return event_list;
+    return as_vector(sched.events(t0, t1));
 }
 
 //
@@ -182,18 +174,13 @@ arb::schedule poisson_schedule_shim::schedule() const {
     return arb::poisson_schedule(tstart, freq/1000., rng_type(seed));
 }
 
-std::list<arb::time_type> poisson_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
+std::vector<arb::time_type> poisson_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
     pyarb::assert_throw(is_nonneg()(t0), "t0 must be a non-negative number");
     pyarb::assert_throw(is_nonneg()(t1), "t1 must be a non-negative number");
 
     arb::schedule sched = poisson_schedule_shim::schedule();
 
-    auto it_begin = sched.events(t0, t1).first;
-    auto it_end   = sched.events(t0, t1).second;
-
-    std::list<arb::time_type> event_list(it_begin, it_end);
-
-    return event_list;
+    return as_vector(sched.events(t0, t1));
 }
 
 void register_schedules(pybind11::module& m) {

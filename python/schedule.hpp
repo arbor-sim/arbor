@@ -36,7 +36,7 @@ struct regular_schedule_shim {
 
     arb::schedule schedule() const;
 
-    std::list<arb::time_type> events(pybind11::object t0, pybind11::object t1);
+    std::vector<arb::time_type> events(pybind11::object t0, pybind11::object t1);
 };
 
 // A Python shim for arb::explicit_schedule.
@@ -55,7 +55,7 @@ struct explicit_schedule_shim {
 
     arb::schedule schedule() const;
 
-    std::list<arb::time_type> events(arb::time_type t0, arb::time_type t1);
+    std::vector<arb::time_type> events(arb::time_type t0, arb::time_type t1);
 };
 
 // A Python shim for arb::poisson_schedule.
@@ -80,7 +80,7 @@ struct poisson_schedule_shim {
 
     arb::schedule schedule() const;
 
-    std::list<arb::time_type> events(arb::time_type t0, arb::time_type t1);
+    std::vector<arb::time_type> events(arb::time_type t0, arb::time_type t1);
 };
 
 }
