@@ -81,6 +81,7 @@ public:
         device_storage_(create_storage(capacity)), gpu_context_(gpu_ctx) {}
 
     ~stack() {
+        update_host_storage();
         auto st = get_storage_copy();
         if (st.data) {
             allocator<value_type>().deallocate(st.data, st.capacity);
@@ -107,9 +108,12 @@ public:
         return host_copy_;
     }
 
+    void update_host_storage() {
+	    memory::cuda_memcpy_d2h(&host_copy_, device_storage_, sizeof(storage_type));
+    }
 
     void update_host() {
-        host_copy_ = get_storage_copy();
+        update_host_storage();
         data_ = get_data();
     }
 
