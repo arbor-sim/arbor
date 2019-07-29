@@ -121,6 +121,19 @@ optional<typename sequence_traits<C>::difference_type> binary_search_index(const
     return it!=strict.end() && key==*it? just(std::distance(strict.begin(), it)): nullopt;
 }
 
+// As binary_search_index above, but compare key against the proj(x) for elements
+// x in the sequence. The image of proj applied to the sequence must be monotonically
+// increasing.
+
+template <typename C, typename Key, typename Proj>
+optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key, const Proj& proj) {
+    auto strict = strict_view(c);
+    auto projected = transform_view(strict, proj);
+    auto it = std::lower_bound(projected.begin(), projected.end(), key);
+    return it!=strict.end() && key==*it? just(std::distance(projected.begin(), it)): nullopt;
+}
+
+
 // Key equality helper for NUL-terminated strings.
 
 struct cstr_equal {

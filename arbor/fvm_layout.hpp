@@ -66,8 +66,14 @@ struct fvm_discretization {
     std::vector<value_type> face_conductance; // [µS]
     std::vector<value_type> cv_area;          // [µm²]
     std::vector<value_type> cv_capacitance;   // [pF]
+    std::vector<value_type> init_membrane_potential; // [mV]
+    std::vector<value_type> temperature_K;    // [K]
 
     std::vector<segment_info> segments;
+
+    // If segment has no parent segment, parent_segment[j] = j.
+    std::vector<index_type> parent_segment;
+
     std::vector<size_type> cell_segment_bounds; // Partitions segment indices by cell.
     std::vector<index_type> cell_cv_bounds;      // Partitions CV indices by cell.
 
@@ -88,7 +94,7 @@ struct fvm_discretization {
     }
 };
 
-fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells);
+fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const cable_cell_parameter_set& params);
 
 
 // Post-discretization data for point and density mechanism instantiation.
@@ -103,7 +109,7 @@ struct fvm_mechanism_config {
     // duplicates for point mechanisms.
     std::vector<index_type> cv;
 
-    // Coalesced synapse multiplier
+    // Coalesced synapse multiplier (point mechanisms only).
     std::vector<index_type> multiplicity;
 
     // Normalized area contribution in corresponding CV (density mechanisms only).
@@ -126,8 +132,11 @@ struct fvm_ion_config {
     std::vector<index_type> cv;
 
     // Normalized area contribution of default concentration contribution in corresponding CV.
-    std::vector<value_type> iconc_norm_area;
-    std::vector<value_type> econc_norm_area;
+    std::vector<value_type> init_iconc;
+    std::vector<value_type> init_econc;
+
+    // Ion-specific (initial) reversal potential per CV.
+    std::vector<value_type> init_revpot;
 };
 
 struct fvm_mechanism_data {

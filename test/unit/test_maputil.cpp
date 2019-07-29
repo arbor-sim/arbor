@@ -188,4 +188,18 @@ TEST(maputil, binary_search_index) {
         ASSERT_TRUE(opti);
         EXPECT_EQ(x, ns[*opti]);
     }
+
+    // With projection:
+    const char* ss[] = {"bit", "short", "small", "longer", "very long", "also long", "sesquipedalian"};
+    auto proj = [](const char* s) -> int { return std::strlen(s); };
+
+    for (int x: {1, 4, 7, 10, 20}) {
+        EXPECT_FALSE(binary_search_index(ss, x, proj));
+    }
+
+    for (int x: {3, 5, 6, 9, 14}) {
+        auto opti = binary_search_index(ss, x, proj);
+        ASSERT_TRUE(opti);
+        EXPECT_EQ(x, (int)std::strlen(ss[*opti]));
+    }
 }

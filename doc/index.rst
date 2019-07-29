@@ -104,6 +104,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    cpp_recipe
    cpp_domdec
    cpp_simulation
+   cpp_cable_cell
 
 .. toctree::
    :caption: Developers:

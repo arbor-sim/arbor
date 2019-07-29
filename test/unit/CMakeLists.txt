@@ -7,6 +7,9 @@ set(test_mechanisms
     linear_ca_conc
     test_cl_valence
     test_ca_read_valence
+    read_eX
+    write_multiple_eX
+    write_eX
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
