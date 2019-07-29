@@ -136,7 +136,7 @@ TEST(Parser, load_constant) {
 }
 
 TEST(Parser, parameters_from_constant) {
-    char str[] =
+    const char str[] =
             "PARAMETER {   \n"
             "  tau = -t0   \n"
             "  e = t1      \n"
@@ -150,10 +150,7 @@ TEST(Parser, parameters_from_constant) {
     p.parse_parameter_block();
 
     EXPECT_EQ(lexerStatus::happy, p.status());
-
-    if (p.status()==lexerStatus::error) {
-        verbose_print("in ", red(str), "\t", p.error_message());
-    }
+    verbose_print(null, p, str);
 
     auto param_block = m.parameter_block();
     EXPECT_EQ("tau", param_block.parameters[0].name());
