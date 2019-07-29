@@ -107,6 +107,9 @@ bool Parser::parse() {
             case tok::units :
                 parse_units_block();
                 break;
+            case tok::constant :
+                parse_constant_block();
+                break;
             case tok::parameter :
                 parse_parameter_block();
                 break;
@@ -558,6 +561,60 @@ parm_exit:
     return;
 }
 
+void Parser::parse_constant_block() {
+    get_token();
+
+    // assert that the block starts with a curly brace
+    if(token_.type != tok::lbrace) {
+        error(pprintf("CONSTANT block must start with a curly brace {, found '%'", token_.spelling));
+        return;
+    }
+
+    get_token();
+    while(token_.type!=tok::rbrace && token_.type!=tok::eof) {
+        int line = location_.line;
+        std::string name, value;
+
+        // read the constant name
+        if(token_.type != tok::identifier) {
+            error(pprintf("CONSTANT block unexpected symbol '%s'", token_.spelling));
+            return;
+        }
+        name = token_.spelling; // save full token
+
+        get_token();
+
+        // look for equality
+        if(token_.type==tok::eq) {
+            get_token(); // consume '='
+            value = value_literal();
+            if(status_ == lexerStatus::error) {
+                return;
+            }
+        }
+
+        // get the units
+        if(line==location_.line && token_.type == tok::lparen) {
+            unit_description();
+            if(status_ == lexerStatus::error) {
+                return;
+            }
+        }
+
+        constants_map_.insert({name, value});
+    }
+
+    // error if EOF before closing curly brace
+    if(token_.type==tok::eof) {
+        error("CONSTANT block must have closing '}'");
+        return;
+    }
+
+    get_token(); // consume closing brace
+
+    return;
+}
+
 void Parser::parse_assigned_block() {
     AssignedBlock block;
 
@@ -627,18 +684,31 @@ ass_exit:
 // Parse a value (integral or real) with possible preceding unary minus,
 // and return as a string.
 std::string Parser::value_literal() {
-    std::string value;
+    bool negate = false;
 
     if(token_.type==tok::minus) {
-        value = "-";
+        negate = true;
         get_token();
     }
+
+    if (constants_map_.find(token_.spelling) != constants_map_.end()) {
+        // Remove double negation
+        auto v = constants_map_.at(token_.spelling);
+        if (v.at(0) == '-' && negate) {
+            v.erase(0,1);
+            negate = false;
+        }
+        auto value = negate ? "-" + v : v;
+        get_token();
+        return value;
+    }
+
     if(token_.type != tok::integer && token_.type != tok::real) {
         error(pprintf("numeric constant not an integer or real number '%'", token_));
         return "";
     }
     else {
-        value += token_.spelling;
+        auto value = negate ? "-" + token_.spelling : token_.spelling;
         get_token();
         return value;
     }
@@ -936,6 +1006,16 @@ expression_ptr Parser::parse_statement() {
 }
 
 expression_ptr Parser::parse_identifier() {
+    if (constants_map_.find(token_.spelling) != constants_map_.end()) {
+        // save location and value of the identifier
+        auto id = make_expression<NumberExpression>(token_.location, constants_map_.at(token_.spelling));
+
+        // consume the number
+        get_token();
+
+        // return the value of the constant
+        return id;
+    }
     // save name and location of the identifier
     auto id = make_expression<IdentifierExpression>(token_.location, token_.spelling);
 
