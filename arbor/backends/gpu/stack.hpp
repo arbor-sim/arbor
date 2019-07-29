@@ -43,7 +43,7 @@ private:
     storage_type host_copy_;
     gpu_context_handle gpu_context_;
 
-    storage_type* create_storage(unsigned n) {
+    void create_storage(unsigned n) {
         storage_type p;
         p.capacity = n;
         p.stores = 0u;
@@ -55,7 +55,7 @@ private:
 
         host_copy_ = p;
         
-        return p_gpu;
+        device_storage_ = p_gpu;
     }
 
 public:
@@ -65,10 +65,12 @@ public:
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
 
-    stack(const gpu_context_handle& gpu_ctx):
-        device_storage_(create_storage(0)), gpu_context_(gpu_ctx) {}
+    stack(const gpu_context_handle& gpu_ctx): gpu_context_(gpu_ctx) {
+            create_storage(0);
+    }
 
-    stack(stack&& other): device_storage_(create_storage(0)), gpu_context_(other.gpu_context_) {
+    stack(stack&& other): gpu_context_(other.gpu_context_) {
+        create_storage(0);
         std::swap(device_storage_, other.device_storage_);
     }
 
@@ -77,8 +79,9 @@ public:
         return *this;
     }
 
-    explicit stack(unsigned capacity, const gpu_context_handle& gpu_ctx):
-        device_storage_(create_storage(capacity)), gpu_context_(gpu_ctx) {}
+    explicit stack(unsigned capacity, const gpu_context_handle& gpu_ctx): gpu_context_(gpu_ctx) {
+        create_storage(capacity);
+    }
 
     ~stack() {
         update_host_storage();
@@ -86,6 +89,8 @@ public:
         if (st.data) {
             allocator<value_type>().deallocate(st.data, st.capacity);
         }
+        allocator<storage_type>().deallocate(device_storage_, sizeof(storage_type));
+
     }
 
     std::vector<T> get_data() const {
