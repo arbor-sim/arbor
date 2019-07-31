@@ -173,11 +173,11 @@ domain_decomposition partition_load_balance(
         }
 
         backend_kind backend = backend_kind::multicore;
-        std::size_t group_size = hint.cpu_group_size;
+        std::size_t group_size = hint.get_cpu_group_size();
 
-        if (hint.prefer_gpu && gpu_avail && has_gpu_backend(k)) {
+        if (hint.get_prefer_gpu() && gpu_avail && has_gpu_backend(k)) {
             backend = backend_kind::gpu;
-            group_size = hint.gpu_group_size;
+            group_size = hint.get_gpu_group_size();
         }
 
         std::vector<cell_gid_type> group_elements;
