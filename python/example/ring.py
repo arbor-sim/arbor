@@ -59,10 +59,19 @@ meters.checkpoint('recipe-create', context)
 decomp = arbor.partition_load_balance(recipe, context)
 print(f'{decomp}')
 
+hint = arbor.partition_hint()
+hint.prefer_gpu = False
+hint.gpu_group_size = 1
+print(f'{hint}')
+
+hints = dict([(arbor.cell_kind.cable, hint)])
+decomp = arbor.partition_load_balance(recipe, context, hints)
+print(f'{decomp}')
+
 meters.checkpoint('load-balance', context)
 
 sim = arbor.simulation(recipe, decomp, context)
-print(f'{sim}')
+print(f'{sim} finished')
 
 meters.checkpoint('simulation-init', context)
 

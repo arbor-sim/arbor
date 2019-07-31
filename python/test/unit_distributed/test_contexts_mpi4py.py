@@ -78,7 +78,7 @@ def suite():
 def run():
     v = options.parse_arguments().verbosity
 
-    comm = arb.mpi_comm_from_mpi4py(mpi.COMM_WORLD)
+    comm = arb.mpi_comm(mpi.COMM_WORLD)
     alloc = arb.proc_allocation()
     ctx = arb.context(alloc, comm)
     rank = ctx.rank
