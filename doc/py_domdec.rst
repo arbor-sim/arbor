@@ -66,6 +66,35 @@ describes the cell groups on the local MPI rank.
 
         Get the maximum size of cell groups.
 
+An example of a partition load balance with hints reads as follows:
+
+.. container:: example-code
+
+    .. code-block:: python
+
+        import arbor
+
+        # Get a communication context (with 4 threads, no GPU)
+        context = arbor.context(threads=4, gpu_id=None)
+
+        # Initialise a recipe of user defined type my_recipe with 100 cells.
+        n_cells = 100
+        recipe = my_recipe(n_cells)
+
+        # The hints perfer the multicore backend, so the decomposition is expected
+        # to never have cell groups on the GPU, regardless of whether a GPU is
+        # available or not.
+        cable_hint                  = arb.partition_hint()
+        cable_hint.prefer_gpu       = False
+        cable_hint.cpu_group_size   = 3
+        spike_hint                  = arb.partition_hint()
+        spike_hint.prefer_gpu       = False
+        spike_hint.cpu_group_size   = 4
+        hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
+
+        decomp = arb.partition_load_balance(recipe, context, hints)
+
+
 Decomposition
 -------------
 As defined in :ref:`modeldomdec` a domain decomposition is a description of the distribution of the model over the available computational resources.
