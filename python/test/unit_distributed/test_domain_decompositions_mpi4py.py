@@ -383,7 +383,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
 
         # check gid_domains
         for gid in range(recipe.num_cells()):
-            group = gid/cells_per_rank
+            group = int(gid/cells_per_rank)
             idx = gid%cells_per_rank
             ngroups = nranks
             if (idx == group - 1):
