@@ -73,6 +73,8 @@ class Domain_Decompositions(unittest.TestCase):
         for gid in gids:
             self.assertEqual(0, decomp.gid_domain(gid))
 
+        # Each cell group contains 1 cell of kind cable
+        # Each group should also be tagged for cpu execution
         for i in gids:
             grp = decomp.groups[i]
             self.assertEqual(len(grp.gids), 1)
@@ -95,6 +97,9 @@ class Domain_Decompositions(unittest.TestCase):
         gids = range(n_cells)
         for gid in gids:
             self.assertEqual(0, decomp.gid_domain(gid))
+
+        # Each cell group contains 1 cell of kind cable
+        # Each group should also be tagged for gpu execution
 
         grp = decomp.groups[0]
 
@@ -119,6 +124,8 @@ class Domain_Decompositions(unittest.TestCase):
         for gid in gids:
             self.assertEqual(0, decomp.gid_domain(gid))
 
+        # Each cell group contains 1 cell of kind cable
+        # Each group should also be tagged for cpu execution
         grps = list(range(n_cells))
         kind_lists = dict()
         for i in grps:
@@ -134,7 +141,7 @@ class Domain_Decompositions(unittest.TestCase):
         kinds = [arb.cell_kind.cable, arb.cell_kind.spike_source]
         for k in kinds:
             gids = kind_lists[k]
-            self.assertEqual(len(gids), n_cells/2)
+            self.assertEqual(len(gids), int(n_cells/2))
             for gid in gids:
                 self.assertEqual(k, recipe.cell_kind(gid))
 
@@ -149,24 +156,26 @@ class Domain_Decompositions(unittest.TestCase):
         self.assertEqual(decomp.num_local_cells, n_cells)
         self.assertEqual(decomp.num_global_cells, n_cells)
 
-        expected_groups = n_cells/2+1
+        # one cell group with n_cells/2 on gpu, and n_cells/2 groups on cpu
+        expected_groups = int(n_cells/2) + 1
         self.assertEqual(len(decomp.groups), expected_groups)
 
         grps = range(expected_groups)
         n = 0
+        # iterate over each group and test its properties
         for i in grps:
             grp = decomp.groups[i]
             k = grp.kind
             if (k == arb.cell_kind.cable):
                 self.assertEqual(grp.backend, arb.backend.gpu)
-                self.assertEqual(len(grp.gids), n_cells/2)
+                self.assertEqual(len(grp.gids), int(n_cells/2))
                 for gid in grp.gids:
                     self.assertTrue(gid%2==0)
                     n += 1
             elif (k == arb.cell_kind.spike_source):
                 self.assertEqual(grp.backend, arb.backend.multicore)
                 self.assertEqual(len(grp.gids), 1)
-                self.assertTrue(grp.gids[0]%2==0)
+                self.assertTrue(grp.gids[0]%2)
                 n += 1
         self.assertEqual(n_cells, n)
 

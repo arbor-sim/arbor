@@ -197,7 +197,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
     def test_domain_decomposition_homogenous_GPU(self):
 
         if (mpi_enabled and mpi4py_enabled):
-            comm = mpi_comm(mpi.COMM_WORLD)
+            comm = arb.mpi_comm(mpi.COMM_WORLD)
             context = arb.context(threads=1, gpu_id=0, mpi=comm)
         else:
             context = arb.context(threads=1, gpu_id=0)
