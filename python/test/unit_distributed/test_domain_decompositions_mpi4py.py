@@ -393,6 +393,37 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             else:
                 self.assertEqual(group, decomp.gid_domain(gid))
 
+    def test_domain_decomposition_exceptions(self):
+        nranks = 1
+        rank = 0
+        if (mpi_enabled and mpi4py_enabled):
+            comm = arb.mpi_comm(mpi.COMM_WORLD)
+            context = arb.context(threads=1, gpu_id=None, mpi=comm)
+            nranks = context.ranks
+            rank = context.rank
+        else:
+            context = arb.context(threads=1, gpu_id=None)
+
+        recipe = gj_symmetric(nranks)
+
+        hint1 = arb.partition_hint()
+        hint1.prefer_gpu = False
+        hint1.cpu_group_size = 0
+        hints1 = dict([(arb.cell_kind.cable, hint1)])
+
+        with self.assertRaisesRegex(RuntimeError,
+            "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0"):
+            decomp1 = arb.partition_load_balance(recipe, context, hints1)
+
+        hint2 = arb.partition_hint()
+        hint2.prefer_gpu = True
+        hint2.gpu_group_size = 0
+        hints2 = dict([(arb.cell_kind.cable, hint2)])
+
+        with self.assertRaisesRegex(RuntimeError,
+            "unable to perform load balancing because cell_kind::cable has invalid suggested gpu_cell_group size of 0"):
+            decomp2 = arb.partition_load_balance(recipe, context, hints2)
+
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
     suite = unittest.makeSuite(Domain_Decompositions_Distributed, ('test'))

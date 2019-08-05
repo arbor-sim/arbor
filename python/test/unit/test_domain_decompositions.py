@@ -213,6 +213,37 @@ class Domain_Decompositions(unittest.TestCase):
         self.assertEqual(exp_cable_groups, cable_groups)
         self.assertEqual(exp_spike_groups, spike_groups)
 
+    def test_domain_decomposition_exceptions(self):
+        n_cells = 20
+        recipe = hetero_recipe(n_cells)
+        context = arb.context()
+        # The hints perfer the multicore backend, so the decomposition is expected
+        # to never have cell groups on the GPU, regardless of whether a GPU is
+        # available or not.
+        cable_hint = arb.partition_hint()
+        cable_hint.prefer_gpu = False
+        cable_hint.cpu_group_size = 0
+        spike_hint = arb.partition_hint()
+        spike_hint.prefer_gpu = False
+        spike_hint.gpu_group_size = 1
+        hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
+
+        with self.assertRaisesRegex(RuntimeError,
+            "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0"):
+            decomp = arb.partition_load_balance(recipe, context, hints)
+
+        cable_hint = arb.partition_hint()
+        cable_hint.prefer_gpu = False
+        cable_hint.cpu_group_size = 1
+        spike_hint = arb.partition_hint()
+        spike_hint.prefer_gpu = True
+        spike_hint.gpu_group_size = 0
+        hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
+
+        with self.assertRaisesRegex(RuntimeError,
+            "unable to perform load balancing because cell_kind::spike_source has invalid suggested gpu_cell_group size of 0"):
+            decomp = arb.partition_load_balance(recipe, context, hints)
+
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
     suite = unittest.makeSuite(Domain_Decompositions, ('test'))
