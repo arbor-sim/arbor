@@ -91,10 +91,12 @@ public:
     stack(stack&& other): gpu_context_(other.gpu_context_) {
         create_storage(0);
         std::swap(device_storage_, other.device_storage_);
+        update_host();
     }
 
     stack& operator=(stack&& other) {
         std::swap(device_storage_, other.device_storage_);
+        update_host();
         return *this;
     }
 
@@ -104,9 +106,8 @@ public:
 
     ~stack() {
         update_host_storage();
-        auto st = get_storage_copy();
-        if (st.data) {
-            allocator<value_type>().deallocate(st.data, st.capacity);
+        if (host_storage_.data) {
+            allocator<value_type>().deallocate(host_storage_.data, host_storage_.capacity);
         }
         allocator<storage_type>().deallocate(device_storage_, sizeof(storage_type));
 
