@@ -40,8 +40,13 @@ class stack {
 private:
     // pointer in GPU memory
     storage_type* device_storage_;
-    storage_type host_copy_;
+
+    // copy of the device_storage in host
+    storage_type host_storage_;
     gpu_context_handle gpu_context_;
+
+    // copy of data from GPU memory, to be manually refreshed before access
+    std::vector<T> data_;
 
     void create_storage(unsigned n) {
         storage_type p;
@@ -53,14 +58,28 @@ private:
 
         memory::cuda_memcpy_h2d(p_gpu, &p, sizeof(storage_type));
 
-        host_copy_ = p;
+        host_storage_ = p;
         
         device_storage_ = p_gpu;
     }
 
+    void update_data() {
+        if (capacity() != 0u) {
+
+            auto num = size();
+            std::vector<T> buf(num);
+            auto bytes = num*sizeof(T);
+            memory::cuda_memcpy_d2h(buf.data(), host_storage_.data, bytes);
+            
+            data_ = buf;
+        }
+    }
+
+    void update_host_storage() {
+	    memory::cuda_memcpy_d2h(&host_storage_, device_storage_, sizeof(storage_type));
+    }
+
 public:
-    // copy of data from GPU memory, to be manually refreshed before access
-    std::vector<T> data_;
 
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
@@ -93,72 +112,57 @@ public:
 
     }
 
-    std::vector<T> get_data() const {
-        if (capacity() != 0u) {
+    void update_host() {
+        update_host_storage();
+        update_data();
+    }
 
-            auto num = std::min(host_copy_.stores, host_copy_.capacity);
-            std::vector<T> buf(num);
-            auto bytes = num*sizeof(T);
-            memory::cuda_memcpy_d2h(buf.data(), host_copy_.data, bytes);
-            
-            return buf;
+    // All functions below should be called after updating host
+
+    void clear() {
+        host_storage_.stores = 0u;
+        memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
+    }
+
+    storage_type get_storage_copy() const {
+        return host_storage_;
+    }
+
+    const std::vector<value_type>& data() const {
+        if (capacity() != 0u) {
+            return data_;
         }
         else {
             return std::vector<T> {};
         }
-
-    }
-
-    storage_type get_storage_copy() const {
-        return host_copy_;
-    }
-
-    void update_host_storage() {
-	    memory::cuda_memcpy_d2h(&host_copy_, device_storage_, sizeof(storage_type));
-    }
-
-    void update_host() {
-        update_host_storage();
-        data_ = get_data();
-    }
-
-    void clear() {
-        host_copy_.stores = 0u;
-        memory::cuda_memcpy_h2d(device_storage_, &host_copy_, sizeof(storage_type));
     }
 
     // The number of items that have been pushed back on the stack.
     // This may exceed capacity, which indicates that the caller attempted
     // to push back more values than there was space to store.
     unsigned pushes() const {
-        return host_copy_.stores;
+        return host_storage_.stores;
     }
 
     bool overflow() const {
-        return host_copy_.stores>host_copy_.capacity;
+        return host_storage_.stores>host_storage_.capacity;
     }
 
     // The number of values stored in the stack.
     unsigned size() const {
-        storage_type storage_copy = get_storage_copy();
-        return std::min(storage_copy.stores, storage_copy.capacity);
+        return std::min(host_storage_.stores, host_storage_.capacity);
     }
 
     // The maximum number of items that can be stored in the stack.
     unsigned capacity() const {
-        return host_copy_.capacity;
+        return host_storage_.capacity;
     }
 
     storage_type& storage() {
         return *device_storage_;
     }
 
-    value_type& operator[](unsigned i) {
-        arb_assert(i<size());
-        return data_[i];
-    }
-
-    value_type& operator[](unsigned i) const {
+    const value_type& operator[](unsigned i) const {
         arb_assert(i<size());
         return data_[i];
     }
