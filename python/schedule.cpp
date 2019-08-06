@@ -81,18 +81,13 @@ arb::schedule regular_schedule_shim::schedule() const {
             tstop.value_or(arb::terminal_time));
 }
 
-std::vector<arb::time_type> regular_schedule_shim::events(pybind11::object t0, pybind11::object t1) {
-    regular_schedule_shim::opt_time_type t0_opt = py2optional<time_type>(t0,
-        "t0 must be a non-negative number, or None", is_nonneg());
-    regular_schedule_shim::opt_time_type t1_opt = py2optional<time_type>(t1,
-        "t1 must be a non-negative number, or None", is_nonneg());
-
-    arb::time_type t0_time = t0_opt.value_or(arb::terminal_time);
-    arb::time_type t1_time = t1_opt.value_or(arb::terminal_time);
+std::vector<arb::time_type> regular_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
+    pyarb::assert_throw(is_nonneg()(t0), "t0 must be a non-negative number");
+    pyarb::assert_throw(is_nonneg()(t1), "t1 must be a non-negative number");
 
     arb::schedule sched = regular_schedule_shim::schedule();
 
-    return as_vector(sched.events(t0_time, t1_time));
+    return as_vector(sched.events(t0, t1));
 }
 
 //

@@ -42,8 +42,8 @@ class RegularSchedule(unittest.TestCase):
         expected = [0, 0.25, 0.5, 0.75, 1.0]
         rs = arb.regular_schedule(tstart = 0., dt = 0.25, tstop = 1.25)
         self.assertEqual(expected, rs.events(0., 1.25))
-        self.assertEqual(expected, rs.events(0., None))
-        self.assertEqual([], rs.events(None, None))
+        self.assertEqual(expected, rs.events(0., 5.))
+        self.assertEqual([], rs.events(5., 10.))
 
     def test_exceptions_regular_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
@@ -60,11 +60,11 @@ class RegularSchedule(unittest.TestCase):
             "tstop must be a non-negative number, or None"):
             arb.regular_schedule(tstop = 'tstop')
         with self.assertRaisesRegex(RuntimeError,
-            "t0 must be a non-negative number, or None"):
+            "t0 must be a non-negative number"):
             rs = arb.regular_schedule(0., 1., 10.)
-            rs.events(-1, None)
+            rs.events(-1, 0)
         with self.assertRaisesRegex(RuntimeError,
-            "t1 must be a non-negative number, or None"):
+            "t1 must be a non-negative number"):
             rs = arb.regular_schedule(0., 1., 10.)
             rs.events(0, -10)
 
