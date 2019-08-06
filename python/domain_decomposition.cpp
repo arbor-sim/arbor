@@ -29,8 +29,8 @@ std::string dd_string(const arb::domain_decomposition& d) {
 
 std::string ph_string(const arb::partition_hint& h) {
     return util::pprintf(
-        "<arbor.partition_hint: max_size {}, cpu_group_size {}, gpu_group_size {}, prefer_gpu {}>",
-        h.max_size, h.cpu_group_size, h.gpu_group_size, (h.prefer_gpu == 1) ? "True" : "False");
+        "<arbor.partition_hint: cpu_group_size {}, gpu_group_size {}, prefer_gpu {}>",
+        h.cpu_group_size, h.gpu_group_size, (h.prefer_gpu == 1) ? "True" : "False");
 }
 
 void register_domain_decomposition(pybind11::module& m) {
@@ -70,7 +70,8 @@ void register_domain_decomposition(pybind11::module& m) {
                                         "The size of cell group assigned to GPU.")
         .def_readwrite("prefer_gpu", &arb::partition_hint::prefer_gpu,
                                         "Whether GPU usage is preferred.")
-        .def_property_readonly_static("max_size",  [](pybind11::object) { return arb::partition_hint::max_size; })
+        .def_property_readonly_static("max_size",  [](pybind11::object) { return arb::partition_hint::max_size; },
+                                        "Get the maximum size of cell groups.")
         .def("__str__",  &ph_string)
         .def("__repr__", &ph_string);
 
