@@ -110,7 +110,6 @@ public:
 
         for (auto& s: e->statements()) {
             s->accept(this);
-            std::cout << "visit2: " << s->to_string() << std::endl;
         }
 
         if (top) {

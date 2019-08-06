@@ -190,7 +190,6 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         return;
     }
 
-    std::cout << "visit " << e->to_string() << std::endl;
     if (A_.empty()) {
         unsigned n = dvars_.size();
         A_ = symge::sym_matrix(n, n);
@@ -264,20 +263,15 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
         auto a_ = local_a_term.id->is_identifier()->spelling();
 
-        std::cout << "?  : " << local_a_term.local_decl->to_string() << std::endl;
-        std::cout << "?? : " << local_a_term.assignment->to_string() << std::endl;
-
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
 
-        std::cout << "AT " << deq_index_ << " " << j << std::endl;
         A_[deq_index_].push_back({j, symtbl_.define(a_)});
     }
     ++deq_index_;
 }
 
 void SparseSolverVisitor::visit(ConserveExpression *e) {
-    std::cout << "visit_con " << e->to_string() << std::endl;
     if (A_.empty()) {
         unsigned n = dvars_.size();
         A_ = symge::sym_matrix(n, n);
@@ -303,13 +297,8 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
         auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
         auto a_ = local_a_term.id->is_identifier()->spelling();
 
-        std::cout << "*  : " << local_a_term.local_decl->to_string() << std::endl;
-        std::cout << "** : " << local_a_term.assignment->to_string() << std::endl;
-
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
-
-        std::cout << "AT " << dvars_.size() - 1 << std::endl;
 
         A_[dvars_.size() - 1].push_back({j, symtbl_.define(a_)});
     }
@@ -318,15 +307,10 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
     auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
     auto a_ = local_a_term.id->is_identifier()->spelling();
 
-    std::cout << "#  : " << local_a_term.local_decl->to_string() << std::endl;
-    std::cout << "## : " << local_a_term.assignment->to_string() << std::endl;
-
     statements_.push_back(std::move(local_a_term.local_decl));
     statements_.push_back(std::move(local_a_term.assignment));
 
     conserve_rhs_ = a_;
-    std::cout << "### : " << conserve_rhs_ << std::endl;
-
 }
 
 void SparseSolverVisitor::finalize() {
@@ -334,7 +318,6 @@ void SparseSolverVisitor::finalize() {
     std::vector<symge::symbol> rhs;
     for (const auto& var: dvars_) {
         rhs.push_back(symtbl_.define(var));
-        std::cout << "finalize: " << var << std::endl;
     }
     if (conserve_) {
         rhs.back() = symtbl_.define(conserve_rhs_);
