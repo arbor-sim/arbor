@@ -57,7 +57,7 @@ void register_domain_decomposition(pybind11::module& m) {
         "Provide a hint on how the cell groups should be partitioned.");
     partition_hint
         .def(pybind11::init<std::size_t, std::size_t, bool>(),
-            "cpu_group_size"_a = 1, "gpu_group_size"_a = arb::partition_hint::max_size, "prefer_gpu"_a = true,
+            "cpu_group_size"_a = 1, "gpu_group_size"_a = std::numeric_limits<std::size_t>::max(), "prefer_gpu"_a = true,
             "Construct a partition hint with arguments:\n"
             "  cpu_group_size: The size of cell group assigned to CPU, each cell in its own group by default.\n"
             "                  Must be positive, else set to default value.\n"

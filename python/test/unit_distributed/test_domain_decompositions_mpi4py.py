@@ -157,7 +157,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             comm = arb.mpi_comm(mpi.COMM_WORLD)
             context = arb.context(threads=1, gpu_id=None, mpi=comm)
         else:
-            context = arb.context(threads=1, gpu_id=None)
+            context = arb.context()
 
         N = context.ranks
         I = context.rank
@@ -240,7 +240,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             comm = arb.mpi_comm(mpi.COMM_WORLD)
             context = arb.context(threads=1, gpu_id=None, mpi=comm)
         else:
-            context = arb.context(threads=1, gpu_id=None)
+            context = arb.context()
 
         N = context.ranks
         I = context.rank
@@ -294,7 +294,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             nranks = context.ranks
             rank = context.rank
         else:
-            context = arb.context(threads=1, gpu_id=None)
+            context = arb.context()
 
         recipe = gj_symmetric(nranks)
         decomp0 = arb.partition_load_balance(recipe, context)
@@ -361,7 +361,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             nranks = context.ranks
             rank = context.rank
         else:
-            context = arb.context(threads=1, gpu_id=None)
+            context = arb.context()
 
         recipe = gj_non_symmetric(nranks)
         decomp = arb.partition_load_balance(recipe, context)
@@ -402,7 +402,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             nranks = context.ranks
             rank = context.rank
         else:
-            context = arb.context(threads=1, gpu_id=None)
+            context = arb.context()
 
         recipe = gj_symmetric(nranks)
 
