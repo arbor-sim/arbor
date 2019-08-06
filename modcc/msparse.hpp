@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <iostream>
 
 namespace msparse {
 
@@ -94,6 +95,10 @@ public:
         if (!empty() && e.col <= data_.back().col)
             throw msparse_error("cannot push_back row elements out of order");
         data_.push_back(e);
+    }
+
+    void clear() {
+        data_.clear();
     }
 
     // Return index into entry list which has column `c`.
@@ -201,6 +206,15 @@ public:
         for (auto& row: rows) row.truncate(aug);
         cols = aug;
         aug = npos;
+    }
+
+    void print() {
+        for (auto r: rows) {
+            for (unsigned i= 0; i < r.size(); i++) {
+                std::cout << "( " << name(r.get(i).value) << ", " << r.get(i).col << " )" ;
+            }
+            std::cout << std::endl;
+        }
     }
 };
 

@@ -185,6 +185,12 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
+
+    if (conserve_ && deq_index_ >= dvars_.size() - 1) {
+        return;
+    }
+
+    std::cout << "visit " << e->to_string() << std::endl;
     if (A_.empty()) {
         unsigned n = dvars_.size();
         A_ = symge::sym_matrix(n, n);
@@ -225,7 +231,8 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
 
     auto dt_expr = make_expression<IdentifierExpression>(loc, "dt");
     auto one_expr = make_expression<NumberExpression>(loc, 1.0);
-    for (unsigned j = 0; j<dvars_.size(); ++j) {
+
+    for (unsigned j = 0; j < dvars_.size(); ++j) {
         expression_ptr expr;
 
         // For zero coefficient and diagonal element, the matrix entry is 1.
@@ -257,18 +264,80 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
         auto a_ = local_a_term.id->is_identifier()->spelling();
 
+        std::cout << "?  : " << local_a_term.local_decl->to_string() << std::endl;
+        std::cout << "?? : " << local_a_term.assignment->to_string() << std::endl;
+
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
 
+        std::cout << "AT " << deq_index_ << " " << j << std::endl;
         A_[deq_index_].push_back({j, symtbl_.define(a_)});
     }
     ++deq_index_;
 }
 
+void SparseSolverVisitor::visit(ConserveExpression *e) {
+    std::cout << "visit_con " << e->to_string() << std::endl;
+    if (A_.empty()) {
+        unsigned n = dvars_.size();
+        A_ = symge::sym_matrix(n, n);
+    }
+
+    conserve_ = true;
+    A_[dvars_.size() - 1].clear();
+
+    scope_ptr scope = e->scope();
+
+    for (unsigned j = 0; j<dvars_.size(); ++j) {
+        expression_ptr expr;
+
+        for (auto& l: e->lhs()->is_stoich()->terms()) {
+            auto ident = l->is_stoich_term()->ident()->is_identifier();
+            if (ident) {
+                if (ident->name() == dvars_[j]) {
+                    expr = l->is_stoich_term()->coeff()->clone();
+                }
+            }
+        }
+
+        auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
+        auto a_ = local_a_term.id->is_identifier()->spelling();
+
+        std::cout << "*  : " << local_a_term.local_decl->to_string() << std::endl;
+        std::cout << "** : " << local_a_term.assignment->to_string() << std::endl;
+
+        statements_.push_back(std::move(local_a_term.local_decl));
+        statements_.push_back(std::move(local_a_term.assignment));
+
+        std::cout << "AT " << dvars_.size() - 1 << std::endl;
+
+        A_[dvars_.size() - 1].push_back({j, symtbl_.define(a_)});
+    }
+
+    expression_ptr expr = e->rhs()->clone();
+    auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
+    auto a_ = local_a_term.id->is_identifier()->spelling();
+
+    std::cout << "#  : " << local_a_term.local_decl->to_string() << std::endl;
+    std::cout << "## : " << local_a_term.assignment->to_string() << std::endl;
+
+    statements_.push_back(std::move(local_a_term.local_decl));
+    statements_.push_back(std::move(local_a_term.assignment));
+
+    conserve_rhs_ = a_;
+    std::cout << "### : " << conserve_rhs_ << std::endl;
+
+}
+
 void SparseSolverVisitor::finalize() {
+    A_.print();
     std::vector<symge::symbol> rhs;
     for (const auto& var: dvars_) {
         rhs.push_back(symtbl_.define(var));
+        std::cout << "finalize: " << var << std::endl;
+    }
+    if (conserve_) {
+        rhs.back() = symtbl_.define(conserve_rhs_);
     }
     A_.augment(rhs);
 

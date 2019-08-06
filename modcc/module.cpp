@@ -335,6 +335,9 @@ bool Module::semantic() {
             auto deriv = solve_expression->procedure();
 
             if (deriv->kind()==procedureKind::kinetic) {
+                for (auto& e : deriv->body()->statements()) {
+                    std::cout << "e: " << e->to_string() << std::endl;
+                }
                 kinetic_rewrite(deriv->body())->accept(solver.get());
             }
             else {

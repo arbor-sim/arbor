@@ -38,7 +38,12 @@ expression_ptr kinetic_rewrite(BlockExpression* block) {
 
 // KineticRewriter implementation follows.
 
-void KineticRewriter::visit(ConserveExpression*) {
+void KineticRewriter::visit(ConserveExpression* e) {
+    statements_.push_back(e->clone());
+    for (auto& l: e->lhs()->is_stoich()->terms()) {
+        std::cout << l->to_string() << std::endl;
+    }
+    std::cout << e->rhs()->is_number()->to_string() << std::endl;
     // Deliberately ignoring these for now!
 }
 

@@ -63,6 +63,8 @@ KINETIC dsh_state {
 
     ~ s <-> h (alpha1, beta1)
     ~ d <-> s (alpha2, beta2)
+
+    CONSERVE s + 2d + 3h = 2.5
 }
 
 INITIAL {
