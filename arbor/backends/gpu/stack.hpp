@@ -49,18 +49,12 @@ private:
     std::vector<T> data_;
 
     void create_storage(unsigned n) {
-        storage_type p;
-        p.capacity = n;
-        p.stores = 0u;
-        p.data = n>0u ? allocator<value_type>().allocate(n): nullptr;
+       host_storage_.capacity = n;
+       host_storage_.stores = 0u;
+       host_storage_.data = n>0u ? allocator<value_type>().allocate(n): nullptr;
 
-        auto p_gpu = allocator<storage_type>().allocate(1);
-
-        memory::cuda_memcpy_h2d(p_gpu, &p, sizeof(storage_type));
-
-        host_storage_ = p;
-        
-        device_storage_ = p_gpu;
+       device_storage_ = allocator<storage_type>().allocate(1);
+       memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
     }
 
     void update_data() {
@@ -123,6 +117,7 @@ public:
     void clear() {
         host_storage_.stores = 0u;
         memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
+        data_.clear();
     }
 
     storage_type get_storage_copy() const {
