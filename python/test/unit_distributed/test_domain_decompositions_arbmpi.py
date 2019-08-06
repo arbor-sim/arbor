@@ -405,8 +405,8 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
     def test_domain_decomposition_exceptions(self):
         nranks = 1
         rank = 0
-        if (mpi_enabled and mpi4py_enabled):
-            comm = arb.mpi_comm(mpi.COMM_WORLD)
+        if (mpi_enabled):
+            comm = arb.mpi_comm()
             context = arb.context(threads=1, gpu_id=None, mpi=comm)
             nranks = context.ranks
             rank = context.rank
