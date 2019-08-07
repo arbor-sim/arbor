@@ -185,7 +185,7 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
-    if (conserve_ && deq_index_ >= dvars_.size() - 1) {
+    if (conserve_ && !A_[deq_index_].empty()) {
         return;
     }
 
@@ -270,50 +270,72 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
 }
 
 void SparseSolverVisitor::visit(ConserveExpression *e) {
+    std::cout << e->to_string() << std::endl;
     if (A_.empty()) {
         unsigned n = dvars_.size();
         A_ = symge::sym_matrix(n, n);
     }
 
     conserve_ = true;
-    A_[dvars_.size() - 1].clear();
 
     auto loc = e->location();
     scope_ptr scope = e->scope();
 
-    for (unsigned j = 0; j<dvars_.size(); ++j) {
-        expression_ptr expr;
+    int row_idx = -1;
 
-        for (auto& l: e->lhs()->is_stoich()->terms()) {
+    for (auto& l: e->lhs()->is_stoich()->terms()) {
+        for (unsigned j = 0; j < dvars_.size(); ++j) {
             auto ident = l->is_stoich_term()->ident()->is_identifier();
             if (ident) {
+                std::cout << ident->name() << " and " << dvars_[j] << std::endl;
                 if (ident->name() == dvars_[j]) {
-                    expr = l->is_stoich_term()->coeff()->clone();
+                    if (j > row_idx) {
+                        j = row_idx;
+                    }
                 }
             }
         }
+    }
 
-        if (!expr) {
-            expr = make_expression<NumberExpression>(loc, 0.0);
+    if (row_idx != -1) {
+        A_[row_idx].clear();
+
+        for (unsigned j = 0; j < dvars_.size(); ++j) {
+            expression_ptr expr;
+
+            for (auto &l: e->lhs()->is_stoich()->terms()) {
+                auto ident = l->is_stoich_term()->ident()->is_identifier();
+                if (ident) {
+                    if (ident->name() == dvars_[j]) {
+                        expr = l->is_stoich_term()->coeff()->clone();
+                    }
+                }
+            }
+
+            if (!expr) {
+                expr = make_expression<NumberExpression>(loc, 0.0);
+            }
+
+            auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
+            auto a_ = local_a_term.id->is_identifier()->spelling();
+
+            statements_.push_back(std::move(local_a_term.local_decl));
+            statements_.push_back(std::move(local_a_term.assignment));
+
+            A_[row_idx].push_back({j, symtbl_.define(a_)});
         }
 
+
+        expression_ptr expr = e->rhs()->clone();
         auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
         auto a_ = local_a_term.id->is_identifier()->spelling();
 
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
 
-        A_[dvars_.size() - 1].push_back({j, symtbl_.define(a_)});
+        conserve_rhs_.push_back(a_);
+        conserve_idx_.push_back(row_idx);
     }
-
-    expression_ptr expr = e->rhs()->clone();
-    auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
-    auto a_ = local_a_term.id->is_identifier()->spelling();
-
-    statements_.push_back(std::move(local_a_term.local_decl));
-    statements_.push_back(std::move(local_a_term.assignment));
-
-    conserve_rhs_ = a_;
 }
 
 void SparseSolverVisitor::finalize() {
@@ -322,7 +344,10 @@ void SparseSolverVisitor::finalize() {
         rhs.push_back(symtbl_.define(var));
     }
     if (conserve_) {
-        rhs.back() = symtbl_.define(conserve_rhs_);
+        for (unsigned i = 0; i < conserve_idx_.size(); ++i) {
+            std::cout << conserve_idx_[i] << std::endl;
+            rhs[conserve_idx_[i]] = symtbl_.define(conserve_rhs_[i]);
+        }
     }
     A_.augment(rhs);
 

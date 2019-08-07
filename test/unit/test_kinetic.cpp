@@ -84,7 +84,7 @@ void run_kinetic_test(std::string mech_name) {
 }
 
 TEST(mech_kinetic, kintetic) {
-    run_kinetic_test<multicore::backend>("test_kin_diff");
+//    run_kinetic_test<multicore::backend>("test_kin_diff");
     run_kinetic_test<multicore::backend>("test_kin_conserve");
 }
 

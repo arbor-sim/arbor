@@ -11,6 +11,7 @@ namespace symge {
 
 template <typename DefineSym>
 sym_row row_reduce(unsigned c, const sym_row& p, const sym_row& q, DefineSym define_sym) {
+    std::cout << "err: " << p.index(c) << " " <<  q.index(c) << std::endl;
     if (p.index(c)==p.npos || q.index(c)==q.npos) throw std::runtime_error("improper row reduction");
 
     sym_row u;

@@ -3,7 +3,7 @@ NEURON {
 }
 
 STATE {
-    s d h
+    a b x y
 }
 
 BREAKPOINT {
@@ -17,12 +17,16 @@ KINETIC state {
     alpha2 = 3
     beta2 = 0.7
 
-    ~ s <-> h (alpha1, beta1)
-    ~ d <-> s (alpha2, beta2)
+    ~ a <-> b (alpha1, beta1)
+    ~ x <-> y (alpha2, beta2)
+
+    CONSERVE a + b = 1
+    CONSERVE x + y = 1
 }
 
 INITIAL {
-    h = 0.2
-    d = 0.3
-    s = 1-d-h
+    a = 0.2
+    b = 1 - a
+    x = 0.6
+    y = 1 - x
 }

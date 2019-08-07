@@ -20,7 +20,8 @@ protected:
     std::vector<std::string> dvars_;
 
     // rhs of conserve statement
-    std::string conserve_rhs_;
+    std::vector<std::string> conserve_rhs_;
+    std::vector<unsigned> conserve_idx_;
 
 public:
     using BlockRewriterBase::visit;
