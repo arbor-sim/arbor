@@ -318,7 +318,6 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 }
 
 void SparseSolverVisitor::finalize() {
-    A_.print();
     std::vector<symge::symbol> rhs;
     for (const auto& var: dvars_) {
         rhs.push_back(symtbl_.define(var));
