@@ -229,7 +229,6 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
 
     auto dt_expr = make_expression<IdentifierExpression>(loc, "dt");
     auto one_expr = make_expression<NumberExpression>(loc, 1.0);
-
     for (unsigned j = 0; j<dvars_.size(); ++j) {
         expression_ptr expr;
 
