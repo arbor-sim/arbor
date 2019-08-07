@@ -185,7 +185,6 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
-
     if (conserve_ && deq_index_ >= dvars_.size() - 1) {
         return;
     }
@@ -231,7 +230,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     auto dt_expr = make_expression<IdentifierExpression>(loc, "dt");
     auto one_expr = make_expression<NumberExpression>(loc, 1.0);
 
-    for (unsigned j = 0; j < dvars_.size(); ++j) {
+    for (unsigned j = 0; j<dvars_.size(); ++j) {
         expression_ptr expr;
 
         // For zero coefficient and diagonal element, the matrix entry is 1.
@@ -280,6 +279,7 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
     conserve_ = true;
     A_[dvars_.size() - 1].clear();
 
+    auto loc = e->location();
     scope_ptr scope = e->scope();
 
     for (unsigned j = 0; j<dvars_.size(); ++j) {
@@ -292,6 +292,10 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
                     expr = l->is_stoich_term()->coeff()->clone();
                 }
             }
+        }
+
+        if (!expr) {
+            expr = make_expression<NumberExpression>(loc, 0.0);
         }
 
         auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");

@@ -85,7 +85,7 @@ protected:
     // 'Symbol table' for symbolic manipulation.
     symge::symbol_table symtbl_;
 
-    bool conserve_=false;
+    bool conserve_ = false;
 public:
     using SolverVisitorBase::visit;
 
@@ -95,7 +95,6 @@ public:
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
     virtual void visit(ConserveExpression *e) override;
-
     virtual void finalize() override;
     virtual void reset() override {
         deq_index_ = 0;
