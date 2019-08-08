@@ -97,7 +97,8 @@ public:
 
     arb::util::any get_global_properties(cell_kind k) const override {
         arb::cable_cell_global_properties a;
-        a.temperature_K = 308.15;
+        a.default_parameters = arb::neuron_parameter_defaults;
+        a.default_parameters.temperature_K = 308.15;
         return a;
     }
 
@@ -321,6 +322,8 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
 
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
     arb::cable_cell cell;
+    cell.default_parameters.axial_resistivity = 100;       // [Ω·cm]
+    cell.default_parameters.membrane_capacitance = 0.018;  // [F/m²]
 
     arb::mechanism_desc nax("nax");
     arb::mechanism_desc kdrmt("kdrmt");
@@ -337,8 +340,6 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     };
 
     auto setup_seg = [&](auto seg) {
-        seg->rL = 100;
-        seg->cm = 0.018;
         seg->add_mechanism(nax);
         seg->add_mechanism(kdrmt);
         seg->add_mechanism(kamt);
