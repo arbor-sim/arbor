@@ -26,7 +26,9 @@ arb::morphology default_morphology();
 arb::morphology read_swc(const std::string& path);
 
 struct single_recipe: public arb::recipe {
-    explicit single_recipe(arb::morphology m): morpho(m) {}
+    explicit single_recipe(arb::morphology m): morpho(m) {
+        gprop.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     arb::cell_size_type num_cells() const override { return 1; }
     arb::cell_size_type num_probes(arb::cell_gid_type) const override { return 1; }
@@ -46,24 +48,26 @@ struct single_recipe: public arb::recipe {
         return arb::cell_kind::cable;
     }
 
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        return gprop;
+    }
+
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
         arb::cable_cell c = make_cable_cell(morpho);
 
         // Add HH mechanism to soma, passive channels to dendrites.
         // Discretize dendrites according to the NEURON d-lambda rule.
 
-        for (auto& segment: c.segments()) {
-            if (segment->is_soma()) {
-                segment->add_mechanism("hh");
-            }
-            else {
-                segment->add_mechanism("pas");
+        c.soma()->add_mechanism("hh");
+        auto& segments = c.segments();
+        for (std::size_t i = 1; i<segments.size(); ++i) {
+            double dx = c.segment_length_constant(100., i, gprop.default_parameters)*0.3;
 
-                double dx = segment->length_constant(100.)*0.3;
-                unsigned n = std::ceil(segment->as_cable()->length()/dx);
-                segment->set_compartments(n);
+            arb::cable_segment* seg = c.cable(i);
+            seg->add_mechanism("pas");
 
-            }
+            unsigned n = std::ceil(seg->length()/dx);
+            seg->set_compartments(n);
         }
 
         // Add synapse to last segment.
@@ -76,6 +80,7 @@ struct single_recipe: public arb::recipe {
     }
 
     arb::morphology morpho;
+    arb::cable_cell_global_properties gprop;
 };
 
 int main(int argc, char** argv) {

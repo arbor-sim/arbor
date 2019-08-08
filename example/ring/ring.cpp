@@ -301,10 +301,10 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     arb::cable_cell cell;
+    cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
 
     // Add soma.
     auto soma = cell.add_soma(12.6157/2.0); // For area of 500 μm².
-    soma->rL = 100;
     soma->add_mechanism("hh");
 
     std::vector<std::vector<unsigned>> levels;
@@ -333,7 +333,6 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
                     auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
                     dend->set_compartments(nc);
                     dend->add_mechanism("pas");
-                    dend->rL = 100;
                 }
             }
         }

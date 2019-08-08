@@ -83,11 +83,6 @@ public:
         return false;
     }
 
-    // Approximate frequency-dependent length constant lower bound.
-    virtual value_type length_constant(value_type freq_Hz) const {
-        return 0;
-    }
-
     util::optional<mechanism_desc&> mechanism(const std::string& name) {
         auto it = std::find_if(mechanisms_.begin(), mechanisms_.end(),
             [&](mechanism_desc& m) { return m.name()==name; });
