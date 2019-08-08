@@ -2,8 +2,10 @@
 
 set(test_mechanisms
     celsius_test
-    test_kin_diff
-    test_kin_conserve
+    test0_kin_diff
+    test0_kin_conserve
+    test1_kin_diff
+    test1_kin_conserve
     fixed_ica_current
     point_ica_current
     linear_ca_conc

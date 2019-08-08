@@ -26,7 +26,10 @@ using shared_state = backend::shared_state;
 ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_cell::state_)
 
 template <typename backend>
-void run_kinetic_test(std::string mech_name) {
+void run_kinetic_test(std::string mech_name,
+        std::vector<std::string> variables,
+        std::vector<fvm_value_type> t0_values,
+        std::vector<fvm_value_type> t1_values) {
 
     auto cat = make_unit_test_catalogue();
 
@@ -56,19 +59,11 @@ void run_kinetic_test(std::string mech_name) {
     shared_state->reset();
 
     kinetic_test->initialize();
-    std::vector<fvm_value_type> expected_init_s_values(ncv, 0.5);
-    std::vector<fvm_value_type> expected_init_h_values(ncv, 0.2);
-    std::vector<fvm_value_type> expected_init_d_values(ncv, 0.3);
 
-    std::vector<fvm_value_type> expected_new_s_values(ncv, 0.380338);
-    std::vector<fvm_value_type> expected_new_h_values(ncv, 0.446414);
-    std::vector<fvm_value_type> expected_new_d_values(ncv, 0.173247);
-
-
-    for (unsigned i = 0; i < ncv; i++) {
-        EXPECT_NEAR(expected_init_s_values.at(i), mechanism_field(kinetic_test.get(), "s").at(i), 1e-6);
-        EXPECT_NEAR(expected_init_h_values.at(i), mechanism_field(kinetic_test.get(), "h").at(i), 1e-6);
-        EXPECT_NEAR(expected_init_d_values.at(i), mechanism_field(kinetic_test.get(), "d").at(i), 1e-6);
+    for (unsigned i = 0; i < variables.size(); i++) {
+        for (unsigned j = 0; j < ncv; j++) {
+            EXPECT_NEAR(t0_values[i], mechanism_field(kinetic_test.get(), variables[i]).at(j), 1e-6);
+        }
     }
 
     shared_state->update_time_to(0.5, 0.5);
@@ -76,16 +71,29 @@ void run_kinetic_test(std::string mech_name) {
 
     kinetic_test->nrn_state();
 
-    for (unsigned i = 0; i < ncv; i++) {
-        EXPECT_NEAR(expected_new_s_values.at(i), mechanism_field(kinetic_test.get(), "s").at(i), 1e-6);
-        EXPECT_NEAR(expected_new_h_values.at(i), mechanism_field(kinetic_test.get(), "h").at(i), 1e-6);
-        EXPECT_NEAR(expected_new_d_values.at(i), mechanism_field(kinetic_test.get(), "d").at(i), 1e-6);
+    for (unsigned i = 0; i < variables.size(); i++) {
+        for (unsigned j = 0; j < ncv; j++) {
+            EXPECT_NEAR(t1_values[i], mechanism_field(kinetic_test.get(), variables[i]).at(j), 1e-6);
+        }
     }
 }
 
-TEST(mech_kinetic, kintetic) {
-//    run_kinetic_test<multicore::backend>("test_kin_diff");
-    run_kinetic_test<multicore::backend>("test_kin_conserve");
+TEST(mech_kinetic, kintetic_1_conserve) {
+    std::vector<std::string> variables = {"s", "h", "d"};
+    std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
+    std::vector<fvm_value_type> t1_values = {0.380338, 0.446414, 0.173247};
+
+    run_kinetic_test<multicore::backend>("test0_kin_diff", variables, t0_values, t1_values);
+    run_kinetic_test<multicore::backend>("test0_kin_conserve", variables, t0_values, t1_values);
+}
+
+TEST(mech_kinetic, kintetic_2_conserve) {
+    std::vector<std::string> variables = {"a", "b", "x", "y"};
+    std::vector<fvm_value_type> t0_values = {0.2, 0.8, 0.6, 0.4};
+    std::vector<fvm_value_type> t1_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
+
+    run_kinetic_test<multicore::backend>("test1_kin_diff", variables, t0_values, t1_values);
+    run_kinetic_test<multicore::backend>("test1_kin_conserve", variables, t0_values, t1_values);
 }
 
 #ifdef ARB_GPU_ENABLED

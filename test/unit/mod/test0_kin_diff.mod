@@ -1,9 +1,9 @@
 NEURON {
-    SUFFIX test_kin_diff
+    SUFFIX test0_kin_diff
 }
 
 STATE {
-    a b x y
+        s d h
 }
 
 BREAKPOINT {
@@ -17,16 +17,12 @@ KINETIC state {
     alpha2 = 3
     beta2 = 0.7
 
-    ~ a <-> b (alpha1, beta1)
-    ~ x <-> y (alpha2, beta2)
-
-    CONSERVE a + b = 1
-    CONSERVE x + y = 1
+    ~ s <-> h (alpha1, beta1)
+    ~ d <-> s (alpha2, beta2)
 }
 
 INITIAL {
-    a = 0.2
-    b = 1 - a
-    x = 0.6
-    y = 1 - x
+    h = 0.2
+    d = 0.3
+    s = 1-d-h
 }
