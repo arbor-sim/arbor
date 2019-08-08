@@ -33,6 +33,7 @@ class BinaryExpression;
 class UnaryExpression;
 class AssignmentExpression;
 class ConserveExpression;
+class LinearExpression;
 class ReactionExpression;
 class StoichExpression;
 class StoichTermExpression;
@@ -79,7 +80,8 @@ enum class procedureKind {
     net_receive, ///< NET_RECEIVE
     breakpoint,  ///< BREAKPOINT
     kinetic,     ///< KINETIC
-    derivative   ///< DERIVATIVE
+    derivative,  ///< DERIVATIVE
+    linear,      ///< LINEAR
 };
 std::string to_string(procedureKind k);
 
@@ -168,6 +170,7 @@ public:
     virtual UnaryExpression*       is_unary()             {return nullptr;}
     virtual AssignmentExpression*  is_assignment()        {return nullptr;}
     virtual ConserveExpression*    is_conserve()          {return nullptr;}
+    virtual LinearExpression*      is_linear()          {return nullptr;}
     virtual ReactionExpression*    is_reaction()          {return nullptr;}
     virtual StoichExpression*      is_stoich()            {return nullptr;}
     virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}
@@ -1270,6 +1273,20 @@ public:
     {}
 
     ConserveExpression* is_conserve() override {return this;}
+    expression_ptr clone() const override;
+
+    void semantic(scope_ptr scp) override;
+
+    void accept(Visitor *v) override;
+};
+
+class LinearExpression : public BinaryExpression {
+public:
+    LinearExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+            :   BinaryExpression(loc, tok::eq, std::move(lhs), std::move(rhs))
+    {}
+
+    LinearExpression* is_linear() override {return this;}
     expression_ptr clone() const override;
 
     void semantic(scope_ptr scp) override;

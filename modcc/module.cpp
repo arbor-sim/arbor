@@ -11,6 +11,7 @@
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
 #include "kineticrewriter.hpp"
+#include "linearrewriter.hpp"
 #include "module.hpp"
 #include "parser.hpp"
 #include "solvers.hpp"
@@ -336,6 +337,10 @@ bool Module::semantic() {
 
             if (deriv->kind()==procedureKind::kinetic) {
                 kinetic_rewrite(deriv->body())->accept(solver.get());
+            }
+            else if (deriv->kind()==procedureKind::linear) {
+                solver = std::make_unique<SparseSolverVisitor>();
+                linear_rewrite(deriv->body())->accept(solver.get());
             }
             else {
                 deriv->body()->accept(solver.get());
