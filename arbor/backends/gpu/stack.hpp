@@ -49,49 +49,34 @@ private:
     std::vector<T> data_;
 
     void create_storage(unsigned n) {
-       host_storage_.capacity = n;
-       host_storage_.stores = 0u;
-       host_storage_.data = n>0u ? allocator<value_type>().allocate(n): nullptr;
+        data_.reserve(n);
 
-       device_storage_ = allocator<storage_type>().allocate(1);
-       memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
-    }
+        host_storage_.capacity = n;
+        host_storage_.stores = 0u;
+        host_storage_.data = n>0u ? allocator<value_type>().allocate(n): nullptr;
 
-    void update_data() {
-        if (capacity() != 0u) {
-
-            auto num = size();
-            std::vector<T> buf(num);
-            auto bytes = num*sizeof(T);
-            memory::cuda_memcpy_d2h(buf.data(), host_storage_.data, bytes);
-            
-            data_ = buf;
-        }
-    }
-
-    void update_host_storage() {
-	    memory::cuda_memcpy_d2h(&host_storage_, device_storage_, sizeof(storage_type));
+        device_storage_ = allocator<storage_type>().allocate(1);
+        memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
     }
 
 public:
 
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
+    stack() = delete;
 
-    stack(const gpu_context_handle& gpu_ctx): gpu_context_(gpu_ctx) {
-            create_storage(0);
-    }
-
-    stack(stack&& other): gpu_context_(other.gpu_context_) {
-        create_storage(0);
-        std::swap(device_storage_, other.device_storage_);
-        update_host();
-    }
+    stack(gpu_context_handle h): gpu_context_(h) {}
 
     stack& operator=(stack&& other) {
+        gpu_context_ = other.gpu_context_;
         std::swap(device_storage_, other.device_storage_);
-        update_host();
+        std::swap(host_storage_, other.host_storage_);
+        std::swap(data_, other.data_);
         return *this;
+    }
+
+    stack(stack&& other) {
+        *this = std::move(other);
     }
 
     explicit stack(unsigned capacity, const gpu_context_handle& gpu_ctx): gpu_context_(gpu_ctx) {
@@ -99,38 +84,39 @@ public:
     }
 
     ~stack() {
-        update_host_storage();
         if (host_storage_.data) {
             allocator<value_type>().deallocate(host_storage_.data, host_storage_.capacity);
         }
         allocator<storage_type>().deallocate(device_storage_, sizeof(storage_type));
-
     }
 
+    // After this call both host and device storage are synchronized to the GPU
+    // state before the call.
     void update_host() {
-        update_host_storage();
-        update_data();
+        memory::cuda_memcpy_d2h(&host_storage_, device_storage_, sizeof(storage_type));
+
+        auto num = size();
+        data_.resize(num);
+        auto bytes = num*sizeof(T);
+        memory::cuda_memcpy_d2h(data_.data(), host_storage_.data, bytes);
     }
 
-    // All functions below should be called after updating host
-
+    // After this call both host and device storage are synchronized to empty state.
     void clear() {
         host_storage_.stores = 0u;
         memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
         data_.clear();
     }
 
+    // The information returned by the calls below may be out of sync with the
+    // version on the GPU if the GPU storage has been modified since the last
+    // call to update_host().
     storage_type get_storage_copy() const {
         return host_storage_;
     }
 
     const std::vector<value_type>& data() const {
-        if (capacity() != 0u) {
-            return data_;
-        }
-        else {
-            return std::vector<T> {};
-        }
+        return data_;
     }
 
     // The number of items that have been pushed back on the stack.
@@ -154,6 +140,8 @@ public:
         return host_storage_.capacity;
     }
 
+    // This returns a non-const reference to the unerlying device storage so
+    // that it can be passed to GPU kernels that need to modify the stack.
     storage_type& storage() {
         return *device_storage_;
     }
@@ -161,15 +149,6 @@ public:
     const value_type& operator[](unsigned i) const {
         arb_assert(i<size());
         return data_[i];
-    }
-
-    value_type* begin() {
-        return data_.data();
-    }
-
-    value_type* end() {
-        // Take care of the case where size>capacity.
-        return data_.data() + size();
     }
 
     const value_type* begin() const {

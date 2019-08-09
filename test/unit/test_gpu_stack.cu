@@ -66,32 +66,43 @@ TEST(stack, push_back) {
     EXPECT_EQ(0u, s.size()); // dummy tests
     EXPECT_EQ(n, s.capacity());
 
-    
+
     kernels::push_back<<<1, n>>>(sstorage, kernels::all_ftor());
     s.update_host();
     EXPECT_EQ(n, s.size());
-    std::sort(s.begin(), s.end());
-    for (auto i=0; i<int(s.size()); ++i) {
-        EXPECT_EQ(i, s[i]);
+    {
+        auto d = s.data();
+        EXPECT_EQ(s.size(), d.size());
+        std::sort(d.begin(), d.end());
+        for (unsigned i=0; i<n; ++i) {
+            EXPECT_EQ(i, d[i]);
+        }
     }
 
-    
     s.clear();
     kernels::push_back<<<1, n>>>(sstorage, kernels::even_ftor());
     s.update_host();
     EXPECT_EQ(n/2, s.size());
-    std::sort(s.begin(), s.end());
-    for (auto i=0; i<int(s.size())/2; ++i) {
-        EXPECT_EQ(2*i, s[i]);
+    {
+        auto d = s.data();
+        EXPECT_EQ(s.size(), d.size());
+        std::sort(d.begin(), d.end());
+        for (unsigned i=0; i<n/2; ++i) {
+            EXPECT_EQ(2*i, d[i]);
+        }
     }
 
     s.clear();
     kernels::push_back<<<1, n>>>(sstorage, kernels::odd_ftor());
     s.update_host();
     EXPECT_EQ(n/2, s.size());
-    std::sort(s.begin(), s.end());
-    for (auto i=0; i<int(s.size())/2; ++i) {
-        EXPECT_EQ(2*i+1, s[i]);
+    {
+        auto d = s.data();
+        EXPECT_EQ(s.size(), d.size());
+        std::sort(d.begin(), d.end());
+        for (unsigned i=0; i<n/2; ++i) {
+            EXPECT_EQ(2*i+1, d[i]);
+        }
     }
 }
 
