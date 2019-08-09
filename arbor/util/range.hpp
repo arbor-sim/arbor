@@ -28,7 +28,7 @@
 
 #include <arbor/assert.hpp>
 
-#include <util/counter.hpp>
+#include <arbor/util/counter.hpp>
 #include <util/either.hpp>
 #include <util/iterutil.hpp>
 #include <util/meta.hpp>

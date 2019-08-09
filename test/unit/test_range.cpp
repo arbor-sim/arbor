@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include <util/counter.hpp>
+#include <arbor/util/counter.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>

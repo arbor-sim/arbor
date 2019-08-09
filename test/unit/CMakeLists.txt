@@ -93,6 +93,7 @@ set(unit_sources
     test_multi_event_stream.cpp
     test_optional.cpp
     test_mechinfo.cpp
+    test_morphology.cpp
     test_padded.cpp
     test_partition.cpp
     test_partition_by_constraint.cpp

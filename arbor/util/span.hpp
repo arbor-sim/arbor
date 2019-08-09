@@ -7,7 +7,8 @@
 #include <type_traits>
 #include <utility>
 
-#include "util/counter.hpp"
+#include <arbor/util/counter.hpp>
+
 #include "util/meta.hpp"
 #include "util/range.hpp"
 

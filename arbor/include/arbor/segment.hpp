@@ -13,12 +13,18 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/math.hpp>
-#include <arbor/morphology.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/point.hpp>
 #include <arbor/util/optional.hpp>
 
 namespace arb {
+
+enum class section_kind {
+    soma,
+    dendrite,
+    axon,
+    none
+};
 
 // forward declarations of segment specializations
 class soma_segment;

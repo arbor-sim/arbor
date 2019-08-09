@@ -372,9 +372,6 @@ add_subdirectory(test)
 # self contained examples:
 add_subdirectory(example)
 
-# lmorpho:
-add_subdirectory(lmorpho)
-
 # html:
 add_subdirectory(doc)
 
