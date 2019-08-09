@@ -65,7 +65,10 @@ public:
     stack(const stack& other) = delete;
     stack() = delete;
 
-    stack(gpu_context_handle h): gpu_context_(h) {}
+    stack(gpu_context_handle h): gpu_context_(h) {
+        host_storage_.data = nullptr;
+        device_storage_ = nullptr;
+    }
 
     stack& operator=(stack&& other) {
         gpu_context_ = other.gpu_context_;
