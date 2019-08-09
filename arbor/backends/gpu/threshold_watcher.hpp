@@ -70,7 +70,7 @@ public:
 
     /// Remove all stored crossings that were detected in previous calls to test()
     void clear_crossings() {
-        stack_.host_access();
+        stack_.update_host();
         stack_.clear();
     }
 
@@ -90,7 +90,7 @@ public:
     }
 
     const std::vector<threshold_crossing>& crossings() const {
-        stack_.host_access();
+        stack_.update_host();
 
         if (stack_.overflow()) {
             throw arbor_internal_error("gpu/threshold_watcher: gpu spike buffer overflow");
@@ -141,7 +141,7 @@ private:
     array v_prev_;              // Values at previous sample time.
 
     // Hybrid host/gpu data structure for accumulating threshold crossings.
-    stack_type stack_;
+    mutable stack_type stack_;
 
     // host side storage for the crossings
     mutable std::vector<threshold_crossing> crossings_;
