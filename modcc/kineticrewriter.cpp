@@ -136,7 +136,10 @@ void KineticRewriter::visit(ReactionExpression* e) {
                 std::move(local_term.id));
 
             // don't actually want to overwrite scope of previous terms
-            // in dterm sum, so set expression 'scope' directly.
+            // in dterm sum, so set expression 'scope' directly.if (A_.empty()) {
+            //        unsigned n = dvars_.size();
+            //        A_ = symge::sym_matrix(n, n);
+            //    }
             dterm->scope(scope);
         }
     }

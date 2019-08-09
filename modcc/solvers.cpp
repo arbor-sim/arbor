@@ -205,6 +205,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         if (id) {
             auto expand = substitute(rhs, local_expr_);
             if (involves_identifier(expand, dvars_)) {
+                std::cout << "involves: " << expand->to_string() << std::endl;
                 local_expr_[id->spelling()] = std::move(expand);
             }
         }
@@ -377,6 +378,87 @@ void SparseSolverVisitor::finalize() {
                 make_expression<DivBinaryExpression>(loc,
                     make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
                     make_expression<IdentifierExpression>(loc, symge::name(A_[i][i]))));
+
+        statements_.push_back(std::move(expr));
+    }
+
+    BlockRewriterBase::finalize();
+}
+
+void LinearSolverVisitor::visit(BlockExpression* e) {
+    BlockRewriterBase::visit(e);
+}
+
+void LinearSolverVisitor::visit(AssignmentExpression *e) {
+    std::cout << "a:\t" << e->to_string() << std::endl;
+    statements_.push_back(e->clone());
+    return;
+}
+
+void LinearSolverVisitor::visit(LinearExpression *e) {
+    auto loc = e->location();
+    scope_ptr scope = e->scope();
+
+    if (A_.empty()) {
+        unsigned n = dvars_.size();
+        A_ = symge::sym_matrix(n, n);
+    }
+
+    linear_test_result r = linear_test(e->lhs(), dvars_);
+    if (!r.is_homogeneous) {
+        error({"System not homogeneous linear for sparse", loc});
+        return;
+    }
+
+    for (unsigned j = 0; j<dvars_.size(); ++j) {
+        expression_ptr expr;
+
+        if (r.coef.count(dvars_[j])) {
+            expr = r.coef[dvars_[j]]->clone();
+        }
+
+        if (!expr) continue;
+
+        auto a_ = expr->is_identifier()->spelling();
+
+        A_[deq_index_].push_back({j, symtbl_.define(a_)});
+    }
+    rhs_.push_back(symtbl_.define(e->rhs()->is_identifier()->spelling()));
+    ++deq_index_;
+}
+void LinearSolverVisitor::finalize() {
+    std::cout << dvars_[0] << " " << dvars_[1] << " " << dvars_[2] << std::endl;
+    A_.print();
+    A_.augment(rhs_);
+
+    symge::gj_reduce(A_, symtbl_);
+
+    // Create and assign intermediate variables.
+    for (unsigned i = 0; i<symtbl_.size(); ++i) {
+        symge::symbol s = symtbl_[i];
+
+        if (primitive(s)) continue;
+
+        auto expr = as_expression(definition(s));
+        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+        auto t_ = local_t_term.id->is_identifier()->spelling();
+        symtbl_.name(s, t_);
+
+        statements_.push_back(std::move(local_t_term.local_decl));
+        statements_.push_back(std::move(local_t_term.assignment));
+    }
+
+    // State variable updates given by rhs/diagonal for reduced matrix.
+    Location loc;
+    for (unsigned i = 0; i<A_.nrow(); ++i) {
+        unsigned rhs = A_.augcol();
+
+        auto expr =
+                make_expression<AssignmentExpression>(loc,
+                                                      make_expression<IdentifierExpression>(loc, dvars_[i]),
+                                                      make_expression<DivBinaryExpression>(loc,
+                                                                                           make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
+                                                                                           make_expression<IdentifierExpression>(loc, symge::name(A_[i][i]))));
 
         statements_.push_back(std::move(expr));
     }
