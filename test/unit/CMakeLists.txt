@@ -2,6 +2,7 @@
 
 set(test_mechanisms
     celsius_test
+    test_linear
     test0_kin_diff
     test0_kin_conserve
     test1_kin_diff
@@ -85,6 +86,7 @@ set(unit_sources
     test_mc_cell_group.cpp
     test_kinetic.cpp
     test_lexcmp.cpp
+    test_linear.cpp
     test_lif_cell_group.cpp
     test_maputil.cpp
     test_mask_stream.cpp
