@@ -110,7 +110,6 @@ public:
         }
 
         for (auto& s: e->statements()) {
-            std::cout << "test: " << s->to_string() << std::endl;
             s->accept(this);
         }
 

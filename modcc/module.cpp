@@ -340,7 +340,7 @@ bool Module::semantic() {
             }
             else if (deriv->kind()==procedureKind::linear) {
                 solver = std::make_unique<SparseSolverVisitor>();
-                linear_rewrite(deriv->body())->accept(solver.get());
+                linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
             }
             else {
                 deriv->body()->accept(solver.get());

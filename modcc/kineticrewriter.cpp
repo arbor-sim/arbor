@@ -43,6 +43,7 @@ void KineticRewriter::visit(ConserveExpression* e) {
 }
 
 void KineticRewriter::visit(ReactionExpression* e) {
+    std::cout << "KR: " << e->to_string() << std::endl;
     Location loc = e->location();
     scope_ptr scope = e->scope();
 
@@ -79,7 +80,9 @@ void KineticRewriter::visit(ReactionExpression* e) {
     net_rate->semantic(scope);
 
     auto local_net_rate = make_unique_local_assign(scope, net_rate, "rate");
+    std::cout << "\tKR: " << local_net_rate.local_decl->to_string() << std::endl;
     statements_.push_back(std::move(local_net_rate.local_decl));
+    std::cout << "\tKR: " << local_net_rate.assignment->to_string() << std::endl;
     statements_.push_back(std::move(local_net_rate.assignment));
     scope = local_net_rate.scope; // nop for now...
 
@@ -116,7 +119,9 @@ void KineticRewriter::visit(ReactionExpression* e) {
         term->semantic(scope);
 
         auto local_term = make_unique_local_assign(scope, term, p.first+"_rate");
+        std::cout << "\tKR: " << local_term.local_decl->to_string() << std::endl;
         statements_.push_back(std::move(local_term.local_decl));
+        std::cout << "\tKR: " << local_term.assignment->to_string() << std::endl;
         statements_.push_back(std::move(local_term.assignment));
         scope = local_term.scope; // nop for now...
 
@@ -153,6 +158,7 @@ void KineticRewriter::finalize() {
             std::move(deriv),
             std::move(p.second));
 
+        std::cout << "\tKR_F: " << assign->to_string() << std::endl;
         statements_.push_back(std::move(assign));
     }
 }

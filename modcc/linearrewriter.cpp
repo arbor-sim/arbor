@@ -11,7 +11,7 @@ class LinearRewriter : public BlockRewriterBase {
 public:
     using BlockRewriterBase::visit;
 
-    LinearRewriter() {}
+    LinearRewriter(std::vector<std::string> st_vars): state_vars(st_vars) {}
     LinearRewriter(scope_ptr enclosing_scope): BlockRewriterBase(enclosing_scope) {}
 
     virtual void visit(LinearExpression *e) override;
@@ -22,15 +22,14 @@ protected:
         dterms.clear();
     }
 
-    virtual void finalize() override;
-
 private:
     // Acccumulated terms for derivative expressions, keyed by id name.
     std::map<std::string, expression_ptr> dterms;
+    std::vector<std::string> state_vars;
 };
 
-expression_ptr linear_rewrite(BlockExpression* block) {
-    LinearRewriter visitor;
+expression_ptr linear_rewrite(BlockExpression* block, std::vector<std::string> state_vars) {
+    LinearRewriter visitor(state_vars);
     block->accept(&visitor);
     return visitor.as_block(false);
 }
@@ -38,117 +37,50 @@ expression_ptr linear_rewrite(BlockExpression* block) {
 // LinearRewriter implementation follows.
 void LinearRewriter::visit(LinearExpression* e) {
     std::cout << "we're in: " << e->to_string() << std::endl;
-    /*Location loc = e->location();
+    Location loc = e->location();
     scope_ptr scope = e->scope();
 
-    // Total forward rate is the specified forward reaction rate constant, multiplied
-    // by the concentrations of species present in the left hand side.
+    expression_ptr lhs;
+    for (auto state : state_vars) {
+        auto ident = make_expression<IdentifierExpression>(loc, state);
+        auto coeff = constant_simplify(make_expression<SubBinaryExpression>(loc,
+                std::move(symbolic_pdiff(e->lhs(), state)),
+                std::move(symbolic_pdiff(e->rhs(), state))));
 
-    auto fwd = e->fwd_rate()->clone();
-    auto lhs = e->lhs()->is_stoich();
-    for (const auto& term: lhs->terms()) {
-        auto& id = term->is_stoich_term()->ident();
-        auto& coeff = term->is_stoich_term()->coeff();
+        if (expr_value(coeff) != 0) {
+            auto local_coeff = make_unique_local_assign(scope, coeff, "l_");
+            statements_.push_back(std::move(local_coeff.local_decl));
+            statements_.push_back(std::move(local_coeff.assignment));
 
-        fwd = constant_simplify(make_expression<MulBinaryExpression>(loc,
-            make_expression<PowBinaryExpression>(loc, id->clone(), coeff->clone()),
-            std::move(fwd)));
-    }
+            auto pair = make_expression<MulBinaryExpression>(loc, std::move(local_coeff.id), std::move(ident));
 
-    // Similar for reverse rate.
-
-    auto rev = e->rev_rate()->clone();
-    auto rhs = e->rhs()->is_stoich();
-    for (const auto& term: rhs->terms()) {
-        auto& id = term->is_stoich_term()->ident();
-        auto& coeff = term->is_stoich_term()->coeff();
-
-        rev = constant_simplify(make_expression<MulBinaryExpression>(loc,
-                make_expression<PowBinaryExpression>(loc, id->clone(), coeff->clone()),
-                std::move(rev)));
-    }
-
-    auto net_rate = make_expression<SubBinaryExpression>(
-            loc,
-            std::move(fwd), std::move(rev));
-    net_rate->semantic(scope);
-
-    auto local_net_rate = make_unique_local_assign(scope, net_rate, "rate");
-    statements_.push_back(std::move(local_net_rate.local_decl));
-    statements_.push_back(std::move(local_net_rate.assignment));
-    scope = local_net_rate.scope; // nop for now...
-
-    const auto& net_rate_sym = local_net_rate.id;
-
-    // Net change in quantity after forward reaction:
-    // e.g.  A + ... <-> 3A + ...
-    // has a net delta of 2 for A.
-
-    std::map<std::string, long long int> net_delta;
-
-    for (const auto& term: lhs->terms()) {
-        auto sterm = term->is_stoich_term();
-        auto name = sterm->ident()->is_identifier()->name();
-        net_delta[name] -= sterm->coeff()->is_integer()->integer_value();
-    }
-
-    for (const auto& term: rhs->terms()) {
-        auto sterm = term->is_stoich_term();
-        auto name = sterm->ident()->is_identifier()->name();
-        net_delta[name] += sterm->coeff()->is_integer()->integer_value();
-    }
-
-    // Contribution to final ODE for each species is given by
-    // net_rate * net_delta.
-
-    for (auto& p: net_delta) {
-        if (p.second==0) continue;
-
-        auto term = make_expression<MulBinaryExpression>(
-            loc,
-            make_expression<IntegerExpression>(loc, p.second),
-            net_rate_sym->clone());
-        term->semantic(scope);
-
-        auto local_term = make_unique_local_assign(scope, term, p.first+"_rate");
-        statements_.push_back(std::move(local_term.local_decl));
-        statements_.push_back(std::move(local_term.assignment));
-        scope = local_term.scope; // nop for now...
-
-        auto& dterm = dterms[p.first];
-        if (!dterm) {
-            dterm = std::move(local_term.id);
+            if (!lhs) {
+                lhs = std::move(pair);
+            } else {
+                lhs = make_expression<AddBinaryExpression>(loc, std::move(lhs), std::move(pair));
+            }
         }
-        else {
-            dterm = make_expression<AddBinaryExpression>(
-                loc,
-                std::move(dterm),
-                std::move(local_term.id));
-
-            // don't actually want to overwrite scope of previous terms
-            // in dterm sum, so set expression 'scope' directly.
-            dterm->scope(scope);
-        }
-    }*/
-}
-
-void LinearRewriter::finalize() {
-    // append new derivative assignments from saved terms
-    for (auto& p: dterms) {
-        auto loc = p.second->location();
-        auto scope = p.second->scope();
-
-        auto deriv = make_expression<DerivativeExpression>(
-            loc,
-            p.first);
-        deriv->semantic(scope);
-
-        auto assign = make_expression<AssignmentExpression>(
-            loc,
-            std::move(deriv),
-            std::move(p.second));
-
-        statements_.push_back(std::move(assign));
     }
+
+    auto rhs_0 = e->lhs()->clone();
+    auto rhs_1 = e->rhs()->clone();
+
+    for (auto state: state_vars) {
+        auto zero_expr = make_expression<NumberExpression>(loc, 0.0);
+        rhs_0 = substitute(rhs_0, state,  zero_expr);
+        rhs_1 = substitute(rhs_1, state,  zero_expr);
+    }
+    rhs_0 = constant_simplify(rhs_0);
+    rhs_1 = constant_simplify(rhs_1);
+
+    auto rhs = constant_simplify(make_expression<SubBinaryExpression>(loc, std::move(rhs_1), std::move(rhs_0)));
+
+    auto local_rhs = make_unique_local_assign(scope, rhs, "l_");
+    statements_.push_back(std::move(local_rhs.local_decl));
+    statements_.push_back(std::move(local_rhs.assignment));
+
+    rhs = std::move(local_rhs.id);
+
+    statements_.push_back(make_expression<LinearExpression>(loc, std::move(lhs), std::move(rhs)));
 }
 
