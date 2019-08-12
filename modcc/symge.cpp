@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <vector>
+#include <numeric>
 
 #include "symge.hpp"
 
@@ -17,7 +18,6 @@ struct pivot {
 
 template <typename DefineSym>
 sym_row row_reduce(unsigned c, const sym_row& p, const sym_row& q, DefineSym define_sym) {
-    std::cout << p.index(c) << " and " << q.index(c) << std::endl;
     if (p.index(c)==p.npos || q.index(c)==q.npos) throw std::runtime_error("improper row reduction");
 
     sym_row u;
@@ -85,59 +85,51 @@ void gj_reduce(sym_matrix& A, symbol_table& table) {
 
     auto define_sym = [&table](symbol_term_diff t) { return table.define(t); };
 
-    std::vector<pivot> pivots;
-    for (unsigned r = 0; r<A.nrow(); ++r) {
-        pivot p;
-        p.row = r;
-        const sym_row& row = A[r];
-        for (unsigned c = 0; c < A.ncol(); ++c) {
-            if (row[c] != symbol{}) {
-                bool used = false;
-                for (auto p: pivots) {
-                    used = (p.col == c);
-                    if (used) break;
-                }
-                if (!used) {
+    auto get_pivots = [&A](std::vector<unsigned> remaining_rows) {
+        std::vector<pivot> pivots;
+        for (auto r: remaining_rows) {
+            pivot p;
+            p.row = r;
+            const sym_row &row = A[r];
+            for (unsigned c = 0; c < A.ncol() - 1; ++c) {
+                if (row[c]) {
                     p.col = c;
                     break;
                 }
             }
+            pivots.push_back(std::move(p));
         }
-        std::cout << "(" << p.row << ", " << p.col << ")" << std::endl;
-        pivots.push_back(std::move(p));
-    }
+        return pivots;
+    };
 
-    for (auto p: pivots) {
-        std::cout << "(" << p.row << ", " << p.col << ")" << std::endl;
-    }
+    std::vector<unsigned> remaining_rows(A.nrow());
+    std::iota(remaining_rows.begin(), remaining_rows.end(), 0);
 
-    std::vector<double> cost(pivots.size());
+    std::vector<double> cost(A.nrow());
 
-    while (!pivots.empty()) {
+    while (true) {
+        auto pivots = get_pivots(remaining_rows);
+
         for (unsigned i = 0; i<pivots.size(); ++i) {
             cost[pivots[i].row] = estimate_cost(A, pivots[i]);
         }
 
         std::sort(pivots.begin(), pivots.end(),
-            [&](pivot r1, pivot r2) { return cost[r1.row]>cost[r2.row]; });
-
-        std::cout << std::endl;
-        for (auto p: pivots) {
-            std::cout << "(" << p.row << ", " << p.col << ")" << std::endl;
-        }
+                  [&](pivot r1, pivot r2) { return cost[r1.row]>cost[r2.row]; });
 
         pivot p = pivots.back();
-
-        pivots.erase(std::prev(pivots.end()));
-
+        remaining_rows.erase(std::lower_bound(remaining_rows.begin(), remaining_rows.end(), p.row));
 
         for (unsigned i = 0; i<A.nrow(); ++i) {
             if (i==p.row || A[i].index(p.col)==msparse::row_npos) continue;
 
             A[i] = row_reduce(p.col, A[i], A[p.row], define_sym);
         }
+
+        if (remaining_rows.empty()) {
+            break;
+        }
     }
-    std::cout << "done" << std::endl;
 }
 
 } // namespace symge
