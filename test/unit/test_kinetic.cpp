@@ -78,7 +78,7 @@ void run_kinetic_test(std::string mech_name,
     }
 }
 
-TEST(mech_kinetic, kintetic_1_conserve) {
+TEST(mech_kinetic, kinetic_1_conserve) {
     std::vector<std::string> variables = {"s", "h", "d"};
     std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
     std::vector<fvm_value_type> t1_values = {0.380338, 0.446414, 0.173247};
@@ -87,7 +87,7 @@ TEST(mech_kinetic, kintetic_1_conserve) {
     run_kinetic_test<multicore::backend>("test0_kin_conserve", variables, t0_values, t1_values);
 }
 
-TEST(mech_kinetic, kintetic_2_conserve) {
+TEST(mech_kinetic, kinetic_2_conserve) {
     std::vector<std::string> variables = {"a", "b", "x", "y"};
     std::vector<fvm_value_type> t0_values = {0.2, 0.8, 0.6, 0.4};
     std::vector<fvm_value_type> t1_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
@@ -97,7 +97,16 @@ TEST(mech_kinetic, kintetic_2_conserve) {
 }
 
 #ifdef ARB_GPU_ENABLED
-TEST(mech_kinetic_gpu, kintetic) {
+TEST(mech_kinetic_gpu, kinetic_1_conserve) {
+    std::vector<std::string> variables = {"s", "h", "d"};
+    std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
+    std::vector<fvm_value_type> t1_values = {0.380338, 0.446414, 0.173247};
+
+    run_kinetic_test<gpu::backend>("test0_kin_diff", variables, t0_values, t1_values);
+    run_kinetic_test<gpu::backend>("test0_kin_conserve", variables, t0_values, t1_values);
+}
+
+TEST(mech_kinetic_gpu, kinetic_2_conserve) {
     std::vector<std::string> variables = {"a", "b", "x", "y"};
     std::vector<fvm_value_type> t0_values = {0.2, 0.8, 0.6, 0.4};
     std::vector<fvm_value_type> t1_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
