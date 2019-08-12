@@ -77,7 +77,7 @@ void run_kinetic_test(std::string mech_name,
     }
 }
 
-TEST(mech_linear_cpu, lienar) {
+TEST(mech_linear, linear) {
     std::vector<std::string> variables = {"h", "s", "d"};
     std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
 
@@ -85,8 +85,10 @@ TEST(mech_linear_cpu, lienar) {
 }
 
 #ifdef ARB_GPU_ENABLED
-TEST(mech_kinetic_gpu, kintetic) {
-    run_kinetic_test<gpu::backend>("test_kin_diff");
-    run_kinetic_test<gpu::backend>("test_kin_conserve");
+TEST(mech_linear_gpu, linear) {
+     std::vector<std::string> variables = {"h", "s", "d"};
+    std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
+
+    run_kinetic_test<gpu::backend>("test_linear", variables, values);
 }
 #endif

@@ -455,6 +455,7 @@ void LinearSolverVisitor::finalize() {
     for (unsigned i = 0; i<A_.nrow(); ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs = A_.augcol();
+        std::cout << ": rhs = " << rhs << std::endl;
         unsigned lhs;
         for (unsigned r = 0; r < A_.nrow(); r++) {
             if (row[r]) {
@@ -465,12 +466,12 @@ void LinearSolverVisitor::finalize() {
 
         auto expr =
             make_expression<AssignmentExpression>(loc,
-                    make_expression<IdentifierExpression>(loc, dvars_[i]),
+                    make_expression<IdentifierExpression>(loc, dvars_[lhs]),
                     make_expression<DivBinaryExpression>(loc,
                             make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
-                            make_expression<IdentifierExpression>(loc, symge::name(A_[lhs][i]))));
+                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs]))));
 
-        std::cout << "\t" << expr->to_string() << std::endl;
+        std::cout << "\t : " << expr->to_string() << std::endl;
         statements_.push_back(std::move(expr));
     }
 
