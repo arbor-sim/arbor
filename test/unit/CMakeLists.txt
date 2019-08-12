@@ -84,9 +84,8 @@ set(unit_sources
     test_fvm_lowered.cpp
     test_glob_basic.cpp
     test_mc_cell_group.cpp
-    test_kinetic.cpp
+    test_kinetic_linear.cpp
     test_lexcmp.cpp
-    test_linear.cpp
     test_lif_cell_group.cpp
     test_maputil.cpp
     test_mask_stream.cpp
