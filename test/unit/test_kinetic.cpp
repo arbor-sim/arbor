@@ -98,7 +98,11 @@ TEST(mech_kinetic, kintetic_2_conserve) {
 
 #ifdef ARB_GPU_ENABLED
 TEST(mech_kinetic_gpu, kintetic) {
-    run_kinetic_test<gpu::backend>("test_kin_diff");
-    run_kinetic_test<gpu::backend>("test_kin_conserve");
+    std::vector<std::string> variables = {"a", "b", "x", "y"};
+    std::vector<fvm_value_type> t0_values = {0.2, 0.8, 0.6, 0.4};
+    std::vector<fvm_value_type> t1_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
+
+    run_kinetic_test<gpu::backend>("test1_kin_diff", variables, t0_values, t1_values);
+    run_kinetic_test<gpu::backend>("test1_kin_conserve", variables, t0_values, t1_values);
 }
 #endif
