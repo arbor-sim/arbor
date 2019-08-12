@@ -3,6 +3,7 @@
 #include <arbor/util/optional.hpp>
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "conversion.hpp"
 #include "schedule.hpp"
@@ -27,6 +28,10 @@ std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
              << ", freq " << p.freq << " Hz"
              << ", seed " << p.seed << ">";
 };
+
+static std::vector<arb::time_type> as_vector(std::pair<const arb::time_type*, const arb::time_type*> ts) {
+    return std::vector<arb::time_type>(ts.first, ts.second);
+}
 
 //
 // regular_schedule shim
@@ -76,6 +81,15 @@ arb::schedule regular_schedule_shim::schedule() const {
             tstop.value_or(arb::terminal_time));
 }
 
+std::vector<arb::time_type> regular_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
+    pyarb::assert_throw(is_nonneg()(t0), "t0 must be a non-negative number");
+    pyarb::assert_throw(is_nonneg()(t1), "t1 must be a non-negative number");
+
+    arb::schedule sched = regular_schedule_shim::schedule();
+
+    return as_vector(sched.events(t0, t1));
+}
+
 //
 // explicit_schedule shim
 //
@@ -107,6 +121,15 @@ std::vector<arb::time_type> explicit_schedule_shim::get_times() const {
 
 arb::schedule explicit_schedule_shim::schedule() const {
     return arb::explicit_schedule(times);
+}
+
+std::vector<arb::time_type> explicit_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
+    pyarb::assert_throw(is_nonneg()(t0), "t0 must be a non-negative number");
+    pyarb::assert_throw(is_nonneg()(t1), "t1 must be a non-negative number");
+
+    arb::schedule sched = explicit_schedule_shim::schedule();
+
+    return as_vector(sched.events(t0, t1));
 }
 
 //
@@ -146,6 +169,15 @@ arb::schedule poisson_schedule_shim::schedule() const {
     return arb::poisson_schedule(tstart, freq/1000., rng_type(seed));
 }
 
+std::vector<arb::time_type> poisson_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
+    pyarb::assert_throw(is_nonneg()(t0), "t0 must be a non-negative number");
+    pyarb::assert_throw(is_nonneg()(t1), "t1 must be a non-negative number");
+
+    arb::schedule sched = poisson_schedule_shim::schedule();
+
+    return as_vector(sched.events(t0, t1));
+}
+
 void register_schedules(pybind11::module& m) {
     using namespace pybind11::literals;
     using time_type = arb::time_type;
@@ -167,6 +199,8 @@ void register_schedules(pybind11::module& m) {
             "No events delivered after this time [ms].")
         .def_property("dt", &regular_schedule_shim::get_dt, &regular_schedule_shim::set_dt,
             "The interval between time points [ms].")
+        .def("events", &regular_schedule_shim::events,
+            "A view of monotonically increasing time values in the half-open interval [t0, t1).")
         .def("__str__",  util::to_string<regular_schedule_shim>)
         .def("__repr__", util::to_string<regular_schedule_shim>);
 
@@ -183,6 +217,8 @@ void register_schedules(pybind11::module& m) {
             "  times: A list of times [ms], [] by default.")
         .def_property("times", &explicit_schedule_shim::get_times, &explicit_schedule_shim::set_times,
             "A list of times [ms].")
+        .def("events", &explicit_schedule_shim::events,
+            "A view of monotonically increasing time values in the half-open interval [t0, t1).")
         .def("__str__",  util::to_string<explicit_schedule_shim>)
         .def("__repr__", util::to_string<explicit_schedule_shim>);
 
@@ -203,6 +239,8 @@ void register_schedules(pybind11::module& m) {
             "The expected frequency [Hz].")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed for the random number generator.")
+        .def("events", &poisson_schedule_shim::events,
+            "A view of monotonically increasing time values in the half-open interval [t0, t1).")
         .def("__str__",  util::to_string<poisson_schedule_shim>)
         .def("__repr__", util::to_string<poisson_schedule_shim>);
 }

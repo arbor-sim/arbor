@@ -193,6 +193,10 @@ Event Generator and Schedules
         No events delivered after this time [ms].
         Must be non-negative or ``None``.
 
+    .. function:: events(t0, t1)
+
+        Returns a view of monotonically increasing time values in the half-open interval [t0, t1).
+
 .. class:: explicit_schedule
 
     Describes an explicit schedule at a predetermined (sorted) sequence of :attr:`times`.
@@ -206,6 +210,10 @@ Event Generator and Schedules
     .. attribute:: times
 
         The list of non-negative times [ms].
+
+    .. function:: events(t0, t1)
+
+        Returns a view of monotonically increasing time values in the half-open interval [t0, t1).
 
 .. class:: poisson_schedule
 
@@ -229,6 +237,10 @@ Event Generator and Schedules
     .. attribute:: seed
 
         The seed for the random number generator.
+
+    .. function:: events(t0, t1)
+
+        Returns a view of monotonically increasing time values in the half-open interval [t0, t1).
 
 An example of an event generator reads as follows:
 
