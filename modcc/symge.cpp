@@ -17,6 +17,7 @@ struct pivot {
 
 template <typename DefineSym>
 sym_row row_reduce(unsigned c, const sym_row& p, const sym_row& q, DefineSym define_sym) {
+    std::cout << p.index(c) << " and " << q.index(c) << std::endl;
     if (p.index(c)==p.npos || q.index(c)==q.npos) throw std::runtime_error("improper row reduction");
 
     sym_row u;
@@ -89,17 +90,20 @@ void gj_reduce(sym_matrix& A, symbol_table& table) {
         pivot p;
         p.row = r;
         const sym_row& row = A[r];
-
-        if (row[r]) {
-            p.col = r;
-        } else {
-            for (unsigned c = 0; c < A.ncol(); ++c) {
-                if (row[c]) {
+        for (unsigned c = 0; c < A.ncol(); ++c) {
+            if (row[c] != symbol{}) {
+                bool used = false;
+                for (auto p: pivots) {
+                    used = (p.col == c);
+                    if (used) break;
+                }
+                if (!used) {
                     p.col = c;
                     break;
                 }
             }
         }
+        std::cout << "(" << p.row << ", " << p.col << ")" << std::endl;
         pivots.push_back(std::move(p));
     }
 

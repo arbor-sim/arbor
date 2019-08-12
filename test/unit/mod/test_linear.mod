@@ -1,5 +1,6 @@
 NEURON {
     SUFFIX test_linear
+    RANGE a0, a1, a3, a3
 }
 
 STATE {
