@@ -185,11 +185,6 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
-    if (conserve_ && !A_[deq_index_].empty()) {
-        deq_index_++;
-        return;
-    }
-
     if (A_.empty()) {
         unsigned n = dvars_.size();
         A_ = symge::sym_matrix(n, n);
@@ -202,7 +197,12 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     auto rhs = e->rhs();
     auto deriv = lhs->is_derivative();
 
-    if (!deriv) {
+    if (deriv) {
+        if (conserve_ && !A_[deq_index_].empty()) {
+            deq_index_++;
+            return;
+        }
+    } else {
         statements_.push_back(e->clone());
 
         auto id = lhs->is_identifier();
@@ -284,34 +284,32 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
     int row_idx = -1;
 
     auto& l = e->lhs()->is_stoich()->terms().front();
-    for (int j = 0; j < (int)dvars_.size(); ++j) {
-        auto ident = l->is_stoich_term()->ident()->is_identifier();
-        if (ident) {
-            if (ident->name() == dvars_[j]) {
-                if (j > row_idx) {
-                    row_idx = j;
-                    break;
-                }
-            }
-        }
+    auto ident = l->is_stoich_term()->ident()->is_identifier();
+    if (ident) {
+        auto it = std::find(dvars_.begin(), dvars_.end(), ident->name());
+        if (it!=dvars_.end())
+            row_idx = it - dvars_.begin();
+        else
+            error({"CONSERVE statement unknown is not a state variable", loc});
+    }
+    else {
+         error({"ICE: coefficient in state variable is not an identifier", loc});
     }
 
+    std:: cout << row_idx << std::endl;
     if (row_idx != -1) {
         A_[row_idx].clear();
 
         for (unsigned j = 0; j < dvars_.size(); ++j) {
-            expression_ptr expr;
+            auto state = dvars_[j];
 
-            for (auto &l: e->lhs()->is_stoich()->terms()) {
-                auto ident = l->is_stoich_term()->ident()->is_identifier();
-                if (ident) {
-                    if (ident->name() == dvars_[j]) {
-                        expr = l->is_stoich_term()->coeff()->clone();
-                    }
-                }
-            }
+            auto& terms = e->lhs()->is_stoich()->terms();
+            auto it = std::find_if(terms.begin(), terms.end(), [&state](expression_ptr& p)
+                { return p->is_stoich_term()->ident()->is_identifier()->name() == state;});
 
-            if (expr) {
+            if (it != terms.end()) {
+                auto expr = (*it)->is_stoich_term()->coeff()->clone();
+
                 auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
                 auto a_ = local_a_term.id->is_identifier()->spelling();
 
