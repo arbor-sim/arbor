@@ -19,12 +19,10 @@ public:
 protected:
     virtual void reset() override {
         BlockRewriterBase::reset();
-        dterms.clear();
     }
 
 private:
     // Acccumulated terms for derivative expressions, keyed by id name.
-    std::map<std::string, expression_ptr> dterms;
     std::vector<std::string> state_vars;
 };
 

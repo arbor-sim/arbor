@@ -893,7 +893,6 @@ symbol_ptr Parser::parse_procedure() {
     expression_ptr p;
     procedureKind kind = procedureKind::normal;
 
-    bool linear_block = false;
     switch( token_.type ) {
         case tok::derivative:
             kind = procedureKind::derivative;
@@ -912,7 +911,6 @@ symbol_ptr Parser::parse_procedure() {
             get_token(); // consume keyword token
             if( !expect( tok::identifier ) ) return nullptr;
             p = parse_prototype();
-            linear_block = true;
             break;
         case tok::procedure:
             kind = procedureKind::normal;
@@ -945,7 +943,7 @@ symbol_ptr Parser::parse_procedure() {
     if(!expect(tok::lbrace)) return nullptr;
 
     // parse the body of the function
-    expression_ptr body = parse_block(false, linear_block);
+    expression_ptr body = parse_block(false);
     if(body==nullptr) return nullptr;
 
     auto proto = p->is_prototype();
@@ -987,7 +985,7 @@ symbol_ptr Parser::parse_function() {
 // it tests to see whether the expression is:
 //      :: LOCAL identifier
 //      :: expression
-expression_ptr Parser::parse_statement(bool is_linear_statement) {
+expression_ptr Parser::parse_statement() {
     switch(token_.type) {
         case tok::if_stmt :
             return parse_if();
@@ -1003,10 +1001,7 @@ expression_ptr Parser::parse_statement(bool is_linear_statement) {
         case tok::conserve :
             return parse_conserve_expression();
         case tok::tilde :
-            if (is_linear_statement) {
-                return parse_linear_expression();
-            }
-            return parse_reaction_expression();
+            return parse_tilde_expression();
         case tok::initial :
             // only used for INITIAL block in NET_RECEIVE
             return parse_initial();
@@ -1195,28 +1190,7 @@ expression_ptr Parser::parse_stoich_expression() {
     return make_expression<StoichExpression>(here, std::move(terms));
 }
 
-expression_ptr Parser::parse_linear_expression() {
-    auto here = location_;
-
-    if(token_.type!=tok::tilde) {
-        error(pprintf("expected '%', found '%'", yellow("~"), yellow(token_.spelling)));
-        return nullptr;
-    }
-
-    get_token(); // consume tilde
-    auto lhs = parse_expression(true);
-
-    if(token_.type!=tok::eq) {
-        error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
-        return nullptr;
-    }
-
-    get_token(); // consume =
-    auto rhs = parse_expression();
-    return make_expression<LinearExpression>(here, std::move(lhs), std::move(rhs));
-}
-
-expression_ptr Parser::parse_reaction_expression() {
+expression_ptr Parser::parse_tilde_expression() {
     auto here = location_;
 
     if(token_.type!=tok::tilde) {
@@ -1226,65 +1200,88 @@ expression_ptr Parser::parse_reaction_expression() {
 
     get_token(); // consume tilde
     expression_ptr lhs = parse_stoich_expression();
-    if (!lhs) return nullptr;
-
-    // reaction halves must comprise non-negative terms
-    for (const auto& term: lhs->is_stoich()->terms()) {
-        // should always be true
-        if (auto sterm = term->is_stoich_term()) {
-            if (sterm->negative()) {
-                error(pprintf("expected only non-negative terms in reaction lhs, found '%'",
-                    yellow(term->to_string())));
-                return nullptr;
+    if (lhs && token_.type == tok::arrow) {
+        // reaction halves must comprise non-negative terms
+        for (const auto &term: lhs->is_stoich()->terms()) {
+            // should always be true
+            if (auto sterm = term->is_stoich_term()) {
+                if (sterm->negative()) {
+                    error(pprintf("expected only non-negative terms in reaction lhs, found '%'",
+                                  yellow(term->to_string())));
+                    return nullptr;
+                }
             }
         }
-    }
 
-    if(token_.type != tok::arrow) {
-        error(pprintf("expected '%', found '%'", yellow("<->"), yellow(token_.spelling)));
-        return nullptr;
-    }
+        get_token(); // consume arrow
+        expression_ptr rhs = parse_stoich_expression();
+        if (!rhs) return nullptr;
 
-    get_token(); // consume arrow
-    expression_ptr rhs = parse_stoich_expression();
-    if (!rhs) return nullptr;
-
-    for (const auto& term: rhs->is_stoich()->terms()) {
-        // should always be true
-        if (auto sterm = term->is_stoich_term()) {
-            if (sterm->negative()) {
-                error(pprintf("expected only non-negative terms in reaction rhs, found '%'",
-                    yellow(term->to_string())));
-                return nullptr;
+        for (const auto &term: rhs->is_stoich()->terms()) {
+            // should always be true
+            if (auto sterm = term->is_stoich_term()) {
+                if (sterm->negative()) {
+                    error(pprintf("expected only non-negative terms in reaction rhs, found '%'",
+                                  yellow(term->to_string())));
+                    return nullptr;
+                }
             }
         }
+
+        if (token_.type != tok::lparen) {
+            error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
+            return nullptr;
+        }
+        get_token(); // consume lparen
+        expression_ptr fwd = parse_expression();
+        if (!fwd) return nullptr;
+
+        if (token_.type != tok::comma) {
+            error(pprintf("expected '%', found '%'", yellow(","), yellow(token_.spelling)));
+            return nullptr;
+        }
+
+        get_token(); // consume comma
+        expression_ptr rev = parse_expression();
+        if (!rev) return nullptr;
+
+        if (token_.type != tok::rparen) {
+            error(pprintf("expected '%', found '%'", yellow(")"), yellow(token_.spelling)));
+            return nullptr;
+        }
+
+        get_token(); // consume rparen
+        return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
+                                                   std::move(fwd), std::move(rev));
     }
-
-    if(token_.type != tok::lparen) {
-        error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
-        return nullptr;
+    if (lhs && token_.type == tok::eq) {
+        // Transform lhs from stoichiometric expression to binary expression
+        expression_ptr lhs_bin;
+        for (auto& sterm: lhs->is_stoich()->terms()) {
+            auto exp = make_expression<MulBinaryExpression>(lhs->location(),
+                    sterm->is_stoich_term()->coeff()->clone(), sterm->is_stoich_term()->ident()->clone());
+            if (!lhs_bin) {
+                lhs_bin = exp->clone();
+            } else {
+                lhs_bin = binary_expression(lhs->location(), tok::plus, std::move(lhs_bin), std::move(exp));
+            }
+        }
+        get_token(); // consume =
+        auto rhs = parse_expression();
+        return make_expression<LinearExpression>(here, std::move(lhs_bin), std::move(rhs));
     }
-    get_token(); // consume lparen
-    expression_ptr fwd = parse_expression();
-    if (!fwd) return nullptr;
+    else {
+        auto lhs = parse_expression(true);
 
-    if(token_.type != tok::comma) {
-        error(pprintf("expected '%', found '%'", yellow(","), yellow(token_.spelling)));
-        return nullptr;
+        if(token_.type!=tok::eq) {
+            error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
+            return nullptr;
+        }
+
+        get_token(); // consume =
+        auto rhs = parse_expression();
+        return make_expression<LinearExpression>(here, std::move(lhs), std::move(rhs));
     }
-
-    get_token(); // consume comma
-    expression_ptr rev = parse_expression();
-    if (!rev) return nullptr;
-
-    if(token_.type != tok::rparen) {
-        error(pprintf("expected '%', found '%'", yellow(")"), yellow(token_.spelling)));
-        return nullptr;
-    }
-
-    get_token(); // consume rparen
-    return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
-        std::move(fwd), std::move(rev));
 }
 
 expression_ptr Parser::parse_conserve_expression() {
@@ -1682,7 +1679,7 @@ expression_ptr Parser::parse_if() {
 // takes a flag indicating whether the block is at procedure/function body,
 // or lower. Can be used to check for illegal statements inside a nested block,
 // e.g. LOCAL declarations.
-expression_ptr Parser::parse_block(bool is_nested, bool is_linear_block) {
+expression_ptr Parser::parse_block(bool is_nested) {
     // blocks have to be enclosed in curly braces {}
     expect(tok::lbrace);
 
@@ -1693,7 +1690,7 @@ expression_ptr Parser::parse_block(bool is_nested, bool is_linear_block) {
 
     expr_list_type body;
     while(token_.type != tok::rbrace) {
-        auto e = parse_statement(is_linear_block);
+        auto e = parse_statement();
         if(!e) return e;
 
         if(is_nested) {
