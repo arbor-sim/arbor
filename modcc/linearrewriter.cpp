@@ -36,7 +36,6 @@ expression_ptr linear_rewrite(BlockExpression* block, std::vector<std::string> s
 
 // LinearRewriter implementation follows.
 void LinearRewriter::visit(LinearExpression* e) {
-    std::cout << "we're in: " << e->to_string() << std::endl;
     Location loc = e->location();
     scope_ptr scope = e->scope();
 

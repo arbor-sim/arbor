@@ -1004,7 +1004,6 @@ expression_ptr Parser::parse_statement(bool is_linear_statement) {
             return parse_conserve_expression();
         case tok::tilde :
             if (is_linear_statement) {
-                std::cout << "caught you" << std::endl;
                 return parse_linear_expression();
             }
             return parse_reaction_expression();
@@ -1207,27 +1206,13 @@ expression_ptr Parser::parse_linear_expression() {
     get_token(); // consume tilde
     auto lhs = parse_expression(true);
 
-    if (lhs) {
-        std::cout << lhs->to_string() << std::endl;
-    } else {
-        std::cout << "fail" << std::endl;
-    };
-
     if(token_.type!=tok::eq) {
         error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
         return nullptr;
     }
 
     get_token(); // consume =
-
     auto rhs = parse_expression();
-
-    if (rhs) {
-        std::cout << rhs->to_string() << std::endl;
-    } else {
-        std::cout << "fail" << std::endl;
-    };
-
     return make_expression<LinearExpression>(here, std::move(lhs), std::move(rhs));
 }
 

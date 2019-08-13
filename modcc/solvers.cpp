@@ -175,7 +175,6 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
     // lhs; can't really trust 'STATE' block.
 
     for (auto& stmt: e->statements()) {
-        std::cout << "visiting: "<< stmt->to_string() << std::endl;
         if (stmt && stmt->is_assignment() && stmt->is_assignment()->lhs()->is_derivative()) {
             auto id = stmt->is_assignment()->lhs()->is_derivative();
             dvars_.push_back(id->name());
@@ -205,7 +204,6 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         if (id) {
             auto expand = substitute(rhs, local_expr_);
             if (involves_identifier(expand, dvars_)) {
-                std::cout << "involves: " << expand->to_string() << std::endl;
                 local_expr_[id->spelling()] = std::move(expand);
             }
         }
@@ -397,7 +395,6 @@ void LinearSolverVisitor::visit(BlockExpression* e) {
 }
 
 void LinearSolverVisitor::visit(AssignmentExpression *e) {
-    std::cout << "a:\t" << e->to_string() << std::endl;
     statements_.push_back(e->clone());
     return;
 }
@@ -434,8 +431,6 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
     ++deq_index_;
 }
 void LinearSolverVisitor::finalize() {
-    std::cout << dvars_[0] << " " << dvars_[1] << " " << dvars_[2] << std::endl;
-    A_.print();
     A_.augment(rhs_);
 
     symge::gj_reduce(A_, symtbl_);
@@ -451,9 +446,7 @@ void LinearSolverVisitor::finalize() {
         auto t_ = local_t_term.id->is_identifier()->spelling();
         symtbl_.name(s, t_);
 
-        std::cout << "\t" << local_t_term.local_decl->to_string() << std::endl;
         statements_.push_back(std::move(local_t_term.local_decl));
-        std::cout << "\t" << local_t_term.assignment->to_string() << std::endl;
         statements_.push_back(std::move(local_t_term.assignment));
     }
 
@@ -462,7 +455,6 @@ void LinearSolverVisitor::finalize() {
     for (unsigned i = 0; i<A_.nrow(); ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs = A_.augcol();
-        std::cout << ": rhs = " << rhs << std::endl;
         unsigned lhs;
         for (unsigned r = 0; r < A_.nrow(); r++) {
             if (row[r]) {
@@ -478,7 +470,6 @@ void LinearSolverVisitor::finalize() {
                             make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
                             make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs]))));
 
-        std::cout << "\t : " << expr->to_string() << std::endl;
         statements_.push_back(std::move(expr));
     }
 
