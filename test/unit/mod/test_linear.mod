@@ -19,10 +19,14 @@ ASSIGNED {
 }
 
 BREAKPOINT {
-    SOLVE state
+    s = a1
 }
 
-LINEAR state {
+INITIAL {
+    SOLVE sinit
+}
+
+LINEAR sinit {
     ~                (a4 - a3)*d -    a2*h = 0
     ~ (a0 + a1)*s - (-a1 + a0)*d           = 0
     ~           s +            d +       h = 1
