@@ -261,6 +261,60 @@ bool Module::semantic() {
         std::vector<expression_ptr>(),
         make_expression<BlockExpression>(Location{}, std::move(ion_assignments), false));
 
+    // Lambda to replace non-state solve statements with their translated solutions
+    auto replace_solve = [&state_vars, this](auto& body, SolveExpression* solve_expression) -> bool {
+        // Grab SOLVE statements, put them in `body` after translation.
+        std::set<std::string> solved_ids;
+        std::unique_ptr<SolverVisitorBase> solver;
+
+        switch (solve_expression->method()) {
+            case solverMethod::cnexp:
+                solver = std::make_unique<CnexpSolverVisitor>();
+                break;
+            case solverMethod::sparse:
+                solver = std::make_unique<SparseSolverVisitor>();
+                break;
+            case solverMethod::none:
+                solver = std::make_unique<DirectSolverVisitor>();
+                break;
+        }
+
+        // If the derivative block is a kinetic/linear block,
+        // perform kinetic/linear rewrite first.
+
+        auto deriv = solve_expression->procedure();
+
+        if (deriv->kind() == procedureKind::kinetic) {
+            kinetic_rewrite(deriv->body())->accept(solver.get());
+        } else if (deriv->kind() == procedureKind::linear) {
+            solver = std::make_unique<LinearSolverVisitor>(state_vars);
+            linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
+        } else {
+            deriv->body()->accept(solver.get());
+        }
+
+        if (auto solve_block = solver->as_block(false)) {
+            // Check that we didn't solve an already solved variable.
+            for (const auto &id: solver->solved_identifiers()) {
+                if (solved_ids.count(id) > 0) {
+                    error("Variable " + id + " solved twice!", solve_expression->location());
+                    return false;
+                }
+                solved_ids.insert(id);
+            }
+            // Copy body into body.
+            for (auto &stmt: solve_block->is_block()->statements()) {
+                body.emplace_back(stmt->clone());
+            }
+        } else {
+            // Something went wrong: copy errors across.
+            append_errors(solver->errors());
+            return false;
+        }
+
+        return true;
+    };
+
     //.........................................................................
     // nrn_init : based on the INITIAL block (i.e. the 'initial' procedure
     //.........................................................................
@@ -279,75 +333,13 @@ bool Module::semantic() {
     auto proc_init = initial_api.second;
     auto& init_body = api_init->body()->statements();
 
-    SolveExpression* solve_expression = nullptr;
-
     for(auto& e : *proc_init->body()) {
         if (e->is_solve_statement()) {
-            solve_expression = e->is_solve_statement();
+            if (!replace_solve(init_body, e->is_solve_statement())) {
+                return false;
+            }
         } else {
             init_body.emplace_back(e->clone());
-        }
-    }
-
-    if(solve_expression) {
-        std::cout << "got it : " << solve_expression->to_string() << std::endl;
-        // Grab SOLVE statements, put them in `nrn_state` after translation.
-        std::set<std::string> solved_ids;
-        std::unique_ptr<SolverVisitorBase> solver;
-
-        switch(solve_expression->method()) {
-            case solverMethod::cnexp:
-                solver = std::make_unique<CnexpSolverVisitor>();
-                break;
-            case solverMethod::sparse:
-                solver = std::make_unique<SparseSolverVisitor>();
-                break;
-            case solverMethod::none:
-                solver = std::make_unique<DirectSolverVisitor>();
-                break;
-        }
-
-        // If the derivative block is a kinetic block, perform kinetic
-        // rewrite first.
-
-        auto deriv = solve_expression->procedure();
-
-        if (deriv->kind()==procedureKind::kinetic) {
-            kinetic_rewrite(deriv->body())->accept(solver.get());
-        }
-        else if (deriv->kind()==procedureKind::linear) {
-            solver = std::make_unique<LinearSolverVisitor>(state_vars);
-            linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
-        }
-        else {
-            deriv->body()->accept(solver.get());
-            for (auto& s: deriv->body()->statements()) {
-                if(s->is_assignment() && !state_vars.empty()) {
-                    linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                    linear &= r.is_linear;
-                    linear &= r.is_homogeneous;
-                }
-            }
-        }
-
-        if (auto solve_block = solver->as_block(false)) {
-            // Check that we didn't solve an already solved variable.
-            for (const auto& id: solver->solved_identifiers()) {
-                if (solved_ids.count(id)>0) {
-                    error("Variable "+id+" solved twice!", solve_expression->location());
-                    return false;
-                }
-                solved_ids.insert(id);
-            }
-            // Copy body into nrn_state.
-            for (auto& stmt: solve_block->is_block()->statements()) {
-                init_body.emplace_back(stmt->clone());
-            }
-        }
-        else {
-            // Something went wrong: copy errors across.
-            append_errors(solver->errors());
-            return false;
         }
     }
 
