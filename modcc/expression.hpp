@@ -170,7 +170,7 @@ public:
     virtual UnaryExpression*       is_unary()             {return nullptr;}
     virtual AssignmentExpression*  is_assignment()        {return nullptr;}
     virtual ConserveExpression*    is_conserve()          {return nullptr;}
-    virtual LinearExpression*      is_linear()          {return nullptr;}
+    virtual LinearExpression*      is_linear()            {return nullptr;}
     virtual ReactionExpression*    is_reaction()          {return nullptr;}
     virtual StoichExpression*      is_stoich()            {return nullptr;}
     virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}

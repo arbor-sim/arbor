@@ -307,7 +307,7 @@ bool Module::semantic() {
                     }
                     solved_ids.insert(id);
                 }
-                // Copy body into body.
+                // Copy body into nrn_init.
                 for (auto &stmt: solve_block->is_block()->statements()) {
                     init_body.emplace_back(stmt->clone());
                 }

@@ -91,7 +91,7 @@ void gj_reduce(sym_matrix& A, symbol_table& table) {
             pivot p;
             p.row = r;
             const sym_row &row = A[r];
-            for (unsigned c = 0; c < A.ncol() - 1; ++c) {
+            for (unsigned c = 0; c < A.nrow(); ++c) {
                 if (row[c]) {
                     p.col = c;
                     break;
@@ -122,7 +122,6 @@ void gj_reduce(sym_matrix& A, symbol_table& table) {
 
         for (unsigned i = 0; i<A.nrow(); ++i) {
             if (i==p.row || A[i].index(p.col)==msparse::row_npos) continue;
-
             A[i] = row_reduce(p.col, A[i], A[p.row], define_sym);
         }
 
