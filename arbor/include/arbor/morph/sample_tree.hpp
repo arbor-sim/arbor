@@ -14,6 +14,8 @@ namespace arb {
 class sample_tree {
     std::vector<msample> samples_;
     std::vector<size_t> parents_;
+    std::vector<point_prop> props_;
+    std::vector<int> child_counts_;
 
 public:
     sample_tree() = default;
@@ -38,6 +40,9 @@ public:
 
     // The parent index of the samples.
     const std::vector<size_t>& parents() const;
+
+    // The properties of the samples.
+    const std::vector<point_prop>& properties() const;
 
     friend std::ostream& operator<<(std::ostream&, const sample_tree&);
 };

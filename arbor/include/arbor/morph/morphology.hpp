@@ -55,20 +55,12 @@ struct indexer: util::counter<I> {
 };
 
 class morphology {
-    // Indexes of the prox and dist points of a segment
-    // prox and dist may be non-contiguous for the first segment in a branch.
-    struct segment {size_t prox; size_t dist;};
-
     sample_tree sample_tree_;
 
     // Branch state.
     std::vector<mbranch> branches_;
     std::vector<size_t> branch_parents_;
     std::vector<std::vector<size_t>> branch_children_;
-
-    // Segment state.
-    std::vector<segment> segments_;
-    std::vector<size_t> segment_part_;
 
     // Meta data about sample point properties.
     std::vector<size_t> fork_points_;
@@ -78,7 +70,7 @@ class morphology {
     // Indicates whether the soma is a sphere.
     bool spherical_root_;
 
-    // Types used to provide range-based access to samples and segments in branches.
+    // Types used to provide range-based access to indexes and samples in branches.
     using index_counter = indexer<size_t, size_t>;
     using sample_counter = indexer<msample, size_t>;
     using index_range = std::pair<index_counter, index_counter>;
@@ -92,9 +84,6 @@ public:
 
     // The number of branches in the morphology.
     size_t num_branches() const;
-
-    // The number of segments in the morphology.
-    size_t num_segments() const;
 
     // List the ids of fork points in the morphology.
     const std::vector<size_t>& fork_points() const;
@@ -113,9 +102,6 @@ public:
 
     // Range of the samples in branch b.
     sample_range branch_sample_view(size_t b) const;
-
-    // The branch that contains segment i.
-    size_t seg2bid(size_t i) const;
 
     friend std::ostream& operator<<(std::ostream&, const morphology&);
 };

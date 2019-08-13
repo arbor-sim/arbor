@@ -25,16 +25,46 @@ sample_tree::sample_tree(std::vector<msample> samples, std::vector<size_t> paren
 void sample_tree::reserve(size_t n) {
     samples_.reserve(n);
     parents_.reserve(n);
+    props_.reserve(n);
+    child_counts_.reserve(n);
 }
 
 size_t sample_tree::append(size_t p, const msample& s) {
     if (p>size()) {
         throw std::runtime_error("parent id of a sample must be less than the sample id");
     }
+    auto id = size();
+
     samples_.push_back(s);
     parents_.push_back(p);
+    child_counts_.push_back(0);
 
-    return size()-1;
+    // Set the point properties for the new point, and update those of its parent as needed.
+    point_prop prop = point_prop_mask_none;
+    if (!id) {
+        // if adding the first sample mark it as root
+        set_root(prop);
+    }
+    else {
+        // Mark the new node as terminal, and unset the parent sample's terminal bit.
+        set_terminal(prop);
+        unset_terminal(props_[p]);
+
+        // Mark if the new sample is collocated with its parent.
+        if (is_collocated(s, samples_[p])) {
+            set_collocated(prop);
+        }
+
+        // Update the number of children of the parent.
+        ++child_counts_[p];
+        if (p>0 && child_counts_[p]>1) {
+            // If the parent has more than one child and is not the root, mark it as a fork point.
+            set_fork(props_[p]);
+        }
+    }
+    props_.push_back(prop);
+
+    return id;
 }
 
 size_t sample_tree::append(size_t p, const std::vector<msample>& slist) {
@@ -57,6 +87,10 @@ const std::vector<msample>& sample_tree::samples() const {
 
 const std::vector<size_t>& sample_tree::parents() const {
     return parents_;
+}
+
+const std::vector<point_prop>& sample_tree::properties() const {
+    return props_;
 }
 
 std::ostream& operator<<(std::ostream& o, const sample_tree& m) {

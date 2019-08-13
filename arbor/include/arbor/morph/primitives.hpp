@@ -72,29 +72,28 @@ struct mbranch {
 };
 
 using point_prop = std::uint8_t;
-enum class point_prop_mask:
-    point_prop {root=1, fork=2, terminal=4, collocated=8, sphere=16};
+constexpr point_prop point_prop_mask_none = 0;
+constexpr point_prop point_prop_mask_root = 1;
+constexpr point_prop point_prop_mask_fork = 2;
+constexpr point_prop point_prop_mask_terminal = 4;
+constexpr point_prop point_prop_mask_collocated = 8;
 
 std::ostream& operator<<(std::ostream& o, const point_prop& p);
 
-#define IS_PROP(prop) constexpr bool is_##prop(point_prop p) {\
-    return p&static_cast<point_prop>(point_prop_mask::prop);\
+#define PROP(prop) \
+constexpr bool is_##prop(point_prop p) {\
+    return p&point_prop_mask_##prop;\
+} \
+inline void set_##prop(point_prop& p) {\
+    p |= point_prop_mask_##prop;\
+} \
+inline void unset_##prop(point_prop& p) {\
+    p &= ~point_prop_mask_##prop;\
 }
 
-IS_PROP(root)
-IS_PROP(fork)
-IS_PROP(terminal)
-IS_PROP(collocated)
-IS_PROP(sphere)
-
-#define SET_PROP(prop) constexpr point_prop set_##prop(point_prop p) {\
-    return p|static_cast<point_prop>(point_prop_mask::prop);\
-}
-
-SET_PROP(root)
-SET_PROP(fork)
-SET_PROP(terminal)
-SET_PROP(collocated)
-SET_PROP(sphere)
+PROP(root)
+PROP(fork)
+PROP(terminal)
+PROP(collocated)
 
 } // namespace arb
