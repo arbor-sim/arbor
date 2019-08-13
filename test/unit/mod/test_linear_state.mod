@@ -1,5 +1,5 @@
 NEURON {
-    SUFFIX test_linear
+    SUFFIX test_linear_state
     RANGE a0, a1, a3, a3
 }
 
@@ -19,10 +19,6 @@ ASSIGNED {
 }
 
 BREAKPOINT {
-    s = a1
-}
-
-INITIAL {
     SOLVE sinit
 }
 

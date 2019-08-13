@@ -109,9 +109,10 @@ TEST(mech_kinetic, kintetic_2_conserve) {
 TEST(mech_linear, linear) {
     std::vector<std::string> state_variables = {"h", "s", "d"};
     std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
-    std::unordered_map<std::string, fvm_value_type> assigned_variables = {{"a0", 2.5},{"a1",0.5},{"a2",3},{"a3",2.3}};
+    std::unordered_map<std::string, fvm_value_type> assigned_variables = {{"a0", 2.5}, {"a1",0.5}, {"a2",3}, {"a3",2.3}};
 
-    run_test<multicore::backend>("test_linear", state_variables, assigned_variables, {}, values);
+    run_test<multicore::backend>("test_linear_state", state_variables, assigned_variables, {}, values);
+    run_test<multicore::backend>("test_linear_init", state_variables, assigned_variables, values, {});
 }
 
 #ifdef ARB_GPU_ENABLED
@@ -138,7 +139,8 @@ TEST(mech_linear_gpu, linear) {
     std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
     std::unordered_map<std::string, fvm_value_type> assigned_variables = {{"a0", 2.5},{"a1",0.5},{"a2",3},{"a3",2.3}};
 
-    run_test<gpu::backend>("test_linear", state_variables, assigned_variables, {}, values);
+    run_test<gpu::backend>("test_linear_state", state_variables, assigned_variables, {}, values);
+    run_test<gpu::backend>("test_linear_init", state_variables, assigned_variables, values, {});
 }
 
 #endif

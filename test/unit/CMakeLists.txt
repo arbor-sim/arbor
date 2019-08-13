@@ -2,7 +2,8 @@
 
 set(test_mechanisms
     celsius_test
-    test_linear
+    test_linear_state
+    test_linear_init
     test0_kin_diff
     test0_kin_conserve
     test1_kin_diff
