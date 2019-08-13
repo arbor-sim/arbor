@@ -261,60 +261,6 @@ bool Module::semantic() {
         std::vector<expression_ptr>(),
         make_expression<BlockExpression>(Location{}, std::move(ion_assignments), false));
 
-    // Lambda to replace non-state solve statements with their translated solutions
-    auto replace_solve = [&state_vars, this](auto& body, SolveExpression* solve_expression) -> bool {
-        // Grab SOLVE statements, put them in `body` after translation.
-        std::set<std::string> solved_ids;
-        std::unique_ptr<SolverVisitorBase> solver;
-
-        switch (solve_expression->method()) {
-            case solverMethod::cnexp:
-                solver = std::make_unique<CnexpSolverVisitor>();
-                break;
-            case solverMethod::sparse:
-                solver = std::make_unique<SparseSolverVisitor>();
-                break;
-            case solverMethod::none:
-                solver = std::make_unique<DirectSolverVisitor>();
-                break;
-        }
-
-        // If the derivative block is a kinetic/linear block,
-        // perform kinetic/linear rewrite first.
-
-        auto deriv = solve_expression->procedure();
-
-        if (deriv->kind() == procedureKind::kinetic) {
-            kinetic_rewrite(deriv->body())->accept(solver.get());
-        } else if (deriv->kind() == procedureKind::linear) {
-            solver = std::make_unique<LinearSolverVisitor>(state_vars);
-            linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
-        } else {
-            deriv->body()->accept(solver.get());
-        }
-
-        if (auto solve_block = solver->as_block(false)) {
-            // Check that we didn't solve an already solved variable.
-            for (const auto &id: solver->solved_identifiers()) {
-                if (solved_ids.count(id) > 0) {
-                    error("Variable " + id + " solved twice!", solve_expression->location());
-                    return false;
-                }
-                solved_ids.insert(id);
-            }
-            // Copy body into body.
-            for (auto &stmt: solve_block->is_block()->statements()) {
-                body.emplace_back(stmt->clone());
-            }
-        } else {
-            // Something went wrong: copy errors across.
-            append_errors(solver->errors());
-            return false;
-        }
-
-        return true;
-    };
-
     //.........................................................................
     // nrn_init : based on the INITIAL block (i.e. the 'initial' procedure
     //.........................................................................
@@ -334,8 +280,40 @@ bool Module::semantic() {
     auto& init_body = api_init->body()->statements();
 
     for(auto& e : *proc_init->body()) {
-        if (e->is_solve_statement()) {
-            if (!replace_solve(init_body, e->is_solve_statement())) {
+        auto solve_expression = e->is_solve_statement();
+        if (solve_expression) {
+            // Grab SOLVE statements, put them in `body` after translation.
+            std::set<std::string> solved_ids;
+            std::unique_ptr<SolverVisitorBase> solver = std::make_unique<SparseSolverVisitor>();
+
+            // The solve expression inside an initial block can only refer to a linear block
+
+            auto deriv = solve_expression->procedure();
+
+            if (deriv->kind() == procedureKind::linear) {
+                solver = std::make_unique<LinearSolverVisitor>(state_vars);
+                linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
+            } else {
+                error("The solve expression " + solve_expression->name() + " is not a linear procedure",
+                        solve_expression->location());
+            }
+
+            if (auto solve_block = solver->as_block(false)) {
+                // Check that we didn't solve an already solved variable.
+                for (const auto &id: solver->solved_identifiers()) {
+                    if (solved_ids.count(id) > 0) {
+                        error("Variable " + id + " solved twice!", solve_expression->location());
+                        return false;
+                    }
+                    solved_ids.insert(id);
+                }
+                // Copy body into body.
+                for (auto &stmt: solve_block->is_block()->statements()) {
+                    init_body.emplace_back(stmt->clone());
+                }
+            } else {
+                // Something went wrong: copy errors across.
+                append_errors(solver->errors());
                 return false;
             }
         } else {
