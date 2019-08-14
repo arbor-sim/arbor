@@ -72,6 +72,9 @@ public:
     // return the next token in the stream without advancing the current position
     Token peek();
 
+    // return the next token in the stream without advancing the current position
+    bool search_line(tok const& t);
+
     // scan a number from the stream
     Token number();
 
