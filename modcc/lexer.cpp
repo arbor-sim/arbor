@@ -240,13 +240,15 @@ bool Lexer::search_line(tok const& t) {
     const char *oldlin  = line_;
     Location    oldloc  = location_;
 
+    Token p = token_;
     bool ret = false;
     while (line_ == oldlin) {
-        Token p = parse(); // read the next token
+        if (p.type == tok::eof) break;
         if (p.type == t) {
             ret = true;
             break;
         }
+        p = parse();
     }
 
     // reset position
