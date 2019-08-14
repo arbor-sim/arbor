@@ -178,15 +178,15 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
     }
 
     // (not supporting soma-less cells yet)
-    auto soma = util::make_range(morph.branch_sample_view(0));
-    auto loc = soma[0].loc;
+    auto loc = morph.samples()[0].loc;
     newcell.add_soma(loc.radius, point3d(loc.x, loc.y, loc.z));
 
+    auto& samples = morph.samples();
     for (auto i: util::make_span(1, morph.num_branches())) {
-        auto samples = util::make_range(morph.branch_sample_view(i));
+        auto index =  util::make_range(morph.branch_sample_span(i));
 
         // STEP 1: find kind / tag. Use the tag of the last sample in the branch.
-        int tag = samples.back().tag;
+        int tag = samples[index.back()].tag;
         section_kind kind;
         switch (tag) {
             case 1:     // soma
@@ -202,7 +202,8 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
         std::vector<value_type> radii;
         std::vector<point3d> points;
 
-        for (auto s: samples) {
+        for (auto i: index) {
+            auto& s = samples[i];
             radii.push_back(s.loc.radius);
             points.push_back(point3d(s.loc.x, s.loc.y, s.loc.z));
         }

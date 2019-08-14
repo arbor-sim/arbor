@@ -143,38 +143,13 @@ bool morphology::spherical_root() const {
     return spherical_root_;
 }
 
-struct branch_indexer {
-    const std::vector<size_t>& index;
-
-    branch_indexer(const mbranch& b):
-        index(b.index) {}
-
-    size_t operator()(size_t i) const {
-        return index[i];
-    }
-};
-
-// Return a range of the sample points in a branch
 morphology::index_range morphology::branch_sample_span(size_t b) const {
-    auto it = index_counter(branch_indexer{branches_[b]});
-    return std::make_pair(it, it+branches_[b].size());
+    const auto& idx = branches_[b].index;
+    return std::make_pair(idx.data(), idx.data()+idx.size());
 }
 
-struct sample_branch_indexer {
-    branch_indexer map;
-    const std::vector<msample>& samples;
-
-    sample_branch_indexer(const mbranch& b, const std::vector<msample>& s):
-        map(b), samples(s) {}
-
-    msample operator()(size_t i) const {
-        return samples[map(i)];
-    }
-};
-
-morphology::sample_range morphology::branch_sample_view(size_t b) const {
-    auto it = sample_counter(sample_branch_indexer(branches_[b], sample_tree_.samples()));
-    return {it, it+branches_[b].size()};
+const std::vector<msample>& morphology::samples() const {
+    return sample_tree_.samples();
 }
 
 size_t morphology::num_branches() const {

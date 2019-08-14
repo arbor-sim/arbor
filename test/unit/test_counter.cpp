@@ -3,7 +3,7 @@
 #include <iterator>
 #include <type_traits>
 
-#include <arbor/util/counter.hpp>
+#include "util/counter.hpp"
 
 using namespace arb;
 
