@@ -46,25 +46,20 @@ struct msample {
 bool is_collocated(const msample& a, const msample& b);
 double distance(const msample& a, const msample& b);
 
-// An unbranched cable with root, branch or terminal points at each end.
-// A branch's prox sample can be either:
-// (1) the root of the tree.
-// (2) the spherical soma as parent.
-// (3) a fork point at the end of a parent branch.
-// For (1) & (2) second==prox+1, and the sequence is the half-open interval [prox:dist)
-// For       (3) second!=prox, and the sequence is the half-open interval [prox,second:dist)
+// An unbranched cable segment that has root, terminal or fork point at each end.
 struct mbranch {
     // branch index at the root of the morphology
     static constexpr size_t npos = -1;
 
-    size_t prox;                // sample index
-    size_t second;              // sample index
-    size_t dist;                // sample index
+    std::vector<size_t> index;  // sample index
     size_t parent_id = npos;    // branch index
 
-    mbranch(size_t p, size_t f, size_t d, size_t parent): prox(p), second(f), dist(d), parent_id(parent) {}
-    bool is_sphere() const { return size()==1u; }
-    size_t size() const { return 1 + dist-second; }
+    mbranch() = default;
+    mbranch(std::vector<size_t> idx, size_t parent):
+        index(std::move(idx)), parent_id(parent) {}
+
+    bool is_sphere()  const { return size()==1u; }
+    size_t size()     const { return index.size(); }
     bool has_parent() const {return parent_id!=npos;}
 
     friend bool operator==(const mbranch& l, const mbranch& r);

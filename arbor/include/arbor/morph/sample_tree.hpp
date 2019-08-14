@@ -15,7 +15,8 @@ class sample_tree {
     std::vector<msample> samples_;
     std::vector<size_t> parents_;
     std::vector<point_prop> props_;
-    std::vector<int> child_counts_;
+    std::vector<size_t> branch_ids_;
+    bool single_root_tag_ = true;
 
 public:
     sample_tree() = default;
@@ -34,6 +35,11 @@ public:
 
     // The number of samples in the tree.
     std::size_t size() const;
+
+    // Returns true if the root sample does not have the same tag as any of its
+    // children, which is useful for algorithms that attempt to automatically
+    // determine whether the morphology has a spherical root branch.
+    bool single_root_tag() const;
 
     // The samples in the tree.
     const std::vector<msample>& samples() const;

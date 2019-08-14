@@ -10,7 +10,6 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "algorithms.hpp"
-#include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
@@ -19,59 +18,65 @@ namespace arb {
 namespace impl{
 
 std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& parents, const std::vector<point_prop>& props, bool spherical_root) {
+    using util::make_span;
+
     const char* errstr_single_sample_root =
         "A morphology with only one sample must have a spherical root";
-    const char* errstr_self_root =
-        "Parent of root node must be itself, i.e. parents[0]==0";
     const char* errstr_incomplete_cable =
         "A branch must contain at least two samples";
 
-    auto fork_or_term = [](point_prop p) {return is_terminal(p) || is_fork(p);};
+    auto npos = mbranch::npos;
+
     if (!parents.size()) return {};
-    if (parents[0]) throw morphology_error(errstr_self_root);
 
     auto nsamp = parents.size();
 
-    // Handle the single sample case.
-    if (nsamp==1u) {
-        if (!spherical_root) throw morphology_error(errstr_single_sample_root);
-        return {mbranch{0,1,1,mbranch::npos}};
+    // Enforce that a morphology with one sample has a spherical root.
+    if (!spherical_root && nsamp==1u) {
+        throw morphology_error(errstr_single_sample_root);
     }
 
-    unsigned nbranch = spherical_root? 1: 0;
-    nbranch += std::count_if(props.begin()+1, props.end(), fork_or_term);
+    std::vector<int> bids(nsamp);
+    int nbranches = spherical_root? 1: 0;
+    for (auto i: make_span(1, nsamp)) {
+        size_t p = parents[i];
+        bool first = is_root(props[p]) || is_fork(props[p]);
+        bids[i] = first? nbranches++: bids[p];
+    }
 
-    std::vector<mbranch> branches;
-    branches.reserve(nbranch);
+    std::vector<mbranch> branches(nbranches);
+    for (auto i: make_span(nsamp)) {
+        auto p = parents[i];
+        auto& branch = branches[bids[i]];
 
-    // For lookup of branch id using the branch's distal sample as key.
-    std::unordered_map<size_t, size_t> bp;
-    // Tracks the id of the first sample in the current branch: start with sample 0.
-    size_t first = 0;
-    // Add the spherical root.
+        // Determine the id of the parent branch if this is the first sample in
+        // the branch, and include the fork/root point at the end of the parent
+        // branch where applicable.
+        // This is icky, but of all the solutions, this is the cleanest (that I
+        // could find).
+        if (!branch.size()) {
+            // A branch has null root if either:
+            //      ∃ a spherical root and branch id is 0
+            //      ∄ a spherical root and parent id is 0
+            auto null_root = spherical_root? !i: !p;
+            branch.parent_id = null_root? npos: bids[parents[i]];
+
+            // Add the first sample to a branch that is attached to
+            // non-spherical root if the branch is not branch 0.
+            if ((null_root && i) || is_fork(props[p])) {
+                branch.index.push_back(p);
+            }
+        }
+        branch.index.push_back(i);
+    }
+
+    // Enforce that all cable branches that are potentially connected to a spherical
+    // root contain at least two samples.
     if (spherical_root) {
-        branches.push_back({0, 1, 1, mbranch::npos});
-        bp[0] = 0; // connections to the root node are treated as children of the spherical root.
-        ++first;
-    }
-    else {
-        bp[0] = mbranch::npos; // first sample point is marked "none"
-    }
-    for (auto i: util::make_span(1, nsamp)) {
-        // Fork and terminal points mark the end of a branch.
-        if (fork_or_term(props[i])) {
-            auto p = parents[first]; // parent sample of the first non-fork sample in this branch
-            // Cable section has to be attached to a spherical root.
-            if (p==0 && spherical_root) {
-                branches.push_back({first, first+1, i+1, bp[p]});
-                // Catch the case where a single terminal sample has a spherical root as a parent.
-                if (branches.back().size()<2) throw morphology_error(errstr_incomplete_cable);
+        for (auto i: make_span(1, nbranches)) { // skip the root.
+            if (branches[i].size()<2u) {
+                throw morphology_error(errstr_incomplete_cable);
             }
-            else {
-                branches.push_back({p, p==first? first+1: first, i+1, bp[p]});
-            }
-            first = i+1;
-            bp[i] = branches.size()-1;
         }
     }
 
@@ -90,19 +95,14 @@ morphology::morphology(sample_tree m):
     using util::make_span;
     using util::count_along;
 
-    auto& samples= sample_tree_.samples();
-    auto& parents= sample_tree_.parents();
-    auto& props= sample_tree_.properties();
     auto nsamp = sample_tree_.size();
 
-    // Determine whether the root is spherical by counting how many
-    // times the tag assigned to the root appears.
-    auto root_tag = samples[0].tag;
-    auto tags = util::transform_view(samples, [](const msample& s){return s.tag;});
-    spherical_root_ = 1==std::count_if(tags.begin(), tags.end(),
-                                       [root_tag](auto t){return t==root_tag;});
+    // Treat the root sample as a sphere if it does not have the same tag as
+    // any of its children.
+    spherical_root_ = sample_tree_.single_root_tag();
 
     // Cache the fork and terminal points.
+    auto& props = sample_tree_.properties();
     for (auto i: make_span(nsamp)) {
         if (is_fork(props[i])) {
             fork_points_.push_back(i);
@@ -113,7 +113,7 @@ morphology::morphology(sample_tree m):
     }
 
     // Generate branches.
-    branches_ = impl::branches_from_parent_index(parents, props, spherical_root_);
+    branches_ = impl::branches_from_parent_index(sample_tree_.parents(), props, spherical_root_);
     auto nbranch = branches_.size();
 
     // Generate branch tree.
@@ -144,14 +144,13 @@ bool morphology::spherical_root() const {
 }
 
 struct branch_indexer {
-    const size_t parent;
-    const size_t first;
+    const std::vector<size_t>& index;
 
     branch_indexer(const mbranch& b):
-        parent(b.prox), first(b.second) {}
+        index(b.index) {}
 
     size_t operator()(size_t i) const {
-        return first==parent? parent+i: i? first+i-1: parent;
+        return index[i];
     }
 };
 

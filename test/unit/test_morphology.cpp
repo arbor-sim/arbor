@@ -25,12 +25,9 @@
 
 // Forward declare non-public functions that are used internally to build
 // morphologies so that they can be tested.
-/*
 namespace arb { namespace impl {
-    std::vector<point_prop> mark_branch_props(const std::vector<size_t>& parents);
-    std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& parents, bool spherical_root);
+    std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>&, const std::vector<point_prop>&, bool);
 }}
-*/
 
 template <typename T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
@@ -88,155 +85,197 @@ TEST(morphology, point_props) {
 
 // Test internal function that parses a parent list, and marks
 // each node as either root, sequential, fork or terminal.
-/*
-TEST(morphology, mark_branch_props) {
-    using arb::io::csv;
-    using arb::point_prop;
+TEST(sample_tree, properties) {
+    using arb::sample_tree;
+    using pp = arb::point_prop;
+    using pvec = std::vector<size_t>;
 
-    point_prop r = arb::point_prop_mask_root;
-    point_prop t = arb::point_prop_mask_terminal;
-    point_prop s = arb::point_prop_mask_none;
-    point_prop f = arb::point_prop_mask_fork;
+    pp c = arb::point_prop_mask_collocated;
+    pp r = arb::point_prop_mask_root;
+    pp t = arb::point_prop_mask_terminal;
+    pp s = arb::point_prop_mask_none;
+    pp f = arb::point_prop_mask_fork;
+    pp tc = t+c;
+    pp sc = s+c;
+    pp fc = f+c;
 
-    EXPECT_EQ((std::vector<point_prop> {r}),
-               arb::impl::mark_branch_props({0}));
+    // make a sample tree from a parent vector with non-collocated points.
+    auto make_tree = [] (const pvec& parents) {
+        sample_tree st;
+        for (auto p: parents) st.append(p, {{0.,0.,double(st.size()),1.}, 1});
+        return st;
+    };
+    // make a sample tree from a parent vector with collocated points.
+    auto make_colloc_tree = [] (const pvec& parents) {
+        sample_tree st;
+        for (auto p: parents) st.append(p, {{0.,0.,0.,1.}, 1});
+        return st;
+    };
 
-    EXPECT_EQ((std::vector<point_prop> {r,t}),
-               arb::impl::mark_branch_props({0,0}));
+    {
+        EXPECT_EQ(make_tree({0}).properties(), std::vector<pp>{r});
+        EXPECT_EQ(make_colloc_tree({0}).properties(), std::vector<pp>{r});
+    }
 
-    EXPECT_EQ((std::vector<point_prop> {r,s,s,t}),
-               arb::impl::mark_branch_props({0,0,1,2}));
+    {
+        EXPECT_EQ(make_tree({0,0}).properties(), (std::vector<pp>{r,t}));
+        EXPECT_EQ(make_colloc_tree({0,0}).properties(), (std::vector<pp>{r,tc}));
+    }
 
-    EXPECT_EQ((std::vector<point_prop> {r,s,s,t,s,s,t}),
-               arb::impl::mark_branch_props({0,0,1,2,0,4,5}));
+    {
+        EXPECT_EQ(make_tree({0,0,1,2}).properties(), (std::vector<pp>{r,s,s,t}));
+        EXPECT_EQ(make_colloc_tree({0,0,1,2}).properties(), (std::vector<pp>{r,sc,sc,tc}));
+    }
 
-    EXPECT_EQ((std::vector<point_prop> {r,s,f,s,f,t,t,s,t}),
-               arb::impl::mark_branch_props({0,0,1,2,3,2,4,4,7}));
+    {
+        EXPECT_EQ(make_tree({0,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,s,s,t,s,s,t}));
+        EXPECT_EQ(make_colloc_tree({0,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,sc,sc,tc,sc,sc,tc}));
+    }
+
+    {
+        EXPECT_EQ(make_tree({0,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,s,f,s,f,t,t,s,t}));
+        EXPECT_EQ(make_colloc_tree({0,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,sc,fc,sc,fc,tc,tc,sc,tc}));
+    }
 }
 
 TEST(morphology, branches_from_parent_index) {
     const auto npos = arb::mbranch::npos;
+    using pvec = std::vector<size_t>;
     using mb = arb::mbranch;
 
+    // make a sample tree from a parent vector with non-collocated points.
+    auto make_tree = [] (const pvec& parents) {
+        arb::sample_tree st;
+        for (auto p: parents) st.append(p, {{0.,0.,double(st.size()),1.}, 1});
+        return st;
+    };
+
     {   // single sample: can only be used to build a morphology with one spherical branch
-        std::vector<size_t> parents = {0};
-        auto bc = arb::impl::branches_from_parent_index(parents, true);
+        pvec parents{0};
+        auto tree = make_tree(parents);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), true);
         EXPECT_EQ(1u, bc.size());
-        EXPECT_EQ(mb(0, 1, 1, npos), bc[0]);
+        EXPECT_EQ(mb({0}, npos), bc[0]);
 
         // A cable morphology can't be constructed from a single sample.
-        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, false),
+        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), false),
                      arb::morphology_error);
     }
     {
-        std::vector<size_t> parents = {0, 0};
-        auto bc = arb::impl::branches_from_parent_index(parents, false);
+        pvec parents = {0, 0};
+        auto tree = make_tree(parents);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(1u, bc.size());
-        EXPECT_EQ(mb(0, 1, 2, npos), bc[0]);
+        EXPECT_EQ(mb({0,1}, npos), bc[0]);
 
         // A morphology can't be constructed with a spherical soma from two samples.
-        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, true),
+        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true),
                      arb::morphology_error);
     }
 
     {
-        std::vector<size_t> parents = {0, 0, 1};
+        pvec parents{0, 0, 1};
 
         // With cable soma: one cable with 3 samples.
-        auto bc = arb::impl::branches_from_parent_index(parents, false);
+        auto tree = make_tree(parents);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(1u, bc.size());
-        EXPECT_EQ(mb(0,1,3,npos), bc[0]);
+        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
 
         // With spherical soma: one sphere and a 2-segment cable.
         // The cable branch is attached to the sphere (i.e. the sphere is the parent branch).
-        auto bs = arb::impl::branches_from_parent_index(parents, true);
+        auto bs = arb::impl::branches_from_parent_index(parents, tree.properties(), true);
         EXPECT_EQ(2u, bs.size());
-        EXPECT_EQ(mb(0,1,1,npos), bs[0]);
-        EXPECT_EQ(mb(1,2,3,0), bs[1]);
+        EXPECT_EQ(mb({0},npos), bs[0]);
+        EXPECT_EQ(mb({1,2},0), bs[1]);
     }
 
     {
-        std::vector<size_t> parents = {0, 0, 0};
+        pvec parents{0, 0, 0};
+        auto tree = make_tree(parents);
 
         // A spherical root is not valid: each cable branch would have only one sample.
-        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, true), arb::morphology_error);
+        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true), arb::morphology_error);
 
         // Two cables, with two samples each, with the first sample in each being the root
-        auto bc = arb::impl::branches_from_parent_index(parents, false);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(2u, bc.size());
-        EXPECT_EQ(mb(0,1,2,npos), bc[0]);
-        EXPECT_EQ(mb(0,2,3,npos), bc[1]);
+        EXPECT_EQ(mb({0,1},npos), bc[0]);
+        EXPECT_EQ(mb({0,2},npos), bc[1]);
     }
 
     {
-        std::vector<size_t> parents = {0, 0, 1, 2};
+        pvec parents{0, 0, 1, 2};
+        auto tree = make_tree(parents);
 
         // With cable soma: one cable with 4 samples.
-        auto bc = arb::impl::branches_from_parent_index(parents, false);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(1u, bc.size());
-        EXPECT_EQ(mb(0,1,4,npos), bc[0]);
+        EXPECT_EQ(mb({0,1,2,3},npos), bc[0]);
 
         // With spherical soma: one sphere and on 3-segment cable.
         // The cable branch is attached to the sphere (i.e. the sphere is the parent branch).
-        auto bs = arb::impl::branches_from_parent_index(parents, true);
+        auto bs = arb::impl::branches_from_parent_index(parents, tree.properties(), true);
         EXPECT_EQ(2u, bs.size());
-        EXPECT_EQ(mb(0,1,1,npos), bs[0]);
-        EXPECT_EQ(mb(1,2,4,0), bs[1]);
+        EXPECT_EQ(mb({0},npos), bs[0]);
+        EXPECT_EQ(mb({1,2,3},0), bs[1]);
     }
 
     {
-        std::vector<size_t> parents = {0, 0, 1, 0};
+        pvec parents{0, 0, 1, 0};
+        auto tree = make_tree(parents);
 
         // With cable soma: two cables with 3 and 2 samples respectively.
-        auto bc = arb::impl::branches_from_parent_index(parents, false);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(2u, bc.size());
-        EXPECT_EQ(mb(0,1,3,npos), bc[0]);
-        EXPECT_EQ(mb(0,3,4,npos), bc[1]);
+        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
+        EXPECT_EQ(mb({0,3},npos), bc[1]);
 
         // A spherical root is not valid: the second cable branch would have only one sample.
-        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, true), arb::morphology_error);
+        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true), arb::morphology_error);
     }
 
     {
-        std::vector<size_t> parents = {0, 0, 1, 0, 3};
+        pvec parents{0, 0, 1, 0, 3};
+        auto tree = make_tree(parents);
 
         // With cable soma: two cables with 3 samples each [0,1,2] and [0,3,4]
-        auto bc = arb::impl::branches_from_parent_index(parents, false);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(2u, bc.size());
-        EXPECT_EQ(mb(0,1,3,npos), bc[0]);
-        EXPECT_EQ(mb(0,3,5,npos), bc[1]);
+        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
+        EXPECT_EQ(mb({0,3,4},npos), bc[1]);
 
         // With spherical soma: one sphere and 2 2-sample cables.
         // each of the cable branches is attached to the sphere (i.e. the sphere is the parent branch).
-        auto bs = arb::impl::branches_from_parent_index(parents, true);
+        auto bs = arb::impl::branches_from_parent_index(parents, tree.properties(), true);
         EXPECT_EQ(3u, bs.size());
-        EXPECT_EQ(mb(0,1,1,npos), bs[0]);
-        EXPECT_EQ(mb(1,2,3,0), bs[1]);
-        EXPECT_EQ(mb(3,4,5,0), bs[2]);
+        EXPECT_EQ(mb({0},npos), bs[0]);
+        EXPECT_EQ(mb({1,2},0),  bs[1]);
+        EXPECT_EQ(mb({3,4},0),  bs[2]);
     }
 
     {
-        std::vector<size_t> parents = {0, 0, 1, 0, 3, 4, 4, 6};
+        pvec parents{0, 0, 1, 0, 3, 4, 4, 6};
+        auto tree = make_tree(parents);
 
         // With cable soma: 4 cables: [0,1,2] [0,3,4] [4,5] [4,6,7]
-        auto bc = arb::impl::branches_from_parent_index(parents, false);
+        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(4u, bc.size());
-        EXPECT_EQ(mb(0,1,3,npos), bc[0]);
-        EXPECT_EQ(mb(0,3,5,npos), bc[1]);
-        EXPECT_EQ(mb(4,5,6,1), bc[2]);
-        EXPECT_EQ(mb(4,6,8,1), bc[3]);
+        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
+        EXPECT_EQ(mb({0,3,4},npos), bc[1]);
+        EXPECT_EQ(mb({4,5},  1),    bc[2]);
+        EXPECT_EQ(mb({4,6,7},1),    bc[3]);
 
         // With spherical soma: 1 sphere and 4 cables: [1,2] [3,4] [4,5] [4,6,7]
-        auto bs = arb::impl::branches_from_parent_index(parents, true);
+        auto bs = arb::impl::branches_from_parent_index(parents, tree.properties(), true);
         EXPECT_EQ(5u, bs.size());
-        EXPECT_EQ(mb(0,1,1,npos), bs[0]);
-        EXPECT_EQ(mb(1,2,3,0), bs[1]);
-        EXPECT_EQ(mb(3,4,5,0), bs[2]);
-        EXPECT_EQ(mb(4,5,6,2), bs[3]);
-        EXPECT_EQ(mb(4,6,8,2), bs[4]);
+        EXPECT_EQ(mb({0},   npos), bs[0]);
+        EXPECT_EQ(mb({1,2}, 0),    bs[1]);
+        EXPECT_EQ(mb({3,4}, 0),    bs[2]);
+        EXPECT_EQ(mb({4,5}, 2),    bs[3]);
+        EXPECT_EQ(mb({4,6,7}, 2),  bs[4]);
     }
 }
-*/
 
 // For different parent index vectors, attempt multiple valid and invalid sample sets.
 TEST(morphology, segments) {

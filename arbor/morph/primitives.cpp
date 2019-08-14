@@ -4,6 +4,8 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "io/sepval.hpp"
+#include "util/span.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -38,7 +40,12 @@ double distance(const msample& a, const msample& b) {
 }
 
 bool operator==(const mbranch& l, const mbranch& r) {
-    return l.prox==r.prox && l.second==r.second && l.dist==r.dist && l.parent_id==r.parent_id;
+    if (l.parent_id!=r.parent_id) return false;
+    if (l.size()!=r.size()) return false;
+    for (auto i: util::make_span(l.size())) {
+        if (l.index[i]!=r.index[i]) return false;
+    }
+    return true;
 }
 
 std::ostream& operator<<(std::ostream& o, const mpoint& p) {
@@ -50,8 +57,7 @@ std::ostream& operator<<(std::ostream& o, const msample& s) {
 }
 
 std::ostream& operator<<(std::ostream& o, const mbranch& b) {
-    o <<"mbranch(" << b.prox
-      << "," << b.second << "," << b.dist << ",";
+    o <<"mbranch([" << io::csv(b.index) << "], ";
     if (b.parent_id==b.npos) o << "none)";
     else  o << b.parent_id << ")";
     return o;

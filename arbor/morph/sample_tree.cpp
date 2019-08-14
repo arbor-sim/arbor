@@ -3,6 +3,7 @@
 
 #include <arbor/math.hpp>
 
+#include <arbor/morph/error.hpp>
 #include <arbor/morph/sample_tree.hpp>
 
 #include "algorithms.hpp"
@@ -26,28 +27,29 @@ void sample_tree::reserve(size_t n) {
     samples_.reserve(n);
     parents_.reserve(n);
     props_.reserve(n);
-    child_counts_.reserve(n);
+    branch_ids_.reserve(n);
 }
 
 size_t sample_tree::append(size_t p, const msample& s) {
     if (p>size()) {
-        throw std::runtime_error("parent id of a sample must be less than the sample id");
+        throw morphology_error("Parent id of a sample must be less than the sample id");
     }
     auto id = size();
 
     samples_.push_back(s);
     parents_.push_back(p);
-    child_counts_.push_back(0);
 
     // Set the point properties for the new point, and update those of its parent as needed.
     point_prop prop = point_prop_mask_none;
     if (!id) {
         // if adding the first sample mark it as root
         set_root(prop);
+        single_root_tag_ = true;
     }
     else {
         // Mark the new node as terminal, and unset the parent sample's terminal bit.
         set_terminal(prop);
+        const bool term_parent = is_terminal(props_[p]); // track if the parent was terminal.
         unset_terminal(props_[p]);
 
         // Mark if the new sample is collocated with its parent.
@@ -55,11 +57,16 @@ size_t sample_tree::append(size_t p, const msample& s) {
             set_collocated(prop);
         }
 
-        // Update the number of children of the parent.
-        ++child_counts_[p];
-        if (p>0 && child_counts_[p]>1) {
-            // If the parent has more than one child and is not the root, mark it as a fork point.
+        // Set parent to be a fork if it was not a terminal point before the
+        // new sample was added (and if it isn't the root).
+        if (p && !term_parent) {
             set_fork(props_[p]);
+        }
+
+        // If the root is the parent and it has the same tag, record that
+        // one of the root shares its tag with one of its children.
+        if (!p && s.tag==samples_[0].tag) {
+            single_root_tag_ = false;
         }
     }
     props_.push_back(prop);
@@ -79,6 +86,10 @@ size_t sample_tree::append(size_t p, const std::vector<msample>& slist) {
 
 std::size_t sample_tree::size() const {
     return samples_.size();
+}
+
+bool sample_tree::single_root_tag() const {
+    return single_root_tag_;
 }
 
 const std::vector<msample>& sample_tree::samples() const {
