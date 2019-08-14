@@ -206,15 +206,6 @@ public:
         cols = aug;
         aug = npos;
     }
-
-    void print() {
-        for (auto r: rows) {
-            for (unsigned i= 0; i < r.size(); i++) {
-                std::cout << "( " << name(r.get(i).value) << ", " << r.get(i).col << " )" ;
-            }
-            std::cout << std::endl;
-        }
-    }
 };
 
 } // namespace msparse
