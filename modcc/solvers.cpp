@@ -197,12 +197,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     auto rhs = e->rhs();
     auto deriv = lhs->is_derivative();
 
-    if (deriv) {
-        if (conserve_ && !A_[deq_index_].empty()) {
-            deq_index_++;
-            return;
-        }
-    } else {
+    if (!deriv) {
         statements_.push_back(e->clone());
 
         auto id = lhs->is_identifier();
@@ -212,6 +207,11 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
                 local_expr_[id->spelling()] = std::move(expand);
             }
         }
+        return;
+    }
+
+    if (conserve_ && !A_[deq_index_].empty()) {
+        deq_index_++;
         return;
     }
 
@@ -296,7 +296,6 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
          error({"ICE: coefficient in state variable is not an identifier", loc});
     }
 
-    std:: cout << row_idx << std::endl;
     if (row_idx != -1) {
         A_[row_idx].clear();
 
