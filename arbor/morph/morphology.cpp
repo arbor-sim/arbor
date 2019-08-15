@@ -83,9 +83,9 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& paren
     return branches;
 }
 
+// Returns false if one of the root's children has the same tag as the root.
 bool has_single_root_tag(const sample_tree& st) {
-    // Treat the root sample as a sphere if it does not have the same tag as
-    // any of its children.
+    if (!st.size()) return false;
     auto& P = st.parents();
     auto& S = st.samples();
     auto root_tag = S.front().tag;
@@ -104,15 +104,15 @@ bool has_single_root_tag(const sample_tree& st) {
 //
 
 morphology::morphology(sample_tree m, bool use_spherical_root):
-    sample_tree_(std::move(m)),
+    samples_(std::move(m)),
     spherical_root_(use_spherical_root)
 {
     init();
 }
 
 morphology::morphology(sample_tree m):
-    sample_tree_(std::move(m)),
-    spherical_root_(impl::has_single_root_tag(sample_tree_))
+    samples_(std::move(m)),
+    spherical_root_(impl::has_single_root_tag(samples_))
 {
     init();
 }
@@ -121,12 +121,12 @@ void morphology::init() {
     using util::make_span;
     using util::count_along;
 
-    auto nsamp = sample_tree_.size();
+    auto nsamp = samples_.size();
 
     if (!nsamp) return;
 
     // Cache the fork and terminal points.
-    auto& props = sample_tree_.properties();
+    auto& props = samples_.properties();
     for (auto i: make_span(nsamp)) {
         if (is_fork(props[i])) {
             fork_points_.push_back(i);
@@ -137,7 +137,7 @@ void morphology::init() {
     }
 
     // Generate branches.
-    branches_ = impl::branches_from_parent_index(sample_tree_.parents(), props, spherical_root_);
+    branches_ = impl::branches_from_parent_index(samples_.parents(), props, spherical_root_);
     auto nbranch = branches_.size();
 
     // Generate branch tree.
@@ -160,7 +160,7 @@ size_t morphology::branch_parent(size_t b) const {
 
 // The parent sample of sample i.
 const std::vector<size_t>& morphology::sample_parents() const {
-    return sample_tree_.parents();
+    return samples_.parents();
 }
 
 // The child branches of branch b.
@@ -179,7 +179,7 @@ morphology::index_range morphology::branch_sample_span(size_t b) const {
 }
 
 const std::vector<msample>& morphology::samples() const {
-    return sample_tree_.samples();
+    return samples_.samples();
 }
 
 size_t morphology::num_branches() const {
@@ -196,7 +196,7 @@ const std::vector<size_t>& morphology::terminal_points() const {
 
 std::ostream& operator<<(std::ostream& o, const morphology& m) {
     o << "morphology: "
-      << m.sample_tree_.size() << " samples, "
+      << m.samples_.size() << " samples, "
       << m.num_branches() << " branches.";
     for (auto i: util::make_span(m.num_branches()))
         o << "\n  branch " << i << ": " << m.branches_[i];

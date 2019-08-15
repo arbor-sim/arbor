@@ -11,10 +11,10 @@ namespace arb {
 
 class morphology {
     // The sample tree of sample points and their parent-child relationships.
-    sample_tree sample_tree_;
+    sample_tree samples_;
 
     // Indicates whether the soma is a sphere.
-    bool spherical_root_;
+    bool spherical_root_ = false;
 
     // Branch state.
     std::vector<mbranch> branches_;
