@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <arbor/schedule.hpp>
 #include <arbor/common_types.hpp>
@@ -34,6 +35,8 @@ struct regular_schedule_shim {
     opt_time_type get_tstop()  const;
 
     arb::schedule schedule() const;
+
+    std::vector<arb::time_type> events(arb::time_type t0, arb::time_type t1);
 };
 
 // A Python shim for arb::explicit_schedule.
@@ -51,6 +54,8 @@ struct explicit_schedule_shim {
     std::vector<arb::time_type> get_times() const;
 
     arb::schedule schedule() const;
+
+    std::vector<arb::time_type> events(arb::time_type t0, arb::time_type t1);
 };
 
 // A Python shim for arb::poisson_schedule.
@@ -74,6 +79,8 @@ struct poisson_schedule_shim {
     arb::time_type get_freq() const;
 
     arb::schedule schedule() const;
+
+    std::vector<arb::time_type> events(arb::time_type t0, arb::time_type t1);
 };
 
 }

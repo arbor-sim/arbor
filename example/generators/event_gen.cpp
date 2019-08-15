@@ -65,6 +65,12 @@ public:
         return cell_kind::cable;
     }
 
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        arb::cable_cell_global_properties gprop;
+        gprop.default_parameters = arb::neuron_parameter_defaults;
+        return gprop;
+    }
+
     // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
     cell_size_type num_targets(cell_gid_type gid) const override {
         arb_assert(gid==0); // There is only one cell in the model

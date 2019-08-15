@@ -63,30 +63,46 @@ TEST(stack, push_back) {
     auto s = stack(n, context);
     auto& sstorage = s.storage();
 
+    EXPECT_EQ(0u, s.size()); // dummy tests
+    EXPECT_EQ(n, s.capacity());
+
+
     kernels::push_back<<<1, n>>>(sstorage, kernels::all_ftor());
-    cudaDeviceSynchronize();
+    s.update_host();
     EXPECT_EQ(n, s.size());
-    std::sort(sstorage.data, sstorage.data+s.size());
-    for (auto i=0; i<int(s.size()); ++i) {
-        EXPECT_EQ(i, s[i]);
+    {
+        auto d = s.data();
+        EXPECT_EQ(s.size(), d.size());
+        std::sort(d.begin(), d.end());
+        for (unsigned i=0; i<n; ++i) {
+            EXPECT_EQ(i, d[i]);
+        }
     }
 
     s.clear();
     kernels::push_back<<<1, n>>>(sstorage, kernels::even_ftor());
-    cudaDeviceSynchronize();
+    s.update_host();
     EXPECT_EQ(n/2, s.size());
-    std::sort(sstorage.data, sstorage.data+s.size());
-    for (auto i=0; i<int(s.size())/2; ++i) {
-        EXPECT_EQ(2*i, s[i]);
+    {
+        auto d = s.data();
+        EXPECT_EQ(s.size(), d.size());
+        std::sort(d.begin(), d.end());
+        for (unsigned i=0; i<n/2; ++i) {
+            EXPECT_EQ(2*i, d[i]);
+        }
     }
 
     s.clear();
     kernels::push_back<<<1, n>>>(sstorage, kernels::odd_ftor());
-    cudaDeviceSynchronize();
+    s.update_host();
     EXPECT_EQ(n/2, s.size());
-    std::sort(sstorage.data, sstorage.data+s.size());
-    for (auto i=0; i<int(s.size())/2; ++i) {
-        EXPECT_EQ(2*i+1, s[i]);
+    {
+        auto d = s.data();
+        EXPECT_EQ(s.size(), d.size());
+        std::sort(d.begin(), d.end());
+        for (unsigned i=0; i<n/2; ++i) {
+            EXPECT_EQ(2*i+1, d[i]);
+        }
     }
 }
 
@@ -104,7 +120,7 @@ TEST(stack, overflow) {
 
     // push 2n items into a stack of size n
     kernels::push_back<<<1, 2*n>>>(sstorage, kernels::all_ftor());
-    cudaDeviceSynchronize();
+    s.update_host();
     EXPECT_EQ(n, s.size());
     EXPECT_EQ(2*n, s.pushes());
     EXPECT_TRUE(s.overflow());
@@ -122,5 +138,7 @@ TEST(stack, empty) {
     EXPECT_EQ(s.size(), 0u);
     EXPECT_EQ(s.capacity(), 0u);
 
-    EXPECT_EQ(s.storage().data, nullptr);
+    auto device_storage = s.get_storage_copy();
+
+    EXPECT_EQ(device_storage.data, nullptr);
 }
