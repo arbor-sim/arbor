@@ -113,6 +113,7 @@ TEST(mech_linear, linear) {
 
     run_test<multicore::backend>("test_linear_state", state_variables, assigned_variables, {}, values);
     run_test<multicore::backend>("test_linear_init", state_variables, assigned_variables, values, {});
+    run_test<multicore::backend>("test_linear_init_shuffle", state_variables, assigned_variables, values, {});
 }
 
 #ifdef ARB_GPU_ENABLED
@@ -141,6 +142,7 @@ TEST(mech_linear_gpu, linear) {
 
     run_test<gpu::backend>("test_linear_state", state_variables, assigned_variables, {}, values);
     run_test<gpu::backend>("test_linear_init", state_variables, assigned_variables, values, {});
+    run_test<gpu::backend>("test_linear_init_shuffle", state_variables, assigned_variables, values, {});
 }
 
 #endif

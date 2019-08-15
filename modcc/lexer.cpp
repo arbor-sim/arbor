@@ -242,8 +242,7 @@ bool Lexer::search_line(tok const& t) {
 
     Token p = token_;
     bool ret = false;
-    while (line_ == oldlin) {
-        if (p.type == tok::eof) break;
+    while (line_ == oldlin && p.type != tok::eof) {
         if (p.type == t) {
             ret = true;
             break;

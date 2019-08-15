@@ -287,15 +287,14 @@ bool Module::semantic() {
             std::unique_ptr<SolverVisitorBase> solver = std::make_unique<SparseSolverVisitor>();
 
             // The solve expression inside an initial block can only refer to a linear block
+            auto solve_proc = solve_expression->procedure();
 
-            auto deriv = solve_expression->procedure();
-
-            if (deriv->kind() == procedureKind::linear) {
+            if (solve_proc->kind() == procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
+                linear_rewrite(solve_proc->body(), state_vars)->accept(solver.get());
             } else {
-                error("The solve expression " + solve_expression->name() + " is not a linear procedure",
-                        solve_expression->location());
+                error("The solve expression " + solve_expression->name() + " is not a linear procedure", solve_expression->location());
+                return false;
             }
 
             if (auto solve_block = solver->as_block(false)) {

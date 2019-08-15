@@ -22,7 +22,6 @@ protected:
     }
 
 private:
-    // Acccumulated terms for derivative expressions, keyed by id name.
     std::vector<std::string> state_vars;
 };
 
@@ -33,12 +32,16 @@ expression_ptr linear_rewrite(BlockExpression* block, std::vector<std::string> s
 }
 
 // LinearRewriter implementation follows.
+
+// Factorize the linear expression in terms of the state variables and place
+// the resulting sum of products on the lhs. Place everything else on the rhs
 void LinearRewriter::visit(LinearExpression* e) {
     Location loc = e->location();
     scope_ptr scope = e->scope();
 
     expression_ptr lhs;
     for (auto state : state_vars) {
+        // To factorize w.r.t state, differentiate the lhs and rhs
         auto ident = make_expression<IdentifierExpression>(loc, state);
         auto coeff = constant_simplify(make_expression<SubBinaryExpression>(loc,
                 std::move(symbolic_pdiff(e->lhs(), state)),
@@ -51,6 +54,7 @@ void LinearRewriter::visit(LinearExpression* e) {
 
             auto pair = make_expression<MulBinaryExpression>(loc, std::move(local_coeff.id), std::move(ident));
 
+            // Construct the lhs of the new linear expression
             if (!lhs) {
                 lhs = std::move(pair);
             } else {
@@ -59,6 +63,8 @@ void LinearRewriter::visit(LinearExpression* e) {
         }
     }
 
+    // To find the rhs of the new linear expression, simplify the old
+    // linear expression with state variables set to zero
     auto rhs_0 = e->lhs()->clone();
     auto rhs_1 = e->rhs()->clone();
 
@@ -80,4 +86,3 @@ void LinearRewriter::visit(LinearExpression* e) {
 
     statements_.push_back(make_expression<LinearExpression>(loc, std::move(lhs), std::move(rhs)));
 }
-
