@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# test_domain_decompositions_arbmpi.py
+# test_domain_decompositions.py
 
 import unittest
 
@@ -161,7 +161,6 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
 
     # 1 node with 1 cpu core, no gpus; assumes all cells will be put into cell groups of size 1
     def test_domain_decomposition_homogenous_MC(self):
-
         if (mpi_enabled):
             comm = arb.mpi_comm()
             context = arb.context(threads=1, gpu_id=None, mpi=comm)
@@ -445,6 +444,7 @@ def run():
         arb.mpi_init()
 
     comm = arb.mpi_comm()
+        
     alloc = arb.proc_allocation()
     ctx = arb.context(alloc, comm)
     rank = ctx.rank
