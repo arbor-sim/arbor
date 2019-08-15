@@ -96,6 +96,10 @@ public:
         data_.push_back(e);
     }
 
+    void clear() {
+        data_.clear();
+    }
+
     // Return index into entry list which has column `c`.
     unsigned index(unsigned c) const {
         auto i = std::lower_bound(data_.begin(), data_.end(), c,

@@ -2,6 +2,10 @@
 
 set(test_mechanisms
     celsius_test
+    test0_kin_diff
+    test0_kin_conserve
+    test1_kin_diff
+    test1_kin_conserve
     fixed_ica_current
     point_ica_current
     linear_ca_conc
@@ -79,6 +83,7 @@ set(unit_sources
     test_fvm_lowered.cpp
     test_glob_basic.cpp
     test_mc_cell_group.cpp
+    test_kinetic.cpp
     test_lexcmp.cpp
     test_lif_cell_group.cpp
     test_maputil.cpp

@@ -210,6 +210,11 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         return;
     }
 
+    if (conserve_ && !A_[deq_index_].empty()) {
+        deq_index_++;
+        return;
+    }
+
     auto s = deriv->name();
     auto expanded_rhs = substitute(rhs, local_expr_);
     linear_test_result r = linear_test(expanded_rhs, dvars_);
@@ -221,6 +226,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     // Populate sparse symbolic matrix for GE.
     if (s!=dvars_[deq_index_]) {
         error({"ICE: inconsistent ordering of derivative assignments", loc});
+        return;
     }
 
     auto dt_expr = make_expression<IdentifierExpression>(loc, "dt");
@@ -265,10 +271,80 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     ++deq_index_;
 }
 
+void SparseSolverVisitor::visit(ConserveExpression *e) {
+    if (A_.empty()) {
+        unsigned n = dvars_.size();
+        A_ = symge::sym_matrix(n, n);
+    }
+    conserve_ = true;
+
+    auto loc = e->location();
+    scope_ptr scope = e->scope();
+
+    int row_idx;
+
+    // Find a row that contains one of the state variables in the conserve statement
+    auto& l = e->lhs()->is_stoich()->terms().front();
+    auto ident = l->is_stoich_term()->ident()->is_identifier();
+    if (ident) {
+        auto it = std::find(dvars_.begin(), dvars_.end(), ident->name());
+        if (it!=dvars_.end()) {
+            row_idx = it - dvars_.begin();
+        } else {
+            error({"CONSERVE statement unknown is not a state variable", loc});
+            return;
+        }
+    }
+    else {
+         error({"ICE: coefficient in state variable is not an identifier", loc});
+         return;
+    }
+
+    // Replace that row with the conserve statement
+    A_[row_idx].clear();
+
+    for (unsigned j = 0; j < dvars_.size(); ++j) {
+        auto state = dvars_[j];
+
+        auto& terms = e->lhs()->is_stoich()->terms();
+        auto it = std::find_if(terms.begin(), terms.end(), [&state](expression_ptr& p)
+            { return p->is_stoich_term()->ident()->is_identifier()->name() == state;});
+
+        if (it != terms.end()) {
+            auto expr = (*it)->is_stoich_term()->coeff()->clone();
+
+            auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
+            auto a_ = local_a_term.id->is_identifier()->spelling();
+
+            statements_.push_back(std::move(local_a_term.local_decl));
+            statements_.push_back(std::move(local_a_term.assignment));
+
+            A_[row_idx].push_back({j, symtbl_.define(a_)});
+        }
+    }
+
+
+    expression_ptr expr = e->rhs()->clone();
+    auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
+    auto a_ = local_a_term.id->is_identifier()->spelling();
+
+    statements_.push_back(std::move(local_a_term.local_decl));
+    statements_.push_back(std::move(local_a_term.assignment));
+
+    conserve_rhs_.push_back(a_);
+    conserve_idx_.push_back(row_idx);
+
+}
+
 void SparseSolverVisitor::finalize() {
     std::vector<symge::symbol> rhs;
     for (const auto& var: dvars_) {
         rhs.push_back(symtbl_.define(var));
+    }
+    if (conserve_) {
+        for (unsigned i = 0; i < conserve_idx_.size(); ++i) {
+            rhs[conserve_idx_[i]] = symtbl_.define(conserve_rhs_[i]);
+        }
     }
     A_.augment(rhs);
 
