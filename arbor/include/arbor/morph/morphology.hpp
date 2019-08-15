@@ -10,7 +10,11 @@
 namespace arb {
 
 class morphology {
+    // The sample tree of sample points and their parent-child relationships.
     sample_tree sample_tree_;
+
+    // Indicates whether the soma is a sphere.
+    bool spherical_root_;
 
     // Branch state.
     std::vector<mbranch> branches_;
@@ -22,12 +26,12 @@ class morphology {
     std::vector<size_t> terminal_points_;
     std::vector<point_prop> point_props_;
 
-    // Indicates whether the soma is a sphere.
-    bool spherical_root_;
-
     using index_range = std::pair<const size_t*, const size_t*>;
 
+    void init();
+
 public:
+    morphology(sample_tree m, bool use_spherical_root);
     morphology(sample_tree m);
 
     // Whether the root of the morphology is spherical.
@@ -41,6 +45,9 @@ public:
 
     // List the ids of terminal points in the morphology.
     const std::vector<size_t>& terminal_points() const;
+
+    // The parent sample of sample i.
+    const std::vector<size_t>& sample_parents() const;
 
     // The parent branch of branch b.
     size_t branch_parent(size_t b) const;

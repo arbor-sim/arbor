@@ -278,7 +278,7 @@ TEST(morphology, branches_from_parent_index) {
 }
 
 // For different parent index vectors, attempt multiple valid and invalid sample sets.
-TEST(morphology, segments) {
+TEST(morphology, construction) {
     using arb::util::make_span;
     using ms = arb::msample;
     {
@@ -316,18 +316,6 @@ TEST(morphology, segments) {
 
             EXPECT_EQ(2u, m.num_branches());
         }
-        /* not a bug anymore?
-        { // spherical soma and single-segment cable
-          // error because the terminal point on the cable section is collocated.
-            std::vector<ms> s = {
-                {{0.0, 0.0, 0.0, 5.0}, 1},
-                {{0.0, 0.0, 1.0, 1.0}, 2},
-                {{0.0, 0.0, 1.0, 1.0}, 2} };
-
-            arb::sample_tree sm(s, p);
-            EXPECT_THROW((arb::morphology(sm)), arb::morphology_error);
-        }
-        */
     }
     {
         //              0       |

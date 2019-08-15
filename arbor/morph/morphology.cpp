@@ -83,23 +83,47 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& paren
     return branches;
 }
 
+bool has_single_root_tag(const sample_tree& st) {
+    // Treat the root sample as a sphere if it does not have the same tag as
+    // any of its children.
+    auto& P = st.parents();
+    auto& S = st.samples();
+    auto root_tag = S.front().tag;
+    for (auto i: util::make_span(1, st.size())) {
+        if (0u==P[i] && S[i].tag==root_tag) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace impl
 
 //
 // morphology implementation
 //
 
-morphology::morphology(sample_tree m):
-    sample_tree_(std::move(m))
+morphology::morphology(sample_tree m, bool use_spherical_root):
+    sample_tree_(std::move(m)),
+    spherical_root_(use_spherical_root)
 {
+    init();
+}
+
+morphology::morphology(sample_tree m):
+    sample_tree_(std::move(m)),
+    spherical_root_(impl::has_single_root_tag(sample_tree_))
+{
+    init();
+}
+
+void morphology::init() {
     using util::make_span;
     using util::count_along;
 
     auto nsamp = sample_tree_.size();
 
-    // Treat the root sample as a sphere if it does not have the same tag as
-    // any of its children.
-    spherical_root_ = sample_tree_.single_root_tag();
+    if (!nsamp) return;
 
     // Cache the fork and terminal points.
     auto& props = sample_tree_.properties();
@@ -126,11 +150,17 @@ morphology::morphology(sample_tree m):
             branch_children_[id].push_back(i);
         }
     }
+
 }
 
 // The parent branch of branch b.
 size_t morphology::branch_parent(size_t b) const {
     return branch_parents_[b];
+}
+
+// The parent sample of sample i.
+const std::vector<size_t>& morphology::sample_parents() const {
+    return sample_tree_.parents();
 }
 
 // The child branches of branch b.
