@@ -60,8 +60,8 @@ decomp = arbor.partition_load_balance(recipe, context)
 print(f'{decomp}')
 
 hint = arbor.partition_hint()
-hint.prefer_gpu = False
-hint.gpu_group_size = 1
+hint.prefer_gpu = True
+hint.gpu_group_size = 1000
 print(f'{hint}')
 
 hints = dict([(arbor.cell_kind.cable, hint)])
