@@ -48,8 +48,9 @@ public:
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const {
         return {};
     }
-
-    //TODO: virtual arb::cell_size_type num_probes(arb::cell_gid_type) const { return 0; }
+    virtual arb::cell_size_type num_probes(arb::cell_gid_type) const {
+        return 0;
+    }
     //TODO: virtual pybind11::object get_probe (arb::cell_member_type id) const {...}
     //TODO: virtual pybind11::object global_properties(arb::cell_kind kind) const {return pybind11::none();};
 };
@@ -92,7 +93,9 @@ public:
         PYBIND11_OVERLOAD(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
     }
 
-    //TODO: arb::cell_size_type num_probes(arb::cell_gid_type)
+    arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_probes, gid);
+    }
     //TODO: pybind11::object get_probe(arb::cell_member_type id)
 };
 
@@ -131,8 +134,6 @@ public:
         return impl_->num_targets(gid);
     }
 
-    //TODO: arb::cell_size_type num_probes(arb::cell_gid_type gid)
-
     arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
         return impl_->num_gap_junction_sites(gid);
     }
@@ -147,6 +148,9 @@ public:
         return impl_->gap_junctions_on(gid);
     }
 
+    arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
+        return impl_->num_probes(gid);
+    }
     //TODO: arb::probe_info get_probe(arb::cell_member_type id)
 
     // TODO: wrap

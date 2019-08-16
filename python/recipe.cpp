@@ -135,7 +135,6 @@ void register_recipe(pybind11::module& m) {
         .def("num_targets", &py_recipe::num_targets,
             "gid"_a,
             "The number of post-synaptic sites on gid, 0 by default.")
-        // TODO: py_recipe::num_probes
         .def("num_gap_junction_sites", &py_recipe::num_gap_junction_sites,
             "gid"_a,
             "The number of gap junction sites on gid, 0 by default.")
@@ -148,6 +147,9 @@ void register_recipe(pybind11::module& m) {
         .def("gap_junctions_on", &py_recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")
+        .def("num_probes", &py_recipe::num_probes,
+            "gid"_a,
+            "The number of probes on gid, 0 by default.")
         // TODO: py_recipe::get_probe
         // TODO: py_recipe::global_properties
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
