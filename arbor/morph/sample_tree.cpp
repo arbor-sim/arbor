@@ -31,7 +31,10 @@ void sample_tree::reserve(msize_t n) {
 }
 
 msize_t sample_tree::append(msize_t p, const msample& s) {
-    if (p>size()) {
+    if (empty()) {
+        if (p!=mnpos) throw morphology_error("Parent id of root sample must be mnpos");
+    }
+    else if (p>=size()) {
         throw morphology_error("Parent id of a sample must be less than the sample id");
     }
     auto id = size();
@@ -67,6 +70,11 @@ msize_t sample_tree::append(msize_t p, const msample& s) {
     return id;
 }
 
+msize_t sample_tree::append(const msample& s) {
+    std::cout << "decision : " << empty() << " " << (empty()? mnpos: size()-1) << "\n";
+    return append(empty()? mnpos: size()-1, s);
+}
+
 msize_t sample_tree::append(msize_t p, const std::vector<msample>& slist) {
     if (!slist.size()) return size();
 
@@ -77,8 +85,16 @@ msize_t sample_tree::append(msize_t p, const std::vector<msample>& slist) {
     return p;
 }
 
+msize_t sample_tree::append(const std::vector<msample>& slist) {
+    return append(empty()? mnpos: size()-1, slist);
+}
+
 msize_t sample_tree::size() const {
     return samples_.size();
+}
+
+bool sample_tree::empty() const {
+    return samples_.empty();
 }
 
 const std::vector<msample>& sample_tree::samples() const {
@@ -107,8 +123,8 @@ sample_tree swc_as_sample_tree(const std::vector<swc_record>& swc_records) {
 
     for (auto i: util::count_along(swc_records)) {
         auto& r = swc_records[i];
-        // The parent of soma must be 0, while in SWC files is -1
-        msize_t p = i==0? 0: r.parent_id;
+        // The parent of soma must be mnpos, while in SWC files is -1
+        msize_t p = i==0? mnpos: r.parent_id;
         m.append(p, msample{{r.x, r.y, r.z, r.r}, r.tag});
     }
     return m;

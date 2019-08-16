@@ -151,7 +151,7 @@ TEST(morphology, branches_from_parent_index) {
     };
 
     {   // single sample: can only be used to build a morphology with one spherical branch
-        pvec parents{0};
+        pvec parents{npos};
         auto tree = make_tree(parents);
         auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), true);
         EXPECT_EQ(1u, bc.size());
@@ -162,7 +162,7 @@ TEST(morphology, branches_from_parent_index) {
                      arb::morphology_error);
     }
     {
-        pvec parents = {0, 0};
+        pvec parents = {npos, 0};
         auto tree = make_tree(parents);
         auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
         EXPECT_EQ(1u, bc.size());
@@ -174,7 +174,7 @@ TEST(morphology, branches_from_parent_index) {
     }
 
     {
-        pvec parents{0, 0, 1};
+        pvec parents{npos, 0, 1};
 
         // With cable soma: one cable with 3 samples.
         auto tree = make_tree(parents);
@@ -191,7 +191,7 @@ TEST(morphology, branches_from_parent_index) {
     }
 
     {
-        pvec parents{0, 0, 0};
+        pvec parents{npos, 0, 0};
         auto tree = make_tree(parents);
 
         // A spherical root is not valid: each cable branch would have only one sample.
@@ -205,7 +205,7 @@ TEST(morphology, branches_from_parent_index) {
     }
 
     {
-        pvec parents{0, 0, 1, 2};
+        pvec parents{npos, 0, 1, 2};
         auto tree = make_tree(parents);
 
         // With cable soma: one cable with 4 samples.
@@ -222,7 +222,7 @@ TEST(morphology, branches_from_parent_index) {
     }
 
     {
-        pvec parents{0, 0, 1, 0};
+        pvec parents{npos, 0, 1, 0};
         auto tree = make_tree(parents);
 
         // With cable soma: two cables with 3 and 2 samples respectively.
@@ -236,7 +236,7 @@ TEST(morphology, branches_from_parent_index) {
     }
 
     {
-        pvec parents{0, 0, 1, 0, 3};
+        pvec parents{npos, 0, 1, 0, 3};
         auto tree = make_tree(parents);
 
         // With cable soma: two cables with 3 samples each [0,1,2] and [0,3,4]
@@ -255,7 +255,7 @@ TEST(morphology, branches_from_parent_index) {
     }
 
     {
-        pvec parents{0, 0, 1, 0, 3, 4, 4, 6};
+        pvec parents{npos, 0, 1, 0, 3, 4, 4, 6};
         auto tree = make_tree(parents);
 
         // With cable soma: 4 cables: [0,1,2] [0,3,4] [4,5] [4,6,7]
@@ -279,11 +279,12 @@ TEST(morphology, branches_from_parent_index) {
 
 // For different parent index vectors, attempt multiple valid and invalid sample sets.
 TEST(morphology, construction) {
+    constexpr auto npos = arb::mnpos;
     using arb::util::make_span;
     using ms = arb::msample;
     using pvec = std::vector<arb::msize_t>;
     {
-        pvec p = {0, 0};
+        pvec p = {npos, 0};
         std::vector<ms> s = {
             {{0.0, 0.0, 0.0, 1.0}, 1},
             {{0.0, 0.0, 1.0, 1.0}, 1} };
@@ -294,7 +295,7 @@ TEST(morphology, construction) {
         EXPECT_EQ(1u, m.num_branches());
     }
     {
-        pvec p = {0, 0, 1};
+        pvec p = {npos, 0, 1};
         { // 2-segment cable (1 seg soma, 1 seg dendrite)
             std::vector<ms> s = {
                 {{0.0, 0.0, 0.0, 5.0}, 1},
@@ -322,7 +323,7 @@ TEST(morphology, construction) {
         //              0       |
         //            1   3     |
         //          2           |
-        pvec p = {0, 0, 1, 0};
+        pvec p = {npos, 0, 1, 0};
         {
             // two cables: 1x2 segments, 1x1 segment.
             std::vector<ms> s = {
@@ -352,7 +353,7 @@ TEST(morphology, construction) {
         //              0       |
         //            1   3     |
         //          2       4    |
-        pvec p = {0, 0, 1, 0, 3};
+        pvec p = {npos, 0, 1, 0, 3};
         {
             // two cables: 1x2 segments, 1x1 segment.
             std::vector<ms> s = {
@@ -377,7 +378,7 @@ TEST(morphology, branches) {
     auto npos = arb::mnpos;
     {
         // 0
-        pvec parents = {0};
+        pvec parents = {npos};
         svec samples = {
             {{ 0,0,0,3}, 1},
         };
@@ -390,7 +391,7 @@ TEST(morphology, branches) {
     }
     {
         // 0 - 1
-        pvec parents = {0, 0};
+        pvec parents = {npos, 0};
         svec samples = {
             {{ 0,0,0,3}, 1},
             {{ 10,0,0,3}, 1},
@@ -404,7 +405,7 @@ TEST(morphology, branches) {
     }
     {
         // 0 - 1 - 2
-        pvec parents = {0, 0, 1};
+        pvec parents = {npos, 0, 1};
         {
             // All samples have same tag -> the morphology is a single unbranched cable.
             svec samples = {
@@ -438,7 +439,7 @@ TEST(morphology, branches) {
     }
     {
         // 2 - 0 - 1
-        pvec parents = {0, 0, 0};
+        pvec parents = {npos, 0, 0};
 
         svec samples = {
             {{  0, 0,0, 5}, 3},
@@ -456,7 +457,7 @@ TEST(morphology, branches) {
     }
     {
         // 0 - 1 - 2 - 3
-        pvec parents = {0, 0, 1, 2};
+        pvec parents = {npos, 0, 1, 2};
     }
     {
         //              0       |
@@ -464,7 +465,7 @@ TEST(morphology, branches) {
         //            1   3     |
         //           /          |
         //          2           |
-        pvec parents = {0, 0, 1, 0};
+        pvec parents = {npos, 0, 1, 0};
     }
     {
         // Eight samples
@@ -478,7 +479,7 @@ TEST(morphology, branches) {
         //                5   6     |
         //                     \    |
         //                      7   |
-        pvec parents = {0, 0, 1, 0, 3, 4, 4, 6};
+        pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
         {
             svec samples = {
                 {{  0,  0,  0, 10}, 1},

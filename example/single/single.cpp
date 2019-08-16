@@ -150,8 +150,8 @@ options parse_options(int argc, char** argv) {
 arb::morphology default_morphology() {
     arb::sample_tree samples;
 
-    size_t p = 0;
-    p = samples.append(p, arb::msample{{  0.0, 0.0, 0.0, 6.3}, 1});
+    auto p = samples.append(arb::msample{{  0.0, 0.0, 0.0, 6.3}, 1});
+    std::cout << "p is " << p << "\n";
     p = samples.append(p, arb::msample{{  6.3, 0.0, 0.0, 0.5}, 3});
     p = samples.append(p, arb::msample{{206.3, 0.0, 0.0, 0.2}, 3});
 

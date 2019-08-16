@@ -44,7 +44,7 @@ std::ostream& operator<<(std::ostream& o, const mpoint& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const msample& s) {
-    return o << "msample(" << s.loc << ", " << "," << s.tag << ")";
+    return o << "msample(" << s.loc << ", " << s.tag << ")";
 }
 
 std::ostream& operator<<(std::ostream& o, const point_prop& p) {

@@ -27,13 +27,16 @@ public:
     // The append functions return a handle to the last sample appended by the call.
 
     // Append a single sample.
-    msize_t append(msize_t p, const msample& s);
+    msize_t append(msize_t p, const msample& s); // to sample p.
+    msize_t append(const msample& s); // to the last sample in the tree.
 
     // Append a sequence of samples.
-    msize_t append(msize_t p, const std::vector<msample>& slist);
+    msize_t append(msize_t p, const std::vector<msample>& slist); // to sample p.
+    msize_t append(const std::vector<msample>& slist); // to the last sample in the tree.
 
     // The number of samples in the tree.
     msize_t size() const;
+    bool empty() const;
 
     // The samples in the tree.
     const std::vector<msample>& samples() const;

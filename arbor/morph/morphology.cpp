@@ -18,7 +18,10 @@ namespace arb {
 
 namespace impl{
 
-std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents, const std::vector<point_prop>& props, bool spherical_root) {
+std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents,
+                                                const std::vector<point_prop>& props,
+                                                bool spherical_root)
+{
     using util::make_span;
 
     const char* errstr_single_sample_root =
@@ -45,7 +48,7 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& pare
 
     std::vector<mbranch> branches(nbranches);
     for (auto i: make_span(nsamp)) {
-        auto p = parents[i];
+        auto p = parents[i]==mnpos? 0: parents[i];
         auto& branch = branches[bids[i]];
 
         // Determine the id of the parent branch if this is the first sample in
@@ -84,7 +87,7 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& pare
 
 // Returns false if one of the root's children has the same tag as the root.
 bool root_sample_has_same_tag_as_child(const sample_tree& st) {
-    if (!st.size()) return false;
+    if (st.empty()) return false;
     auto& P = st.parents();
     auto& S = st.samples();
     auto root_tag = S.front().tag;
@@ -99,12 +102,7 @@ bool root_sample_has_same_tag_as_child(const sample_tree& st) {
 } // namespace impl
 
 bool operator==(const mbranch& l, const mbranch& r) {
-    if (l.parent_id!=r.parent_id) return false;
-    if (l.size()!=r.size()) return false;
-    for (auto i: util::make_span(l.size())) {
-        if (l.index[i]!=r.index[i]) return false;
-    }
-    return true;
+    return l.parent_id==r.parent_id && l.index==r.index;
 }
 
 std::ostream& operator<<(std::ostream& o, const mbranch& b) {
