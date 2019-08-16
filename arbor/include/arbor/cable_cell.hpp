@@ -269,7 +269,10 @@ cable_segment* cable_cell::add_cable(cable_cell::index_type parent, Args&&... ar
     return segments_.back()->as_cable();
 }
 
-// Create a cable cell from a morphology.
+// Create a cable cell from a morphology specification.
+// If compartments_from_discretization is true, set number of compartments
+// in each segment to be the number of piecewise linear sections in the
+// corresponding section of the morphology.
 cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization);
 
 } // namespace arb

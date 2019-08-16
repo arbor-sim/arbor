@@ -13,6 +13,9 @@
 
 namespace arb {
 
+using msize_t = std::size_t;
+constexpr msize_t mnpos = msize_t(-1);
+
 // a morphology sample point: a 3D location and radius.
 struct mpoint {
     double x, y, z;  // [µm]
@@ -45,26 +48,6 @@ struct msample {
 
 bool is_collocated(const msample& a, const msample& b);
 double distance(const msample& a, const msample& b);
-
-// An unbranched cable segment that has root, terminal or fork point at each end.
-struct mbranch {
-    // branch index at the root of the morphology
-    static constexpr size_t npos = -1;
-
-    std::vector<size_t> index;  // sample index
-    size_t parent_id = npos;    // branch index
-
-    mbranch() = default;
-    mbranch(std::vector<size_t> idx, size_t parent):
-        index(std::move(idx)), parent_id(parent) {}
-
-    bool is_sphere()  const { return size()==1u; }
-    size_t size()     const { return index.size(); }
-    bool has_parent() const {return parent_id!=npos;}
-
-    friend bool operator==(const mbranch& l, const mbranch& r);
-    friend std::ostream& operator<<(std::ostream& o, const mbranch& b);
-};
 
 using point_prop = std::uint8_t;
 constexpr point_prop point_prop_mask_none = 0;

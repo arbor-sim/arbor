@@ -13,33 +13,33 @@ namespace arb {
 /// Morphology composed of samples.
 class sample_tree {
     std::vector<msample> samples_;
-    std::vector<size_t> parents_;
+    std::vector<msize_t> parents_;
     std::vector<point_prop> props_;
-    std::vector<size_t> branch_ids_;
+    std::vector<msize_t> branch_ids_;
 
 public:
     sample_tree() = default;
-    sample_tree(std::vector<msample>, std::vector<size_t>);
+    sample_tree(std::vector<msample>, std::vector<msize_t>);
 
     // Reserve space for n samples.
-    void reserve(std::size_t n);
+    void reserve(msize_t n);
 
     // The append functions return a handle to the last sample appended by the call.
 
     // Append a single sample.
-    size_t append(size_t p, const msample& s);
+    msize_t append(msize_t p, const msample& s);
 
     // Append a sequence of samples.
-    size_t append(size_t p, const std::vector<msample>& slist);
+    msize_t append(msize_t p, const std::vector<msample>& slist);
 
     // The number of samples in the tree.
-    std::size_t size() const;
+    msize_t size() const;
 
     // The samples in the tree.
     const std::vector<msample>& samples() const;
 
     // The parent index of the samples.
-    const std::vector<size_t>& parents() const;
+    const std::vector<msize_t>& parents() const;
 
     // The properties of the samples.
     const std::vector<point_prop>& properties() const;

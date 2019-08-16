@@ -172,20 +172,18 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
         return newcell;
     }
 
-    //arb_assert(morph.check_valid());
-    if (!morph.spherical_root()) {
-        throw cable_cell_error("No support for non-spherical roots (yet)");
-    }
+    // Add the soma.
+    auto loc = morph.samples()[0].loc; // location of soma.
 
-    // (not supporting soma-less cells yet)
-    auto loc = morph.samples()[0].loc;
-    newcell.add_soma(loc.radius, point3d(loc.x, loc.y, loc.z));
+    // If there is no spherical root/soma use a zero-radius soma.
+    double srad = morph.spherical_root()? loc.radius: 0.;
+    newcell.add_soma(srad, point3d(loc.x, loc.y, loc.z));
 
     auto& samples = morph.samples();
     for (auto i: util::make_span(1, morph.num_branches())) {
         auto index =  util::make_range(morph.branch_sample_span(i));
 
-        // STEP 1: find kind / tag. Use the tag of the last sample in the branch.
+        // find kind for the branch. Use the tag of the last sample in the branch.
         int tag = samples[index.back()].tag;
         section_kind kind;
         switch (tag) {
@@ -208,10 +206,13 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
             points.push_back(point3d(s.loc.x, s.loc.y, s.loc.z));
         }
 
-        // NOTE: morphologies that don't have spherical soma can have no parent, which
-        // will have to be handled properly. For now we can assume that all non-soma have
-        // a parent branch because of the spherical soma assertion above.
-        auto cable = newcell.add_cable(morph.branch_parent(i), kind, radii, points);
+        // Find the id of this branch's parent.
+        auto pid = morph.branch_parent(i);
+        // Adjust pid if a zero-radius soma was used.
+        if (!morph.spherical_root()) {
+            pid = pid==mnpos? 0: pid+1;
+        }
+        auto cable = newcell.add_cable(pid, kind, radii, points);
         if (compartments_from_discretization) {
             cable->as_cable()->set_compartments(radii.size()-1);
         }

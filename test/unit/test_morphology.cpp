@@ -26,7 +26,7 @@
 // Forward declare non-public functions that are used internally to build
 // morphologies so that they can be tested.
 namespace arb { namespace impl {
-    std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>&, const std::vector<point_prop>&, bool);
+    std::vector<mbranch> branches_from_parent_index(const std::vector<arb::msize_t>&, const std::vector<point_prop>&, bool);
 }}
 
 template <typename T>
@@ -88,7 +88,7 @@ TEST(morphology, point_props) {
 TEST(sample_tree, properties) {
     using arb::sample_tree;
     using pp = arb::point_prop;
-    using pvec = std::vector<size_t>;
+    using pvec = std::vector<arb::msize_t>;
 
     pp c = arb::point_prop_mask_collocated;
     pp r = arb::point_prop_mask_root;
@@ -139,8 +139,8 @@ TEST(sample_tree, properties) {
 }
 
 TEST(morphology, branches_from_parent_index) {
-    const auto npos = arb::mbranch::npos;
-    using pvec = std::vector<size_t>;
+    const auto npos = arb::mnpos;
+    using pvec = std::vector<arb::msize_t>;
     using mb = arb::mbranch;
 
     // make a sample tree from a parent vector with non-collocated points.
@@ -281,8 +281,9 @@ TEST(morphology, branches_from_parent_index) {
 TEST(morphology, construction) {
     using arb::util::make_span;
     using ms = arb::msample;
+    using pvec = std::vector<arb::msize_t>;
     {
-        std::vector<size_t> p = {0, 0};
+        pvec p = {0, 0};
         std::vector<ms> s = {
             {{0.0, 0.0, 0.0, 1.0}, 1},
             {{0.0, 0.0, 1.0, 1.0}, 1} };
@@ -293,7 +294,7 @@ TEST(morphology, construction) {
         EXPECT_EQ(1u, m.num_branches());
     }
     {
-        std::vector<size_t> p = {0, 0, 1};
+        pvec p = {0, 0, 1};
         { // 2-segment cable (1 seg soma, 1 seg dendrite)
             std::vector<ms> s = {
                 {{0.0, 0.0, 0.0, 5.0}, 1},
@@ -321,7 +322,7 @@ TEST(morphology, construction) {
         //              0       |
         //            1   3     |
         //          2           |
-        std::vector<size_t> p = {0, 0, 1, 0};
+        pvec p = {0, 0, 1, 0};
         {
             // two cables: 1x2 segments, 1x1 segment.
             std::vector<ms> s = {
@@ -351,7 +352,7 @@ TEST(morphology, construction) {
         //              0       |
         //            1   3     |
         //          2       4    |
-        std::vector<size_t> p = {0, 0, 1, 0, 3};
+        pvec p = {0, 0, 1, 0, 3};
         {
             // two cables: 1x2 segments, 1x1 segment.
             std::vector<ms> s = {
@@ -371,12 +372,13 @@ TEST(morphology, construction) {
 
 // test that morphology generates branch child-parent structure correctly.
 TEST(morphology, branches) {
-    using vec = std::vector<size_t>;
-    auto npos = arb::mbranch::npos;
+    using pvec = std::vector<arb::msize_t>;
+    using svec = std::vector<arb::msample>;
+    auto npos = arb::mnpos;
     {
         // 0
-        vec parents = {0};
-        std::vector<arb::msample> samples = {
+        pvec parents = {0};
+        svec samples = {
             {{ 0,0,0,3}, 1},
         };
         arb::sample_tree sm(samples, parents);
@@ -384,12 +386,12 @@ TEST(morphology, branches) {
 
         EXPECT_EQ(1u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
-        EXPECT_EQ(vec{}, m.branch_children(0));
+        EXPECT_EQ(pvec{}, m.branch_children(0));
     }
     {
         // 0 - 1
-        vec parents = {0, 0};
-        std::vector<arb::msample> samples = {
+        pvec parents = {0, 0};
+        svec samples = {
             {{ 0,0,0,3}, 1},
             {{ 10,0,0,3}, 1},
         };
@@ -398,14 +400,14 @@ TEST(morphology, branches) {
 
         EXPECT_EQ(1u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
-        EXPECT_EQ(vec{}, m.branch_children(0));
+        EXPECT_EQ(pvec{}, m.branch_children(0));
     }
     {
         // 0 - 1 - 2
-        vec parents = {0, 0, 1};
+        pvec parents = {0, 0, 1};
         {
             // All samples have same tag -> the morphology is a single unbranched cable.
-            std::vector<arb::msample> samples = {
+            svec samples = {
                 {{ 0,0,0,3}, 1},
                 {{10,0,0,3}, 1},
                 {{100,0,0,3}, 1},
@@ -415,11 +417,11 @@ TEST(morphology, branches) {
 
             EXPECT_EQ(1u, m.num_branches());
             EXPECT_EQ(npos, m.branch_parent(0));
-            EXPECT_EQ(vec{}, m.branch_children(0));
+            EXPECT_EQ(pvec{}, m.branch_children(0));
         }
         {
             // First sample has unique tag -> spherical soma attached to a single-segment cable.
-            std::vector<arb::msample> samples = {
+            svec samples = {
                 {{  0,0,0,10}, 1},
                 {{ 10,0,0, 3}, 3},
                 {{100,0,0, 3}, 3},
@@ -430,15 +432,15 @@ TEST(morphology, branches) {
             EXPECT_EQ(2u, m.num_branches());
             EXPECT_EQ(npos, m.branch_parent(0));
             EXPECT_EQ(0u,   m.branch_parent(1));
-            EXPECT_EQ(vec{1}, m.branch_children(0));
-            EXPECT_EQ(vec{},  m.branch_children(1));
+            EXPECT_EQ(pvec{1}, m.branch_children(0));
+            EXPECT_EQ(pvec{},  m.branch_children(1));
         }
     }
     {
         // 2 - 0 - 1
-        vec parents = {0, 0, 0};
+        pvec parents = {0, 0, 0};
 
-        std::vector<arb::msample> samples = {
+        svec samples = {
             {{  0, 0,0, 5}, 3},
             {{ 10, 0,0, 5}, 3},
             {{  0,10,0, 5}, 3},
@@ -449,12 +451,12 @@ TEST(morphology, branches) {
         EXPECT_EQ(2u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
         EXPECT_EQ(npos,   m.branch_parent(1));
-        EXPECT_EQ(vec{}, m.branch_children(0));
-        EXPECT_EQ(vec{},  m.branch_children(1));
+        EXPECT_EQ(pvec{}, m.branch_children(0));
+        EXPECT_EQ(pvec{},  m.branch_children(1));
     }
     {
         // 0 - 1 - 2 - 3
-        vec parents = {0, 0, 1, 2};
+        pvec parents = {0, 0, 1, 2};
     }
     {
         //              0       |
@@ -462,7 +464,7 @@ TEST(morphology, branches) {
         //            1   3     |
         //           /          |
         //          2           |
-        vec parents = {0, 0, 1, 0};
+        pvec parents = {0, 0, 1, 0};
     }
     {
         // Eight samples
@@ -476,9 +478,9 @@ TEST(morphology, branches) {
         //                5   6     |
         //                     \    |
         //                      7   |
-        vec parents = {0, 0, 1, 0, 3, 4, 4, 6};
+        pvec parents = {0, 0, 1, 0, 3, 4, 4, 6};
         {
-            std::vector<arb::msample> samples = {
+            svec samples = {
                 {{  0,  0,  0, 10}, 1},
                 {{ 10,  0,  0,  2}, 3},
                 {{100,  0,  0,  2}, 3},
@@ -497,14 +499,14 @@ TEST(morphology, branches) {
             EXPECT_EQ(0u,   m.branch_parent(2));
             EXPECT_EQ(2u,   m.branch_parent(3));
             EXPECT_EQ(2u,   m.branch_parent(4));
-            EXPECT_EQ((vec{1,2}), m.branch_children(0));
-            EXPECT_EQ((vec{}),    m.branch_children(1));
-            EXPECT_EQ((vec{3,4}), m.branch_children(2));
-            EXPECT_EQ((vec{}),    m.branch_children(3));
-            EXPECT_EQ((vec{}),    m.branch_children(4));
+            EXPECT_EQ((pvec{1,2}), m.branch_children(0));
+            EXPECT_EQ((pvec{}),    m.branch_children(1));
+            EXPECT_EQ((pvec{3,4}), m.branch_children(2));
+            EXPECT_EQ((pvec{}),    m.branch_children(3));
+            EXPECT_EQ((pvec{}),    m.branch_children(4));
         }
         {
-            std::vector<arb::msample> samples = {
+            svec samples = {
                 {{  0,  0,  0, 10}, 3},
                 {{ 10,  0,  0,  2}, 3},
                 {{100,  0,  0,  2}, 3},
@@ -522,10 +524,10 @@ TEST(morphology, branches) {
             EXPECT_EQ(npos, m.branch_parent(1));
             EXPECT_EQ(1u,   m.branch_parent(2));
             EXPECT_EQ(1u,   m.branch_parent(3));
-            EXPECT_EQ((vec{}),    m.branch_children(0));
-            EXPECT_EQ((vec{2,3}), m.branch_children(1));
-            EXPECT_EQ((vec{}),    m.branch_children(2));
-            EXPECT_EQ((vec{}),    m.branch_children(3));
+            EXPECT_EQ((pvec{}),    m.branch_children(0));
+            EXPECT_EQ((pvec{2,3}), m.branch_children(1));
+            EXPECT_EQ((pvec{}),    m.branch_children(2));
+            EXPECT_EQ((pvec{}),    m.branch_children(3));
         }
     }
 }

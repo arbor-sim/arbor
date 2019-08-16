@@ -10,6 +10,7 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "algorithms.hpp"
+#include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
@@ -17,7 +18,7 @@ namespace arb {
 
 namespace impl{
 
-std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& parents, const std::vector<point_prop>& props, bool spherical_root) {
+std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents, const std::vector<point_prop>& props, bool spherical_root) {
     using util::make_span;
 
     const char* errstr_single_sample_root =
@@ -25,9 +26,7 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& paren
     const char* errstr_incomplete_cable =
         "A branch must contain at least two samples";
 
-    auto npos = mbranch::npos;
-
-    if (!parents.size()) return {};
+    if (parents.empty()) return {};
 
     auto nsamp = parents.size();
 
@@ -39,7 +38,7 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& paren
     std::vector<int> bids(nsamp);
     int nbranches = spherical_root? 1: 0;
     for (auto i: make_span(1, nsamp)) {
-        size_t p = parents[i];
+        auto p = parents[i];
         bool first = is_root(props[p]) || is_fork(props[p]);
         bids[i] = first? nbranches++: bids[p];
     }
@@ -59,7 +58,7 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& paren
             //      ∃ a spherical root and branch id is 0
             //      ∄ a spherical root and parent id is 0
             auto null_root = spherical_root? !i: !p;
-            branch.parent_id = null_root? npos: bids[parents[i]];
+            branch.parent_id = null_root? mnpos: bids[parents[i]];
 
             // Add the first sample to a branch that is attached to
             // non-spherical root if the branch is not branch 0.
@@ -84,7 +83,7 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<size_t>& paren
 }
 
 // Returns false if one of the root's children has the same tag as the root.
-bool has_single_root_tag(const sample_tree& st) {
+bool root_sample_has_same_tag_as_child(const sample_tree& st) {
     if (!st.size()) return false;
     auto& P = st.parents();
     auto& S = st.samples();
@@ -99,9 +98,21 @@ bool has_single_root_tag(const sample_tree& st) {
 
 } // namespace impl
 
-//
-// morphology implementation
-//
+bool operator==(const mbranch& l, const mbranch& r) {
+    if (l.parent_id!=r.parent_id) return false;
+    if (l.size()!=r.size()) return false;
+    for (auto i: util::make_span(l.size())) {
+        if (l.index[i]!=r.index[i]) return false;
+    }
+    return true;
+}
+
+std::ostream& operator<<(std::ostream& o, const mbranch& b) {
+    o <<"mbranch([" << io::csv(b.index) << "], ";
+    if (b.parent_id==mnpos) o << "none)";
+    else  o << b.parent_id << ")";
+    return o;
+}
 
 morphology::morphology(sample_tree m, bool use_spherical_root):
     samples_(std::move(m)),
@@ -112,7 +123,7 @@ morphology::morphology(sample_tree m, bool use_spherical_root):
 
 morphology::morphology(sample_tree m):
     samples_(std::move(m)),
-    spherical_root_(impl::has_single_root_tag(samples_))
+    spherical_root_(impl::root_sample_has_same_tag_as_child(samples_))
 {
     init();
 }
@@ -125,19 +136,8 @@ void morphology::init() {
 
     if (!nsamp) return;
 
-    // Cache the fork and terminal points.
-    auto& props = samples_.properties();
-    for (auto i: make_span(nsamp)) {
-        if (is_fork(props[i])) {
-            fork_points_.push_back(i);
-        }
-        if (is_terminal(props[i])) {
-            terminal_points_.push_back(i);
-        }
-    }
-
     // Generate branches.
-    branches_ = impl::branches_from_parent_index(samples_.parents(), props, spherical_root_);
+    branches_ = impl::branches_from_parent_index(samples_.parents(), samples_.properties(), spherical_root_);
     auto nbranch = branches_.size();
 
     // Generate branch tree.
@@ -146,25 +146,24 @@ void morphology::init() {
     for (auto i: make_span(nbranch)) {
         auto id = branches_[i].parent_id;
         branch_parents_.push_back(id);
-        if (id!=mbranch::npos) {
+        if (id!=mnpos) {
             branch_children_[id].push_back(i);
         }
     }
-
 }
 
 // The parent branch of branch b.
-size_t morphology::branch_parent(size_t b) const {
+msize_t morphology::branch_parent(msize_t b) const {
     return branch_parents_[b];
 }
 
 // The parent sample of sample i.
-const std::vector<size_t>& morphology::sample_parents() const {
+const std::vector<msize_t>& morphology::sample_parents() const {
     return samples_.parents();
 }
 
 // The child branches of branch b.
-const std::vector<size_t>& morphology::branch_children(size_t b) const {
+const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
     return branch_children_[b];
 }
 
@@ -173,7 +172,7 @@ bool morphology::spherical_root() const {
     return spherical_root_;
 }
 
-morphology::index_range morphology::branch_sample_span(size_t b) const {
+morphology::index_range morphology::branch_sample_span(msize_t b) const {
     const auto& idx = branches_[b].index;
     return std::make_pair(idx.data(), idx.data()+idx.size());
 }
@@ -182,16 +181,8 @@ const std::vector<msample>& morphology::samples() const {
     return samples_.samples();
 }
 
-size_t morphology::num_branches() const {
+msize_t morphology::num_branches() const {
     return branches_.size();
-}
-
-const std::vector<size_t>& morphology::fork_points() const {
-    return fork_points_;
-}
-
-const std::vector<size_t>& morphology::terminal_points() const {
-    return terminal_points_;
 }
 
 std::ostream& operator<<(std::ostream& o, const morphology& m) {
