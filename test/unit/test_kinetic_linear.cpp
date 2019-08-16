@@ -88,6 +88,14 @@ void run_test(std::string mech_name,
     }
 }
 
+TEST(mech_kinetic, kintetic_scaled) {
+    std::vector<std::string> state_variables = {"s", "h", "d"};
+    std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
+    std::vector<fvm_value_type> t1_values = {0.985244, 1.030646, 0.560726};
+
+    run_test<multicore::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_values);
+}
+
 TEST(mech_kinetic, kintetic_1_conserve) {
     std::vector<std::string> state_variables = {"s", "h", "d"};
     std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
@@ -117,6 +125,14 @@ TEST(mech_linear, linear) {
 }
 
 #ifdef ARB_GPU_ENABLED
+TEST(mech_kinetic_gpu, kintetic_scaled) {
+    std::vector<std::string> state_variables = {"s", "h", "d"};
+    std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
+    std::vector<fvm_value_type> t1_values = {0.985244, 1.03065, 0.560726};
+
+    run_test<gpu::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_values);
+}
+
 TEST(mech_kinetic_gpu, kintetic_1_conserve) {
     std::vector<std::string> state_variables = {"s", "h", "d"};
     std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
