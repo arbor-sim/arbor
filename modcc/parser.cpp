@@ -1000,6 +1000,8 @@ expression_ptr Parser::parse_statement() {
             return parse_line_expression();
         case tok::conserve :
             return parse_conserve_expression();
+        case tok::compartment :
+            return parse_compartment_statement();
         case tok::tilde :
             return parse_tilde_expression();
         case tok::initial :
@@ -1263,7 +1265,7 @@ expression_ptr Parser::parse_tilde_expression() {
                                                    std::move(fwd), std::move(rev));
     }
     else if (search_to_eol(tok::eq)) {
-        auto lhs_bin = parse_expression();
+        auto lhs_bin = parse_expression(tok::eq);
 
         if(token_.type!=tok::eq) {
             error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
@@ -1304,13 +1306,13 @@ expression_ptr Parser::parse_conserve_expression() {
     return make_expression<ConserveExpression>(here, std::move(lhs), std::move(rhs));
 }
 
-expression_ptr Parser::parse_expression(int prec) {
+expression_ptr Parser::parse_expression(int prec, tok t) {
     auto lhs = parse_unaryop();
     if(lhs==nullptr) return nullptr;
 
     // Combine all sub-expressions with precedence greater than prec.
     for (;;) {
-        if(token_.type==tok::eq) {
+        if(token_.type==t) {
             return lhs;
         }
 
@@ -1333,6 +1335,10 @@ expression_ptr Parser::parse_expression(int prec) {
 
 expression_ptr Parser::parse_expression() {
     return parse_expression(0);
+}
+
+expression_ptr Parser::parse_expression(tok t) {
+    return parse_expression(0, t);
 }
 
 /// Parse a unary expression.
@@ -1738,4 +1744,40 @@ expression_ptr Parser::parse_initial() {
     get_token(); // consume closing '}'
 
     return make_expression<InitialBlock>(block_location, std::move(body));
+}
+
+expression_ptr Parser::parse_compartment_statement() {
+    auto here = location_;
+
+    if(token_.type!=tok::compartment) {
+        error(pprintf("expected '%', found '%'", yellow("COMPARTMENT"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume 'COMPARTMENT'
+    auto mult = parse_expression(tok::rbrace);
+    if (!mult) return nullptr;
+
+    if(token_.type != tok::lbrace) {
+        error(pprintf("expected '%', found '%'", yellow("{"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume '{'
+    std::vector<expression_ptr> states;
+    while (token_.type!=tok::rbrace) {
+        // check identifier
+        if(token_.type != tok::identifier) {
+            error(  "expected a valid identifier, found '"
+                    + yellow(token_.spelling) + "'");
+            return nullptr;
+        }
+
+        auto e = make_expression<IdentifierExpression>(token_.location, token_.spelling);
+        states.emplace_back(std::move(e));
+
+        get_token(); // consume the identifier
+    }
+    get_token(); // consume the rbrace
+    return make_expression<CompartmentExpression>(here, std::move(mult), std::move(states));
 }

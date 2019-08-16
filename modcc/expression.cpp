@@ -360,6 +360,38 @@ void StoichExpression::semantic(scope_ptr scp) {
 }
 
 /*******************************************************************************
+  CompartmentExpression
+*******************************************************************************/
+
+expression_ptr CompartmentExpression::clone() const {
+    std::vector<expression_ptr> cloned_state_vars;
+    for(auto& e: state_vars()) {
+        cloned_state_vars.emplace_back(e->clone());
+    }
+
+    return make_expression<CompartmentExpression>(location_, multiplier()->clone(), std::move(cloned_state_vars));
+}
+
+std::string CompartmentExpression::to_string() const {
+    std::string s;
+    s += multiplier()->to_string();
+    s += " {";
+    bool first = true;
+    for(auto& e: state_vars()) {
+        if (!first) s += ",";
+        s += e->to_string();
+        first = false;
+    }
+    s += "}";
+    return s;
+}
+
+void CompartmentExpression::semantic(scope_ptr scp) {
+    scope_ = scp;
+    multiplier()->semantic(scp);
+}
+
+/*******************************************************************************
   LinearExpression
 *******************************************************************************/
 
@@ -1037,6 +1069,9 @@ void ConditionalExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void PDiffExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void CompartmentExpression::accept(Visitor *v) {
     v->visit(this);
 }
 

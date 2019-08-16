@@ -85,7 +85,9 @@ protected:
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
 
-    // rhs of conserve statement
+    // state variable multiplier
+    std::vector<expression_ptr> multipliers_;
+
     std::vector<std::string> conserve_rhs_;
     std::vector<unsigned> conserve_idx_;
 public:
@@ -96,6 +98,7 @@ public:
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
+    virtual void visit(CompartmentExpression *e) override;
     virtual void visit(ConserveExpression *e) override;
     virtual void finalize() override;
     virtual void reset() override {
@@ -104,6 +107,7 @@ public:
         symtbl_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
+        multipliers_.clear();
         conserve_ = false;
         SolverVisitorBase::reset();
     }

@@ -37,6 +37,7 @@ class LinearExpression;
 class ReactionExpression;
 class StoichExpression;
 class StoichTermExpression;
+class CompartmentExpression;
 class ConditionalExpression;
 class InitialBlock;
 class SolveExpression;
@@ -175,6 +176,7 @@ public:
     virtual StoichExpression*      is_stoich()            {return nullptr;}
     virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}
     virtual ConditionalExpression* is_conditional()       {return nullptr;}
+    virtual CompartmentExpression* is_compartment()       {return nullptr;}
     virtual InitialBlock*          is_initial_block()     {return nullptr;}
     virtual SolveExpression*       is_solve_statement()   {return nullptr;}
     virtual Symbol*                is_symbol()            {return nullptr;}
@@ -858,6 +860,33 @@ private:
     expression_ptr rhs_;
     expression_ptr fwd_rate_;
     expression_ptr rev_rate_;
+};
+
+class CompartmentExpression : public Expression {
+public:
+    CompartmentExpression(Location loc,
+                       expression_ptr&& multiplier,
+                       std::vector<expression_ptr>&& state_vars)
+            : Expression(loc), multiplier_(std::move(multiplier)), state_vars_(std::move(state_vars)) {}
+
+    CompartmentExpression* is_compartment() override {return this;}
+
+    std::string to_string() const override;
+    void semantic(scope_ptr scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    expression_ptr& multiplier() { return multiplier_; }
+    const expression_ptr& multiplier() const { return multiplier_; }
+
+    std::vector<expression_ptr>& state_vars() { return state_vars_; }
+    const std::vector<expression_ptr>& state_vars() const { return state_vars_; }
+
+    ~CompartmentExpression() {}
+
+private:
+    expression_ptr multiplier_;
+    std::vector<expression_ptr> state_vars_;
 };
 
 class StoichTermExpression : public Expression {

@@ -180,8 +180,23 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
+    multipliers_.resize(dvars_.size());
 
     BlockRewriterBase::visit(e);
+}
+
+void SparseSolverVisitor::visit(CompartmentExpression *e) {
+    auto loc = e->location();
+
+    for (auto& s: e->is_compartment()->state_vars()) {
+        auto it = std::find(dvars_.begin(), dvars_.end(), s->is_identifier()->spelling());
+        if (it == dvars_.end()) {
+            error({"COMPARTMENT variable is not a state variable", loc});
+            return;
+        }
+        auto idx = it - dvars_.begin();
+        multipliers_[idx] = e->multiplier()->clone();
+    }
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
@@ -245,6 +260,9 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         }
 
         if (j==deq_index_) {
+            if (multipliers_[j]) {
+                expr =  make_expression<MulBinaryExpression>(loc, multipliers_[j]->clone(), std::move(expr));
+            }
             if (expr) {
                 expr = make_expression<SubBinaryExpression>(loc,
                            one_expr->clone(),
