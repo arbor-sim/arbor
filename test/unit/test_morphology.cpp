@@ -86,6 +86,7 @@ TEST(morphology, point_props) {
 // Test internal function that parses a parent list, and marks
 // each node as either root, sequential, fork or terminal.
 TEST(sample_tree, properties) {
+    const auto npos = arb::mnpos;
     using arb::sample_tree;
     using pp = arb::point_prop;
     using pvec = std::vector<arb::msize_t>;
@@ -113,28 +114,28 @@ TEST(sample_tree, properties) {
     };
 
     {
-        EXPECT_EQ(make_tree({0}).properties(), std::vector<pp>{r});
-        EXPECT_EQ(make_colloc_tree({0}).properties(), std::vector<pp>{r});
+        EXPECT_EQ(make_tree({npos}).properties(), std::vector<pp>{r});
+        EXPECT_EQ(make_colloc_tree({npos}).properties(), std::vector<pp>{r});
     }
 
     {
-        EXPECT_EQ(make_tree({0,0}).properties(), (std::vector<pp>{r,t}));
-        EXPECT_EQ(make_colloc_tree({0,0}).properties(), (std::vector<pp>{r,tc}));
+        EXPECT_EQ(make_tree({npos,0}).properties(), (std::vector<pp>{r,t}));
+        EXPECT_EQ(make_colloc_tree({npos,0}).properties(), (std::vector<pp>{r,tc}));
     }
 
     {
-        EXPECT_EQ(make_tree({0,0,1,2}).properties(), (std::vector<pp>{r,s,s,t}));
-        EXPECT_EQ(make_colloc_tree({0,0,1,2}).properties(), (std::vector<pp>{r,sc,sc,tc}));
+        EXPECT_EQ(make_tree({npos,0,1,2}).properties(), (std::vector<pp>{r,s,s,t}));
+        EXPECT_EQ(make_colloc_tree({npos,0,1,2}).properties(), (std::vector<pp>{r,sc,sc,tc}));
     }
 
     {
-        EXPECT_EQ(make_tree({0,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,s,s,t,s,s,t}));
-        EXPECT_EQ(make_colloc_tree({0,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,sc,sc,tc,sc,sc,tc}));
+        EXPECT_EQ(make_tree({npos,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,s,s,t,s,s,t}));
+        EXPECT_EQ(make_colloc_tree({npos,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,sc,sc,tc,sc,sc,tc}));
     }
 
     {
-        EXPECT_EQ(make_tree({0,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,s,f,s,f,t,t,s,t}));
-        EXPECT_EQ(make_colloc_tree({0,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,sc,fc,sc,fc,tc,tc,sc,tc}));
+        EXPECT_EQ(make_tree({npos,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,s,f,s,f,t,t,s,t}));
+        EXPECT_EQ(make_colloc_tree({npos,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,sc,fc,sc,fc,tc,tc,sc,tc}));
     }
 }
 
