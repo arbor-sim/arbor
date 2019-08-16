@@ -234,7 +234,7 @@ Token Lexer::peek() {
     return t;
 }
 
-bool Lexer::search_line(tok const& t) {
+bool Lexer::search_to_eol(tok const& t) {
     // save the current position
     const char *oldpos  = current_;
     const char *oldlin  = line_;

@@ -293,7 +293,8 @@ bool Module::semantic() {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
                 linear_rewrite(solve_proc->body(), state_vars)->accept(solver.get());
             } else {
-                error("The solve expression " + solve_expression->name() + " is not a linear procedure", solve_expression->location());
+                error("A SOLVE expression in an INITIAL block can only be used to solve a LINEAR block, which" +
+                      solve_expression->name() + "is not.", solve_expression->location());
                 return false;
             }
 

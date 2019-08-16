@@ -144,6 +144,7 @@ public:
         deq_index_ = 0;
         local_expr_.clear();
         symtbl_.clear();
+        rhs_.clear();
         SolverVisitorBase::reset();
     }
 };

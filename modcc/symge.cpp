@@ -85,7 +85,7 @@ void gj_reduce(sym_matrix& A, symbol_table& table) {
 
     auto define_sym = [&table](symbol_term_diff t) { return table.define(t); };
 
-    auto get_pivots = [&A](std::vector<unsigned> remaining_rows) {
+    auto get_pivots = [&A](const std::vector<unsigned>& remaining_rows) {
         std::vector<pivot> pivots;
         for (auto r: remaining_rows) {
             pivot p;

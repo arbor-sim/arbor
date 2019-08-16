@@ -40,12 +40,12 @@ void LinearRewriter::visit(LinearExpression* e) {
     scope_ptr scope = e->scope();
 
     expression_ptr lhs;
-    for (auto state : state_vars) {
+    for (const auto& state : state_vars) {
         // To factorize w.r.t state, differentiate the lhs and rhs
         auto ident = make_expression<IdentifierExpression>(loc, state);
         auto coeff = constant_simplify(make_expression<SubBinaryExpression>(loc,
-                std::move(symbolic_pdiff(e->lhs(), state)),
-                std::move(symbolic_pdiff(e->rhs(), state))));
+                symbolic_pdiff(e->lhs(), state),
+                symbolic_pdiff(e->rhs(), state)));
 
         if (expr_value(coeff) != 0) {
             auto local_coeff = make_unique_local_assign(scope, coeff, "l_");

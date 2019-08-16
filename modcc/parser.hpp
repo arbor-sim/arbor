@@ -21,8 +21,7 @@ public:
     expression_ptr parse_integer();
     expression_ptr parse_real();
     expression_ptr parse_call();
-    expression_ptr parse_expression(int prec, bool allow_equal = false);
-    expression_ptr parse_expression(bool allow_equal);
+    expression_ptr parse_expression(int prec);
     expression_ptr parse_expression();
     expression_ptr parse_primary();
     expression_ptr parse_parenthesis_expression();
@@ -31,7 +30,7 @@ public:
     expression_ptr parse_stoich_term();
     expression_ptr parse_tilde_expression();
     expression_ptr parse_conserve_expression();
-    expression_ptr parse_binop(expression_ptr&&, Token, bool=false);
+    expression_ptr parse_binop(expression_ptr&&, Token);
     expression_ptr parse_unaryop();
     expression_ptr parse_local();
     expression_ptr parse_solve();

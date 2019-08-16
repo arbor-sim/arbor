@@ -1199,7 +1199,7 @@ expression_ptr Parser::parse_tilde_expression() {
     }
     get_token(); // consume tilde
 
-    if (search_line(tok::arrow)) {
+    if (search_to_eol(tok::arrow)) {
         expression_ptr lhs = parse_stoich_expression();
         if (!lhs) return nullptr;
 
@@ -1262,8 +1262,8 @@ expression_ptr Parser::parse_tilde_expression() {
         return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
                                                    std::move(fwd), std::move(rev));
     }
-    else if (search_line(tok::eq)) {
-        auto lhs_bin = parse_expression(true);
+    else if (search_to_eol(tok::eq)) {
+        auto lhs_bin = parse_expression();
 
         if(token_.type!=tok::eq) {
             error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
@@ -1304,19 +1304,14 @@ expression_ptr Parser::parse_conserve_expression() {
     return make_expression<ConserveExpression>(here, std::move(lhs), std::move(rhs));
 }
 
-expression_ptr Parser::parse_expression(int prec, bool allow_equal) {
+expression_ptr Parser::parse_expression(int prec) {
     auto lhs = parse_unaryop();
     if(lhs==nullptr) return nullptr;
 
     // Combine all sub-expressions with precedence greater than prec.
     for (;;) {
         if(token_.type==tok::eq) {
-            if (!allow_equal) {
-                error("assignment '" + yellow("=") + "' not allowed in sub-expression");
-                return nullptr;
-            } else {
-                return lhs;
-            };
+            return lhs;
         }
 
         auto op = token_;
@@ -1329,7 +1324,7 @@ expression_ptr Parser::parse_expression(int prec, bool allow_equal) {
 
         get_token(); // consume the infix binary operator
 
-        lhs = parse_binop(std::move(lhs), op, allow_equal);
+        lhs = parse_binop(std::move(lhs), op);
         if(!lhs) return nullptr;
     }
 
@@ -1338,10 +1333,6 @@ expression_ptr Parser::parse_expression(int prec, bool allow_equal) {
 
 expression_ptr Parser::parse_expression() {
     return parse_expression(0);
-}
-
-expression_ptr Parser::parse_expression(bool allow_equal) {
-    return parse_expression(0, allow_equal);
 }
 
 /// Parse a unary expression.
@@ -1474,9 +1465,9 @@ expression_ptr Parser::parse_integer() {
     return e;
 }
 
-expression_ptr Parser::parse_binop(expression_ptr&& lhs, Token op_left, bool allow_equal) {
+expression_ptr Parser::parse_binop(expression_ptr&& lhs, Token op_left) {
     auto p_op_left = binop_precedence(op_left.type);
-    auto rhs = parse_expression(p_op_left, allow_equal);
+    auto rhs = parse_expression(p_op_left);
     if(!rhs) return nullptr;
 
     auto op_right = token_;
@@ -1495,14 +1486,14 @@ expression_ptr Parser::parse_binop(expression_ptr&& lhs, Token op_left, bool all
 
     get_token(); // consume op_right
     if(right_assoc) {
-        rhs = parse_binop(std::move(rhs), op_right, allow_equal);
+        rhs = parse_binop(std::move(rhs), op_right);
         if(!rhs) return nullptr;
 
         return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
     }
     else {
         lhs = binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
-        return parse_binop(std::move(lhs), op_right, allow_equal);
+        return parse_binop(std::move(lhs), op_right);
     }
 }
 
