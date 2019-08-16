@@ -58,7 +58,7 @@ constexpr point_prop point_prop_mask_collocated = 8;
 
 std::ostream& operator<<(std::ostream& o, const point_prop& p);
 
-#define PROP(prop) \
+#define ARB_PROP(prop) \
 constexpr bool is_##prop(point_prop p) {\
     return p&point_prop_mask_##prop;\
 } \
@@ -69,9 +69,9 @@ inline void unset_##prop(point_prop& p) {\
     p &= ~point_prop_mask_##prop;\
 }
 
-PROP(root)
-PROP(fork)
-PROP(terminal)
-PROP(collocated)
+ARB_PROP(root)
+ARB_PROP(fork)
+ARB_PROP(terminal)
+ARB_PROP(collocated)
 
 } // namespace arb
