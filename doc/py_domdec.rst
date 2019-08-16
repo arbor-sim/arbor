@@ -18,7 +18,7 @@ If the model is distributed with MPI, the partitioning algorithm for cells is
 distributed with MPI communication. The returned :class:`domain_decomposition`
 describes the cell groups on the local MPI rank.
 
-.. function:: partition_load_balance(recipe, context)
+.. function:: partition_load_balance(recipe, context, hints)
 
     Construct a :class:`domain_decomposition` that distributes the cells
     in the model described by an :class:`arbor.recipe` over the distributed and local hardware
@@ -31,11 +31,69 @@ describes the cell groups on the local MPI rank.
     grained parallelism in the cell group.
     Otherwise, cells are grouped into small groups that fit in cache, and can be
     distributed over the available cores.
+    Optionally, provide a dictionary of :class:`partition_hint` s for certain cell kinds, by default this dictionary is empty.
 
     .. Note::
         The partitioning assumes that all cells of the same kind have equal
         computational cost, hence it may not produce a balanced partition for
         models with cells that have a large variance in computational costs.
+
+.. class:: partition_hint
+
+    Provide a hint on how the cell groups should be partitioned.
+
+    .. function:: partition_hint(cpu_group_size, gpu_group_size, prefer_gpu)
+
+        Construct a partition hint with arguments :attr:`cpu_group_size` and :attr:`gpu_group_size`, and whether to :attr:`prefer_gpu`.
+
+        By default returns a partition hint with :attr:`cpu_group_size` = ``1``, i.e., each cell is put in its own group, :attr:`gpu_group_size` = ``max``, i.e., all cells are put in one group, and :attr:`prefer_gpu` = ``True``, i.e., GPU usage is preferred.
+
+    .. attribute:: cpu_group_size
+
+        The size of the cell group assigned to CPU.
+        Must be positive, else set to default value.
+
+    .. attribute:: gpu_group_size
+
+        The size of the cell group assigned to GPU.
+        Must be positive, else set to default value.
+
+    .. attribute:: prefer_gpu
+
+        Whether GPU usage is preferred.
+
+    .. attribute:: max_size
+
+        Get the maximum size of cell groups.
+
+An example of a partition load balance with hints reads as follows:
+
+.. container:: example-code
+
+    .. code-block:: python
+
+        import arbor
+
+        # Get a communication context (with 4 threads, no GPU)
+        context = arbor.context(threads=4, gpu_id=None)
+
+        # Initialise a recipe of user defined type my_recipe with 100 cells.
+        n_cells = 100
+        recipe = my_recipe(n_cells)
+
+        # The hints perfer the multicore backend, so the decomposition is expected
+        # to never have cell groups on the GPU, regardless of whether a GPU is
+        # available or not.
+        cable_hint                  = arb.partition_hint()
+        cable_hint.prefer_gpu       = False
+        cable_hint.cpu_group_size   = 3
+        spike_hint                  = arb.partition_hint()
+        spike_hint.prefer_gpu       = False
+        spike_hint.cpu_group_size   = 4
+        hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
+
+        decomp = arb.partition_load_balance(recipe, context, hints)
+
 
 Decomposition
 -------------
@@ -119,4 +177,4 @@ Therefore, the following data structures are used to describe domain decompositi
 
         .. attribute:: backend
 
-            The hardware backend on which the cell group will run.
+            The hardware :class:`backend` on which the cell group will run.
