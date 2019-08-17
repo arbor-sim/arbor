@@ -27,7 +27,6 @@ void sample_tree::reserve(msize_t n) {
     samples_.reserve(n);
     parents_.reserve(n);
     props_.reserve(n);
-    branch_ids_.reserve(n);
 }
 
 msize_t sample_tree::append(msize_t p, const msample& s) {

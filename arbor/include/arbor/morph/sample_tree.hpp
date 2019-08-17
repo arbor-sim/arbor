@@ -15,7 +15,6 @@ class sample_tree {
     std::vector<msample> samples_;
     std::vector<msize_t> parents_;
     std::vector<point_prop> props_;
-    std::vector<msize_t> branch_ids_;
 
 public:
     sample_tree() = default;

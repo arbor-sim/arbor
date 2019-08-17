@@ -48,27 +48,19 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& pare
 
     std::vector<mbranch> branches(nbranches);
     for (auto i: make_span(nsamp)) {
-        auto p = parents[i]==mnpos? 0: parents[i];
+        auto p = parents[i];
         auto& branch = branches[bids[i]];
-
-        // Determine the id of the parent branch if this is the first sample in
-        // the branch, and include the fork/root point at the end of the parent
-        // branch where applicable.
-        // This is icky, but of all the solutions, this is the cleanest (that I
-        // could find).
         if (!branch.size()) {
-            // A branch has null root if either:
-            //      ∃ a spherical root and branch id is 0
-            //      ∄ a spherical root and parent id is 0
-            auto null_root = spherical_root? !i: !p;
-            branch.parent_id = null_root? mnpos: bids[parents[i]];
+            bool null_root = spherical_root? p==mnpos: p==mnpos||p==0;
+            branch.parent_id = null_root? mnpos: bids[p];
 
-            // Add the first sample to a branch that is attached to
-            // non-spherical root if the branch is not branch 0.
-            if ((null_root && i) || is_fork(props[p])) {
+            // Add the distal sample from the parent branch if the parent is not
+            // a spherical root or mnpos.
+            if (p!=mnpos && !(p==0 && spherical_root)) {
                 branch.index.push_back(p);
             }
         }
+
         branch.index.push_back(i);
     }
 

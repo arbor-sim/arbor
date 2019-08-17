@@ -47,11 +47,4 @@ std::ostream& operator<<(std::ostream& o, const msample& s) {
     return o << "msample(" << s.loc << ", " << s.tag << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const point_prop& p) {
-    return o << (is_root(p)?        'r': '-')
-             << (is_terminal(p)?    't': '-')
-             << (is_fork(p)?        'f': '-')
-             << (is_collocated(p)?  'c': '-');
-}
-
 } // namespace arb
