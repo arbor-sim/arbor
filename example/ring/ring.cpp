@@ -54,7 +54,9 @@ public:
         num_cells_(num_cells),
         cell_params_(params),
         min_delay_(min_delay)
-    {}
+    {
+        gprop_.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     cell_size_type num_cells() const override {
         return num_cells_;
@@ -108,11 +110,17 @@ public:
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
 
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        return gprop_;
+    }
+
+
 private:
     cell_size_type num_cells_;
     cell_parameters cell_params_;
     double min_delay_;
     float event_weight_ = 0.05;
+    arb::cable_cell_global_properties gprop_;
 };
 
 struct cell_stats {
