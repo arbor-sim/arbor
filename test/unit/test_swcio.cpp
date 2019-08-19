@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/morphology.hpp>
 #include <arbor/swcio.hpp>
 
 #include "../gtest.h"
@@ -26,7 +25,7 @@ void expect_record_equals(const swc_record& expected,
                           const swc_record& actual)
 {
     EXPECT_EQ(expected.id, actual.id);
-    EXPECT_EQ(expected.type, actual.type);
+    EXPECT_EQ(expected.tag, actual.tag);
     EXPECT_FLOAT_EQ(expected.x, actual.x);
     EXPECT_FLOAT_EQ(expected.y, actual.y);
     EXPECT_FLOAT_EQ(expected.z, actual.z);
@@ -36,54 +35,44 @@ void expect_record_equals(const swc_record& expected,
 
 TEST(swc_record, construction)
 {
-    {
-        // force an invalid type
-        swc_record::kind invalid_type = static_cast<swc_record::kind>(100);
-        EXPECT_THROW(swc_record(invalid_type, 7, 1., 1., 1., 1., 5).assert_consistent(),
-                     swc_error);
-    }
+    int soma_tag = 1;
 
     {
         // invalid id
-        EXPECT_THROW(swc_record(
-                         swc_record::kind::custom, -3, 1., 1., 1., 1., 5).assert_consistent(),
+        EXPECT_THROW(swc_record(soma_tag, -3, 1., 1., 1., 1., 5).assert_consistent(),
                      swc_error);
     }
 
     {
         // invalid parent id
-        EXPECT_THROW(swc_record(
-                         swc_record::kind::custom, 0, 1., 1., 1., 1., -5).assert_consistent(),
+        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., 1., -5).assert_consistent(),
                      swc_error);
     }
 
     {
         // invalid radius
-        EXPECT_THROW(swc_record(
-                         swc_record::kind::custom, 0, 1., 1., 1., -1., -1).assert_consistent(),
+        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., -1., -1).assert_consistent(),
                      swc_error);
     }
 
     {
         // parent_id > id
-        EXPECT_THROW(swc_record(
-                         swc_record::kind::custom, 0, 1., 1., 1., 1., 2).assert_consistent(),
+        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., 1., 2).assert_consistent(),
                      swc_error);
     }
 
     {
         // parent_id == id
-        EXPECT_THROW(swc_record(
-                         swc_record::kind::custom, 0, 1., 1., 1., 1., 0).assert_consistent(),
+        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., 1., 0).assert_consistent(),
                      swc_error);
     }
 
     {
         // check standard construction by value
-        swc_record record(swc_record::kind::custom, 0, 1., 1., 1., 1., -1);
+        swc_record record(soma_tag, 0, 1., 1., 1., 1., -1);
         EXPECT_TRUE(record.is_consistent());
         EXPECT_EQ(record.id, 0);
-        EXPECT_EQ(record.type, swc_record::kind::custom);
+        EXPECT_EQ(record.tag, soma_tag);
         EXPECT_EQ(record.x, 1.);
         EXPECT_EQ(record.y, 1.);
         EXPECT_EQ(record.z, 1.);
@@ -94,7 +83,7 @@ TEST(swc_record, construction)
 
     {
         // check copy constructor
-        swc_record record_orig(swc_record::kind::custom, 0, 1., 1., 1., 1., -1);
+        swc_record record_orig(soma_tag, 0, 1., 1., 1., 1., -1);
         swc_record record(record_orig);
         expect_record_equals(record_orig, record);
     }
@@ -133,13 +122,6 @@ TEST(swc_parser, invalid_input_parse)
         // Check non-parsable values
         std::istringstream is(
             "1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
-        EXPECT_THROW(parse_swc_file(is), swc_error);
-    }
-
-    {
-        // Check invalid record type
-        std::istringstream is(
-            "1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
         EXPECT_THROW(parse_swc_file(is), swc_error);
     }
 
@@ -210,8 +192,9 @@ TEST(swc_parser, valid_input)
         is >> record;
         EXPECT_TRUE(is);
 
+        int soma_tag = 1;
         swc_record record_expected(
-            swc_record::kind::soma,
+            soma_tag,
             0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
         expect_record_equals(record_expected, record);
     }
@@ -227,8 +210,9 @@ TEST(swc_parser, valid_input)
         is >> record;
         EXPECT_TRUE(is);
 
+        int soma_tag = 1;
         swc_record record_expected(
-            swc_record::kind::soma,
+            soma_tag,
             0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
         expect_record_equals(record_expected, record);
     }
@@ -256,7 +240,7 @@ TEST(swc_parser, valid_input)
         EXPECT_FALSE(is.fail());
         EXPECT_FALSE(is.bad());
         EXPECT_EQ(0, record.id);    // zero-based indexing
-        EXPECT_EQ(swc_record::kind::soma, record.type);
+        EXPECT_EQ(1, record.tag);
         EXPECT_FLOAT_EQ(14.566132, record.x);
         EXPECT_FLOAT_EQ(34.873772, record.y);
         EXPECT_FLOAT_EQ( 7.857000, record.z);
@@ -265,11 +249,12 @@ TEST(swc_parser, valid_input)
     }
 
     {
+
         // check valid input with a series of records
         std::vector<swc_record> records_orig = {
-            swc_record(swc_record::kind::soma, 0,
+            swc_record(1, 0,
                         14.566132, 34.873772, 7.857000, 0.717830, -1),
-            swc_record(swc_record::kind::dendrite, 1,
+            swc_record(3, 1,
                         14.566132+1, 34.873772+1, 7.857000+1, 0.717830+1, -1)
         };
 
@@ -399,7 +384,7 @@ TEST(swc_parser, raw)
         std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
         is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "3 10 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "-3 2 14.566132 34.873772 7.857000 0.717830 1\n"; // invalid sample identifier -3
         is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
         try {
@@ -421,6 +406,10 @@ TEST(swc_parser, raw)
     }
 }
 
+/***
+ * If you have proper unit tests for the steps from
+ *      {sample_tree -> morphology -> cable_cell}
+ * then these tests can be simplified to check that {swc -> sample_tree} works
 TEST(swc_io, cell_construction) {
     using namespace arb;
 
@@ -557,3 +546,4 @@ TEST(swc_parser, from_file_ball_and_stick) {
 
     expect_morph_eq(expected, bas_morph);
 }
+*/
