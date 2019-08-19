@@ -128,7 +128,7 @@ TEST(mech_linear, linear) {
 TEST(mech_kinetic_gpu, kintetic_scaled) {
     std::vector<std::string> state_variables = {"s", "h", "d"};
     std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
-    std::vector<fvm_value_type> t1_values = {0.985244, 1.03065, 0.560726};
+    std::vector<fvm_value_type> t1_values = {0.373297, 0.591621, 0.0350817};
 
     run_test<gpu::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_values);
 }
