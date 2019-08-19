@@ -180,7 +180,7 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
-    multipliers_.resize(dvars_.size());
+    scale_.resize(dvars_.size());
 
     BlockRewriterBase::visit(e);
 }
@@ -195,7 +195,7 @@ void SparseSolverVisitor::visit(CompartmentExpression *e) {
             return;
         }
         auto idx = it - dvars_.begin();
-        multipliers_[idx] = e->multiplier()->clone();
+        scale_[idx] = e->scale()->clone();
     }
 }
 
@@ -257,12 +257,13 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
             expr = make_expression<MulBinaryExpression>(loc,
                        r.coef[dvars_[j]]->clone(),
                        dt_expr->clone());
+
+            if (scale_[j]) {
+                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_[j]->clone());
+            }
         }
 
         if (j==deq_index_) {
-            if (multipliers_[j]) {
-                expr =  make_expression<MulBinaryExpression>(loc, multipliers_[j]->clone(), std::move(expr));
-            }
             if (expr) {
                 expr = make_expression<SubBinaryExpression>(loc,
                            one_expr->clone(),

@@ -86,7 +86,7 @@ protected:
     bool conserve_ = false;
 
     // state variable multiplier
-    std::vector<expression_ptr> multipliers_;
+    std::vector<expression_ptr> scale_;
 
     std::vector<std::string> conserve_rhs_;
     std::vector<unsigned> conserve_idx_;
@@ -107,7 +107,7 @@ public:
         symtbl_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
-        multipliers_.clear();
+        scale_.clear();
         conserve_ = false;
         SolverVisitorBase::reset();
     }

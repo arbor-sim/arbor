@@ -865,9 +865,9 @@ private:
 class CompartmentExpression : public Expression {
 public:
     CompartmentExpression(Location loc,
-                       expression_ptr&& multiplier,
+                       expression_ptr&& scale,
                        std::vector<expression_ptr>&& state_vars)
-            : Expression(loc), multiplier_(std::move(multiplier)), state_vars_(std::move(state_vars)) {}
+            : Expression(loc), scale_(std::move(scale)), state_vars_(std::move(state_vars)) {}
 
     CompartmentExpression* is_compartment() override {return this;}
 
@@ -876,8 +876,8 @@ public:
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
 
-    expression_ptr& multiplier() { return multiplier_; }
-    const expression_ptr& multiplier() const { return multiplier_; }
+    expression_ptr& scale() { return scale_; }
+    const expression_ptr& scale() const { return scale_; }
 
     std::vector<expression_ptr>& state_vars() { return state_vars_; }
     const std::vector<expression_ptr>& state_vars() const { return state_vars_; }
@@ -885,7 +885,7 @@ public:
     ~CompartmentExpression() {}
 
 private:
-    expression_ptr multiplier_;
+    expression_ptr scale_;
     std::vector<expression_ptr> state_vars_;
 };
 
