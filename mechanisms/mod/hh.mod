@@ -67,7 +67,11 @@ PROCEDURE rates(v, celsius)
     q10 = 3^((celsius - 6.3)/10)
 
     :"m" sodium activation system
-    alpha = .1 * vtrap(-(v+40),10)
+    :if (v < 30) {
+        alpha = .1 * vtrap(-(v+40),10)
+    :} else {
+    :    alpha = .1 * vtrap(-(v+30),10)
+    :}
     beta =  4 * exp(-(v+65)/18)
     sum = alpha + beta
     mtau = 1/(q10*sum)

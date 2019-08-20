@@ -7,9 +7,10 @@ set(test_mechanisms
     test_linear_init_shuffle
     test0_kin_diff
     test0_kin_conserve
-    test0_kin_compartment
     test1_kin_diff
     test1_kin_conserve
+    test0_kin_compartment
+    test1_kin_compartment
     fixed_ica_current
     point_ica_current
     linear_ca_conc
