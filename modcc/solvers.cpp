@@ -331,6 +331,9 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 
         if (it != terms.end()) {
             auto expr = (*it)->is_stoich_term()->coeff()->clone();
+            if (scale_[j]) {
+                expr =  make_expression<MulBinaryExpression>(loc, scale_[j]->clone(), std::move(expr));
+            }
 
             auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
             auto a_ = local_a_term.id->is_identifier()->spelling();
