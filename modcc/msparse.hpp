@@ -185,6 +185,12 @@ public:
     bool empty() const { return size()==0; }
     bool augmented() const { return aug!=npos; }
 
+    void clear() {
+        rows.clear();
+        cols = 0;
+        aug = row_npos;
+    }
+
     // Add a column on the right as part of the augmented submatrix.
     // The new entries are provided by a (full, dense representation)
     // sequence of values.

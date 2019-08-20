@@ -101,10 +101,11 @@ public:
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
+        A_.clear();
         symtbl_.clear();
+        conserve_ = false;
         conserve_rhs_.clear();
         conserve_idx_.clear();
-        conserve_ = false;
         SolverVisitorBase::reset();
     }
 };
@@ -143,8 +144,9 @@ public:
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
-        symtbl_.clear();
+        A_.clear();
         rhs_.clear();
+        symtbl_.clear();
         SolverVisitorBase::reset();
     }
 };
