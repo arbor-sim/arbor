@@ -101,13 +101,15 @@ Appendix \ref{ap:rallpack}.
 
 \subsection{The cylinder}
 
-Suppose the cable lies on the interval $[0, B]$, with boundary
-conditions $v'(0, t) = 0$ and $v'(B, t) = I$ and initial value
-$v(x, 0) = 0$.
+Suppose the cable lies on the interval $[0, B]$, with initial
+voltage zero, zero current
+at $x=0$, and fixed injected current $I$ at $x=B$. The boundary
+conditions are then $v(x,0) = 0$, $v'(0, t) = 0$, and $v'(B, t) = -E$,
+where $-E = I\cdot R_L/\pi r^2$.
 
 A change of variables gives
 \begin{equation}
-    v(x, t) = \lambda I\cdot u(x/\lambda, t/\tau),
+    v(x, t) = -\lambda E\cdot u(x/\lambda, t/\tau),
 \end{equation}
 where
 \begin{equation}
@@ -208,10 +210,11 @@ Note that the time derivative $\dot u(x,t)$ can be expressed in terms of Jacobi 
 \subsection{The tapered cable}
 
 Consider the cable as a conical frustum on the interval $[A, B]$ with radius
-$r(x) = x \tan\theta$ and boundary conditions $v'(A, t) = 0$, $v'(B, t) = I$,
-and $v(x, 0) = 0$ (see Figure \ref{fig:tapered}). Reparameterizing gives
+$r(x) = x \tan\theta$ and boundary conditions $v'(A, t) = 0$, $v'(B, t) = -E$,
+and $v(x, 0) = 0$ (see Figure \ref{fig:tapered}). A fixed injecting current $I$
+at $x=B$ corresponds to $-E=I\cdot R_L/\pi r(B)^2$. Reparameterizing gives
 \begin{equation}
-    v(x, t) = \lambda I\cdot u(x/\lambda, t/\tau),
+    v(x, t) = -\lambda E\cdot u(x/\lambda, t/\tau),
 \end{equation}
 where
 \begin{equation}
