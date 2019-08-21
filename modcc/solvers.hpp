@@ -85,7 +85,7 @@ protected:
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
 
-    // state variable multiplier
+    // state variable multiplier/divider
     std::vector<expression_ptr> scale_factor_;
 
     // rhs of conserve statement
