@@ -88,6 +88,7 @@ protected:
     // state variable multiplier
     std::vector<expression_ptr> scale_factor_;
 
+    // rhs of conserve statement
     std::vector<std::string> conserve_rhs_;
     std::vector<unsigned> conserve_idx_;
 public:
@@ -104,11 +105,12 @@ public:
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
+        A_.clear();
         symtbl_.clear();
+        conserve_ = false;
+        scale_factor_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
-        scale_factor_.clear();
-        conserve_ = false;
         SolverVisitorBase::reset();
     }
 };
@@ -147,8 +149,9 @@ public:
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
-        symtbl_.clear();
+        A_.clear();
         rhs_.clear();
+        symtbl_.clear();
         SolverVisitorBase::reset();
     }
 };
