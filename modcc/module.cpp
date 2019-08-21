@@ -11,6 +11,7 @@
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
 #include "kineticrewriter.hpp"
+#include "linearrewriter.hpp"
 #include "module.hpp"
 #include "parser.hpp"
 #include "solvers.hpp"
@@ -279,7 +280,45 @@ bool Module::semantic() {
     auto& init_body = api_init->body()->statements();
 
     for(auto& e : *proc_init->body()) {
-        init_body.emplace_back(e->clone());
+        auto solve_expression = e->is_solve_statement();
+        if (solve_expression) {
+            // Grab SOLVE statements, put them in `body` after translation.
+            std::set<std::string> solved_ids;
+            std::unique_ptr<SolverVisitorBase> solver = std::make_unique<SparseSolverVisitor>();
+
+            // The solve expression inside an initial block can only refer to a linear block
+            auto solve_proc = solve_expression->procedure();
+
+            if (solve_proc->kind() == procedureKind::linear) {
+                solver = std::make_unique<LinearSolverVisitor>(state_vars);
+                linear_rewrite(solve_proc->body(), state_vars)->accept(solver.get());
+            } else {
+                error("A SOLVE expression in an INITIAL block can only be used to solve a LINEAR block, which" +
+                      solve_expression->name() + "is not.", solve_expression->location());
+                return false;
+            }
+
+            if (auto solve_block = solver->as_block(false)) {
+                // Check that we didn't solve an already solved variable.
+                for (const auto &id: solver->solved_identifiers()) {
+                    if (solved_ids.count(id) > 0) {
+                        error("Variable " + id + " solved twice!", solve_expression->location());
+                        return false;
+                    }
+                    solved_ids.insert(id);
+                }
+                // Copy body into nrn_init.
+                for (auto &stmt: solve_block->is_block()->statements()) {
+                    init_body.emplace_back(stmt->clone());
+                }
+            } else {
+                // Something went wrong: copy errors across.
+                append_errors(solver->errors());
+                return false;
+            }
+        } else {
+            init_body.emplace_back(e->clone());
+        }
     }
 
     api_init->semantic(symbols_);
@@ -336,6 +375,10 @@ bool Module::semantic() {
 
             if (deriv->kind()==procedureKind::kinetic) {
                 kinetic_rewrite(deriv->body())->accept(solver.get());
+            }
+            else if (deriv->kind()==procedureKind::linear) {
+                solver = std::make_unique<LinearSolverVisitor>(state_vars);
+                linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
             }
             else {
                 deriv->body()->accept(solver.get());

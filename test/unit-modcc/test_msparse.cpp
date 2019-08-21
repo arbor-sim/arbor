@@ -129,6 +129,12 @@ TEST(msparse, matrix_ctor) {
     dmatrix M3(M2);
     EXPECT_EQ(5u, M3.nrow());
     EXPECT_EQ(3u, M3.ncol());
+
+    M2.clear();
+    EXPECT_EQ(0u, M2.size());
+    EXPECT_EQ(0u, M2.nrow());
+    EXPECT_EQ(0u, M2.ncol());
+    EXPECT_TRUE(M2.empty());
 }
 
 TEST(msparse, matrix_index) {

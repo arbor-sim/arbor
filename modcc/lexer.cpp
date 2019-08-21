@@ -234,6 +234,30 @@ Token Lexer::peek() {
     return t;
 }
 
+bool Lexer::search_to_eol(tok const& t) {
+    // save the current position
+    const char *oldpos  = current_;
+    const char *oldlin  = line_;
+    Location    oldloc  = location_;
+
+    Token p = token_;
+    bool ret = false;
+    while (line_ == oldlin && p.type != tok::eof) {
+        if (p.type == t) {
+            ret = true;
+            break;
+        }
+        p = parse();
+    }
+
+    // reset position
+    current_  = oldpos;
+    location_ = oldloc;
+    line_     = oldlin;
+
+    return ret;
+}
+
 // scan floating point number from stream
 Token Lexer::number() {
     std::string str;
