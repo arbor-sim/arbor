@@ -1755,8 +1755,8 @@ expression_ptr Parser::parse_compartment_statement() {
     }
 
     get_token(); // consume 'COMPARTMENT'
-    auto mult = parse_expression(tok::rbrace);
-    if (!mult) return nullptr;
+    auto scale_factor = parse_expression(tok::rbrace);
+    if (!scale_factor) return nullptr;
 
     if(token_.type != tok::lbrace) {
         error(pprintf("expected '%', found '%'", yellow("{"), yellow(token_.spelling)));
@@ -1779,5 +1779,5 @@ expression_ptr Parser::parse_compartment_statement() {
         get_token(); // consume the identifier
     }
     get_token(); // consume the rbrace
-    return make_expression<CompartmentExpression>(here, std::move(mult), std::move(states));
+    return make_expression<CompartmentExpression>(here, std::move(scale_factor), std::move(states));
 }

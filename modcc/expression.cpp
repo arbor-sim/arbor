@@ -369,12 +369,12 @@ expression_ptr CompartmentExpression::clone() const {
         cloned_state_vars.emplace_back(e->clone());
     }
 
-    return make_expression<CompartmentExpression>(location_, scale()->clone(), std::move(cloned_state_vars));
+    return make_expression<CompartmentExpression>(location_, scale_factor()->clone(), std::move(cloned_state_vars));
 }
 
 std::string CompartmentExpression::to_string() const {
     std::string s;
-    s += scale()->to_string();
+    s += scale_factor()->to_string();
     s += " {";
     bool first = true;
     for(auto& e: state_vars()) {
@@ -388,7 +388,7 @@ std::string CompartmentExpression::to_string() const {
 
 void CompartmentExpression::semantic(scope_ptr scp) {
     scope_ = scp;
-    scale()->semantic(scp);
+    scale_factor()->semantic(scp);
 }
 
 /*******************************************************************************

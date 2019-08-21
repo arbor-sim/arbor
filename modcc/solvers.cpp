@@ -180,7 +180,7 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
-    scale_.resize(dvars_.size());
+    scale_factor_.resize(dvars_.size());
 
     BlockRewriterBase::visit(e);
 }
@@ -195,7 +195,7 @@ void SparseSolverVisitor::visit(CompartmentExpression *e) {
             return;
         }
         auto idx = it - dvars_.begin();
-        scale_[idx] = e->scale()->clone();
+        scale_factor_[idx] = e->scale_factor()->clone();
     }
 }
 
@@ -258,8 +258,8 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
                        r.coef[dvars_[j]]->clone(),
                        dt_expr->clone());
 
-            if (scale_[j]) {
-                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_[j]->clone());
+            if (scale_factor_[j]) {
+                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
             }
         }
 
@@ -331,8 +331,8 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 
         if (it != terms.end()) {
             auto expr = (*it)->is_stoich_term()->coeff()->clone();
-            if (scale_[j]) {
-                expr =  make_expression<MulBinaryExpression>(loc, scale_[j]->clone(), std::move(expr));
+            if (scale_factor_[j]) {
+                expr =  make_expression<MulBinaryExpression>(loc, scale_factor_[j]->clone(), std::move(expr));
             }
 
             auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
