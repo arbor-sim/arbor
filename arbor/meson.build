@@ -5,8 +5,10 @@ arb_src = [
     'backends/multicore/shared_state.cpp',
     'backends/multicore/stimulus.cpp',
     'communication/dry_run_context.cpp',
+    'communication/communicator.cpp',
     'benchmark_cell_group.cpp',
     'builtin_mechanisms.cpp',
+    'cable_cell_param.cpp',
     'cell_group_factory.cpp',
     'common_types_io.cpp',
     'execution_context.cpp',
@@ -26,7 +28,9 @@ arb_src = [
     'memory/util.cpp',
     'merge_events.cpp',
     'simulation.cpp',
-    'morphology.cpp',
+    'morph/morphology.cpp',
+    'morph/sample_tree.cpp',
+    'morph/primitives.cpp',
     'partition_load_balance.cpp',
     'profile/clock.cpp',
     'profile/memory_meter.cpp',
@@ -46,6 +50,12 @@ arb_src = [
 
 # todo: mpi files
 # todo: cuda files
+
+# FILES FOR MPI:
+#   'communication/mpi.cpp'
+#   'communication/mpi_context.cpp'
+#   'communication/mpi_error.cpp'
+
 
 subdir('include/arbor')
 
