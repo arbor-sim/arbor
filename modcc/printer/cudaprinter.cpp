@@ -40,11 +40,11 @@ std::string make_ppack_name(const std::string& module_name) {
     return make_class_name(module_name)+"_pp_";
 }
 
-static std::string ion_state_field(std::string ion_name) {
+static std::string ion_state_field(const std::string& ion_name) {
     return "ion_"+ion_name+"_";
 }
 
-static std::string ion_state_index(std::string ion_name) {
+static std::string ion_state_index(const std::string& ion_name) {
     return "ion_"+ion_name+"_index_";
 }
 
@@ -89,13 +89,13 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
         "\n"
         "class " << class_name << ": public ::arb::gpu::mechanism {\n"
         "public:\n" << indent <<
-        "const mechanism_fingerprint& fingerprint() const override {\n" << indent <<
-        "static mechanism_fingerprint hash = " << quote(fingerprint) << ";\n"
+        "const ::arb::mechanism_fingerprint& fingerprint() const override {\n" << indent <<
+        "static ::arb::mechanism_fingerprint hash = " << quote(fingerprint) << ";\n"
         "return hash;\n" << popindent <<
         "}\n\n"
         "std::string internal_name() const override { return " << quote(name) << "; }\n"
-        "mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
-        "mechanism_ptr clone() const override { return mechanism_ptr(new " << class_name << "()); }\n"
+        "::arb::mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
+        "::arb::mechanism_ptr clone() const override { return ::arb::mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
         "void nrn_init() override {\n" << indent <<
         class_name << "_nrn_init_(pp_);\n" << popindent <<
@@ -117,7 +117,6 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
 
     out << popindent <<
         "protected:\n" << indent <<
-        "using ionKind = ::arb::ionKind;\n\n"
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n"
         "::arb::gpu::mechanism_ppack_base* ppack_ptr() { return &pp_; }\n\n";
 
@@ -183,14 +182,14 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
 
         sep.reset();
         for (const auto& dep: ion_deps) {
-            out << sep << "{ionKind::" << dep.name << ", &pp_." << ion_state_field(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &pp_." << ion_state_field(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
 
         sep.reset();
         out << "mechanism_ion_index_table ion_index_table() override {\n" << indent << "return {" << indent;
         for (const auto& dep: ion_deps) {
-            out << sep << "{ionKind::" << dep.name << ", &pp_." << ion_state_index(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &pp_." << ion_state_index(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
     }
@@ -253,9 +252,9 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
 
     out << "namespace {\n\n"; // place inside an anonymous namespace
 
-    out << "using arb::gpu::exprelr;\n";
-    out << "using arb::gpu::min;\n";
-    out << "using arb::gpu::max;\n\n";
+    out << "using ::arb::gpu::exprelr;\n";
+    out << "using ::arb::gpu::min;\n";
+    out << "using ::arb::gpu::max;\n\n";
 
     // Procedures as __device__ functions.
     auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
@@ -324,7 +323,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
             << "\n" << indent
             << "auto n = p.width_;\n"
             << "unsigned block_dim = 128;\n"
-            << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+            << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
             << e->name() << "<<<grid_dim, block_dim>>>(p);\n"
             << popindent;
 
@@ -341,7 +340,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
         << ppack_name << "& p, deliverable_event_stream_state events) {\n" << indent
         << "auto n = events.n;\n"
         << "unsigned block_dim = 128;\n"
-        << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+        << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
         << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
         << popindent << "}\n\n";
 
@@ -429,37 +428,66 @@ void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* e) {
     out << cuprint(e->body());
 }
 
+namespace {
+    // Convenience I/O wrapper for emitting indexed access to an external variable.
+
+    struct deref {
+        indexed_variable_info v;
+
+        deref(indexed_variable_info v): v(v) {}
+        friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
+            return o << "params_." << wrap.v.data_var << '['
+                     << (wrap.v.scalar()? "0": index_i_name(wrap.v.index_var)) << ']';
+        }
+    };
+}
+
 void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
     out << "value_type " << cuprint(local) << " = ";
 
     if (local->is_read()) {
-        out << cuprint(local->external_variable()) << ";\n";
+        auto d = decode_indexed_variable(local->external_variable());
+        if (d.scale != 1) {
+            out << as_c_double(d.scale) << "*";
+        }
+        out << deref(d) << ";\n";
     }
     else {
         out << "0;\n";
     }
 }
 
+
 void emit_state_update_cu(std::ostream& out, Symbol* from,
                           IndexedVariable* external, bool is_point_proc)
 {
     if (!external->is_write()) return;
 
-    const bool is_minus = external->op()==tok::minus;
     auto d = decode_indexed_variable(external);
+    double coeff = 1./d.scale;
 
-    if (d.scalar()) {
-        throw compiler_exception("Cannot assign to global scalar: "+external->to_string());
+    if (d.readonly) {
+        throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
 
-    if (is_point_proc) {
-        out << "arb::gpu::reduce_by_key(";
-        is_minus && out << "-";
-        out << from->name()
-            << ", params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";
+    if (is_point_proc && d.accumulate) {
+        out << "::arb::gpu::reduce_by_key(";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << "params_.weight_[tid_]*" << from->name() << ',';
+        out << "params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";
+    }
+    else if (d.accumulate) {
+        out << deref(d) << " = fma(";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << "params_.weight_[tid_], " << from->name() << ", " << deref(d) << ");\n";
     }
     else {
-        out << cuprint(external) << (is_minus? " -= ": " += ") << from->name() << ";\n";
+        out << deref(d) << " = ";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << from->name() << ";\n";
     }
 }
 
@@ -467,16 +495,6 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
 
 void CudaPrinter::visit(VariableExpression *sym) {
     out_ << "params_." << sym->name() << (sym->is_range()? "[tid_]": "");
-}
-
-void CudaPrinter::visit(IndexedVariable *e) {
-    auto d = decode_indexed_variable(e);
-    if (d.scalar()) {
-        out_ << "params_." << d.data_var << "[0]";
-    }
-    else {
-        out_ << "params_." << d.data_var << "[" << index_i_name(d.index_var) <<  "]";
-    }
 }
 
 void CudaPrinter::visit(CallExpression* e) {

@@ -1,5 +1,5 @@
-#include <list>
 #include <cstring>
+#include <string>
 
 #include "parser.hpp"
 #include "perfvisitor.hpp"
@@ -33,6 +33,15 @@ bool Parser::expect(tok tok, std::string const& str) {
         :   std::string("unexpected token ")+yellow(token_.spelling));
 
     return false;
+}
+
+void Parser::parse_unit() {
+    if(token_.type == tok::lparen) {
+        while (token_.type != tok::rparen) {
+            get_token();
+        }
+        get_token(); // consume ')'
+    }
 }
 
 void Parser::error(std::string msg) {
@@ -98,6 +107,9 @@ bool Parser::parse() {
             case tok::units :
                 parse_units_block();
                 break;
+            case tok::constant :
+                parse_constant_block();
+                break;
             case tok::parameter :
                 parse_parameter_block();
                 break;
@@ -124,6 +136,12 @@ bool Parser::parse() {
                 if(!f) break;
                 module_->add_callable(std::move(f));
                 }
+                break;
+            case tok::unitson :
+                get_token();
+                break;
+            case tok::unitsoff :
+                get_token();
                 break;
             default :
                 error(pprintf("expected block type, found '%'", token_.spelling));
@@ -289,16 +307,10 @@ void Parser::parse_neuron_block() {
                     get_token();
                     // check this is an identifier token
                     if(token_.type != tok::identifier) {
-                        error(pprintf("invalid name for an ion chanel '%'",
-                                      token_.spelling));
+                        error(pprintf("invalid name for an ion chanel '%'", token_.spelling));
                         return;
                     }
-                    // check that the ion type is valid (insist on lower case?)
-                    if(!(token_.spelling == "k" || token_.spelling == "ca" || token_.spelling == "na")) {
-                        error(pprintf("invalid ion type % must be on eof 'k' 'ca' or 'na'",
-                                      yellow(token_.spelling)));
-                        return;
-                    }
+
                     ion.name = token_.spelling;
                     get_token(); // consume the ion name
 
@@ -317,6 +329,23 @@ void Parser::parse_neuron_block() {
                             target.push_back(id);
                         }
                     }
+
+                    if(token_.type == tok::valence) {
+                        ion.has_valence_expr = true;
+
+                        // consume "Valence"
+                        get_token();
+
+                        // take and consume variable name or signed integer
+                        if(token_.type == tok::identifier) {
+                            ion.valence_var = token_;
+                            get_token();
+                        }
+                        else {
+                            ion.expected_valence = value_signed_integer();
+                        }
+                    }
+
                     // add the ion dependency to the NEURON block
                     neuron_block.ions.push_back(std::move(ion));
                 }
@@ -532,6 +561,60 @@ parm_exit:
     return;
 }
 
+void Parser::parse_constant_block() {
+    get_token();
+
+    // assert that the block starts with a curly brace
+    if(token_.type != tok::lbrace) {
+        error(pprintf("CONSTANT block must start with a curly brace {, found '%'", token_.spelling));
+        return;
+    }
+
+    get_token();
+    while(token_.type!=tok::rbrace && token_.type!=tok::eof) {
+        int line = location_.line;
+        std::string name, value;
+
+        // read the constant name
+        if(token_.type != tok::identifier) {
+            error(pprintf("CONSTANT block unexpected symbol '%s'", token_.spelling));
+            return;
+        }
+        name = token_.spelling; // save full token
+
+        get_token();
+
+        // look for equality
+        if(token_.type==tok::eq) {
+            get_token(); // consume '='
+            value = value_literal();
+            if(status_ == lexerStatus::error) {
+                return;
+            }
+        }
+
+        // get the units
+        if(line==location_.line && token_.type == tok::lparen) {
+            unit_description();
+            if(status_ == lexerStatus::error) {
+                return;
+            }
+        }
+
+        constants_map_.insert({name, value});
+    }
+
+    // error if EOF before closing curly brace
+    if(token_.type==tok::eof) {
+        error("CONSTANT block must have closing '}'");
+        return;
+    }
+
+    get_token(); // consume closing brace
+
+    return;
+}
+
 void Parser::parse_assigned_block() {
     AssignedBlock block;
 
@@ -601,20 +684,56 @@ ass_exit:
 // Parse a value (integral or real) with possible preceding unary minus,
 // and return as a string.
 std::string Parser::value_literal() {
+    bool negate = false;
+
+    if(token_.type==tok::minus) {
+        negate = true;
+        get_token();
+    }
+
+    if (constants_map_.find(token_.spelling) != constants_map_.end()) {
+        // Remove double negation
+        auto v = constants_map_.at(token_.spelling);
+        if (v.at(0) == '-' && negate) {
+            v.erase(0,1);
+            negate = false;
+        }
+        auto value = negate ? "-" + v : v;
+        get_token();
+        return value;
+    }
+
+    if(token_.type != tok::integer && token_.type != tok::real) {
+        error(pprintf("numeric constant not an integer or real number '%'", token_));
+        return "";
+    }
+    else {
+        auto value = negate ? "-" + token_.spelling : token_.spelling;
+        get_token();
+        return value;
+    }
+}
+
+// Parse an integral value with possible preceding unary plus or minus,
+// and return as an int.
+int Parser::value_signed_integer() {
     std::string value;
 
     if(token_.type==tok::minus) {
         value = "-";
         get_token();
     }
-    if(token_.type != tok::integer && token_.type != tok::real) {
-        error(pprintf("numeric constant not an integer or real number '%'", token_));
-        return "";
+    else if(token_.type==tok::plus) {
+        get_token();
+    }
+    if(token_.type != tok::integer) {
+        error(pprintf("numeric constant not an integer '%'", token_));
+        return 0;
     }
     else {
         value += token_.spelling;
         get_token();
-        return value;
+        return std::stoi(value);
     }
 }
 
@@ -714,6 +833,8 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
         arg_tokens.push_back(token_);
 
         get_token(); // consume the identifier
+
+        parse_unit(); // consume the unit if provided
 
         // look for a comma
         if(!(token_.type == tok::comma || token_.type==tok::rparen)) {
@@ -839,6 +960,8 @@ symbol_ptr Parser::parse_function() {
     auto p = parse_prototype();
     if(p==nullptr) return nullptr;
 
+    parse_unit();
+
     // check for opening left brace {
     if(!expect(tok::lbrace)) return nullptr;
 
@@ -883,6 +1006,16 @@ expression_ptr Parser::parse_statement() {
 }
 
 expression_ptr Parser::parse_identifier() {
+    if (constants_map_.find(token_.spelling) != constants_map_.end()) {
+        // save location and value of the identifier
+        auto id = make_expression<NumberExpression>(token_.location, constants_map_.at(token_.spelling));
+
+        // consume the number
+        get_token();
+
+        // return the value of the constant
+        return id;
+    }
     // save name and location of the identifier
     auto id = make_expression<IdentifierExpression>(token_.location, token_.spelling);
 
@@ -1438,7 +1571,7 @@ expression_ptr Parser::parse_conductance() {
     int line = location_.line;
     Location loc = location_; // solve location for expression
     std::string name;
-    ionKind channel;
+    std::string channel;
 
     get_token(); // consume the CONDUCTANCE keyword
 
@@ -1447,20 +1580,11 @@ expression_ptr Parser::parse_conductance() {
     name = token_.spelling; // save name of variable
     get_token(); // consume the variable identifier
 
-    if(token_.type != tok::useion) { // no ion channel was provided
-        // we set nonspecific not none because ionKind::none marks
-        // any variable that is not associated with an ion channel
-        channel = ionKind::nonspecific;
-    }
-    else {
+    if(token_.type == tok::useion) {
         get_token(); // consume the USEION keyword
         if(token_.type!=tok::identifier) goto conductance_statement_error;
 
-        if     (token_.spelling == "na") channel = ionKind::Na;
-        else if(token_.spelling == "ca") channel = ionKind::Ca;
-        else if(token_.spelling == "k")  channel = ionKind::K;
-        else goto conductance_statement_error;
-
+        channel = token_.spelling;
         get_token(); // consume the ion channel type
     }
     // check that the rest of the line was empty

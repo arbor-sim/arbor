@@ -8,20 +8,50 @@
 
 #include "unit_test_catalogue.hpp"
 #include "mechanisms/celsius_test.hpp"
+#include "mechanisms/test0_kin_diff.hpp"
+#include "mechanisms/test0_kin_conserve.hpp"
+#include "mechanisms/test1_kin_diff.hpp"
+#include "mechanisms/test1_kin_conserve.hpp"
+#include "mechanisms/fixed_ica_current.hpp"
+#include "mechanisms/point_ica_current.hpp"
+#include "mechanisms/linear_ca_conc.hpp"
+#include "mechanisms/test_cl_valence.hpp"
+#include "mechanisms/test_ca_read_valence.hpp"
+#include "mechanisms/read_eX.hpp"
+#include "mechanisms/write_multiple_eX.hpp"
+#include "mechanisms/write_eX.hpp"
 
 #include "../gtest.h"
+
+#ifndef ARB_GPU_ENABLED
+#define ADD_MECH(c, x)\
+c.add(#x, testing::mechanism_##x##_info());\
+c.register_implementation(#x, testing::make_mechanism_##x<multicore::backend>());
+#else
+#define ADD_MECH(c, x)\
+c.add(#x, testing::mechanism_##x##_info());\
+c.register_implementation(#x, testing::make_mechanism_##x<multicore::backend>());\
+c.register_implementation(#x, testing::make_mechanism_##x<gpu::backend>());
+#endif
 
 using namespace arb;
 
 mechanism_catalogue make_unit_test_catalogue() {
     mechanism_catalogue cat;
 
-    cat.add("celsius_test", mechanism_celsius_test_info());
-
-    cat.register_implementation("celsius_test", make_mechanism_celsius_test<multicore::backend>());
-#ifdef ARB_GPU_ENABLED
-    cat.register_implementation("celsius_test", make_mechanism_celsius_test<gpu::backend>());
-#endif
+    ADD_MECH(cat, celsius_test)
+    ADD_MECH(cat, test0_kin_diff)
+    ADD_MECH(cat, test0_kin_conserve)
+    ADD_MECH(cat, test1_kin_diff)
+    ADD_MECH(cat, test1_kin_conserve)
+    ADD_MECH(cat, fixed_ica_current)
+    ADD_MECH(cat, point_ica_current)
+    ADD_MECH(cat, linear_ca_conc)
+    ADD_MECH(cat, test_cl_valence)
+    ADD_MECH(cat, test_ca_read_valence)
+    ADD_MECH(cat, read_eX)
+    ADD_MECH(cat, write_multiple_eX)
+    ADD_MECH(cat, write_eX)
 
     return cat;
 }

@@ -108,6 +108,57 @@ TEST(Parser, procedure) {
     }
 }
 
+TEST(Parser, load_constant) {
+    char str[] = {
+            "CONSTANT {\n"
+            "  t0 = -1.2\n"
+            "  t1 = 0.5\n"
+            "  t2 = -t0\n"
+            "  t3 = -t1\n"
+            "}"
+    };
+
+    Parser p(str);
+    p.parse_constant_block();
+    EXPECT_TRUE(p.status()==lexerStatus::happy);
+
+    EXPECT_TRUE(p.constants_map_.find("t0") != p.constants_map_.end());
+    EXPECT_EQ("-1.2", p.constants_map_.at("t0"));
+
+    EXPECT_TRUE(p.constants_map_.find("t1") != p.constants_map_.end());
+    EXPECT_EQ("0.5", p.constants_map_.at("t1"));
+
+    EXPECT_TRUE(p.constants_map_.find("t2") != p.constants_map_.end());
+    EXPECT_EQ("1.2", p.constants_map_.at("t2"));
+
+    EXPECT_TRUE(p.constants_map_.find("t3") != p.constants_map_.end());
+    EXPECT_EQ("-0.5", p.constants_map_.at("t3"));
+}
+
+TEST(Parser, parameters_from_constant) {
+    const char str[] =
+            "PARAMETER {   \n"
+            "  tau = -t0   \n"
+            "  e = t1      \n"
+            "}";
+
+    expression_ptr null;
+    Module m(str, str+std::strlen(str), "");
+    Parser p(m, false);
+    p.constants_map_.insert({"t0","-0.5"});
+    p.constants_map_.insert({"t1","1.2"});
+    p.parse_parameter_block();
+
+    EXPECT_EQ(lexerStatus::happy, p.status());
+    verbose_print(null, p, str);
+
+    auto param_block = m.parameter_block();
+    EXPECT_EQ("tau", param_block.parameters[0].name());
+    EXPECT_EQ("0.5", param_block.parameters[0].value);
+    EXPECT_EQ("e", param_block.parameters[1].name());
+    EXPECT_EQ("1.2", param_block.parameters[1].value);
+}
+
 TEST(Parser, net_receive) {
     char str[] =
         "NET_RECEIVE (x, y) {   \n"
@@ -164,13 +215,13 @@ TEST(Parser, parse_conductance) {
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_conductance, "CONDUCTANCE g USEION na"));
     if (s) {
-        EXPECT_EQ(s->ion_channel(), ionKind::Na);
+        EXPECT_EQ(s->ion_channel(), "na");
         EXPECT_EQ(s->name(), "g");
     }
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_conductance, "CONDUCTANCE gnda"));
     if (s) {
-        EXPECT_EQ(s->ion_channel(), ionKind::nonspecific);
+        EXPECT_EQ(s->ion_channel(), "");
         EXPECT_EQ(s->name(), "gnda");
     }
 }
@@ -603,6 +654,89 @@ TEST(Parser, parse_state_block) {
         p.parse_state_block();
         EXPECT_EQ(lexerStatus::happy, p.status());
         verbose_print(null, p, text);
+    }
+}
+
+static std::vector<IonDep> extract_useion(const std::string& neuron_block) {
+    Module m(neuron_block, "dummy");
+    Parser p(m, false);
+    p.parse_neuron_block();
+    EXPECT_EQ(lexerStatus::happy, p.status());
+    verbose_print(expression_ptr{}, p, neuron_block.c_str());
+
+    return m.neuron_block().ions;
+}
+
+TEST(Parser, parse_neuron_block_useion) {
+    {
+        const char* neuron_block = "NEURON { USEION x }";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(true, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x READ ix, xi, xo }";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(false, ion.read.empty());
+        EXPECT_EQ(true, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+
+        EXPECT_EQ(true, ion.uses_current());
+        EXPECT_EQ(true, ion.uses_concentration_int());
+        EXPECT_EQ(true, ion.uses_concentration_ext());
+        EXPECT_EQ(false, ion.writes_concentration_int());
+        EXPECT_EQ(false, ion.writes_concentration_ext());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x WRITE xi, xo }";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(false, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+
+        EXPECT_EQ(false, ion.uses_current());
+        EXPECT_EQ(true, ion.uses_concentration_int());
+        EXPECT_EQ(true, ion.uses_concentration_ext());
+        EXPECT_EQ(true, ion.writes_concentration_int());
+        EXPECT_EQ(true, ion.writes_concentration_ext());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x WRITE ex VALENCE -2}";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(false, ion.write.empty());
+        EXPECT_EQ(false, ion.uses_valence());
+        EXPECT_EQ(true, ion.verifies_valence());
+        EXPECT_EQ(-2, ion.expected_valence);
+
+        EXPECT_EQ(false, ion.uses_current());
+        EXPECT_EQ(false, ion.uses_concentration_int());
+        EXPECT_EQ(false, ion.uses_concentration_ext());
+        EXPECT_EQ(true, ion.uses_rev_potential());
+        EXPECT_EQ(true, ion.writes_rev_potential());
+    }
+    {
+        const char* neuron_block = "NEURON { USEION x WRITE ex VALENCE zx}";
+        IonDep ion = extract_useion(neuron_block).at(0);
+
+        EXPECT_EQ("x", ion.name);
+        EXPECT_EQ(true, ion.read.empty());
+        EXPECT_EQ(false, ion.write.empty());
+        EXPECT_EQ(true, ion.uses_valence());
+        EXPECT_EQ(false, ion.verifies_valence());
+        EXPECT_EQ("zx", ion.valence_var.spelling);
     }
 }
 

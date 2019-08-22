@@ -82,6 +82,12 @@ protected:
     // 'Symbol table' for symbolic manipulation.
     symge::symbol_table symtbl_;
 
+    // Flag to indicate whether conserve statements are part of the system
+    bool conserve_ = false;
+
+    // rhs of conserve statement
+    std::vector<std::string> conserve_rhs_;
+    std::vector<unsigned> conserve_idx_;
 public:
     using SolverVisitorBase::visit;
 
@@ -90,11 +96,15 @@ public:
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
+    virtual void visit(ConserveExpression *e) override;
     virtual void finalize() override;
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
         symtbl_.clear();
+        conserve_rhs_.clear();
+        conserve_idx_.clear();
+        conserve_ = false;
         SolverVisitorBase::reset();
     }
 };

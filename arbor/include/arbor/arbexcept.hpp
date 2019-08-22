@@ -89,10 +89,19 @@ struct no_such_parameter: arbor_exception {
 };
 
 struct invalid_parameter_value: arbor_exception {
+    invalid_parameter_value(const std::string& mech_name, const std::string& param_name, const std::string& value_str);
     invalid_parameter_value(const std::string& mech_name, const std::string& param_name, double value);
     std::string mech_name;
     std::string param_name;
+    std::string value_str;
     double value;
+};
+
+struct invalid_ion_remap: arbor_exception {
+    explicit invalid_ion_remap(const std::string& mech_name);
+    invalid_ion_remap(const std::string& mech_name, const std::string& from_ion, const std::string& to_ion);
+    std::string from_ion;
+    std::string to_ion;
 };
 
 struct no_such_implementation: arbor_exception {

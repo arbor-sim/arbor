@@ -1,4 +1,6 @@
+#include <queue>
 #include <unordered_set>
+#include <vector>
 
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
@@ -12,6 +14,7 @@
 #include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 
@@ -168,6 +171,12 @@ domain_decomposition partition_load_balance(
         partition_hint hint;
         if (auto opt_hint = util::value_by_key(hint_map, k)) {
             hint = opt_hint.value();
+            if(!hint.cpu_group_size) {
+                throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}", k, hint.cpu_group_size));
+            }
+            if(hint.prefer_gpu && !hint.gpu_group_size) {
+                throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}", k, hint.gpu_group_size));
+            }
         }
 
         backend_kind backend = backend_kind::multicore;

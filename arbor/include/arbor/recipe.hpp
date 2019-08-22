@@ -40,9 +40,9 @@ struct cell_connection {
     cell_connection_endpoint dest;
 
     float weight;
-    float delay;
+    time_type delay;
 
-    cell_connection(cell_connection_endpoint src, cell_connection_endpoint dst, float w, float d):
+    cell_connection(cell_connection_endpoint src, cell_connection_endpoint dst, float w, time_type d):
         source(src), dest(dst), weight(w), delay(d)
     {}
 };

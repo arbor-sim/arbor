@@ -144,18 +144,21 @@ TEST(matrix, zero_diagonal_assembled)
     // Intial voltage of zero; currents alone determine rhs.
     array v(7, 0.0);
     vvec area(7, 1.0);
-    array i = {-3000, -5000, -7000, -6000, -9000, -16000, -32000};
+
+    // (Scaled) membrane conductances contribute to diagonal.
+    array mg = { 1000, 2000, 3000, 4000, 5000, 6000, 7000 };
+    array i = {-7000, -15000, -25000, -34000, -49000, -70000, -102000};
 
     // Expected matrix and rhs:
     // u   = [ 0 -1 -1  0 -1  0 -2]
-    // d   = [ 2  3  2  2  2  4  5]
-    // rhs = [ 3  5  7  2  4 16 32]
+    // d   = [ 3  5  5  6  7  10  12]
+    // rhs = [ 7 15 25 34 49 70 102 ]
     //
     // Expected solution:
-    // x = [ 4  5  6  7  8  9 10]
+    // x = [ 4 5 6 7 8 9 10 ]
 
     matrix_type m(p, c, Cm, g, area, s);
-    m.assemble(dt, v, i);
+    m.assemble(dt, v, i, mg);
     m.solve();
 
     vvec x;
@@ -168,13 +171,13 @@ TEST(matrix, zero_diagonal_assembled)
     // should then return voltage values for that submatrix.
 
     dt[1] = 0;
-    v[3] = 20;
-    v[4] = 30;
-    m.assemble(dt, v, i);
+    v[3] = -20;
+    v[4] = -30;
+    m.assemble(dt, v, i, mg);
     m.solve();
 
     assign(x, m.solution());
-    expected = {4, 5, 6, 20, 30, 9, 10};
+    expected = {4, 5, 6, -20, -30, 9, 10};
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
 }

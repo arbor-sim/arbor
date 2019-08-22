@@ -5,12 +5,11 @@
 #include <vector>
 
 #include <arbor/fvm_types.hpp>
-#include <arbor/ion.hpp>
 #include <arbor/mechinfo.hpp>
 
 namespace arb {
 
-enum class mechanismKind {point, density};
+enum class mechanismKind {point, density, revpot};
 
 class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
@@ -23,15 +22,6 @@ class mechanism {
 public:
     mechanism() = default;
     mechanism(const mechanism&) = delete;
-
-    // Description of layout of mechanism across cell group: used as parameter in
-    // `concrete_mechanism<B>::instantiate` (v.i.)
-    struct layout {
-        std::vector<fvm_index_type> cv;     // Maps in-instance index to CV index.
-        std::vector<fvm_value_type> weight; // Maps in-instance index to compartment contribution.
-        std::vector<fvm_index_type> multiplicity; // Number of logical point processes at in-instance index;
-                                                  // if empty point processes are not coalesced, all multipliers are 1
-    };
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.
     virtual const mechanism_fingerprint& fingerprint() const = 0;
@@ -56,9 +46,6 @@ public:
     // copy any state.
     virtual mechanism_ptr clone() const = 0;
 
-    // Parameter setting
-    virtual void set_global(const std::string& param, fvm_value_type value) = 0;
-
     // Non-global parameters can be set post-instantiation:
     virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
 
@@ -82,6 +69,31 @@ protected:
 
 // Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
 // likely via an intermediate class that captures common behaviour for that backend.
+//
+// `concrete_mechanism` provides the `instantiate` method, which takes the backend-specific shared state,
+// together with a layout derived from the discretization, and any global parameter overrides.
+
+struct mechanism_layout {
+    // Maps in-instance index to CV index.
+    std::vector<fvm_index_type> cv;
+
+    // Maps in-instance index to compartment contribution.
+    std::vector<fvm_value_type> weight;
+
+    // Number of logical point processes at in-instance index;
+    // if empty, point processes are not coalesced and all multipliers are 1.
+    std::vector<fvm_index_type> multiplicity;
+};
+
+struct mechanism_overrides {
+    // Global scalar parameters (any value down-conversion to fvm_value_type is the
+    // responsibility of the concrete mechanism).
+    std::unordered_map<std::string, double> globals;
+
+    // Ion renaming: keys are ion dependency names as
+    // reported by the mechanism info.
+    std::unordered_map<std::string, std::string> ion_rebind;
+};
 
 template <typename Backend>
 class concrete_mechanism: public mechanism {
@@ -89,7 +101,7 @@ public:
     using backend = Backend;
 
     // Instantiation: allocate per-instance state; set views/pointers to shared data.
-    virtual void instantiate(unsigned  id, typename backend::shared_state&, const layout&) = 0;
+    virtual void instantiate(unsigned  id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) = 0;
 };
 
 

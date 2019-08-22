@@ -158,3 +158,41 @@ TEST(CPrinter, proc_body) {
         EXPECT_EQ(strip(tc.expected), strip(text));
     }
 }
+
+TEST(CPrinter, proc_body_const) {
+    std::vector<testcase> testcases = {
+            {
+                    "PROCEDURE trates(v) {\n"
+                    "    mtau = 0.5 - t0 + t1\n"
+                    "}"
+                    ,
+                    "mtau[i_] = 0.5 - -0.5 + 1.2;\n"
+            }
+    };
+
+    // create a scope that contains the symbols used in the tests
+    Scope<Symbol>::symbol_map globals;
+    globals["mtau"] = make_symbol<VariableExpression>(Location(), "mtau");
+
+    for (const auto& tc: testcases) {
+        Parser p(tc.source);
+        p.constants_map_.insert({"t0","-0.5"});
+        p.constants_map_.insert({"t1","1.2"});
+        expression_ptr e = p.parse_procedure();
+        ASSERT_TRUE(e->is_symbol());
+
+        auto procname = e->is_symbol()->name();
+        auto& proc = (globals[procname] = symbol_ptr(e.release()->is_symbol()));
+
+        proc->semantic(globals);
+        std::stringstream out;
+        auto v = std::make_unique<CPrinter>(out);
+        proc->is_procedure()->body()->accept(v.get());
+        std::string text = out.str();
+
+        verbose_print(proc->is_procedure()->body()->to_string());
+        verbose_print(" :--: ", text);
+
+        EXPECT_EQ(strip(tc.expected), strip(text));
+    }
+}

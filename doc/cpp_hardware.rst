@@ -236,7 +236,7 @@ The core Arbor library *libarbor* provides an API for:
     .. cpp:function:: proc_allocation(unsigned threads, int gpu_id)
 
         Constructor that sets the number of :cpp:var:`threads` and the id :cpp:var:`gpu_id` of
-        the 
+        the available GPU.
 
     .. cpp:member:: unsigned num_threads
 
@@ -286,15 +286,15 @@ whether it has a GPU, how many threads are in its thread pool, using helper func
 
 .. cpp:function:: bool has_gpu(const context&)
 
-   Query if the context has a GPU.
+   Query whether the context has a GPU.
 
 .. cpp:function:: unsigned num_threads(const context&)
 
-   Query the number of threads in a context's thread pool
+   Query the number of threads in a context's thread pool.
 
 .. cpp:function:: bool has_mpi(const context&)
 
-   Query if the context has an MPI communicator.
+   Query whether the context uses MPI for distributed communication.
 
 .. cpp:function:: unsigned num_ranks(const context&)
 
@@ -304,7 +304,7 @@ whether it has a GPU, how many threads are in its thread pool, using helper func
 
 .. cpp:function:: unsigned rank(const context&)
 
-   Query the rank of the calling rand. If the context has an MPI
+   Query the rank of the calling rank. If the context has an MPI
    communicator, return is equivalent to :cpp:any:`MPI_Comm_rank`.
    If the communicator has no MPI, returns 0.
 
@@ -317,18 +317,18 @@ Here are some simple examples of how to create a :cpp:class:`arb::context` using
 
       #include <arbor/context.hpp>
 
-      // Construct a context that uses 1 thread and no GPU or MPI
+      // Construct a context that uses 1 thread and no GPU or MPI.
       auto context = arb::make_context();
 
       // Construct a context that:
-      //  * uses 8 threads in its thread pool.
+      //  * uses 8 threads in its thread pool;
       //  * does not use a GPU, regardless of whether one is available;
-      //  * does not use MPI
+      //  * does not use MPI.
       arb::proc_allocation resources(8, -1);
       auto context = arb::make_context(resources);
 
-      //  Construct one that uses:
-      //  * 4 threads and the first GPU.
+      // Construct one that uses:
+      //  * 4 threads and the first GPU;
       //  * MPI_COMM_WORLD for distributed computation.
       arb::proc_allocation resources(4, 0);
       auto mpi_context = arb::make_context(resources, MPI_COMM_WORLD)

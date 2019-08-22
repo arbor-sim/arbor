@@ -1,11 +1,11 @@
-#include <arbor/version.hpp>
-
-#include <sstream>
 #include <iomanip>
 #include <ios>
+#include <sstream>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
+#include <arbor/version.hpp>
 
 namespace pyarb {
 
@@ -24,7 +24,7 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("mpi4py")]  = pybind11::bool_(false);
 #endif
-#ifdef ARB_WITH_GPU
+#ifdef ARB_GPU_ENABLED
     dict[pybind11::str("gpu")]     = pybind11::bool_(true);
 #else
     dict[pybind11::str("gpu")]     = pybind11::bool_(false);

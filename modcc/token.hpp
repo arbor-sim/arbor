@@ -52,14 +52,14 @@ enum class tok {
     // block keywoards
     title,
     neuron, units, parameter,
-    assigned, state, breakpoint,
+    constant, assigned, state, breakpoint,
     derivative, kinetic, procedure, initial, function,
     net_receive,
 
     // keywoards inside blocks
     unitsoff, unitson,
     suffix, nonspecific_current, useion,
-    read, write,
+    read, write, valence,
     range, local, conserve,
     solve, method,
     threadsafe, global,

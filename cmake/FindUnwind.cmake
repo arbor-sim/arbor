@@ -34,7 +34,7 @@ if(NOT Unwind_FOUND)
         PATH_SUFFIXES lib64 lib
     )
 
-    find_library(_unwind_library_target unwind-${libunwind_arch}
+    find_library(_unwind_library_target unwind-${_libunwind_arch}
         HINTS ${Unwind_SEARCH_DIR}
         PATH_SUFFIXES lib64 lib
     )

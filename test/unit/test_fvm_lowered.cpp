@@ -27,6 +27,7 @@
 #include "util/rangeutil.hpp"
 
 #include "common.hpp"
+#include "unit_test_catalogue.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
@@ -54,11 +55,16 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, const std::string& name) {
     return nullptr;
 }
 
+arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
+    auto& mechs = fvcell.*private_mechanisms_ptr;
+    return index<(int)mechs.size()? mechs[index].get(): nullptr;
+}
+
 // Access to mechanism-internal data:
 
 using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
 using mechanism_field_table = std::vector<std::pair<const char*, arb::fvm_value_type**>>;
-using mechanism_ion_index_table = std::vector<std::pair<arb::ionKind, backend::iarray*>>;
+using mechanism_ion_index_table = std::vector<std::pair<const char*, backend::iarray*>>;
 
 ACCESS_BIND(\
     mechanism_global_table (arb::multicore::mechanism::*)(),\
@@ -74,7 +80,6 @@ ACCESS_BIND(\
     mechanism_ion_index_table (arb::multicore::mechanism::*)(),\
     private_ion_index_table_ptr,\
     &arb::multicore::mechanism::ion_index_table)
-
 
 using namespace arb;
 
@@ -221,7 +226,7 @@ TEST(fvm_lowered, matrix_init)
     fvcell.initialize({0}, cable1d_recipe(cell), cell_to_intdom, targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
-    EXPECT_EQ(J.size(), 11u);
+    EXPECT_EQ(J.size(), 12u);
 
     // Test that the matrix is initialized with sensible values
 
@@ -263,34 +268,42 @@ TEST(fvm_lowered, target_handles) {
     std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell(context);
-    fvcell.initialize({0, 1}, cable1d_recipe(cells), cell_to_intdom, targets, probe_map);
+    auto test_target_handles = [&](fvm_cell& cell) {
+        mechanism *expsyn = find_mechanism(cell, "expsyn");
+        ASSERT_TRUE(expsyn);
+        mechanism *exp2syn = find_mechanism(cell, "exp2syn");
+        ASSERT_TRUE(exp2syn);
 
-    mechanism* expsyn = find_mechanism(fvcell, "expsyn");
-    ASSERT_TRUE(expsyn);
-    mechanism* exp2syn = find_mechanism(fvcell, "exp2syn");
-    ASSERT_TRUE(exp2syn);
+        unsigned expsyn_id = expsyn->mechanism_id();
+        unsigned exp2syn_id = exp2syn->mechanism_id();
 
-    unsigned expsyn_id = expsyn->mechanism_id();
-    unsigned exp2syn_id = exp2syn->mechanism_id();
+        EXPECT_EQ(4u, targets.size());
 
-    EXPECT_EQ(4u, targets.size());
+        EXPECT_EQ(expsyn_id, targets[0].mech_id);
+        EXPECT_EQ(1u, targets[0].mech_index);
+        EXPECT_EQ(0u, targets[0].intdom_index);
 
-    EXPECT_EQ(expsyn_id, targets[0].mech_id);
-    EXPECT_EQ(1u, targets[0].mech_index);
-    EXPECT_EQ(0u, targets[0].intdom_index);
+        EXPECT_EQ(expsyn_id, targets[1].mech_id);
+        EXPECT_EQ(0u, targets[1].mech_index);
+        EXPECT_EQ(0u, targets[1].intdom_index);
 
-    EXPECT_EQ(expsyn_id, targets[1].mech_id);
-    EXPECT_EQ(0u, targets[1].mech_index);
-    EXPECT_EQ(0u, targets[1].intdom_index);
+        EXPECT_EQ(exp2syn_id, targets[2].mech_id);
+        EXPECT_EQ(0u, targets[2].mech_index);
+        EXPECT_EQ(1u, targets[2].intdom_index);
 
-    EXPECT_EQ(exp2syn_id, targets[2].mech_id);
-    EXPECT_EQ(0u, targets[2].mech_index);
-    EXPECT_EQ(1u, targets[2].intdom_index);
+        EXPECT_EQ(expsyn_id, targets[3].mech_id);
+        EXPECT_EQ(2u, targets[3].mech_index);
+        EXPECT_EQ(1u, targets[3].intdom_index);
+    };
 
-    EXPECT_EQ(expsyn_id, targets[3].mech_id);
-    EXPECT_EQ(2u, targets[3].mech_index);
-    EXPECT_EQ(1u, targets[3].intdom_index);
+    fvm_cell fvcell0(context);
+    fvcell0.initialize({0, 1}, cable1d_recipe(cells, true), cell_to_intdom, targets, probe_map);
+    test_target_handles(fvcell0);
+
+    fvm_cell fvcell1(context);
+    fvcell1.initialize({0, 1}, cable1d_recipe(cells, false), cell_to_intdom, targets, probe_map);
+    test_target_handles(fvcell1);
+
 }
 
 TEST(fvm_lowered, stimulus) {
@@ -301,7 +314,7 @@ TEST(fvm_lowered, stimulus) {
     // delay     |   5  |    1
     // duration  |  80  |    2
     // amplitude | 0.3  |  0.1
-    // CV        |   4  |    0
+    // CV        |   5  |    0
 
     execution_context context;
 
@@ -312,7 +325,7 @@ TEST(fvm_lowered, stimulus) {
     cells[0].add_stimulus({0,0.5}, {1., 2.,  0.1});
 
     const fvm_size_type soma_cv = 0u;
-    const fvm_size_type tip_cv = 4u;
+    const fvm_size_type tip_cv = 5u;
 
     // now we have two stims :
     //
@@ -322,7 +335,10 @@ TEST(fvm_lowered, stimulus) {
     // as during the stimulus windows.
     std::vector<fvm_index_type> cell_to_intdom(cells.size(), 0);
 
-    fvm_discretization D = fvm_discretize(cells);
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
     const auto& A = D.cv_area;
 
     std::vector<target_handle> targets;
@@ -478,6 +494,155 @@ TEST(fvm_lowered, derived_mechs) {
     }
 }
 
+// Test that ion charge is propagated into mechanism variable.
+
+TEST(fvm_lowered, read_valence) {
+    execution_context context;
+
+    std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
+    probe_association_map<probe_handle> probe_map;
+
+    {
+        std::vector<cable_cell> cells(1);
+
+        cable_cell& c = cells[0];
+        auto soma = c.add_soma(6.0);
+        soma->add_mechanism("test_ca_read_valence");
+
+        cable1d_recipe rec(cells);
+        rec.catalogue() = make_unit_test_catalogue();
+
+        fvm_cell fvcell(context);
+        fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+        // test_ca_read_valence initialization should write ca ion valence
+        // to state variable 'record_zca':
+
+        auto mech_ptr = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca_read_valence"));
+        auto opt_record_z_ptr = util::value_by_key((mech_ptr->*private_field_table_ptr)(), "record_z"s);
+
+        ASSERT_TRUE(opt_record_z_ptr);
+        auto& record_z = *opt_record_z_ptr.value();
+        ASSERT_EQ(2.0, record_z[0]);
+    }
+
+    {
+        // Check ion renaming.
+        std::vector<cable_cell> cells(1);
+
+        cable_cell& c = cells[0];
+        auto soma = c.add_soma(6.0);
+        soma->add_mechanism("cr_read_valence");
+
+        cable1d_recipe rec(cells);
+        rec.catalogue() = make_unit_test_catalogue();
+
+        rec.catalogue().derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
+        rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "mn"}});
+        rec.add_ion("mn", 7, 0, 0, 0);
+
+        fvm_cell fvcell(context);
+        fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+        auto cr_mech_ptr = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, 0));
+        auto cr_opt_record_z_ptr = util::value_by_key((cr_mech_ptr->*private_field_table_ptr)(), "record_z"s);
+
+        ASSERT_TRUE(cr_opt_record_z_ptr);
+        auto& cr_record_z = *cr_opt_record_z_ptr.value();
+        ASSERT_EQ(7.0, cr_record_z[0]);
+    }
+}
+
+// Test correct scaling of ionic currents in reading and writing
+
+TEST(fvm_lowered, ionic_currents) {
+    cable_cell c;
+    auto soma = c.add_soma(6.0);
+
+    // Mechanism parameter is in NMODL units, i.e. mA/cm².
+
+    const double jca = 1.5;
+    soma->add_mechanism(mechanism_desc("fixed_ica_current").set("ica_density", jca));
+
+    // Mechanism models a well-mixed fixed-depth volume without replenishment,
+    // giving a linear response to ica over time.
+    //
+    //     cai' = - coeff · ica
+    //
+    // with NMODL units: cai' [mM/ms]; ica [mA/cm²], giving coeff in [mol/cm/C].
+
+    const double coeff = 0.5;
+    soma->add_mechanism(mechanism_desc("linear_ca_conc").set("coeff", coeff));
+
+    cable1d_recipe rec(c);
+    rec.catalogue() = make_unit_test_catalogue();
+
+    execution_context context;
+
+    std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
+    probe_association_map<probe_handle> probe_map;
+
+    fvm_cell fvcell(context);
+    fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+    auto& state = *(fvcell.*private_state_ptr).get();
+    auto& ion = state.ion_data.at("ca"s);
+
+    // Ionic current should be 15 A/m², and initial concentration zero.
+    EXPECT_EQ(15, ion.iX_[0]);
+    EXPECT_EQ(0, ion.Xi_[0]);
+
+    // Integration should be (effectively) exact, so check for linear response.
+    const double time = 12; // [ms]
+    (void)fvcell.integrate(time, 0.1, {}, {});
+    double expected_Xi = -time*coeff*jca;
+    EXPECT_NEAR(expected_Xi, ion.Xi_[0], 1e-6);
+}
+
+// Test correct scaling of an ionic current updated via a point mechanism
+
+TEST(fvm_lowered, point_ionic_current) {
+    cable_cell c;
+
+    double r = 6.0; // [µm]
+    c.add_soma(6.0);
+
+    double soma_area_m2 = 4*math::pi<double>*r*r*1e-12; // [m²]
+
+    // Event weight is translated by point_ica_current into a current contribution in nA.
+    c.add_synapse({0u, 0.5}, "point_ica_current");
+
+    cable1d_recipe rec(c);
+    rec.catalogue() = make_unit_test_catalogue();
+
+    execution_context context;
+
+    std::vector<target_handle> targets;
+    std::vector<fvm_index_type> cell_to_intdom;
+    probe_association_map<probe_handle> probe_map;
+
+    fvm_cell fvcell(context);
+    fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+
+    // Only one target, corresponding to our point process on soma.
+    double ica_nA = 12.3;
+    deliverable_event ev = {0.04, target_handle{0, 0, 0}, (float)ica_nA};
+
+    auto& state = *(fvcell.*private_state_ptr).get();
+    auto& ion = state.ion_data.at("ca"s);
+
+    // Ionic current should be 0 A/m² after initialization.
+    EXPECT_EQ(0, ion.iX_[0]);
+
+    // Ionic current should be ica_nA/soma_area after integrating past event time.
+    const double time = 0.5; // [ms]
+    (void)fvcell.integrate(time, 0.01, {ev}, {});
+
+    double expected_iX = ica_nA*1e-9/soma_area_m2;
+    EXPECT_FLOAT_EQ(expected_iX, ion.iX_[0]);
+}
 
 // Test area-weighted linear combination of ion species concentrations
 
@@ -486,12 +651,12 @@ TEST(fvm_lowered, weighted_write_ion) {
     //   - Soma (segment 0) plus three dendrites (1, 2, 3) meeting at a branch point.
     //   - Dendritic segments are given 1 compartments each.
     //
-    //         /
-    //        d2
-    //       /
+    //          /
+    //         d2
+    //        /
     //   s0-d1
-    //       \.
-    //        d3
+    //        \.
+    //         d3
     //
     // The CV corresponding to the branch point should comprise the terminal
     // 1/2 of segment 1 and the initial 1/2 of segments 2 and 3.
@@ -503,7 +668,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     //   dend 3: 100 µm long, 1 µm diameter cylinder
     //
     // The radius of the soma is chosen such that the surface area of soma is
-    // the same as a 100µm dendrite, which makes it easier to describe the
+    // the same as a 100 µm dendrite, which makes it easier to describe the
     // expected weights.
 
     execution_context context;
@@ -520,32 +685,33 @@ TEST(fvm_lowered, weighted_write_ion) {
     const double con_int = 80;
     const double con_ext = 120;
 
-    // Ca ion reader test_kinlva on CV 1 and 2 via segment 2:
+    // Ca ion reader test_kinlva on CV 2 and 3 via segment 2:
     c.segments()[2] ->add_mechanism("test_kinlva");
 
-    // Ca ion writer test_ca on CV 1 and 3 via segment 3:
+    // Ca ion writer test_ca on CV 2 and 4 via segment 3:
     c.segments()[3] ->add_mechanism("test_ca");
+
+    cable1d_recipe rec(c);
+    rec.add_ion("ca", 2, con_int, con_ext, 0.0);
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
 
     fvm_cell fvcell(context);
-    fvcell.initialize({0}, cable1d_recipe(c), cell_to_intdom, targets, probe_map);
+    fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
 
     auto& state = *(fvcell.*private_state_ptr).get();
-    auto& ion = state.ion_data.at(ionKind::ca);
-    ion.default_int_concentration = con_int;
-    ion.default_ext_concentration = con_ext;
+    auto& ion = state.ion_data.at("ca"s);
     ion.init_concentration();
 
     std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index_);
-    std::vector<unsigned> expected_ion_nodes = {1, 2, 3};
+    std::vector<unsigned> expected_ion_nodes = {2, 3, 4};
     EXPECT_EQ(expected_ion_nodes, ion_nodes);
 
-    std::vector<double> ion_iconc_weights = util::assign_from(ion.weight_Xi_);
-    std::vector<double> expected_ion_iconc_weights = {0.75, 1., 0};
-    EXPECT_EQ(expected_ion_iconc_weights, ion_iconc_weights);
+    std::vector<double> ion_init_iconc = util::assign_from(ion.init_Xi_);
+    std::vector<double> expected_init_iconc = {0.75*con_int, 1.*con_int, 0};
+    EXPECT_EQ(expected_init_iconc, ion_init_iconc);
 
     auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
 
@@ -553,18 +719,20 @@ TEST(fvm_lowered, weighted_write_ion) {
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 
-    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_index_table_ptr)(), ionKind::ca);
+    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_index_table_ptr)(), "ca"s);
     ASSERT_TRUE(opt_ca_index_ptr);
     auto& test_ca_ca_index = *opt_ca_index_ptr.value();
 
     double cai_contrib[3] = {200., 0., 300.};
+    double test_ca_weight[3] = {0.25, 0., 1.};
+
     for (int i = 0; i<2; ++i) {
         test_ca_cai[i] = cai_contrib[test_ca_ca_index[i]];
     }
 
     std::vector<double> expected_iconc(3);
     for (int i = 0; i<3; ++i) {
-        expected_iconc[i] = math::lerp(cai_contrib[i], con_int, ion_iconc_weights[i]);
+        expected_iconc[i] = test_ca_weight[i]*cai_contrib[i] + ion_init_iconc[i];
     }
 
     ion.init_concentration();
@@ -613,7 +781,7 @@ TEST(fvm_lowered, gj_coords_simple) {
     d.add_gap_junction({1, 1});
     cells.push_back(std::move(d));
 
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
     std::vector<cell_gid_type> gids = {0, 1};
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
@@ -622,11 +790,11 @@ TEST(fvm_lowered, gj_coords_simple) {
         return g * 1e3 / D.cv_area[i];
     };
 
-    EXPECT_EQ(pair({4,8}), GJ[0].loc);
-    EXPECT_EQ(weight(0.5, 4), GJ[0].weight);
+    EXPECT_EQ(pair({5,10}), GJ[0].loc);
+    EXPECT_EQ(weight(0.5, 5), GJ[0].weight);
 
-    EXPECT_EQ(pair({8,4}), GJ[1].loc);
-    EXPECT_EQ(weight(0.5, 8), GJ[1].weight);
+    EXPECT_EQ(pair({10,5}), GJ[1].loc);
+    EXPECT_EQ(weight(0.5, 10), GJ[1].weight);
 }
 
 TEST(fvm_lowered, gj_coords_complex) {
@@ -723,7 +891,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     std::vector<cell_gid_type> gids = {0, 1, 2};
 
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
     EXPECT_EQ(10u, GJ.size());
@@ -732,10 +900,10 @@ TEST(fvm_lowered, gj_coords_complex) {
         return g * 1e3 / D.cv_area[i];
     };
 
-    std::vector<pair> expected_loc = {{4, 14}, {4,11}, {2,21}, {14, 4}, {11,4} ,{8,28}, {6, 24}, {21,2}, {28,8}, {24, 6}};
+    std::vector<pair> expected_loc = {{5, 16}, {5,13}, {3,24}, {16, 5}, {13,5} ,{10,31}, {8, 27}, {24,3}, {31,10}, {27, 8}};
     std::vector<double> expected_weight = {
-            weight(0.03, 4), weight(0.04, 4), weight(0.01, 2), weight(0.03, 14), weight(0.04, 11),
-            weight(0.02, 8), weight(0.01, 6), weight(0.01, 21), weight(0.02, 28), weight(0.01, 24)
+            weight(0.03, 5), weight(0.04, 5), weight(0.01, 3), weight(0.03, 16), weight(0.04, 13),
+            weight(0.02, 10), weight(0.01, 8), weight(0.01, 24), weight(0.02, 31), weight(0.01, 27)
     };
 
     for (unsigned i = 0; i < GJ.size(); i++) {
@@ -749,7 +917,6 @@ TEST(fvm_lowered, gj_coords_complex) {
         }
         EXPECT_TRUE(found);
     }
-    std::cout << std::endl;
 }
 
 TEST(fvm_lowered, cell_group_gj) {
@@ -809,8 +976,8 @@ TEST(fvm_lowered, cell_group_gj) {
     auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
     auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
 
-    fvm_discretization D0 = fvm_discretize(cell_group0);
-    fvm_discretization D1 = fvm_discretize(cell_group1);
+    fvm_discretization D0 = fvm_discretize(cell_group0, neuron_parameter_defaults);
+    fvm_discretization D1 = fvm_discretize(cell_group1, neuron_parameter_defaults);
 
     auto GJ0 = fvcell.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
     auto GJ1 = fvcell.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);

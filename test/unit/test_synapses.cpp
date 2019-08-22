@@ -72,24 +72,32 @@ auto unique_cast(std::unique_ptr<B> p) {
 
 TEST(synapses, syn_basic_state) {
     using util::fill;
-    using value_type = multicore::backend::value_type;
-    using index_type = multicore::backend::index_type;
+    using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
 
     int num_syn = 4;
     int num_comp = 4;
     int num_intdom = 1;
 
-    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn"));
+    value_type temp_K = *neuron_parameter_defaults.temperature_K;
+
+    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn").mech);
     ASSERT_TRUE(expsyn);
 
-    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn"));
+    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn").mech);
     ASSERT_TRUE(exp2syn);
 
     std::vector<fvm_gap_junction> gj = {};
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
-    shared_state state(num_intdom, std::vector<index_type>(num_comp, 0), gj, align);
 
-    state.reset(-65., constant::hh_squid_temp);
+    shared_state state(num_intdom,
+        std::vector<index_type>(num_comp, 0),
+        {},
+        std::vector<value_type>(num_comp, -65),
+        std::vector<value_type>(num_comp, temp_K),
+        align);
+
+    state.reset();
     fill(state.current_density, 1.0);
     fill(state.time_to, 0.1);
     state.set_dt();
@@ -98,8 +106,8 @@ TEST(synapses, syn_basic_state) {
     std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    expsyn->instantiate(0, state, {syn_cv, syn_weight, syn_mult});
-    exp2syn->instantiate(1, state, {syn_cv, syn_weight, syn_mult});
+    expsyn->instantiate(0, state, {}, {syn_cv, syn_weight, syn_mult});
+    exp2syn->instantiate(1, state, {}, {syn_cv, syn_weight, syn_mult});
 
     // Parameters initialized to default values?
 

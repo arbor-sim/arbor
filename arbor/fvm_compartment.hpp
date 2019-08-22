@@ -34,6 +34,16 @@ struct semi_compartment {
         return *this;
     }
 
+    static semi_compartment half_sphere(value_type r1) {
+        using namespace math;
+        return semi_compartment{
+            r1,
+            area_sphere(r1)/2,
+            volume_sphere(r1)/2,
+            {r1, r1}
+        };
+    }
+
     static semi_compartment frustrum(value_type l, value_type r1, value_type r2) {
         using namespace math;
         return semi_compartment{
@@ -111,15 +121,17 @@ public:
     // `lengths` must be a sequence of length at least one.
     // `radii` must be a sequence of length `size(lengths)+1`.
     template <typename Radii, typename Lengths>
-    div_compartment_sampler(size_type n, const Radii& radii, const Lengths& lengths) {
+    div_compartment_sampler(size_type n, const Radii& radii, const Lengths& lengths, bool with_soma = false) {
         // set up offset-to-subsegment lookup and interpolation
         using namespace util;
 
+        with_soma_ = with_soma;
         segs_ = make_partition(offsets_, lengths);
         compat::compiler_barrier_if_icc_leq(20160415u);
 
         nseg_ = size(segs_);
-        scale_ = segs_.bounds().second/n;
+        scale_ = with_soma_? (segs_.bounds().second - segs_.front().second)/(n-1): segs_.bounds().second/n;
+
         assign(radii_, radii);
         arb_assert(size(radii_)==size(offsets_));
     }
@@ -143,6 +155,8 @@ protected:
     struct sub_segment_index {
         size_type i;   // index
         value_type p;  // proportion [0,1] along sub-segment
+
+        sub_segment_index(): i(0), p(0) {}
 
         sub_segment_index(size_type i_, value_type p_): i(i_), p(p_) {}
         bool operator<(sub_segment_index x) const {
@@ -169,6 +183,7 @@ protected:
         return math::lerp(radii_[s.i], radii_[s.i+1], s.p);
     }
 
+    bool with_soma_ = false; //segment passed in includes the soma information in radii[0] and lengths[0]
     size_type nseg_ = 0;
     std::vector<value_type> offsets_;
     std::vector<value_type> radii_;
@@ -180,15 +195,33 @@ protected:
 class div_compartment_integrator: public div_compartment_sampler {
 public:
     template <typename Radii, typename Lengths>
-    div_compartment_integrator(size_type n, const Radii& radii, const Lengths& lengths):
-        div_compartment_sampler(n, radii, lengths) {}
+    div_compartment_integrator(size_type n, const Radii& radii, const Lengths& lengths, bool with_soma = false):
+        div_compartment_sampler(n, radii, lengths, with_soma) {}
 
     div_compartment operator()(size_type i) const {
         using namespace math;
-
-        auto sleft = locate(scale_*i);
-        auto scentre = locate(scale_*(i+0.5));
-        auto sright = locate(scale_*(i+1));
+        sub_segment_index sleft, scentre, sright;
+        // If segment includes the soma, divisions are specially calculated
+        if (with_soma_) {
+            auto soma_l = segs_.front().second;
+            if (i == 0) {
+                sleft   = locate(soma_l/2);
+                scentre = locate(soma_l);
+                sright  = locate(soma_l + scale_/4);
+            } else if (i == 1) {
+                sleft   = locate(soma_l + scale_/4);
+                scentre = locate(soma_l + scale_/2);
+                sright  = locate(soma_l + scale_);
+            } else {
+                sleft   = locate(soma_l + scale_ * (i-1));
+                scentre = locate(soma_l + scale_ * (i-0.5));
+                sright  = locate(soma_l + scale_ * i);
+            }
+        } else {
+            sleft   = locate(scale_ * i);
+            scentre = locate(scale_ * (i + 0.5));
+            sright  = locate(scale_ * (i + 1));
+        }
 
         return div_compartment(i, integrate(sleft, scentre), integrate(scentre, sright));
     }
@@ -199,6 +232,12 @@ protected:
 
         auto seg = segs_[a.i];
         auto l = (b.p-a.p)*(seg.second-seg.first);
+
+        // If segment includes the soma it will be at index 0
+        // The soma is represented as a sphere
+        if (with_soma_ && a.i==0) {
+            return semi_compartment::half_sphere(radii_.front());
+        }
         return semi_compartment::frustrum(l, radius_at(a), radius_at(b));
     }
 
@@ -206,6 +245,7 @@ protected:
         sub_segment_index x = std::min(b, sub_segment_index(a.i, 1));
 
         auto s = sub_segment_frustrum(a, x);
+
         while (a.i<b.i) {
             ++a.i;
             a.p = 0;

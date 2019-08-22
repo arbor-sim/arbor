@@ -130,7 +130,7 @@ Class Documentation
         structures ahead of time and for putting in place any structures or
         information in the concrete cell implementations to allow monitoring.
 
-        By default throws :cpp:type:`std::logic_error`. If ``arb::recipe::num_probes``
+        By default throws :cpp:type:`std::logic_error`. If :cpp:func:`num_probes`
         returns a non-zero value, this must also be overridden.
 
     .. cpp:function:: virtual util::any get_global_properties(cell_kind) const

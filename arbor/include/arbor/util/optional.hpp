@@ -354,14 +354,17 @@ struct optional<X&>: detail::optional_base<X&> {
         return assert_set(), ref();
     }
 
-    template <typename T>
-    X& value_or(T& alternative) {
-        return set? ref(): static_cast<X&>(alternative);
+    X& value_or(X& alternative) & {
+        return set? ref(): alternative;
+    }
+
+    const X& value_or(const X& alternative) const& {
+        return set? ref(): alternative;
     }
 
     template <typename T>
-    const X& value_or(const T& alternative) const {
-        return set? ref(): static_cast<const X&>(alternative);
+    const X value_or(const T& alternative) && {
+        return set? ref(): static_cast<X>(alternative);
     }
 };
 

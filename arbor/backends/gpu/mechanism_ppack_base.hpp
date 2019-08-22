@@ -18,6 +18,7 @@ struct ion_state_view {
     value_type* reversal_potential;
     value_type* internal_concentration;
     value_type* external_concentration;
+    value_type* ionic_charge;
 };
 
 // Parameter pack base:
@@ -35,6 +36,7 @@ struct mechanism_ppack_base {
     const value_type* vec_dt_;
     const value_type* vec_v_;
     value_type* vec_i_;
+    value_type* vec_g_;
     const value_type* temperature_degC_;
 
     const index_type* node_index_;

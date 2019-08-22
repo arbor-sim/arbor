@@ -91,16 +91,16 @@ public:
     // Perform semantic analysis pass.
     bool semantic();
 
-    auto find_ion(ionKind k) -> decltype(ion_deps().begin()) {
+    auto find_ion(const std::string& ion_name) -> decltype(ion_deps().begin()) {
         auto& ions = neuron_block().ions;
         return std::find_if(
             ions.begin(), ions.end(),
-            [k](IonDep const& d) {return d.kind()==k;}
+            [&ion_name](IonDep const& d) {return d.name==ion_name;}
         );
     };
 
-    bool has_ion(ionKind k) {
-        return find_ion(k) != neuron_block().ions.end();
+    bool has_ion(const std::string& ion_name) {
+        return find_ion(ion_name) != neuron_block().ions.end();
     };
 
     bool is_linear() const { return linear_; }
@@ -138,6 +138,9 @@ private:
         auto s = symbols_.find(name);
         return s == symbols_.end() ? false : s->second->kind() == kind;
     }
+
+    // Check requirements for reversal potential setters.
+    void check_revpot_mechanism();
 
     // Perform semantic analysis on functions and procedures.
     // Returns the number of errors that were encountered.

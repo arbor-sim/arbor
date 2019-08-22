@@ -21,16 +21,19 @@ try:
     import options
     import test_contexts_arbmpi
     import test_contexts_mpi4py
+    import test_domain_decompositions
     # add more if needed
 except ModuleNotFoundError:
     from test import options
     from test.unit_distributed import test_contexts_arbmpi
     from test.unit_distributed import test_contexts_mpi4py
+    from test.unit_distributed import test_domain_decompositions
     # add more if needed
 
 test_modules = [\
     test_contexts_arbmpi,\
-    test_contexts_mpi4py\
+    test_contexts_mpi4py,\
+    test_domain_decompositions\
 ] # add more if needed
 
 def suite():
@@ -54,7 +57,7 @@ if __name__ == "__main__":
         arb.mpi_init()
 
     if mpi4py_enabled:
-        comm = arb.mpi_comm_from_mpi4py(mpi.COMM_WORLD)
+        comm = arb.mpi_comm(mpi.COMM_WORLD)
     elif mpi_enabled:
         comm = arb.mpi_comm()
 

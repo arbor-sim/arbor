@@ -42,7 +42,12 @@ TEST(mc_cell_group, get_kind) {
 }
 
 TEST(mc_cell_group, test) {
-    mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
+    auto rec = cable1d_recipe(make_cell());
+    rec.nernst_ion("na");
+    rec.nernst_ion("ca");
+    rec.nernst_ion("k");
+
+    mc_cell_group group{{0}, rec, lowered_cell()};
     group.advance(epoch(0, 50), 0.01, {});
 
     // Model is expected to generate 4 spikes as a result of the
@@ -65,7 +70,12 @@ TEST(mc_cell_group, sources) {
     }
 
     std::vector<cell_gid_type> gids = {3u, 4u, 10u, 16u, 17u, 18u};
-    mc_cell_group group{gids, cable1d_recipe(cells), lowered_cell()};
+    auto rec = cable1d_recipe(cells);
+    rec.nernst_ion("na");
+    rec.nernst_ion("ca");
+    rec.nernst_ion("k");
+
+    mc_cell_group group{gids, rec, lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero.

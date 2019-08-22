@@ -50,6 +50,7 @@ void assemble_matrix_fine(
         const T* invariant_d,
         const T* voltage,
         const T* current,
+        const T* conductivity,
         const T* cv_capacitance,
         const T* area,
         const I* cv_to_cell,
@@ -68,12 +69,13 @@ void assemble_matrix_fine(
             // The 1e-3 is a constant of proportionality required to ensure that the
             // conductance (gi) values have units μS (micro-Siemens).
             // See the model documentation in docs/model for more information.
-            T factor = 1e-3/dt;
+            T oodt_factor = T(1e-3)/dt;
+	    T area_factor = T(1e-3)*area[tid];
 
-            const auto gi = factor * cv_capacitance[tid];
+            const auto gi = oodt_factor*cv_capacitance[tid] + area_factor*conductivity[tid];
             const auto pid = perm[tid];
             d[pid] = gi + invariant_d[tid];
-            rhs[pid] = gi*voltage[tid] - T(1e-3)*area[tid]*current[tid];
+            rhs[pid] = gi*voltage[tid] - area_factor*current[tid];
         }
         else {
             const auto pid = perm[tid];
@@ -262,6 +264,7 @@ void assemble_matrix_fine(
     const fvm_value_type* invariant_d,
     const fvm_value_type* voltage,
     const fvm_value_type* current,
+    const fvm_value_type* conductivity,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
     const fvm_index_type* cv_to_cell,
@@ -274,7 +277,7 @@ void assemble_matrix_fine(
     const unsigned num_blocks = impl::block_count(n, block_dim);
 
     kernels::assemble_matrix_fine<<<num_blocks, block_dim>>>(
-        d, rhs, invariant_d, voltage, current, cv_capacitance, area,
+        d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
         cv_to_cell, dt_intdom, cell_to_intdom,
         perm, n);
 }

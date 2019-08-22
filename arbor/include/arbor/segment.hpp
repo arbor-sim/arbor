@@ -10,66 +10,20 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/math.hpp>
-#include <arbor/morphology.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/point.hpp>
 #include <arbor/util/optional.hpp>
 
 namespace arb {
 
-// Mechanism information attached to a segment.
-
-struct mechanism_desc {
-    struct field_proxy {
-        mechanism_desc* m;
-        std::string key;
-
-        field_proxy& operator=(double v) {
-            m->set(key, v);
-            return *this;
-        }
-
-        operator double() const {
-            return m->get(key);
-        }
-    };
-
-    // implicit
-    mechanism_desc(std::string name): name_(std::move(name)) {}
-    mechanism_desc(const char* name): name_(name) {}
-
-    mechanism_desc& set(const std::string& key, double value) {
-        param_[key] = value;
-        return *this;
-    }
-
-    double operator[](const std::string& key) const {
-        return get(key);
-    }
-
-    field_proxy operator[](const std::string& key) {
-        return {this, key};
-    }
-
-    double get(const std::string& key) const {
-        auto i = param_.find(key);
-        if (i==param_.end()) {
-            throw std::out_of_range("no field "+key+" set");
-        }
-        return i->second;
-    }
-
-    const std::unordered_map<std::string, double>& values() const {
-        return param_;
-    }
-
-    const std::string& name() const { return name_; }
-
-private:
-    std::string name_;
-    std::unordered_map<std::string, double> param_;
+enum class section_kind {
+    soma,
+    dendrite,
+    axon,
+    none
 };
 
 // forward declarations of segment specializations
@@ -135,11 +89,6 @@ public:
         return false;
     }
 
-    // Approximate frequency-dependent length constant lower bound.
-    virtual value_type length_constant(value_type freq_Hz) const {
-        return 0;
-    }
-
     util::optional<mechanism_desc&> mechanism(const std::string& name) {
         auto it = std::find_if(mechanisms_.begin(), mechanisms_.end(),
             [&](mechanism_desc& m) { return m.name()==name; });
@@ -164,9 +113,7 @@ public:
         return mechanisms_;
     }
 
-    // common electrical properties
-    value_type rL = 100.0;   // resistivity [Ohm.cm]
-    value_type cm = 0.01;    // capacitance [F/m^2] : 10 nF/mm^2 = 0.01 F/m^2
+    cable_cell_local_parameter_set parameters; // override cell and global defaults
 
 protected:
     segment(section_kind kind): kind_(kind) {}
@@ -295,25 +242,6 @@ public:
     value_type length() const
     {
         return std::accumulate(lengths_.begin(), lengths_.end(), value_type{});
-    }
-
-    value_type length_constant(value_type freq_Hz) const override {
-        // Following Hine and Carnevale (2001), "NEURON: A Tool for Neuroscientists",
-        // Neuroscientist 7, pp. 123-135.
-        //
-        // λ(f) = approx. sqrt(diameter/(pi*f*rL*cm))/2.
-        //
-        // Pick smallest non-zero diameter in the segment.
-
-        value_type r_min = 0;
-        for (auto r: radii_) {
-            if (r>0 && (r_min==0 || r<r_min)) r_min = r;
-        }
-        value_type d_min = r_min*2e-6; // [m]
-        value_type rc = rL*0.01*cm;  // [s/m]
-        value_type lambda = std::sqrt(d_min/(math::pi<double>*freq_Hz*rc))/2.; // [m]
-
-        return lambda*1e6; // [µm]
     }
 
     bool has_locations() const

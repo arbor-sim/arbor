@@ -1,4 +1,5 @@
 #include "backends/gpu/forest.hpp"
+#include "tree.hpp"
 #include "util/span.hpp"
 
 namespace arb {

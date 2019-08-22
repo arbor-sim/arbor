@@ -10,8 +10,6 @@
 #include <utility>
 #include <vector>
 
-#include <arbor/ion.hpp>
-
 namespace arb {
 
 struct mechanism_field_spec {
@@ -32,8 +30,17 @@ struct mechanism_field_spec {
 };
 
 struct ion_dependency {
-    bool write_concentration_int;
-    bool write_concentration_ext;
+    bool write_concentration_int = false;
+    bool write_concentration_ext = false;
+
+    bool read_reversal_potential = false;
+    bool write_reversal_potential = false;
+
+    bool read_ion_charge = false;
+
+    // Support for NMODL 'VALENCE n' construction.
+    bool verify_ion_charge = false;
+    int expected_ion_charge = 0;
 };
 
 // A hash of the mechanism dynamics description is used to ensure that offline-compiled
@@ -57,7 +64,7 @@ struct mechanism_info {
     std::unordered_map<std::string, mechanism_field_spec> state;
 
     // Ion dependencies.
-    std::unordered_map<ionKind, ion_dependency> ions;
+    std::unordered_map<std::string, ion_dependency> ions;
 
     mechanism_fingerprint fingerprint;
 

@@ -14,27 +14,6 @@ namespace gpu {
 namespace kernel {
 
 template <typename T>
-__global__
-void nernst_impl(unsigned n, T factor, const T* Xo, const T* Xi, T* eX) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-
-    if (i<n) {
-        eX[i] = factor*std::log(Xo[i]/Xi[i]);
-    }
-}
-
-template <typename T>
-__global__
-void init_concentration_impl(unsigned n, T* Xi, T* Xo, const T* weight_Xi, const T* weight_Xo, T c_int, T c_ext) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-
-    if (i<n) {
-        Xi[i] = c_int*weight_Xi[i];
-        Xo[i] = c_ext*weight_Xo[i];
-    }
-}
-
-template <typename T>
 __global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt, T tmax) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
@@ -51,6 +30,15 @@ __global__ void add_gj_current_impl(unsigned n, const T* gj_info, const I* volta
         auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
 
         cuda_atomic_sub(current_density + gj.loc.first, curr);
+    }
+}
+
+// Vector/scalar addition: x[i] += v ∀i
+template <typename T>
+__global__ void add_scalar(unsigned n, T* x, fvm_value_type v) {
+    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
+    if (i<n) {
+        x[i] += v;
     }
 }
 
@@ -91,26 +79,12 @@ __global__ void take_samples_impl(
 
 using impl::block_count;
 
-void nernst_impl(
-    std::size_t n, fvm_value_type factor,
-    const fvm_value_type* Xo, const fvm_value_type* Xi, fvm_value_type* eX)
-{
+void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v) {
     if (!n) return;
 
     constexpr int block_dim = 128;
-    int nblock = block_count(n, block_dim);
-    kernel::nernst_impl<<<nblock, block_dim>>>(n, factor, Xo, Xi, eX);
-}
-
-void init_concentration_impl(
-    std::size_t n, fvm_value_type* Xi, fvm_value_type* Xo, const fvm_value_type* weight_Xi,
-    const fvm_value_type* weight_Xo, fvm_value_type c_int, fvm_value_type c_ext)
-{
-    if (!n) return;
-
-    constexpr int block_dim = 128;
-    int nblock = block_count(n, block_dim);
-    kernel::init_concentration_impl<<<nblock, block_dim>>>(n, Xi, Xo, weight_Xi, weight_Xo, c_int, c_ext);
+    const int nblock = block_count(n, block_dim);
+    kernel::add_scalar<<<nblock, block_dim>>>(n, data, v);
 }
 
 void update_time_to_impl(

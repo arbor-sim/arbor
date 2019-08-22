@@ -11,12 +11,13 @@
 
 // describes a relationship with an ion channel
 struct IonDep {
-    ionKind kind() const {
-        return to_ionKind(name);
-    }
     std::string name;         // name of ion channel
     std::vector<Token> read;  // name of channels parameters to write
     std::vector<Token> write; // name of channels parameters to read
+
+    Token valence_var;        // optional variable name following VALENCE
+    int expected_valence = 0; // optional integer following VALENCE
+    bool has_valence_expr = false;
 
     bool has_variable(std::string const& name) const {
         return writes_variable(name) || reads_variable(name);
@@ -33,12 +34,25 @@ struct IonDep {
     bool uses_concentration_ext() const {
         return has_variable(name+"o");
     };
+    bool writes_current() const {
+        return writes_variable("i"+name);
+    };
     bool writes_concentration_int() const {
         return writes_variable(name+"i");
     };
     bool writes_concentration_ext() const {
         return writes_variable(name+"o");
     };
+    bool writes_rev_potential() const {
+        return writes_variable("e"+name);
+    };
+
+    bool uses_valence() const {
+        return valence_var.type==tok::identifier;
+    }
+    bool verifies_valence() const {
+        return has_valence_expr && !uses_valence();
+    }
 
     bool reads_variable(const std::string& name) const {
         return std::find_if(read.begin(), read.end(),
@@ -48,11 +62,6 @@ struct IonDep {
         return std::find_if(write.begin(), write.end(),
                 [&name](const Token& t) {return t.spelling==name;}) != write.end();
     }
-};
-
-enum class moduleKind {
-    point,
-    density
 };
 
 typedef std::vector<Token> unit_tokens;

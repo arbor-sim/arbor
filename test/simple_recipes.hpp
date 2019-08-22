@@ -7,6 +7,7 @@
 
 #include <arbor/event_generator.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
 
 namespace arb {
@@ -20,6 +21,7 @@ public:
         catalogue_(global_default_catalogue())
     {
         cell_gprop_.catalogue = &catalogue_;
+        cell_gprop_.default_parameters = neuron_parameter_defaults;
     }
 
     cell_size_type num_probes(cell_gid_type i) const override {
@@ -48,6 +50,14 @@ public:
 
     mechanism_catalogue& catalogue() {
         return catalogue_;
+    }
+
+    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot) {
+        cell_gprop_.add_ion(ion_name, charge, init_iconc, init_econc, init_revpot);
+    }
+
+    void nernst_ion(const std::string& ion_name) {
+        cell_gprop_.default_parameters.reversal_potential_method[ion_name] = "nernst/"+ion_name;
     }
 
 protected:
@@ -92,15 +102,17 @@ protected:
 class cable1d_recipe: public simple_recipe_base {
 public:
     template <typename Seq>
-    explicit cable1d_recipe(const Seq& cells) {
+    explicit cable1d_recipe(const Seq& cells, bool coalesce = true) {
         for (const auto& c: cells) {
             cells_.emplace_back(c);
         }
+        cell_gprop_.coalesce_synapses = coalesce;
     }
 
-    explicit cable1d_recipe(const cable_cell& c) {
+    explicit cable1d_recipe(const cable_cell& c, bool coalesce = true) {
         cells_.reserve(1);
         cells_.emplace_back(c);
+        cell_gprop_.coalesce_synapses = coalesce;
     }
 
     cell_size_type num_cells() const override { return cells_.size(); }

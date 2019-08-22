@@ -18,7 +18,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/ion.hpp>
+#include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
 
 #include "builtin_mechanisms.hpp"
@@ -101,9 +101,8 @@ private:
     threshold_watcher threshold_watcher_;
 
     value_type tmin_ = 0;
-    value_type initial_voltage_ = NAN;
-    value_type temperature_ = NAN;
-    std::vector<mechanism_ptr> mechanisms_;
+    std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
+    std::vector<mechanism_ptr> revpot_mechanisms_;
 
     // Non-physical voltage check threshold, 0 => no check.
     value_type check_voltage_mV = 0;
@@ -152,8 +151,12 @@ void fvm_lowered_cell_impl<Backend>::assert_tmin() {
 
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::reset() {
-    state_->reset(initial_voltage_, temperature_);
+    state_->reset();
     set_tmin(0);
+
+    for (auto& m: revpot_mechanisms_) {
+        m->initialize();
+    }
 
     for (auto& m: mechanisms_) {
         m->initialize();
@@ -199,6 +202,15 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // complete fvm state into shared state object.
 
     while (remaining_steps) {
+        // Update any required reversal potentials based on ionic concs.
+
+        PE(advance_update_revpot)
+        for (auto& m: revpot_mechanisms_) {
+            m->nrn_current();
+        }
+        PL();
+
+
         // Deliver events and accumulate mechanism current contributions.
 
         PE(advance_integrate_events);
@@ -237,7 +249,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Integrate voltage by matrix solve.
 
         PE(advance_integrate_matrix_build);
-        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density);
+        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
         PL();
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
@@ -300,7 +312,6 @@ void fvm_lowered_cell_impl<B>::update_ion_state() {
     for (auto& m: mechanisms_) {
         m->write_ions();
     }
-    state_->ions_nernst_reversal_potential(temperature_);
 }
 
 template <typename B>
@@ -356,9 +367,11 @@ void fvm_lowered_cell_impl<B>::initialize(
         throw bad_global_property(cell_kind::cable);
     }
 
+    // Assert that all global default parameters have been set.
+    // (Throws cable_cell_error on failure.)
+    check_global_properties(global_props);
+
     const mechanism_catalogue* catalogue = global_props.catalogue;
-    initial_voltage_ = global_props.init_membrane_potential_mV;
-    temperature_ = global_props.temperature_K;
 
     // Mechanism instantiator helper.
     auto mech_instance = [&catalogue](const std::string& name) {
@@ -374,9 +387,9 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize cells, build matrix.
 
-    fvm_discretization D = fvm_discretize(cells);
+    fvm_discretization D = fvm_discretize(cells, global_props.default_parameters);
 
-    std::vector<index_type> cv_to_intdom(D.ncomp);
+    std::vector<index_type> cv_to_intdom(D.ncv);
     std::transform(D.cv_to_cell.begin(), D.cv_to_cell.end(), cv_to_intdom.begin(),
                    [&cell_to_intdom](index_type i){ return cell_to_intdom[i]; });
 
@@ -386,9 +399,9 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D, global_props.coalesce_synapses);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props,  cells, D);
 
-    // Discritize and build gap junction info
+    // Discretize and build gap junction info.
 
     auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
@@ -397,28 +410,33 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     unsigned data_alignment = util::max_value(
         util::transform_view(keys(mech_data.mechanisms),
-            [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
+            [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(num_intdoms, cv_to_intdom, gj_vector, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(
+                num_intdoms, cv_to_intdom, gj_vector, D.init_membrane_potential, D.temperature_K,
+                data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 
     for (auto& i: mech_data.ions) {
-        ionKind kind = i.first;
+        const std::string& ion_name = i.first;
 
-        if (auto ion = value_by_key(global_props.ion_default, to_string(kind))) {
-            state_->add_ion(ion.value(), i.second.cv, i.second.iconc_norm_area, i.second.econc_norm_area);
+        if (auto charge = value_by_key(global_props.ion_species, ion_name)) {
+            state_->add_ion(ion_name, *charge, i.second.cv, i.second.init_iconc, i.second.init_econc, i.second.init_revpot);
+        }
+        else {
+            throw cable_cell_error("unrecognized ion '"+ion_name+"' in mechanism");
         }
     }
 
     target_handles.resize(mech_data.ntarget);
 
+    unsigned mech_id = 0;
     for (auto& m: mech_data.mechanisms) {
         auto& name = m.first;
         auto& config = m.second;
-        unsigned mech_id = mechanisms_.size();
 
-        mechanism::layout layout;
+        mechanism_layout layout;
         layout.cv = config.cv;
         layout.multiplicity = config.multiplicity;
         layout.weight.resize(layout.cv.size());
@@ -430,7 +448,8 @@ void fvm_lowered_cell_impl<B>::initialize(
         // contribution in the CV, and F is the scaling factor required
         // to convert from the mechanism current contribution units to A/m².
 
-        if (config.kind==mechanismKind::point) {
+        switch (config.kind) {
+        case mechanismKind::point:
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
@@ -441,28 +460,42 @@ void fvm_lowered_cell_impl<B>::initialize(
                 // (builtin stimulus, for example, has no targets)
 
                 if (!config.target.empty()) {
-                    for (auto j: make_span(multiplicity_part[i])) {
-                        target_handles[config.target[j]] = target_handle(mech_id, i, cv_to_intdom[cv]);
-                    }
+                    if(!config.multiplicity.empty()) {
+                        for (auto j: make_span(multiplicity_part[i])) {
+                            target_handles[config.target[j]] = target_handle(mech_id, i, cv_to_intdom[cv]);
+                        }
+                    } else {
+                        target_handles[config.target[i]] = target_handle(mech_id, i, cv_to_intdom[cv]);
+                    };
                 }
             }
-        }
-        else {
-            // Density Current density contributions from mechanism are in [mA/cm²]
-            // (NEURON compatibility). F = [mA/cm²] / [A/m²] = 10.
+            break;
+        case mechanismKind::density:
+            // Current density contributions from mechanism are already in [A/m²].
 
             for (auto i: count_along(layout.cv)) {
-                layout.weight[i] = 10*config.norm_area[i];
+                layout.weight[i] = config.norm_area[i];
             }
+            break;
+        case mechanismKind::revpot:
+            // Mechanisms that set reversal potential should not be contributing
+            // to any currents, so leave weights as zero.
+            break;
         }
 
-        auto mech = mech_instance(name);
-        mech->instantiate(mech_id, *state_, layout);
+        auto minst = mech_instance(name);
+        minst.mech->instantiate(mech_id++, *state_, minst.overrides, layout);
 
         for (auto& pv: config.param_values) {
-            mech->set_parameter(pv.first, pv.second);
+            minst.mech->set_parameter(pv.first, pv.second);
         }
-        mechanisms_.push_back(mechanism_ptr(mech.release()));
+
+        if (config.kind==mechanismKind::revpot) {
+            revpot_mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
+        }
+        else {
+            mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
+        }
     }
 
     // Collect detectors, probe handles.

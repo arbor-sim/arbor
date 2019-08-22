@@ -1,8 +1,9 @@
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/morphology.hpp>
 #include <arbor/segment.hpp>
-#include <arbor/morphology.hpp>
 
 #include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 
@@ -57,6 +58,10 @@ segment* cable_cell::segment(index_type index) {
     assert_valid_segment(index);
     return segments_[index].get();
 }
+segment const* cable_cell::parent(index_type index) const {
+    assert_valid_segment(index);
+    return segments_[parents_[index]].get();
+}
 
 segment const* cable_cell::segment(index_type index) const {
     assert_valid_segment(index);
@@ -76,6 +81,12 @@ const soma_segment* cable_cell::soma() const {
 }
 
 cable_segment* cable_cell::cable(index_type index) {
+    assert_valid_segment(index);
+    auto cable = segment(index)->as_cable();
+    return cable? cable: throw cable_cell_error("segment is not a cable segment");
+}
+
+const cable_segment* cable_cell::cable(index_type index) const {
     assert_valid_segment(index);
     auto cable = segment(index)->as_cable();
     return cable? cable: throw cable_cell_error("segment is not a cable segment");
@@ -104,43 +115,104 @@ void cable_cell::add_detector(segment_location loc, double threshold) {
     spike_detectors_.push_back({loc, threshold});
 }
 
+// Approximating wildly by ignoring O(x) effects entirely, the attenuation b
+// over a single cable segment with constant resistivity R and membrane
+// capacitance C is given by:
+//
+// b = 2√(πRCf) · Σ 2L/(√d₀ + √d₁)
+//
+// where the sum is taken over each piecewise linear segment of length L
+// with diameters d₀ and d₁ at each end.
 
-// Construct cell from flat morphology specification.
+value_type cable_cell::segment_mean_attenuation(
+    value_type frequency, index_type segidx,
+    const cable_cell_parameter_set& global_defaults) const
+{
+    value_type R = default_parameters.axial_resistivity.value_or(global_defaults.axial_resistivity.value());
+    value_type C = default_parameters.membrane_capacitance.value_or(global_defaults.membrane_capacitance.value());
+
+    value_type length_factor = 0; // [1/√µm]
+
+    if (segidx==0) {
+        if (const soma_segment* s = soma()) {
+            R = s->parameters.axial_resistivity.value_or(R);
+            C = s->parameters.membrane_capacitance.value_or(C);
+
+            value_type d = 2*s->radius();
+            length_factor = 1/std::sqrt(d);
+        }
+    }
+    else {
+        const cable_segment* s = cable(segidx);
+        const auto& lengths = s->lengths();
+        const auto& radii = s->radii();
+
+        value_type total_length = 0;
+        R = s->parameters.axial_resistivity.value_or(R);
+        C = s->parameters.membrane_capacitance.value_or(C);
+
+        for (std::size_t i = 0; i<lengths.size(); ++i) {
+            length_factor += 2*lengths[i]/(std::sqrt(radii[i])+std::sqrt(radii[i+1]));
+            total_length += lengths[i];
+        }
+        length_factor /= total_length;
+    }
+
+    // R*C is in [s·cm/m²]; need to convert to [s/µm]
+    value_type tau_per_um = R*C*1e-8;
+
+    return 2*std::sqrt(math::pi<double>*tau_per_um*frequency)*length_factor; // [1/µm]
+}
 
 cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization) {
     using point3d = cable_cell::point_type;
     cable_cell newcell;
 
-    if (!morph) {
+    if (!morph.num_branches()) {
         return newcell;
     }
 
-    arb_assert(morph.check_valid());
+    // Add the soma.
+    auto loc = morph.samples()[0].loc; // location of soma.
 
-    // (not supporting soma-less cells yet)
-    newcell.add_soma(morph.soma.r, point3d(morph.soma.x, morph.soma.y, morph.soma.z));
+    // If there is no spherical root/soma use a zero-radius soma.
+    double srad = morph.spherical_root()? loc.radius: 0.;
+    newcell.add_soma(srad, point3d(loc.x, loc.y, loc.z));
 
-    for (const section_geometry& section: morph.sections) {
-        auto kind = section.kind;
-        switch (kind) {
-        case section_kind::none: // default to dendrite
-            kind = section_kind::dendrite;
-            break;
-        case section_kind::soma:
-            throw cable_cell_error("no support for complex somata");
-            break;
-        default: ;
+    auto& samples = morph.samples();
+    for (auto i: util::make_span(1, morph.num_branches())) {
+        auto index =  util::make_range(morph.branch_sample_span(i));
+
+        // find kind for the branch. Use the tag of the last sample in the branch.
+        int tag = samples[index.back()].tag;
+        section_kind kind;
+        switch (tag) {
+            case 1:     // soma
+                throw cable_cell_error("No support for complex somata (yet)");
+            case 2:     // axon
+                kind = section_kind::axon;
+            case 3:     // dendrite
+            case 4:     // apical dendrite
+            default:    // just take dendrite as default
+                kind = section_kind::dendrite;
         }
 
         std::vector<value_type> radii;
         std::vector<point3d> points;
 
-        for (const section_point& p: section.points) {
-            radii.push_back(p.r);
-            points.push_back(point3d(p.x, p.y, p.z));
+        for (auto i: index) {
+            auto& s = samples[i];
+            radii.push_back(s.loc.radius);
+            points.push_back(point3d(s.loc.x, s.loc.y, s.loc.z));
         }
 
-        auto cable = newcell.add_cable(section.parent_id, kind, radii, points);
+        // Find the id of this branch's parent.
+        auto pid = morph.branch_parent(i);
+        // Adjust pid if a zero-radius soma was used.
+        if (!morph.spherical_root()) {
+            pid = pid==mnpos? 0: pid+1;
+        }
+        auto cable = newcell.add_cable(pid, kind, radii, points);
         if (compartments_from_discretization) {
             cable->as_cable()->set_compartments(radii.size()-1);
         }

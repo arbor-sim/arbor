@@ -38,8 +38,8 @@ expression_ptr kinetic_rewrite(BlockExpression* block) {
 
 // KineticRewriter implementation follows.
 
-void KineticRewriter::visit(ConserveExpression*) {
-    // Deliberately ignoring these for now!
+void KineticRewriter::visit(ConserveExpression* e) {
+    statements_.push_back(e->clone());
 }
 
 void KineticRewriter::visit(ReactionExpression* e) {

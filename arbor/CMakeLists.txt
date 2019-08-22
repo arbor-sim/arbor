@@ -6,9 +6,12 @@ set(arbor_sources
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
     backends/multicore/stimulus.cpp
+    communication/communicator.cpp
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
     builtin_mechanisms.cpp
+    cable_cell.cpp
+    cable_cell_param.cpp
     cell_group_factory.cpp
     common_types_io.cpp
     execution_context.cpp
@@ -21,14 +24,15 @@ set(arbor_sources
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     lif_cell_group.cpp
-    cable_cell.cpp
     mc_cell_group.cpp
     mechcat.cpp
     memory/cuda_wrappers.cpp
     memory/util.cpp
+    morph/morphology.cpp
+    morph/sample_tree.cpp
+    morph/primitives.cpp
     merge_events.cpp
     simulation.cpp
-    morphology.cpp
     partition_load_balance.cpp
     profile/clock.cpp
     profile/memory_meter.cpp

@@ -281,7 +281,7 @@ endif()
 find_package(Unwind)
 if(Unwind_FOUND)
     target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
-    target_compile_definitions(arbor-private-deps ARB_WITH_UNWIND)
+    target_compile_definitions(arbor-private-deps INTERFACE WITH_UNWIND)
 
     list(APPEND arbor_export_dependencies "Unwind")
 endif()
@@ -371,9 +371,6 @@ add_subdirectory(test)
 
 # self contained examples:
 add_subdirectory(example)
-
-# lmorpho:
-add_subdirectory(lmorpho)
 
 # html:
 add_subdirectory(doc)
