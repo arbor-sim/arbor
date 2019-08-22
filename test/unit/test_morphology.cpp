@@ -19,15 +19,10 @@
 
 #include "algorithms.hpp"
 #include "io/sepval.hpp"
+#include "morph/morphology_impl.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
-
-// Forward declare non-public functions that are used internally to build
-// morphologies so that they can be tested.
-namespace arb { namespace impl {
-    std::vector<mbranch> branches_from_parent_index(const std::vector<arb::msize_t>&, const std::vector<point_prop>&, bool);
-}}
 
 template <typename T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
@@ -142,7 +137,7 @@ TEST(sample_tree, properties) {
 TEST(morphology, branches_from_parent_index) {
     const auto npos = arb::mnpos;
     using pvec = std::vector<arb::msize_t>;
-    using mb = arb::mbranch;
+    using mb = arb::impl::mbranch;
 
     // make a sample tree from a parent vector with non-collocated points.
     auto make_tree = [] (const pvec& parents) {
