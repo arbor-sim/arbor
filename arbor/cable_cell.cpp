@@ -181,7 +181,7 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
 
     auto& samples = morph.samples();
     for (auto i: util::make_span(1, morph.num_branches())) {
-        auto index =  util::make_range(morph.branch_sample_span(i));
+        auto index =  util::make_range(morph.branch_indexes(i));
 
         // find kind for the branch. Use the tag of the last sample in the branch.
         int tag = samples[index.back()].tag;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <ostream>
 #include <vector>
 
@@ -26,21 +27,13 @@ struct mbranch {
     friend std::ostream& operator<<(std::ostream& o, const mbranch& b);
 };
 
+class morphology_impl;
+
+using mindex_range = std::pair<const msize_t*, const msize_t*>;
+
 class morphology {
-    // The sample tree of sample points and their parent-child relationships.
-    sample_tree samples_;
-
-    // Indicates whether the soma is a sphere.
-    bool spherical_root_ = false;
-
-    // Branch state.
-    std::vector<mbranch> branches_;
-    std::vector<msize_t> branch_parents_;
-    std::vector<std::vector<msize_t>> branch_children_;
-
-    using index_range = std::pair<const msize_t*, const msize_t*>;
-
-    void init();
+    // Hold an immutable copy of the morphology implementation.
+    std::shared_ptr<const morphology_impl> impl_;
 
 public:
     morphology(sample_tree m, bool use_spherical_root);
@@ -62,7 +55,7 @@ public:
     const std::vector<msize_t>& branch_children(msize_t b) const;
 
     // Range of indexes into the sample points in branch b.
-    index_range branch_sample_span(msize_t b) const;
+    mindex_range branch_indexes(msize_t b) const;
 
     // Range of the samples in branch b.
     const std::vector<msample>& samples() const;

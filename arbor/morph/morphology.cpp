@@ -93,6 +93,10 @@ bool root_sample_has_same_tag_as_child(const sample_tree& st) {
 
 } // namespace impl
 
+//
+//  mbranch implementation
+//
+
 bool operator==(const mbranch& l, const mbranch& r) {
     return l.parent_id==r.parent_id && l.index==r.index;
 }
@@ -104,21 +108,68 @@ std::ostream& operator<<(std::ostream& o, const mbranch& b) {
     return o;
 }
 
-morphology::morphology(sample_tree m, bool use_spherical_root):
+//
+//  morphology_impl definition and implementation
+//
+
+struct morphology_impl {
+    // The sample tree of sample points and their parent-child relationships.
+    sample_tree samples_;
+
+    // Indicates whether the soma is a sphere.
+    bool spherical_root_ = false;
+
+    // Branch state.
+    std::vector<mbranch> branches_;
+    std::vector<msize_t> branch_parents_;
+    std::vector<std::vector<msize_t>> branch_children_;
+
+    using index_range = std::pair<const msize_t*, const msize_t*>;
+
+    void init();
+
+    morphology_impl(sample_tree m, bool use_spherical_root);
+    morphology_impl(sample_tree m);
+
+    // Whether the root of the morphology is spherical.
+    bool spherical_root() const;
+
+    // The number of branches in the morphology.
+    msize_t num_branches() const;
+
+    // The parent sample of sample i.
+    const std::vector<msize_t>& sample_parents() const;
+
+    // The parent branch of branch b.
+    msize_t branch_parent(msize_t b) const;
+
+    // The child branches of branch b.
+    const std::vector<msize_t>& branch_children(msize_t b) const;
+
+    // Range of indexes into the sample points in branch b.
+    index_range branch_indexes(msize_t b) const;
+
+    // Range of the samples in branch b.
+    const std::vector<msample>& samples() const;
+
+    friend std::ostream& operator<<(std::ostream&, const morphology_impl&);
+};
+
+morphology_impl::morphology_impl(sample_tree m, bool use_spherical_root):
     samples_(std::move(m)),
     spherical_root_(use_spherical_root)
 {
     init();
 }
 
-morphology::morphology(sample_tree m):
+morphology_impl::morphology_impl(sample_tree m):
     samples_(std::move(m)),
     spherical_root_(impl::root_sample_has_same_tag_as_child(samples_))
 {
     init();
 }
 
-void morphology::init() {
+void morphology_impl::init() {
     using util::make_span;
     using util::count_along;
 
@@ -143,39 +194,39 @@ void morphology::init() {
 }
 
 // The parent branch of branch b.
-msize_t morphology::branch_parent(msize_t b) const {
+msize_t morphology_impl::branch_parent(msize_t b) const {
     return branch_parents_[b];
 }
 
 // The parent sample of sample i.
-const std::vector<msize_t>& morphology::sample_parents() const {
+const std::vector<msize_t>& morphology_impl::sample_parents() const {
     return samples_.parents();
 }
 
 // The child branches of branch b.
-const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
+const std::vector<msize_t>& morphology_impl::branch_children(msize_t b) const {
     return branch_children_[b];
 }
 
 // Whether the root of the morphology is spherical.
-bool morphology::spherical_root() const {
+bool morphology_impl::spherical_root() const {
     return spherical_root_;
 }
 
-morphology::index_range morphology::branch_sample_span(msize_t b) const {
+mindex_range morphology_impl::branch_indexes(msize_t b) const {
     const auto& idx = branches_[b].index;
     return std::make_pair(idx.data(), idx.data()+idx.size());
 }
 
-const std::vector<msample>& morphology::samples() const {
+const std::vector<msample>& morphology_impl::samples() const {
     return samples_.samples();
 }
 
-msize_t morphology::num_branches() const {
+msize_t morphology_impl::num_branches() const {
     return branches_.size();
 }
 
-std::ostream& operator<<(std::ostream& o, const morphology& m) {
+std::ostream& operator<<(std::ostream& o, const morphology_impl& m) {
     o << "morphology: "
       << m.samples_.size() << " samples, "
       << m.num_branches() << " branches.";
@@ -183,6 +234,55 @@ std::ostream& operator<<(std::ostream& o, const morphology& m) {
         o << "\n  branch " << i << ": " << m.branches_[i];
 
     return o;
+}
+
+//
+// morphology implementation
+//
+
+morphology::morphology(sample_tree m, bool use_spherical_root):
+    impl_(std::make_shared<const morphology_impl>(std::move(m), use_spherical_root))
+{}
+
+morphology::morphology(sample_tree m):
+    impl_(std::make_shared<const morphology_impl>(std::move(m)))
+{}
+
+// The parent branch of branch b.
+msize_t morphology::branch_parent(msize_t b) const {
+    return impl_->branch_parents_[b];
+}
+
+// The parent sample of sample i.
+const std::vector<msize_t>& morphology::sample_parents() const {
+    return impl_->samples_.parents();
+}
+
+// The child branches of branch b.
+const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
+    return impl_->branch_children_[b];
+}
+
+// Whether the root of the morphology is spherical.
+bool morphology::spherical_root() const {
+    return impl_->spherical_root_;
+}
+
+mindex_range morphology::branch_indexes(msize_t b) const {
+    const auto& idx = impl_->branches_[b].index;
+    return std::make_pair(idx.data(), idx.data()+idx.size());
+}
+
+const std::vector<msample>& morphology::samples() const {
+    return impl_->samples_.samples();
+}
+
+msize_t morphology::num_branches() const {
+    return impl_->branches_.size();
+}
+
+std::ostream& operator<<(std::ostream& o, const morphology& m) {
+    return o << *m.impl_;
 }
 
 } // namespace arb
