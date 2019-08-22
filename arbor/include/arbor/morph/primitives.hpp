@@ -48,6 +48,39 @@ struct msample {
 bool is_collocated(const msample& a, const msample& b);
 double distance(const msample& a, const msample& b);
 
+// Describe a specific location on a morpholology.
+struct mlocation {
+    // The id of the branch.
+    msize_t branch;
+    // The relative position on the branch ∈ [0,1].
+    double pos;
+
+    friend bool test_invariants(const mlocation&);
+};
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mlocation, (a.branch,a.pos), (b.branch,b.pos));
+
+using mlocation_list = std::vector<mlocation>;
+bool test_invariants(const mlocation_list&);
+
+// Describe an unbranched cable in the morphology.
+struct mcable {
+    // The id of the branch on which the cable lies.
+    msize_t branch;
+
+    // Relative location of the end points on the branch.
+    // 0 ≤ prox_pos ≤ dist_pos ≤ 1
+    double prox_pos; // ∈ [0,1]
+    double dist_pos; // ∈ [0,1]
+
+    friend bool test_invariants(const mcable&);
+};
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mcable, (a.branch,a.prox_pos,a.dist_pos), (b.branch,b.prox_pos,b.dist_pos));
+
+using mcable_list = std::vector<mcable>;
+bool test_invariants(const mcable_list&);
+
 using point_prop = std::uint8_t;
 enum point_prop_mask: point_prop {
     point_prop_mask_none = 0,
