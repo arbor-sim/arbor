@@ -466,7 +466,7 @@ TEST(Parser, parse_reaction_expression) {
 
     for (auto& text: good_expr) {
         std::unique_ptr<ReactionExpression> s;
-        EXPECT_TRUE(check_parse(s, &Parser::parse_reaction_expression, text));
+        EXPECT_TRUE(check_parse(s, &Parser::parse_tilde_expression, text));
     }
 
     const char* bad_expr[] = {
@@ -483,7 +483,7 @@ TEST(Parser, parse_reaction_expression) {
     };
 
     for (auto& text: bad_expr) {
-        EXPECT_TRUE(check_parse_fail(&Parser::parse_reaction_expression, text));
+        EXPECT_TRUE(check_parse_fail(&Parser::parse_tilde_expression, text));
     }
 }
 

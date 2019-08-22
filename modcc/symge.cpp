@@ -1,10 +1,17 @@
 #include <algorithm>
 #include <stdexcept>
 #include <vector>
+#include <numeric>
 
 #include "symge.hpp"
 
 namespace symge {
+
+struct pivot {
+    unsigned row;
+    unsigned col;
+};
+
 
 // Returns q[c]*p - p[c]*q; new symbols required due to fill-in are provided by the
 // `define_sym` functor, which takes a `symbol_term_diff` and returns a `symbol`.
@@ -45,7 +52,7 @@ sym_row row_reduce(unsigned c, const sym_row& p, const sym_row& q, DefineSym def
 
 // Estimate cost of a choice of pivot for G–J reduction below. Uses a simple greedy
 // estimate based on immediate fill cost.
-double estimate_cost(const sym_matrix& A, unsigned p) {
+double estimate_cost(const sym_matrix& A, pivot p) {
     unsigned nfill = 0;
 
     auto count_fill = [&nfill](symbol_term_diff t) {
@@ -56,8 +63,8 @@ double estimate_cost(const sym_matrix& A, unsigned p) {
     };
 
     for (unsigned i = 0; i<A.nrow(); ++i) {
-        if (i==p || A[i].index(p)==msparse::row_npos) continue;
-        row_reduce(p, A[i], A[p], count_fill);
+        if (i==p.row || A[i].index(p.col)==msparse::row_npos) continue;
+        row_reduce(p.col, A[i], A[p.row], count_fill);
     }
 
     return nfill;
@@ -78,30 +85,48 @@ void gj_reduce(sym_matrix& A, symbol_table& table) {
 
     auto define_sym = [&table](symbol_term_diff t) { return table.define(t); };
 
-    std::vector<unsigned> pivots;
-    for (unsigned r = 0; r<A.nrow(); ++r) {
-        pivots.push_back(r);
-    }
+    auto get_pivots = [&A](const std::vector<unsigned>& remaining_rows) {
+        std::vector<pivot> pivots;
+        for (auto r: remaining_rows) {
+            pivot p;
+            p.row = r;
+            const sym_row &row = A[r];
+            for (unsigned c = 0; c < A.nrow(); ++c) {
+                if (row[c]) {
+                    p.col = c;
+                    break;
+                }
+            }
+            pivots.push_back(std::move(p));
+        }
+        return pivots;
+    };
 
-    std::vector<double> cost(pivots.size());
+    std::vector<unsigned> remaining_rows(A.nrow());
+    std::iota(remaining_rows.begin(), remaining_rows.end(), 0);
 
-    while (!pivots.empty()) {
+    std::vector<double> cost(A.nrow());
+
+    while (true) {
+        auto pivots = get_pivots(remaining_rows);
+
         for (unsigned i = 0; i<pivots.size(); ++i) {
-            cost[pivots[i]] = estimate_cost(A, pivots[i]);
+            cost[pivots[i].row] = estimate_cost(A, pivots[i]);
         }
 
         std::sort(pivots.begin(), pivots.end(),
-            [&](unsigned r1, unsigned r2) { return cost[r1]>cost[r2]; });
+                  [&](pivot r1, pivot r2) { return cost[r1.row]>cost[r2.row]; });
 
-        unsigned pivrow = pivots.back();
-        pivots.erase(std::prev(pivots.end()));
-
-        unsigned pivcol = pivrow;
+        pivot p = pivots.back();
+        remaining_rows.erase(std::lower_bound(remaining_rows.begin(), remaining_rows.end(), p.row));
 
         for (unsigned i = 0; i<A.nrow(); ++i) {
-            if (i==pivrow || A[i].index(pivcol)==msparse::row_npos) continue;
+            if (i==p.row || A[i].index(p.col)==msparse::row_npos) continue;
+            A[i] = row_reduce(p.col, A[i], A[p.row], define_sym);
+        }
 
-            A[i] = row_reduce(pivcol, A[i], A[pivrow], define_sym);
+        if (remaining_rows.empty()) {
+            break;
         }
     }
 }
