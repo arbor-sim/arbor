@@ -20,4 +20,6 @@ subdir('arbor')
 subdir('arborenv')
 subdir('sup')
 
-subdir('example/ring')
+subdir('example')
+#subdir('example/ring')
+#subdir('example/single')
