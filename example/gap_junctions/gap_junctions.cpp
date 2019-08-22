@@ -29,6 +29,11 @@
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
 
+#ifdef ARB_MPI_ENABLED
+#include <mpi.h>
+#include <arborenv/with_mpi.hpp>
+#endif
+
 struct gap_params {
     std::string name = "default";
     unsigned n_cables = 3;
