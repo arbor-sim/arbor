@@ -67,13 +67,15 @@ set(unit_sources
     test_algorithms.cpp
     test_any.cpp
     test_backend.cpp
-    test_double_buffer.cpp
-    test_dry_run_context.cpp
+    test_cable_cell.cpp
     test_compartments.cpp
     test_counter.cpp
     test_cycle.cpp
     test_domain_decomposition.cpp
+    test_dry_run_context.cpp
+    test_double_buffer.cpp
     test_either.cpp
+    test_em_morphology.cpp
     test_event_binner.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
@@ -82,23 +84,23 @@ set(unit_sources
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
     test_glob_basic.cpp
-    test_mc_cell_group.cpp
     test_kinetic.cpp
     test_lexcmp.cpp
     test_lif_cell_group.cpp
+    test_local_context.cpp
     test_maputil.cpp
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
-    test_cable_cell.cpp
+    test_mc_cell_group.cpp
     test_mechanisms.cpp
-    test_mech_temperature.cpp
     test_mechcat.cpp
+    test_mechinfo.cpp
+    test_mech_temperature.cpp
     test_merge_events.cpp
+    test_morphology.cpp
     test_multi_event_stream.cpp
     test_optional.cpp
-    test_mechinfo.cpp
-    test_morphology.cpp
     test_padded.cpp
     test_partition.cpp
     test_partition_by_constraint.cpp
@@ -109,7 +111,6 @@ set(unit_sources
     test_segment.cpp
     test_schedule.cpp
     test_spike_source.cpp
-    test_local_context.cpp
     test_scope_exit.cpp
     test_simd.cpp
     test_span.cpp

@@ -28,7 +28,7 @@ double distance(const mpoint& a, const mpoint& b) {
     double dy = a.y - b.y;
     double dz = a.z - b.z;
 
-    return std::sqrt(dx*dx + dy*dy * dz*dz);
+    return std::sqrt(dx*dx + dy*dy + dz*dz);
 }
 
 bool is_collocated(const msample& a, const msample& b) {
@@ -45,6 +45,10 @@ std::ostream& operator<<(std::ostream& o, const mpoint& p) {
 
 std::ostream& operator<<(std::ostream& o, const msample& s) {
     return o << "msample(" << s.loc << ", " << s.tag << ")";
+}
+
+std::ostream& operator<<(std::ostream& o, const mlocation& l) {
+    return o << "mlocation(" << l.branch << ", " << l.pos << ")";
 }
 
 } // namespace arb

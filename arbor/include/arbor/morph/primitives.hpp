@@ -56,6 +56,7 @@ struct mlocation {
     double pos;
 
     friend bool test_invariants(const mlocation&);
+    friend std::ostream& operator<<(std::ostream&, const mlocation&);
 };
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mlocation, (a.branch,a.pos), (b.branch,b.pos));

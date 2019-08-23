@@ -35,32 +35,27 @@ em_morphology::em_morphology(const morphology& m):
         branch_lengths_.push_back(dist2root_[idx.back()]- dist2root_[idx.front()]);
     }
 
-    // Gargh! What shit.
-    // We can't consistently label the root node: for spherical root, it should
-    // be {npos, 0}? Gargh!
-    // We have to rely on the fact that consumers will use our interface to
-    // request ranges etc, to handle the root special case.
-
     // Cache the sample locations.
     // Iterate backwards over branches distal to root, so that the parent branch at
     // fork points will label its distal sample.
     sample_locs_.resize(ns);
-    for (msize_t b=nb-1; b>0; --b) {
+    for (int b=nb-1; b>=0; --b) {
         auto idx = util::make_range(morph_.branch_indexes(b));
         double len = branch_lengths_[b];
         // Handle 0 length branch.
         len = len==0.? 1.: len;
         double start = dist2root_[idx.front()];
         for (auto i: idx) {
-            sample_locs_[i] = {b, (dist2root_[i]-start)/len};
+            sample_locs_[i] = {msize_t(b), (dist2root_[i]-start)/len};
         }
         // For ensure that all non-spherical branches have their last sample 
         if (idx.size()>1u) {
-            sample_locs_[idx.back()] = mlocation{b, 1.};
+            sample_locs_[idx.back()] = mlocation{msize_t(b), 1};
         }
     }
     sample_locs_[0] = mlocation{0, 0.};
 
+    // Cache the location of terminal and fork points.
     auto& props = morph_.sample_props();
     for (auto i: count_along(props)) {
         auto p = props[i];
