@@ -27,6 +27,8 @@ public:
     mlocation root() const;
 
     mlocation sample2loc(msize_t sid) const;
+
+    mlocation canonicalize(mlocation) const;
 };
 
 } // namespace arb

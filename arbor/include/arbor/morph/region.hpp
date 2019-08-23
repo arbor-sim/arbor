@@ -61,7 +61,7 @@ public:
         return *this;
     }
 
-    friend mcable_list concretnise(const region& r, const morphology& m) {
+    friend mcable_list concretise(const region& r, const em_morphology& m) {
         return r.impl_->concretise(m);
     }
 
@@ -82,7 +82,7 @@ private:
         virtual ~interface() {}
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
-        virtual mcable_list concretise(const morphology&) = 0;
+        virtual mcable_list concretise(const em_morphology&) = 0;
         virtual std::set<std::string> named_dependencies() = 0;
         virtual region replace_named_dependencies(const region_dictionary&, const locset_dictionary&) = 0;
     };
@@ -98,7 +98,7 @@ private:
             return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
         }
 
-        virtual mcable_list concretise(const morphology& m) override {
+        virtual mcable_list concretise(const em_morphology& m) override {
             return do_concretise(wrapped, m);
         }
 
@@ -120,13 +120,19 @@ private:
 
 namespace reg {
 
-// region with all segments with segment tag id
+// An explicit cable section.
+region cable(mcable);
+
+// An explicit branch.
+region branch(msize_t);
+
+// Region with all segments with segment tag id.
 region tagged(int id);
 
-// region with all segments in a cell
+// Region with all segments in a cell.
 region all();
 
-// a named region
+// A named region.
 region named(std::string n);
 
 } // namespace reg

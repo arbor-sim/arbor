@@ -39,6 +39,10 @@ double distance(const msample& a, const msample& b) {
     return distance(a.loc, b.loc);
 }
 
+bool test_invariants(const mlocation& l) {
+    return (0.<=l.pos && l.pos<=1.) && l.branch!=mnpos;
+}
+
 std::ostream& operator<<(std::ostream& o, const mpoint& p) {
     return o << "mpoint(" << p.x << "," << p.y << "," << p.z << "," << p.radius << ")";
 }

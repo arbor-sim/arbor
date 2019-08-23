@@ -118,20 +118,26 @@ private:
 
 namespace ls {
 
-// set of terminal nodes on a morphology
+// Location of a sample.
+locset location(mlocation);
+
+// Location of a sample.
+locset sample(msize_t);
+
+// Set of terminal nodes on a morphology.
 locset terminal();
 
-// the root node of a morphology
+// The root node of a morphology.
 locset root();
 
-// a named pointset
-locset named(std::string n);
+// A named pointset.
+locset named(std::string);
 
-// the union of two location sets
-locset loc_union(locset, locset);
+// The union of two location sets.
+locset lor(locset, locset);
 
-// the intersection of two location sets.
-locset loc_intersect(locset, locset);
+// The intersection of two location sets.
+locset land(locset, locset);
 
 } // namespace ps
 

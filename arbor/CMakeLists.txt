@@ -32,6 +32,7 @@ set(arbor_sources
     morph/locset.cpp
     morph/morphology.cpp
     morph/primitives.cpp
+    morph/region.cpp
     morph/sample_tree.cpp
     merge_events.cpp
     simulation.cpp

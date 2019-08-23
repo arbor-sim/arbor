@@ -21,6 +21,61 @@ mlocation_list merge(const mlocation_list& lhs, const mlocation_list& rhs) {
     return v;
 }
 
+// An explicit location
+struct location_ {
+    mlocation loc;
+};
+
+locset location(mlocation loc) {
+    if (!test_invariants(loc)) {
+        throw morphology_error(util::pprintf("invalid location {}", loc));
+    }
+    return locset{location_{loc}};
+}
+
+std::set<std::string> do_named_dependencies(const location_&) {
+    return {};
+}
+
+locset do_replace_named_dependencies(const location_& s, const region_dictionary& r, const locset_dictionary& p) {
+    return locset(s);
+}
+
+mlocation_list do_concretise(const location_& x, const em_morphology& m) {
+    // canonicalize will throw if the location is not present.
+    return {m.canonicalize(x.loc)};
+}
+
+std::ostream& operator<<(std::ostream& o, const location_& x) {
+    return o << "(location " << x.loc.branch << " " << x.loc.pos << ")";
+}
+
+
+// Location corresponding to a sample id
+struct sample_ {
+    msize_t index;
+};
+
+locset sample(msize_t index) {
+    return locset{sample_{index}};
+}
+
+std::set<std::string> do_named_dependencies(const sample_&) {
+    return {};
+}
+
+locset do_replace_named_dependencies(const sample_& s, const region_dictionary& r, const locset_dictionary& p) {
+    return locset(s);
+}
+
+mlocation_list do_concretise(const sample_& x, const em_morphology& m) {
+    return {m.sample2loc(x.index)};
+}
+
+std::ostream& operator<<(std::ostream& o, const sample_& x) {
+    return o << "(sample " << x.index << ")";
+}
+
 // set of terminal nodes on a morphology
 struct terminal_ {};
 
@@ -37,13 +92,7 @@ locset do_replace_named_dependencies(const terminal_& ps, const region_dictionar
 }
 
 mlocation_list do_concretise(const terminal_&, const em_morphology& m) {
-    const auto& terms = m.terminals();
-    mlocation_list pl;
-    pl.reserve(terms.size());
-    for (auto t: terms) {
-        pl.push_back(t);
-    }
-    return pl;
+    return m.terminals();
 }
 
 std::ostream& operator<<(std::ostream& o, const terminal_& x) {
@@ -143,6 +192,10 @@ std::ostream& operator<<(std::ostream& o, const and_& x) {
     return o << "(and " << x.lhs << " " << x.rhs << ")";
 }
 
+locset land(locset lhs, locset rhs) {
+    return locset(and_(std::move(lhs), std::move(rhs)));
+}
+
 // union of two point sets
 struct or_ {
     locset lhs;
@@ -175,6 +228,10 @@ mlocation_list do_concretise(const or_& P, const em_morphology& m) {
 
 std::ostream& operator<<(std::ostream& o, const or_& x) {
     return o << "(or " << x.lhs << " " << x.rhs << ")";
+}
+
+locset lor(locset lhs, locset rhs) {
+    return locset(or_(std::move(lhs), std::move(rhs)));
 }
 
 } // namespace ls

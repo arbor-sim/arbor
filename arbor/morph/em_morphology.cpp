@@ -1,11 +1,13 @@
 #include <mutex>
 #include <vector>
 
+#include <arbor/morph/error.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
 #include "morph/em_morphology.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 
@@ -68,16 +70,39 @@ em_morphology::em_morphology(const morphology& m):
     }
 }
 
+const morphology& em_morphology::morph() const {
+    return morph_;
+}
+
 mlocation em_morphology::root() const {
-    return sample_locs_[0];
+    return {0,0};
 }
 
 mlocation em_morphology::sample2loc(msize_t sid) const {
+    if (sid>=morph_.num_samples()) {
+        throw morphology_error(util::pprintf("Sample {} does not exist in morpology", sid));
+    }
     return sample_locs_[sid];
 }
 
 mlocation_list em_morphology::terminals() const {
     return terminals_;
+}
+
+mlocation em_morphology::canonicalize(mlocation loc) const {
+    if (!test_invariants(loc)) {
+        throw morphology_error(util::pprintf("Invalid location {}", loc));
+    }
+    if (loc.branch>=morph_.num_branches()) {
+        throw morphology_error(util::pprintf("Location {} does not exist in morpology", loc));
+    }
+
+    // Test if location is at the start of a branch.
+    if (loc.pos==0.) {
+        auto p = morph_.branch_parent(loc.branch);
+        return p==mnpos? root(): mlocation{p, 1};
+    }
+    return loc;
 }
 
 } // namespace arb
