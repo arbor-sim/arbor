@@ -440,5 +440,6 @@ install(
     FILES
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config-version.cmake"
+        cmake/FindUnwind.cmake
     DESTINATION "${cmake_config_dir}")
 
