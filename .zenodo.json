@@ -66,6 +66,10 @@
 	    "orcid": "0000-0002-9447-6653",
 	    "affiliation": "CSCS",
 	    "name": "Stuart Yates"
-	}
+	},
+	{
+	    "affiliation": "Universität Heidelberg",
+	    "name": "Eric Müller"
+	}    
     ],
 }
