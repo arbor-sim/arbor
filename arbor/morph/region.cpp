@@ -36,18 +36,101 @@ bool is_nonnull_intersection(const mcable& a, const mcable& b) {
 
 mcable make_union(const mcable& a, const mcable& b) {
     assert(!is_disjoint_union(a,b));
-    const mcable& lhs = a<b? a: b;
-    const mcable& rhs = a<b? b: a;
-
-    return {lhs.branch, lhs.prox_pos, rhs.dist_pos};
+    return mcable{a.branch, std::min(a.prox_pos, b.prox_pos), std::max(a.dist_pos, b.dist_pos)};
 }
 
 mcable make_intersection(const mcable& a, const mcable& b) {
     assert(is_nonnull_intersection(a,b));
-    const mcable& lhs = a<b? a: b;
-    const mcable& rhs = a<b? b: a;
 
-    return mcable{lhs.branch, rhs.prox_pos, lhs.dist_pos};
+    return mcable{a.branch, std::max(a.prox_pos, b.prox_pos), std::min(a.dist_pos, b.dist_pos)};
+}
+
+//
+// Explicit cable section
+//
+
+struct cable_ {
+    mcable cable;
+};
+
+region cable(mcable c) {
+    if (!test_invariants(c)) {
+        throw morphology_error(util::pprintf("Invalid cable section {}", c));
+    }
+    return region(cable_{c});
+}
+
+region branch(msize_t bid) {
+    return cable({bid, 0, 1});
+}
+
+mcable_list concretise_(const cable_& reg, const em_morphology& em) {
+    auto& m = em.morph();
+
+    if (reg.cable.branch>=m.num_branches()) {
+        throw morphology_error(util::pprintf("Branch {} does not exist in morpology", reg.cable.branch));
+    }
+
+    return {reg.cable};
+}
+
+std::set<std::string> get_named_dependencies_(const cable_&) {
+    return {};
+}
+
+region replace_named_dependencies_(const cable_& reg,
+                                   const region_dictionary& reg_dict,
+                                   const locset_dictionary& ps_dict)
+{
+    return region(reg);
+}
+
+std::ostream& operator<<(std::ostream& o, const cable_& c) {
+    return o << c.cable;
+}
+
+//
+//  Explicit list of cable sections (concretised region).
+//
+
+struct cable_list_ {
+    mcable_list list;
+};
+
+region cable_list(mcable_list l) {
+    std::sort(l.begin(), l.end());
+    if (!test_invariants(l)) {
+        throw morphology_error(util::pprintf("Invalid cable list {}", l));
+    }
+    return region(cable_list_{std::move(l)});
+}
+
+mcable_list concretise_(const cable_list_& reg, const em_morphology& em) {
+    auto& m = em.morph();
+    const auto &L = reg.list;
+
+    for (auto& c: L) {
+        if (c.branch>=m.num_branches()) {
+            throw morphology_error(util::pprintf("Branch {} does not exist in morpology", c.branch));
+        }
+    }
+
+    return L;
+}
+
+std::set<std::string> get_named_dependencies_(const cable_list_&) {
+    return {};
+}
+
+region replace_named_dependencies_(const cable_list_& reg,
+                                   const region_dictionary& reg_dict,
+                                   const locset_dictionary& ps_dict)
+{
+    return region(reg);
+}
+
+std::ostream& operator<<(std::ostream& o, const cable_list_& c) {
+    return o << c.list;
 }
 
 //
@@ -61,7 +144,7 @@ region tagged(int id) {
     return region(tagged_{id});
 }
 
-mcable_list parse_morpho(const tagged_& reg, const em_morphology& em) {
+mcable_list concretise_(const tagged_& reg, const em_morphology& em) {
     auto& m = em.morph();
     size_t nb = m.num_branches();
 
@@ -85,16 +168,17 @@ mcable_list parse_morpho(const tagged_& reg, const em_morphology& em) {
 
         // The branch has at least 2 samples.
         // Start at begin+1 because a segment gets its tag from its distal sample.
-        auto beg = std::cbegin(ids)+1;
+        auto beg = std::cbegin(ids);
         auto end = std::cend(ids);
 
         // Find the next sample that matches reg.tag.
-        auto start = std::find_if(beg, end, matches);
+        auto start = std::find_if(beg+1, end, matches);
         while (start!=end) {
             // find the next sample that does not match reg.tag
+            auto first = start-1;
             auto last = std::find_if(start, end, not_matches);
 
-            auto l = em.sample2loc(*(start-1)).pos;
+            auto l = first==beg? 0.: em.sample2loc(*first).pos;
             auto r = last==end?  1.: em.sample2loc(*(last-1)).pos;
             L.push_back({i, l, r});
 
@@ -102,14 +186,14 @@ mcable_list parse_morpho(const tagged_& reg, const em_morphology& em) {
             start = std::find_if(last, end, matches);
         }
     }
-    return {L};
+    return L;
 }
 
-std::set<std::string> get_named_dependencies(const tagged_&) {
+std::set<std::string> get_named_dependencies_(const tagged_&) {
     return {};
 }
 
-region do_replace_named_dependencies(const tagged_& reg,
+region replace_named_dependencies_(const tagged_& reg,
                                      const region_dictionary& reg_dict,
                                      const locset_dictionary& ps_dict)
 {
@@ -129,8 +213,8 @@ region all() {
     return region(all_{});
 }
 
-mcable_list parse_morpho(const all_&, const em_morphology& m) {
-    auto nb = m.num_branches();
+mcable_list concretise_(const all_&, const em_morphology& m) {
+    auto nb = m.morph().num_branches();
     mcable_list branches;
     branches.reserve(nb);
     for (auto i: util::make_span(nb)) {
@@ -139,11 +223,11 @@ mcable_list parse_morpho(const all_&, const em_morphology& m) {
     return branches;
 }
 
-std::set<std::string> get_named_dependencies(const all_&) {
+std::set<std::string> get_named_dependencies_(const all_&) {
     return {};
 }
 
-region do_replace_named_dependencies(const all_& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
+region replace_named_dependencies_(const all_& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
     return region(reg);
 }
 
@@ -163,16 +247,16 @@ region named(std::string n) {
     return region(named_{std::move(n)});
 }
 
-mcable_list parse_morpho(const named_&, const em_morphology& m) {
+mcable_list concretise_(const named_&, const em_morphology& m) {
     throw morphology_error("not possible to generated cable segments from a named region");
     return {};
 }
 
-std::set<std::string> get_named_dependencies(const named_& n) {
+std::set<std::string> get_named_dependencies_(const named_& n) {
     return {n.name};
 }
 
-region do_replace_named_dependencies(const named_& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
+region replace_named_dependencies_(const named_& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
     auto it = reg_dict.find(reg.name);
     if (it == reg_dict.end()) {
         throw morphology_error(
@@ -194,7 +278,7 @@ struct reg_and {
     reg_and(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mcable_list parse_morpho(const reg_and& P, const em_morphology& m) {
+mcable_list concretise_(const reg_and& P, const em_morphology& m) {
     using cable_it = std::vector<mcable>::const_iterator;
     using cable_it_pair = std::pair<cable_it, cable_it>;
 
@@ -212,7 +296,7 @@ mcable_list parse_morpho(const reg_and& P, const em_morphology& m) {
         if (is_nonnull_intersection(*lhs, *rhs)) {
             L.push_back(make_intersection(*lhs, *rhs));
         }
-        if (lhs->dist_pos < rhs->dist_pos) {
+        if (dist_loc(*lhs) < dist_loc(*rhs)) {
             ++lhs;
         }
         else {
@@ -221,17 +305,17 @@ mcable_list parse_morpho(const reg_and& P, const em_morphology& m) {
         at_end = it.first==end.first || it.second==end.second;
     }
 
-    return {L};
+    return L;
 }
 
-std::set<std::string> get_named_dependencies(const reg_and& reg) {
+std::set<std::string> get_named_dependencies_(const reg_and& reg) {
     auto l = named_dependencies(reg.lhs);
     auto r = named_dependencies(reg.rhs);
     l.insert(r.begin(), r.end());
     return l;
 }
 
-region do_replace_named_dependencies(const reg_and& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
+region replace_named_dependencies_(const reg_and& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
     return region(reg_and(replace_named_dependencies(reg.lhs, reg_dict, ps_dict),
                           replace_named_dependencies(reg.rhs, reg_dict, ps_dict)));
 }
@@ -249,9 +333,9 @@ struct reg_or {
     reg_or(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mcable_list parse_morpho(const reg_or& P, const em_morphology& m) {
+mcable_list concretise_(const reg_or& P, const em_morphology& m) {
     auto l = merge(concretise(P.lhs, m), concretise(P.rhs, m));
-    if (l.size()<2) return {l};
+    if (l.size()<2) return l;
     std::vector<mcable> L;
     L.reserve(l.size());
     auto c = l.front();
@@ -267,17 +351,17 @@ mcable_list parse_morpho(const reg_or& P, const em_morphology& m) {
         ++it;
     }
     L.push_back(c);
-    return {L};
+    return L;
 }
 
-std::set<std::string> get_named_dependencies(const reg_or& reg) {
+std::set<std::string> get_named_dependencies_(const reg_or& reg) {
     auto l = named_dependencies(reg.lhs);
     auto r = named_dependencies(reg.rhs);
     l.insert(r.begin(), r.end());
     return l;
 }
 
-region do_replace_named_dependencies(const reg_or& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
+region replace_named_dependencies_(const reg_or& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
     return region(reg_or(replace_named_dependencies(reg.lhs, reg_dict, ps_dict),
                          replace_named_dependencies(reg.rhs, reg_dict, ps_dict)));
 }
@@ -287,5 +371,17 @@ std::ostream& operator<<(std::ostream& o, const reg_or& x) {
 }
 
 } // namespace reg
+
+// The and_ and or_ operations in the arb:: namespace with region so that
+// ADL allows for construction of expressions with regions without having
+// to namespace qualify the and_/or_.
+
+region and_(region l, region r) {
+    return region{reg::reg_and(std::move(l), std::move(r))};
+}
+
+region or_(region l, region r) {
+    return region{reg::reg_or(std::move(l), std::move(r))};
+}
 
 } // namespace arb

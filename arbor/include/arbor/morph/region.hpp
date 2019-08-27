@@ -77,6 +77,12 @@ public:
         return p.impl_->print(o);
     }
 
+    // The union of two regions.
+    friend region or_(region, region);
+
+    // The intersection of two regions.
+    friend region and_(region, region);
+
 private:
     struct interface {
         virtual ~interface() {}
@@ -99,19 +105,22 @@ private:
         }
 
         virtual mcable_list concretise(const em_morphology& m) override {
-            return do_concretise(wrapped, m);
+            return concretise_(wrapped, m);
         }
 
         virtual std::set<std::string> named_dependencies() override {
-            return do_get_named_dependencies(wrapped);
+            return get_named_dependencies_(wrapped);
         }
 
         virtual std::ostream& print(std::ostream& o) override {
             return o << wrapped;
         }
 
-        virtual region replace_named_dependencies(const region_dictionary& r, const locset_dictionary& p) override {
-            return do_replace_named_dependencies(wrapped, r, p);
+        virtual region replace_named_dependencies(
+                const region_dictionary& r,
+                const locset_dictionary& p) override
+        {
+            return replace_named_dependencies_(wrapped, r, p);
         }
 
         Impl wrapped;
@@ -120,8 +129,12 @@ private:
 
 namespace reg {
 
+
 // An explicit cable section.
 region cable(mcable);
+
+// An explicit list of cable sections.
+region cable_list(mcable_list);
 
 // An explicit branch.
 region branch(msize_t);

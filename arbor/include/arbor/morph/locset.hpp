@@ -75,6 +75,12 @@ public:
         return p.impl_->print(o);
     }
 
+    // The union of two location sets.
+    friend locset or_(locset, locset);
+
+    // The intersection of two location sets.
+    friend locset and_(locset, locset);
+
 private:
     struct interface {
         virtual ~interface() {}
@@ -97,15 +103,15 @@ private:
         }
 
         virtual mlocation_list concretise(const em_morphology& m) override {
-            return do_concretise(wrapped, m);
+            return concretise_(wrapped, m);
         }
 
         virtual std::set<std::string> named_dependencies() override {
-            return do_named_dependencies(wrapped);
+            return named_dependencies_(wrapped);
         }
 
         virtual locset replace_named_dependencies(const region_dictionary& r, const locset_dictionary& p) override {
-            return do_replace_named_dependencies(wrapped, r, p);
+            return replace_named_dependencies_(wrapped, r, p);
         }
 
         virtual std::ostream& print(std::ostream& o) override {
@@ -132,12 +138,6 @@ locset root();
 
 // A named pointset.
 locset named(std::string);
-
-// The union of two location sets.
-locset lor(locset, locset);
-
-// The intersection of two location sets.
-locset land(locset, locset);
 
 } // namespace ps
 

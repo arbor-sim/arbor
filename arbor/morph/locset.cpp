@@ -33,15 +33,15 @@ locset location(mlocation loc) {
     return locset{location_{loc}};
 }
 
-std::set<std::string> do_named_dependencies(const location_&) {
+std::set<std::string> named_dependencies_(const location_&) {
     return {};
 }
 
-locset do_replace_named_dependencies(const location_& s, const region_dictionary& r, const locset_dictionary& p) {
+locset replace_named_dependencies_(const location_& s, const region_dictionary& r, const locset_dictionary& p) {
     return locset(s);
 }
 
-mlocation_list do_concretise(const location_& x, const em_morphology& m) {
+mlocation_list concretise_(const location_& x, const em_morphology& m) {
     // canonicalize will throw if the location is not present.
     return {m.canonicalize(x.loc)};
 }
@@ -60,15 +60,15 @@ locset sample(msize_t index) {
     return locset{sample_{index}};
 }
 
-std::set<std::string> do_named_dependencies(const sample_&) {
+std::set<std::string> named_dependencies_(const sample_&) {
     return {};
 }
 
-locset do_replace_named_dependencies(const sample_& s, const region_dictionary& r, const locset_dictionary& p) {
+locset replace_named_dependencies_(const sample_& s, const region_dictionary& r, const locset_dictionary& p) {
     return locset(s);
 }
 
-mlocation_list do_concretise(const sample_& x, const em_morphology& m) {
+mlocation_list concretise_(const sample_& x, const em_morphology& m) {
     return {m.sample2loc(x.index)};
 }
 
@@ -83,15 +83,15 @@ locset terminal() {
     return locset{terminal_{}};
 }
 
-std::set<std::string> do_named_dependencies(const terminal_&) {
+std::set<std::string> named_dependencies_(const terminal_&) {
     return {};
 }
 
-locset do_replace_named_dependencies(const terminal_& ps, const region_dictionary& r, const locset_dictionary& p) {
+locset replace_named_dependencies_(const terminal_& ps, const region_dictionary& r, const locset_dictionary& p) {
     return locset(ps);
 }
 
-mlocation_list do_concretise(const terminal_&, const em_morphology& m) {
+mlocation_list concretise_(const terminal_&, const em_morphology& m) {
     return m.terminals();
 }
 
@@ -106,15 +106,15 @@ locset root() {
     return locset{root_{}};
 }
 
-std::set<std::string> do_named_dependencies(const root_&) {
+std::set<std::string> named_dependencies_(const root_&) {
     return {};
 }
 
-locset do_replace_named_dependencies(const root_& ps, const region_dictionary& r, const locset_dictionary& p) {
+locset replace_named_dependencies_(const root_& ps, const region_dictionary& r, const locset_dictionary& p) {
     return locset(ps);
 }
 
-mlocation_list do_concretise(const root_&, const em_morphology& m) {
+mlocation_list concretise_(const root_&, const em_morphology& m) {
     return {m.root()};
 }
 
@@ -132,11 +132,11 @@ locset named(std::string n) {
     return locset{named_{std::move(n)}};
 }
 
-std::set<std::string> do_named_dependencies(const named_& n) {
+std::set<std::string> named_dependencies_(const named_& n) {
     return {n.name};
 }
 
-locset do_replace_named_dependencies(const named_& ps, const region_dictionary& r, const locset_dictionary& p) {
+locset replace_named_dependencies_(const named_& ps, const region_dictionary& r, const locset_dictionary& p) {
     auto it = p.find(ps.name);
     if (it==p.end()) {
         throw morphology_error(
@@ -145,8 +145,8 @@ locset do_replace_named_dependencies(const named_& ps, const region_dictionary& 
     return it->second;
 }
 
-mlocation_list do_concretise(const named_&, const em_morphology& m) {
-    throw morphology_error("do_concretise not implemented for named mlocation_list");
+mlocation_list concretise_(const named_&, const em_morphology& m) {
+    throw morphology_error("concretise_ not implemented for named mlocation_list");
     return {};
 }
 
@@ -155,25 +155,25 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
 }
 
 // intersection of two point sets
-struct and_ {
+struct land {
     locset lhs;
     locset rhs;
-    and_(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+    land(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-std::set<std::string> do_named_dependencies(const and_& p) {
+std::set<std::string> named_dependencies_(const land& p) {
     auto l = named_dependencies(p.lhs);
     auto r = named_dependencies(p.rhs);
     l.insert(r.begin(), r.end());
     return l;
 }
 
-locset do_replace_named_dependencies(const and_& ps, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(and_(replace_named_dependencies(ps.lhs, r, p),
+locset replace_named_dependencies_(const land& ps, const region_dictionary& r, const locset_dictionary& p) {
+    return locset(land(replace_named_dependencies(ps.lhs, r, p),
                        replace_named_dependencies(ps.rhs, r, p)));
 }
 
-mlocation_list do_concretise(const and_& P, const em_morphology& m) {
+mlocation_list concretise_(const land& P, const em_morphology& m) {
     auto locs = merge(concretise(P.lhs, m), concretise(P.rhs, m));
     auto beg = locs.begin();
     auto end = locs.end();
@@ -188,34 +188,30 @@ mlocation_list do_concretise(const and_& P, const em_morphology& m) {
     return locs;
 }
 
-std::ostream& operator<<(std::ostream& o, const and_& x) {
+std::ostream& operator<<(std::ostream& o, const land& x) {
     return o << "(and " << x.lhs << " " << x.rhs << ")";
 }
 
-locset land(locset lhs, locset rhs) {
-    return locset(and_(std::move(lhs), std::move(rhs)));
-}
-
 // union of two point sets
-struct or_ {
+struct locor {
     locset lhs;
     locset rhs;
-    or_(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+    locor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-std::set<std::string> do_named_dependencies(const or_& p) {
+std::set<std::string> named_dependencies_(const locor& p) {
     auto l = named_dependencies(p.lhs);
     auto r = named_dependencies(p.rhs);
     l.insert(r.begin(), r.end());
     return l;
 }
 
-locset do_replace_named_dependencies(const or_& ps, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(or_(replace_named_dependencies(ps.lhs, r, p),
+locset replace_named_dependencies_(const locor& ps, const region_dictionary& r, const locset_dictionary& p) {
+    return locset(locor(replace_named_dependencies(ps.lhs, r, p),
                           replace_named_dependencies(ps.rhs, r, p)));
 }
 
-mlocation_list do_concretise(const or_& P, const em_morphology& m) {
+mlocation_list concretise_(const locor& P, const em_morphology& m) {
     // Concatenate locations from lhs and rhs.
     auto locs = merge(concretise(P.lhs, m), concretise(P.rhs, m));
 
@@ -226,14 +222,23 @@ mlocation_list do_concretise(const or_& P, const em_morphology& m) {
     return locs;
 }
 
-std::ostream& operator<<(std::ostream& o, const or_& x) {
+std::ostream& operator<<(std::ostream& o, const locor& x) {
     return o << "(or " << x.lhs << " " << x.rhs << ")";
 }
 
-locset lor(locset lhs, locset rhs) {
-    return locset(or_(std::move(lhs), std::move(rhs)));
+} // namespace ls
+
+
+// The and_ and or_ operations in the arb:: namespace with locset so that
+// ADL allows for construction of expressions with locsets without having
+// to namespace qualify the and_/or_.
+
+locset and_(locset lhs, locset rhs) {
+    return locset(ls::land(std::move(lhs), std::move(rhs)));
 }
 
-} // namespace ls
+locset or_(locset lhs, locset rhs) {
+    return locset(ls::locor(std::move(lhs), std::move(rhs)));
+}
 
 } // namespace arb
