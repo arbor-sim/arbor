@@ -39,7 +39,7 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 
 option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
 
-# Specify target archiecture.
+# Use libunwind to generate stack traces on errors?
 
 option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
 
