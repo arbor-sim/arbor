@@ -130,8 +130,6 @@ TEST(em_morphology, cache) {
 TEST(locset, expressions) {
     auto root = arb::ls::root();
     auto term = arb::ls::terminal();
-    auto n1 = arb::ls::named("1");
-    auto n2 = arb::ls::named("2");
     auto samp = arb::ls::sample(42);
     auto loc = arb::ls::location({2, 0.5});
 
@@ -143,11 +141,9 @@ TEST(locset, expressions) {
 
     EXPECT_EQ(to_string(root), "root");
     EXPECT_EQ(to_string(term), "terminal");
-    EXPECT_EQ(to_string(n1), "\"1\"");
-    EXPECT_EQ(to_string(n2), "\"2\"");
     EXPECT_EQ(to_string(and_(root, term)), "(and root terminal)");
     EXPECT_EQ(to_string(or_(root, term)),  "(or root terminal)");
-    EXPECT_EQ(to_string(or_(root, and_(term, n1))),  "(or root (and terminal \"1\"))");
+    EXPECT_EQ(to_string(or_(root, and_(term, samp))),  "(or root (and terminal (sample 42)))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 
@@ -172,7 +168,6 @@ TEST(region, expressions) {
     auto b1 = arb::reg::branch(1);
     auto t1 = arb::reg::tagged(1);
     auto t2 = arb::reg::tagged(2);
-    auto dend = arb::reg::named("dendrite");
     auto all = arb::reg::all();
 
     EXPECT_EQ(to_string(c1), "(cable 1 0 1)");
@@ -184,7 +179,6 @@ TEST(region, expressions) {
     EXPECT_EQ(to_string(and_(c1, t2)), "(and (cable 1 0 1) (tag 2))");
     EXPECT_EQ(to_string(or_(c1, t2)),  "(or (cable 1 0 1) (tag 2))");
     EXPECT_EQ(to_string(and_(or_(c1, t2), c2)),  "(and (or (cable 1 0 1) (tag 2)) (cable 4 0.1 0.5))");
-    EXPECT_EQ(to_string(dend), "\"dendrite\"");
     EXPECT_EQ(to_string(all), "all");
 
     EXPECT_THROW(arb::reg::cable({1, 0, 1.1}), arb::morphology_error);

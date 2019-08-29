@@ -1,7 +1,12 @@
+#include <sstream>
+#include <vector>
+
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/segment.hpp>
 
+#include "morph/em_morphology.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
@@ -106,12 +111,12 @@ size_type cable_cell::num_compartments() const {
             [](const segment_ptr& s) { return s->num_compartments(); });
 }
 
-void cable_cell::add_stimulus(segment_location loc, i_clamp stim) {
-    (void)segment(loc.segment); // assert loc.segment in range
+void cable_cell::add_stimulus(mlocation loc, i_clamp stim) {
+    (void)segment(loc.branch); // assert loc.segment in range
     stimuli_.push_back({loc, std::move(stim)});
 }
 
-void cable_cell::add_detector(segment_location loc, double threshold) {
+void cable_cell::add_detector(mlocation loc, double threshold) {
     spike_detectors_.push_back({loc, threshold});
 }
 
@@ -164,9 +169,12 @@ value_type cable_cell::segment_mean_attenuation(
     return 2*std::sqrt(math::pi<double>*tau_per_um*frequency)*length_factor; // [1/µm]
 }
 
-cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization) {
+cable_cell make_cable_cell(const morphology& m, label_dict dictionary, bool compartments_from_discretization) {
     using point3d = cable_cell::point_type;
     cable_cell newcell;
+
+    auto emorph = em_morphology(m);
+    auto& morph = emorph.morph();
 
     if (!morph.num_branches()) {
         return newcell;
@@ -217,6 +225,22 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
             cable->as_cable()->set_compartments(radii.size()-1);
         }
     }
+
+    // Construct concrete regions.
+    // Ignores the pointsets, for now.
+    std::unordered_map<std::string, mcable_list> regions;
+    for (auto r: dictionary.regions()) {
+        mcable_list L = concretise(r.second, emorph);
+        for (auto c: L) {
+            if (c.prox_pos!=0 || c.dist_pos!=1) {
+                std::stringstream s;
+                s << "cable_cell does not support regions that contain partial branches (yet): \"" << r.first << "\": " << c;
+                throw cable_cell_error(s.str());
+            }
+        }
+        regions[r.first] = L;
+    }
+    newcell.set_regions(std::move(regions));
 
     return newcell;
 }

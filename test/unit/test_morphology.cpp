@@ -570,7 +570,7 @@ TEST(morphology, swc) {
     EXPECT_EQ(31u, m.num_branches());
 
     // Confirm that converting to a cable_cell generates the same number of branches.
-    auto c = arb::make_cable_cell(m, false);
+    auto c = arb::make_cable_cell(m, {}, false);
     EXPECT_EQ(31u, c.num_segments());
 }
 

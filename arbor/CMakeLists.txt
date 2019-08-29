@@ -29,6 +29,7 @@ set(arbor_sources
     memory/cuda_wrappers.cpp
     memory/util.cpp
     morph/em_morphology.cpp
+    morph/label_dict.cpp
     morph/locset.cpp
     morph/morphology.cpp
     morph/primitives.cpp

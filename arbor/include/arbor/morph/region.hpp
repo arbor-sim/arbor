@@ -65,14 +65,6 @@ public:
         return r.impl_->concretise(m);
     }
 
-    friend std::set<std::string> named_dependencies(const region& r) {
-      return r.impl_->named_dependencies();
-    }
-
-    friend region replace_named_dependencies(const region& p, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
-      return p.impl_->replace_named_dependencies(reg_dict, ps_dict);
-    }
-
     friend std::ostream& operator<<(std::ostream& o, const region& p) {
         return p.impl_->print(o);
     }
@@ -89,8 +81,6 @@ private:
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
         virtual mcable_list concretise(const em_morphology&) = 0;
-        virtual std::set<std::string> named_dependencies() = 0;
-        virtual region replace_named_dependencies(const region_dictionary&, const locset_dictionary&) = 0;
     };
 
     std::unique_ptr<interface> impl_;
@@ -108,19 +98,8 @@ private:
             return concretise_(wrapped, m);
         }
 
-        virtual std::set<std::string> named_dependencies() override {
-            return get_named_dependencies_(wrapped);
-        }
-
         virtual std::ostream& print(std::ostream& o) override {
             return o << wrapped;
-        }
-
-        virtual region replace_named_dependencies(
-                const region_dictionary& r,
-                const locset_dictionary& p) override
-        {
-            return replace_named_dependencies_(wrapped, r, p);
         }
 
         Impl wrapped;
@@ -144,9 +123,6 @@ region tagged(int id);
 
 // Region with all segments in a cell.
 region all();
-
-// A named region.
-region named(std::string n);
 
 } // namespace reg
 

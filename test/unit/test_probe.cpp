@@ -28,9 +28,9 @@ TEST(probe, fvm_lowered_cell) {
 
     cable1d_recipe rec(bs);
 
-    segment_location loc0{0, 0};
-    segment_location loc1{1, 1};
-    segment_location loc2{1, 0.3};
+    mlocation loc0{0, 0};
+    mlocation loc1{1, 1};
+    mlocation loc2{1, 0.3};
 
     rec.add_probe(0, 10, cell_probe_address{loc0, cell_probe_address::membrane_voltage});
     rec.add_probe(0, 20, cell_probe_address{loc1, cell_probe_address::membrane_voltage});

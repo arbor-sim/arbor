@@ -74,17 +74,6 @@ mcable_list concretise_(const cable_& reg, const em_morphology& em) {
     return {reg.cable};
 }
 
-std::set<std::string> get_named_dependencies_(const cable_&) {
-    return {};
-}
-
-region replace_named_dependencies_(const cable_& reg,
-                                   const region_dictionary& reg_dict,
-                                   const locset_dictionary& ps_dict)
-{
-    return region(reg);
-}
-
 std::ostream& operator<<(std::ostream& o, const cable_& c) {
     return o << c.cable;
 }
@@ -116,17 +105,6 @@ mcable_list concretise_(const cable_list_& reg, const em_morphology& em) {
     }
 
     return L;
-}
-
-std::set<std::string> get_named_dependencies_(const cable_list_&) {
-    return {};
-}
-
-region replace_named_dependencies_(const cable_list_& reg,
-                                   const region_dictionary& reg_dict,
-                                   const locset_dictionary& ps_dict)
-{
-    return region(reg);
 }
 
 std::ostream& operator<<(std::ostream& o, const cable_list_& c) {
@@ -189,17 +167,6 @@ mcable_list concretise_(const tagged_& reg, const em_morphology& em) {
     return L;
 }
 
-std::set<std::string> get_named_dependencies_(const tagged_&) {
-    return {};
-}
-
-region replace_named_dependencies_(const tagged_& reg,
-                                     const region_dictionary& reg_dict,
-                                     const locset_dictionary& ps_dict)
-{
-    return region(reg);
-}
-
 std::ostream& operator<<(std::ostream& o, const tagged_& t) {
     return o << "(tag " << t.tag << ")";
 }
@@ -223,50 +190,8 @@ mcable_list concretise_(const all_&, const em_morphology& m) {
     return branches;
 }
 
-std::set<std::string> get_named_dependencies_(const all_&) {
-    return {};
-}
-
-region replace_named_dependencies_(const all_& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
-    return region(reg);
-}
-
 std::ostream& operator<<(std::ostream& o, const all_& t) {
     return o << "all";
-}
-
-//
-// a named region
-//
-struct named_ {
-    named_(std::string n): name(std::move(n)) {}
-    std::string name;
-};
-
-region named(std::string n) {
-    return region(named_{std::move(n)});
-}
-
-mcable_list concretise_(const named_&, const em_morphology& m) {
-    throw morphology_error("not possible to generated cable segments from a named region");
-    return {};
-}
-
-std::set<std::string> get_named_dependencies_(const named_& n) {
-    return {n.name};
-}
-
-region replace_named_dependencies_(const named_& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
-    auto it = reg_dict.find(reg.name);
-    if (it == reg_dict.end()) {
-        throw morphology_error(
-            util::pprintf("internal error: unable to replace label {}, unavailable in label dictionary", reg.name));
-    }
-    return it->second;
-}
-
-std::ostream& operator<<(std::ostream& o, const named_& n) {
-    return o << "\"" << n.name << "\"";
 }
 
 //
@@ -308,18 +233,6 @@ mcable_list concretise_(const reg_and& P, const em_morphology& m) {
     return L;
 }
 
-std::set<std::string> get_named_dependencies_(const reg_and& reg) {
-    auto l = named_dependencies(reg.lhs);
-    auto r = named_dependencies(reg.rhs);
-    l.insert(r.begin(), r.end());
-    return l;
-}
-
-region replace_named_dependencies_(const reg_and& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
-    return region(reg_and(replace_named_dependencies(reg.lhs, reg_dict, ps_dict),
-                          replace_named_dependencies(reg.rhs, reg_dict, ps_dict)));
-}
-
 std::ostream& operator<<(std::ostream& o, const reg_and& x) {
     return o << "(and " << x.lhs << " " << x.rhs << ")";
 }
@@ -352,18 +265,6 @@ mcable_list concretise_(const reg_or& P, const em_morphology& m) {
     }
     L.push_back(c);
     return L;
-}
-
-std::set<std::string> get_named_dependencies_(const reg_or& reg) {
-    auto l = named_dependencies(reg.lhs);
-    auto r = named_dependencies(reg.rhs);
-    l.insert(r.begin(), r.end());
-    return l;
-}
-
-region replace_named_dependencies_(const reg_or& reg, const region_dictionary& reg_dict, const locset_dictionary& ps_dict) {
-    return region(reg_or(replace_named_dependencies(reg.lhs, reg_dict, ps_dict),
-                         replace_named_dependencies(reg.rhs, reg_dict, ps_dict)));
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_or& x) {

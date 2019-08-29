@@ -33,14 +33,6 @@ locset location(mlocation loc) {
     return locset{location_{loc}};
 }
 
-std::set<std::string> named_dependencies_(const location_&) {
-    return {};
-}
-
-locset replace_named_dependencies_(const location_& s, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(s);
-}
-
 mlocation_list concretise_(const location_& x, const em_morphology& m) {
     // canonicalize will throw if the location is not present.
     return {m.canonicalize(x.loc)};
@@ -60,14 +52,6 @@ locset sample(msize_t index) {
     return locset{sample_{index}};
 }
 
-std::set<std::string> named_dependencies_(const sample_&) {
-    return {};
-}
-
-locset replace_named_dependencies_(const sample_& s, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(s);
-}
-
 mlocation_list concretise_(const sample_& x, const em_morphology& m) {
     return {m.sample2loc(x.index)};
 }
@@ -81,14 +65,6 @@ struct terminal_ {};
 
 locset terminal() {
     return locset{terminal_{}};
-}
-
-std::set<std::string> named_dependencies_(const terminal_&) {
-    return {};
-}
-
-locset replace_named_dependencies_(const terminal_& ps, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(ps);
 }
 
 mlocation_list concretise_(const terminal_&, const em_morphology& m) {
@@ -106,14 +82,6 @@ locset root() {
     return locset{root_{}};
 }
 
-std::set<std::string> named_dependencies_(const root_&) {
-    return {};
-}
-
-locset replace_named_dependencies_(const root_& ps, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(ps);
-}
-
 mlocation_list concretise_(const root_&, const em_morphology& m) {
     return {m.root()};
 }
@@ -122,56 +90,12 @@ std::ostream& operator<<(std::ostream& o, const root_& x) {
     return o << "root";
 }
 
-// a named locset
-struct named_ {
-    named_(std::string n): name(std::move(n)) {}
-    std::string name;
-};
-
-locset named(std::string n) {
-    return locset{named_{std::move(n)}};
-}
-
-std::set<std::string> named_dependencies_(const named_& n) {
-    return {n.name};
-}
-
-locset replace_named_dependencies_(const named_& ps, const region_dictionary& r, const locset_dictionary& p) {
-    auto it = p.find(ps.name);
-    if (it==p.end()) {
-        throw morphology_error(
-            util::pprintf("internal error: unable to replace label {}, unavailable in label dictionary", ps.name));
-    }
-    return it->second;
-}
-
-mlocation_list concretise_(const named_&, const em_morphology& m) {
-    throw morphology_error("concretise_ not implemented for named mlocation_list");
-    return {};
-}
-
-std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "\"" <<  x.name << "\"";
-}
-
 // intersection of two point sets
 struct land {
     locset lhs;
     locset rhs;
     land(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
-
-std::set<std::string> named_dependencies_(const land& p) {
-    auto l = named_dependencies(p.lhs);
-    auto r = named_dependencies(p.rhs);
-    l.insert(r.begin(), r.end());
-    return l;
-}
-
-locset replace_named_dependencies_(const land& ps, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(land(replace_named_dependencies(ps.lhs, r, p),
-                       replace_named_dependencies(ps.rhs, r, p)));
-}
 
 mlocation_list concretise_(const land& P, const em_morphology& m) {
     auto locs = merge(concretise(P.lhs, m), concretise(P.rhs, m));
@@ -198,18 +122,6 @@ struct locor {
     locset rhs;
     locor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
-
-std::set<std::string> named_dependencies_(const locor& p) {
-    auto l = named_dependencies(p.lhs);
-    auto r = named_dependencies(p.rhs);
-    l.insert(r.begin(), r.end());
-    return l;
-}
-
-locset replace_named_dependencies_(const locor& ps, const region_dictionary& r, const locset_dictionary& p) {
-    return locset(locor(replace_named_dependencies(ps.lhs, r, p),
-                          replace_named_dependencies(ps.rhs, r, p)));
-}
 
 mlocation_list concretise_(const locor& P, const em_morphology& m) {
     // Concatenate locations from lhs and rhs.
