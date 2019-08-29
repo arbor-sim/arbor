@@ -39,6 +39,10 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 
 option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
 
+# Use libunwind to generate stack traces on errors?
+
+option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
+
 #----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
@@ -275,15 +279,17 @@ if(ARB_WITH_GPU)
         $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
 endif()
 
-# Use libunwind if available for pretty printing stack traces
+# Use libunwind if requested for pretty printing stack traces
 #-------------------------------------------------------------
 
-find_package(Unwind)
-if(Unwind_FOUND)
-    target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
-    target_compile_definitions(arbor-private-deps INTERFACE WITH_UNWIND)
+if (ARB_UNWIND)
+    find_package(Unwind REQUIRED)
+    if(Unwind_FOUND)
+        target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
+        target_compile_definitions(arbor-private-deps INTERFACE WITH_UNWIND)
 
-    list(APPEND arbor_export_dependencies "Unwind")
+        list(APPEND arbor_export_dependencies "Unwind")
+    endif()
 endif()
 
 # Build and use modcc unless explicit path given
