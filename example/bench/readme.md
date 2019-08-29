@@ -21,7 +21,7 @@ pattern are varied, without having to tweak parameters on a model that uses
 The model can be configured using a json configuration file:
 
 ```
-./bench.exe params.json
+./bench params.json
 ```
 
 An example parameter file is:
