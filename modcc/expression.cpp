@@ -360,6 +360,25 @@ void StoichExpression::semantic(scope_ptr scp) {
 }
 
 /*******************************************************************************
+  LinearExpression
+*******************************************************************************/
+
+expression_ptr LinearExpression::clone() const {
+    return make_expression<LinearExpression>(
+            location_, lhs()->clone(), rhs()->clone());
+}
+
+void LinearExpression::semantic(scope_ptr scp) {
+    scope_ = scp;
+    lhs_->semantic(scp);
+    rhs_->semantic(scp);
+
+    if(rhs_->is_procedure_call()) {
+        error("procedure calls can't be made in an expression");
+    }
+}
+
+/*******************************************************************************
   ConserveExpression
 *******************************************************************************/
 
@@ -982,6 +1001,9 @@ void ConserveExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void ReactionExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void LinearExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void StoichExpression::accept(Visitor *v) {

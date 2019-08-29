@@ -69,11 +69,21 @@ public:
         return p.impl_->print(o);
     }
 
-    // The union of two regions.
-    friend region or_(region, region);
+    // The union of regions.
+    friend region join(region, region);
 
-    // The intersection of two regions.
-    friend region and_(region, region);
+    template <typename ...Args>
+    friend region join(region l, region r, Args... args) {
+        return join(join(std::move(l), std::move(r)), std::move(args)...);
+    }
+
+    // The intersection of regions.
+    friend region intersect(region, region);
+
+    template <typename ...Args>
+    friend region intersect(region l, region r, Args... args) {
+        return intersect(intersect(std::move(l), std::move(r)), std::move(args)...);
+    }
 
 private:
     struct interface {
@@ -108,12 +118,8 @@ private:
 
 namespace reg {
 
-
 // An explicit cable section.
 region cable(mcable);
-
-// An explicit list of cable sections.
-region cable_list(mcable_list);
 
 // An explicit branch.
 region branch(msize_t);

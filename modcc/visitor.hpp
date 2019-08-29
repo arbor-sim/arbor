@@ -52,6 +52,7 @@ public:
     virtual void visit(ConditionalExpression *e) {visit((BinaryExpression*) e); }
     virtual void visit(AssignmentExpression *e) { visit((BinaryExpression*) e); }
     virtual void visit(ConserveExpression *e)   { visit((BinaryExpression*) e); }
+    virtual void visit(LinearExpression *e)     { visit((BinaryExpression*) e); }
     virtual void visit(AddBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(SubBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(MulBinaryExpression *e)  { visit((BinaryExpression*) e); }

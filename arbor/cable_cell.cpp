@@ -77,6 +77,17 @@ bool cable_cell::has_soma() const {
     return !segment(0)->is_placeholder();
 }
 
+void cable_cell::paint(const std::string& target, const std::string& description) {
+    auto it = regions_.find(target);
+
+    // Nothing to do if there are no regions that match.
+    if (it==regions_.end()) return;
+
+    for (auto i: it->second) {
+        segment(i)->add_mechanism(description);
+    }
+}
+
 soma_segment* cable_cell::soma() {
     return has_soma()? segment(0)->as_soma(): nullptr;
 }
@@ -228,17 +239,19 @@ cable_cell make_cable_cell(const morphology& m, label_dict dictionary, bool comp
 
     // Construct concrete regions.
     // Ignores the pointsets, for now.
-    std::unordered_map<std::string, mcable_list> regions;
+    std::unordered_map<std::string, std::vector<msize_t>> regions;
     for (auto r: dictionary.regions()) {
         mcable_list L = concretise(r.second, emorph);
+        std::vector<msize_t> bids;
         for (auto c: L) {
             if (c.prox_pos!=0 || c.dist_pos!=1) {
                 std::stringstream s;
                 s << "cable_cell does not support regions that contain partial branches (yet): \"" << r.first << "\": " << c;
                 throw cable_cell_error(s.str());
             }
+            bids.push_back(c.branch);
         }
-        regions[r.first] = L;
+        regions[r.first] = bids;
     }
     newcell.set_regions(std::move(regions));
 

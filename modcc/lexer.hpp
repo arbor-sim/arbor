@@ -72,6 +72,9 @@ public:
     // return the next token in the stream without advancing the current position
     Token peek();
 
+    // Look for `t` until new line or eof without advancing the current position, return true if found
+    bool search_to_eol(tok const& t);
+
     // scan a number from the stream
     Token number();
 

@@ -141,9 +141,9 @@ TEST(locset, expressions) {
 
     EXPECT_EQ(to_string(root), "root");
     EXPECT_EQ(to_string(term), "terminal");
-    EXPECT_EQ(to_string(and_(root, term)), "(and root terminal)");
-    EXPECT_EQ(to_string(or_(root, term)),  "(or root terminal)");
-    EXPECT_EQ(to_string(or_(root, and_(term, samp))),  "(or root (and terminal (sample 42)))");
+    EXPECT_EQ(to_string(intersect(root, term)), "(intersect root terminal)");
+    EXPECT_EQ(to_string(join(root, term)),  "(or root terminal)");
+    EXPECT_EQ(to_string(join(root, intersect(term, samp))),  "(or root (intersect terminal (sample 42)))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 
@@ -155,6 +155,7 @@ TEST(locset, expressions) {
 
 // Test expressions that describe regions.
 TEST(region, expressions) {
+    using arb::reg::cable;
     auto to_string = [](auto&& x) {
         std::stringstream s;
         s << x;
@@ -163,8 +164,7 @@ TEST(region, expressions) {
 
     auto c1 = arb::reg::cable({1,0,1});
     auto c2 = arb::reg::cable({4,0.1,0.5});
-    // initialise unsorted: expect arb::reg::cable to sort the list.
-    auto c3 = arb::reg::cable_list(arb::mcable_list{{4,0.1,0.5}, {3,0,1}});
+    auto c3 = join(cable({4,0.1,0.5}), cable({3,0,1}));
     auto b1 = arb::reg::branch(1);
     auto t1 = arb::reg::tagged(1);
     auto t2 = arb::reg::tagged(2);
@@ -172,13 +172,13 @@ TEST(region, expressions) {
 
     EXPECT_EQ(to_string(c1), "(cable 1 0 1)");
     EXPECT_EQ(to_string(c2), "(cable 4 0.1 0.5)");
-    EXPECT_EQ(to_string(c3), "(list (cable 3 0 1) (cable 4 0.1 0.5))");
+    EXPECT_EQ(to_string(c3), "(join (cable 4 0.1 0.5) (cable 3 0 1))");
     EXPECT_EQ(to_string(b1), "(cable 1 0 1)");
     EXPECT_EQ(to_string(t1), "(tag 1)");
     EXPECT_EQ(to_string(t2), "(tag 2)");
-    EXPECT_EQ(to_string(and_(c1, t2)), "(and (cable 1 0 1) (tag 2))");
-    EXPECT_EQ(to_string(or_(c1, t2)),  "(or (cable 1 0 1) (tag 2))");
-    EXPECT_EQ(to_string(and_(or_(c1, t2), c2)),  "(and (or (cable 1 0 1) (tag 2)) (cable 4 0.1 0.5))");
+    EXPECT_EQ(to_string(intersect(c1, t2)), "(intersect (cable 1 0 1) (tag 2))");
+    EXPECT_EQ(to_string(join(c1, t2)),  "(join (cable 1 0 1) (tag 2))");
+    EXPECT_EQ(to_string(intersect(join(c1, t2), c2)),  "(intersect (join (cable 1 0 1) (tag 2)) (cable 4 0.1 0.5))");
     EXPECT_EQ(to_string(all), "all");
 
     EXPECT_THROW(arb::reg::cable({1, 0, 1.1}), arb::morphology_error);
@@ -297,18 +297,18 @@ TEST(region, concretise) {
         EXPECT_EQ(concretise(h2, em), h2_);
         EXPECT_EQ(concretise(t1, em), t1_);
         EXPECT_EQ(concretise(t2, em), t2_);
-        EXPECT_EQ(concretise(or_(h1, h2), em), all_);
-        EXPECT_EQ(concretise(and_(h1, h2), em), empty_);
-        EXPECT_EQ(concretise(and_(h1, h1), em), h1_);
-        EXPECT_EQ(concretise(and_(t1, t1), em), t1_);
-        EXPECT_EQ(concretise(or_(t1, t2), em), all_);
-        EXPECT_EQ(concretise(and_(all, t1), em), t1_);
-        EXPECT_EQ(concretise(and_(all, t2), em), t2_);
-        EXPECT_EQ(concretise(or_(all, t1), em), all_);
-        EXPECT_EQ(concretise(or_(all, t2), em), all_);
-        EXPECT_EQ(concretise(or_(h1, t1), em), (cl{{0, 0, 0.7}}));
-        EXPECT_EQ(concretise(or_(h1, t2), em), (cl{{0, 0, 0.5}, {0, 0.7, 1}}));
-        EXPECT_EQ(concretise(and_(h2, t1), em), (cl{{0, 0.5, 0.7}}));
+        EXPECT_EQ(concretise(join(h1, h2), em), all_);
+        EXPECT_EQ(concretise(intersect(h1, h2), em), empty_);
+        EXPECT_EQ(concretise(intersect(h1, h1), em), h1_);
+        EXPECT_EQ(concretise(intersect(t1, t1), em), t1_);
+        EXPECT_EQ(concretise(join(t1, t2), em), all_);
+        EXPECT_EQ(concretise(intersect(all, t1), em), t1_);
+        EXPECT_EQ(concretise(intersect(all, t2), em), t2_);
+        EXPECT_EQ(concretise(join(all, t1), em), all_);
+        EXPECT_EQ(concretise(join(all, t2), em), all_);
+        EXPECT_EQ(concretise(join(h1, t1), em), (cl{{0, 0, 0.7}}));
+        EXPECT_EQ(concretise(join(h1, t2), em), (cl{{0, 0, 0.5}, {0, 0.7, 1}}));
+        EXPECT_EQ(concretise(intersect(h2, t1), em), (cl{{0, 0.5, 0.7}}));
     }
 
     // Eight samples
@@ -355,14 +355,13 @@ TEST(region, concretise) {
         using arb::reg::all;
         using arb::reg::cable;
         using arb::mcable;
-        using arb::reg::cable_list;
         auto soma = tagged(1);
         auto axon = tagged(2);
         auto dend = tagged(3);
         auto apic = tagged(4);
         auto b1  = branch(1);
         auto b3  = branch(3);
-        auto b13 = or_(b1, b3);
+        auto b13 = join(b1, b3);
 
         cl empty_{};
         cl soma_ = empty_;
@@ -379,8 +378,8 @@ TEST(region, concretise) {
         EXPECT_EQ(concretise(axon, em), (cl{b1_}));
         EXPECT_EQ(concretise(dend, em), (cl{b0_,b3_}));
         EXPECT_EQ(concretise(apic, em), (cl{b2_}));
-        EXPECT_EQ(concretise(or_(dend, apic), em), (cl{b0_,b2_,b3_}));
-        EXPECT_EQ(concretise(or_(axon, or_(dend, apic)), em), all_);
+        EXPECT_EQ(concretise(join(dend, apic), em), (cl{b0_,b2_,b3_}));
+        EXPECT_EQ(concretise(join(axon, join(dend, apic)), em), all_);
 
         // Test some more interesting intersections and unions.
 
@@ -390,49 +389,49 @@ TEST(region, concretise) {
         //   |  xxxxx  |   xxx   | rand
         //   |xxxxxxxxx|xxxxxxxxx| ror
         auto lhs  = b13;
-        auto rhs  = cable_list({{1,.2,.7}, {3,.3,.6}});
+        auto rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
         auto rand = cl{         {1,.2,.7}, {3,.3,.6}};
         auto ror  = cl{         {1,.0,1.}, {3,.0,1.}};
-        EXPECT_EQ(concretise(and_(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(or_(lhs, rhs), em), ror);
+        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(concretise(and_(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(or_(lhs, rhs), em), ror);
+        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
 
         //    123456789 123456789
         //   |   ----- | ----    | lhs
         //   |  -----  |   ---   | rhs
         //   |   xxxx  |   xx    | rand
         //   |  xxxxxx | xxxxx   | ror
-        lhs  = cable_list({{1,.3,.8}, {3,.1,.5}});
-        rhs  = cable_list({{1,.2,.7}, {3,.3,.6}});
+        lhs  = join(cable({1,.3,.8}), cable({3,.1,.5}));
+        rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
         rand = cl{         {1,.3,.7}, {3,.3,.5}};
         ror  = cl{         {1,.2,.8}, {3,.1,.6}};
-        EXPECT_EQ(concretise(and_(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(or_(lhs, rhs), em), ror);
+        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(concretise(and_(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(or_(lhs, rhs), em), ror);
+        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
 
         //    123456789 123456789
         //   | -- -    | --- --- | lhs
         //   |  -----  |   ---   | rhs
         //   |  x x    |   x x   | rand
         //   | xxxxxx  | xxxxxxx | ror
-        lhs  = cable_list({{1,.1,.3}, {1,.4,.5}, {3,.1,.4}, {3,.5,.9}});
-        rhs  = cable_list({{1,.2,.7},            {3,.3,.6}});
+        lhs  = join(cable({1,.1,.3}), cable({1,.4,.5}), cable({3,.1,.4}), cable({3,.5,.9}));
+        rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
         rand = cl{         {1,.2,.3}, {1,.4,.5}, {3,.3,.4}, {3,.5,.6}};
         ror  = cl{         {1,.1,.7},            {3,.1,.9}};
-        EXPECT_EQ(concretise(and_(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(or_(lhs, rhs), em), ror);
+        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(concretise(and_(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(or_(lhs, rhs), em), ror);
+        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
     }
 }

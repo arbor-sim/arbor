@@ -68,10 +68,20 @@ public:
     }
 
     // The union of two location sets.
-    friend locset or_(locset, locset);
+    friend locset join(locset, locset);
+
+    template <typename ...Args>
+    friend locset join(locset l, locset r, Args... args) {
+        return join(join(std::move(l), std::move(r), std::move(args)...));
+    }
 
     // The intersection of two location sets.
-    friend locset and_(locset, locset);
+    friend locset intersect(locset, locset);
+
+    template <typename ...Args>
+    friend locset intersect(locset l, locset r, Args... args) {
+        return intersect(intersect(std::move(l), std::move(r), std::move(args)...));
+    }
 
 private:
     struct interface {

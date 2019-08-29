@@ -79,39 +79,6 @@ std::ostream& operator<<(std::ostream& o, const cable_& c) {
 }
 
 //
-//  Explicit list of cable sections (concretised region).
-//
-
-struct cable_list_ {
-    mcable_list list;
-};
-
-region cable_list(mcable_list l) {
-    std::sort(l.begin(), l.end());
-    if (!test_invariants(l)) {
-        throw morphology_error(util::pprintf("Invalid cable list {}", l));
-    }
-    return region(cable_list_{std::move(l)});
-}
-
-mcable_list concretise_(const cable_list_& reg, const em_morphology& em) {
-    auto& m = em.morph();
-    const auto &L = reg.list;
-
-    for (auto& c: L) {
-        if (c.branch>=m.num_branches()) {
-            throw morphology_error(util::pprintf("Branch {} does not exist in morpology", c.branch));
-        }
-    }
-
-    return L;
-}
-
-std::ostream& operator<<(std::ostream& o, const cable_list_& c) {
-    return o << c.list;
-}
-
-//
 // region with all segments with the same numeric tag
 //
 struct tagged_ {
@@ -234,7 +201,7 @@ mcable_list concretise_(const reg_and& P, const em_morphology& m) {
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_and& x) {
-    return o << "(and " << x.lhs << " " << x.rhs << ")";
+    return o << "(intersect " << x.lhs << " " << x.rhs << ")";
 }
 
 //
@@ -268,20 +235,20 @@ mcable_list concretise_(const reg_or& P, const em_morphology& m) {
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_or& x) {
-    return o << "(or " << x.lhs << " " << x.rhs << ")";
+    return o << "(join " << x.lhs << " " << x.rhs << ")";
 }
 
 } // namespace reg
 
-// The and_ and or_ operations in the arb:: namespace with region so that
+// The intersect and join operations in the arb:: namespace with region so that
 // ADL allows for construction of expressions with regions without having
-// to namespace qualify the and_/or_.
+// to namespace qualify the intersect/join.
 
-region and_(region l, region r) {
+region intersect(region l, region r) {
     return region{reg::reg_and(std::move(l), std::move(r))};
 }
 
-region or_(region l, region r) {
+region join(region l, region r) {
     return region{reg::reg_or(std::move(l), std::move(r))};
 }
 

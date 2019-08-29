@@ -51,6 +51,8 @@ public:
 
     using gap_junction_instance = mlocation;
 
+    using region_map = std::unordered_map<std::string, std::vector<msize_t>>;
+
     struct synapse_instance {
         mlocation location;
         mechanism_desc mechanism;
@@ -156,6 +158,11 @@ public:
     }
 
     //////////////////
+    // painters
+    //////////////////
+    void paint(const std::string& target, const std::string& description);
+
+    //////////////////
     // synapses
     //////////////////
     void add_synapse(mlocation loc, mechanism_desc p)
@@ -192,7 +199,7 @@ public:
         return spike_detectors_;
     }
 
-    void set_regions(std::unordered_map<std::string, mcable_list> r) {
+    void set_regions(region_map r) {
         regions_ = std::move(r);
     }
 
@@ -244,7 +251,8 @@ private:
     std::vector<detector_instance> spike_detectors_;
 
     // Named regions, oh my.
-    std::unordered_map<std::string, mcable_list> regions_;
+    // For now, we only work with 
+    region_map regions_;
 };
 
 // create a cable by forwarding cable construction parameters provided by the user

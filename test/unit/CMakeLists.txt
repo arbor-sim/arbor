@@ -2,6 +2,9 @@
 
 set(test_mechanisms
     celsius_test
+    test_linear_state
+    test_linear_init
+    test_linear_init_shuffle
     test0_kin_diff
     test0_kin_conserve
     test1_kin_diff
@@ -84,7 +87,7 @@ set(unit_sources
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
     test_glob_basic.cpp
-    test_kinetic.cpp
+    test_kinetic_linear.cpp
     test_lexcmp.cpp
     test_lif_cell_group.cpp
     test_local_context.cpp

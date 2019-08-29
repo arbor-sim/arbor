@@ -11,6 +11,7 @@ set(libmodcc_sources
     functioninliner.cpp
     lexer.cpp
     kineticrewriter.cpp
+    linearrewriter.cpp
     module.cpp
     parser.cpp
     solvers.cpp

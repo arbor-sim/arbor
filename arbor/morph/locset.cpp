@@ -113,7 +113,7 @@ mlocation_list concretise_(const land& P, const em_morphology& m) {
 }
 
 std::ostream& operator<<(std::ostream& o, const land& x) {
-    return o << "(and " << x.lhs << " " << x.rhs << ")";
+    return o << "(intersect " << x.lhs << " " << x.rhs << ")";
 }
 
 // union of two point sets
@@ -135,21 +135,21 @@ mlocation_list concretise_(const locor& P, const em_morphology& m) {
 }
 
 std::ostream& operator<<(std::ostream& o, const locor& x) {
-    return o << "(or " << x.lhs << " " << x.rhs << ")";
+    return o << "(join " << x.lhs << " " << x.rhs << ")";
 }
 
 } // namespace ls
 
 
-// The and_ and or_ operations in the arb:: namespace with locset so that
+// The intersect and join operations in the arb:: namespace with locset so that
 // ADL allows for construction of expressions with locsets without having
-// to namespace qualify the and_/or_.
+// to namespace qualify the intersect/join.
 
-locset and_(locset lhs, locset rhs) {
+locset intersect(locset lhs, locset rhs) {
     return locset(ls::land(std::move(lhs), std::move(rhs)));
 }
 
-locset or_(locset lhs, locset rhs) {
+locset join(locset lhs, locset rhs) {
     return locset(ls::locor(std::move(lhs), std::move(rhs)));
 }
 
