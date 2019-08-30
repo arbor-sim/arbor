@@ -142,8 +142,8 @@ TEST(locset, expressions) {
     EXPECT_EQ(to_string(root), "root");
     EXPECT_EQ(to_string(term), "terminal");
     EXPECT_EQ(to_string(intersect(root, term)), "(intersect root terminal)");
-    EXPECT_EQ(to_string(join(root, term)),  "(or root terminal)");
-    EXPECT_EQ(to_string(join(root, intersect(term, samp))),  "(or root (intersect terminal (sample 42)))");
+    EXPECT_EQ(to_string(join(root, term)),  "(join root terminal)");
+    EXPECT_EQ(to_string(join(root, intersect(term, samp))),  "(join root (intersect terminal (sample 42)))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 

@@ -156,9 +156,9 @@ In our case, the cell has one probe, which refers to the voltage at the soma.
         // Get the appropriate kind for measuring voltage
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
 
-        // The location at which we measure: position 0 on segment 0.
-        // The cell has only one segment, segment 0, which is the soma.
-        arb::segment_location loc(0, 0.0);
+        // The location at which we measure: position 0 on branch 0.
+        // The cell has only one branch, branch 0, which is the soma.
+        arb::mlocation loc(0, 0.0);
 
         // Put this together into a `probe_info`
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};

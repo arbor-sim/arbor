@@ -80,7 +80,8 @@ public:
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
         gap_junction_sites_(other.gap_junction_sites_),
-        spike_detectors_(other.spike_detectors_)
+        spike_detectors_(other.spike_detectors_),
+        regions_(other.regions_)
     {
         // unique_ptr's cannot be copy constructed, do a manual assignment
         segments_.reserve(other.segments_.size());
@@ -251,7 +252,6 @@ private:
     std::vector<detector_instance> spike_detectors_;
 
     // Named regions, oh my.
-    // For now, we only work with 
     region_map regions_;
 };
 

@@ -97,12 +97,10 @@ Density mechanisms are associated with a cable cell object with:
 Point mechanisms, which are associated with connection end points on a
 cable cell, are attached to a cell with:
 
-.. cpp:function:: void cable_cell::add_synapse(segment_location loc, mechanism_desc mech)
+.. cpp:function:: void cable_cell::add_synapse(mlocation loc, mechanism_desc mech)
 
-where :cpp:type:`segment_location` is a simple struct holding a segment index
+where :cpp:type:`mlocation` is a simple struct holding a segment index
 and a relative position (from 0, proximal, to 1, distal) along that segment:
-
-.. cpp:function:: segment_location::segment_location(cell_lid_type index, double position)
 
 
 Electrical properities and ion values
