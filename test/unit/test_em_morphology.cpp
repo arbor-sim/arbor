@@ -168,6 +168,7 @@ TEST(region, expressions) {
     auto b1 = arb::reg::branch(1);
     auto t1 = arb::reg::tagged(1);
     auto t2 = arb::reg::tagged(2);
+    auto t3 = arb::reg::tagged(3);
     auto all = arb::reg::all();
 
     EXPECT_EQ(to_string(c1), "(cable 1 0 1)");
@@ -178,6 +179,8 @@ TEST(region, expressions) {
     EXPECT_EQ(to_string(t2), "(tag 2)");
     EXPECT_EQ(to_string(intersect(c1, t2)), "(intersect (cable 1 0 1) (tag 2))");
     EXPECT_EQ(to_string(join(c1, t2)),  "(join (cable 1 0 1) (tag 2))");
+    EXPECT_EQ(to_string(join(t1, t2, t3)), "(join (join (tag 1) (tag 2)) (tag 3))");
+    EXPECT_EQ(to_string(intersect(t1, t2, t3)), "(intersect (intersect (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(intersect(join(c1, t2), c2)),  "(intersect (join (cable 1 0 1) (tag 2)) (cable 4 0.1 0.5))");
     EXPECT_EQ(to_string(all), "all");
 
