@@ -6,7 +6,7 @@
 
 expression_ptr inline_function_call(Expression* e)
 {
-    if(auto f=e->is_function_call()) {
+    if(auto f=e->is_assignment()->rhs()->is_function_call()) {
         auto func = f->function();
 #ifdef LOGGING
         std::cout << "inline_function_call for statement " << f->to_string()
@@ -19,16 +19,33 @@ expression_ptr inline_function_call(Expression* e)
             );
         }
 
-        if(body.front()->is_if()) {
-            throw compiler_exception(
-                    "can not inline functions with if statements", func->location()
-            );
-        }
+        expression_ptr last, true_exp, false_exp;
 
-        // assume that the function body is correctly formed, with the last
-        // statement being an assignment expression
-        auto last = body.front()->is_assignment();
-        auto new_e = last->rhs()->clone();
+        if(body.front()->is_if()) {
+            last = body.front()->is_if()->clone();
+
+            auto& true_branch = last->is_if()->true_branch()->is_block()->statements();
+            auto& false_branch = last->is_if()->true_branch()->is_block()->statements();
+
+            if (true_branch.size() != 1 || false_branch.size() != 1) {
+                throw compiler_exception(
+                        "can only inline functions with one statement", func->location()
+                );
+            }
+
+            if (!true_branch.front()->is_assignment() || !false_branch.front()->is_assignment()) {
+                throw compiler_exception(
+                        "can only inline if statements containing assignments", func->location()
+                );
+            }
+
+            true_exp = true_branch.front()->is_assignment()->rhs()->clone();
+            false_exp = true_branch.front()->is_assignment()->rhs()->clone();
+
+        } else {
+            last = body.front()->is_assignment()->clone();
+            true_exp = body.front()->is_assignment()->rhs()->clone();
+        }
 
         auto& fargs = func->args(); // argument names for the function
         auto& cargs = f->args();    // arguments at the call site
@@ -43,7 +60,10 @@ expression_ptr inline_function_call(Expression* e)
                     fargs[i]->is_argument()->spelling(),
                     id->spelling()
                 );
-                new_e->accept(&v);
+                true_exp->accept(&v);
+                if (false_exp) {
+                    false_exp->accept(&v);
+                }
             }
             else if(auto value = cargs[i]->is_number()) {
 #ifdef LOGGING
@@ -55,7 +75,10 @@ expression_ptr inline_function_call(Expression* e)
                     fargs[i]->is_argument()->spelling(),
                     value->value()
                 );
-                new_e->accept(&v);
+                true_exp->accept(&v);
+                if (false_exp) {
+                    false_exp->accept(&v);
+                }
             }
             else {
                 throw compiler_exception(
@@ -64,10 +87,16 @@ expression_ptr inline_function_call(Expression* e)
                  );
             }
         }
-        new_e->semantic(e->scope());
+        true_exp->semantic(e->scope());
+        if (false_exp) {
+            false_exp->semantic(e->scope());
+        }
 
         ErrorVisitor v("");
-        new_e->accept(&v);
+        true_exp->accept(&v);
+        if (false_exp) {
+            false_exp->accept(&v);
+        }
 #ifdef LOGGING
         std::cout << "inline_function_call result " << new_e->to_string() << "\n\n";
 #endif
@@ -76,7 +105,23 @@ expression_ptr inline_function_call(Expression* e)
                                      e->location());
         }
 
-        return new_e;
+        if (last->is_assignment()) {
+
+            last->is_assignment()->replace_lhs(e->is_assignment()->lhs()->clone());
+            last->is_assignment()->replace_rhs(std::move(true_exp));
+
+        } else if (last->is_if()) {
+
+            auto true_assign = last->is_if()->true_branch()->is_block()->statements().front()->is_assignment();
+            true_assign->replace_lhs(e->is_assignment()->lhs()->clone());
+            true_assign->replace_rhs(std::move(true_exp));
+
+            auto false_assign = last->is_if()->true_branch()->is_block()->statements().front()->is_assignment();
+            false_assign->replace_lhs(e->is_assignment()->lhs()->clone());
+            false_assign->is_assignment()->replace_rhs(std::move(false_exp));
+        };
+
+        return last;
     }
 
     return {};
