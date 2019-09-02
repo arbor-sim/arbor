@@ -60,7 +60,7 @@ enum class tok {
     unitsoff, unitson,
     suffix, nonspecific_current, useion,
     read, write, valence,
-    range, local, conserve,
+    range, local, conserve, compartment,
     solve, method,
     threadsafe, global,
     point_process,

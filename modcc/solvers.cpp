@@ -180,8 +180,23 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
+    scale_factor_.resize(dvars_.size());
 
     BlockRewriterBase::visit(e);
+}
+
+void SparseSolverVisitor::visit(CompartmentExpression *e) {
+    auto loc = e->location();
+
+    for (auto& s: e->is_compartment()->state_vars()) {
+        auto it = std::find(dvars_.begin(), dvars_.end(), s->is_identifier()->spelling());
+        if (it == dvars_.end()) {
+            error({"COMPARTMENT variable is not used", loc});
+            return;
+        }
+        auto idx = it - dvars_.begin();
+        scale_factor_[idx] = e->scale_factor()->clone();
+    }
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
@@ -242,6 +257,10 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
             expr = make_expression<MulBinaryExpression>(loc,
                        r.coef[dvars_[j]]->clone(),
                        dt_expr->clone());
+
+            if (scale_factor_[j]) {
+                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
+            }
         }
 
         if (j==deq_index_) {
@@ -312,6 +331,9 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 
         if (it != terms.end()) {
             auto expr = (*it)->is_stoich_term()->coeff()->clone();
+            if (scale_factor_[j]) {
+                expr =  make_expression<MulBinaryExpression>(loc, scale_factor_[j]->clone(), std::move(expr));
+            }
 
             auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
             auto a_ = local_a_term.id->is_identifier()->spelling();
