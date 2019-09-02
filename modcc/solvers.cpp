@@ -191,7 +191,7 @@ void SparseSolverVisitor::visit(CompartmentExpression *e) {
     for (auto& s: e->is_compartment()->state_vars()) {
         auto it = std::find(dvars_.begin(), dvars_.end(), s->is_identifier()->spelling());
         if (it == dvars_.end()) {
-            error({"COMPARTMENT variable is not a state variable", loc});
+            error({"COMPARTMENT variable is not used", loc});
             return;
         }
         auto idx = it - dvars_.begin();

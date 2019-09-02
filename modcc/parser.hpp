@@ -21,7 +21,7 @@ public:
     expression_ptr parse_integer();
     expression_ptr parse_real();
     expression_ptr parse_call();
-    expression_ptr parse_expression(int prec, tok t=tok::reserved);
+    expression_ptr parse_expression(int prec, tok t=tok::eq);
     expression_ptr parse_expression();
     expression_ptr parse_expression(tok);
     expression_ptr parse_primary();

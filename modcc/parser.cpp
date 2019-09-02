@@ -1306,13 +1306,13 @@ expression_ptr Parser::parse_conserve_expression() {
     return make_expression<ConserveExpression>(here, std::move(lhs), std::move(rhs));
 }
 
-expression_ptr Parser::parse_expression(int prec, tok t) {
+expression_ptr Parser::parse_expression(int prec, tok stop_token) {
     auto lhs = parse_unaryop();
     if(lhs==nullptr) return nullptr;
 
     // Combine all sub-expressions with precedence greater than prec.
     for (;;) {
-        if(token_.type==t) {
+        if(token_.type==stop_token) {
             return lhs;
         }
 

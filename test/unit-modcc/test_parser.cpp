@@ -323,6 +323,7 @@ TEST(Parser, parse_parenthesis_expression) {
         "(x             ",
         "((x+3)         ",
         "(x+ +)         ",
+        "(x=3)          ",  // assignment inside parenthesis isn't allowed
         "(a + (b*2^(x)) ",  // missing closing parenthesis
     };
 
