@@ -6,7 +6,8 @@
 
 expression_ptr inline_function_call(Expression* e)
 {
-    if(auto f=e->is_assignment()->rhs()->is_function_call()) {
+    auto assign_exp = e->is_assignment();
+    if(auto f = assign_exp->rhs()->is_function_call()) {
         auto func = f->function();
 #ifdef LOGGING
         std::cout << "inline_function_call for statement " << f->to_string()
@@ -19,13 +20,24 @@ expression_ptr inline_function_call(Expression* e)
             );
         }
 
-        expression_ptr last, true_exp, false_exp;
+        expression_ptr last, true_exp, false_exp, cond_exp;
 
         if(body.front()->is_if()) {
             last = body.front()->is_if()->clone();
 
+            if (!last->is_if()->false_branch()) {
+                throw compiler_exception(
+                        "can only inline if statements with associated else", func->location()
+                );
+            }
+
+            cond_exp = last->is_if()->condition()->is_conditional()->clone();
+
             auto& true_branch = last->is_if()->true_branch()->is_block()->statements();
-            auto& false_branch = last->is_if()->true_branch()->is_block()->statements();
+            true_exp = true_branch.front()->is_assignment()->rhs()->clone();
+
+            auto& false_branch = last->is_if()->false_branch()->is_block()->statements();
+            false_exp = false_branch.front()->is_assignment()->rhs()->clone();
 
             if (true_branch.size() != 1 || false_branch.size() != 1) {
                 throw compiler_exception(
@@ -39,9 +51,6 @@ expression_ptr inline_function_call(Expression* e)
                 );
             }
 
-            true_exp = true_branch.front()->is_assignment()->rhs()->clone();
-            false_exp = true_branch.front()->is_assignment()->rhs()->clone();
-
         } else {
             last = body.front()->is_assignment()->clone();
             true_exp = body.front()->is_assignment()->rhs()->clone();
@@ -54,7 +63,13 @@ expression_ptr inline_function_call(Expression* e)
 #ifdef LOGGING
                 std::cout << "inline_function_call symbol replacement "
                           << id->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expression " << new_e->to_string() << "\n";
+                          << " in the expressions: \n" << true_exp->to_string() << "\n";
+                if (false_exp) {
+                    std::cout << false_exp->to_string() << "\n";
+                }
+                if (cond_exp) {
+                    std::cout << cond_exp->to_string() << "\n";
+                }
 #endif
                 VariableReplacer v(
                     fargs[i]->is_argument()->spelling(),
@@ -64,12 +79,21 @@ expression_ptr inline_function_call(Expression* e)
                 if (false_exp) {
                     false_exp->accept(&v);
                 }
+                if (cond_exp) {
+                    cond_exp->accept(&v);
+                }
             }
             else if(auto value = cargs[i]->is_number()) {
 #ifdef LOGGING
                 std::cout << "inline_function_call symbol replacement "
                           << value->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expression " << new_e->to_string() << "\n";
+                          << " in the expressions: \n" << true_exp->to_string() << "\n";
+                if (false_exp) {
+                    std::cout << false_exp->to_string() << "\n";
+                }
+                if (cond_exp) {
+                    std::cout << cond_exp->to_string() << "\n";
+                }
 #endif
                 ValueInliner v(
                     fargs[i]->is_argument()->spelling(),
@@ -78,6 +102,9 @@ expression_ptr inline_function_call(Expression* e)
                 true_exp->accept(&v);
                 if (false_exp) {
                     false_exp->accept(&v);
+                }
+                if (cond_exp) {
+                    cond_exp->accept(&v);
                 }
             }
             else {
@@ -91,37 +118,38 @@ expression_ptr inline_function_call(Expression* e)
         if (false_exp) {
             false_exp->semantic(e->scope());
         }
+        if (cond_exp) {
+            cond_exp->semantic(e->scope());
+        }
 
         ErrorVisitor v("");
         true_exp->accept(&v);
         if (false_exp) {
             false_exp->accept(&v);
         }
-#ifdef LOGGING
-        std::cout << "inline_function_call result " << new_e->to_string() << "\n\n";
-#endif
+        if (cond_exp) {
+            cond_exp->accept(&v);
+        }
+
         if(v.num_errors()) {
             throw compiler_exception("something went wrong with inlined function call ",
                                      e->location());
         }
 
+        expression_ptr new_exp;
         if (last->is_assignment()) {
-
-            last->is_assignment()->replace_lhs(e->is_assignment()->lhs()->clone());
-            last->is_assignment()->replace_rhs(std::move(true_exp));
-
+            new_exp = make_expression<AssignmentExpression>(last->location(), assign_exp->lhs()->clone(), std::move(true_exp));
         } else if (last->is_if()) {
+            auto true_assign = make_expression<AssignmentExpression>(true_exp->location(), assign_exp->lhs()->clone(), std::move(true_exp));
+            auto false_assign = make_expression<AssignmentExpression>(false_exp->location(), assign_exp->lhs()->clone(), std::move(false_exp));
 
-            auto true_assign = last->is_if()->true_branch()->is_block()->statements().front()->is_assignment();
-            true_assign->replace_lhs(e->is_assignment()->lhs()->clone());
-            true_assign->replace_rhs(std::move(true_exp));
-
-            auto false_assign = last->is_if()->true_branch()->is_block()->statements().front()->is_assignment();
-            false_assign->replace_lhs(e->is_assignment()->lhs()->clone());
-            false_assign->is_assignment()->replace_rhs(std::move(false_exp));
+            new_exp = make_expression<IfExpression>(last->location(), std::move(cond_exp), std::move(true_assign), std::move(false_assign));
         };
 
-        return last;
+#ifdef LOGGING
+        std::cout << "inline_function_call result " << new_exp->to_string() << "\n\n";
+#endif
+        return new_exp;
     }
 
     return {};
