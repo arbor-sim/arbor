@@ -4,153 +4,135 @@
 #include "functioninliner.hpp"
 #include "errorvisitor.hpp"
 
-expression_ptr inline_function_call(Expression* e)
-{
-    auto assign_to_func = e->is_assignment();
-    if(auto f = assign_to_func->rhs()->is_function_call()) {
-        auto func = f->function();
-#ifdef LOGGING
-        std::cout << "inline_function_call for statement " << f->to_string()
-                  << " with body" << func->body()->to_string() << "\n";
-#endif
-        auto& body = func->body()->statements();
-        if(body.size() != 1) {
-            throw compiler_exception(
-                "can only inline functions with one statement", func->location()
-            );
-        }
+void replace_and_inline(expression_ptr& exp,
+                        const expression_ptr& lhs,
+                        const scope_ptr& scope,
+                        const std::vector<expression_ptr>& fargs,
+                        const std::vector<expression_ptr>& cargs) {
+    std::cout << "In " << exp->to_string() << std::endl;
 
-        expression_ptr stmt, true_exp, false_exp, cond_exp;
-        if(body.front()->is_if()) {
-            stmt = body.front()->is_if()->clone();
 
-            if (!stmt->is_if()->false_branch()) {
-                throw compiler_exception(
-                        "can only inline if statements with associated else", func->location()
-                );
-            }
+    auto fix_expression = [&fargs, &cargs, &scope, &lhs](expression_ptr& e) {
 
-            auto& true_branch = stmt->is_if()->true_branch()->is_block()->statements();
-            auto& false_branch = stmt->is_if()->false_branch()->is_block()->statements();
+        const auto& to_fix =  e->is_assignment() ? e->is_assignment()->rhs() : e->is_if()->condition()->is_conditional();
 
-            if (true_branch.size() != 1 || false_branch.size() != 1) {
-                throw compiler_exception(
-                        "can only inline functions with one statement", func->location()
-                );
-            }
-
-            if (!true_branch.front()->is_assignment() || !false_branch.front()->is_assignment()) {
-                throw compiler_exception(
-                        "can only inline if statements containing assignments", func->location()
-                );
-            }
-
-            true_exp = true_branch.front()->is_assignment()->rhs()->clone();
-            false_exp = false_branch.front()->is_assignment()->rhs()->clone();
-            cond_exp = stmt->is_if()->condition()->is_conditional()->clone();
-
-        } else {
-            stmt = body.front()->is_assignment()->clone();
-            true_exp = body.front()->is_assignment()->rhs()->clone();
-        }
-
-        auto& fargs = func->args(); // argument names for the function
-        auto& cargs = f->args();    // arguments at the call site
         for(auto i=0u; i<fargs.size(); ++i) {
             if(auto id = cargs[i]->is_identifier()) {
 #ifdef LOGGING
                 std::cout << "inline_function_call symbol replacement "
                           << id->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expressions: \n" << true_exp->to_string() << "\n";
-                if (false_exp) {
-                    std::cout << false_exp->to_string() << "\n";
-                }
-                if (cond_exp) {
-                    std::cout << cond_exp->to_string() << "\n";
-                }
+                          << " in the expression " << exp->to_string() << "\n";
+
 #endif
                 VariableReplacer v(
-                    fargs[i]->is_argument()->spelling(),
-                    id->spelling()
+                        fargs[i]->is_argument()->spelling(),
+                        id->spelling()
                 );
-                true_exp->accept(&v);
-                if (false_exp) {
-                    false_exp->accept(&v);
-                }
-                if (cond_exp) {
-                    cond_exp->accept(&v);
-                }
+                to_fix->accept(&v);
             }
             else if(auto value = cargs[i]->is_number()) {
 #ifdef LOGGING
                 std::cout << "inline_function_call symbol replacement "
                           << value->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expressions: \n" << true_exp->to_string() << "\n";
-                if (false_exp) {
-                    std::cout << false_exp->to_string() << "\n";
-                }
-                if (cond_exp) {
-                    std::cout << cond_exp->to_string() << "\n";
-                }
+                          << " in the expression " << exp->to_string() << "\n";
 #endif
                 ValueInliner v(
-                    fargs[i]->is_argument()->spelling(),
-                    value->value()
+                        fargs[i]->is_argument()->spelling(),
+                        value->value()
                 );
-                true_exp->accept(&v);
-                if (false_exp) {
-                    false_exp->accept(&v);
-                }
-                if (cond_exp) {
-                    cond_exp->accept(&v);
-                }
+                to_fix->accept(&v);
             }
             else {
                 throw compiler_exception(
-                    "can't inline functions with expressions as arguments",
-                     e->location()
-                 );
+                        "can't inline functions with expressions as arguments",
+                        e->location()
+                );
             }
         }
-        true_exp->semantic(e->scope());
-        if (false_exp) {
-            false_exp->semantic(e->scope());
-        }
-        if (cond_exp) {
-            cond_exp->semantic(e->scope());
-        }
+
+
+        to_fix->semantic(scope);
 
         ErrorVisitor v("");
-        true_exp->accept(&v);
-        if (false_exp) {
-            false_exp->accept(&v);
-        }
-        if (cond_exp) {
-            cond_exp->accept(&v);
-        }
+        to_fix->accept(&v);
 
         if(v.num_errors()) {
             throw compiler_exception("something went wrong with inlined function call ",
                                      e->location());
         }
 
-        expression_ptr new_exp;
-        if (stmt->is_assignment()) {
-            new_exp = make_expression<AssignmentExpression>(stmt->location(), assign_to_func->lhs()->clone(), std::move(true_exp));
-        } else if (stmt->is_if()) {
-            auto true_assign = make_expression<AssignmentExpression>(true_exp->location(), assign_to_func->lhs()->clone(), std::move(true_exp));
-            auto false_assign = make_expression<AssignmentExpression>(false_exp->location(), assign_to_func->lhs()->clone(), std::move(false_exp));
-
-            new_exp = make_expression<IfExpression>(stmt->location(), std::move(cond_exp), std::move(true_assign), std::move(false_assign));
-        };
-
 #ifdef LOGGING
-        std::cout << "inline_function_call result " << new_exp->to_string() << "\n\n";
+        std::cout << "inline_function_call result " << exp->to_string() << "\n\n";
 #endif
-        return new_exp;
-    }
+        if (e->is_assignment()) {
+            e->is_assignment()->replace_lhs(lhs->clone());
+        }
+        std::cout << "\tCHEERIO "<< e->to_string() << std::endl;
+    };
 
-    return {};
+    if (exp->is_if()) {
+        if (!exp->is_if()->false_branch()) {
+            throw compiler_exception(
+                    "can only inline if statements with associated else", exp->location()
+            );
+        }
+
+        auto& true_branch = exp->is_if()->true_branch()->is_block()->statements();
+        auto& false_branch = exp->is_if()->false_branch()->is_block()->statements();
+
+        if (true_branch.size() != 1 || false_branch.size() != 1) {
+            throw compiler_exception(
+                    "can only inline functions with one statement", exp->location()
+            );
+        }
+
+        fix_expression(exp);
+
+        if (true_branch.front()->is_if()) {
+            replace_and_inline(true_branch.front(), lhs, scope, fargs, cargs);
+        } else if (true_branch.front()->is_assignment()) {
+            fix_expression(true_branch.front());
+        } else {
+            throw compiler_exception(
+                    "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
+            );
+        }
+
+        if (false_branch.front()->is_if()) {
+            replace_and_inline(false_branch.front(), lhs, scope, fargs, cargs);
+        } else if (false_branch.front()->is_assignment()) {
+            fix_expression(false_branch.front());
+        } else {
+            throw compiler_exception(
+                    "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
+            );
+        }
+    } else if (exp->is_assignment()) {
+        fix_expression(exp);
+    } else {
+        throw compiler_exception(
+                "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
+        );
+    }
+    std::cout << "Out " << exp->to_string() << std::endl;
+
+
+};
+
+void inline_function_call(expression_ptr& e)
+{
+    auto assign_to_func = e->is_assignment();
+
+    if(auto f = assign_to_func->rhs()->is_function_call()) {
+        auto &body = f->function()->body()->statements();
+        if (body.size() != 1) {
+            throw compiler_exception(
+                    "can only inline functions with one statement", f->function()->location()
+            );
+        }
+        auto body_stmt = body.front()->clone();
+        replace_and_inline(body_stmt, assign_to_func->lhs()->is_identifier()->clone(), e->scope(), f->function()->args(), f->args());
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

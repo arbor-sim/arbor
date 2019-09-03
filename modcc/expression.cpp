@@ -690,18 +690,35 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
         if(e->is_initial_block()) error("INITIAL block not allowed inside FUNCTION definition");
     }
 
-    // check that the last expression in the body was an assignment to
-    // the return placeholder
+    // check that the last expression in the body was an assignment expression
+    // or if/else expression that assigns the return placeholder
     bool last_expr_is_assign = false;
-    auto tail = body()->back()->is_assignment();
-    if(tail) {
+    if(auto tail = body()->back()->is_assignment()) {
         // we know that the tail is an assignment expression
         auto lhs = tail->lhs()->is_identifier();
         // use nullptr check followed by lazy name lookup
         if(lhs && lhs->name()==name()) {
             last_expr_is_assign = true;
         }
-    }
+    } else if(auto tail = body()->back()->is_if()) {
+              auto last_true = tail->true_branch()->is_block()->statements().back()->is_assignment();
+        if (last_true) {
+            auto lhs_true = last_true->lhs()->is_identifier();
+            if(lhs_true && lhs_true->name()==name()) {
+                last_expr_is_assign = true;
+            }
+        }
+        auto false_branch = tail->false_branch();
+        if (false_branch) {
+            auto last_false = false_branch->is_block()->statements().back()->is_assignment();
+            if (last_false) {
+                auto lhs_false = last_false->lhs()->is_identifier();
+                if (lhs_false && lhs_false->name() != name()) {
+                    last_expr_is_assign = false;
+                }
+            }
+        }
+    };
     if(!last_expr_is_assign) {
         warning("the last expression in function '"
                 + yellow(name())
