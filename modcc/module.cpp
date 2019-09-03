@@ -791,13 +791,6 @@ int Module::semantic_func_proc() {
                 //      ll1_ = 2+x
                 //      ll0_ = ll1_*(y + 1)
                 //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    if(auto ass = (*e)->is_assignment()) {
-                        if(ass->rhs()->is_function_call()) {
-                            *e = inline_function_call(*e);
-                        }
-                    }
-                }
                 for(auto& e: b) {
                     if(auto ass = e->is_assignment()) {
                         if(ass->rhs()->is_function_call()) {

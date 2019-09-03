@@ -1,5 +1,7 @@
 #include <cstring>
 
+#include <stack>
+
 #include "expression.hpp"
 #include "identifier.hpp"
 
@@ -700,21 +702,30 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
         if(lhs && lhs->name()==name()) {
             last_expr_is_assign = true;
         }
-    } else if(auto tail = body()->back()->is_if()) {
-              auto last_true = tail->true_branch()->is_block()->statements().back()->is_assignment();
-        if (last_true) {
-            auto lhs_true = last_true->lhs()->is_identifier();
-            if(lhs_true && lhs_true->name()==name()) {
-                last_expr_is_assign = true;
+    } else if(body()->back()->is_if()) {
+        last_expr_is_assign = true;
+        std::stack<expression_ptr> if_exp;
+        if_exp.push(body()->back()->is_if()->clone());
+
+        while (!if_exp.empty()) {
+            auto tail = if_exp.top()->clone();
+            if_exp.pop();
+            if (auto true_branch = tail->is_if()->true_branch()) {
+                if (auto last = true_branch->is_block()->statements().back()->is_assignment()) {
+                    auto lhs = last->is_assignment()->lhs()->is_identifier();
+                    last_expr_is_assign &= (lhs && lhs->spelling()==name());
+                }
+                else if (auto last = true_branch->is_block()->statements().back()->is_if()) {
+                    if_exp.push(last->clone());
+                }
             }
-        }
-        auto false_branch = tail->false_branch();
-        if (false_branch) {
-            auto last_false = false_branch->is_block()->statements().back()->is_assignment();
-            if (last_false) {
-                auto lhs_false = last_false->lhs()->is_identifier();
-                if (lhs_false && lhs_false->name() != name()) {
-                    last_expr_is_assign = false;
+            if (auto false_branch = tail->is_if()->false_branch()) {
+                if (auto last = false_branch->is_block()->statements().back()->is_assignment()) {
+                    auto lhs = last->is_assignment()->lhs()->is_identifier();
+                    last_expr_is_assign &= (lhs && lhs->spelling()==name());
+                }
+                else if (auto last = false_branch->is_block()->statements().back()->is_if()) {
+                    if_exp.push(last->clone());
                 }
             }
         }
