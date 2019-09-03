@@ -6,8 +6,8 @@
 
 expression_ptr inline_function_call(Expression* e)
 {
-    auto assign_exp = e->is_assignment();
-    if(auto f = assign_exp->rhs()->is_function_call()) {
+    auto assign_to_func = e->is_assignment();
+    if(auto f = assign_to_func->rhs()->is_function_call()) {
         auto func = f->function();
 #ifdef LOGGING
         std::cout << "inline_function_call for statement " << f->to_string()
@@ -20,24 +20,18 @@ expression_ptr inline_function_call(Expression* e)
             );
         }
 
-        expression_ptr last, true_exp, false_exp, cond_exp;
-
+        expression_ptr stmt, true_exp, false_exp, cond_exp;
         if(body.front()->is_if()) {
-            last = body.front()->is_if()->clone();
+            stmt = body.front()->is_if()->clone();
 
-            if (!last->is_if()->false_branch()) {
+            if (!stmt->is_if()->false_branch()) {
                 throw compiler_exception(
                         "can only inline if statements with associated else", func->location()
                 );
             }
 
-            cond_exp = last->is_if()->condition()->is_conditional()->clone();
-
-            auto& true_branch = last->is_if()->true_branch()->is_block()->statements();
-            true_exp = true_branch.front()->is_assignment()->rhs()->clone();
-
-            auto& false_branch = last->is_if()->false_branch()->is_block()->statements();
-            false_exp = false_branch.front()->is_assignment()->rhs()->clone();
+            auto& true_branch = stmt->is_if()->true_branch()->is_block()->statements();
+            auto& false_branch = stmt->is_if()->false_branch()->is_block()->statements();
 
             if (true_branch.size() != 1 || false_branch.size() != 1) {
                 throw compiler_exception(
@@ -51,8 +45,12 @@ expression_ptr inline_function_call(Expression* e)
                 );
             }
 
+            true_exp = true_branch.front()->is_assignment()->rhs()->clone();
+            false_exp = false_branch.front()->is_assignment()->rhs()->clone();
+            cond_exp = stmt->is_if()->condition()->is_conditional()->clone();
+
         } else {
-            last = body.front()->is_assignment()->clone();
+            stmt = body.front()->is_assignment()->clone();
             true_exp = body.front()->is_assignment()->rhs()->clone();
         }
 
@@ -137,13 +135,13 @@ expression_ptr inline_function_call(Expression* e)
         }
 
         expression_ptr new_exp;
-        if (last->is_assignment()) {
-            new_exp = make_expression<AssignmentExpression>(last->location(), assign_exp->lhs()->clone(), std::move(true_exp));
-        } else if (last->is_if()) {
-            auto true_assign = make_expression<AssignmentExpression>(true_exp->location(), assign_exp->lhs()->clone(), std::move(true_exp));
-            auto false_assign = make_expression<AssignmentExpression>(false_exp->location(), assign_exp->lhs()->clone(), std::move(false_exp));
+        if (stmt->is_assignment()) {
+            new_exp = make_expression<AssignmentExpression>(stmt->location(), assign_to_func->lhs()->clone(), std::move(true_exp));
+        } else if (stmt->is_if()) {
+            auto true_assign = make_expression<AssignmentExpression>(true_exp->location(), assign_to_func->lhs()->clone(), std::move(true_exp));
+            auto false_assign = make_expression<AssignmentExpression>(false_exp->location(), assign_to_func->lhs()->clone(), std::move(false_exp));
 
-            new_exp = make_expression<IfExpression>(last->location(), std::move(cond_exp), std::move(true_assign), std::move(false_assign));
+            new_exp = make_expression<IfExpression>(stmt->location(), std::move(cond_exp), std::move(true_assign), std::move(false_assign));
         };
 
 #ifdef LOGGING
