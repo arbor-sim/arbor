@@ -6,61 +6,59 @@
 
 void replace_and_inline(expression_ptr& exp,
                         const expression_ptr& lhs,
-                        const scope_ptr& scope,
                         const std::vector<expression_ptr>& fargs,
-                        const std::vector<expression_ptr>& cargs) {
-    auto fix_expression = [&fargs, &cargs, &scope, &lhs](expression_ptr& e) {
+                        const std::vector<expression_ptr>& cargs,
+                        const scope_ptr& scope) {
 
-        const auto& to_fix =  e->is_assignment() ? e->is_assignment()->rhs() : e->is_if()->condition()->is_conditional();
+    // Replaces the function arguments with the call arguments
+    // Assigns the return variable to the given lhs
+    auto fix_expression = [&lhs, &fargs, &cargs, &scope](expression_ptr& e) {
+        const auto& new_e =  e->is_assignment() ? e->is_assignment()->rhs() : e->is_if()->condition()->is_conditional();
 
         for(auto i=0u; i<fargs.size(); ++i) {
             if(auto id = cargs[i]->is_identifier()) {
 #ifdef LOGGING
                 std::cout << "inline_function_call symbol replacement "
                           << id->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expression " << exp->to_string() << "\n";
-
+                          << " in the expression " << new_e->to_string() << "\n";
 #endif
                 VariableReplacer v(
-                        fargs[i]->is_argument()->spelling(),
-                        id->spelling()
+                    fargs[i]->is_argument()->spelling(),
+                    id->spelling()
                 );
-                to_fix->accept(&v);
+                new_e->accept(&v);
             }
             else if(auto value = cargs[i]->is_number()) {
 #ifdef LOGGING
                 std::cout << "inline_function_call symbol replacement "
                           << value->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expression " << exp->to_string() << "\n";
+                          << " in the expression " << new_e->to_string() << "\n";
 #endif
                 ValueInliner v(
-                        fargs[i]->is_argument()->spelling(),
-                        value->value()
+                    fargs[i]->is_argument()->spelling(),
+                    value->value()
                 );
-                to_fix->accept(&v);
+                new_e->accept(&v);
             }
             else {
                 throw compiler_exception(
-                        "can't inline functions with expressions as arguments",
-                        e->location()
-                );
+                    "can't inline functions with expressions as arguments",
+                     e->location()
+                 );
             }
         }
-
-
-        to_fix->semantic(scope);
+        new_e->semantic(scope);
 
         ErrorVisitor v("");
-        to_fix->accept(&v);
-
+        new_e->accept(&v);
+#ifdef LOGGING
+        std::cout << "inline_function_call result " << new_e->to_string() << "\n\n";
+#endif
         if(v.num_errors()) {
             throw compiler_exception("something went wrong with inlined function call ",
                                      e->location());
         }
 
-#ifdef LOGGING
-        std::cout << "inline_function_call result " << exp->to_string() << "\n\n";
-#endif
         if (e->is_assignment()) {
             e->is_assignment()->replace_lhs(lhs->clone());
         }
@@ -72,6 +70,8 @@ void replace_and_inline(expression_ptr& exp,
                     "can only inline if statements with associated else", exp->location()
             );
         }
+        // Modify the condition
+        fix_expression(exp);
 
         auto& true_branch = exp->is_if()->true_branch()->is_block()->statements();
         auto& false_branch = exp->is_if()->false_branch()->is_block()->statements();
@@ -82,11 +82,10 @@ void replace_and_inline(expression_ptr& exp,
             );
         }
 
-        fix_expression(exp);
-
         if (true_branch.front()->is_if()) {
-            replace_and_inline(true_branch.front(), lhs, scope, fargs, cargs);
+            replace_and_inline(true_branch.front(), lhs, fargs, cargs, scope);
         } else if (true_branch.front()->is_assignment()) {
+            // Modify the true assignment
             fix_expression(true_branch.front());
         } else {
             throw compiler_exception(
@@ -95,17 +94,20 @@ void replace_and_inline(expression_ptr& exp,
         }
 
         if (false_branch.front()->is_if()) {
-            replace_and_inline(false_branch.front(), lhs, scope, fargs, cargs);
+            replace_and_inline(false_branch.front(), lhs, fargs, cargs, scope);
         } else if (false_branch.front()->is_assignment()) {
+            // Modify the false assignment
             fix_expression(false_branch.front());
         } else {
             throw compiler_exception(
                     "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
             );
         }
-    } else if (exp->is_assignment()) {
+    }
+    else if (exp->is_assignment()) {
         fix_expression(exp);
-    } else {
+    }
+    else {
         throw compiler_exception(
                 "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
         );
@@ -115,6 +117,7 @@ void replace_and_inline(expression_ptr& exp,
 expression_ptr inline_function_call(const expression_ptr& e)
 {
     auto assign_to_func = e->is_assignment();
+    auto ret_val = assign_to_func->lhs()->is_identifier()->clone();
 
     if(auto f = assign_to_func->rhs()->is_function_call()) {
         auto &body = f->function()->body()->statements();
@@ -124,7 +127,8 @@ expression_ptr inline_function_call(const expression_ptr& e)
             );
         }
         auto body_stmt = body.front()->clone();
-        replace_and_inline(body_stmt, assign_to_func->lhs()->is_identifier()->clone(), e->scope(), f->function()->args(), f->args());
+        replace_and_inline(body_stmt, ret_val, f->function()->args(), f->args(), e->scope());
+
         return body_stmt;
     }
     return {};
