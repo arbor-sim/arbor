@@ -147,8 +147,7 @@ void CExprEmitter::visit(IfExpression* e) {
     e->condition()->accept(this);
     out_ << ") {\n" << io::indent;
     e->true_branch()->accept(this);
-    out_ << io::popindent;
-    out_ << "}\n";
+    out_ << io::popindent << "}\n";
 
     if (auto fb = e->false_branch()) {
         out_ << "else ";
@@ -158,7 +157,7 @@ void CExprEmitter::visit(IfExpression* e) {
         else {
             out_ << "{\n" << io::indent;
             fb->accept(this);
-            out_ << "}\n";
+            out_ << io::popindent << "}\n";
         }
     }
 }

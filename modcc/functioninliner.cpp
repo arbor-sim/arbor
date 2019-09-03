@@ -9,9 +9,6 @@ void replace_and_inline(expression_ptr& exp,
                         const scope_ptr& scope,
                         const std::vector<expression_ptr>& fargs,
                         const std::vector<expression_ptr>& cargs) {
-    std::cout << "In " << exp->to_string() << std::endl;
-
-
     auto fix_expression = [&fargs, &cargs, &scope, &lhs](expression_ptr& e) {
 
         const auto& to_fix =  e->is_assignment() ? e->is_assignment()->rhs() : e->is_if()->condition()->is_conditional();
@@ -67,7 +64,6 @@ void replace_and_inline(expression_ptr& exp,
         if (e->is_assignment()) {
             e->is_assignment()->replace_lhs(lhs->clone());
         }
-        std::cout << "\tCHEERIO "<< e->to_string() << std::endl;
     };
 
     if (exp->is_if()) {
@@ -114,12 +110,9 @@ void replace_and_inline(expression_ptr& exp,
                 "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
         );
     }
-    std::cout << "Out " << exp->to_string() << std::endl;
-
-
 };
 
-void inline_function_call(expression_ptr& e)
+expression_ptr inline_function_call(const expression_ptr& e)
 {
     auto assign_to_func = e->is_assignment();
 
@@ -132,7 +125,9 @@ void inline_function_call(expression_ptr& e)
         }
         auto body_stmt = body.front()->clone();
         replace_and_inline(body_stmt, assign_to_func->lhs()->is_identifier()->clone(), e->scope(), f->function()->args(), f->args());
+        return body_stmt;
     }
+    return {};
 }
 
 ///////////////////////////////////////////////////////////////////////////////

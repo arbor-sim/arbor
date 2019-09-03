@@ -5,7 +5,7 @@
 #include "scope.hpp"
 #include "visitor.hpp"
 
-void inline_function_call(expression_ptr& e);
+expression_ptr inline_function_call(const expression_ptr& e);
 
 class VariableReplacer : public Visitor {
 

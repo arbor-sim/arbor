@@ -795,7 +795,7 @@ int Module::semantic_func_proc() {
                     if(auto ass = (*e)->is_assignment()) {
                         if(ass->rhs()->is_function_call()) {
 //                            *e = std::make_unique<Expression>(inline_function_call(ass));
-                            inline_function_call(*e);
+                            *e = inline_function_call(*e);
                         }
                     }
                 }
