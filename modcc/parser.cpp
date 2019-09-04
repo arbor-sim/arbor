@@ -1549,6 +1549,7 @@ expression_ptr Parser::parse_solve() {
     Location loc = location_; // solve location for expression
     std::string name;
     solverMethod method;
+    solverVariant variant;
 
     get_token(); // consume the SOLVE keyword
 
@@ -1557,10 +1558,14 @@ expression_ptr Parser::parse_solve() {
     name = token_.spelling; // save name of procedure
     get_token(); // consume the procedure identifier
 
-    if(token_.type != tok::method) { // no method was provided
+    variant = solverVariant::regular;
+    if(token_.type != tok::method && token_.type != tok::steadystate) {
         method = solverMethod::none;
     }
     else {
+        if (token_.type == tok::steadystate) {
+            variant = solverVariant::steadystate;
+        }
         get_token(); // consume the METHOD keyword
         switch(token_.type) {
         case tok::cnexp:
@@ -1580,11 +1585,13 @@ expression_ptr Parser::parse_solve() {
         if(token_.type != tok::eof) goto solve_statement_error;
     }
 
-    return make_expression<SolveExpression>(loc, name, method);
+    return make_expression<SolveExpression>(loc, name, method, variant);
 
 solve_statement_error:
     error( "SOLVE statements must have the form\n"
            "  SOLVE x METHOD method\n"
+           "    or\n"
+           "  SOLVE x STEADYSTATE sparse\n"
            "    or\n"
            "  SOLVE x\n"
            "where 'x' is the name of a DERIVATIVE block and "

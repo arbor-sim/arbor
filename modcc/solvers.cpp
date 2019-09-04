@@ -180,6 +180,18 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
+    if (steadystate_) {
+        for (unsigned i = 0; i < dvars_.size(); i++) {
+            // create zero_epression locals for the rhs
+            auto zero_expr = make_expression<NumberExpression>(e->location(), 0.0);
+            auto local_a_term = make_unique_local_assign(e->scope(), zero_expr.get(), "a_");
+            auto a_ = local_a_term.id->is_identifier()->spelling();
+
+            statements_.push_back(std::move(local_a_term.local_decl));
+            statements_.push_back(std::move(local_a_term.assignment));
+            steadystate_rhs_.push_back(a_);
+        }
+    }
     scale_factor_.resize(dvars_.size());
 
     BlockRewriterBase::visit(e);
@@ -254,27 +266,26 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         // Otherwise, for non-zero coefficient c, the entry is -c*dt.
 
         if (r.coef.count(dvars_[j])) {
-            expr = make_expression<MulBinaryExpression>(loc,
-                       r.coef[dvars_[j]]->clone(),
-                       dt_expr->clone());
+            expr = steadystate_ ? r.coef[dvars_[j]]->clone() :
+                    make_expression<MulBinaryExpression>(loc, r.coef[dvars_[j]]->clone(), dt_expr->clone());
 
             if (scale_factor_[j]) {
                 expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
             }
         }
 
-        if (j==deq_index_) {
-            if (expr) {
-                expr = make_expression<SubBinaryExpression>(loc,
-                           one_expr->clone(),
-                           std::move(expr));
-            }
-            else {
-                expr = one_expr->clone();
-            }
-        }
-        else if (expr) {
+        if (!steadystate_) {
+            if (j == deq_index_) {
+                if (expr) {
+                    expr = make_expression<SubBinaryExpression>(loc,
+                                                                one_expr->clone(),
+                                                                std::move(expr));
+                } else {
+                    expr = one_expr->clone();
+                }
+            } else if (expr) {
                 expr = make_expression<NegUnaryExpression>(loc, std::move(expr));
+            }
         }
 
         if (!expr) continue;
@@ -360,7 +371,8 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 
 void SparseSolverVisitor::finalize() {
     std::vector<symge::symbol> rhs;
-    for (const auto& var: dvars_) {
+    for (unsigned i = 0; i < dvars_.size(); i++) {
+        auto var = steadystate_? steadystate_rhs_[i] : dvars_[i];
         rhs.push_back(symtbl_.define(var));
     }
     if (conserve_) {
