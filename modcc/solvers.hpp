@@ -94,7 +94,7 @@ protected:
     std::vector<unsigned> conserve_idx_;
 
     // rhs of steadstate
-    std::vector<std::string> steadystate_rhs_;
+    std::string steadystate_rhs_;
 public:
     using SolverVisitorBase::visit;
 

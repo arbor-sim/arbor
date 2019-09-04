@@ -181,16 +181,14 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
         }
     }
     if (steadystate_) {
-        for (unsigned i = 0; i < dvars_.size(); i++) {
-            // create zero_epression locals for the rhs
-            auto zero_expr = make_expression<NumberExpression>(e->location(), 0.0);
-            auto local_a_term = make_unique_local_assign(e->scope(), zero_expr.get(), "a_");
-            auto a_ = local_a_term.id->is_identifier()->spelling();
+        // create zero_epression local for the rhs
+        auto zero_expr = make_expression<NumberExpression>(e->location(), 0.0);
+        auto local_a_term = make_unique_local_assign(e->scope(), zero_expr.get(), "a_");
+        auto a_ = local_a_term.id->is_identifier()->spelling();
 
-            statements_.push_back(std::move(local_a_term.local_decl));
-            statements_.push_back(std::move(local_a_term.assignment));
-            steadystate_rhs_.push_back(a_);
-        }
+        statements_.push_back(std::move(local_a_term.local_decl));
+        statements_.push_back(std::move(local_a_term.assignment));
+        steadystate_rhs_ = a_;
     }
     scale_factor_.resize(dvars_.size());
 
@@ -371,9 +369,9 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 
 void SparseSolverVisitor::finalize() {
     std::vector<symge::symbol> rhs;
-    for (unsigned i = 0; i < dvars_.size(); i++) {
-        auto var = steadystate_? steadystate_rhs_[i] : dvars_[i];
-        rhs.push_back(symtbl_.define(var));
+    for (const auto& var: dvars_) {
+        auto v = steadystate_? steadystate_rhs_ : var;
+        rhs.push_back(symtbl_.define(v));
     }
     if (conserve_) {
         for (unsigned i = 0; i < conserve_idx_.size(); ++i) {
