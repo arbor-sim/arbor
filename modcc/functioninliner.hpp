@@ -5,6 +5,8 @@
 #include "scope.hpp"
 #include "visitor.hpp"
 
+// Takes an assignment to a function call, returns an inlined
+// version without modifying the original expression's contents
 expression_ptr inline_function_call(const expression_ptr& e);
 
 class VariableReplacer : public Visitor {

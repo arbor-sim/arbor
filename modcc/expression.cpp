@@ -1,5 +1,4 @@
 #include <cstring>
-
 #include <stack>
 
 #include "expression.hpp"
@@ -708,7 +707,7 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
         if_exp.push(body()->back()->is_if()->clone());
 
         while (!if_exp.empty()) {
-            auto tail = if_exp.top()->clone();
+            auto tail = std::move(if_exp.top());
             if_exp.pop();
             if (auto true_branch = tail->is_if()->true_branch()) {
                 if (auto last = true_branch->is_block()->statements().back()->is_assignment()) {
