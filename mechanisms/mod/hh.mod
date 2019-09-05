@@ -18,7 +18,6 @@ PARAMETER {
     gl = .0003 (S/cm2)
     el = -54.3 (mV)
     celsius
-    diam
 }
 
 STATE {
@@ -48,27 +47,27 @@ BREAKPOINT {
 }
 
 INITIAL {
-    rates(v, celsius, diam)
+    rates(v, celsius)
     m = minf
     h = hinf
     n = ninf
 }
 
 DERIVATIVE states {
-    rates(v, celsius, diam)
+    rates(v, celsius)
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
     n' = (ninf-n)/ntau
 }
 
-PROCEDURE rates(v, celsius, diam)
+PROCEDURE rates(v, celsius)
 {
     LOCAL  alpha, beta, sum, q10
 
     q10 = 3^((celsius - 6.3)/10)
 
     :"m" sodium activation system
-    alpha = .1 *diam* vtrap(-(v+40),10)
+    alpha = .1 * vtrap(-(v+40),10)
     beta =  4 * exp(-(v+65)/18)
     sum = alpha + beta
     mtau = 1/(q10*sum)
