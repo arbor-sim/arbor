@@ -95,6 +95,7 @@ TEST(synapses, syn_basic_state) {
         {},
         std::vector<value_type>(num_comp, -65),
         std::vector<value_type>(num_comp, temp_K),
+        std::vector<value_type>(num_comp, 1.),
         align);
 
     state.reset();

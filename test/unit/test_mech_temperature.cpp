@@ -32,10 +32,11 @@ void run_celsius_test() {
     double temperature_C = temperature_K-273.15;
 
     std::vector<fvm_value_type> temp(ncv, temperature_K);
+    std::vector<fvm_value_type> diam(ncv, 1.);
     std::vector<fvm_value_type> vinit(ncv, -65);
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-        ncell, cv_to_intdom, gj, vinit, temp, celsius_test->data_alignment());
+        ncell, cv_to_intdom, gj, vinit, temp, diam, celsius_test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;

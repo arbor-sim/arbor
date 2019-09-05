@@ -185,12 +185,10 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         break;
     case sourceKind::temperature:
         v.data_var = "temperature_degC_";
-        v.index_var = ""; // scalar global
         v.readonly = true;
         break;
     case sourceKind::diameter:
         v.data_var = "diam_um_";
-        v.index_var = ""; // scalar global
         v.readonly = true;
         break;
     default:

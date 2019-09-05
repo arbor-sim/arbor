@@ -94,6 +94,7 @@ shared_state::shared_state(
     const std::vector<fvm_gap_junction>& gj_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
+    const std::vector<fvm_value_type>& diam,
     unsigned // alignment parameter ignored.
 ):
     n_intdom(n_intdom),
@@ -110,6 +111,7 @@ shared_state::shared_state(
     conductivity(n_cv),
     init_voltage(make_const_view(init_membrane_potential)),
     temperature_degC(make_const_view(temperature_K)),
+    diam_um(make_const_view(diam)),
     deliverable_events(n_intdom)
 {
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
@@ -188,6 +190,7 @@ std::ostream& operator<<(std::ostream& o, shared_state& s) {
     o << " voltage      " << s.voltage << "\n";
     o << " init_voltage " << s.init_voltage << "\n";
     o << " temperature  " << s.temperature_degC << "\n";
+    o << " diameter     " << s.diam_um << "\n";
     o << " current      " << s.current_density << "\n";
     o << " conductivity " << s.conductivity << "\n";
     for (auto& ki: s.ion_data) {

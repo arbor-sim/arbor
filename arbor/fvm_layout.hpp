@@ -68,6 +68,7 @@ struct fvm_discretization {
     std::vector<value_type> cv_capacitance;   // [pF]
     std::vector<value_type> init_membrane_potential; // [mV]
     std::vector<value_type> temperature_K;    // [K]
+    std::vector<value_type> diam_um;          // [µm]
 
     std::vector<segment_info> segments;
 
