@@ -23,24 +23,27 @@ mcable_list merge(const mcable_list& lhs, const mcable_list& rhs) {
     return v;
 }
 
-bool is_disjoint_union(const mcable& a, const mcable& b) {
+// Returns true iff cable sections a and b:
+//  1. are on the same branch
+//  2. overlap, i.e. their union is not empty.
+bool is_disjoint(const mcable& a, const mcable& b) {
     if (a.branch!=b.branch) return true;
     return a<b? a.dist_pos<b.prox_pos: b.dist_pos<a.prox_pos;
 }
 
 bool is_nonnull_intersection(const mcable& a, const mcable& b) {
-    if (a==b) return true; // handles special case of spherical branch
+    //if (a==b) return true; // handles special case of spherical branch
     if (a.branch!=b.branch) return false;
     return a<b? a.dist_pos>b.prox_pos: b.dist_pos>a.prox_pos;
 }
 
 mcable make_union(const mcable& a, const mcable& b) {
-    assert(!is_disjoint_union(a,b));
+    assert(!is_disjoint(a,b));
     return mcable{a.branch, std::min(a.prox_pos, b.prox_pos), std::max(a.dist_pos, b.dist_pos)};
 }
 
 mcable make_intersection(const mcable& a, const mcable& b) {
-    assert(is_nonnull_intersection(a,b));
+    assert(!is_disjoint(a,b));
 
     return mcable{a.branch, std::max(a.prox_pos, b.prox_pos), std::min(a.dist_pos, b.dist_pos)};
 }
@@ -185,7 +188,7 @@ mcable_list concretise_(const reg_and& P, const em_morphology& m) {
         bool first_less = *(it.first) < *(it.second);
         auto& lhs = first_less? it.first: it.second;
         auto& rhs = first_less? it.second: it.first;
-        if (is_nonnull_intersection(*lhs, *rhs)) {
+        if (!is_disjoint(*lhs, *rhs)) {
             L.push_back(make_intersection(*lhs, *rhs));
         }
         if (dist_loc(*lhs) < dist_loc(*rhs)) {
@@ -221,7 +224,7 @@ mcable_list concretise_(const reg_or& P, const em_morphology& m) {
     auto c = l.front();
     auto it = l.begin()+1;
     while (it!=l.end()) {
-        if (!is_disjoint_union(c, *it)) {
+        if (!is_disjoint(c, *it)) {
             c = make_union(c, *it);
         }
         else {

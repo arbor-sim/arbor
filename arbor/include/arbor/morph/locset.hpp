@@ -13,17 +13,11 @@
 
 namespace arb {
 
-// Forward declarations of locset, region and their respective dictionaries,
-// which are required to define the interface for locset.
-class locset;
-class region;
-using locset_dictionary = std::unordered_map<std::string, locset>;
-using region_dictionary = std::unordered_map<std::string, region>;
-
 // Forward declare the backend em_morphology type, required for defining the
 // interface for concretising locsets.
 class em_morphology;
 
+// location sets are 
 class locset {
 public:
     locset();
@@ -72,7 +66,7 @@ public:
 
     template <typename ...Args>
     friend locset join(locset l, locset r, Args... args) {
-        return join(join(std::move(l), std::move(r), std::move(args)...));
+        return join(join(std::move(l), std::move(r)), std::move(args)...);
     }
 
     // The intersection of two location sets.
@@ -80,7 +74,15 @@ public:
 
     template <typename ...Args>
     friend locset intersect(locset l, locset r, Args... args) {
-        return intersect(intersect(std::move(l), std::move(r), std::move(args)...));
+        return intersect(intersect(std::move(l), std::move(r)), std::move(args)...);
+    }
+
+    // The sum of two location sets.
+    friend locset sum(locset, locset);
+
+    template <typename ...Args>
+    friend locset sum(locset l, locset r, Args... args) {
+        return sum(sum(std::move(l), std::move(r)), std::move(args)...);
     }
 
 private:
@@ -127,6 +129,9 @@ locset terminal();
 
 // The root node of a morphology.
 locset root();
+
+// The null (empty) set.
+locset nil();
 
 } // namespace ps
 

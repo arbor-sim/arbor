@@ -6,6 +6,7 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "morph/em_morphology.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
@@ -87,6 +88,46 @@ mlocation em_morphology::sample2loc(msize_t sid) const {
 
 mlocation_list em_morphology::terminals() const {
     return terminals_;
+}
+
+mlocation_list em_morphology::cover(mlocation loc) const {
+    mlocation_list L{loc};
+
+    // If the location is not at the end of a branch, it is its own cover.
+    if (loc.pos>0. && loc.pos<1.) return L;
+
+    // The root is a special case.
+    if (loc==mlocation{0,0}) {
+        // Spherical root: nothing more to do
+        if (morph_.spherical_root()) return L;
+        // Non-spherical root: include start of each branch attached to the root
+        for (auto b: morph_.branch_children(mnpos)) {
+            if (b) L.push_back({b, 0});
+        }
+        return L;
+    }
+
+    if (loc.pos==1) {
+        // The location is at the end of a branch: at the location at
+        // the start of each child branch.
+        for (auto b: morph_.branch_children(loc.branch)) {
+            L.push_back({b, 0});
+        }
+    }
+    else if (loc.pos==0) {
+        // The location is at the start of a branch: at the location at
+        // the end of the parent branch, and locations at the start of
+        // each child of the parent branch.
+        auto p = morph_.branch_parent(loc.branch);
+        if (p!=mnpos) L.push_back({p, 1});
+        for (auto b: morph_.branch_children(p)) {
+            if (b!=loc.branch) L.push_back({b, 0});
+        }
+    }
+
+    util::sort(L);
+
+    return L;
 }
 
 mlocation em_morphology::canonicalize(mlocation loc) const {

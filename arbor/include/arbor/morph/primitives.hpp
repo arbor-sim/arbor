@@ -55,6 +55,7 @@ struct mlocation {
     // The relative position on the branch ∈ [0,1].
     double pos;
 
+    // branch ≠ npos and 0 ≤ pos ≤ 1
     friend bool test_invariants(const mlocation&);
     friend std::ostream& operator<<(std::ostream&, const mlocation&);
 };
@@ -63,6 +64,9 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mlocation, (a.branch,a.pos), (b.branch,b.pos))
 
 using mlocation_list = std::vector<mlocation>;
 std::ostream& operator<<(std::ostream& o, const mlocation_list& l);
+
+// Tests whether each location in the list satisfies the invariants for a location,
+// and that the locations in the vector are ordered.
 bool test_invariants(const mlocation_list&);
 
 // Describe an unbranched cable in the morphology.
@@ -78,6 +82,7 @@ struct mcable {
     friend mlocation prox_loc(const mcable&);
     friend mlocation dist_loc(const mcable&);
 
+    // branch ≠ npos, and 0 ≤ prox_pos ≤ dist_pos ≤ 1
     friend bool test_invariants(const mcable&);
     friend std::ostream& operator<<(std::ostream&, const mcable&);
 };
@@ -86,6 +91,8 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mcable, (a.branch,a.prox_pos,a.dist_pos), (b.b
 
 using mcable_list = std::vector<mcable>;
 std::ostream& operator<<(std::ostream& o, const mcable_list& c);
+// Tests whether each cable in the list satisfies the invariants for a cable,
+// and that the cables in the vector are ordered.
 bool test_invariants(const mcable_list&);
 
 using point_prop = std::uint8_t;

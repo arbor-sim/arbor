@@ -16,7 +16,6 @@
 #include <arbor/morph/region.hpp>
 
 #include "io/sepval.hpp"
-#include "morph/morphology_impl.hpp"
 #include "morph/em_morphology.hpp"
 #include "util/span.hpp"
 
@@ -126,6 +125,71 @@ TEST(em_morphology, cache) {
     }
 }
 
+TEST(em_morphology, cover) {
+    using pvec = std::vector<arb::msize_t>;
+    using svec = std::vector<arb::msample>;
+    using ll = arb::mlocation_list;
+    constexpr auto npos = arb::mnpos;
+    using arb::util::make_span;
+
+    // Eight samples
+    //              0           |
+    //            1   3         |
+    //          2       4       |
+    //                5   6     |
+    //                      7   |
+    pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
+
+    svec samples = {
+        {{  0,  0,  0, 10}, 1},
+        {{ 10,  0,  0,  2}, 3},
+        {{100,  0,  0,  2}, 3},
+        {{  0, 10,  0,  2}, 3},
+        {{  0,100,  0,  2}, 3},
+        {{100,100,  0,  2}, 3},
+        {{  0,200,  0,  2}, 3},
+        {{  0,300,  0,  2}, 3},
+    };
+    arb::sample_tree sm(samples, parents);
+
+    // non-spherical root.
+    {
+        arb::em_morphology em(arb::morphology(sm, false));
+
+        for (arb::msize_t i: make_span(em.morph().num_branches())) {
+            for (auto j: make_span(1,9)) {
+                arb::mlocation l{i, j/10.};
+                EXPECT_EQ(em.cover(l), (ll{l}));
+            }
+        }
+
+        EXPECT_EQ(em.cover({0,0}), (ll{{0,0}, {1,0}}));
+        EXPECT_EQ(em.cover({0,1}), (ll{{0,1}}));
+        EXPECT_EQ(em.cover({1,1}), (ll{{1,1}, {2,0}, {3,0}}));
+        EXPECT_EQ(em.cover({2,1}), (ll{{2,1}}));
+        EXPECT_EQ(em.cover({3,1}), (ll{{3,1}}));
+
+        EXPECT_EQ(em.cover({1,0}), (ll{{0,0}, {1,0}}));
+        EXPECT_EQ(em.cover({2,0}), (ll{{1,1}, {2,0}, {3,0}}));
+        EXPECT_EQ(em.cover({3,0}), (ll{{1,1}, {2,0}, {3,0}}));
+    }
+    // spherical root.
+    {
+        arb::em_morphology em(arb::morphology(sm, true));
+
+        EXPECT_EQ(em.cover({0,0}), (ll{{0,0}}));
+        EXPECT_EQ(em.cover({0,1}), (ll{{0,1}, {1,0}, {2,0}}));
+        EXPECT_EQ(em.cover({1,1}), (ll{{1,1}}));
+        EXPECT_EQ(em.cover({2,1}), (ll{{2,1}, {3,0}, {4,0}}));
+        EXPECT_EQ(em.cover({3,1}), (ll{{3,1}}));
+        EXPECT_EQ(em.cover({4,1}), (ll{{4,1}}));
+        EXPECT_EQ(em.cover({1,0}), (ll{{0,1}, {1,0}, {2,0}}));
+        EXPECT_EQ(em.cover({2,0}), (ll{{0,1}, {1,0}, {2,0}}));
+        EXPECT_EQ(em.cover({3,0}), (ll{{2,1}, {3,0}, {4,0}}));
+        EXPECT_EQ(em.cover({4,0}), (ll{{2,1}, {3,0}, {4,0}}));
+    }
+}
+
 // Test expressions that describe location sets (locset).
 TEST(locset, expressions) {
     auto root = arb::ls::root();
@@ -143,6 +207,11 @@ TEST(locset, expressions) {
     EXPECT_EQ(to_string(term), "terminal");
     EXPECT_EQ(to_string(intersect(root, term)), "(intersect root terminal)");
     EXPECT_EQ(to_string(join(root, term)),  "(join root terminal)");
+    EXPECT_EQ(to_string(join(root, term, samp)),  "(join (join root terminal) (sample 42))");
+    EXPECT_EQ(to_string(join(root, term, samp, loc)),  "(join (join (join root terminal) (sample 42)) (location 2 0.5))");
+    EXPECT_EQ(to_string(intersect(root, term)),  "(intersect root terminal)");
+    EXPECT_EQ(to_string(intersect(root, term, samp)),  "(intersect (intersect root terminal) (sample 42))");
+    EXPECT_EQ(to_string(intersect(root, term, samp, loc)),  "(intersect (intersect (intersect root terminal) (sample 42)) (location 2 0.5))");
     EXPECT_EQ(to_string(join(root, intersect(term, samp))),  "(join root (intersect terminal (sample 42)))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
@@ -260,6 +329,93 @@ TEST(locset, concretise) {
     }
 }
 
+// Forward declare implementation of join, union & intersect on location lists
+// for testing.
+namespace arb { namespace ls {
+    mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs);
+    mlocation_list join(const mlocation_list& lhs, const mlocation_list& rhs);
+    mlocation_list sum(const mlocation_list& lhs, const mlocation_list& rhs);
+}}
+
+arb::mlocation_list ml(std::vector<int> bids) {
+    arb::mlocation_list L;
+    for (arb::msize_t b: bids) L.push_back({b, 0});
+    return L;
+}
+
+
+// Test out multiset joins, intersections and sums
+TEST(locset, join_intersect_sum) {
+    using ll = arb::mlocation_list;
+    using arb::ls::intersection;
+    using arb::ls::sum;
+    using arb::ls::join;
+
+    {
+        ll lhs{};
+        ll rhs{};
+        EXPECT_EQ(sum(lhs, rhs), ll{});
+        EXPECT_EQ(join(lhs, rhs), ll{});
+        EXPECT_EQ(intersection(lhs, rhs), ll{});
+    }
+    {
+        ll lhs{};
+        ll rhs = ml({0,1});
+        EXPECT_EQ(sum(lhs, rhs), rhs);
+        EXPECT_EQ(join(lhs, rhs), rhs);
+        EXPECT_EQ(intersection(lhs, rhs), ll{});
+    }
+    {
+        ll lhs = ml({1});
+        ll rhs = ml({1});
+        EXPECT_EQ(sum(lhs,  rhs), ml({1,1}));
+        EXPECT_EQ(join(lhs, rhs), ml({1}));
+        EXPECT_EQ(intersection(lhs, rhs), ml({1}));
+    }
+    {
+        ll lhs = ml({1,1});
+        ll rhs = ml({1});
+        EXPECT_EQ(sum(lhs,  rhs), ml({1,1,1}));
+        EXPECT_EQ(join(lhs, rhs), ml({1,1}));
+        EXPECT_EQ(intersection(lhs, rhs), ml({1}));
+    }
+    {
+        ll lhs = ml({0,3});
+        ll rhs = ml({1,2});
+        EXPECT_EQ(sum(lhs,  rhs), ml({0,1,2,3}));
+        EXPECT_EQ(join(lhs, rhs), ml({0,1,2,3}));
+        EXPECT_EQ(intersection(lhs, rhs), ll{});
+    }
+    {
+        ll lhs = ml({0,1,3});
+        ll rhs = ml({0,1,3});
+        EXPECT_EQ(sum(lhs, rhs), ml({0,0,1,1,3,3}));
+        EXPECT_EQ(join(lhs, rhs), lhs);
+        EXPECT_EQ(intersection(lhs, rhs), lhs);
+    }
+    {
+        ll lhs = ml({0,1,3});
+        ll rhs = ml({1,2});
+        EXPECT_EQ(sum(lhs, rhs), ml({0,1,1,2,3}));
+        EXPECT_EQ(join(lhs, rhs), ml({0,1,2,3}));
+        EXPECT_EQ(intersection(lhs, rhs), ml({1}));
+    }
+    {
+        ll lhs = ml({0,1,1,3});
+        ll rhs = ml({1,2});
+        EXPECT_EQ(sum(lhs, rhs), ml({0,1,1,1,2,3}));
+        EXPECT_EQ(join(lhs, rhs), ml({0,1,1,2,3}));
+        EXPECT_EQ(intersection(lhs, rhs), ml({1}));
+    }
+    {
+        ll lhs = ml({0,1,1,3,5,5,12});
+        ll rhs = ml({1,2,2,5,5,5});
+        EXPECT_EQ(sum(lhs, rhs),  ml({0,1,1,1,2,2,3,5,5,5,5,5,12}));
+        EXPECT_EQ(join(lhs, rhs), ml({0,1,1,2,2,3,5,5,5,12}));
+        EXPECT_EQ(intersection(lhs, rhs), ml({1,5,5}));
+    }
+}
+
 TEST(region, concretise) {
     using pvec = std::vector<arb::msize_t>;
     using svec = std::vector<arb::msample>;
@@ -301,7 +457,9 @@ TEST(region, concretise) {
         EXPECT_EQ(concretise(t1, em), t1_);
         EXPECT_EQ(concretise(t2, em), t2_);
         EXPECT_EQ(concretise(join(h1, h2), em), all_);
-        EXPECT_EQ(concretise(intersect(h1, h2), em), empty_);
+
+        EXPECT_EQ(concretise(intersect(h1, h2), em), (cl{{0, 0.5, 0.5}}));
+
         EXPECT_EQ(concretise(intersect(h1, h1), em), h1_);
         EXPECT_EQ(concretise(intersect(t1, t1), em), t1_);
         EXPECT_EQ(concretise(join(t1, t2), em), all_);
@@ -314,6 +472,48 @@ TEST(region, concretise) {
         EXPECT_EQ(concretise(intersect(h2, t1), em), (cl{{0, 0.5, 0.7}}));
     }
 
+
+    // Test handling of spherical soma on multi-branch morphologies
+    //
+    //  sample ids:
+    //              0           |
+    //             / \          |
+    //            1   3         |
+    //           /     \        |
+    //          2       4       |
+    //  tags:
+    //              1           |
+    //             / \          |
+    //            3   2         |
+    //           /     \        |
+    //          3       2       |
+    {
+        pvec parents = {npos, 0, 1, 0, 3};
+        svec samples = {
+            {{  0,  0,  0,  2}, 1},
+            {{ 10,  0,  0,  2}, 3},
+            {{100,  0,  0,  2}, 3},
+            {{  0, 10,  0,  2}, 2},
+            {{  0,100,  0,  2}, 2},
+        };
+
+        // with a spherical root
+        arb::sample_tree sm(samples, parents);
+        arb::em_morphology em(arb::morphology(sm, true));
+
+        using arb::reg::tagged;
+        using arb::reg::branch;
+        using arb::reg::all;
+
+        EXPECT_EQ(concretise(tagged(1), em), (arb::mcable_list{{0,0,1}}));
+        EXPECT_EQ(concretise(tagged(2), em), (arb::mcable_list{{2,0,1}}));
+        EXPECT_EQ(concretise(tagged(3), em), (arb::mcable_list{{1,0,1}}));
+        EXPECT_EQ(concretise(join(tagged(1), tagged(2), tagged(3)), em), (arb::mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
+        EXPECT_EQ(concretise(join(tagged(1), tagged(2), tagged(3)), em), concretise(all(), em));
+    }
+
+    // Test multi-level morphologies.
+    //
     // Eight samples
     //
     //  sample ids:
@@ -336,20 +536,20 @@ TEST(region, concretise) {
     //                4   3     |
     //                     \    |
     //                      3   |
-    pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 1},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 2},
-        {{  0,100,  0,  2}, 2},
-        {{100,100,  0,  2}, 4},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
-    };
-    arb::sample_tree sm(samples, parents);
-
     {
+        pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
+        svec samples = {
+            {{  0,  0,  0,  2}, 1},
+            {{ 10,  0,  0,  2}, 3},
+            {{100,  0,  0,  2}, 3},
+            {{  0, 10,  0,  2}, 2},
+            {{  0,100,  0,  2}, 2},
+            {{100,100,  0,  2}, 4},
+            {{  0,200,  0,  2}, 3},
+            {{  0,300,  0,  2}, 3},
+        };
+        arb::sample_tree sm(samples, parents);
+
         // Without spherical root
         arb::em_morphology em(arb::morphology(sm, false));
 

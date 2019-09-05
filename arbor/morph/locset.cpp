@@ -14,11 +14,103 @@
 namespace arb {
 namespace ls {
 
-mlocation_list merge(const mlocation_list& lhs, const mlocation_list& rhs) {
+//
+// Functions for taking the sum, union and intersection of location_lists (multisets).
+//
+//
+
+using it_t = mlocation_list::iterator;
+using const_it_t = mlocation_list::const_iterator;
+
+// Advance an iterator to the first value that is not equal to its current
+// value, or end, whichever comes first.
+template <typename T>
+T next_unique(T& it, T end) {
+    const auto& x = *it;
+    ++it;
+    while (it!=end && *it==x) ++it;
+    return it;
+};
+
+// Return the number of times that the value at it is repeated. Advances the
+// iterator to the first value not equal to its current value, or end,
+// whichever comse first.
+template <typename T>
+int multiplicity(T& it, T end) {
+    const auto b = it;
+    return std::distance(b, next_unique(it, end));
+};
+
+mlocation_list sum(const mlocation_list& lhs, const mlocation_list& rhs) {
     mlocation_list v;
     v.resize(lhs.size() + rhs.size());
     std::merge(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), v.begin());
     return v;
+}
+
+mlocation_list join(const mlocation_list& lhs, const mlocation_list& rhs) {
+    mlocation_list L;
+    L.reserve(lhs.size()+rhs.size());
+
+    auto l    = lhs.begin();
+    auto lend = lhs.end();
+    auto r    = rhs.begin();
+    auto rend = rhs.end();
+
+    auto at_end = [&]() { return l==lend || r==rend; };
+    while (!at_end()) {
+        auto x = (*l<*r) ? *l: *r;
+        auto count = (*l<*r)? multiplicity(l, lend):
+                     (*r<*l)? multiplicity(r, rend):
+                     std::max(multiplicity(l, lend), multiplicity(r, rend));
+        while (count--) L.push_back(x);
+    }
+    L.insert(L.end(), l, lend);
+    L.insert(L.end(), r, rend);
+
+    return L;
+}
+
+mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs) {
+    mlocation_list L;
+    L.reserve(lhs.size()+rhs.size());
+
+    auto l    = lhs.begin();
+    auto lend = lhs.end();
+    auto r    = rhs.begin();
+    auto rend = rhs.end();
+
+    auto at_end = [&]() { return l==lend || r==rend; };
+    while (!at_end()) {
+        if (*l==*r) {
+            auto x = *l;
+            auto count = std::min(multiplicity(l, lend), multiplicity(r, rend));
+            while (count--) L.push_back(x);
+        }
+        else if (*l<*r) {
+            next_unique(l, lend);
+        }
+        else {
+            next_unique(r, rend);
+        }
+    }
+
+    return L;
+}
+
+// Null set
+struct nil_ {};
+
+locset nil() {
+    return locset{nil_{}};
+}
+
+mlocation_list concretise_(const nil_& x, const em_morphology& m) {
+    return {};
+}
+
+std::ostream& operator<<(std::ostream& o, const nil_& x) {
+    return o << "nil";
 }
 
 // An explicit location
@@ -98,18 +190,7 @@ struct land {
 };
 
 mlocation_list concretise_(const land& P, const em_morphology& m) {
-    auto locs = merge(concretise(P.lhs, m), concretise(P.rhs, m));
-    auto beg = locs.begin();
-    auto end = locs.end();
-    auto pos = beg;
-    auto it = std::adjacent_find(beg, end);
-    while (it!=end) {
-        std::swap(*pos, *it);
-        it = std::adjacent_find(++it, end);
-        ++pos;
-    }
-    locs.resize(pos-beg);
-    return locs;
+    return intersection(concretise(P.lhs, m), concretise(P.rhs, m));
 }
 
 std::ostream& operator<<(std::ostream& o, const land& x) {
@@ -117,29 +198,36 @@ std::ostream& operator<<(std::ostream& o, const land& x) {
 }
 
 // union of two point sets
-struct locor {
+struct lor {
     locset lhs;
     locset rhs;
-    locor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+    lor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mlocation_list concretise_(const locor& P, const em_morphology& m) {
-    // Concatenate locations from lhs and rhs.
-    auto locs = merge(concretise(P.lhs, m), concretise(P.rhs, m));
-
-    // Remove duplicates.
-    auto it = std::unique(locs.begin(), locs.end());
-    locs.resize(std::distance(locs.begin(), it));
-
-    return locs;
+mlocation_list concretise_(const lor& P, const em_morphology& m) {
+    return join(concretise(P.lhs, m), concretise(P.rhs, m));
 }
 
-std::ostream& operator<<(std::ostream& o, const locor& x) {
+std::ostream& operator<<(std::ostream& o, const lor& x) {
     return o << "(join " << x.lhs << " " << x.rhs << ")";
 }
 
-} // namespace ls
+// sum of two point sets
+struct lsum {
+    locset lhs;
+    locset rhs;
+    lsum(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+};
 
+mlocation_list concretise_(const lsum& P, const em_morphology& m) {
+    return sum(concretise(P.lhs, m), concretise(P.rhs, m));
+}
+
+std::ostream& operator<<(std::ostream& o, const lsum& x) {
+    return o << "(sum " << x.lhs << " " << x.rhs << ")";
+}
+
+} // namespace ls
 
 // The intersect and join operations in the arb:: namespace with locset so that
 // ADL allows for construction of expressions with locsets without having
@@ -150,7 +238,11 @@ locset intersect(locset lhs, locset rhs) {
 }
 
 locset join(locset lhs, locset rhs) {
-    return locset(ls::locor(std::move(lhs), std::move(rhs)));
+    return locset(ls::lor(std::move(lhs), std::move(rhs)));
+}
+
+locset sum(locset lhs, locset rhs) {
+    return locset(ls::lsum(std::move(lhs), std::move(rhs)));
 }
 
 } // namespace arb

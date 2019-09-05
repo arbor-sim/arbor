@@ -14,13 +14,6 @@
 
 namespace arb {
 
-// Dorward declarations of locset, region and their respective dictionaries,
-// which are required to define the interface for region.
-class locset;
-class region;
-using locset_dictionary = std::unordered_map<std::string, locset>;
-using region_dictionary = std::unordered_map<std::string, region>;
-
 // Forward declare the backend em_morphology type, required for defining the
 // interface for concretising locsets.
 class em_morphology;

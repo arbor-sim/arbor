@@ -11,28 +11,13 @@
 
 #include "algorithms.hpp"
 #include "io/sepval.hpp"
-#include "morph/morphology_impl.hpp"
+#include "morph/mbranch.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
 
 namespace impl{
-
-//
-//  mbranch implementation
-//
-
-bool operator==(const mbranch& l, const mbranch& r) {
-    return l.parent_id==r.parent_id && l.index==r.index;
-}
-
-std::ostream& operator<<(std::ostream& o, const mbranch& b) {
-    o <<"mbranch([" << io::csv(b.index) << "], ";
-    if (b.parent_id==mnpos) o << "none)";
-    else  o << b.parent_id << ")";
-    return o;
-}
 
 std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents,
                                                 const std::vector<point_prop>& props,
@@ -123,6 +108,7 @@ struct morphology_impl {
     // Branch state.
     std::vector<impl::mbranch> branches_;
     std::vector<msize_t> branch_parents_;
+    std::vector<msize_t> root_children_;
     std::vector<std::vector<msize_t>> branch_children_;
 
     morphology_impl(sample_tree m, bool use_spherical_root);
@@ -168,6 +154,9 @@ void morphology_impl::init() {
         if (id!=mnpos) {
             branch_children_[id].push_back(i);
         }
+        else {
+            root_children_.push_back(i);
+        }
     }
 }
 
@@ -205,7 +194,7 @@ const std::vector<msize_t>& morphology::sample_parents() const {
 
 // The child branches of branch b.
 const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
-    return impl_->branch_children_[b];
+    return b==mnpos? impl_->root_children_: impl_->branch_children_[b];
 }
 
 // Whether the root of the morphology is spherical.

@@ -29,6 +29,8 @@ public:
     mlocation sample2loc(msize_t sid) const;
 
     mlocation canonicalize(mlocation) const;
+
+    mlocation_list cover(mlocation) const;
 };
 
 } // namespace arb

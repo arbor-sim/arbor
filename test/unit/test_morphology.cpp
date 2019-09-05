@@ -17,7 +17,7 @@
 
 #include "algorithms.hpp"
 #include "io/sepval.hpp"
-#include "morph/morphology_impl.hpp"
+#include "morph/mbranch.hpp"
 #include "morph/em_morphology.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
