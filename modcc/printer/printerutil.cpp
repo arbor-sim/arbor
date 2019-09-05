@@ -188,6 +188,11 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.index_var = ""; // scalar global
         v.readonly = true;
         break;
+    case sourceKind::diameter:
+        v.data_var = "diam_um_";
+        v.index_var = ""; // scalar global
+        v.readonly = true;
+        break;
     default:
         throw compiler_exception(pprintf("unrecognized indexed data source: %", sym), sym->location());
     }
