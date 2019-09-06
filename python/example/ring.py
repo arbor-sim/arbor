@@ -9,7 +9,6 @@ class ring_recipe (arbor.recipe):
         arbor.recipe.__init__(self)
         self.ncells = n
         self.params = arbor.cell_parameters()
-        self.probes = {}
 
     # The num_cells method that returns the total number of cells in the model
     # must be implemented.
@@ -46,10 +45,13 @@ class ring_recipe (arbor.recipe):
         return []
 
     def num_probes(self, gid):
-        if not self.probes:
-            return 0
-        else:
-            return len(self.probes[gid])
+         return 1
+
+    def get_probe(self, id):
+        kind = arbor.cell_probe_address.membrane_voltage
+        loc  = arbor.segment_location(0, 0.5)
+        addr = arbor.cell_probe_address(loc, kind)
+        return arbor.probe_info(id, kind, addr)
 
 context = arbor.context(threads=4, gpu_id=None)
 print(context)
@@ -60,7 +62,10 @@ meters.start(context)
 recipe = ring_recipe(100)
 print(f'{recipe}')
 
-print(recipe.num_probes(0))
+print(arbor.cell_probe_address.membrane_voltage)
+print(arbor.segment_location(0, 0.5))
+print(arbor.cell_probe_address(arbor.segment_location(0, 0.5), arbor.cell_probe_address.membrane_voltage))
+print(arbor.probe_info(arbor.cell_member(0,0), arbor.cell_probe_address.membrane_voltage, arbor.cell_probe_address(arbor.segment_location(0, 0.5), arbor.cell_probe_address.membrane_voltage)))
 
 meters.checkpoint('recipe-create', context)
 

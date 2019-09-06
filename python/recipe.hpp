@@ -10,7 +10,18 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
 
+#include "error.hpp"
+#include "strprintf.hpp"
+
 namespace pyarb {
+
+//struct probe_info_shim {
+//    arb::cell_member_type id;
+//    arb::probe_tag tag;
+//
+//    // Address type will be specific to cell kind of cell `id.gid`.
+//    pybind11::object address;
+//};
 
 // pyarb::recipe is the recipe interface used by Python.
 // Calls that return generic types return pybind11::object, to avoid
@@ -50,6 +61,11 @@ public:
     }
     virtual arb::cell_size_type num_probes(arb::cell_gid_type) const {
         return 0;
+    }
+//    virtual probe_info_shim get_probe (arb::cell_member_type id) const {
+    virtual arb::probe_info get_probe (arb::cell_member_type id) const {
+//    virtual pybind11::object probe (arb::cell_member_type id) const {
+        throw pyarb_error(util::pprintf("bad probe id {}", id));
     }
     //TODO: virtual pybind11::object get_probe (arb::cell_member_type id) const {...}
     //TODO: virtual pybind11::object global_properties(arb::cell_kind kind) const {return pybind11::none();};
@@ -95,6 +111,14 @@ public:
 
     arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_probes, gid);
+    }
+
+//    probe_info_shim get_probe(arb::cell_member_type id) const override {
+//        PYBIND11_OVERLOAD(probe_info_shim, py_recipe, get_probe, id);
+    arb::probe_info get_probe(arb::cell_member_type id) const override {
+        PYBIND11_OVERLOAD(arb::probe_info, py_recipe, get_probe, id);
+//    pybind11::object probe(arb::cell_member_type id) const override {
+//        PYBIND11_OVERLOAD(pybind11::object, py_recipe, probe, id);
     }
     //TODO: pybind11::object get_probe(arb::cell_member_type id)
 };
@@ -150,6 +174,10 @@ public:
 
     arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
         return impl_->num_probes(gid);
+    }
+
+    arb::probe_info get_probe(arb::cell_member_type id) const override {//;
+        return impl_->get_probe(id);
     }
     //TODO: arb::probe_info get_probe(arb::cell_member_type id)
 

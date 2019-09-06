@@ -12,6 +12,7 @@
 #include <arbor/spike_source_cell.hpp>
 
 #include "cells.hpp"
+#include "conversion.hpp"
 #include "error.hpp"
 #include "event_generator.hpp"
 #include "strprintf.hpp"
@@ -25,6 +26,27 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
     pybind11::gil_scoped_acquire guard;
     return convert_cell(impl_->cell_description(gid));
 }
+
+//arb::probe_info py_recipe_shim::get_probe(arb::cell_member_type id) const {
+//    using pybind11::cast;
+//
+//    pybind11::gil_scoped_acquire guard;
+//
+////    arb::probe_info pi;
+////    pyarb::probe_info_shim pi_shim;
+////    pi.id = id;
+////    pi.tag = pi_shim.tag;
+////    pi.address = cast<arb::util::any>(pi_shim.address);
+////
+////    return pi;
+//
+//    return cast<arb::probe_info>(impl_->probe(id));
+//
+////    throw pyarb_error("recipe.get_probe returned address\""
+////                        + std::string(pybind11::str(pi_shim.address))
+////                        + "\" which does not describe a known Arbor cell probe address");
+//    throw pyarb_error("recipe.get_probe cannot be converted from py object to probe_info");
+//}
 
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
     using namespace std::string_literals;
@@ -150,6 +172,12 @@ void register_recipe(pybind11::module& m) {
         .def("num_probes", &py_recipe::num_probes,
             "gid"_a,
             "The number of probes on gid, 0 by default.")
+        .def("get_probe", &py_recipe::get_probe, //pybind11::return_value_policy::copy,
+//        .def("get_probe", &py_recipe::probe,
+            "id"_a,
+            "Set up sampling data structures ahead of time and \
+             put any structures or information in the concrete cell implementations in place \
+             to allow monitoring, throws a python error by default.")
         // TODO: py_recipe::get_probe
         // TODO: py_recipe::global_properties
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})

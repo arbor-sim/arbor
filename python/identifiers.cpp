@@ -6,6 +6,7 @@
 #include <arbor/common_types.hpp>
 
 #include "strprintf.hpp"
+#include "recipe.hpp"
 
 namespace pyarb {
 
@@ -62,6 +63,33 @@ void register_identifiers(pybind11::module& m) {
             "Round time down to multiple of binning interval.")
         .value("following", arb::binning_kind::following,
             "Round times down to previous event if within binning interval.");
+
+//    pybind11::class_<pyarb::probe_info_shim> probe_info(m, "probe_info",
+    pybind11::class_<arb::probe_info> probe_info(m, "probe_info",
+        "Probes are specified in the recipe objects that are used to initialize a model;\n"
+        "the specification of the item or value that is subjected to a probe\n"
+        "will be specific to a particular cell type.");
+    probe_info
+        .def(pybind11::init(
+            [](arb::cell_member_type id, arb::probe_tag tag, pybind11::object address) {
+//                return pyarb::probe_info_shim{id, tag, address};
+                return arb::probe_info{id, tag, address};
+            }),
+            "id"_a, "tag"_a, "address"_a,
+            "Construct a probe_info with arguments:\n"
+            "  id:      The cell gid, index of the probe.\n"
+            "  tag:     An opaque key.\n"
+            "  address: The cell-type specific location info.\n")
+//        .def_readwrite("id",      &pyarb::probe_info_shim::id,      "Cell gid, index of probe.")
+//        .def_readwrite("tag",     &pyarb::probe_info_shim::tag,     "Opaque key, returned in sample record.")
+//        .def_readwrite("address", &pyarb::probe_info_shim::address, "Cell-type specific location info, specific to cell kind of id.gid")
+//        .def("__str__", [](pyarb::probe_info_shim i) {return pprintf("<arbor.probe_info: id {}, tag {}, address {}>", i.id, i.tag, i.address);})
+//        .def("__repr__",[](pyarb::probe_info_shim i) {return pprintf("<arbor.probe_info: id {}, tag {}, address {}>", i.id, i.tag, i.address);});
+        .def_readwrite("id",      &arb::probe_info::id,      "Cell gid, index of probe.")
+        .def_readwrite("tag",     &arb::probe_info::tag,     "Opaque key, returned in sample record.")
+        .def_readwrite("address", &arb::probe_info::address, "Cell-type specific location info, specific to cell kind of id.gid")
+        .def("__str__", [](arb::probe_info i) {return pprintf("<arbor.probe_info: id {}, tag {}>", i.id, i.tag);})
+        .def("__repr__",[](arb::probe_info i) {return pprintf("<arbor.probe_info: id {}, tag {}>", i.id, i.tag);});
 }
 
 } // namespace pyarb

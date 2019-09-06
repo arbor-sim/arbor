@@ -240,6 +240,44 @@ void register_cells(pybind11::module& m) {
         "seed is an integral value used to seed the random number generator, for which the gid of the cell is a good default.",
         "seed"_a,
         "params"_a=cell_parameters());
+
+    pybind11::class_<arb::cell_probe_address> cell_probe_address(m, "cell_probe_address",
+        "Cell-type specific location info, specific to the cell kind.");
+    cell_probe_address
+        .def(pybind11::init(
+            [](arb::segment_location location, arb::cell_probe_address::probe_kind kind) {
+                return arb::cell_probe_address{location, kind};
+            }),
+            "location"_a, "kind"_a,
+            "Construct a cell probe address with arguments:\n"
+            "  location: The location of the probe.\n"
+            "  kind:     The kind of measure (voltage or current).\n")
+        .def_readwrite("location", &arb::cell_probe_address::location, "Location of the probe.")
+        .def_readwrite("kind", &arb::cell_probe_address::kind, "Kind of measure.")
+        .def("__str__", [](arb::cell_probe_address a) {return util::pprintf("<arbor.cell_probe_address: location segment {} at position {} of kind {}>", a.location.segment, a.location.position, (a.kind == a.probe_kind::membrane_voltage ? "voltage" : "current"));})
+        .def("__repr__", [](arb::cell_probe_address a) {return util::pprintf("<arbor.cell_probe_address: location segment {} at position {} of kind {}>", a.location.segment, a.location.position, (a.kind == a.probe_kind::membrane_voltage ? "voltage" : "current"));});
+
+    pybind11::enum_<arb::cell_probe_address::probe_kind>(cell_probe_address, "cell_probe_kind")
+        .value("membrane_voltage", arb::cell_probe_address::probe_kind::membrane_voltage)
+        .value("membrane_current", arb::cell_probe_address::probe_kind::membrane_current)
+        .export_values();
+
+    pybind11::class_<arb::segment_location> segment_location(m, "segment_location",
+        "Location specification.");
+    segment_location
+        .def(pybind11::init(
+            [](arb::cell_lid_type s, double l) {
+                return arb::segment_location(s, l);
+            }),
+            "segment"_a, "position"_a,
+            "Construct a location specification holding:\n"
+            "  segment:   A segment index.\n"
+            "  position:  A relative position (from 0, proximal, to 1, distal) along that segment.\n")
+        .def_readwrite("segment",  &arb::segment_location::segment,  "A segment index.")
+        .def_readwrite("position", &arb::segment_location::position, "A relative position (from 0, proximal, to 1, distal) along that segment.")
+        .def("__eq__", &arb::segment_location::operator==, pybind11::is_operator())
+        .def("__str__", [](arb::segment_location l) {return util::pprintf("<arbor.segment_location: segment {}, position {}>", l.segment, l.position);})
+        .def("__repr__", [](arb::segment_location l) {return util::pprintf("<arbor.segment_location: segment {}, position {}>", l.segment, l.position);});
 }
 
 }
