@@ -241,26 +241,9 @@ void register_cells(pybind11::module& m) {
         "seed"_a,
         "params"_a=cell_parameters());
 
-    pybind11::class_<arb::cell_probe_address> cell_probe_address(m, "cell_probe_address",
-        "Cell-type specific location info, specific to the cell kind.");
-    cell_probe_address
-        .def(pybind11::init(
-            [](arb::segment_location location, arb::cell_probe_address::probe_kind kind) {
-                return arb::cell_probe_address{location, kind};
-            }),
-            "location"_a, "kind"_a,
-            "Construct a cell probe address with arguments:\n"
-            "  location: The location of the probe.\n"
-            "  kind:     The kind of measure (voltage or current).\n")
-        .def_readwrite("location", &arb::cell_probe_address::location, "Location of the probe.")
-        .def_readwrite("kind", &arb::cell_probe_address::kind, "Kind of measure.")
-        .def("__str__", [](arb::cell_probe_address a) {return util::pprintf("<arbor.cell_probe_address: location segment {} at position {} of kind {}>", a.location.segment, a.location.position, (a.kind == a.probe_kind::membrane_voltage ? "voltage" : "current"));})
-        .def("__repr__", [](arb::cell_probe_address a) {return util::pprintf("<arbor.cell_probe_address: location segment {} at position {} of kind {}>", a.location.segment, a.location.position, (a.kind == a.probe_kind::membrane_voltage ? "voltage" : "current"));});
-
-    pybind11::enum_<arb::cell_probe_address::probe_kind>(cell_probe_address, "cell_probe_kind")
+    pybind11::enum_<arb::cell_probe_address::probe_kind>(m, "cable_probe_kind")
         .value("membrane_voltage", arb::cell_probe_address::probe_kind::membrane_voltage)
-        .value("membrane_current", arb::cell_probe_address::probe_kind::membrane_current)
-        .export_values();
+        .value("membrane_current", arb::cell_probe_address::probe_kind::membrane_current);
 
     pybind11::class_<arb::segment_location> segment_location(m, "segment_location",
         "Location specification.");
