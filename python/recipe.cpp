@@ -167,7 +167,7 @@ void register_recipe(pybind11::module& m) {
 
     // Probes
     m.def("cable_probe", &cable_probe,
-        "Description of a probe at a location on a cable cell of id which probes data of kind.",
+        "Description of a probe at a location on a cable cell of id available for monitoring data of kind.",
         "kind"_a, "id"_a, "location"_a);
 
     pybind11::class_<arb::probe_info> probe(m, "probe");
