@@ -361,7 +361,7 @@ bool Module::semantic() {
                 solver = std::make_unique<CnexpSolverVisitor>();
                 break;
             case solverMethod::sparse:
-                solver = std::make_unique<SparseSolverVisitor>();
+                solver = std::make_unique<SparseNonlinearSolverVisitor>();
                 break;
             case solverMethod::none:
                 solver = std::make_unique<DirectSolverVisitor>();

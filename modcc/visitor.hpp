@@ -156,7 +156,11 @@ public:
         if (has_error()) return nullptr;
 
         expr_list_type body_stmts;
-        for (const auto& s: statements_) body_stmts.push_back(s->clone());
+        for (const auto& s: statements_) {
+            std::cout << s->to_string() << std::endl;
+            body_stmts.push_back(s->clone());
+        }
+        std::cout << std::endl;
 
         auto body = make_expression<BlockExpression>(
             loc_,
