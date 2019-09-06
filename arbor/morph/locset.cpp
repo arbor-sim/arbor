@@ -105,7 +105,7 @@ locset nil() {
     return locset{nil_{}};
 }
 
-mlocation_list concretise_(const nil_& x, const em_morphology& m) {
+mlocation_list thingify_(const nil_& x, const em_morphology& m) {
     return {};
 }
 
@@ -125,7 +125,7 @@ locset location(mlocation loc) {
     return locset{location_{loc}};
 }
 
-mlocation_list concretise_(const location_& x, const em_morphology& m) {
+mlocation_list thingify_(const location_& x, const em_morphology& m) {
     // canonicalize will throw if the location is not present.
     return {m.canonicalize(x.loc)};
 }
@@ -144,7 +144,7 @@ locset sample(msize_t index) {
     return locset{sample_{index}};
 }
 
-mlocation_list concretise_(const sample_& x, const em_morphology& m) {
+mlocation_list thingify_(const sample_& x, const em_morphology& m) {
     return {m.sample2loc(x.index)};
 }
 
@@ -159,7 +159,7 @@ locset terminal() {
     return locset{terminal_{}};
 }
 
-mlocation_list concretise_(const terminal_&, const em_morphology& m) {
+mlocation_list thingify_(const terminal_&, const em_morphology& m) {
     return m.terminals();
 }
 
@@ -174,7 +174,7 @@ locset root() {
     return locset{root_{}};
 }
 
-mlocation_list concretise_(const root_&, const em_morphology& m) {
+mlocation_list thingify_(const root_&, const em_morphology& m) {
     return {m.root()};
 }
 
@@ -189,8 +189,8 @@ struct land {
     land(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mlocation_list concretise_(const land& P, const em_morphology& m) {
-    return intersection(concretise(P.lhs, m), concretise(P.rhs, m));
+mlocation_list thingify_(const land& P, const em_morphology& m) {
+    return intersection(thingify(P.lhs, m), thingify(P.rhs, m));
 }
 
 std::ostream& operator<<(std::ostream& o, const land& x) {
@@ -204,8 +204,8 @@ struct lor {
     lor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mlocation_list concretise_(const lor& P, const em_morphology& m) {
-    return join(concretise(P.lhs, m), concretise(P.rhs, m));
+mlocation_list thingify_(const lor& P, const em_morphology& m) {
+    return join(thingify(P.lhs, m), thingify(P.rhs, m));
 }
 
 std::ostream& operator<<(std::ostream& o, const lor& x) {
@@ -219,8 +219,8 @@ struct lsum {
     lsum(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mlocation_list concretise_(const lsum& P, const em_morphology& m) {
-    return sum(concretise(P.lhs, m), concretise(P.rhs, m));
+mlocation_list thingify_(const lsum& P, const em_morphology& m) {
+    return sum(thingify(P.lhs, m), thingify(P.rhs, m));
 }
 
 std::ostream& operator<<(std::ostream& o, const lsum& x) {

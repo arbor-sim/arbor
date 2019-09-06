@@ -274,7 +274,7 @@ cable_segment* cable_cell::add_cable(cable_cell::index_type parent, Args&&... ar
 // in each segment to be the number of piecewise linear sections in the
 // corresponding section of the morphology.
 cable_cell make_cable_cell(const morphology& morph,
-                           label_dict labels={},
+                           const label_dict& labels={},
                            bool compartments_from_discretization=false);
 
 } // namespace arb

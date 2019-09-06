@@ -17,8 +17,8 @@ class label_dict {
 
 public:
 
-    void set(const std::string& name, locset p);
-    void set(const std::string& name, region r);
+    void set(const std::string& name, locset ls);
+    void set(const std::string& name, region reg);
 
     util::optional<const arb::region&> region(const std::string& name) const;
     util::optional<const arb::locset&> locset(const std::string& name) const;

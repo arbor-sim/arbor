@@ -30,7 +30,10 @@ public:
 
     mlocation canonicalize(mlocation) const;
 
-    mlocation_list cover(mlocation) const;
+    // Find all locations on the morphology that share the same canonoical
+    // representation of loc.
+    // If include_loc is false, the input location is excluded from the result.
+    mlocation_list cover(mlocation, bool include_loc=true) const;
 };
 
 } // namespace arb

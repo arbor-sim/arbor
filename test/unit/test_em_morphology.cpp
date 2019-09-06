@@ -58,15 +58,12 @@ TEST(em_morphology, cache) {
 
     // Eight samples
     //
-    //              0           |
-    //             / \          |
-    //            1   3         |
-    //           /     \        |
-    //          2       4       |
-    //                 / \      |
-    //                5   6     |
-    //                     \    |
-    //                      7   |
+    //  sample ids:
+    //            0
+    //           1 3
+    //          2   4
+    //             5 6
+    //                7
     {   // Spherical root.
         pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
 
@@ -133,11 +130,11 @@ TEST(em_morphology, cover) {
     using arb::util::make_span;
 
     // Eight samples
-    //              0           |
-    //            1   3         |
-    //          2       4       |
-    //                5   6     |
-    //                      7   |
+    //            0
+    //           1 3
+    //          2   4
+    //             5 6
+    //                7
     pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
 
     svec samples = {
@@ -205,14 +202,11 @@ TEST(locset, expressions) {
 
     EXPECT_EQ(to_string(root), "root");
     EXPECT_EQ(to_string(term), "terminal");
-    EXPECT_EQ(to_string(intersect(root, term)), "(intersect root terminal)");
-    EXPECT_EQ(to_string(join(root, term)),  "(join root terminal)");
-    EXPECT_EQ(to_string(join(root, term, samp)),  "(join (join root terminal) (sample 42))");
-    EXPECT_EQ(to_string(join(root, term, samp, loc)),  "(join (join (join root terminal) (sample 42)) (location 2 0.5))");
-    EXPECT_EQ(to_string(intersect(root, term)),  "(intersect root terminal)");
-    EXPECT_EQ(to_string(intersect(root, term, samp)),  "(intersect (intersect root terminal) (sample 42))");
-    EXPECT_EQ(to_string(intersect(root, term, samp, loc)),  "(intersect (intersect (intersect root terminal) (sample 42)) (location 2 0.5))");
-    EXPECT_EQ(to_string(join(root, intersect(term, samp))),  "(join root (intersect terminal (sample 42)))");
+    EXPECT_EQ(to_string(sum(root, term)), "(sum root terminal)");
+    EXPECT_EQ(to_string(sum(root, term, samp)),
+            "(sum (sum root terminal) (sample 42))");
+    EXPECT_EQ(to_string(sum(root, term, samp, loc)),
+            "(sum (sum (sum root terminal) (sample 42)) (location 2 0.5))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 
@@ -257,7 +251,7 @@ TEST(region, expressions) {
     EXPECT_THROW(arb::reg::branch(-1), arb::morphology_error);
 }
 
-TEST(locset, concretise) {
+TEST(locset, thingify) {
     using pvec = std::vector<arb::msize_t>;
     using svec = std::vector<arb::msample>;
     using ll = arb::mlocation_list;
@@ -276,15 +270,11 @@ TEST(locset, concretise) {
 
     // Eight samples
     //
-    //              0           |
-    //             / \          |
-    //            1   3         |
-    //           /     \        |
-    //          2       4       |
-    //                 / \      |
-    //                5   6     |
-    //                     \    |
-    //                      7   |
+    //            0
+    //           1 3
+    //          2   4
+    //             5 6
+    //                7
     pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
     svec samples = {
         {{  0,  0,  0,  2}, 3},
@@ -301,31 +291,31 @@ TEST(locset, concretise) {
     {
         arb::em_morphology em(arb::morphology(sm, true));
 
-        EXPECT_EQ(concretise(root, em),  (ll{{0,0}}));
-        EXPECT_EQ(concretise(term, em),  (ll{{1,1},{3,1},{4,1}}));
-        EXPECT_EQ(concretise(samp, em),  (ll{{2,1}}));
-        EXPECT_EQ(concretise(midb2, em), (ll{{2,0.5}}));
-        EXPECT_EQ(concretise(midb1, em), (ll{{1,0.5}}));
-        EXPECT_EQ(concretise(begb0, em), (ll{{0,0}}));
-        EXPECT_EQ(concretise(begb1, em), (ll{{0,1}}));
-        EXPECT_EQ(concretise(begb2, em), (ll{{0,1}}));
-        EXPECT_EQ(concretise(begb3, em), (ll{{2,1}}));
-        EXPECT_EQ(concretise(begb4, em), (ll{{2,1}}));
+        EXPECT_EQ(thingify(root, em),  (ll{{0,0}}));
+        EXPECT_EQ(thingify(term, em),  (ll{{1,1},{3,1},{4,1}}));
+        EXPECT_EQ(thingify(samp, em),  (ll{{2,1}}));
+        EXPECT_EQ(thingify(midb2, em), (ll{{2,0.5}}));
+        EXPECT_EQ(thingify(midb1, em), (ll{{1,0.5}}));
+        EXPECT_EQ(thingify(begb0, em), (ll{{0,0}}));
+        EXPECT_EQ(thingify(begb1, em), (ll{{0,1}}));
+        EXPECT_EQ(thingify(begb2, em), (ll{{0,1}}));
+        EXPECT_EQ(thingify(begb3, em), (ll{{2,1}}));
+        EXPECT_EQ(thingify(begb4, em), (ll{{2,1}}));
     }
     {
         arb::em_morphology em(arb::morphology(sm, false));
 
-        EXPECT_EQ(concretise(root, em),  (ll{{0,0}}));
-        EXPECT_EQ(concretise(term, em),  (ll{{0,1},{2,1},{3,1}}));
-        EXPECT_EQ(concretise(samp, em),  (ll{{1,1}}));
-        EXPECT_EQ(concretise(midb2, em), (ll{{2,0.5}}));
-        EXPECT_EQ(concretise(midb1, em), (ll{{1,0.5}}));
-        EXPECT_EQ(concretise(begb0, em), (ll{{0,0}}));
-        EXPECT_EQ(concretise(begb1, em), (ll{{0,0}}));
-        EXPECT_EQ(concretise(begb2, em), (ll{{1,1}}));
-        EXPECT_EQ(concretise(begb3, em), (ll{{1,1}}));
+        EXPECT_EQ(thingify(root, em),  (ll{{0,0}}));
+        EXPECT_EQ(thingify(term, em),  (ll{{0,1},{2,1},{3,1}}));
+        EXPECT_EQ(thingify(samp, em),  (ll{{1,1}}));
+        EXPECT_EQ(thingify(midb2, em), (ll{{2,0.5}}));
+        EXPECT_EQ(thingify(midb1, em), (ll{{1,0.5}}));
+        EXPECT_EQ(thingify(begb0, em), (ll{{0,0}}));
+        EXPECT_EQ(thingify(begb1, em), (ll{{0,0}}));
+        EXPECT_EQ(thingify(begb2, em), (ll{{1,1}}));
+        EXPECT_EQ(thingify(begb3, em), (ll{{1,1}}));
         // In the absence of a spherical root, there is no branch 4.
-        EXPECT_THROW(concretise(begb4, em), arb::morphology_error);
+        EXPECT_THROW(thingify(begb4, em), arb::morphology_error);
     }
 }
 
@@ -416,7 +406,7 @@ TEST(locset, join_intersect_sum) {
     }
 }
 
-TEST(region, concretise) {
+TEST(region, thingify) {
     using pvec = std::vector<arb::msize_t>;
     using svec = std::vector<arb::msample>;
     //using cab = arb::mcable;
@@ -452,24 +442,24 @@ TEST(region, concretise) {
         cl all_{{0, 0, 1}};
         cl empty_{};
 
-        EXPECT_EQ(concretise(h1, em), h1_);
-        EXPECT_EQ(concretise(h2, em), h2_);
-        EXPECT_EQ(concretise(t1, em), t1_);
-        EXPECT_EQ(concretise(t2, em), t2_);
-        EXPECT_EQ(concretise(join(h1, h2), em), all_);
+        EXPECT_EQ(thingify(h1, em), h1_);
+        EXPECT_EQ(thingify(h2, em), h2_);
+        EXPECT_EQ(thingify(t1, em), t1_);
+        EXPECT_EQ(thingify(t2, em), t2_);
+        EXPECT_EQ(thingify(join(h1, h2), em), all_);
 
-        EXPECT_EQ(concretise(intersect(h1, h2), em), (cl{{0, 0.5, 0.5}}));
+        EXPECT_EQ(thingify(intersect(h1, h2), em), (cl{{0, 0.5, 0.5}}));
 
-        EXPECT_EQ(concretise(intersect(h1, h1), em), h1_);
-        EXPECT_EQ(concretise(intersect(t1, t1), em), t1_);
-        EXPECT_EQ(concretise(join(t1, t2), em), all_);
-        EXPECT_EQ(concretise(intersect(all, t1), em), t1_);
-        EXPECT_EQ(concretise(intersect(all, t2), em), t2_);
-        EXPECT_EQ(concretise(join(all, t1), em), all_);
-        EXPECT_EQ(concretise(join(all, t2), em), all_);
-        EXPECT_EQ(concretise(join(h1, t1), em), (cl{{0, 0, 0.7}}));
-        EXPECT_EQ(concretise(join(h1, t2), em), (cl{{0, 0, 0.5}, {0, 0.7, 1}}));
-        EXPECT_EQ(concretise(intersect(h2, t1), em), (cl{{0, 0.5, 0.7}}));
+        EXPECT_EQ(thingify(intersect(h1, h1), em), h1_);
+        EXPECT_EQ(thingify(intersect(t1, t1), em), t1_);
+        EXPECT_EQ(thingify(join(t1, t2), em), all_);
+        EXPECT_EQ(thingify(intersect(all, t1), em), t1_);
+        EXPECT_EQ(thingify(intersect(all, t2), em), t2_);
+        EXPECT_EQ(thingify(join(all, t1), em), all_);
+        EXPECT_EQ(thingify(join(all, t2), em), all_);
+        EXPECT_EQ(thingify(join(h1, t1), em), (cl{{0, 0, 0.7}}));
+        EXPECT_EQ(thingify(join(h1, t2), em), (cl{{0, 0, 0.5}, {0, 0.7, 1}}));
+        EXPECT_EQ(thingify(intersect(h2, t1), em), (cl{{0, 0.5, 0.7}}));
     }
 
 
@@ -477,15 +467,11 @@ TEST(region, concretise) {
     //
     //  sample ids:
     //              0           |
-    //             / \          |
     //            1   3         |
-    //           /     \        |
     //          2       4       |
     //  tags:
     //              1           |
-    //             / \          |
     //            3   2         |
-    //           /     \        |
     //          3       2       |
     {
         pvec parents = {npos, 0, 1, 0, 3};
@@ -505,11 +491,11 @@ TEST(region, concretise) {
         using arb::reg::branch;
         using arb::reg::all;
 
-        EXPECT_EQ(concretise(tagged(1), em), (arb::mcable_list{{0,0,1}}));
-        EXPECT_EQ(concretise(tagged(2), em), (arb::mcable_list{{2,0,1}}));
-        EXPECT_EQ(concretise(tagged(3), em), (arb::mcable_list{{1,0,1}}));
-        EXPECT_EQ(concretise(join(tagged(1), tagged(2), tagged(3)), em), (arb::mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
-        EXPECT_EQ(concretise(join(tagged(1), tagged(2), tagged(3)), em), concretise(all(), em));
+        EXPECT_EQ(thingify(tagged(1), em), (arb::mcable_list{{0,0,1}}));
+        EXPECT_EQ(thingify(tagged(2), em), (arb::mcable_list{{2,0,1}}));
+        EXPECT_EQ(thingify(tagged(3), em), (arb::mcable_list{{1,0,1}}));
+        EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), em), (arb::mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
+        EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), em), thingify(all(), em));
     }
 
     // Test multi-level morphologies.
@@ -517,25 +503,17 @@ TEST(region, concretise) {
     // Eight samples
     //
     //  sample ids:
-    //              0           |
-    //             / \          |
-    //            1   3         |
-    //           /     \        |
-    //          2       4       |
-    //                 / \      |
-    //                5   6     |
-    //                     \    |
-    //                      7   |
+    //            0
+    //           1 3
+    //          2   4
+    //             5 6
+    //                7
     //  tags:
-    //              1           |
-    //             / \          |
-    //            3   2         |
-    //           /     \        |
-    //          3       2       |
-    //                 / \      |
-    //                4   3     |
-    //                     \    |
-    //                      3   |
+    //            1
+    //           3 2
+    //          3   2
+    //             4 3
+    //                3
     {
         pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
         svec samples = {
@@ -576,13 +554,22 @@ TEST(region, concretise) {
         mcable b3_{3,0,1};
         cl all_  = {b0_,b1_,b2_,b3_};
 
-        EXPECT_EQ(concretise(all(), em), all_);
-        EXPECT_EQ(concretise(soma, em), empty_);
-        EXPECT_EQ(concretise(axon, em), (cl{b1_}));
-        EXPECT_EQ(concretise(dend, em), (cl{b0_,b3_}));
-        EXPECT_EQ(concretise(apic, em), (cl{b2_}));
-        EXPECT_EQ(concretise(join(dend, apic), em), (cl{b0_,b2_,b3_}));
-        EXPECT_EQ(concretise(join(axon, join(dend, apic)), em), all_);
+        mcable end1_{1,1,1};
+        mcable root_{0,0,0};
+
+        EXPECT_EQ(thingify(all(), em), all_);
+        EXPECT_EQ(thingify(soma, em), empty_);
+        EXPECT_EQ(thingify(axon, em), (cl{b1_}));
+        EXPECT_EQ(thingify(dend, em), (cl{b0_,b3_}));
+        EXPECT_EQ(thingify(apic, em), (cl{b2_}));
+        EXPECT_EQ(thingify(join(dend, apic), em), (cl{b0_,b2_,b3_}));
+        EXPECT_EQ(thingify(join(axon, join(dend, apic)), em), all_);
+
+        // Test that intersection correctly generates zero-length cables at
+        // parent-child interfaces.
+        EXPECT_EQ(thingify(intersect(apic, dend), em), (cl{end1_}));
+        EXPECT_EQ(thingify(intersect(apic, axon), em), (cl{end1_}));
+        EXPECT_EQ(thingify(intersect(axon, dend), em), (cl{root_, end1_}));
 
         // Test some more interesting intersections and unions.
 
@@ -595,13 +582,13 @@ TEST(region, concretise) {
         auto rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
         auto rand = cl{         {1,.2,.7}, {3,.3,.6}};
         auto ror  = cl{         {1,.0,1.}, {3,.0,1.}};
-        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), em), ror);
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), em), ror);
 
         //    123456789 123456789
         //   |   ----- | ----    | lhs
@@ -612,13 +599,13 @@ TEST(region, concretise) {
         rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
         rand = cl{         {1,.3,.7}, {3,.3,.5}};
         ror  = cl{         {1,.2,.8}, {3,.1,.6}};
-        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), em), ror);
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), em), ror);
 
         //    123456789 123456789
         //   | -- -    | --- --- | lhs
@@ -629,12 +616,12 @@ TEST(region, concretise) {
         rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
         rand = cl{         {1,.2,.3}, {1,.4,.5}, {3,.3,.4}, {3,.5,.6}};
         ror  = cl{         {1,.1,.7},            {3,.1,.9}};
-        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), em), ror);
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(concretise(intersect(lhs, rhs), em), rand);
-        EXPECT_EQ(concretise(join(lhs, rhs), em), ror);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), em), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), em), ror);
     }
 }

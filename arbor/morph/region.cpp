@@ -16,13 +16,6 @@
 namespace arb {
 namespace reg {
 
-mcable_list merge(const mcable_list& lhs, const mcable_list& rhs) {
-    mcable_list v;
-    v.resize(lhs.size() + rhs.size());
-    std::merge(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), v.begin());
-    return v;
-}
-
 // Returns true iff cable sections a and b:
 //  1. are on the same branch
 //  2. overlap, i.e. their union is not empty.
@@ -37,15 +30,78 @@ bool is_nonnull_intersection(const mcable& a, const mcable& b) {
     return a<b? a.dist_pos>b.prox_pos: b.dist_pos>a.prox_pos;
 }
 
+// Take the union of two cable sections that are not disjoint.
 mcable make_union(const mcable& a, const mcable& b) {
     assert(!is_disjoint(a,b));
     return mcable{a.branch, std::min(a.prox_pos, b.prox_pos), std::max(a.dist_pos, b.dist_pos)};
 }
 
+// Take the intersection of two cable sections that are not disjoint.
 mcable make_intersection(const mcable& a, const mcable& b) {
     assert(!is_disjoint(a,b));
 
     return mcable{a.branch, std::max(a.prox_pos, b.prox_pos), std::min(a.dist_pos, b.dist_pos)};
+}
+
+mcable_list merge(const mcable_list& v) {
+    if (v.size()<2) return v;
+    std::vector<mcable> L;
+    L.reserve(v.size());
+    auto c = v.front();
+    auto it = v.begin()+1;
+    while (it!=v.end()) {
+        if (!is_disjoint(c, *it)) {
+            c = make_union(c, *it);
+        }
+        else {
+            L.push_back(c);
+            c = *it;
+        }
+        ++it;
+    }
+    L.push_back(c);
+    return L;
+}
+
+// Insert a zero-length region at the start of each child branch for every cable
+// that includes the end of a branch.
+// Insert a zero-length region at the end of the parent branch for each cable
+// that includes the start of the branch.
+mcable_list cover(mcable_list cables, const em_morphology& m) {
+    mcable_list L;
+    for (auto& c: cables) {
+        if (c.prox_pos==0) {
+            for (auto& x: m.cover(mlocation{c.branch, 0}, false)) {
+                L.push_back({x.branch, x.pos, x.pos});
+            }
+        }
+        if (c.dist_pos==1) {
+            for (auto& x: m.cover(mlocation{c.branch, 1}, false)) {
+                L.push_back({x.branch, x.pos, x.pos});
+            }
+        }
+    }
+    L.insert(L.end(), cables.begin(), cables.end());
+    util::sort(L);
+
+    return L;
+}
+
+mcable_list remove_cover(mcable_list cables, const em_morphology& m) {
+    // Find all zero-length cables at the end of cables, and convert to
+    // their canonical representation.
+    for (auto& c: cables) {
+        if (c.dist_pos==0 || c.prox_pos==1) {
+            auto cloc = m.canonicalize({c.branch, c.prox_pos});
+            c = {cloc.branch, cloc.pos, cloc.pos};
+        }
+    }
+    // Some new zero-length cables may be out of order, so sort
+    // the cables.
+    util::sort(cables);
+
+    // Remove multiple copies of zero-length cables if present.
+    return merge(cables);
 }
 
 //
@@ -67,7 +123,7 @@ region branch(msize_t bid) {
     return cable({bid, 0, 1});
 }
 
-mcable_list concretise_(const cable_& reg, const em_morphology& em) {
+mcable_list thingify_(const cable_& reg, const em_morphology& em) {
     auto& m = em.morph();
 
     if (reg.cable.branch>=m.num_branches()) {
@@ -92,7 +148,7 @@ region tagged(int id) {
     return region(tagged_{id});
 }
 
-mcable_list concretise_(const tagged_& reg, const em_morphology& em) {
+mcable_list thingify_(const tagged_& reg, const em_morphology& em) {
     auto& m = em.morph();
     size_t nb = m.num_branches();
 
@@ -150,7 +206,7 @@ region all() {
     return region(all_{});
 }
 
-mcable_list concretise_(const all_&, const em_morphology& m) {
+mcable_list thingify_(const all_&, const em_morphology& m) {
     auto nb = m.morph().num_branches();
     mcable_list branches;
     branches.reserve(nb);
@@ -173,12 +229,14 @@ struct reg_and {
     reg_and(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mcable_list concretise_(const reg_and& P, const em_morphology& m) {
+mcable_list thingify_(const reg_and& P, const em_morphology& m) {
     using cable_it = std::vector<mcable>::const_iterator;
     using cable_it_pair = std::pair<cable_it, cable_it>;
 
-    auto lhs = concretise(P.lhs, m);
-    auto rhs = concretise(P.rhs, m);
+    auto lhs = cover(thingify(P.lhs, m), m);
+    auto rhs = cover(thingify(P.rhs, m), m);
+
+    // Perform intersection
     cable_it_pair it{lhs.begin(), rhs.begin()};
     cable_it_pair end{lhs.end(), rhs.end()};
     std::vector<mcable> L;
@@ -200,7 +258,7 @@ mcable_list concretise_(const reg_and& P, const em_morphology& m) {
         at_end = it.first==end.first || it.second==end.second;
     }
 
-    return L;
+    return remove_cover(L, m);
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_and& x) {
@@ -216,25 +274,15 @@ struct reg_or {
     reg_or(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mcable_list concretise_(const reg_or& P, const em_morphology& m) {
-    auto l = merge(concretise(P.lhs, m), concretise(P.rhs, m));
-    if (l.size()<2) return l;
-    std::vector<mcable> L;
-    L.reserve(l.size());
-    auto c = l.front();
-    auto it = l.begin()+1;
-    while (it!=l.end()) {
-        if (!is_disjoint(c, *it)) {
-            c = make_union(c, *it);
-        }
-        else {
-            L.push_back(c);
-            c = *it;
-        }
-        ++it;
-    }
-    L.push_back(c);
-    return L;
+mcable_list thingify_(const reg_or& P, const em_morphology& m) {
+    auto lhs = thingify(P.lhs, m);
+    auto rhs = thingify(P.rhs, m);
+    mcable_list L;
+    L.resize(lhs.size() + rhs.size());
+
+    std::merge(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), L.begin());
+
+    return merge(L);
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_or& x) {

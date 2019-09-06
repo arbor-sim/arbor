@@ -53,8 +53,8 @@ public:
         return *this;
     }
 
-    friend mlocation_list concretise(const locset& p, const em_morphology& m) {
-        return p.impl_->concretise(m);
+    friend mlocation_list thingify(const locset& p, const em_morphology& m) {
+        return p.impl_->thingify(m);
     }
 
     friend std::ostream& operator<<(std::ostream& o, const locset& p) {
@@ -62,11 +62,12 @@ public:
     }
 
     // The union of two location sets.
-    friend locset join(locset, locset);
+    //friend locset join(locset, locset);
 
+    /*
     template <typename ...Args>
     friend locset join(locset l, locset r, Args... args) {
-        return join(join(std::move(l), std::move(r)), std::move(args)...);
+            return join(join(std::move(l), std::move(r)), std::move(args)...);
     }
 
     // The intersection of two location sets.
@@ -76,6 +77,7 @@ public:
     friend locset intersect(locset l, locset r, Args... args) {
         return intersect(intersect(std::move(l), std::move(r)), std::move(args)...);
     }
+    */
 
     // The sum of two location sets.
     friend locset sum(locset, locset);
@@ -90,7 +92,7 @@ private:
         virtual ~interface() {}
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
-        virtual mlocation_list concretise(const em_morphology&) = 0;
+        virtual mlocation_list thingify(const em_morphology&) = 0;
     };
 
     std::unique_ptr<interface> impl_;
@@ -104,8 +106,8 @@ private:
             return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
         }
 
-        virtual mlocation_list concretise(const em_morphology& m) override {
-            return concretise_(wrapped, m);
+        virtual mlocation_list thingify(const em_morphology& m) override {
+            return thingify_(wrapped, m);
         }
 
         virtual std::ostream& print(std::ostream& o) override {

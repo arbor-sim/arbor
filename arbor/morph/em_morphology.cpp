@@ -90,8 +90,9 @@ mlocation_list em_morphology::terminals() const {
     return terminals_;
 }
 
-mlocation_list em_morphology::cover(mlocation loc) const {
-    mlocation_list L{loc};
+mlocation_list em_morphology::cover(mlocation loc, bool include_loc) const {
+    mlocation_list L{};
+    if (include_loc) L.push_back(loc);
 
     // If the location is not at the end of a branch, it is its own cover.
     if (loc.pos>0. && loc.pos<1.) return L;

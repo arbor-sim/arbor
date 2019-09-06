@@ -19,20 +19,32 @@ size_t label_dict::size() const {
     return locsets_.size() + regions_.size();
 }
 
-void label_dict::set(const std::string& name, arb::locset p) {
+void label_dict::set(const std::string& name, arb::locset ls) {
     if (regions_.count(name)) {
         throw morphology_error(util::pprintf(
                 "Attempt to add a locset \"{}\" to a label dictionary that already contains a region with the same name.", name));
     }
-    locsets_.insert({name, p});
+    // First remove an entry with the same name if it exists.
+    // Has to be this way, because insert_or_assign() is C++17, and we
+    // can't use operator[] because locset is not default constructable.
+    auto it = locsets_.find(name);
+    if (it!=locsets_.end()) locsets_.erase(it);
+    if (locsets_.count(name))
+    locsets_.emplace(name, std::move(ls));
 }
 
-void label_dict::set(const std::string& name, arb::region r) {
+void label_dict::set(const std::string& name, arb::region reg) {
     if (locsets_.count(name)) {
         throw morphology_error(util::pprintf(
                 "Attempt to add a region \"{}\" to a label dictionary that already contains a locset with the same name.", name));
     }
-    regions_.insert({name, r});
+    // First remove an entry with the same name if it exists.
+    // Has to be this way, because insert_or_assign() is C++17, and we
+    // can't use operator[] because region is not default constructable.
+    auto it = regions_.find(name);
+    if (it!=regions_.end()) regions_.erase(it);
+    if (regions_.count(name))
+    regions_.emplace(name, std::move(reg));
 }
 
 util::optional<const region&> label_dict::region(const std::string& name) const {
