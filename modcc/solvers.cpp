@@ -887,7 +887,7 @@ public:
     std::set<std::string> unused_locals() {
         if (!computed_) {
             for (auto& id: used_ids) {
-                remove_deps_from_unused(id);
+                remove_deps_from_unused(id, {});
             }
             computed_ = true;
         }
@@ -904,11 +904,12 @@ public:
 private:
     bool computed_ = false;
 
-    void remove_deps_from_unused(const std::string& id) {
+    void remove_deps_from_unused(const std::string& id, std::set<std::string> visited) {
         auto range = deps.equal_range(id);
         for (auto i = range.first; i != range.second; ++i) {
-            if (unused_ids.count(i->second) && id != i->second) {
-                remove_deps_from_unused(i->second);
+            if (unused_ids.count(i->second) && visited.find(i->second) == visited.end()) {
+                visited.insert(i->second);
+                remove_deps_from_unused(i->second, visited);
             }
         }
         unused_ids.erase(id);
