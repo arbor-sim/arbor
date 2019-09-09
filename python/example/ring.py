@@ -48,9 +48,8 @@ class ring_recipe (arbor.recipe):
          return 1
 
     def get_probe(self, id):
-        kind = arbor.cable_probe_kind.membrane_voltage
-        loc  = arbor.segment_location(0, 0.5)
-        return arbor.cable_probe(kind, id, loc)
+        loc  = arbor.location(0, 0.5)
+        return arbor.cable_probe('voltage', id, loc)
 
 context = arbor.context(threads=4, gpu_id=None)
 print(context)
@@ -60,10 +59,6 @@ meters.start(context)
 
 recipe = ring_recipe(100)
 print(f'{recipe}')
-
-print(arbor.segment_location(0, 0.5))
-print(arbor.cable_probe_kind.membrane_voltage)
-print(arbor.cable_probe(arbor.cable_probe_kind.membrane_voltage, arbor.cell_member(0,0), arbor.segment_location(0, 0.5)))
 
 meters.checkpoint('recipe-create', context)
 

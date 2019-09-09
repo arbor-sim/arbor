@@ -27,9 +27,20 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
     return convert_cell(impl_->cell_description(gid));
 }
 
-arb::probe_info cable_probe(arb::cell_probe_address::probe_kind kind, arb::cell_member_type id, arb::segment_location loc) {
-    arb::cell_probe_address probe{loc, kind};
-    return arb::probe_info{id, kind, probe};
+arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::segment_location loc) {
+    arb::cell_probe_address::probe_kind pkind;
+    if (kind == "voltage") {
+        pkind = arb::cell_probe_address::probe_kind::membrane_voltage;
+    }
+    else if (kind == "current") {
+        pkind = arb::cell_probe_address::probe_kind::membrane_current;
+    }
+    else throw pyarb_error(
+                util::pprintf(
+                    "invalid probe kind: {}, neither voltage nor current", kind));
+
+    arb::cell_probe_address probe{loc, pkind};
+    return arb::probe_info{id, pkind, probe};
 };
 
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
@@ -158,21 +169,19 @@ void register_recipe(pybind11::module& m) {
             "The number of probes on gid, 0 by default.")
         .def("get_probe", &py_recipe::get_probe,
             "id"_a,
-            "Set up sampling data structures ahead of time and \
-             put any structures or information in the concrete cell implementations in place \
-             to allow monitoring, throws a python error by default.")
+            "The probe(s) to allow monitoring, must be provided if num_probes() returns a non-zero value.")
         // TODO: py_recipe::global_properties
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
 
     // Probes
     m.def("cable_probe", &cable_probe,
-        "Description of a probe at a location on a cable cell of id available for monitoring data of kind.",
+        "Description of a probe at a location on a cable cell with id available for monitoring data of kind.",
         "kind"_a, "id"_a, "location"_a);
 
     pybind11::class_<arb::probe_info> probe(m, "probe");
     probe
-        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: on cell {}>", p.id);})
-        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: on cell {}>", p.id);});
+        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: on cell ({},{})>", p.id.gid, p.id.index);})
+        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: on cell ({},{})>", p.id.gid, p.id.index);});
 }
 } // namespace pyarb
