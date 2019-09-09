@@ -723,8 +723,7 @@ void SparseNonlinearSolverVisitor::visit(ConserveExpression *e) {
         }
     }
 
-
-    expression_ptr expr = e->rhs()->clone();
+    expression_ptr expr = make_expression<NumberExpression>(loc, 0.0);
     auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
     auto a_ = local_a_term.id->is_identifier()->spelling();
 
