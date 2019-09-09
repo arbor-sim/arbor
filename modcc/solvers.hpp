@@ -131,7 +131,6 @@ protected:
 
     std::vector<std::string> dvar_temp_;
     std::vector<std::string> dvar_init_;
-    std::vector<std::string> sol_;
 
     // Symbolic matrix for backwards Euler step.
     symge::sym_matrix A_;

@@ -517,11 +517,9 @@ void SparseNonlinearSolverVisitor::visit(BlockExpression* e) {
 
             auto init_dvar_term = make_unique_local_assign(e->scope(), dvar_ident.get(), "p_");
             auto temp_dvar_term = make_unique_local_assign(e->scope(), dvar_ident.get(), "t_");
-            auto sol_term       = make_unique_local_assign(e->scope(), make_expression<NumberExpression>(e->location(), 0.).get(), "o_");
 
             auto init_dvar = init_dvar_term.id->is_identifier()->spelling();
             auto temp_dvar = temp_dvar_term.id->is_identifier()->spelling();
-            auto sol       = sol_term.id->is_identifier()->spelling();
 
             statements_.push_back(std::move(init_dvar_term.local_decl));
             statements_.push_back(std::move(init_dvar_term.assignment));
@@ -529,14 +527,10 @@ void SparseNonlinearSolverVisitor::visit(BlockExpression* e) {
             statements_.push_back(std::move(temp_dvar_term.local_decl));
             statements_.push_back(std::move(temp_dvar_term.assignment));
 
-            statements_.push_back(std::move(sol_term.local_decl));
-            statements_.push_back(std::move(sol_term.assignment));
-
             // Save the initial value of var that remains constant accross iterations
             // Save the var that changes from iteration to iteration
             dvar_init_.push_back(init_dvar);
             dvar_temp_.push_back(temp_dvar);
-            sol_.push_back(sol);
         }
     }
     scale_factor_.resize(dvars_.size());
@@ -800,17 +794,12 @@ void SparseNonlinearSolverVisitor::finalize() {
                 return;
             }
 
-            auto temp = make_expression<IdentifierExpression>(loc, sol_[lhs_col]);
             auto var = make_expression<IdentifierExpression>(loc, dvar_temp_[lhs_col]);
             auto expr =
-                    make_expression<AssignmentExpression>(loc, temp->clone(),
+                    make_expression<AssignmentExpression>(loc, var->clone(),
                         make_expression<SubBinaryExpression>(loc, var->clone(),
                             make_expression<DivBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs_col])),
                                 make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs_col])))));
-
-            statements_.push_back(std::move(expr));
-
-            expr = make_expression<AssignmentExpression>(loc, var->clone(), temp->clone());
 
             statements_.push_back(std::move(expr));
         }
@@ -916,15 +905,9 @@ private:
     bool computed_ = false;
 
     void remove_deps_from_unused(const std::string& id) {
-        std::cout << "looking for " << id << std::endl;
-        std::cout << "in" << std::endl;
-        for (auto a: deps) {
-            std::cout << a.first << " " << a.second << std::endl;
-        }
-
         auto range = deps.equal_range(id);
         for (auto i = range.first; i != range.second; ++i) {
-            if (unused_ids.count(i->second)) {
+            if (unused_ids.count(i->second) && id != i->second) {
                 remove_deps_from_unused(i->second);
             }
         }
