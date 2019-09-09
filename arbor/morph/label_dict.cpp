@@ -55,13 +55,13 @@ void label_dict::set(const std::string& name, arb::region reg) {
 
 util::optional<const region&> label_dict::region(const std::string& name) const {
     auto it = regions_.find(name);
-    if (it==regions_.end() ) return {};
+    if (it==regions_.end()) return {};
     return it->second;
 }
 
 util::optional<const locset&> label_dict::locset(const std::string& name) const {
     auto it = locsets_.find(name);
-    if (it==locsets_.end() ) return {};
+    if (it==locsets_.end()) return {};
     return it->second;
 }
 

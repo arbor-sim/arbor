@@ -24,12 +24,6 @@ bool is_disjoint(const mcable& a, const mcable& b) {
     return a<b? a.dist_pos<b.prox_pos: b.dist_pos<a.prox_pos;
 }
 
-bool is_nonnull_intersection(const mcable& a, const mcable& b) {
-    //if (a==b) return true; // handles special case of spherical branch
-    if (a.branch!=b.branch) return false;
-    return a<b? a.dist_pos>b.prox_pos: b.dist_pos>a.prox_pos;
-}
-
 // Take the union of two cable sections that are not disjoint.
 mcable make_union(const mcable& a, const mcable& b) {
     assert(!is_disjoint(a,b));
@@ -190,6 +184,9 @@ mcable_list thingify_(const tagged_& reg, const em_morphology& em) {
             start = std::find_if(last, end, matches);
         }
     }
+    if (L.size()<L.capacity()/4) {
+        L.shrink_to_fit();
+    }
     return L;
 }
 
@@ -221,7 +218,7 @@ std::ostream& operator<<(std::ostream& o, const all_& t) {
 }
 
 //
-// intersection of two point sets
+// intersection of two regions.
 //
 struct reg_and {
     region lhs;
