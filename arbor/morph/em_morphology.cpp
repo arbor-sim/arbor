@@ -95,16 +95,12 @@ mlocation_list em_morphology::cover(mlocation loc, bool include_loc) const {
     if (include_loc) L.push_back(loc);
 
     // If the location is not at the end of a branch, it is its own cover.
-    if (loc.pos>0. && loc.pos<1.) return L;
+    if (loc.pos>0. && loc.pos<1.) {
+        return L;
+    }
 
-    // The root is a special case.
-    if (loc==mlocation{0,0}) {
-        // Spherical root: nothing more to do
-        if (morph_.spherical_root()) return L;
-        // Non-spherical root: include start of each branch attached to the root
-        for (auto b: morph_.branch_children(mnpos)) {
-            if (b) L.push_back({b, 0});
-        }
+    // First location is {0,0} on a spherical root: nothing more to do.
+    if (loc==mlocation{0,0} && morph_.spherical_root()) {
         return L;
     }
 

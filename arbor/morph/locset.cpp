@@ -17,7 +17,6 @@ namespace ls {
 //
 // Functions for taking the sum, union and intersection of location_lists (multisets).
 //
-//
 
 using it_t = mlocation_list::iterator;
 using const_it_t = mlocation_list::const_iterator;
@@ -63,7 +62,7 @@ mlocation_list join(const mlocation_list& lhs, const mlocation_list& rhs) {
         auto count = (*l<*r)? multiplicity(l, lend):
                      (*r<*l)? multiplicity(r, rend):
                      std::max(multiplicity(l, lend), multiplicity(r, rend));
-        while (count--) L.push_back(x);
+        L.insert(L.end(), count, x);
     }
     L.insert(L.end(), l, lend);
     L.insert(L.end(), r, rend);
@@ -85,7 +84,7 @@ mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs
         if (*l==*r) {
             auto x = *l;
             auto count = std::min(multiplicity(l, lend), multiplicity(r, rend));
-            while (count--) L.push_back(x);
+            L.insert(L.end(), count, x);
         }
         else if (*l<*r) {
             next_unique(l, lend);
