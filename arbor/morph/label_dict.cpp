@@ -28,9 +28,12 @@ void label_dict::set(const std::string& name, arb::locset ls) {
     // Has to be this way, because insert_or_assign() is C++17, and we
     // can't use operator[] because locset is not default constructable.
     auto it = locsets_.find(name);
-    if (it!=locsets_.end()) locsets_.erase(it);
-    if (locsets_.count(name))
-    locsets_.emplace(name, std::move(ls));
+    if (it!=locsets_.end()) {
+        it->second = std::move(ls);
+    }
+    else {
+        locsets_.emplace(name, std::move(ls));
+    }
 }
 
 void label_dict::set(const std::string& name, arb::region reg) {
@@ -42,9 +45,12 @@ void label_dict::set(const std::string& name, arb::region reg) {
     // Has to be this way, because insert_or_assign() is C++17, and we
     // can't use operator[] because region is not default constructable.
     auto it = regions_.find(name);
-    if (it!=regions_.end()) regions_.erase(it);
-    if (regions_.count(name))
-    regions_.emplace(name, std::move(reg));
+    if (it!=regions_.end()) {
+        it->second = std::move(reg);
+    }
+    else {
+        regions_.emplace(name, std::move(reg));
+    }
 }
 
 util::optional<const region&> label_dict::region(const std::string& name) const {

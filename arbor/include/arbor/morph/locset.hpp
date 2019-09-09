@@ -17,10 +17,9 @@ namespace arb {
 // interface for concretising locsets.
 class em_morphology;
 
-// location sets are 
 class locset {
 public:
-    locset();
+    locset() = delete;
 
     template <typename Impl,
               typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
@@ -47,6 +46,7 @@ public:
         impl_ = new wrap<Impl>(std::forward<Impl>(other));
         return *this;
     }
+
     template <typename Impl>
     locset& operator=(const Impl& other) {
         impl_ = new wrap<Impl>(other);
@@ -60,24 +60,6 @@ public:
     friend std::ostream& operator<<(std::ostream& o, const locset& p) {
         return p.impl_->print(o);
     }
-
-    // The union of two location sets.
-    //friend locset join(locset, locset);
-
-    /*
-    template <typename ...Args>
-    friend locset join(locset l, locset r, Args... args) {
-            return join(join(std::move(l), std::move(r)), std::move(args)...);
-    }
-
-    // The intersection of two location sets.
-    friend locset intersect(locset, locset);
-
-    template <typename ...Args>
-    friend locset intersect(locset l, locset r, Args... args) {
-        return intersect(intersect(std::move(l), std::move(r)), std::move(args)...);
-    }
-    */
 
     // The sum of two location sets.
     friend locset sum(locset, locset);
@@ -135,6 +117,6 @@ locset root();
 // The null (empty) set.
 locset nil();
 
-} // namespace ps
+} // namespace ls
 
 } // namespace arb

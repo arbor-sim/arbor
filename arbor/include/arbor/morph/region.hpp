@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include <arbor/morph/error.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphology.hpp>
 
@@ -20,7 +19,7 @@ class em_morphology;
 
 class region {
 public:
-    region();
+    region() = delete;
 
     template <typename Impl,
               typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, region>::value>>
@@ -113,6 +112,8 @@ namespace reg {
 
 // An explicit cable section.
 region cable(mcable);
+
+region interval(mlocation, mlocation);
 
 // An explicit branch.
 region branch(msize_t);
