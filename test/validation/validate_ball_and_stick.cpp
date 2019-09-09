@@ -27,7 +27,7 @@ using namespace arb;
 
 struct probe_point {
     const char* label;
-    segment_location where;
+    mlocation where;
 };
 
 template <typename ProbePointSeq>

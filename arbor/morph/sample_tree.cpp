@@ -70,7 +70,6 @@ msize_t sample_tree::append(msize_t p, const msample& s) {
 }
 
 msize_t sample_tree::append(const msample& s) {
-    std::cout << "decision : " << empty() << " " << (empty()? mnpos: size()-1) << "\n";
     return append(empty()? mnpos: size()-1, s);
 }
 

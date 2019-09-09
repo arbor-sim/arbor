@@ -3,9 +3,7 @@
  */
 
 #include <fstream>
-#include <cassert>
 #include <cmath>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -19,19 +17,36 @@
 
 #include "algorithms.hpp"
 #include "io/sepval.hpp"
+#include "morph/mbranch.hpp"
+#include "morph/em_morphology.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
-// Forward declare non-public functions that are used internally to build
-// morphologies so that they can be tested.
-namespace arb { namespace impl {
-    std::vector<mbranch> branches_from_parent_index(const std::vector<arb::msize_t>&, const std::vector<point_prop>&, bool);
-}}
-
 template <typename T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
     return o << "[" << arb::io::csv(v) << "]";
+}
+
+// Test basic functions on properties of mpoint
+TEST(morphology, mpoint) {
+    using mp = arb::mpoint;
+
+    EXPECT_EQ(arb::distance(mp{0,0,0},mp{0   , 0   , 0   }), 0.);
+    EXPECT_EQ(arb::distance(mp{0,0,0},mp{3.14, 0   , 0   }), 3.14);
+    EXPECT_EQ(arb::distance(mp{0,0,0},mp{0   , 3.14, 0   }), 3.14);
+    EXPECT_EQ(arb::distance(mp{0,0,0},mp{0   , 0   , 3.14}), 3.14);
+    EXPECT_EQ(arb::distance(mp{0,0,0},mp{1   , 2   , 3   }), std::sqrt(14.));
+
+    EXPECT_TRUE(arb::is_collocated(mp{0,0,0}, mp{0,0,0}));
+    EXPECT_TRUE(arb::is_collocated(mp{3,0,0}, mp{3,0,0}));
+    EXPECT_TRUE(arb::is_collocated(mp{0,3,0}, mp{0,3,0}));
+    EXPECT_TRUE(arb::is_collocated(mp{0,0,3}, mp{0,0,3}));
+    EXPECT_TRUE(arb::is_collocated(mp{2,0,3}, mp{2,0,3}));
+
+    EXPECT_FALSE(arb::is_collocated(mp{1,0,3}, mp{2,0,3}));
+    EXPECT_FALSE(arb::is_collocated(mp{2,1,3}, mp{2,0,3}));
+    EXPECT_FALSE(arb::is_collocated(mp{2,0,1}, mp{2,0,3}));
 }
 
 TEST(morphology, point_props) {
@@ -142,7 +157,7 @@ TEST(sample_tree, properties) {
 TEST(morphology, branches_from_parent_index) {
     const auto npos = arb::mnpos;
     using pvec = std::vector<arb::msize_t>;
-    using mb = arb::mbranch;
+    using mb = arb::impl::mbranch;
 
     // make a sample tree from a parent vector with non-collocated points.
     auto make_tree = [] (const pvec& parents) {
@@ -555,7 +570,7 @@ TEST(morphology, swc) {
     EXPECT_EQ(31u, m.num_branches());
 
     // Confirm that converting to a cable_cell generates the same number of branches.
-    auto c = arb::make_cable_cell(m, false);
+    auto c = arb::make_cable_cell(m, {}, false);
     EXPECT_EQ(31u, c.num_segments());
 }
 

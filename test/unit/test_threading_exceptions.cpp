@@ -3,11 +3,7 @@
 #include <csignal>
 
 #include <arbor/domain_decomposition.hpp>
-#include <arbor/load_balance.hpp>
-#include <arbor/recipe.hpp>
-#include <arbor/simulation.hpp>
 #include <arbor/context.hpp>
-#include <arbor/cable_cell.hpp>
 #include <arbor/version.hpp>
 
 #include "threading/threading.hpp"

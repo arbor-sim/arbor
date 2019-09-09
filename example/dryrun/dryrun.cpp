@@ -12,8 +12,9 @@
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
-#include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/load_balance.hpp>
+#include <arbor/morph/primitives.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -140,7 +141,7 @@ public:
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
-        arb::segment_location loc(0, 0.0);
+        arb::mlocation loc{0, 0.0};
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }

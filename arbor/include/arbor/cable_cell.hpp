@@ -9,27 +9,12 @@
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
+#include <arbor/morph/primitives.hpp>
 #include <arbor/segment.hpp>
 
 namespace arb {
-
-// Location specification for point processes.
-
-struct segment_location {
-    segment_location(cell_lid_type s, double l):
-        segment(s), position(l)
-    {
-        arb_assert(position>=0. && position<=1.);
-    }
-
-     bool operator==(segment_location other) const {
-        return segment==other.segment && position==other.position;
-    }
-
-    cell_lid_type segment;
-    double position;
-};
 
 // Current clamp description for stimulus specification.
 
@@ -52,7 +37,7 @@ struct cell_probe_address {
         membrane_voltage, membrane_current
     };
 
-    segment_location location;
+    mlocation location;
     probe_kind kind;
 };
 
@@ -64,20 +49,22 @@ public:
     using value_type = double;
     using point_type = point<value_type>;
 
-    using gap_junction_instance = segment_location;
+    using gap_junction_instance = mlocation;
+
+    using region_map = std::unordered_map<std::string, std::vector<msize_t>>;
 
     struct synapse_instance {
-        segment_location location;
+        mlocation location;
         mechanism_desc mechanism;
     };
 
     struct stimulus_instance {
-        segment_location location;
+        mlocation location;
         i_clamp clamp;
     };
 
     struct detector_instance {
-        segment_location location;
+        mlocation location;
         double threshold;
     };
 
@@ -93,7 +80,8 @@ public:
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
         gap_junction_sites_(other.gap_junction_sites_),
-        spike_detectors_(other.spike_detectors_)
+        spike_detectors_(other.spike_detectors_),
+        regions_(other.regions_)
     {
         // unique_ptr's cannot be copy constructed, do a manual assignment
         segments_.reserve(other.segments_.size());
@@ -158,7 +146,7 @@ public:
     //////////////////
     // stimuli
     //////////////////
-    void add_stimulus(segment_location loc, i_clamp stim);
+    void add_stimulus(mlocation loc, i_clamp stim);
 
     std::vector<stimulus_instance>&
     stimuli() {
@@ -171,9 +159,14 @@ public:
     }
 
     //////////////////
+    // painters
+    //////////////////
+    void paint(const std::string& target, const std::string& description);
+
+    //////////////////
     // synapses
     //////////////////
-    void add_synapse(segment_location loc, mechanism_desc p)
+    void add_synapse(mlocation loc, mechanism_desc p)
     {
         synapses_.push_back(synapse_instance{loc, std::move(p)});
     }
@@ -184,7 +177,7 @@ public:
     //////////////////
     // gap-junction
     //////////////////
-    void add_gap_junction(segment_location location)
+    void add_gap_junction(mlocation location)
     {
         gap_junction_sites_.push_back(location);
     }
@@ -195,7 +188,7 @@ public:
     //////////////////
     // spike detectors
     //////////////////
-    void add_detector(segment_location loc, double threshold);
+    void add_detector(mlocation loc, double threshold);
 
     std::vector<detector_instance>&
     detectors() {
@@ -205,6 +198,10 @@ public:
     const std::vector<detector_instance>&
     detectors() const {
         return spike_detectors_;
+    }
+
+    void set_regions(region_map r) {
+        regions_ = std::move(r);
     }
 
     // Checks that two cells have the same
@@ -253,6 +250,9 @@ private:
 
     // the sensors
     std::vector<detector_instance> spike_detectors_;
+
+    // Named regions, oh my.
+    region_map regions_;
 };
 
 // create a cable by forwarding cable construction parameters provided by the user
@@ -273,6 +273,8 @@ cable_segment* cable_cell::add_cable(cable_cell::index_type parent, Args&&... ar
 // If compartments_from_discretization is true, set number of compartments
 // in each segment to be the number of piecewise linear sections in the
 // corresponding section of the morphology.
-cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization);
+cable_cell make_cable_cell(const morphology& morph,
+                           const label_dict& labels={},
+                           bool compartments_from_discretization=false);
 
 } // namespace arb

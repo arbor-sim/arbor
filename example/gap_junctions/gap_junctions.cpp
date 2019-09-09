@@ -103,7 +103,7 @@ public:
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
-        arb::segment_location loc(0, 1);
+        arb::mlocation loc{0, 1.};
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }

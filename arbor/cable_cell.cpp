@@ -1,9 +1,15 @@
+#include <sstream>
+#include <vector>
+
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/segment.hpp>
 
+#include "morph/em_morphology.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 
@@ -72,6 +78,17 @@ bool cable_cell::has_soma() const {
     return !segment(0)->is_placeholder();
 }
 
+void cable_cell::paint(const std::string& target, const std::string& description) {
+    auto it = regions_.find(target);
+
+    // Nothing to do if there are no regions that match.
+    if (it==regions_.end()) return;
+
+    for (auto i: it->second) {
+        segment(i)->add_mechanism(description);
+    }
+}
+
 soma_segment* cable_cell::soma() {
     return has_soma()? segment(0)->as_soma(): nullptr;
 }
@@ -106,12 +123,12 @@ size_type cable_cell::num_compartments() const {
             [](const segment_ptr& s) { return s->num_compartments(); });
 }
 
-void cable_cell::add_stimulus(segment_location loc, i_clamp stim) {
-    (void)segment(loc.segment); // assert loc.segment in range
+void cable_cell::add_stimulus(mlocation loc, i_clamp stim) {
+    (void)segment(loc.branch); // assert loc.segment in range
     stimuli_.push_back({loc, std::move(stim)});
 }
 
-void cable_cell::add_detector(segment_location loc, double threshold) {
+void cable_cell::add_detector(mlocation loc, double threshold) {
     spike_detectors_.push_back({loc, threshold});
 }
 
@@ -164,24 +181,27 @@ value_type cable_cell::segment_mean_attenuation(
     return 2*std::sqrt(math::pi<double>*tau_per_um*frequency)*length_factor; // [1/µm]
 }
 
-cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization) {
+cable_cell make_cable_cell(const morphology& m,
+                           const label_dict& dictionary,
+                           bool compartments_from_discretization)
+{
     using point3d = cable_cell::point_type;
     cable_cell newcell;
 
-    if (!morph.num_branches()) {
+    if (!m.num_branches()) {
         return newcell;
     }
 
     // Add the soma.
-    auto loc = morph.samples()[0].loc; // location of soma.
+    auto loc = m.samples()[0].loc; // location of soma.
 
     // If there is no spherical root/soma use a zero-radius soma.
-    double srad = morph.spherical_root()? loc.radius: 0.;
+    double srad = m.spherical_root()? loc.radius: 0.;
     newcell.add_soma(srad, point3d(loc.x, loc.y, loc.z));
 
-    auto& samples = morph.samples();
-    for (auto i: util::make_span(1, morph.num_branches())) {
-        auto index =  util::make_range(morph.branch_sample_span(i));
+    auto& samples = m.samples();
+    for (auto i: util::make_span(1, m.num_branches())) {
+        auto index =  util::make_range(m.branch_indexes(i));
 
         // find kind for the branch. Use the tag of the last sample in the branch.
         int tag = samples[index.back()].tag;
@@ -207,9 +227,9 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
         }
 
         // Find the id of this branch's parent.
-        auto pid = morph.branch_parent(i);
+        auto pid = m.branch_parent(i);
         // Adjust pid if a zero-radius soma was used.
-        if (!morph.spherical_root()) {
+        if (!m.spherical_root()) {
             pid = pid==mnpos? 0: pid+1;
         }
         auto cable = newcell.add_cable(pid, kind, radii, points);
@@ -217,6 +237,26 @@ cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discr
             cable->as_cable()->set_compartments(radii.size()-1);
         }
     }
+
+    // Construct concrete regions.
+    // Ignores the pointsets, for now.
+    auto em = em_morphology(m); // for converting labels to "segments"
+
+    std::unordered_map<std::string, std::vector<msize_t>> regions;
+    for (auto r: dictionary.regions()) {
+        mcable_list L = thingify(r.second, em);
+        std::vector<msize_t> bids;
+        for (auto c: L) {
+            if (c.prox_pos!=0 || c.dist_pos!=1) {
+                throw cable_cell_error(util::pprintf(
+                    "cable_cell does not support regions with partial branches: \"{}\": {}",
+                    r.first, c));
+            }
+            bids.push_back(c.branch);
+        }
+        regions[r.first] = bids;
+    }
+    newcell.set_regions(std::move(regions));
 
     return newcell;
 }
