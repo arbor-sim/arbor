@@ -10,7 +10,6 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
-#include <arbor/morphology.hpp>
 #include <arbor/point.hpp>
 
 namespace arb {
@@ -24,34 +23,25 @@ struct swc_error: public arbor_exception {
 
 class swc_record {
 public:
+    static constexpr int undefined_tag = 0;
+
+    using tag_type = int;
     using id_type = int;
     using coord_type = double;
 
-    // More on SWC files: http://research.mssm.edu/cnic/swc.html
-    enum class kind {
-        undefined = 0,
-        soma,
-        axon,
-        dendrite,
-        apical_dendrite,
-        fork_point,
-        end_point,
-        custom
-    };
-
-    kind type = kind::undefined; // record type
+    tag_type tag = undefined_tag;     // record type
     id_type id = 0;              // record id
     coord_type x = 0;            // record coordinates
     coord_type y = 0;
     coord_type z = 0;
     coord_type r = 0;            // record radius
-    id_type parent_id= -1;      // record parent's id
+    id_type parent_id= -1;       // record parent's id
 
     // swc records assume zero-based indexing; root's parent remains -1
-    swc_record(swc_record::kind type, int id,
+    swc_record(int tag, int id,
                coord_type x, coord_type y, coord_type z, coord_type r,
                int parent_id):
-        type(type), id(id), x(x), y(y), z(z), r(r), parent_id(parent_id)
+        tag(tag), id(id), x(x), y(y), z(z), r(r), parent_id(parent_id)
     {}
 
     swc_record() = default;
@@ -81,10 +71,6 @@ public:
         return arb::point<coord_type>(x, y, z);
     }
 
-    arb::section_point as_section_point() const {
-        return arb::section_point{x, y, z, r};
-    }
-
     // validity checks
     bool is_consistent() const;
     void assert_consistent() const; // throw swc_error if inconsistent.
@@ -97,9 +83,6 @@ std::istream& operator>>(std::istream& is, swc_record& record);
 // Parse and canonicalize an EOF-terminated sequence of records.
 // Throw on parsing failure.
 std::vector<swc_record> parse_swc_file(std::istream& is);
-
-// Convert a canonical (see below) vector of SWC records to a morphology object.
-morphology swc_as_morphology(const std::vector<swc_record>& swc_records);
 
 // Given a vector of random-access mutable sequence of `swc_record` describing
 // a single morphology, check for consistency and renumber records

@@ -28,9 +28,16 @@ set(arbor_sources
     mechcat.cpp
     memory/cuda_wrappers.cpp
     memory/util.cpp
+    morph/em_morphology.cpp
+    morph/label_dict.cpp
+    morph/locset.cpp
+    morph/mbranch.cpp
+    morph/morphology.cpp
+    morph/primitives.cpp
+    morph/region.cpp
+    morph/sample_tree.cpp
     merge_events.cpp
     simulation.cpp
-    morphology.cpp
     partition_load_balance.cpp
     profile/clock.cpp
     profile/memory_meter.cpp

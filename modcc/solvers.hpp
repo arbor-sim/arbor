@@ -85,6 +85,9 @@ protected:
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
 
+    // state variable multiplier/divider
+    std::vector<expression_ptr> scale_factor_;
+
     // rhs of conserve statement
     std::vector<std::string> conserve_rhs_;
     std::vector<unsigned> conserve_idx_;
@@ -96,15 +99,59 @@ public:
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
+    virtual void visit(CompartmentExpression *e) override;
     virtual void visit(ConserveExpression *e) override;
     virtual void finalize() override;
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
+        A_.clear();
         symtbl_.clear();
+        conserve_ = false;
+        scale_factor_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
-        conserve_ = false;
+        SolverVisitorBase::reset();
+    }
+};
+
+class LinearSolverVisitor : public SolverVisitorBase {
+protected:
+    // 'Current' differential equation is for variable with this
+    // index in `dvars`.
+    unsigned deq_index_ = 0;
+
+    // Expanded local assignments that need to be substituted in for derivative
+    // calculations.
+    substitute_map local_expr_;
+
+    // Symbolic matrix for backwards Euler step.
+    symge::sym_matrix A_;
+
+    // RHS
+    std::vector<symge::symbol> rhs_;
+
+    // 'Symbol table' for symbolic manipulation.
+    symge::symbol_table symtbl_;
+
+public:
+    using SolverVisitorBase::visit;
+
+    LinearSolverVisitor(std::vector<std::string> vars) {
+        dvars_ = vars;
+    }
+    LinearSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
+
+    virtual void visit(BlockExpression* e) override;
+    virtual void visit(LinearExpression *e) override;
+    virtual void visit(AssignmentExpression *e) override;
+    virtual void finalize() override;
+    virtual void reset() override {
+        deq_index_ = 0;
+        local_expr_.clear();
+        A_.clear();
+        rhs_.clear();
+        symtbl_.clear();
         SolverVisitorBase::reset();
     }
 };

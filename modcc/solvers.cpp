@@ -180,8 +180,23 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
+    scale_factor_.resize(dvars_.size());
 
     BlockRewriterBase::visit(e);
+}
+
+void SparseSolverVisitor::visit(CompartmentExpression *e) {
+    auto loc = e->location();
+
+    for (auto& s: e->is_compartment()->state_vars()) {
+        auto it = std::find(dvars_.begin(), dvars_.end(), s->is_identifier()->spelling());
+        if (it == dvars_.end()) {
+            error({"COMPARTMENT variable is not used", loc});
+            return;
+        }
+        auto idx = it - dvars_.begin();
+        scale_factor_[idx] = e->scale_factor()->clone();
+    }
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
@@ -242,6 +257,10 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
             expr = make_expression<MulBinaryExpression>(loc,
                        r.coef[dvars_[j]]->clone(),
                        dt_expr->clone());
+
+            if (scale_factor_[j]) {
+                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
+            }
         }
 
         if (j==deq_index_) {
@@ -312,6 +331,9 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 
         if (it != terms.end()) {
             auto expr = (*it)->is_stoich_term()->coeff()->clone();
+            if (scale_factor_[j]) {
+                expr =  make_expression<MulBinaryExpression>(loc, scale_factor_[j]->clone(), std::move(expr));
+            }
 
             auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
             auto a_ = local_a_term.id->is_identifier()->spelling();
@@ -368,14 +390,108 @@ void SparseSolverVisitor::finalize() {
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
     for (unsigned i = 0; i<A_.nrow(); ++i) {
-        unsigned rhs = A_.augcol();
+        const symge::sym_row& row = A_[i];
+        unsigned rhs_col = A_.augcol();
+        unsigned lhs_col;
+        for (unsigned r = 0; r < A_.nrow(); r++) {
+            if (row[r]) {
+                lhs_col = r;
+                break;
+            }
+        }
 
         auto expr =
             make_expression<AssignmentExpression>(loc,
-                make_expression<IdentifierExpression>(loc, dvars_[i]),
+                make_expression<IdentifierExpression>(loc, dvars_[lhs_col]),
                 make_expression<DivBinaryExpression>(loc,
-                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
-                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][i]))));
+                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs_col])),
+                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs_col]))));
+
+        statements_.push_back(std::move(expr));
+    }
+
+    BlockRewriterBase::finalize();
+}
+
+void LinearSolverVisitor::visit(BlockExpression* e) {
+    BlockRewriterBase::visit(e);
+}
+
+void LinearSolverVisitor::visit(AssignmentExpression *e) {
+    statements_.push_back(e->clone());
+    return;
+}
+
+void LinearSolverVisitor::visit(LinearExpression *e) {
+    auto loc = e->location();
+    scope_ptr scope = e->scope();
+
+    if (A_.empty()) {
+        unsigned n = dvars_.size();
+        A_ = symge::sym_matrix(n, n);
+    }
+
+    linear_test_result r = linear_test(e->lhs(), dvars_);
+    if (!r.is_homogeneous) {
+        error({"System not homogeneous linear for sparse", loc});
+        return;
+    }
+
+    for (unsigned j = 0; j<dvars_.size(); ++j) {
+        expression_ptr expr;
+
+        if (r.coef.count(dvars_[j])) {
+            expr = r.coef[dvars_[j]]->clone();
+        }
+
+        if (!expr) continue;
+
+        auto a_ = expr->is_identifier()->spelling();
+
+        A_[deq_index_].push_back({j, symtbl_.define(a_)});
+    }
+    rhs_.push_back(symtbl_.define(e->rhs()->is_identifier()->spelling()));
+    ++deq_index_;
+}
+void LinearSolverVisitor::finalize() {
+    A_.augment(rhs_);
+
+    symge::gj_reduce(A_, symtbl_);
+
+    // Create and assign intermediate variables.
+    for (unsigned i = 0; i<symtbl_.size(); ++i) {
+        symge::symbol s = symtbl_[i];
+
+        if (primitive(s)) continue;
+
+        auto expr = as_expression(definition(s));
+        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+        auto t_ = local_t_term.id->is_identifier()->spelling();
+        symtbl_.name(s, t_);
+
+        statements_.push_back(std::move(local_t_term.local_decl));
+        statements_.push_back(std::move(local_t_term.assignment));
+    }
+
+    // State variable updates given by rhs/diagonal for reduced matrix.
+    Location loc;
+    for (unsigned i = 0; i < A_.nrow(); ++i) {
+        const symge::sym_row& row = A_[i];
+        unsigned rhs = A_.augcol();
+        unsigned lhs;
+        for (unsigned r = 0; r < A_.nrow(); r++) {
+            if (row[r]) {
+                lhs = r;
+                break;
+            }
+        }
+
+        auto expr =
+            make_expression<AssignmentExpression>(loc,
+                    make_expression<IdentifierExpression>(loc, dvars_[lhs]),
+                    make_expression<DivBinaryExpression>(loc,
+                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
+                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs]))));
 
         statements_.push_back(std::move(expr));
     }

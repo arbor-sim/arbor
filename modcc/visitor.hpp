@@ -27,6 +27,7 @@ public:
     virtual void visit(ReactionExpression *e)   { visit((Expression*) e); }
     virtual void visit(StoichTermExpression *e) { visit((Expression*) e); }
     virtual void visit(StoichExpression *e)     { visit((Expression*) e); }
+    virtual void visit(CompartmentExpression *e) { visit((Expression*) e); }
     virtual void visit(VariableExpression *e)   { visit((Expression*) e); }
     virtual void visit(IndexedVariable *e)      { visit((Expression*) e); }
     virtual void visit(FunctionExpression *e)   { visit((Expression*) e); }
@@ -52,6 +53,7 @@ public:
     virtual void visit(ConditionalExpression *e) {visit((BinaryExpression*) e); }
     virtual void visit(AssignmentExpression *e) { visit((BinaryExpression*) e); }
     virtual void visit(ConserveExpression *e)   { visit((BinaryExpression*) e); }
+    virtual void visit(LinearExpression *e)     { visit((BinaryExpression*) e); }
     virtual void visit(AddBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(SubBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(MulBinaryExpression *e)  { visit((BinaryExpression*) e); }

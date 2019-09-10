@@ -33,9 +33,11 @@ class BinaryExpression;
 class UnaryExpression;
 class AssignmentExpression;
 class ConserveExpression;
+class LinearExpression;
 class ReactionExpression;
 class StoichExpression;
 class StoichTermExpression;
+class CompartmentExpression;
 class ConditionalExpression;
 class InitialBlock;
 class SolveExpression;
@@ -79,7 +81,8 @@ enum class procedureKind {
     net_receive, ///< NET_RECEIVE
     breakpoint,  ///< BREAKPOINT
     kinetic,     ///< KINETIC
-    derivative   ///< DERIVATIVE
+    derivative,  ///< DERIVATIVE
+    linear,      ///< LINEAR
 };
 std::string to_string(procedureKind k);
 
@@ -168,10 +171,12 @@ public:
     virtual UnaryExpression*       is_unary()             {return nullptr;}
     virtual AssignmentExpression*  is_assignment()        {return nullptr;}
     virtual ConserveExpression*    is_conserve()          {return nullptr;}
+    virtual LinearExpression*      is_linear()            {return nullptr;}
     virtual ReactionExpression*    is_reaction()          {return nullptr;}
     virtual StoichExpression*      is_stoich()            {return nullptr;}
     virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}
     virtual ConditionalExpression* is_conditional()       {return nullptr;}
+    virtual CompartmentExpression* is_compartment()       {return nullptr;}
     virtual InitialBlock*          is_initial_block()     {return nullptr;}
     virtual SolveExpression*       is_solve_statement()   {return nullptr;}
     virtual Symbol*                is_symbol()            {return nullptr;}
@@ -857,6 +862,33 @@ private:
     expression_ptr rev_rate_;
 };
 
+class CompartmentExpression : public Expression {
+public:
+    CompartmentExpression(Location loc,
+                          expression_ptr&& scale_factor,
+                          std::vector<expression_ptr>&& state_vars)
+    : Expression(loc), scale_factor_(std::move(scale_factor)), state_vars_(std::move(state_vars)) {}
+
+    CompartmentExpression* is_compartment() override {return this;}
+
+    std::string to_string() const override;
+    void semantic(scope_ptr scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    expression_ptr& scale_factor() { return scale_factor_; }
+    const expression_ptr& scale_factor() const { return scale_factor_; }
+
+    std::vector<expression_ptr>& state_vars() { return state_vars_; }
+    const std::vector<expression_ptr>& state_vars() const { return state_vars_; }
+
+    ~CompartmentExpression() {}
+
+private:
+    expression_ptr scale_factor_;
+    std::vector<expression_ptr> state_vars_;
+};
+
 class StoichTermExpression : public Expression {
 public:
     StoichTermExpression(Location loc,
@@ -1270,6 +1302,20 @@ public:
     {}
 
     ConserveExpression* is_conserve() override {return this;}
+    expression_ptr clone() const override;
+
+    void semantic(scope_ptr scp) override;
+
+    void accept(Visitor *v) override;
+};
+
+class LinearExpression : public BinaryExpression {
+public:
+    LinearExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+            :   BinaryExpression(loc, tok::eq, std::move(lhs), std::move(rhs))
+    {}
+
+    LinearExpression* is_linear() override {return this;}
     expression_ptr clone() const override;
 
     void semantic(scope_ptr scp) override;

@@ -6,7 +6,6 @@
 #include <unordered_set>
 
 #include <arbor/assert.hpp>
-#include <arbor/morphology.hpp>
 #include <arbor/point.hpp>
 #include <arbor/swcio.hpp>
 
@@ -19,10 +18,8 @@ namespace arb {
 
 // helper function: return error message if inconsistent, or nullptr if ok.
 const char* swc_record_error(const swc_record& r) {
-    constexpr int max_type = static_cast<int>(swc_record::kind::custom);
-
-    if (static_cast<int>(r.type) < 0 || static_cast<int>(r.type) > max_type) {
-        return "unknown record type";
+    if (r.tag<0) {
+        return "unknown record tag";
     }
 
     if (r.id < 0) {
@@ -60,9 +57,7 @@ static bool parse_record(const std::string& line, swc_record& record) {
     std::istringstream is(line);
     swc_record r;
 
-    int type_as_int;
-    is >> r.id >> type_as_int >> r.x >> r.y >> r.z >> r.r >> r.parent_id;
-    r.type = static_cast<swc_record::kind>(type_as_int);
+    is >> r.id >> r.tag >> r.x >> r.y >> r.z >> r.r >> r.parent_id;
     if (is) {
         // Convert to zero-based, leaving parent_id as-is if -1
         --r.id;
@@ -105,7 +100,7 @@ std::istream& operator>>(std::istream& is, swc_record& record) {
 std::ostream& operator<<(std::ostream& os, const swc_record& record) {
     // output in one-based indexing
     os << record.id+1 << " "
-       << static_cast<int>(record.type) << " "
+       << record.tag << " "
        << std::setprecision(7) << record.x << " "
        << std::setprecision(7) << record.y << " "
        << std::setprecision(7) << record.z << " "
@@ -152,70 +147,6 @@ std::vector<swc_record> parse_swc_file(std::istream& is) {
 
     swc_canonicalize(records);
     return records;
-}
-
-morphology swc_as_morphology(const std::vector<swc_record>& swc_records) {
-    morphology morph;
-
-    std::vector<swc_record::id_type> swc_parent_index;
-    for (const auto& r: swc_records) {
-        swc_parent_index.push_back(r.parent_id);
-    }
-
-    if (swc_parent_index.empty()) {
-        return morph;
-    }
-
-    // The parent of soma must be 0, while in SWC files is -1
-    swc_parent_index[0] = 0;
-    auto branch_index = algorithms::branches(swc_parent_index); // partitions [0, #records] by branch.
-    auto parent_branch_index = algorithms::tree_reduce(swc_parent_index, branch_index);
-
-    // sanity check
-    arb_assert(parent_branch_index.size() == branch_index.size() - 1);
-
-    // Add the soma first; then the segments
-    const auto& soma = swc_records[0];
-    morph.soma = { soma.x, soma.y, soma.z, soma.r };
-
-    for (auto i: util::make_span(1, parent_branch_index.size())) {
-        auto b_start = swc_records.begin() + branch_index[i];
-        auto b_end   = swc_records.begin() + branch_index[i+1];
-
-        unsigned parent_id = parent_branch_index[i];
-        std::vector<section_point> points;
-        section_kind kind = section_kind::none;
-
-        if (parent_id != 0) {
-            // include the parent of current record if not branching from soma
-            auto parent_record = swc_records[swc_parent_index[branch_index[i]]];
-
-            points.push_back(section_point{parent_record.x, parent_record.y, parent_record.z, parent_record.r});
-        }
-
-        for (auto b = b_start; b!=b_end; ++b) {
-            points.push_back(section_point{b->x, b->y, b->z, b->r});
-
-            switch (b->type) {
-            case swc_record::kind::axon:
-                kind = section_kind::axon;
-                break;
-            case swc_record::kind::dendrite:
-            case swc_record::kind::apical_dendrite:
-                kind = section_kind::dendrite;
-                break;
-            case swc_record::kind::soma:
-                kind = section_kind::soma;
-                break;
-            default: ; // stick with what we have
-            }
-        }
-
-        morph.add_section(std::move(points), parent_id, kind);
-    }
-
-    morph.assert_valid();
-    return morph;
 }
 
 void swc_canonicalize(std::vector<swc_record>& swc_records) {

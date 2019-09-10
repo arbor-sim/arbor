@@ -24,9 +24,6 @@
 # tar files
 *.tar
 
-# json files
-*.json
-
 # generated when making on os x
 *.dSYM
 
@@ -47,12 +44,10 @@
 *.fls
 *.bbl
 
-
 # cmake
 CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 
 # mechanisms generated from .mod files
 mechanisms/multicore/*.hpp

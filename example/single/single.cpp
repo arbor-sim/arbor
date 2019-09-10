@@ -7,7 +7,8 @@
 
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
-#include <arbor/morphology.hpp>
+#include <arbor/morph/morphology.hpp>
+#include <arbor/morph/sample_tree.hpp>
 #include <arbor/swcio.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -26,7 +27,7 @@ arb::morphology default_morphology();
 arb::morphology read_swc(const std::string& path);
 
 struct single_recipe: public arb::recipe {
-    explicit single_recipe(arb::morphology m): morpho(m) {
+    explicit single_recipe(arb::morphology m): morpho(std::move(m)) {
         gprop.default_parameters = arb::neuron_parameter_defaults;
     }
 
@@ -35,7 +36,7 @@ struct single_recipe: public arb::recipe {
     arb::cell_size_type num_targets(arb::cell_gid_type) const override { return 1; }
 
     arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
-        arb::segment_location mid_soma = {0, 0.5};
+        arb::mlocation mid_soma = {0, 0.5};
         arb::cell_probe_address probe = {mid_soma, arb::cell_probe_address::membrane_voltage};
 
         // Probe info consists of: the probe id, a tag value to distinguish this probe
@@ -53,27 +54,29 @@ struct single_recipe: public arb::recipe {
     }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
-        arb::cable_cell c = make_cable_cell(morpho);
+        arb::label_dict dict;
+        using arb::reg::tagged;
+        dict.set("soma", tagged(1));
+        dict.set("dend", join(tagged(3), tagged(4), tagged(42)));
+        arb::cable_cell c = make_cable_cell(morpho, dict, false);
 
         // Add HH mechanism to soma, passive channels to dendrites.
+        c.paint("soma", "hh");
+        c.paint("dend", "pas");
+
         // Discretize dendrites according to the NEURON d-lambda rule.
+        for (std::size_t i=1; i<c.num_segments(); ++i) {
+            arb::cable_segment* branch = c.cable(i);
 
-        c.soma()->add_mechanism("hh");
-        auto& segments = c.segments();
-        for (std::size_t i = 1; i<segments.size(); ++i) {
             double dx = c.segment_length_constant(100., i, gprop.default_parameters)*0.3;
-
-            arb::cable_segment* seg = c.cable(i);
-            seg->add_mechanism("pas");
-
-            unsigned n = std::ceil(seg->length()/dx);
-            seg->set_compartments(n);
+            unsigned n = std::ceil(branch->length()/dx);
+            branch->set_compartments(n);
         }
 
-        // Add synapse to last segment.
+        // Add synapse to last branch.
 
-        arb::cell_lid_type last_segment = morpho.components()-1;
-        arb::segment_location end_last_segment = { last_segment, 1. };
+        arb::cell_lid_type last_segment = c.num_segments()-1;
+        arb::mlocation end_last_segment = { last_segment, 1. };
         c.add_synapse(end_last_segment, "exp2syn");
 
         return c;
@@ -147,25 +150,18 @@ options parse_options(int argc, char** argv) {
 // to 0.2 µm.
 
 arb::morphology default_morphology() {
-    arb::morphology m;
+    arb::sample_tree samples;
 
-    // Points in a morphology are expressed as (x, y, z, r),
-    // with r being the radius. Units are µm.
+    auto p = samples.append(arb::msample{{  0.0, 0.0, 0.0, 6.3}, 1});
+    p = samples.append(p, arb::msample{{  6.3, 0.0, 0.0, 0.5}, 3});
+    p = samples.append(p, arb::msample{{206.3, 0.0, 0.0, 0.2}, 3});
 
-    m.soma = {0., 0., 0., 6.3};
-
-    std::vector<arb::section_point> dendrite = {
-        {6.3, 0., 0., 0.5},
-        {206.3, 0., 0., 0.2}
-    };
-    m.add_section(dendrite, 0);
-
-    return m;
+    return arb::morphology(std::move(samples));
 }
 
 arb::morphology read_swc(const std::string& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("unable to open SWC file: "+path);
 
-    return arb::swc_as_morphology(arb::parse_swc_file(f));
+    return arb::morphology(arb::swc_as_sample_tree(arb::parse_swc_file(f)));
 }

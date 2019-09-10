@@ -122,6 +122,7 @@ bool Parser::parse() {
             case tok::breakpoint :
             case tok::initial    :
             case tok::kinetic    :
+            case tok::linear     :
             case tok::derivative :
             case tok::procedure  :
                 {
@@ -905,6 +906,12 @@ symbol_ptr Parser::parse_procedure() {
             if( !expect( tok::identifier ) ) return nullptr;
             p = parse_prototype();
             break;
+        case tok::linear:
+            kind = procedureKind::linear;
+            get_token(); // consume keyword token
+            if( !expect( tok::identifier ) ) return nullptr;
+            p = parse_prototype();
+            break;
         case tok::procedure:
             kind = procedureKind::normal;
             get_token(); // consume keyword token
@@ -993,8 +1000,10 @@ expression_ptr Parser::parse_statement() {
             return parse_line_expression();
         case tok::conserve :
             return parse_conserve_expression();
+        case tok::compartment :
+            return parse_compartment_statement();
         case tok::tilde :
-            return parse_reaction_expression();
+            return parse_tilde_expression();
         case tok::initial :
             // only used for INITIAL block in NET_RECEIVE
             return parse_initial();
@@ -1183,76 +1192,94 @@ expression_ptr Parser::parse_stoich_expression() {
     return make_expression<StoichExpression>(here, std::move(terms));
 }
 
-expression_ptr Parser::parse_reaction_expression() {
+expression_ptr Parser::parse_tilde_expression() {
     auto here = location_;
 
     if(token_.type!=tok::tilde) {
         error(pprintf("expected '%', found '%'", yellow("~"), yellow(token_.spelling)));
         return nullptr;
     }
-
     get_token(); // consume tilde
-    expression_ptr lhs = parse_stoich_expression();
-    if (!lhs) return nullptr;
 
-    // reaction halves must comprise non-negative terms
-    for (const auto& term: lhs->is_stoich()->terms()) {
-        // should always be true
-        if (auto sterm = term->is_stoich_term()) {
-            if (sterm->negative()) {
-                error(pprintf("expected only non-negative terms in reaction lhs, found '%'",
-                    yellow(term->to_string())));
-                return nullptr;
+    if (search_to_eol(tok::arrow)) {
+        expression_ptr lhs = parse_stoich_expression();
+        if (!lhs) return nullptr;
+
+        // reaction halves must comprise non-negative terms
+        for (const auto& term: lhs->is_stoich()->terms()) {
+            // should always be true
+            if (auto sterm = term->is_stoich_term()) {
+                if (sterm->negative()) {
+                    error(pprintf("expected only non-negative terms in reaction lhs, found '%'",
+                      yellow(term->to_string())));
+                    return nullptr;
+                }
             }
         }
-    }
 
-    if(token_.type != tok::arrow) {
-        error(pprintf("expected '%', found '%'", yellow("<->"), yellow(token_.spelling)));
-        return nullptr;
-    }
+        if(token_.type != tok::arrow) {
+            error(pprintf("expected '%', found '%'", yellow("<->"), yellow(token_.spelling)));
+            return nullptr;
+        }
 
-    get_token(); // consume arrow
-    expression_ptr rhs = parse_stoich_expression();
-    if (!rhs) return nullptr;
+        get_token(); // consume arrow
+        expression_ptr rhs = parse_stoich_expression();
+        if (!rhs) return nullptr;
 
-    for (const auto& term: rhs->is_stoich()->terms()) {
-        // should always be true
-        if (auto sterm = term->is_stoich_term()) {
-            if (sterm->negative()) {
-                error(pprintf("expected only non-negative terms in reaction rhs, found '%'",
-                    yellow(term->to_string())));
-                return nullptr;
+        for (const auto& term: rhs->is_stoich()->terms()) {
+            // should always be true
+            if (auto sterm = term->is_stoich_term()) {
+                if (sterm->negative()) {
+                    error(pprintf("expected only non-negative terms in reaction rhs, found '%'",
+                                  yellow(term->to_string())));
+                    return nullptr;
+                }
             }
         }
-    }
 
-    if(token_.type != tok::lparen) {
-        error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
+        if (token_.type != tok::lparen) {
+            error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
+            return nullptr;
+        }
+
+        get_token(); // consume lparen
+        expression_ptr fwd = parse_expression();
+        if (!fwd) return nullptr;
+
+        if (token_.type != tok::comma) {
+            error(pprintf("expected '%', found '%'", yellow(","), yellow(token_.spelling)));
+            return nullptr;
+        }
+
+        get_token(); // consume comma
+        expression_ptr rev = parse_expression();
+        if (!rev) return nullptr;
+
+        if (token_.type != tok::rparen) {
+            error(pprintf("expected '%', found '%'", yellow(")"), yellow(token_.spelling)));
+            return nullptr;
+        }
+
+        get_token(); // consume rparen
+        return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
+                                                   std::move(fwd), std::move(rev));
+    }
+    else if (search_to_eol(tok::eq)) {
+        auto lhs_bin = parse_expression(tok::eq);
+
+        if(token_.type!=tok::eq) {
+            error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
+            return nullptr;
+        }
+
+        get_token(); // consume =
+        auto rhs = parse_expression();
+        return make_expression<LinearExpression>(here, std::move(lhs_bin), std::move(rhs));
+    }
+    else {
+        error(pprintf("expected stoichiometric or linear expression, found neither"));
         return nullptr;
     }
-
-    get_token(); // consume lparen
-    expression_ptr fwd = parse_expression();
-    if (!fwd) return nullptr;
-
-    if(token_.type != tok::comma) {
-        error(pprintf("expected '%', found '%'", yellow(","), yellow(token_.spelling)));
-        return nullptr;
-    }
-
-    get_token(); // consume comma
-    expression_ptr rev = parse_expression();
-    if (!rev) return nullptr;
-
-    if(token_.type != tok::rparen) {
-        error(pprintf("expected '%', found '%'", yellow(")"), yellow(token_.spelling)));
-        return nullptr;
-    }
-
-    get_token(); // consume rparen
-    return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
-        std::move(fwd), std::move(rev));
 }
 
 expression_ptr Parser::parse_conserve_expression() {
@@ -1279,15 +1306,14 @@ expression_ptr Parser::parse_conserve_expression() {
     return make_expression<ConserveExpression>(here, std::move(lhs), std::move(rhs));
 }
 
-expression_ptr Parser::parse_expression(int prec) {
+expression_ptr Parser::parse_expression(int prec, tok stop_token) {
     auto lhs = parse_unaryop();
     if(lhs==nullptr) return nullptr;
 
     // Combine all sub-expressions with precedence greater than prec.
     for (;;) {
-        if(token_.type==tok::eq) {
-            error("assignment '"+yellow("=")+"' not allowed in sub-expression");
-            return nullptr;
+        if(token_.type==stop_token) {
+            return lhs;
         }
 
         auto op = token_;
@@ -1309,6 +1335,10 @@ expression_ptr Parser::parse_expression(int prec) {
 
 expression_ptr Parser::parse_expression() {
     return parse_expression(0);
+}
+
+expression_ptr Parser::parse_expression(tok t) {
+    return parse_expression(0, t);
 }
 
 /// Parse a unary expression.
@@ -1714,4 +1744,40 @@ expression_ptr Parser::parse_initial() {
     get_token(); // consume closing '}'
 
     return make_expression<InitialBlock>(block_location, std::move(body));
+}
+
+expression_ptr Parser::parse_compartment_statement() {
+    auto here = location_;
+
+    if(token_.type!=tok::compartment) {
+        error(pprintf("expected '%', found '%'", yellow("COMPARTMENT"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume 'COMPARTMENT'
+    auto scale_factor = parse_expression(tok::rbrace);
+    if (!scale_factor) return nullptr;
+
+    if(token_.type != tok::lbrace) {
+        error(pprintf("expected '%', found '%'", yellow("{"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume '{'
+    std::vector<expression_ptr> states;
+    while (token_.type!=tok::rbrace) {
+        // check identifier
+        if(token_.type != tok::identifier) {
+            error(  "expected a valid identifier, found '"
+                    + yellow(token_.spelling) + "'");
+            return nullptr;
+        }
+
+        auto e = make_expression<IdentifierExpression>(token_.location, token_.spelling);
+        states.emplace_back(std::move(e));
+
+        get_token(); // consume the identifier
+    }
+    get_token(); // consume the rbrace
+    return make_expression<CompartmentExpression>(here, std::move(scale_factor), std::move(states));
 }

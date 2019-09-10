@@ -360,6 +360,57 @@ void StoichExpression::semantic(scope_ptr scp) {
 }
 
 /*******************************************************************************
+  CompartmentExpression
+*******************************************************************************/
+
+expression_ptr CompartmentExpression::clone() const {
+    std::vector<expression_ptr> cloned_state_vars;
+    for(auto& e: state_vars()) {
+        cloned_state_vars.emplace_back(e->clone());
+    }
+
+    return make_expression<CompartmentExpression>(location_, scale_factor()->clone(), std::move(cloned_state_vars));
+}
+
+std::string CompartmentExpression::to_string() const {
+    std::string s;
+    s += scale_factor()->to_string();
+    s += " {";
+    bool first = true;
+    for(auto& e: state_vars()) {
+        if (!first) s += ",";
+        s += e->to_string();
+        first = false;
+    }
+    s += "}";
+    return s;
+}
+
+void CompartmentExpression::semantic(scope_ptr scp) {
+    scope_ = scp;
+    scale_factor()->semantic(scp);
+}
+
+/*******************************************************************************
+  LinearExpression
+*******************************************************************************/
+
+expression_ptr LinearExpression::clone() const {
+    return make_expression<LinearExpression>(
+            location_, lhs()->clone(), rhs()->clone());
+}
+
+void LinearExpression::semantic(scope_ptr scp) {
+    scope_ = scp;
+    lhs_->semantic(scp);
+    rhs_->semantic(scp);
+
+    if(rhs_->is_procedure_call()) {
+        error("procedure calls can't be made in an expression");
+    }
+}
+
+/*******************************************************************************
   ConserveExpression
 *******************************************************************************/
 
@@ -984,6 +1035,9 @@ void ConserveExpression::accept(Visitor *v) {
 void ReactionExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void LinearExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void StoichExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1015,6 +1069,9 @@ void ConditionalExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void PDiffExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void CompartmentExpression::accept(Visitor *v) {
     v->visit(this);
 }
 
