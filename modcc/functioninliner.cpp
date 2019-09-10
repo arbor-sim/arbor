@@ -85,14 +85,24 @@ void FunctionInliner::visit(BinaryExpression* e) {
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
-    std::cout << e->to_string() << std::endl;
-    e->rhs()->accept(this);
-    if (auto elhs = e->lhs()->is_identifier()) {
-        if (elhs->spelling() == func_name_) {
+
+    if (auto rhs = e->rhs()->is_identifier()) {
+        for (unsigned i = 0;  i < fargs_.size(); i++) {
+            if (fargs_[i] == rhs->spelling()) {
+                e->replace_rhs(cargs_[i]->clone());
+                break;
+            }
+        }
+    } else {
+        e->rhs()->accept(this);
+    }
+    
+    if (auto lhs = e->lhs()->is_identifier()) {
+        if (lhs->spelling() == func_name_) {
             e->replace_lhs(lhs_->clone());
         } else {
             for (unsigned i = 0;  i < fargs_.size(); i++) {
-                if (fargs_[i] == elhs->spelling()) {
+                if (fargs_[i] == lhs->spelling()) {
                     e->replace_lhs(cargs_[i]->clone());
                     break;
                 }
