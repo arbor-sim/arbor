@@ -41,6 +41,9 @@ private:
     std::vector<std::string> fargs_;
     std::vector<expression_ptr> cargs_;
     scope_ptr scope_;
+
+    void replace_with_args(Expression* e);
+
 };
 
 class VariableReplacer : public Visitor {

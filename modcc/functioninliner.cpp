@@ -137,9 +137,26 @@ expression_ptr inline_function_call(const expression_ptr& e)
 ///////////////////////////////////////////////////////////////////////////////
 //  function inliner
 ///////////////////////////////////////////////////////////////////////////////
-void FunctionInliner::visit(BlockExpression* e) {
-    for (auto& expr: e->statements()) {
-        expr->accept(this);
+void FunctionInliner::replace_with_args(Expression* e) {
+    for(auto i=0u; i<fargs_.size(); ++i) {
+        if(auto id = cargs_[i]->is_identifier()) {
+            VariableReplacer v(fargs_[i], id->spelling());
+            e->accept(&v);
+        }
+        else if(auto value = cargs_[i]->is_number()) {
+            ValueInliner v(fargs_[i], value->value());
+            e->accept(&v);
+        }
+        else {
+            throw compiler_exception("can't inline functions with expressions as arguments", e->location());
+        }
+    }
+    e->semantic(scope_);
+
+    ErrorVisitor v("");
+    e->accept(&v);
+    if(v.num_errors()) {
+        throw compiler_exception("something went wrong with inlined function call ", e->location());
     }
 }
 
@@ -149,50 +166,18 @@ void FunctionInliner::visit(Expression* e) {
             + e->to_string(), e->location());
 }
 
-void FunctionInliner::visit(UnaryExpression* e) {
-    for(auto i=0u; i<fargs_.size(); ++i) {
-        if(auto id = cargs_[i]->is_identifier()) {
-            VariableReplacer v(fargs_[i], id->spelling());
-            e->accept(&v);
-        }
-        else if(auto value = cargs_[i]->is_number()) {
-            ValueInliner v(fargs_[i], value->value());
-            e->accept(&v);
-        }
-        else {
-            throw compiler_exception("can't inline functions with expressions as arguments", e->location());
-        }
-    }
-    e->semantic(scope_);
-
-    ErrorVisitor v("");
-    e->accept(&v);
-    if(v.num_errors()) {
-        throw compiler_exception("something went wrong with inlined function call ", e->location());
+void FunctionInliner::visit(BlockExpression* e) {
+    for (auto& expr: e->statements()) {
+        expr->accept(this);
     }
 }
 
-void FunctionInliner::visit(BinaryExpression* e) {
-    for(auto i=0u; i<fargs_.size(); ++i) {
-        if(auto id = cargs_[i]->is_identifier()) {
-            VariableReplacer v(fargs_[i], id->spelling());
-            e->accept(&v);
-        }
-        else if(auto value = cargs_[i]->is_number()) {
-            ValueInliner v(fargs_[i], value->value());
-            e->accept(&v);
-        }
-        else {
-            throw compiler_exception("can't inline functions with expressions as arguments", e->location());
-        }
-    }
-    e->semantic(scope_);
+void FunctionInliner::visit(UnaryExpression* e) {
+    replace_with_args(e);
+}
 
-    ErrorVisitor v("");
-    e->accept(&v);
-    if(v.num_errors()) {
-        throw compiler_exception("something went wrong with inlined function call ", e->location());
-    }
+void FunctionInliner::visit(BinaryExpression* e) {
+    replace_with_args(e);
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
