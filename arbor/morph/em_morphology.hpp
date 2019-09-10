@@ -34,6 +34,8 @@ public:
     // representation of loc.
     // If include_loc is false, the input location is excluded from the result.
     mlocation_list cover(mlocation, bool include_loc=true) const;
+
+    mlocation_list minset(const mlocation_list&) const;
 };
 
 } // namespace arb
