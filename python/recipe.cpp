@@ -8,6 +8,7 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/event_generator.hpp>
+#include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
 
@@ -27,7 +28,7 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
     return convert_cell(impl_->cell_description(gid));
 }
 
-arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::segment_location loc) {
+arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
     arb::cell_probe_address::probe_kind pkind;
     if (kind == "voltage") {
         pkind = arb::cell_probe_address::probe_kind::membrane_voltage;

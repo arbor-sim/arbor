@@ -4,6 +4,7 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/morph/primitives.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/util/unique_any.hpp>
@@ -241,21 +242,21 @@ void register_cells(pybind11::module& m) {
         "seed"_a,
         "params"_a=cell_parameters());
 
-    pybind11::class_<arb::segment_location> location(m, "location",
+    pybind11::class_<arb::mlocation> location(m, "location",
         "Location specification.");
     location
         .def(pybind11::init(
-            [](arb::cell_lid_type s, double l) {
-                return arb::segment_location(s, l);
+            [](arb::msize_t branch, double pos) {
+                return arb::mlocation{branch, pos};
             }),
             "branch"_a, "position"_a,
             "Construct a location specification holding:\n"
             "  branch:   The id of the branch.\n"
             "  position: The relative position (from 0, proximal, to 1, distal) on the branch.\n")
-        .def_readwrite("branch",  &arb::segment_location::segment,  "The id of the branch.")
-        .def_readwrite("position", &arb::segment_location::position, "The relative position (from 0, proximal, to 1, distal) on the branch.")
-        .def("__str__", [](arb::segment_location l) {return util::pprintf("<arbor.location: branch {}, position {}>", l.segment, l.position);})
-        .def("__repr__", [](arb::segment_location l) {return util::pprintf("<arbor.location: branch {}, position {}>", l.segment, l.position);});
+        .def_readwrite("branch",  &arb::mlocation::branch,  "The id of the branch.")
+        .def_readwrite("position", &arb::mlocation::pos, "The relative position (from 0, proximal, to 1, distal) on the branch.")
+        .def("__str__", [](arb::mlocation l) {return util::pprintf("<arbor.location: branch {}, position {}>", l.branch, l.pos);})
+        .def("__repr__", [](arb::mlocation l) {return util::pprintf("<arbor.location: branch {}, position {}>", l.branch, l.pos);});
 }
 
 }
