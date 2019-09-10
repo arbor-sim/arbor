@@ -13,6 +13,10 @@ expression_ptr inline_function_call(const expression_ptr& e)
     if(auto f = assign_to_func->rhs()->is_function_call()) {
         auto body = f->function()->body()->clone();
 
+        for (auto&s: body->is_block()->statements()) {
+            s->semantic(e->scope());
+        }
+
         FunctionInliner func_inliner(f->name(), ret_name, f->function()->args(), f->args(), e->scope());
 
         body->accept(&func_inliner);
@@ -89,17 +93,6 @@ void FunctionInliner::visit(BinaryExpression* e) {
 
 void FunctionInliner::visit(AssignmentExpression* e) {
 
-    if (auto rhs = e->rhs()->is_identifier()) {
-        for (unsigned i = 0;  i < fargs_.size(); i++) {
-            if (fargs_[i] == rhs->spelling()) {
-                e->replace_rhs(cargs_[i]->clone());
-                break;
-            }
-        }
-    } else {
-        e->rhs()->accept(this);
-    }
-
     if (auto lhs = e->lhs()->is_identifier()) {
         if (lhs->spelling() == func_name_) {
             e->replace_lhs(lhs_->clone());
@@ -111,6 +104,37 @@ void FunctionInliner::visit(AssignmentExpression* e) {
                     break;
                 }
             }
+        }
+    }
+
+    if (auto rhs = e->rhs()->is_identifier()) {
+        for (unsigned i = 0;  i < fargs_.size(); i++) {
+            if (fargs_[i] == rhs->spelling()) {
+                e->replace_rhs(cargs_[i]->clone());
+                break;
+            }
+        }
+    }
+    else {
+        if (auto rhs = e->rhs()->is_function_call()) {
+            auto body = rhs->function()->body()->clone();
+
+            for (auto&s: body->is_block()->statements()) {
+                s->semantic(e->scope());
+            }
+
+            FunctionInliner func_inliner(rhs->name(), e->lhs()->is_identifier()->clone(), rhs->function()->args(),
+                                         rhs->args(), e->scope());
+
+
+            body->accept(&func_inliner);
+            if (!func_inliner.return_val_set()) {
+                throw compiler_exception("return variable of function not set ", e->location());
+            }
+
+            body->accept(this);
+        } else {
+            e->rhs()->accept(this);
         }
     }
 }
