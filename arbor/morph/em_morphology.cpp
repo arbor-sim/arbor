@@ -142,7 +142,6 @@ mlocation em_morphology::canonicalize(mlocation loc) const {
     return loc;
 }
 
-
 mlocation_list em_morphology::minset(const mlocation_list& in) const {
     mlocation_list L;
 
@@ -179,3 +178,4 @@ mlocation_list em_morphology::minset(const mlocation_list& in) const {
 }
 
 } // namespace arb
+

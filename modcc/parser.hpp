@@ -21,8 +21,9 @@ public:
     expression_ptr parse_integer();
     expression_ptr parse_real();
     expression_ptr parse_call();
-    expression_ptr parse_expression(int prec);
+    expression_ptr parse_expression(int prec, tok t=tok::eq);
     expression_ptr parse_expression();
+    expression_ptr parse_expression(tok);
     expression_ptr parse_primary();
     expression_ptr parse_parenthesis_expression();
     expression_ptr parse_line_expression();
@@ -37,6 +38,7 @@ public:
     expression_ptr parse_conductance();
     expression_ptr parse_block(bool);
     expression_ptr parse_initial();
+    expression_ptr parse_compartment_statement();
     expression_ptr parse_if();
 
     symbol_ptr parse_procedure();
