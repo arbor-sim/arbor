@@ -13,11 +13,12 @@ class FunctionInliner : public Visitor {
 
 public:
 
-    FunctionInliner(const expression_ptr& lhs,
+    FunctionInliner(std::string func_name,
+                    const expression_ptr& lhs,
                     const std::vector<expression_ptr>& fargs,
                     const std::vector<expression_ptr>& cargs,
                     const scope_ptr& scope) :
-                    lhs_(lhs->clone()), scope_(scope) {
+                    func_name_(func_name), lhs_(lhs->clone()), scope_(scope) {
         for (auto& f: fargs) {
             fargs_.push_back(f->is_argument()->spelling());
         }
@@ -32,11 +33,13 @@ public:
     void visit(BlockExpression *e)       override;
     void visit(AssignmentExpression* e)  override;
     void visit(IfExpression* e)          override;
+    void visit(LocalDeclaration* e)      override;
 
     ~FunctionInliner() {}
 //    void visit(CallExpression* e)        override;
 
 private:
+    std::string func_name_;
     expression_ptr lhs_;
     std::vector<std::string> fargs_;
     std::vector<expression_ptr> cargs_;

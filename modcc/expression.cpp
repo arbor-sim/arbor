@@ -199,6 +199,7 @@ bool LocalDeclaration::add_variable(Token tok) {
 }
 
 void LocalDeclaration::semantic(scope_ptr scp) {
+//    std::cout << this->to_string() << std::endl;
     scope_ = scp;
 
     // loop over the variables declared in this LOCAL statement

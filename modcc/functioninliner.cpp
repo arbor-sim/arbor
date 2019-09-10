@@ -1,136 +1,22 @@
 #include <iostream>
 
+#include "astmanip.hpp"
 #include "error.hpp"
 #include "functioninliner.hpp"
 #include "errorvisitor.hpp"
 
-void replace_and_inline(expression_ptr& exp,
-                        const expression_ptr& lhs,
-                        const std::vector<expression_ptr>& fargs,
-                        const std::vector<expression_ptr>& cargs,
-                        const scope_ptr& scope) {
-
-    // Replaces the function arguments with the call arguments
-    // Assigns the return variable to the given lhs
-    auto fix_expression = [&lhs, &fargs, &cargs, &scope](expression_ptr& e) {
-        const auto& new_e =  e->is_assignment() ? e->is_assignment()->rhs() : e->is_if()->condition()->is_conditional();
-
-        for(auto i=0u; i<fargs.size(); ++i) {
-            if(auto id = cargs[i]->is_identifier()) {
-#ifdef LOGGING
-                std::cout << "inline_function_call symbol replacement "
-                          << id->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expression " << new_e->to_string() << "\n";
-#endif
-                VariableReplacer v(
-                    fargs[i]->is_argument()->spelling(),
-                    id->spelling()
-                );
-                new_e->accept(&v);
-            }
-            else if(auto value = cargs[i]->is_number()) {
-#ifdef LOGGING
-                std::cout << "inline_function_call symbol replacement "
-                          << value->to_string() << " -> " << fargs[i]->to_string()
-                          << " in the expression " << new_e->to_string() << "\n";
-#endif
-                ValueInliner v(
-                    fargs[i]->is_argument()->spelling(),
-                    value->value()
-                );
-                new_e->accept(&v);
-            }
-            else {
-                throw compiler_exception(
-                    "can't inline functions with expressions as arguments",
-                     e->location()
-                 );
-            }
-        }
-        new_e->semantic(scope);
-
-        ErrorVisitor v("");
-        new_e->accept(&v);
-#ifdef LOGGING
-        std::cout << "inline_function_call result " << new_e->to_string() << "\n\n";
-#endif
-        if(v.num_errors()) {
-            throw compiler_exception("something went wrong with inlined function call ",
-                                     e->location());
-        }
-
-        if (e->is_assignment()) {
-            e->is_assignment()->replace_lhs(lhs->clone());
-        }
-    };
-
-    if (exp->is_assignment()) {
-        fix_expression(exp);
-    }
-    else if (exp->is_if()) {
-        if (!exp->is_if()->false_branch()) {
-            throw compiler_exception(
-                    "can only inline if statements with associated else", exp->location()
-            );
-        }
-        // Modify the condition of the if statement
-        fix_expression(exp);
-
-        auto& true_branch = exp->is_if()->true_branch()->is_block()->statements();
-        auto& false_branch = exp->is_if()->false_branch()->is_block()->statements();
-
-        if (true_branch.size() != 1 || false_branch.size() != 1) {
-            throw compiler_exception(
-                    "can only inline functions with one statement", exp->location()
-            );
-        }
-
-        if (true_branch.front()->is_if()) {
-            replace_and_inline(true_branch.front(), lhs, fargs, cargs, scope);
-        } else if (true_branch.front()->is_assignment()) {
-            // Modify the true assignment
-            fix_expression(true_branch.front());
-        } else {
-            throw compiler_exception(
-                    "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
-            );
-        }
-
-        if (false_branch.front()->is_if()) {
-            replace_and_inline(false_branch.front(), lhs, fargs, cargs, scope);
-        } else if (false_branch.front()->is_assignment()) {
-            // Modify the false assignment
-            fix_expression(false_branch.front());
-        } else {
-            throw compiler_exception(
-                    "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
-            );
-        }
-    }
-    else {
-        throw compiler_exception(
-                "can only inline assignment expressions and if expressions containing single assignment expressions", exp->location()
-        );
-    }
-};
-
 expression_ptr inline_function_call(const expression_ptr& e)
 {
     auto assign_to_func = e->is_assignment();
-    auto ret_val = assign_to_func->lhs()->is_identifier()->clone();
+    auto ret_name = assign_to_func->lhs()->is_identifier()->clone();
 
     if(auto f = assign_to_func->rhs()->is_function_call()) {
-        auto &body = f->function()->body()->statements();
-        if (body.size() != 1) {
-            throw compiler_exception(
-                    "can only inline functions with one statement", f->function()->location()
-            );
-        }
-        auto body_stmt = body.front()->clone();
-        //replace_and_inline(body_stmt, ret_val, f->function()->args(), f->args(), e->scope());
-        FunctionInliner func_inliner(ret_val, f->function()->args(), f->args(), e->scope());
-        body_stmt->accept(&func_inliner);
-        return body_stmt;
+        auto body = f->function()->body()->clone();
+
+        FunctionInliner func_inliner(f->name(), ret_name, f->function()->args(), f->args(), e->scope());
+
+        body->accept(&func_inliner);
+        return body;
     }
     return {};
 }
@@ -166,6 +52,24 @@ void FunctionInliner::visit(Expression* e) {
             + e->to_string(), e->location());
 }
 
+void FunctionInliner::visit(LocalDeclaration* e) {
+    auto loc = e->location();
+
+    std::map<std::string, Token> new_vars;
+    for (auto& var: e->variables()) {
+        auto unique_decl = make_unique_local_decl(scope_, loc, "r_");
+        auto unique_name = unique_decl.id->is_identifier()->spelling();
+
+        fargs_.push_back(var.first);
+        cargs_.push_back(unique_decl.id->clone());
+
+        auto e_tok = var.second;
+        e_tok.spelling = unique_name;
+        new_vars[unique_name] =  e_tok;
+    }
+    e->variables().swap(new_vars);
+}
+
 void FunctionInliner::visit(BlockExpression* e) {
     for (auto& expr: e->statements()) {
         expr->accept(this);
@@ -181,8 +85,20 @@ void FunctionInliner::visit(BinaryExpression* e) {
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
+    std::cout << e->to_string() << std::endl;
     e->rhs()->accept(this);
-    e->replace_lhs(lhs_->clone());
+    if (auto elhs = e->lhs()->is_identifier()) {
+        if (elhs->spelling() == func_name_) {
+            e->replace_lhs(lhs_->clone());
+        } else {
+            for (unsigned i = 0;  i < fargs_.size(); i++) {
+                if (fargs_[i] == elhs->spelling()) {
+                    e->replace_lhs(cargs_[i]->clone());
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void FunctionInliner::visit(IfExpression* e) {
