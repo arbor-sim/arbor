@@ -691,52 +691,6 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
         if(e->is_initial_block()) error("INITIAL block not allowed inside FUNCTION definition");
     }
 
-    // check that the last expression in the body was an assignment expression
-    // or if/else expression that assigns the return placeholder
-    bool last_expr_is_assign = false;
-    if(auto tail = body()->back()->is_assignment()) {
-        // we know that the tail is an assignment expression
-        auto lhs = tail->lhs()->is_identifier();
-        // use nullptr check followed by lazy name lookup
-        if(lhs && lhs->name()==name()) {
-            last_expr_is_assign = true;
-        }
-    } else if(auto e = body()->back()->is_if()) {
-        last_expr_is_assign = true;
-        std::stack<IfExpression*> stack;
-        stack.push(e);
-
-        while (!stack.empty()) {
-            auto tail = stack.top();
-            stack.pop();
-            if (auto true_branch = tail->true_branch()) {
-                auto& last = true_branch->is_block()->statements().back();
-                if (last->is_assignment()){
-                    auto lhs = last->is_assignment()->lhs()->is_identifier();
-                    last_expr_is_assign &= (lhs && lhs->spelling()==name());
-                }
-                else if (last->is_if()) {
-                    stack.push(last->is_if());
-                }
-            }
-            if (auto false_branch = tail->false_branch()) {
-                auto& last = false_branch->is_block()->statements().back();
-                if (last->is_assignment()) {
-                    auto lhs = last->is_assignment()->lhs()->is_identifier();
-                    last_expr_is_assign &= (lhs && lhs->spelling()==name());
-                }
-                else if (last->is_if()) {
-                    stack.push(last->is_if());
-                }
-            }
-        }
-    };
-    if(!last_expr_is_assign) {
-        warning("the last expression in function '"
-                + yellow(name())
-                + "' does not set the return value");
-    }
-
     // the symbol for this expression is itself
     // this could lead to nasty self-referencing loops
     symbol_ = scope_->find_global(name());

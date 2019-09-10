@@ -16,6 +16,9 @@ expression_ptr inline_function_call(const expression_ptr& e)
         FunctionInliner func_inliner(f->name(), ret_name, f->function()->args(), f->args(), e->scope());
 
         body->accept(&func_inliner);
+        if (!func_inliner.return_val_set()) {
+            throw compiler_exception("return variable of function not set ", e->location());
+        }
         return body;
     }
     return {};
@@ -96,10 +99,11 @@ void FunctionInliner::visit(AssignmentExpression* e) {
     } else {
         e->rhs()->accept(this);
     }
-    
+
     if (auto lhs = e->lhs()->is_identifier()) {
         if (lhs->spelling() == func_name_) {
             e->replace_lhs(lhs_->clone());
+            return_set_ = true;
         } else {
             for (unsigned i = 0;  i < fargs_.size(); i++) {
                 if (fargs_[i] == lhs->spelling()) {
@@ -112,10 +116,26 @@ void FunctionInliner::visit(AssignmentExpression* e) {
 }
 
 void FunctionInliner::visit(IfExpression* e) {
+    bool if_ret;
+    bool save_ret = return_set_;
+
+    return_set_ = false;
+
     e->condition()->accept(this);
     e->true_branch()->accept(this);
-    e->false_branch()->accept(this);
+
+    if_ret = return_set_;
+    return_set_ = false;
+
+    if (e->false_branch()) {
+        e->false_branch()->accept(this);
+    }
+
+    if_ret &= return_set_;
+
+    return_set_ = save_ret? save_ret: if_ret;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //  variable replacer
