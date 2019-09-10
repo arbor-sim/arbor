@@ -9,6 +9,40 @@
 // version without modifying the original expression's contents
 expression_ptr inline_function_call(const expression_ptr& e);
 
+class FunctionInliner : public Visitor {
+
+public:
+
+    FunctionInliner(const expression_ptr& lhs,
+                    const std::vector<expression_ptr>& fargs,
+                    const std::vector<expression_ptr>& cargs,
+                    const scope_ptr& scope) :
+                    lhs_(lhs->clone()), scope_(scope) {
+        for (auto& f: fargs) {
+            fargs_.push_back(f->is_argument()->spelling());
+        }
+        for (auto& c: cargs) {
+            cargs_.push_back(c->clone());
+        }
+    }
+
+    void visit(Expression* e)            override;
+    void visit(UnaryExpression* e)       override;
+    void visit(BinaryExpression* e)      override;
+    void visit(BlockExpression *e)       override;
+    void visit(AssignmentExpression* e)  override;
+    void visit(IfExpression* e)          override;
+
+    ~FunctionInliner() {}
+//    void visit(CallExpression* e)        override;
+
+private:
+    expression_ptr lhs_;
+    std::vector<std::string> fargs_;
+    std::vector<expression_ptr> cargs_;
+    scope_ptr scope_;
+};
+
 class VariableReplacer : public Visitor {
 
 public:

@@ -701,30 +701,32 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
         if(lhs && lhs->name()==name()) {
             last_expr_is_assign = true;
         }
-    } else if(body()->back()->is_if()) {
+    } else if(auto e = body()->back()->is_if()) {
         last_expr_is_assign = true;
-        std::stack<expression_ptr> if_exp;
-        if_exp.push(body()->back()->is_if()->clone());
+        std::stack<IfExpression*> stack;
+        stack.push(e);
 
-        while (!if_exp.empty()) {
-            auto tail = std::move(if_exp.top());
-            if_exp.pop();
-            if (auto true_branch = tail->is_if()->true_branch()) {
-                if (auto last = true_branch->is_block()->statements().back()->is_assignment()) {
+        while (!stack.empty()) {
+            auto tail = stack.top();
+            stack.pop();
+            if (auto true_branch = tail->true_branch()) {
+                auto& last = true_branch->is_block()->statements().back();
+                if (last->is_assignment()){
                     auto lhs = last->is_assignment()->lhs()->is_identifier();
                     last_expr_is_assign &= (lhs && lhs->spelling()==name());
                 }
-                else if (auto last = true_branch->is_block()->statements().back()->is_if()) {
-                    if_exp.push(last->clone());
+                else if (last->is_if()) {
+                    stack.push(last->is_if());
                 }
             }
-            if (auto false_branch = tail->is_if()->false_branch()) {
-                if (auto last = false_branch->is_block()->statements().back()->is_assignment()) {
+            if (auto false_branch = tail->false_branch()) {
+                auto& last = false_branch->is_block()->statements().back();
+                if (last->is_assignment()) {
                     auto lhs = last->is_assignment()->lhs()->is_identifier();
                     last_expr_is_assign &= (lhs && lhs->spelling()==name());
                 }
-                else if (auto last = false_branch->is_block()->statements().back()->is_if()) {
-                    if_exp.push(last->clone());
+                else if (last->is_if()) {
+                    stack.push(last->is_if());
                 }
             }
         }
