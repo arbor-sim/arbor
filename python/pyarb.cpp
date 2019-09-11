@@ -12,6 +12,7 @@ void register_contexts(pybind11::module& m);
 void register_domain_decomposition(pybind11::module& m);
 void register_event_generators(pybind11::module& m);
 void register_identifiers(pybind11::module& m);
+void register_morphology(pybind11::module& m);
 void register_profiler(pybind11::module& m);
 void register_recipe(pybind11::module& m);
 void register_schedules(pybind11::module& m);
@@ -33,6 +34,7 @@ PYBIND11_MODULE(arbor, m) {
     pyarb::register_domain_decomposition(m);
     pyarb::register_event_generators(m);
     pyarb::register_identifiers(m);
+    pyarb::register_morphology(m);
     pyarb::register_profiler(m);
     pyarb::register_recipe(m);
     pyarb::register_schedules(m);
