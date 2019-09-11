@@ -40,6 +40,9 @@ em_morphology::em_morphology(const morphology& m):
         auto idx = util::make_range(morph_.branch_indexes(i));
         branch_lengths_.push_back(dist2root_[idx.back()]- dist2root_[idx.front()]);
     }
+    if (morph_.spherical_root()) {
+        branch_lengths_[0] = samples[0].loc.radius*2;
+    }
 
     // Cache the sample locations.
     // Iterate backwards over branches distal to root, so that the parent branch at
@@ -132,13 +135,17 @@ mlocation_list em_morphology::cover(mlocation loc, bool include_loc) const {
     return L;
 }
 
-mlocation em_morphology::canonicalize(mlocation loc) const {
+void em_morphology::assert_valid_location(mlocation loc) const {
     if (!test_invariants(loc)) {
         throw morphology_error(util::pprintf("Invalid location {}", loc));
     }
     if (loc.branch>=morph_.num_branches()) {
         throw morphology_error(util::pprintf("Location {} does not exist in morpology", loc));
     }
+}
+
+mlocation em_morphology::canonicalize(mlocation loc) const {
+    assert_valid_location(loc);
 
     // Test if location is at the start of a branch.
     if (loc.pos==0.) {

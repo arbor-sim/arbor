@@ -79,7 +79,7 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& pare
 }
 
 // Returns false if one of the root's children has the same tag as the root.
-bool root_sample_has_same_tag_as_child(const sample_tree& st) {
+bool root_sample_tag_differs_from_children(const sample_tree& st) {
     if (st.empty()) return false;
     auto& P = st.parents();
     auto& S = st.samples();
@@ -128,7 +128,7 @@ morphology_impl::morphology_impl(sample_tree m, bool use_spherical_root):
 
 morphology_impl::morphology_impl(sample_tree m):
     samples_(std::move(m)),
-    spherical_root_(impl::root_sample_has_same_tag_as_child(samples_))
+    spherical_root_(impl::root_sample_tag_differs_from_children(samples_))
 {
     init();
 }
@@ -185,6 +185,10 @@ morphology::morphology(sample_tree m):
 morphology::morphology():
     morphology(sample_tree())
 {}
+
+bool morphology::empty() const {
+    return impl_->branches_.empty();
+}
 
 // The parent branch of branch b.
 msize_t morphology::branch_parent(msize_t b) const {

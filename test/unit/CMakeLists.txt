@@ -75,6 +75,7 @@ set(unit_sources
     test_cable_cell.cpp
     test_compartments.cpp
     test_counter.cpp
+    test_cv_policy.cpp
     test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp

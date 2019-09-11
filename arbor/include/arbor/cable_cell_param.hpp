@@ -2,8 +2,10 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/morph/locset.hpp>
 #include <arbor/util/optional.hpp>
 
+#include <memory>
 #include <unordered_map>
 #include <string>
 
@@ -38,7 +40,6 @@ struct threshold_detector {
 
 // Tag type for dispatching cable_cell::place() calls that add gap junction sites.
 struct gap_junction_site {};
-
 
 // Mechanism description, viz. mechanism name and
 // (non-global) parameter settings. Used to assign
@@ -103,6 +104,98 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
+// FVM discretization policies/hints.
+
+class cable_cell;
+
+struct cv_policy_base {
+    virtual locset cv_boundary_points(const cable_cell& cell) const = 0;
+    virtual std::unique_ptr<cv_policy_base> clone() const = 0;
+    virtual ~cv_policy_base() {}
+};
+
+using cv_policy_base_ptr = std::unique_ptr<cv_policy_base>;
+
+struct cv_policy {
+    cv_policy(const cv_policy_base& ref) { // implicit
+        policy_ptr = ref.clone();
+    }
+
+    cv_policy(cv_policy&&) = default;
+
+    cv_policy(const cv_policy& other):
+        policy_ptr(other.policy_ptr->clone()) {}
+
+    cv_policy& operator=(const cv_policy&) = default;
+    cv_policy& operator=(cv_policy&&) = default;
+
+    locset cv_boundary_points(const cable_cell& cell) const {
+        return policy_ptr->cv_boundary_points(cell);
+    }
+
+private:
+    cv_policy_base_ptr policy_ptr;
+};
+
+// Common flags for CV policies; bitwise composable.
+namespace cv_policy_flag {
+    using value = unsigned;
+    enum : unsigned {
+        none = 0,
+        interior_forks = 1<<0,
+        single_root_cv = 1<<1
+    };
+}
+
+struct cv_policy_explicit: cv_policy_base {
+    explicit cv_policy_explicit(locset locs): locs_(std::move(locs)) {}
+
+    cv_policy_base_ptr clone() const override {
+        return cv_policy_base_ptr(new cv_policy_explicit(*this));
+    }
+
+    locset cv_boundary_points(const cable_cell&) const override {
+        return locs_;
+    }
+
+private:
+    locset locs_;
+};
+
+struct cv_policy_max_extent: cv_policy_base {
+    explicit cv_policy_max_extent(double max_extent, cv_policy_flag::value flags = cv_policy_flag::none):
+         max_extent_(max_extent), flags_(flags) {}
+
+    cv_policy_base_ptr clone() const override {
+        return cv_policy_base_ptr(new cv_policy_max_extent(*this));
+    }
+
+    locset cv_boundary_points(const cable_cell&) const override;
+
+private:
+    double max_extent_;
+    cv_policy_flag::value flags_;
+};
+
+struct cv_policy_fixed_per_branch: cv_policy_base {
+    explicit cv_policy_fixed_per_branch(unsigned cv_per_branch, cv_policy_flag::value flags = cv_policy_flag::none):
+         cv_per_branch_(cv_per_branch), flags_(flags) {}
+
+    cv_policy_base_ptr clone() const override {
+        return cv_policy_base_ptr(new cv_policy_fixed_per_branch(*this));
+    }
+
+    locset cv_boundary_points(const cable_cell&) const override;
+
+private:
+    unsigned cv_per_branch_;
+    cv_policy_flag::value flags_;
+};
+
+inline cv_policy default_cv_policy() {
+    return cv_policy_fixed_per_branch(1);
+}
+
 // Cable cell ion and electrical defaults.
 //
 // Parameters can be overridden with `cable_cell_local_parameter_set`
@@ -127,11 +220,18 @@ struct cable_cell_local_parameter_set {
 
 struct cable_cell_parameter_set: public cable_cell_local_parameter_set {
     std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
+    cv_policy discretization = default_cv_policy();
 
     // We'll need something like this until C++17, for sane initialization syntax.
     cable_cell_parameter_set() = default;
-    cable_cell_parameter_set(cable_cell_local_parameter_set p, std::unordered_map<std::string, mechanism_desc> m = {}):
-        cable_cell_local_parameter_set(std::move(p)), reversal_potential_method(std::move(m))
+    cable_cell_parameter_set(
+        cable_cell_local_parameter_set p,
+        std::unordered_map<std::string, mechanism_desc> m = {},
+        cv_policy d = default_cv_policy()
+    ):
+        cable_cell_local_parameter_set(std::move(p)),
+        reversal_potential_method(std::move(m)),
+        discretization(std::move(d))
     {}
 };
 
