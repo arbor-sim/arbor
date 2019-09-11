@@ -23,15 +23,6 @@ expression_ptr inline_function_call(const expression_ptr& e)
         if (!func_inliner.return_val_set()) {
             throw compiler_exception("return variable of function not set ", e->location());
         }
-
-        for (auto& s: body->is_block()->statements()) {
-            if (s->is_assignment()) {
-                if (s->is_assignment()->rhs()->is_function_call()) {
-                    s = inline_function_call(s);
-                }
-            }
-        }
-
         return body;
     }
     return {};
