@@ -795,6 +795,9 @@ int Module::semantic_func_proc() {
                     if(auto ass = e->is_assignment()) {
                         if(ass->rhs()->is_function_call()) {
                             e = inline_function_call(e);
+                            std::cout << "--------------------------" << std::endl;
+                            std::cout << e->to_string() << std::endl;
+                            std::cout << "--------------------------" << std::endl;
                         }
                     }
                 }

@@ -34,12 +34,12 @@ public:
     void visit(AssignmentExpression* e)  override;
     void visit(IfExpression* e)          override;
     void visit(LocalDeclaration* e)      override;
+    void visit(CallExpression* e)        override;
     void visit(NumberExpression* e)      override {};
 
     bool return_val_set() {return return_set_;};
 
     ~FunctionInliner() {}
-//    void visit(CallExpression* e)        override;
 
 private:
     std::string func_name_;
