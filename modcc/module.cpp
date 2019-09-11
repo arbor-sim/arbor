@@ -496,6 +496,8 @@ bool Module::semantic() {
     // and it writes to only one ionic reversal potential.
     check_revpot_mechanism();
 
+
+    std::cout << std::endl << std::endl << "NEXXXTTT " << std::endl << std::endl;
     // Perform semantic analysis and inlining on function and procedure bodies
     // in order to inline calls inside the newly crated API methods.
     semantic_func_proc();
@@ -699,23 +701,29 @@ void Module::add_variables_to_symbols() {
 }
 
 int Module::semantic_func_proc() {
-
-    // First save all function/procedure names
-    std::vector<std::string> ordered_functions;
-    /*for (auto& e: symbols_) {
-        auto& s = e.second;
-        if(s->kind() == symbolKind::function
-        || s->kind() == symbolKind::procedure) {
-            ordered_functions.push_back(e.first);
-        }
-    }*/
+    ////////////////////////////////////////////////////////////////////////////
+    // now iterate over the functions and procedures and perform semantic
+    // analysis on each. This includes
+    //  -   variable, function and procedure lookup
+    //  -   generate local variable table for each function/procedure
+    //  -   inlining function calls
+    ////////////////////////////////////////////////////////////////////////////
+#ifdef LOGGING
+    std::cout << white("===================================\n");
+    std::cout << cyan("        Function Inlining\n");
+    std::cout << white("===================================\n");
+#endif
 
     int errors = 0;
-    // Then order them such that a called function always appears before the function calling it
     for (auto& e: symbols_) {
         auto& s = e.second;
         if(    s->kind() == symbolKind::function
             || s->kind() == symbolKind::procedure) {
+#ifdef LOGGING
+            std::cout << "\nfunction inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n"
+                      << green("\n-call site lowering-\n\n");
+#endif
 
             // perform semantic analysis
             s->semantic(symbols_);
@@ -727,7 +735,7 @@ int Module::semantic_func_proc() {
 
             // inline function calls
             // this requires that the symbol table has already been built
-            if(v.num_errors()==0) {
+            if (v.num_errors() == 0) {
                 auto &b = s->kind() == symbolKind::function ?
                           s->is_function()->body()->statements() :
                           s->is_procedure()->body()->statements();
@@ -742,78 +750,11 @@ int Module::semantic_func_proc() {
                 for (auto e = b.begin(); e != b.end(); ++e) {
                     b.splice(e, lower_function_calls((*e).get()));
                 }
-
-                /*auto loc = std::find(ordered_functions.begin(), ordered_functions.end(), e.first) - ordered_functions.begin();
-                for (auto& e : b) {
-                    if (e->is_assignment()) {
-                        if (e->is_assignment()->rhs()->is_function_call()) {
-                            auto call = e->is_assignment()->rhs()->is_function_call()->name();
-                            auto call_loc = std::find(ordered_functions.begin(), ordered_functions.end(), call) - ordered_functions.begin();
-                            if (call_loc > loc) {
-                                std::swap(ordered_functions[call_loc], ordered_functions[loc]);
-                            }
-                        }
-                    }
-                }*/
-            }
-        }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // now iterate over the functions and procedures and perform semantic
-    // analysis on each. This includes
-    //  -   variable, function and procedure lookup
-    //  -   generate local variable table for each function/procedure
-    //  -   inlining function calls
-    ////////////////////////////////////////////////////////////////////////////
-#ifdef LOGGING
-    std::cout << white("===================================\n");
-    std::cout << cyan("        Function Inlining\n");
-    std::cout << white("===================================\n");
-#endif
-//    int errors = 0;
-    for(auto& e : symbols_) {
-        auto& s = e.second;
-
-        if(    s->kind() == symbolKind::function
-            || s->kind() == symbolKind::procedure)
-        {
-#ifdef LOGGING
-            std::cout << "\nfunction inlining for " << s->location() << "\n"
-                      << s->to_string() << "\n"
-                      << green("\n-call site lowering-\n\n");
-#endif
-            // first perform semantic analysis
-            s->semantic(symbols_);
-
-            // then use an error visitor to print out all the semantic errors
-            ErrorVisitor v(source_name());
-            s->accept(&v);
-            errors += v.num_errors();
-
-            // inline function calls
-            // this requires that the symbol table has already been built
-            if(v.num_errors()==0) {
-                auto &b = s->kind()==symbolKind::function ?
-                    s->is_function()->body()->statements() :
-                    s->is_procedure()->body()->statements();
-
-                // lower function call sites so that all function calls are of
-                // the form : variable = call(<args>)
-                // e.g.
-                //      a = 2 + foo(2+x, y, 1)
-                // becomes
-                //      ll0_ = foo(2+x, y, 1)
-                //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    b.splice(e, lower_function_calls((*e).get()));
-                }
 #ifdef LOGGING
                 std::cout << "body after call site lowering\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                std::cout << green("\n-argument lowering-\n\n");
+                    for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
+                    std::cout << green("\n-argument lowering-\n\n");
 #endif
-
                 // lower function arguments that are not identifiers or literals
                 // e.g.
                 //      ll0_ = foo(2+x, y, 1)
@@ -822,12 +763,12 @@ int Module::semantic_func_proc() {
                 //      ll1_ = 2+x
                 //      ll0_ = foo(ll1_, y, 1)
                 //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    if(auto be = (*e)->is_binary()) {
+                for (auto e = b.begin(); e != b.end(); ++e) {
+                    if (auto be = (*e)->is_binary()) {
                         // only apply to assignment expressions where rhs is a
                         // function call because the function call lowering step
                         // above ensures that all function calls are of this form
-                        if(auto rhs = be->rhs()->is_function_call()) {
+                        if (auto rhs = be->rhs()->is_function_call()) {
                             b.splice(e, lower_function_arguments(rhs->args()));
                         }
                     }
@@ -835,9 +776,23 @@ int Module::semantic_func_proc() {
 
 #ifdef LOGGING
                 std::cout << "body after argument lowering\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                std::cout << green("\n-inlining-\n\n");
+                    for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
+                    std::cout << green("\n-inlining-\n\n");
 #endif
+            }
+        }
+    }
+
+    for(auto& e : symbols_) {
+        auto& s = e.second;
+
+        if(    s->kind() == symbolKind::function
+            || s->kind() == symbolKind::procedure)
+        {
+            if(errors==0) {
+                auto &b = s->kind()==symbolKind::function ?
+                    s->is_function()->body()->statements() :
+                    s->is_procedure()->body()->statements();
 
                 // Do the inlining, which currently only works for functions
                 // that have a single statement in their body
@@ -851,19 +806,50 @@ int Module::semantic_func_proc() {
                 //      ll1_ = 2+x
                 //      ll0_ = ll1_*(y + 1)
                 //      a = 2 + ll0_
-                for(auto& e: b) {
-                    std::cout << "____";
-                    std::cout << e->to_string() << std::endl;
+                bool keep_inlining = true;
 
-                    if(auto ass = e->is_assignment()) {
-                        if(ass->rhs()->is_function_call()) {
-                            std::cout << "----------------------------" << ass->lhs()->to_string() << " = " << ass->rhs()->is_function_call()->name() << "--------------------------" << std::endl;
-                            e = inline_function_call(e);
-                            std::cout << e->to_string() << std::endl;
-                            std::cout << "----------------------------------------------------------------" << std::endl << std::endl;
+                while (keep_inlining) {
+                    std::cout << "******LOOP******\n";
+                    keep_inlining = false;
+                    for (auto &e: b) {
+                        std::cout << "____";
+                        std::cout << e->to_string() << std::endl;
+
+                        if (e->is_block()) {
+                            for (auto& s: e->is_block()->statements()) {
+                                if (auto ass = s->is_assignment()) {
+                                    if (ass->rhs()->is_function_call()) {
+                                        std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~" << ass->lhs()->to_string() << " = "
+                                                  << ass->rhs()->is_function_call()->name()
+                                                  << "~~~~~~~~~~~~~~~~~~~~~~~~"
+                                                  << std::endl;
+                                        s = inline_function_call(s);
+                                        std::cout << s->is_block()->to_string() << std::endl;
+                                        std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`"
+                                                  << std::endl << std::endl;
+
+                                        keep_inlining = true;
+                                    }
+                                }
+                            }
+                        }
+                        else if (auto ass = e->is_assignment()) {
+                            if (ass->rhs()->is_function_call()) {
+                                std::cout << "----------------------------" << ass->lhs()->to_string() << " = "
+                                          << ass->rhs()->is_function_call()->name() << "--------------------------"
+                                          << std::endl;
+                                e = inline_function_call(e);
+                                std::cout << e->is_block()->to_string() << std::endl;
+                                std::cout << "----------------------------------------------------------------"
+                                          << std::endl << std::endl;
+
+                                keep_inlining = true;
+                            }
                         }
                     }
                 }
+                std::cout << "*******END**********\n";
+
 
 #ifdef LOGGING
                 std::cout << "body after inlining\n";
