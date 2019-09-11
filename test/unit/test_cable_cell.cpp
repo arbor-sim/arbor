@@ -234,8 +234,3 @@ TEST(cable_cell, clone) {
     EXPECT_NE(c.segment(1)->num_compartments(), d.segment(1)->num_compartments());
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
-
-TEST(cable_cell, get_kind) {
-    cable_cell c;
-    EXPECT_EQ(cell_kind::cable, c.get_cell_kind());
-}

@@ -37,7 +37,10 @@ struct cell_probe_address {
     probe_kind kind;
 };
 
-/// high-level abstract representation of a cell and its segments
+// Forward declare the implementation, for PIMPL.
+struct cable_cell_impl;
+
+// High-level abstract representation of a cell and its segments
 class cable_cell {
 public:
     using index_type = cell_lid_type;
@@ -76,9 +79,6 @@ public:
     /// Move constructor
     cable_cell(cable_cell&& other) = default;
 
-    /// Return the kind of cell, used for grouping into cell_groups
-    cell_kind get_cell_kind() const;
-
     /// add a soma to the cell
     /// radius must be specified
     soma_segment* add_soma(value_type radius, point_type center=point_type());
@@ -87,9 +87,6 @@ public:
     /// parent is the index of the parent segment for the cable section
     /// cable is the segment that will be moved into the cell
     cable_segment* add_cable(index_type parent, segment_ptr&& cable);
-
-    /// the number of segments in the cell
-    size_type num_segments() const;
 
     bool has_soma() const;
 
@@ -108,10 +105,10 @@ public:
     cable_segment* cable(index_type index);
     const cable_segment* cable(index_type index) const;
 
-    /// the total number of compartments over all segments
-    size_type num_compartments() const;
-
     const std::vector<segment_ptr>& segments() const;
+
+    /// the number of segments in the cell
+    size_type num_segments() const;
 
     /// return a vector with the compartment count for each segment in the cell
     std::vector<size_type> compartment_counts() const;
@@ -151,8 +148,14 @@ public:
     const std::vector<detector_instance>& detectors() const;
     const std::vector<stimulus_instance>& stimuli() const;
 
+    // These setters are temporary, for "side-loading" in make_cable_cell.
+    // In the regions, locset and morphology descriptions will be passed directly
+    // to the cable_cell constructor.
     void set_regions(region_map r);
     void set_locsets(locset_map l);
+    void set_morphology(em_morphology m);
+
+    const em_morphology* morphology() const;
 
     // Checks that two cells have the same
     //  - number and type of segments
@@ -176,31 +179,8 @@ public:
         const cable_cell_parameter_set& global_defaults) const;
 
 private:
-    void assert_valid_segment(index_type) const;
 
-    // storage for connections
-    std::vector<index_type> parents_;
-
-    // the segments
-    std::vector<segment_ptr> segments_;
-
-    // the stimuli
-    std::vector<stimulus_instance> stimuli_;
-
-    // the synapses
-    std::vector<synapse_instance> synapses_;
-
-    // the gap_junctions
-    std::vector<gap_junction_instance> gap_junction_sites_;
-
-    // the sensors
-    std::vector<detector_instance> spike_detectors_;
-
-    // Named regions
-    region_map regions_;
-
-    // Named location sets
-    locset_map locsets_;
+    std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 
 // Create a cable cell from a morphology specification.
