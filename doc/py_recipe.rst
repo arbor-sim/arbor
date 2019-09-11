@@ -81,11 +81,32 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
         By default returns 0.
 
+    .. function:: num_probes(gid)
+
+        The number of probes attached to the cell with :attr:`arbor.cell_member.gid`.
+
+        By default returns 0.
+
     .. function:: num_gap_junction_sites(gid)
 
         Returns the number of gap junction sites on :attr:`arbor.cell_member.gid`.
 
         By default returns 0.
+
+    .. function:: get_probe(id)
+
+        Returns the probe(s) to allow monitoring.
+
+        By default throws a runtime error. If :func:`num_probes`
+        returns a non-zero value, this must also be overridden.
+
+.. class:: probe
+
+        Describes the cell probe's information.
+
+.. function:: cable_probe(kind, id, location)
+
+        Returns the description of a probe at an :class:`arbor.location` on a cable cell with :attr:`id` available for monitoring data of ``voltage`` or ``current`` :attr:`kind`.
 
 .. class:: connection
 
