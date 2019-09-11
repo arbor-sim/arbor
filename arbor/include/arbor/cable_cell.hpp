@@ -17,30 +17,9 @@
 
 namespace arb {
 
-// Current clamp description for stimulus specification.
-
-struct i_clamp {
-    using value_type = double;
-
-    value_type delay = 0;      // [ms]
-    value_type duration = 0;   // [ms]
-    value_type amplitude = 0;  // [nA]
-
-    i_clamp() = default;
-
-    i_clamp(value_type delay, value_type duration, value_type amplitude):
-        delay(delay), duration(duration), amplitude(amplitude)
-    {}
-};
-
-struct detector {
-    double threshold;
-};
-
-struct gap_junction_site {};
-
-
-// Pair of indexes for describing 
+// Pair of indexes that describe range of local indices.
+// Returned by cable_cell::place() calls, so that the caller can
+// refer to targets, detectors, etc on the cell.
 struct locrange {
     cell_lid_type first;
     cell_lid_type last;
@@ -66,10 +45,10 @@ public:
     using value_type = double;
     using point_type = point<value_type>;
 
-    using gap_junction_instance = mlocation;
-
     using region_map = std::unordered_map<std::string, mcable_list>;
     using locset_map = std::unordered_map<std::string, mlocation_list>;
+
+    using gap_junction_instance = mlocation;
 
     struct synapse_instance {
         mlocation location;
@@ -92,29 +71,13 @@ public:
     cable_cell();
 
     /// Copy constructor
-    cable_cell(const cable_cell& other):
-        default_parameters(other.default_parameters),
-        parents_(other.parents_),
-        stimuli_(other.stimuli_),
-        synapses_(other.synapses_),
-        gap_junction_sites_(other.gap_junction_sites_),
-        spike_detectors_(other.spike_detectors_),
-        regions_(other.regions_)
-    {
-        // unique_ptr's cannot be copy constructed, do a manual assignment
-        segments_.reserve(other.segments_.size());
-        for (const auto& s: other.segments_) {
-            segments_.push_back(s->clone());
-        }
-    }
+    cable_cell(const cable_cell& other);
 
     /// Move constructor
     cable_cell(cable_cell&& other) = default;
 
     /// Return the kind of cell, used for grouping into cell_groups
-    cell_kind get_cell_kind() const  {
-        return cell_kind::cable;
-    }
+    cell_kind get_cell_kind() const;
 
     /// add a soma to the cell
     /// radius must be specified
@@ -148,9 +111,7 @@ public:
     /// the total number of compartments over all segments
     size_type num_compartments() const;
 
-    const std::vector<segment_ptr>& segments() const {
-        return segments_;
-    }
+    const std::vector<segment_ptr>& segments() const;
 
     /// return a vector with the compartment count for each segment in the cell
     std::vector<size_type> compartment_counts() const;
@@ -201,9 +162,7 @@ public:
     friend bool cell_basic_equality(const cable_cell&, const cable_cell&);
 
     // Public view of parent indices vector.
-    const std::vector<index_type>& parents() const {
-        return parents_;
-    }
+    const std::vector<index_type>& parents() const;
 
     // Approximate per-segment mean attenuation b(f) at given frequency f,
     // ignoring membrane resistance [1/µm].
@@ -214,10 +173,7 @@ public:
     // Hines and Carnevale (2001), "NEURON: A Tool for Neuroscientists",
     // Neuroscientist 7, pp. 123-135.
     value_type segment_length_constant(value_type frequency, index_type segidx,
-        const cable_cell_parameter_set& global_defaults) const
-    {
-        return 0.5/segment_mean_attenuation(frequency, segidx, global_defaults);
-    }
+        const cable_cell_parameter_set& global_defaults) const;
 
 private:
     void assert_valid_segment(index_type) const;

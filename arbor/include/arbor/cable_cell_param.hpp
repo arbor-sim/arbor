@@ -16,6 +16,30 @@ struct cable_cell_error: arbor_exception {
         arbor_exception("cable_cell: "+what) {}
 };
 
+// Current clamp description for stimulus specification.
+struct i_clamp {
+    using value_type = double;
+
+    value_type delay = 0;      // [ms]
+    value_type duration = 0;   // [ms]
+    value_type amplitude = 0;  // [nA]
+
+    i_clamp() = default;
+
+    i_clamp(value_type delay, value_type duration, value_type amplitude):
+        delay(delay), duration(duration), amplitude(amplitude)
+    {}
+};
+
+// Threshold detector description.
+struct detector {
+    double threshold;
+};
+
+// Tag type for dispatching cable_cell::place() calls that add gap junction sites.
+struct gap_junction_site {};
+
+
 // Mechanism description, viz. mechanism name and
 // (non-global) parameter settings. Used to assign
 // density and point mechanisms to segments and

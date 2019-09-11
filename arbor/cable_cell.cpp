@@ -17,10 +17,30 @@ using value_type = cable_cell::value_type;
 using index_type = cable_cell::index_type;
 using size_type = cable_cell::size_type;
 
+struct cable_cell_impl {
+
+};
+
 cable_cell::cable_cell() {
     // insert a placeholder segment for the soma
     segments_.push_back(make_segment<placeholder_segment>());
     parents_.push_back(0);
+}
+
+cable_cell::cable_cell(const cable_cell& other):
+    default_parameters(other.default_parameters),
+    parents_(other.parents_),
+    stimuli_(other.stimuli_),
+    synapses_(other.synapses_),
+    gap_junction_sites_(other.gap_junction_sites_),
+    spike_detectors_(other.spike_detectors_),
+    regions_(other.regions_)
+{
+    // unique_ptr's cannot be copy constructed, do a manual assignment
+    segments_.reserve(other.segments_.size());
+    for (const auto& s: other.segments_) {
+        segments_.push_back(s->clone());
+    }
 }
 
 void cable_cell::assert_valid_segment(index_type i) const {
@@ -64,6 +84,7 @@ segment* cable_cell::segment(index_type index) {
     assert_valid_segment(index);
     return segments_[index].get();
 }
+
 segment const* cable_cell::parent(index_type index) const {
     assert_valid_segment(index);
     return segments_[parents_[index]].get();
@@ -72,6 +93,24 @@ segment const* cable_cell::parent(index_type index) const {
 segment const* cable_cell::segment(index_type index) const {
     assert_valid_segment(index);
     return segments_[index].get();
+}
+
+cell_kind cable_cell::get_cell_kind() const  {
+    return cell_kind::cable;
+}
+
+const std::vector<segment_ptr>& cable_cell::segments() const {
+    return segments_;
+}
+
+const std::vector<index_type>& cable_cell::parents() const {
+    return parents_;
+}
+
+value_type cable_cell::segment_length_constant(value_type frequency, index_type segidx,
+    const cable_cell_parameter_set& global_defaults) const
+{
+    return 0.5/segment_mean_attenuation(frequency, segidx, global_defaults);
 }
 
 bool cable_cell::has_soma() const {
