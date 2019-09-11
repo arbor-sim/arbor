@@ -78,16 +78,157 @@ bool cable_cell::has_soma() const {
     return !segment(0)->is_placeholder();
 }
 
-void cable_cell::paint(const std::string& target, const std::string& description) {
+const std::vector<cable_cell::gap_junction_instance>& cable_cell::gap_junction_sites() const {
+    return gap_junction_sites_;
+}
+
+const std::vector<cable_cell::synapse_instance>& cable_cell::synapses() const {
+    return synapses_;
+}
+
+const std::vector<cable_cell::detector_instance>& cable_cell::detectors() const {
+    return spike_detectors_;
+}
+
+const std::vector<cable_cell::stimulus_instance>& cable_cell::stimuli() const {
+    return stimuli_;
+}
+
+void cable_cell::set_regions(cable_cell::region_map r) {
+    regions_ = std::move(r);
+}
+
+void cable_cell::set_locsets(cable_cell::locset_map l) {
+    locsets_ = std::move(l);
+}
+
+//
+// Painters.
+//
+// Implementation of user API for painting density channel and electrical properties on cells.
+//
+
+void cable_cell::paint(const std::string& target, mechanism_desc desc) {
     auto it = regions_.find(target);
 
     // Nothing to do if there are no regions that match.
     if (it==regions_.end()) return;
 
-    for (auto i: it->second) {
-        segment(i)->add_mechanism(description);
+    for (auto c: it->second) {
+        if (c.prox_pos!=0 || c.dist_pos!=1) {
+            throw cable_cell_error(util::pprintf(
+                "cable_cell does not support regions with partial branches: \"{}\": {}",
+                target, c));
+        }
+        segment(c.branch)->add_mechanism(std::move(desc));
     }
 }
+
+//
+// Placers.
+//
+// Implementation of user API for placing discrete items on cell morphology,
+// such as synapses, spike detectors and stimuli.
+//
+
+//
+// Synapses
+//
+
+locrange cable_cell::place(const std::string& target, mechanism_desc desc) {
+    auto first = synapses_.size();
+
+    auto it = locsets_.find(target);
+    if (it==locsets_.end()) return locrange(first, first);
+
+    synapses_.reserve(first+it->second.size());
+    for (auto loc: it->second) {
+        synapses_.push_back({loc, desc});
+    }
+
+    return locrange(first, synapses_.size());
+}
+
+locrange cable_cell::place(mlocation loc, mechanism_desc desc) {
+    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+        throw cable_cell_error(util::pprintf(
+            "Attempt to add synapse at invalid location: \"{}\"", loc));
+    }
+    auto first = synapses_.size();
+    synapses_.push_back({loc, desc});
+    return locrange(first, first+1);
+}
+
+//
+// Stimuli
+//
+
+locrange cable_cell::place(const std::string& target, i_clamp desc) {
+    auto first = stimuli_.size();
+
+    auto it = locsets_.find(target);
+    if (it==locsets_.end()) return locrange(first, first);
+
+    stimuli_.reserve(first+it->second.size());
+    for (auto loc: it->second) {
+        stimuli_.push_back({loc, desc});
+    }
+
+    return locrange(first, stimuli_.size());
+}
+
+locrange cable_cell::place(mlocation loc, i_clamp stim) {
+    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+        throw cable_cell_error(util::pprintf(
+            "Attempt to add stimulus at invalid location: \"{}\"", loc));
+    }
+    auto first = stimuli_.size();
+    stimuli_.push_back({loc, std::move(stim)});
+    return locrange(first, first+1);
+}
+
+//
+// Gap junctions.
+//
+
+locrange cable_cell::place(const std::string& target, gap_junction_site) {
+    auto first = gap_junction_sites_.size();
+
+    auto it = locsets_.find(target);
+    if (it==locsets_.end()) return locrange(first, first);
+
+    gap_junction_sites_.reserve(first+it->second.size());
+    for (auto loc: it->second) {
+        gap_junction_sites_.push_back(loc);
+    }
+
+    return locrange(first, gap_junction_sites_.size());
+}
+
+locrange cable_cell::place(mlocation loc, gap_junction_site) {
+    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+        throw cable_cell_error(util::pprintf(
+            "Attempt to add gap junction at invalid location: \"{}\"", loc));
+    }
+    auto first = gap_junction_sites_.size();
+    gap_junction_sites_.push_back(loc);
+    return locrange(first, first+1);
+}
+
+//
+// Spike detectors.
+//
+
+locrange cable_cell::place(mlocation loc, detector d) {
+    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+        throw cable_cell_error(util::pprintf(
+            "Attempt to add spike detector at invalid location: \"{}\"", loc));
+    }
+    auto first = spike_detectors_.size();
+    spike_detectors_.push_back({loc, d.threshold});
+    return locrange(first, first+1);
+}
+
 
 soma_segment* cable_cell::soma() {
     return has_soma()? segment(0)->as_soma(): nullptr;
@@ -121,15 +262,6 @@ std::vector<size_type> cable_cell::compartment_counts() const {
 size_type cable_cell::num_compartments() const {
     return util::sum_by(segments_,
             [](const segment_ptr& s) { return s->num_compartments(); });
-}
-
-void cable_cell::add_stimulus(mlocation loc, i_clamp stim) {
-    (void)segment(loc.branch); // assert loc.segment in range
-    stimuli_.push_back({loc, std::move(stim)});
-}
-
-void cable_cell::add_detector(mlocation loc, double threshold) {
-    spike_detectors_.push_back({loc, threshold});
 }
 
 // Approximating wildly by ignoring O(x) effects entirely, the attenuation b
@@ -232,7 +364,7 @@ cable_cell make_cable_cell(const morphology& m,
         if (!m.spherical_root()) {
             pid = pid==mnpos? 0: pid+1;
         }
-        auto cable = newcell.add_cable(pid, kind, radii, points);
+        auto cable = newcell.add_cable(pid, make_segment<cable_segment>(kind, radii, points));
         if (compartments_from_discretization) {
             cable->as_cable()->set_compartments(radii.size()-1);
         }
@@ -242,21 +374,17 @@ cable_cell make_cable_cell(const morphology& m,
     // Ignores the pointsets, for now.
     auto em = em_morphology(m); // for converting labels to "segments"
 
-    std::unordered_map<std::string, std::vector<msize_t>> regions;
+    std::unordered_map<std::string, mcable_list> regions;
     for (auto r: dictionary.regions()) {
-        mcable_list L = thingify(r.second, em);
-        std::vector<msize_t> bids;
-        for (auto c: L) {
-            if (c.prox_pos!=0 || c.dist_pos!=1) {
-                throw cable_cell_error(util::pprintf(
-                    "cable_cell does not support regions with partial branches: \"{}\": {}",
-                    r.first, c));
-            }
-            bids.push_back(c.branch);
-        }
-        regions[r.first] = bids;
+        regions[r.first] = thingify(r.second, em);
     }
     newcell.set_regions(std::move(regions));
+
+    std::unordered_map<std::string, mlocation_list> locsets;
+    for (auto l: dictionary.locsets()) {
+        locsets[l.first] = thingify(l.second, em);
+    }
+    newcell.set_locsets(std::move(locsets));
 
     return newcell;
 }

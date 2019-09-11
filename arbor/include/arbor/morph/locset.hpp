@@ -17,10 +17,29 @@ namespace arb {
 // interface for concretising locsets.
 class em_morphology;
 
+class locset;
+
+namespace ls {
+
+// Location of a sample.
+locset location(mlocation);
+
+// Location of a sample.
+locset sample(msize_t);
+
+// Set of terminal nodes on a morphology.
+locset terminal();
+
+// The root node of a morphology.
+locset root();
+
+// The null (empty) set.
+locset nil();
+
+} // namespace ls
+
 class locset {
 public:
-    locset() = delete;
-
     template <typename Impl,
               typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
     explicit locset(Impl&& impl):
@@ -38,6 +57,14 @@ public:
     locset& operator=(const locset& other) {
         impl_ = other.impl_->clone();
         return *this;
+    }
+
+    locset() {
+        *this = ls::nil();
+    }
+
+    locset(mlocation other) {
+        *this = ls::location(other);
     }
 
     template <typename Impl,
@@ -99,24 +126,5 @@ private:
         Impl wrapped;
     };
 };
-
-namespace ls {
-
-// Location of a sample.
-locset location(mlocation);
-
-// Location of a sample.
-locset sample(msize_t);
-
-// Set of terminal nodes on a morphology.
-locset terminal();
-
-// The root node of a morphology.
-locset root();
-
-// The null (empty) set.
-locset nil();
-
-} // namespace ls
 
 } // namespace arb

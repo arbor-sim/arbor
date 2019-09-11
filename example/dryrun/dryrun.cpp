@@ -364,7 +364,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
             for (unsigned j=0; j<2; ++j) {
                 if (dis(gen)<bp) {
                     sec_ids.push_back(nsec++);
-                    auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
+                    auto dend = cell.add_cable(sec, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, dend_radius, dend_radius, l));
                     dend->set_compartments(nc);
                     dend->add_mechanism("pas");
                 }
@@ -377,10 +377,10 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Add spike threshold detector at the soma.
-    cell.add_detector({0,0}, 10);
+    cell.place(arb::mlocation{0,0}, arb::detector{10});
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.add_synapse({1, 0.5}, "expsyn");
+    cell.place(arb::mlocation{1, 0.5}, "expsyn");
 
     return cell;
 }

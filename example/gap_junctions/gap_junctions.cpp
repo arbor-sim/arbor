@@ -363,23 +363,23 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     set_reg_params();
     setup_seg(soma);
 
-    auto dend = cell.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300); //cable 1
+    auto dend = cell.add_cable(0, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300)); //cable 1
     dend->set_compartments(1);
     set_reg_params();
     setup_seg(dend);
 
-    cell.add_detector({0,0}, 10);
+    cell.place(arb::mlocation{0,0}, arb::detector{10});
 
-    cell.add_gap_junction({0, 1});
-    cell.add_gap_junction({1, 1});
+    cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
+    cell.place(arb::mlocation{1, 1}, arb::gap_junction_site{});
 
     if (!gid) {
         arb::i_clamp stim(0, stim_duration, 0.4);
-        cell.add_stimulus({0, 0.5}, stim);
+        cell.place(arb::mlocation{0, 0.5}, stim);
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.add_synapse({1, 0.5}, "expsyn");
+    cell.place(arb::mlocation{1, 0.5}, "expsyn");
 
     return cell;
 }

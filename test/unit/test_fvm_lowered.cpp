@@ -94,7 +94,7 @@ public:
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
         cable_cell c;
         c.add_soma(20);
-        c.add_gap_junction({0, 1});
+        c.place(mlocation{0, 1}, gap_junction_site{});
         return {std::move(c)};
     }
 
@@ -162,7 +162,7 @@ public:
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
         cable_cell c;
         c.add_soma(20);
-        c.add_gap_junction({0,1});
+        c.place(mlocation{0,1}, gap_junction_site{});
         return {std::move(c)};
     }
 
@@ -257,12 +257,12 @@ TEST(fvm_lowered, target_handles) {
     EXPECT_EQ(cells[1].num_segments(), 4u);
 
     // (in increasing target order)
-    cells[0].add_synapse({1, 0.4}, "expsyn");
-    cells[0].add_synapse({0, 0.5}, "expsyn");
-    cells[1].add_synapse({2, 0.2}, "exp2syn");
-    cells[1].add_synapse({2, 0.8}, "expsyn");
+    cells[0].place(mlocation{1, 0.4}, "expsyn");
+    cells[0].place(mlocation{0, 0.5}, "expsyn");
+    cells[1].place(mlocation{2, 0.2}, "exp2syn");
+    cells[1].place(mlocation{2, 0.8}, "expsyn");
 
-    cells[1].add_detector({0, 0}, 3.3);
+    cells[1].place(mlocation{0, 0}, detector{3.3});
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -321,8 +321,8 @@ TEST(fvm_lowered, stimulus) {
     std::vector<cable_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
 
-    cells[0].add_stimulus({1,1},   {5., 80., 0.3});
-    cells[0].add_stimulus({0,0.5}, {1., 2.,  0.1});
+    cells[0].place(mlocation{1,1},   i_clamp{5., 80., 0.3});
+    cells[0].place(mlocation{0,0.5}, i_clamp{1., 2.,  0.1});
 
     const fvm_size_type soma_cv = 0u;
     const fvm_size_type tip_cv = 5u;
@@ -401,7 +401,7 @@ TEST(fvm_lowered, derived_mechs) {
     for (int i = 0; i<3; ++i) {
         cable_cell& c = cells[i];
         c.add_soma(6.0);
-        c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
+        c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
 
         c.segment(1)->set_compartments(4);
         for (auto& seg: c.segments()) {
@@ -612,7 +612,7 @@ TEST(fvm_lowered, point_ionic_current) {
     double soma_area_m2 = 4*math::pi<double>*r*r*1e-12; // [m²]
 
     // Event weight is translated by point_ica_current into a current contribution in nA.
-    c.add_synapse({0u, 0.5}, "point_ica_current");
+    c.place(mlocation{0u, 0.5}, "point_ica_current");
 
     cable1d_recipe rec(c);
     rec.catalogue() = make_unit_test_catalogue();
@@ -676,9 +676,9 @@ TEST(fvm_lowered, weighted_write_ion) {
     cable_cell c;
     c.add_soma(5);
 
-    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 200);
-    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
+    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 200));
+    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
 
     for (auto& s: c.segments()) s->set_compartments(1);
 
@@ -770,15 +770,15 @@ TEST(fvm_lowered, gj_coords_simple) {
     std::vector<cable_cell> cells;
     cable_cell c, d;
     c.add_soma(2.1);
-    c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 10));
     c.segment(1)->set_compartments(5);
-    c.add_gap_junction({1, 0.8});
+    c.place(mlocation{1, 0.8}, gap_junction_site{});
     cells.push_back(std::move(c));
 
     d.add_soma(2.4);
-    d.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
+    d.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 10));
     d.segment(1)->set_compartments(2);
-    d.add_gap_junction({1, 1});
+    d.place(mlocation{1, 1}, gap_junction_site{});
     cells.push_back(std::move(d));
 
     fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
@@ -846,41 +846,41 @@ TEST(fvm_lowered, gj_coords_complex) {
 
     // Make 3 cells
     c0.add_soma(2.1);
-    c0.add_cable(0, section_kind::dendrite, 0.3, 0.2, 8);
+    c0.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 8));
     c0.segment(1)->set_compartments(4);
 
     c1.add_soma(1.4);
-    c1.add_cable(0, section_kind::dendrite, 0.3, 0.5, 12);
+    c1.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.5, 12));
     c1.segment(1)->set_compartments(6);
-    c1.add_cable(1, section_kind::dendrite, 0.3, 0.2, 9);
+    c1.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 9));
     c1.segment(2)->set_compartments(3);
-    c1.add_cable(1, section_kind::dendrite, 0.2, 0.2, 15);
+    c1.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.2, 0.2, 15));
     c1.segment(3)->set_compartments(5);
 
     c2.add_soma(2.9);
-    c2.add_cable(0, section_kind::dendrite, 0.3, 0.5, 4);
+    c2.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.5, 4));
     c2.segment(1)->set_compartments(2);
-    c2.add_cable(1, section_kind::dendrite, 0.4, 0.2, 6);
+    c2.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.4, 0.2, 6));
     c2.segment(2)->set_compartments(2);
-    c2.add_cable(1, section_kind::dendrite, 0.1, 0.2, 8);
+    c2.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.1, 0.2, 8));
     c2.segment(3)->set_compartments(2);
-    c2.add_cable(2, section_kind::dendrite, 0.2, 0.2, 4);
+    c2.add_cable(2, make_segment<cable_segment>(section_kind::dendrite, 0.2, 0.2, 4));
     c2.segment(4)->set_compartments(2);
-    c2.add_cable(2, section_kind::dendrite, 0.2, 0.2, 4);
+    c2.add_cable(2, make_segment<cable_segment>(section_kind::dendrite, 0.2, 0.2, 4));
     c2.segment(5)->set_compartments(2);
 
     // Add 5 gap junctions
-    c0.add_gap_junction({1, 1});
-    c0.add_gap_junction({1, 0.5});
+    c0.place(mlocation{1, 1}, gap_junction_site{});
+    c0.place(mlocation{1, 0.5}, gap_junction_site{});
 
-    c1.add_gap_junction({2, 1});
-    c1.add_gap_junction({1, 1});
-    c1.add_gap_junction({1, 0.45});
-    c1.add_gap_junction({1, 0.1});
+    c1.place(mlocation{2, 1}, gap_junction_site{});
+    c1.place(mlocation{1, 1}, gap_junction_site{});
+    c1.place(mlocation{1, 0.45}, gap_junction_site{});
+    c1.place(mlocation{1, 0.1}, gap_junction_site{});
 
-    c2.add_gap_junction({1, 0.5});
-    c2.add_gap_junction({4, 1});
-    c2.add_gap_junction({2, 1});
+    c2.place(mlocation{1, 0.5}, gap_junction_site{});
+    c2.place(mlocation{4, 1}, gap_junction_site{});
+    c2.place(mlocation{2, 1}, gap_junction_site{});
 
     cells.push_back(std::move(c0));
     cells.push_back(std::move(c1));
@@ -958,7 +958,7 @@ TEST(fvm_lowered, cell_group_gj) {
         cable_cell c;
         c.add_soma(2.1);
         if (i % 2 == 0) {
-            c.add_gap_junction({0, 1});
+            c.place(mlocation{0, 1}, gap_junction_site{});
         }
         if (i < 10) {
             cell_group0.push_back(std::move(c));
