@@ -6,8 +6,7 @@
 #include "functionexpander.hpp"
 
 expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e) {
-    auto exprs = make_unique_local_assign(e->scope(), e, "fu");
-    std::cout << "created: " << exprs.id->is_identifier()->spelling() << " for " << e->to_string() << std::endl;
+    auto exprs = make_unique_local_assign(e->scope(), e, "ll");
     stmts.push_front(std::move(exprs.local_decl));
     stmts.push_back(std::move(exprs.assignment));
     return std::move(exprs.id);

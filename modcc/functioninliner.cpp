@@ -21,7 +21,7 @@ expression_ptr inline_function_call(const expression_ptr& e)
 
         body->accept(&func_inliner);
         if (!func_inliner.return_val_set()) {
-            throw compiler_exception("return variable of function not set ", e->location());
+            throw compiler_exception(pprintf("return variable of function % not set", f->name()), e->location());
         }
         return body;
     }

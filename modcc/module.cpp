@@ -496,12 +496,9 @@ bool Module::semantic() {
     // and it writes to only one ionic reversal potential.
     check_revpot_mechanism();
 
-
-    std::cout << std::endl << std::endl << "NEXXXTTT " << std::endl << std::endl;
     // Perform semantic analysis and inlining on function and procedure bodies
     // in order to inline calls inside the newly crated API methods.
     semantic_func_proc();
-    std::cout << "what" << std::endl;
 
     return !has_error();
 }
@@ -738,8 +735,6 @@ int Module::semantic_func_proc() {
                 ErrorVisitor v(source_name());
                 s->accept(&v);
                 errors += v.num_errors();
-                std::cout << "num errors " << errors << std::endl;
-
 
                 // inline function calls
                 // this requires that the symbol table has already been built
@@ -796,7 +791,6 @@ int Module::semantic_func_proc() {
 
             if(s->kind() == symbolKind::procedure)
             {
-                std::cout << "+++++++++++" << e.first << std::endl;
                 if(errors==0) {
                     auto &b = s->kind()==symbolKind::function ?
                         s->is_function()->body()->statements() :
@@ -816,21 +810,9 @@ int Module::semantic_func_proc() {
                     //      a = 2 + ll0_
 
                     for (auto &e: b) {
-                        std::cout << "____";
-                        std::cout << e->to_string() << std::endl;
-
                         if (auto ass = e->is_assignment()) {
                             if (ass->rhs()->is_function_call()) {
-                                std::cout << "----------------------------" << ass->lhs()->to_string() << " = "
-                                          << ass->rhs()->is_function_call()->name() << "--------------------------"
-                                          << std::endl;
-                                std::cout << ass->rhs()->is_function_call()->function()->body()->to_string() << std::endl;
-                                std::cout << "----------------------------------------------------------------"<< std::endl;
                                 e = inline_function_call(e);
-                                std::cout << e->is_block()->to_string() << std::endl;
-                                std::cout << "----------------------------------------------------------------"
-                                          << std::endl << "|" << std::endl<< "|" << std::endl<< "|" << std::endl;
-
                                 keep_inlining = true;
                             }
                         }
@@ -847,14 +829,6 @@ int Module::semantic_func_proc() {
                         s->semantic(symbols_);
                     }
                 }
-                std::cout << "LOOP" << std::endl;
-                if (auto proc = s->is_procedure()) {
-                    std::cout << s->is_procedure()->body()->to_string() << std::endl;
-                }
-                if (auto proc = s->is_function()) {
-                    std::cout << s->is_function()->body()->to_string() << std::endl;
-                }
-                std::cout << "END" << std::endl;
             }
         }
     }
