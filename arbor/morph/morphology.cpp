@@ -182,6 +182,10 @@ morphology::morphology(sample_tree m):
     impl_(std::make_shared<const morphology_impl>(std::move(m)))
 {}
 
+morphology::morphology():
+    morphology(sample_tree())
+{}
+
 // The parent branch of branch b.
 msize_t morphology::branch_parent(msize_t b) const {
     return impl_->branch_parents_[b];

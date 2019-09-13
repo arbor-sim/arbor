@@ -19,6 +19,7 @@ class em_morphology {
     std::vector<double> branch_lengths_;
 
 public:
+    em_morphology();
     em_morphology(const morphology& m);
 
     const morphology& morph() const;

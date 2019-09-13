@@ -24,6 +24,8 @@ em_morphology::em_morphology(const morphology& m):
     const auto ns = morph_.num_samples();
     const auto nb = morph_.num_branches();
 
+    if (!ns) return;
+
     // Cache distance of each sample from the root.
     dist2root_.resize(ns);
     dist2root_[0] = 0.;
@@ -51,7 +53,7 @@ em_morphology::em_morphology(const morphology& m):
         for (auto i: idx) {
             sample_locs_[i] = {msize_t(b), (dist2root_[i]-start)/len};
         }
-        // For ensure that all non-spherical branches have their last sample 
+        // Ensure that all non-spherical branches have their last sample 
         if (idx.size()>1u) {
             sample_locs_[idx.back()] = mlocation{msize_t(b), 1};
         }
@@ -70,6 +72,10 @@ em_morphology::em_morphology(const morphology& m):
         }
     }
 }
+
+em_morphology::em_morphology():
+    em_morphology(morphology())
+{}
 
 const morphology& em_morphology::morph() const {
     return morph_;

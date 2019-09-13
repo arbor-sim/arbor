@@ -31,56 +31,59 @@ struct cable_cell_impl {
     using locset_map = cable_cell::locset_map;
 
     cable_cell_impl() {
-        segments_.push_back(make_segment<placeholder_segment>());
-        parents_.push_back(0);
+        segments.push_back(make_segment<placeholder_segment>());
+        parents.push_back(0);
     }
 
     cable_cell_impl(const cable_cell_impl& other) {
-        parents_ = other.parents_;
-        stimuli_ = other.stimuli_;
-        synapses_ = other.synapses_;
-        gap_junction_sites_ = other.gap_junction_sites_;
+        parents = other.parents;
+        stimuli = other.stimuli;
+        synapses = other.synapses;
+        gap_junction_sites = other.gap_junction_sites;
         spike_detectors_ = other.spike_detectors_;
-        regions_ = other.regions_;
+        regions = other.regions;
 
         // unique_ptr's cannot be copy constructed, do a manual assignment
-        segments_.reserve(other.segments_.size());
-        for (const auto& s: other.segments_) {
-            segments_.push_back(s->clone());
+        segments.reserve(other.segments.size());
+        for (const auto& s: other.segments) {
+            segments.push_back(s->clone());
         }
     }
 
     cable_cell_impl(cable_cell_impl&& other) = default;
 
     // storage for connections
-    std::vector<index_type> parents_;
+    std::vector<index_type> parents;
 
     // the segments
-    std::vector<segment_ptr> segments_;
+    std::vector<segment_ptr> segments;
 
     // the stimuli
-    std::vector<stimulus_instance> stimuli_;
+    std::vector<stimulus_instance> stimuli;
 
     // the synapses
-    std::vector<synapse_instance> synapses_;
+    std::vector<synapse_instance> synapses;
 
     // the gap_junctions
-    std::vector<gap_junction_instance> gap_junction_sites_;
+    std::vector<gap_junction_instance> gap_junction_sites;
 
     // the sensors
     std::vector<detector_instance> spike_detectors_;
 
     // Named regions
-    region_map regions_;
+    region_map regions;
 
     // Named location sets
-    locset_map locsets_;
+    locset_map locations;
+
+    // Underlying embedded morphology
+    em_morphology morph;
 
     void assert_valid_segment(index_type i) const {
-        if (i>=segments_.size()) {
+        if (i>=segments.size()) {
             throw cable_cell_error("no such segment");
+        }
     }
-}
 };
 
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
@@ -98,7 +101,7 @@ cable_cell::cable_cell(const cable_cell& other):
 {}
 
 size_type cable_cell::num_segments() const {
-    return impl_->segments_.size();
+    return impl_->segments.size();
 }
 
 //
@@ -109,8 +112,8 @@ soma_segment* cable_cell::add_soma(value_type radius, point_type center) {
     if (has_soma()) {
         throw cable_cell_error("cell already has soma");
     }
-    impl_->segments_[0] = make_segment<soma_segment>(radius, center);
-    return impl_->segments_[0]->as_soma();
+    impl_->segments[0] = make_segment<soma_segment>(radius, center);
+    return impl_->segments[0]->as_soma();
 }
 
 cable_segment* cable_cell::add_cable(index_type parent, segment_ptr&& cable) {
@@ -122,33 +125,33 @@ cable_segment* cable_cell::add_cable(index_type parent, segment_ptr&& cable) {
         throw cable_cell_error("parent index out of range");
     }
 
-    impl_->segments_.push_back(std::move(cable));
-    impl_->parents_.push_back(parent);
+    impl_->segments.push_back(std::move(cable));
+    impl_->parents.push_back(parent);
 
-    return impl_->segments_.back()->as_cable();
+    return impl_->segments.back()->as_cable();
 }
 
 segment* cable_cell::segment(index_type index) {
     impl_->assert_valid_segment(index);
-    return impl_->segments_[index].get();
+    return impl_->segments[index].get();
 }
 
 segment const* cable_cell::parent(index_type index) const {
     impl_->assert_valid_segment(index);
-    return impl_->segments_[impl_->parents_[index]].get();
+    return impl_->segments[impl_->parents[index]].get();
 }
 
 segment const* cable_cell::segment(index_type index) const {
     impl_->assert_valid_segment(index);
-    return impl_->segments_[index].get();
+    return impl_->segments[index].get();
 }
 
 const std::vector<segment_ptr>& cable_cell::segments() const {
-    return impl_->segments_;
+    return impl_->segments;
 }
 
 const std::vector<index_type>& cable_cell::parents() const {
-    return impl_->parents_;
+    return impl_->parents;
 }
 
 value_type cable_cell::segment_length_constant(value_type frequency, index_type segidx,
@@ -162,11 +165,11 @@ bool cable_cell::has_soma() const {
 }
 
 const std::vector<cable_cell::gap_junction_instance>& cable_cell::gap_junction_sites() const {
-    return impl_->gap_junction_sites_;
+    return impl_->gap_junction_sites;
 }
 
 const std::vector<cable_cell::synapse_instance>& cable_cell::synapses() const {
-    return impl_->synapses_;
+    return impl_->synapses;
 }
 
 const std::vector<cable_cell::detector_instance>& cable_cell::detectors() const {
@@ -174,15 +177,15 @@ const std::vector<cable_cell::detector_instance>& cable_cell::detectors() const 
 }
 
 const std::vector<cable_cell::stimulus_instance>& cable_cell::stimuli() const {
-    return impl_->stimuli_;
+    return impl_->stimuli;
 }
 
 void cable_cell::set_regions(cable_cell::region_map r) {
-    impl_->regions_ = std::move(r);
+    impl_->regions = std::move(r);
 }
 
 void cable_cell::set_locsets(cable_cell::locset_map l) {
-    impl_->locsets_ = std::move(l);
+    impl_->locations = std::move(l);
 }
 
 //
@@ -192,10 +195,10 @@ void cable_cell::set_locsets(cable_cell::locset_map l) {
 //
 
 void cable_cell::paint(const std::string& target, mechanism_desc desc) {
-    auto it = impl_->regions_.find(target);
+    auto it = impl_->regions.find(target);
 
     // Nothing to do if there are no regions that match.
-    if (it==impl_->regions_.end()) return;
+    if (it==impl_->regions.end()) return;
 
     for (auto c: it->second) {
         if (c.prox_pos!=0 || c.dist_pos!=1) {
@@ -219,17 +222,17 @@ void cable_cell::paint(const std::string& target, mechanism_desc desc) {
 //
 
 locrange cable_cell::place(const std::string& target, mechanism_desc desc) {
-    auto first = impl_->synapses_.size();
+    auto first = impl_->synapses.size();
 
-    auto it = impl_->locsets_.find(target);
-    if (it==impl_->locsets_.end()) return locrange(first, first);
+    auto it = impl_->locations.find(target);
+    if (it==impl_->locations.end()) return locrange(first, first);
 
-    impl_->synapses_.reserve(first+it->second.size());
+    impl_->synapses.reserve(first+it->second.size());
     for (auto loc: it->second) {
-        impl_->synapses_.push_back({loc, desc});
+        impl_->synapses.push_back({loc, desc});
     }
 
-    return locrange(first, impl_->synapses_.size());
+    return locrange(first, impl_->synapses.size());
 }
 
 locrange cable_cell::place(mlocation loc, mechanism_desc desc) {
@@ -237,8 +240,8 @@ locrange cable_cell::place(mlocation loc, mechanism_desc desc) {
         throw cable_cell_error(util::pprintf(
             "Attempt to add synapse at invalid location: \"{}\"", loc));
     }
-    auto first = impl_->synapses_.size();
-    impl_->synapses_.push_back({loc, desc});
+    auto first = impl_->synapses.size();
+    impl_->synapses.push_back({loc, desc});
     return locrange(first, first+1);
 }
 
@@ -247,17 +250,17 @@ locrange cable_cell::place(mlocation loc, mechanism_desc desc) {
 //
 
 locrange cable_cell::place(const std::string& target, i_clamp desc) {
-    auto first = impl_->stimuli_.size();
+    auto first = impl_->stimuli.size();
 
-    auto it = impl_->locsets_.find(target);
-    if (it==impl_->locsets_.end()) return locrange(first, first);
+    auto it = impl_->locations.find(target);
+    if (it==impl_->locations.end()) return locrange(first, first);
 
-    impl_->stimuli_.reserve(first+it->second.size());
+    impl_->stimuli.reserve(first+it->second.size());
     for (auto loc: it->second) {
-        impl_->stimuli_.push_back({loc, desc});
+        impl_->stimuli.push_back({loc, desc});
     }
 
-    return locrange(first, impl_->stimuli_.size());
+    return locrange(first, impl_->stimuli.size());
 }
 
 locrange cable_cell::place(mlocation loc, i_clamp stim) {
@@ -265,8 +268,8 @@ locrange cable_cell::place(mlocation loc, i_clamp stim) {
         throw cable_cell_error(util::pprintf(
             "Attempt to add stimulus at invalid location: \"{}\"", loc));
     }
-    auto first = impl_->stimuli_.size();
-    impl_->stimuli_.push_back({loc, std::move(stim)});
+    auto first = impl_->stimuli.size();
+    impl_->stimuli.push_back({loc, std::move(stim)});
     return locrange(first, first+1);
 }
 
@@ -275,17 +278,17 @@ locrange cable_cell::place(mlocation loc, i_clamp stim) {
 //
 
 locrange cable_cell::place(const std::string& target, gap_junction_site) {
-    auto first = impl_->gap_junction_sites_.size();
+    auto first = impl_->gap_junction_sites.size();
 
-    auto it = impl_->locsets_.find(target);
-    if (it==impl_->locsets_.end()) return locrange(first, first);
+    auto it = impl_->locations.find(target);
+    if (it==impl_->locations.end()) return locrange(first, first);
 
-    impl_->gap_junction_sites_.reserve(first+it->second.size());
+    impl_->gap_junction_sites.reserve(first+it->second.size());
     for (auto loc: it->second) {
-        impl_->gap_junction_sites_.push_back(loc);
+        impl_->gap_junction_sites.push_back(loc);
     }
 
-    return locrange(first, impl_->gap_junction_sites_.size());
+    return locrange(first, impl_->gap_junction_sites.size());
 }
 
 locrange cable_cell::place(mlocation loc, gap_junction_site) {
@@ -293,8 +296,8 @@ locrange cable_cell::place(mlocation loc, gap_junction_site) {
         throw cable_cell_error(util::pprintf(
             "Attempt to add gap junction at invalid location: \"{}\"", loc));
     }
-    auto first = impl_->gap_junction_sites_.size();
-    impl_->gap_junction_sites_.push_back(loc);
+    auto first = impl_->gap_junction_sites.size();
+    impl_->gap_junction_sites.push_back(loc);
     return locrange(first, first+1);
 }
 
@@ -342,6 +345,19 @@ std::vector<size_type> cable_cell::compartment_counts() const {
     return comp_count;
 }
 
+const em_morphology* cable_cell::morphology() const {
+    return &(impl_->morph);
+}
+
+void cable_cell::set_morphology(em_morphology m) {
+    impl_->morph = std::move(m);
+}
+
+size_type cable_cell::num_compartments() const {
+    return util::sum_by(impl_->segments,
+            [](const segment_ptr& s) { return s->num_compartments(); });
+}
+
 // Approximating wildly by ignoring O(x) effects entirely, the attenuation b
 // over a single cable segment with constant resistivity R and membrane
 // capacitance C is given by:
@@ -355,8 +371,10 @@ value_type cable_cell::segment_mean_attenuation(
     value_type frequency, index_type segidx,
     const cable_cell_parameter_set& global_defaults) const
 {
-    value_type R = default_parameters.axial_resistivity.value_or(global_defaults.axial_resistivity.value());
-    value_type C = default_parameters.membrane_capacitance.value_or(global_defaults.membrane_capacitance.value());
+    value_type R = default_parameters.axial_resistivity.value_or(
+            global_defaults.axial_resistivity.value());
+    value_type C = default_parameters.membrane_capacitance.value_or(
+            global_defaults.membrane_capacitance.value());
 
     value_type length_factor = 0; // [1/√µm]
 

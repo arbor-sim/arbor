@@ -94,24 +94,31 @@ public:
     const class segment* parent(index_type index) const;
     const class segment* segment(index_type index) const;
 
-    /// access pointer to the soma
-    /// returns nullptr if the cell has no soma
+    // access pointer to the soma
+    // returns nullptr if the cell has no soma
+    // LEGACY
     soma_segment* soma();
     const soma_segment* soma() const;
 
-    /// access pointer to a cable segment
-    /// will throw an cable_cell_error exception if
-    /// the cable index is not valid
+    // access pointer to a cable segment
+    // will throw an cable_cell_error exception if
+    // the cable index is not valid
+    // LEGACY
     cable_segment* cable(index_type index);
     const cable_segment* cable(index_type index) const;
 
     const std::vector<segment_ptr>& segments() const;
 
-    /// the number of segments in the cell
+    // the number of segments in the cell
     size_type num_segments() const;
 
-    /// return a vector with the compartment count for each segment in the cell
+    // return a vector with the compartment count for each segment in the cell
+    // LEGACY
     std::vector<size_type> compartment_counts() const;
+
+    // The total number of compartments in the discretised cell.
+    // LEGACY
+    size_type num_compartments() const;
 
     //
     // Painters and placers.
