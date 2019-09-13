@@ -38,23 +38,27 @@ FUNCTION foo(x, y) {
     }
 }
 
-FUNCTION dip(q) {
-    dip = 2*q
+FUNCTION dip(q, p) {
+    LOCAL temp
+    temp = log(p)
+    dip = 2*q*temp
 }
 
-FUNCTION jab(x) {
-    jab = x*dip(21)
+FUNCTION jab(x, y) {
+    jab = x*dip(21, x/y)
 }
 
-FUNCTION bar(x) {
-    bar = foo(x, x+2) * jab(42)
+FUNCTION bar(x, y) {
+    LOCAL p
+    p = y/3
+    bar = foo(x, x+2) * jab(p, y)
 }
 
 PROCEDURE rates(x)
 {
     LOCAL  t0, t1, t2
 
-    t0 = bar(s1)
+    t0 = bar(s1, s2)
     t1 = exprelr(t0)
     t2 = foo(t1 + 2, 5)
     s2 = t2 + 4
