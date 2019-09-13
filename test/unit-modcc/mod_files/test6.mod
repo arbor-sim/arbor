@@ -14,19 +14,16 @@ PARAMETER {
     delta = -0.2
 }
 
-ASSIGNED {
-    o1
-    o2
-}
-
 STATE {
-    s
+    s0
+    s1
+    s2
 }
 
 BREAKPOINT {
-    o1 = foo(alpha, beta)
+    s1 = foo(alpha, beta)
     rates(delta)
-    s = o1 * o2
+    s0 = s1 * s2
 }
 
 FUNCTION foo(x, y) {
@@ -57,8 +54,8 @@ PROCEDURE rates(x)
 {
     LOCAL  t0, t1, t2
 
-    t0 = bar(s)
+    t0 = bar(s1)
     t1 = exprelr(t0)
     t2 = foo(t1 + 2, 5)
-    o2 = t2 + 4
+    s2 = t2 + 4
 }

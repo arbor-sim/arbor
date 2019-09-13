@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "common.hpp"
+#include "io/bulkio.hpp"
 
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
@@ -195,4 +196,55 @@ TEST(CPrinter, proc_body_const) {
 
         EXPECT_EQ(strip(tc.expected), strip(text));
     }
+}
+
+TEST(CPrinter, proc_body_inlined) {
+    const char* expected =
+        "value_type r_5_, r_4_, t0, r_0_, r_3_, ll0_, t1, t2, r_2_, r_1_;\n"
+        "r_2_ = s1[i_]+ 2;\n"
+        "if (s1[i_]== 3) {\n"
+        "r_1_ =  2*r_2_;\n"
+        "}\n"
+        "else if (s1[i_]== 4) {\n"
+        "r_1_ = r_2_;\n"
+        "}\n"
+        "else {\n"
+        "r_4_ = exp(r_2_);\n"
+        "r_1_ = r_4_*s1[i_];\n"
+        "}\n"
+        "r_5_ =  42;\n"
+        "r_0_ =  42*r_5_;\n"
+        "t0 = r_1_*r_0_;\n"
+        "t1 = exprelr(t0);\n"
+        "ll0_ = t1+ 2;\n"
+        "if (ll0_== 3) {\n"
+        "t2 =  10;\n"
+        "}\n"
+        "else if (ll0_== 4) {\n"
+        "t2 =  5;\n"
+        "}\n"
+        "else {\n"
+        "r_3_ =  148.4131591025766;\n"
+        "t2 = r_3_*ll0_;\n"
+        "}\n"
+        "s2[i_] = t2+ 4;\n";
+
+    Module m(io::read_all(DATADIR "/mod_files/test6.mod"), "test6.mod");
+    Parser p(m, false);
+    p.parse();
+    m.semantic();
+
+    auto& proc_rates = m.symbols().at("rates");
+
+    ASSERT_TRUE(proc_rates->is_symbol());
+
+    std::stringstream out;
+    auto v = std::make_unique<CPrinter>(out);
+    proc_rates->is_procedure()->body()->accept(v.get());
+    std::string text = out.str();
+
+    verbose_print(proc_rates->is_procedure()->body()->to_string());
+    verbose_print(" :--: ", text);
+
+    EXPECT_EQ(strip(expected), strip(text));
 }
