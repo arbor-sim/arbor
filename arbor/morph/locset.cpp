@@ -244,4 +244,12 @@ locset sum(locset lhs, locset rhs) {
     return locset(ls::lsum(std::move(lhs), std::move(rhs)));
 }
 
+locset::locset() {
+    *this = ls::nil();
+}
+
+locset::locset(mlocation other) {
+    *this = ls::location(other);
+}
+
 } // namespace arb

@@ -19,25 +19,6 @@ class em_morphology;
 
 class locset;
 
-namespace ls {
-
-// Location of a sample.
-locset location(mlocation);
-
-// Location of a sample.
-locset sample(msize_t);
-
-// Set of terminal nodes on a morphology.
-locset terminal();
-
-// The root node of a morphology.
-locset root();
-
-// The null (empty) set.
-locset nil();
-
-} // namespace ls
-
 class locset {
 public:
     template <typename Impl,
@@ -59,13 +40,11 @@ public:
         return *this;
     }
 
-    locset() {
-        *this = ls::nil();
-    }
+    // The default constructor creates an empty "nil" set.
+    locset();
 
-    locset(mlocation other) {
-        *this = ls::location(other);
-    }
+    // Construct an explicit location set with a single location.
+    locset(mlocation other);
 
     template <typename Impl,
               typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
@@ -126,5 +105,24 @@ private:
         Impl wrapped;
     };
 };
+
+namespace ls {
+
+// Location of a sample.
+locset location(mlocation);
+
+// Location of a sample.
+locset sample(msize_t);
+
+// Set of terminal nodes on a morphology.
+locset terminal();
+
+// The root node of a morphology.
+locset root();
+
+// The null (empty) set.
+locset nil();
+
+} // namespace ls
 
 } // namespace arb
