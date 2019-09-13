@@ -131,20 +131,24 @@ public:
     void paint(const std::string& target, mechanism_desc);
 
     // Synapses.
-    locrange place(const std::string& target, mechanism_desc);
-    locrange place(mlocation, mechanism_desc);
+    locrange place(const std::string& target, const mechanism_desc&);
+    locrange place(const mlocation&, const mechanism_desc&);  // LEGACY
+    //locrange place(const locset&, const mechanism_desc&);
 
     // Stimuli.
-    locrange place(const std::string& target, i_clamp stim);
-    locrange place(mlocation, i_clamp stim);
+    locrange place(const std::string& target, const i_clamp&);
+    locrange place(const mlocation&, const i_clamp&);  // LEGACY
+    //locrange place(const locset&, const i_clamp&);
 
     // Gap junctions.
     locrange place(const std::string&, gap_junction_site);
-    locrange place(mlocation, gap_junction_site);
+    locrange place(const mlocation& loc, gap_junction_site);  // LEGACY
+    //locrange place(const locset&, gap_junction_site);
 
     // spike detectors
-    locrange place(const std::string&, detector);
-    locrange place(mlocation, detector);
+    locrange place(const std::string&, const detector&);
+    locrange place(const mlocation&, const detector&);  // LEGACY
+    //locrange place(const locset&, const detector&);
 
     //
     // access to placed items
