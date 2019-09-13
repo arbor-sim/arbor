@@ -204,6 +204,7 @@ void LocalDeclaration::semantic(scope_ptr scp) {
     // loop over the variables declared in this LOCAL statement
     for(auto &v : vars_) {
         auto &name = v.first;
+        std::cout << "\t" << name << std::endl;
         auto s = scope_->find(name);
 
         // First check that the variable is undefined
@@ -226,6 +227,7 @@ void LocalDeclaration::semantic(scope_ptr scp) {
             }
         }
         else {
+            std::cout << "ERROR!! in: " << name << " at: " << s->location() << std::endl;
             error(pprintf("the symbol '%' has already been defined at %",
                           yellow(name), s->location() ));
         }

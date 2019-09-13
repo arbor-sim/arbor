@@ -738,6 +738,8 @@ int Module::semantic_func_proc() {
                 ErrorVisitor v(source_name());
                 s->accept(&v);
                 errors += v.num_errors();
+                std::cout << "num errors " << errors << std::endl;
+
 
                 // inline function calls
                 // this requires that the symbol table has already been built
@@ -794,6 +796,7 @@ int Module::semantic_func_proc() {
 
             if(s->kind() == symbolKind::procedure)
             {
+                std::cout << "+++++++++++" << e.first << std::endl;
                 if(errors==0) {
                     auto &b = s->kind()==symbolKind::function ?
                         s->is_function()->body()->statements() :
@@ -845,7 +848,12 @@ int Module::semantic_func_proc() {
                     }
                 }
                 std::cout << "LOOP" << std::endl;
-                std::cout << s->is_procedure()->body()->to_string() << std::endl;
+                if (auto proc = s->is_procedure()) {
+                    std::cout << s->is_procedure()->body()->to_string() << std::endl;
+                }
+                if (auto proc = s->is_function()) {
+                    std::cout << s->is_function()->body()->to_string() << std::endl;
+                }
                 std::cout << "END" << std::endl;
             }
         }
