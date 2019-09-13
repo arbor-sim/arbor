@@ -24,7 +24,7 @@ STATE {
 }
 
 BREAKPOINT {
-    o1 = foo (alpha, beta)
+    o1 = foo(alpha, beta)
     rates(delta)
     s = o1 * o2
 }
@@ -41,16 +41,24 @@ FUNCTION foo(x, y) {
     }
 }
 
+FUNCTION dip(q) {
+    dip = 2*q
+}
+
+FUNCTION jab(x) {
+    jab = x*dip(21)
+}
+
 FUNCTION bar(x) {
-    bar = foo(x, x + 2)
+    bar = foo(x, x+2) * jab(42)
 }
 
 PROCEDURE rates(x)
 {
     LOCAL  t0, t1, t2
 
-    t0 = bar(23)
+    t0 = bar(s)
     t1 = exprelr(t0)
-    t2 = foo(t1, 5)
+    t2 = foo(t1 + 2, 5)
     o2 = t2 + 4
 }

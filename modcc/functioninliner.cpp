@@ -93,7 +93,6 @@ void FunctionInliner::visit(BinaryExpression* e) {
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
-
     if (auto lhs = e->lhs()->is_identifier()) {
         if (lhs->spelling() == func_name_) {
             e->replace_lhs(lhs_->clone());
