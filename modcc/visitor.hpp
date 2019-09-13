@@ -130,7 +130,6 @@ public:
             true);
 
         statements_.clear();
-
         expression_ptr false_branch;
         if (e->false_branch()) {
             e->false_branch()->accept(this);

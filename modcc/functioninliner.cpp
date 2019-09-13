@@ -41,7 +41,6 @@ void FunctionInliner::replace_with_args(Expression* e) {
             e->accept(&v);
         }
         else {
-            std::cout << e->to_string() << std::endl;
             throw compiler_exception("can't inline functions with expressions as arguments", e->location());
         }
     }

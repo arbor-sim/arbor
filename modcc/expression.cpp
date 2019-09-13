@@ -1,5 +1,4 @@
 #include <cstring>
-#include <stack>
 
 #include "expression.hpp"
 #include "identifier.hpp"
