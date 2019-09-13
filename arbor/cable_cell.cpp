@@ -450,10 +450,10 @@ cable_cell make_cable_cell(const morphology& m,
                            bool compartments_from_discretization)
 {
     using point3d = cable_cell::point_type;
-    cable_cell newcell;
+    cable_cell cell;
 
     if (!m.num_branches()) {
-        return newcell;
+        return cell;
     }
 
     // Add the soma.
@@ -461,7 +461,7 @@ cable_cell make_cable_cell(const morphology& m,
 
     // If there is no spherical root/soma use a zero-radius soma.
     double srad = m.spherical_root()? loc.radius: 0.;
-    newcell.add_soma(srad, point3d(loc.x, loc.y, loc.z));
+    cell.add_soma(srad, point3d(loc.x, loc.y, loc.z));
 
     auto& samples = m.samples();
     for (auto i: util::make_span(1, m.num_branches())) {
@@ -496,7 +496,7 @@ cable_cell make_cable_cell(const morphology& m,
         if (!m.spherical_root()) {
             pid = pid==mnpos? 0: pid+1;
         }
-        auto cable = newcell.add_cable(pid, make_segment<cable_segment>(kind, radii, points));
+        auto cable = cell.add_cable(pid, make_segment<cable_segment>(kind, radii, points));
         if (compartments_from_discretization) {
             cable->as_cable()->set_compartments(radii.size()-1);
         }
@@ -510,15 +510,17 @@ cable_cell make_cable_cell(const morphology& m,
     for (auto r: dictionary.regions()) {
         regions[r.first] = thingify(r.second, em);
     }
-    newcell.set_regions(std::move(regions));
+    cell.set_regions(std::move(regions));
 
     std::unordered_map<std::string, mlocation_list> locsets;
     for (auto l: dictionary.locsets()) {
         locsets[l.first] = thingify(l.second, em);
     }
-    newcell.set_locsets(std::move(locsets));
+    cell.set_locsets(std::move(locsets));
 
-    return newcell;
+    cell.set_morphology(std::move(em));
+
+    return cell;
 }
 
 } // namespace arb
