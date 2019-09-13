@@ -75,9 +75,24 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
+    struct connection_dom {
+        connection c;
+        int domain; // source domain
+    };
+    std::vector<connection_dom> connection_doms_;
+    std::vector<cell_size_type> connection_doms_part_;
+
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
+
+    void make_event_queues_by_connections(
+            const gathered_vector<spike>& global_spikes,
+            std::vector<pse_vector>& queues);
+    void make_event_queues_by_domains(
+            const gathered_vector<spike>& global_spikes,
+            std::vector<pse_vector>& queues);
+    
 };
 
 } // namespace arb

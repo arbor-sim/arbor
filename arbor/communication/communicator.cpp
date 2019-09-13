@@ -75,13 +75,22 @@ communicator::communicator(const recipe& rec,
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
+    
+    connection_doms_.reserve(n_cons);
+    connection_doms_part_.reserve(num_local_cells_+1);
+    std::size_t cd_pos = 0;
+    
     for (const auto& g: gid_infos) {
+        connection_doms_part_.push_back(cd_pos);
+        cd_pos += g.conns.size();
         for (auto con: g.conns) {
             const auto src = dom_dec.gid_domain(con.source.gid);
             src_domains.push_back(src);
             src_counts[src]++;
+            connection_doms_.emplace_back(con, src);
         }
     }
+    connection_doms_part_.push_back(cd_pos);
 
     // Construct the connections.
     // The loop above gave the information required to construct in place
@@ -142,12 +151,58 @@ gathered_vector<spike> communicator::exchange(std::vector<spike> local_spikes) {
     return global_spikes;
 }
 
+struct spike_pred {
+    bool operator()(const spike& spk, const cell_member_type& src)
+        {return spk.source<src;}
+    bool operator()(const cell_member_type& src, const spike& spk)
+        {return src<spk.source;}
+};
+
 void communicator::make_event_queues(
         const gathered_vector<spike>& global_spikes,
         std::vector<pse_vector>& queues)
 {
     arb_assert(queues.size()==num_local_cells_);
 
+    if (connection_doms_.size() < global_spikes.values().size()) {
+        make_event_queues_by_connections(global_spikes, queues);
+    } {
+        make_event_queues_by_domains(global_spikes, queues);
+    }
+}
+
+void communicator::make_event_queues_by_connections(
+        const gathered_vector<spike>& global_spikes,
+        std::vector<pse_vector>& queues)
+    )
+{
+    const auto& cpd = connection_doms_;
+    const auto& cp = connections_doms_part_;
+    const auto& sp = global_spikes.partition();
+    for (const auto cell_index: make_span(num_local_cells_)) {
+        if (cp[cell_index] == cp[cell_index+1]) {
+            continue;
+        }
+        
+        auto cell_connections = subrange_view(cpd, cp[cell_index], cp[cell_index+1]);
+        auto& queue = queues[cell_index];
+
+        for (const auto&& con: cell_connections) {
+            const auto& c = con.c;
+            const auto dom = con.domain;
+            auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
+            auto sources = std::equal_range(spks.begin(), spks.end(), c.source(), spike_pred());
+            for (auto s: make_range(sources)) {
+                queue.push_back(c.make_event(s));
+            }
+        }
+    }
+}
+
+void communicator::make_event_queues_by_domains(
+        const gathered_vector<spike>& global_spikes,
+        std::vector<pse_vector>& queues)
+{
     using util::subrange_view;
     using util::make_span;
     using util::make_range;
@@ -157,13 +212,6 @@ void communicator::make_event_queues(
     for (auto dom: make_span(num_domains_)) {
         auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
         auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
-
-        struct spike_pred {
-            bool operator()(const spike& spk, const cell_member_type& src)
-                {return spk.source<src;}
-            bool operator()(const cell_member_type& src, const spike& spk)
-                {return src<spk.source;}
-        };
 
         // We have a choice of whether to walk spikes or connections:
         // i.e., we can iterate over the spikes, and for each spike search
