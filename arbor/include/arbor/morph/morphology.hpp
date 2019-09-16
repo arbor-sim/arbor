@@ -10,7 +10,7 @@
 
 namespace arb {
 
-class morphology_impl;
+struct morphology_impl;
 
 using mindex_range = std::pair<const msize_t*, const msize_t*>;
 

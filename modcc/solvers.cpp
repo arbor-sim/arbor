@@ -1,5 +1,6 @@
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -392,12 +393,16 @@ void SparseSolverVisitor::finalize() {
     for (unsigned i = 0; i<A_.nrow(); ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs_col = A_.augcol();
-        unsigned lhs_col;
-        for (unsigned r = 0; r < A_.nrow(); r++) {
+        unsigned lhs_col = -1;
+        for (unsigned r = 0; r<A_.nrow(); ++r) {
             if (row[r]) {
                 lhs_col = r;
                 break;
             }
+        }
+
+        if (lhs_col==-1) {
+            throw std::logic_error("zero row in sparse solver matrix");
         }
 
         auto expr =
@@ -478,12 +483,16 @@ void LinearSolverVisitor::finalize() {
     for (unsigned i = 0; i < A_.nrow(); ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs = A_.augcol();
-        unsigned lhs;
-        for (unsigned r = 0; r < A_.nrow(); r++) {
+        unsigned lhs = -1;
+        for (unsigned r = 0; r < A_.nrow(); ++r) {
             if (row[r]) {
                 lhs = r;
                 break;
             }
+        }
+
+        if (lhs==-1) {
+            throw std::logic_error("zero row in linear solver matrix");
         }
 
         auto expr =
