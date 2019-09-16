@@ -55,7 +55,7 @@ void FunctionInliner::replace_with_args(Expression* e) {
 
 void FunctionInliner::visit(Expression* e) {
     throw compiler_exception(
-            "I don't know how to function inlining for this statement : "
+            "I don't know how to do function inlining for this statement : "
             + e->to_string(), e->location());
 }
 
