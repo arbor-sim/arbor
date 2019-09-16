@@ -580,11 +580,6 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
         return;
     }
 
-    if (conserve_ && !A_[deq_index_].empty()) {
-        deq_index_++;
-        return;
-    }
-
     auto s = deriv->name();
     auto expanded_rhs = substitute(rhs, local_expr_);
 
@@ -614,6 +609,11 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
 
     statements_.push_back(std::move(local_f_term.local_decl));
     F_.push_back(std::move(local_f_term.assignment));
+
+    if (conserve_ && !A_[deq_index_].empty()) {
+        deq_index_++;
+        return;
+    }
 
     // Form and save the Jacobian J(x) of F(x)
     // J(x) = I - dt(∂G(x)/∂x)
