@@ -2,6 +2,7 @@
 
 set(test_mechanisms
     celsius_test
+    diam_test
     test_linear_state
     test_linear_init
     test_linear_init_shuffle
@@ -97,7 +98,7 @@ set(unit_sources
     test_matrix.cpp
     test_cable_cell.cpp
     test_mechanisms.cpp
-    test_mech_temperature.cpp
+    test_mech_temp_diam.cpp
     test_mechcat.cpp
     test_merge_events.cpp
     test_multi_event_stream.cpp

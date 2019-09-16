@@ -64,12 +64,64 @@ void run_celsius_test() {
     EXPECT_EQ(expected_c_values, mechanism_field(celsius_test.get(), "c"));
 }
 
+template <typename backend>
+void run_diam_test() {
+    auto cat = make_unit_test_catalogue();
+
+    // one cell, three CVs:
+
+    fvm_size_type ncell = 1;
+    fvm_size_type ncv = 3;
+    std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
+
+    std::vector<fvm_gap_junction> gj = {};
+    auto instance = cat.instance<backend>("diam_test");
+    auto& celsius_test = instance.mech;
+
+    std::vector<fvm_value_type> temp(ncv, 300.);
+    std::vector<fvm_value_type> vinit(ncv, -65);
+    std::vector<fvm_value_type> diam(ncv);
+
+    mechanism_layout layout;
+    mechanism_overrides overrides;
+
+    layout.weight.assign(ncv, 1.);
+
+    for (fvm_size_type i = 0; i < ncv; ++i) {
+        diam[i] = i*2 + 0.1;
+        layout.cv.push_back(i);
+    }
+
+    auto shared_state = std::make_unique<typename backend::shared_state>(
+            ncell, cv_to_intdom, gj, vinit, temp, diam, celsius_test->data_alignment());
+
+
+    celsius_test->instantiate(0, *shared_state, overrides, layout);
+    shared_state->reset();
+
+    // expect 0 value in state 'd' after init:
+
+    celsius_test->initialize();
+    std::vector<fvm_value_type> expected_d_values(ncv, 0.);
+
+    EXPECT_EQ(expected_d_values, mechanism_field(celsius_test.get(), "d"));
+
+    // expect original diam values in state 'd' after state update:
+
+    celsius_test->nrn_state();
+    expected_d_values = diam;
+
+    EXPECT_EQ(expected_d_values, mechanism_field(celsius_test.get(), "d"));
+}
+
 TEST(mech_temperature, celsius) {
     run_celsius_test<multicore::backend>();
+    run_diam_test<multicore::backend>();
 }
 
 #ifdef ARB_GPU_ENABLED
 TEST(mech_temperature_gpu, celsius) {
     run_celsius_test<gpu::backend>();
+    run_diam_test<gpu::backend>();
 }
 #endif
