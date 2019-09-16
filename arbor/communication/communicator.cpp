@@ -174,19 +174,17 @@ void communicator::make_event_queues(
 void communicator::make_event_queues_by_connections(
         const gathered_vector<spike>& global_spikes,
         std::vector<pse_vector>& queues)
-    )
 {
     const auto& cpd = connection_doms_;
     const auto& cp = connections_doms_part_;
     const auto& sp = global_spikes.partition();
     for (const auto cell_index: make_span(num_local_cells_)) {
-        if (cp[cell_index] == cp[cell_index+1]) {
+        auto cell_connections = subrange_view(cpd, cp[cell_index], cp[cell_index+1]);
+        if (cell_connections.empty()) {
             continue;
         }
-        
-        auto cell_connections = subrange_view(cpd, cp[cell_index], cp[cell_index+1]);
         auto& queue = queues[cell_index];
-
+        
         for (const auto&& con: cell_connections) {
             const auto& c = con.c;
             const auto dom = con.domain;
