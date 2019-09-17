@@ -80,14 +80,14 @@ communicator::communicator(const recipe& rec,
     connection_doms_part_.reserve(num_local_cells_+1);
     std::size_t cd_pos = 0;
     
-    for (const auto& g: gid_infos) {
+    for (const auto& cell: gid_infos) {
         connection_doms_part_.push_back(cd_pos);
-        cd_pos += g.conns.size();
-        for (auto con: g.conns) {
-            const auto src = dom_dec.gid_domain(con.source.gid);
+        cd_pos += cell.conns.size();
+        for (auto c: cell.conns) {
+            auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);
             src_counts[src]++;
-            connection_doms_.emplace_back(con, src);
+            connection_doms_.push_back({{c.source, c.dest, c.weight, c.delay, cell.index_on_domain}, src});
         }
     }
     connection_doms_part_.push_back(cd_pos);
@@ -175,8 +175,12 @@ void communicator::make_event_queues_by_connections(
         const gathered_vector<spike>& global_spikes,
         std::vector<pse_vector>& queues)
 {
-    const auto& cpd = connection_doms_;
-    const auto& cp = connections_doms_part_;
+    using util::subrange_view;
+    using util::make_span;
+    using util::make_range;
+
+    auto& cpd = connection_doms_;
+    const auto& cp = connection_doms_part_;
     const auto& sp = global_spikes.partition();
     for (const auto cell_index: make_span(num_local_cells_)) {
         auto cell_connections = subrange_view(cpd, cp[cell_index], cp[cell_index+1]);
@@ -185,9 +189,9 @@ void communicator::make_event_queues_by_connections(
         }
         auto& queue = queues[cell_index];
         
-        for (const auto&& con: cell_connections) {
-            const auto& c = con.c;
-            const auto dom = con.domain;
+        for (auto& con: cell_connections) {
+            auto& c = con.c;
+            auto dom = con.domain;
             auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
             auto sources = std::equal_range(spks.begin(), spks.end(), c.source(), spike_pred());
             for (auto s: make_range(sources)) {
