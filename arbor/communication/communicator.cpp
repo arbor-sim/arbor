@@ -22,6 +22,10 @@
 
 namespace arb {
 
+communicator::~communicator() {
+    std::cerr << "by_connections: " << by_connections << ", by_domains: " << by_domains << std::endl;
+}
+
 communicator::communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
                           execution_context& ctx)
@@ -179,6 +183,8 @@ void communicator::make_event_queues_by_connections(
     using util::make_span;
     using util::make_range;
 
+    by_connections++;
+
     auto& cpd = connection_doms_;
     const auto& cp = connection_doms_part_;
     const auto& sp = global_spikes.partition();
@@ -208,6 +214,8 @@ void communicator::make_event_queues_by_domains(
     using util::subrange_view;
     using util::make_span;
     using util::make_range;
+
+    by_domains++;
 
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;

@@ -28,6 +28,7 @@ namespace arb {
 class communicator {
 public:
     communicator() {}
+    ~communicator();
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
@@ -92,6 +93,9 @@ private:
     void make_event_queues_by_domains(
             const gathered_vector<spike>& global_spikes,
             std::vector<pse_vector>& queues);
+
+    std::size_t by_connections = 0;
+    std::size_t by_domains = 0;
     
 };
 
