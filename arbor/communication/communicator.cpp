@@ -76,25 +76,24 @@ communicator::communicator(const recipe& rec,
 
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
-    std::vector<unsigned> src_domains;
-    src_domains.reserve(n_cons);
+    src_domains_.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
     
-    connection_doms_.reserve(n_cons);
-    connection_doms_part_.reserve(num_local_cells_+1);
-    std::size_t cd_pos = 0;
+    connections_bycell_.reserve(n_cons);
+    connections_bycell_part_.reserve(num_local_cells_+1);
     
+    std::size_t conn_pos = 0;    
     for (const auto& cell: gid_infos) {
-        connection_doms_part_.push_back(cd_pos);
-        cd_pos += cell.conns.size();
+        connections_bycell_part_.push_back(conn_pos);
         for (auto c: cell.conns) {
             auto src = dom_dec.gid_domain(c.source.gid);
-            src_domains.push_back(src);
+            src_domains_.push_back(src);
             src_counts[src]++;
-            connection_doms_.push_back({{c.source, c.dest, c.weight, c.delay, cell.index_on_domain}, src});
+            connections_bycell_.push_back({c.source, c.dest, c.weight, c.delay, cell.index_on_domain});
         }
+        conn_pos += cell.conns.size();
     }
-    connection_doms_part_.push_back(cd_pos);
+    connections_bycell_part_.push_back(conn_pos);
 
     // Construct the connections.
     // The loop above gave the information required to construct in place
@@ -105,7 +104,7 @@ communicator::communicator(const recipe& rec,
     std::size_t pos = 0;
     for (const auto& cell: gid_infos) {
         for (auto c: cell.conns) {
-            const auto i = offsets[src_domains[pos]]++;
+            const auto i = offsets[src_domains_[pos]]++;
             connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
@@ -168,10 +167,35 @@ void communicator::make_event_queues(
 {
     arb_assert(queues.size()==num_local_cells_);
 
-    if (connection_doms_.size() < global_spikes.values().size()) {
+    if (false) {
+    if (connections_bycell_.size() < global_spikes.values().size()) {
         make_event_queues_by_connections(global_spikes, queues);
     } {
         make_event_queues_by_domains(global_spikes, queues);
+    }
+    }
+    else {
+        std::vector<pse_vector> cqueues{queues.size()};
+        make_event_queues_by_connections(global_spikes, queues);
+        make_event_queues_by_domains(global_spikes, cqueues);
+
+        std::cerr << "Check queues" << std::endl;
+        auto bad = false;
+        for (std::size_t i = 0; i < queues.size(); i++) {
+            if (queues[i] != cqueues[i]) {
+                bad = true;
+                std::cerr << "Q[" << i << "]" << std::endl;
+                for (std::size_t j = 0; j < queues[i].size(); j++) {
+                    std::cerr << j << ": " << queues[i][j] << std::endl;
+                }
+                std::cerr << "Q[" << i << "]" << std::endl;
+                for (std::size_t j = 0; j < cqueues[i].size(); j++) {
+                    std::cerr << j << ": " << cqueues[i][j] << std::endl;
+                }
+            }
+        }
+        if (bad) std::exit(1);
+        std::cerr << "End check queues" << std::endl;
     }
 }
 
@@ -185,23 +209,20 @@ void communicator::make_event_queues_by_connections(
 
     by_connections++;
 
-    auto& cpd = connection_doms_;
-    const auto& cp = connection_doms_part_;
+    auto& conns = connections_bycell_;
+    const auto& cp = connections_bycell_part_;
     const auto& sp = global_spikes.partition();
+    std::size_t c_num = 0;
     for (const auto cell_index: make_span(num_local_cells_)) {
-        auto cell_connections = subrange_view(cpd, cp[cell_index], cp[cell_index+1]);
-        if (cell_connections.empty()) {
-            continue;
-        }
+        auto cell_connections = subrange_view(conns, cp[cell_index], cp[cell_index+1]);
         auto& queue = queues[cell_index];
         
-        for (auto& con: cell_connections) {
-            auto& c = con.c;
-            auto dom = con.domain;
+        for (auto& conn: cell_connections) {
+            auto dom = src_domains_[c_num++];
             auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
-            auto sources = std::equal_range(spks.begin(), spks.end(), c.source(), spike_pred());
+            auto sources = std::equal_range(spks.begin(), spks.end(), conn.source(), spike_pred());
             for (auto s: make_range(sources)) {
-                queue.push_back(c.make_event(s));
+                queue.push_back(conn.make_event(s));
             }
         }
     }
