@@ -49,7 +49,10 @@ struct execution_context;
 //
 // As execution_context is an incomplete type, an explicit deleter must be
 // provided.
-using context = std::unique_ptr<execution_context, void (*)(execution_context*)>;
+struct execution_context_deleter {
+    void operator()(execution_context*) const;
+};
+using context = std::unique_ptr<execution_context, execution_context_deleter>;
 
 // Helpers for creating contexts. These are implemented in the back end.
 
