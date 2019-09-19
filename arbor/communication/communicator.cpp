@@ -167,35 +167,10 @@ void communicator::make_event_queues(
 {
     arb_assert(queues.size()==num_local_cells_);
 
-    if (false) {
     if (connections_bycell_.size() < global_spikes.values().size()) {
         make_event_queues_by_connections(global_spikes, queues);
-    } {
+    } else {
         make_event_queues_by_domains(global_spikes, queues);
-    }
-    }
-    else {
-        std::vector<pse_vector> cqueues{queues.size()};
-        make_event_queues_by_connections(global_spikes, queues);
-        make_event_queues_by_domains(global_spikes, cqueues);
-
-        std::cerr << "Check queues" << std::endl;
-        auto bad = false;
-        for (std::size_t i = 0; i < queues.size(); i++) {
-            if (queues[i] != cqueues[i]) {
-                bad = true;
-                std::cerr << "Q[" << i << "]" << std::endl;
-                for (std::size_t j = 0; j < queues[i].size(); j++) {
-                    std::cerr << j << ": " << queues[i][j] << std::endl;
-                }
-                std::cerr << "Q[" << i << "]" << std::endl;
-                for (std::size_t j = 0; j < cqueues[i].size(); j++) {
-                    std::cerr << j << ": " << cqueues[i][j] << std::endl;
-                }
-            }
-        }
-        if (bad) std::exit(1);
-        std::cerr << "End check queues" << std::endl;
     }
 }
 
