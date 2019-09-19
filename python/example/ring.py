@@ -77,13 +77,16 @@ print(f'{decomp}')
 meters.checkpoint('load-balance', context)
 
 sim = arbor.simulation(recipe, decomp, context)
-print(f'{sim} finished')
 
 meters.checkpoint('simulation-init', context)
 
 recorder = arbor.attach_spike_recorder(sim)
+arbor.add_samplers(sim, 10.)
 
 sim.run(1000)
+print(f'{sim} finished')
+
+sim.remove_samplers()
 
 meters.checkpoint('simulation-run', context)
 
