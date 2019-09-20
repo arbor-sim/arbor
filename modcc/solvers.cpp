@@ -1,5 +1,6 @@
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -393,10 +394,16 @@ void SparseSolverVisitor::finalize() {
     for (unsigned i = 0; i<nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs_col = A_.augcol();
-        unsigned lhs_col = 0;
-        while (lhs_col<nrow && !row[lhs_col]) ++lhs_col;
-        if (lhs_col==nrow) {
-            error({"internal compiler error", loc});
+        unsigned lhs_col = -1;
+        for (unsigned r = 0; r<A_.nrow(); ++r) {
+            if (row[r]) {
+                lhs_col = r;
+                break;
+            }
+        }
+
+        if (lhs_col==-1) {
+            throw std::logic_error("zero row in sparse solver matrix");
         }
 
         auto expr =
@@ -478,18 +485,24 @@ void LinearSolverVisitor::finalize() {
     for (unsigned i = 0; i < nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs = A_.augcol();
-        unsigned lhs_col = 0;
-        while (lhs_col<nrow && !row[lhs_col]) ++lhs_col;
-        if (lhs_col==nrow) {
-            error({"internal compiler error", loc});
+        unsigned lhs = -1;
+        for (unsigned r = 0; r < A_.nrow(); ++r) {
+            if (row[r]) {
+                lhs = r;
+                break;
+            }
+        }
+
+        if (lhs==-1) {
+            throw std::logic_error("zero row in linear solver matrix");
         }
 
         auto expr =
             make_expression<AssignmentExpression>(loc,
-                    make_expression<IdentifierExpression>(loc, dvars_[lhs_col]),
+                    make_expression<IdentifierExpression>(loc, dvars_[lhs]),
                     make_expression<DivBinaryExpression>(loc,
                             make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
-                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs_col]))));
+                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs]))));
 
         statements_.push_back(std::move(expr));
     }

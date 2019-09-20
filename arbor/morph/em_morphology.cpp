@@ -1,4 +1,5 @@
 #include <mutex>
+#include <stack>
 #include <vector>
 
 #include <arbor/morph/error.hpp>
@@ -147,4 +148,40 @@ mlocation em_morphology::canonicalize(mlocation loc) const {
     return loc;
 }
 
+mlocation_list em_morphology::minset(const mlocation_list& in) const {
+    mlocation_list L;
+
+    std::stack<msize_t> stack;
+
+    // All root branches must be searched.
+    for (auto c: morph_.branch_children(mnpos)) {
+        stack.push(c);
+    }
+
+    // Depth-first traversal of the branch tree.
+    while (!stack.empty()) {
+        auto branch = stack.top();
+        stack.pop();
+
+        // Search for a location on branch.
+        auto it = std::lower_bound(in.begin(), in.end(), mlocation{branch, 0});
+
+        // If found, insert to the minset and skip the rest of this sub-tree.
+        if (it!=in.end() && it->branch==branch) {
+            L.push_back(*it);
+            continue;
+        }
+
+        // No location on this branch, so continue searching in this sub-tree.
+        for (auto c: morph_.branch_children(branch)) {
+            stack.push(c);
+        }
+    }
+
+    util::sort(L);
+
+    return L;
+}
+
 } // namespace arb
+
