@@ -42,6 +42,8 @@ struct cable_cell_impl {
         gap_junction_sites = other.gap_junction_sites;
         spike_detectors = other.spike_detectors;
         regions = other.regions;
+        morph = other.morph;
+        locations = other.locations;
 
         // unique_ptr's cannot be copy constructed, do a manual assignment
         segments.reserve(other.segments.size());
@@ -79,33 +81,34 @@ struct cable_cell_impl {
     // Underlying embedded morphology
     em_morphology morph;
 
-    template <typename Desc, typename List>
-    locrange place(const mlocation_list& locs, const Desc& desc, List& list) {
+    template <typename Desc, typename T>
+    lid_range place(const mlocation_list& locs, const Desc& desc, std::vector<T>& list) {
         const auto first = list.size();
 
-        stimuli.reserve(first+locs.size());
+        list.reserve(first+locs.size());
         for (auto loc: locs) {
             list.push_back({loc, desc});
         }
 
-        return locrange(first, list.size());
+        return lid_range(first, list.size());
     }
 
-    locrange place_gj(const mlocation_list& locs) {
+    lid_range place_gj(const mlocation_list& locs) {
         const auto first = gap_junction_sites.size();
 
-        gap_junction_sites.reserve(first+locs.size());
-        for (auto loc: locs) {
-            gap_junction_sites.push_back(loc);
-        }
+        gap_junction_sites.insert(gap_junction_sites.end(), locs.begin(), locs.end());
 
-        return locrange(first, gap_junction_sites.size());
+        return lid_range(first, gap_junction_sites.size());
     }
 
     void assert_valid_segment(index_type i) const {
         if (i>=segments.size()) {
             throw cable_cell_error("no such segment");
         }
+    }
+
+    bool valid_location(const mlocation& loc) const {
+        return test_invariants(loc) && loc.branch<segments.size();
     }
 };
 
@@ -244,24 +247,24 @@ void cable_cell::paint(const std::string& target, mechanism_desc desc) {
 // Synapses
 //
 
-locrange cable_cell::place(const std::string& target, const mechanism_desc& desc) {
+lid_range cable_cell::place(const std::string& target, const mechanism_desc& desc) {
     const auto first = impl_->synapses.size();
 
     const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return locrange(first, first);
+    if (it==impl_->locations.end()) return lid_range(first, first);
 
     return impl_->place(it->second, desc, impl_->synapses);
 }
 
 /*
-locrange cable_cell::place(const locset& ls, const mechanism_desc& desc) {
+lid_range cable_cell::place(const locset& ls, const mechanism_desc& desc) {
     const auto locs = thingify(ls, impl_->morph);
     return impl_->place(locs, desc, impl_->synapses);
 }
 */
 
-locrange cable_cell::place(const mlocation& loc, const mechanism_desc& desc) {
-    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+lid_range cable_cell::place(const mlocation& loc, const mechanism_desc& desc) {
+    if (!impl_->valid_location(loc)) {
         throw cable_cell_error(util::pprintf(
             "Attempt to add synapse at invalid location: \"{}\"", loc));
     }
@@ -272,26 +275,26 @@ locrange cable_cell::place(const mlocation& loc, const mechanism_desc& desc) {
 // Stimuli
 //
 
-locrange cable_cell::place(const std::string& target, const i_clamp& desc) {
+lid_range cable_cell::place(const std::string& target, const i_clamp& desc) {
     const auto first = impl_->stimuli.size();
 
     const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return locrange(first, first);
+    if (it==impl_->locations.end()) return lid_range(first, first);
 
     return impl_->place(it->second, desc, impl_->stimuli);
 }
 
 /*
-locrange cable_cell::place(const locset& ls, const i_clamp& desc) {
+lid_range cable_cell::place(const locset& ls, const i_clamp& desc) {
     const auto locs = thingify(ls, impl_->morph);
     return impl_->place(locs, desc, impl_->stimuli);
 }
 */
 
-locrange cable_cell::place(const mlocation& loc, const i_clamp& desc) {
-    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+lid_range cable_cell::place(const mlocation& loc, const i_clamp& desc) {
+    if (!impl_->valid_location(loc)) {
         throw cable_cell_error(util::pprintf(
-            "Attempt to add stimulus at invalid location: \"{}\"", loc));
+            "Attempt to add stimulus at invalid location: {}", loc));
     }
     return impl_->place({loc}, desc, impl_->stimuli);
 }
@@ -300,26 +303,26 @@ locrange cable_cell::place(const mlocation& loc, const i_clamp& desc) {
 // Gap junctions.
 //
 
-locrange cable_cell::place(const std::string& target, gap_junction_site) {
+lid_range cable_cell::place(const std::string& target, gap_junction_site) {
     const auto first = impl_->stimuli.size();
 
     const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return locrange(first, first);
+    if (it==impl_->locations.end()) return lid_range(first, first);
 
     return impl_->place_gj(it->second);
 }
 
 /*
-locrange cable_cell::place(const locset& ls, gap_junction_site) {
+lid_range cable_cell::place(const locset& ls, gap_junction_site) {
     const auto locs = thingify(ls, impl_->morph);
     return impl_->place_gj(locs);
 }
 */
 
-locrange cable_cell::place(const mlocation& loc, gap_junction_site) {
-    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+lid_range cable_cell::place(const mlocation& loc, gap_junction_site) {
+    if (!impl_->valid_location(loc)) {
         throw cable_cell_error(util::pprintf(
-            "Attempt to add gap junction site at invalid location: \"{}\"", loc));
+            "Attempt to add gap junction site at invalid location: {}", loc));
     }
     return impl_->place_gj({loc});
 }
@@ -327,26 +330,26 @@ locrange cable_cell::place(const mlocation& loc, gap_junction_site) {
 //
 // Spike detectors.
 //
-locrange cable_cell::place(const std::string& target, const detector& desc) {
+lid_range cable_cell::place(const std::string& target, const threshold_detector& desc) {
     const auto first = impl_->stimuli.size();
 
     const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return locrange(first, first);
+    if (it==impl_->locations.end()) return lid_range(first, first);
 
     return impl_->place(it->second, desc.threshold, impl_->spike_detectors);
 }
 
 /*
-locrange cable_cell::place(const locset& ls, const detector& desc) {
+lid_range cable_cell::place(const locset& ls, const threshold_detector& desc) {
     const auto locs = thingify(ls, impl_->morph);
     return impl_->place(locs, desc.threshold, impl_->spike_detectors);
 }
 */
 
-locrange cable_cell::place(const mlocation& loc, const detector& desc) {
-    if (!test_invariants(loc) || loc.branch>=num_segments()) {
+lid_range cable_cell::place(const mlocation& loc, const threshold_detector& desc) {
+    if (!impl_->valid_location(loc)) {
         throw cable_cell_error(util::pprintf(
-            "Attempt to add spike detector at invalid location: \"{}\"", loc));
+            "Attempt to add spike detector at invalid location: {}", loc));
     }
     return impl_->place({loc}, desc.threshold, impl_->spike_detectors);
 }

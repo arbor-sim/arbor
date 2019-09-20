@@ -21,7 +21,7 @@ namespace {
     cable_cell make_cell() {
         auto c = make_cell_ball_and_stick();
 
-        c.place(mlocation{0, 0}, detector{0});
+        c.place(mlocation{0, 0}, threshold_detector{0});
         c.segment(1)->set_compartments(101);
 
         return c;

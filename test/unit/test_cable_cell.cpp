@@ -200,7 +200,7 @@ TEST(cable_cell, clone) {
     c.segment(2)->set_compartments(5);
 
     c.place(mlocation{1, 0.3}, "expsyn");
-    c.place(mlocation{0, 0.5}, detector{10.0});
+    c.place(mlocation{0, 0.5}, threshold_detector{10.0});
 
     // make clone
 

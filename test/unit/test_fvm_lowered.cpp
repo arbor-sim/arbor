@@ -262,7 +262,7 @@ TEST(fvm_lowered, target_handles) {
     cells[1].place(mlocation{2, 0.2}, "exp2syn");
     cells[1].place(mlocation{2, 0.8}, "expsyn");
 
-    cells[1].place(mlocation{0, 0}, detector{3.3});
+    cells[1].place(mlocation{0, 0}, threshold_detector{3.3});
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;

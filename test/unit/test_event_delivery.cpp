@@ -30,7 +30,7 @@ struct test_recipe: public n_cable_cell_recipe {
         cable_cell c;
         c.add_soma(10.)->add_mechanism("pas");
         c.place(mlocation{0, 0.5}, "expsyn");
-        c.place(mlocation{0, 0.5}, detector{-64});
+        c.place(mlocation{0, 0.5}, threshold_detector{-64});
         c.place(mlocation{0, 0.5}, gap_junction_site{});
         return c;
     }

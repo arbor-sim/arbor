@@ -23,7 +23,7 @@ namespace {
     cable_cell make_cell() {
         auto c = make_cell_ball_and_stick();
 
-        c.place(mlocation{0, 0}, detector{0});
+        c.place(mlocation{0, 0}, threshold_detector{0});
         c.segment(1)->set_compartments(101);
 
         return c;
@@ -63,7 +63,7 @@ TEST(mc_cell_group, sources) {
     for (int i=0; i<20; ++i) {
         cells.push_back(make_cell());
         if (i==0 || i==3 || i==17) {
-            cells.back().place(mlocation{1, 0.3}, detector{2.3});
+            cells.back().place(mlocation{1, 0.3}, threshold_detector{2.3});
         }
 
         EXPECT_EQ(1u + (i==0 || i==3 || i==17), cells.back().detectors().size());

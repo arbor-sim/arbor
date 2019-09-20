@@ -32,7 +32,7 @@ struct i_clamp {
 };
 
 // Threshold detector description.
-struct detector {
+struct threshold_detector {
     double threshold;
 };
 

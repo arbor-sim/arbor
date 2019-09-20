@@ -402,7 +402,7 @@ void SparseSolverVisitor::finalize() {
             }
         }
 
-        if (lhs_col==-1) {
+        if (lhs_col==unsigned(-1)) {
             throw std::logic_error("zero row in sparse solver matrix");
         }
 
@@ -493,7 +493,7 @@ void LinearSolverVisitor::finalize() {
             }
         }
 
-        if (lhs==-1) {
+        if (lhs==unsigned(-1)) {
             throw std::logic_error("zero row in linear solver matrix");
         }
 

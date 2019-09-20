@@ -20,11 +20,11 @@ namespace arb {
 // Pair of indexes that describe range of local indices.
 // Returned by cable_cell::place() calls, so that the caller can
 // refer to targets, detectors, etc on the cell.
-struct locrange {
-    cell_lid_type first;
-    cell_lid_type last;
-    locrange(cell_lid_type first, cell_lid_type last):
-        first(first), last(last) {}
+struct lid_range {
+    cell_lid_type begin;
+    cell_lid_type end;
+    lid_range(cell_lid_type b, cell_lid_type e):
+        begin(b), end(e) {}
 };
 
 // Probe type for cell descriptions.
@@ -131,24 +131,24 @@ public:
     void paint(const std::string& target, mechanism_desc);
 
     // Synapses.
-    locrange place(const std::string& target, const mechanism_desc&);
-    locrange place(const mlocation&, const mechanism_desc&);  // LEGACY
-    //locrange place(const locset&, const mechanism_desc&);
+    lid_range place(const std::string& target, const mechanism_desc&);
+    lid_range place(const mlocation&, const mechanism_desc&);  // LEGACY
+    //lid_range place(const locset&, const mechanism_desc&);
 
     // Stimuli.
-    locrange place(const std::string& target, const i_clamp&);
-    locrange place(const mlocation&, const i_clamp&);  // LEGACY
-    //locrange place(const locset&, const i_clamp&);
+    lid_range place(const std::string& target, const i_clamp&);
+    lid_range place(const mlocation&, const i_clamp&);  // LEGACY
+    //lid_range place(const locset&, const i_clamp&);
 
     // Gap junctions.
-    locrange place(const std::string&, gap_junction_site);
-    locrange place(const mlocation& loc, gap_junction_site);  // LEGACY
-    //locrange place(const locset&, gap_junction_site);
+    lid_range place(const std::string&, gap_junction_site);
+    lid_range place(const mlocation& loc, gap_junction_site);  // LEGACY
+    //lid_range place(const locset&, gap_junction_site);
 
     // spike detectors
-    locrange place(const std::string&, const detector&);
-    locrange place(const mlocation&, const detector&);  // LEGACY
-    //locrange place(const locset&, const detector&);
+    lid_range place(const std::string&, const threshold_detector&);
+    lid_range place(const mlocation&, const threshold_detector&);  // LEGACY
+    //lid_range place(const locset&, const threshold_detector&);
 
     //
     // access to placed items
