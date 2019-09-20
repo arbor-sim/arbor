@@ -380,7 +380,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Add spike threshold detector at the soma.
-    cell.place(arb::mlocation{0,0}, arb::detector{10});
+    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add a synapse to the mid point of the first dendrite.
     cell.place(arb::mlocation{1, 0.5}, "expsyn");

@@ -368,7 +368,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     set_reg_params();
     setup_seg(dend);
 
-    cell.place(arb::mlocation{0,0}, arb::detector{10});
+    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
     cell.place(arb::mlocation{1, 1}, arb::gap_junction_site{});
