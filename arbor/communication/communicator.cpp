@@ -201,6 +201,12 @@ void communicator::make_event_queues_by_domains(
     using util::make_span;
     using util::make_range;
 
+    constexpr std::size_t prefetches = 1024;
+    struct prefetched {
+        util::range<U, U> spikes;
+        connection c;
+    };
+
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;
     for (auto dom: make_span(num_domains_)) {
