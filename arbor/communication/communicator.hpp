@@ -27,7 +27,8 @@ namespace arb {
 
 class communicator {
 public:
-    communicator() {}
+    communicator();
+    ~communicator();
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
@@ -75,20 +76,16 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    std::vector<unsigned> src_domains_;
-    std::vector<connection> connections_bycell_;
-    std::vector<cell_size_type> connections_bycell_part_;
-
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 
-    void make_event_queues_by_connections(
-            const gathered_vector<spike>& global_spikes,
-            std::vector<pse_vector>& queues);
-    void make_event_queues_by_domains(
-            const gathered_vector<spike>& global_spikes,
-            std::vector<pse_vector>& queues);
+    struct prefetched_connection;
+    using prefetch_vector = std::vector<prefetched_connection>;
+    struct prefetch_vector_deleter {
+        void operator()(prefetch_vector*) const;
+    };
+    std::unique_ptr<prefetch_vector> prefetch_;
 };
 
 } // namespace arb

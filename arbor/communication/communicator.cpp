@@ -22,9 +22,55 @@
 
 namespace arb {
 
+struct communicator::prefetched_connection {
+    static constexpr std::size_t n = 1024;
+
+    using gvit = std::vector<spike>::const_iterator;
+    using pgvit = std::pair<gvit, gvit>;
+    using cit = std::vector<connection>::iterator;
+    using qit = std::vector<pse_vector>::iterator;
+    
+    gvit s1;
+    gvit s2; // maybe undefined -- depends on constructor
+    cit c;
+    qit q;
+
+    prefetched_connection(const pgvit&, const cit&, const qit&);
+    prefetched_connection(const gvit&, const cit&, const qit&);
+    prefetched_connection() = default;
+
+    void prefetch() {__builtin_prefetch(&*c);};
+};
+
+void communicator::prefetch_vector_deleter::operator()(prefetch_vector* p) const {
+    delete p;
+}
+
+communicator::prefetched_connection::prefetched_connection(const pgvit& sources_, const cit& c_, const qit& q_)
+    : s1(sources_.first),
+      s2(sources_.second),
+      c(c_),
+      q(q_)
+{
+    prefetch();
+}
+
+communicator::prefetched_connection::prefetched_connection(const gvit& sp, const cit& c_, const qit& q_)
+    : s1(sp),
+      s2(),
+      c(c_),
+      q(q_)
+{
+    prefetch();
+}
+
+communicator::communicator() {}
+communicator::~communicator() {}
+
 communicator::communicator(const recipe& rec,
-                          const domain_decomposition& dom_dec,
-                          execution_context& ctx)
+                           const domain_decomposition& dom_dec,
+                           execution_context& ctx)
+    : prefetch_(std::make_unique<prefetch_vector>())
 {
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -72,24 +118,17 @@ communicator::communicator(const recipe& rec,
 
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
-    src_domains_.reserve(n_cons);
+    std::vector<unsigned> src_domains;
+    src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
     
-    connections_bycell_.reserve(n_cons);
-    connections_bycell_part_.reserve(num_local_cells_+1);
-    
-    std::size_t conn_pos = 0;    
     for (const auto& cell: gid_infos) {
-        connections_bycell_part_.push_back(conn_pos);
         for (auto c: cell.conns) {
             auto src = dom_dec.gid_domain(c.source.gid);
-            src_domains_.push_back(src);
+            src_domains.push_back(src);
             src_counts[src]++;
-            connections_bycell_.push_back({c.source, c.dest, c.weight, c.delay, cell.index_on_domain});
         }
-        conn_pos += cell.conns.size();
     }
-    connections_bycell_part_.push_back(conn_pos);
 
     // Construct the connections.
     // The loop above gave the information required to construct in place
@@ -100,7 +139,7 @@ communicator::communicator(const recipe& rec,
     std::size_t pos = 0;
     for (const auto& cell: gid_infos) {
         for (auto c: cell.conns) {
-            const auto i = offsets[src_domains_[pos]]++;
+            const auto i = offsets[src_domains[pos]]++;
             connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
@@ -119,6 +158,8 @@ communicator::communicator(const recipe& rec,
         [&](cell_size_type i) {
             util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
         });
+
+    prefetch_->reserve(prefetched_connection::n);
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -163,49 +204,9 @@ void communicator::make_event_queues(
 {
     arb_assert(queues.size()==num_local_cells_);
 
-    make_event_queues_by_connections(global_spikes, queues);
-}
-
-void communicator::make_event_queues_by_connections(
-        const gathered_vector<spike>& global_spikes,
-        std::vector<pse_vector>& queues)
-{
     using util::subrange_view;
     using util::make_span;
     using util::make_range;
-
-    auto& conns = connections_bycell_;
-    const auto& cp = connections_bycell_part_;
-    const auto& sp = global_spikes.partition();
-    std::size_t c_num = 0;
-    for (const auto cell_index: make_span(num_local_cells_)) {
-        auto cell_connections = subrange_view(conns, cp[cell_index], cp[cell_index+1]);
-        auto& queue = queues[cell_index];
-        
-        for (auto& conn: cell_connections) {
-            auto dom = src_domains_[c_num++];
-            auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
-            auto sources = std::equal_range(spks.begin(), spks.end(), conn.source(), spike_pred());
-            for (auto s: make_range(sources)) {
-                queue.push_back(conn.make_event(s));
-            }
-        }
-    }
-}
-
-void communicator::make_event_queues_by_domains(
-        const gathered_vector<spike>& global_spikes,
-        std::vector<pse_vector>& queues)
-{
-    using util::subrange_view;
-    using util::make_span;
-    using util::make_range;
-
-    constexpr std::size_t prefetches = 1024;
-    struct prefetched {
-        util::range<U, U> spikes;
-        connection c;
-    };
 
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;
@@ -225,28 +226,39 @@ void communicator::make_event_queues_by_domains(
         if (cons.size()<spks.size()) {
             auto sp = spks.begin();
             auto cn = cons.begin();
-            while (cn!=cons.end() && sp!=spks.end()) {
+            while (prefetch_->size() < prefetched_connection::n && cn!=cons.end() && sp!=spks.end()) {
                 auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
-                for (auto s: make_range(sources)) {
-                    queues[cn->index_on_domain()].push_back(cn->make_event(s));
+                if (sources.first != sources.second) {
+                    prefetch_->push_back({sources, cn, queues.begin()+cn->index_on_domain()});
                 }
-
                 sp = sources.first;
                 ++cn;
             }
+
+            for (const auto& pre: *prefetch_) {
+                for (auto s: make_range(pre.s1, pre.s2)) {
+                    pre.q->push_back(pre.c->make_event(s));
+                }
+            }
+            prefetch_->clear();
         }
         else {
             auto cn = cons.begin();
             auto sp = spks.begin();
-            while (cn!=cons.end() && sp!=spks.end()) {
+            while (prefetch_->size() < prefetched_connection::n && cn!=cons.end() && sp!=spks.end()) {
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
-                for (auto c: make_range(targets)) {
-                    queues[c.index_on_domain()].push_back(c.make_event(*sp));
+                for (auto c = targets.first; c != targets.second; c++) {
+                    prefetch_->push_back({sp, c, queues.begin()+c->index_on_domain()});
                 }
 
                 cn = targets.first;
                 ++sp;
             }
+
+            for (const auto& pre: *prefetch_) {
+                pre.q->push_back(cn->make_event(*pre.s1));
+            }
+            prefetch_->clear();
         }
     }
 }
