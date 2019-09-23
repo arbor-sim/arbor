@@ -22,20 +22,6 @@
 
 namespace arb {
 
-struct communicator::prefetch_payload {
-    using sit  = std::vector<spike>::const_iterator;
-    using spit = std::pair<sit, sit>;
-    using cit  = std::vector<connection>::iterator;
-
-    // data associated with queue* to prefetch
-    sit s1; // first or only spike
-    sit s2; // maybe undefined -- depends on constructor
-    cit c;  // connection
-
-    prefetch_payload(sit s,   cit c_): s1(s), c(c_) {};
-    prefetch_payload(spit sp, cit c_): s1(sp.first), s2(sp.second), c(c_) {};
-};
-
 communicator::communicator() {}
 communicator::~communicator() {}
 
@@ -199,15 +185,20 @@ void communicator::make_event_queues(
                 auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
                 if (sources.first != sources.second) {
                     auto q = queues.begin() + cn->index_on_domain();
-                    prefetch_.push_back({q, {sources, cn}});
+                    prefetch_.push_back({q, {sources.first, sources.second, cn}});
                 }
                 sp = sources.first;
                 ++cn;
             }
 
             prefetch_.process([] (auto&& e) {
-                for (auto s: make_range(e.payload.s1, e.payload.s2)) {
-                    e.prefetched->push_back(e.payload.c->make_event(s));
+                auto& q = *e.prefetched;
+                auto s1 = std::get<0>(e.payload);
+                auto s2 = std::get<1>(e.payload);
+                auto& conn = *std::get<2>(e.payload);
+
+                for (auto s: make_range(s1, s2)) {
+                    q.push_back(conn.make_event(s));
                 }
             });
         }
@@ -218,7 +209,7 @@ void communicator::make_event_queues(
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c = targets.first; c != targets.second; c++) {
                     auto q = queues.begin() + c->index_on_domain();
-                    prefetch_.push_back({q, {sp, c}});
+                    prefetch_.push_back({q, {sp, spks.end(), c}});
                 }
 
                 cn = targets.first;
@@ -226,7 +217,10 @@ void communicator::make_event_queues(
             }
 
             prefetch_.process([] (auto&& e) {
-                e.prefetched->push_back(e.payload.c->make_event(*e.payload.s1));
+                auto& q = *e.prefetched;
+                auto& s = *std::get<0>(e.payload);
+                auto& conn = *std::get<2>(e.payload);
+                q.push_back(conn.make_event(s));
             });
         }
     }
