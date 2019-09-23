@@ -185,7 +185,7 @@ void communicator::make_event_queues(
                 auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
                 if (sources.first != sources.second) {
                     auto q = queues.begin() + cn->index_on_domain();
-                    prefetch_.push_back({q, {sources.first, sources.second, cn}});
+                    prefetch_.push_back({q, sources.first, sources.second, cn});
                 }
                 sp = sources.first;
                 ++cn;
@@ -209,7 +209,7 @@ void communicator::make_event_queues(
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c = targets.first; c != targets.second; c++) {
                     auto q = queues.begin() + c->index_on_domain();
-                    prefetch_.push_back({q, {sp, spks.end(), c}});
+                    prefetch_.push_back({q, sp, spks.end(), c});
                 }
 
                 cn = targets.first;

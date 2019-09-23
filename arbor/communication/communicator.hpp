@@ -82,13 +82,13 @@ private:
     std::uint64_t num_spikes_ = 0u;
 
     // forward declaration of prefetching types for prefetch.hpp
-    using prefetch_queue = std::vector<pse_vector>::iterator; // the queue* that we went to prefetch
-    using prefetch_payload = std::tuple<
+    using prefetched_connections = prefetch::elements<
+        std::vector<pse_vector>::iterator, // the queue* that we went to prefetch
+        1024,
         std::vector<spike>::const_iterator, // spike* or begin()
         std::vector<spike>::const_iterator, // nothing or end()
         std::vector<connection>::iterator   // connection*
         >;
-    using prefetched_connections = prefetch::elements<prefetch_queue, prefetch_payload, 1024>;
     prefetched_connections prefetch_; // vector that prefetches and handles the queues
 };
 
