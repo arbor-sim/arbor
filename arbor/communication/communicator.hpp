@@ -28,8 +28,8 @@ namespace arb {
 
 class communicator {
 public:
-    communicator();
-    ~communicator();
+    communicator();  // defined in source file
+    ~communicator(); // so that we can forward declare prefetch types
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
@@ -81,10 +81,11 @@ private:
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 
-    using prefetch_queue = std::vector<pse_vector>::iterator;
-    struct prefetch_payload;    
+    // forward declaration of prefetching types for prefetch.hpp
+    using prefetch_queue = std::vector<pse_vector>::iterator; // the queue* that we went to prefetch
+    struct prefetch_payload; // the associated data (connection*, spike*)
     using prefetched_connections = prefetch::elements<prefetch_queue, prefetch_payload, 1024>;
-    prefetched_connections prefetch_;
+    prefetched_connections prefetch_; // vector that prefetches and handles the queues
 };
 
 } // namespace arb

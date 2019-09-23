@@ -5,46 +5,36 @@
 namespace arb {
 namespace prefetch {
 
-template<typename E, typename D>
+// default conversion from pointer-like P to pointer P
+template<typename P>
+auto get_pointer(P& prefetched) {
+    return &*prefetched;
+}
+
+template<typename P, typename D>
 struct element {
-    const E e;
-    D d;
+    P prefetched; // should be a pointer-like type, where &*prefetched is an address
+    D payload; // and this is anything we want to be associated with it.
 
-    element(const E& e_, const D& d_)
-        : e{e_},
-          d{d_}
-    {prefetch();}
-
-    element(const E& e_, D&& d_)
-        : e{e_},
-          d{std::move(d_)}
-    {prefetch();}
-
-    element(E&& e_, const D& d_)
-        : e{std::move(e_)},
-          d{d_}
-    {prefetch();}
-
-    element(E&& e_, D&& d_)
-        : e{std::move(e_)},
-          d{std::move(d_)}
-    {prefetch();}
-
+    element(const P& p, const D& d): prefetched{p}, payload{d} {prefetch();}
+    element(const P& p, D&& d): prefetched{p}, payload{std::move(d)} {prefetch();}
+    element(P&& p, const D& d): prefetched{std::move(p)}, payload{d} {prefetch();}
+    element(P&& p, D&& d): prefetched{std::move(p)}, payload{std::move(d)} {prefetch();}
     element() = default;
 
-    void prefetch() {__builtin_prefetch(&*e);}
+    void prefetch() {__builtin_prefetch(get_pointer(prefetched), 1);}
 };
 
-template<typename E, typename D, std::size_t N, typename Element = element<E, D>> 
+template<typename P, typename D, std::size_t N, typename Element = element<P, D>> 
 struct elements: std::vector<Element> {
     using element_type = Element;
     static constexpr std::size_t n = N;
 
-    using std::vector<Element>::reserve;
-    using std::vector<Element>::clear;
-    
     elements() {reserve(n);}
 
+    // process: applies some function f to every element of the vector
+    // and then clears the vector
+    // hopefully, everything is in cache by the time this is called
     template<typename F>
     void process(F f) {
         for (Element& element: *this) {
@@ -52,6 +42,9 @@ struct elements: std::vector<Element> {
         };
         clear();
     }
+
+    using std::vector<Element>::reserve;
+    using std::vector<Element>::clear;
 };
 
 }
