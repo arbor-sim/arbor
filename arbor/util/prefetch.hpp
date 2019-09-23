@@ -35,12 +35,14 @@ struct element {
     void prefetch() {__builtin_prefetch(&*e);}
 };
 
-typename<typename T, typename D, std::size_t N> 
-struct elements: std::vector<element<T, D>> {
-    constexpr std::size_t n = N;
-    elements() {resize(n);}
+template<typename E, typename D, std::size_t N, typename Element = element<E, D>> 
+struct elements: std::vector<Element> {
+    static constexpr std::size_t n = N;
+    using element_type = Element;
+    using std::vector<Element>::reserve;
+    
+    elements() {reserve(n);}
 };
 
 }
 }
-

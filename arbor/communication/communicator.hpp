@@ -11,6 +11,7 @@
 #include "connection.hpp"
 #include "execution_context.hpp"
 #include "util/partition.hpp"
+#include "util/prefetch.hpp"
 
 namespace arb {
 
@@ -27,8 +28,7 @@ namespace arb {
 
 class communicator {
 public:
-    communicator();
-    ~communicator();
+    communicator() {};
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
@@ -80,12 +80,22 @@ private:
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 
-    struct prefetched_connection;
-    using prefetch_vector = std::vector<prefetched_connection>;
-    struct prefetch_vector_deleter {
-        void operator()(prefetch_vector*) const;
+    struct prefetch_data {
+        using git = std::vector<spike>::const_iterator;
+        using pit = std::pair<git, git>;
+        using qit = std::vector<pse_vector>::iterator;
+        using cit = std::vector<connection>::iterator;
+    
+        git s1;
+        git s2; // maybe undefined -- depends on constructor
+        cit c;
+
+        prefetch_data(git, cit); // sets s1, c
+        prefetch_data(pit, cit); // sets s1, s2, c
     };
-    std::unique_ptr<prefetch_vector> prefetch_;
+
+    using prefetched_connections = prefetch::elements<prefetch_data::qit, prefetch_data, 1024>;
+    prefetched_connections prefetch_;
 };
 
 } // namespace arb
