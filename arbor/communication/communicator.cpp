@@ -191,12 +191,11 @@ void communicator::make_event_queues(
                 ++cn;
             }
 
-            for (const auto& pre: prefetch_) {
-                for (auto s: make_range(pre.d.s1, pre.d.s2)) {
-                    pre.e->push_back(pre.d.c->make_event(s));
+            prefetch_.process([&] (auto&& elem) {
+                for (auto s: make_range(elem.d.s1, elem.d.s2)) {
+                    elem.e->push_back(elem.d.c->make_event(s));
                 }
-            }
-            prefetch_.clear();
+            });
         }
         else {
             auto cn = cons.begin();
@@ -212,10 +211,9 @@ void communicator::make_event_queues(
                 ++sp;
             }
 
-            for (const auto& pre: prefetch_) {
-                pre.e->push_back(pre.d.c->make_event(*pre.d.s1));
-            }
-            prefetch_.clear();
+            prefetch_.process([&] (auto&& elem) {
+                elem.e->push_back(elem.d.c->make_event(*elem.d.s1));
+            });
         }
     }
 }

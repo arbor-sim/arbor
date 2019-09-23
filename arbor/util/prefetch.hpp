@@ -40,8 +40,17 @@ struct elements: std::vector<Element> {
     static constexpr std::size_t n = N;
     using element_type = Element;
     using std::vector<Element>::reserve;
+    using std::vector<Element>::clear;
     
     elements() {reserve(n);}
+
+    template<typename F>
+    void process(F f) {
+        for (Element& element: *this) {
+            f(std::move(element));
+        };
+        clear();
+    }
 };
 
 }
