@@ -22,47 +22,17 @@
 
 namespace arb {
 
-struct communicator::prefetched_connection {
-    static constexpr std::size_t n = 1024;
-
+struct prefetch_data {
     using gvit = std::vector<spike>::const_iterator;
     using pgvit = std::pair<gvit, gvit>;
-    using cit = std::vector<connection>::iterator;
     using qit = std::vector<pse_vector>::iterator;
     
     gvit s1;
     gvit s2; // maybe undefined -- depends on constructor
-    cit c;
     qit q;
-
-    prefetched_connection(const pgvit&, const cit&, const qit&);
-    prefetched_connection(const gvit&, const cit&, const qit&);
-    prefetched_connection() = default;
-
-    void prefetch() {__builtin_prefetch(&*c);};
 };
 
-void communicator::prefetch_vector_deleter::operator()(prefetch_vector* p) const {
-    delete p;
-}
-
-communicator::prefetched_connection::prefetched_connection(const pgvit& sources_, const cit& c_, const qit& q_)
-    : s1(sources_.first),
-      s2(sources_.second),
-      c(c_),
-      q(q_)
-{
-    prefetch();
-}
-
-communicator::prefetched_connection::prefetched_connection(const gvit& sp, const cit& c_, const qit& q_)
-    : s1(sp),
-      s2(),
-      c(c_),
-      q(q_)
-{
-    prefetch();
-}
+using prefetched_connections = prefetch::elements<std::vector<connection>::iterator, prefetch_data, 1024>;
 
 communicator::communicator() {}
 communicator::~communicator() {}
