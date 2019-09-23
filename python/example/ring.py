@@ -81,12 +81,12 @@ sim = arbor.simulation(recipe, decomp, context)
 meters.checkpoint('simulation-init', context)
 
 recorder = arbor.attach_spike_recorder(sim)
-arbor.add_samplers(sim, 10.)
+sampler = arbor.attach_samplers(sim, 10.)
 
 sim.run(1000)
 print(f'{sim} finished')
 
-sim.remove_samplers()
+#sim.remove_samplers()
 
 meters.checkpoint('simulation-run', context)
 
@@ -94,3 +94,6 @@ print(f'{arbor.meter_report(meters, context)}')
 
 for s in recorder.spikes:
     print(s)
+
+#for s in sampler.samples:
+#    print(s)
