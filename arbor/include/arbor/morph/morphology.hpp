@@ -21,6 +21,7 @@ class morphology {
 public:
     morphology(sample_tree m, bool use_spherical_root);
     morphology(sample_tree m);
+    morphology();
 
     // Whether the root of the morphology is spherical.
     bool spherical_root() const;

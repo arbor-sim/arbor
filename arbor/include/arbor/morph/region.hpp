@@ -19,8 +19,6 @@ class em_morphology;
 
 class region {
 public:
-    region() = delete;
-
     template <typename Impl,
               typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, region>::value>>
     explicit region(Impl&& impl):
@@ -31,6 +29,9 @@ public:
         impl_(new wrap<Impl>(impl)) {}
 
     region(region&& other) = default;
+
+    // The default constructor creates an empty "nil" region.
+    region();
 
     region(const region& other):
         impl_(other.impl_->clone()) {}
@@ -109,6 +110,9 @@ private:
 };
 
 namespace reg {
+
+// An empty region.
+region nil();
 
 // An explicit cable section.
 region cable(mcable);

@@ -2,6 +2,7 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
+#include <arbor/morph/locset.hpp>
 
 #include "tree.hpp"
 
@@ -37,9 +38,6 @@ TEST(cable_cell, soma) {
         auto s = c.soma();
         EXPECT_EQ(s->radius(), soma_radius);
         EXPECT_EQ(s->center().is_set(), true);
-
-        // add expression template library for points
-        //EXPECT_EQ(s->center(), point<double>(0,0,1));
     }
 }
 
@@ -78,7 +76,7 @@ TEST(cable_cell, add_segment) {
 
         c.add_cable(
             0,
-            section_kind::dendrite, cable_radius, cable_radius, cable_length
+            make_segment<cable_segment>(section_kind::dendrite, cable_radius, cable_radius, cable_length)
         );
 
         EXPECT_EQ(c.num_segments(), 2u);
@@ -95,9 +93,9 @@ TEST(cable_cell, add_segment) {
 
         c.add_cable(
             0,
-            section_kind::dendrite,
-            std::vector<double>{cable_radius, cable_radius, cable_radius, cable_radius},
-            std::vector<double>{cable_length, cable_length, cable_length}
+            make_segment<cable_segment>(section_kind::dendrite,
+                                        std::vector<double>{cable_radius, cable_radius, cable_radius, cable_radius},
+                                        std::vector<double>{cable_length, cable_length, cable_length})
         );
 
         EXPECT_EQ(c.num_segments(), 2u);
@@ -196,14 +194,13 @@ TEST(cable_cell, clone) {
 
     cable_cell c;
     c.add_soma(2.1);
-    c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 10));
     c.segment(1)->set_compartments(3);
-    c.add_cable(1, section_kind::dendrite, 0.2, 0.15, 20);
+    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.2, 0.15, 20));
     c.segment(2)->set_compartments(5);
 
-    c.add_synapse({1, 0.3}, "expsyn");
-
-    c.add_detector({0, 0.5}, 10.0);
+    c.place(mlocation{1, 0.3}, "expsyn");
+    c.place(mlocation{0, 0.5}, threshold_detector{10.0});
 
     // make clone
 
@@ -230,20 +227,10 @@ TEST(cable_cell, clone) {
 
     // check clone is independent
 
-    c.add_cable(2, section_kind::dendrite, 0.15, 0.1, 20);
+    c.add_cable(2, make_segment<cable_segment>(section_kind::dendrite, 0.15, 0.1, 20));
     EXPECT_NE(c.num_segments(), d.num_segments());
-
-    d.detectors()[0].threshold = 13.0;
-    ASSERT_EQ(1u, c.detectors().size());
-    ASSERT_EQ(1u, d.detectors().size());
-    EXPECT_NE(c.detectors()[0].threshold, d.detectors()[0].threshold);
 
     c.segment(1)->set_compartments(7);
     EXPECT_NE(c.segment(1)->num_compartments(), d.segment(1)->num_compartments());
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
-}
-
-TEST(cable_cell, get_kind) {
-    cable_cell c;
-    EXPECT_EQ(cell_kind::cable, c.get_cell_kind());
 }

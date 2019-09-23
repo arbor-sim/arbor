@@ -390,7 +390,8 @@ void SparseSolverVisitor::finalize() {
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
-    for (unsigned i = 0; i<A_.nrow(); ++i) {
+    auto nrow = A_.nrow();
+    for (unsigned i = 0; i<nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs_col = A_.augcol();
         unsigned lhs_col = -1;
@@ -401,7 +402,7 @@ void SparseSolverVisitor::finalize() {
             }
         }
 
-        if (lhs_col==-1) {
+        if (lhs_col==unsigned(-1)) {
             throw std::logic_error("zero row in sparse solver matrix");
         }
 
@@ -480,7 +481,8 @@ void LinearSolverVisitor::finalize() {
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
-    for (unsigned i = 0; i < A_.nrow(); ++i) {
+    auto nrow = A_.nrow();
+    for (unsigned i = 0; i < nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs = A_.augcol();
         unsigned lhs = -1;
@@ -491,7 +493,7 @@ void LinearSolverVisitor::finalize() {
             }
         }
 
-        if (lhs==-1) {
+        if (lhs==unsigned(-1)) {
             throw std::logic_error("zero row in linear solver matrix");
         }
 
