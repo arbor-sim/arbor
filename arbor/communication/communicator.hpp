@@ -28,7 +28,8 @@ namespace arb {
 
 class communicator {
 public:
-    communicator() {};
+    communicator();
+    ~communicator();
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
@@ -80,21 +81,9 @@ private:
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 
-    struct prefetch_data {
-        using git = std::vector<spike>::const_iterator;
-        using pit = std::pair<git, git>;
-        using qit = std::vector<pse_vector>::iterator;
-        using cit = std::vector<connection>::iterator;
-    
-        git s1;
-        git s2; // maybe undefined -- depends on constructor
-        cit c;
-
-        prefetch_data(git, cit); // sets s1, c
-        prefetch_data(pit, cit); // sets s1, s2, c
-    };
-
-    using prefetched_connections = prefetch::elements<prefetch_data::qit, prefetch_data, 1024>;
+    using prefetch_queue = std::vector<pse_vector>::iterator;
+    struct prefetch_payload;    
+    using prefetched_connections = prefetch::elements<prefetch_queue, prefetch_payload, 1024>;
     prefetched_connections prefetch_;
 };
 

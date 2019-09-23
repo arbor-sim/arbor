@@ -37,8 +37,9 @@ struct element {
 
 template<typename E, typename D, std::size_t N, typename Element = element<E, D>> 
 struct elements: std::vector<Element> {
-    static constexpr std::size_t n = N;
     using element_type = Element;
+    static constexpr std::size_t n = N;
+
     using std::vector<Element>::reserve;
     using std::vector<Element>::clear;
     

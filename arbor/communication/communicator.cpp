@@ -22,8 +22,21 @@
 
 namespace arb {
 
-communicator::prefetch_data::prefetch_data(git s, cit c_): s1(s), c(c_) {}
-communicator::prefetch_data::prefetch_data(pit s, cit c_): s1(s.first), s2(s.second), c(c_) {}
+struct communicator::prefetch_payload {
+    using sit  = std::vector<spike>::const_iterator;
+    using spit = std::pair<sit, sit>;
+    using cit  = std::vector<connection>::iterator;
+    
+    sit s1;
+    sit s2; // maybe undefined -- depends on constructor
+    cit c;
+
+    prefetch_payload(sit s,   cit c_): s1(s), c(c_) {};
+    prefetch_payload(spit sp, cit c_): s1(sp.first), s2(sp.second), c(c_) {};
+};
+
+communicator::communicator() {}
+communicator::~communicator() {}
 
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
