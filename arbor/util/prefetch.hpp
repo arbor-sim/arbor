@@ -46,7 +46,9 @@ public:
     }
 
 private:
-    void prefetch() {__builtin_prefetch(get_pointer(std::get<0>(*this)), m);}
+    void prefetch() {
+        __builtin_prefetch(get_pointer(std::get<0>(*this)), m);
+    }
 
     template<typename F, size_t... I>
     auto apply(F f, std::index_sequence<I...>) {
