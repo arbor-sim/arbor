@@ -45,9 +45,9 @@ class ring_recipe (arbor.recipe):
         return []
 
     def num_probes(self, gid):
-#        if (gid==0):
-        return 1
-#        return 0
+        if (gid==0):
+            return 1
+        return 0
 
     def get_probe(self, id):
         loc  = arbor.location(0, 0.5)
@@ -59,7 +59,7 @@ print(context)
 meters = arbor.meter_manager()
 meters.start(context)
 
-recipe = ring_recipe(10)
+recipe = ring_recipe(100)
 print(f'{recipe}')
 
 meters.checkpoint('recipe-create', context)
@@ -84,11 +84,10 @@ meters.checkpoint('simulation-init', context)
 
 spike_recorder = arbor.attach_spike_recorder(sim)
 
-#pid = arbor.cell_member(0,0)
-#sample_recorder = arbor.attach_sample_recorder_on_probe(sim, 10., pid)
-sample_recorder = arbor.attach_sample_recorder(sim, 10.)
+pid = arbor.cell_member(0,0)
+sample_recorder = arbor.attach_sample_recorder_on_probe(sim, 1., pid)
 
-sim.run(100)
+sim.run(1000)
 print(f'{sim} finished')
 
 meters.checkpoint('simulation-run', context)
@@ -98,8 +97,9 @@ print(f'{arbor.meter_report(meters, context)}')
 for sp in spike_recorder.spikes:
     print(sp)
 
-for n in range(0, recipe.num_cells()):
-    pid = arbor.cell_member(n, 0)
-    print(pid)
-    for sa in sample_recorder.samples(pid):
+print('voltage samples for probe id ', end = '')
+print(pid, end = '')
+print(':')
+for sa in sample_recorder.samples(pid):
+    if (sa.time<=5):
         print(sa)
