@@ -207,15 +207,15 @@ void communicator::make_event_queues(
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c = targets.first; c != targets.second; c++) {
                     auto q = queues.begin() + c->index_on_domain();
-                    prefetch_.add(q, sp, spks.end(), c);
+                    prefetch_.add(q, sp, sp, c); // we ignore the second part of the range
                 }
 
                 cn = targets.first;
                 ++sp;
             }
 
-            prefetch_.process([] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
-                q->push_back(conn->make_event(*s1));
+            prefetch_.process([] (auto&& q, auto&& s, auto&&, auto&& conn) {
+                q->push_back(conn->make_event(*s)); // and thus we ignore the second part here too
             });
         }
     }
