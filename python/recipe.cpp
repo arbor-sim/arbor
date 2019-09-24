@@ -182,7 +182,7 @@ void register_recipe(pybind11::module& m) {
 
     pybind11::class_<arb::probe_info> probe(m, "probe");
     probe
-        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: on cell ({},{})>", p.id.gid, p.id.index);})
-        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: on cell ({},{})>", p.id.gid, p.id.index);});
+        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: cell {}, probe {}>", p.id.gid, p.id.index);})
+        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: cell {}, probe {}>", p.id.gid, p.id.index);});
 }
 } // namespace pyarb

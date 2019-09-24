@@ -44,13 +44,12 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
+    # There is one probe (for measuring voltage at the soma) on the cell.
     def num_probes(self, gid):
-        if (gid==0):
-            return 1
-        return 0
+        return 1
 
     def get_probe(self, id):
-        loc  = arbor.location(0, 0.5)
+        loc  = arbor.location(0, 0) # at the soma
         return arbor.cable_probe('voltage', id, loc)
 
 context = arbor.context(threads=4, gpu_id=None)
@@ -59,7 +58,7 @@ print(context)
 meters = arbor.meter_manager()
 meters.start(context)
 
-recipe = ring_recipe(100)
+recipe = ring_recipe(10)
 print(f'{recipe}')
 
 meters.checkpoint('recipe-create', context)
@@ -84,10 +83,10 @@ meters.checkpoint('simulation-init', context)
 
 spike_recorder = arbor.attach_spike_recorder(sim)
 
-pid = arbor.cell_member(0,0)
-sample_recorder = arbor.attach_sample_recorder_on_probe(sim, 1., pid)
+pid = arbor.cell_member(0,0) # cell 0, probe 0
+sample_recorder = arbor.attach_sample_recorder_on_probe(sim, 0.1, pid)
 
-sim.run(1000)
+sim.run(100)
 print(f'{sim} finished')
 
 meters.checkpoint('simulation-run', context)
@@ -101,5 +100,4 @@ print('voltage samples for probe id ', end = '')
 print(pid, end = '')
 print(':')
 for sa in sample_recorder.samples(pid):
-    if (sa.time<=5):
-        print(sa)
+    print(sa)

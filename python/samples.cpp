@@ -119,7 +119,7 @@ std::shared_ptr<sample_recorder> attach_sample_recorder(arb::simulation& sim, ar
 }
 
 std::string sample_str(const trace_entry& s) {
-        return util::pprintf("<arbor.sample: time {} ms, value {}>", s.t, s.v);
+        return util::pprintf("<arbor.sample: time {} ms, \tvalue {}>", s.t, s.v);
 }
 
 void register_samples(pybind11::module& m) {
