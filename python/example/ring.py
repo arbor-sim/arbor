@@ -44,12 +44,12 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
-    # There is one probe (for measuring voltage at the soma) on the cell.
+    # Define one probe (for measuring voltage at the soma) on the cell.
     def num_probes(self, gid):
         return 1
 
     def get_probe(self, id):
-        loc  = arbor.location(0, 0) # at the soma
+        loc = arbor.location(0, 0) # at the soma
         return arbor.cable_probe('voltage', id, loc)
 
 context = arbor.context(threads=4, gpu_id=None)

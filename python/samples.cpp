@@ -128,9 +128,8 @@ void register_samples(pybind11::module& m) {
     // Samples
     pybind11::class_<trace_entry> sample(m, "sample");
     sample
-        .def(pybind11::init<>())
-        .def_readwrite("time", &trace_entry::t, "The sample time [ms] at a specific probe.")
-        .def_readwrite("value", &trace_entry::v, "The sample value at a specific probe.")
+        .def_readonly("time", &trace_entry::t, "The sample time [ms] at a specific probe.")
+        .def_readonly("value", &trace_entry::v, "The sample record at a specific probe.")
         .def("__str__",  &sample_str)
         .def("__repr__", &sample_str);
 
@@ -140,17 +139,17 @@ void register_samples(pybind11::module& m) {
         .def(pybind11::init<>())
         .def("samples", &sample_recorder::samples,
             "A list of the recorded samples of a probe with probe id.",
-            "pid"_a);
+            "probe_id"_a);
 
     m.def("attach_sample_recorder", &attach_sample_recorder,
         "Attach a sample recorder to an arbor simulation.\n"
-        "The recorder will record all samples from a sampling interval [ms] matching all probe ids.",
-        "simulation"_a, "interval"_a);
+        "The recorder will record all samples from a regular sampling interval [ms] matching all probe ids.",
+        "sim"_a, "dt"_a);
 
     m.def("attach_sample_recorder_on_probe", &attach_sample_recorder_on_probe,
         "Attach a sample recorder to an arbor simulation.\n"
-        "The recorder will record all samples from a sampling interval [ms] matching one probe id.",
-        "simulation"_a, "interval"_a, "pid"_a);
+        "The recorder will record all samples from a regular sampling interval [ms] matching one probe id.",
+        "sim"_a, "dt"_a, "probe_id"_a);
 }
 
 } // namespace pyarb
