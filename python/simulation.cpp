@@ -10,29 +10,67 @@
 
 namespace pyarb {
 
-
-// A functor that models arb::sampler_function.
-// Holds a shared pointer to the trace_entry used to store the samples, so that if
-// the trace_entry in sample_recorder is garbage collected in Python, stores will
-// not seg fault.
+// ToDo: move to probes.cpp
+// ToDo: trace entry of different types/container (e.g. vector of doubles to get all samples of a cell)
 
 struct trace_entry {
     arb::time_type t;
     double v;
 };
 
-struct sample_callback {
-    using sample_vec = std::vector<trace_entry>;
-    std::shared_ptr<sample_vec> sample_store;
+// A helper struct (state) ensuring that only one thread can write to the buffer holding the trace entries (mapped by probe id)
+struct sampler_state {
+    std::mutex mutex;
+    std::unordered_map<arb::cell_member_type, std::vector<trace_entry>> buffer;
 
-    sample_callback(const std::shared_ptr<sample_vec>& state):
+    std::vector<trace_entry>& locked_sampler_vec(arb::cell_member_type pid) {
+        // lock the mutex, s.t. other threads cannot write
+        std::lock_guard<std::mutex> lock(mutex);
+        // return or create entry
+        return buffer[pid];
+    }
+
+    // helper function to search probe id in buffer
+    bool has_pid(arb::cell_member_type pid) {
+        std::unordered_map<arb::cell_member_type, std::vector<trace_entry>>::iterator it = buffer.find(pid);
+        return (it != buffer.end());
+    }
+
+    // helper function to push back to locked vector
+    void push_back(arb::cell_member_type pid, trace_entry value) {
+        auto& v = locked_sampler_vec(pid);
+        v.push_back(std::move(value));
+    }
+
+    // helper function to return whole buffer
+    const std::unordered_map<arb::cell_member_type, std::vector<trace_entry>>& samples() const {
+        return buffer;
+    }
+
+    // helper function to return trace entry of probe id
+    const std::vector<trace_entry>& samples_of(arb::cell_member_type pid) {
+        return buffer[pid];
+    }
+};
+
+// A functor that models arb::sampler_function.
+// Holds a shared pointer to the trace_entry used to store the samples, so that if
+// the trace_entry in sample_recorder is garbage collected in Python, stores will
+// not seg fault.
+
+struct sample_callback {
+    std::shared_ptr<sampler_state> sample_store;
+
+    sample_callback(const std::shared_ptr<sampler_state>& state):
         sample_store(state)
     {}
 
     void operator() (arb::cell_member_type probe_id, arb::probe_tag tag, std::size_t n, const arb::sample_record* recs) {
+        // lock before write
+        auto& v = sample_store->locked_sampler_vec(probe_id);
         for (std::size_t i = 0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
-                sample_store->push_back({recs[i].time, *p});
+                v.push_back({recs[i].time, *p});
             }
             else {
                 throw std::runtime_error("unexpected sample type");
@@ -44,12 +82,11 @@ struct sample_callback {
 // Helper type for recording samples from a simulation.
 // This type is wrapped in Python, to expose sample_recorder::sample_store.
 struct sample_recorder {
-    using sample_vec = std::vector<trace_entry>;
-    std::shared_ptr<sample_vec> sample_store;
+    std::shared_ptr<sampler_state> sample_store;
 
     sample_callback callback() {
         // initialize the sample_store
-        sample_store = std::make_shared<sample_vec>();
+        sample_store = std::make_shared<sampler_state>();
 
         // The callback holds a copy of sample_store, i.e. the shared
         // pointer is held by both the sample_recorder and the callback, so if
@@ -58,20 +95,31 @@ struct sample_recorder {
         return sample_callback(sample_store);
     }
 
-    const sample_vec& samples() const {
-        return *sample_store;
+    const std::vector<trace_entry>& samples(arb::cell_member_type pid) const {
+        if (sample_store->has_pid(pid)) {
+            return sample_store->samples_of(pid);
+        }
+        throw std::runtime_error(util::pprintf("probe id {} does not exist", pid));
     }
 };
 
-std::shared_ptr<sample_recorder> attach_samplers(arb::simulation& sim, arb::time_type interval) {
+// Adds sampler to one probe with pid
+std::shared_ptr<sample_recorder> attach_sample_recorder_on_probe(arb::simulation& sim, arb::time_type interval, arb::cell_member_type pid) {
+    auto r = std::make_shared<sample_recorder>();
+    sim.add_sampler(arb::one_probe(pid), arb::regular_schedule(interval), r->callback());
+    return r;
+}
+
+// Adds sampler to all probes
+std::shared_ptr<sample_recorder> attach_sample_recorder(arb::simulation& sim, arb::time_type interval) {
     auto r = std::make_shared<sample_recorder>();
     sim.add_sampler(arb::all_probes, arb::regular_schedule(interval), r->callback());
     return r;
 }
 
-//std::string sample_str(const trace_entry& s) {
-//        return util::pprintf("<arbor.sample: time {} ms, value {}>", s.t, s.v);
-//}
+std::string sample_str(const trace_entry& s) {
+        return util::pprintf("<arbor.sample: time {} ms, value {}>", s.t, s.v);
+}
 
 void register_simulation(pybind11::module& m) {
     using namespace pybind11::literals;
@@ -102,29 +150,35 @@ void register_simulation(pybind11::module& m) {
         .def("set_binning_policy", &arb::simulation::set_binning_policy,
             "Set the binning policy for event delivery, and the binning time interval if applicable [ms].",
             "policy"_a, "bin_interval"_a)
-//        .def("remove_samplers", &arb::simulation::remove_all_samplers, "Remove all samplers from probes.")
         .def("__str__",  [](const arb::simulation&){ return "<arbor.simulation>"; })
         .def("__repr__", [](const arb::simulation&){ return "<arbor.simulation>"; });
 
-    // Sample record
+    // Samples
     pybind11::class_<trace_entry> sample(m, "sample");
     sample
         .def(pybind11::init<>())
         .def_readwrite("time", &trace_entry::t, "The sample time [ms] at a specific probe.")
-        .def_readwrite("value", &trace_entry::v, "The sample value at a specific probe.");
-//        .def("__str__",  &sample_str)
-//        .def("__repr__", &sample_str);
+        .def_readwrite("value", &trace_entry::v, "The sample value at a specific probe.")
+        .def("__str__",  &sample_str)
+        .def("__repr__", &sample_str);
 
-    // Samples
-    pybind11::class_<sample_recorder, std::shared_ptr<sample_recorder>> sarec(m, "sample_recorder");
-    sarec
+    // Sample recorder
+    pybind11::class_<sample_recorder, std::shared_ptr<sample_recorder>> samplerec(m, "sample_recorder");
+    samplerec
         .def(pybind11::init<>())
-        .def_property_readonly("samples", &sample_recorder::samples, "A list of the recorded samples.");
+        .def("samples", &sample_recorder::samples,
+            "A list of the recorded samples of a probe with probe id.",
+            "pid"_a);
 
-    m.def("attach_samplers", &attach_samplers,
+    m.def("attach_sample_recorder", &attach_sample_recorder,
         "Attach a sample recorder to an arbor simulation.\n"
         "The recorder will record all samples from a sampling interval [ms] matching all probe ids.",
         "simulation"_a, "interval"_a);
+
+    m.def("attach_sample_recorder_on_probe", &attach_sample_recorder_on_probe,
+        "Attach a sample recorder to an arbor simulation.\n"
+        "The recorder will record all samples from a sampling interval [ms] matching one probe id.",
+        "simulation"_a, "interval"_a, "pid"_a);
 }
 
 } // namespace pyarb
