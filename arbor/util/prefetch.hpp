@@ -37,13 +37,15 @@ private:
     }
 };
 
-template<std::size_t N, typename P, typename ... Types> 
+template<typename P, typename ... Types> 
 struct elements: public std::vector<element<P, Types...>> {
     using element_type = element<P, Types...>;
     using parent = std::vector<element_type>;
+
+    const std::size_t n;
+    elements(): n{} {}
+    elements(std::size_t n_): n{n_} {reserve(n);};
     
-    static constexpr std::size_t n = N;
-    elements() {reserve(n);}
 
     // append an element to prefetch pointer-like P associated with pointer-like args
     void add(P p, Types... args) {push_back(element_type{p, args...});}
@@ -59,9 +61,14 @@ struct elements: public std::vector<element<P, Types...>> {
         clear();
     }
 
+    bool not_full() const {
+        return size() < n;
+    }
+
     using parent::reserve;
     using parent::clear;
     using parent::push_back;
+    using parent::size;
 };
 
 }

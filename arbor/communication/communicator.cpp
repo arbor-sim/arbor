@@ -22,12 +22,15 @@
 
 namespace arb {
 
+static constexpr std::size_t prefetch_n = 256;
+
 communicator::communicator() {}
 communicator::~communicator() {}
 
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
                            execution_context& ctx)
+    : prefetch_(prefetch_n)
 {
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -181,7 +184,7 @@ void communicator::make_event_queues(
         if (cons.size()<spks.size()) {
             auto sp = spks.begin();
             auto cn = cons.begin();
-            while (prefetch_.size() < prefetched_connections::n && cn!=cons.end() && sp!=spks.end()) {
+            while (prefetch_.not_full() && cn!=cons.end() && sp!=spks.end()) {
                 auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
                 if (sources.first != sources.second) {
                     auto q = queues.begin() + cn->index_on_domain();
@@ -200,7 +203,7 @@ void communicator::make_event_queues(
         else {
             auto cn = cons.begin();
             auto sp = spks.begin();
-            while (prefetch_.size() < prefetched_connections::n && cn!=cons.end() && sp!=spks.end()) {
+            while (prefetch_.not_full() && cn!=cons.end() && sp!=spks.end()) {
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c = targets.first; c != targets.second; c++) {
                     auto q = queues.begin() + c->index_on_domain();
