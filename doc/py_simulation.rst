@@ -175,3 +175,103 @@ In order to analyze the simulation output spikes can be recorded.
 >>> <arbor.spike: source (7,0), time 89.1529 ms>
 >>> <arbor.spike: source (8,0), time 101.641 ms>
 >>> <arbor.spike: source (9,0), time 114.125 ms>
+
+Recording samples
+-----------------
+
+Definitions
+***********
+
+probe
+    A location or component of a cell that is available for monitoring (see :attr:`arbor.recipe.num_probes`, :attr:`arbor.recipe.get_probe` and :attr:`arbor.cable_probe` as references).
+
+sample/record
+    A record of data corresponding to the value at a specific *probe* at a specific time.
+
+sampler/sample recorder
+    A function that receives a sequence of *sample* records.
+
+Samples and sample recorders
+****************************
+
+In order to analyze the data collected from an :class:`arbor.probe` the samples can be recorded.
+
+**Types**:
+
+.. class:: sample
+
+    .. attribute:: time
+
+        The sample time [ms] at a specific probe.
+
+    .. attribute:: value
+
+        The sample record at a specific probe.
+
+.. class:: sample_recorder
+
+    .. function:: sample_recorder()
+
+        Initialize the sample recorder.
+
+    .. function:: samples(probe_id)
+
+        A list of the recorded samples of a probe with probe id.
+
+**I/O interface**:
+
+.. function:: attach_sample_recorder(sim, dt)
+
+    Attach a sample recorder to an arbor simulation.
+    The recorder will record all samples from a regular sampling interval [ms] (see :class:`arbor.regular_schedule`) matching all probe ids.
+
+.. function:: attach_sample_recorder_on_probe(sim, dt, probe_id)
+
+    Attach a sample recorder to an arbor simulation.
+    The recorder will record all samples from a regular sampling interval [ms] (see :class:`arbor.regular_schedule`) matching one probe id.
+
+.. container:: example-code
+
+    .. code-block:: python
+
+        import arbor
+
+        # Instatitate the simulation.
+        sim = arbor.simulation(recipe, decomp, context)
+
+        # Build the sample recorder on cell 0 and probe 0 with regular sampling interval of 0.1 ms
+        pid = arbor.cell_member(0,0) # cell 0, probe 0
+        sample_recorder = arbor.attach_sample_recorder_on_probe(sim, 0.1, pid)
+
+        # Run the simulation for 100 ms
+        sim.run(100)
+
+        # Print the sample times and values
+        for sa in sample_recorder.samples(pid):
+            print(sa)
+
+>>> <arbor.sample: time 0 ms,       value -65>
+>>> <arbor.sample: time 0.1 ms,     value -64.9981>
+>>> <arbor.sample: time 0.2 ms,     value -64.9967>
+>>> <arbor.sample: time 0.3 ms,     value -64.9956>
+>>> <arbor.sample: time 0.4 ms,     value -64.9947>
+>>> <arbor.sample: time 0.475 ms,   value -64.9941>
+>>> <arbor.sample: time 0.6 ms,     value -64.9932>
+>>> <arbor.sample: time 0.675 ms,   value -64.9927>
+>>> <arbor.sample: time 0.8 ms,     value -64.992>
+>>> <arbor.sample: time 0.9 ms,     value -64.9916>
+>>> <arbor.sample: time 1 ms,       value -64.9912>
+>>> <arbor.sample: time 1.1 ms,     value -62.936>
+>>> <arbor.sample: time 1.2 ms,     value -59.2284>
+>>> <arbor.sample: time 1.3 ms,     value -55.8485>
+>>> <arbor.sample: time 1.375 ms,   value -53.663>
+>>> <arbor.sample: time 1.475 ms,   value -51.0649>
+>>> <arbor.sample: time 1.6 ms,     value -47.9543>
+>>> <arbor.sample: time 1.7 ms,     value -45.1928>
+>>> <arbor.sample: time 1.8 ms,     value -41.7243>
+>>> <arbor.sample: time 1.875 ms,   value -38.2573>
+>>> <arbor.sample: time 1.975 ms,   value -31.576>
+>>> <arbor.sample: time 2.1 ms,     value -17.2756>
+>>> <arbor.sample: time 2.2 ms,     value 0.651031>
+>>> <arbor.sample: time 2.275 ms,   value 15.0592>
+
