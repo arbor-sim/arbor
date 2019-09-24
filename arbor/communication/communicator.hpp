@@ -83,8 +83,8 @@ private:
 
     // forward declaration of prefetching types for prefetch.hpp
     using prefetched_connections = prefetch::elements<
-        std::vector<pse_vector>::iterator, // the queue* that we went to prefetch
         1024,
+        std::vector<pse_vector>::iterator, // the queue* that we went to prefetch
         std::vector<spike>::const_iterator, // spike* or begin()
         std::vector<spike>::const_iterator, // nothing or end()
         std::vector<connection>::iterator   // connection*

@@ -185,20 +185,15 @@ void communicator::make_event_queues(
                 auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
                 if (sources.first != sources.second) {
                     auto q = queues.begin() + cn->index_on_domain();
-                    prefetch_.push_back({q, sources.first, sources.second, cn});
+                    prefetch_.add(q, sources.first, sources.second, cn);
                 }
                 sp = sources.first;
                 ++cn;
             }
 
-            prefetch_.process([] (auto&& e) {
-                auto& q = *e.prefetched;
-                auto s1 = std::get<0>(e.payload);
-                auto s2 = std::get<1>(e.payload);
-                auto& conn = *std::get<2>(e.payload);
-
+            prefetch_.process([] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
                 for (auto s: make_range(s1, s2)) {
-                    q.push_back(conn.make_event(s));
+                    q->push_back(conn->make_event(s));
                 }
             });
         }
@@ -209,18 +204,15 @@ void communicator::make_event_queues(
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c = targets.first; c != targets.second; c++) {
                     auto q = queues.begin() + c->index_on_domain();
-                    prefetch_.push_back({q, sp, spks.end(), c});
+                    prefetch_.add(q, sp, spks.end(), c);
                 }
 
                 cn = targets.first;
                 ++sp;
             }
 
-            prefetch_.process([] (auto&& e) {
-                auto& q = *e.prefetched;
-                auto& s = *std::get<0>(e.payload);
-                auto& conn = *std::get<2>(e.payload);
-                q.push_back(conn.make_event(s));
+            prefetch_.process([] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
+                q->push_back(conn->make_event(*s1));
             });
         }
     }
