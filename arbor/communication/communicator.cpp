@@ -30,7 +30,7 @@ communicator::~communicator() {}
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
                            execution_context& ctx)
-    : prefetch_(prefetch_n)
+    : prefetch_range_(prefetch_n), prefetch_single_(prefetch_n)
 {
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -184,17 +184,17 @@ void communicator::make_event_queues(
         if (cons.size()<spks.size()) {
             auto sp = spks.begin();
             auto cn = cons.begin();
-            while (prefetch_.not_full() && cn!=cons.end() && sp!=spks.end()) {
+            while (prefetch_range_.not_full() && cn!=cons.end() && sp!=spks.end()) {
                 auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
                 if (sources.first != sources.second) {
                     auto q = queues.begin() + cn->index_on_domain();
-                    prefetch_.add(q, sources.first, sources.second, cn);
+                    prefetch_range_.add(q, sources.first, sources.second, cn);
                 }
                 sp = sources.first;
                 ++cn;
             }
 
-            prefetch_.process([] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
+            prefetch_range_.process([] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
                 for (auto s: make_range(s1, s2)) {
                     q->push_back(conn->make_event(s));
                 }
@@ -203,19 +203,19 @@ void communicator::make_event_queues(
         else {
             auto cn = cons.begin();
             auto sp = spks.begin();
-            while (prefetch_.not_full() && cn!=cons.end() && sp!=spks.end()) {
+            while (prefetch_single_.not_full() && cn!=cons.end() && sp!=spks.end()) {
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c = targets.first; c != targets.second; c++) {
                     auto q = queues.begin() + c->index_on_domain();
-                    prefetch_.add(q, sp, sp, c); // we ignore the second part of the range
+                    prefetch_single_.add(q, sp, c); 
                 }
 
                 cn = targets.first;
                 ++sp;
             }
 
-            prefetch_.process([] (auto&& q, auto&& s, auto&&, auto&& conn) {
-                q->push_back(conn->make_event(*s)); // and thus we ignore the second part here too
+            prefetch_single_.process([] (auto&& q, auto&& s, auto&& conn) {
+                q->push_back(conn->make_event(*s)); 
             });
         }
     }
