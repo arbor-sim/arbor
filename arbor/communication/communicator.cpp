@@ -184,12 +184,14 @@ void communicator::make_event_queues(
             auto p = prefetch::make_prefetch(
                 prefetch::size<sz>,
                 prefetch::write,
-                [] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
+                [] (std::vector<pse_vector>::iterator&& q,
+                    std::vector<spike>::const_iterator&& s1,
+                    std::vector<spike>::const_iterator&& s2,
+                    std::vector<connection>::iterator&& conn) {
                     for (auto s: make_range(s1, s2)) {
                         q->push_back(conn->make_event(s));
                     }
-                },
-                queues.begin(), sp, sp, cn
+                }
             );
                                                   
             while (cn!=cons.end() && sp!=spks.end()) {
