@@ -61,7 +61,6 @@ struct sample_callback {
     {}
 
     void operator() (arb::cell_member_type probe_id, arb::probe_tag tag, std::size_t n, const arb::sample_record* recs) {
-        // lock before write
         auto& v = sample_store->probe_buffer(probe_id);
         for (std::size_t i = 0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
