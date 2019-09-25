@@ -56,7 +56,7 @@ struct sampler_state {
 
 // A functor that models arb::sampler_function.
 // Holds a shared pointer to the trace_entry used to store the samples, so that if
-// the trace_entry in sample_recorder is garbage collected in Python, stores will
+// the trace_entry in sampler is garbage collected in Python, stores will
 // not seg fault.
 
 struct sample_callback {
@@ -81,8 +81,8 @@ struct sample_callback {
 };
 
 // Helper type for recording samples from a simulation.
-// This type is wrapped in Python, to expose sample_recorder::sample_store.
-struct sample_recorder {
+// This type is wrapped in Python, to expose sampler::sample_store.
+struct sampler {
     std::shared_ptr<sampler_state> sample_store;
 
     sample_callback callback() {
@@ -90,8 +90,8 @@ struct sample_recorder {
         sample_store = std::make_shared<sampler_state>();
 
         // The callback holds a copy of sample_store, i.e. the shared
-        // pointer is held by both the sample_recorder and the callback, so if
-        // the sample_recorder is destructed in the calling Python code, attempts
+        // pointer is held by both the sampler and the callback, so if
+        // the sampler is destructed in the calling Python code, attempts
         // to write to sample_store inside the callback will not seg fault.
         return sample_callback(sample_store);
     }
@@ -105,15 +105,15 @@ struct sample_recorder {
 };
 
 // Adds sampler to one probe with pid
-std::shared_ptr<sample_recorder> attach_sample_recorder_on_probe(arb::simulation& sim, arb::time_type interval, arb::cell_member_type pid) {
-    auto r = std::make_shared<sample_recorder>();
+std::shared_ptr<sampler> attach_sampler(arb::simulation& sim, arb::time_type interval, arb::cell_member_type pid) {
+    auto r = std::make_shared<sampler>();
     sim.add_sampler(arb::one_probe(pid), arb::regular_schedule(interval), r->callback());
     return r;
 }
 
 // Adds sampler to all probes
-std::shared_ptr<sample_recorder> attach_sample_recorder(arb::simulation& sim, arb::time_type interval) {
-    auto r = std::make_shared<sample_recorder>();
+std::shared_ptr<sampler> attach_sampler(arb::simulation& sim, arb::time_type interval) {
+    auto r = std::make_shared<sampler>();
     sim.add_sampler(arb::all_probes, arb::regular_schedule(interval), r->callback());
     return r;
 }
@@ -134,19 +134,21 @@ void register_samples(pybind11::module& m) {
         .def("__repr__", &sample_str);
 
     // Sample recorder
-    pybind11::class_<sample_recorder, std::shared_ptr<sample_recorder>> samplerec(m, "sample_recorder");
+    pybind11::class_<sampler, std::shared_ptr<sampler>> samplerec(m, "sampler");
     samplerec
         .def(pybind11::init<>())
-        .def("samples", &sample_recorder::samples,
+        .def("samples", &sampler::samples,
             "A list of the recorded samples of a probe with probe id.",
             "probe_id"_a);
 
-    m.def("attach_sample_recorder", &attach_sample_recorder,
+    m.def("attach_sampler",
+        (std::shared_ptr<sampler> (*)(arb::simulation&, arb::time_type)) &attach_sampler,
         "Attach a sample recorder to an arbor simulation.\n"
         "The recorder will record all samples from a regular sampling interval [ms] matching all probe ids.",
         "sim"_a, "dt"_a);
 
-    m.def("attach_sample_recorder_on_probe", &attach_sample_recorder_on_probe,
+    m.def("attach_sampler",
+        (std::shared_ptr<sampler> (*)(arb::simulation&, arb::time_type, arb::cell_member_type)) &attach_sampler,
         "Attach a sample recorder to an arbor simulation.\n"
         "The recorder will record all samples from a regular sampling interval [ms] matching one probe id.",
         "sim"_a, "dt"_a, "probe_id"_a);

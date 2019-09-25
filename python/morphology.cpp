@@ -12,7 +12,7 @@ void register_morphology(pybind11::module& m) {
 
     // segment location
     pybind11::class_<arb::mlocation> location(m, "location",
-        "Location specification.");
+        "A location on a cable cell.");
     location
         .def(pybind11::init(
             [](arb::msize_t branch, double pos) {

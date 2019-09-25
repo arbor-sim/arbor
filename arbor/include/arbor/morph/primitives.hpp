@@ -55,11 +55,10 @@ struct mlocation {
     // The relative position on the branch ∈ [0,1].
     double pos;
 
-    // branch ≠ npos and 0 ≤ pos ≤ 1
-    friend bool test_invariants(const mlocation&);
     friend std::ostream& operator<<(std::ostream&, const mlocation&);
 };
 
+// branch ≠ npos and 0 ≤ pos ≤ 1
 bool test_invariants(const mlocation&);
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mlocation, (a.branch,a.pos), (b.branch,b.pos));
 

@@ -84,7 +84,9 @@ meters.checkpoint('simulation-init', context)
 spike_recorder = arbor.attach_spike_recorder(sim)
 
 pid = arbor.cell_member(0,0) # cell 0, probe 0
-sample_recorder = arbor.attach_sample_recorder_on_probe(sim, 0.1, pid)
+# Attach a sampler to the voltage probe on cell 0.
+# Sample rate of 1 sample every ms.
+sampler = arbor.attach_sampler(sim, 1, pid)
 
 sim.run(100)
 print(f'{sim} finished')
@@ -99,5 +101,5 @@ for sp in spike_recorder.spikes:
 print('voltage samples for probe id ', end = '')
 print(pid, end = '')
 print(':')
-for sa in sample_recorder.samples(pid):
+for sa in sampler.samples(pid):
     print(sa)
