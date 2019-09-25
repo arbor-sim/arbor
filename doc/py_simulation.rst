@@ -208,9 +208,9 @@ In order to analyze the data collected from an :class:`arbor.probe` the samples 
 
         The sample record at a specific probe.
 
-.. class:: sample_recorder
+.. class:: sampler
 
-    .. function:: sample_recorder()
+    .. function:: sampler()
 
         Initialize the sample recorder.
 
@@ -218,14 +218,14 @@ In order to analyze the data collected from an :class:`arbor.probe` the samples 
 
         A list of the recorded samples of a probe with probe id.
 
-**I/O interface**:
+**Sampling interface**:
 
-.. function:: attach_sample_recorder(sim, dt)
+.. function:: attach_sampler(sim, dt)
 
     Attach a sample recorder to an arbor simulation.
     The recorder will record all samples from a regular sampling interval [ms] (see :class:`arbor.regular_schedule`) matching all probe ids.
 
-.. function:: attach_sample_recorder_on_probe(sim, dt, probe_id)
+.. function:: attach_sampler(sim, dt, probe_id)
 
     Attach a sample recorder to an arbor simulation.
     The recorder will record all samples from a regular sampling interval [ms] (see :class:`arbor.regular_schedule`) matching one probe id.
@@ -241,13 +241,13 @@ In order to analyze the data collected from an :class:`arbor.probe` the samples 
 
         # Build the sample recorder on cell 0 and probe 0 with regular sampling interval of 0.1 ms
         pid = arbor.cell_member(0,0) # cell 0, probe 0
-        sample_recorder = arbor.attach_sample_recorder_on_probe(sim, 0.1, pid)
+        sampler = arbor.attach_sampler(sim, 0.1, pid)
 
         # Run the simulation for 100 ms
         sim.run(100)
 
         # Print the sample times and values
-        for sa in sample_recorder.samples(pid):
+        for sa in sampler.samples(pid):
             print(sa)
 
 >>> <arbor.sample: time 0 ms,       value -65>

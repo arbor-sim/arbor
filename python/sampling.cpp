@@ -12,45 +12,39 @@
 
 namespace pyarb {
 
-// ToDo: trace entry of different types/container (e.g. vector of doubles to get all samples of a cell)
+// TODO: trace entry of different types/container (e.g. vector of doubles to get all samples of a cell)
 
 struct trace_entry {
     arb::time_type t;
     double v;
 };
 
-// A helper struct (state) ensuring that only one thread can write to the buffer holding the trace entries (mapped by probe id)
+// A helper struct (state) ensuring that only one thread can write to the probe_buffers holding the trace entries (mapped by probe id)
 struct sampler_state {
     std::mutex mutex;
-    std::unordered_map<arb::cell_member_type, std::vector<trace_entry>> buffer;
+    std::unordered_map<arb::cell_member_type, std::vector<trace_entry>> probe_buffers;
 
-    std::vector<trace_entry>& locked_sampler_vec(arb::cell_member_type pid) {
+    std::vector<trace_entry>& probe_buffer(arb::cell_member_type pid) {
         // lock the mutex, s.t. other threads cannot write
         std::lock_guard<std::mutex> lock(mutex);
         // return or create entry
-        return buffer[pid];
+        return probe_buffers[pid];
     }
 
-    // helper function to search probe id in buffer
+    // helper function to search probe id in probe_buffers
     bool has_pid(arb::cell_member_type pid) {
-        std::unordered_map<arb::cell_member_type, std::vector<trace_entry>>::iterator it = buffer.find(pid);
-        return (it != buffer.end());
+        return probe_buffers.count(pid);
     }
 
     // helper function to push back to locked vector
     void push_back(arb::cell_member_type pid, trace_entry value) {
-        auto& v = locked_sampler_vec(pid);
+        auto& v = probe_buffer(pid);
         v.push_back(std::move(value));
     }
 
-    // helper function to return whole buffer
+    // Access the probe buffers
     const std::unordered_map<arb::cell_member_type, std::vector<trace_entry>>& samples() const {
-        return buffer;
-    }
-
-    // helper function to return trace entry of probe id
-    const std::vector<trace_entry>& samples_of(arb::cell_member_type pid) {
-        return buffer[pid];
+        return probe_buffers;
     }
 };
 
@@ -68,7 +62,7 @@ struct sample_callback {
 
     void operator() (arb::cell_member_type probe_id, arb::probe_tag tag, std::size_t n, const arb::sample_record* recs) {
         // lock before write
-        auto& v = sample_store->locked_sampler_vec(probe_id);
+        auto& v = sample_store->probe_buffer(probe_id);
         for (std::size_t i = 0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
                 v.push_back({recs[i].time, *p});
@@ -97,10 +91,16 @@ struct sampler {
     }
 
     const std::vector<trace_entry>& samples(arb::cell_member_type pid) const {
-        if (sample_store->has_pid(pid)) {
-            return sample_store->samples_of(pid);
+        if (!sample_store->has_pid(pid)) {
+            throw std::runtime_error(util::pprintf("probe id {} does not exist", pid));
         }
-        throw std::runtime_error(util::pprintf("probe id {} does not exist", pid));
+        return sample_store->probe_buffer(pid);
+    }
+
+    void clear() {
+        for (auto b: sample_store->probe_buffers) {
+            b.second.clear();
+        }
     }
 };
 
@@ -122,10 +122,10 @@ std::string sample_str(const trace_entry& s) {
         return util::pprintf("<arbor.sample: time {} ms, \tvalue {}>", s.t, s.v);
 }
 
-void register_samples(pybind11::module& m) {
+void register_sampling(pybind11::module& m) {
     using namespace pybind11::literals;
 
-    // Samples
+    // Sample
     pybind11::class_<trace_entry> sample(m, "sample");
     sample
         .def_readonly("time", &trace_entry::t, "The sample time [ms] at a specific probe.")
@@ -133,13 +133,14 @@ void register_samples(pybind11::module& m) {
         .def("__str__",  &sample_str)
         .def("__repr__", &sample_str);
 
-    // Sample recorder
+    // Sampler
     pybind11::class_<sampler, std::shared_ptr<sampler>> samplerec(m, "sampler");
     samplerec
         .def(pybind11::init<>())
         .def("samples", &sampler::samples,
             "A list of the recorded samples of a probe with probe id.",
-            "probe_id"_a);
+            "probe_id"_a)
+        .def("clear", &sampler::clear, "Clear all recorded samples.");
 
     m.def("attach_sampler",
         (std::shared_ptr<sampler> (*)(arb::simulation&, arb::time_type)) &attach_sampler,

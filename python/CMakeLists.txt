@@ -27,7 +27,7 @@ add_library(pyarb MODULE
     profiler.cpp
     pyarb.cpp
     recipe.cpp
-    samples.cpp
+    sampling.cpp
     schedule.cpp
     simulation.cpp
     spikes.cpp

@@ -1,5 +1,6 @@
 import sys
 import arbor
+import matplotlib.pyplot as plt
 
 class ring_recipe (arbor.recipe):
 
@@ -44,7 +45,7 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
-    # Define one probe (for measuring voltage at the soma) on the cell.
+    # Define one probe (for measuring voltage at the soma) on each cell.
     def num_probes(self, gid):
         return 1
 
@@ -101,5 +102,19 @@ for sp in spike_recorder.spikes:
 print('voltage samples for probe id ', end = '')
 print(pid, end = '')
 print(':')
+
+time = []
+value = []
 for sa in sampler.samples(pid):
     print(sa)
+    time.append(sa.time)
+    value.append(sa.value)
+
+# plot the recorded voltages over time
+fig, ax = plt.subplots()
+ax.plot(time, value)
+ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='ring demo')
+ax.legend(['voltage'])
+plt.xlim(0,100)
+ax.grid()
+fig.savefig("voltages.png", dpi=300)
