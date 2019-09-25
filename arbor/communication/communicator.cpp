@@ -210,10 +210,11 @@ void communicator::make_event_queues(
             auto p = prefetch::make_prefetch(
                 prefetch::size<sz>,
                 prefetch::write,
-                [] (auto&& q, auto&& s, auto&& conn) {
+                [] (std::vector<pse_vector>::iterator&& q,
+                    std::vector<spike>::const_iterator&& s,
+                    std::vector<connection>::iterator&& conn) {
                     q->push_back(conn->make_event(*s)); 
-                },
-                queues.begin(), sp, cn
+                }
             );
 
             while (cn!=cons.end() && sp!=spks.end()) {

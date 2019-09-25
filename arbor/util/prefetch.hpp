@@ -158,17 +158,16 @@ constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f, P, Types...) {
 //     return prefetch<s, m, F, P, Types...>{std::forward<F>(f)}; // should be elided
 // }
 
-template<typename T, std::size_t s, int m>
-struct get_prefetch_functor_args: public get_prefetch_functor_args<decltype(&T::operator()), s, m>
+template<typename T, std::size_t s, int m, typename F = T>
+struct get_prefetch_functor_args: public get_prefetch_functor_args<decltype(&T::operator()), s, m, F>
 {};
 
-template<typename T, std::size_t s, int m, typename P, typename... Types>
-struct get_prefetch_functor_args<void(T::*)(P, Types...) const, s, m>
+template<typename T, std::size_t s, int m, typename F, typename P, typename... Types>
+struct get_prefetch_functor_args<void(T::*)(P, Types...) const, s, m, F>
 {
     template<typename U>
     using Remove = std::remove_cv_t<std::remove_reference_t<U>>;
     
-    template<typename F>
     static constexpr auto make_prefetch(F f) {
         return prefetch<s, m, F, Remove<P>, Remove<Types>...>{std::forward<F>(f)};
     }
@@ -176,7 +175,7 @@ struct get_prefetch_functor_args<void(T::*)(P, Types...) const, s, m>
 
 template<std::size_t s, int m, typename F>
 constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
-    return get_prefetch_functor_args<decltype(f), s, m>::make_prefetch(std::forward<F>(f));
+    return get_prefetch_functor_args<F, s, m>::make_prefetch(std::forward<F>(f));
 }
 
 }
