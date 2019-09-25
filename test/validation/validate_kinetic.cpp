@@ -91,7 +91,7 @@ void validate_kinetic_kinlva(const arb::context& ctx) {
     // 20 µm diameter soma with single mechanism, current probe
     cable_cell c;
     auto soma = c.add_soma(10);
-    c.add_stimulus({0,0.5}, {20., 130., -0.025});
+    c.place(mlocation{0,0.5}, {20., 130., -0.025});
     soma->add_mechanism("test_kinlva");
     cell_probe_address probe{{0, 0.5}, cell_probe_address::membrane_voltage};
 
