@@ -10,7 +10,7 @@
 
 namespace arb {
 
-class morphology_impl;
+struct morphology_impl;
 
 using mindex_range = std::pair<const msize_t*, const msize_t*>;
 
@@ -21,6 +21,7 @@ class morphology {
 public:
     morphology(sample_tree m, bool use_spherical_root);
     morphology(sample_tree m);
+    morphology();
 
     // Whether the root of the morphology is spherical.
     bool spherical_root() const;

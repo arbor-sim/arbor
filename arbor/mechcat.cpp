@@ -229,7 +229,7 @@ struct catalogue_state {
         const std::string* base = &name;
 
         if (!defined(name)) {
-            if (implicit_deriv = derive(name)) {
+            if ((implicit_deriv = derive(name))) {
                 base = &implicit_deriv.first().parent;
             }
             else {

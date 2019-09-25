@@ -29,9 +29,9 @@ struct test_recipe: public n_cable_cell_recipe {
     static cable_cell test_cell() {
         cable_cell c;
         c.add_soma(10.)->add_mechanism("pas");
-        c.add_synapse({0, 0.5}, "expsyn");
-        c.add_detector({0, 0.5}, -64);
-        c.add_gap_junction({0, 0.5});
+        c.place(mlocation{0, 0.5}, "expsyn");
+        c.place(mlocation{0, 0.5}, threshold_detector{-64});
+        c.place(mlocation{0, 0.5}, gap_junction_site{});
         return c;
     }
 

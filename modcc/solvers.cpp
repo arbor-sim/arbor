@@ -1,5 +1,6 @@
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -389,15 +390,20 @@ void SparseSolverVisitor::finalize() {
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
-    for (unsigned i = 0; i<A_.nrow(); ++i) {
+    auto nrow = A_.nrow();
+    for (unsigned i = 0; i<nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs_col = A_.augcol();
-        unsigned lhs_col;
-        for (unsigned r = 0; r < A_.nrow(); r++) {
+        unsigned lhs_col = -1;
+        for (unsigned r = 0; r<A_.nrow(); ++r) {
             if (row[r]) {
                 lhs_col = r;
                 break;
             }
+        }
+
+        if (lhs_col==unsigned(-1)) {
+            throw std::logic_error("zero row in sparse solver matrix");
         }
 
         auto expr =
@@ -475,15 +481,20 @@ void LinearSolverVisitor::finalize() {
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
-    for (unsigned i = 0; i < A_.nrow(); ++i) {
+    auto nrow = A_.nrow();
+    for (unsigned i = 0; i < nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs = A_.augcol();
-        unsigned lhs;
-        for (unsigned r = 0; r < A_.nrow(); r++) {
+        unsigned lhs = -1;
+        for (unsigned r = 0; r < A_.nrow(); ++r) {
             if (row[r]) {
                 lhs = r;
                 break;
             }
+        }
+
+        if (lhs==unsigned(-1)) {
+            throw std::logic_error("zero row in linear solver matrix");
         }
 
         auto expr =

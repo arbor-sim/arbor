@@ -55,7 +55,7 @@ public:
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        c.add_synapse({0, 0.5}, "expsyn");
+        c.place(arb::mlocation{0, 0.5}, "expsyn");
 
         return std::move(c);
     }

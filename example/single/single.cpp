@@ -77,7 +77,7 @@ struct single_recipe: public arb::recipe {
 
         arb::cell_lid_type last_segment = c.num_segments()-1;
         arb::mlocation end_last_segment = { last_segment, 1. };
-        c.add_synapse(end_last_segment, "exp2syn");
+        c.place(end_last_segment, "exp2syn");
 
         return c;
     }
