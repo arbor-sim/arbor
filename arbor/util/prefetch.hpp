@@ -166,10 +166,10 @@ template<typename T, std::size_t s, int m, typename F, typename P, typename... T
 struct get_prefetch_functor_args<void(T::*)(P, Types...) const, s, m, F>
 {
     template<typename U>
-    using Remove = std::remove_cv_t<std::remove_reference_t<U>>;
+    using R = std::remove_cv_t<std::remove_reference_t<U>>;
     
     static constexpr auto make_prefetch(F f) {
-        return prefetch<s, m, F, Remove<P>, Remove<Types>...>{std::forward<F>(f)};
+        return prefetch<s, m, F, R<P>, R<Types>...>{std::forward<F>(f)};
     }
 };
 
