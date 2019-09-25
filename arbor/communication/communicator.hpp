@@ -11,7 +11,6 @@
 #include "connection.hpp"
 #include "execution_context.hpp"
 #include "util/partition.hpp"
-#include "util/prefetch.hpp"
 
 namespace arb {
 
@@ -28,9 +27,6 @@ namespace arb {
 
 class communicator {
 public:
-    communicator();  // defined in source file
-    ~communicator(); // so that we can forward declare prefetch types
-
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
                           execution_context& ctx);
@@ -80,25 +76,6 @@ private:
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
-
-    // forward declaration of prefetching types for prefetch.hpp
-    using prefetched_range = prefetch::elements<
-        prefetch::write,
-        std::vector<pse_vector>::iterator,  // the queue* that we went to prefetch
-        std::vector<spike>::const_iterator, // spike* or begin()
-        std::vector<spike>::const_iterator, // nothing or end()
-        std::vector<connection>::iterator   // connection*
-        >;
-
-    using prefetched_single = prefetch::elements<
-        prefetch::write,
-        std::vector<pse_vector>::iterator,  // the queue* that we went to prefetch
-        std::vector<spike>::const_iterator, // spike*
-        std::vector<connection>::iterator   // connection*
-        >;
-
-    prefetched_range prefetch_range_; // vector that prefetches and handles the queues
-    prefetched_single prefetch_single_; // vector that prefetches and handles the queues
 };
 
 } // namespace arb

@@ -17,20 +17,15 @@
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "util/prefetch.hpp"
 
 #include "communication/communicator.hpp"
 
 namespace arb {
 
-static constexpr std::size_t prefetch_n = 256;
-
-communicator::communicator() {}
-communicator::~communicator() {}
-
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
                            execution_context& ctx)
-    : prefetch_range_(prefetch_n), prefetch_single_(prefetch_n)
 {
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -166,6 +161,8 @@ void communicator::make_event_queues(
     using util::make_span;
     using util::make_range;
 
+    static constexpr auto sz = 256;
+
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;
     for (auto dom: make_span(num_domains_)) {
@@ -181,42 +178,52 @@ void communicator::make_event_queues(
         // We iterate over whichever set is the smallest, which has
         // complexity of order max(S log(C), C log(S)), where S is the
         // number of spikes, and C is the number of connections.
+        auto sp = spks.begin();
+        auto cn = cons.begin();
         if (cons.size()<spks.size()) {
-            auto sp = spks.begin();
-            auto cn = cons.begin();
-            while (prefetch_range_.not_full() && cn!=cons.end() && sp!=spks.end()) {
-                auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
-                if (sources.first != sources.second) {
+            auto p = prefetch::make_prefetch(
+                prefetch::size<sz>,
+                prefetch::write,
+                [] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
+                    for (auto s: make_range(s1, s2)) {
+                        q->push_back(conn->make_event(s));
+                    }
+                },
+                queues.begin(), sp, sp, cn
+            );
+                                                  
+            while (cn!=cons.end() && sp!=spks.end()) {
+                decltype(sp) s1, s2;
+                std::tie(s1, s2) = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
+                if (s1 != s2) {
                     auto q = queues.begin() + cn->index_on_domain();
-                    prefetch_range_.add(q, sources.first, sources.second, cn);
+                    p.store(q, s1, s2, cn);
                 }
-                sp = sources.first;
+                
+                sp = s1; // should be first, non-unique mapping of spikes to connection
                 ++cn;
             }
-
-            prefetch_range_.process([] (auto&& q, auto&& s1, auto&& s2, auto&& conn) {
-                for (auto s: make_range(s1, s2)) {
-                    q->push_back(conn->make_event(s));
-                }
-            });
         }
         else {
-            auto cn = cons.begin();
-            auto sp = spks.begin();
-            while (prefetch_single_.not_full() && cn!=cons.end() && sp!=spks.end()) {
+            auto p = prefetch::make_prefetch(
+                prefetch::size<sz>,
+                prefetch::write,
+                [] (auto&& q, auto&& s, auto&& conn) {
+                    q->push_back(conn->make_event(*s)); 
+                },
+                queues.begin(), sp, cn
+            );
+
+            while (cn!=cons.end() && sp!=spks.end()) {
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c = targets.first; c != targets.second; c++) {
                     auto q = queues.begin() + c->index_on_domain();
-                    prefetch_single_.add(q, sp, c); 
+                    p.store(q, sp, c); 
                 }
 
-                cn = targets.first;
+                cn = targets.second; // this shouldn't be first, unique mapping of connection to spike
                 ++sp;
             }
-
-            prefetch_single_.process([] (auto&& q, auto&& s, auto&& conn) {
-                q->push_back(conn->make_event(*s)); 
-            });
         }
     }
 }
