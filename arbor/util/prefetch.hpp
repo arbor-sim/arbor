@@ -123,9 +123,7 @@ public:
 
     prefetch(F&& f): function{std::move(f)} {}
     prefetch(const F& f): function{f} {}
-    ~prefetch() {
-        while (stored) {apply();}
-    }
+    ~prefetch() {while (stored) {pop();}}
     
     prefetch(prefetch&&) = default; //needed < C++17
     prefetch(const prefetch&) = delete; 
@@ -133,30 +131,30 @@ public:
 
     // append an element to prefetch pointer-like P associated with pointer-like args
     void store(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
-        if (stored == arr.size()) {
-            apply();
-        }
-
-        *end = element_type{p, args...};
-        if (++end == arr.end()) {
-            end = arr.begin();
-        }
-        stored++;
+        if (stored == arr.size()) {pop();}
+        push(p, args...);
     }
 
 private:
-    void apply() {
-        begin->apply(function);
-        if (++begin == arr.end()) {
-            begin = arr.begin();
-        }
+    // apply function to first stored, and move pointer forward
+    // precondition: stored > 0
+    void pop() {
+        arr[begin].apply(function);
+        begin = (begin + 1) % arr.size();
         stored--;
     }
 
+    // add an element to end of ring
+    // precondition: stored < arr.size()
+    void push(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
+        const std::size_t next = (begin + stored) % arr.size();
+        arr[next] = element_type{p, args...};
+        stored++;
+    }
+    
     array arr;
+    std::size_t begin = 0;
     std::size_t stored = 0;
-    iterator begin = arr.begin();
-    iterator end = arr.begin();
 };
 
 
