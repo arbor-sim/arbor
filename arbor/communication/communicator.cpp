@@ -184,15 +184,15 @@ void communicator::make_event_queues(
             auto p = prefetch::make_prefetch(
                 prefetch::size<sz>,
                 prefetch::write,
-                [] (std::vector<pse_vector>::iterator&& q,
-                    std::vector<spike>::const_iterator&& s1,
-                    std::vector<spike>::const_iterator&& s2,
-                    std::vector<connection>::iterator&& conn) {
-                    for (auto s: make_range(s1, s2)) {
-                        q->push_back(conn->make_event(s));
+                [] (std::vector<pse_vector>::iterator  q,
+                    std::vector<spike>::const_iterator b,
+                    std::vector<spike>::const_iterator e,
+                    std::vector<connection>::iterator  c)
+                {
+                    for (auto s: make_range(b, e)) {
+                        q->push_back(c->make_event(s));
                     }
-                }
-            );
+                });
                                                   
             while (cn!=cons.end() && sp!=spks.end()) {
                 decltype(sp) s1, s2;
@@ -210,12 +210,12 @@ void communicator::make_event_queues(
             auto p = prefetch::make_prefetch(
                 prefetch::size<sz>,
                 prefetch::write,
-                [] (std::vector<pse_vector>::iterator&& q,
-                    std::vector<spike>::const_iterator&& s,
-                    std::vector<connection>::iterator&& conn) {
-                    q->push_back(conn->make_event(*s)); 
-                }
-            );
+                [] (std::vector<pse_vector>::iterator  q,
+                    std::vector<spike>::const_iterator s,
+                    std::vector<connection>::iterator  c)
+                {
+                    q->push_back(c->make_event(*s)); 
+                });
 
             while (cn!=cons.end() && sp!=spks.end()) {
                 auto targets = std::equal_range(cn, cons.end(), sp->source);

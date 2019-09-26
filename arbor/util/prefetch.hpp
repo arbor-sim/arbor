@@ -7,10 +7,14 @@
 namespace arb {
 namespace prefetch {
 
+// Internal utility
+template<typename T>
+using remove_qualifier_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
 // default conversion from pointer-like P to pointer P
 // set up this way so that it can be specialized for unusual P
 template<typename P>
-auto get_pointer(P& prefetched) {
+auto get_pointer(P prefetched) {
     return &*prefetched;
 }
 
@@ -32,11 +36,11 @@ auto get_pointer(P& prefetched) {
 template<int m, typename P, typename ... Types>
 class element {
 public:
-    using values = std::tuple<P, Types...>;
-    static constexpr std::size_t size = std::tuple_size<values>();
     static constexpr int mode = m;
+    using values = std::tuple<remove_qualifier_t<P>, remove_qualifier_t<Types>...>;
+    static constexpr std::size_t size = std::tuple_size<values>();
     
-    element(P p, Types... args): v{p, args...} {prefetch();}
+    element(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args): v{p, args...} {prefetch();}
     element() = default;
 
     template<typename F>
@@ -51,7 +55,15 @@ private:
 
     template<typename F, size_t... I>
     auto apply(F f, std::index_sequence<I...>) {
-        return std::forward<F>(f)(std::move(std::get<I>(v))...);
+        return std::forward<F>(f)(get_raw_value<I>()...);
+    }
+
+    template<std::size_t n>
+    using raw_type = std::tuple_element_t<n, std::tuple<P, Types...>>;
+    
+    template<std::size_t n>
+    raw_type<n> get_raw_value() {
+        return static_cast<raw_type<n>>(std::get<n>(v));
     }
 
     values v;
@@ -94,7 +106,6 @@ private:
   and not too few or we'll hit the function application before
   the data has arrived
 
-
   prefetch size = number of read-aheads
   prefetch_mode m = read or write, do we prefetch with a read or write expection?
   P = type of prefetch (pointer-like object)
@@ -119,7 +130,7 @@ public:
     prefetch& operator=(const prefetch&) = delete;
 
     // append an element to prefetch pointer-like P associated with pointer-like args
-    void store(P p, Types... args) {
+    void store(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
         if (curr == arr.end()) {
             process();
         }
@@ -198,9 +209,7 @@ namespace get_prefetch_functor_args {
   template<typename F, std::size_t s, int m, typename T, typename P, typename... Types>
   struct functor_traits<F, s, m, void(T::*)(P, Types...) const>
   {
-      template<typename U>
-      using R = std::remove_cv_t<std::remove_reference_t<U>>;
-      using C = prefetch<s, m, F, R<P>, R<Types>...>;
+      using C = prefetch<s, m, F, P, Types...>;
       
       static constexpr auto make_prefetch(F f) {
           return C{std::forward<F>(f)};
