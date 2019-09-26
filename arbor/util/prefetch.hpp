@@ -183,7 +183,6 @@ constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
     return prefetch<s, m, F, P, Types...>{std::forward<F>(f)};
 }
 
-
 // make_prefetch(
 //    size_type<n-lookaheads>,
 //    read|write,
