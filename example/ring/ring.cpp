@@ -337,12 +337,11 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
 }
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    arb::cable_cell cell;
-    cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
+    arb::sample_tree samples;
 
     // Add soma.
-    auto soma = cell.add_soma(12.6157/2.0); // For area of 500 μm².
-    soma->add_mechanism("hh");
+    double soma_radius = 12.6157/2.0;
+    samples.append(arb::mnpos, {{0,0,0,soma_radius}, 1}); // For area of 500 μm².
 
     std::vector<std::vector<unsigned>> levels;
     levels.push_back({0});
@@ -354,6 +353,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     double dend_radius = 0.5; // Diameter of 1 μm for each cable.
 
     unsigned nsec = 1;
+    double dist_from_soma = soma_radius;
     for (unsigned i=0; i<params.max_depth; ++i) {
         // Branch prob at this level.
         double bp = interp(params.branch_probs, i, params.max_depth);
@@ -366,10 +366,11 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
         for (unsigned sec: levels[i]) {
             for (unsigned j=0; j<2; ++j) {
                 if (dis(gen)<bp) {
-                    sec_ids.push_back(nsec++);
-                    auto dend = cell.add_cable(sec, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, dend_radius, dend_radius, l));
-                    dend->set_compartments(nc);
-                    dend->add_mechanism("pas");
+                    //sec_ids.push_back(nsec++);
+                    //auto dend = cell.add_cable(sec, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, dend_radius, dend_radius, l));
+                    auto p = samples.append(sec, {{0,0,dist_from_soma,dend_radius}, 3});
+                    sec_ids.push_back(samples.append(p, {{0,0,dist_from_soma+l,dend_radius}, 3}));
+                    //dend->set_compartments(nc);
                 }
             }
         }
@@ -377,7 +378,21 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
             break;
         }
         levels.push_back(sec_ids);
+
+        dist_from_soma += l;
     }
+
+    arb::label_dict d;
+
+    using arb::reg::tagged;
+    d.set("soma",      tagged(1));
+    d.set("dendrites", join(tagged(3), tagged(4)));
+
+    arb::cable_cell cell(arb::morphology(samples, true), d, true);
+
+    cell.paint("soma", "hh");
+    cell.paint("dendrites", "pas");
+    cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
 
     // Add spike threshold detector at the soma.
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});

@@ -79,32 +79,37 @@ public:
     /// Move constructor
     cable_cell(cable_cell&& other) = default;
 
+    /// construct from morphology
+    cable_cell(const class morphology& m,
+               const label_dict& dictionary,
+               bool compartments_from_discretization);
+
     /// add a soma to the cell
     /// radius must be specified
-    soma_segment* add_soma(value_type radius, point_type center=point_type());
+    //soma_segment* add_soma(value_type radius, point_type center=point_type());
 
     /// add a cable
     /// parent is the index of the parent segment for the cable section
     /// cable is the segment that will be moved into the cell
-    cable_segment* add_cable(index_type parent, segment_ptr&& cable);
+    //cable_segment* add_cable(index_type parent, segment_ptr&& cable);
 
     bool has_soma() const;
 
-    class segment* segment(index_type index);
+    //class segment* segment(index_type index);
     const class segment* parent(index_type index) const;
     const class segment* segment(index_type index) const;
 
     // access pointer to the soma
     // returns nullptr if the cell has no soma
     // LEGACY
-    soma_segment* soma();
+    //soma_segment* soma();
     const soma_segment* soma() const;
 
     // access pointer to a cable segment
     // will throw an cable_cell_error exception if
     // the cable index is not valid
     // LEGACY
-    cable_segment* cable(index_type index);
+    //cable_segment* cable(index_type index);
     const cable_segment* cable(index_type index) const;
 
     const std::vector<segment_ptr>& segments() const;

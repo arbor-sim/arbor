@@ -30,10 +30,76 @@ struct cable_cell_impl {
     using region_map = cable_cell::region_map;
     using locset_map = cable_cell::locset_map;
 
-    cable_cell_impl() {
-        segments.push_back(make_segment<placeholder_segment>());
-        parents.push_back(0);
+    cable_cell_impl(const arb::morphology& m,
+                    const label_dict& dictionary,
+                    bool compartments_from_discretization):
+        morph(m)
+    {
+        using point = cable_cell::point_type;
+        if (!m.num_branches()) {
+            segments.push_back(make_segment<placeholder_segment>());
+            parents.push_back(0);
+            return;
+        }
+
+        // Add the soma.
+        auto loc = m.samples()[0].loc; // location of soma.
+
+        // If there is no spherical root/soma use a zero-radius soma.
+        double srad = m.spherical_root()? loc.radius: 0.;
+        segments.push_back(make_segment<soma_segment>(srad, point(loc.x, loc.y, loc.z)));
+
+        auto& samples = m.samples();
+        for (auto i: util::make_span(1, m.num_branches())) {
+            auto index =  util::make_range(m.branch_indexes(i));
+
+            // find kind for the branch. Use the tag of the last sample in the branch.
+            int tag = samples[index.back()].tag;
+            section_kind kind;
+            switch (tag) {
+                case 1:     // soma
+                    throw cable_cell_error("No support for complex somata (yet)");
+                case 2:     // axon
+                    kind = section_kind::axon;
+                case 3:     // dendrite
+                case 4:     // apical dendrite
+                default:    // just take dendrite as default
+                    kind = section_kind::dendrite;
+            }
+
+            std::vector<value_type> radii;
+            std::vector<cable_cell::point_type> points;
+
+            for (auto i: index) {
+                auto& s = samples[i];
+                radii.push_back(s.loc.radius);
+                points.push_back(cable_cell::point_type(s.loc.x, s.loc.y, s.loc.z));
+            }
+
+            // Find the id of this branch's parent.
+            auto pid = m.branch_parent(i);
+            // Adjust pid if a zero-radius soma was used.
+            if (!m.spherical_root()) {
+                pid = pid==mnpos? 0: pid+1;
+            }
+            //auto cable = cell.add_cable(pid, make_segment<cable_segment>(kind, radii, points));
+            segments.push_back(make_segment<cable_segment>(kind, radii, points));
+            parents.push_back(pid);
+            if (compartments_from_discretization) {
+                segments.back()->as_cable()->set_compartments(radii.size()-1);
+            }
+        }
+
+        for (auto r: dictionary.regions()) {
+            regions[r.first] = thingify(r.second, morph);
+        }
+
+        for (auto l: dictionary.locsets()) {
+            locations[l.first] = thingify(l.second, morph);
+        }
     }
+
+    cable_cell_impl(): cable_cell_impl({},{},false) {}
 
     cable_cell_impl(const cable_cell_impl& other) {
         parents = other.parents;
@@ -117,6 +183,12 @@ impl_ptr make_impl(cable_cell_impl* c) {
     return impl_ptr(c, [](cable_cell_impl* p){delete p;});
 }
 
+cable_cell::cable_cell(const arb::morphology& m,
+                       const label_dict& dictionary,
+                       bool compartments_from_discretization):
+    impl_(make_impl(new cable_cell_impl(m, dictionary, compartments_from_discretization)))
+{}
+
 cable_cell::cable_cell():
     impl_(make_impl(new cable_cell_impl()))
 {}
@@ -130,10 +202,7 @@ size_type cable_cell::num_segments() const {
     return impl_->segments.size();
 }
 
-//
-// note: I think that we have to enforce that the soma is the first
-//       segment that is added
-//
+/*
 soma_segment* cable_cell::add_soma(value_type radius, point_type center) {
     if (has_soma()) {
         throw cable_cell_error("cell already has soma");
@@ -161,6 +230,7 @@ segment* cable_cell::segment(index_type index) {
     impl_->assert_valid_segment(index);
     return impl_->segments[index].get();
 }
+*/
 
 segment const* cable_cell::parent(index_type index) const {
     impl_->assert_valid_segment(index);
@@ -232,7 +302,8 @@ void cable_cell::paint(const std::string& target, mechanism_desc desc) {
                 "cable_cell does not support regions with partial branches: \"{}\": {}",
                 target, c));
         }
-        segment(c.branch)->add_mechanism(std::move(desc));
+        impl_->assert_valid_segment(c.branch);
+        impl_->segments[c.branch]->add_mechanism(std::move(desc));
     }
 }
 
@@ -339,13 +410,6 @@ lid_range cable_cell::place(const std::string& target, const threshold_detector&
     return impl_->place(it->second, desc.threshold, impl_->spike_detectors);
 }
 
-/*
-lid_range cable_cell::place(const locset& ls, const threshold_detector& desc) {
-    const auto locs = thingify(ls, impl_->morph);
-    return impl_->place(locs, desc.threshold, impl_->spike_detectors);
-}
-*/
-
 lid_range cable_cell::place(const mlocation& loc, const threshold_detector& desc) {
     if (!impl_->valid_location(loc)) {
         throw cable_cell_error(util::pprintf(
@@ -354,19 +418,8 @@ lid_range cable_cell::place(const mlocation& loc, const threshold_detector& desc
     return impl_->place({loc}, desc.threshold, impl_->spike_detectors);
 }
 
-
-soma_segment* cable_cell::soma() {
-    return has_soma()? segment(0)->as_soma(): nullptr;
-}
-
 const soma_segment* cable_cell::soma() const {
     return has_soma()? segment(0)->as_soma(): nullptr;
-}
-
-cable_segment* cable_cell::cable(index_type index) {
-    impl_->assert_valid_segment(index);
-    auto cable = segment(index)->as_cable();
-    return cable? cable: throw cable_cell_error("segment is not a cable segment");
 }
 
 const cable_segment* cable_cell::cable(index_type index) const {
@@ -446,84 +499,6 @@ value_type cable_cell::segment_mean_attenuation(
     value_type tau_per_um = R*C*1e-8;
 
     return 2*std::sqrt(math::pi<double>*tau_per_um*frequency)*length_factor; // [1/µm]
-}
-
-cable_cell make_cable_cell(const morphology& m,
-                           const label_dict& dictionary,
-                           bool compartments_from_discretization)
-{
-    using point3d = cable_cell::point_type;
-    cable_cell cell;
-
-    if (!m.num_branches()) {
-        return cell;
-    }
-
-    // Add the soma.
-    auto loc = m.samples()[0].loc; // location of soma.
-
-    // If there is no spherical root/soma use a zero-radius soma.
-    double srad = m.spherical_root()? loc.radius: 0.;
-    cell.add_soma(srad, point3d(loc.x, loc.y, loc.z));
-
-    auto& samples = m.samples();
-    for (auto i: util::make_span(1, m.num_branches())) {
-        auto index =  util::make_range(m.branch_indexes(i));
-
-        // find kind for the branch. Use the tag of the last sample in the branch.
-        int tag = samples[index.back()].tag;
-        section_kind kind;
-        switch (tag) {
-            case 1:     // soma
-                throw cable_cell_error("No support for complex somata (yet)");
-            case 2:     // axon
-                kind = section_kind::axon;
-            case 3:     // dendrite
-            case 4:     // apical dendrite
-            default:    // just take dendrite as default
-                kind = section_kind::dendrite;
-        }
-
-        std::vector<value_type> radii;
-        std::vector<point3d> points;
-
-        for (auto i: index) {
-            auto& s = samples[i];
-            radii.push_back(s.loc.radius);
-            points.push_back(point3d(s.loc.x, s.loc.y, s.loc.z));
-        }
-
-        // Find the id of this branch's parent.
-        auto pid = m.branch_parent(i);
-        // Adjust pid if a zero-radius soma was used.
-        if (!m.spherical_root()) {
-            pid = pid==mnpos? 0: pid+1;
-        }
-        auto cable = cell.add_cable(pid, make_segment<cable_segment>(kind, radii, points));
-        if (compartments_from_discretization) {
-            cable->as_cable()->set_compartments(radii.size()-1);
-        }
-    }
-
-    // Construct concrete regions.
-    // Ignores the pointsets, for now.
-    auto em = em_morphology(m); // for converting labels to "segments"
-
-    std::unordered_map<std::string, mcable_list> regions;
-    for (auto r: dictionary.regions()) {
-        regions[r.first] = thingify(r.second, em);
-    }
-    cell.set_regions(std::move(regions));
-
-    std::unordered_map<std::string, mlocation_list> locsets;
-    for (auto l: dictionary.locsets()) {
-        locsets[l.first] = thingify(l.second, em);
-    }
-    cell.set_locsets(std::move(locsets));
-
-    cell.set_morphology(std::move(em));
-
-    return cell;
 }
 
 } // namespace arb
