@@ -123,7 +123,9 @@ public:
 
     prefetch(F&& f): function{std::move(f)} {}
     prefetch(const F& f): function{f} {}
-    ~prefetch() {process();}
+    ~prefetch() {
+        while (stored) {apply();}
+    }
     
     prefetch(prefetch&&) = default; //needed < C++17
     prefetch(const prefetch&) = delete; 
@@ -131,25 +133,30 @@ public:
 
     // append an element to prefetch pointer-like P associated with pointer-like args
     void store(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
-        if (curr == arr.end()) {
-            process();
+        if (stored == arr.size()) {
+            apply();
         }
-        *(curr++) = element_type{p, args...};
+
+        *end = element_type{p, args...};
+        if (++end == arr.end()) {
+            end = arr.begin();
+        }
+        stored++;
     }
 
 private:
-    // process: applies some function f to every element of the vector
-    // and then clears the vector
-    // hopefully, everything is in cache by the time this is called
-    void process() {
-        for (auto&& element: util::make_range(arr.begin(), curr)) {
-            element.apply(function);
-        };
-        curr = arr.begin();
+    void apply() {
+        begin->apply(function);
+        if (++begin == arr.end()) {
+            begin = arr.begin();
+        }
+        stored--;
     }
 
     array arr;
-    iterator curr = arr.begin();
+    std::size_t stored = 0;
+    iterator begin = arr.begin();
+    iterator end = arr.begin();
 };
 
 
