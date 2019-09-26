@@ -195,7 +195,7 @@ namespace get_prefetch_functor_args {
   template<typename, std::size_t, int, typename>
   struct functor_traits;
 
-// pull off the functor types
+// pull off the functor argument types to construct prefetch
   template<typename F, std::size_t s, int m, typename T, typename P, typename... Types>
   struct functor_traits<F, s, m, void(T::*)(P, Types...) const>
   {
@@ -209,22 +209,26 @@ namespace get_prefetch_functor_args {
   };
 
 // base type, assumes F is lambda or other functor, apply functor_traits
+  template< typename F, std::size_t s, int m>
+  using FTF = functor_traits<F, s, m, decltype(&F::operator())>;
+
   template<typename F, std::size_t s, int m>
-  struct traits:
-        public functor_traits<F, s, m, decltype(&F::operator())>
+  struct traits: public FTF<F, s, m>
   {};
 
 // for function pointers: create a matching functor type for functor_traits
+  template<typename F, std::size_t s, int m>
+  using FTP = functor_traits<F, s, m, decltype(&std::function<F>::operator())>;
+
   template<std::size_t s, int m, typename P, typename... Types>
-  struct traits<void(P, Types...), s, m>:
-        public functor_traits<void(P, Types...), s, m, decltype(std::function<void(P, Types...)>::operator())>
+  struct traits<void(P, Types...), s, m>: public FTP<void(P, Types...), s, m>
   {};
 } // get_prefetch_functor_args
 
 // and here we apply the traits in make_prefetch
 template<std::size_t s, int m, typename F>
 constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
-    return get_prefetch_functor_args::traits<F, s, m>::make_prefetch(std::forward<F>(f)); // should be elided
+    return get_prefetch_functor_args::traits<F, s, m>::make_prefetch(std::forward<F>(f));
 }
 
 } //prefetch
