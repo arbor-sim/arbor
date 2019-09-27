@@ -195,14 +195,13 @@ void communicator::make_event_queues(
                 });
                                                   
             while (cn!=cons.end() && sp!=spks.end()) {
-                decltype(sp) s1, s2;
-                std::tie(s1, s2) = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
-                if (s1 != s2) {
+                auto spikes = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
+                if (spikes.first != spikes.second) {
                     auto q = queues.begin() + cn->index_on_domain();
-                    p.store(q, s1, s2, cn);
+                    p.store(q, spikes.first, spikes.second, cn);
                 }
                 
-                sp = s1; // should be first, non-unique mapping of spikes to connection
+                sp = spikes.first; // should be first, non-unique mapping of spikes to connection
                 ++cn;
             }
         }
