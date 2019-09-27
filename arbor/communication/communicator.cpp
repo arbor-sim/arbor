@@ -161,7 +161,7 @@ void communicator::make_event_queues(
     using util::make_span;
     using util::make_range;
 
-    static constexpr auto sz = 256;
+    static constexpr auto sz = 32;
 
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;

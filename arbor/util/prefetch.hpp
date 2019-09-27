@@ -142,6 +142,10 @@ public:
     _prefetch(F&& f): function{std::move(f)} {}
     _prefetch(const F& f): function{f} {}
     ~_prefetch() {while (begin != end) {pop();}}
+
+    _prefetch(_prefetch&&) = default; //needed < C++17
+    _prefetch(const _prefetch&) = delete; 
+    _prefetch& operator=(const _prefetch&) = delete;
     
     // append an element to prefetch pointer-like P associated
     // with pointer-like args. If enough look-aheads pending
@@ -205,11 +209,6 @@ public:
                              pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>;
 
     using parent::parent;
-    
-    prefetch(prefetch&&) = default; //needed < C++17
-    prefetch(const prefetch&) = delete; 
-    prefetch& operator=(const prefetch&) = delete;
-
     using parent::store;
 };
 
