@@ -227,11 +227,11 @@ public:
 // and now the utility functions `make_prefetch`
 
 // make_prefetch(
-//    size_type<n-lookaheads>,
-//    read|write,
+//    prefetch::size_type<n-lookaheads>,
+//    prefetch::read|write,
 //    [] (auto&& prefetch, auto&& params...) {},
 //    ignored-variable-of-prefetch-type,
-//   ignore-variables-of-params-types...
+//    ignore-variables-of-params-types...
 // )
 template<typename S, typename M, typename F, typename P, typename... Types>
 constexpr auto make_prefetch(S, M, F&& f, P, Types...) {
@@ -239,8 +239,8 @@ constexpr auto make_prefetch(S, M, F&& f, P, Types...) {
 }
 
 // make_prefetch<prefetch-type, param-types...>(
-//    size_type<n-lookaheads>,
-//    read|write,
+//    prefetch::size_type<n-lookaheads>,
+//    prefetch::read|write,
 //    [] (auto&& prefetch, auto&& params...) {}
 // )
 template<typename P, typename... Types, typename S, typename M, typename F>
@@ -249,13 +249,13 @@ constexpr auto make_prefetch(S, M, F&& f) {
 }
 
 // make_prefetch(
-//    size_type<n-lookaheads>,
-//    read|write,
+//    prefetch::size_type<n-lookaheads>,
+//    prefetch::read|write,
 //    [] (prefetch-type&&, param-types&&...) {}
 // )
 // first, we need to build traits to get the parameter types
 namespace get_prefetch_functor_args {
-// construct prefetch from passed in P, Types...
+  // construct prefetch from passed in P, Types...
   template<typename F, typename P, typename... Types>
   struct _traits
   {
@@ -265,23 +265,23 @@ namespace get_prefetch_functor_args {
       }
   };
 
-// for functors
+  // for functors
   template<typename, typename>
   struct functor_traits;
 
-// pull off the functor argument types to construct prefetch
+  // pull off the functor argument types to construct prefetch
   template<typename F, typename T, typename P, typename... Types>
   struct functor_traits<F, void(T::*)(P, Types...) const>:
         public _traits<F, P, Types...>
   {};
 
-// base type, assumes F is lambda or other functor,
-// apply functor_traits to pull of P, Types..
+  // base type, assumes F is lambda or other functor,
+  // apply functor_traits to pull of P, Types..
   template<typename F>
   struct traits: public functor_traits<F, decltype(&F::operator())>
   {};
 
-// for function pointers: pull P, Types... immediately
+  // for function pointers: pull P, Types... immediately
   template<typename P, typename... Types>
   struct traits<void(P, Types...)>:
       public _traits<void(P, Types...), P, Types...>
