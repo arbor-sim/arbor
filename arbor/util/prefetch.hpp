@@ -116,45 +116,47 @@ template<std::size_t s, int m, typename F, typename P, typename ... Types>
 class prefetch {
 public:
     using element_type = element<m, P, Types...>;
-    using array = std::array<element_type, s>;
+    using array = std::array<element_type, s+1>; // 1 sentinel element
     using iterator = typename array::iterator;
     using function_type = F;
     const function_type function;
 
     prefetch(F&& f): function{std::move(f)} {}
     prefetch(const F& f): function{f} {}
-    ~prefetch() {while (stored) {pop();}}
+    ~prefetch() {while (begin != end) {pop();}}
     
     prefetch(prefetch&&) = default; //needed < C++17
     prefetch(const prefetch&) = delete; 
     prefetch& operator=(const prefetch&) = delete;
 
-    // append an element to prefetch pointer-like P associated with pointer-like args
+    // append an element to prefetch pointer-like P associated
+    // with pointer-like args. If enough look-aheads pending
+    // process one (call function on it).
     void store(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
-        if (stored == arr.size()) {pop();}
+        if (begin == next) {pop();}
         push(p, args...);
     }
 
 private:
     // apply function to first stored, and move pointer forward
-    // precondition: stored > 0
+    // precondition: begin != end
     void pop() {
-        arr[begin].apply(function);
-        begin = (begin + 1) % arr.size();
-        stored--;
+        begin->apply(function);
+        if (++begin == arr.end()) {begin = arr.begin();}
     }
 
     // add an element to end of ring
-    // precondition: stored < arr.size()
+    // precondition: begin != next
     void push(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
-        const std::size_t next = (begin + stored) % arr.size();
-        arr[next] = element_type{p, args...};
-        stored++;
+        *end = element_type{p, args...};
+        end = next;
+        if (++next == arr.end()) {next = arr.begin();}
     }
     
     array arr;
-    std::size_t begin = 0;
-    std::size_t stored = 0;
+    iterator begin = arr.begin();
+    iterator end = arr.begin();
+    iterator next = end+1;
 };
 
 
