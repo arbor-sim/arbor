@@ -162,10 +162,11 @@ static void make_queues_by_conns(
 {
     using util::make_range;
 
-    auto&& p = prefetch::make_prefetch(
+    auto&& d = prefetch::make_prefetch(
         prefetch::size<prefetch_sz>,
         prefetch::write,
-        [] (std::vector<pse_vector>::iterator  q,
+        [] (pse_vector::value_type*,
+            std::vector<pse_vector>::iterator  q,
             std::vector<spike>::const_iterator b,
             std::vector<spike>::const_iterator e,
             std::vector<connection>::iterator  c)
@@ -173,6 +174,17 @@ static void make_queues_by_conns(
             for (auto s: make_range(b, e)) {
                 q->push_back(c->make_event(s));
             }
+        });
+    
+    auto&& p = prefetch::make_prefetch(
+        prefetch::size<prefetch_sz>,
+        prefetch::write,
+        [&d] (std::vector<pse_vector>::iterator  q,
+              std::vector<spike>::const_iterator b,
+              std::vector<spike>::const_iterator e,
+              std::vector<connection>::iterator  c)
+        { // speculate that the next append is simple
+            d.store(q->data()+q->size(), q, b, e, c);
         });
                                                   
     while (cn != cend && sp!=send) {
@@ -194,14 +206,25 @@ static void make_queues_by_spikes(
     std::vector<spike>::const_iterator sp,
     const std::vector<spike>::const_iterator send)
 {
-    auto&& p = prefetch::make_prefetch(
+    auto&& d = prefetch::make_prefetch(
         prefetch::size<prefetch_sz>,
         prefetch::write,
-        [] (std::vector<pse_vector>::iterator  q,
+        [] (pse_vector::value_type*,
+            std::vector<pse_vector>::iterator  q,
             std::vector<spike>::const_iterator s,
             std::vector<connection>::iterator  c)
         {
             q->push_back(c->make_event(*s)); 
+        });
+
+    auto&& p = prefetch::make_prefetch(
+        prefetch::size<prefetch_sz>,
+        prefetch::write,
+        [&d] (std::vector<pse_vector>::iterator  q,
+              std::vector<spike>::const_iterator s,
+              std::vector<connection>::iterator  c)
+        {// speculate that the next append is simple
+            d.store(q->data()+q->size(), q, s, c);
         });
 
     while (cn!=cend && sp!=send) {
