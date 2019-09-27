@@ -77,7 +77,7 @@ private:
 };
 
 /*
-  prefetch<prefetch-size, prefetch-mode, func-to-apply prefetch-pointer, payload-pointers...>
+  prefetch<size_type<prefetch-size>, mode_type<prefetch-mode>, func-to-apply-type, prefetch-pointer-type, payload-pointers-types...>
   construct with make_prefetch utilities below
 
   stores a list of addresses to prefetch, and associated argument addresses
@@ -91,12 +91,12 @@ private:
   the prefetch has already pulled the data associated with the prefetch-pointer.
 
   void do_it(vec) {
-    auto p = make_prefetch(
-               size_type<n>, 
-               `read` or `write`,
-               [] (prefetch-pointer&& p, args-pointer* args...) {
-                 p->do_something(args...);
-             });
+    auto p = prefetch::make_prefetch(
+               prefetch::size_type<n>, 
+               `prefetch::read` or `prefetch::write`,
+               [] (prefetch-pointer&& p, args-pointer&& args...) {
+                 p->do_something(std::move(p), std::move(args)...);
+               });
 
     for (obj: vec) {
       p.store(obj.p, obj.args...);
@@ -113,21 +113,21 @@ private:
   and not too few or we'll hit the function application before
   the data has arrived
 
-  prefetch size = number of read-aheads
+  prefetch_size s = number of read-aheads
   prefetch_mode m = read or write, do we prefetch with a read or write expection?
-  P = type of prefetch (pointer-like object)
-  Types... =  payload types for calling functions on (pointer-like objects)
-  process is applied on f: f(P&&, Types&&...)
+  P = type of prefetch (pointer-like object) with qualifiers for Function f
+  Types... =  payload types for calling functions on (pointer-like objects) with qualifiers for f
+  process is applied on f: f(P, Types...)
 */
 
 // prefetch_ops is just to rename and recombine qualified types passed in
 // versus types stripped to the base
 template<std::size_t s, int m, typename F, typename RawTypes, typename CookedTypes>
-class prefetch_ops;
+class _prefetch;
 
 
 template<std::size_t s, int m, typename F, typename ... RawTypes, typename ... CookedTypes>
-class prefetch_ops<s, m, F, pack<RawTypes...>, pack<CookedTypes...>> {
+class _prefetch<s, m, F, pack<RawTypes...>, pack<CookedTypes...>> {
 public:
     static constexpr auto size = s;
     static constexpr auto mode = m;
@@ -139,9 +139,9 @@ public:
     using function_type = F;
     const function_type function;
 
-    prefetch_ops(F&& f): function{std::move(f)} {}
-    prefetch_ops(const F& f): function{f} {}
-    ~prefetch_ops() {while (begin != end) {pop();}}
+    _prefetch(F&& f): function{std::move(f)} {}
+    _prefetch(const F& f): function{f} {}
+    ~_prefetch() {while (begin != end) {pop();}}
     
     // append an element to prefetch pointer-like P associated
     // with pointer-like args. If enough look-aheads pending
@@ -173,30 +173,7 @@ private:
     iterator next = end+1;
 };
 
-template<std::size_t s, int m, typename F, typename P, typename ... Types>
-class prefetch:
-        public prefetch_ops<s, m, F,
-                            pack<P, Types...>,
-                            pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>
-{
-public:
-    using ops = prefetch_ops<s, m, F,
-                             pack<P, Types...>,
-                             pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>;
-
-    using ops::ops;
-    
-    prefetch(prefetch&&) = default; //needed < C++17
-    prefetch(const prefetch&) = delete; 
-    prefetch& operator=(const prefetch&) = delete;
-
-    using ops::store;
-};
-
-
-/* make_prefetch: returns a constructed a prefetch instance
-   hopefully returns elided on the stack
-*/
+/* prefetch class proper: */
 
 // First types for deduction in make_prefetch
 // mode types that encapsulate 0 or 1
@@ -211,6 +188,36 @@ template<std::size_t sz> struct size_type {};
 template<size_t sz>
 static constexpr size_type<sz> size;
 
+// forward declaration
+template<typename S, typename M, typename F, typename P, typename ... Types>
+class prefetch;
+
+// and now pull off the values with a single specialization
+template<std::size_t s, int m, typename F, typename P, typename ... Types>
+class prefetch<size_type<s>, mode_type<m>, F, P, Types...>:
+        public _prefetch<s, m, F,
+                         pack<P, Types...>,
+                         pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>
+{
+public:
+    using parent = _prefetch<s, m, F,
+                             pack<P, Types...>,
+                             pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>;
+
+    using parent::parent;
+    
+    prefetch(prefetch&&) = default; //needed < C++17
+    prefetch(const prefetch&) = delete; 
+    prefetch& operator=(const prefetch&) = delete;
+
+    using parent::store;
+};
+
+
+/* make_prefetch: returns a constructed a prefetch instance
+   hopefully returns elided on the stack
+*/
+
 // and now the utility functions `make_prefetch`
 
 // make_prefetch(
@@ -222,7 +229,7 @@ static constexpr size_type<sz> size;
 // )
 template<std::size_t s, int m, typename F, typename P, typename... Types>
 constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f, P, Types...) {
-    return prefetch<s, m, F, P, Types...>{std::forward<F>(f)};
+    return prefetch<size_type<s>, mode_type<m>, F, P, Types...>{std::forward<F>(f)};
 }
 
 // make_prefetch<prefetch-type, param-types...>(
@@ -232,7 +239,7 @@ constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f, P, Types...) {
 // )
 template<typename P, typename... Types, std::size_t s, int m, typename F>
 constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
-    return prefetch<s, m, F, P, Types...>{std::forward<F>(f)};
+    return prefetch<size_type<s>, mode_type<m>, F, P, Types...>{std::forward<F>(f)};
 }
 
 // make_prefetch(
@@ -242,42 +249,43 @@ constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
 // )
 // first, we need to build traits to get the parameter types
 namespace get_prefetch_functor_args {
-// for functors
-  template<typename, std::size_t, int, typename>
-  struct functor_traits;
-
-// pull off the functor argument types to construct prefetch
-  template<typename F, std::size_t s, int m, typename T, typename P, typename... Types>
-  struct functor_traits<F, s, m, void(T::*)(P, Types...) const>
+// construct prefetch from passed in P, Types...
+  template<typename F, typename P, typename... Types>
+  struct _traits
   {
-      using C = prefetch<s, m, F, P, Types...>;
-      
-      static constexpr auto make_prefetch(F f) {
-          return C{std::forward<F>(f)};
+      template<std::size_t s, int m>
+      static constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
+          return prefetch<size_type<s>, mode_type<m>, F, P, Types...>{std::forward<F>(f)};
       }
   };
 
-// base type, assumes F is lambda or other functor, apply functor_traits
-  template< typename F, std::size_t s, int m>
-  using FTF = functor_traits<F, s, m, decltype(&F::operator())>;
+// for functors
+  template<typename, typename>
+  struct functor_traits;
 
-  template<typename F, std::size_t s, int m>
-  struct traits: public FTF<F, s, m>
+// pull off the functor argument types to construct prefetch
+  template<typename F, typename T, typename P, typename... Types>
+  struct functor_traits<F, void(T::*)(P, Types...) const>:
+        public _traits<F, P, Types...>
   {};
 
-// for function pointers: create a matching functor type for functor_traits
-  template<typename F, std::size_t s, int m>
-  using FTP = functor_traits<F, s, m, decltype(&std::function<F>::operator())>;
+// base type, assumes F is lambda or other functor,
+// apply functor_traits to pull of P, Types..
+  template<typename F>
+  struct traits: public functor_traits<F, decltype(&F::operator())>
+  {};
 
-  template<std::size_t s, int m, typename P, typename... Types>
-  struct traits<void(P, Types...), s, m>: public FTP<void(P, Types...), s, m>
+// for function pointers: pull P, Types... immediately
+  template<typename P, typename... Types>
+  struct traits<void(P, Types...)>:
+      public _traits<void(P, Types...), P, Types...>
   {};
 } // get_prefetch_functor_args
 
 // and here we apply the traits in make_prefetch
 template<std::size_t s, int m, typename F>
 constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
-    return get_prefetch_functor_args::traits<F, s, m>::make_prefetch(std::forward<F>(f));
+    return get_prefetch_functor_args::traits<F>::make_prefetch(size_type<s>{}, mode_type<m>{}, std::forward<F>(f));
 }
 
 } //prefetch
