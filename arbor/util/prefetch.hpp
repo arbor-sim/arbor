@@ -11,6 +11,9 @@ namespace prefetch {
 template<typename T>
 using remove_qualifier_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
+template<typename... Ts>
+class pack {};
+
 // default conversion from pointer-like P to pointer P
 // set up this way so that it can be specialized for unusual P
 template<typename P>
@@ -23,7 +26,7 @@ auto get_pointer(P prefetched) {
 // constants for __builtin_prefetch
 
 /* 
-   element<prefetch_mode, prefetch-pointer, payload-pointers...> //
+   element<prefetch_mode, raw-pointer, clean-pointers> //
 
    pass only pointer-like things in here!
    Makes templates much simpler -- we're just storing a cut
@@ -37,7 +40,7 @@ template<int m, typename RawTypes, typename Types>
 class element;
 
 template<int m, typename ... RawTypes, typename ... Types>
-class element<m, std::tuple<RawTypes...>, std::tuple<Types...>>  {
+class element<m, pack<RawTypes...>, pack<Types...>>  {
 public:
     static constexpr int mode = m;
     using values = std::tuple<Types...>;
@@ -122,12 +125,12 @@ class prefetch_ops;
 
 
 template<std::size_t s, int m, typename F, typename ... RawTypes, typename ... Types>
-class prefetch_ops<s, m, F, std::tuple<RawTypes...>, std::tuple<Types...>> {
+class prefetch_ops<s, m, F, pack<RawTypes...>, pack<Types...>> {
 public:
     static constexpr auto size = s;
     static constexpr auto mode = m;
 
-    using element_type = element<mode, std::tuple<RawTypes...>, std::tuple<Types...>>;
+    using element_type = element<mode, pack<RawTypes...>, pack<Types...>>;
     using array = std::array<element_type, size+1>; // 1 sentinel element
     using iterator = typename array::iterator;
     
@@ -171,13 +174,13 @@ private:
 template<std::size_t s, int m, typename F, typename P, typename ... Types>
 class prefetch:
         public prefetch_ops<s, m, F,
-                            std::tuple<P, Types...>,
-                            std::tuple<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>
+                            pack<P, Types...>,
+                            pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>
 {
 public:
     using ops = prefetch_ops<s, m, F,
-                             std::tuple<P, Types...>,
-                             std::tuple<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>;
+                             pack<P, Types...>,
+                             pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>;
 
     using ops::ops;
     
