@@ -26,7 +26,7 @@ auto get_pointer(P prefetched) {
 // constants for __builtin_prefetch
 
 /* 
-   element<prefetch_mode, raw-pointer, clean-pointers> //
+   element<prefetch_mode, pointers-with-qualifiers, basic-pointers> //
 
    pass only pointer-like things in here!
    Makes templates much simpler -- we're just storing a cut
@@ -36,18 +36,18 @@ auto get_pointer(P prefetched) {
 
    m = 0 for read, or 1 for write
 */
-template<int m, typename RawTypes, typename Types>
+template<int m, typename RawTypes, typename CookedTypes>
 class element;
 
-template<int m, typename ... RawTypes, typename ... Types>
-class element<m, pack<RawTypes...>, pack<Types...>>  {
+template<int m, typename ... RawTypes, typename ... CookedTypes>
+class element<m, pack<RawTypes...>, pack<CookedTypes...>>  {
 public:
     static constexpr int mode = m;
-    using values = std::tuple<Types...>;
-    using rvalues = std::tuple<RawTypes...>;
-    static constexpr std::size_t size = std::tuple_size<values>();
+    using raw_values = std::tuple<RawTypes...>;
+    using cooked_values = std::tuple<CookedTypes...>;
+    static constexpr std::size_t size = std::tuple_size<cooked_values>();
     
-    element(Types... args): v{args...} {prefetch();}
+    element(CookedTypes... args): v{args...} {prefetch();}
     element() = default;
 
     template<typename F>
@@ -60,20 +60,20 @@ private:
         __builtin_prefetch(get_pointer(std::get<0>(v)), mode);
     }
 
-    template<typename F, size_t... I>
+    template<typename F, std::size_t... I>
     auto apply(F f, std::index_sequence<I...>) {
         return std::forward<F>(f)(get_raw_value<I>()...);
     }
 
     template<std::size_t n>
-    using raw_type = std::tuple_element_t<n, rvalues>;
+    using raw_type = std::tuple_element_t<n, raw_values>;
     
     template<std::size_t n>
     raw_type<n> get_raw_value() {
         return static_cast<raw_type<n>>(std::get<n>(v));
     }
 
-    values v;
+    cooked_values v;
 };
 
 /*
@@ -120,17 +120,19 @@ private:
   process is applied on f: f(P&&, Types&&...)
 */
 
-template<std::size_t s, int m, typename F, typename RawTypes, typename Types>
+// prefetch_ops is just to rename and recombine qualified types passed in
+// versus types stripped to the base
+template<std::size_t s, int m, typename F, typename RawTypes, typename CookedTypes>
 class prefetch_ops;
 
 
-template<std::size_t s, int m, typename F, typename ... RawTypes, typename ... Types>
-class prefetch_ops<s, m, F, pack<RawTypes...>, pack<Types...>> {
+template<std::size_t s, int m, typename F, typename ... RawTypes, typename ... CookedTypes>
+class prefetch_ops<s, m, F, pack<RawTypes...>, pack<CookedTypes...>> {
 public:
     static constexpr auto size = s;
     static constexpr auto mode = m;
 
-    using element_type = element<mode, pack<RawTypes...>, pack<Types...>>;
+    using element_type = element<mode, pack<RawTypes...>, pack<CookedTypes...>>;
     using array = std::array<element_type, size+1>; // 1 sentinel element
     using iterator = typename array::iterator;
     
@@ -144,7 +146,7 @@ public:
     // append an element to prefetch pointer-like P associated
     // with pointer-like args. If enough look-aheads pending
     // process one (call function on it).
-    void store(Types... args) {
+    void store(CookedTypes... args) {
         if (begin == next) {pop();}
         push(args...);
     }
@@ -159,7 +161,7 @@ private:
 
     // add an element to end of ring
     // precondition: begin != next
-    void push(Types... args) {
+    void push(CookedTypes... args) {
         *end = element_type{args...};
         end = next;
         if (++next == arr.end()) {next = arr.begin();}
