@@ -120,7 +120,7 @@ private:
   process is applied on f: f(P, Types...)
 */
 
-// prefetch_ops is just to rename and recombine qualified types passed in
+// _prefetch is just to rename and recombine qualified types passed in
 // versus types stripped to the base
 template<std::size_t s, int m, typename F, typename RawTypes, typename CookedTypes>
 class _prefetch;
@@ -227,9 +227,9 @@ public:
 //    ignored-variable-of-prefetch-type,
 //   ignore-variables-of-params-types...
 // )
-template<std::size_t s, int m, typename F, typename P, typename... Types>
-constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f, P, Types...) {
-    return prefetch<size_type<s>, mode_type<m>, F, P, Types...>{std::forward<F>(f)};
+template<typename S, typename M, typename F, typename P, typename... Types>
+constexpr auto make_prefetch(S, M, F f, P, Types...) {
+    return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
 }
 
 // make_prefetch<prefetch-type, param-types...>(
@@ -237,9 +237,9 @@ constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f, P, Types...) {
 //    read|write,
 //    [] (auto&& prefetch, auto&& params...) {}
 // )
-template<typename P, typename... Types, std::size_t s, int m, typename F>
-constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
-    return prefetch<size_type<s>, mode_type<m>, F, P, Types...>{std::forward<F>(f)};
+template<typename P, typename... Types, typename S, typename M, typename F>
+constexpr auto make_prefetch(S, M, F f) {
+    return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
 }
 
 // make_prefetch(
@@ -253,9 +253,9 @@ namespace get_prefetch_functor_args {
   template<typename F, typename P, typename... Types>
   struct _traits
   {
-      template<std::size_t s, int m>
-      static constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
-          return prefetch<size_type<s>, mode_type<m>, F, P, Types...>{std::forward<F>(f)};
+      template<typename S, typename M>
+      static constexpr auto make_prefetch(F f) {
+          return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
       }
   };
 
@@ -283,9 +283,9 @@ namespace get_prefetch_functor_args {
 } // get_prefetch_functor_args
 
 // and here we apply the traits in make_prefetch
-template<std::size_t s, int m, typename F>
-constexpr auto make_prefetch(size_type<s>, mode_type<m>, F f) {
-    return get_prefetch_functor_args::traits<F>::make_prefetch(size_type<s>{}, mode_type<m>{}, std::forward<F>(f));
+template<typename S, typename M, typename F>
+constexpr auto make_prefetch(S, M, F f) {
+    return get_prefetch_functor_args::traits<F>::template make_prefetch<S, M>(std::forward<F>(f));
 }
 
 } //prefetch
