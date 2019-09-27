@@ -151,6 +151,71 @@ struct spike_pred {
         {return src<spk.source;}
 };
 
+static constexpr auto prefetch_sz = 1024;
+
+static void make_queues_by_conns(
+    std::vector<pse_vector>& queues,
+    std::vector<connection>::iterator cn,
+    const std::vector<connection>::iterator cend,
+    std::vector<spike>::const_iterator sp,
+    const std::vector<spike>::const_iterator send)
+{
+    using util::make_range;
+
+    auto&& p = prefetch::make_prefetch(
+        prefetch::size<prefetch_sz>,
+        prefetch::write,
+        [] (std::vector<pse_vector>::iterator  q,
+            std::vector<spike>::const_iterator b,
+            std::vector<spike>::const_iterator e,
+            std::vector<connection>::iterator  c)
+        {
+            for (auto s: make_range(b, e)) {
+                q->push_back(c->make_event(s));
+            }
+        });
+                                                  
+    while (cn != cend && sp!=send) {
+        auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
+        if (spikes.first != spikes.second) {
+            auto q = queues.begin() + cn->index_on_domain();
+            p.store(q, spikes.first, spikes.second, cn);
+        }
+                
+        sp = spikes.first; // should be first, range of connections may hae same source
+        ++cn;
+    }
+}
+
+static void make_queues_by_spikes(
+    std::vector<pse_vector>& queues,
+    std::vector<connection>::iterator cn,
+    const std::vector<connection>::iterator cend,
+    std::vector<spike>::const_iterator sp,
+    const std::vector<spike>::const_iterator send)
+{
+    auto&& p = prefetch::make_prefetch(
+        prefetch::size<prefetch_sz>,
+        prefetch::write,
+        [] (std::vector<pse_vector>::iterator  q,
+            std::vector<spike>::const_iterator s,
+            std::vector<connection>::iterator  c)
+        {
+            q->push_back(c->make_event(*s)); 
+        });
+
+    while (cn!=cend && sp!=send) {
+        auto targets = std::equal_range(cn, cend, sp->source);
+        for (auto c = targets.first; c != targets.second; c++) {
+            auto q = queues.begin() + c->index_on_domain();
+            p.store(q, sp, c); 
+        }
+
+        cn = targets.second; // range of connections with this source handled
+        ++sp;
+    }
+}   
+
 void communicator::make_event_queues(
         const gathered_vector<spike>& global_spikes,
         std::vector<pse_vector>& queues)
@@ -159,9 +224,6 @@ void communicator::make_event_queues(
 
     using util::subrange_view;
     using util::make_span;
-    using util::make_range;
-
-    static constexpr auto sz = 32;
 
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;
@@ -178,54 +240,11 @@ void communicator::make_event_queues(
         // We iterate over whichever set is the smallest, which has
         // complexity of order max(S log(C), C log(S)), where S is the
         // number of spikes, and C is the number of connections.
-        auto sp = spks.begin();
-        auto cn = cons.begin();
         if (cons.size()<spks.size()) {
-            auto p = prefetch::make_prefetch(
-                prefetch::size<sz>,
-                prefetch::write,
-                [] (std::vector<pse_vector>::iterator  q,
-                    std::vector<spike>::const_iterator b,
-                    std::vector<spike>::const_iterator e,
-                    std::vector<connection>::iterator  c)
-                {
-                    for (auto s: make_range(b, e)) {
-                        q->push_back(c->make_event(s));
-                    }
-                });
-                                                  
-            while (cn!=cons.end() && sp!=spks.end()) {
-                auto spikes = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
-                if (spikes.first != spikes.second) {
-                    auto q = queues.begin() + cn->index_on_domain();
-                    p.store(q, spikes.first, spikes.second, cn);
-                }
-                
-                sp = spikes.first; // should be first, non-unique mapping of spikes to connection
-                ++cn;
-            }
+            make_queues_by_conns(queues, cons.begin(), cons.end(), spks.begin(), spks.end()); 
         }
         else {
-            auto p = prefetch::make_prefetch(
-                prefetch::size<sz>,
-                prefetch::write,
-                [] (std::vector<pse_vector>::iterator  q,
-                    std::vector<spike>::const_iterator s,
-                    std::vector<connection>::iterator  c)
-                {
-                    q->push_back(c->make_event(*s)); 
-                });
-
-            while (cn!=cons.end() && sp!=spks.end()) {
-                auto targets = std::equal_range(cn, cons.end(), sp->source);
-                for (auto c = targets.first; c != targets.second; c++) {
-                    auto q = queues.begin() + c->index_on_domain();
-                    p.store(q, sp, c); 
-                }
-
-                cn = targets.second; // this shouldn't be first, unique mapping of connection to spike
-                ++sp;
-            }
+            make_queues_by_spikes(queues, cons.begin(), cons.end(), spks.begin(), spks.end());
         }
     }
 }

@@ -36,44 +36,49 @@ auto get_pointer(P prefetched) {
 
    m = 0 for read, or 1 for write
 */
+
+// template declaration
 template<int m, typename RawTypes, typename CookedTypes>
 class element;
 
+// unique specialization to do pattern matching
 template<int m, typename ... RawTypes, typename ... CookedTypes>
 class element<m, pack<RawTypes...>, pack<CookedTypes...>>  {
 public:
-    static constexpr int mode = m;
+    static constexpr auto mode = m;
     using raw_values = std::tuple<RawTypes...>;
     using cooked_values = std::tuple<CookedTypes...>;
-    static constexpr std::size_t size = std::tuple_size<cooked_values>();
+    static constexpr auto size = std::tuple_size<cooked_values>();
+    static constexpr auto indices = std::make_index_sequence<size>{};
     
     element(CookedTypes... args): v{args...} {prefetch();}
     element() = default;
 
+    // use only once per element
     template<typename F>
-    auto apply(F f) {
-        return apply(std::forward<F>(f), std::make_index_sequence<size>{});
+    auto apply(F&& f) { // first get tuple of indices
+        return apply(std::forward<F>(f), indices);
     }
 
 private:
-    void prefetch() {
+    void prefetch() { // the only thing we really want to do
         __builtin_prefetch(get_pointer(std::get<0>(v)), mode);
     }
 
-    template<typename F, std::size_t... I>
-    auto apply(F f, std::index_sequence<I...>) {
+    template<typename F, std::size_t... I> // unpack indices for `get`
+    auto apply(F&& f, std::index_sequence<I...>) {// call f with correct types: possibly rvalues or const
         return std::forward<F>(f)(get_raw_value<I>()...);
     }
 
-    template<std::size_t n>
+    template<std::size_t n> // get nth type
     using raw_type = std::tuple_element_t<n, raw_values>;
     
     template<std::size_t n>
-    raw_type<n> get_raw_value() {
+    raw_type<n> get_raw_value() { // get value with right type from n
         return static_cast<raw_type<n>>(std::get<n>(v));
     }
 
-    cooked_values v;
+    cooked_values v; // our values as their base types
 };
 
 /*
@@ -125,7 +130,7 @@ private:
 template<std::size_t s, int m, typename F, typename RawTypes, typename CookedTypes>
 class _prefetch;
 
-
+// unique specialization to do the pattern matching
 template<std::size_t s, int m, typename F, typename ... RawTypes, typename ... CookedTypes>
 class _prefetch<s, m, F, pack<RawTypes...>, pack<CookedTypes...>> {
 public:
@@ -141,7 +146,7 @@ public:
 
     _prefetch(F&& f): function{std::move(f)} {}
     _prefetch(const F& f): function{f} {}
-    ~_prefetch() {while (begin != end) {pop();}}
+    ~_prefetch() {while (begin != end) {pop();}} // clear buffer on destruct
 
     _prefetch(_prefetch&&) = default; //needed < C++17
     _prefetch(const _prefetch&) = delete; 
@@ -151,30 +156,30 @@ public:
     // with pointer-like args. If enough look-aheads pending
     // process one (call function on it).
     void store(CookedTypes... args) {
-        if (begin == next) {pop();}
-        push(args...);
+        if (begin == next) {pop();} // pop if look ahead full
+        push(args...); // add look ahead
     }
 
 private:
     // apply function to first stored, and move pointer forward
     // precondition: begin != end
     void pop() {
-        begin->apply(function);
+        begin->apply(function); // process lookahead
         if (++begin == arr.end()) {begin = arr.begin();}
     }
 
     // add an element to end of ring
     // precondition: begin != next
     void push(CookedTypes... args) {
-        *end = element_type{args...};
+        *end = element_type{args...}; // store lookahead w/ prefetch
         end = next;
         if (++next == arr.end()) {next = arr.begin();}
     }
     
-    array arr;
-    iterator begin = arr.begin();
-    iterator end = arr.begin();
-    iterator next = end+1;
+    array arr; // ring buffer storage using an extra sentinel element
+    iterator begin = arr.begin(); // first element to pop off
+    iterator end = arr.begin(); // next element to push into
+    iterator next = end+1; // sentinel: next == begin, we're out of space
 };
 
 /* prefetch class proper: */
@@ -182,14 +187,16 @@ private:
 // First types for deduction in make_prefetch
 // mode types that encapsulate 0 or 1
 template<int v> class mode_type {};
+
 //   constants: read or write
 static constexpr mode_type<0> read;
 static constexpr mode_type<1> write;
 
 // size types to encapsulate lookahead
 template<std::size_t sz> struct size_type {};
+
 //   constants: size<lookahead-n>
-template<size_t sz>
+template<std::size_t sz>
 static constexpr size_type<sz> size;
 
 // forward declaration
@@ -227,7 +234,7 @@ public:
 //   ignore-variables-of-params-types...
 // )
 template<typename S, typename M, typename F, typename P, typename... Types>
-constexpr auto make_prefetch(S, M, F f, P, Types...) {
+constexpr auto make_prefetch(S, M, F&& f, P, Types...) {
     return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
 }
 
@@ -237,7 +244,7 @@ constexpr auto make_prefetch(S, M, F f, P, Types...) {
 //    [] (auto&& prefetch, auto&& params...) {}
 // )
 template<typename P, typename... Types, typename S, typename M, typename F>
-constexpr auto make_prefetch(S, M, F f) {
+constexpr auto make_prefetch(S, M, F&& f) {
     return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
 }
 
@@ -253,7 +260,7 @@ namespace get_prefetch_functor_args {
   struct _traits
   {
       template<typename S, typename M>
-      static constexpr auto make_prefetch(F f) {
+      static constexpr auto make_prefetch(F&& f) {
           return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
       }
   };
@@ -283,7 +290,7 @@ namespace get_prefetch_functor_args {
 
 // and here we apply the traits in make_prefetch
 template<typename S, typename M, typename F>
-constexpr auto make_prefetch(S, M, F f) {
+constexpr auto make_prefetch(S, M, F&& f) {
     return get_prefetch_functor_args::traits<F>::template make_prefetch<S, M>(std::forward<F>(f));
 }
 
