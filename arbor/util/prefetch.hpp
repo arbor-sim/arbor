@@ -33,14 +33,18 @@ auto get_pointer(P prefetched) {
 
    m = 0 for read, or 1 for write
 */
-template<int m, typename P, typename ... Types>
-class element {
+template<int m, typename RawTypes, typename Types>
+class element;
+
+template<int m, typename ... RawTypes, typename ... Types>
+class element<m, std::tuple<RawTypes...>, std::tuple<Types...>>  {
 public:
     static constexpr int mode = m;
-    using values = std::tuple<remove_qualifier_t<P>, remove_qualifier_t<Types>...>;
+    using values = std::tuple<Types...>;
+    using rvalues = std::tuple<RawTypes...>;
     static constexpr std::size_t size = std::tuple_size<values>();
     
-    element(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args): v{p, args...} {prefetch();}
+    element(Types... args): v{args...} {prefetch();}
     element() = default;
 
     template<typename F>
@@ -59,7 +63,7 @@ private:
     }
 
     template<std::size_t n>
-    using raw_type = std::tuple_element_t<n, std::tuple<P, Types...>>;
+    using raw_type = std::tuple_element_t<n, rvalues>;
     
     template<std::size_t n>
     raw_type<n> get_raw_value() {
@@ -112,29 +116,34 @@ private:
   Types... =  payload types for calling functions on (pointer-like objects)
   process is applied on f: f(P&&, Types&&...)
 */
-template<std::size_t s, int m, typename F, typename P, typename ... Types>
-class prefetch {
+
+template<std::size_t s, int m, typename F, typename RawTypes, typename Types>
+class prefetch_ops;
+
+
+template<std::size_t s, int m, typename F, typename ... RawTypes, typename ... Types>
+class prefetch_ops<s, m, F, std::tuple<RawTypes...>, std::tuple<Types...>> {
 public:
-    using element_type = element<m, P, Types...>;
-    using array = std::array<element_type, s+1>; // 1 sentinel element
+    static constexpr auto size = s;
+    static constexpr auto mode = m;
+
+    using element_type = element<mode, std::tuple<RawTypes...>, std::tuple<Types...>>;
+    using array = std::array<element_type, size+1>; // 1 sentinel element
     using iterator = typename array::iterator;
+    
     using function_type = F;
     const function_type function;
 
-    prefetch(F&& f): function{std::move(f)} {}
-    prefetch(const F& f): function{f} {}
-    ~prefetch() {while (begin != end) {pop();}}
+    prefetch_ops(F&& f): function{std::move(f)} {}
+    prefetch_ops(const F& f): function{f} {}
+    ~prefetch_ops() {while (begin != end) {pop();}}
     
-    prefetch(prefetch&&) = default; //needed < C++17
-    prefetch(const prefetch&) = delete; 
-    prefetch& operator=(const prefetch&) = delete;
-
     // append an element to prefetch pointer-like P associated
     // with pointer-like args. If enough look-aheads pending
     // process one (call function on it).
-    void store(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
+    void store(Types... args) {
         if (begin == next) {pop();}
-        push(p, args...);
+        push(args...);
     }
 
 private:
@@ -147,8 +156,8 @@ private:
 
     // add an element to end of ring
     // precondition: begin != next
-    void push(remove_qualifier_t<P> p, remove_qualifier_t<Types>... args) {
-        *end = element_type{p, args...};
+    void push(Types... args) {
+        *end = element_type{args...};
         end = next;
         if (++next == arr.end()) {next = arr.begin();}
     }
@@ -157,6 +166,26 @@ private:
     iterator begin = arr.begin();
     iterator end = arr.begin();
     iterator next = end+1;
+};
+
+template<std::size_t s, int m, typename F, typename P, typename ... Types>
+class prefetch:
+        public prefetch_ops<s, m, F,
+                            std::tuple<P, Types...>,
+                            std::tuple<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>
+{
+public:
+    using ops = prefetch_ops<s, m, F,
+                             std::tuple<P, Types...>,
+                             std::tuple<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>;
+
+    using ops::ops;
+    
+    prefetch(prefetch&&) = default; //needed < C++17
+    prefetch(const prefetch&) = delete; 
+    prefetch& operator=(const prefetch&) = delete;
+
+    using ops::store;
 };
 
 
