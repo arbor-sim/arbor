@@ -151,8 +151,6 @@ struct spike_pred {
         {return src<spk.source;}
 };
 
-static constexpr auto prefetch_sz = 1024;
-
 static void make_queues_by_conns(
     std::vector<pse_vector>& queues,
     std::vector<connection>::iterator cn,
@@ -163,7 +161,7 @@ static void make_queues_by_conns(
     using util::make_range;
 
     auto&& d = prefetch::make_prefetch(
-        prefetch::size<prefetch_sz>,
+        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
         [] (std::vector<pse_vector>::iterator  q,
             std::vector<spike>::const_iterator b,
@@ -176,7 +174,7 @@ static void make_queues_by_conns(
         });
     
     auto&& p = prefetch::make_prefetch(
-        prefetch::size<prefetch_sz>,
+        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
         [&d] (std::vector<pse_vector>::iterator  q,
               std::vector<spike>::const_iterator b,
@@ -206,7 +204,7 @@ static void make_queues_by_spikes(
     const std::vector<spike>::const_iterator send)
 {
     auto&& d = prefetch::make_prefetch(
-        prefetch::size<prefetch_sz>,
+        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
         [] (std::vector<pse_vector>::iterator  q,
             std::vector<spike>::const_iterator s,
@@ -216,7 +214,7 @@ static void make_queues_by_spikes(
         });
 
     auto&& p = prefetch::make_prefetch(
-        prefetch::size<prefetch_sz>,
+        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
         [&d] (std::vector<pse_vector>::iterator  q,
               std::vector<spike>::const_iterator s,

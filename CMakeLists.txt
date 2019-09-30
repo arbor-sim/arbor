@@ -314,6 +314,11 @@ if(ARB_WITH_PROFILING)
     list(APPEND ARB_MODCC_FLAGS "--profile")
 endif()
 
+if(NOT DEFINED ARB_PREFETCH_SIZE)
+  set(ARB_PREFETCH_SIZE 1024)
+endif()
+target_compile_definitions(arbor-config-defs INTERFACE ARB_PREFETCH_SIZE=${ARB_PREFETCH_SIZE})
+
 #----------------------------------------------------------
 # Set up install paths, permissions.
 #----------------------------------------------------------
