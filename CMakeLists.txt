@@ -314,6 +314,10 @@ if(ARB_WITH_PROFILING)
     list(APPEND ARB_MODCC_FLAGS "--profile")
 endif()
 
+# Define prefetch size for communicator
+# Default: 1024
+#------------------------------------------------
+
 if(NOT DEFINED ARB_PREFETCH_SIZE)
   set(ARB_PREFETCH_SIZE 1024)
 endif()

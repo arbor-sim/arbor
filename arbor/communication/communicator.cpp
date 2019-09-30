@@ -144,13 +144,6 @@ gathered_vector<spike> communicator::exchange(std::vector<spike> local_spikes) {
     return global_spikes;
 }
 
-struct spike_pred {
-    bool operator()(const spike& spk, const cell_member_type& src)
-        {return spk.source<src;}
-    bool operator()(const cell_member_type& src, const spike& spk)
-        {return src<spk.source;}
-};
-
 static void make_queues_by_conns(
     std::vector<pse_vector>& queues,
     std::vector<connection>::iterator cn,
@@ -159,14 +152,20 @@ static void make_queues_by_conns(
     const std::vector<spike>::const_iterator send)
 {
     using util::make_range;
+    struct spike_pred {
+        bool operator()(const spike& spk, const cell_member_type& src)
+        {return spk.source<src;}
+        bool operator()(const cell_member_type& src, const spike& spk)
+        {return src<spk.source;}
+    };
 
     auto&& d = prefetch::make_prefetch(
         prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [] (std::vector<pse_vector>::iterator  q,
-            std::vector<spike>::const_iterator b,
-            std::vector<spike>::const_iterator e,
-            std::vector<connection>::iterator  c)
+        [] (decltype(queues.begin())  q,
+            decltype(sp) b,
+            decltype(send) e,
+            decltype(cn) c)
         {
             for (auto s: make_range(b, e)) {
                 q->push_back(c->make_event(s));
@@ -176,14 +175,14 @@ static void make_queues_by_conns(
     auto&& p = prefetch::make_prefetch(
         prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [&d] (std::vector<pse_vector>::iterator  q,
-              std::vector<spike>::const_iterator b,
-              std::vector<spike>::const_iterator e,
-              std::vector<connection>::iterator  c)
+        [&d] (decltype(queues.begin())  q,
+              decltype(sp) b,
+              decltype(send) e,
+              decltype(cn) c)
         { // speculate that the next append is simple
             d.store(q, b, e, c, q->data()+q->size());
         });
-                                                  
+    
     while (cn != cend && sp!=send) {
         auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
         if (spikes.first != spikes.second) {
@@ -206,9 +205,9 @@ static void make_queues_by_spikes(
     auto&& d = prefetch::make_prefetch(
         prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [] (std::vector<pse_vector>::iterator  q,
-            std::vector<spike>::const_iterator s,
-            std::vector<connection>::iterator  c)
+        [] (decltype(queues.begin())  q,
+            decltype(sp) s,
+            decltype(cn) c)
         {
             q->push_back(c->make_event(*s)); 
         });
@@ -216,9 +215,9 @@ static void make_queues_by_spikes(
     auto&& p = prefetch::make_prefetch(
         prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [&d] (std::vector<pse_vector>::iterator  q,
-              std::vector<spike>::const_iterator s,
-              std::vector<connection>::iterator  c)
+        [&d] (decltype(queues.begin())  q,
+              decltype(sp) s,
+              decltype(cn) c)
         {// speculate that the next append is simple
             d.store(q, s, c, q->data()+q->size());
         });
@@ -233,7 +232,7 @@ static void make_queues_by_spikes(
         cn = targets.second; // range of connections with this source handled
         ++sp;
     }
-}   
+}
 
 void communicator::make_event_queues(
         const gathered_vector<spike>& global_spikes,
