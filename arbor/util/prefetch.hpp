@@ -104,12 +104,11 @@ public:
         if (++next == arr.end()) {next = arr.begin();}
     }
 
-    // only valid as long as no following push called
     // precondition: ! is_empty()
-    element_type& pop() {
+    element_type&& pop() {
         auto head = begin;
         if (++begin == arr.end()) {begin = arr.begin();}
-        return *head;
+        return std::move(*head);
     }
 
     bool is_empty() const {return begin == end;}
@@ -212,8 +211,7 @@ private:
     // apply function to first stored, and move pointer forward
     // precondition: begin != end
     void pop() {
-        auto& e = arr.pop();
-        apply_raw<raw_types>::apply(function, std::move(e));
+        apply_raw<raw_types>::apply(function, arr.pop());
     }
 
     // add an element to end of ring
