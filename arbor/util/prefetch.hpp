@@ -260,12 +260,12 @@ namespace get_prefetch_functor_args {
   {};
 
   // base type, assumes F is lambda or other functor,
-  // apply functor_traits to pull of P, Types..
+  // apply functor_traits to pull of Types...
   template<typename F>
   struct traits: public functor_traits<F, decltype(&F::operator())>
   {};
 
-  // for function pointers: pull P, Types... immediately
+  // for function pointers: pull Types... immediately
   template<typename... Types>
   struct traits<void(Types...)>:
       public _traits<void(Types...), Types...>
