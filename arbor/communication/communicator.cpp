@@ -165,8 +165,7 @@ static void make_queues_by_conns(
     auto&& d = prefetch::make_prefetch(
         prefetch::size<prefetch_sz>,
         prefetch::write,
-        [] (pse_vector::value_type*,
-            std::vector<pse_vector>::iterator  q,
+        [] (std::vector<pse_vector>::iterator  q,
             std::vector<spike>::const_iterator b,
             std::vector<spike>::const_iterator e,
             std::vector<connection>::iterator  c)
@@ -184,7 +183,7 @@ static void make_queues_by_conns(
               std::vector<spike>::const_iterator e,
               std::vector<connection>::iterator  c)
         { // speculate that the next append is simple
-            d.store(q->data()+q->size(), q, b, e, c);
+            d.store(q, b, e, c, q->data()+q->size());
         });
                                                   
     while (cn != cend && sp!=send) {
@@ -209,8 +208,7 @@ static void make_queues_by_spikes(
     auto&& d = prefetch::make_prefetch(
         prefetch::size<prefetch_sz>,
         prefetch::write,
-        [] (pse_vector::value_type*,
-            std::vector<pse_vector>::iterator  q,
+        [] (std::vector<pse_vector>::iterator  q,
             std::vector<spike>::const_iterator s,
             std::vector<connection>::iterator  c)
         {
@@ -224,14 +222,14 @@ static void make_queues_by_spikes(
               std::vector<spike>::const_iterator s,
               std::vector<connection>::iterator  c)
         {// speculate that the next append is simple
-            d.store(q->data()+q->size(), q, s, c);
+            d.store(q, s, c, q->data()+q->size());
         });
 
     while (cn!=cend && sp!=send) {
         auto targets = std::equal_range(cn, cend, sp->source);
         for (auto c = targets.first; c != targets.second; c++) {
             auto q = queues.begin() + c->index_on_domain();
-            p.store(q, sp, c); 
+            p.store(q, sp, c);
         }
 
         cn = targets.second; // range of connections with this source handled
