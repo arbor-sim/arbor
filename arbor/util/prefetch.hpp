@@ -15,20 +15,6 @@ using remove_qualifier_t = std::remove_cv_t<std::remove_reference_t<T>>;
 template<typename... Ts>
 class pack {};
 
-// default conversion from pointer-like P to pointer P
-// set up this way so that it can be specialized for unusual P
-// but this implies that *prefetched is a valid operation
-template<typename P>
-auto get_pointer(P&& prefetched) {
-    return &*std::forward<P>(prefetched);
-}
-
-// if it's a plain pointer, can even be invalid
-template<typename P>
-auto get_pointer(P* prefetched) {
-    return prefetched;
-}
-
 /*
   prefetch<size_type<prefetch-size>, mode_type<prefetch-mode>, func-to-apply-type, payload-pointers-types...>
   construct with make_prefetch utilities below
@@ -140,9 +126,47 @@ private:
     iterator next  = end+1; // sentinel: next == begin, we're out of space
 };
 
+// prefetching wrapper
+// First types for deduction in make_prefetch
+// mode types that encapsulate 0 or 1
+template<int v> class mode_type {};
+
+//   constants: read or write
+static constexpr mode_type<0> read;
+static constexpr mode_type<1> write;
+
+// default conversion from pointer-like P to pointer P
+// set up this way so that it can be specialized for unusual P
+// but this implies that *prefetched is a valid operation
+template<typename P>
+auto get_pointer(P&& prefetched) {
+    return &*std::forward<P>(prefetched);
+}
+
+// if it's a plain pointer, can even be invalid
+template<typename P>
+auto get_pointer(P* prefetched) {
+    return prefetched;
+}
+
+// encapsulate __builtin_prefetch
+// trait holds M mode_type<m>
+// uses get_pointer to convert pointer-like to pointer
+template<typename M>
+struct prefetch_type;
+
+template<int m>
+struct prefetch_type<mode_type<m>> {
+    static constexpr auto mode = m;
+    
+    template<typename P>
+    static void apply(P&& p) { // do the prefetch
+        __builtin_prefetch(get_pointer(std::forward<P>(p)), mode);
+    }
+};
+
 // _prefetch is just to rename and recombine qualified types passed in
 // versus types stripped to the base
-
 template<std::size_t s, int m, typename F, typename RawTypes, typename CookedTypes>
 class _prefetch;
 
@@ -154,10 +178,9 @@ public:
     static constexpr auto mode = m;
 
     using element_type = std::tuple<CookedTypes...>;
-    using array = ring_buffer<size, element_type>;
-    
+    using array = ring_buffer<size, element_type>;    
     using function_type = F;
-    const function_type function;
+    using fetch = prefetch_type<mode_type<m>>;
 
     _prefetch(F&& f): function{std::move(f)} {}
     _prefetch(const F& f): function{f} {}
@@ -173,7 +196,7 @@ public:
     // If enough look-aheads pending process one (call F function on it).
     template<typename P>
     void store(CookedTypes... args, P&& p) {
-        prefetch(std::forward<P>(p)); // do our fetch
+        fetch::apply(std::forward<P>(p));
         if (arr.is_full()) {pop();} // pop if look ahead full
         push(args...); // add new look ahead
     }
@@ -199,23 +222,11 @@ private:
         arr.push(element_type{args...});
     }
 
-    template<typename P>
-    static void prefetch(P&& p) { // the only thing we really want to do
-        __builtin_prefetch(get_pointer(std::forward<P>(p)), mode);
-    }
-
     array arr;
+    const function_type function;
 };
 
 /* prefetch class proper: */
-
-// First types for deduction in make_prefetch
-// mode types that encapsulate 0 or 1
-template<int v> class mode_type {};
-
-//   constants: read or write
-static constexpr mode_type<0> read;
-static constexpr mode_type<1> write;
 
 // size types to encapsulate lookahead
 template<std::size_t sz> struct size_type {};
@@ -241,7 +252,6 @@ public:
                              pack<remove_qualifier_t<Types>...>>;
 
     using parent::parent;
-    using parent::store;
 };
 
 /* make_prefetch: returns a constructed a prefetch instance
