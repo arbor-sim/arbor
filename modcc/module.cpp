@@ -796,17 +796,18 @@ int Module::semantic_func_proc() {
                         s->is_function()->body()->statements() :
                         s->is_procedure()->body()->statements();
 
-                    // Do the inlining, which currently only works for functions
-                    // that have a single statement in their body
+                    // Do the inlining: supports multiline functions and if/else statements
                     // e.g. if the function foo in the examples above is defined as follows
                     //
                     //  function foo(a, b, c) {
-                    //      foo = a*(b + c)
+                    //      Local t = b + c
+                    //      foo = a*t
                     //  }
                     //
                     // the full inlined example is
                     //      ll1_ = 2+x
-                    //      ll0_ = ll1_*(y + 1)
+                    //      r_0_ = y+1
+                    //      ll0_ = ll1_*r_0_
                     //      a = 2 + ll0_
 
                     for (auto &e: b) {

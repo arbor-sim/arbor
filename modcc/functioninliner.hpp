@@ -14,7 +14,7 @@ class FunctionInliner : public Visitor {
 public:
 
     FunctionInliner(std::string func_name,
-                    const expression_ptr& lhs,
+                    Expression* lhs,
                     const std::vector<expression_ptr>& fargs,
                     const std::vector<expression_ptr>& cargs,
                     const scope_ptr& scope) :
@@ -49,7 +49,7 @@ private:
     scope_ptr scope_;
     bool return_set_ = false;
 
-    void replace_with_args(Expression* e);
+    void replace_args(Expression* e);
 
 };
 

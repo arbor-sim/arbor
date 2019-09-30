@@ -8,7 +8,7 @@
 expression_ptr inline_function_call(const expression_ptr& e)
 {
     auto assign_to_func = e->is_assignment();
-    auto ret_name = assign_to_func->lhs()->is_identifier()->clone();
+    auto ret_identifier = assign_to_func->lhs()->is_identifier();
 
     if(auto f = assign_to_func->rhs()->is_function_call()) {
         auto body = f->function()->body()->clone();
@@ -17,7 +17,7 @@ expression_ptr inline_function_call(const expression_ptr& e)
             s->semantic(e->scope());
         }
 
-        FunctionInliner func_inliner(f->name(), ret_name, f->function()->args(), f->args(), e->scope());
+        FunctionInliner func_inliner(f->name(), ret_identifier, f->function()->args(), f->args(), e->scope());
 
         body->accept(&func_inliner);
         if (!func_inliner.return_val_set()) {
@@ -30,7 +30,10 @@ expression_ptr inline_function_call(const expression_ptr& e)
 ///////////////////////////////////////////////////////////////////////////////
 //  function inliner
 ///////////////////////////////////////////////////////////////////////////////
-void FunctionInliner::replace_with_args(Expression* e) {
+
+// Takes a Binary or Unary Expression and replaces its variables that match any
+// function argument in fargs_ with the corresponding call argument in cargs_
+void FunctionInliner::replace_args(Expression* e) {
     for(auto i=0u; i<fargs_.size(); ++i) {
         if(auto id = cargs_[i]->is_identifier()) {
             VariableReplacer v(fargs_[i], id->spelling());
@@ -67,6 +70,9 @@ void FunctionInliner::visit(LocalDeclaration* e) {
         auto unique_decl = make_unique_local_decl(scope_, loc, "r_");
         auto unique_name = unique_decl.id->is_identifier()->spelling();
 
+        // Local variables must be renamed to avoid collisions with the calling function.
+        // They are considered part of the function arguments `fargs_` and the renamed
+        // variable is considered part of the call arguments `cargs_`
         fargs_.push_back(var.first);
         cargs_.push_back(unique_decl.id->clone());
 
@@ -84,11 +90,11 @@ void FunctionInliner::visit(BlockExpression* e) {
 }
 
 void FunctionInliner::visit(UnaryExpression* e) {
-    replace_with_args(e);
+    replace_args(e);
 }
 
 void FunctionInliner::visit(BinaryExpression* e) {
-    replace_with_args(e);
+    replace_args(e);
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
