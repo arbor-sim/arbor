@@ -163,7 +163,7 @@ private:
     // array pointers
     array arr; // ring buffer storage using an extra sentinel element
     iterator begin = arr.begin(); // first element to pop off
-    iterator end   = arr.begin(); // next element to push into
+    iterator end   = begin; // next element to push into
     iterator next  = end+1; // sentinel: next == begin, we're out of space
 };
 
