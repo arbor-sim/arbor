@@ -19,8 +19,8 @@ class pack {};
 // set up this way so that it can be specialized for unusual P
 // but this implies that *prefetched is a valid operation
 template<typename P>
-auto get_pointer(P prefetched) {
-    return &*prefetched;
+auto get_pointer(P&& prefetched) {
+    return &*std::forward<P>(prefetched);
 }
 
 // if it's a plain pointer, can even be invalid
@@ -105,8 +105,8 @@ public:
     // with pointer-like args to be passed to F function.
     // If enough look-aheads pending process one (call F function on it).
     template<typename P>
-    void store(CookedTypes... args, P p) {
-        prefetch(p); // do our fetch
+    void store(CookedTypes... args, P&& p) {
+        prefetch(std::forward<P>(p)); // do our fetch
         if (begin == next) {pop();} // pop if look ahead full
         push(args...); // add look ahead
     }
@@ -133,8 +133,8 @@ private:
     }
 
     template<typename P>
-    static void prefetch(P p) { // the only thing we really want to do
-        __builtin_prefetch(get_pointer(p), mode);
+    static void prefetch(P&& p) { // the only thing we really want to do
+        __builtin_prefetch(get_pointer(std::forward<P>(p)), mode);
     }
 
     static constexpr auto element_size = std::tuple_size<element_type>();
@@ -152,19 +152,19 @@ private:
 
     // get_raw_value type extraction
     template<std::size_t n> // get nth type
-    using raw_type = std::tuple_element_t<n, std::tuple<RawTypes...>>;    
+    using raw_type = std::tuple_element_t<n, std::tuple<RawTypes...>>;
 
     // apply type extraction and cast nth element
     template<std::size_t n>
     auto get_raw_value() { // get value with right type from n
-        return std::forward<raw_type<n>>(std::get<n>(*begin));
+        return static_cast<raw_type<n>>(std::get<n>(*begin));
     }
 
     // array pointers
     array arr; // ring buffer storage using an extra sentinel element
     iterator begin = arr.begin(); // first element to pop off
-    iterator end = arr.begin(); // next element to push into
-    iterator next = end+1; // sentinel: next == begin, we're out of space
+    iterator end   = arr.begin(); // next element to push into
+    iterator next  = end+1; // sentinel: next == begin, we're out of space
 };
 
 /* prefetch class proper: */
@@ -185,25 +185,24 @@ template<std::size_t sz>
 static constexpr size_type<sz> size;
 
 // forward declaration
-template<typename S, typename M, typename F, typename P, typename ... Types>
+template<typename S, typename M, typename F, typename ... Types>
 class prefetch;
 
 // and now pull off the values with a single specialization
-template<std::size_t s, int m, typename F, typename P, typename ... Types>
-class prefetch<size_type<s>, mode_type<m>, F, P, Types...>:
+template<std::size_t s, int m, typename F, typename ... Types>
+class prefetch<size_type<s>, mode_type<m>, F, Types...>:
         public _prefetch<s, m, F,
-                         pack<P, Types...>,
-                         pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>
+                         pack<Types...>,
+                         pack<remove_qualifier_t<Types>...>>
 {
 public:
     using parent = _prefetch<s, m, F,
-                             pack<P, Types...>,
-                             pack<remove_qualifier_t<P>, remove_qualifier_t<Types>...>>;
+                             pack<Types...>,
+                             pack<remove_qualifier_t<Types>...>>;
 
     using parent::parent;
     using parent::store;
 };
-
 
 /* make_prefetch: returns a constructed a prefetch instance
    hopefully returns elided on the stack
@@ -214,39 +213,39 @@ public:
 // make_prefetch(
 //    prefetch::size_type<n-lookaheads>,
 //    prefetch::read|write,
-//    [] (auto&& prefetch, auto&& params...) {},
-//    ignored-variable-of-prefetch-type,
+//    [] (auto&& param, auto&& params...) {},
+//    ignored-variable-of-param-type,
 //    ignore-variables-of-params-types...
 // )
-template<typename S, typename M, typename F, typename P, typename... Types>
-constexpr auto make_prefetch(S, M, F&& f, P, Types...) {
-    return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
+template<typename S, typename M, typename F, typename Type, typename... Types>
+constexpr auto make_prefetch(S, M, F&& f, Type, Types...) {
+    return prefetch<S, M, F, Type, Types...>{std::forward<F>(f)};
 }
 
-// make_prefetch<prefetch-type, param-types...>(
+// make_prefetch<param-type, param-types...>(
 //    prefetch::size_type<n-lookaheads>,
 //    prefetch::read|write,
-//    [] (auto&& prefetch, auto&& params...) {}
+//    [] (auto&& param, auto&& params...) {}
 // )
-template<typename P, typename... Types, typename S, typename M, typename F>
+template<typename Type, typename... Types, typename S, typename M, typename F>
 constexpr auto make_prefetch(S, M, F&& f) {
-    return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
+    return prefetch<S, M, F, Type, Types...>{std::forward<F>(f)};
 }
 
 // make_prefetch(
 //    prefetch::size_type<n-lookaheads>,
 //    prefetch::read|write,
-//    [] (prefetch-type&&, param-types&&...) {}
+//    [] (param-types&&...) {}
 // )
 // first, we need to build traits to get the parameter types
 namespace get_prefetch_functor_args {
   // construct prefetch from passed in P, Types...
-  template<typename F, typename P, typename... Types>
+  template<typename F, typename... Types>
   struct _traits
   {
       template<typename S, typename M>
       static constexpr auto make_prefetch(F&& f) {
-          return prefetch<S, M, F, P, Types...>{std::forward<F>(f)};
+          return prefetch<S, M, F, Types...>{std::forward<F>(f)};
       }
   };
 
@@ -255,9 +254,9 @@ namespace get_prefetch_functor_args {
   struct functor_traits;
 
   // pull off the functor argument types to construct prefetch
-  template<typename F, typename T, typename P, typename... Types>
-  struct functor_traits<F, void(T::*)(P, Types...) const>:
-        public _traits<F, P, Types...>
+  template<typename F, typename T, typename... Types>
+  struct functor_traits<F, void(T::*)(Types...) const>:
+        public _traits<F, Types...>
   {};
 
   // base type, assumes F is lambda or other functor,
@@ -267,9 +266,9 @@ namespace get_prefetch_functor_args {
   {};
 
   // for function pointers: pull P, Types... immediately
-  template<typename P, typename... Types>
-  struct traits<void(P, Types...)>:
-      public _traits<void(P, Types...), P, Types...>
+  template<typename... Types>
+  struct traits<void(Types...)>:
+      public _traits<void(Types...), Types...>
   {};
 } // get_prefetch_functor_args
 
