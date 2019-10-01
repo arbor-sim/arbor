@@ -15,6 +15,21 @@ using remove_qualifier_t = std::remove_cv_t<std::remove_reference_t<T>>;
 template<typename... Ts>
 class pack {};
 
+// match packs of arguments
+template<typename T1s, typename T2s, typename T = void>
+struct enable_if_args_match;
+
+template<typename... T1s, typename... T2s, typename T>
+struct enable_if_args_match<pack<T1s...>, pack<T2s...>, T>
+    : public std::enable_if<std::is_same<
+                                std::tuple<remove_qualifier_t<T1s>...>,
+                                std::tuple<remove_qualifier_t<T2s>...>>::value,
+                            T>
+{};
+
+template<typename T1s, typename T2s>
+using enable_if_args_match_t = typename enable_if_args_match<T1s, T2s>::type;
+
 /*
   prefetch<size_type<prefetch-size>, mode_type<prefetch-mode>, func-to-apply-type, payload-pointers-types...>
   construct with make_prefetch utilities below
@@ -60,7 +75,7 @@ class pack {};
 */
 
 // pull out `apply` code from prefetch 
-template<typename raw_tuple>
+template<typename... RawTypes>
 class apply_raw {
 public:
     // apply function f to t
@@ -68,6 +83,7 @@ public:
     static auto apply(F&& f, T&& t) {return apply(std::forward<F>(f), std::forward<T>(t), indices);}
 
 private:
+    using raw_tuple = std::tuple<RawTypes...>;
     static constexpr auto size = std::tuple_size<raw_tuple>();
     static constexpr auto indices = std::make_index_sequence<size>{};
     
@@ -83,7 +99,7 @@ private:
 
     // apply type extraction and cast nth element
     template<std::size_t n, typename T>
-    static auto get_raw_value(T&& element) { // get value with right type from n
+    static auto get_raw_value(T&& element) noexcept { // get value with right type from n
         return static_cast<raw_type<n>>(std::get<n>(std::forward<T>(element)));
     }
 };
@@ -98,21 +114,21 @@ public:
 
     // precondition: ! is_full()
     template<typename T>
-    void push(T&& e) {
+    void push(T&& e) noexcept {
         *end = std::forward<T>(e);
         end = next;
         if (++next == arr.end()) {next = arr.begin();}
     }
 
     // precondition: ! is_empty()
-    element_type&& pop() {
+    element_type&& pop() noexcept {
         auto head = begin;
         if (++begin == arr.end()) {begin = arr.begin();}
-        return std::move(*head);
+        return std::move(*head); // move out head, its now invalid
     }
 
-    bool is_empty() const {return begin == end;}
-    bool is_full()  const {return begin == next;}
+    bool empty() const noexcept {return begin == end;}
+    bool full()  const noexcept {return begin == next;}
 
 private:
     using array = std::array<element_type, size+1>; // extra sentinel elem
@@ -138,13 +154,13 @@ static constexpr mode_type<1> write;
 // set up this way so that it can be specialized for unusual P
 // but this implies that *prefetched is a valid operation
 template<typename P>
-auto get_pointer(P&& prefetched) {
+auto get_pointer(P&& prefetched) noexcept {
     return &*std::forward<P>(prefetched);
 }
 
 // if it's a plain pointer, can even be invalid
 template<typename P>
-auto get_pointer(P* prefetched) {
+auto get_pointer(P* prefetched) noexcept {
     return prefetched;
 }
 
@@ -159,7 +175,7 @@ struct prefetch_type<mode_type<m>> {
     static constexpr auto mode = m;
     
     template<typename P>
-    static void apply(P&& p) { // do the prefetch
+    static void apply(P&& p) noexcept { // do the prefetch
         __builtin_prefetch(get_pointer(std::forward<P>(p)), mode);
     }
 };
@@ -181,43 +197,47 @@ public:
     using function_type = F;
     using fetch = prefetch_type<mode_type<m>>;
 
-    _prefetch(F&& f): function{std::move(f)} {}
-    _prefetch(const F& f): function{f} {}
-    ~_prefetch() {while (! arr.is_empty()) {pop();}} // clear buffer on destruct
+    _prefetch(F&& f) noexcept: function{std::move(f)} {}
+    _prefetch(const F& f) noexcept: function{f} {}
+    ~_prefetch() {while (! arr.empty()) {pop();}} // clear buffer on destruct
 
     _prefetch(_prefetch&&) = default; //needed < C++17
     _prefetch(const _prefetch&) = delete; 
     _prefetch& operator=(const _prefetch&) = delete;
-    
+
+    template<typename... Ts>
+    using enable_if_cooked_args_t = enable_if_args_match_t<pack<Ts...>, pack<CookedTypes...>>;
+
     // append an element to process after
     // prefetching pointer-like P associated
     // with pointer-like args to be passed to F function.
     // If enough look-aheads pending process one (call F function on it).
-    template<typename P>
-    void store(CookedTypes... args, P&& p) {
+    template<typename P, typename... Ts, typename = enable_if_cooked_args_t<Ts...>>
+    void store(P&& p, Ts&&... args) {
         fetch::apply(std::forward<P>(p));
-        if (arr.is_full()) {pop();} // pop if look ahead full
-        push(args...); // add new look ahead
+        if (arr.full()) {pop();} // process and remove if look ahead full
+        push(std::forward<Ts>(args)...); // add new look ahead
     }
 
     // default missing prefetch to the first argument
-    void store(CookedTypes... args) {
-        store(args..., [](auto&& arg0, auto&&...) {return arg0;} (args...));
+    template<typename... Ts, typename = enable_if_cooked_args_t<Ts...>>
+    void store(Ts&&... args) {
+        store([](auto&& arg0, auto&&...) {return arg0;} (std::forward<Ts>(args)...),
+              std::forward<Ts>(args)...);
     }
 
 private:
-    using raw_types = std::tuple<RawTypes...>;
-
     // apply function to first stored, and move pointer forward
     // precondition: begin != end
     void pop() {
-        apply_raw<raw_types>::apply(function, arr.pop());
+        apply_raw<RawTypes...>::apply(function, arr.pop());
     }
 
     // add an element to end of ring
     // precondition: begin != next
-    void push(CookedTypes... args) {
-        arr.push(element_type{args...});
+    template<typename... Ts, typename = enable_if_cooked_args_t<Ts...>>
+    void push(Ts&&... args) noexcept {
+        arr.push(element_type{std::forward<Ts>(args)...});
     }
 
     array arr;
@@ -266,7 +286,7 @@ public:
 //    ignore-variables-of-params-types...
 // )
 template<typename S, typename M, typename F, typename Type, typename... Types>
-constexpr auto make_prefetch(S, M, F&& f, Type, Types...) {
+constexpr auto make_prefetch(S, M, F&& f, Type, Types...) noexcept {
     return prefetch<S, M, F, Type, Types...>{std::forward<F>(f)};
 }
 
@@ -276,7 +296,7 @@ constexpr auto make_prefetch(S, M, F&& f, Type, Types...) {
 //    [] (auto&& param, auto&& params...) {}
 // )
 template<typename Type, typename... Types, typename S, typename M, typename F>
-constexpr auto make_prefetch(S, M, F&& f) {
+constexpr auto make_prefetch(S, M, F&& f) noexcept {
     return prefetch<S, M, F, Type, Types...>{std::forward<F>(f)};
 }
 
@@ -292,7 +312,7 @@ namespace get_prefetch_functor_args {
   struct _traits
   {
       template<typename S, typename M>
-      static constexpr auto make_prefetch(F&& f) {
+      static constexpr auto make_prefetch(F&& f) noexcept {
           return prefetch<S, M, F, Types...>{std::forward<F>(f)};
       }
   };
@@ -322,7 +342,7 @@ namespace get_prefetch_functor_args {
 
 // and here we apply the traits in make_prefetch
 template<typename S, typename M, typename F>
-constexpr auto make_prefetch(S, M, F&& f) {
+constexpr auto make_prefetch(S, M, F&& f) noexcept {
     return get_prefetch_functor_args::traits<F>::template make_prefetch<S, M>(std::forward<F>(f));
 }
 

@@ -180,7 +180,7 @@ static void make_queues_by_conns(
               decltype(send) e,
               decltype(cn) c)
         { // speculate that the next append is simple
-            d.store(q, b, e, c, q->data()+q->size());
+            d.store(q->data()+q->size(), q, b, e, c);
         });
     
     while (cn != cend && sp!=send) {
@@ -219,7 +219,7 @@ static void make_queues_by_spikes(
               decltype(sp) s,
               decltype(cn) c)
         {// speculate that the next append is simple
-            d.store(q, s, c, q->data()+q->size());
+            d.store(q->data()+q->size(), q, s, c);
         });
 
     while (cn!=cend && sp!=send) {
