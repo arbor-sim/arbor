@@ -220,8 +220,8 @@ public:
     // default missing prefetch to the first argument
     template<typename... Ts, typename = enable_if_cooked_args_t<Ts...>>
     void store(Ts&&... args) {
-        store([](auto&& arg0, auto&&...) {return arg0;} (std::forward<Ts>(args)...),
-              std::forward<Ts>(args)...);
+        auto&& p = [](auto&& arg0, auto&&...) {return arg0;} (std::forward<Ts>(args)...);
+        store(p, std::forward<Ts>(args)...);
     }
 
 private:
@@ -269,8 +269,8 @@ public:
     // default missing prefetch to the first argument
     template<typename... Ts, typename = enable_if_cooked_args_t<Ts...>>
     void store(Ts&&... args) {
-        store([](auto&& arg0, auto&&...) {return arg0;} (std::forward<Ts>(args)...),
-              std::forward<Ts>(args)...);
+        auto&& p = [](auto&& arg0, auto&&...) {return arg0;} (std::forward<Ts>(args)...);
+        store(p, std::forward<Ts>(args)...);
     }
 
 private:
