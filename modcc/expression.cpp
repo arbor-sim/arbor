@@ -789,7 +789,7 @@ void SolveExpression::semantic(scope_ptr scp) {
 }
 
 expression_ptr SolveExpression::clone() const {
-    auto s = new SolveExpression(location_, name_, method_);
+    auto s = new SolveExpression(location_, name_, method_, variant_);
     s->procedure(procedure_);
     return expression_ptr{s};
 }

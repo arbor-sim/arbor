@@ -360,9 +360,10 @@ bool Module::semantic() {
             case solverMethod::cnexp:
                 solver = std::make_unique<CnexpSolverVisitor>();
                 break;
-            case solverMethod::sparse:
-                solver = std::make_unique<SparseSolverVisitor>();
+            case solverMethod::sparse: {
+                solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
                 break;
+            }
             case solverMethod::none:
                 solver = std::make_unique<DirectSolverVisitor>();
                 break;

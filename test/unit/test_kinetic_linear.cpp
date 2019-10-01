@@ -96,25 +96,28 @@ TEST(mech_kinetic, kintetic_scaled) {
 
     run_test<multicore::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_0_values);
     run_test<multicore::backend>("test1_kin_compartment", state_variables, {}, t0_values, t1_1_values);
-
 }
 
 TEST(mech_kinetic, kintetic_1_conserve) {
     std::vector<std::string> state_variables = {"s", "h", "d"};
     std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
-    std::vector<fvm_value_type> t1_values = {0.380338, 0.446414, 0.173247};
+    std::vector<fvm_value_type> t1_0_values = {0.380338, 0.446414, 0.173247};
+    std::vector<fvm_value_type> t1_1_values = {0.218978, 0.729927, 0.0510949};
 
-    run_test<multicore::backend>("test0_kin_diff", state_variables, {}, t0_values, t1_values);
-    run_test<multicore::backend>("test0_kin_conserve", state_variables, {}, t0_values, t1_values);
+    run_test<multicore::backend>("test0_kin_diff", state_variables, {}, t0_values, t1_0_values);
+    run_test<multicore::backend>("test0_kin_conserve", state_variables, {}, t0_values, t1_0_values);
+    run_test<multicore::backend>("test0_kin_steadystate", state_variables, {}, t0_values, t1_1_values);
 }
 
 TEST(mech_kinetic, kintetic_2_conserve) {
     std::vector<std::string> state_variables = {"a", "b", "x", "y"};
     std::vector<fvm_value_type> t0_values = {0.2, 0.8, 0.6, 0.4};
-    std::vector<fvm_value_type> t1_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
+    std::vector<fvm_value_type> t1_0_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
+    std::vector<fvm_value_type> t1_1_values = {0.230769, 0.769231, 0.189189, 0.810811};
 
-    run_test<multicore::backend>("test1_kin_diff", state_variables, {}, t0_values, t1_values);
-    run_test<multicore::backend>("test1_kin_conserve", state_variables, {}, t0_values, t1_values);
+    run_test<multicore::backend>("test1_kin_diff", state_variables, {}, t0_values, t1_0_values);
+    run_test<multicore::backend>("test1_kin_conserve", state_variables, {}, t0_values, t1_0_values);
+    run_test<multicore::backend>("test1_kin_steadystate", state_variables, {}, t0_values, t1_1_values);
 }
 
 TEST(mech_linear, linear) {
@@ -141,19 +144,23 @@ TEST(mech_kinetic_gpu, kintetic_scaled) {
 TEST(mech_kinetic_gpu, kintetic_1_conserve) {
     std::vector<std::string> state_variables = {"s", "h", "d"};
     std::vector<fvm_value_type> t0_values = {0.5, 0.2, 0.3};
-    std::vector<fvm_value_type> t1_values = {0.380338, 0.446414, 0.173247};
+    std::vector<fvm_value_type> t1_0_values = {0.380338, 0.446414, 0.173247};
+    std::vector<fvm_value_type> t1_1_values = {0.218978, 0.729927, 0.0510949};
 
-    run_test<gpu::backend>("test0_kin_diff", state_variables, {}, t0_values, t1_values);
-    run_test<gpu::backend>("test0_kin_conserve", state_variables, {}, t0_values, t1_values);
+    run_test<gpu::backend>("test0_kin_diff", state_variables, {}, t0_values, t1_0_values);
+    run_test<gpu::backend>("test0_kin_conserve", state_variables, {}, t0_values, t1_0_values);
+    run_test<gpu::backend>("test0_kin_steadystate", state_variables, {}, t0_values, t1_1_values);
 }
 
 TEST(mech_kinetic_gpu, kintetic_2_conserve) {
     std::vector<std::string> state_variables = {"a", "b", "x", "y"};
     std::vector<fvm_value_type> t0_values = {0.2, 0.8, 0.6, 0.4};
-    std::vector<fvm_value_type> t1_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
+    std::vector<fvm_value_type> t1_0_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
+    std::vector<fvm_value_type> t1_1_values = {0.230769, 0.769231, 0.189189, 0.810811};
 
-    run_test<gpu::backend>("test1_kin_diff", state_variables, {}, t0_values, t1_values);
-    run_test<gpu::backend>("test1_kin_conserve", state_variables, {}, t0_values, t1_values);
+    run_test<gpu::backend>("test1_kin_diff", state_variables, {}, t0_values, t1_0_values);
+    run_test<gpu::backend>("test1_kin_conserve", state_variables, {}, t0_values, t1_0_values);
+    run_test<gpu    ::backend>("test1_kin_steadystate", state_variables, {}, t0_values, t1_1_values);
 }
 
 TEST(mech_linear_gpu, linear) {
