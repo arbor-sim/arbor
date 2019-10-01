@@ -113,7 +113,7 @@ public:
     using element_type = E;
 
     // precondition: ! is_full()
-    template<typename T>
+    template<typename T, typename = enable_if_args_match_t<pack<E>, pack<T>>>
     void push(T&& e) noexcept {
         *end = std::forward<T>(e);
         end = next;
