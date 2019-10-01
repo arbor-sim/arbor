@@ -8,8 +8,6 @@ namespace arb {
 namespace prefetch {
 
 // Internal utility
-template<typename T>
-using remove_qualifier_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
 // like a tuple, just for packing/unpacking typename parameter packs
 template<typename... Ts>
@@ -22,8 +20,8 @@ struct enable_if_args_match;
 template<typename... T1s, typename... T2s, typename T>
 struct enable_if_args_match<pack<T1s...>, pack<T2s...>, T>
     : public std::enable_if<std::is_same<
-                                std::tuple<remove_qualifier_t<T1s>...>,
-                                std::tuple<remove_qualifier_t<T2s>...>>::value,
+                                std::tuple<std::decay_t<T1s>...>,
+                                std::tuple<std::decay_t<T2s>...>>::value,
                             T>
 {};
 
@@ -115,7 +113,7 @@ public:
     // precondition: ! is_full()
     template<typename T, typename = enable_if_args_match_t<pack<E>, pack<T>>>
     void push(T&& e) noexcept {
-        *end = std::forward<T>(e);
+        *end = {std::forward<T>(e)};
         end = next;
         if (++next == arr.end()) {next = arr.begin();}
     }
@@ -262,12 +260,12 @@ template<std::size_t s, int m, typename F, typename... Types>
 class prefetch<size_type<s>, mode_type<m>, F, Types...>:
         public _prefetch<s, m, F,
                          pack<Types...>,
-                         pack<remove_qualifier_t<Types>...>>
+                         pack<std::decay_t<Types>...>>
 {
 public:
     using parent = _prefetch<s, m, F,
                              pack<Types...>,
-                             pack<remove_qualifier_t<Types>...>>;
+                             pack<std::decay_t<Types>...>>;
 
     using parent::parent;
 };
