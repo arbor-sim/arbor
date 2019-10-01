@@ -191,7 +191,7 @@ public:
     static constexpr auto mode = m;
 
     using element_type = std::tuple<CookedTypes...>;
-    using array = ring_buffer<size, element_type>;    
+    using array = ring_buffer<size, element_type>;
     using function_type = F;
     using fetch = prefetch_type<mode_type<m>>;
 
@@ -239,6 +239,41 @@ private:
     }
 
     array arr;
+    const function_type function;
+};
+
+// specialization to turn off prefetch and array allocation
+template<int m, typename F, typename... RawTypes, typename... CookedTypes>
+class _prefetch<0, m, F, pack<RawTypes...>, pack<CookedTypes...>> {
+public:
+    static constexpr auto size = 0;
+    static constexpr auto mode = m;
+
+    using function_type = F;
+
+    _prefetch(F&& f) noexcept: function{std::move(f)} {}
+    _prefetch(const F& f) noexcept: function{f} {}
+
+    _prefetch(_prefetch&&) = default; //needed < C++17
+    _prefetch(const _prefetch&) = delete;
+    _prefetch& operator=(const _prefetch&) = delete;
+
+    template<typename... Ts>
+    using enable_if_cooked_args_t = enable_if_args_match_t<pack<Ts...>, pack<CookedTypes...>>;
+
+    template<typename P, typename... Ts, typename = enable_if_cooked_args_t<Ts...>>
+    void store(P&& p, Ts&&... args) {
+        function(std::forward<Ts>(args)...);
+    }
+
+    // default missing prefetch to the first argument
+    template<typename... Ts, typename = enable_if_cooked_args_t<Ts...>>
+    void store(Ts&&... args) {
+        store([](auto&& arg0, auto&&...) {return arg0;} (std::forward<Ts>(args)...),
+              std::forward<Ts>(args)...);
+    }
+
+private:
     const function_type function;
 };
 
