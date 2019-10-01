@@ -361,8 +361,7 @@ bool Module::semantic() {
                 solver = std::make_unique<CnexpSolverVisitor>();
                 break;
             case solverMethod::sparse: {
-                bool steadystate = solve_expression->variant() == solverVariant::steadystate;
-                solver = std::make_unique<SparseSolverVisitor>(steadystate);
+                solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
                 break;
             }
             case solverMethod::none:

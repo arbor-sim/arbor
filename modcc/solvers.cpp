@@ -180,7 +180,7 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
-    if (steadystate_) {
+    if (solve_variant_ == solverVariant::steadystate) {
         // create zero_epression local for the rhs
         auto zero_expr = make_expression<NumberExpression>(e->location(), 0.0);
         auto local_a_term = make_unique_local_assign(e->scope(), zero_expr.get(), "a_");
@@ -259,12 +259,15 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     for (unsigned j = 0; j<dvars_.size(); ++j) {
         expression_ptr expr;
 
+        // For regular solve:
         // For zero coefficient and diagonal element, the matrix entry is 1.
         // For non-zero coefficient c and diagonal element, the entry is 1-c*dt.
         // Otherwise, for non-zero coefficient c, the entry is -c*dt.
+        // For steady state solve:
+        // The entry is always the the coefficient.
 
         if (r.coef.count(dvars_[j])) {
-            expr = steadystate_ ? r.coef[dvars_[j]]->clone() :
+            expr = solve_variant_ == solverVariant::steadystate ? r.coef[dvars_[j]]->clone() :
                     make_expression<MulBinaryExpression>(loc, r.coef[dvars_[j]]->clone(), dt_expr->clone());
 
             if (scale_factor_[j]) {
@@ -272,7 +275,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
             }
         }
 
-        if (!steadystate_) {
+        if (solve_variant_ != solverVariant::steadystate) {
             if (j == deq_index_) {
                 if (expr) {
                     expr = make_expression<SubBinaryExpression>(loc,
@@ -368,9 +371,14 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 }
 
 void SparseSolverVisitor::finalize() {
+
+    if (solve_variant_ == solverVariant::steadystate && !conserve_) {
+        error({"Conserve statement(s) missing in steady-state solver", {}});
+    }
+
     std::vector<symge::symbol> rhs;
     for (const auto& var: dvars_) {
-        auto v = steadystate_? steadystate_rhs_ : var;
+        auto v = solve_variant_ == solverVariant::steadystate? steadystate_rhs_ : var;
         rhs.push_back(symtbl_.define(v));
     }
     if (conserve_) {
