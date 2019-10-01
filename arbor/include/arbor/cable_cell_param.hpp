@@ -105,6 +105,42 @@ private:
 };
 
 // FVM discretization policies/hints.
+//
+// CV polices, given a cable cell, provide a locset comprising
+// CV boundary points to be used by the discretization. The
+// discretization need not adopt the boundary points 100% faithfully;
+// for example, it may elide empty CVs or perform other transformations
+// for numeric fidelity or performance reasons.
+//
+// The cv_policy class is a value-like wrapper for actual
+// policies that derive from `cv_policy_base`. At present,
+// there are only three policies implemented, described below.
+// The intent is to provide more sophisticated policies in the
+// near future, specifically one based on the 'd-lambda' rule.
+//
+//   cv_policy_explicit:
+//       Simply use the provided locset.
+//
+//   cv_policy_fixed_per_branch:
+//       Use the same number of CVs for each branch.
+//
+//   cv_policy_max_extent:
+//       Use as many CVs as required to ensure that no CV has
+//       a length longer than a given value.
+//
+// Except for the explicit policy, CV policies may also take various
+// flags (implemented as bitwise orable enums) to modify their
+// behaviour. In general, future CV policies may choose to ignore
+// flag values, but should respect them if their semantics are
+// relevant.
+//
+//   cv_policy_flag::interior_forks:
+//       Position CVs so as to include fork points, as opposed
+//       to positioning them so that fork points are at the
+//       boundaries of CVs.
+//
+//   cv_policy_flag::single_root_cv:
+//       Always treat the root branch as a single CV regardless.
 
 class cable_cell;
 

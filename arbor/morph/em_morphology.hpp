@@ -24,6 +24,18 @@ public:
 
     const morphology& morph() const;
 
+    // Convenience methods for morphology access
+    // that are forwarded directly to the morphology object:
+
+    auto empty() const { return morph_.empty(); }
+    auto spherical_root() const { return morph_.spherical_root(); }
+    auto num_branches() const { return morph_.num_branches(); }
+    auto num_samples() const { return morph_.num_samples(); }
+    auto branch_parent(msize_t b) const { return morph_.branch_parent(b); }
+    auto branch_children(msize_t b) const { return morph_.branch_children(b); }
+
+    // Access to computed and cached data:
+
     mlocation_list terminals() const;
     mlocation root() const;
 

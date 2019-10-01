@@ -73,7 +73,7 @@ cable_cell_local_parameter_set neuron_parameter_defaults = {
 
 locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
     const auto& emorph = *cell.morphology();
-    const unsigned nbranch = emorph.morph().num_branches();
+    const unsigned nbranch = emorph.num_branches();
     if (!nbranch || max_extent_<=0) return ls::nil();
 
     std::vector<mlocation> points;
@@ -108,7 +108,7 @@ locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
 }
 
 locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology()->morph().num_branches();
+    const unsigned nbranch = cell.morphology()->num_branches();
     if (!nbranch) return ls::nil();
 
     std::vector<mlocation> points;
