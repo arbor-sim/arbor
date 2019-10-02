@@ -68,6 +68,7 @@ public:
 
 class SparseSolverVisitor : public SolverVisitorBase {
 protected:
+    solverVariant solve_variant_;
     // 'Current' differential equation is for variable with this
     // index in `dvars`.
     unsigned deq_index_ = 0;
@@ -91,10 +92,14 @@ protected:
     // rhs of conserve statement
     std::vector<std::string> conserve_rhs_;
     std::vector<unsigned> conserve_idx_;
+
+    // rhs of steadstate
+    std::string steadystate_rhs_;
 public:
     using SolverVisitorBase::visit;
 
-    SparseSolverVisitor() {}
+    explicit SparseSolverVisitor(solverVariant s = solverVariant::regular) :
+        solve_variant_(s) {}
     SparseSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
@@ -111,6 +116,7 @@ public:
         scale_factor_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
+        steadystate_rhs_.clear();
         SolverVisitorBase::reset();
     }
 };

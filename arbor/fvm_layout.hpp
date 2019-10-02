@@ -85,12 +85,12 @@ struct fvm_discretization {
         return util::partition_view(cell_cv_bounds);
     }
 
-    size_type segment_location_cv(size_type cell_index, segment_location segloc) const {
+    size_type branch_location_cv(size_type cell_index, mlocation loc) const {
         auto cell_segs = cell_segment_part()[cell_index];
 
-        size_type seg = segloc.segment+cell_segs.first;
+        size_type seg = loc.branch+cell_segs.first;
         arb_assert(seg<cell_segs.second);
-        return segments[seg].cv_by_position(segloc.position);
+        return segments[seg].cv_by_position(loc.pos);
     }
 };
 

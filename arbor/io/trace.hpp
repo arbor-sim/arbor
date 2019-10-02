@@ -56,8 +56,6 @@ namespace impl {
             lock_(this->guard())
         {}
 
-        emit_nl_locked(emit_nl_locked&&) = default;
-
         ~emit_nl_locked() {
             if (rdbuf()) {
                 (*this) << std::endl;

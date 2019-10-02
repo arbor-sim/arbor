@@ -13,6 +13,7 @@
 #include "mechanisms/test_linear_init.hpp"
 #include "mechanisms/test_linear_init_shuffle.hpp"
 #include "mechanisms/test0_kin_conserve.hpp"
+#include "mechanisms/test0_kin_steadystate.hpp"
 #include "mechanisms/test0_kin_compartment.hpp"
 #include "mechanisms/test1_kin_compartment.hpp"
 #include "mechanisms/test1_kin_diff.hpp"
@@ -20,6 +21,7 @@
 #include "mechanisms/test2_kin_diff.hpp"
 #include "mechanisms/test3_kin_diff.hpp"
 #include "mechanisms/test3_kin_conserve.hpp"
+#include "mechanisms/test1_kin_steadystate.hpp"
 #include "mechanisms/fixed_ica_current.hpp"
 #include "mechanisms/point_ica_current.hpp"
 #include "mechanisms/linear_ca_conc.hpp"
@@ -53,13 +55,15 @@ mechanism_catalogue make_unit_test_catalogue() {
     ADD_MECH(cat, test_linear_init_shuffle)
     ADD_MECH(cat, test0_kin_diff)
     ADD_MECH(cat, test0_kin_conserve)
+    ADD_MECH(cat, test0_kin_steadystate)
     ADD_MECH(cat, test0_kin_compartment)
-    ADD_MECH(cat, test1_kin_compartment)
     ADD_MECH(cat, test1_kin_diff)
     ADD_MECH(cat, test1_kin_conserve)
     ADD_MECH(cat, test2_kin_diff)
     ADD_MECH(cat, test3_kin_diff)
     ADD_MECH(cat, test3_kin_conserve)
+    ADD_MECH(cat, test1_kin_steadystate)
+    ADD_MECH(cat, test1_kin_compartment)
     ADD_MECH(cat, fixed_ica_current)
     ADD_MECH(cat, point_ica_current)
     ADD_MECH(cat, linear_ca_conc)

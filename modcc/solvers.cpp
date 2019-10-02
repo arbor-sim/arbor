@@ -1,5 +1,6 @@
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -180,6 +181,16 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
             dvars_.push_back(id->name());
         }
     }
+    if (solve_variant_ == solverVariant::steadystate) {
+        // create zero_epression local for the rhs
+        auto zero_expr = make_expression<NumberExpression>(e->location(), 0.0);
+        auto local_a_term = make_unique_local_assign(e->scope(), zero_expr.get(), "a_");
+        auto a_ = local_a_term.id->is_identifier()->spelling();
+
+        statements_.push_back(std::move(local_a_term.local_decl));
+        statements_.push_back(std::move(local_a_term.assignment));
+        steadystate_rhs_ = a_;
+    }
     scale_factor_.resize(dvars_.size());
 
     BlockRewriterBase::visit(e);
@@ -249,32 +260,34 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
     for (unsigned j = 0; j<dvars_.size(); ++j) {
         expression_ptr expr;
 
+        // For regular solve:
         // For zero coefficient and diagonal element, the matrix entry is 1.
         // For non-zero coefficient c and diagonal element, the entry is 1-c*dt.
         // Otherwise, for non-zero coefficient c, the entry is -c*dt.
+        // For steady state solve:
+        // The entry is always the the coefficient.
 
         if (r.coef.count(dvars_[j])) {
-            expr = make_expression<MulBinaryExpression>(loc,
-                       r.coef[dvars_[j]]->clone(),
-                       dt_expr->clone());
+            expr = solve_variant_ == solverVariant::steadystate ? r.coef[dvars_[j]]->clone() :
+                    make_expression<MulBinaryExpression>(loc, r.coef[dvars_[j]]->clone(), dt_expr->clone());
 
             if (scale_factor_[j]) {
                 expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
             }
         }
 
-        if (j==deq_index_) {
-            if (expr) {
-                expr = make_expression<SubBinaryExpression>(loc,
-                           one_expr->clone(),
-                           std::move(expr));
-            }
-            else {
-                expr = one_expr->clone();
-            }
-        }
-        else if (expr) {
+        if (solve_variant_ != solverVariant::steadystate) {
+            if (j == deq_index_) {
+                if (expr) {
+                    expr = make_expression<SubBinaryExpression>(loc,
+                                                                one_expr->clone(),
+                                                                std::move(expr));
+                } else {
+                    expr = one_expr->clone();
+                }
+            } else if (expr) {
                 expr = make_expression<NegUnaryExpression>(loc, std::move(expr));
+            }
         }
 
         if (!expr) continue;
@@ -359,9 +372,15 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 }
 
 void SparseSolverVisitor::finalize() {
+
+    if (solve_variant_ == solverVariant::steadystate && !conserve_) {
+        error({"Conserve statement(s) missing in steady-state solver", {}});
+    }
+
     std::vector<symge::symbol> rhs;
     for (const auto& var: dvars_) {
-        rhs.push_back(symtbl_.define(var));
+        auto v = solve_variant_ == solverVariant::steadystate? steadystate_rhs_ : var;
+        rhs.push_back(symtbl_.define(v));
     }
     if (conserve_) {
         for (unsigned i = 0; i < conserve_idx_.size(); ++i) {
@@ -389,20 +408,20 @@ void SparseSolverVisitor::finalize() {
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
-    for (unsigned i = 0; i<A_.nrow(); ++i) {
+    auto nrow = A_.nrow();
+    for (unsigned i = 0; i<nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs_col = A_.augcol();
-        int lhs_col = -1;
-        for (unsigned r = 0; r < A_.nrow(); r++) {
+        unsigned lhs_col = -1;
+        for (unsigned r = 0; r<A_.nrow(); ++r) {
             if (row[r]) {
                 lhs_col = r;
                 break;
             }
         }
 
-        if (lhs_col == -1) {
-            error({"Something went wrong in solving the sparse matrix", loc});
-            return;
+        if (lhs_col==unsigned(-1)) {
+            throw std::logic_error("zero row in sparse solver matrix");
         }
 
         auto expr =
@@ -480,15 +499,20 @@ void LinearSolverVisitor::finalize() {
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
-    for (unsigned i = 0; i < A_.nrow(); ++i) {
+    auto nrow = A_.nrow();
+    for (unsigned i = 0; i < nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs = A_.augcol();
-        unsigned lhs;
-        for (unsigned r = 0; r < A_.nrow(); r++) {
+        unsigned lhs = -1;
+        for (unsigned r = 0; r < A_.nrow(); ++r) {
             if (row[r]) {
                 lhs = r;
                 break;
             }
+        }
+
+        if (lhs==unsigned(-1)) {
+            throw std::logic_error("zero row in linear solver matrix");
         }
 
         auto expr =
