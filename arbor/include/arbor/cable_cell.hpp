@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -9,54 +10,37 @@
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
+#include <arbor/morph/primitives.hpp>
 #include <arbor/segment.hpp>
 
 namespace arb {
 
-// Location specification for point processes.
-
-struct segment_location {
-    segment_location(cell_lid_type s, double l):
-        segment(s), position(l)
-    {
-        arb_assert(position>=0. && position<=1.);
-    }
-
-     bool operator==(segment_location other) const {
-        return segment==other.segment && position==other.position;
-    }
-
-    cell_lid_type segment;
-    double position;
-};
-
-// Current clamp description for stimulus specification.
-
-struct i_clamp {
-    using value_type = double;
-
-    value_type delay = 0;      // [ms]
-    value_type duration = 0;   // [ms]
-    value_type amplitude = 0;  // [nA]
-
-    i_clamp(value_type delay, value_type duration, value_type amplitude):
-        delay(delay), duration(duration), amplitude(amplitude)
-    {}
+// Pair of indexes that describe range of local indices.
+// Returned by cable_cell::place() calls, so that the caller can
+// refer to targets, detectors, etc on the cell.
+struct lid_range {
+    cell_lid_type begin;
+    cell_lid_type end;
+    lid_range(cell_lid_type b, cell_lid_type e):
+        begin(b), end(e) {}
 };
 
 // Probe type for cell descriptions.
-
 struct cell_probe_address {
     enum probe_kind {
         membrane_voltage, membrane_current
     };
 
-    segment_location location;
+    mlocation location;
     probe_kind kind;
 };
 
-/// high-level abstract representation of a cell and its segments
+// Forward declare the implementation, for PIMPL.
+struct cable_cell_impl;
+
+// High-level abstract representation of a cell and its segments
 class cable_cell {
 public:
     using index_type = cell_lid_type;
@@ -64,20 +48,23 @@ public:
     using value_type = double;
     using point_type = point<value_type>;
 
-    using gap_junction_instance = segment_location;
+    using region_map = std::unordered_map<std::string, mcable_list>;
+    using locset_map = std::unordered_map<std::string, mlocation_list>;
+
+    using gap_junction_instance = mlocation;
 
     struct synapse_instance {
-        segment_location location;
+        mlocation location;
         mechanism_desc mechanism;
     };
 
     struct stimulus_instance {
-        segment_location location;
+        mlocation location;
         i_clamp clamp;
     };
 
     struct detector_instance {
-        segment_location location;
+        mlocation location;
         double threshold;
     };
 
@@ -87,28 +74,10 @@ public:
     cable_cell();
 
     /// Copy constructor
-    cable_cell(const cable_cell& other):
-        default_parameters(other.default_parameters),
-        parents_(other.parents_),
-        stimuli_(other.stimuli_),
-        synapses_(other.synapses_),
-        gap_junction_sites_(other.gap_junction_sites_),
-        spike_detectors_(other.spike_detectors_)
-    {
-        // unique_ptr's cannot be copy constructed, do a manual assignment
-        segments_.reserve(other.segments_.size());
-        for (const auto& s: other.segments_) {
-            segments_.push_back(s->clone());
-        }
-    }
+    cable_cell(const cable_cell& other);
 
     /// Move constructor
     cable_cell(cable_cell&& other) = default;
-
-    /// Return the kind of cell, used for grouping into cell_groups
-    cell_kind get_cell_kind() const  {
-        return cell_kind::cable;
-    }
 
     /// add a soma to the cell
     /// radius must be specified
@@ -119,93 +88,85 @@ public:
     /// cable is the segment that will be moved into the cell
     cable_segment* add_cable(index_type parent, segment_ptr&& cable);
 
-    /// add a cable by constructing it in place
-    /// parent is the index of the parent segment for the cable section
-    /// args are the arguments to be used to consruct the new cable
-    template <typename... Args>
-    cable_segment* add_cable(index_type parent, Args&&... args);
-
-    /// the number of segments in the cell
-    size_type num_segments() const;
-
     bool has_soma() const;
 
     class segment* segment(index_type index);
     const class segment* parent(index_type index) const;
     const class segment* segment(index_type index) const;
 
-    /// access pointer to the soma
-    /// returns nullptr if the cell has no soma
+    // access pointer to the soma
+    // returns nullptr if the cell has no soma
+    // LEGACY
     soma_segment* soma();
     const soma_segment* soma() const;
 
-    /// access pointer to a cable segment
-    /// will throw an cable_cell_error exception if
-    /// the cable index is not valid
+    // access pointer to a cable segment
+    // will throw an cable_cell_error exception if
+    // the cable index is not valid
+    // LEGACY
     cable_segment* cable(index_type index);
     const cable_segment* cable(index_type index) const;
 
-    /// the total number of compartments over all segments
-    size_type num_compartments() const;
+    const std::vector<segment_ptr>& segments() const;
 
-    std::vector<segment_ptr> const& segments() const {
-        return segments_;
-    }
+    // the number of segments in the cell
+    size_type num_segments() const;
 
-    /// return a vector with the compartment count for each segment in the cell
+    // return a vector with the compartment count for each segment in the cell
+    // LEGACY
     std::vector<size_type> compartment_counts() const;
 
-    //////////////////
-    // stimuli
-    //////////////////
-    void add_stimulus(segment_location loc, i_clamp stim);
+    // The total number of compartments in the discretised cell.
+    // LEGACY
+    size_type num_compartments() const;
 
-    std::vector<stimulus_instance>&
-    stimuli() {
-        return stimuli_;
-    }
+    //
+    // Painters and placers.
+    //
+    // Used to describe regions and locations where density channels, stimuli,
+    // synapses, gap juncitons and detectors are located.
+    //
 
-    const std::vector<stimulus_instance>&
-    stimuli() const {
-        return stimuli_;
-    }
+    // Density channels.
+    void paint(const std::string& target, mechanism_desc);
 
-    //////////////////
-    // synapses
-    //////////////////
-    void add_synapse(segment_location loc, mechanism_desc p)
-    {
-        synapses_.push_back(synapse_instance{loc, std::move(p)});
-    }
-    const std::vector<synapse_instance>& synapses() const {
-        return synapses_;
-    }
+    // Synapses.
+    lid_range place(const std::string& target, const mechanism_desc&);
+    lid_range place(const mlocation&, const mechanism_desc&);  // LEGACY
+    //lid_range place(const locset&, const mechanism_desc&);
 
-    //////////////////
-    // gap-junction
-    //////////////////
-    void add_gap_junction(segment_location location)
-    {
-        gap_junction_sites_.push_back(location);
-    }
-    const std::vector<gap_junction_instance>& gap_junction_sites() const {
-        return gap_junction_sites_;
-    }
+    // Stimuli.
+    lid_range place(const std::string& target, const i_clamp&);
+    lid_range place(const mlocation&, const i_clamp&);  // LEGACY
+    //lid_range place(const locset&, const i_clamp&);
 
-    //////////////////
+    // Gap junctions.
+    lid_range place(const std::string&, gap_junction_site);
+    lid_range place(const mlocation& loc, gap_junction_site);  // LEGACY
+    //lid_range place(const locset&, gap_junction_site);
+
     // spike detectors
-    //////////////////
-    void add_detector(segment_location loc, double threshold);
+    lid_range place(const std::string&, const threshold_detector&);
+    lid_range place(const mlocation&, const threshold_detector&);  // LEGACY
+    //lid_range place(const locset&, const threshold_detector&);
 
-    std::vector<detector_instance>&
-    detectors() {
-        return spike_detectors_;
-    }
+    //
+    // access to placed items
+    //
 
-    const std::vector<detector_instance>&
-    detectors() const {
-        return spike_detectors_;
-    }
+    const std::vector<synapse_instance>& synapses() const;
+    const std::vector<gap_junction_instance>& gap_junction_sites() const;
+    const std::vector<detector_instance>& detectors() const;
+    const std::vector<stimulus_instance>& stimuli() const;
+
+    // These setters are temporary, for "side-loading" in make_cable_cell.
+    // In the regions, locset and morphology descriptions will be passed directly
+    // to the cable_cell constructor.
+    void set_regions(region_map r);
+    void set_locsets(locset_map l);
+    void set_morphology(em_morphology m);
+
+    const em_morphology* morphology() const;
 
     // Checks that two cells have the same
     //  - number and type of segments
@@ -215,9 +176,7 @@ public:
     friend bool cell_basic_equality(const cable_cell&, const cable_cell&);
 
     // Public view of parent indices vector.
-    const std::vector<index_type>& parents() const {
-        return parents_;
-    }
+    const std::vector<index_type>& parents() const;
 
     // Approximate per-segment mean attenuation b(f) at given frequency f,
     // ignoring membrane resistance [1/µm].
@@ -228,51 +187,19 @@ public:
     // Hines and Carnevale (2001), "NEURON: A Tool for Neuroscientists",
     // Neuroscientist 7, pp. 123-135.
     value_type segment_length_constant(value_type frequency, index_type segidx,
-        const cable_cell_parameter_set& global_defaults) const
-    {
-        return 0.5/segment_mean_attenuation(frequency, segidx, global_defaults);
-    }
+        const cable_cell_parameter_set& global_defaults) const;
 
 private:
-    void assert_valid_segment(index_type) const;
 
-    // storage for connections
-    std::vector<index_type> parents_;
-
-    // the segments
-    std::vector<segment_ptr> segments_;
-
-    // the stimuli
-    std::vector<stimulus_instance> stimuli_;
-
-    // the synapses
-    std::vector<synapse_instance> synapses_;
-
-    // the gap_junctions
-    std::vector<gap_junction_instance> gap_junction_sites_;
-
-    // the sensors
-    std::vector<detector_instance> spike_detectors_;
+    std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
-
-// create a cable by forwarding cable construction parameters provided by the user
-template <typename... Args>
-cable_segment* cable_cell::add_cable(cable_cell::index_type parent, Args&&... args)
-{
-    // check for a valid parent id
-    if (parent>=num_segments()) {
-        throw cable_cell_error("parent index of cell segment is out of range");
-    }
-    segments_.push_back(make_segment<cable_segment>(std::forward<Args>(args)...));
-    parents_.push_back(parent);
-
-    return segments_.back()->as_cable();
-}
 
 // Create a cable cell from a morphology specification.
 // If compartments_from_discretization is true, set number of compartments
 // in each segment to be the number of piecewise linear sections in the
 // corresponding section of the morphology.
-cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization);
+cable_cell make_cable_cell(const morphology& morph,
+                           const label_dict& labels={},
+                           bool compartments_from_discretization=false);
 
 } // namespace arb

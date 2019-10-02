@@ -11,6 +11,7 @@
 
 #include "algorithms.hpp"
 #include "io/sepval.hpp"
+#include "morph/mbranch.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
@@ -93,32 +94,46 @@ bool root_sample_has_same_tag_as_child(const sample_tree& st) {
 
 } // namespace impl
 
-bool operator==(const mbranch& l, const mbranch& r) {
-    return l.parent_id==r.parent_id && l.index==r.index;
-}
+//
+//  morphology_impl definition and implementation
+//
 
-std::ostream& operator<<(std::ostream& o, const mbranch& b) {
-    o <<"mbranch([" << io::csv(b.index) << "], ";
-    if (b.parent_id==mnpos) o << "none)";
-    else  o << b.parent_id << ")";
-    return o;
-}
+struct morphology_impl {
+    // The sample tree of sample points and their parent-child relationships.
+    sample_tree samples_;
 
-morphology::morphology(sample_tree m, bool use_spherical_root):
+    // Indicates whether the soma is a sphere.
+    bool spherical_root_ = false;
+
+    // Branch state.
+    std::vector<impl::mbranch> branches_;
+    std::vector<msize_t> branch_parents_;
+    std::vector<msize_t> root_children_;
+    std::vector<std::vector<msize_t>> branch_children_;
+
+    morphology_impl(sample_tree m, bool use_spherical_root);
+    morphology_impl(sample_tree m);
+
+    void init();
+
+    friend std::ostream& operator<<(std::ostream&, const morphology_impl&);
+};
+
+morphology_impl::morphology_impl(sample_tree m, bool use_spherical_root):
     samples_(std::move(m)),
     spherical_root_(use_spherical_root)
 {
     init();
 }
 
-morphology::morphology(sample_tree m):
+morphology_impl::morphology_impl(sample_tree m):
     samples_(std::move(m)),
     spherical_root_(impl::root_sample_has_same_tag_as_child(samples_))
 {
     init();
 }
 
-void morphology::init() {
+void morphology_impl::init() {
     using util::make_span;
     using util::count_along;
 
@@ -139,50 +154,82 @@ void morphology::init() {
         if (id!=mnpos) {
             branch_children_[id].push_back(i);
         }
+        else {
+            root_children_.push_back(i);
+        }
     }
 }
 
+std::ostream& operator<<(std::ostream& o, const morphology_impl& m) {
+    o << "morphology: "
+      << m.samples_.size() << " samples, "
+      << m.branches_.size() << " branches.";
+    for (auto i: util::make_span(m.branches_.size()))
+        o << "\n  branch " << i << ": " << m.branches_[i];
+
+    return o;
+}
+
+//
+// morphology implementation
+//
+
+morphology::morphology(sample_tree m, bool use_spherical_root):
+    impl_(std::make_shared<const morphology_impl>(std::move(m), use_spherical_root))
+{}
+
+morphology::morphology(sample_tree m):
+    impl_(std::make_shared<const morphology_impl>(std::move(m)))
+{}
+
+morphology::morphology():
+    morphology(sample_tree())
+{}
+
 // The parent branch of branch b.
 msize_t morphology::branch_parent(msize_t b) const {
-    return branch_parents_[b];
+    return impl_->branch_parents_[b];
 }
 
 // The parent sample of sample i.
 const std::vector<msize_t>& morphology::sample_parents() const {
-    return samples_.parents();
+    return impl_->samples_.parents();
 }
 
 // The child branches of branch b.
 const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
-    return branch_children_[b];
+    return b==mnpos? impl_->root_children_: impl_->branch_children_[b];
 }
 
 // Whether the root of the morphology is spherical.
 bool morphology::spherical_root() const {
-    return spherical_root_;
+    return impl_->spherical_root_;
 }
 
-morphology::index_range morphology::branch_sample_span(msize_t b) const {
-    const auto& idx = branches_[b].index;
+mindex_range morphology::branch_indexes(msize_t b) const {
+    const auto& idx = impl_->branches_[b].index;
     return std::make_pair(idx.data(), idx.data()+idx.size());
 }
 
 const std::vector<msample>& morphology::samples() const {
-    return samples_.samples();
+    return impl_->samples_.samples();
+}
+
+// Point properties of samples in the morphology.
+const std::vector<point_prop>& morphology::sample_props() const {
+    return impl_->samples_.properties();
+}
+
+msize_t morphology::num_samples() const {
+    return impl_->samples_.size();
 }
 
 msize_t morphology::num_branches() const {
-    return branches_.size();
+    return impl_->branches_.size();
 }
 
 std::ostream& operator<<(std::ostream& o, const morphology& m) {
-    o << "morphology: "
-      << m.samples_.size() << " samples, "
-      << m.num_branches() << " branches.";
-    for (auto i: util::make_span(m.num_branches()))
-        o << "\n  branch " << i << ": " << m.branches_[i];
-
-    return o;
+    return o << *m.impl_;
 }
 
 } // namespace arb

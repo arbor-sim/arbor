@@ -40,7 +40,7 @@ void run_synapse_test(
 
     cable_cell c = make_cell_ball_and_stick(false); // no stimuli
     mechanism_desc syn_default(syn_type);
-    c.add_synapse({1, 0.5}, syn_default);
+    c.place(mlocation{1, 0.5}, syn_default);
 
     // injected spike events
     std::vector<spike_event> synthetic_events = {

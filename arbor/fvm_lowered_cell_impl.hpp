@@ -507,7 +507,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         cell_gid_type gid = gids[cell_idx];
 
         for (auto detector: cells[cell_idx].detectors()) {
-            detector_cv.push_back(D.segment_location_cv(cell_idx, detector.location));
+            detector_cv.push_back(D.branch_location_cv(cell_idx, detector.location));
             detector_threshold.push_back(detector.threshold);
         }
 
@@ -515,7 +515,7 @@ void fvm_lowered_cell_impl<B>::initialize(
             probe_info pi = rec.get_probe({gid, j});
             auto where = any_cast<cell_probe_address>(pi.address);
 
-            auto cv = D.segment_location_cv(cell_idx, where.location);
+            auto cv = D.branch_location_cv(cell_idx, where.location);
             probe_handle handle;
 
             switch (where.kind) {
@@ -555,7 +555,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
 
             auto cell_gj = cells[cell_idx].gap_junction_sites();
             for (auto gj : cell_gj) {
-                auto cv = D.segment_location_cv(cell_idx, gj);
+                auto cv = D.branch_location_cv(cell_idx, gj);
                 gid_to_cvs[gids[cell_idx]].push_back(cv);
             }
         }

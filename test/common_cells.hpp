@@ -27,7 +27,7 @@ inline cable_cell make_cell_soma_only(bool with_stim = true) {
     soma->add_mechanism("hh");
 
     if (with_stim) {
-        c.add_stimulus({0,0.5}, {10., 100., 0.1});
+        c.place(mlocation{0,0.5}, i_clamp{10., 100., 0.1});
     }
 
     return c;
@@ -60,7 +60,7 @@ inline cable_cell make_cell_ball_and_stick(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism("hh");
 
-    c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 1.0/2, 1.0/2, 200.0));
 
     for (auto& seg: c.segments()) {
         if (seg->is_dendrite()) {
@@ -70,7 +70,7 @@ inline cable_cell make_cell_ball_and_stick(bool with_stim = true) {
     }
 
     if (with_stim) {
-        c.add_stimulus({1,1}, {5., 80., 0.3});
+        c.place(mlocation{1,1}, i_clamp{5., 80., 0.3});
     }
     return c;
 }
@@ -104,7 +104,7 @@ inline cable_cell make_cell_ball_and_taper(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism("hh");
 
-    c.add_cable(0, section_kind::dendrite, 1.0/2, 0.4/2, 200.0);
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 1.0/2, 0.4/2, 200.0));
 
     for (auto& seg: c.segments()) {
         if (seg->is_dendrite()) {
@@ -114,7 +114,7 @@ inline cable_cell make_cell_ball_and_taper(bool with_stim = true) {
     }
 
     if (with_stim) {
-        c.add_stimulus({1,1}, {5., 80., 0.3});
+        c.place(mlocation{1,1}, i_clamp{5., 80., 0.3});
     }
     return c;
 }
@@ -172,7 +172,7 @@ inline cable_cell make_cell_ball_and_squiggle(bool with_stim = true) {
     }
 
     if (with_stim) {
-        c.add_stimulus({1,1}, {5., 80., 0.3});
+        c.place(mlocation{1,1}, i_clamp{5., 80., 0.3});
     }
     return c;
 }
@@ -207,9 +207,9 @@ inline cable_cell make_cell_ball_and_3stick(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism("hh");
 
-    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
+    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
+    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
 
     for (auto& seg: c.segments()) {
         if (seg->is_dendrite()) {
@@ -219,8 +219,8 @@ inline cable_cell make_cell_ball_and_3stick(bool with_stim = true) {
     }
 
     if (with_stim) {
-        c.add_stimulus({2,1}, {5.,  80., 0.45});
-        c.add_stimulus({3,1}, {40., 10.,-0.2});
+        c.place(mlocation{2,1}, i_clamp{5.,  80., 0.45});
+        c.place(mlocation{3,1}, i_clamp{40., 10.,-0.2});
     }
     return c;
 }
@@ -253,7 +253,7 @@ inline cable_cell make_cell_simple_cable(bool with_stim = true) {
     c.default_parameters.membrane_capacitance = 0.01;
 
     c.add_soma(0);
-    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 1000);
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 1000));
 
     double gbar = 0.000025;
     double I = 0.1;
@@ -272,7 +272,7 @@ inline cable_cell make_cell_simple_cable(bool with_stim = true) {
     if (with_stim) {
         // stimulus in the middle of our zero-volume 'soma'
         // corresponds to proximal end of cable.
-        c.add_stimulus({0,0.5}, {0., INFINITY, I});
+        c.place(mlocation{0,0.5}, i_clamp{0., INFINITY, I});
     }
     return c;
 }

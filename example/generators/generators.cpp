@@ -55,7 +55,7 @@ public:
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        c.add_synapse({0, 0.5}, "expsyn");
+        c.place(arb::mlocation{0, 0.5}, "expsyn");
 
         return std::move(c);
     }
@@ -123,7 +123,7 @@ public:
         // Get the appropriate kind for measuring voltage
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma
-        arb::segment_location loc(0, 0.0);
+        arb::mlocation loc{0, 0.0};
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }

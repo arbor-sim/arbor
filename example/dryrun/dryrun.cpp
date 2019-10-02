@@ -12,8 +12,9 @@
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
-#include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/load_balance.hpp>
+#include <arbor/morph/primitives.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -140,7 +141,7 @@ public:
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
-        arb::segment_location loc(0, 0.0);
+        arb::mlocation loc{0, 0.0};
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
@@ -363,7 +364,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
             for (unsigned j=0; j<2; ++j) {
                 if (dis(gen)<bp) {
                     sec_ids.push_back(nsec++);
-                    auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
+                    auto dend = cell.add_cable(sec, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, dend_radius, dend_radius, l));
                     dend->set_compartments(nc);
                     dend->add_mechanism("pas");
                 }
@@ -376,10 +377,10 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Add spike threshold detector at the soma.
-    cell.add_detector({0,0}, 10);
+    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.add_synapse({1, 0.5}, "expsyn");
+    cell.place(arb::mlocation{1, 0.5}, "expsyn");
 
     return cell;
 }

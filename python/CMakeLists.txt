@@ -22,10 +22,12 @@ add_library(pyarb MODULE
     domain_decomposition.cpp
     event_generator.cpp
     identifiers.cpp
+    morphology.cpp
     mpi.cpp
     profiler.cpp
     pyarb.cpp
     recipe.cpp
+    sampling.cpp
     schedule.cpp
     simulation.cpp
     spikes.cpp

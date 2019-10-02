@@ -341,7 +341,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
             }
             else {
                 auto opt_index = util::binary_search_index(D.segments, seg_info.parent_cv,
-                    [&D](const segment_info& seg_info) { return seg_info.distal_cv; });
+                    [](const segment_info& seg_info) { return seg_info.distal_cv; });
 
                 if (!opt_index) {
                     throw arbor_internal_error("fvm_layout: could not find parent segment");
@@ -616,15 +616,15 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         for (const auto& cellsyn: cell.synapses()) {
             const mechanism_desc& desc = cellsyn.mechanism;
-            size_type cv = D.segment_location_cv(cell_idx, cellsyn.location);
+            size_type cv = D.branch_location_cv(cell_idx, cellsyn.location);
             const auto& name = desc.name();
 
             point_mech_data& entry = point_mech_table[name];
             update_paramset_and_validate(desc, entry.info, entry.paramset);
             entry.points.push_back({cv, target_id++, &desc});
 
-            const segment_ptr& seg = cell.segments()[cellsyn.location.segment];
-            size_type segment_idx = D.cell_segment_bounds[cell_idx]+cellsyn.location.segment;
+            const segment_ptr& seg = cell.segments()[cellsyn.location.branch];
+            size_type segment_idx = D.cell_segment_bounds[cell_idx]+cellsyn.location.branch;
 
             for (const auto& ion_entry: entry.info->ions) {
                 const std::string& ion_name = ion_entry.first;
@@ -639,7 +639,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
 
         for (const auto& stimulus: cell.stimuli()) {
-            size_type cv = D.segment_location_cv(cell_idx, stimulus.location);
+            size_type cv = D.branch_location_cv(cell_idx, stimulus.location);
             stimuli.push_back({cv, stimulus.clamp});
         }
 
