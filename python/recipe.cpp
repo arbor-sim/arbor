@@ -24,8 +24,9 @@ namespace pyarb {
 // The py::recipe::cell_decription returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::unique_any.
 arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
-    pybind11::gil_scoped_acquire guard;
-    return convert_cell(impl_->cell_description(gid));
+    return try_catch_pyexception(
+                [&](){ return convert_cell(impl_->cell_description(gid)); },
+                "A Python error in cell_description() on a different thread");
 }
 
 arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
@@ -44,16 +45,13 @@ arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlo
     return arb::probe_info{id, pkind, probe};
 };
 
-std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
+std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pygens, arb::cell_gid_type gid) {
     using namespace std::string_literals;
     using pybind11::isinstance;
     using pybind11::cast;
 
     // Aquire the GIL because it must be held when calling isinstance and cast.
     pybind11::gil_scoped_acquire guard;
-
-    // Get the python list of pyarb::event_generator_shim from the python front end.
-    auto pygens = impl_->event_generators(gid);
 
     std::vector<arb::event_generator> gens;
     gens.reserve(pygens.size());
@@ -75,7 +73,11 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
-// TODO: implement py_recipe_shim::probe_info
+std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
+    return try_catch_pyexception(
+                [&](){ return convert_gen(impl_->event_generators(gid), gid); },
+                "A Python error in event_generators() on a different thread");
+}
 
 std::string con_to_string(const arb::cell_connection& c) {
     return util::pprintf("<arbor.connection: source ({},{}), destination ({},{}), delay {}, weight {}>",

@@ -20,6 +20,7 @@ add_library(pyarb MODULE
     config.cpp
     context.cpp
     domain_decomposition.cpp
+    error.cpp
     event_generator.cpp
     identifiers.cpp
     morphology.cpp

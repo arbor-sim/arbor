@@ -123,7 +123,9 @@ public:
     py_recipe_shim(std::shared_ptr<py_recipe> r): impl_(std::move(r)) {}
 
     arb::cell_size_type num_cells() const override {
-        return impl_->num_cells();
+        return try_catch_pyexception(
+                    [&](){ return impl_->num_cells(); },
+                    "A Python error in num_cells() on a different thread");
     }
 
     // The pyarb::recipe::cell_decription returns a pybind11::object, that is
@@ -131,40 +133,56 @@ public:
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override;
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override {
-        return impl_->cell_kind(gid);
+        return try_catch_pyexception(
+                    [&](){ return impl_->cell_kind(gid); },
+                    "A Python error in cell_kind() on a different thread");
     }
 
     arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
-        return impl_->num_sources(gid);
+        return try_catch_pyexception(
+                    [&](){ return impl_->num_sources(gid); },
+                    "A Python error in num_sources() on a different thread");
     }
 
     arb::cell_size_type num_targets(arb::cell_gid_type gid) const override {
-        return impl_->num_targets(gid);
+        return try_catch_pyexception(
+                    [&](){ return impl_->num_targets(gid); },
+                    "A Python error in num_targets() on a different thread");
     }
 
     arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
-        return impl_->num_gap_junction_sites(gid);
+        return try_catch_pyexception(
+                    [&](){ return impl_->num_gap_junction_sites(gid); },
+                    "A Python error in num_gap_junction_sites() on a different thread");
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
-        return impl_->connections_on(gid);
+        return try_catch_pyexception(
+                    [&](){ return impl_->connections_on(gid); },
+                    "A Python error in connections_on() on a different thread");
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
-        return impl_->gap_junctions_on(gid);
+        return try_catch_pyexception(
+                    [&](){ return impl_->gap_junctions_on(gid); },
+                    "A Python error in gap_junctions_on() on a different thread");
     }
 
     arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
-        return impl_->num_probes(gid);
+        return try_catch_pyexception(
+                    [&](){ return impl_->num_probes(gid); },
+                    "A Python error in num_probes() on a different thread");
     }
 
     arb::probe_info get_probe(arb::cell_member_type id) const override {
-        return impl_->get_probe(id);
+        return try_catch_pyexception(
+                    [&](){ return impl_->get_probe(id); },
+                    "A Python error in get_probe() on a different thread");
     }
 
-    // TODO: wrap
+    // TODO: wrap and make thread safe
     arb::util::any get_global_properties(arb::cell_kind kind) const override {
         if (kind==arb::cell_kind::cable) {
             arb::cable_cell_global_properties gprop;
