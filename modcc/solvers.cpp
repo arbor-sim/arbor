@@ -328,8 +328,8 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
         }
     }
     else {
-         error({"ICE: coefficient in state variable is not an identifier", loc});
-         return;
+        error({"ICE: coefficient in state variable is not an identifier", loc});
+        return;
     }
 
     // Replace that row with the conserve statement
@@ -477,6 +477,7 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
     rhs_.push_back(symtbl_.define(e->rhs()->is_identifier()->spelling()));
     ++deq_index_;
 }
+
 void LinearSolverVisitor::finalize() {
     A_.augment(rhs_);
 
@@ -639,11 +640,6 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
     statements_.push_back(std::move(local_f_term.local_decl));
     F_.push_back(std::move(local_f_term.assignment));
 
-    if (conserve_ && !A_[deq_index_].empty()) {
-        deq_index_++;
-        return;
-    }
-
     // Form and save the Jacobian J(x) of F(x)
     // J(x) = I - dt(∂G(x)/∂x)
     linear_test_result r = linear_test(expanded_rhs, dvars_);
@@ -695,73 +691,6 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
     ++deq_index_;
 }
 
-void SparseNonlinearSolverVisitor::visit(ConserveExpression *e) {
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
-    }
-    conserve_ = true;
-
-    auto loc = e->location();
-    scope_ptr scope = e->scope();
-
-    int row_idx;
-
-    // Find a row that contains one of the state variables in the conserve statement
-    auto& l = e->lhs()->is_stoich()->terms().front();
-    auto ident = l->is_stoich_term()->ident()->is_identifier();
-    if (ident) {
-        auto it = std::find(dvars_.begin(), dvars_.end(), ident->name());
-        if (it!=dvars_.end()) {
-            row_idx = it - dvars_.begin();
-        } else {
-            error({"CONSERVE statement unknown is not a state variable", loc});
-            return;
-        }
-    }
-    else {
-        error({"ICE: coefficient in state variable is not an identifier", loc});
-        return;
-    }
-
-    // Replace that row with the conserve statement
-    A_[row_idx].clear();
-
-    for (unsigned j = 0; j < dvars_.size(); ++j) {
-        auto state = dvars_[j];
-
-        auto& terms = e->lhs()->is_stoich()->terms();
-        auto it = std::find_if(terms.begin(), terms.end(), [&state](expression_ptr& p)
-        { return p->is_stoich_term()->ident()->is_identifier()->name() == state;});
-
-        if (it != terms.end()) {
-            auto expr = (*it)->is_stoich_term()->coeff()->clone();
-            if (scale_factor_[j]) {
-                expr =  make_expression<MulBinaryExpression>(loc, scale_factor_[j]->clone(), std::move(expr));
-            }
-
-            auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
-            auto a_ = local_a_term.id->is_identifier()->spelling();
-
-            statements_.push_back(std::move(local_a_term.local_decl));
-            statements_.push_back(std::move(local_a_term.assignment));
-
-            A_[row_idx].push_back({j, symtbl_.define(a_)});
-        }
-    }
-
-    expression_ptr expr = make_expression<NumberExpression>(loc, 0.0);
-    auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
-    auto a_ = local_a_term.id->is_identifier()->spelling();
-
-    statements_.push_back(std::move(local_a_term.local_decl));
-    statements_.push_back(std::move(local_a_term.assignment));
-
-    conserve_rhs_.push_back(a_);
-    conserve_idx_.push_back(row_idx);
-
-}
-
 void SparseNonlinearSolverVisitor::finalize() {
 
     // Create rhs of A_
@@ -769,12 +698,6 @@ void SparseNonlinearSolverVisitor::finalize() {
     for (const auto& var: F_) {
         auto id = var->is_assignment()->lhs()->is_identifier()->spelling();
         rhs.push_back(symtbl_.define(id));
-    }
-
-    if (conserve_) {
-        for (unsigned i = 0; i < conserve_idx_.size(); ++i) {
-            rhs[conserve_idx_[i]] = symtbl_.define(conserve_rhs_[i]);
-        }
     }
 
     A_.augment(rhs);

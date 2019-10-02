@@ -125,18 +125,12 @@ TEST(mech_kinetic, kintetic_linear_2_conserve) {
 TEST(mech_kinetic, kintetic_nonlinear) {
     std::vector<std::string> state_variables = {"a", "b", "c"};
     std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
-    std::vector<fvm_value_type> t1_values = {0.222881, 0.31144, 0.48856};
+    std::vector<fvm_value_type> t1_0_values = {0.222881, 0.31144, 0.48856};
+    std::vector<fvm_value_type> t1_1_values = {0.2078873133, 0.34222075, 0.45777925};
 
-    run_test<multicore::backend>("test2_kin_diff", state_variables, {}, t0_values, t1_values, 0.025);
-}
+    run_test<multicore::backend>("test2_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.025);
+    run_test<multicore::backend>("test3_kin_diff", state_variables, {}, t0_values, t1_1_values, 0.025);
 
-TEST(mech_kinetic, kintetic_nonlinear_1_conserve) {
-    std::vector<std::string> state_variables = {"a", "b", "c"};
-    std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
-    std::vector<fvm_value_type> t1_values = {0.2078873133, 0.34222075, 0.45777925};
-
-    run_test<multicore::backend>("test3_kin_diff", state_variables, {}, t0_values, t1_values, 0.025);
-    run_test<multicore::backend>("test3_kin_conserve", state_variables, {}, t0_values, t1_values, 0.025);
 }
 
 TEST(mech_linear, linear_system) {
@@ -185,18 +179,11 @@ TEST(mech_kinetic_gpu, kintetic_linear_2_conserve) {
 TEST(mech_kinetic, kintetic_nonlinear) {
     std::vector<std::string> state_variables = {"a", "b", "c"};
     std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
-    std::vector<fvm_value_type> t1_values = {0.222881, 0.31144, 0.48856};
+    std::vector<fvm_value_type> t1_0_values = {0.222881, 0.31144, 0.48856};
+    std::vector<fvm_value_type> t1_1_values = {0.2078873133, 0.34222075, 0.45777925};
 
-    run_test<gpu::backend>("test2_kin_diff", state_variables, {}, t0_values, t1_values, 0.025);
-}
-
-TEST(mech_kinetic, kintetic_nonlinear_1_conserve) {
-    std::vector<std::string> state_variables = {"a", "b", "c"};
-    std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
-    std::vector<fvm_value_type> t1_values = {0.2078873133, 0.34222075, 0.45777925};
-
-    run_test<gpu::backend>("test3_kin_diff", state_variables, {}, t0_values, t1_values, 0.025);
-    run_test<gpu::backend>("test3_kin_conserve", state_variables, {}, t0_values, t1_values, 0.025);
+    run_test<gpu::backend>("test2_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.025);
+    run_test<gpu::backend>("test3_kin_diff", state_variables, {}, t0_values, t1_1_values, 0.025);
 }
 
 TEST(mech_linear_gpu, linear_system) {

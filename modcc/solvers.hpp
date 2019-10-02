@@ -145,15 +145,9 @@ protected:
     // 'Symbol table' for symbolic manipulation.
     symge::symbol_table symtbl_;
 
-    // Flag to indicate whether conserve statements are part of the system
-    bool conserve_ = false;
-
     // State variable multiplier/divider
     std::vector<expression_ptr> scale_factor_;
 
-    // rhs of conserve statement
-    std::vector<std::string> conserve_rhs_;
-    std::vector<unsigned> conserve_idx_;
 public:
     using SolverVisitorBase::visit;
 
@@ -163,7 +157,7 @@ public:
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
     virtual void visit(CompartmentExpression *e) override;
-    virtual void visit(ConserveExpression *e) override;
+    virtual void visit(ConserveExpression *e) override {};
     virtual void finalize() override;
     virtual void reset() override {
         deq_index_ = 0;
@@ -171,10 +165,7 @@ public:
         F_.clear();
         J_.clear();
         symtbl_.clear();
-        conserve_ = false;
         scale_factor_.clear();
-        conserve_rhs_.clear();
-        conserve_idx_.clear();
         SolverVisitorBase::reset();
     }
 };
