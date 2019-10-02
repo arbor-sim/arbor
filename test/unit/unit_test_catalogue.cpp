@@ -8,6 +8,7 @@
 
 #include "unit_test_catalogue.hpp"
 #include "mechanisms/celsius_test.hpp"
+#include "mechanisms/diam_test.hpp"
 #include "mechanisms/test0_kin_diff.hpp"
 #include "mechanisms/test_linear_state.hpp"
 #include "mechanisms/test_linear_init.hpp"
@@ -47,6 +48,7 @@ mechanism_catalogue make_unit_test_catalogue() {
     mechanism_catalogue cat;
 
     ADD_MECH(cat, celsius_test)
+    ADD_MECH(cat, diam_test)
     ADD_MECH(cat, test_linear_state)
     ADD_MECH(cat, test_linear_init)
     ADD_MECH(cat, test_linear_init_shuffle)

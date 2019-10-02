@@ -43,10 +43,11 @@ void run_test(std::string mech_name,
     auto& test = instance.mech;
 
     std::vector<fvm_value_type> temp(ncv, 300.);
+    std::vector<fvm_value_type> diam(ncv, 1.);
     std::vector<fvm_value_type> vinit(ncv, -65);
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, cv_to_intdom, gj, vinit, temp, test->data_alignment());
+            ncell, cv_to_intdom, gj, vinit, temp, diam, test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;

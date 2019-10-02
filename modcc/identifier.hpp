@@ -52,6 +52,7 @@ enum class sourceKind {
     ion_econc,
     ion_valence,
     temperature,
+    diameter,
     no_source
 };
 

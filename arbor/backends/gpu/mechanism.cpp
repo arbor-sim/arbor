@@ -93,6 +93,7 @@ void mechanism::instantiate(unsigned id,
     pp->vec_g_    = shared.conductivity.data();
 
     pp->temperature_degC_ = shared.temperature_degC.data();
+    pp->diam_um_ = shared.diam_um.data();
 
     auto ion_state_tbl = ion_state_table();
     num_ions_ = ion_state_tbl.size();

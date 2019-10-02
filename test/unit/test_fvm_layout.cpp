@@ -142,15 +142,15 @@ TEST(fvm_layout, topology) {
     //
     // Cell 0:
     //
-    // CV: |  0        | 1 | 2 | 3 | 4|
-    //     [soma (0)][  segment (1)   ]
+    // CV: |  0     ][1| 2 | 3 | 4 |5|
+    //     [soma (0)][  segment (1)  ]
     // 
     // Cell 1:
     //
-    // CV: |  5        | 6 | 7 | 8 |  9  | 10 | 11 | 12 | 13|
-    //     [soma (2)][  segment (3)   ][  segment (4)       ]
-    //                                 [  segment (5)       ]
-    //                                   | 14 | 15 | 16 | 17|
+    // CV: |  6     ][7| 8 | 9 | 10| 11 | 12 | 13 | 14 | 15|
+    //     [soma (2)][  segment (3)  ][  segment (4)       ]
+    //                                [  segment (5)       ]
+    //                                  | 16 | 17 | 18 | 19|
 
     EXPECT_EQ(2u, D.ncell);
     EXPECT_EQ(20u, D.ncv);
@@ -213,7 +213,7 @@ TEST(fvm_layout, topology) {
     }
 }
 
-TEST(fvm_layout, area) {
+TEST(fvm_layout, diam_and_area) {
     std::vector<cable_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
@@ -221,6 +221,28 @@ TEST(fvm_layout, area) {
 
     // Note: stick models have constant diameter segments.
     // Refer to comment above for CV vs. segment layout.
+
+    EXPECT_FLOAT_EQ(12.6157, D.diam_um[0]);
+    EXPECT_FLOAT_EQ(1.0 ,    D.diam_um[1]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[2]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[3]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[4]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[5]);
+
+    EXPECT_FLOAT_EQ(14.0,    D.diam_um[6]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[7]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[8]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[9]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[10]);
+    EXPECT_FLOAT_EQ(1.0,     D.diam_um[11]);
+    EXPECT_FLOAT_EQ(0.8,     D.diam_um[12]);
+    EXPECT_FLOAT_EQ(0.8,     D.diam_um[13]);
+    EXPECT_FLOAT_EQ(0.8,     D.diam_um[14]);
+    EXPECT_FLOAT_EQ(0.8,     D.diam_um[15]);
+    EXPECT_FLOAT_EQ(0.7,     D.diam_um[16]);
+    EXPECT_FLOAT_EQ(0.7,     D.diam_um[17]);
+    EXPECT_FLOAT_EQ(0.7,     D.diam_um[18]);
+    EXPECT_FLOAT_EQ(0.7,     D.diam_um[19]);
 
     std::vector<double> A;
     for (auto ci: make_span(D.ncell)) {
@@ -238,7 +260,7 @@ TEST(fvm_layout, area) {
     EXPECT_FLOAT_EQ(A[1]/(2*n), D.cv_area[5]);
 
     EXPECT_FLOAT_EQ(A[2],       D.cv_area[6]);
-    EXPECT_FLOAT_EQ(A[3]/(2*n),     D.cv_area[7]);
+    EXPECT_FLOAT_EQ(A[3]/(2*n), D.cv_area[7]);
     EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[8]);
     EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[9]);
     EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[10]);

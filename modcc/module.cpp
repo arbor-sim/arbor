@@ -562,6 +562,9 @@ void Module::add_variables_to_symbols() {
         if (id.name() == "celsius") {
             create_indexed_variable("celsius", sourceKind::temperature, accessKind::read, "", Location());
         }
+        else if (id.name() == "diam") {
+            create_indexed_variable("diam", sourceKind::diameter, accessKind::read, "", Location());
+        }
         else {
             // Parameters are scalar by default, but may later be changed to range.
             auto& sym = create_variable(id.token,
@@ -574,10 +577,16 @@ void Module::add_variables_to_symbols() {
         }
     }
 
-    // Remove `celsius` from the parameter block, as it is not a true parameter anymore.
+    // Remove `celsius` and `diam` from the parameter block, as they are not true parameters anymore.
     parameter_block_.parameters.erase(
         std::remove_if(parameter_block_.begin(), parameter_block_.end(),
             [](const Id& id) { return id.name() == "celsius"; }),
+        parameter_block_.end()
+    );
+
+    parameter_block_.parameters.erase(
+        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
+            [](const Id& id) { return id.name() == "diam"; }),
         parameter_block_.end()
     );
 
