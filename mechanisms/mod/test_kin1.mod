@@ -11,14 +11,11 @@ UNITS {
 
 PARAMETER {
     tau = 10 (ms)
-    f = 10
-    r = 10
 }
 
 STATE {
     a (mA/cm2)
     b (mA/cm2)
-    c
 }
 
 ASSIGNED {
@@ -36,6 +33,6 @@ INITIAL {
 }
 
 KINETIC states {
-    ~ 2a  + b <-> c (f, r)
+    ~ a <-> b (2/3/tau, 1/3/tau)
 }
 
