@@ -105,7 +105,6 @@ set(unit_sources
     test_mech_temp_diam.cpp
     test_mechcat.cpp
     test_mechinfo.cpp
-    test_mech_temperature.cpp
     test_merge_events.cpp
     test_morphology.cpp
     test_multi_event_stream.cpp
