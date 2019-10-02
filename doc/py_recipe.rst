@@ -81,11 +81,44 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
         By default returns 0.
 
+    .. function:: num_probes(gid)
+
+        The number of probes attached to the cell with :attr:`arbor.cell_member.gid`.
+
+        By default returns 0.
+
     .. function:: num_gap_junction_sites(gid)
 
         Returns the number of gap junction sites on :attr:`arbor.cell_member.gid`.
 
         By default returns 0.
+
+    .. function:: get_probe(id)
+
+        Returns the probe(s) to allow monitoring.
+
+        By default throws a runtime error. If :func:`num_probes`
+        returns a non-zero value, this must also be overridden.
+
+.. class:: probe
+
+        Describes the cell probe's information.
+
+.. function:: cable_probe(kind, id, location)
+
+        Returns the description of a probe at an :class:`arbor.location` on a cable cell with :attr:`id` available for monitoring data of ``voltage`` or ``current`` :attr:`kind`.
+
+        An example of a probe on a cable cell for measuring voltage at the soma reads as follows:
+
+    .. container:: example-code
+
+        .. code-block:: python
+
+            import arbor
+
+            id    = arbor.cell_member(0, 0) # cell 0, probe 0
+            loc   = arbor.location(0, 0)    # at the soma
+            probe = arbor.cable_probe('voltage', id, loc)
 
 .. class:: connection
 
@@ -388,3 +421,11 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
                     sched = arbor.explicit_schedule([1])
                     return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
                 return []
+
+            # Define one probe (for measuring voltage at the soma) on the cell.
+            def num_probes(self, gid):
+                return 1
+
+            def get_probe(self, id):
+                loc = arbor.location(0, 0) # at the soma
+                return arbor.cable_probe('voltage', id, loc)

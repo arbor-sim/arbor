@@ -94,6 +94,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     vec_g_    = shared.conductivity.data();
 
     temperature_degC_ = shared.temperature_degC.data();
+    diam_um_  = shared.diam_um.data();
 
     auto ion_state_tbl = ion_state_table();
     n_ion_ = ion_state_tbl.size();

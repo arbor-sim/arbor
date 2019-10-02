@@ -1,8 +1,11 @@
 #include <pybind11/pybind11.h>
 
+#include <arbor/common_types.hpp>
+#include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
 
 #include "context.hpp"
+#include "error.hpp"
 #include "recipe.hpp"
 
 namespace pyarb {

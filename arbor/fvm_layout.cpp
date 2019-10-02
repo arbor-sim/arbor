@@ -233,6 +233,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
     D.cv_capacitance.assign(D.ncv, 0.);
     D.init_membrane_potential.assign(D.ncv, 0.);
     D.temperature_K.assign(D.ncv, 0.);
+    D.diam_um.assign(D.ncv, 0.);
     D.parent_cv.assign(D.ncv, index_type(-1));
     D.cv_to_cell.resize(D.ncv);
     for (auto i: make_span(0, D.ncell)) {
@@ -365,6 +366,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
 
                 auto al = div.left.area;         // [µm²]
                 auto ar = div.right.area;        // [µm²]
+                auto dr = div.right.radii.second*2;          // [µm]
 
                 D.cv_area[j] += al;              // [µm²]
                 D.cv_capacitance[j] += al*cm;    // [pF]
@@ -375,6 +377,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
                 D.cv_capacitance[i] += ar*cm;    // [pF]
                 D.init_membrane_potential[i] += ar*init_vm;  // [mV·µm²]
                 D.temperature_K[i] += ar*temp;   // [K·µm²]
+                D.diam_um[i] = dr;               // [µm]
             }
         }
 
@@ -386,6 +389,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
         D.cv_capacitance[soma_cv] = soma_area*soma_cm;   // [pF]
         D.init_membrane_potential[soma_cv] = soma_area*soma_init_vm; // [mV·µm²]
         D.temperature_K[soma_cv] = soma_area*soma_temp;  // [K·µm²]
+        D.diam_um[soma_cv] = soma->radius()*2;           // [µm]
     }
 
     // Rescale CV init_vm and temperature values to get area-weighted means.

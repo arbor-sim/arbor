@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "common.hpp"
+#include "io/bulkio.hpp"
 
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
@@ -195,4 +196,63 @@ TEST(CPrinter, proc_body_const) {
 
         EXPECT_EQ(strip(tc.expected), strip(text));
     }
+}
+
+TEST(CPrinter, proc_body_inlined) {
+    const char* expected =
+        "    r_0_ = s2[i_]/ 3;\n"
+        "    r_3_ = s1[i_]+ 2;\n"
+        "    if (s1[i_]== 3) {\n"
+        "        r_2_ =  2*r_3_;\n"
+        "    }\n"
+        "    else if (s1[i_]== 4) {\n"
+        "        r_2_ = r_3_;\n"
+        "    }\n"
+        "    else {\n"
+        "        r_5_ = exp(r_3_);\n"
+        "        r_2_ = r_5_*s1[i_];\n"
+        "    }\n"
+        "\n"
+        "    r_7_ = r_0_/s2[i_];\n"
+        "    r_8_ = log(r_7_);\n"
+        "    r_6_ =  42*r_8_;\n"
+        "    r_1_ = r_0_*r_6_;\n"
+        "    t0 = r_2_*r_1_;\n"
+        "    t1 = exprelr(t0);\n"
+        "    ll0_ = t1+ 2;\n"
+        "    if (ll0_== 3) {\n"
+        "        t2 =  10;\n"
+        "    }\n"
+        "    else if (ll0_== 4) {\n"
+        "        t2 =  5;\n"
+        "    }\n"
+        "    else {\n"
+        "        r_4_ =  148.4131591025766;\n"
+        "        t2 = r_4_*ll0_;\n"
+        "    }\n"
+        "    s2[i_] = t2+ 4;";
+
+    Module m(io::read_all(DATADIR "/mod_files/test6.mod"), "test6.mod");
+    Parser p(m, false);
+    p.parse();
+    m.semantic();
+
+    auto& proc_rates = m.symbols().at("rates");
+
+    ASSERT_TRUE(proc_rates->is_symbol());
+
+    std::stringstream out;
+    auto v = std::make_unique<CPrinter>(out);
+    proc_rates->is_procedure()->body()->accept(v.get());
+    std::string text = out.str();
+
+    verbose_print(proc_rates->is_procedure()->body()->to_string());
+    verbose_print(" :--: ", text);
+
+    // Remove the first statement that declares the locals
+    // Their print order is not fixed
+    auto proc_with_locals = strip(text);
+    proc_with_locals.erase(0, proc_with_locals.find(";") + 1);
+
+    EXPECT_EQ(strip(expected), proc_with_locals);
 }

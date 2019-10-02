@@ -690,24 +690,6 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
         if(e->is_initial_block()) error("INITIAL block not allowed inside FUNCTION definition");
     }
 
-    // check that the last expression in the body was an assignment to
-    // the return placeholder
-    bool last_expr_is_assign = false;
-    auto tail = body()->back()->is_assignment();
-    if(tail) {
-        // we know that the tail is an assignment expression
-        auto lhs = tail->lhs()->is_identifier();
-        // use nullptr check followed by lazy name lookup
-        if(lhs && lhs->name()==name()) {
-            last_expr_is_assign = true;
-        }
-    }
-    if(!last_expr_is_assign) {
-        warning("the last expression in function '"
-                + yellow(name())
-                + "' does not set the return value");
-    }
-
     // the symbol for this expression is itself
     // this could lead to nasty self-referencing loops
     symbol_ = scope_->find_global(name());
@@ -807,7 +789,7 @@ void SolveExpression::semantic(scope_ptr scp) {
 }
 
 expression_ptr SolveExpression::clone() const {
-    auto s = new SolveExpression(location_, name_, method_);
+    auto s = new SolveExpression(location_, name_, method_, variant_);
     s->procedure(procedure_);
     return expression_ptr{s};
 }

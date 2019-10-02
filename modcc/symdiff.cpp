@@ -328,8 +328,11 @@ public:
         auto cond_expr = result();
         e->true_branch()->accept(this);
         auto true_expr = result();
-        e->false_branch()->accept(this);
-        auto false_expr = result();
+        expression_ptr false_expr;
+        if (e->false_branch()) {
+            e->false_branch()->accept(this);
+            false_expr = result()->clone();
+        }
 
         if (!is_number(cond_expr)) {
             result_ = make_expression<IfExpression>(loc,

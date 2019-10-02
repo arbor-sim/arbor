@@ -1,5 +1,6 @@
 import sys
 import arbor
+import matplotlib.pyplot as plt
 
 class ring_recipe (arbor.recipe):
 
@@ -44,6 +45,13 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
+    # Define one probe (for measuring voltage at the soma) on each cell.
+    def num_probes(self, gid):
+        return 1
+
+    def get_probe(self, id):
+        loc = arbor.location(0, 0) # at the soma
+        return arbor.cable_probe('voltage', id, loc)
 
 context = arbor.context(threads=4, gpu_id=None)
 print(context)
@@ -51,7 +59,7 @@ print(context)
 meters = arbor.meter_manager()
 meters.start(context)
 
-recipe = ring_recipe(100)
+recipe = ring_recipe(10)
 print(f'{recipe}')
 
 meters.checkpoint('recipe-create', context)
@@ -71,17 +79,42 @@ print(f'{decomp}')
 meters.checkpoint('load-balance', context)
 
 sim = arbor.simulation(recipe, decomp, context)
-print(f'{sim} finished')
 
 meters.checkpoint('simulation-init', context)
 
-recorder = arbor.attach_spike_recorder(sim)
+spike_recorder = arbor.attach_spike_recorder(sim)
 
-sim.run(1000)
+pid = arbor.cell_member(0,0) # cell 0, probe 0
+# Attach a sampler to the voltage probe on cell 0.
+# Sample rate of 1 sample every ms.
+sampler = arbor.attach_sampler(sim, 1, pid)
+
+sim.run(100)
+print(f'{sim} finished')
 
 meters.checkpoint('simulation-run', context)
 
 print(f'{arbor.meter_report(meters, context)}')
 
-for s in recorder.spikes:
-    print(s)
+for sp in spike_recorder.spikes:
+    print(sp)
+
+print('voltage samples for probe id ', end = '')
+print(pid, end = '')
+print(':')
+
+time = []
+value = []
+for sa in sampler.samples(pid):
+    print(sa)
+    time.append(sa.time)
+    value.append(sa.value)
+
+# plot the recorded voltages over time
+fig, ax = plt.subplots()
+ax.plot(time, value)
+ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='ring demo')
+ax.legend(['voltage'])
+plt.xlim(0,100)
+ax.grid()
+fig.savefig("voltages.png", dpi=300)

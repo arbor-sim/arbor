@@ -125,8 +125,8 @@ locset location(mlocation loc) {
 }
 
 mlocation_list thingify_(const location_& x, const em_morphology& m) {
-    // canonicalize will throw if the location is not present.
-    return {m.canonicalize(x.loc)};
+    m.assert_valid_location(x.loc);
+    return {x.loc};
 }
 
 std::ostream& operator<<(std::ostream& o, const location_& x) {

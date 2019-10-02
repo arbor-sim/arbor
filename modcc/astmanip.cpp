@@ -34,7 +34,7 @@ local_declaration make_unique_local_decl(scope_ptr scope, Location loc, std::str
     auto local = make_expression<LocalDeclaration>(loc, name);
     local->semantic(scope);
 
-    auto id = make_expression<LocalDeclaration>(loc, name);
+    auto id = make_expression<IdentifierExpression>(loc, name);
     id->semantic(scope);
 
     return { std::move(local), std::move(id), scope };

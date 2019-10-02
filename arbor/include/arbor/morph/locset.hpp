@@ -75,6 +75,14 @@ public:
         return sum(sum(std::move(l), std::move(r)), std::move(args)...);
     }
 
+    // The union of two location sets.
+    friend locset join(locset, locset);
+
+    template <typename ...Args>
+    friend locset join(locset l, locset r, Args... args) {
+        return join(join(std::move(l), std::move(r)), std::move(args)...);
+    }
+
 private:
     struct interface {
         virtual ~interface() {}
