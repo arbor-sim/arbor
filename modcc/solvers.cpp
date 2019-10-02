@@ -529,14 +529,16 @@ void LinearSolverVisitor::finalize() {
 }
 
 void SparseNonlinearSolverVisitor::visit(BlockExpression* e) {
-    // Do a first pass to initialize some local variables and extract variables
-    // comprising ODE system lhs; can't really trust 'STATE' block.
+    // Do a first pass to initialize some local variables and extract state variables
 
     for (auto& stmt: e->statements()) {
         if (stmt && stmt->is_assignment() && stmt->is_assignment()->lhs()->is_derivative()) {
             auto id = stmt->is_assignment()->lhs()->is_derivative();
+
+            // Save the state variables
             dvars_.push_back(id->name());
 
+            // Create identifiers out of the state variables, they will be used to initialize some values
             auto dvar_ident = make_expression<IdentifierExpression>(e->location(), id->name());
 
             // Create two sets of local variables and assign them to the initial values of the state variables
@@ -544,7 +546,7 @@ void SparseNonlinearSolverVisitor::visit(BlockExpression* e) {
             auto init_dvar_term = make_unique_local_assign(e->scope(), dvar_ident.get(), "p_");
             auto init_dvar = init_dvar_term.id->is_identifier()->spelling();
 
-            // The second set is updates in every iteration of Newton's method
+            // The second set is updated in every iteration of Newton's method
             auto temp_dvar_term = make_unique_local_assign(e->scope(), dvar_ident.get(), "t_");
             auto temp_dvar = temp_dvar_term.id->is_identifier()->spelling();
 
@@ -552,6 +554,7 @@ void SparseNonlinearSolverVisitor::visit(BlockExpression* e) {
             dvar_init_.push_back(init_dvar);
             dvar_temp_.push_back(temp_dvar);
 
+            // Add local declarations and assignment statements
             statements_.push_back(std::move(init_dvar_term.local_decl));
             statements_.push_back(std::move(init_dvar_term.assignment));
 
@@ -620,15 +623,17 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
     // x(t+1) are stored in dvar_temp_ and are updated at every iteration of Newton's method
     // x(t)   are stored in dvar_init_ and are constant across iterations of Newton's method
     // G(x)   is the rhs of the derivative assignment expression
-    expression_ptr  func;
-    func = make_expression<MulBinaryExpression>(loc, expanded_rhs->clone(), dt_expr->clone());
-    func = make_expression<AddBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_init_[deq_index_]), std::move(func));
-    func = make_expression<SubBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_temp_[deq_index_]), std::move(func));
+
+    expression_ptr  F_x;
+    F_x = make_expression<MulBinaryExpression>(loc, expanded_rhs->clone(), dt_expr->clone());
+    F_x = make_expression<AddBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_init_[deq_index_]), std::move(F_x));
+    F_x = make_expression<SubBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_temp_[deq_index_]), std::move(F_x));
+
     for (unsigned k = 0; k < dvars_.size(); ++k) {
-        func = substitute(func, dvars_[k], make_expression<IdentifierExpression>(loc, dvar_temp_[k]));
+        F_x = substitute(F_x, dvars_[k], make_expression<IdentifierExpression>(loc, dvar_temp_[k]));
     }
 
-    auto local_f_term = make_unique_local_assign(scope, func.get(), "f_");
+    auto local_f_term = make_unique_local_assign(scope, F_x.get(), "f_");
     auto a_ = local_f_term.id->is_identifier()->spelling();
 
     statements_.push_back(std::move(local_f_term.local_decl));
@@ -643,51 +648,49 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
     // J(x) = I - dt(∂G(x)/∂x)
     linear_test_result r = linear_test(expanded_rhs, dvars_);
     for (unsigned j = 0; j<dvars_.size(); ++j) {
-        expression_ptr expr;
+        expression_ptr J_x;
 
         // For zero coefficient and diagonal element, the matrix entry is 1.
         // For non-zero coefficient c and diagonal element, the entry is 1-c*dt.
         // Otherwise, for non-zero coefficient c, the entry is -c*dt.
 
         if (r.coef.count(dvars_[j])) {
-            expr = make_expression<MulBinaryExpression>(loc,
+            J_x = make_expression<MulBinaryExpression>(loc,
                                                         r.coef[dvars_[j]]->clone(),
                                                         dt_expr->clone());
 
             if (scale_factor_[j]) {
-                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
+                J_x =  make_expression<DivBinaryExpression>(loc, std::move(J_x), scale_factor_[j]->clone());
             }
         }
 
         if (j==deq_index_) {
-            if (expr) {
-                expr = make_expression<SubBinaryExpression>(loc,
-                                                            one_expr->clone(),
-                                                            std::move(expr));
+            if (J_x) {
+                J_x = make_expression<SubBinaryExpression>(loc, one_expr->clone(), std::move(J_x));
             }
             else {
-                expr = one_expr->clone();
+                J_x = one_expr->clone();
             }
         }
-        else if (expr) {
-            expr = make_expression<NegUnaryExpression>(loc, std::move(expr));
+        else if (J_x) {
+            J_x = make_expression<NegUnaryExpression>(loc, std::move(J_x));
         }
 
-        if (expr) {
+        if (J_x) {
             for (unsigned k = 0; k < dvars_.size(); ++k) {
-                expr = substitute(expr, dvars_[k], make_expression<IdentifierExpression>(loc, dvar_temp_[k]));
+                J_x = substitute(J_x, dvars_[k], make_expression<IdentifierExpression>(loc, dvar_temp_[k]));
             }
         }
 
-        if (!expr) continue;
+        if (!J_x) continue;
 
-        auto local_a_term = make_unique_local_assign(scope, expr.get(), "j_");
-        auto a_ = local_a_term.id->is_identifier()->spelling();
+        auto local_j_term = make_unique_local_assign(scope, J_x.get(), "j_");
+        auto j_ = local_j_term.id->is_identifier()->spelling();
 
-        statements_.push_back(std::move(local_a_term.local_decl));
-        J_.push_back(std::move(local_a_term.assignment));
+        statements_.push_back(std::move(local_j_term.local_decl));
+        J_.push_back(std::move(local_j_term.assignment));
 
-        A_[deq_index_].push_back({j, symtbl_.define(a_)});
+        A_[deq_index_].push_back({j, symtbl_.define(j_)});
     }
     ++deq_index_;
 }
@@ -761,7 +764,7 @@ void SparseNonlinearSolverVisitor::visit(ConserveExpression *e) {
 
 void SparseNonlinearSolverVisitor::finalize() {
 
-    // create rhs
+    // Create rhs of A_
     std::vector<symge::symbol> rhs;
     for (const auto& var: F_) {
         auto id = var->is_assignment()->lhs()->is_identifier()->spelling();
@@ -778,7 +781,7 @@ void SparseNonlinearSolverVisitor::finalize() {
     symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
-    // Save solution statements in S_
+    // Save gaussian elimination solution statements in S_
     std::vector<expression_ptr> S_;
     for (unsigned i = 0; i < symtbl_.size(); ++i) {
         symge::symbol s = symtbl_[i];
@@ -794,8 +797,8 @@ void SparseNonlinearSolverVisitor::finalize() {
         S_.push_back(std::move(local_t_term.assignment));
     }
 
-    // Form the solution vector
-    // Perform Newton iteration and solve new vector in U_
+    // Create the statements that update the temporary state variables
+    // (dvar_temp) after a Newton's iteration and save them in U_
     std::vector<expression_ptr> U_;
 
     Location loc;
@@ -826,6 +829,7 @@ void SparseNonlinearSolverVisitor::finalize() {
 
     // Do 3 Newton iterations
     for (unsigned n = 0; n < 3; n++) {
+        // Print out the statements that calulate F(xn), J(xn), solve J(xn)^-1*F(xn), update xn -> xn+1
         for (auto &s: F_) {
             statements_.push_back(s->clone());
         }
@@ -840,7 +844,7 @@ void SparseNonlinearSolverVisitor::finalize() {
         }
     }
 
-    // Update the state variables
+    // Finally update the state variables, dvars_ = dvar_temp_
     for (unsigned i = 0; i < dvars_.size(); ++i) {
         auto expr = make_expression<AssignmentExpression>(loc,
                         make_expression<IdentifierExpression>(loc, dvars_[i]),

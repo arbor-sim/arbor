@@ -131,7 +131,8 @@ protected:
     // calculations.
     substitute_map local_expr_;
 
-    //
+    // F(x) and the Jacobian J(x) for every state variable
+    // Needed for Newton's method
     std::vector<expression_ptr> F_;
     std::vector<expression_ptr> J_;
 
@@ -147,7 +148,7 @@ protected:
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
 
-    // state variable multiplier/divider
+    // State variable multiplier/divider
     std::vector<expression_ptr> scale_factor_;
 
     // rhs of conserve statement
