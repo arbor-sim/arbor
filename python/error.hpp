@@ -23,6 +23,10 @@ void assert_throw(bool pred, const char* msg) {
     if (!pred) throw pyarb_error(msg);
 }
 
+// This function resets a python exception to nullptr
+// and rethrows a copy of the set python exception.
+// It should be used in serial code
+// just before handing control back to Python. 
 void py_reset_and_throw();
 
 template <typename L>
@@ -33,7 +37,7 @@ auto try_catch_pyexception(L func, const char* msg){
             return func();
         }
         else {
-            throw std::runtime_error(msg);
+            throw pyarb_error(msg);
         }
     }
     catch (pybind11::error_already_set& e) {

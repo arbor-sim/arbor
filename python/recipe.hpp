@@ -122,10 +122,10 @@ public:
 
     py_recipe_shim(std::shared_ptr<py_recipe> r): impl_(std::move(r)) {}
 
+    const char* msg = "Python error already thrown";
+
     arb::cell_size_type num_cells() const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->num_cells(); },
-                    "A Python error in num_cells() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->num_cells(); }, msg);
     }
 
     // The pyarb::recipe::cell_decription returns a pybind11::object, that is
@@ -133,53 +133,37 @@ public:
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override;
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->cell_kind(gid); },
-                    "A Python error in cell_kind() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->cell_kind(gid); }, msg);
     }
 
     arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->num_sources(gid); },
-                    "A Python error in num_sources() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->num_sources(gid); }, msg);
     }
 
     arb::cell_size_type num_targets(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->num_targets(gid); },
-                    "A Python error in num_targets() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->num_targets(gid); }, msg);
     }
 
     arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->num_gap_junction_sites(gid); },
-                    "A Python error in num_gap_junction_sites() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->num_gap_junction_sites(gid); }, msg);
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->connections_on(gid); },
-                    "A Python error in connections_on() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->connections_on(gid); }, msg);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->gap_junctions_on(gid); },
-                    "A Python error in gap_junctions_on() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->gap_junctions_on(gid); }, msg);
     }
 
     arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->num_probes(gid); },
-                    "A Python error in num_probes() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->num_probes(gid); }, msg);
     }
 
     arb::probe_info get_probe(arb::cell_member_type id) const override {
-        return try_catch_pyexception(
-                    [&](){ return impl_->get_probe(id); },
-                    "A Python error in get_probe() on a different thread");
+        return try_catch_pyexception([&](){ return impl_->get_probe(id); }, msg);
     }
 
     // TODO: wrap and make thread safe

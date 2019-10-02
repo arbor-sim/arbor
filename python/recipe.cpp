@@ -26,7 +26,7 @@ namespace pyarb {
 arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
     return try_catch_pyexception(
                 [&](){ return convert_cell(impl_->cell_description(gid)); },
-                "A Python error in cell_description() on a different thread");
+                "Python error already thrown");
 }
 
 arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
@@ -76,7 +76,7 @@ std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pyge
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
     return try_catch_pyexception(
                 [&](){ return convert_gen(impl_->event_generators(gid), gid); },
-                "A Python error in event_generators() on a different thread");
+                "Python error already thrown");
 }
 
 std::string con_to_string(const arb::cell_connection& c) {
