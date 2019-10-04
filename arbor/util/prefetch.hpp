@@ -65,19 +65,44 @@ namespace prefetch {
 
 // ring_buffer: E should have trivial constructor, destructor
 template<std::size_t s, typename E>
-class ring_buffer
-{
-public:
+struct ring_buffer_types {
     static constexpr auto size = s;
     using element_type = E;
 
     template<typename T>
     using enable_if_element_t = std::enable_if_t<std::is_same<element_type, std::decay_t<T>>::value>;
+};    
+
+template<std::size_t s, typename E>
+class ring_buffer: public ring_buffer_types<s, E>
+{
+public:
+    using types = ring_buffer_types<s, E>;
+    using types::size;
+    using typename types::element_type;
+    template<typename T>
+    using enable_if_element_t = typename types::template enable_if_element_t<T>;
+
+    ring_buffer() = default;
+    ring_buffer(ring_buffer&&) = delete;
+    ring_buffer(const ring_buffer&) = delete;
+    ring_buffer& operator=(ring_buffer&&) = delete;
+    ring_buffer& operator=(const ring_buffer&) = delete;
 
     // precondition: ! is_full()
     template<typename T, typename = enable_if_element_t<T>>
     void push(T&& e) noexcept {
-        *end = {std::forward<T>(e)};
+        push_emplace(std::forward<T>(e));
+    }
+
+    template<typename... Ts>
+    void push_emplace(Ts&&... args) {
+        const auto place = &*end;
+        if (! std::is_trivially_destructible<element_type>::value) {
+            end->~element_type();
+        }
+        new (place) element_type{std::forward<Ts>(args)...};
+        
         end = next;
         if (++next == arr.end()) {next = arr.begin();}
     }
@@ -86,7 +111,7 @@ public:
     element_type& pop() noexcept {
         auto head = begin;
         if (++begin == arr.end()) {begin = arr.begin();}
-        return *head; // move out head, its now invalid
+        return *head; // only valid until next push happens
     }
 
     bool empty() const noexcept {return begin == end;}
@@ -104,16 +129,18 @@ private:
 };
 
 template<typename E>
-class ring_buffer<0, E>
+class ring_buffer<0, E>: public ring_buffer_types<0, E>
 {
 public:
-    static constexpr auto size = 0;
-    using element_type = E;
+    using types = ring_buffer_types<0, E>;
+    using types::size;
+    using typename types::element_type;
+    template<typename T>
+    using enable_if_element_t = typename types::template enable_if_element_t<T>;
 };
 
 template<std::size_t s, typename... Ts>
-class buffer: public ring_buffer<s, std::tuple<Ts...>>
-{};
+using buffer = ring_buffer<s, std::tuple<Ts...>>;
 
 // prefetching wrapper
 // First types for deduction in make_prefetch
@@ -144,49 +171,42 @@ inline auto get_pointer(P* prefetched) noexcept {
 // encapsulate __builtin_prefetch
 // uses get_pointer to convert pointer-like to pointer
 template<int mode, typename P> // do the prefetch
-static inline void fetch(P&& p) noexcept {
+inline void fetch(P&& p) noexcept {
     __builtin_prefetch(get_pointer(std::forward<P>(p)), mode);
 };
 
 template<int mode, typename P>
-static inline void fetch(mode_type<mode>, P&& p) noexcept {
+inline void fetch(mode_type<mode>, P&& p) noexcept {
     fetch<mode>(std::forward<P>(p));
 };
-
-template<typename F, typename T, std::size_t... I>
-static inline auto apply_tuple_internal(F&& f, T&& t, std::index_sequence<I...>) {
-    std::forward<F>(f)(std::get<I>(std::forward<T>(t))...);
-}
-
-template<typename F, typename T>
-static inline auto apply_tuple(F&& f, T&& t) {
-    return apply_tuple_internal(std::forward<F>(f), std::forward<T>(t), std::make_index_sequence<std::tuple_size<T>::value>());
-}
 
 template<int m, typename B, typename F>
 struct prefetch_types
 {
-    using array = B;
+    using buffer = B;
     using function_type = F;    
     static constexpr auto mode = m;
     
-    static constexpr auto size = array::size;
-    using element_type = typename array::element_type;
+    static constexpr auto size = buffer::size;
+    using element_type = typename buffer::element_type;
 
     template<typename E>
-    using enable_if_element_t = typename array::template enable_if_element_t<E>;
+    using enable_if_element_t = typename buffer::template enable_if_element_t<E>;
 };
+
+template<int m, typename B, typename F, std::size_t>
+class _prefetch;
 
 template<int m, typename B, typename F>
 class prefetch;
 
 // prefetch is just to rename and recombine qualified types passed in
 // versus types stripped to the base
-template<int m, std::size_t s, typename... Ts, typename F>
-class prefetch<m, buffer<s, Ts...>, F>: public prefetch_types<m, buffer<s, Ts...>, F> {
+template<int m, typename B, typename F, std::size_t>
+class _prefetch: public prefetch_types<m, B, F> {
 public:
-    using types = prefetch_types<m, buffer<s, Ts...>, F>;
-    using typename types::array;
+    using types = prefetch_types<m, B, F>;
+    using typename types::buffer;
     using types::size;
     using types::mode;
     using typename types::element_type;
@@ -195,15 +215,16 @@ public:
     template<typename E>
     using enable_if_element_t = typename types::template enable_if_element_t<E>;
 
-    prefetch(array& arr_, function_type&& f) noexcept: arr(arr_), function{std::move(f)} {}
-    prefetch(array& arr_, const function_type& f) noexcept: arr(arr_), function{f} {}
-    ~prefetch() {while (! arr.empty()) {pop();}} // clear buffer on destruct
+    _prefetch(buffer& b_, function_type&& f) noexcept: b(b_), function{std::move(f)} {}
+    _prefetch(buffer& b_, const function_type& f) noexcept: b(b_), function{f} {}
+    ~_prefetch() {while (! b.empty()) {pop();}} // clear buffer on destruct
 
-    prefetch(prefetch&&) = default; //needed < C++17
-    prefetch(const prefetch&) = delete; 
-    prefetch& operator=(const prefetch&) = delete;
+    _prefetch(_prefetch&&) = default; //needed < C++17 for make_prefetch
+    _prefetch(const _prefetch&) = delete;
+    _prefetch& operator=(_prefetch&&) = delete;
+    _prefetch& operator=(const _prefetch&) = delete;
 
-    // default missing prefetch to the first argument
+    // allow element_type to be constructed in place
     template<typename P>
     void store(P&& p, const element_type& e) {
         store_internal(std::forward<P>(p), e);
@@ -214,42 +235,59 @@ public:
         store_internal(std::forward<P>(p), std::move(e));
     }
 
-private:
+    template<typename P, typename... Ts>
+    void store(P&& p, Ts&&... args) {
+        store_internal(std::forward<P>(p), std::forward<Ts>(args)...);
+    }
+
+private:    
     // append an element to process after
     // prefetching pointer-like P associated
     // with pointer-like args to be passed to F function.
     // If enough look-aheads pending process one (call F function on it).
-    template<typename P, typename E, typename = enable_if_element_t<E>>
-    void store_internal(P&& p, E&& e) {
+    template<typename P, typename... Ts>
+    void store_internal(P&& p, Ts&&... args) {
         fetch<mode>(std::forward<P>(p));
-        if (arr.full()) {pop();} // process and remove if look ahead full
-        push(std::forward<E>(e)); // add new look ahead
+        if (b.full()) {pop();} // process and remove if look ahead full
+        push(std::forward<Ts>(args)...); // add new look ahead
     }
-
 
     // apply function to first stored, and move pointer forward
     // precondition: begin != end
     void pop() {
-        function(arr.pop());
+        function(b.pop());
     }
 
     // add an element to end of ring
     // precondition: begin != next
     template<typename E, typename = enable_if_element_t<E>>
     void push(E&& e) noexcept {
-        arr.push(std::forward<E>(e));
+        b.push(std::forward<E>(e));
     }
 
-    array& arr;
+    template<typename... Ts>
+    void push(Ts&&... args) {
+        b.push_emplace(std::forward<Ts>(args)...);
+    }
+
+    buffer& b;
     const function_type function;
 };
 
-// specialization to turn off prefetch
-template<int m, typename... Ts, typename F>
-class prefetch<m, buffer<0, Ts...>, F>: public prefetch_types<m, buffer<0, Ts...>, F> {
+template<int m, std::size_t s, typename... Ts, typename F>
+class prefetch<m, buffer<s, Ts...>, F>: public _prefetch<m, buffer<s, Ts...>, F, s>
+{
 public:
-    using types = prefetch_types<m, buffer<0, Ts...>, F>;
-    using typename types::array;
+    using parent = _prefetch<m, buffer<s, Ts...>, F, s>;
+    using parent::parent;
+};
+
+// specialization to turn off prefetch
+template<int m, typename B, typename F>
+class _prefetch<m, B, F, 0>: public prefetch_types<m, B, F> {
+public:
+    using types = prefetch_types<m, B, F>;
+    using typename types::buffer;
     using types::size;
     using types::mode;
     using typename types::element_type;
@@ -258,25 +296,43 @@ public:
     template<typename E>
     using enable_if_element_t = typename types::template enable_if_element_t<E>;
 
-    prefetch(array&, function_type&& f) noexcept: function{std::move(f)} {}
-    prefetch(array&, const function_type& f) noexcept: function{f} {}
+    _prefetch(buffer&, function_type&& f) noexcept: function{std::move(f)} {}
+    _prefetch(buffer&, const function_type& f) noexcept: function{f} {}
 
-    prefetch(prefetch&&) = default; //needed < C++17
-    prefetch(const prefetch&) = delete;
-    prefetch& operator=(const prefetch&) = delete;
+    _prefetch(_prefetch&&) = default; //needed < C++17 for make_prefetch
+    _prefetch(const _prefetch&) = delete;
+    _prefetch& operator=(_prefetch&&) = delete;
+    _prefetch& operator=(const _prefetch&) = delete;
 
-    template<typename P, typename E, typename = enable_if_element_t<E>>
-    void store(P&& p, E&& e) {
-        apply_tuple(function, std::forward<E>(e));
+    template<typename P>
+    void store(P&&, const element_type& e) {
+        store_internal(e);
     }
 
-    template<typename E, typename = enable_if_element_t<E>>
-    void store(E&& e) {
-        apply_tuple(function, std::forward<E>(e));
+    template<typename P>
+    void store(P&&, element_type&& e) {
+        store_internal(std::move(e));
     }
 
+    template<typename P, typename... Ts>
+    void store(P&& p, Ts&&... args) {
+        store_internal(element_type{std::forward<Ts>(args)...});
+    }
+    
 private:
+    template<typename E, typename = enable_if_element_t<E>>
+    void store_internal(E&& e) {
+        function(std::forward<E>(e));
+    }
     const function_type function;
+};
+
+template<int m, typename... Ts, typename F>
+class prefetch<m, buffer<0, Ts...>, F>: public _prefetch<m, buffer<0, Ts...>, F, 0>
+{
+public:
+    using parent = _prefetch<m, buffer<0, Ts...>, F, 0>;
+    using parent::parent;
 };
 
 /* make_prefetch: returns a constructed a prefetch instance
@@ -288,7 +344,7 @@ private:
 // make_prefetch(
 //    prefetch::read|write,
 //    buffer,
-//    [] (auto&& param, auto&& params...) {}
+//    [] (auto&& element) {}
 // )
 template<int m, typename B, typename F>
 inline constexpr auto make_prefetch(mode_type<m>, B& b, F&& f) noexcept {

@@ -185,7 +185,7 @@ static void make_queues_by_conns(
         auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
         if (spikes.first != spikes.second) {
             auto q = queues.begin() + cn->index_on_domain();
-            p.store(q, {q, spikes.first, spikes.second, cn});
+            p.store(q, q, spikes.first, spikes.second, cn);
         }
         
         sp = spikes.first; // should be first, range of connections may have same source
@@ -223,7 +223,7 @@ static void make_queues_by_spikes(
         auto targets = std::equal_range(cn, cend, sp->source);
         for (auto c = targets.first; c != targets.second; c++) {
             auto q = queues.begin() + c->index_on_domain();
-            p.store(q, {q, sp, c});
+            p.store(q, q, sp, c);
         }
 
         cn = targets.second; // range of connections with this source handled
