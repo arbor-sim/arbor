@@ -78,7 +78,7 @@ class apply_raw {
 public:
     // apply function f to t
     template<typename F, typename T>
-    static auto apply(F&& f, T&& t) {return apply(std::forward<F>(f), std::forward<T>(t), indices);}
+    static inline auto apply(F&& f, T&& t) {return apply(std::forward<F>(f), std::forward<T>(t), indices);}
 
 private:
     using raw_tuple = std::tuple<RawTypes...>;
@@ -87,7 +87,7 @@ private:
     
     // template match to get types
     template<typename F, typename T, std::size_t... I> // unpack indices for `get`
-    static auto apply(F&& f, T&& t, std::index_sequence<I...>) {// call f with correct types: possibly rvalues or const
+    static inline auto apply(F&& f, T&& t, std::index_sequence<I...>) {// call f with correct types: possibly rvalues or const
         return std::forward<F>(f)(get_raw_value<I>(std::forward<T>(t))...);
     }
 
@@ -97,7 +97,7 @@ private:
 
     // apply type extraction and cast nth element
     template<std::size_t n, typename T>
-    static auto get_raw_value(T&& element) noexcept { // get value with right type from n
+    static inline auto get_raw_value(T&& element) noexcept { // get value with right type from n
         return static_cast<raw_type<n>>(std::get<n>(std::forward<T>(element)));
     }
 };
@@ -152,13 +152,13 @@ static constexpr mode_type<1> write;
 // set up this way so that it can be specialized for unusual P
 // but this implies that *prefetched is a valid operation
 template<typename P>
-auto get_pointer(P&& prefetched) noexcept {
+inline auto get_pointer(P&& prefetched) noexcept {
     return &*std::forward<P>(prefetched);
 }
 
 // if it's a plain pointer, can even be invalid
 template<typename P>
-auto get_pointer(P* prefetched) noexcept {
+inline auto get_pointer(P* prefetched) noexcept {
     return prefetched;
 }
 
@@ -173,7 +173,7 @@ struct prefetch_type<mode_type<m>> {
     static constexpr auto mode = m;
     
     template<typename P>
-    static void apply(P&& p) noexcept { // do the prefetch
+    static inline void apply(P&& p) noexcept { // do the prefetch
         __builtin_prefetch(get_pointer(std::forward<P>(p)), mode);
     }
 };
@@ -319,7 +319,7 @@ public:
 //    ignore-variables-of-params-types...
 // )
 template<typename S, typename M, typename F, typename Type, typename... Types>
-constexpr auto make_prefetch(S, M, F&& f, Type, Types...) noexcept {
+inline constexpr auto make_prefetch(S, M, F&& f, Type, Types...) noexcept {
     return prefetch<S, M, F, Type, Types...>{std::forward<F>(f)};
 }
 
@@ -329,7 +329,7 @@ constexpr auto make_prefetch(S, M, F&& f, Type, Types...) noexcept {
 //    [] (auto&& param, auto&& params...) {}
 // )
 template<typename Type, typename... Types, typename S, typename M, typename F>
-constexpr auto make_prefetch(S, M, F&& f) noexcept {
+inline constexpr auto make_prefetch(S, M, F&& f) noexcept {
     return prefetch<S, M, F, Type, Types...>{std::forward<F>(f)};
 }
 
@@ -345,7 +345,7 @@ namespace get_prefetch_functor_args {
   struct _traits
   {
       template<typename S, typename M>
-      static constexpr auto make_prefetch(F&& f) noexcept {
+      static inline constexpr auto make_prefetch(F&& f) noexcept {
           return prefetch<S, M, F, Types...>{std::forward<F>(f)};
       }
   };
@@ -375,7 +375,7 @@ namespace get_prefetch_functor_args {
 
 // and here we apply the traits in make_prefetch
 template<typename S, typename M, typename F>
-constexpr auto make_prefetch(S, M, F&& f) noexcept {
+inline constexpr auto make_prefetch(S, M, F&& f) noexcept {
     return get_prefetch_functor_args::traits<F>::template make_prefetch<S, M>(std::forward<F>(f));
 }
 
