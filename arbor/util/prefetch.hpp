@@ -8,9 +8,37 @@ namespace arb {
 namespace prefetch {
 
 /*
-  prefetch<size_type<prefetch-size>, mode_type<prefetch-mode>, func-to-apply-type, payload-pointers-types...>
-  construct with make_prefetch utilities below
+  two class: buffer && prefetch:
 
+  buffer<std::size_t s, typename.. Ts>
+  which is a ring buffer of that stores up to 
+  s tuples of type Ts...
+
+  and
+
+  prefetch<int mode, buffer, function>
+  which binds the buffer within scope with a function
+  and prefetches every store with mode.
+
+  a buffer is declared in an outer, permanent scope:
+  buffer<n, Args...> b;
+
+  and then:
+  void doit() {
+    auto&& a = make_prefetch(
+      prefetch::read or prefetch::write,
+      b,
+      [] (auto&& element) {
+        do-something(element);
+      });
+
+      // where element is a tuple<Args...>
+      for (obj: vec) {
+        a.store(obj.pointer, {obj.pointer, obj.arg, ...});
+      }
+      // and {obj.pointer, obj.arg, ...} constructs tupe<Args...>
+  }
+  
   prefetches an address-like P,
   stores a list of argument addresses, 
   and later calls a function on them when full (or at destruction)
@@ -22,22 +50,6 @@ namespace prefetch {
   When full, a functor is called on all the arguments in the hope that
   the prefetch has already pulled the data associated with the prefetch-pointer.
 
-  void do_it(vec) {
-    auto p = prefetch::make_prefetch(
-               prefetch::size_type<n>,
-               `prefetch::read` or `prefetch::write`,
-               [] (args-pointer&& args...) {
-                 p->do_something(std::move(args)...);
-               });
-
-    for (obj: vec) {
-      p.store(obj.p, obj.args...);
-    }
-  }
-
-  Prefetching is called before the tuple is constructed from the `store` arguments, where the
-  last argument has prefetch::get_pointer applied giving an address to call
-  on __builtin_prefetch. For iterators or pointers, prefetch::get_pointer applies &* to the object.
 
   The "hard bit" is determining the range of good sizes for the capacity.
   How many prefetch should we add before calling e.process?

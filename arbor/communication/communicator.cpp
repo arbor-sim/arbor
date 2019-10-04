@@ -188,7 +188,7 @@ static void make_queues_by_conns(
             p.store(q, {q, spikes.first, spikes.second, cn});
         }
         
-        sp = spikes.first; // should be first, range of connections may hae same source
+        sp = spikes.first; // should be first, range of connections may have same source
         ++cn;
     }
 }
