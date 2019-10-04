@@ -11,6 +11,7 @@
 #include "connection.hpp"
 #include "execution_context.hpp"
 #include "util/partition.hpp"
+#include "util/prefetch.hpp"
 
 namespace arb {
 
@@ -64,6 +65,19 @@ public:
 
     void reset();
 
+    using prefetch_spike_buffer = prefetch::buffer<
+        ARB_PREFETCH_SIZE,
+        std::vector<pse_vector>::iterator,
+        std::vector<spike>::const_iterator,
+        std::vector<connection>::iterator>;
+
+    using prefetch_spike_range_buffer = prefetch::buffer<
+        ARB_PREFETCH_SIZE,
+        std::vector<pse_vector>::iterator,
+        std::vector<spike>::const_iterator,
+        std::vector<spike>::const_iterator,
+        std::vector<connection>::iterator>;
+
 private:
     cell_size_type num_local_cells_;
     cell_size_type num_local_groups_;
@@ -76,6 +90,9 @@ private:
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
+
+    prefetch_spike_buffer prefetch_spike_buffer_;
+    prefetch_spike_range_buffer prefetch_spike_range_buffer_;
 };
 
 } // namespace arb

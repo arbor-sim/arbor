@@ -149,7 +149,8 @@ static void make_queues_by_conns(
     std::vector<connection>::iterator cn,
     const std::vector<connection>::iterator cend,
     std::vector<spike>::const_iterator sp,
-    const std::vector<spike>::const_iterator send)
+    const std::vector<spike>::const_iterator send,
+    communicator::prefetch_spike_range_buffer& prefetch_buffer)
 {
     using util::make_range;
     struct spike_pred {
@@ -160,36 +161,33 @@ static void make_queues_by_conns(
     };
 
     auto&& d = prefetch::make_prefetch(
-        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [] (decltype(queues.begin())  q,
-            decltype(sp) b,
-            decltype(send) e,
-            decltype(cn) c)
-        {
+        prefetch_buffer,
+        [] (auto&& buf) {
+            auto q = std::get<0>(buf);
+            auto b = std::get<1>(buf);
+            auto e = std::get<2>(buf);
+            auto c = std::get<3>(buf);
             for (auto s: make_range(b, e)) {
                 q->push_back(c->make_event(s));
             }
         });
     
     auto&& p = prefetch::make_prefetch(
-        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [&d] (decltype(queues.begin())  q,
-              decltype(sp) b,
-              decltype(send) e,
-              decltype(cn) c)
-        { // speculate that the next append is simple
-            d.store(q->data()+q->size(), q, b, e, c);
+        prefetch_buffer,
+        [&d] (auto&& buf) { // speculate that the next append is simple
+            auto q = std::get<0>(buf);
+            d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
         });
     
     while (cn != cend && sp!=send) {
         auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
         if (spikes.first != spikes.second) {
             auto q = queues.begin() + cn->index_on_domain();
-            p.store(q, spikes.first, spikes.second, cn);
+            p.store(q, {q, spikes.first, spikes.second, cn});
         }
-                
+        
         sp = spikes.first; // should be first, range of connections may hae same source
         ++cn;
     }
@@ -200,33 +198,32 @@ static void make_queues_by_spikes(
     std::vector<connection>::iterator cn,
     const std::vector<connection>::iterator cend,
     std::vector<spike>::const_iterator sp,
-    const std::vector<spike>::const_iterator send)
+    const std::vector<spike>::const_iterator send,
+    communicator::prefetch_spike_buffer& prefetch_buffer)
 {
     auto&& d = prefetch::make_prefetch(
-        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [] (decltype(queues.begin())  q,
-            decltype(sp) s,
-            decltype(cn) c)
-        {
+        prefetch_buffer,
+        [] (auto&& buf) {
+            auto q = std::get<0>(buf);
+            auto s = std::get<1>(buf);
+            auto c = std::get<2>(buf);
             q->push_back(c->make_event(*s)); 
         });
 
     auto&& p = prefetch::make_prefetch(
-        prefetch::size<ARB_PREFETCH_SIZE>,
         prefetch::write,
-        [&d] (decltype(queues.begin())  q,
-              decltype(sp) s,
-              decltype(cn) c)
-        {// speculate that the next append is simple
-            d.store(q->data()+q->size(), q, s, c);
+        prefetch_buffer,
+        [&d] (auto&& buf) {// speculate that the next append is simple
+            auto q = std::get<0>(buf);
+            d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
         });
 
     while (cn!=cend && sp!=send) {
         auto targets = std::equal_range(cn, cend, sp->source);
         for (auto c = targets.first; c != targets.second; c++) {
             auto q = queues.begin() + c->index_on_domain();
-            p.store(q, sp, c);
+            p.store(q, {q, sp, c});
         }
 
         cn = targets.second; // range of connections with this source handled
@@ -259,10 +256,10 @@ void communicator::make_event_queues(
         // complexity of order max(S log(C), C log(S)), where S is the
         // number of spikes, and C is the number of connections.
         if (cons.size()<spks.size()) {
-            make_queues_by_conns(queues, cons.begin(), cons.end(), spks.begin(), spks.end()); 
+            make_queues_by_conns(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_range_buffer_); 
         }
         else {
-            make_queues_by_spikes(queues, cons.begin(), cons.end(), spks.begin(), spks.end());
+            make_queues_by_spikes(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_buffer_);
         }
     }
 }
