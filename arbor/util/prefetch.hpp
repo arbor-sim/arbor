@@ -237,8 +237,8 @@ template<int m, int l, typename B, typename F>
 struct prefetch_types
 {
     using buffer_type = B;
-    using function_type = F;
     using element_type = typename buffer_type::element_type;
+    using function_type = F;
     
     template<typename E>
     using enable_if_element_t = typename buffer_type::template enable_if_element_t<E>;

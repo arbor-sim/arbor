@@ -164,7 +164,7 @@ static void make_queues_by_conns(
         prefetch::write,
         prefetch::low,
         prefetch_buffer,
-        [] (auto&& buf) {
+        [] (auto&& buf) noexcept {
             auto q = std::get<0>(buf);
             auto b = std::get<1>(buf);
             auto e = std::get<2>(buf);
@@ -178,7 +178,7 @@ static void make_queues_by_conns(
         prefetch::write,
         prefetch::low,
         prefetch_buffer,
-        [&d] (auto&& buf) { // speculate that the next append is simple
+        [&d] (auto&& buf) noexcept { // speculate that the next append is simple
             auto q = std::get<0>(buf);
             d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
         });
@@ -207,7 +207,7 @@ static void make_queues_by_spikes(
         prefetch::write,
         prefetch::low,
         prefetch_buffer,
-        [] (auto&& buf) {
+        [] (auto&& buf) noexcept {
             auto q = std::get<0>(buf);
             auto s = std::get<1>(buf);
             auto c = std::get<2>(buf);
@@ -218,7 +218,7 @@ static void make_queues_by_spikes(
         prefetch::write,
         prefetch::low,
         prefetch_buffer,
-        [&d] (auto&& buf) {// speculate that the next append is simple
+        [&d] (auto&& buf) noexcept {// speculate that the next append is simple
             auto q = std::get<0>(buf);
             d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
         });
