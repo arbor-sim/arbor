@@ -73,6 +73,12 @@ struct ring_buffer_types {
     using enable_if_element_t = std::enable_if_t<std::is_same<element_type, std::decay_t<T>>::value>;
 };
 
+template<typename U>
+using is_not_trivially_destructible_t = typename std::enable_if_t<!std::is_trivially_destructible<U>::value, int>;
+
+template<typename U>
+using is_trivially_destructible_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, int>;
+
 // requirement: s > 0, sizeof(E) > 0
 template<std::size_t s, typename E>
 class ring_buffer: public ring_buffer_types<s, E>
@@ -81,16 +87,18 @@ public:
     using types = ring_buffer_types<s, E>;
     using types::size;
     using typename types::element_type;
+    
     template<typename T>
     using enable_if_element_t = typename types::template enable_if_element_t<T>;
 
-    ring_buffer() = default;
+    ring_buffer()  noexcept = default;
+    ~ring_buffer() noexcept {deconstruct();} // if needed, kill elements
+
+    // uncopyable
     ring_buffer(ring_buffer&&) = delete;
     ring_buffer(const ring_buffer&) = delete;
     ring_buffer& operator=(ring_buffer&&) = delete;
     ring_buffer& operator=(const ring_buffer&) = delete;
-
-    ~ring_buffer() {deconstruct();} // if needed, kill elements
 
     // precondition: ! is_full()
     template<typename T, typename = enable_if_element_t<T>>
@@ -109,36 +117,33 @@ public:
     // precondition: ! is_empty()
     element_type& pop() noexcept {
         invalidate(); // if popped element alive, deconstruct if needed
-        const auto head = start;
+        const auto popped = start;
         if (++start == end) {start = begin;}
-        return *head; // only valid until next pop happens
+        return *popped; // only valid until next pop happens
     }
 
     bool empty() const noexcept {return start == stop;}
     bool full()  const noexcept {return start == next;}
 
 private:
-    template<typename U>
-    using needs_destruct_t = typename std::enable_if_t<!std::is_trivially_destructible<U>::value, int>;
+    // do nothing on deconstruct for trivially destructible element_type
+    template<typename U = E, is_trivially_destructible_t<U> = 0>
+    void deconstruct() noexcept {}
+    template<typename U = E, is_trivially_destructible_t<U> = 0>
+    void invalidate() noexcept {}
 
-    template<typename U>
-    using no_destruct_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, int>;
-
+    // otherwise, must handle deconstructions:
     // deconstruct all elements, if not trivially destructible
-    template<typename U = element_type, needs_destruct_t<U> = 0>
+    template<typename U = E, is_not_trivially_destructible_t<U> = 0>
     void deconstruct() noexcept {
         while (valid != stop) {
             valid->~element_type();
             if (++valid == end) {valid = begin;}
         }
     }
-
-    // else do nothing
-    template<typename U = element_type, no_destruct_t<U> = 0>
-    void deconstruct() noexcept {}
-
+    
     // deconstruct last popped off, if not trivially destructible
-    template<typename U = element_type, needs_destruct_t<U> = 0>
+    template<typename U = E, is_not_trivially_destructible_t<U> = 0>
     void invalidate() noexcept {
         if (valid != start) {
             valid->~element_type();
@@ -146,13 +151,9 @@ private:
         }
     }
 
-    // else do nothing
-    template<typename U = element_type, no_destruct_t<U> = 0>
-    void invalidate() noexcept {}
-
     // ring buffer storage using an extra sentinel element
     alignas(element_type) char array[sizeof(element_type)*(size+1)];    
-    typedef element_type* iterator;
+    using iterator = element_type*;
     const iterator begin = reinterpret_cast<iterator>(array);
     const iterator end   = begin + size + 1;
 
@@ -160,7 +161,7 @@ private:
     iterator start = begin;  // first element to pop off
     iterator valid = begin;  // last valid element, at most one behind start
     iterator stop  = begin;  // next element to push into
-    iterator next  = stop+1; // sentinel: next == begin, we're out of space
+    iterator next  = stop+1; // sentinel: next == start, we're out of space
 };
 
 template<typename E>
