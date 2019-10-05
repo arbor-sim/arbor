@@ -1,9 +1,5 @@
 #pragma once
 
-#include <array>
-#include <type_traits>
-#include <util/range.hpp>
-
 namespace arb {
 namespace prefetch {
 // Utilities
@@ -127,12 +123,19 @@ inline void fetch(P&& p, mode_type<mode>) noexcept {
 template<std::size_t s, typename E>
 struct ring_buffer_types {
     using element_type = E;
-
+    
     template<typename T>
     using enable_if_element_t = std::enable_if_t<std::is_same<element_type, std::decay_t<T>>::value>;
-
+    
     static constexpr auto size = s;
 };
+
+// check for triviality
+template<typename T, typename U = int >
+using is_trivially_destructible_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, U>;
+
+template<typename T, typename U = int>
+using is_not_trivially_destructible_t = typename std::enable_if_t<!std::is_trivially_destructible<T>::value, U>;
 
 // requirement: s > 0, sizeof(E) > 0
 template<std::size_t s, typename E>
@@ -181,14 +184,13 @@ public:
     bool full()  const noexcept {return start == next;}
     
 private:
-    template<typename U>
-    using needs_destruct_t = typename std::enable_if_t<!std::is_trivially_destructible<U>::value, int>;
-    
-    template<typename U>
-    using no_destruct_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, int>;
+    template<typename U = element_type, is_trivially_destructible_t<U> = 0>
+    void deconstruct() noexcept {}
+    template<typename U = element_type, is_trivially_destructible_t<U> = 0>
+    void invalidate() noexcept {}    
     
     // deconstruct all elements, if not trivially destructible
-    template<typename U = element_type, needs_destruct_t<U> = 0>
+    template<typename U = element_type, is_not_trivially_destructible_t<U> = 0>
     void deconstruct() noexcept {
         while (valid != stop) {
             valid->~element_type();
@@ -196,22 +198,14 @@ private:
         }
     }
     
-    // else do nothing
-    template<typename U = element_type, no_destruct_t<U> = 0>
-    void deconstruct() noexcept {}
-
     // deconstruct last popped off, if not trivially destructible
-    template<typename U = element_type, needs_destruct_t<U> = 0>
+    template<typename U = element_type, is_not_trivially_destructible_t<U> = 0>
     void invalidate() noexcept {
         if (valid != start) {
             valid->~element_type();
             valid = start;
         }
     }
-    
-    // else do nothing
-    template<typename U = element_type, no_destruct_t<U> = 0>
-    void invalidate() noexcept {}
     
     // ring buffer storage using an extra sentinel element
     alignas(element_type) char array[sizeof(element_type)*(size+1)];    
