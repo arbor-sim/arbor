@@ -50,18 +50,33 @@ inline auto get_pointer(P* prefetched) noexcept {
 template<int mode=1, int locality=3, typename P> // do the prefetch
 inline void fetch(P&& p) noexcept {
     __builtin_prefetch(get_pointer(std::forward<P>(p)), mode, locality);
-};
+}
 
 // call fetch with mode_type, locality_type arguments
 template<typename P, int mode, int locality>
 inline void fetch(P&& p, mode_type<mode>, locality_type<locality>) noexcept {
     fetch<mode, locality>(std::forward<P>(p));
-};
+}
 
 template<typename P, int mode>
 inline void fetch(P&& p, mode_type<mode>) noexcept {
     fetch<mode>(std::forward<P>(p));
-};
+}
+
+// some template tests for enabling
+// check for triviality
+template<typename T, typename U = int>
+using is_trivially_destructible_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, U>;
+
+template<typename T, typename U = int>
+using is_not_trivially_destructible_t = typename std::enable_if_t<!std::is_trivially_destructible<T>::value, U>;
+
+// check for same type
+template<typename T, typename U>
+using is_decay_same = std::is_same<std::decay_t<T>, std::decay_t<U>>;
+
+template<typename T, typename U>
+using enable_if_decay_same_t = std::enable_if_t<is_decay_same<T, U>::value>;
 
 /*
   two class: buffer && prefetch:
@@ -125,22 +140,14 @@ struct ring_buffer_types {
     using element_type = E;
     
     template<typename T>
-    using enable_if_element_t = std::enable_if_t<std::is_same<element_type, std::decay_t<T>>::value>;
+    using enable_if_element_t = enable_if_decay_same_t<T, element_type>;
     
     static constexpr auto size = s;
 };
 
-// check for triviality
-template<typename T, typename U = int >
-using is_trivially_destructible_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, U>;
-
-template<typename T, typename U = int>
-using is_not_trivially_destructible_t = typename std::enable_if_t<!std::is_trivially_destructible<T>::value, U>;
-
 // requirement: s > 0, sizeof(E) > 0
 template<std::size_t s, typename E>
-class ring_buffer: public ring_buffer_types<s, E>
-{
+class ring_buffer: public ring_buffer_types<s, E> {
 public:
     using types = ring_buffer_types<s, E>;
     using typename types::element_type;
@@ -187,7 +194,7 @@ private:
     template<typename U = element_type, is_trivially_destructible_t<U> = 0>
     void deconstruct() noexcept {}
     template<typename U = element_type, is_trivially_destructible_t<U> = 0>
-    void invalidate() noexcept {}    
+    void invalidate() noexcept {}
     
     // deconstruct all elements, if not trivially destructible
     template<typename U = element_type, is_not_trivially_destructible_t<U> = 0>
@@ -208,8 +215,8 @@ private:
     }
     
     // ring buffer storage using an extra sentinel element
-    alignas(element_type) char array[sizeof(element_type)*(size+1)];    
-    typedef element_type* iterator;
+    alignas(element_type) char array[sizeof(element_type)*(size+1)];
+    typedef element_type *iterator;
     const iterator begin = reinterpret_cast<iterator>(array);
     const iterator end   = begin + size + 1;
     
@@ -228,8 +235,7 @@ template<std::size_t s, typename... Ts>
 using buffer = ring_buffer<s, std::tuple<Ts...>>;
 
 template<int m, int l, typename B, typename F>
-struct prefetch_types
-{
+struct prefetch_types {
     using buffer_type = B;
     using element_type = typename buffer_type::element_type;
     using function_type = F;
@@ -298,8 +304,7 @@ private:
 };
 
 template<int m, int l, typename B, typename F>
-class prefetch_base_zero: public prefetch_types<m, l, B, F>
-{
+class prefetch_base_zero: public prefetch_types<m, l, B, F> {
 public:
     using types = prefetch_types<m, l, B, F>;
     using typename types::buffer_type;
@@ -321,8 +326,7 @@ private:
 
 // specialization to turn off prefetch
 template<int m, int l, typename... Ts, typename F>
-class prefetch_base<m, l, buffer<0, Ts...>, F>: public prefetch_base_zero<m, l, buffer<0, Ts...>, F>
-{
+class prefetch_base<m, l, buffer<0, Ts...>, F>: public prefetch_base_zero<m, l, buffer<0, Ts...>, F> {
 public:
     using base = prefetch_base_zero<m, l, buffer<0, Ts...>, F>;
     using base::base;
@@ -373,8 +377,8 @@ private:
 //    [] (auto&& element) {}
 // )
 template<int m, int l, typename B, typename F>
-inline constexpr auto make_prefetch(mode_type<m>, locality_type<l>, B& b, F&& f) noexcept {
-    return prefetch<m, l, B, F>{b, std::forward<F>(f)};
+inline constexpr auto make_prefetch(mode_type<m>, locality_type<l>, B& buf, F&& function) noexcept {
+    return prefetch<m, l, B, F>{buf, std::forward<F>(function)};
 }
 
 } //prefetch
