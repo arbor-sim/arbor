@@ -71,8 +71,9 @@ struct ring_buffer_types {
 
     template<typename T>
     using enable_if_element_t = std::enable_if_t<std::is_same<element_type, std::decay_t<T>>::value>;
-};    
+};
 
+// requirement: s > 0, sizeof(E) > 0
 template<std::size_t s, typename E>
 class ring_buffer: public ring_buffer_types<s, E>
 {
@@ -89,43 +90,77 @@ public:
     ring_buffer& operator=(ring_buffer&&) = delete;
     ring_buffer& operator=(const ring_buffer&) = delete;
 
+    ~ring_buffer() {deconstruct();} // if needed, kill elements
+
     // precondition: ! is_full()
     template<typename T, typename = enable_if_element_t<T>>
     void push(T&& e) noexcept {
         push_emplace(std::forward<T>(e));
     }
 
+    // precondition: ! is_full()
     template<typename... Ts>
-    void push_emplace(Ts&&... args) {
-        const auto place = &*end;
-        if (! std::is_trivially_destructible<element_type>::value) {
-            end->~element_type();
-        }
-        new (place) element_type{std::forward<Ts>(args)...};
-        
-        end = next;
-        if (++next == arr.end()) {next = arr.begin();}
+    void push_emplace(Ts&&... args) noexcept {
+        new (stop) element_type{std::forward<Ts>(args)...};
+        stop = next;
+        if (++next == end) {next = begin;}
     }
 
     // precondition: ! is_empty()
     element_type& pop() noexcept {
-        auto head = begin;
-        if (++begin == arr.end()) {begin = arr.begin();}
-        return *head; // only valid until next push happens
+        invalidate(); // if popped element alive, deconstruct if needed
+        const auto head = start;
+        if (++start == end) {start = begin;}
+        return *head; // only valid until next pop happens
     }
 
-    bool empty() const noexcept {return begin == end;}
-    bool full()  const noexcept {return begin == next;}
+    bool empty() const noexcept {return start == stop;}
+    bool full()  const noexcept {return start == next;}
 
 private:
-    using array = std::array<element_type, size+1>; // extra sentinel elem
-    using iterator = typename array::iterator;
+    template<typename U>
+    using needs_destruct_t = typename std::enable_if_t<!std::is_trivially_destructible<U>::value, int>;
+
+    template<typename U>
+    using no_destruct_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, int>;
+
+    // deconstruct all elements, if not trivially destructible
+    template<typename U = element_type, needs_destruct_t<U> = 0>
+    void deconstruct() noexcept {
+        while (valid != stop) {
+            valid->~element_type();
+            if (++valid == end) {valid = begin;}
+        }
+    }
+
+    // else do nothing
+    template<typename U = element_type, no_destruct_t<U> = 0>
+    void deconstruct() noexcept {}
+
+    // deconstruct last popped off, if not trivially destructible
+    template<typename U = element_type, needs_destruct_t<U> = 0>
+    void invalidate() noexcept {
+        if (valid != start) {
+            valid->~element_type();
+            valid = start;
+        }
+    }
+
+    // else do nothing
+    template<typename U = element_type, no_destruct_t<U> = 0>
+    void invalidate() noexcept {}
+
+    // ring buffer storage using an extra sentinel element
+    alignas(element_type) char array[sizeof(element_type)*(size+1)];    
+    typedef element_type* iterator;
+    const iterator begin = reinterpret_cast<iterator>(array);
+    const iterator end   = begin + size + 1;
 
     // array pointers
-    array arr; // ring buffer storage using an extra sentinel element
-    iterator begin = arr.begin(); // first element to pop off
-    iterator end   = begin; // next element to push into
-    iterator next  = end+1; // sentinel: next == begin, we're out of space
+    iterator start = begin;  // first element to pop off
+    iterator valid = begin;  // last valid element, at most one behind start
+    iterator stop  = begin;  // next element to push into
+    iterator next  = stop+1; // sentinel: next == begin, we're out of space
 };
 
 template<typename E>
