@@ -162,6 +162,7 @@ static void make_queues_by_conns(
 
     auto&& d = prefetch::make_prefetch(
         prefetch::write,
+        prefetch::low,
         prefetch_buffer,
         [] (auto&& buf) {
             auto q = std::get<0>(buf);
@@ -175,6 +176,7 @@ static void make_queues_by_conns(
     
     auto&& p = prefetch::make_prefetch(
         prefetch::write,
+        prefetch::low,
         prefetch_buffer,
         [&d] (auto&& buf) { // speculate that the next append is simple
             auto q = std::get<0>(buf);
@@ -203,6 +205,7 @@ static void make_queues_by_spikes(
 {
     auto&& d = prefetch::make_prefetch(
         prefetch::write,
+        prefetch::low,
         prefetch_buffer,
         [] (auto&& buf) {
             auto q = std::get<0>(buf);
@@ -213,6 +216,7 @@ static void make_queues_by_spikes(
 
     auto&& p = prefetch::make_prefetch(
         prefetch::write,
+        prefetch::low,
         prefetch_buffer,
         [&d] (auto&& buf) {// speculate that the next append is simple
             auto q = std::get<0>(buf);
