@@ -49,15 +49,22 @@ inline auto get_pointer(P* prefetched) noexcept {
 
 // encapsulate __builtin_prefetch
 // uses get_pointer to convert pointer-like to pointer
-template<int mode, int locality=3, typename P> // do the prefetch
+// mode = 0 (read) | 1 (write)
+// locality = 0 (none) | 1 (low) | 2 (medium) | 3 (high)
+template<int mode=1, int locality=3, typename P> // do the prefetch
 inline void fetch(P&& p) noexcept {
     __builtin_prefetch(get_pointer(std::forward<P>(p)), mode, locality);
 };
 
-// call fetch with mode_type argument
-template<int mode, int locality, typename P>
-inline void fetch(mode_type<mode>, locality_type<locality>, P&& p) noexcept {
+// call fetch with mode_type, locality_type arguments
+template<typename P, int mode, int locality>
+inline void fetch(P&& p, mode_type<mode>, locality_type<locality>) noexcept {
     fetch<mode, locality>(std::forward<P>(p));
+};
+
+template<typename P, int mode>
+inline void fetch(P&& p, mode_type<mode>) noexcept {
+    fetch<mode>(std::forward<P>(p));
 };
 
 /*
@@ -137,23 +144,23 @@ public:
     
     template<typename T>
     using enable_if_element_t = typename types::template enable_if_element_t<T>;
-
+    
     using types::size;
     
-    ring_buffer() = default;
+    ring_buffer() = default; // only default construct, no copies
     ring_buffer(ring_buffer&&) = delete;
     ring_buffer(const ring_buffer&) = delete;
     ring_buffer& operator=(ring_buffer&&) = delete;
     ring_buffer& operator=(const ring_buffer&) = delete;
-
+    
     ~ring_buffer() {deconstruct();} // if needed, kill elements
-
+    
     // precondition: ! is_full()
     template<typename T, typename = enable_if_element_t<T>>
     void push(T&& e) noexcept {
         push_emplace(std::forward<T>(e));
     }
-
+    
     // precondition: ! is_full()
     template<typename... Ts>
     void push_emplace(Ts&&... args) noexcept {
@@ -161,7 +168,7 @@ public:
         stop = next;
         if (++next == end) {next = begin;}
     }
-
+    
     // precondition: ! is_empty()
     element_type& pop() noexcept {
         invalidate(); // if popped element alive, deconstruct if needed
@@ -169,17 +176,17 @@ public:
         if (++start == end) {start = begin;}
         return *head; // only valid until next pop happens
     }
-
+    
     bool empty() const noexcept {return start == stop;}
     bool full()  const noexcept {return start == next;}
-
+    
 private:
     template<typename U>
     using needs_destruct_t = typename std::enable_if_t<!std::is_trivially_destructible<U>::value, int>;
-
+    
     template<typename U>
     using no_destruct_t = typename std::enable_if_t<std::is_trivially_destructible<U>::value, int>;
-
+    
     // deconstruct all elements, if not trivially destructible
     template<typename U = element_type, needs_destruct_t<U> = 0>
     void deconstruct() noexcept {
@@ -188,7 +195,7 @@ private:
             if (++valid == end) {valid = begin;}
         }
     }
-
+    
     // else do nothing
     template<typename U = element_type, no_destruct_t<U> = 0>
     void deconstruct() noexcept {}
@@ -201,17 +208,17 @@ private:
             valid = start;
         }
     }
-
+    
     // else do nothing
     template<typename U = element_type, no_destruct_t<U> = 0>
     void invalidate() noexcept {}
-
+    
     // ring buffer storage using an extra sentinel element
     alignas(element_type) char array[sizeof(element_type)*(size+1)];    
     typedef element_type* iterator;
     const iterator begin = reinterpret_cast<iterator>(array);
     const iterator end   = begin + size + 1;
-
+    
     // array pointers
     iterator start = begin;  // first element to pop off
     iterator valid = begin;  // last valid element, at most one behind start
@@ -232,10 +239,10 @@ struct prefetch_types
     using buffer_type = B;
     using function_type = F;
     using element_type = typename buffer_type::element_type;
-
+    
     template<typename E>
     using enable_if_element_t = typename buffer_type::template enable_if_element_t<E>;
-
+    
     static constexpr auto mode = m;
     static constexpr auto locality = l;
     static constexpr auto size = buffer_type::size;
@@ -247,20 +254,20 @@ public:
     using types = prefetch_types<m, l, B, F>;
     using typename types::buffer_type;
     using typename types::function_type;
-
+    
     template<typename E>
     using enable_if_element_t = typename types::template enable_if_element_t<E>;
-
+    
     using types::mode;
     using types::locality;
-
+    
     prefetch_base(buffer_type& b_, function_type&& f) noexcept: b(b_), function{std::move(f)} {}
     prefetch_base(buffer_type& b_, const function_type& f) noexcept: b(b_), function{f} {}
-
+    
     ~prefetch_base() noexcept { // clear buffer on destruct
         while (! b.empty()) {pop();}
     }
-
+    
 protected:    
     // append an element to process after
     // prefetching pointer-like P associated
@@ -272,26 +279,26 @@ protected:
         if (b.full()) {pop();} // process and remove if look ahead full
         push(std::forward<Ts>(args)...); // add new look ahead
     }
-
+    
 private:
     // apply function to first stored, and move pointer forward
     // precondition: begin != end
     void pop() noexcept {
         function(b.pop());
     }
-
+    
     // add an element to end of ring
     // precondition: begin != next
     template<typename E, typename = enable_if_element_t<E>>
     void push(E&& e) noexcept {
         b.push(std::forward<E>(e));
     }
-
+    
     template<typename... Ts>
     void push(Ts&&... args) noexcept {
         b.push_emplace(std::forward<Ts>(args)...);
     }
-
+    
     buffer_type& b;
     const function_type function;
 };
@@ -304,7 +311,7 @@ public:
     using typename types::buffer_type;
     using typename types::element_type;
     using typename types::function_type;
-
+    
     prefetch_base_zero(buffer_type&, function_type&& f) noexcept: function{std::move(f)} {}
     prefetch_base_zero(buffer_type&, const function_type& f) noexcept: function{f} {}
     
@@ -313,7 +320,7 @@ protected:
     void store_internal(P&&, Ts&&... args) noexcept {
         function(element_type{std::forward<Ts>(args)...});
     }
-
+    
 private:
     const function_type function;
 };
@@ -334,27 +341,27 @@ class prefetch: public prefetch_base<m, l, B, F> {
 public:
     using base = prefetch_base<m, l, B, F>;
     using typename base::element_type;
-
+    
     using base::base;
     using base::store_internal;
     
     prefetch(prefetch&&) noexcept = default;
-
+    
     prefetch(const prefetch&) = delete;
     prefetch& operator=(prefetch&&) = delete;
     prefetch& operator=(const prefetch&) = delete;
-
+    
     // allow element_type to be constructed in place
     template<typename P>
     void store(P&& p, const element_type& e) noexcept {
         store_internal(std::forward<P>(p), e);
     }
-
+    
     template<typename P>
     void store(P&& p, element_type&& e) noexcept {
         store_internal(std::forward<P>(p), std::move(e));
     }
-
+    
     template<typename P, typename... Ts>
     void store(P&& p, Ts&&... args) noexcept {
         store_internal(std::forward<P>(p), std::forward<Ts>(args)...);
