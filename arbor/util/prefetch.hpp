@@ -328,8 +328,7 @@ public:
     using base::base;
 };
 
-// prefetch is just to rename and recombine qualified types passed in
-// versus types stripped to the base
+// prefetch class: storage is in prefetch_base
 template<int m, int l, typename B, typename F>
 class prefetch: public prefetch_base<m, l, B, F> {
 public:
@@ -337,15 +336,12 @@ public:
     using typename base::element_type;
     
     using base::base;
-    using base::store_internal;
-    
     prefetch(prefetch&&) noexcept = default;
     
     prefetch(const prefetch&) = delete;
     prefetch& operator=(prefetch&&) = delete;
     prefetch& operator=(const prefetch&) = delete;
     
-    // allow element_type to be constructed in place
     template<typename P>
     void store(P&& p, const element_type& e) noexcept {
         store_internal(std::forward<P>(p), e);
@@ -360,6 +356,9 @@ public:
     void store(P&& p, Ts&&... args) noexcept {
         store_internal(std::forward<P>(p), std::forward<Ts>(args)...);
     }
+
+private:
+    using base::store_internal;
 };
 
 /* make_prefetch: returns a constructed a prefetch instance
