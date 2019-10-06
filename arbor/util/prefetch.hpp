@@ -373,6 +373,7 @@ private:
 
 // make_prefetch(
 //    prefetch::read|write,
+//    prefetch::none|low|middle|high,
 //    buffer,
 //    [] (auto&& element) {}
 // )
