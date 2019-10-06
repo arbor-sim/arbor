@@ -150,7 +150,7 @@ static void make_queues_by_conns(
     const std::vector<connection>::iterator cend,
     std::vector<spike>::const_iterator sp,
     const std::vector<spike>::const_iterator send,
-    communicator::prefetch_spike_range_buffer& prefetch_buffer)
+    communicator::prefetch_spike_range_buffers& prefetch_buffers)
 {
     using util::make_range;
     struct spike_pred {
@@ -163,7 +163,7 @@ static void make_queues_by_conns(
     auto&& d = prefetch::make_prefetch(
         prefetch::write,
         prefetch::low,
-        prefetch_buffer,
+        std::get<0>(prefetch_buffers),
         [] (auto&& buf) noexcept {
             auto q = std::get<0>(buf);
             auto b = std::get<1>(buf);
@@ -177,7 +177,7 @@ static void make_queues_by_conns(
     auto&& p = prefetch::make_prefetch(
         prefetch::write,
         prefetch::low,
-        prefetch_buffer,
+        std::get<1>(prefetch_buffers),
         [&d] (auto&& buf) noexcept { // speculate that the next append is simple
             auto q = std::get<0>(buf);
             d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
@@ -201,12 +201,12 @@ static void make_queues_by_spikes(
     const std::vector<connection>::iterator cend,
     std::vector<spike>::const_iterator sp,
     const std::vector<spike>::const_iterator send,
-    communicator::prefetch_spike_buffer& prefetch_buffer)
+    communicator::prefetch_spike_buffers& prefetch_buffers)
 {
     auto&& d = prefetch::make_prefetch(
         prefetch::write,
         prefetch::low,
-        prefetch_buffer,
+        std::get<0>(prefetch_buffers),
         [] (auto&& buf) noexcept {
             auto q = std::get<0>(buf);
             auto s = std::get<1>(buf);
@@ -217,7 +217,7 @@ static void make_queues_by_spikes(
     auto&& p = prefetch::make_prefetch(
         prefetch::write,
         prefetch::low,
-        prefetch_buffer,
+        std::get<1>(prefetch_buffers),
         [&d] (auto&& buf) noexcept {// speculate that the next append is simple
             auto q = std::get<0>(buf);
             d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
@@ -260,10 +260,10 @@ void communicator::make_event_queues(
         // complexity of order max(S log(C), C log(S)), where S is the
         // number of spikes, and C is the number of connections.
         if (cons.size()<spks.size()) {
-            make_queues_by_conns(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_range_buffer_); 
+            make_queues_by_conns(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_range_buffers_); 
         }
         else {
-            make_queues_by_spikes(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_buffer_);
+            make_queues_by_spikes(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_buffers_);
         }
     }
 }

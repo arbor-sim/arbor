@@ -215,10 +215,11 @@ private:
     }
     
     // ring buffer storage using an extra sentinel element
-    alignas(element_type) char array[sizeof(element_type)*(size+1)];
+    static constexpr auto arraylen = size + 1;
+    alignas(element_type) char array[sizeof(element_type)*arraylen];
     typedef element_type *iterator;
     const iterator begin = reinterpret_cast<iterator>(array);
-    const iterator end   = begin + size + 1;
+    const iterator end   = begin + arraylen;
     
     // array pointers
     iterator start = begin;  // first element to pop off

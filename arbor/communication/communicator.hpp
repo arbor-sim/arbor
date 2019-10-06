@@ -70,6 +70,7 @@ public:
         std::vector<pse_vector>::iterator,
         std::vector<spike>::const_iterator,
         std::vector<connection>::iterator>;
+    using prefetch_spike_buffers = std::tuple<prefetch_spike_buffer, prefetch_spike_buffer>;
 
     using prefetch_spike_range_buffer = prefetch::buffer<
         ARB_PREFETCH_SIZE,
@@ -77,6 +78,7 @@ public:
         std::vector<spike>::const_iterator,
         std::vector<spike>::const_iterator,
         std::vector<connection>::iterator>;
+    using prefetch_spike_range_buffers = std::tuple<prefetch_spike_range_buffer, prefetch_spike_range_buffer>;
 
 private:
     cell_size_type num_local_cells_;
@@ -91,8 +93,8 @@ private:
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 
-    prefetch_spike_buffer prefetch_spike_buffer_;
-    prefetch_spike_range_buffer prefetch_spike_range_buffer_;
+    prefetch_spike_buffers prefetch_spike_buffers_;
+    prefetch_spike_range_buffers prefetch_spike_range_buffers_;
 };
 
 } // namespace arb
