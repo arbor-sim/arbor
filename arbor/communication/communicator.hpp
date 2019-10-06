@@ -6,6 +6,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
+#include <arbor/version.hpp>
 
 #include "communication/gathered_vector.hpp"
 #include "connection.hpp"
