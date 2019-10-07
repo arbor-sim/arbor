@@ -21,11 +21,11 @@ namespace {
     }
 
     cable_cell make_cell() {
-        auto c = make_cell_ball_and_stick();
-
+        auto builder = soma_cell_builder(12.6157/2.0);
+        builder.add_dendrite(0, 200, 0.5, 0.5, 101);
+        builder.add_stim(mlocation{1,1}, i_clamp{5, 80, 0.3});
+        cable_cell c = builder.make_cell();
         c.place(mlocation{0, 0}, threshold_detector{0});
-        c.segment(1)->set_compartments(101);
-
         return c;
     }
 }

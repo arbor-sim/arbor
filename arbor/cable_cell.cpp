@@ -36,6 +36,7 @@ struct cable_cell_impl {
         morph(m)
     {
         using point = cable_cell::point_type;
+        /* TODO: this is some sort of dark magic, that will be removed after "segments" are removed. */
         if (!m.num_branches()) {
             segments.push_back(make_segment<placeholder_segment>());
             parents.push_back(0);
@@ -48,8 +49,10 @@ struct cable_cell_impl {
         // If there is no spherical root/soma use a zero-radius soma.
         double srad = m.spherical_root()? loc.radius: 0.;
         segments.push_back(make_segment<soma_segment>(srad, point(loc.x, loc.y, loc.z)));
+        parents.push_back(-1);
 
         auto& samples = m.samples();
+        auto& props = m.sample_props();
         for (auto i: util::make_span(1, m.num_branches())) {
             auto index =  util::make_range(m.branch_indexes(i));
 
@@ -70,8 +73,12 @@ struct cable_cell_impl {
             std::vector<value_type> radii;
             std::vector<cable_cell::point_type> points;
 
-            for (auto i: index) {
-                auto& s = samples[i];
+            // The current discretization code does not handle collocated points correctly,
+            // particularly if they lie at the start of a branch, so we have to skip the first
+            // point on a branch if it is collocated with the second point.
+            bool skip_first = is_collocated(props[index[1]]);
+            for (auto j: util::make_span(skip_first, index.size())) {
+                auto& s = samples[index[j]];
                 radii.push_back(s.loc.radius);
                 points.push_back(cable_cell::point_type(s.loc.x, s.loc.y, s.loc.z));
             }
@@ -82,11 +89,13 @@ struct cable_cell_impl {
             if (!m.spherical_root()) {
                 pid = pid==mnpos? 0: pid+1;
             }
-            //auto cable = cell.add_cable(pid, make_segment<cable_segment>(kind, radii, points));
             segments.push_back(make_segment<cable_segment>(kind, radii, points));
             parents.push_back(pid);
             if (compartments_from_discretization) {
-                segments.back()->as_cable()->set_compartments(radii.size()-1);
+                int ncolloc = std::count_if(index.begin(), index.end(), [&props](auto i){return is_collocated(props[i]);});
+                int ncomp = index.size()-ncolloc-1;
+                ncomp -= is_collocated(props[index[0]]);
+                segments.back()->as_cable()->set_compartments(ncomp);
             }
         }
 
@@ -198,7 +207,7 @@ cable_cell::cable_cell(const cable_cell& other):
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
 
-size_type cable_cell::num_segments() const {
+size_type cable_cell::num_branches() const {
     return impl_->segments.size();
 }
 
@@ -216,7 +225,7 @@ cable_segment* cable_cell::add_cable(index_type parent, segment_ptr&& cable) {
         throw cable_cell_error("segment is not a cable segment");
     }
 
-    if (parent>num_segments()) {
+    if (parent>num_branches()) {
         throw cable_cell_error("parent index out of range");
     }
 
@@ -303,7 +312,24 @@ void cable_cell::paint(const std::string& target, mechanism_desc desc) {
                 target, c));
         }
         impl_->assert_valid_segment(c.branch);
-        impl_->segments[c.branch]->add_mechanism(std::move(desc));
+        impl_->segments[c.branch]->add_mechanism(desc);
+    }
+}
+
+void cable_cell::paint(const std::string& target, cable_cell_local_parameter_set params) {
+    auto it = impl_->regions.find(target);
+
+    // Nothing to do if there are no regions that match.
+    if (it==impl_->regions.end()) return;
+
+    for (auto c: it->second) {
+        if (c.prox_pos!=0 || c.dist_pos!=1) {
+            throw cable_cell_error(util::pprintf(
+                "cable_cell does not support regions with partial branches: \"{}\": {}",
+                target, c));
+        }
+        impl_->assert_valid_segment(c.branch);
+        impl_->segments[c.branch]->parameters = params;
     }
 }
 
@@ -430,7 +456,7 @@ const cable_segment* cable_cell::cable(index_type index) const {
 
 std::vector<size_type> cable_cell::compartment_counts() const {
     std::vector<size_type> comp_count;
-    comp_count.reserve(num_segments());
+    comp_count.reserve(num_branches());
     for (const auto& s: segments()) {
         comp_count.push_back(s->num_compartments());
     }

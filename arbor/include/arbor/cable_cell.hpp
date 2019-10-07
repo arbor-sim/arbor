@@ -81,8 +81,8 @@ public:
 
     /// construct from morphology
     cable_cell(const class morphology& m,
-               const label_dict& dictionary,
-               bool compartments_from_discretization);
+               const label_dict& dictionary={},
+               bool compartments_from_discretization=false);
 
     /// add a soma to the cell
     /// radius must be specified
@@ -114,8 +114,8 @@ public:
 
     const std::vector<segment_ptr>& segments() const;
 
-    // the number of segments in the cell
-    size_type num_segments() const;
+    // the number of branches in the cell
+    size_type num_branches() const;
 
     // return a vector with the compartment count for each segment in the cell
     // LEGACY
@@ -134,6 +134,9 @@ public:
 
     // Density channels.
     void paint(const std::string& target, mechanism_desc);
+
+    // Properties.
+    void paint(const std::string& target, cable_cell_local_parameter_set);
 
     // Synapses.
     lid_range place(const std::string& target, const mechanism_desc&);
@@ -198,13 +201,5 @@ private:
 
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
-
-// Create a cable cell from a morphology specification.
-// If compartments_from_discretization is true, set number of compartments
-// in each segment to be the number of piecewise linear sections in the
-// corresponding section of the morphology.
-cable_cell make_cable_cell(const morphology& morph,
-                           const label_dict& labels={},
-                           bool compartments_from_discretization=false);
 
 } // namespace arb

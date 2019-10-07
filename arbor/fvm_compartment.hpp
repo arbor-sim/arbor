@@ -106,6 +106,10 @@ public:
         );
     }
 
+    void print() const {
+        std::cout << "(div_compartment_by_ends " << oon_ << " " << length_ << " " << ra_ << " " << rb_ << ")";
+    }
+
 private:
     value_type oon_;
     value_type length_;

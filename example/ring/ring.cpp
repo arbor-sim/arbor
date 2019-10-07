@@ -180,7 +180,7 @@ struct cell_stats {
         ncells = r.num_cells();
         for (size_type i=0; i<ncells; ++i) {
             auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs += c.num_segments();
+            nsegs += c.num_branches();
             ncomp += c.num_compartments();
         }
 #endif
@@ -359,15 +359,14 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
         double bp = interp(params.branch_probs, i, params.max_depth);
         // Length at this level.
         double l = interp(params.lengths, i, params.max_depth);
+        // TODO: setting of the compartment count is currently disabled.
         // Number of compartments at this level.
-        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
+        //unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
 
         std::vector<unsigned> sec_ids;
         for (unsigned sec: levels[i]) {
             for (unsigned j=0; j<2; ++j) {
                 if (dis(gen)<bp) {
-                    //sec_ids.push_back(nsec++);
-                    //auto dend = cell.add_cable(sec, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, dend_radius, dend_radius, l));
                     auto p = samples.append(sec, {{0,0,dist_from_soma,dend_radius}, 3});
                     sec_ids.push_back(samples.append(p, {{0,0,dist_from_soma+l,dend_radius}, 3}));
                     //dend->set_compartments(nc);

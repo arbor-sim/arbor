@@ -14,6 +14,7 @@
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 
+#include "../common_cells.hpp"
 #include "common.hpp"
 #include "mech_private_field_access.hpp"
 
@@ -32,11 +33,7 @@ ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanis
 TEST(synapses, add_to_cell) {
     using namespace arb;
 
-    cable_cell cell;
-
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism("hh");
+    auto cell = make_cell_soma_only(false);
 
     cell.place(mlocation{0, 0.1}, "expsyn");
     cell.place(mlocation{0, 0.2}, "exp2syn");
