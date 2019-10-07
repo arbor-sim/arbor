@@ -1133,6 +1133,7 @@ expression_ptr binary_expression(Location loc,
             return make_expression<PowBinaryExpression>(
                 loc, std::move(lhs), std::move(rhs)
             );
+        case tok::ne       :
         case tok::lt       :
         case tok::lte      :
         case tok::gt       :
