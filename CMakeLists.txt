@@ -323,6 +323,15 @@ if(NOT DEFINED ARB_PREFETCH_SIZE)
 endif()
 target_compile_definitions(arbor-config-defs INTERFACE ARB_PREFETCH_SIZE=${ARB_PREFETCH_SIZE})
 
+# Define prefetch locality for communicator (none low medium high)
+# Default: low
+#------------------------------------------------
+
+if(NOT DEFINED ARB_PREFETCH_LOCALITY)
+  set(ARB_PREFETCH_LOCALITY low)
+endif()
+target_compile_definitions(arbor-config-defs INTERFACE ARB_PREFETCH_LOCALITY=${ARB_PREFETCH_LOCALITY})
+
 #----------------------------------------------------------
 # Set up install paths, permissions.
 #----------------------------------------------------------
