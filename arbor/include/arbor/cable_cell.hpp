@@ -84,38 +84,33 @@ public:
                const label_dict& dictionary={},
                bool compartments_from_discretization=false);
 
-    /// add a soma to the cell
-    /// radius must be specified
-    //soma_segment* add_soma(value_type radius, point_type center=point_type());
+    // the number of branches in the cell
+    size_type num_branches() const;
 
-    /// add a cable
-    /// parent is the index of the parent segment for the cable section
-    /// cable is the segment that will be moved into the cell
-    //cable_segment* add_cable(index_type parent, segment_ptr&& cable);
+    // All of the members marked with LEGACY below will be removed once
+    // the discretization code has moved from consuming segments to em_morphology.
 
+    // LEGACY
     bool has_soma() const;
 
-    //class segment* segment(index_type index);
+    // LEGACY
     const class segment* parent(index_type index) const;
+    // LEGACY
     const class segment* segment(index_type index) const;
 
     // access pointer to the soma
     // returns nullptr if the cell has no soma
     // LEGACY
-    //soma_segment* soma();
     const soma_segment* soma() const;
 
     // access pointer to a cable segment
     // will throw an cable_cell_error exception if
     // the cable index is not valid
     // LEGACY
-    //cable_segment* cable(index_type index);
     const cable_segment* cable(index_type index) const;
 
+    // LEGACY
     const std::vector<segment_ptr>& segments() const;
-
-    // the number of branches in the cell
-    size_type num_branches() const;
 
     // return a vector with the compartment count for each segment in the cell
     // LEGACY
@@ -166,13 +161,6 @@ public:
     const std::vector<gap_junction_instance>& gap_junction_sites() const;
     const std::vector<detector_instance>& detectors() const;
     const std::vector<stimulus_instance>& stimuli() const;
-
-    // These setters are temporary, for "side-loading" in make_cable_cell.
-    // In the regions, locset and morphology descriptions will be passed directly
-    // to the cable_cell constructor.
-    void set_regions(region_map r);
-    void set_locsets(locset_map l);
-    void set_morphology(em_morphology m);
 
     const em_morphology* morphology() const;
 

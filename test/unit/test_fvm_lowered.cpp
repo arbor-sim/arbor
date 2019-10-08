@@ -92,10 +92,6 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        /*
-        cable_cell c;
-        c.add_soma(20);
-        */
         cable_cell c = soma_cell_builder(20).make_cell();
         c.place(mlocation{0, 1}, gap_junction_site{});
         return {std::move(c)};
@@ -141,9 +137,6 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
-        //cable_cell c;
-        //c.add_soma(20);
-        //return {std::move(c)};
         return soma_cell_builder(20).make_cell();
     }
 
@@ -405,26 +398,18 @@ TEST(fvm_lowered, derived_mechs) {
     std::vector<cable_cell> cells;
     cells.reserve(3);
     for (int i = 0; i<3; ++i) {
-        //cable_cell& c = cells[i];
-        //c.add_soma(6.0);
-        //c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
-        //c.segment(1)->set_compartments(4);
         auto builder = soma_cell_builder(6);
         builder.add_dendrite(0, 100, 0.5, 0.5, 4);
         builder.set_regions({{"all", reg::all()}});
 
         switch (i) {
             case 0:
-                //seg->add_mechanism("test_kin1");
                 builder.set_mechanisms({{"all", "test_kin1"}});
                 break;
             case 1:
-                //seg->add_mechanism("custom_kin1");
                 builder.set_mechanisms({{"all", "custom_kin1"}});
                 break;
             case 2:
-                //seg->add_mechanism("test_kin1");
-                //seg->add_mechanism("custom_kin1");
                 builder.set_mechanisms({{"all", "test_kin1"},
                                         {"all", "custom_kin1"}});
                 break;

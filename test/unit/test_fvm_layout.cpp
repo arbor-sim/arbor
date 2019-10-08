@@ -292,7 +292,6 @@ TEST(fvm_layout, diam_and_area) {
     double c = A[3]/(2*n)*cm1+A[4]/(2*n)*cm2+A[5]/(2*n)*cm3;
     EXPECT_FLOAT_EQ(c, D.cv_capacitance[11]);
 
-    //double cm0 = cells[1].soma()->cm;
     double cm0 = neuron_parameter_defaults.membrane_capacitance.value();
     c = A[2]*cm0;
     EXPECT_FLOAT_EQ(c, D.cv_capacitance[6]);
@@ -603,7 +602,6 @@ TEST(fvm_layout, coalescing_synapses) {
     }
 }
 
-/*
 TEST(fvm_layout, synapse_targets) {
     std::vector<cable_cell> cells = two_cell_system();
 
@@ -669,8 +667,6 @@ TEST(fvm_layout, synapse_targets) {
         EXPECT_EQ(syn_e[exp2syn_target[i]], exp2syn_e[i]);
     }
 }
-*/
-
 
 namespace {
     double wm_impl(double wa, double xa) {

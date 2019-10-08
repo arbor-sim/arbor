@@ -285,14 +285,6 @@ const std::vector<cable_cell::stimulus_instance>& cable_cell::stimuli() const {
     return impl_->stimuli;
 }
 
-void cable_cell::set_regions(cable_cell::region_map r) {
-    impl_->regions = std::move(r);
-}
-
-void cable_cell::set_locsets(cable_cell::locset_map l) {
-    impl_->locations = std::move(l);
-}
-
 //
 // Painters.
 //
@@ -465,10 +457,6 @@ std::vector<size_type> cable_cell::compartment_counts() const {
 
 const em_morphology* cable_cell::morphology() const {
     return &(impl_->morph);
-}
-
-void cable_cell::set_morphology(em_morphology m) {
-    impl_->morph = std::move(m);
 }
 
 size_type cable_cell::num_compartments() const {
