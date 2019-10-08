@@ -27,23 +27,12 @@
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
 
+#include "branch_cell.hpp"
+
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
 #include <arborenv/with_mpi.hpp>
 #endif
-
-// Parameters used to generate the random cell morphologies.
-struct cell_parameters {
-    //  Maximum number of levels in the cell (not including the soma)
-    unsigned max_depth = 5;
-
-    // The following parameters are described as ranges.
-    // The first value is at the soma, and the last value is used on the last level.
-    // Values at levels in between are found by linear interpolation.
-    std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
-    std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
-    std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
-};
 
 struct run_params {
     std::string name = "default";
@@ -175,7 +164,7 @@ struct cell_stats {
             size_type ncomp_tmp = 0;
             for (size_type i=b; i<e; ++i) {
                 auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs_tmp += c.num_segments();
+                nsegs_tmp += c.num_branches();
                 ncomp_tmp += c.num_compartments();
             }
             MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
@@ -187,7 +176,7 @@ struct cell_stats {
             ncells = r.num_cells();
             for (size_type i = 0; i < ncells; ++i) {
                 auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs += c.num_segments();
+                nsegs += c.num_branches();
                 ncomp += c.num_compartments();
             }
         }
@@ -198,7 +187,7 @@ struct cell_stats {
 
             for (size_type i = 0; i < params.num_cells_per_rank; ++i) {
                 auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs += c.num_segments();
+                nsegs += c.num_branches();
                 ncomp += c.num_compartments();
             }
 
@@ -215,7 +204,6 @@ struct cell_stats {
                  << s.ncomp << " compartments.";
     }
 };
-
 
 int main(int argc, char** argv) {
     try {
@@ -324,67 +312,6 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-// Helper used to interpolate in branch_cell.
-template <typename T>
-double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
-    double p = i * 1./(n-1);
-    double r0 = r[0];
-    double r1 = r[1];
-    return r[0] + p*(r1-r0);
-}
-
-arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    arb::cable_cell cell;
-    cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
-
-    // Add soma.
-    auto soma = cell.add_soma(12.6157/2.0); // For area of 500 μm².
-    soma->add_mechanism("hh");
-
-    std::vector<std::vector<unsigned>> levels;
-    levels.push_back({0});
-
-    // Standard mersenne_twister_engine seeded with gid.
-    std::mt19937 gen(gid);
-    std::uniform_real_distribution<double> dis(0, 1);
-
-    double dend_radius = 0.5; // Diameter of 1 μm for each cable.
-
-    unsigned nsec = 1;
-    for (unsigned i=0; i<params.max_depth; ++i) {
-        // Branch prob at this level.
-        double bp = interp(params.branch_probs, i, params.max_depth);
-        // Length at this level.
-        double l = interp(params.lengths, i, params.max_depth);
-        // Number of compartments at this level.
-        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
-
-        std::vector<unsigned> sec_ids;
-        for (unsigned sec: levels[i]) {
-            for (unsigned j=0; j<2; ++j) {
-                if (dis(gen)<bp) {
-                    sec_ids.push_back(nsec++);
-                    auto dend = cell.add_cable(sec, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, dend_radius, dend_radius, l));
-                    dend->set_compartments(nc);
-                    dend->add_mechanism("pas");
-                }
-            }
-        }
-        if (sec_ids.empty()) {
-            break;
-        }
-        levels.push_back(sec_ids);
-    }
-
-    // Add spike threshold detector at the soma.
-    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
-
-    // Add a synapse to the mid point of the first dendrite.
-    cell.place(arb::mlocation{1, 0.5}, "expsyn");
-
-    return cell;
-}
-
 run_params read_options(int argc, char** argv) {
     using sup::param_from_json;
 
@@ -414,10 +341,7 @@ run_params read_options(int argc, char** argv) {
     param_from_json(params.num_ranks, "num-ranks", json);
     param_from_json(params.duration, "duration", json);
     param_from_json(params.min_delay, "min-delay", json);
-    param_from_json(params.cell.max_depth, "depth", json);
-    param_from_json(params.cell.branch_probs, "branch-probs", json);
-    param_from_json(params.cell.compartments, "compartments", json);
-    param_from_json(params.cell.lengths, "lengths", json);
+    params.cell = parse_cell_parameters(json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {

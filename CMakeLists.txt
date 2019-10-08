@@ -25,15 +25,6 @@ option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
-# Generate validation data for validation tests?
-
-option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
-
-# Where to generate and find validation data?
-
-set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
-  "location of generated validation data")
-
 # For sup::glop, just wrap POSIX glob(3)?
 # Turn off for platforms without glob(3) in libc, e.g. Android Bionic.
 
@@ -372,7 +363,7 @@ add_subdirectory(arbor)
 # arborenv, arborenv-public-headers:
 add_subdirectory(arborenv)
 
-# unit, unit-mpi, unit-local, unit-modcc, validate
+# unit, unit-mpi, unit-local, unit-modcc
 add_subdirectory(test)
 
 # self contained examples:
@@ -380,11 +371,6 @@ add_subdirectory(example)
 
 # html:
 add_subdirectory(doc)
-
-# validation-data:
-if(ARB_BUILD_VALIDATION_DATA)
-    add_subdirectory(validation)
-endif()
 
 # python interface:
 if (ARB_WITH_PYTHON)
