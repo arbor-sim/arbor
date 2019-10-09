@@ -55,7 +55,7 @@ TEST(synapses, add_to_cell) {
     EXPECT_EQ(syns[2].mechanism.name(), "expsyn");
 
     // adding a synapse to an invalid branch location should throw.
-    EXPECT_THROW(cell.place(mlocation{1, 0.3}, "expsyn"), arb::cable_cell_error);
+    EXPECT_THROW(cell.place(mlocation{1, 0.3}, "expsyn"), std::runtime_error);
 }
 
 template <typename Seq>

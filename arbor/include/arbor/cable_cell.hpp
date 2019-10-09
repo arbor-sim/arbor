@@ -134,24 +134,20 @@ public:
     void paint(const std::string& target, cable_cell_local_parameter_set);
 
     // Synapses.
-    lid_range place(const std::string& target, const mechanism_desc&);
-    lid_range place(const mlocation&, const mechanism_desc&);  // LEGACY
-    //lid_range place(const locset&, const mechanism_desc&);
+    lid_range place(const std::string&, const mechanism_desc&);
+    lid_range place(const locset&, const mechanism_desc&);
 
     // Stimuli.
-    lid_range place(const std::string& target, const i_clamp&);
-    lid_range place(const mlocation&, const i_clamp&);  // LEGACY
-    //lid_range place(const locset&, const i_clamp&);
+    lid_range place(const std::string&, const i_clamp&);
+    lid_range place(const locset&, const i_clamp&);
 
     // Gap junctions.
     lid_range place(const std::string&, gap_junction_site);
-    lid_range place(const mlocation& loc, gap_junction_site);  // LEGACY
-    //lid_range place(const locset&, gap_junction_site);
+    lid_range place(const locset&, gap_junction_site);
 
     // spike detectors
     lid_range place(const std::string&, const threshold_detector&);
-    lid_range place(const mlocation&, const threshold_detector&);  // LEGACY
-    //lid_range place(const locset&, const threshold_detector&);
+    lid_range place(const locset&, const threshold_detector&);
 
     //
     // access to placed items

@@ -200,7 +200,7 @@ struct cell_stats {
         return o << "cell stats: "
                  << s.nranks << " ranks; "
                  << s.ncells << " cells; "
-                 << s.nsegs << " segments; "
+                 << s.nsegs << " branches; "
                  << s.ncomp << " compartments.";
     }
 };
