@@ -277,6 +277,9 @@ bool Module::semantic() {
     auto initial_api = make_empty_api_method("nrn_init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
+
+    scope_ptr nrn_init_scope = api_init->scope();
+
     auto& init_body = api_init->body()->statements();
 
     for(auto& e : *proc_init->body()) {
@@ -312,6 +315,9 @@ bool Module::semantic() {
                     }
                     solved_ids.insert(id);
                 }
+
+                solve_block = remove_unused_locals(solve_block->is_block());
+
                 // Copy body into nrn_init.
                 for (auto &stmt: solve_block->is_block()->statements()) {
                     init_body.emplace_back(stmt->clone());
