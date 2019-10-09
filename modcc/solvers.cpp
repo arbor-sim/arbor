@@ -482,10 +482,54 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
 void LinearSolverVisitor::finalize() {
     A_.augment(rhs_);
 
-    symge::gj_reduce(A_, symtbl_);
+    auto symbol_part = symge::gj_reduce(A_, symtbl_);
+
+    for (unsigned i =0; i < symbol_part.size() - 1; i++) {
+        expression_ptr divider;
+        for (auto a = symbol_part[i]; a < symbol_part[i + 1]; a++) {
+            symge::symbol s = symtbl_[a];
+
+            if (primitive(s)) continue;
+
+            if (!divider) {
+                auto expr = as_expression(definition(s));
+                auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
+                auto d_ = local_d_term.id->is_identifier()->spelling();
+
+                symtbl_.name(s, d_);
+
+                divider = local_d_term.id->clone();
+
+                statements_.push_back(std::move(local_d_term.local_decl));
+                statements_.push_back(std::move(local_d_term.assignment));
+
+                auto one_expr = make_expression<NumberExpression>(divider->location(), 1.0);
+
+                auto local_t_term = make_unique_local_assign(block_scope_, one_expr.get(), "t_");
+                auto t_ = local_t_term.id->is_identifier()->spelling();
+
+                symtbl_.name(s, t_);
+                statements_.push_back(std::move(local_t_term.local_decl));
+                statements_.push_back(std::move(local_t_term.assignment));
+
+            } else {
+
+                auto expr = as_expression(definition(s));
+                expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr), divider->clone());
+                auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+                auto t_ = local_t_term.id->is_identifier()->spelling();
+                symtbl_.name(s, t_);
+
+                statements_.push_back(std::move(local_t_term.local_decl));
+                statements_.push_back(std::move(local_t_term.assignment));
+            }
+
+        }
+        std::cout << std::endl;
+    }
 
     // Create and assign intermediate variables.
-    for (unsigned i = 0; i<symtbl_.size(); ++i) {
+    /*for (unsigned i = 0; i<symtbl_.size(); ++i) {
         symge::symbol s = symtbl_[i];
 
         if (primitive(s)) continue;
@@ -497,7 +541,7 @@ void LinearSolverVisitor::finalize() {
 
         statements_.push_back(std::move(local_t_term.local_decl));
         statements_.push_back(std::move(local_t_term.assignment));
-    }
+    }*/
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
