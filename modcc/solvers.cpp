@@ -390,21 +390,59 @@ void SparseSolverVisitor::finalize() {
     }
     A_.augment(rhs);
 
-    symge::gj_reduce(A_, symtbl_);
+    auto symbol_part = symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
-    for (unsigned i = 0; i<symtbl_.size(); ++i) {
-        symge::symbol s = symtbl_[i];
+    // If size of matrix > 5, normalize intermediate variables
+    if (A_.size() > 5) {
+        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+            expression_ptr divider;
+            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
+                symge::symbol s = symtbl_[i];
 
-        if (primitive(s)) continue;
+                if (primitive(s)) continue;
 
-        auto expr = as_expression(definition(s));
-        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-        auto t_ = local_t_term.id->is_identifier()->spelling();
-        symtbl_.name(s, t_);
+                expression_ptr update_expr;
+                if (!divider) {
+                    auto expr = as_expression(definition(s));
+                    auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
+                    auto d_ = local_d_term.id->is_identifier()->spelling();
+                    divider = local_d_term.id->clone();
 
-        statements_.push_back(std::move(local_t_term.local_decl));
-        statements_.push_back(std::move(local_t_term.assignment));
+                    symtbl_.name(s, d_);
+                    statements_.push_back(std::move(local_d_term.local_decl));
+                    statements_.push_back(std::move(local_d_term.assignment));
+
+                    update_expr = make_expression<NumberExpression>(divider->location(), 1.0);
+                } else {
+                    auto expr = as_expression(definition(s));
+                    update_expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr),
+                                                                       divider->clone());
+                }
+
+                auto local_t_term = make_unique_local_assign(block_scope_, update_expr.get(), "t_");
+                auto t_ = local_t_term.id->is_identifier()->spelling();
+
+                symtbl_.name(s, t_);
+                statements_.push_back(std::move(local_t_term.local_decl));
+                statements_.push_back(std::move(local_t_term.assignment));
+
+            }
+        }
+    } else {
+        for (unsigned i = 0; i<symtbl_.size(); ++i) {
+            symge::symbol s = symtbl_[i];
+
+            if (primitive(s)) continue;
+
+            auto expr = as_expression(definition(s));
+            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+            auto t_ = local_t_term.id->is_identifier()->spelling();
+            symtbl_.name(s, t_);
+
+            statements_.push_back(std::move(local_t_term.local_decl));
+            statements_.push_back(std::move(local_t_term.assignment));
+        }
     }
 
     // State variable updates given by rhs/diagonal for reduced matrix.
@@ -484,64 +522,58 @@ void LinearSolverVisitor::finalize() {
 
     auto symbol_part = symge::gj_reduce(A_, symtbl_);
 
-    for (unsigned i =0; i < symbol_part.size() - 1; i++) {
-        expression_ptr divider;
-        for (auto a = symbol_part[i]; a < symbol_part[i + 1]; a++) {
-            symge::symbol s = symtbl_[a];
+    // Create and assign intermediate variables.
+    // If size of matrix > 5, normalize intermediate variables
+    if (A_.size() > 5) {
+        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+            expression_ptr divider;
+            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
+                symge::symbol s = symtbl_[i];
+
+                if (primitive(s)) continue;
+
+                expression_ptr update_expr;
+                if (!divider) {
+                    auto expr = as_expression(definition(s));
+                    auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
+                    auto d_ = local_d_term.id->is_identifier()->spelling();
+                    divider = local_d_term.id->clone();
+
+                    symtbl_.name(s, d_);
+                    statements_.push_back(std::move(local_d_term.local_decl));
+                    statements_.push_back(std::move(local_d_term.assignment));
+
+                    update_expr = make_expression<NumberExpression>(divider->location(), 1.0);
+                } else {
+                    auto expr = as_expression(definition(s));
+                    update_expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr),
+                                                                       divider->clone());
+                }
+
+                auto local_t_term = make_unique_local_assign(block_scope_, update_expr.get(), "t_");
+                auto t_ = local_t_term.id->is_identifier()->spelling();
+
+                symtbl_.name(s, t_);
+                statements_.push_back(std::move(local_t_term.local_decl));
+                statements_.push_back(std::move(local_t_term.assignment));
+
+            }
+        }
+    } else {
+        for (unsigned i = 0; i<symtbl_.size(); ++i) {
+            symge::symbol s = symtbl_[i];
 
             if (primitive(s)) continue;
 
-            if (!divider) {
-                auto expr = as_expression(definition(s));
-                auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
-                auto d_ = local_d_term.id->is_identifier()->spelling();
+            auto expr = as_expression(definition(s));
+            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+            auto t_ = local_t_term.id->is_identifier()->spelling();
+            symtbl_.name(s, t_);
 
-                symtbl_.name(s, d_);
-
-                divider = local_d_term.id->clone();
-
-                statements_.push_back(std::move(local_d_term.local_decl));
-                statements_.push_back(std::move(local_d_term.assignment));
-
-                auto one_expr = make_expression<NumberExpression>(divider->location(), 1.0);
-
-                auto local_t_term = make_unique_local_assign(block_scope_, one_expr.get(), "t_");
-                auto t_ = local_t_term.id->is_identifier()->spelling();
-
-                symtbl_.name(s, t_);
-                statements_.push_back(std::move(local_t_term.local_decl));
-                statements_.push_back(std::move(local_t_term.assignment));
-
-            } else {
-
-                auto expr = as_expression(definition(s));
-                expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr), divider->clone());
-                auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-                auto t_ = local_t_term.id->is_identifier()->spelling();
-                symtbl_.name(s, t_);
-
-                statements_.push_back(std::move(local_t_term.local_decl));
-                statements_.push_back(std::move(local_t_term.assignment));
-            }
-
+            statements_.push_back(std::move(local_t_term.local_decl));
+            statements_.push_back(std::move(local_t_term.assignment));
         }
-        std::cout << std::endl;
     }
-
-    // Create and assign intermediate variables.
-    /*for (unsigned i = 0; i<symtbl_.size(); ++i) {
-        symge::symbol s = symtbl_[i];
-
-        if (primitive(s)) continue;
-
-        auto expr = as_expression(definition(s));
-        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-        auto t_ = local_t_term.id->is_identifier()->spelling();
-        symtbl_.name(s, t_);
-
-        statements_.push_back(std::move(local_t_term.local_decl));
-        statements_.push_back(std::move(local_t_term.assignment));
-    }*/
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
@@ -764,23 +796,60 @@ void SparseNonlinearSolverVisitor::finalize() {
     }
 
     A_.augment(rhs);
-    symge::gj_reduce(A_, symtbl_);
+    auto symbol_part = symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
-    // Save gaussian elimination solution statements in S_
+    // If size of matrix > 5, normalize intermediate variables
     std::vector<expression_ptr> S_;
-    for (unsigned i = 0; i < symtbl_.size(); ++i) {
-        symge::symbol s = symtbl_[i];
+    if (A_.size() > 5) {
+        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+            expression_ptr divider;
+            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
+                symge::symbol s = symtbl_[i];
 
-        if (primitive(s)) continue;
+                if (primitive(s)) continue;
 
-        auto expr = as_expression(definition(s));
-        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "s_");
-        auto t_ = local_t_term.id->is_identifier()->spelling();
-        symtbl_.name(s, t_);
+                expression_ptr update_expr;
+                if (!divider) {
+                    auto expr = as_expression(definition(s));
+                    auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
+                    auto d_ = local_d_term.id->is_identifier()->spelling();
+                    divider = local_d_term.id->clone();
 
-        statements_.push_back(std::move(local_t_term.local_decl));
-        S_.push_back(std::move(local_t_term.assignment));
+                    symtbl_.name(s, d_);
+                    statements_.push_back(std::move(local_d_term.local_decl));
+                    S_.push_back(std::move(local_d_term.assignment));
+
+                    update_expr = make_expression<NumberExpression>(divider->location(), 1.0);
+                } else {
+                    auto expr = as_expression(definition(s));
+                    update_expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr),
+                                                                       divider->clone());
+                }
+
+                auto local_t_term = make_unique_local_assign(block_scope_, update_expr.get(), "t_");
+                auto t_ = local_t_term.id->is_identifier()->spelling();
+
+                symtbl_.name(s, t_);
+                statements_.push_back(std::move(local_t_term.local_decl));
+                S_.push_back(std::move(local_t_term.assignment));
+
+            }
+        }
+    } else {
+        for (unsigned i = 0; i<symtbl_.size(); ++i) {
+            symge::symbol s = symtbl_[i];
+
+            if (primitive(s)) continue;
+
+            auto expr = as_expression(definition(s));
+            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "s_");
+            auto t_ = local_t_term.id->is_identifier()->spelling();
+            symtbl_.name(s, t_);
+
+            statements_.push_back(std::move(local_t_term.local_decl));
+            S_.push_back(std::move(local_t_term.assignment));
+        }
     }
 
     // Create the statements that update the temporary state variables
