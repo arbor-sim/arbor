@@ -116,6 +116,14 @@ C round_up(T v, U b) {
     return v-m+signum(m)*impl::abs_if_signed(b, Signed{});
 }
 
+// Returns 1/x if x != 0; 0 otherwise
+template <typename T>
+inline
+T safeinv(T x) {
+    // If abs(x) is less than epsilon return 1, else calculate the result directly.
+    return (x == 0)? T(0): 1/x;
+}
+
 // Value of x/(exp(x)-1) with care taken to handle x=0 case
 template <typename T>
 inline

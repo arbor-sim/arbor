@@ -394,43 +394,11 @@ void SparseSolverVisitor::finalize() {
 
     // Create and assign intermediate variables.
     // If size of matrix > 5, normalize intermediate variables
-    if (A_.size() > 5) {
-        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
-            expression_ptr divider;
-            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-                symge::symbol s = symtbl_[i];
+    for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+        std::vector<expression_ptr> row_elems;
 
-                if (primitive(s)) continue;
-
-                expression_ptr update_expr;
-                if (!divider) {
-                    auto expr = as_expression(definition(s));
-                    auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
-                    auto d_ = local_d_term.id->is_identifier()->spelling();
-                    divider = local_d_term.id->clone();
-
-                    symtbl_.name(s, d_);
-                    statements_.push_back(std::move(local_d_term.local_decl));
-                    statements_.push_back(std::move(local_d_term.assignment));
-
-                    update_expr = make_expression<NumberExpression>(divider->location(), 1.0);
-                } else {
-                    auto expr = as_expression(definition(s));
-                    update_expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr),
-                                                                       divider->clone());
-                }
-
-                auto local_t_term = make_unique_local_assign(block_scope_, update_expr.get(), "t_");
-                auto t_ = local_t_term.id->is_identifier()->spelling();
-
-                symtbl_.name(s, t_);
-                statements_.push_back(std::move(local_t_term.local_decl));
-                statements_.push_back(std::move(local_t_term.assignment));
-
-            }
-        }
-    } else {
-        for (unsigned i = 0; i<symtbl_.size(); ++i) {
+        // Collect the elements in a single row to normalize
+        for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
             symge::symbol s = symtbl_[i];
 
             if (primitive(s)) continue;
@@ -442,6 +410,36 @@ void SparseSolverVisitor::finalize() {
 
             statements_.push_back(std::move(local_t_term.local_decl));
             statements_.push_back(std::move(local_t_term.assignment));
+
+            row_elems.push_back(std::move(local_t_term.id));
+        }
+
+        if (A_.size() > 0) {
+            expression_ptr max;
+            //Get the max element in the row
+            for (auto &elem: row_elems) {
+                if (!max) {
+                    max = elem->is_identifier()->clone();
+                } else {
+                    max = make_expression<MaxBinaryExpression>(Location{}, max->clone(), elem->is_identifier()->clone());
+                }
+            }
+
+            // Create a symbol for it
+            auto local_max_term = make_unique_local_assign(block_scope_, max.get(), "max_");
+            auto max_ = local_max_term.id->is_identifier()->spelling();
+
+            statements_.push_back(std::move(local_max_term.local_decl));
+            statements_.push_back(std::move(local_max_term.assignment));
+
+            // Update the row elements
+            auto max_id = local_max_term.id->is_identifier();
+
+            for (auto &elem: row_elems) {
+                auto ratio = make_expression<DivBinaryExpression>(elem->location(), elem->clone(), max_id->clone());
+                auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
+                statements_.push_back(std::move(assign));
+            }
         }
     }
 
@@ -524,43 +522,11 @@ void LinearSolverVisitor::finalize() {
 
     // Create and assign intermediate variables.
     // If size of matrix > 5, normalize intermediate variables
-    if (A_.size() > 5) {
-        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
-            expression_ptr divider;
-            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-                symge::symbol s = symtbl_[i];
+    for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+        std::vector<expression_ptr> row_elems;
 
-                if (primitive(s)) continue;
-
-                expression_ptr update_expr;
-                if (!divider) {
-                    auto expr = as_expression(definition(s));
-                    auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
-                    auto d_ = local_d_term.id->is_identifier()->spelling();
-                    divider = local_d_term.id->clone();
-
-                    symtbl_.name(s, d_);
-                    statements_.push_back(std::move(local_d_term.local_decl));
-                    statements_.push_back(std::move(local_d_term.assignment));
-
-                    update_expr = make_expression<NumberExpression>(divider->location(), 1.0);
-                } else {
-                    auto expr = as_expression(definition(s));
-                    update_expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr),
-                                                                       divider->clone());
-                }
-
-                auto local_t_term = make_unique_local_assign(block_scope_, update_expr.get(), "t_");
-                auto t_ = local_t_term.id->is_identifier()->spelling();
-
-                symtbl_.name(s, t_);
-                statements_.push_back(std::move(local_t_term.local_decl));
-                statements_.push_back(std::move(local_t_term.assignment));
-
-            }
-        }
-    } else {
-        for (unsigned i = 0; i<symtbl_.size(); ++i) {
+        // Collect the elements in a single row to normalize
+        for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
             symge::symbol s = symtbl_[i];
 
             if (primitive(s)) continue;
@@ -572,6 +538,36 @@ void LinearSolverVisitor::finalize() {
 
             statements_.push_back(std::move(local_t_term.local_decl));
             statements_.push_back(std::move(local_t_term.assignment));
+
+            row_elems.push_back(std::move(local_t_term.id));
+        }
+
+        if (A_.size() > 0) {
+            expression_ptr max;
+            //Get the max element in the row
+            for (auto &elem: row_elems) {
+                if (!max) {
+                    max = elem->is_identifier()->clone();
+                } else {
+                    max = make_expression<MaxBinaryExpression>(Location{}, max->clone(), elem->is_identifier()->clone());
+                }
+            }
+
+            // Create a symbol for it
+            auto local_max_term = make_unique_local_assign(block_scope_, max.get(), "max_");
+            auto max_ = local_max_term.id->is_identifier()->spelling();
+
+            statements_.push_back(std::move(local_max_term.local_decl));
+            statements_.push_back(std::move(local_max_term.assignment));
+
+            // Update the row elements
+            auto max_id = local_max_term.id->is_identifier();
+
+            for (auto &elem: row_elems) {
+                auto ratio = make_expression<DivBinaryExpression>(elem->location(), elem->clone(), max_id->clone());
+                auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
+                statements_.push_back(std::move(assign));
+            }
         }
     }
 
@@ -801,54 +797,55 @@ void SparseNonlinearSolverVisitor::finalize() {
     // Create and assign intermediate variables.
     // If size of matrix > 5, normalize intermediate variables
     std::vector<expression_ptr> S_;
-    if (A_.size() > 5) {
-        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
-            expression_ptr divider;
-            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-                symge::symbol s = symtbl_[i];
+    for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+        std::vector<expression_ptr> row_elems;
 
-                if (primitive(s)) continue;
-
-                expression_ptr update_expr;
-                if (!divider) {
-                    auto expr = as_expression(definition(s));
-                    auto local_d_term = make_unique_local_assign(block_scope_, expr.get(), "d_");
-                    auto d_ = local_d_term.id->is_identifier()->spelling();
-                    divider = local_d_term.id->clone();
-
-                    symtbl_.name(s, d_);
-                    statements_.push_back(std::move(local_d_term.local_decl));
-                    S_.push_back(std::move(local_d_term.assignment));
-
-                    update_expr = make_expression<NumberExpression>(divider->location(), 1.0);
-                } else {
-                    auto expr = as_expression(definition(s));
-                    update_expr = make_expression<DivBinaryExpression>(expr->location(), std::move(expr),
-                                                                       divider->clone());
-                }
-
-                auto local_t_term = make_unique_local_assign(block_scope_, update_expr.get(), "t_");
-                auto t_ = local_t_term.id->is_identifier()->spelling();
-
-                symtbl_.name(s, t_);
-                statements_.push_back(std::move(local_t_term.local_decl));
-                S_.push_back(std::move(local_t_term.assignment));
-
-            }
-        }
-    } else {
-        for (unsigned i = 0; i<symtbl_.size(); ++i) {
+        // Collect the elements in a single row to normalize
+        for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
             symge::symbol s = symtbl_[i];
 
             if (primitive(s)) continue;
 
             auto expr = as_expression(definition(s));
-            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "s_");
+            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
             auto t_ = local_t_term.id->is_identifier()->spelling();
             symtbl_.name(s, t_);
 
             statements_.push_back(std::move(local_t_term.local_decl));
             S_.push_back(std::move(local_t_term.assignment));
+
+            row_elems.push_back(std::move(local_t_term.id));
+        }
+
+        if (A_.size() > 0) {
+            expression_ptr max;
+            //Get the max element in the row
+            for (auto &elem: row_elems) {
+                auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
+                if (!max) {
+                    max = std::move(abs);
+                } else {
+                    max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
+                }
+            }
+            // Safely inverse max
+            auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
+
+            // Create a symbol for inv
+            auto local_inv_term = make_unique_local_assign(block_scope_, inv.get(), "inv_");
+            auto inv_ = local_inv_term.id->is_identifier()->spelling();
+
+            statements_.push_back(std::move(local_inv_term.local_decl));
+            S_.push_back(std::move(local_inv_term.assignment));
+
+            // Update the row elements
+            auto inv_id = local_inv_term.id->is_identifier();
+
+            for (auto &elem: row_elems) {
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), inv_id->clone());
+                auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
+                S_.push_back(std::move(assign));
+            }
         }
     }
 

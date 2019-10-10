@@ -996,6 +996,9 @@ void LogUnaryExpression::accept(Visitor *v) {
 void AbsUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void SafeInvUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void ExprelrUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1077,6 +1080,8 @@ expression_ptr unary_expression( Location loc,
             return make_expression<AbsUnaryExpression>(loc, std::move(e));
         case tok::exprelr :
             return make_expression<ExprelrUnaryExpression>(loc, std::move(e));
+        case tok::safeinv :
+            return make_expression<SafeInvUnaryExpression>(loc, std::move(e));
        default :
             std::cerr << yellow(token_string(op))
                       << " is not a valid unary operator"

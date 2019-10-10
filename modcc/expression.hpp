@@ -1226,6 +1226,15 @@ public:
     void accept(Visitor *v) override;
 };
 
+class SafeInvUnaryExpression : public UnaryExpression {
+public:
+    SafeInvUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::safeinv, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
 // exprel reciprocal unary expression,
 // i.e. x/(exp(x)-1)=x/expm1(x) with exprelr(0)=1
 class ExprelrUnaryExpression : public UnaryExpression {

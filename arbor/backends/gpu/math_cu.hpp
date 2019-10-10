@@ -7,6 +7,14 @@ namespace arb {
 namespace gpu {
 
 __device__
+inline double safeinv(double x) {
+    if (x == 0.0) {
+        return 0.0;
+    }
+    return 1/x;
+}
+
+__device__
 inline double exprelr(double x) {
     if (1.0+x == 1.0) {
         return 1.0;

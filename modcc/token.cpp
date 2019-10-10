@@ -66,6 +66,7 @@ static Keyword keywords[] = {
     {"log",         tok::log},
     {"abs",         tok::abs},
     {"exprelr",     tok::exprelr},
+    {"safeinv",     tok::safeinv},
     {"CONDUCTANCE", tok::conductance},
     {nullptr,       tok::reserved},
 };
@@ -136,6 +137,7 @@ static TokenString token_strings[] = {
     {"log",         tok::log},
     {"abs",         tok::abs},
     {"exprelr",     tok::exprelr},
+    {"safeinv",     tok::safeinv},
     {"cos",         tok::cos},
     {"sin",         tok::sin},
     {"cnexp",       tok::cnexp},

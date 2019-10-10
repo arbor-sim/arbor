@@ -154,6 +154,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "using size_type = base::size_type;\n"
         "using index_type = base::index_type;\n"
         "using ::arb::math::exprelr;\n"
+        "using ::arb::math::safeinv;\n"
         "using ::std::abs;\n"
         "using ::std::cos;\n"
         "using ::std::exp;\n"
