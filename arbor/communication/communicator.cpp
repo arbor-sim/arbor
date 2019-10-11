@@ -73,45 +73,85 @@ communicator::communicator(const recipe& rec,
 
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
-    std::vector<unsigned> src_domains;
-    src_domains.reserve(n_cons);
-    std::vector<cell_size_type> src_counts(num_domains_);
+
+    const auto threads = thread_pool_->get_num_threads();
+    const auto conns_per_thread = n_cons / threads;
+
+    std::size_t conns_used = 0;
+    chunk_part_.push_back(0);
+    std::vector<std::size_t> chunk_conns;
     
-    for (const auto& cell: gid_infos) {
-        for (auto c: cell.conns) {
-            auto src = dom_dec.gid_domain(c.source.gid);
-            src_domains.push_back(src);
-            src_counts[src]++;
+    cell_size_type id;
+    for (id: make_span(gid_infos.size())) {
+        auto&& cell = gid_infos[id];
+        const auto conns = cell.conns.size();
+        conns_used += conns;
+        if (conns_used >= conns_per_thread) {
+            chunk_part_.push_back(id+1);
+            chunk_conns.push_back(conns_used);
+            conns_used = 0;
         }
     }
-
-    // Construct the connections.
-    // The loop above gave the information required to construct in place
-    // the connections as partitioned by the domain of their source gid.
-    connections_.resize(n_cons);
-    connection_part_ = algorithms::make_index(src_counts);
-    auto offsets = connection_part_;
-    std::size_t pos = 0;
-    for (const auto& cell: gid_infos) {
-        for (auto c: cell.conns) {
-            const auto i = offsets[src_domains[pos]]++;
-            connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
-            ++pos;
-        }
+    if (conns_used) {
+        chunk_part_.push_back(id+1);
+        chunk_conns.push_back(conns_used);
     }
 
-    // Build cell partition by group for passing events to cell groups
-    index_part_ = util::make_partition(index_divisions_,
-        util::transform_view(
-            dom_dec.groups,
-            [](const group_description& g){return g.gids.size();}));
+    num_chunks_ = chunk_part.size()-1;
+    connections_.resize(num_chunks_);
+    connection_part_.resize(num_chunks_);
+    index_divisions_.resize(num_chunks_);
+    index_part_.resize(num_chunks_)
+    
+    threading_parallel_for::apply(0, num_chunks_, thread_pool_.get(),
+        [&](std::size_t chunk) {
+            auto chunk_gid_infos = subrange_view(gid_infos, chunk_part[chunk], chunk_part[chunk+1]);
+            auto chunk_n_cons = chunk_conns[chunk];
+            auto& chunk_connections = connections_[chunk];
+            auto& chunk_index_divisions = index_divisions_[chunk];
+    
+            std::vector<unsigned> src_domains;
+            src_domains.reserve(chunk_n_cons);
+            std::vector<cell_size_type> src_counts(num_domains_);
+    
+            for (const auto& cell: chunk_gid_infos) {
+                for (auto c: cell.conns) {
+                    auto src = dom_dec.gid_domain(c.source.gid);
+                    src_domains.push_back(src);
+                    src_counts[src]++;
+                }
+            }
 
-    // Sort the connections for each domain.
-    // This is num_domains_ independent sorts, so it can be parallelized trivially.
-    const auto& cp = connection_part_;
-    threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
-        [&](cell_size_type i) {
-            util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
+            // Construct the connections.
+            // The loop above gave the information required to construct in place
+            // the connections as partitioned by the domain of their source gid.
+            chunk_connections_.resize(n_cons);
+            auto& chunk_connection_part_ = (
+                connection_part_[chunk] = algorithms::make_index(src_counts));
+            auto offsets = chunk_connection_part_;
+            std::size_t pos = 0;
+            for (const auto& cell: chunk_gid_infos) {
+                for (auto c: cell.conns) {
+                    const auto i = offsets[src_domains[pos]]++;
+                    chunk_connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+                    ++pos;
+                }
+            }
+
+            // Build cell partition by group for passing events to cell groups
+            auto& chunk_index_part_ = (
+                index_part_[chunk] = util::make_partition(index_divisions_,
+                    util::transform_view(
+                        dom_dec.groups,
+                        [](const group_description& g){return g.gids.size();})));
+
+            // Sort the connections for each domain.
+            // This is num_domains_ independent sorts, so it can be parallelized trivially.
+            const auto& cp = chunk_connection_part_;
+            threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
+                [&](cell_size_type i) {
+                    util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
+                });
         });
 }
 
@@ -160,34 +200,13 @@ static void make_queues_by_conns(
         {return src<spk.source;}
     };
 
-    auto&& d = prefetch::make_prefetch(
-        prefetch::write,
-        prefetch::ARB_PREFETCH_LOCALITY,
-        std::get<0>(prefetch_buffers),
-        [] (auto&& buf) noexcept {
-            auto q = std::get<0>(buf);
-            auto b = std::get<1>(buf);
-            auto e = std::get<2>(buf);
-            auto c = std::get<3>(buf);
-            for (auto s: make_range(b, e)) {
-                q->push_back(c->make_event(s));
-            }
-        });
-    
-    auto&& p = prefetch::make_prefetch(
-        prefetch::write,
-        prefetch::ARB_PREFETCH_LOCALITY,
-        std::get<1>(prefetch_buffers),
-        [&d] (auto&& buf) noexcept { // speculate that the next append is simple
-            auto q = std::get<0>(buf);
-            d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
-        });
-    
     while (cn != cend && sp!=send) {
         auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
         if (spikes.first != spikes.second) {
             auto q = queues.begin() + cn->index_on_domain();
-            p.store(q, q, spikes.first, spikes.second, cn);
+            for (auto s: make_range(spikes.first, spikes.second)) {
+                q->push_back(cn->make_event(*s));
+            }
         }
         
         sp = spikes.first; // should be first, range of connections may have same source
@@ -203,30 +222,11 @@ static void make_queues_by_spikes(
     const std::vector<spike>::const_iterator send,
     communicator::prefetch_spike_buffers& prefetch_buffers)
 {
-    auto&& d = prefetch::make_prefetch(
-        prefetch::write,
-        prefetch::ARB_PREFETCH_LOCALITY,
-        std::get<0>(prefetch_buffers),
-        [] (auto&& buf) noexcept {
-            auto q = std::get<0>(buf);
-            auto s = std::get<1>(buf);
-            auto c = std::get<2>(buf);
-            q->push_back(c->make_event(*s)); 
-        });
-
-    auto&& p = prefetch::make_prefetch(
-        prefetch::write,
-        prefetch::ARB_PREFETCH_LOCALITY,
-        std::get<1>(prefetch_buffers),
-        [&d] (auto&& buf) noexcept {// speculate that the next append is simple
-            auto q = std::get<0>(buf);
-            d.store(q->data()+q->size(), std::forward<decltype(buf)>(buf));
-        });
-
     while (cn!=cend && sp!=send) {
         auto targets = std::equal_range(cn, cend, sp->source);
         for (auto c = targets.first; c != targets.second; c++) {
             auto q = queues.begin() + c->index_on_domain();
+            q->push_back(c->make_event(*sp));
             p.store(q, q, sp, c);
         }
 
@@ -245,27 +245,31 @@ void communicator::make_event_queues(
     using util::make_span;
 
     const auto& sp = global_spikes.partition();
-    const auto& cp = connection_part_;
-    for (auto dom: make_span(num_domains_)) {
-        auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
-        auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
+    threading::parallel_for::apply(0, num_chunks_, thread_pool_get(),
+        [&](std::size_t chunk) {
+            const auto& cp = connection_part_[chunk];
+            for (auto dom: make_span(num_domains_)) {
+                auto cons = subrange_view(connections_[chunk], cp[dom], cp[dom+1]);
+                auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
+                auto chunk_queues = subrange_view(queues, chunk_part_[chunk], chunk_part_[chunk+1]);
 
-        // We have a choice of whether to walk spikes or connections:
-        // i.e., we can iterate over the spikes, and for each spike search
-        // the for connections that have the same source; or alternatively
-        // for each connection, we can search the list of spikes for spikes
-        // with the same source.
-        //
-        // We iterate over whichever set is the smallest, which has
-        // complexity of order max(S log(C), C log(S)), where S is the
-        // number of spikes, and C is the number of connections.
-        if (cons.size()<spks.size()) {
-            make_queues_by_conns(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_range_buffers_); 
-        }
-        else {
-            make_queues_by_spikes(queues, cons.begin(), cons.end(), spks.begin(), spks.end(), prefetch_spike_buffers_);
-        }
-    }
+                // We have a choice of whether to walk spikes or connections:
+                // i.e., we can iterate over the spikes, and for each spike search
+                // the for connections that have the same source; or alternatively
+                // for each connection, we can search the list of spikes for spikes
+                // with the same source.
+                //
+                // We iterate over whichever set is the smallest, which has
+                // complexity of order max(S log(C), C log(S)), where S is the
+                // number of spikes, and C is the number of connections.
+                if (cons.size()<spks.size()) {
+                    make_queues_by_conns(chunk_queues, cons.begin(), cons.end(), spks.begin(), spks.end()); 
+                }
+                else {
+                    make_queues_by_spikes(chunk_queues, cons.begin(), cons.end(), spks.begin(), spks.end());
+                }
+            }
+        });
 }
 
 std::uint64_t communicator::num_spikes() const {

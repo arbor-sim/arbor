@@ -12,7 +12,6 @@
 #include "connection.hpp"
 #include "execution_context.hpp"
 #include "util/partition.hpp"
-#include "util/prefetch.hpp"
 
 namespace arb {
 
@@ -85,17 +84,16 @@ private:
     cell_size_type num_local_cells_;
     cell_size_type num_local_groups_;
     cell_size_type num_domains_;
-    std::vector<connection> connections_;
-    std::vector<cell_size_type> connection_part_;
-    std::vector<cell_size_type> index_divisions_;
-    util::partition_view_type<std::vector<cell_size_type>> index_part_;
+    cells_size_type num_chunks_;
+    std::vector<std::vector<connection>> connections_;
+    std::vector<std::vector<cell_size_type>> connection_part_;
+    std::vector<std::vector<cell_size_type>> index_divisions_;
+    std::vector<util::partition_view_type<std::vector<cell_size_type>>> index_part_;
+    std::vector<cell_size_type> chunk_part_;
 
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
-
-    prefetch_spike_buffers prefetch_spike_buffers_;
-    prefetch_spike_range_buffers prefetch_spike_range_buffers_;
 };
 
 } // namespace arb
