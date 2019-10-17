@@ -625,8 +625,11 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
     // x(t)   are stored in dvar_init_ and are constant across iterations of Newton's method
     // G(x)   is the rhs of the derivative assignment expression
 
-    expression_ptr  F_x;
+    expression_ptr F_x;
     F_x = make_expression<MulBinaryExpression>(loc, expanded_rhs->clone(), dt_expr->clone());
+    if (scale_factor_[deq_index_]) {
+        F_x = make_expression<DivBinaryExpression>(loc, std::move(F_x), scale_factor_[deq_index_]->clone());
+    }
     F_x = make_expression<AddBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_init_[deq_index_]), std::move(F_x));
     F_x = make_expression<SubBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_temp_[deq_index_]), std::move(F_x));
 
