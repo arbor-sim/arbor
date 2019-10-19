@@ -75,7 +75,6 @@ communicator::communicator(const recipe& rec,
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
 
-    connections_ext_.resize(n_cons);
     const auto threads = thread_pool_->get_num_threads();
     const auto conns_per_thread = n_cons / threads;
 
@@ -84,9 +83,10 @@ communicator::communicator(const recipe& rec,
     std::vector<std::size_t> chunk_conns;
     index_chunk_.reserve(num_local_cells_);
     
-    cell_size_type id, chunk_id=0, chunk_number=0;
+    cell_size_type id, chunk_id=0;
+    num_chunks_ = 0;
     for (id = 0; id < gid_infos.size(); id++) {
-        index_chunk_.push_back(std::make_pair(chunk_number, chunk_id));
+        index_chunk_.push_back(std::make_pair(num_chunks_, chunk_id));
         ++chunk_id;
         
         auto&& cell = gid_infos[id];
@@ -95,18 +95,19 @@ communicator::communicator(const recipe& rec,
         if (conns_used >= conns_per_thread) {
             chunk_part_.push_back(id+1);
             chunk_conns.push_back(conns_used);
-            conns_used = 0;
             
+            conns_used = 0;
             chunk_id = 0;
-            ++chunk_number;
+            ++num_chunks_;
         }
     }
     if (conns_used) {
         chunk_part_.push_back(id+1);
         chunk_conns.push_back(conns_used);
+        ++num_chunks_;
     }
 
-    num_chunks_ = chunk_part_.size()-1;
+    connections_ext_.resize(n_cons);    
     connections_.resize(num_chunks_);
     connection_part_.resize(num_chunks_);
     index_divisions_.resize(num_chunks_);
