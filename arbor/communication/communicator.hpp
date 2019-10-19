@@ -65,27 +65,14 @@ public:
 
     void reset();
 
-    using prefetch_spike_buffer = prefetch::buffer<
-        ARB_PREFETCH_SIZE,
-        std::vector<pse_vector>::iterator,
-        std::vector<spike>::const_iterator,
-        std::vector<connection>::iterator>;
-    using prefetch_spike_buffers = std::tuple<prefetch_spike_buffer, prefetch_spike_buffer>;
-
-    using prefetch_spike_range_buffer = prefetch::buffer<
-        ARB_PREFETCH_SIZE,
-        std::vector<pse_vector>::iterator,
-        std::vector<spike>::const_iterator,
-        std::vector<spike>::const_iterator,
-        std::vector<connection>::iterator>;
-    using prefetch_spike_range_buffers = std::tuple<prefetch_spike_range_buffer, prefetch_spike_range_buffer>;
-
 private:
     cell_size_type num_local_cells_;
     cell_size_type num_local_groups_;
     cell_size_type num_domains_;
-    cells_size_type num_chunks_;
+    cell_size_type num_chunks_;
+    std::vector<std::pair<cell_size_type, cell_size_type>> index_chunk_;
     std::vector<std::vector<connection>> connections_;
+    std::vector<connection> connections_ext_;
     std::vector<std::vector<cell_size_type>> connection_part_;
     std::vector<std::vector<cell_size_type>> index_divisions_;
     std::vector<util::partition_view_type<std::vector<cell_size_type>>> index_part_;

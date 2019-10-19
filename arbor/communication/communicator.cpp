@@ -17,7 +17,6 @@
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/prefetch.hpp"
 
 #include "communication/communicator.hpp"
 
@@ -27,6 +26,8 @@ communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
                            execution_context& ctx)
 {
+    using util::subrange_view;
+
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
 
@@ -74,15 +75,20 @@ communicator::communicator(const recipe& rec,
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
 
+    connections_ext_.resize(n_cons);
     const auto threads = thread_pool_->get_num_threads();
     const auto conns_per_thread = n_cons / threads;
 
     std::size_t conns_used = 0;
     chunk_part_.push_back(0);
     std::vector<std::size_t> chunk_conns;
+    index_chunk_.reserve(num_local_cells_);
     
-    cell_size_type id;
-    for (id: make_span(gid_infos.size())) {
+    cell_size_type id, chunk_id=0, chunk_number=0;
+    for (id = 0; id < gid_infos.size(); id++) {
+        index_chunk_.push_back(std::make_pair(chunk_number, chunk_id));
+        ++chunk_id;
+        
         auto&& cell = gid_infos[id];
         const auto conns = cell.conns.size();
         conns_used += conns;
@@ -90,6 +96,9 @@ communicator::communicator(const recipe& rec,
             chunk_part_.push_back(id+1);
             chunk_conns.push_back(conns_used);
             conns_used = 0;
+            
+            chunk_id = 0;
+            ++chunk_number;
         }
     }
     if (conns_used) {
@@ -97,15 +106,15 @@ communicator::communicator(const recipe& rec,
         chunk_conns.push_back(conns_used);
     }
 
-    num_chunks_ = chunk_part.size()-1;
+    num_chunks_ = chunk_part_.size()-1;
     connections_.resize(num_chunks_);
     connection_part_.resize(num_chunks_);
     index_divisions_.resize(num_chunks_);
-    index_part_.resize(num_chunks_)
+    index_part_.resize(num_chunks_);
     
-    threading_parallel_for::apply(0, num_chunks_, thread_pool_.get(),
+    threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
         [&](std::size_t chunk) {
-            auto chunk_gid_infos = subrange_view(gid_infos, chunk_part[chunk], chunk_part[chunk+1]);
+            auto chunk_gid_infos = subrange_view(gid_infos, chunk_part_[chunk], chunk_part_[chunk+1]);
             auto chunk_n_cons = chunk_conns[chunk];
             auto& chunk_connections = connections_[chunk];
             auto& chunk_index_divisions = index_divisions_[chunk];
@@ -125,45 +134,47 @@ communicator::communicator(const recipe& rec,
             // Construct the connections.
             // The loop above gave the information required to construct in place
             // the connections as partitioned by the domain of their source gid.
-            chunk_connections_.resize(n_cons);
-            auto& chunk_connection_part_ = (
+            chunk_connections.resize(chunk_n_cons);
+            auto& chunk_connection_part = (
                 connection_part_[chunk] = algorithms::make_index(src_counts));
-            auto offsets = chunk_connection_part_;
+            auto offsets = chunk_connection_part;
             std::size_t pos = 0;
             for (const auto& cell: chunk_gid_infos) {
                 for (auto c: cell.conns) {
                     const auto i = offsets[src_domains[pos]]++;
-                    chunk_connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+                    connections_ext_[i] = chunk_connections[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
                     ++pos;
                 }
             }
 
             // Build cell partition by group for passing events to cell groups
-            auto& chunk_index_part_ = (
-                index_part_[chunk] = util::make_partition(index_divisions_,
+            index_part_[chunk] = util::make_partition(chunk_index_divisions,
                     util::transform_view(
                         dom_dec.groups,
-                        [](const group_description& g){return g.gids.size();})));
+                        [](const group_description& g){return g.gids.size();}));
 
             // Sort the connections for each domain.
             // This is num_domains_ independent sorts, so it can be parallelized trivially.
-            const auto& cp = chunk_connection_part_;
+            const auto& cp = chunk_connection_part;
             threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
                 [&](cell_size_type i) {
-                    util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
+                    util::sort(util::subrange_view(chunk_connections, cp[i], cp[i+1]));
                 });
         });
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
     arb_assert(i<num_local_groups_);
-    return index_part_[i];
+    auto&& id = index_chunk_[i];
+    return index_part_[id.first][id.second];
 }
 
 time_type communicator::min_delay() {
     auto local_min = std::numeric_limits<time_type>::max();
-    for (auto& con : connections_) {
-        local_min = std::min(local_min, con.delay());
+    for (auto&& chunk_connections : connections_) {
+        for (auto&& con: chunk_connections) {
+            local_min = std::min(local_min, con.delay());
+        }
     }
 
     return distributed_->min(local_min);
@@ -189,8 +200,7 @@ static void make_queues_by_conns(
     std::vector<connection>::iterator cn,
     const std::vector<connection>::iterator cend,
     std::vector<spike>::const_iterator sp,
-    const std::vector<spike>::const_iterator send,
-    communicator::prefetch_spike_range_buffers& prefetch_buffers)
+    const std::vector<spike>::const_iterator send)
 {
     using util::make_range;
     struct spike_pred {
@@ -202,11 +212,9 @@ static void make_queues_by_conns(
 
     while (cn != cend && sp!=send) {
         auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
-        if (spikes.first != spikes.second) {
-            auto q = queues.begin() + cn->index_on_domain();
-            for (auto s: make_range(spikes.first, spikes.second)) {
-                q->push_back(cn->make_event(*s));
-            }
+        auto& q = queues[cn->index_on_domain()];
+        for (auto&& s: make_range(spikes.first, spikes.second)) {
+            q.push_back(cn->make_event(s));
         }
         
         sp = spikes.first; // should be first, range of connections may have same source
@@ -219,15 +227,15 @@ static void make_queues_by_spikes(
     std::vector<connection>::iterator cn,
     const std::vector<connection>::iterator cend,
     std::vector<spike>::const_iterator sp,
-    const std::vector<spike>::const_iterator send,
-    communicator::prefetch_spike_buffers& prefetch_buffers)
+    const std::vector<spike>::const_iterator send)
 {
+    using util::make_range;
+
     while (cn!=cend && sp!=send) {
         auto targets = std::equal_range(cn, cend, sp->source);
-        for (auto c = targets.first; c != targets.second; c++) {
-            auto q = queues.begin() + c->index_on_domain();
-            q->push_back(c->make_event(*sp));
-            p.store(q, q, sp, c);
+        for (auto&& c: make_range(targets)) {
+            auto& q = queues[c.index_on_domain()];
+            q.push_back(c.make_event(*sp));
         }
 
         cn = targets.second; // range of connections with this source handled
@@ -245,14 +253,13 @@ void communicator::make_event_queues(
     using util::make_span;
 
     const auto& sp = global_spikes.partition();
-    threading::parallel_for::apply(0, num_chunks_, thread_pool_get(),
+    threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
         [&](std::size_t chunk) {
             const auto& cp = connection_part_[chunk];
             for (auto dom: make_span(num_domains_)) {
                 auto cons = subrange_view(connections_[chunk], cp[dom], cp[dom+1]);
                 auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
-                auto chunk_queues = subrange_view(queues, chunk_part_[chunk], chunk_part_[chunk+1]);
-
+                
                 // We have a choice of whether to walk spikes or connections:
                 // i.e., we can iterate over the spikes, and for each spike search
                 // the for connections that have the same source; or alternatively
@@ -263,10 +270,10 @@ void communicator::make_event_queues(
                 // complexity of order max(S log(C), C log(S)), where S is the
                 // number of spikes, and C is the number of connections.
                 if (cons.size()<spks.size()) {
-                    make_queues_by_conns(chunk_queues, cons.begin(), cons.end(), spks.begin(), spks.end()); 
+                    make_queues_by_conns(queues, cons.begin(), cons.end(), spks.begin(), spks.end()); 
                 }
                 else {
-                    make_queues_by_spikes(chunk_queues, cons.begin(), cons.end(), spks.begin(), spks.end());
+                    make_queues_by_spikes(queues, cons.begin(), cons.end(), spks.begin(), spks.end());
                 }
             }
         });
@@ -281,7 +288,7 @@ cell_size_type communicator::num_local_cells() const {
 }
 
 const std::vector<connection>& communicator::connections() const {
-    return connections_;
+    return connections_ext_;
 }
 
 void communicator::reset() {
