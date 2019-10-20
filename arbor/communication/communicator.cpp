@@ -63,13 +63,14 @@ communicator::communicator(const recipe& rec,
     for (auto g: dom_dec.groups) {
         util::append(gids, g.gids);
     }
+    
     // Build the connection information for local cells in parallel.
     std::vector<gid_info> gid_infos;
     gid_infos.resize(num_local_cells_);
     threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
         [&](cell_size_type i) {
             auto gid = gids[i];
-            gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
+            gid_infos[i] = gid_info{gid, i, rec.connections_on(gid)};
         });
 
     cell_local_size_type n_cons =
@@ -78,12 +79,16 @@ communicator::communicator(const recipe& rec,
     const auto threads = thread_pool_->get_num_threads();
     const auto conns_per_thread = n_cons / threads;
 
-    std::size_t conns_used = 0;
-    chunk_part_.push_back(0);
-    std::vector<std::size_t> chunk_conns;
+    // split cells into approximately equal numbers of connection chunks with approximately thread-number chunks
+    std::size_t conns_used = 0; // number of conns in current chunk
+    std::vector<std::size_t> chunk_conns; // number of conns by chunk
+    cell_list chunk_part;  // partition local cells into chunks [0, n-chunk-1, n-chunk-1+2 .... num-cells]
+
     index_chunk_.reserve(num_local_cells_);
+    chunk_part.push_back(0);
     
-    cell_size_type id, chunk_id=0;
+    cell_size_type id;
+    cell_size_type chunk_id = 0;
     num_chunks_ = 0;
     for (id = 0; id < gid_infos.size(); id++) {
         index_chunk_.push_back(std::make_pair(num_chunks_, chunk_id));
@@ -93,7 +98,7 @@ communicator::communicator(const recipe& rec,
         const auto conns = cell.conns.size();
         conns_used += conns;
         if (conns_used >= conns_per_thread) {
-            chunk_part_.push_back(id+1);
+            chunk_part.push_back(id+1);
             chunk_conns.push_back(conns_used);
             
             conns_used = 0;
@@ -101,22 +106,23 @@ communicator::communicator(const recipe& rec,
             ++num_chunks_;
         }
     }
-    if (conns_used) {
-        chunk_part_.push_back(id+1);
+    if (conns_used) { // handle left over chunk
+        chunk_part.push_back(id+1);
         chunk_conns.push_back(conns_used);
         ++num_chunks_;
     }
 
-    connections_ext_.resize(n_cons);    
+    // now partitions applied by chunk
     connections_.resize(num_chunks_);
+    connections_ext_.resize(n_cons);    
     connection_part_.resize(num_chunks_);
-    index_divisions_.resize(num_chunks_);
     index_part_.resize(num_chunks_);
+    index_divisions_.resize(num_chunks_);
     
     threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
-        [&](std::size_t chunk) {
-            auto chunk_gid_infos = subrange_view(gid_infos, chunk_part_[chunk], chunk_part_[chunk+1]);
-            auto chunk_n_cons = chunk_conns[chunk];
+        [&](cell_size_type chunk) {
+            auto chunk_gid_infos = subrange_view(gid_infos, chunk_part[chunk], chunk_part[chunk+1]);
+            const auto chunk_n_cons = chunk_conns[chunk];
             auto& chunk_connections = connections_[chunk];
             auto& chunk_index_divisions = index_divisions_[chunk];
     
@@ -124,7 +130,7 @@ communicator::communicator(const recipe& rec,
             src_domains.reserve(chunk_n_cons);
             std::vector<cell_size_type> src_counts(num_domains_);
     
-            for (const auto& cell: chunk_gid_infos) {
+            for (auto&& cell: chunk_gid_infos) {
                 for (auto c: cell.conns) {
                     auto src = dom_dec.gid_domain(c.source.gid);
                     src_domains.push_back(src);
@@ -136,11 +142,12 @@ communicator::communicator(const recipe& rec,
             // The loop above gave the information required to construct in place
             // the connections as partitioned by the domain of their source gid.
             chunk_connections.resize(chunk_n_cons);
-            auto& chunk_connection_part = (
-                connection_part_[chunk] = algorithms::make_index(src_counts));
+            connection_part_[chunk] = algorithms::make_index(src_counts);
+            auto& chunk_connection_part = connection_part_[chunk];
+            
             auto offsets = chunk_connection_part;
             std::size_t pos = 0;
-            for (const auto& cell: chunk_gid_infos) {
+            for (auto&& cell: chunk_gid_infos) {
                 for (auto c: cell.conns) {
                     const auto i = offsets[src_domains[pos]]++;
                     connections_ext_[i] = chunk_connections[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};

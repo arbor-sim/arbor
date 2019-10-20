@@ -70,13 +70,20 @@ private:
     cell_size_type num_local_groups_;
     cell_size_type num_domains_;
     cell_size_type num_chunks_;
-    std::vector<std::pair<cell_size_type, cell_size_type>> index_chunk_;
-    std::vector<std::vector<connection>> connections_;
-    std::vector<connection> connections_ext_;
-    std::vector<std::vector<cell_size_type>> connection_part_;
-    std::vector<std::vector<cell_size_type>> index_divisions_;
-    std::vector<util::partition_view_type<std::vector<cell_size_type>>> index_part_;
-    std::vector<cell_size_type> chunk_part_;
+
+    using cell_pair = std::pair<cell_size_type, cell_size_type>;  // chunk# and offset within chunk for a cell
+    std::vector<cell_pair> index_chunk_; // cell id -> cell_pair
+
+    using connection_list = std::vector<connection>;
+    std::vector<connection_list> connections_; // connections broken into chunks
+    connection_list connections_ext_; // same list, but flattened for external use
+
+    using cell_list = std::vector<cell_size_type>;
+    std::vector<cell_list> connection_part_; // partition connections_ by cells, partitioned by chunks
+
+    using group_partition = util::partition_view_type<cell_list>; 
+    std::vector<group_partition> index_part_; // partition cells by 'group' (?), partitioned by chunks
+    std::vector<cell_list> index_divisions_; // underlying division for index_part_ (?), partitioned by chunks
 
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
