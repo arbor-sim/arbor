@@ -658,8 +658,8 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
                                                         r.coef[dvars_[j]]->clone(),
                                                         dt_expr->clone());
 
-            if (scale_factor_[j]) {
-                J_x =  make_expression<DivBinaryExpression>(loc, std::move(J_x), scale_factor_[j]->clone());
+            if (scale_factor_[deq_index_]) {
+                J_x =  make_expression<DivBinaryExpression>(loc, std::move(J_x), scale_factor_[deq_index_]->clone());
             }
         }
 
