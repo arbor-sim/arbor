@@ -106,8 +106,8 @@ communicator::communicator(const recipe& rec,
             ++num_chunks_;
         }
     }
-    if (conns_used) { // handle left over chunk
-        chunk_part.push_back(id+1);
+    if (gid_infos.size() != chunk_part.back()) {
+        chunk_part.push_back(gid_infos.size());
         chunk_conns.push_back(conns_used);
         ++num_chunks_;
     }
@@ -218,7 +218,7 @@ static void make_queues_by_conns(
         {return src<spk.source;}
     };
 
-    while (cn != cend && sp!=send) {
+    while (cn != cend && sp != send) {
         auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
         auto& q = queues[cn->index_on_domain()];
         for (auto&& s: make_range(spikes.first, spikes.second)) {
@@ -239,7 +239,7 @@ static void make_queues_by_spikes(
 {
     using util::make_range;
 
-    while (cn!=cend && sp!=send) {
+    while (cn != cend && sp != send) {
         auto targets = std::equal_range(cn, cend, sp->source);
         for (auto&& c: make_range(targets)) {
             auto& q = queues[c.index_on_domain()];
@@ -262,7 +262,7 @@ void communicator::make_event_queues(
 
     const auto& sp = global_spikes.partition();
     threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
-        [&](std::size_t chunk) {
+        [&](cell_size_type chunk) {
             const auto& cp = connection_part_[chunk];
             for (auto dom: make_span(num_domains_)) {
                 auto cons = subrange_view(connections_[chunk], cp[dom], cp[dom+1]);
