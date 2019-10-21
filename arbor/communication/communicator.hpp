@@ -61,7 +61,7 @@ public:
 
     cell_size_type num_local_cells() const;
 
-    const std::vector<connection>& connections() const;
+    const std::vector<connection>& connections() const; // do we need this?
 
     void reset();
 
@@ -76,7 +76,7 @@ private:
 
     using connection_list = std::vector<connection>;
     std::vector<connection_list> connections_; // connections broken into chunks, ordered by domains
-    connection_list connections_ext_; // same list, but flattened for external use, ordered by cell id
+    connection_list connections_ext_; // same list, but flattened for external use, ordered by cell id (is this needed?)
 
     using cell_list = std::vector<cell_size_type>;
     std::vector<cell_list> connection_part_; // partition connections_ by cells, partitioned by chunks
