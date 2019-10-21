@@ -27,6 +27,7 @@ communicator::communicator(const recipe& rec,
                            execution_context& ctx)
 {
     using util::subrange_view;
+    using util::make_span;
 
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -81,14 +82,17 @@ communicator::communicator(const recipe& rec,
 
     // split cells into approximately equal numbers of connection chunks with approximately thread-number chunks
     std::size_t conns_used = 0; // number of conns in current chunk
-    std::vector<std::size_t> chunk_conns; // number of conns by chunk
+    std::vector<cell_size_type> chunk_conns; // number of conns by chunk
     cell_list chunk_part;  // partition local cells into chunks [0, n-chunk-1, n-chunk-1+2 .... num-cells]
+    std::vector<cell_size_type> conns_part;
 
     index_chunk_.reserve(num_local_cells_);
     chunk_part.push_back(0);
+    conns_part.push_back(0);
     
     cell_size_type id;
     cell_size_type chunk_id = 0;
+    cell_size_type conns_part_used = 0;
     num_chunks_ = 0;
     for (id = 0; id < gid_infos.size(); id++) {
         index_chunk_.push_back(std::make_pair(num_chunks_, chunk_id));
@@ -100,6 +104,8 @@ communicator::communicator(const recipe& rec,
         if (conns_used >= conns_per_thread) {
             chunk_part.push_back(id+1);
             chunk_conns.push_back(conns_used);
+            conns_part_used += conns_used;
+            conns_part.push_back(conns_part_used);
             
             conns_used = 0;
             chunk_id = 0;
@@ -109,6 +115,9 @@ communicator::communicator(const recipe& rec,
     if (gid_infos.size() != chunk_part.back()) {
         chunk_part.push_back(gid_infos.size());
         chunk_conns.push_back(conns_used);
+        conns_part_used += conns_used;
+        conns_part.push_back(conns_part_used);
+        
         ++num_chunks_;
     }
 
@@ -118,12 +127,17 @@ communicator::communicator(const recipe& rec,
     index_part_.resize(num_chunks_);
     index_divisions_.resize(num_chunks_);
 
-    connections_ext_.reserve(n_cons);
-    for (auto&& cell: gid_infos) {
-        for (auto c: cell.conns) {
-            connections_ext_.push_back({c.source, c.dest, c.weight, c.delay, cell.index_on_domain});
-        }
-    }
+    connections_ext_.resize(n_cons);
+    threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
+        [&] (cell_size_type chunk) {
+            auto chunk_gid_infos = subrange_view(gid_infos, chunk_part[chunk], chunk_part[chunk+1]);
+            auto i = conns_part[chunk];
+            for (auto&& cell: chunk_gid_infos) {
+                for (auto c: cell.conns) {
+                    connections_ext_[i++] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+                }
+            }
+        });
     
     threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
         [&](cell_size_type chunk) {
