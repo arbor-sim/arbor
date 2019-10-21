@@ -39,12 +39,13 @@ communicator::communicator(const recipe& rec,
     // For caching information about each cell
     struct gid_info {
         using connection_list = decltype(std::declval<recipe>().connections_on(0));
-        cell_gid_type gid;              // global identifier of cell
-        cell_size_type index_on_domain; // index of cell in this domain
-        connection_list conns;          // list of connections terminating at this cell
         gid_info() = default;           // so we can in a std::vector
         gid_info(cell_gid_type g, cell_size_type di, connection_list c):
             gid(g), index_on_domain(di), conns(std::move(c)) {}
+
+        cell_gid_type gid;              // global identifier of cell
+        cell_size_type index_on_domain; // index of cell in this domain
+        connection_list conns;          // list of connections terminating at this cell
     };
 
     // Make a list of local gid with their group index and connections
