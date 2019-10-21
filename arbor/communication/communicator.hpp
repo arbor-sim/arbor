@@ -75,8 +75,8 @@ private:
     std::vector<cell_pair> index_chunk_; // cell id -> cell_pair
 
     using connection_list = std::vector<connection>;
-    std::vector<connection_list> connections_; // connections broken into chunks
-    connection_list connections_ext_; // same list, but flattened for external use
+    std::vector<connection_list> connections_; // connections broken into chunks, ordered by domains
+    connection_list connections_ext_; // same list, but flattened for external use, ordered by cell id
 
     using cell_list = std::vector<cell_size_type>;
     std::vector<cell_list> connection_part_; // partition connections_ by cells, partitioned by chunks

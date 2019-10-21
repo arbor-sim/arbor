@@ -114,10 +114,16 @@ communicator::communicator(const recipe& rec,
 
     // now partitions applied by chunk
     connections_.resize(num_chunks_);
-    connections_ext_.resize(n_cons);    
     connection_part_.resize(num_chunks_);
     index_part_.resize(num_chunks_);
     index_divisions_.resize(num_chunks_);
+
+    connections_ext_.reserve(n_cons);
+    for (auto&& cell: gid_infos) {
+        for (auto c: cell.conns) {
+            connections_ext_.push_back({c.source, c.dest, c.weight, c.delay, cell.index_on_domain});
+        }
+    }
     
     threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
         [&](cell_size_type chunk) {
@@ -150,7 +156,7 @@ communicator::communicator(const recipe& rec,
             for (auto&& cell: chunk_gid_infos) {
                 for (auto c: cell.conns) {
                     const auto i = offsets[src_domains[pos]]++;
-                    connections_ext_[i] = chunk_connections[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+                    chunk_connections[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
                     ++pos;
                 }
             }
@@ -221,7 +227,7 @@ static void make_queues_by_conns(
     while (cn != cend && sp != send) {
         auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
         auto& q = queues[cn->index_on_domain()];
-        for (auto&& s: make_range(spikes.first, spikes.second)) {
+        for (auto&& s: make_range(spikes)) {
             q.push_back(cn->make_event(s));
         }
         
