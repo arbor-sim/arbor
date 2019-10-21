@@ -164,6 +164,15 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     update_ion_state();
 
+    // Call initialize again
+    for (auto& m: revpot_mechanisms_) {
+        m->initialize();
+    }
+
+    for (auto& m: mechanisms_) {
+        m->initialize();
+    }
+
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
     threshold_watcher_.reset();
