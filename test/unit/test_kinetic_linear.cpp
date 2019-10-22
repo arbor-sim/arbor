@@ -198,6 +198,18 @@ TEST(mech_kinetic, kintetic_nonlinear) {
     run_test<gpu::backend>("test3_kin_diff", state_variables, {}, t0_values, t1_1_values, 0.025);
 }
 
+TEST(mech_kinetic, kintetic_nonlinear_scaled) {
+    std::vector<std::string> state_variables = {"A", "B", "C", "d", "e"};
+    std::vector<fvm_value_type> t0_values = {4.5, 6.6, 0.28, 2, 0};
+    std::vector<fvm_value_type> t1_values = {4.087281958014442,
+                                             6.224088678118931,
+                                             0.6559113218810689,
+                                             1.8315624742412617,
+                                             0.16843752575873824};
+
+    run_test<gpu::backend>("test4_kin_compartment", state_variables, {}, t0_values, t1_values, 0.1);
+}
+
 TEST(mech_linear_gpu, linear_system) {
     std::vector<std::string> state_variables = {"h", "s", "d"};
     std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
