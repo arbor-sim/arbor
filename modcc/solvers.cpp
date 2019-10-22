@@ -206,7 +206,8 @@ void SparseSolverVisitor::visit(CompartmentExpression *e) {
             return;
         }
         auto idx = it - dvars_.begin();
-        scale_factor_[idx] = e->scale_factor()->clone();
+        scale_factor_[idx] = make_expression<DivBinaryExpression>(
+                loc, make_expression<NumberExpression>(loc, 1.0), e->scale_factor()->clone());
     }
 }
 
@@ -272,7 +273,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
                     make_expression<MulBinaryExpression>(loc, r.coef[dvars_[j]]->clone(), dt_expr->clone());
 
             if (scale_factor_[j]) {
-                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
+                expr =  make_expression<MulBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
             }
         }
 
@@ -345,7 +346,7 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
         if (it != terms.end()) {
             auto expr = (*it)->is_stoich_term()->coeff()->clone();
             if (scale_factor_[j]) {
-                expr =  make_expression<MulBinaryExpression>(loc, scale_factor_[j]->clone(), std::move(expr));
+                expr =  make_expression<DivBinaryExpression>(loc, std::move(expr), scale_factor_[j]->clone());
             }
 
             auto local_a_term = make_unique_local_assign(scope, expr.get(), "a_");
@@ -578,7 +579,14 @@ void SparseNonlinearSolverVisitor::visit(CompartmentExpression *e) {
             return;
         }
         auto idx = it - dvars_.begin();
-        scale_factor_[idx] = e->scale_factor()->clone();
+
+        auto scale_inv = make_expression<DivBinaryExpression>(
+                loc, make_expression<NumberExpression>(loc, 1.0), e->scale_factor()->clone());
+        auto local_s_term = make_unique_local_assign(e->scope(), scale_inv.get(), "s_");
+
+        statements_.push_back(std::move(local_s_term.local_decl));
+        statements_.push_back(std::move(local_s_term.assignment));
+        scale_factor_[idx] = std::move(local_s_term.id);
     }
 }
 
@@ -620,15 +628,20 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
     auto dt_expr = make_expression<IdentifierExpression>(loc, "dt");
     auto one_expr = make_expression<NumberExpression>(loc, 1.0);
 
-    // Form and save F(x) = x(t+1) - x(t) - dt(G(x(t+1))
-    // x(t+1) are stored in dvar_temp_ and are updated at every iteration of Newton's method
-    // x(t)   are stored in dvar_init_ and are constant across iterations of Newton's method
-    // G(x)   is the rhs of the derivative assignment expression
+    // Form and save F(y) = y - x(t) - dt G(y)
+    // y    are stored in dvar_temp_ and are updated at every iteration of Newton's method
+    // x(t) are stored in dvar_init_ and are constant across iterations of Newton's method
+    // G(y) is the rhs of the derivative assignment expression
+    // Newton's method is used to find x(t+1) = y s.t. F(y) = 0.
+
+    // `scale_factors` multiply the lhs of a differential equation.
+    // After applying Backward Euler and Newton's method, the new F(y) is
+    // F(y) = y - x(t) - dt * diag(s^-1) * G(y)
 
     expression_ptr F_x;
     F_x = make_expression<MulBinaryExpression>(loc, expanded_rhs->clone(), dt_expr->clone());
     if (scale_factor_[deq_index_]) {
-        F_x = make_expression<DivBinaryExpression>(loc, std::move(F_x), scale_factor_[deq_index_]->clone());
+        F_x = make_expression<MulBinaryExpression>(loc, std::move(F_x), scale_factor_[deq_index_]->clone());
     }
     F_x = make_expression<AddBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_init_[deq_index_]), std::move(F_x));
     F_x = make_expression<SubBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, dvar_temp_[deq_index_]), std::move(F_x));
@@ -644,7 +657,10 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
     F_.push_back(std::move(local_f_term.assignment));
 
     // Form and save the Jacobian J(x) of F(x)
-    // J(x) = I - dt(∂G(x)/∂x)
+    // J(x) = I - dt * ∂G(x)/∂x
+    // If scale_factor[x] exists
+    // J(x) = I - dt * diag(s^-1) * ∂G(x)/∂x
+
     linear_test_result r = linear_test(expanded_rhs, dvars_);
     for (unsigned j = 0; j<dvars_.size(); ++j) {
         expression_ptr J_x;
@@ -659,7 +675,7 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
                                                         dt_expr->clone());
 
             if (scale_factor_[deq_index_]) {
-                J_x =  make_expression<DivBinaryExpression>(loc, std::move(J_x), scale_factor_[deq_index_]->clone());
+                J_x =  make_expression<MulBinaryExpression>(loc, std::move(J_x), scale_factor_[deq_index_]->clone());
             }
         }
 
