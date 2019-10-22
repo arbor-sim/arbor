@@ -121,6 +121,55 @@ public:
     }
 };
 
+class SparseNonlinearSolverVisitor : public SolverVisitorBase {
+protected:
+    // 'Current' differential equation is for variable with this
+    // index in `dvars`.
+    unsigned deq_index_ = 0;
+
+    // Expanded local assignments that need to be substituted in for derivative
+    // calculations.
+    substitute_map local_expr_;
+
+    // F(x) and the Jacobian J(x) for every state variable
+    // Needed for Newton's method
+    std::vector<expression_ptr> F_;
+    std::vector<expression_ptr> J_;
+
+    std::vector<std::string> dvar_temp_;
+    std::vector<std::string> dvar_init_;
+
+    // Symbolic matrix for backwards Euler step.
+    symge::sym_matrix A_;
+
+    // 'Symbol table' for symbolic manipulation.
+    symge::symbol_table symtbl_;
+
+    // State variable multiplier/divider
+    std::vector<expression_ptr> scale_factor_;
+
+public:
+    using SolverVisitorBase::visit;
+
+    SparseNonlinearSolverVisitor() {}
+    SparseNonlinearSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
+
+    virtual void visit(BlockExpression* e) override;
+    virtual void visit(AssignmentExpression *e) override;
+    virtual void visit(CompartmentExpression *e) override;
+    virtual void visit(ConserveExpression *e) override {};
+    virtual void finalize() override;
+    virtual void reset() override {
+        deq_index_ = 0;
+        local_expr_.clear();
+        F_.clear();
+        J_.clear();
+        symtbl_.clear();
+        scale_factor_.clear();
+        SolverVisitorBase::reset();
+    }
+};
+
 class LinearSolverVisitor : public SolverVisitorBase {
 protected:
     // 'Current' differential equation is for variable with this
