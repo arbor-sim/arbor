@@ -4,6 +4,7 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/morph/label_dict.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/util/unique_any.hpp>
@@ -242,13 +243,50 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", util::to_string<cell_parameters>)
         .def("__str__",  util::to_string<cell_parameters>);
 
-    // Wrap cable cell description type.
-    // Cable cells are going to be replaced with a saner API, so we don't go
-    // adding much in the way of interface. Instead we just provide a helper
-    // that will generate random cell morphologies for benchmarking.
-    pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell");
+    //
+    // arb::region
+    //
+    pybind11::class_<arb::region> region(m, "region");
+    region
+        .def(pybind11::init<>(),
+            "Default constructor creates empty/null region")
+        .def("__str__", [](const arb::region& r) {return util::pprintf("{}", r);})
+        .def("__repr__", [](const arb::region& r) {return util::pprintf("{}", r);});
 
+    m.def("reg_all", &arb::reg::all);
+    m.def("join", [](arb::region l, arb::region r){return join(l,r);});
+    m.def("reg_tag", &arb::reg::tagged);
+    m.def("reg_branch", &arb::reg::branch);
+
+    //
+    // arb::label_dict
+    //
+    pybind11::class_<arb::label_dict> label_dict(m, "label_dict");
+    label_dict
+        .def(pybind11::init<>())
+        .def("set",
+            [](arb::label_dict& l, const std::string& name, arb::locset ls) {
+                l.set(name, std::move(ls));})
+        .def("set",
+            [](arb::label_dict& l, const std::string& name, arb::region reg) {
+                l.set(name, std::move(reg));})
+        .def("size", &arb::label_dict::size)
+        .def("regions", &arb::label_dict::regions)
+        .def("locsets", &arb::label_dict::locsets)
+        .def("region", &arb::label_dict::region)
+        .def("locset", &arb::label_dict::locset);
+
+    //
+    // arb::cable_cell
+    //
+
+    pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell");
     cable_cell
+        .def(pybind11::init(
+            [](const arb::morphology& m, const arb::label_dict& labels, bool cfd) {
+                return arb::cable_cell(m, labels, cfd);
+            }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
+        .def_property_readonly("num_branches", [](const arb::morphology& m) {return m.num_branches();})
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});
 

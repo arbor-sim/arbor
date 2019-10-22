@@ -108,10 +108,8 @@ const std::vector<point_prop>& sample_tree::properties() const {
 }
 
 std::ostream& operator<<(std::ostream& o, const sample_tree& m) {
-    o << "sample_tree:"
-      << "\n  " << m.size() << " samples"
-      << "\n  samples [" << io::csv(m.samples_) <<  "]"
-      << "\n  parents [" << io::csv(m.parents_) <<  "]";
+    o << "(sample_tree (" << io::sepval(m.samples_, ' ') <<  ")"
+      << " (" << io::sepval(m.parents_, ' ') <<  "))";
     return o;
 }
 

@@ -117,8 +117,6 @@ region nil();
 // An explicit cable section.
 region cable(mcable);
 
-region interval(mlocation, mlocation);
-
 // An explicit branch.
 region branch(msize_t);
 
