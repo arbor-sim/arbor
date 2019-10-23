@@ -414,29 +414,32 @@ void SparseSolverVisitor::finalize() {
             row_elems.push_back(std::move(local_t_term.id));
         }
 
-        if (A_.size() > 0) {
+        if (A_.size() > 5) {
             expression_ptr max;
             //Get the max element in the row
             for (auto &elem: row_elems) {
+                auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
                 if (!max) {
-                    max = elem->is_identifier()->clone();
+                    max = std::move(abs);
                 } else {
-                    max = make_expression<MaxBinaryExpression>(Location{}, max->clone(), elem->is_identifier()->clone());
+                    max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
                 }
             }
+            // Safely inverse max
+            auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
 
-            // Create a symbol for it
-            auto local_max_term = make_unique_local_assign(block_scope_, max.get(), "max_");
-            auto max_ = local_max_term.id->is_identifier()->spelling();
+            // Create a symbol for inv
+            auto local_inv_term = make_unique_local_assign(block_scope_, inv.get(), "inv_");
+            auto inv_ = local_inv_term.id->is_identifier()->spelling();
 
-            statements_.push_back(std::move(local_max_term.local_decl));
-            statements_.push_back(std::move(local_max_term.assignment));
+            statements_.push_back(std::move(local_inv_term.local_decl));
+            statements_.push_back(std::move(local_inv_term.assignment));
 
             // Update the row elements
-            auto max_id = local_max_term.id->is_identifier();
+            auto inv_id = local_inv_term.id->is_identifier();
 
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<DivBinaryExpression>(elem->location(), elem->clone(), max_id->clone());
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), inv_id->clone());
                 auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
                 statements_.push_back(std::move(assign));
             }
@@ -542,29 +545,32 @@ void LinearSolverVisitor::finalize() {
             row_elems.push_back(std::move(local_t_term.id));
         }
 
-        if (A_.size() > 0) {
+        if (A_.size() > 5) {
             expression_ptr max;
             //Get the max element in the row
             for (auto &elem: row_elems) {
+                auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
                 if (!max) {
-                    max = elem->is_identifier()->clone();
+                    max = std::move(abs);
                 } else {
-                    max = make_expression<MaxBinaryExpression>(Location{}, max->clone(), elem->is_identifier()->clone());
+                    max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
                 }
             }
+            // Safely inverse max
+            auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
 
-            // Create a symbol for it
-            auto local_max_term = make_unique_local_assign(block_scope_, max.get(), "max_");
-            auto max_ = local_max_term.id->is_identifier()->spelling();
+            // Create a symbol for inv
+            auto local_inv_term = make_unique_local_assign(block_scope_, inv.get(), "inv_");
+            auto inv_ = local_inv_term.id->is_identifier()->spelling();
 
-            statements_.push_back(std::move(local_max_term.local_decl));
-            statements_.push_back(std::move(local_max_term.assignment));
+            statements_.push_back(std::move(local_inv_term.local_decl));
+            statements_.push_back(std::move(local_inv_term.assignment));
 
             // Update the row elements
-            auto max_id = local_max_term.id->is_identifier();
+            auto inv_id = local_inv_term.id->is_identifier();
 
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<DivBinaryExpression>(elem->location(), elem->clone(), max_id->clone());
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), inv_id->clone());
                 auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
                 statements_.push_back(std::move(assign));
             }
@@ -817,7 +823,7 @@ void SparseNonlinearSolverVisitor::finalize() {
             row_elems.push_back(std::move(local_t_term.id));
         }
 
-        if (A_.size() > 0) {
+        if (A_.size() > 5) {
             expression_ptr max;
             //Get the max element in the row
             for (auto &elem: row_elems) {
