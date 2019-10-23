@@ -393,29 +393,31 @@ void SparseSolverVisitor::finalize() {
     auto symbol_part = symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
+    for (unsigned i = 0; i < symtbl_.size(); ++i) {
+        symge::symbol s = symtbl_[i];
+
+        if (primitive(s)) continue;
+
+        auto expr = as_expression(definition(s));
+        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+        auto t_ = local_t_term.id->is_identifier()->spelling();
+        symtbl_.name(s, t_);
+
+        statements_.push_back(std::move(local_t_term.local_decl));
+        statements_.push_back(std::move(local_t_term.assignment));
+    }
+
     // If size of matrix > 5, normalize intermediate variables
-    for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
-        std::vector<expression_ptr> row_elems;
-        // Collect the elements in a single row to normalize
-        for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-            symge::symbol s = symtbl_[i];
+    if (A_.size() > 5) {
+        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+            // Collect the elements in a single row to normalize
+            std::vector<expression_ptr> row_elems;
+            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
+                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), name(symtbl_[i])));
+            }
 
-            if (primitive(s)) continue;
-
-            auto expr = as_expression(definition(s));
-            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-            auto t_ = local_t_term.id->is_identifier()->spelling();
-            symtbl_.name(s, t_);
-
-            statements_.push_back(std::move(local_t_term.local_decl));
-            statements_.push_back(std::move(local_t_term.assignment));
-
-            row_elems.push_back(std::move(local_t_term.id));
-        }
-
-        if (A_.size() > 5) {
+            // Get the max element in the row
             expression_ptr max;
-            //Get the max element in the row
             for (auto &elem: row_elems) {
                 auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
                 if (!max) {
@@ -429,16 +431,13 @@ void SparseSolverVisitor::finalize() {
 
             // Create a symbol for inv
             auto local_inv_term = make_unique_local_assign(block_scope_, inv.get(), "inv_");
-            auto inv_ = local_inv_term.id->is_identifier()->spelling();
 
             statements_.push_back(std::move(local_inv_term.local_decl));
             statements_.push_back(std::move(local_inv_term.assignment));
 
             // Update the row elements
-            auto inv_id = local_inv_term.id->is_identifier();
-
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), inv_id->clone());
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), std::move(local_inv_term.id));
                 auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
                 statements_.push_back(std::move(assign));
             }
@@ -523,29 +522,31 @@ void LinearSolverVisitor::finalize() {
     auto symbol_part = symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
+    for (unsigned i = 0; i < symtbl_.size(); ++i) {
+        symge::symbol s = symtbl_[i];
+
+        if (primitive(s)) continue;
+
+        auto expr = as_expression(definition(s));
+        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+        auto t_ = local_t_term.id->is_identifier()->spelling();
+        symtbl_.name(s, t_);
+
+        statements_.push_back(std::move(local_t_term.local_decl));
+        statements_.push_back(std::move(local_t_term.assignment));
+    }
+
     // If size of matrix > 5, normalize intermediate variables
-    for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
-        std::vector<expression_ptr> row_elems;
-        // Collect the elements in a single row to normalize
-        for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-            symge::symbol s = symtbl_[i];
+    if (A_.size() > 5) {
+        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+            // Collect the elements in a single row to normalize
+            std::vector<expression_ptr> row_elems;
+            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
+                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), name(symtbl_[i])));
+            }
 
-            if (primitive(s)) continue;
-
-            auto expr = as_expression(definition(s));
-            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-            auto t_ = local_t_term.id->is_identifier()->spelling();
-            symtbl_.name(s, t_);
-
-            statements_.push_back(std::move(local_t_term.local_decl));
-            statements_.push_back(std::move(local_t_term.assignment));
-
-            row_elems.push_back(std::move(local_t_term.id));
-        }
-
-        if (A_.size() > 5) {
+            // Get the max element in the row
             expression_ptr max;
-            //Get the max element in the row
             for (auto &elem: row_elems) {
                 auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
                 if (!max) {
@@ -559,16 +560,13 @@ void LinearSolverVisitor::finalize() {
 
             // Create a symbol for inv
             auto local_inv_term = make_unique_local_assign(block_scope_, inv.get(), "inv_");
-            auto inv_ = local_inv_term.id->is_identifier()->spelling();
 
             statements_.push_back(std::move(local_inv_term.local_decl));
             statements_.push_back(std::move(local_inv_term.assignment));
 
             // Update the row elements
-            auto inv_id = local_inv_term.id->is_identifier();
-
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), inv_id->clone());
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), std::move(local_inv_term.id));
                 auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
                 statements_.push_back(std::move(assign));
             }
@@ -796,33 +794,36 @@ void SparseNonlinearSolverVisitor::finalize() {
     }
 
     A_.augment(rhs);
+
     auto symbol_part = symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
-    // If size of matrix > 5, normalize intermediate variables
     std::vector<expression_ptr> S_;
-    for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
-        std::vector<expression_ptr> row_elems;
-        // Collect the elements in a single row to normalize
-        for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-            symge::symbol s = symtbl_[i];
+    for (unsigned i = 0; i < symtbl_.size(); ++i) {
+        symge::symbol s = symtbl_[i];
 
-            if (primitive(s)) continue;
+        if (primitive(s)) continue;
 
-            auto expr = as_expression(definition(s));
-            auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-            auto t_ = local_t_term.id->is_identifier()->spelling();
-            symtbl_.name(s, t_);
+        auto expr = as_expression(definition(s));
+        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+        auto t_ = local_t_term.id->is_identifier()->spelling();
+        symtbl_.name(s, t_);
 
-            statements_.push_back(std::move(local_t_term.local_decl));
-            S_.push_back(std::move(local_t_term.assignment));
+        statements_.push_back(std::move(local_t_term.local_decl));
+        S_.push_back(std::move(local_t_term.assignment));
+    }
 
-            row_elems.push_back(std::move(local_t_term.id));
-        }
+    // If size of matrix > 5, normalize intermediate variables
+    if (A_.size() > 5) {
+        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+            // Collect the elements in a single row to normalize
+            std::vector<expression_ptr> row_elems;
+            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
+                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), name(symtbl_[i])));
+            }
 
-        if (A_.size() > 5) {
+            // Get the max element in the row
             expression_ptr max;
-            //Get the max element in the row
             for (auto &elem: row_elems) {
                 auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
                 if (!max) {
@@ -836,16 +837,13 @@ void SparseNonlinearSolverVisitor::finalize() {
 
             // Create a symbol for inv
             auto local_inv_term = make_unique_local_assign(block_scope_, inv.get(), "inv_");
-            auto inv_ = local_inv_term.id->is_identifier()->spelling();
 
             statements_.push_back(std::move(local_inv_term.local_decl));
             S_.push_back(std::move(local_inv_term.assignment));
 
             // Update the row elements
-            auto inv_id = local_inv_term.id->is_identifier();
-
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), inv_id->clone());
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), std::move(local_inv_term.id));
                 auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
                 S_.push_back(std::move(assign));
             }

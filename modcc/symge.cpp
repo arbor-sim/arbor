@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include <vector>
 #include <numeric>
-#include "iostream"
 
 #include "symge.hpp"
 
