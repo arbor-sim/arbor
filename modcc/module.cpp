@@ -683,7 +683,7 @@ void Module::add_variables_to_symbols() {
 
     // then GLOBAL variables
     for(auto const& var : neuron_block_.globals) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as GLOBAL, but has not been declared in the" +
                    " ASSIGNED block",
@@ -703,7 +703,7 @@ void Module::add_variables_to_symbols() {
 
     // then RANGE variables
     for(auto const& var : neuron_block_.ranges) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as RANGE, but has not been declared in the" +
                    " ASSIGNED or PARAMETER block",
