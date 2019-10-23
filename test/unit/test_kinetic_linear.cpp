@@ -146,18 +146,6 @@ TEST(mech_kinetic, kintetic_nonlinear_scaled) {
     run_test<multicore::backend>("test4_kin_compartment", state_variables, {}, t0_values, t1_values, 0.1);
 }
 
-TEST(mech_kinetic, kintetic_nonlinear_normalized_scaled) {
-    std::vector<std::string> state_variables = {"A", "B", "C", "d", "e"};
-    std::vector<fvm_value_type> t0_values = {4.5e-5, 60.6, 0.28, 2e-8, 0};
-    std::vector<fvm_value_type> t1_values = {4.257817624584496e-05,
-                                             60.600003255256716,
-                                             0.279996744743284,
-                                             1.9999999740201403e-08,
-                                             2.5979859778869317e-16};
-
-    run_test<multicore::backend>("test5_kin_compartment", state_variables, {}, t0_values, t1_values, 0.1);
-}
-
 TEST(mech_linear, linear_system) {
     std::vector<std::string> state_variables = {"h", "s", "d"};
     std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
