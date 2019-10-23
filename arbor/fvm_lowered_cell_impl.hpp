@@ -164,6 +164,8 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     update_ion_state();
 
+    state_->zero_currents();
+
     // Call initialize again
     for (auto& m: revpot_mechanisms_) {
         m->initialize();
