@@ -390,7 +390,7 @@ void SparseSolverVisitor::finalize() {
     }
     A_.augment(rhs);
 
-    auto symbol_part = symge::gj_reduce(A_, symtbl_);
+    symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
     for (unsigned i = 0; i < symtbl_.size(); ++i) {
@@ -409,11 +409,13 @@ void SparseSolverVisitor::finalize() {
 
     // If size of matrix > 5, normalize intermediate variables
     if (A_.size() > 5) {
-        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+        for (unsigned i = 0; i < A_.nrow(); ++i) {
             // Collect the elements in a single row to normalize
             std::vector<expression_ptr> row_elems;
-            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), name(symtbl_[i])));
+            for (unsigned j = 0; j < A_.ncol(); ++j) {
+                if(!symge::name(A_[i][j]).empty()) {
+                    row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), symge::name(A_[i][j])));
+                }
             }
 
             // Get the max element in the row
@@ -437,8 +439,8 @@ void SparseSolverVisitor::finalize() {
 
             // Update the row elements
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), std::move(local_inv_term.id));
-                auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), local_inv_term.id->clone());
+                auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
                 statements_.push_back(std::move(assign));
             }
         }
@@ -519,7 +521,7 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
 void LinearSolverVisitor::finalize() {
     A_.augment(rhs_);
 
-    auto symbol_part = symge::gj_reduce(A_, symtbl_);
+    symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
     for (unsigned i = 0; i < symtbl_.size(); ++i) {
@@ -538,11 +540,13 @@ void LinearSolverVisitor::finalize() {
 
     // If size of matrix > 5, normalize intermediate variables
     if (A_.size() > 5) {
-        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+        for (unsigned i = 0; i < A_.nrow(); ++i) {
             // Collect the elements in a single row to normalize
             std::vector<expression_ptr> row_elems;
-            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), name(symtbl_[i])));
+            for (unsigned j = 0; j < A_.ncol(); ++j) {
+                if(!symge::name(A_[i][j]).empty()) {
+                    row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), symge::name(A_[i][j])));
+                }
             }
 
             // Get the max element in the row
@@ -566,8 +570,8 @@ void LinearSolverVisitor::finalize() {
 
             // Update the row elements
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), std::move(local_inv_term.id));
-                auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), local_inv_term.id->clone());
+                auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
                 statements_.push_back(std::move(assign));
             }
         }
@@ -795,7 +799,7 @@ void SparseNonlinearSolverVisitor::finalize() {
 
     A_.augment(rhs);
 
-    auto symbol_part = symge::gj_reduce(A_, symtbl_);
+    symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
     std::vector<expression_ptr> S_;
@@ -815,11 +819,13 @@ void SparseNonlinearSolverVisitor::finalize() {
 
     // If size of matrix > 5, normalize intermediate variables
     if (A_.size() > 5) {
-        for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
+        for (unsigned i = 0; i < A_.nrow(); ++i) {
             // Collect the elements in a single row to normalize
             std::vector<expression_ptr> row_elems;
-            for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
-                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), name(symtbl_[i])));
+            for (unsigned j = 0; j < A_.ncol(); ++j) {
+                if(!symge::name(A_[i][j]).empty()) {
+                    row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), symge::name(A_[i][j])));
+                }
             }
 
             // Get the max element in the row
@@ -843,8 +849,8 @@ void SparseNonlinearSolverVisitor::finalize() {
 
             // Update the row elements
             for (auto &elem: row_elems) {
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), std::move(local_inv_term.id));
-                auto assign = make_expression<AssignmentExpression>(elem->location(), std::move(elem), std::move(ratio));
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), local_inv_term.id->clone());
+                auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
                 S_.push_back(std::move(assign));
             }
         }
