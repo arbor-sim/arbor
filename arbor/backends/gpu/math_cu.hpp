@@ -8,7 +8,7 @@ namespace gpu {
 
 __device__
 inline double safeinv(double x) {
-    if (x == 0.0) {
+    if (1.0+x == 1.0) {
         return 0.0;
     }
     return 1/x;

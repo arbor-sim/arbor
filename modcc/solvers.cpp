@@ -396,7 +396,6 @@ void SparseSolverVisitor::finalize() {
     // If size of matrix > 5, normalize intermediate variables
     for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
         std::vector<expression_ptr> row_elems;
-
         // Collect the elements in a single row to normalize
         for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
             symge::symbol s = symtbl_[i];
@@ -527,7 +526,6 @@ void LinearSolverVisitor::finalize() {
     // If size of matrix > 5, normalize intermediate variables
     for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
         std::vector<expression_ptr> row_elems;
-
         // Collect the elements in a single row to normalize
         for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
             symge::symbol s = symtbl_[i];
@@ -805,7 +803,6 @@ void SparseNonlinearSolverVisitor::finalize() {
     std::vector<expression_ptr> S_;
     for (unsigned s = 0; s < symbol_part.size() - 1; ++s) {
         std::vector<expression_ptr> row_elems;
-
         // Collect the elements in a single row to normalize
         for (auto i = symbol_part[s]; i < symbol_part[s + 1]; ++i) {
             symge::symbol s = symtbl_[i];

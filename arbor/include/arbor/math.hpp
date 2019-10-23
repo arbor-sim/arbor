@@ -121,7 +121,7 @@ template <typename T>
 inline
 T safeinv(T x) {
     // If abs(x) is less than epsilon return 1, else calculate the result directly.
-    return (x == 0)? T(0): 1/x;
+    return (T(1)==T(1)+x)? T(0): 1/x;
 }
 
 // Value of x/(exp(x)-1) with care taken to handle x=0 case
