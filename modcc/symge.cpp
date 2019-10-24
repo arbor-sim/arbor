@@ -80,9 +80,7 @@ double estimate_cost(const sym_matrix& A, pivot p) {
 // The reduction is division-free: the result will have non-zero terms
 // that are symbols that are either primitive, or defined (in the symbol
 // table) as products or differences of products of other symbols.
-std::vector<unsigned> gj_reduce(sym_matrix& A, symbol_table& table) {
-    std::vector<unsigned> row_partition = {(unsigned)table.size()};
-
+void gj_reduce(sym_matrix& A, symbol_table& table) {
     if (A.nrow()>A.ncol()) throw std::runtime_error("improper matrix for reduction");
 
     auto define_sym = [&table](symbol_term_diff t) { return table.define(t); };
@@ -125,14 +123,12 @@ std::vector<unsigned> gj_reduce(sym_matrix& A, symbol_table& table) {
         for (unsigned i = 0; i<A.nrow(); ++i) {
             if (i==p.row || A[i].index(p.col)==msparse::row_npos) continue;
             A[i] = row_reduce(p.col, A[i], A[p.row], define_sym);
-            row_partition.push_back(row_partition.back() + A[i].size());
         }
 
         if (remaining_rows.empty()) {
             break;
         }
     }
-    return row_partition;
 }
 
 } // namespace symge
