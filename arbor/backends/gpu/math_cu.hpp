@@ -1,4 +1,5 @@
 #pragma once
+#include <float.h>
 
 // Implementations of mathematical operations required
 // by generated CUDA mechanisms.
@@ -9,7 +10,7 @@ namespace gpu {
 __device__
 inline double safeinv(double x) {
     if (1.0+x == 1.0) {
-        return DBL_EPSILON;
+        return 1/DBL_EPSILON;
     }
     return 1/x;
 }
