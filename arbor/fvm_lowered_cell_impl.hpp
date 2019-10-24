@@ -433,7 +433,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         const std::string& ion_name = i.first;
 
         if (auto charge = value_by_key(global_props.ion_species, ion_name)) {
-            state_->add_ion(ion_name, *charge, i.second.cv, i.second.init_iconc, i.second.init_econc, i.second.init_revpot);
+            state_->add_ion(ion_name, *charge, i.second);
         }
         else {
             throw cable_cell_error("unrecognized ion '"+ion_name+"' in mechanism");
