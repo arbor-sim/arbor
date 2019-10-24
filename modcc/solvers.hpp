@@ -66,9 +66,8 @@ public:
     virtual void visit(AssignmentExpression *e) override;
 };
 
-class SparseSolverVisitor : public SolverVisitorBase {
+class MatrixSolverVisitor : public SolverVisitorBase {
 protected:
-    solverVariant solve_variant_;
     // 'Current' differential equation is for variable with this
     // index in `dvars`.
     unsigned deq_index_ = 0;
@@ -82,6 +81,28 @@ protected:
 
     // 'Symbol table' for symbolic manipulation.
     symge::symbol_table symtbl_;
+
+public:
+    using SolverVisitorBase::visit;
+
+    explicit MatrixSolverVisitor() {}
+    MatrixSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
+
+    virtual void reset() override {
+        deq_index_ = 0;
+        local_expr_.clear();
+        A_.clear();
+        symtbl_.clear();
+        SolverVisitorBase::reset();
+    }
+
+    virtual std::vector<expression_ptr> GenerateReduceStatements();
+    virtual std::vector<expression_ptr> GenerateUpdateStatements(std::vector<std::string>);
+};
+
+class SparseSolverVisitor : public MatrixSolverVisitor {
+protected:
+    solverVariant solve_variant_;
 
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
@@ -100,7 +121,7 @@ public:
 
     explicit SparseSolverVisitor(solverVariant s = solverVariant::regular) :
         solve_variant_(s) {}
-    SparseSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
+    SparseSolverVisitor(scope_ptr enclosing): MatrixSolverVisitor(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
@@ -108,29 +129,17 @@ public:
     virtual void visit(ConserveExpression *e) override;
     virtual void finalize() override;
     virtual void reset() override {
-        deq_index_ = 0;
-        local_expr_.clear();
-        A_.clear();
-        symtbl_.clear();
         conserve_ = false;
         scale_factor_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
         steadystate_rhs_.clear();
-        SolverVisitorBase::reset();
+        MatrixSolverVisitor::reset();
     }
 };
 
-class SparseNonlinearSolverVisitor : public SolverVisitorBase {
+class SparseNonlinearSolverVisitor : public MatrixSolverVisitor {
 protected:
-    // 'Current' differential equation is for variable with this
-    // index in `dvars`.
-    unsigned deq_index_ = 0;
-
-    // Expanded local assignments that need to be substituted in for derivative
-    // calculations.
-    substitute_map local_expr_;
-
     // F(x) and the Jacobian J(x) for every state variable
     // Needed for Newton's method
     std::vector<expression_ptr> F_;
@@ -139,12 +148,6 @@ protected:
     std::vector<std::string> dvar_temp_;
     std::vector<std::string> dvar_init_;
 
-    // Symbolic matrix for backwards Euler step.
-    symge::sym_matrix A_;
-
-    // 'Symbol table' for symbolic manipulation.
-    symge::symbol_table symtbl_;
-
     // State variable multiplier/divider
     std::vector<expression_ptr> scale_factor_;
 
@@ -152,7 +155,7 @@ public:
     using SolverVisitorBase::visit;
 
     SparseNonlinearSolverVisitor() {}
-    SparseNonlinearSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
+    SparseNonlinearSolverVisitor(scope_ptr enclosing): MatrixSolverVisitor(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
@@ -160,34 +163,17 @@ public:
     virtual void visit(ConserveExpression *e) override {};
     virtual void finalize() override;
     virtual void reset() override {
-        deq_index_ = 0;
-        local_expr_.clear();
         F_.clear();
         J_.clear();
-        symtbl_.clear();
         scale_factor_.clear();
-        SolverVisitorBase::reset();
+        MatrixSolverVisitor::reset();
     }
 };
 
-class LinearSolverVisitor : public SolverVisitorBase {
+class LinearSolverVisitor : public MatrixSolverVisitor {
 protected:
-    // 'Current' differential equation is for variable with this
-    // index in `dvars`.
-    unsigned deq_index_ = 0;
-
-    // Expanded local assignments that need to be substituted in for derivative
-    // calculations.
-    substitute_map local_expr_;
-
-    // Symbolic matrix for backwards Euler step.
-    symge::sym_matrix A_;
-
-    // RHS
+    // Stores the rhs symbols of the linear system
     std::vector<symge::symbol> rhs_;
-
-    // 'Symbol table' for symbolic manipulation.
-    symge::symbol_table symtbl_;
 
 public:
     using SolverVisitorBase::visit;
@@ -195,18 +181,14 @@ public:
     LinearSolverVisitor(std::vector<std::string> vars) {
         dvars_ = vars;
     }
-    LinearSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
+    LinearSolverVisitor(scope_ptr enclosing): MatrixSolverVisitor(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(LinearExpression *e) override;
     virtual void visit(AssignmentExpression *e) override;
     virtual void finalize() override;
     virtual void reset() override {
-        deq_index_ = 0;
-        local_expr_.clear();
-        A_.clear();
         rhs_.clear();
-        symtbl_.clear();
-        SolverVisitorBase::reset();
+        MatrixSolverVisitor::reset();
     }
 };
