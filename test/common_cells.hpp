@@ -8,6 +8,83 @@
 
 namespace arb {
 
+class soma_cell_builder {
+    double soma_rad;
+    sample_tree tree;
+    std::vector<msize_t> branch_distal_id;
+    std::unordered_map<std::string, int> tag_map;
+    int tag_count = 0;
+
+    // Get tag id of region.
+    // Add a new tag if region with that name has not already had a tag associated with it.
+    int get_tag(const std::string& name) {
+        auto it = tag_map.find(name);
+        // If the name is not in the map, make a unique tag.
+        // Tags start from 1.
+        if (it==tag_map.end()) {
+            tag_map[name] = ++tag_count;
+            return tag_count;
+        }
+        return it->second;
+    }
+
+public:
+    soma_cell_builder(double r): soma_rad(r) {
+        tree.append({{0,0,0,r}, get_tag("soma")});
+        branch_distal_id.push_back(0);
+    }
+
+    // Add a new branch that is attached to parent_branch.
+    // Returns the id of the new branch.
+    msize_t add_branch(msize_t parent_branch, double len, double r1, double r2, int ncomp,
+                    const std::string& region)
+    {
+        // Get tag id of region (add a new tag if region does not already exist).
+        int tag = get_tag(region);
+
+        msize_t p = branch_distal_id[parent_branch];
+        double z = parent_branch? tree.samples()[p].loc.z: soma_rad;
+
+        p = tree.append(p, {{0,0,z,r1}, tag});
+        if (ncomp>1) {
+            double dz = len/ncomp;
+            double dr = (r2-r1)/ncomp;
+            for (auto i=1; i<ncomp; ++i) {
+                p = tree.append(p, {{0,0,z+i*dz, r1+i*dr}, tag});
+            }
+        }
+        p = tree.append(p, {{0,0,z+len,r2}, tag});
+        branch_distal_id.push_back(p);
+
+        return branch_distal_id.size();
+    }
+
+    cable_cell make_cell() const {
+        // Test that a valid tree was generated, that is, every branch has
+        // either 0 children, or at least 2 children.
+        for (auto i: branch_distal_id) {
+            if (i==0) continue;
+            auto prop = tree.properties()[i];
+            if (!is_fork(prop) && !is_terminal(prop)) {
+                throw cable_cell_error(
+                    "attempt to construct a cable_cell from a soma_cell_builder "
+                    "where a branch has only one child branch.");
+            }
+        }
+
+        // Make label dictionary with one entry for each tag.
+        label_dict dict;
+        for (auto& tag: tag_map) {
+            dict.set(tag.first, reg::tagged(tag.second));
+        }
+
+        // Make cable_cell from sample tree and dictionary.
+        // The true flag is used to force the discretization to make compartments
+        // at sample points.
+        return cable_cell(tree, dict, true);
+    }
+};
+
 /*
  * Create cell with just a soma:
  *
@@ -21,104 +98,16 @@ namespace arb {
  *    soma centre, t=[10 ms, 110 ms), 0.1 nA
  */
 
-struct soma_cell_builder {
-    double soma_rad;
-    sample_tree tree;
-    int ndend = 0;
-    std::vector<int> branch_dist;
-    std::vector<std::pair<mlocation, i_clamp>> stims;
-    std::unordered_map<std::string, region> regions = {
-        {"soma", reg::tagged(1)},
-        {"axon", reg::tagged(2)},
-        {"dend", reg::tagged(3)},
-        {"apic", reg::tagged(4)},
-    };
-
-    std::unordered_multimap<std::string, mechanism_desc> mechanisms = {
-        {"soma", "hh"},
-        {"axon", "pas"},
-        {"dend", "pas"},
-        {"apic", "pas"},
-    };
-
-    std::unordered_multimap<std::string, cable_cell_local_parameter_set> properties;
-
-    soma_cell_builder(double r): soma_rad(r) {
-        tree.append({{0,0,0,r}, 1});
-        branch_dist.push_back(0);
-    }
-
-    void add_branch(msize_t pb, double len, double r1, double r2, int ncomp, int tag) {
-        auto p = branch_dist[pb];
-        auto z = pb? tree.samples()[p].loc.z: soma_rad;
-
-        p = tree.append(p, {{0,0,z,r1}, tag});
-        if (ncomp>1) {
-            auto dz = len/ncomp;
-            auto dr = (r2-r1)/ncomp;
-            for (auto i=1; i<ncomp; ++i) {
-                p = tree.append(p, {{0,0,z+i*dz, r1+i*dr}, tag});
-            }
-        }
-        p = tree.append(p, {{0,0,z+len,r2}, tag});
-        branch_dist.push_back(p);
-    }
-
-    void add_dendrite(msize_t pb, double len, double r1, double r2, int ncomp) {
-        add_branch(pb, len, r1, r2, ncomp, 3);
-    }
-
-    void add_stim(mlocation loc, i_clamp stim) {
-        stims.push_back({loc, stim});
-    }
-
-    void set_regions(std::unordered_map<std::string, region> regs) {
-        regions = std::move(regs);
-    }
-
-    void set_properties(std::unordered_multimap<std::string, cable_cell_local_parameter_set> props) {
-        properties = std::move(props);
-    }
-
-    void set_mechanisms(std::unordered_multimap<std::string, mechanism_desc> mechs) {
-        mechanisms = std::move(mechs);
-    }
-
-    cable_cell make_cell() const {
-        // make dictionary
-        label_dict dict;
-        for (auto& reg: regions) {
-            dict.set(reg.first, reg.second);
-        }
-
-        // make cable_cell from sample tree and dictionary
-        cable_cell c(tree, dict, true);
-
-        // add mechanisms
-        for (auto& m: mechanisms) {
-            c.paint(m.first, m.second);
-        }
-
-        // add properties
-        for (auto& p: properties) {
-            c.paint(p.first, p.second);
-        }
-
-        // add stimuli
-        for (auto& s: stims) {
-            c.place(s.first, s.second);
-        }
-
-        return c;
-    }
-};
-
 inline cable_cell make_cell_soma_only(bool with_stim = true) {
     soma_cell_builder builder(18.8/2.0);
+
+    auto c = builder.make_cell();
+    c.paint("soma", "hh");
     if (with_stim) {
-        builder.add_stim(mlocation{0,0.5}, i_clamp{10., 100., 0.1});
+        c.place(mlocation{0,0.5}, i_clamp{10., 100., 0.1});
     }
-    return builder.make_cell();
+
+    return c;
 }
 
 /*
@@ -143,12 +132,17 @@ inline cable_cell make_cell_soma_only(bool with_stim = true) {
  */
 
 inline cable_cell make_cell_ball_and_stick(bool with_stim = true) {
-    auto builder = soma_cell_builder(12.6157/2.0);
-    builder.add_dendrite(0, 200, 1.0/2, 1.0/2, 4);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
+
+    auto c = builder.make_cell();
+    c.paint("soma", "hh");
+    c.paint("dend", "pas");
     if (with_stim) {
-        builder.add_stim(mlocation{1,1}, i_clamp{5, 80, 0.3});
+        c.place(mlocation{1,1}, i_clamp{5, 80, 0.3});
     }
-    return builder.make_cell();
+
+    return c;
 }
 
 /*
@@ -176,15 +170,20 @@ inline cable_cell make_cell_ball_and_stick(bool with_stim = true) {
  */
 
 inline cable_cell make_cell_ball_and_3stick(bool with_stim = true) {
-    auto builder = soma_cell_builder(12.6157/2.0);
-    builder.add_dendrite(0, 100, 0.5, 0.5, 4);
-    builder.add_dendrite(1, 100, 0.5, 0.5, 4);
-    builder.add_dendrite(1, 100, 0.5, 0.5, 4);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
+    builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
+    builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
+
+    auto c = builder.make_cell();
+    c.paint("soma", "hh");
+    c.paint("dend", "pas");
     if (with_stim) {
-        builder.add_stim(mlocation{2,1}, i_clamp{5.,  80., 0.45});
-        builder.add_stim(mlocation{3,1}, i_clamp{40., 10.,-0.2});
+        c.place(mlocation{2,1}, i_clamp{5.,  80., 0.45});
+        c.place(mlocation{3,1}, i_clamp{40., 10.,-0.2});
     }
-    return builder.make_cell();
+
+    return c;
 }
 
 } // namespace arb

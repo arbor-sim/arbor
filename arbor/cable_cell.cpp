@@ -98,11 +98,11 @@ struct cable_cell_impl {
             }
         }
 
-        for (auto r: dictionary.regions()) {
+        for (auto& r: dictionary.regions()) {
             regions[r.first] = thingify(r.second, morph);
         }
 
-        for (auto l: dictionary.locsets()) {
+        for (auto& l: dictionary.locsets()) {
             locations[l.first] = thingify(l.second, morph);
         }
     }
@@ -167,10 +167,29 @@ struct cable_cell_impl {
         return lid_range(first, list.size());
     }
 
+    template <typename Desc, typename T>
+    lid_range place(const std::string& target, const Desc& desc, std::vector<T>& list) {
+        const auto first = list.size();
+
+        const auto it = locations.find(target);
+        if (it==locations.end()) return lid_range(first, first);
+
+        return place(it->second, desc, list);
+    }
+
     lid_range place_gj(const mlocation_list& locs) {
         const auto first = gap_junction_sites.size();
 
         gap_junction_sites.insert(gap_junction_sites.end(), locs.begin(), locs.end());
+
+        return lid_range(first, gap_junction_sites.size());
+    }
+
+    lid_range place_gj(const std::string& target) {
+        const auto first = gap_junction_sites.size();
+
+        const auto it = locations.find(target);
+        if (it==locations.end()) return lid_range(first, first);
 
         return lid_range(first, gap_junction_sites.size());
     }
@@ -183,6 +202,28 @@ struct cable_cell_impl {
 
     bool valid_location(const mlocation& loc) const {
         return test_invariants(loc) && loc.branch<segments.size();
+    }
+
+    template <typename F>
+    void paint(const std::string& target, F&& f) {
+        auto it = regions.find(target);
+
+        // Nothing to do if there are no regions that match.
+        if (it==regions.end()) return;
+
+        paint(it->second, std::forward<F>(f));
+    }
+
+    template <typename F>
+    void paint(const mcable_list& cables, F&& f) {
+        for (auto c: cables) {
+            if (c.prox_pos!=0 || c.dist_pos!=1) {
+                throw cable_cell_error(util::pprintf(
+                    "cable_cell does not support regions with partial branches: {}", c));
+            }
+            assert_valid_segment(c.branch);
+            f(segments[c.branch]);
+        }
     }
 };
 
@@ -265,37 +306,23 @@ const em_morphology* cable_cell::morphology() const {
 //
 
 void cable_cell::paint(const std::string& target, mechanism_desc desc) {
-    auto it = impl_->regions.find(target);
-
-    // Nothing to do if there are no regions that match.
-    if (it==impl_->regions.end()) return;
-
-    for (auto c: it->second) {
-        if (c.prox_pos!=0 || c.dist_pos!=1) {
-            throw cable_cell_error(util::pprintf(
-                "cable_cell does not support regions with partial branches: \"{}\": {}",
-                target, c));
-        }
-        impl_->assert_valid_segment(c.branch);
-        impl_->segments[c.branch]->add_mechanism(desc);
-    }
+    impl_->paint(target,
+                 [&desc](segment_ptr& s){return s->add_mechanism(desc);});
 }
 
 void cable_cell::paint(const std::string& target, cable_cell_local_parameter_set params) {
-    auto it = impl_->regions.find(target);
+    impl_->paint(target,
+                 [&params](segment_ptr& s){return s->parameters = params;});
+}
 
-    // Nothing to do if there are no regions that match.
-    if (it==impl_->regions.end()) return;
+void cable_cell::paint(const region& target, mechanism_desc desc) {
+    impl_->paint(thingify(target, impl_->morph),
+                 [&desc](segment_ptr& s){return s->add_mechanism(desc);});
+}
 
-    for (auto c: it->second) {
-        if (c.prox_pos!=0 || c.dist_pos!=1) {
-            throw cable_cell_error(util::pprintf(
-                "cable_cell does not support regions with partial branches: \"{}\": {}",
-                target, c));
-        }
-        impl_->assert_valid_segment(c.branch);
-        impl_->segments[c.branch]->parameters = params;
-    }
+void cable_cell::paint(const region& target, cable_cell_local_parameter_set params) {
+    impl_->paint(thingify(target, impl_->morph),
+                 [&params](segment_ptr& s){return s->parameters = params;});
 }
 
 //
@@ -306,39 +333,27 @@ void cable_cell::paint(const std::string& target, cable_cell_local_parameter_set
 //
 
 //
-// Synapses
+// Synapses.
 //
 
 lid_range cable_cell::place(const std::string& target, const mechanism_desc& desc) {
-    const auto first = impl_->synapses.size();
-
-    const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return lid_range(first, first);
-
-    return impl_->place(it->second, desc, impl_->synapses);
+    return impl_->place(target, desc, impl_->synapses);
 }
 
 lid_range cable_cell::place(const locset& ls, const mechanism_desc& desc) {
-    const auto locs = thingify(ls, impl_->morph);
-    return impl_->place(locs, desc, impl_->synapses);
+    return impl_->place(thingify(ls, impl_->morph), desc, impl_->synapses);
 }
 
 //
-// Stimuli
+// Stimuli.
 //
 
 lid_range cable_cell::place(const std::string& target, const i_clamp& desc) {
-    const auto first = impl_->stimuli.size();
-
-    const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return lid_range(first, first);
-
-    return impl_->place(it->second, desc, impl_->stimuli);
+    return impl_->place(target, desc, impl_->stimuli);
 }
 
 lid_range cable_cell::place(const locset& ls, const i_clamp& desc) {
-    const auto locs = thingify(ls, impl_->morph);
-    return impl_->place(locs, desc, impl_->stimuli);
+    return impl_->place(thingify(ls, impl_->morph), desc, impl_->stimuli);
 }
 
 //
@@ -346,34 +361,22 @@ lid_range cable_cell::place(const locset& ls, const i_clamp& desc) {
 //
 
 lid_range cable_cell::place(const std::string& target, gap_junction_site) {
-    const auto first = impl_->stimuli.size();
-
-    const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return lid_range(first, first);
-
-    return impl_->place_gj(it->second);
+    return impl_->place_gj(target);
 }
 
 lid_range cable_cell::place(const locset& ls, gap_junction_site) {
-    const auto locs = thingify(ls, impl_->morph);
-    return impl_->place_gj(locs);
+    return impl_->place_gj(thingify(ls, impl_->morph));
 }
 
 //
 // Spike detectors.
 //
 lid_range cable_cell::place(const std::string& target, const threshold_detector& desc) {
-    const auto first = impl_->stimuli.size();
-
-    const auto it = impl_->locations.find(target);
-    if (it==impl_->locations.end()) return lid_range(first, first);
-
-    return impl_->place(it->second, desc.threshold, impl_->spike_detectors);
+    return impl_->place(target, desc.threshold, impl_->spike_detectors);
 }
 
 lid_range cable_cell::place(const locset& ls, const threshold_detector& desc) {
-    const auto locs = thingify(ls, impl_->morph);
-    return impl_->place(locs, desc.threshold, impl_->spike_detectors);
+    return impl_->place(thingify(ls, impl_->morph), desc.threshold, impl_->spike_detectors);
 }
 
 //

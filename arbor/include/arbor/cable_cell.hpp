@@ -128,10 +128,12 @@ public:
     //
 
     // Density channels.
-    void paint(const std::string& target, mechanism_desc);
+    void paint(const std::string&, mechanism_desc);
+    void paint(const region&, mechanism_desc);
 
     // Properties.
-    void paint(const std::string& target, cable_cell_local_parameter_set);
+    void paint(const std::string&, cable_cell_local_parameter_set);
+    void paint(const region&, cable_cell_local_parameter_set);
 
     // Synapses.
     lid_range place(const std::string&, const mechanism_desc&);

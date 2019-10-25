@@ -93,21 +93,17 @@ namespace {
         //
         // All dendrite segments with 4 compartments.
 
-        auto builder = soma_cell_builder(7.);
-        builder.add_branch(0, 200, 0.5,  0.5, 4, 2);
-        builder.add_branch(1, 300, 0.4,  0.4, 4, 3);
-        builder.add_branch(1, 180, 0.35, 0.35, 4, 4);
+        soma_cell_builder builder(7.);
+        builder.add_branch(0, 200, 0.5,  0.5, 4, "dnd1");
+        builder.add_branch(1, 300, 0.4,  0.4, 4, "dnd2");
+        builder.add_branch(1, 180, 0.35, 0.35, 4, "dnd3");
+        auto cell = builder.make_cell();
 
         using ::arb::reg::tagged;
-        builder.set_regions({
-                {"soma", tagged(1)},
-                {"dnd1", tagged(2)},
-                {"dnd2", tagged(3)},
-                {"dnd3", tagged(4)},
-                {"dend", join(tagged(2), tagged(3), tagged(4))}});
+        auto dend = join(tagged(1), tagged(2), tagged(3));
 
-        builder.set_mechanisms({{"soma", "hh"},
-                                {"dend", "pas"}});
+        cell.paint("soma", "hh");
+        cell.paint(dend, "pas");
 
         cable_cell_local_parameter_set p1;
         p1.membrane_capacitance = 0.017;
@@ -115,18 +111,17 @@ namespace {
         p2.membrane_capacitance = 0.013;
         cable_cell_local_parameter_set p3;
         p3.membrane_capacitance = 0.018;
-        builder.set_properties({{"dnd1", p1},
-                                {"dnd2", p2},
-                                {"dnd3", p3}});
 
-        auto c2 = builder.make_cell();
+        cell.paint("dnd1", p1);
+        cell.paint("dnd2", p2);
+        cell.paint("dnd3", p3);
 
-        c2.place(mlocation{2,1}, i_clamp{5.,  80., 0.45});
-        c2.place(mlocation{3,1}, i_clamp{40., 10.,-0.2});
+        cell.place(mlocation{2,1}, i_clamp{5.,  80., 0.45});
+        cell.place(mlocation{3,1}, i_clamp{40., 10.,-0.2});
 
-        c2.default_parameters.axial_resistivity = 90;
+        cell.default_parameters.axial_resistivity = 90;
 
-        cells.push_back(std::move(c2));
+        cells.push_back(std::move(cell));
         return cells;
     }
 
@@ -711,12 +706,12 @@ TEST(fvm_layout, density_norm_area) {
     //
     // Use divided compartment view on segments to compute area contributions.
 
-    auto builder = soma_cell_builder(12.6157/2.0);
+    soma_cell_builder builder(12.6157/2.0);
 
     //                 p  len   r1   r2  ncomp tag
-    builder.add_branch(0, 100, 0.5, 0.5,     3, 2);
-    builder.add_branch(1, 200, 0.5, 0.1,     3, 3);
-    builder.add_branch(1, 150, 0.4, 0.4,     3, 4);
+    builder.add_branch(0, 100, 0.5, 0.5,     3, "reg1");
+    builder.add_branch(1, 200, 0.5, 0.1,     3, "reg2");
+    builder.add_branch(1, 150, 0.4, 0.4,     3, "reg3");
 
     double dflt_gkbar = .036;
     double dflt_gl = 0.0003;
@@ -738,17 +733,13 @@ TEST(fvm_layout, density_norm_area) {
     hh_3["gkbar"] = seg3_gkbar;
     hh_3["gl"] = seg3_gl;
 
-    using arb::reg::tagged;
-    builder.set_regions({ {"reg0", tagged(1)},
-                          {"reg1", tagged(2)},
-                          {"reg2", tagged(3)},
-                          {"reg3", tagged(4)}});
-    builder.set_mechanisms({ {"reg0", std::move(hh_0)},
-                             {"reg1", std::move(hh_1)},
-                             {"reg2", std::move(hh_2)},
-                             {"reg3", std::move(hh_3)}});
+    auto cell = builder.make_cell();
+    cell.paint("soma", std::move(hh_0));
+    cell.paint("reg1", std::move(hh_1));
+    cell.paint("reg2", std::move(hh_2));
+    cell.paint("reg3", std::move(hh_3));
 
-    std::vector<cable_cell> cells{builder.make_cell()};
+    std::vector<cable_cell> cells{std::move(cell)};
 
     int ncv = 11; //ncomp + 1
     std::vector<double> expected_gkbar(ncv, dflt_gkbar);
@@ -825,9 +816,9 @@ TEST(fvm_layout, density_norm_area) {
 }
 
 TEST(fvm_layout, valence_verify) {
-    auto builder = soma_cell_builder(6);
-    builder.set_mechanisms({{"soma", "test_cl_valence"}});
-    std::vector<cable_cell> cells{builder.make_cell()};
+    auto cell = soma_cell_builder(6).make_cell();
+    cell.paint("soma", "test_cl_valence");
+    std::vector<cable_cell> cells{std::move(cell)};
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
@@ -877,22 +868,17 @@ TEST(fvm_layout, ion_weights) {
 
     auto construct_cell = []() {
         soma_cell_builder builder(5);
-        builder.add_branch(0, 100, 0.5, 0.5, 1, 2);
-        builder.add_branch(1, 200, 0.5, 0.5, 1, 3);
-        builder.add_branch(1, 100, 0.5, 0.5, 1, 4);
-        using reg::tagged;
-        builder.set_regions({{"branch0", tagged(1)},
-                             {"branch1", tagged(2)},
-                             {"branch2", tagged(3)},
-                             {"branch3", tagged(4)}});
-        return builder;
+        builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
+        builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
+        builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
+        return builder.make_cell();
     };
 
     using uvec = std::vector<fvm_size_type>;
     using ivec = std::vector<fvm_index_type>;
     using fvec = std::vector<fvm_value_type>;
 
-    uvec mech_segs[] = {
+    uvec mech_branches[] = {
         {0}, {0,2}, {2, 3}, {0, 1, 2, 3}, {3}
     };
 
@@ -916,17 +902,15 @@ TEST(fvm_layout, ion_weights) {
         }
     }
 
-    for (auto run: count_along(mech_segs)) {
+    for (auto run: count_along(mech_branches)) {
         SCOPED_TRACE("run "+std::to_string(run));
-        auto builder = construct_cell();
+        auto c = construct_cell();
 
-        std::unordered_multimap<std::string, mechanism_desc> mech_map;
-        for (auto i: mech_segs[run]) {
-            mech_map.insert({"branch"+std::to_string(i), "test_ca"});
+        for (auto i: mech_branches[run]) {
+            c.paint(reg::branch(i), "test_ca");
         }
-        builder.set_mechanisms(mech_map);
 
-        std::vector<cable_cell> cells{builder.make_cell()};
+        std::vector<cable_cell> cells{std::move(c)};
 
         fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
@@ -954,13 +938,16 @@ TEST(fvm_layout, revpot) {
 
     mechanism_catalogue testcat = make_unit_test_catalogue();
 
-    auto builder = soma_cell_builder(5);
-    builder.add_dendrite(0, 100, 0.5, 0.5, 1);
-    builder.add_dendrite(1, 200, 0.5, 0.5, 1);
-    builder.add_dendrite(1, 100, 0.5, 0.5, 1);
-    builder.set_mechanisms({{"soma", "read_eX/c"}, {"soma", "read_eX/a"}, {"dend", "read_eX/a"}});
+    soma_cell_builder builder(5);
+    builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
+    builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
+    builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
+    auto cell = builder.make_cell();
+    cell.paint("soma", "read_eX/c");
+    cell.paint("soma", "read_eX/a");
+    cell.paint("dend", "read_eX/a");
 
-    std::vector<cable_cell> cells{builder.make_cell(), builder.make_cell()};
+    std::vector<cable_cell> cells{cell, cell};
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
