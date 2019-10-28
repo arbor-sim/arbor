@@ -21,6 +21,7 @@
 #include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
+#include "mech_private_field_access.hpp"
 #include "sampler_map.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
@@ -555,6 +556,68 @@ TEST(fvm_lowered, read_valence) {
 }
 
 // Test correct scaling of ionic currents in reading and writing
+TEST(fvm_lowered, ionic_concentrations) {
+    auto cat = make_unit_test_catalogue();
+
+    // one cell, one CV:
+    fvm_size_type ncell = 1;
+    fvm_size_type ncv = 1;
+    std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
+    std::vector<fvm_value_type> temp(ncv, 23);
+    std::vector<fvm_value_type> diam(ncv, 1.);
+    std::vector<fvm_value_type> vinit(ncv, -65);
+    std::vector<fvm_gap_junction> gj = {};
+
+    fvm_ion_config ion_config;
+    mechanism_layout layout;
+    mechanism_overrides overrides;
+
+    layout.weight.assign(ncv, 1.);
+    for (fvm_size_type i = 0; i<ncv; ++i) {
+        layout.cv.push_back(i);
+        ion_config.cv.push_back(i);
+    }
+    ion_config.init_revpot.assign(ncv, 0.);
+    ion_config.init_econc.assign(ncv, 0.);
+    ion_config.init_iconc.assign(ncv, 0.);
+    ion_config.reset_iconc.assign(ncv, 0.);
+    ion_config.reset_iconc.assign(ncv, 2.3e-4);
+
+    auto read_cai  = cat.instance<backend>("read_cai_init");
+    auto write_cai = cat.instance<backend>("write_cai_breakpoint");
+
+    auto& read_cai_mech  = read_cai.mech;
+    auto& write_cai_mech = write_cai.mech;
+
+    auto shared_state = std::make_unique<typename backend::shared_state>(
+            ncell, cv_to_intdom, gj, vinit, temp, diam, read_cai_mech->data_alignment());
+    shared_state->add_ion("ca", 2, ion_config);
+
+    read_cai_mech->instantiate(0, *shared_state, overrides, layout);
+    write_cai_mech->instantiate(1, *shared_state, overrides, layout);
+
+    shared_state->reset();
+
+    // expect 2.3 value in state 's' in read_cai_init after init:
+    read_cai_mech->initialize();
+    write_cai_mech->initialize();
+
+    std::vector<fvm_value_type> expected_s_values(ncv, 2.3e-4);
+
+    EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
+
+    // expect 5.2 value in state 's' in read_cai_init after state update:
+    read_cai_mech->nrn_state();
+    write_cai_mech->nrn_state();
+
+    read_cai_mech->write_ions();
+    write_cai_mech->write_ions();
+
+    read_cai_mech->nrn_state();
+
+    expected_s_values.assign(ncv, 7.5e-4);
+    EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
+}
 
 TEST(fvm_lowered, ionic_currents) {
     cable_cell c;
