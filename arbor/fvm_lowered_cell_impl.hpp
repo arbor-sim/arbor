@@ -166,7 +166,8 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     state_->zero_currents();
 
-    // Call initialize again
+    // Note: mechanisms must be initialized again after the ion state is updated,
+    // as mechanisms can read/write the ion_state within the initialize block
     for (auto& m: revpot_mechanisms_) {
         m->initialize();
     }
