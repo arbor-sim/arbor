@@ -37,34 +37,33 @@ struct gid_info {
 struct chunk_info_type {
     using cell_list = communicator::cell_list;
     
-    cell_list chunk_conns{};   // number of conns by chunk
-    cell_list conns_part{{0}}; // partition globally, and not by chunks (for connections_ext_)
-    cell_list chunk_part{{0}}; // partition local cells into chunks [0, n-chunk-1, n-chunk-1+2 .... num-cells]
+    cell_list chunk_conns; // number of conns by chunk
+    cell_list conns_part;  // partition local cells globally, and not by chunks (for connections_ext_)
+    cell_list chunk_part;  // partition local cells into chunks [0, n-chunk-1, n-chunk-1+2 .... num-cells]
     cell_size_type num_chunks = 0;
 
     chunk_info_type(std::vector<gid_info>& gid_infos, int threads, cell_size_type n_cons, std::vector<communicator::cell_pair>& index_chunk)
     {
         using util::make_span;
+        using util::make_partition;
 
         auto conns_per_thread = n_cons / threads;
-        chunk_conns.reserve(threads);
+        chunk_conns.reserve(threads+1); // at most, threads+1
+        chunk_part.reserve(threads+2);  // partition, needs 1 more
+        chunk_part.push_back(0);
         
         // split cells into approximately equal numbers of connection chunks with approximately thread-number chunks
         cell_size_type conns_used = 0; // number of conns in current chunk    
         cell_size_type chunk_id = 0;
-        cell_size_type conns_part_used = 0;
         for (auto&& id: make_span(gid_infos.size())) {
             index_chunk.push_back(std::make_pair(num_chunks, chunk_id));
             ++chunk_id;
             
             auto&& cell = gid_infos[id];
-            const auto conns = cell.conns.size();
-            conns_used += conns;
+            conns_used += cell.conns.size();
             if (conns_used >= conns_per_thread) {
                 chunk_part.push_back(id+1);
                 chunk_conns.push_back(conns_used);
-                conns_part_used += conns_used;
-                conns_part.push_back(conns_part_used);
                 
                 conns_used = 0;
                 chunk_id = 0;
@@ -75,10 +74,10 @@ struct chunk_info_type {
         if (gid_infos.size() != chunk_part.back()) {
             chunk_part.push_back(gid_infos.size());
             chunk_conns.push_back(conns_used);
-            conns_part.push_back(conns_part_used + conns_used);
-            
             ++num_chunks;
         }
+
+        make_partition(conns_part, chunk_conns);
     }
 };
 
