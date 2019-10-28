@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "astmanip.hpp"
 #include "expression.hpp"
 #include "symdiff.hpp"
 #include "symge.hpp"
@@ -74,20 +75,19 @@ protected:
     // 'Symbol table' for symbolic manipulation.
     symge::symbol_table symtbl_;
 
-    // Scope for adding locals
-    scope_ptr block_scope_;
-
 public:
     struct system_loc {
         unsigned row, col;
     };
 
     explicit SystemSolver() {}
-    SystemSolver(scope_ptr enclosing): block_scope_(enclosing) {}
 
     void reset() {
         A_.clear();
         symtbl_.clear();
+    }
+    unsigned nrows() {
+        return A_.nrow();
     }
     void create_square_matrix(unsigned n) {
         A_ = symge::sym_matrix(n, n);
@@ -114,8 +114,11 @@ public:
 
     symge::sym_row& operator[](unsigned i) { return A_[i]; }
 
-    std::vector<expression_ptr> reduce_system();
-    std::vector<expression_ptr> GenerateUpdateStatements(std::vector<std::string>);
+    std::vector<local_assignment> generate_system_entries(scope_ptr scope);
+    local_assignment generate_normalizing_term(scope_ptr scope, unsigned row);
+    std::vector<expression_ptr> generate_normalizing_assignments(expression_ptr normalizer, unsigned row);
+    std::vector<expression_ptr> generate_solution_assignments(std::vector<std::string> lhs_vars);
+
 };
 
 class SparseSolverVisitor : public SolverVisitorBase {

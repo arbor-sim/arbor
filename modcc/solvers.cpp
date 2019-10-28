@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "astmanip.hpp"
 #include "expression.hpp"
 #include "parser.hpp"
 #include "solvers.hpp"
@@ -171,8 +170,8 @@ static expression_ptr as_expression(symge::symbol_term_diff diff) {
     }
 }
 
-std::vector<expression_ptr> SystemSolver::reduce_system() {
-    std::vector<expression_ptr> S_;
+std::vector<local_assignment> SystemSolver::generate_system_entries(scope_ptr scope) {
+    std::vector<local_assignment> S_;
 
     symge::gj_reduce(A_, symtbl_);
 
@@ -183,47 +182,60 @@ std::vector<expression_ptr> SystemSolver::reduce_system() {
         if (primitive(s)) continue;
 
         auto expr = as_expression(definition(s));
-        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
+        auto local_t_term = make_unique_local_assign(scope, expr.get(), "t_");
         auto t_ = local_t_term.id->is_identifier()->spelling();
         symtbl_.name(s, t_);
+        std::cout << local_t_term.assignment->to_string() << std::endl;
 
-        statements_.push_back(std::move(local_t_term.local_decl));
-        S_.push_back(std::move(local_t_term.assignment));
+        S_.push_back(std::move(local_t_term));
     }
+
+    return S_;
+}
+
+local_assignment SystemSolver::generate_normalizing_term(scope_ptr scope, unsigned row) {
+    local_assignment s_;
 
     // If size of matrix > 5, normalize intermediate variables
     if (A_.size() > 0) {
-        for (unsigned i = 0; i < A_.nrow(); ++i) {
-            // Collect the elements in a single row to normalize
-            std::vector<expression_ptr> row_elems;
-            for (unsigned j = 0; j < A_.ncol(); ++j) {
-                if(!symge::name(A_[i][j]).empty()) {
-                    row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), symge::name(A_[i][j])));
-                }
+        // Collect the elements in a single row to normalize
+        std::vector<expression_ptr> row_elems;
+        for (unsigned j = 0; j < A_.ncol(); ++j) {
+            if (!symge::name(A_[row][j]).empty()) {
+                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), symge::name(A_[row][j])));
             }
+        }
 
-            // Get the max element in the row
-            expression_ptr max;
-            for (auto &elem: row_elems) {
-                auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
-                if (!max) {
-                    max = std::move(abs);
-                } else {
-                    max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
-                }
+        // Get the max element in the row
+        expression_ptr max;
+        for (auto &elem: row_elems) {
+            auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
+            if (!max) {
+                max = std::move(abs);
+            } else {
+                max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
             }
-            // Safely inverse max
-            auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
+        }
+        // Safely inverse max
+        auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
 
-            // Create a symbol for inv
-            auto local_inv_term = make_unique_local_assign(block_scope_, inv.get(), "inv_");
+        // Create a symbol for inv
+        auto local_inv_term = make_unique_local_assign(scope, inv.get(), "inv_");
 
-            statements_.push_back(std::move(local_inv_term.local_decl));
-            S_.push_back(std::move(local_inv_term.assignment));
+        s_ = std::move(local_inv_term);
+    }
+    return s_;
+}
 
-            // Update the row elements
-            for (auto &elem: row_elems) {
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), local_inv_term.id->clone());
+std::vector<expression_ptr> SystemSolver::generate_normalizing_assignments(expression_ptr normalizer, unsigned row) {
+    std::vector<expression_ptr> S_;
+    if (A_.size() > 0) {
+        // Collect the elements in a single row to normalize
+        std::vector<expression_ptr> row_elems;
+        for (unsigned j = 0; j < A_.ncol(); ++j) {
+            if (!symge::name(A_[row][j]).empty()) {
+                auto elem = make_expression<IdentifierExpression>(Location(), symge::name(A_[row][j]));
+                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), normalizer->clone());
                 auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
                 S_.push_back(std::move(assign));
             }
@@ -232,7 +244,7 @@ std::vector<expression_ptr> SystemSolver::reduce_system() {
     return S_;
 }
 
-std::vector<expression_ptr> MatrixSolverVisitor::GenerateUpdateStatements(std::vector<std::string> vars) {
+std::vector<expression_ptr> SystemSolver::generate_solution_assignments(std::vector<std::string> lhs_vars) {
     std::vector<expression_ptr> U_;
 
     // State variable updates given by rhs/diagonal for reduced matrix.
@@ -253,7 +265,7 @@ std::vector<expression_ptr> MatrixSolverVisitor::GenerateUpdateStatements(std::v
             throw std::logic_error("zero row in matrix solver");
         }
         auto expr = make_expression<AssignmentExpression>(loc,
-                        make_expression<IdentifierExpression>(loc, vars[lhs_col]),
+                        make_expression<IdentifierExpression>(loc, lhs_vars[lhs_col]),
                         make_expression<DivBinaryExpression>(loc,
                             make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs_col])),
                             make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs_col]))));
@@ -481,13 +493,26 @@ void SparseSolverVisitor::finalize() {
     }
     system_.augment(rhs);
 
-    // Generate statements that reduce the system A_
-//    auto S_ = GenerateReduceStatements();
-//    std::move(std::begin(S_), std::end(S_), std::back_inserter(statements_));
+    // Generate entries of the system and declare and assign as local variables
+    auto locals = system_.generate_system_entries(block_scope_);
+    for (auto& l: locals) {
+        statements_.push_back(std::move(l.local_decl));
+        statements_.push_back(std::move(l.assignment));
+    }
 
-    // Generate statements that solve the reduced system and update dvars_
-//    auto U_ = GenerateUpdateStatements(dvars_);
-//    std::move(std::begin(U_), std::end(U_), std::back_inserter(statements_));
+    // Generate normalizing terms and normalize the system row by row
+    for (unsigned r = 0; r < system_.nrows(); r++) {
+        auto norm_term = system_.generate_normalizing_term(block_scope_, r);
+        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), r);
+
+        statements_.push_back(std::move(norm_term.local_decl));
+        statements_.push_back(std::move(norm_term.assignment));
+        std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
+    }
+
+    // Update the state variables
+    auto updates = system_.generate_solution_assignments(dvars_);
+    std::move(std::begin(updates), std::end(updates), std::back_inserter(statements_));
 
     BlockRewriterBase::finalize();
 }
@@ -535,13 +560,26 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
 void LinearSolverVisitor::finalize() {
     system_.augment(rhs_);
 
-    // Generate statements that reduce the system A_
-//    auto S_ = GenerateReduceStatements();
-//    std::move(std::begin(S_), std::end(S_), std::back_inserter(statements_));
+    // Generate local variables of the system_
+    auto locals = system_.generate_system_entries(block_scope_);
+    for (auto& l: locals) {
+        statements_.push_back(std::move(l.local_decl));
+        statements_.push_back(std::move(l.assignment));
+    }
 
-    // Generate statements that solve the reduced system and update dvars_
-//    auto U_ = GenerateUpdateStatements(dvars_);
-//    std::move(std::begin(U_), std::end(U_), std::back_inserter(statements_));
+    // Generate normalizing terms and normalize the system row by row
+    for (unsigned r = 0; r < system_.nrows(); r++) {
+        auto norm_term = system_.generate_normalizing_term(block_scope_, r);
+        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), r);
+
+        statements_.push_back(std::move(norm_term.local_decl));
+        statements_.push_back(std::move(norm_term.assignment));
+        std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
+    }
+
+    // Update the state variables
+    auto updates = system_.generate_solution_assignments(dvars_);
+    std::move(std::begin(updates), std::end(updates), std::back_inserter(statements_));
 
     BlockRewriterBase::finalize();
 }
@@ -736,20 +774,36 @@ void SparseNonlinearSolverVisitor::finalize() {
 
     system_.augment(rhs);
 
-    // Generate statements that reduce the system A_
-//    auto S_ = GenerateReduceStatements();
+    // Generate local variables of the system_, they need to be updated for every newton iteration
+    std::vector<expression_ptr> S_;
 
-    // Generate statements that solve the reduced system and update dvars_
-//     auto U_ = GenerateUpdateStatements(dvar_temp_);
+    auto locals = system_.generate_system_entries(block_scope_);
+    for (auto& l: locals) {
+        statements_.push_back(std::move(l.local_decl));
+        S_.push_back(std::move(l.assignment));
+    }
+
+    // Generate normalizing terms and normalize the system row by row
+    for (unsigned r = 0; r < system_.nrows(); r++) {
+        auto norm_term = system_.generate_normalizing_term(block_scope_, r);
+        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), r);
+
+        statements_.push_back(std::move(norm_term.local_decl));
+        S_.push_back(std::move(norm_term.assignment));
+        std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(S_));
+    }
+
+    // Update the state variables
+    auto U_ = system_.generate_solution_assignments(dvar_temp_);
 
     // Create the statements that update the temporary state variables
     // (dvar_temp) after a Newton's iteration and save them in U_
-//    for (auto& u: U_) {
-//        auto lhs = u->is_assignment()->lhs();
-//        auto rhs = u->is_assignment()->rhs();
-//        u = make_expression<AssignmentExpression>(u->location(), lhs->clone(),
-//                make_expression<SubBinaryExpression>(u->location(), lhs->clone(), rhs->clone()));
-//    }
+    for (auto& u: U_) {
+        auto lhs = u->is_assignment()->lhs();
+        auto rhs = u->is_assignment()->rhs();
+        u = make_expression<AssignmentExpression>(u->location(), lhs->clone(),
+                make_expression<SubBinaryExpression>(u->location(), lhs->clone(), rhs->clone()));
+    }
 
     // Do 3 Newton iterations
     for (unsigned n = 0; n < 3; n++) {
@@ -760,12 +814,12 @@ void SparseNonlinearSolverVisitor::finalize() {
         for (auto &s: J_) {
             statements_.push_back(s->clone());
         }
-//        for (auto &s: S_) {
-//            statements_.push_back(s->clone());
-//        }
-//        for (auto &s: U_) {
-//            statements_.push_back(s->clone());
-//        }
+        for (auto &s: S_) {
+            statements_.push_back(s->clone());
+        }
+        for (auto &s: U_) {
+            statements_.push_back(s->clone());
+        }
     }
 
     Location loc;
