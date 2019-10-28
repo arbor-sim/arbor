@@ -37,22 +37,20 @@ struct gid_info {
 struct chunk_info_type {
     using cell_list = communicator::cell_list;
     
-    cell_list conns_part;  // partition globally, and not by chunks (for connections_ext_)
-    cell_list chunk_conns; // number of conns by chunk
-    cell_list chunk_part;  // partition local cells into chunks [0, n-chunk-1, n-chunk-1+2 .... num-cells]
-    cell_size_type num_chunks;
+    cell_list chunk_conns{};   // number of conns by chunk
+    cell_list conns_part{{0}}; // partition globally, and not by chunks (for connections_ext_)
+    cell_list chunk_part{{0}}; // partition local cells into chunks [0, n-chunk-1, n-chunk-1+2 .... num-cells]
+    cell_size_type num_chunks = 0;
 
-    chunk_info_type(std::vector<gid_info>& gid_infos, cell_size_type conns_per_thread, std::vector<communicator::cell_pair>& index_chunk):
-        num_chunks{0}
+    chunk_info_type(std::vector<gid_info>& gid_infos, int threads, cell_size_type n_cons, std::vector<communicator::cell_pair>& index_chunk)
     {
         using util::make_span;
 
+        auto conns_per_thread = n_cons / threads;
+        chunk_conns.reserve(threads);
+        
         // split cells into approximately equal numbers of connection chunks with approximately thread-number chunks
-        cell_size_type conns_used = 0; // number of conns in current chunk
-
-        chunk_part.push_back(0);
-        conns_part.push_back(0);
-    
+        cell_size_type conns_used = 0; // number of conns in current chunk    
         cell_size_type chunk_id = 0;
         cell_size_type conns_part_used = 0;
         for (auto&& id: make_span(gid_infos.size())) {
@@ -129,7 +127,7 @@ communicator::communicator(const recipe& rec,
     const auto threads = thread_pool_->get_num_threads();
 
     index_chunk_.reserve(num_local_cells_);
-    chunk_info_type chunk_info{gid_infos, n_cons / threads, index_chunk_};
+    chunk_info_type chunk_info{gid_infos, threads, n_cons, index_chunk_};
     num_chunks_ = chunk_info.num_chunks;
 
     // now partitions applied by chunk
