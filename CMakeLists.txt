@@ -314,24 +314,6 @@ if(ARB_WITH_PROFILING)
     list(APPEND ARB_MODCC_FLAGS "--profile")
 endif()
 
-# Define prefetch size for communicator
-# Default: 1024
-#------------------------------------------------
-
-if(NOT DEFINED ARB_PREFETCH_SIZE)
-  set(ARB_PREFETCH_SIZE 1024)
-endif()
-target_compile_definitions(arbor-config-defs INTERFACE ARB_PREFETCH_SIZE=${ARB_PREFETCH_SIZE})
-
-# Define prefetch locality for communicator (none low medium high)
-# Default: low
-#------------------------------------------------
-
-if(NOT DEFINED ARB_PREFETCH_LOCALITY)
-  set(ARB_PREFETCH_LOCALITY low)
-endif()
-target_compile_definitions(arbor-config-defs INTERFACE ARB_PREFETCH_LOCALITY=${ARB_PREFETCH_LOCALITY})
-
 #----------------------------------------------------------
 # Set up install paths, permissions.
 #----------------------------------------------------------

@@ -44,12 +44,6 @@ if(ARB_WITH_PROFILING)
 endif()
 
 set(arb_constants)
-if(ARB_PREFETCH_SIZE)
-  list(APPEND arb_constants PREFETCH_SIZE:${ARB_PREFETCH_SIZE})
-endif()
-if(ARB_PREFETCH_LOCALITY)
-  list(APPEND arb_constants PREFETCH_LOCALITY:${ARB_PREFETCH_LOCALITY})
-endif()
 
 add_custom_command(
     OUTPUT version.hpp-test
