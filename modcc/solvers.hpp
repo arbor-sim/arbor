@@ -66,8 +66,62 @@ public:
     virtual void visit(AssignmentExpression *e) override;
 };
 
-class MatrixSolverVisitor : public SolverVisitorBase {
+class SystemSolver {
 protected:
+    // Symbolic matrix for backwards Euler step.
+    symge::sym_matrix A_;
+
+    // 'Symbol table' for symbolic manipulation.
+    symge::symbol_table symtbl_;
+
+    // Scope for adding locals
+    scope_ptr block_scope_;
+
+public:
+    struct system_loc {
+        unsigned row, col;
+    };
+
+    explicit SystemSolver() {}
+    SystemSolver(scope_ptr enclosing): block_scope_(enclosing) {}
+
+    void reset() {
+        A_.clear();
+        symtbl_.clear();
+    }
+    void create_square_matrix(unsigned n) {
+        A_ = symge::sym_matrix(n, n);
+    }
+    bool empty() const {
+        return A_.empty();
+    }
+    bool empty_row(unsigned i) const {
+        return A_[i].empty();
+    }
+    void clear_row(unsigned i) {
+        A_[i].clear();
+    }
+    void add_entry(system_loc loc, std::string name) {
+        A_[loc.row].push_back({loc.col, symtbl_.define(name)});
+    }
+    void augment(std::vector<std::string> rhs) {
+        std::vector<symge::symbol> rhs_sym;
+        for (auto r: rhs) {
+            rhs_sym.push_back(symtbl_.define(r));
+        }
+        A_.augment(rhs_sym);
+    }
+
+    symge::sym_row& operator[](unsigned i) { return A_[i]; }
+
+    std::vector<expression_ptr> reduce_system();
+    std::vector<expression_ptr> GenerateUpdateStatements(std::vector<std::string>);
+};
+
+class SparseSolverVisitor : public SolverVisitorBase {
+protected:
+    solverVariant solve_variant_;
+
     // 'Current' differential equation is for variable with this
     // index in `dvars`.
     unsigned deq_index_ = 0;
@@ -75,34 +129,6 @@ protected:
     // Expanded local assignments that need to be substituted in for derivative
     // calculations.
     substitute_map local_expr_;
-
-    // Symbolic matrix for backwards Euler step.
-    symge::sym_matrix A_;
-
-    // 'Symbol table' for symbolic manipulation.
-    symge::symbol_table symtbl_;
-
-public:
-    using SolverVisitorBase::visit;
-
-    explicit MatrixSolverVisitor() {}
-    MatrixSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
-
-    virtual void reset() override {
-        deq_index_ = 0;
-        local_expr_.clear();
-        A_.clear();
-        symtbl_.clear();
-        SolverVisitorBase::reset();
-    }
-
-    virtual std::vector<expression_ptr> GenerateReduceStatements();
-    virtual std::vector<expression_ptr> GenerateUpdateStatements(std::vector<std::string>);
-};
-
-class SparseSolverVisitor : public MatrixSolverVisitor {
-protected:
-    solverVariant solve_variant_;
 
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
@@ -116,12 +142,16 @@ protected:
 
     // rhs of steadstate
     std::string steadystate_rhs_;
+
+    // System Solver helper
+    SystemSolver system_;
+
 public:
     using SolverVisitorBase::visit;
 
     explicit SparseSolverVisitor(solverVariant s = solverVariant::regular) :
         solve_variant_(s) {}
-    SparseSolverVisitor(scope_ptr enclosing): MatrixSolverVisitor(enclosing) {}
+    SparseSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
@@ -129,17 +159,28 @@ public:
     virtual void visit(ConserveExpression *e) override;
     virtual void finalize() override;
     virtual void reset() override {
+        deq_index_ = 0;
+        local_expr_.clear();
         conserve_ = false;
         scale_factor_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
         steadystate_rhs_.clear();
-        MatrixSolverVisitor::reset();
+        system_.reset();
+        SolverVisitorBase::reset();
     }
 };
 
-class SparseNonlinearSolverVisitor : public MatrixSolverVisitor {
+class SparseNonlinearSolverVisitor : public SolverVisitorBase {
 protected:
+    // 'Current' differential equation is for variable with this
+    // index in `dvars`.
+    unsigned deq_index_ = 0;
+
+    // Expanded local assignments that need to be substituted in for derivative
+    // calculations.
+    substitute_map local_expr_;
+
     // F(x) and the Jacobian J(x) for every state variable
     // Needed for Newton's method
     std::vector<expression_ptr> F_;
@@ -151,11 +192,14 @@ protected:
     // State variable multiplier/divider
     std::vector<expression_ptr> scale_factor_;
 
+    // System Solver helper
+    SystemSolver system_;
+
 public:
     using SolverVisitorBase::visit;
 
     SparseNonlinearSolverVisitor() {}
-    SparseNonlinearSolverVisitor(scope_ptr enclosing): MatrixSolverVisitor(enclosing) {}
+    SparseNonlinearSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
@@ -163,17 +207,31 @@ public:
     virtual void visit(ConserveExpression *e) override {};
     virtual void finalize() override;
     virtual void reset() override {
+        deq_index_ = 0;
+        local_expr_.clear();
         F_.clear();
         J_.clear();
         scale_factor_.clear();
-        MatrixSolverVisitor::reset();
+        system_.reset();
+        SolverVisitorBase::reset();
     }
 };
 
-class LinearSolverVisitor : public MatrixSolverVisitor {
+class LinearSolverVisitor : public SolverVisitorBase {
 protected:
+    // 'Current' differential equation is for variable with this
+    // index in `dvars`.
+    unsigned deq_index_ = 0;
+
+    // Expanded local assignments that need to be substituted in for derivative
+    // calculations.
+    substitute_map local_expr_;
+
     // Stores the rhs symbols of the linear system
-    std::vector<symge::symbol> rhs_;
+    std::vector<std::string> rhs_;
+
+    // System Solver helper
+    SystemSolver system_;
 
 public:
     using SolverVisitorBase::visit;
@@ -181,14 +239,17 @@ public:
     LinearSolverVisitor(std::vector<std::string> vars) {
         dvars_ = vars;
     }
-    LinearSolverVisitor(scope_ptr enclosing): MatrixSolverVisitor(enclosing) {}
+    LinearSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(LinearExpression *e) override;
     virtual void visit(AssignmentExpression *e) override;
     virtual void finalize() override;
     virtual void reset() override {
+        deq_index_ = 0;
+        local_expr_.clear();
         rhs_.clear();
-        MatrixSolverVisitor::reset();
+        system_.reset();
+        SolverVisitorBase::reset();
     }
 };

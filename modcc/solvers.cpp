@@ -171,7 +171,7 @@ static expression_ptr as_expression(symge::symbol_term_diff diff) {
     }
 }
 
-std::vector<expression_ptr> MatrixSolverVisitor::GenerateReduceStatements() {
+std::vector<expression_ptr> SystemSolver::reduce_system() {
     std::vector<expression_ptr> S_;
 
     symge::gj_reduce(A_, symtbl_);
@@ -263,6 +263,7 @@ std::vector<expression_ptr> MatrixSolverVisitor::GenerateUpdateStatements(std::v
     return U_;
 }
 
+
 void SparseSolverVisitor::visit(BlockExpression* e) {
     // Do a first pass to extract variables comprising ODE system
     // lhs; can't really trust 'STATE' block.
@@ -304,9 +305,8 @@ void SparseSolverVisitor::visit(CompartmentExpression *e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
 
     auto loc = e->location();
@@ -329,7 +329,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         return;
     }
 
-    if (conserve_ && !A_[deq_index_].empty()) {
+    if (conserve_ && !system_.empty_row(deq_index_)) {
         deq_index_++;
         return;
     }
@@ -391,15 +391,14 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
 
-        A_[deq_index_].push_back({j, symtbl_.define(a_)});
+        system_.add_entry({deq_index_, j}, a_);
     }
     ++deq_index_;
 }
 
 void SparseSolverVisitor::visit(ConserveExpression *e) {
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
     conserve_ = true;
 
@@ -426,7 +425,7 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
     }
 
     // Replace that row with the conserve statement
-    A_[row_idx].clear();
+    system_.clear_row(row_idx);
 
     for (unsigned j = 0; j < dvars_.size(); ++j) {
         auto state = dvars_[j];
@@ -447,7 +446,7 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
             statements_.push_back(std::move(local_a_term.local_decl));
             statements_.push_back(std::move(local_a_term.assignment));
 
-            A_[row_idx].push_back({j, symtbl_.define(a_)});
+            system_.add_entry({(unsigned)row_idx, j}, a_);
         }
     }
 
@@ -470,25 +469,25 @@ void SparseSolverVisitor::finalize() {
         error({"Conserve statement(s) missing in steady-state solver", {}});
     }
 
-    std::vector<symge::symbol> rhs;
+    std::vector<std::string> rhs;
     for (const auto& var: dvars_) {
         auto v = solve_variant_ == solverVariant::steadystate? steadystate_rhs_ : var;
-        rhs.push_back(symtbl_.define(v));
+        rhs.push_back(v);
     }
     if (conserve_) {
         for (unsigned i = 0; i < conserve_idx_.size(); ++i) {
-            rhs[conserve_idx_[i]] = symtbl_.define(conserve_rhs_[i]);
+            rhs[conserve_idx_[i]] = conserve_rhs_[i];
         }
     }
-    A_.augment(rhs);
+    system_.augment(rhs);
 
     // Generate statements that reduce the system A_
-    auto S_ = GenerateReduceStatements();
-    std::move(std::begin(S_), std::end(S_), std::back_inserter(statements_));
+//    auto S_ = GenerateReduceStatements();
+//    std::move(std::begin(S_), std::end(S_), std::back_inserter(statements_));
 
     // Generate statements that solve the reduced system and update dvars_
-    auto U_ = GenerateUpdateStatements(dvars_);
-    std::move(std::begin(U_), std::end(U_), std::back_inserter(statements_));
+//    auto U_ = GenerateUpdateStatements(dvars_);
+//    std::move(std::begin(U_), std::end(U_), std::back_inserter(statements_));
 
     BlockRewriterBase::finalize();
 }
@@ -506,9 +505,8 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
     auto loc = e->location();
     scope_ptr scope = e->scope();
 
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
 
     linear_test_result r = linear_test(e->lhs(), dvars_);
@@ -528,22 +526,22 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
 
         auto a_ = expr->is_identifier()->spelling();
 
-        A_[deq_index_].push_back({j, symtbl_.define(a_)});
+        system_.add_entry({deq_index_, j}, a_);
     }
-    rhs_.push_back(symtbl_.define(e->rhs()->is_identifier()->spelling()));
+    rhs_.push_back(e->rhs()->is_identifier()->spelling());
     ++deq_index_;
 }
 
 void LinearSolverVisitor::finalize() {
-    A_.augment(rhs_);
+    system_.augment(rhs_);
 
     // Generate statements that reduce the system A_
-    auto S_ = GenerateReduceStatements();
-    std::move(std::begin(S_), std::end(S_), std::back_inserter(statements_));
+//    auto S_ = GenerateReduceStatements();
+//    std::move(std::begin(S_), std::end(S_), std::back_inserter(statements_));
 
     // Generate statements that solve the reduced system and update dvars_
-    auto U_ = GenerateUpdateStatements(dvars_);
-    std::move(std::begin(U_), std::end(U_), std::back_inserter(statements_));
+//    auto U_ = GenerateUpdateStatements(dvars_);
+//    std::move(std::begin(U_), std::end(U_), std::back_inserter(statements_));
 
     BlockRewriterBase::finalize();
 }
@@ -609,9 +607,8 @@ void SparseNonlinearSolverVisitor::visit(CompartmentExpression *e) {
 }
 
 void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
 
     auto loc = e->location();
@@ -723,7 +720,7 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
         statements_.push_back(std::move(local_j_term.local_decl));
         J_.push_back(std::move(local_j_term.assignment));
 
-        A_[deq_index_].push_back({j, symtbl_.define(j_)});
+        system_.add_entry({deq_index_, j}, j_);
     }
     ++deq_index_;
 }
@@ -731,28 +728,28 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
 void SparseNonlinearSolverVisitor::finalize() {
 
     // Create rhs of A_
-    std::vector<symge::symbol> rhs;
+    std::vector<std::string> rhs;
     for (const auto& var: F_) {
         auto id = var->is_assignment()->lhs()->is_identifier()->spelling();
-        rhs.push_back(symtbl_.define(id));
+        rhs.push_back(id);
     }
 
-    A_.augment(rhs);
+    system_.augment(rhs);
 
     // Generate statements that reduce the system A_
-    auto S_ = GenerateReduceStatements();
+//    auto S_ = GenerateReduceStatements();
 
     // Generate statements that solve the reduced system and update dvars_
-     auto U_ = GenerateUpdateStatements(dvar_temp_);
+//     auto U_ = GenerateUpdateStatements(dvar_temp_);
 
     // Create the statements that update the temporary state variables
     // (dvar_temp) after a Newton's iteration and save them in U_
-    for (auto& u: U_) {
-        auto lhs = u->is_assignment()->lhs();
-        auto rhs = u->is_assignment()->rhs();
-        u = make_expression<AssignmentExpression>(u->location(), lhs->clone(),
-                make_expression<SubBinaryExpression>(u->location(), lhs->clone(), rhs->clone()));
-    }
+//    for (auto& u: U_) {
+//        auto lhs = u->is_assignment()->lhs();
+//        auto rhs = u->is_assignment()->rhs();
+//        u = make_expression<AssignmentExpression>(u->location(), lhs->clone(),
+//                make_expression<SubBinaryExpression>(u->location(), lhs->clone(), rhs->clone()));
+//    }
 
     // Do 3 Newton iterations
     for (unsigned n = 0; n < 3; n++) {
@@ -763,12 +760,12 @@ void SparseNonlinearSolverVisitor::finalize() {
         for (auto &s: J_) {
             statements_.push_back(s->clone());
         }
-        for (auto &s: S_) {
-            statements_.push_back(s->clone());
-        }
-        for (auto &s: U_) {
-            statements_.push_back(s->clone());
-        }
+//        for (auto &s: S_) {
+//            statements_.push_back(s->clone());
+//        }
+//        for (auto &s: U_) {
+//            statements_.push_back(s->clone());
+//        }
     }
 
     Location loc;
