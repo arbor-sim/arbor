@@ -234,20 +234,23 @@ static void make_queues_by_conns(
     using util::make_range;
     struct spike_pred {
         bool operator()(const spike& spk, const cell_member_type& src)
-        {return spk.source<src;}
+            {return spk.source<src;}
         bool operator()(const cell_member_type& src, const spike& spk)
-        {return src<spk.source;}
+            {return src<spk.source;}
     };
 
-    while (cn != cend && sp != send) {
-        auto spikes = std::equal_range(sp, send, cn->source(), spike_pred());
-        auto& q = queues[cn->index_on_domain()];
-        for (auto&& s: make_range(spikes)) {
-            q.push_back(cn->make_event(s));
+    for (auto&& c: make_range(cn, cend)) {
+        if (sp == send) {break;};
+        
+        auto spikes = std::equal_range(sp, send, c.source(), spike_pred());
+        if (spikes.first != spikes.second) {
+            auto& q = queues[c.index_on_domain()];
+            for (auto&& s: make_range(spikes)) {
+                q.push_back(c.make_event(s));
+            }
         }
         
         sp = spikes.first; // should be first, range of connections may have same source
-        ++cn;
     }
 }
 
@@ -260,15 +263,16 @@ static void make_queues_by_spikes(
 {
     using util::make_range;
 
-    while (cn != cend && sp != send) {
-        auto targets = std::equal_range(cn, cend, sp->source);
+    for (auto&& s: make_range(sp, send)) {
+        if (cn == cend) {break;};
+        
+        auto targets = std::equal_range(cn, cend, s.source);
         for (auto&& c: make_range(targets)) {
             auto& q = queues[c.index_on_domain()];
-            q.push_back(c.make_event(*sp));
+            q.push_back(c.make_event(s));
         }
 
         cn = targets.second; // range of connections with this source handled
-        ++sp;
     }
 }
 
