@@ -20,8 +20,8 @@
 #include "multi_event_stream.hpp"
 #include "threshold_watcher.hpp"
 
-#include "multicore_common.hpp"
 #include "fvm_layout.hpp"
+#include "multicore_common.hpp"
 
 namespace arb {
 namespace multicore {
@@ -49,8 +49,8 @@ struct ion_state {
 
     array init_Xi_;         // (mM) area-weighted initial internal concentration
     array init_Xo_;         // (mM) area-weighted initial external concentration
-    array reset_Xi_;        // (mM) area-weighted initial internal concentration
-    array reset_Xo_;        // (mM) area-weighted initial internal concentration
+    array reset_Xi_;        // (mM) area-weighted user-set internal concentration
+    array reset_Xo_;        // (mM) area-weighted user-set internal concentration
     array init_eX_;         // (mV) initial reversal potential
 
     array charge;           // charge of ionic species (global value, length 1)
@@ -59,7 +59,7 @@ struct ion_state {
 
     ion_state(
         int charge,
-        const fvm_ion_config& iod_data,
+        const fvm_ion_config& ion_data,
         unsigned align
     );
 

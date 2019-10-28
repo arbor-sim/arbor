@@ -136,8 +136,7 @@ struct fvm_ion_config {
     std::vector<value_type> init_iconc;
     std::vector<value_type> init_econc;
 
-    // Normalized area contribution of default concentration contribution in corresponding CV
-    // before mechanisms can update the ion state
+    // Normalized area contribution of default concentration contribution in corresponding CV set by users
     std::vector<value_type> reset_iconc;
     std::vector<value_type> reset_econc;
 
