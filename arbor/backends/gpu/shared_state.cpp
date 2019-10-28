@@ -53,7 +53,7 @@ ion_state::ion_state(
     const fvm_ion_config& ion_data,
     unsigned // alignment/padding ignored.
 ):
-    node_index_(make_const_view(cv)),
+    node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
     eX_(ion_data.cv.size(), NAN),
     Xi_(ion_data.cv.size(), NAN),
@@ -62,7 +62,7 @@ ion_state::ion_state(
     init_Xo_(make_const_view(ion_data.init_econc)),
     reset_Xi_(make_const_view(ion_data.reset_iconc)),
     reset_Xo_(make_const_view(ion_data.reset_econc)),
-    init_eX_(make_const_view(ion_data.init_erev)),
+    init_eX_(make_const_view(ion_data.init_revpot)),
     charge(1u, charge)
 {
     arb_assert(node_index_.size()==init_Xi_.size());
