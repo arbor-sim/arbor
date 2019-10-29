@@ -1,5 +1,5 @@
 #pragma once
-#include <float.h>
+#include <cfloat>
 
 // Implementations of mathematical operations required
 // by generated CUDA mechanisms.
