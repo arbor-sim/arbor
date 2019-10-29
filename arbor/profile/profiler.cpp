@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <mutex>
 #include <ostream>
+#include <stack>
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
