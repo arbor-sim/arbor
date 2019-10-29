@@ -172,8 +172,6 @@ static expression_ptr as_expression(symge::symbol_term_diff diff) {
 
 std::vector<local_assignment> SystemSolver::generate_row_updates(scope_ptr scope, std::vector<symge::symbol> row_sym) {
     std::vector<local_assignment> S_;
-
-    // Create and assign intermediate variables.
     for (const auto& s: row_sym) {
         if (primitive(s)) continue;
 
@@ -187,42 +185,33 @@ std::vector<local_assignment> SystemSolver::generate_row_updates(scope_ptr scope
 }
 
 local_assignment SystemSolver::generate_normalizing_term(scope_ptr scope, std::vector<symge::symbol> row_sym) {
-    local_assignment s_;
-
-    // If size of matrix > 5, normalize intermediate variables
-    if (A_.size() > 0) {
-        // Get the max element in the row
-        expression_ptr max;
-        for (auto &s: row_sym) {
-            auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
-            auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
-            if (!max) {
-                max = std::move(abs);
-            } else {
-                max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
-            }
+    // Get the max element in the row
+    expression_ptr max;
+    for (auto &s: row_sym) {
+        auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
+        auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
+        if (!max) {
+            max = std::move(abs);
+        } else {
+            max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
         }
-        // Safely inverse max
-        auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
-
-        // Create a symbol for inv
-        auto local_inv_term = make_unique_local_assign(scope, inv.get(), "inv_");
-
-        s_ = std::move(local_inv_term);
     }
-    return s_;
+    // Safely invert max
+    auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
+
+    // Create a symbol for inv
+    auto local_inv_term = make_unique_local_assign(scope, inv.get(), "inv_");
+
+    return std::move(local_inv_term);
 }
 
 std::vector<expression_ptr> SystemSolver::generate_normalizing_assignments(expression_ptr normalizer, std::vector<symge::symbol> row_sym) {
     std::vector<expression_ptr> S_;
-    if (A_.size() > 0) {
-        std::vector<expression_ptr> row_elems;
-        for (auto &s: row_sym) {
-            auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
-            auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), normalizer->clone());
-            auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
-            S_.push_back(std::move(assign));
-        }
+    for (auto &s: row_sym) {
+        auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
+        auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), normalizer->clone());
+        auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
+        S_.push_back(std::move(assign));
     }
     return S_;
 }
@@ -484,17 +473,19 @@ void SparseSolverVisitor::finalize() {
     // Generate normalizing terms and normalize the row
     for (auto& row: row_symbols) {
         auto entries = system_.generate_row_updates(block_scope_, row);
-        auto norm_term = system_.generate_normalizing_term(block_scope_, row);
-        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
-
         for (auto& l: entries) {
             statements_.push_back(std::move(l.local_decl));
             statements_.push_back(std::move(l.assignment));
         }
-        statements_.push_back(std::move(norm_term.local_decl));
-        statements_.push_back(std::move(norm_term.assignment));
-        for (auto& n: norm_assigns) {
-            statements_.push_back(std::move(n));
+
+        // If size of system > 5 normalize the row updates
+        if (system_.size() > 5) {
+            auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+            auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
+
+            statements_.push_back(std::move(norm_term.local_decl));
+            statements_.push_back(std::move(norm_term.assignment));
+            std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
         }
     }
 
@@ -556,17 +547,19 @@ void LinearSolverVisitor::finalize() {
     // Generate normalizing terms and normalize the row
     for (auto& row: row_symbols) {
         auto entries = system_.generate_row_updates(block_scope_, row);
-        auto norm_term = system_.generate_normalizing_term(block_scope_, row);
-        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
-
         for (auto& l: entries) {
             statements_.push_back(std::move(l.local_decl));
             statements_.push_back(std::move(l.assignment));
         }
-        statements_.push_back(std::move(norm_term.local_decl));
-        statements_.push_back(std::move(norm_term.assignment));
-        for (auto& n: norm_assigns) {
-            statements_.push_back(std::move(n));
+
+        // If size of system > 5 normalize the row updates
+        if (system_.size() > 5) {
+            auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+            auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
+
+            statements_.push_back(std::move(norm_term.local_decl));
+            statements_.push_back(std::move(norm_term.assignment));
+            std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
         }
     }
 
@@ -776,17 +769,19 @@ void SparseNonlinearSolverVisitor::finalize() {
     std::vector<expression_ptr> S_;
     for (auto& row: row_symbols) {
         auto entries = system_.generate_row_updates(block_scope_, row);
-        auto norm_term = system_.generate_normalizing_term(block_scope_, row);
-        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
-
         for (auto& l: entries) {
             statements_.push_back(std::move(l.local_decl));
             S_.push_back(std::move(l.assignment));
         }
-        statements_.push_back(std::move(norm_term.local_decl));
-        S_.push_back(std::move(norm_term.assignment));
-        for (auto& n: norm_assigns) {
-            S_.push_back(std::move(n));
+
+        // If size of system > 5 normalize the row updates
+        if (system_.size() > 5) {
+            auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+            auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
+
+            statements_.push_back(std::move(norm_term.local_decl));
+            S_.push_back(std::move(norm_term.assignment));
+            std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(S_));
         }
     }
 

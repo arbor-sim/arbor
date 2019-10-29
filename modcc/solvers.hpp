@@ -75,8 +75,6 @@ protected:
     // 'Symbol table' for initial variables.
     symge::symbol_table symtbl_;
 
-    std::vector<std::vector<unsigned>> index_;
-
 public:
     struct system_loc {
         unsigned row, col;
@@ -88,12 +86,8 @@ public:
         A_.clear();
         symtbl_.clear();
     }
-    unsigned nrows() {
-        return A_.nrow();
-    }
-    void create_square_matrix(unsigned n) {
-        index_.resize(n);
-        A_ = symge::sym_matrix(n, n);
+    unsigned size() const {
+        return A_.size();
     }
     bool empty() const {
         return A_.empty();
@@ -104,27 +98,36 @@ public:
     void clear_row(unsigned i) {
         A_[i].clear();
     }
+    void create_square_matrix(unsigned n) {
+        A_ = symge::sym_matrix(n, n);
+    }
     void add_entry(system_loc loc, std::string name) {
-        index_[loc.row].push_back(symtbl_.size());
         A_[loc.row].push_back({loc.col, symtbl_.define(name)});
     }
     void augment(std::vector<std::string> rhs) {
         std::vector<symge::symbol> rhs_sym;
         for (unsigned r = 0; r < rhs.size(); ++r) {
-            index_[r].push_back(symtbl_.size());
             rhs_sym.push_back(symtbl_.define(rhs[r]));
         }
         A_.augment(rhs_sym);
     }
+
+    // Returns a vector of rows of symbols
+    // Needed for normalization
     std::vector<std::vector<symge::symbol>> reduce() {
         return symge::gj_reduce(A_, symtbl_);
     }
 
-    symge::sym_row& operator[](unsigned i) { return A_[i]; }
-
+    // Returns a vector of local assignments for row updates during system reduction
     std::vector<local_assignment> generate_row_updates(scope_ptr scope, std::vector<symge::symbol> row_sym);
+
+    // Given a row of symbols, generates local assignment for a normalizing term
     local_assignment generate_normalizing_term(scope_ptr scope, std::vector<symge::symbol> row_sym);
+
+    // Given a row of symbols, generates expressions normalizing row updates
     std::vector<expression_ptr> generate_normalizing_assignments(expression_ptr normalizer, std::vector<symge::symbol> row_sym);
+
+    // Returns solution assignment of lhs_vars
     std::vector<expression_ptr> generate_solution_assignments(std::vector<std::string> lhs_vars);
 
 };
