@@ -170,45 +170,31 @@ static expression_ptr as_expression(symge::symbol_term_diff diff) {
     }
 }
 
-std::vector<local_assignment> SystemSolver::generate_system_entries(scope_ptr scope) {
+std::vector<local_assignment> SystemSolver::generate_row_updates(scope_ptr scope, std::vector<symge::symbol> row_sym) {
     std::vector<local_assignment> S_;
 
-    symge::gj_reduce(A_, symtbl_);
-
     // Create and assign intermediate variables.
-    for (unsigned i = 0; i < symtbl_.size(); ++i) {
-        symge::symbol s = symtbl_[i];
-
+    for (const auto& s: row_sym) {
         if (primitive(s)) continue;
 
         auto expr = as_expression(definition(s));
         auto local_t_term = make_unique_local_assign(scope, expr.get(), "t_");
         auto t_ = local_t_term.id->is_identifier()->spelling();
         symtbl_.name(s, t_);
-        std::cout << local_t_term.assignment->to_string() << std::endl;
-
         S_.push_back(std::move(local_t_term));
     }
-
     return S_;
 }
 
-local_assignment SystemSolver::generate_normalizing_term(scope_ptr scope, unsigned row) {
+local_assignment SystemSolver::generate_normalizing_term(scope_ptr scope, std::vector<symge::symbol> row_sym) {
     local_assignment s_;
 
     // If size of matrix > 5, normalize intermediate variables
     if (A_.size() > 0) {
-        // Collect the elements in a single row to normalize
-        std::vector<expression_ptr> row_elems;
-        for (unsigned j = 0; j < A_.ncol(); ++j) {
-            if (!symge::name(A_[row][j]).empty()) {
-                row_elems.emplace_back(make_expression<IdentifierExpression>(Location(), symge::name(A_[row][j])));
-            }
-        }
-
         // Get the max element in the row
         expression_ptr max;
-        for (auto &elem: row_elems) {
+        for (auto &s: row_sym) {
+            auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
             auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
             if (!max) {
                 max = std::move(abs);
@@ -227,18 +213,15 @@ local_assignment SystemSolver::generate_normalizing_term(scope_ptr scope, unsign
     return s_;
 }
 
-std::vector<expression_ptr> SystemSolver::generate_normalizing_assignments(expression_ptr normalizer, unsigned row) {
+std::vector<expression_ptr> SystemSolver::generate_normalizing_assignments(expression_ptr normalizer, std::vector<symge::symbol> row_sym) {
     std::vector<expression_ptr> S_;
     if (A_.size() > 0) {
-        // Collect the elements in a single row to normalize
         std::vector<expression_ptr> row_elems;
-        for (unsigned j = 0; j < A_.ncol(); ++j) {
-            if (!symge::name(A_[row][j]).empty()) {
-                auto elem = make_expression<IdentifierExpression>(Location(), symge::name(A_[row][j]));
-                auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), normalizer->clone());
-                auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
-                S_.push_back(std::move(assign));
-            }
+        for (auto &s: row_sym) {
+            auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
+            auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), normalizer->clone());
+            auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
+            S_.push_back(std::move(assign));
         }
     }
     return S_;
@@ -493,21 +476,26 @@ void SparseSolverVisitor::finalize() {
     }
     system_.augment(rhs);
 
+    // Reduce the system
+    auto row_symbols = system_.reduce();
+
+    // Row by row:
     // Generate entries of the system and declare and assign as local variables
-    auto locals = system_.generate_system_entries(block_scope_);
-    for (auto& l: locals) {
-        statements_.push_back(std::move(l.local_decl));
-        statements_.push_back(std::move(l.assignment));
-    }
+    // Generate normalizing terms and normalize the row
+    for (auto& row: row_symbols) {
+        auto entries = system_.generate_row_updates(block_scope_, row);
+        auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
-    // Generate normalizing terms and normalize the system row by row
-    for (unsigned r = 0; r < system_.nrows(); r++) {
-        auto norm_term = system_.generate_normalizing_term(block_scope_, r);
-        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), r);
-
+        for (auto& l: entries) {
+            statements_.push_back(std::move(l.local_decl));
+            statements_.push_back(std::move(l.assignment));
+        }
         statements_.push_back(std::move(norm_term.local_decl));
         statements_.push_back(std::move(norm_term.assignment));
-        std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
+        for (auto& n: norm_assigns) {
+            statements_.push_back(std::move(n));
+        }
     }
 
     // Update the state variables
@@ -560,21 +548,26 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
 void LinearSolverVisitor::finalize() {
     system_.augment(rhs_);
 
-    // Generate local variables of the system_
-    auto locals = system_.generate_system_entries(block_scope_);
-    for (auto& l: locals) {
-        statements_.push_back(std::move(l.local_decl));
-        statements_.push_back(std::move(l.assignment));
-    }
+    // Reduce the system
+    auto row_symbols = system_.reduce();
 
-    // Generate normalizing terms and normalize the system row by row
-    for (unsigned r = 0; r < system_.nrows(); r++) {
-        auto norm_term = system_.generate_normalizing_term(block_scope_, r);
-        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), r);
+    // Row by row:
+    // Generate entries of the system and declare and assign as local variables
+    // Generate normalizing terms and normalize the row
+    for (auto& row: row_symbols) {
+        auto entries = system_.generate_row_updates(block_scope_, row);
+        auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
+        for (auto& l: entries) {
+            statements_.push_back(std::move(l.local_decl));
+            statements_.push_back(std::move(l.assignment));
+        }
         statements_.push_back(std::move(norm_term.local_decl));
         statements_.push_back(std::move(norm_term.assignment));
-        std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
+        for (auto& n: norm_assigns) {
+            statements_.push_back(std::move(n));
+        }
     }
 
     // Update the state variables
@@ -774,23 +767,27 @@ void SparseNonlinearSolverVisitor::finalize() {
 
     system_.augment(rhs);
 
-    // Generate local variables of the system_, they need to be updated for every newton iteration
+    // Reduce the system
+    auto row_symbols =  system_.reduce();
+
+    // Row by row:
+    // Generate entries of the system and declare and assign as local variables
+    // Generate normalizing terms and normalize the row
     std::vector<expression_ptr> S_;
+    for (auto& row: row_symbols) {
+        auto entries = system_.generate_row_updates(block_scope_, row);
+        auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
-    auto locals = system_.generate_system_entries(block_scope_);
-    for (auto& l: locals) {
-        statements_.push_back(std::move(l.local_decl));
-        S_.push_back(std::move(l.assignment));
-    }
-
-    // Generate normalizing terms and normalize the system row by row
-    for (unsigned r = 0; r < system_.nrows(); r++) {
-        auto norm_term = system_.generate_normalizing_term(block_scope_, r);
-        auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), r);
-
+        for (auto& l: entries) {
+            statements_.push_back(std::move(l.local_decl));
+            S_.push_back(std::move(l.assignment));
+        }
         statements_.push_back(std::move(norm_term.local_decl));
         S_.push_back(std::move(norm_term.assignment));
-        std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(S_));
+        for (auto& n: norm_assigns) {
+            S_.push_back(std::move(n));
+        }
     }
 
     // Update the state variables

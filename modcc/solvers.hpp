@@ -72,8 +72,10 @@ protected:
     // Symbolic matrix for backwards Euler step.
     symge::sym_matrix A_;
 
-    // 'Symbol table' for symbolic manipulation.
+    // 'Symbol table' for initial variables.
     symge::symbol_table symtbl_;
+
+    std::vector<std::vector<unsigned>> index_;
 
 public:
     struct system_loc {
@@ -90,6 +92,7 @@ public:
         return A_.nrow();
     }
     void create_square_matrix(unsigned n) {
+        index_.resize(n);
         A_ = symge::sym_matrix(n, n);
     }
     bool empty() const {
@@ -102,21 +105,26 @@ public:
         A_[i].clear();
     }
     void add_entry(system_loc loc, std::string name) {
+        index_[loc.row].push_back(symtbl_.size());
         A_[loc.row].push_back({loc.col, symtbl_.define(name)});
     }
     void augment(std::vector<std::string> rhs) {
         std::vector<symge::symbol> rhs_sym;
-        for (auto r: rhs) {
-            rhs_sym.push_back(symtbl_.define(r));
+        for (unsigned r = 0; r < rhs.size(); ++r) {
+            index_[r].push_back(symtbl_.size());
+            rhs_sym.push_back(symtbl_.define(rhs[r]));
         }
         A_.augment(rhs_sym);
+    }
+    std::vector<std::vector<symge::symbol>> reduce() {
+        return symge::gj_reduce(A_, symtbl_);
     }
 
     symge::sym_row& operator[](unsigned i) { return A_[i]; }
 
-    std::vector<local_assignment> generate_system_entries(scope_ptr scope);
-    local_assignment generate_normalizing_term(scope_ptr scope, unsigned row);
-    std::vector<expression_ptr> generate_normalizing_assignments(expression_ptr normalizer, unsigned row);
+    std::vector<local_assignment> generate_row_updates(scope_ptr scope, std::vector<symge::symbol> row_sym);
+    local_assignment generate_normalizing_term(scope_ptr scope, std::vector<symge::symbol> row_sym);
+    std::vector<expression_ptr> generate_normalizing_assignments(expression_ptr normalizer, std::vector<symge::symbol> row_sym);
     std::vector<expression_ptr> generate_solution_assignments(std::vector<std::string> lhs_vars);
 
 };
