@@ -94,16 +94,13 @@ namespace {
         // All dendrite segments with 4 compartments.
 
         soma_cell_builder builder(7.);
-        builder.add_branch(0, 200, 0.5,  0.5, 4, "dnd1");
-        builder.add_branch(1, 300, 0.4,  0.4, 4, "dnd2");
-        builder.add_branch(1, 180, 0.35, 0.35, 4, "dnd3");
+        auto b1 = builder.add_branch(0, 200, 0.5,  0.5, 4,  "dend");
+        auto b2 = builder.add_branch(1, 300, 0.4,  0.4, 4,  "dend");
+        auto b3 = builder.add_branch(1, 180, 0.35, 0.35, 4, "dend");
         auto cell = builder.make_cell();
 
-        using ::arb::reg::tagged;
-        auto dend = join(tagged(1), tagged(2), tagged(3));
-
         cell.paint("soma", "hh");
-        cell.paint(dend, "pas");
+        cell.paint("dend", "pas");
 
         cable_cell_local_parameter_set p1;
         p1.membrane_capacitance = 0.017;
@@ -112,9 +109,10 @@ namespace {
         cable_cell_local_parameter_set p3;
         p3.membrane_capacitance = 0.018;
 
-        cell.paint("dnd1", p1);
-        cell.paint("dnd2", p2);
-        cell.paint("dnd3", p3);
+        using ::arb::reg::branch;
+        cell.paint(branch(b1), p1);
+        cell.paint(branch(b2), p2);
+        cell.paint(branch(b3), p3);
 
         cell.place(mlocation{2,1}, i_clamp{5.,  80., 0.45});
         cell.place(mlocation{3,1}, i_clamp{40., 10.,-0.2});

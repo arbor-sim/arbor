@@ -56,7 +56,7 @@ public:
         p = tree.append(p, {{0,0,z+len,r2}, tag});
         branch_distal_id.push_back(p);
 
-        return branch_distal_id.size();
+        return branch_distal_id.size()-1;
     }
 
     cable_cell make_cell() const {

@@ -191,7 +191,7 @@ struct cable_cell_impl {
         const auto it = locations.find(target);
         if (it==locations.end()) return lid_range(first, first);
 
-        return lid_range(first, gap_junction_sites.size());
+        return place_gj(it->second);
     }
 
     void assert_valid_segment(index_type i) const {
