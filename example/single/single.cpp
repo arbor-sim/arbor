@@ -58,26 +58,28 @@ struct single_recipe: public arb::recipe {
         using arb::reg::tagged;
         dict.set("soma", tagged(1));
         dict.set("dend", join(tagged(3), tagged(4), tagged(42)));
-        arb::cable_cell c = make_cable_cell(morpho, dict, false);
+        arb::cable_cell c(morpho, dict, false);
 
         // Add HH mechanism to soma, passive channels to dendrites.
         c.paint("soma", "hh");
         c.paint("dend", "pas");
 
         // Discretize dendrites according to the NEURON d-lambda rule.
-        for (std::size_t i=1; i<c.num_segments(); ++i) {
+        /* skip this during refactoring of the morphology interface
+        for (std::size_t i=1; i<c.num_branches(); ++i) {
             arb::cable_segment* branch = c.cable(i);
 
             double dx = c.segment_length_constant(100., i, gprop.default_parameters)*0.3;
             unsigned n = std::ceil(branch->length()/dx);
             branch->set_compartments(n);
         }
+        */
 
         // Add synapse to last branch.
 
-        arb::cell_lid_type last_segment = c.num_segments()-1;
-        arb::mlocation end_last_segment = { last_segment, 1. };
-        c.place(end_last_segment, "exp2syn");
+        arb::cell_lid_type last_branch = c.num_branches()-1;
+        arb::mlocation end_last_branch = { last_branch, 1. };
+        c.place(end_last_branch, "exp2syn");
 
         return c;
     }

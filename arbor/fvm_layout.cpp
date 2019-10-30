@@ -210,7 +210,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
     fvm_discretization D;
 
     util::make_partition(D.cell_segment_bounds,
-        transform_view(cells, [](const cable_cell& c) { return c.num_segments(); }));
+        transform_view(cells, [](const cable_cell& c) { return c.num_branches(); }));
 
     std::vector<index_type> cell_cv_bounds;
     auto cell_cv_part = make_partition(cell_cv_bounds,
@@ -261,7 +261,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
         seg_cv_bounds.clear();
         auto seg_cv_part = make_partition(
             seg_cv_bounds,
-            transform_view(make_span(c.num_segments()), [&c](const unsigned s) {
+            transform_view(make_span(c.num_branches()), [&c](const unsigned s) {
                 if (!c.segment(s)->is_soma() && c.parent(s)->is_soma()) {
                     return c.segment(s)->num_compartments() + 1;
                 }

@@ -3,9 +3,87 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/segment.hpp>
 #include <arbor/mechinfo.hpp>
+#include <arbor/morph/label_dict.hpp>
 #include <arbor/recipe.hpp>
 
 namespace arb {
+
+class soma_cell_builder {
+    double soma_rad;
+    sample_tree tree;
+    std::vector<msize_t> branch_distal_id;
+    std::unordered_map<std::string, int> tag_map;
+    int tag_count = 0;
+
+    // Get tag id of region.
+    // Add a new tag if region with that name has not already had a tag associated with it.
+    int get_tag(const std::string& name) {
+        auto it = tag_map.find(name);
+        // If the name is not in the map, make a unique tag.
+        // Tags start from 1.
+        if (it==tag_map.end()) {
+            tag_map[name] = ++tag_count;
+            return tag_count;
+        }
+        return it->second;
+    }
+
+public:
+    soma_cell_builder(double r): soma_rad(r) {
+        tree.append({{0,0,0,r}, get_tag("soma")});
+        branch_distal_id.push_back(0);
+    }
+
+    // Add a new branch that is attached to parent_branch.
+    // Returns the id of the new branch.
+    msize_t add_branch(msize_t parent_branch, double len, double r1, double r2, int ncomp,
+                    const std::string& region)
+    {
+        // Get tag id of region (add a new tag if region does not already exist).
+        int tag = get_tag(region);
+
+        msize_t p = branch_distal_id[parent_branch];
+        double z = parent_branch? tree.samples()[p].loc.z: soma_rad;
+
+        p = tree.append(p, {{0,0,z,r1}, tag});
+        if (ncomp>1) {
+            double dz = len/ncomp;
+            double dr = (r2-r1)/ncomp;
+            for (auto i=1; i<ncomp; ++i) {
+                p = tree.append(p, {{0,0,z+i*dz, r1+i*dr}, tag});
+            }
+        }
+        p = tree.append(p, {{0,0,z+len,r2}, tag});
+        branch_distal_id.push_back(p);
+
+        return branch_distal_id.size()-1;
+    }
+
+    cable_cell make_cell() const {
+        // Test that a valid tree was generated, that is, every branch has
+        // either 0 children, or at least 2 children.
+        for (auto i: branch_distal_id) {
+            if (i==0) continue;
+            auto prop = tree.properties()[i];
+            if (!is_fork(prop) && !is_terminal(prop)) {
+                throw cable_cell_error(
+                    "attempt to construct a cable_cell from a soma_cell_builder "
+                    "where a branch has only one child branch.");
+            }
+        }
+
+        // Make label dictionary with one entry for each tag.
+        label_dict dict;
+        for (auto& tag: tag_map) {
+            dict.set(tag.first, reg::tagged(tag.second));
+        }
+
+        // Make cable_cell from sample tree and dictionary.
+        // The true flag is used to force the discretization to make compartments
+        // at sample points.
+        return cable_cell(tree, dict, true);
+    }
+};
 
 /*
  * Create cell with just a soma:
@@ -21,11 +99,10 @@ namespace arb {
  */
 
 inline cable_cell make_cell_soma_only(bool with_stim = true) {
-    cable_cell c;
+    soma_cell_builder builder(18.8/2.0);
 
-    auto soma = c.add_soma(18.8/2.0);
-    soma->add_mechanism("hh");
-
+    auto c = builder.make_cell();
+    c.paint("soma", "hh");
     if (with_stim) {
         c.place(mlocation{0,0.5}, i_clamp{10., 100., 0.1});
     }
@@ -55,125 +132,16 @@ inline cable_cell make_cell_soma_only(bool with_stim = true) {
  */
 
 inline cable_cell make_cell_ball_and_stick(bool with_stim = true) {
-    cable_cell c;
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
-    auto soma = c.add_soma(12.6157/2.0);
-    soma->add_mechanism("hh");
-
-    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 1.0/2, 1.0/2, 200.0));
-
-    for (auto& seg: c.segments()) {
-        if (seg->is_dendrite()) {
-            seg->add_mechanism("pas");
-            seg->set_compartments(4);
-        }
-    }
-
+    auto c = builder.make_cell();
+    c.paint("soma", "hh");
+    c.paint("dend", "pas");
     if (with_stim) {
-        c.place(mlocation{1,1}, i_clamp{5., 80., 0.3});
-    }
-    return c;
-}
-
-/*
- * Create cell with a soma and unbranched tapered dendrite:
- *
- * Common properties:
- *    bulk resistivity: 100 Ω·cm [default]
- *    capacitance: 0.01 F/m² [default]
- *
- * Soma:
- *    mechanisms: HH (default params)
- *    diameter: 12.6157 µm
- *
- * Dendrite:
- *    mechanisms: passive (default params)
- *    diameter proximal: 1 µm
- *    diameter distal: 0.4 µm
- *    length: 200 µm
- *    bulk resistivity: 100 Ω·cm
- *    compartments: 4
- *
- * Stimulus:
- *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
- */
-
-inline cable_cell make_cell_ball_and_taper(bool with_stim = true) {
-    cable_cell c;
-
-    auto soma = c.add_soma(12.6157/2.0);
-    soma->add_mechanism("hh");
-
-    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 1.0/2, 0.4/2, 200.0));
-
-    for (auto& seg: c.segments()) {
-        if (seg->is_dendrite()) {
-            seg->add_mechanism("pas");
-            seg->set_compartments(4);
-        }
+        c.place(mlocation{1,1}, i_clamp{5, 80, 0.3});
     }
 
-    if (with_stim) {
-        c.place(mlocation{1,1}, i_clamp{5., 80., 0.3});
-    }
-    return c;
-}
-
-/*
- * Create cell with a soma and unbranched dendrite with varying diameter:
- *
- * Common properties:
- *    bulk resistivity: 100 Ω·cm [default]
- *    capacitance: 0.01 F/m² [default]
- *
- * Soma:
- *    mechanisms: HH
- *    diameter: 12.6157 µm
- *
- * Dendrite:
- *    mechanisms: passive (default params)
- *    length: 100 µm
- *    membrane resistance: 100 Ω·cm
- *    compartments: 4
- *
- * Stimulus:
- *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
- */
-
-inline cable_cell make_cell_ball_and_squiggle(bool with_stim = true) {
-    cable_cell c;
-
-    auto soma = c.add_soma(12.6157/2.0);
-    soma->add_mechanism("hh");
-
-    std::vector<cable_cell::value_type> radii;
-    std::vector<cable_cell::point_type> points;
-
-    double length = 100.0;
-    int npoints = 200;
-
-    for (int i=0; i<npoints; ++i) {
-        double x = i*(1.0/(npoints-1));
-        double r = std::exp(-x)*(std::sin(40*x)*0.05+0.1)+0.1;
-
-        radii.push_back(r);
-        points.push_back({x*length, 0., 0.});
-    };
-
-    auto dendrite =
-        make_segment<cable_segment>(section_kind::dendrite, radii, points);
-    c.add_cable(0, std::move(dendrite));
-
-    for (auto& seg: c.segments()) {
-        if (seg->is_dendrite()) {
-            seg->add_mechanism("pas");
-            seg->set_compartments(4);
-        }
-    }
-
-    if (with_stim) {
-        c.place(mlocation{1,1}, i_clamp{5., 80., 0.3});
-    }
     return c;
 }
 
@@ -202,78 +170,20 @@ inline cable_cell make_cell_ball_and_squiggle(bool with_stim = true) {
  */
 
 inline cable_cell make_cell_ball_and_3stick(bool with_stim = true) {
-    cable_cell c;
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
+    builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
+    builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
 
-    auto soma = c.add_soma(12.6157/2.0);
-    soma->add_mechanism("hh");
-
-    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
-    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
-    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
-
-    for (auto& seg: c.segments()) {
-        if (seg->is_dendrite()) {
-            seg->add_mechanism("pas");
-            seg->set_compartments(4);
-        }
-    }
-
+    auto c = builder.make_cell();
+    c.paint("soma", "hh");
+    c.paint("dend", "pas");
     if (with_stim) {
         c.place(mlocation{2,1}, i_clamp{5.,  80., 0.45});
         c.place(mlocation{3,1}, i_clamp{40., 10.,-0.2});
     }
+
     return c;
 }
 
-/*
- * Create 'soma-less' cell with single cable, with physical
- * parameters from Rallpack 1 model.
- *
- * Common properties:
- *    mechanisms: passive
- *        membrane conductance: 0.000025 S/cm² ( =  1/(4Ω·m²) )
- *        membrane reversal potential: -65 mV (default)
- *    diameter: 1 µm
- *    length: 1000 µm
- *    bulk resistivity: 100 Ω·cm [default]
- *    capacitance: 0.01 F/m² [default]
- *    compartments: 4
- *
- * Stimulus:
- *    end of dendrite, t=[0 ms, inf), 0.1 nA
- *
- * Note: zero-volume soma added with same mechanisms, as
- * work-around for some existing fvm modelling issues.
- */
-
-inline cable_cell make_cell_simple_cable(bool with_stim = true) {
-    cable_cell c;
-
-    c.default_parameters.axial_resistivity = 100;
-    c.default_parameters.membrane_capacitance = 0.01;
-
-    c.add_soma(0);
-    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 1000));
-
-    double gbar = 0.000025;
-    double I = 0.1;
-
-    mechanism_desc pas("pas");
-    pas["g"] = gbar;
-
-    for (auto& seg: c.segments()) {
-        seg->add_mechanism(pas);
-
-        if (seg->is_dendrite()) {
-            seg->set_compartments(4);
-        }
-    }
-
-    if (with_stim) {
-        // stimulus in the middle of our zero-volume 'soma'
-        // corresponds to proximal end of cable.
-        c.place(mlocation{0,0.5}, i_clamp{0., INFINITY, I});
-    }
-    return c;
-}
 } // namespace arb
