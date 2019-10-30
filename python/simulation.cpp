@@ -22,7 +22,13 @@ void register_simulation(pybind11::module& m) {
         // before forwarding it to the arb::recipe constructor.
         .def(pybind11::init(
             [](std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx) {
-                return new arb::simulation(py_recipe_shim(rec), decomp, ctx.context);
+                try {
+                    return new arb::simulation(py_recipe_shim(rec), decomp, ctx.context);
+                }
+                catch (...) {
+                    py_reset_and_throw();
+                    throw;
+                }
             }),
             // Release the python gil, so that callbacks into the python recipe don't deadlock.
             pybind11::call_guard<pybind11::gil_scoped_release>(),

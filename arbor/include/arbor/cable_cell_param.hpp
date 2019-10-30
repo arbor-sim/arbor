@@ -157,12 +157,15 @@ struct cv_policy {
         policy_ptr = ref.clone();
     }
 
-    cv_policy(cv_policy&&) = default;
-
     cv_policy(const cv_policy& other):
         policy_ptr(other.policy_ptr->clone()) {}
 
-    cv_policy& operator=(const cv_policy&) = default;
+    cv_policy& operator=(const cv_policy& other) {
+        policy_ptr = other.policy_ptr->clone();
+        return *this;
+    }
+
+    cv_policy(cv_policy&&) = default;
     cv_policy& operator=(cv_policy&&) = default;
 
     locset cv_boundary_points(const cable_cell& cell) const {
