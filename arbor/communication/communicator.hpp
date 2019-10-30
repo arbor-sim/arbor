@@ -76,15 +76,13 @@ private:
     cell_size_type num_domains_;
     cell_size_type num_chunks_;
 
-    std::vector<cell_pair> index_chunk_; // cell id -> cell_pair
-
     std::vector<connection_list> connections_; // connections broken into chunks, ordered by domains
     connection_list connections_ext_; // same list, but flattened for external use, ordered by cell id (is this needed?)
 
     std::vector<cell_list> connection_part_; // partition connections_ by cells, partitioned by chunks
 
-    std::vector<group_partition> index_part_; // partition cells by 'group' (?), partitioned by chunks
-    std::vector<cell_list> index_divisions_; // underlying division for index_part_ (?), partitioned by chunks
+    group_partition index_part_; // partition local cells by group index in domain_decomposition
+    cell_list index_divisions_; // underlying division for index_part_
 
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;

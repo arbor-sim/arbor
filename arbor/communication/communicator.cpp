@@ -41,13 +41,13 @@ struct chunk_info_type {
     cell_list chunk_part;  // partition local cells into chunks [0, n-chunk-1, n-chunk-1+2 .... num-cells]
     cell_size_type num_chunks = 0;
 
-    chunk_info_type(std::vector<gid_info>& gid_infos, int threads, cell_size_type n_cons, std::vector<communicator::cell_pair>& index_chunk)
+    chunk_info_type(std::vector<gid_info>& gid_infos, int threads, cell_size_type n_cons)
     {
         using util::make_span;
         using util::make_partition;
 
         cell_list chunk_conns; // number of conns by chunk
-        cell_list chunk_ids; // number of ids by chunk
+        cell_list chunk_ncells; // number of ids by chunk
 
         const auto conns_per_thread = n_cons / threads;
         chunk_conns.reserve(threads+1); // at most, threads+1
@@ -55,30 +55,30 @@ struct chunk_info_type {
         
         // split cells into approximately equal numbers of connection chunks with approximately thread-number chunks
         cell_size_type conns_used = 0; // number of conns in current chunk    
-        cell_size_type chunk_id = 0; // offset of next gid in chunk
+        cell_size_type ncells = 0; // offset of next gid in chunk
         for (auto&& id: make_span(gid_infos.size())) {
-            index_chunk.emplace_back(num_chunks, chunk_id++);
+            ++ncells;
             
             auto&& cell = gid_infos[id];
             conns_used += cell.conns.size();
             if (conns_used >= conns_per_thread) {
                 chunk_conns.push_back(conns_used);
-                chunk_ids.push_back(chunk_id);
+                chunk_ncells.push_back(ncells);
                 
                 conns_used = 0;
-                chunk_id = 0;
+                ncells = 0;
                 ++num_chunks;
             }
         }
         // any conns left over?
-        if (chunk_id) {
+        if (ncells) {
             chunk_conns.push_back(conns_used);
-            chunk_ids.push_back(chunk_id);
+            chunk_ncells.push_back(ncells);
             ++num_chunks;
         }
-        
+
         make_partition(conns_part, chunk_conns);
-        make_partition(chunk_part, chunk_ids);
+        make_partition(chunk_part, chunk_ncells);
     }
 };
 
@@ -112,6 +112,13 @@ communicator::communicator(const recipe& rec,
     for (auto g: dom_dec.groups) {
         util::append(gids, g.gids);
     }
+
+    // Build cell partition by group for passing events to cell groups
+    index_part_ = util::make_partition( // thus we have a partition of local cells by group id
+        index_divisions_,
+        util::transform_view(// index on dom_dec.groups -> number of cells in group
+            dom_dec.groups,
+            [](const group_description& g){return g.gids.size();}));
     
     // Build the connection information for local cells in parallel.
     std::vector<gid_info> gid_infos;
@@ -126,16 +133,12 @@ communicator::communicator(const recipe& rec,
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
     const auto threads = thread_pool_->get_num_threads();
 
-    index_chunk_.reserve(num_local_cells_);
-    chunk_info_type chunk_info{gid_infos, threads, n_cons, index_chunk_};
+    chunk_info_type chunk_info{gid_infos, threads, n_cons};
     num_chunks_ = chunk_info.num_chunks;
 
     // now partitions applied by chunk
     connections_.resize(num_chunks_);
     connection_part_.resize(num_chunks_);
-    index_part_.resize(num_chunks_);
-    index_divisions_.resize(num_chunks_);
-
     connections_ext_.resize(n_cons);
     threading::parallel_for::apply(0, num_chunks_, thread_pool_.get(),
         [&](cell_size_type chunk) {
@@ -144,14 +147,13 @@ communicator::communicator(const recipe& rec,
             const auto chunk_n_cons = chunk_info.conns_part[chunk+1] - conn_off;
 
             auto& chunk_connections = connections_[chunk];
-            auto& chunk_index_divisions = index_divisions_[chunk];
     
             std::vector<unsigned> src_domains;
             src_domains.reserve(chunk_n_cons);
             std::vector<cell_size_type> src_counts(num_domains_);
     
             for (auto&& cell: chunk_gid_infos) {
-                for (auto c: cell.conns) {
+                for (auto&& c: cell.conns) {
                     auto src = dom_dec.gid_domain(c.source.gid);
                     src_domains.push_back(src);
                     src_counts[src]++;
@@ -176,12 +178,6 @@ communicator::communicator(const recipe& rec,
                 }
             }
 
-            // Build cell partition by group for passing events to cell groups
-            index_part_[chunk] = util::make_partition(chunk_index_divisions,
-                    util::transform_view(
-                        dom_dec.groups,
-                        [](const group_description& g){return g.gids.size();}));
-
             // Sort the connections for each domain.
             // This is num_domains_ independent sorts, so it can be parallelized trivially.
             const auto& cp = chunk_connection_part;
@@ -194,8 +190,7 @@ communicator::communicator(const recipe& rec,
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
     arb_assert(i<num_local_groups_);
-    auto&& id = index_chunk_[i];
-    return index_part_[id.first][id.second];
+    return index_part_[i];
 }
 
 time_type communicator::min_delay() {
@@ -232,6 +227,7 @@ static void make_queues_by_conns(
     const std::vector<spike>::const_iterator send)
 {
     using util::make_range;
+    
     struct spike_pred {
         bool operator()(const spike& spk, const cell_member_type& src)
             {return spk.source<src;}
