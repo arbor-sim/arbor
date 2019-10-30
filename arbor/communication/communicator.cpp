@@ -51,7 +51,7 @@ struct chunk_info_type {
 
         const auto conns_per_thread = n_cons / threads;
         chunk_conns.reserve(threads+1); // at most, threads+1
-        chunk_ids.reserve(threads+1);
+        chunk_ncells.reserve(threads+1);
         
         // split cells into approximately equal numbers of connection chunks with approximately thread-number chunks
         cell_size_type conns_used = 0; // number of conns in current chunk    
