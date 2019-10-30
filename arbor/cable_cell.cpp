@@ -232,7 +232,7 @@ void cable_cell::paint(const std::string& target, mechanism_desc desc) {
                 "cable_cell does not support regions with partial branches: \"{}\": {}",
                 target, c));
         }
-        segment(c.branch)->add_mechanism(std::move(desc));
+        segment(c.branch)->add_mechanism(desc);
     }
 }
 
