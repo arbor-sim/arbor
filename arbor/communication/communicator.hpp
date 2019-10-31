@@ -65,7 +65,6 @@ public:
 
     void reset();
 
-    using cell_pair = std::pair<cell_size_type, cell_size_type>;  // chunk# and offset within chunk for a cell
     using connection_list = std::vector<connection>;
     using cell_list = std::vector<cell_size_type>;
     using group_partition = util::partition_view_type<cell_list>; 
