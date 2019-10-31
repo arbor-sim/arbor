@@ -61,7 +61,7 @@ enum class tok {
     suffix, nonspecific_current, useion,
     read, write, valence,
     range, local, conserve, compartment,
-    solve, method,
+    solve, method, steadystate,
     threadsafe, global,
     point_process,
 

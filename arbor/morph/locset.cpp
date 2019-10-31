@@ -125,8 +125,8 @@ locset location(mlocation loc) {
 }
 
 mlocation_list thingify_(const location_& x, const em_morphology& m) {
-    // canonicalize will throw if the location is not present.
-    return {m.canonicalize(x.loc)};
+    m.assert_valid_location(x.loc);
+    return {x.loc};
 }
 
 std::ostream& operator<<(std::ostream& o, const location_& x) {
@@ -242,6 +242,14 @@ locset join(locset lhs, locset rhs) {
 
 locset sum(locset lhs, locset rhs) {
     return locset(ls::lsum(std::move(lhs), std::move(rhs)));
+}
+
+locset::locset() {
+    *this = ls::nil();
+}
+
+locset::locset(mlocation other) {
+    *this = ls::location(other);
 }
 
 } // namespace arb

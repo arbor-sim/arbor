@@ -21,6 +21,10 @@ class morphology {
 public:
     morphology(sample_tree m, bool use_spherical_root);
     morphology(sample_tree m);
+    morphology();
+
+    // Empty/default-constructed morphology?
+    bool empty() const;
 
     // Whether the root of the morphology is spherical.
     bool spherical_root() const;

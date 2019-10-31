@@ -413,7 +413,7 @@ void fvm_lowered_cell_impl<B>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     state_ = std::make_unique<shared_state>(
-                num_intdoms, cv_to_intdom, gj_vector, D.init_membrane_potential, D.temperature_K,
+                num_intdoms, cv_to_intdom, gj_vector, D.init_membrane_potential, D.temperature_K, D.diam_um,
                 data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.

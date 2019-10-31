@@ -8,6 +8,7 @@
 
 #include "util/span.hpp"
 
+#include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
 using namespace arb;
@@ -64,9 +65,8 @@ namespace {
         }
 
         arb::util::unique_any get_cell_description(cell_gid_type) const override {
-            cable_cell c;
-            c.add_soma(20);
-            c.add_gap_junction({0,1});
+            auto c = arb::make_cell_soma_only(false);
+            c.place(mlocation{0,1}, gap_junction_site{});
             return {std::move(c)};
         }
 

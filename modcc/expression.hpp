@@ -103,6 +103,11 @@ enum class solverMethod {
     none
 };
 
+enum class solverVariant {
+    regular,
+    steadystate
+};
+
 static std::string to_string(solverMethod m) {
     switch(m) {
         case solverMethod::cnexp:  return std::string("cnexp");
@@ -628,8 +633,9 @@ public:
     SolveExpression(
             Location loc,
             std::string name,
-            solverMethod method)
-    :   Expression(loc), name_(std::move(name)), method_(method), procedure_(nullptr)
+            solverMethod method,
+            solverVariant variant)
+    :   Expression(loc), name_(std::move(name)), method_(method), variant_(variant), procedure_(nullptr)
     {}
 
     std::string to_string() const override {
@@ -643,6 +649,10 @@ public:
 
     solverMethod method() const {
         return method_;
+    }
+
+    solverVariant variant() const {
+        return variant_;
     }
 
     ProcedureExpression* procedure() const {
@@ -667,6 +677,7 @@ private:
     /// pointer to the variable symbol for the state variable to be solved for
     std::string name_;
     solverMethod method_;
+    solverVariant variant_;
 
     ProcedureExpression* procedure_;
 };

@@ -2,15 +2,21 @@
 
 set(test_mechanisms
     celsius_test
+    diam_test
     test_linear_state
     test_linear_init
     test_linear_init_shuffle
     test0_kin_diff
     test0_kin_conserve
+    test0_kin_compartment
+    test0_kin_steadystate
     test1_kin_diff
     test1_kin_conserve
-    test0_kin_compartment
     test1_kin_compartment
+    test2_kin_diff
+    test3_kin_diff
+    test4_kin_compartment
+    test1_kin_steadystate
     fixed_ica_current
     point_ica_current
     linear_ca_conc
@@ -75,6 +81,7 @@ set(unit_sources
     test_cable_cell.cpp
     test_compartments.cpp
     test_counter.cpp
+    test_cv_policy.cpp
     test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
@@ -99,9 +106,9 @@ set(unit_sources
     test_matrix.cpp
     test_mc_cell_group.cpp
     test_mechanisms.cpp
+    test_mech_temp_diam.cpp
     test_mechcat.cpp
     test_mechinfo.cpp
-    test_mech_temperature.cpp
     test_merge_events.cpp
     test_morphology.cpp
     test_multi_event_stream.cpp

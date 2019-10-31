@@ -14,6 +14,7 @@
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 
+#include "../common_cells.hpp"
 #include "common.hpp"
 #include "mech_private_field_access.hpp"
 
@@ -32,15 +33,11 @@ ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanis
 TEST(synapses, add_to_cell) {
     using namespace arb;
 
-    cable_cell cell;
+    auto cell = make_cell_soma_only(false);
 
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism("hh");
-
-    cell.add_synapse({0, 0.1}, "expsyn");
-    cell.add_synapse({1, 0.2}, "exp2syn");
-    cell.add_synapse({0, 0.3}, "expsyn");
+    cell.place(mlocation{0, 0.1}, "expsyn");
+    cell.place(mlocation{0, 0.2}, "exp2syn");
+    cell.place(mlocation{0, 0.3}, "expsyn");
 
     EXPECT_EQ(3u, cell.synapses().size());
     const auto& syns = cell.synapses();
@@ -49,13 +46,16 @@ TEST(synapses, add_to_cell) {
     EXPECT_EQ(syns[0].location.pos, 0.1);
     EXPECT_EQ(syns[0].mechanism.name(), "expsyn");
 
-    EXPECT_EQ(syns[1].location.branch, 1u);
+    EXPECT_EQ(syns[1].location.branch, 0u);
     EXPECT_EQ(syns[1].location.pos, 0.2);
     EXPECT_EQ(syns[1].mechanism.name(), "exp2syn");
 
     EXPECT_EQ(syns[2].location.branch, 0u);
     EXPECT_EQ(syns[2].location.pos, 0.3);
     EXPECT_EQ(syns[2].mechanism.name(), "expsyn");
+
+    // adding a synapse to an invalid branch location should throw.
+    EXPECT_THROW(cell.place(mlocation{1, 0.3}, "expsyn"), std::runtime_error);
 }
 
 template <typename Seq>
@@ -95,6 +95,7 @@ TEST(synapses, syn_basic_state) {
         {},
         std::vector<value_type>(num_comp, -65),
         std::vector<value_type>(num_comp, temp_K),
+        std::vector<value_type>(num_comp, 1.),
         align);
 
     state.reset();

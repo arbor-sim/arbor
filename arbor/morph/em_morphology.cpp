@@ -25,6 +25,8 @@ em_morphology::em_morphology(const morphology& m):
     const auto ns = morph_.num_samples();
     const auto nb = morph_.num_branches();
 
+    if (!ns) return;
+
     // Cache distance of each sample from the root.
     dist2root_.resize(ns);
     dist2root_[0] = 0.;
@@ -37,6 +39,9 @@ em_morphology::em_morphology(const morphology& m):
     for (auto i: make_span(nb)) {
         auto idx = util::make_range(morph_.branch_indexes(i));
         branch_lengths_.push_back(dist2root_[idx.back()]- dist2root_[idx.front()]);
+    }
+    if (morph_.spherical_root()) {
+        branch_lengths_[0] = samples[0].loc.radius*2;
     }
 
     // Cache the sample locations.
@@ -52,7 +57,7 @@ em_morphology::em_morphology(const morphology& m):
         for (auto i: idx) {
             sample_locs_[i] = {msize_t(b), (dist2root_[i]-start)/len};
         }
-        // For ensure that all non-spherical branches have their last sample 
+        // Ensure that all non-spherical branches have their last sample 
         if (idx.size()>1u) {
             sample_locs_[idx.back()] = mlocation{msize_t(b), 1};
         }
@@ -71,6 +76,10 @@ em_morphology::em_morphology(const morphology& m):
         }
     }
 }
+
+em_morphology::em_morphology():
+    em_morphology(morphology())
+{}
 
 const morphology& em_morphology::morph() const {
     return morph_;
@@ -126,13 +135,17 @@ mlocation_list em_morphology::cover(mlocation loc, bool include_loc) const {
     return L;
 }
 
-mlocation em_morphology::canonicalize(mlocation loc) const {
+void em_morphology::assert_valid_location(mlocation loc) const {
     if (!test_invariants(loc)) {
         throw morphology_error(util::pprintf("Invalid location {}", loc));
     }
     if (loc.branch>=morph_.num_branches()) {
         throw morphology_error(util::pprintf("Location {} does not exist in morpology", loc));
     }
+}
+
+mlocation em_morphology::canonicalize(mlocation loc) const {
+    assert_valid_location(loc);
 
     // Test if location is at the start of a branch.
     if (loc.pos==0.) {

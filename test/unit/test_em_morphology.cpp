@@ -54,6 +54,8 @@ TEST(em_morphology, cache) {
 
         EXPECT_EQ(em.root(),      (loc{0,0}));
         EXPECT_EQ(em.terminals(), (arb::mlocation_list{{0,1}}));
+
+        EXPECT_EQ(10., em.branch_length(0));
     }
 
     // Eight samples
@@ -91,6 +93,13 @@ TEST(em_morphology, cache) {
 
         EXPECT_EQ(em.root(),      (loc{0,0}));
         EXPECT_EQ(em.terminals(), (arb::mlocation_list{{1,1}, {3,1}, {4,1}}));
+
+        ASSERT_EQ(5u, em.morph().num_branches());
+        EXPECT_EQ(20.,  em.branch_length(0));
+        EXPECT_EQ(90.,  em.branch_length(1));
+        EXPECT_EQ(90.,  em.branch_length(2));
+        EXPECT_EQ(100., em.branch_length(3));
+        EXPECT_EQ(200., em.branch_length(4));
     }
     {   // No Spherical root
         pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
@@ -119,6 +128,12 @@ TEST(em_morphology, cache) {
 
         EXPECT_EQ(em.root(),      (loc{0,0}));
         EXPECT_EQ(em.terminals(), (arb::mlocation_list{{0,1}, {2,1}, {3,1}}));
+
+        ASSERT_EQ(4u, em.morph().num_branches());
+        EXPECT_EQ(100., em.branch_length(0));
+        EXPECT_EQ(100., em.branch_length(1));
+        EXPECT_EQ(100., em.branch_length(2));
+        EXPECT_EQ(200., em.branch_length(3));
     }
 }
 
@@ -348,10 +363,10 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(midb2, em), (ll{{2,0.5}}));
         EXPECT_EQ(thingify(midb1, em), (ll{{1,0.5}}));
         EXPECT_EQ(thingify(begb0, em), (ll{{0,0}}));
-        EXPECT_EQ(thingify(begb1, em), (ll{{0,1}}));
-        EXPECT_EQ(thingify(begb2, em), (ll{{0,1}}));
-        EXPECT_EQ(thingify(begb3, em), (ll{{2,1}}));
-        EXPECT_EQ(thingify(begb4, em), (ll{{2,1}}));
+        EXPECT_EQ(thingify(begb1, em), (ll{{1,0}}));
+        EXPECT_EQ(thingify(begb2, em), (ll{{2,0}}));
+        EXPECT_EQ(thingify(begb3, em), (ll{{3,0}}));
+        EXPECT_EQ(thingify(begb4, em), (ll{{4,0}}));
     }
     {
         arb::em_morphology em(arb::morphology(sm, false));
@@ -362,9 +377,9 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(midb2, em), (ll{{2,0.5}}));
         EXPECT_EQ(thingify(midb1, em), (ll{{1,0.5}}));
         EXPECT_EQ(thingify(begb0, em), (ll{{0,0}}));
-        EXPECT_EQ(thingify(begb1, em), (ll{{0,0}}));
-        EXPECT_EQ(thingify(begb2, em), (ll{{1,1}}));
-        EXPECT_EQ(thingify(begb3, em), (ll{{1,1}}));
+        EXPECT_EQ(thingify(begb1, em), (ll{{1,0}}));
+        EXPECT_EQ(thingify(begb2, em), (ll{{2,0}}));
+        EXPECT_EQ(thingify(begb3, em), (ll{{3,0}}));
         // In the absence of a spherical root, there is no branch 4.
         EXPECT_THROW(thingify(begb4, em), arb::morphology_error);
     }

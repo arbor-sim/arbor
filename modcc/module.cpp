@@ -360,9 +360,10 @@ bool Module::semantic() {
             case solverMethod::cnexp:
                 solver = std::make_unique<CnexpSolverVisitor>();
                 break;
-            case solverMethod::sparse:
-                solver = std::make_unique<SparseSolverVisitor>();
+            case solverMethod::sparse: {
+                solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
                 break;
+            }
             case solverMethod::none:
                 solver = std::make_unique<DirectSolverVisitor>();
                 break;
@@ -374,7 +375,21 @@ bool Module::semantic() {
             auto deriv = solve_expression->procedure();
 
             if (deriv->kind()==procedureKind::kinetic) {
-                kinetic_rewrite(deriv->body())->accept(solver.get());
+                auto rewrite_body = kinetic_rewrite(deriv->body());
+                bool linear_kinetic = true;
+
+                for (auto& s: rewrite_body->is_block()->statements()) {
+                    if(s->is_assignment() && !state_vars.empty()) {
+                        linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                        linear_kinetic &= r.is_linear;
+                    }
+                }
+
+                if (!linear_kinetic) {
+                    solver = std::make_unique<SparseNonlinearSolverVisitor>();
+                }
+
+                rewrite_body->accept(solver.get());
             }
             else if (deriv->kind()==procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
@@ -561,6 +576,9 @@ void Module::add_variables_to_symbols() {
         if (id.name() == "celsius") {
             create_indexed_variable("celsius", sourceKind::temperature, accessKind::read, "", Location());
         }
+        else if (id.name() == "diam") {
+            create_indexed_variable("diam", sourceKind::diameter, accessKind::read, "", Location());
+        }
         else {
             // Parameters are scalar by default, but may later be changed to range.
             auto& sym = create_variable(id.token,
@@ -573,10 +591,16 @@ void Module::add_variables_to_symbols() {
         }
     }
 
-    // Remove `celsius` from the parameter block, as it is not a true parameter anymore.
+    // Remove `celsius` and `diam` from the parameter block, as they are not true parameters anymore.
     parameter_block_.parameters.erase(
         std::remove_if(parameter_block_.begin(), parameter_block_.end(),
             [](const Id& id) { return id.name() == "celsius"; }),
+        parameter_block_.end()
+    );
+
+    parameter_block_.parameters.erase(
+        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
+            [](const Id& id) { return id.name() == "diam"; }),
         parameter_block_.end()
     );
 
@@ -659,7 +683,7 @@ void Module::add_variables_to_symbols() {
 
     // then GLOBAL variables
     for(auto const& var : neuron_block_.globals) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as GLOBAL, but has not been declared in the" +
                    " ASSIGNED block",
@@ -679,7 +703,7 @@ void Module::add_variables_to_symbols() {
 
     // then RANGE variables
     for(auto const& var : neuron_block_.ranges) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as RANGE, but has not been declared in the" +
                    " ASSIGNED or PARAMETER block",
@@ -699,6 +723,9 @@ void Module::add_variables_to_symbols() {
 }
 
 int Module::semantic_func_proc() {
+    bool keep_inlining = true;
+    int errors = 0;
+
     ////////////////////////////////////////////////////////////////////////////
     // now iterate over the functions and procedures and perform semantic
     // analysis on each. This includes
@@ -706,107 +733,126 @@ int Module::semantic_func_proc() {
     //  -   generate local variable table for each function/procedure
     //  -   inlining function calls
     ////////////////////////////////////////////////////////////////////////////
-#ifdef LOGGING
-    std::cout << white("===================================\n");
-    std::cout << cyan("        Function Inlining\n");
-    std::cout << white("===================================\n");
-#endif
-    int errors = 0;
-    for(auto& e : symbols_) {
-        auto& s = e.second;
 
-        if(    s->kind() == symbolKind::function
-            || s->kind() == symbolKind::procedure)
-        {
-#ifdef LOGGING
-            std::cout << "\nfunction inlining for " << s->location() << "\n"
-                      << s->to_string() << "\n"
-                      << green("\n-call site lowering-\n\n");
-#endif
-            // first perform semantic analysis
-            s->semantic(symbols_);
+    while (keep_inlining) {
+    #ifdef LOGGING
+        std::cout << white("===================================\n");
+        std::cout << cyan("        Function Inlining\n");
+        std::cout << white("===================================\n");
+    #endif
+        keep_inlining = false;
 
-            // then use an error visitor to print out all the semantic errors
-            ErrorVisitor v(source_name());
-            s->accept(&v);
-            errors += v.num_errors();
+        for (auto& e: symbols_) {
+            auto& s = e.second;
+            if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
 
-            // inline function calls
-            // this requires that the symbol table has already been built
-            if(v.num_errors()==0) {
-                auto &b = s->kind()==symbolKind::function ?
-                    s->is_function()->body()->statements() :
-                    s->is_procedure()->body()->statements();
+    #ifdef LOGGING
+                std::cout << "\nfunction inlining for " << s->location() << "\n"
+                          << s->to_string() << "\n"
+                          << green("\n-call site lowering-\n\n");
+    #endif
 
-                // lower function call sites so that all function calls are of
-                // the form : variable = call(<args>)
-                // e.g.
-                //      a = 2 + foo(2+x, y, 1)
-                // becomes
-                //      ll0_ = foo(2+x, y, 1)
-                //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    b.splice(e, lower_function_calls((*e).get()));
-                }
-#ifdef LOGGING
-                std::cout << "body after call site lowering\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                std::cout << green("\n-argument lowering-\n\n");
-#endif
+                // perform semantic analysis
+                s->semantic(symbols_);
 
-                // lower function arguments that are not identifiers or literals
-                // e.g.
-                //      ll0_ = foo(2+x, y, 1)
-                //      a = 2 + ll0_
-                // becomes
-                //      ll1_ = 2+x
-                //      ll0_ = foo(ll1_, y, 1)
-                //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    if(auto be = (*e)->is_binary()) {
-                        // only apply to assignment expressions where rhs is a
-                        // function call because the function call lowering step
-                        // above ensures that all function calls are of this form
-                        if(auto rhs = be->rhs()->is_function_call()) {
-                            b.splice(e, lower_function_arguments(rhs->args()));
+                // then use an error visitor to print out all the semantic errors
+                ErrorVisitor v(source_name());
+                s->accept(&v);
+                errors += v.num_errors();
+
+                // inline function calls
+                // this requires that the symbol table has already been built
+                if (v.num_errors() == 0) {
+                    auto &b = s->kind() == symbolKind::function ?
+                              s->is_function()->body()->statements() :
+                              s->is_procedure()->body()->statements();
+
+                    // lower function call sites so that all function calls are of
+                    // the form : variable = call(<args>)
+                    // e.g.
+                    //      a = 2 + foo(2+x, y, 1)
+                    // becomes
+                    //      ll0_ = foo(2+x, y, 1)
+                    //      a = 2 + ll0_
+                    for (auto e = b.begin(); e != b.end(); ++e) {
+                        b.splice(e, lower_function_calls((*e).get()));
+                    }
+    #ifdef LOGGING
+                    std::cout << "body after call site lowering\n";
+                        for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
+                        std::cout << green("\n-argument lowering-\n\n");
+    #endif
+                    // lower function arguments that are not identifiers or literals
+                    // e.g.
+                    //      ll0_ = foo(2+x, y, 1)
+                    //      a = 2 + ll0_
+                    // becomes
+                    //      ll1_ = 2+x
+                    //      ll0_ = foo(ll1_, y, 1)
+                    //      a = 2 + ll0_
+                    for (auto e = b.begin(); e != b.end(); ++e) {
+                        if (auto be = (*e)->is_binary()) {
+                            // only apply to assignment expressions where rhs is a
+                            // function call because the function call lowering step
+                            // above ensures that all function calls are of this form
+                            if (auto rhs = be->rhs()->is_function_call()) {
+                                b.splice(e, lower_function_arguments(rhs->args()));
+                            }
                         }
                     }
+
+    #ifdef LOGGING
+                    std::cout << "body after argument lowering\n";
+                        for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
+                        std::cout << green("\n-inlining-\n\n");
+    #endif
                 }
+            }
+        }
 
-#ifdef LOGGING
-                std::cout << "body after argument lowering\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                std::cout << green("\n-inlining-\n\n");
-#endif
+        for(auto& e : symbols_) {
+            auto& s = e.second;
 
-                // Do the inlining, which currently only works for functions
-                // that have a single statement in their body
-                // e.g. if the function foo in the examples above is defined as follows
-                //
-                //  function foo(a, b, c) {
-                //      foo = a*(b + c)
-                //  }
-                //
-                // the full inlined example is
-                //      ll1_ = 2+x
-                //      ll0_ = ll1_*(y + 1)
-                //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    if(auto ass = (*e)->is_assignment()) {
-                        if(ass->rhs()->is_function_call()) {
-                            ass->replace_rhs(inline_function_call(ass->rhs()));
+            if(s->kind() == symbolKind::procedure)
+            {
+                if(errors==0) {
+                    auto &b = s->kind()==symbolKind::function ?
+                        s->is_function()->body()->statements() :
+                        s->is_procedure()->body()->statements();
+
+                    // Do the inlining: supports multiline functions and if/else statements
+                    // e.g. if the function foo in the examples above is defined as follows
+                    //
+                    //  function foo(a, b, c) {
+                    //      Local t = b + c
+                    //      foo = a*t
+                    //  }
+                    //
+                    // the full inlined example is
+                    //      ll1_ = 2+x
+                    //      r_0_ = y+1
+                    //      ll0_ = ll1_*r_0_
+                    //      a = 2 + ll0_
+
+                    for (auto &e: b) {
+                        if (auto ass = e->is_assignment()) {
+                            if (ass->rhs()->is_function_call()) {
+                                e = inline_function_call(e);
+                                keep_inlining = true;
+                            }
                         }
                     }
-                }
 
-#ifdef LOGGING
-                std::cout << "body after inlining\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-#endif
-                // Finally, run a constant simplification pass.
-                if (auto proc = s->is_procedure()) {
-                    proc->body(constant_simplify(proc->body()));
-                    s->semantic(symbols_);
+
+    #ifdef LOGGING
+                    std::cout << "body after inlining\n";
+                    for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
+    #endif
+                    // Finally, run a constant simplification pass.
+                    if (auto proc = s->is_procedure()) {
+                        proc->body(constant_simplify(proc->body()));
+                        s->semantic(symbols_);
+                    }
                 }
             }
         }

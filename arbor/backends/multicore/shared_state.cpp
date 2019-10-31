@@ -94,6 +94,7 @@ shared_state::shared_state(
     const std::vector<fvm_gap_junction>& gj_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
+    const std::vector<fvm_value_type>& diam,
     unsigned align
 ):
     alignment(min_alignment(align)),
@@ -112,6 +113,7 @@ shared_state::shared_state(
     conductivity(n_cv, pad(alignment)),
     init_voltage(init_membrane_potential.begin(), init_membrane_potential.end(), pad(alignment)),
     temperature_degC(n_cv, pad(alignment)),
+    diam_um(diam.begin(), diam.end(), pad(alignment)),
     deliverable_events(n_intdom)
 {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
@@ -242,6 +244,7 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     out << "voltage      " << csv(s.voltage) << "\n";
     out << "init_voltage " << csv(s.init_voltage) << "\n";
     out << "temperature  " << csv(s.temperature_degC) << "\n";
+    out << "diameter     " << csv(s.diam_um) << "\n";
     out << "current      " << csv(s.current_density) << "\n";
     out << "conductivity " << csv(s.conductivity) << "\n";
     for (const auto& ki: s.ion_data) {

@@ -94,6 +94,7 @@ struct shared_state {
 
     array init_voltage;       // Maps CV index to initial membrane voltage [mV].
     array temperature_degC;   // Maps CV to local temperature (read only) [°C].
+    array diam_um;            // Maps CV to local diameter (read only) [µm].
 
     std::unordered_map<std::string, ion_state> ion_data;
 
@@ -107,6 +108,7 @@ struct shared_state {
         const std::vector<fvm_gap_junction>& gj_vec,
         const std::vector<fvm_value_type>& init_membrane_potential,
         const std::vector<fvm_value_type>& temperature_K,
+        const std::vector<fvm_value_type>& diam,
         unsigned align
     );
 

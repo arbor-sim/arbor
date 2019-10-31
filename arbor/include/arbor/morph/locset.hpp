@@ -17,10 +17,10 @@ namespace arb {
 // interface for concretising locsets.
 class em_morphology;
 
+class locset;
+
 class locset {
 public:
-    locset() = delete;
-
     template <typename Impl,
               typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
     explicit locset(Impl&& impl):
@@ -39,6 +39,12 @@ public:
         impl_ = other.impl_->clone();
         return *this;
     }
+
+    // The default constructor creates an empty "nil" set.
+    locset();
+
+    // Construct an explicit location set with a single location.
+    locset(mlocation other);
 
     template <typename Impl,
               typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
@@ -67,6 +73,14 @@ public:
     template <typename ...Args>
     friend locset sum(locset l, locset r, Args... args) {
         return sum(sum(std::move(l), std::move(r)), std::move(args)...);
+    }
+
+    // The union of two location sets.
+    friend locset join(locset, locset);
+
+    template <typename ...Args>
+    friend locset join(locset l, locset r, Args... args) {
+        return join(join(std::move(l), std::move(r)), std::move(args)...);
     }
 
 private:

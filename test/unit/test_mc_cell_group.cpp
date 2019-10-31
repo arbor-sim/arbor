@@ -21,11 +21,13 @@ namespace {
     }
 
     cable_cell make_cell() {
-        auto c = make_cell_ball_and_stick();
-
-        c.add_detector({0, 0}, 0);
-        c.segment(1)->set_compartments(101);
-
+        soma_cell_builder builder(12.6157/2.0);
+        builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
+        cable_cell c = builder.make_cell();
+        c.paint("soma", "hh");
+        c.paint("dend", "pas");
+        c.place(mlocation{1,1}, i_clamp{5, 80, 0.3});
+        c.place(mlocation{0, 0}, threshold_detector{0});
         return c;
     }
 }
@@ -36,6 +38,7 @@ ACCESS_BIND(
     &mc_cell_group::spike_sources_)
 
 TEST(mc_cell_group, get_kind) {
+    auto x = make_cell();
     mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
@@ -63,7 +66,7 @@ TEST(mc_cell_group, sources) {
     for (int i=0; i<20; ++i) {
         cells.push_back(make_cell());
         if (i==0 || i==3 || i==17) {
-            cells.back().add_detector({1, 0.3}, 2.3);
+            cells.back().place(mlocation{1, 0.3}, threshold_detector{2.3});
         }
 
         EXPECT_EQ(1u + (i==0 || i==3 || i==17), cells.back().detectors().size());

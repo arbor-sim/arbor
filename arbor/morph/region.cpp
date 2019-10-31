@@ -99,6 +99,23 @@ mcable_list remove_cover(mcable_list cables, const em_morphology& m) {
 }
 
 //
+// Null/empty region
+//
+struct nil_ {};
+
+region nil() {
+    return region{nil_{}};
+}
+
+mcable_list thingify_(const nil_& x, const em_morphology& m) {
+    return {};
+}
+
+std::ostream& operator<<(std::ostream& o, const nil_& x) {
+    return o << "nil";
+}
+
+//
 // Explicit cable section
 //
 
@@ -298,6 +315,10 @@ region intersect(region l, region r) {
 
 region join(region l, region r) {
     return region{reg::reg_or(std::move(l), std::move(r))};
+}
+
+region::region() {
+    *this = reg::nil();
 }
 
 } // namespace arb
