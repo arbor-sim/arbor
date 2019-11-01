@@ -109,7 +109,7 @@ communicator::communicator(const recipe& rec,
     // that populates gid_infos.
     std::vector<cell_gid_type> gids;
     gids.reserve(num_local_cells_);
-    for (auto g: dom_dec.groups) {
+    for (auto&& g: dom_dec.groups) {
         util::append(gids, g.gids);
     }
 
@@ -171,7 +171,7 @@ communicator::communicator(const recipe& rec,
             auto offsets = chunk_connection_part;
             std::size_t pos = 0;
             for (auto&& cell: chunk_gid_infos) {
-                for (auto c: cell.conns) {
+                for (auto&& c: cell.conns) {
                     const auto i = offsets[src_domains[pos]]++;
                     chunk_connections[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
                     ++pos;
