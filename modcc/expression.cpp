@@ -405,6 +405,9 @@ void LinearExpression::semantic(scope_ptr scp) {
     lhs_->semantic(scp);
     rhs_->semantic(scp);
 
+    if(lhs_->has_error() || rhs_->has_error()) {
+        return;
+    }
     if(rhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
     }
@@ -424,6 +427,9 @@ void ConserveExpression::semantic(scope_ptr scp) {
     lhs_->semantic(scp);
     rhs_->semantic(scp);
 
+    if(lhs_->has_error() || rhs_->has_error()) {
+        return;
+    }
     if(rhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
     }
@@ -724,6 +730,9 @@ void BinaryExpression::semantic(scope_ptr scp) {
     lhs_->semantic(scp);
     rhs_->semantic(scp);
 
+    if(lhs_->has_error() || rhs_->has_error()) {
+        return;
+    }
     if(rhs_->is_procedure_call() || lhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
     }
