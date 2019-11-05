@@ -20,7 +20,7 @@ inline bool is_alphanumeric(char c) {
     return (is_numeric(c) || is_alpha(c) );
 }
 inline bool is_whitespace(char c) {
-    return (c==' ' || c=='\t' || c=='\v' || c=='\f');
+    return (c==' ' || c=='\t' || c=='\v' || c=='\f' || c=='\n' || c=='\r');
 }
 inline bool is_eof(char c) {
     return (c==0);
@@ -97,14 +97,22 @@ Token Lexer::parse() {
             // identifier or keyword
             case 'a' ... 'z':
             case 'A' ... 'Z':
-            case '_':
+            case '_': {
                 // get std::string of the identifier
-                t.spelling = identifier();
-                t.type
-                    = status_==lexerStatus::error
-                    ? tok::reserved
-                    : get_identifier_type(t.spelling);
+                auto id = identifier();
+                if (id == "COMMENT") {
+                    while (!is_eof(*current_)) {
+                        while (is_whitespace(*current_) || !is_alpha(*current_)) current_++;
+                        if (identifier() == "ENDCOMMENT") break;
+                    }
+                    continue;
+                }
+                t.spelling = id;
+                t.type = status_ == lexerStatus::error
+                          ? tok::reserved
+                          : get_identifier_type(t.spelling);
                 return t;
+            }
             case '(':
                 t.type = tok::lparen;
                 t.spelling += character();
