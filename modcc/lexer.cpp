@@ -195,6 +195,20 @@ Token Lexer::parse() {
                 }
                 return t;
             }
+            case '&':
+                t.spelling += character();
+                if(*current_=='&') {
+                    t.spelling += character();
+                    t.type = tok::and_t;
+                    return t;
+                }
+            case '|':
+                t.spelling += character();
+                if(*current_=='|') {
+                    t.spelling += character();
+                    t.type = tok::or_t;
+                    return t;
+                }
             case '\'':
                 t.type = tok::prime;
                 t.spelling += character();
@@ -379,18 +393,20 @@ void Lexer::binop_prec_init() {
 
     // I have taken the operator precedence from C++
     // Note that only infix operators require precidence.
-    binop_prec_[tok::eq]       = 2;
+    binop_prec_[tok::eq]       = 1;
+    binop_prec_[tok::and_t]    = 2;
+    binop_prec_[tok::or_t]     = 3;
     binop_prec_[tok::equality] = 4;
     binop_prec_[tok::ne]       = 4;
     binop_prec_[tok::lt]       = 5;
     binop_prec_[tok::lte]      = 5;
     binop_prec_[tok::gt]       = 5;
     binop_prec_[tok::gte]      = 5;
-    binop_prec_[tok::plus]     = 10;
-    binop_prec_[tok::minus]    = 10;
-    binop_prec_[tok::times]    = 20;
-    binop_prec_[tok::divide]   = 20;
-    binop_prec_[tok::pow]      = 30;
+    binop_prec_[tok::plus]     = 6;
+    binop_prec_[tok::minus]    = 6;
+    binop_prec_[tok::times]    = 7;
+    binop_prec_[tok::divide]   = 7;
+    binop_prec_[tok::pow]      = 8;
 }
 
 int Lexer::binop_precedence(tok tok) {

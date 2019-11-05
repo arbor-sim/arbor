@@ -96,6 +96,8 @@ void CExprEmitter::visit(BinaryExpression* e) {
         {tok::gt,       ">"},
         {tok::gte,      ">="},
         {tok::equality, "=="},
+        {tok::and_t,    "&&"},
+        {tok::or_t,     "||"},
         {tok::ne,       "!="},
         {tok::min,      "min"},
         {tok::max,      "max"},
