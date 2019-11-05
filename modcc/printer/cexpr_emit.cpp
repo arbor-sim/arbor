@@ -52,7 +52,7 @@ void CExprEmitter::visit(UnaryExpression* e) {
         {tok::cos,     "cos"},
         {tok::sin,     "sin"},
         {tok::log,     "log"},
-        {tok::abs,     "fabs"},
+        {tok::fabs,    "fabs"},
         {tok::exprelr, "exprelr"}
     };
 

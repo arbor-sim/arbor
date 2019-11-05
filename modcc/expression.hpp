@@ -1220,7 +1220,7 @@ public:
 class AbsUnaryExpression : public UnaryExpression {
 public:
     AbsUnaryExpression(Location loc, expression_ptr e)
-    :   UnaryExpression(loc, tok::abs, std::move(e))
+    :   UnaryExpression(loc, tok::fabs, std::move(e))
     {}
 
     void accept(Visitor *v) override;
