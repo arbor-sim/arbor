@@ -100,6 +100,7 @@ Token Lexer::parse() {
             case '_': {
                 // get std::string of the identifier
                 auto id = identifier();
+                if (id == "UNITSON" || id == "UNITSOFF") continue;
                 if (id == "COMMENT") {
                     while (!is_eof(*current_)) {
                         while (is_whitespace(*current_) || !is_alpha(*current_)) current_++;
