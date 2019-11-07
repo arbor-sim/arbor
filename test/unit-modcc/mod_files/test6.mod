@@ -34,7 +34,7 @@ FUNCTION foo(x, y) {
     if (x == 3) {
         foo = 2 * y
     } else if (x == 4) {
-        foo = y
+        foo = y * iden(6 + x)
     } else {
         temp = exp(y)
         foo = temp * x

@@ -721,19 +721,49 @@ void Module::add_variables_to_symbols() {
         }
     }
 }
+void Module::block_lower_function_calls(expr_list_type& stmts) {
+    for (auto e = stmts.begin(); e != stmts.end(); ++e) {
+        if (auto if_exp = (*e)->is_if()) {
+            block_lower_function_calls((*e)->is_if()->true_branch()->is_block()->statements());
+            if (if_exp->false_branch()) {
+                block_lower_function_calls((*e)->is_if()->false_branch()->is_block()->statements());
+            }
+        } else {
+            stmts.splice(e, lower_function_calls((*e).get()));
+        }
+    }
+}
 
-void Module::inline_function_calls(bool &keep_inlining, expr_list_type &stmts) {
+void Module::block_lower_function_arguments(expr_list_type& stmts){
+    for (auto e = stmts.begin(); e != stmts.end(); ++e) {
+        if (auto if_exp = (*e)->is_if()) {
+            block_lower_function_arguments((*e)->is_if()->true_branch()->is_block()->statements());
+            if (if_exp->false_branch()) {
+                block_lower_function_arguments((*e)->is_if()->false_branch()->is_block()->statements());
+            }
+        }
+        else if (auto be = (*e)->is_binary()) {
+            // only apply to assignment expressions where rhs is a
+            // function call because the function call lowering step
+            // above ensures that all function calls are of this form
+            if (auto rhs = be->rhs()->is_function_call()) {
+                stmts.splice(e, lower_function_arguments(rhs->args()));
+            }
+        }
+    }
+}
+
+void Module::block_inline_function_calls(bool& keep_inlining, expr_list_type& stmts) {
     for (auto &e: stmts) {
-        if (auto ass = e->is_assignment()) {
+        if (auto if_exp = e->is_if()) {
+            block_inline_function_calls(keep_inlining, if_exp->true_branch()->is_block()->statements());
+            if (if_exp->false_branch()) {
+                block_inline_function_calls(keep_inlining, if_exp->false_branch()->is_block()->statements());
+            }
+        } else if (auto ass = e->is_assignment()) {
             if (ass->rhs()->is_function_call()) {
                 e = inline_function_call(e);
                 keep_inlining = true;
-            }
-        }
-        else if (auto if_exp = e->is_if()) {
-            inline_function_calls(keep_inlining, if_exp->true_branch()->is_block()->statements());
-            if (if_exp->false_branch()) {
-                inline_function_calls(keep_inlining, if_exp->false_branch()->is_block()->statements());
             }
         }
     }
@@ -791,9 +821,7 @@ int Module::semantic_func_proc() {
                     // becomes
                     //      ll0_ = foo(2+x, y, 1)
                     //      a = 2 + ll0_
-                    for (auto e = b.begin(); e != b.end(); ++e) {
-                        b.splice(e, lower_function_calls((*e).get()));
-                    }
+                    block_lower_function_calls(b);
     #ifdef LOGGING
                     std::cout << "body after call site lowering\n";
                         for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
@@ -807,16 +835,16 @@ int Module::semantic_func_proc() {
                     //      ll1_ = 2+x
                     //      ll0_ = foo(ll1_, y, 1)
                     //      a = 2 + ll0_
-                    for (auto e = b.begin(); e != b.end(); ++e) {
-                        if (auto be = (*e)->is_binary()) {
-                            // only apply to assignment expressions where rhs is a
-                            // function call because the function call lowering step
-                            // above ensures that all function calls are of this form
-                            if (auto rhs = be->rhs()->is_function_call()) {
-                                b.splice(e, lower_function_arguments(rhs->args()));
-                            }
-                        }
+                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+                    for (auto &e:b) {
+                        std::cout << e->to_string() <<std::endl;
                     }
+                    block_lower_function_arguments(b);
+                    std::cout << "------------>" << std::endl;
+                    for (auto &e:b) {
+                        std::cout << e->to_string() <<std::endl;
+                    }
+                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 
     #ifdef LOGGING
                     std::cout << "body after argument lowering\n";
@@ -851,27 +879,7 @@ int Module::semantic_func_proc() {
                     //      ll0_ = ll1_*r_0_
                     //      a = 2 + ll0_
 
-                    inline_function_calls(keep_inlining, b);
-                    /*for (auto &e: b) {
-                        if (auto ass = e->is_assignment()) {
-                            if (ass->rhs()->is_function_call()) {
-                                e = inline_function_call(e);
-                                keep_inlining = true;
-                            }
-                        }
-                        *//*if (auto if_stmt = e->is_if()) {
-                            for (auto& e: if_stmt->true_branch()->is_block()->statements()) {
-                                if (auto ass = e->is_assignment()) {
-                                    if (ass->rhs()->is_function_call()) {
-                                        e = inline_function_call(e);
-                                        keep_inlining = true;
-                                    }
-                                }
-                            }
-                        }*//*
-                    }*/
-
-
+                    block_inline_function_calls(keep_inlining, b);
     #ifdef LOGGING
                     std::cout << "body after inlining\n";
                     for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
