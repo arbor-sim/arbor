@@ -20,6 +20,14 @@ expr_list_type lower_function_calls(Expression* e)
 {
     auto v = std::make_unique<FunctionCallLowerer>(e->scope());
 
+//    if(auto a=e->is_if()) {
+//#ifdef LOGGING
+//        std::cout << "lower_function_calls inspect expression " << e->to_string() << "\n";
+//#endif
+//        // recursively inspect and replace function calls with identifiers
+//        a->condition()->accept(v.get());
+//    }
+
     if(auto a=e->is_assignment()) {
 #ifdef LOGGING
         std::cout << "lower_function_calls inspect expression " << e->to_string() << "\n";

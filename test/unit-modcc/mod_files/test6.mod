@@ -25,6 +25,9 @@ BREAKPOINT {
     rates(delta)
     s0 = s1 * s2
 }
+FUNCTION iden(x) {
+    iden = x
+}
 
 FUNCTION foo(x, y) {
     LOCAL temp

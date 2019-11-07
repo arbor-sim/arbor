@@ -722,6 +722,23 @@ void Module::add_variables_to_symbols() {
     }
 }
 
+void Module::inline_function_calls(bool &keep_inlining, expr_list_type &stmts) {
+    for (auto &e: stmts) {
+        if (auto ass = e->is_assignment()) {
+            if (ass->rhs()->is_function_call()) {
+                e = inline_function_call(e);
+                keep_inlining = true;
+            }
+        }
+        else if (auto if_exp = e->is_if()) {
+            inline_function_calls(keep_inlining, if_exp->true_branch()->is_block()->statements());
+            if (if_exp->false_branch()) {
+                inline_function_calls(keep_inlining, if_exp->false_branch()->is_block()->statements());
+            }
+        }
+    }
+}
+
 int Module::semantic_func_proc() {
     bool keep_inlining = true;
     int errors = 0;
@@ -834,14 +851,25 @@ int Module::semantic_func_proc() {
                     //      ll0_ = ll1_*r_0_
                     //      a = 2 + ll0_
 
-                    for (auto &e: b) {
+                    inline_function_calls(keep_inlining, b);
+                    /*for (auto &e: b) {
                         if (auto ass = e->is_assignment()) {
                             if (ass->rhs()->is_function_call()) {
                                 e = inline_function_call(e);
                                 keep_inlining = true;
                             }
                         }
-                    }
+                        *//*if (auto if_stmt = e->is_if()) {
+                            for (auto& e: if_stmt->true_branch()->is_block()->statements()) {
+                                if (auto ass = e->is_assignment()) {
+                                    if (ass->rhs()->is_function_call()) {
+                                        e = inline_function_call(e);
+                                        keep_inlining = true;
+                                    }
+                                }
+                            }
+                        }*//*
+                    }*/
 
 
     #ifdef LOGGING

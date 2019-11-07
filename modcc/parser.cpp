@@ -1661,7 +1661,10 @@ expression_ptr Parser::parse_if() {
 
         // handle 'else if {}' case recursively
         if(token_.type == tok::if_stmt) {
-            false_branch = parse_if();
+            expr_list_type if_block;
+            auto exp = parse_if();
+            if_block.push_back(std::move(exp));
+            false_branch = make_expression<BlockExpression>(Location(), std::move(if_block), true);
         }
         // we have a closing 'else {}'
         else if(token_.type == tok::lbrace) {

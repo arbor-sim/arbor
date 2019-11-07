@@ -105,6 +105,8 @@ public:
 
     bool is_linear() const { return linear_; }
 
+    void inline_function_calls(bool& keep_inlining, expr_list_type& stmts);
+
 private:
     moduleKind kind_;
     std::string title_;
