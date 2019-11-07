@@ -19,10 +19,19 @@ namespace {
     }
 
     cable_cell make_cell() {
+<<<<<<< HEAD
         auto builder = soma_cell_builder(12.6157/2.0);
         builder.add_dendrite(0, 200, 0.5, 0.5, 101);
         builder.add_stim(mlocation{1,1}, i_clamp{5, 80, 0.3});
         cable_cell c = builder.make_cell();
+=======
+        soma_cell_builder builder(12.6157/2.0);
+        builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
+        cable_cell c = builder.make_cell();
+        c.paint("soma", "hh");
+        c.paint("dend", "pas");
+        c.place(mlocation{1,1}, i_clamp{5, 80, 0.3});
+>>>>>>> master
         c.place(mlocation{0, 0}, threshold_detector{0});
         return c;
     }

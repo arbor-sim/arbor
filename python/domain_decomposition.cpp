@@ -10,6 +10,7 @@
 #include <arbor/load_balance.hpp>
 
 #include "context.hpp"
+#include "error.hpp"
 #include "recipe.hpp"
 #include "strprintf.hpp"
 
@@ -104,7 +105,13 @@ void register_domain_decomposition(pybind11::module& m) {
     // The Python recipe has to be shimmed for passing to the function that takes a C++ recipe.
     m.def("partition_load_balance",
         [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
-            return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context, std::move(hint_map));
+            try {
+                return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context, std::move(hint_map));
+            }
+            catch (...) {
+                py_reset_and_throw();
+                throw;
+            }
         },
         "Construct a domain_decomposition that distributes the cells in the model described by recipe\n"
         "over the distributed and local hardware resources described by context.\n"

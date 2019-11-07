@@ -375,7 +375,21 @@ bool Module::semantic() {
             auto deriv = solve_expression->procedure();
 
             if (deriv->kind()==procedureKind::kinetic) {
-                kinetic_rewrite(deriv->body())->accept(solver.get());
+                auto rewrite_body = kinetic_rewrite(deriv->body());
+                bool linear_kinetic = true;
+
+                for (auto& s: rewrite_body->is_block()->statements()) {
+                    if(s->is_assignment() && !state_vars.empty()) {
+                        linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                        linear_kinetic &= r.is_linear;
+                    }
+                }
+
+                if (!linear_kinetic) {
+                    solver = std::make_unique<SparseNonlinearSolverVisitor>();
+                }
+
+                rewrite_body->accept(solver.get());
             }
             else if (deriv->kind()==procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
@@ -669,7 +683,7 @@ void Module::add_variables_to_symbols() {
 
     // then GLOBAL variables
     for(auto const& var : neuron_block_.globals) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as GLOBAL, but has not been declared in the" +
                    " ASSIGNED block",
@@ -689,7 +703,7 @@ void Module::add_variables_to_symbols() {
 
     // then RANGE variables
     for(auto const& var : neuron_block_.ranges) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as RANGE, but has not been declared in the" +
                    " ASSIGNED or PARAMETER block",

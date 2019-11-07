@@ -27,37 +27,37 @@ TEST(cable_cell, soma) {
 }
 
 TEST(cable_cell, multiple_cables) {
-    // generate a cylindrical cable segment of length 1/pi and radius 1
-    //      volume = 1
-    //      area   = 2
     double soma_radius = std::pow(3./(4.*pi<double>), 1./3.);
 
-    auto append_branch = [soma_radius](sample_tree& stree, int p, int tag) {
-        if (!p) {
+    // Generate a cylindrical cable segment of length 1/pi and radius 1
+    //      volume = 1
+    //      area   = 2
+    // Returns the distal point of the added cable.
+    auto append_branch = [soma_radius](sample_tree& stree, int proximal) {
+        constexpr int tag = 2;
+        if (!proximal) {
             double z = soma_radius;
-            p = stree.append(0, {0,0,z, 1/pi<double>, tag});
+            proximal = stree.append(0, {0,0,z, 1/pi<double>, tag});
         }
-        return stree.append(p, {0, 0, stree.samples()[p].loc.z+1, 1/pi<double>, tag});
+        return stree.append(proximal, msample{0, 0, stree.samples()[proximal].loc.z+1, 1/pi<double>, tag});
     };
 
-    // cell strucure as follows
-    // left   :  segment numbering
-    // right  :  segment type (soma, axon, dendrite)
+    // cell strucure with branch numbers
     //
-    //          0           s
-    //         / \         / \.
-    //        1   2       d   a
-    //       / \         / \.
-    //      3   4       d   d
+    //          0
+    //         / \.
+    //        1   2
+    //       / \.
+    //      3   4
 
     arb::sample_tree samples;
     samples.append({0,0,-soma_radius,soma_radius,1});
 
     // hook the dendrite and axons
-    append_branch(samples, 0, 3);
-    append_branch(samples, 0, 2);
-    append_branch(samples, 2, 3);
-    append_branch(samples, 2, 3);
+    append_branch(samples, 0);
+    append_branch(samples, 0);
+    append_branch(samples, 2);
+    append_branch(samples, 2);
 
     auto c = cable_cell(arb::morphology(samples, true));
 

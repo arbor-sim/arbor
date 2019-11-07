@@ -157,8 +157,6 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
-        //cable_cell c;
-        //c.add_soma(20);
         cable_cell c = soma_cell_builder(20).make_cell();
         c.place(mlocation{0,1}, gap_junction_site{});
         return {std::move(c)};
@@ -211,8 +209,8 @@ TEST(fvm_lowered, matrix_init)
     auto ispos = [](auto v) { return v>0; };
     auto isneg = [](auto v) { return v<0; };
 
-    auto builder = soma_cell_builder(12.6157/2.0);
-    builder.add_dendrite(0, 200, 1.0/2, 1.0/2, 10); // 10 compartments
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 10, "dend"); // 10 compartments
     cable_cell cell = builder.make_cell();
 
     std::vector<target_handle> targets;
@@ -394,27 +392,26 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
-    //std::vector<cable_cell> cells(3);
     std::vector<cable_cell> cells;
     cells.reserve(3);
     for (int i = 0; i<3; ++i) {
-        auto builder = soma_cell_builder(6);
-        builder.add_dendrite(0, 100, 0.5, 0.5, 4);
-        builder.set_regions({{"all", reg::all()}});
+        soma_cell_builder builder(6);
+        builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
+        auto cell = builder.make_cell();
 
         switch (i) {
             case 0:
-                builder.set_mechanisms({{"all", "test_kin1"}});
+                cell.paint(reg::all(), "test_kin1");
                 break;
             case 1:
-                builder.set_mechanisms({{"all", "custom_kin1"}});
+                cell.paint(reg::all(), "custom_kin1");
                 break;
             case 2:
-                builder.set_mechanisms({{"all", "test_kin1"},
-                                        {"all", "custom_kin1"}});
+                cell.paint(reg::all(), "test_kin1");
+                cell.paint(reg::all(), "custom_kin1");
                 break;
         }
-        cells.push_back(builder.make_cell());
+        cells.push_back(std::move(cell));
     }
 
     cable1d_recipe rec(cells);
@@ -500,9 +497,10 @@ TEST(fvm_lowered, read_valence) {
     {
         std::vector<cable_cell> cells(1);
 
-        auto builder = soma_cell_builder(6);
-        builder.set_mechanisms({{"soma", "test_ca_read_valence"}});
-        cable1d_recipe rec({builder.make_cell()});
+        soma_cell_builder builder(6);
+        auto cell = builder.make_cell();
+        cell.paint("soma", "test_ca_read_valence");
+        cable1d_recipe rec({std::move(cell)});
         rec.catalogue() = make_unit_test_catalogue();
 
         fvm_cell fvcell(context);
@@ -521,9 +519,10 @@ TEST(fvm_lowered, read_valence) {
 
     {
         // Check ion renaming.
-        auto builder = soma_cell_builder(6);
-        builder.set_mechanisms({{"soma", "cr_read_valence"}});
-        cable1d_recipe rec({builder.make_cell()});
+        soma_cell_builder builder(6);
+        auto cell = builder.make_cell();
+        cell.paint("soma", "cr_read_valence");
+        cable1d_recipe rec({std::move(cell)});
         rec.catalogue() = make_unit_test_catalogue();
         rec.catalogue() = make_unit_test_catalogue();
 
@@ -546,7 +545,7 @@ TEST(fvm_lowered, read_valence) {
 // Test correct scaling of ionic currents in reading and writing
 
 TEST(fvm_lowered, ionic_currents) {
-    auto b = soma_cell_builder(6);
+    soma_cell_builder b(6);
 
     // Mechanism parameter is in NMODL units, i.e. mA/cm².
 
@@ -565,9 +564,11 @@ TEST(fvm_lowered, ionic_currents) {
     mechanism_desc m2("linear_ca_conc");
     m2["coeff"] = coeff;
 
-    b.set_mechanisms({{"soma", m1}, {"soma", m2}});
+    auto c = b.make_cell();
+    c.paint("soma", m1);
+    c.paint("soma", m2);
 
-    cable1d_recipe rec(b.make_cell());
+    cable1d_recipe rec(std::move(c));
     rec.catalogue() = make_unit_test_catalogue();
 
     execution_context context;
@@ -597,8 +598,7 @@ TEST(fvm_lowered, ionic_currents) {
 
 TEST(fvm_lowered, point_ionic_current) {
     double r = 6.0; // [µm]
-    auto b = soma_cell_builder(r);
-    b.set_mechanisms({});
+    soma_cell_builder b(r);
     cable_cell c = b.make_cell();
 
     double soma_area_m2 = 4*math::pi<double>*r*r*1e-12; // [m²]
@@ -665,10 +665,10 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     execution_context context;
 
-    auto b = soma_cell_builder(5);
-    b.add_dendrite(0, 100, 0.5, 0.5, 1);
-    b.add_dendrite(1, 200, 0.5, 0.5, 1);
-    b.add_dendrite(1, 100, 0.5, 0.5, 1);
+    soma_cell_builder b(5);
+    b.add_branch(0, 100, 0.5, 0.5, 1, "dend");
+    b.add_branch(1, 200, 0.5, 0.5, 1, "dend");
+    b.add_branch(1, 100, 0.5, 0.5, 1, "dend");
 
     cable_cell c = b.make_cell();
 
@@ -759,16 +759,16 @@ TEST(fvm_lowered, gj_coords_simple) {
     gap_recipe rec;
     std::vector<cable_cell> cells;
     {
-        auto b = soma_cell_builder(2.1);
-        b.add_dendrite(0, 10, 0.3, 0.2, 5);
+        soma_cell_builder b(2.1);
+        b.add_branch(0, 10, 0.3, 0.2, 5, "dend");
         auto c = b.make_cell();
         c.place(mlocation{1, 0.8}, gap_junction_site{});
         cells.push_back(std::move(c));
     }
 
     {
-        auto b = soma_cell_builder(2.4);
-        b.add_dendrite(0, 10, 0.3, 0.2, 2);
+        soma_cell_builder b(2.4);
+        b.add_branch(0, 10, 0.3, 0.2, 2, "dend");
         auto c = b.make_cell();
         c.place(mlocation{1, 1}, gap_junction_site{});
         cells.push_back(std::move(c));
@@ -834,17 +834,17 @@ TEST(fvm_lowered, gj_coords_complex) {
     fvm_cell fvcell(context);
 
     // Add 5 gap junctions
-    auto b0 = soma_cell_builder(2.1);
-    b0.add_dendrite(0, 8, 0.3, 0.2, 4);
+    soma_cell_builder b0(2.1);
+    b0.add_branch(0, 8, 0.3, 0.2, 4, "dend");
 
     auto c0 = b0.make_cell();
     c0.place(mlocation{1, 1}, gap_junction_site{});
     c0.place(mlocation{1, 0.5}, gap_junction_site{});
 
-    auto b1 = soma_cell_builder(1.4);
-    b1.add_dendrite(0, 12, 0.3, 0.5, 6);
-    b1.add_dendrite(1,  9, 0.3, 0.2, 3);
-    b1.add_dendrite(1,  5, 0.2, 0.2, 5);
+    soma_cell_builder b1(1.4);
+    b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
+    b1.add_branch(1,  9, 0.3, 0.2, 3, "dend");
+    b1.add_branch(1,  5, 0.2, 0.2, 5, "dend");
 
     auto c1 = b1.make_cell();
     c1.place(mlocation{2, 1}, gap_junction_site{});
@@ -852,12 +852,12 @@ TEST(fvm_lowered, gj_coords_complex) {
     c1.place(mlocation{1, 0.45}, gap_junction_site{});
     c1.place(mlocation{1, 0.1}, gap_junction_site{});
 
-    auto b2 = soma_cell_builder(2.9);
-    b2.add_dendrite(0, 4, 0.3, 0.5, 2);
-    b2.add_dendrite(1, 6, 0.4, 0.2, 2);
-    b2.add_dendrite(1, 8, 0.1, 0.2, 2);
-    b2.add_dendrite(2, 4, 0.2, 0.2, 2);
-    b2.add_dendrite(2, 4, 0.2, 0.2, 2);
+    soma_cell_builder b2(2.9);
+    b2.add_branch(0, 4, 0.3, 0.5, 2, "dend");
+    b2.add_branch(1, 6, 0.4, 0.2, 2, "dend");
+    b2.add_branch(1, 8, 0.1, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
 
     auto c2 = b2.make_cell();
     c2.place(mlocation{1, 0.5}, gap_junction_site{});
