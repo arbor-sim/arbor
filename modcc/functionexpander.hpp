@@ -12,7 +12,7 @@
 expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e);
 
 // prototype for lowering function calls
-expr_list_type lower_function_calls(Expression* e);
+expression_ptr lower_function_calls(BlockExpression* block);
 
 ///////////////////////////////////////////////////////////////////////////////
 // visitor that takes function call sites and lowers them to inline assignments
@@ -33,40 +33,79 @@ expr_list_type lower_function_calls(Expression* e);
 // If the calls_ data is spliced directly before the original statement
 // the function call will have been fully lowered
 ///////////////////////////////////////////////////////////////////////////////
-class FunctionCallLowerer : public Visitor {
+class FunctionCallLowerer : public BlockRewriterBase {
 public:
-    FunctionCallLowerer(scope_ptr s)
-    :   scope_(s)
-    {}
+    using BlockRewriterBase::visit;
 
-    void visit(CallExpression *e)       override;
-    void visit(Expression *e)           override;
-    void visit(UnaryExpression *e)      override;
-    void visit(BinaryExpression *e)     override;
-    void visit(NumberExpression *e)     override {};
-    void visit(IdentifierExpression *e) override {};
+    FunctionCallLowerer(): BlockRewriterBase() {}
+    FunctionCallLowerer(scope_ptr s): BlockRewriterBase(s) {}
 
-    expr_list_type& calls() {
-        return calls_;
-    }
-
-    expr_list_type move_calls() {
-        return std::move(calls_);
-    }
-
-    ~FunctionCallLowerer() {}
+    virtual void visit(CallExpression *e)       override;
+    virtual void visit(AssignmentExpression *e) override;
+    virtual void visit(BinaryExpression *e)     override;
+    virtual void visit(UnaryExpression *e)      override;
+//   virtual void visit(IfExpression *e)         override;
+    virtual void visit(NumberExpression *e)     override {};
+    virtual void visit(IdentifierExpression *e) override {};
 
 private:
     template< typename F>
     void expand_call(CallExpression* func, F replacer) {
-        auto id = insert_unique_local_assignment(calls_, func);
+        auto id = insert_unique_local_assignment(statements_, func);
         // replace the function call in the original expression with the local
         // variable which holds the pre-computed value
         replacer(std::move(id));
     }
 
-    expr_list_type calls_;
-    scope_ptr scope_;
+    // Takes function arguments that are not literals of identifiers
+    // and lowers them to inline assignments
+    //
+    // e.g. if called on the following statement
+    //
+    // a = foo(2+x, y)
+    //
+    // the calls_ member will be
+    //
+    // LOCAL ll0_
+    // ll0_ = 2+x
+    //
+    // and the original statment is modified to be
+    //
+    // a = foo(ll0_, y)
+    //
+    // If the calls_ data is spliced directly before the original statement
+    // the function arguments will have been fully lowered
+    void lower_call_arguments(std::vector<expression_ptr>& args) {
+        for(auto it=args.begin(); it!=args.end(); ++it) {
+            // get reference to the unique_ptr with the expression
+            auto& e = *it;
+#ifdef LOGGING
+            std::cout << "inspecting argument @ " << e->location() << " : " << e->to_string() << std::endl;
+#endif
+
+            if(e->is_number() || e->is_identifier()) {
+                // do nothing, because identifiers and literals are in the correct form
+                // for lowering
+                continue;
+            }
+
+            auto id = insert_unique_local_assignment(statements_, e.get());
+#ifdef LOGGING
+            std::cout << "  lowering to " << new_statements.back()->to_string() << "\n";
+#endif
+            // replace the function call in the original expression with the local
+            // variable which holds the pre-computed value
+            std::swap(e, id);
+        }
+#ifdef LOGGING
+        std::cout << "\n";
+#endif
+    }
+
+protected:
+    virtual void reset() override {
+        BlockRewriterBase::reset();
+    }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,5 +128,4 @@ private:
 // If the calls_ data is spliced directly before the original statement
 // the function arguments will have been fully lowered
 ///////////////////////////////////////////////////////////////////////////////
-expr_list_type lower_function_arguments(std::vector<expression_ptr>& args);
 

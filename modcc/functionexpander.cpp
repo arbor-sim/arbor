@@ -16,39 +16,10 @@ expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression*
 //  function call site lowering
 ///////////////////////////////////////////////////////////////////////////////
 
-expr_list_type lower_function_calls(Expression* e)
-{
-    auto v = std::make_unique<FunctionCallLowerer>(e->scope());
-
-//    if(auto a=e->is_if()) {
-//#ifdef LOGGING
-//        std::cout << "lower_function_calls inspect expression " << e->to_string() << "\n";
-//#endif
-//        // recursively inspect and replace function calls with identifiers
-//        a->condition()->accept(v.get());
-//    }
-
-    if(auto a=e->is_assignment()) {
-#ifdef LOGGING
-        std::cout << "lower_function_calls inspect expression " << e->to_string() << "\n";
-#endif
-        // recursively inspect and replace function calls with identifiers
-        a->rhs()->accept(v.get());
-
-    }
-
-    // return the list of statements that assign function call return values
-    // to identifiers, e.g.
-    //      LOCAL ll1_
-    //      ll1_ = mInf(v)
-    return v->move_calls();
-}
-
-void FunctionCallLowerer::visit(Expression *e) {
-    throw compiler_exception(
-        "function lowering for expressions of the type " + e->to_string()
-        + " has not been defined", e->location()
-    );
+expression_ptr lower_function_calls(BlockExpression* block) {
+    auto v = std::make_unique<FunctionCallLowerer>();
+    block->accept(v.get());
+    return v->as_block(false);
 }
 
 void FunctionCallLowerer::visit(CallExpression *e) {
@@ -58,29 +29,24 @@ void FunctionCallLowerer::visit(CallExpression *e) {
 #ifdef LOGGING
             std::cout << "  lowering : " << func->to_string() << "\n";
 #endif
-            expand_call(
-                func, [&arg](expression_ptr&& p){arg = std::move(p);}
-            );
-            arg->semantic(scope_);
+            lower_call_arguments(func->args());
+            expand_call(func, [&arg](expression_ptr&& p){arg = std::move(p);});
+            arg->semantic(block_scope_);
         }
         else {
             arg->accept(this);
         }
     }
+    lower_call_arguments(e->args());
+
+    if (e->is_procedure_call()) {
+        statements_.push_back(e->clone());
+    }
 }
 
-void FunctionCallLowerer::visit(UnaryExpression *e) {
-    if(auto func = e->expression()->is_function_call()) {
-        func->accept(this);
-#ifdef LOGGING
-        std::cout << "  lowering : " << func->to_string() << "\n";
-#endif
-        expand_call(func, [&e](expression_ptr&& p){e->replace_expression(std::move(p));});
-        e->semantic(scope_);
-    }
-    else {
-        e->expression()->accept(this);
-    }
+void FunctionCallLowerer::visit(AssignmentExpression *e) {
+    e->rhs()->accept(this);
+    statements_.push_back(e->clone());
 }
 
 void FunctionCallLowerer::visit(BinaryExpression *e) {
@@ -89,8 +55,9 @@ void FunctionCallLowerer::visit(BinaryExpression *e) {
 #ifdef LOGGING
         std::cout << "  lowering : " << func->to_string() << "\n";
 #endif
+        lower_call_arguments(func->args());
         expand_call(func, [&e](expression_ptr&& p){e->replace_lhs(std::move(p));});
-        e->semantic(scope_);
+        e->semantic(block_scope_);
     }
     else {
         e->lhs()->accept(this);
@@ -101,20 +68,44 @@ void FunctionCallLowerer::visit(BinaryExpression *e) {
 #ifdef LOGGING
         std::cout << "  lowering : " << func->to_string() << "\n";
 #endif
+        lower_call_arguments(func->args());
         expand_call(func, [&e](expression_ptr&& p){e->replace_rhs(std::move(p));});
-        e->semantic(scope_);
+        e->semantic(block_scope_);
     }
     else {
         e->rhs()->accept(this);
     }
 }
 
+void FunctionCallLowerer::visit(UnaryExpression *e) {
+    if(auto func = e->expression()->is_function_call()) {
+        func->accept(this);
+#ifdef LOGGING
+        std::cout << "  lowering : " << func->to_string() << "\n";
+#endif
+        lower_call_arguments(func->args());
+        expand_call(func, [&e](expression_ptr&& p){e->replace_expression(std::move(p));});
+        e->semantic(block_scope_);
+    }
+    else {
+        e->expression()->accept(this);
+    }
+}
+///TODO
+/*void FunctionCallLowerer::visit(IfExpression *e) {
+    auto copy = e->clone();
+//    e->condition()->accept(this);
+    e->true_branch()->accept(this);
+    if (e->false_branch()) {
+        e->false_branch()->accept(this);
+    }
+}*/
+
 ///////////////////////////////////////////////////////////////////////////////
 //  function argument lowering
 ///////////////////////////////////////////////////////////////////////////////
 
-expr_list_type
-lower_function_arguments(std::vector<expression_ptr>& args)
+/*void lower_function_arguments(std::vector<expression_ptr>& args)
 {
     expr_list_type new_statements;
     for(auto it=args.begin(); it!=args.end(); ++it) {
@@ -143,5 +134,5 @@ lower_function_arguments(std::vector<expression_ptr>& args)
 #endif
 
     return new_statements;
-}
+}*/
 

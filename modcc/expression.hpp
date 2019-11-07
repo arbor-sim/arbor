@@ -1142,6 +1142,16 @@ public:
     BlockExpression* body() {
         return body_->is_block();
     }
+    void body(expression_ptr&& new_body) {
+        if(!new_body->is_block()) {
+            Location loc = new_body? new_body->location(): Location{};
+            throw compiler_exception(
+                    " attempt to set FunctionExpression body with non-block expression, i.e.\n"
+                    + new_body->to_string(),
+                    loc);
+        }
+        body_ = std::move(new_body);
+    }
 
     FunctionExpression* is_function() override {return this;}
     void semantic(scope_type::symbol_map&) override;

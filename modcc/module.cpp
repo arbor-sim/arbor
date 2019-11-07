@@ -721,20 +721,8 @@ void Module::add_variables_to_symbols() {
         }
     }
 }
-void Module::block_lower_function_calls(expr_list_type& stmts) {
-    for (auto e = stmts.begin(); e != stmts.end(); ++e) {
-        if (auto if_exp = (*e)->is_if()) {
-            block_lower_function_calls((*e)->is_if()->true_branch()->is_block()->statements());
-            if (if_exp->false_branch()) {
-                block_lower_function_calls((*e)->is_if()->false_branch()->is_block()->statements());
-            }
-        } else {
-            stmts.splice(e, lower_function_calls((*e).get()));
-        }
-    }
-}
 
-void Module::block_lower_function_arguments(expr_list_type& stmts){
+/*void Module::block_lower_function_arguments(expr_list_type& stmts){
     for (auto e = stmts.begin(); e != stmts.end(); ++e) {
         if (auto if_exp = (*e)->is_if()) {
             block_lower_function_arguments((*e)->is_if()->true_branch()->is_block()->statements());
@@ -751,7 +739,7 @@ void Module::block_lower_function_arguments(expr_list_type& stmts){
             }
         }
     }
-}
+}*/
 
 void Module::block_inline_function_calls(bool& keep_inlining, expr_list_type& stmts) {
     for (auto &e: stmts) {
@@ -798,7 +786,6 @@ int Module::semantic_func_proc() {
                           << s->to_string() << "\n"
                           << green("\n-call site lowering-\n\n");
     #endif
-
                 // perform semantic analysis
                 s->semantic(symbols_);
 
@@ -810,9 +797,6 @@ int Module::semantic_func_proc() {
                 // inline function calls
                 // this requires that the symbol table has already been built
                 if (v.num_errors() == 0) {
-                    auto &b = s->kind() == symbolKind::function ?
-                              s->is_function()->body()->statements() :
-                              s->is_procedure()->body()->statements();
 
                     // lower function call sites so that all function calls are of
                     // the form : variable = call(<args>)
@@ -821,8 +805,23 @@ int Module::semantic_func_proc() {
                     // becomes
                     //      ll0_ = foo(2+x, y, 1)
                     //      a = 2 + ll0_
-                    block_lower_function_calls(b);
-    #ifdef LOGGING
+
+                    if (s->kind() == symbolKind::function) {
+                        std::cout << "before :" <<  s->is_function()->body()->to_string() << std::endl;
+                        auto rewritten = lower_function_calls(s->is_function()->body());
+                        s->is_function()->body(std::move(rewritten));
+                        std::cout << "after :" <<  s->is_function()->body()->to_string() << std::endl << std::endl;
+                    } else {
+                        std::cout << "before :" <<  s->is_procedure()->body()->to_string() << std::endl;
+                        auto rewritten = lower_function_calls(s->is_procedure()->body());
+                        s->is_procedure()->body(std::move(rewritten));
+                        std::cout << "after :" <<  s->is_procedure()->body()->to_string() << std::endl << std::endl;
+                    }
+
+                    s->semantic(symbols_);
+
+
+#ifdef LOGGING
                     std::cout << "body after call site lowering\n";
                         for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
                         std::cout << green("\n-argument lowering-\n\n");
@@ -835,16 +834,20 @@ int Module::semantic_func_proc() {
                     //      ll1_ = 2+x
                     //      ll0_ = foo(ll1_, y, 1)
                     //      a = 2 + ll0_
-                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-                    for (auto &e:b) {
-                        std::cout << e->to_string() <<std::endl;
-                    }
-                    block_lower_function_arguments(b);
-                    std::cout << "------------>" << std::endl;
-                    for (auto &e:b) {
-                        std::cout << e->to_string() <<std::endl;
-                    }
-                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+//                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+//                    for (auto &e:b) {
+//                        std::cout << e->to_string() <<std::endl;
+//                    }
+//                    auto &b = s->kind() == symbolKind::function ?
+//                              s->is_function()->body()->statements() :
+//                              s->is_procedure()->body()->statements();
+//
+//                    block_lower_function_arguments(b);
+//                    std::cout << "------------>" << std::endl;
+//                    for (auto &e:b) {
+//                        std::cout << e->to_string() <<std::endl;
+//                    }
+//                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 
     #ifdef LOGGING
                     std::cout << "body after argument lowering\n";
@@ -879,7 +882,17 @@ int Module::semantic_func_proc() {
                     //      ll0_ = ll1_*r_0_
                     //      a = 2 + ll0_
 
+                    if (s->kind()==symbolKind::function) {
+                        std::cout << "before Inlining :" << s->is_function()->body()->to_string() << std::endl;
+                    } else {
+                        std::cout << "before Inlining :" << s->is_procedure()->body()->to_string() << std::endl;
+                    }
                     block_inline_function_calls(keep_inlining, b);
+                    if (s->kind()==symbolKind::function) {
+                        std::cout << "after Inlining :" << s->is_function()->body()->to_string() << std::endl;
+                    } else {
+                        std::cout << "after Inlining :" << s->is_procedure()->body()->to_string() << std::endl;
+                    }
     #ifdef LOGGING
                     std::cout << "body after inlining\n";
                     for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
