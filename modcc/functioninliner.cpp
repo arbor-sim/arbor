@@ -88,6 +88,17 @@ void FunctionInliner::visit(Expression* e) {
             "I don't know how to do function inlining for this statement : "
             + e->to_string(), e->location());
 }
+void FunctionInliner::visit(ConserveExpression *e) {
+    statements_.push_back(e->clone());
+}
+
+void FunctionInliner::visit(CompartmentExpression *e) {
+    statements_.push_back(e->clone());
+}
+
+void FunctionInliner::visit(LinearExpression *e) {
+    statements_.push_back(e->clone());
+}
 
 void FunctionInliner::visit(LocalDeclaration* e) {
     if (!processing_function_call_) {
@@ -233,6 +244,10 @@ void FunctionInliner::visit(IfExpression* e) {
 }
 
 void FunctionInliner::visit(CallExpression* e) {
+    if (e->is_procedure_call()) {
+        statements_.push_back(e->clone());
+        return;
+    }
     for (auto& a: e->is_function_call()->args()) {
         if (auto id = a->is_identifier()) {
             if (local_arg_map_.count(id->spelling())) {

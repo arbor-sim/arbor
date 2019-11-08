@@ -16,6 +16,9 @@ public:
 
     virtual void visit(Expression *e)            override;
     virtual void visit(CallExpression *e)        override;
+    virtual void visit(ConserveExpression *e)    override;
+    virtual void visit(CompartmentExpression *e) override;
+    virtual void visit(LinearExpression *e)      override;
     virtual void visit(AssignmentExpression* e)  override;
     virtual void visit(BinaryExpression* e)      override;
     virtual void visit(UnaryExpression* e)       override;
