@@ -389,11 +389,15 @@ bool Module::semantic() {
                     solver = std::make_unique<SparseNonlinearSolverVisitor>();
                 }
 
+                rewrite_body->semantic(nrn_state_scope);
                 rewrite_body->accept(solver.get());
             }
             else if (deriv->kind()==procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
+                auto rewrite_body = linear_rewrite(deriv->body(), state_vars);
+
+                rewrite_body->semantic(nrn_state_scope);
+                rewrite_body->accept(solver.get());
             }
             else {
                 deriv->body()->accept(solver.get());
@@ -422,6 +426,7 @@ bool Module::semantic() {
 
                 // Copy body into nrn_state.
                 for (auto& stmt: solve_block->is_block()->statements()) {
+                    std::cout << ":: "  << stmt->to_string() << std::endl;
                     api_state->body()->statements().push_back(std::move(stmt));
                 }
             }
@@ -794,66 +799,19 @@ int Module::semantic_func_proc() {
                 s->accept(&v);
                 errors += v.num_errors();
 
-                // inline function calls
-                // this requires that the symbol table has already been built
                 if (v.num_errors() == 0) {
-
-                    // lower function call sites so that all function calls are of
-                    // the form : variable = call(<args>)
-                    // e.g.
-                    //      a = 2 + foo(2+x, y, 1)
-                    // becomes
-                    //      ll0_ = foo(2+x, y, 1)
-                    //      a = 2 + ll0_
-
                     if (s->kind() == symbolKind::function) {
-//                        std::cout << "before :" <<  s->is_function()->body()->to_string() << std::endl;
+                        std::cout << "before :" <<  s->is_function()->body()->to_string() << std::endl;
                         auto rewritten = lower_function_calls(s->is_function()->body());
                         s->is_function()->body(std::move(rewritten));
-//                        std::cout << "after :" <<  s->is_function()->body()->to_string() << std::endl << std::endl;
+                        std::cout << "after :" <<  s->is_function()->body()->to_string() << std::endl << std::endl;
                     } else {
-//                        std::cout << "before :" <<  s->is_procedure()->body()->to_string() << std::endl;
+                        std::cout << "before :" <<  s->is_procedure()->body()->to_string() << std::endl;
                         auto rewritten = lower_function_calls(s->is_procedure()->body());
                         s->is_procedure()->body(std::move(rewritten));
-//                        std::cout << "after :" <<  s->is_procedure()->body()->to_string() << std::endl << std::endl;
+                        std::cout << "after :" <<  s->is_procedure()->body()->to_string() << std::endl << std::endl;
                     }
-
                     s->semantic(symbols_);
-
-
-#ifdef LOGGING
-                    std::cout << "body after call site lowering\n";
-                        for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                        std::cout << green("\n-argument lowering-\n\n");
-    #endif
-                    // lower function arguments that are not identifiers or literals
-                    // e.g.
-                    //      ll0_ = foo(2+x, y, 1)
-                    //      a = 2 + ll0_
-                    // becomes
-                    //      ll1_ = 2+x
-                    //      ll0_ = foo(ll1_, y, 1)
-                    //      a = 2 + ll0_
-//                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-//                    for (auto &e:b) {
-//                        std::cout << e->to_string() <<std::endl;
-//                    }
-//                    auto &b = s->kind() == symbolKind::function ?
-//                              s->is_function()->body()->statements() :
-//                              s->is_procedure()->body()->statements();
-//
-//                    block_lower_function_arguments(b);
-//                    std::cout << "------------>" << std::endl;
-//                    for (auto &e:b) {
-//                        std::cout << e->to_string() <<std::endl;
-//                    }
-//                    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
-    #ifdef LOGGING
-                    std::cout << "body after argument lowering\n";
-                        for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                        std::cout << green("\n-inlining-\n\n");
-    #endif
                 }
             }
         }
@@ -868,31 +826,17 @@ int Module::semantic_func_proc() {
                         s->is_function()->body()->statements() :
                         s->is_procedure()->body()->statements();
 
-                    // Do the inlining: supports multiline functions and if/else statements
-                    // e.g. if the function foo in the examples above is defined as follows
-                    //
-                    //  function foo(a, b, c) {
-                    //      Local t = b + c
-                    //      foo = a*t
-                    //  }
-                    //
-                    // the full inlined example is
-                    //      ll1_ = 2+x
-                    //      r_0_ = y+1
-                    //      ll0_ = ll1_*r_0_
-                    //      a = 2 + ll0_
-
-                    if (s->kind()==symbolKind::function) {
-                        std::cout << "before Inlining :" << s->is_function()->body()->to_string() << std::endl;
-                    } else {
-                        std::cout << "before Inlining :" << s->is_procedure()->body()->to_string() << std::endl;
-                    }
+//                    if (s->kind()==symbolKind::function) {
+//                        std::cout << "before Inlining :" << s->is_function()->body()->to_string() << std::endl;
+//                    } else {
+//                        std::cout << "before Inlining :" << s->is_procedure()->body()->to_string() << std::endl;
+//                    }
                     block_inline_function_calls(keep_inlining, b);
-                    if (s->kind()==symbolKind::function) {
-                        std::cout << "after Inlining :" << s->is_function()->body()->to_string() << std::endl;
-                    } else {
-                        std::cout << "after Inlining :" << s->is_procedure()->body()->to_string() << std::endl;
-                    }
+//                    if (s->kind()==symbolKind::function) {
+//                        std::cout << "after Inlining :" << s->is_function()->body()->to_string() << std::endl;
+//                    } else {
+//                        std::cout << "after Inlining :" << s->is_procedure()->body()->to_string() << std::endl;
+//                    }
     #ifdef LOGGING
                     std::cout << "body after inlining\n";
                     for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";

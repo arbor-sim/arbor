@@ -28,12 +28,12 @@ FUNCTION foo(x) {
 }
 
 BREAKPOINT {
-    LOCAL a
-    a = 1
-    if (v > 1) {
-        if (exp(e)*bar() < 3) {
-            a = foo(3)
-        }
-    }
-    i = g*(v - e)*a
+:    LOCAL a
+:    a = 1
+:    if (v > 1) {
+:        if (exp(e)*bar() < 3) {
+:            a = foo(3)
+:        }
+:    }
+    i = g*(v - e)
 }

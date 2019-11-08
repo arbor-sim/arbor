@@ -16,6 +16,13 @@ expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression*
 //  function call site lowering
 ///////////////////////////////////////////////////////////////////////////////
 
+// lower function call sites so that all function calls are of
+// the form : variable = call(<args>)
+// e.g.
+//      a = 2 + foo(2+x, y, 1)
+// becomes
+//      ll0_ = foo(2+x, y, 1)
+//      a = 2 + ll0_
 expression_ptr lower_function_calls(BlockExpression* block) {
     auto v = std::make_unique<FunctionCallLowerer>();
     block->accept(v.get());

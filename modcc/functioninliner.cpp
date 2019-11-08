@@ -5,6 +5,19 @@
 #include "functioninliner.hpp"
 #include "errorvisitor.hpp"
 
+// Do the inlining: supports multiline functions and if/else statements
+// e.g. if the function foo in the examples above is defined as follows
+//
+//  function foo(a, b, c) {
+//      Local t = b + c
+//      foo = a*t
+//  }
+//
+// the full inlined example is
+//      ll1_ = 2+x
+//      r_0_ = y+1
+//      ll0_ = ll1_*r_0_
+//      a = 2 + ll0_
 expression_ptr inline_function_call(const expression_ptr& e)
 {
     auto assign_to_func = e->is_assignment();
