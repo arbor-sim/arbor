@@ -56,6 +56,18 @@ void FunctionCallLowerer::visit(AssignmentExpression *e) {
     statements_.push_back(e->clone());
 }
 
+void FunctionCallLowerer::visit(ConserveExpression *e) {
+    statements_.push_back(e->clone());
+}
+
+void FunctionCallLowerer::visit(CompartmentExpression *e) {
+    statements_.push_back(e->clone());
+}
+
+void FunctionCallLowerer::visit(LinearExpression *e) {
+    statements_.push_back(e->clone());
+}
+
 void FunctionCallLowerer::visit(BinaryExpression *e) {
     if(auto func = e->lhs()->is_function_call()) {
         func->accept(this);

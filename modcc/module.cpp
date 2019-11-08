@@ -279,6 +279,9 @@ bool Module::semantic() {
     auto proc_init = initial_api.second;
     auto& init_body = api_init->body()->statements();
 
+    api_init->semantic(symbols_);
+    scope_ptr nrn_init_scope = api_init->scope();
+
     for(auto& e : *proc_init->body()) {
         auto solve_expression = e->is_solve_statement();
         if (solve_expression) {
@@ -291,7 +294,10 @@ bool Module::semantic() {
 
             if (solve_proc->kind() == procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                linear_rewrite(solve_proc->body(), state_vars)->accept(solver.get());
+                auto rewrite_body = linear_rewrite(solve_proc->body(), state_vars);
+
+                rewrite_body->semantic(nrn_init_scope);
+                rewrite_body->accept(solver.get());
             } else {
                 error("A SOLVE expression in an INITIAL block can only be used to solve a LINEAR block, which" +
                       solve_expression->name() + "is not.", solve_expression->location());

@@ -40,13 +40,16 @@ public:
     FunctionCallLowerer(): BlockRewriterBase() {}
     FunctionCallLowerer(scope_ptr s): BlockRewriterBase(s) {}
 
-    virtual void visit(CallExpression *e)       override;
-    virtual void visit(AssignmentExpression *e) override;
-    virtual void visit(BinaryExpression *e)     override;
-    virtual void visit(UnaryExpression *e)      override;
-//   virtual void visit(IfExpression *e)         override;
-    virtual void visit(NumberExpression *e)     override {};
-    virtual void visit(IdentifierExpression *e) override {};
+    virtual void visit(CallExpression *e)        override;
+    virtual void visit(ConserveExpression *e)    override;
+    virtual void visit(CompartmentExpression *e) override;
+    virtual void visit(LinearExpression *e)      override;
+    virtual void visit(AssignmentExpression *e)  override;
+    virtual void visit(BinaryExpression *e)      override;
+    virtual void visit(UnaryExpression *e)       override;
+//   virtual void visit(IfExpression *e)          override;
+    virtual void visit(NumberExpression *e)      override {};
+    virtual void visit(IdentifierExpression *e)  override {};
 
 private:
     template< typename F>
