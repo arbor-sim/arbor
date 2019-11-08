@@ -807,15 +807,15 @@ int Module::semantic_func_proc() {
                     //      a = 2 + ll0_
 
                     if (s->kind() == symbolKind::function) {
-                        std::cout << "before :" <<  s->is_function()->body()->to_string() << std::endl;
+//                        std::cout << "before :" <<  s->is_function()->body()->to_string() << std::endl;
                         auto rewritten = lower_function_calls(s->is_function()->body());
                         s->is_function()->body(std::move(rewritten));
-                        std::cout << "after :" <<  s->is_function()->body()->to_string() << std::endl << std::endl;
+//                        std::cout << "after :" <<  s->is_function()->body()->to_string() << std::endl << std::endl;
                     } else {
-                        std::cout << "before :" <<  s->is_procedure()->body()->to_string() << std::endl;
+//                        std::cout << "before :" <<  s->is_procedure()->body()->to_string() << std::endl;
                         auto rewritten = lower_function_calls(s->is_procedure()->body());
                         s->is_procedure()->body(std::move(rewritten));
-                        std::cout << "after :" <<  s->is_procedure()->body()->to_string() << std::endl << std::endl;
+//                        std::cout << "after :" <<  s->is_procedure()->body()->to_string() << std::endl << std::endl;
                     }
 
                     s->semantic(symbols_);

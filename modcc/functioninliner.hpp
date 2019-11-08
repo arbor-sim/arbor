@@ -19,12 +19,14 @@ public:
                     const std::vector<expression_ptr>& cargs,
                     const scope_ptr& scope) :
                     func_name_(func_name), lhs_(lhs->clone()), scope_(scope) {
-        for (auto& f: fargs) {
-            fargs_.push_back(f->is_argument()->spelling());
+
+        for (unsigned i = 0; i < fargs.size(); ++i) {
+            call_arg_map_.insert({fargs[i]->is_argument()->spelling(), cargs[i]->clone()});
         }
-        for (auto& c: cargs) {
-            cargs_.push_back(c->clone());
-        }
+//        for (auto& c: call_arg_map_) {
+//            std::cout << "++ call  [" << c.first << ", " << c.second->to_string() << "]" << std::endl;
+//        }
+
     }
 
     void visit(Expression* e)            override;
@@ -41,11 +43,11 @@ public:
 
     ~FunctionInliner() {}
 
-private:
+public:
     std::string func_name_;
     expression_ptr lhs_;
-    std::vector<std::string> fargs_;
-    std::vector<expression_ptr> cargs_;
+    std::unordered_map<std::string, expression_ptr> call_arg_map_;
+    std::unordered_map<std::string, expression_ptr> local_arg_map_;
     scope_ptr scope_;
     bool return_set_ = false;
 
