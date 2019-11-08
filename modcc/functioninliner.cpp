@@ -4,51 +4,49 @@
 #include "error.hpp"
 #include "functioninliner.hpp"
 #include "errorvisitor.hpp"
+expression_ptr inline_function_calls(BlockExpression* block) {
+    auto inline_block = block->clone();
 
-// Do the inlining: supports multiline functions and if/else statements
-// e.g. if the function foo in the examples above is defined as follows
-//
-//  function foo(a, b, c) {
-//      Local t = b + c
-//      foo = a*t
-//  }
-//
-// the full inlined example is
-//      ll1_ = 2+x
-//      r_0_ = y+1
-//      ll0_ = ll1_*r_0_
-//      a = 2 + ll0_
-expression_ptr inline_function_call(const expression_ptr& e)
-{
-    auto assign_to_func = e->is_assignment();
-    auto ret_identifier = assign_to_func->lhs()->is_identifier();
-
-    if(auto f = assign_to_func->rhs()->is_function_call()) {
-        auto body = f->function()->body()->clone();
-
-        for (auto&s: body->is_block()->statements()) {
-            s->semantic(e->scope());
+    while(true) {
+        std::cout << "--before:\n" << inline_block->to_string() << std::endl;
+        for (auto&s: inline_block->is_block()->statements()) {
+            s->semantic(block->scope());
         }
 
-        std::cout << "in progress -- \n" << body->to_string() << std::endl << std::endl;
-        FunctionInliner func_inliner(f->name(), ret_identifier, f->function()->args(), f->args(), e->scope());
-        body->accept(&func_inliner);
-
-        for (auto& var: func_inliner.local_arg_map_) {
-            std::cout << "++ local [" << var.first << ", " << var.second->to_string() << "]" << std::endl;
+        auto func_inliner = std::make_unique<FunctionInliner>();
+        inline_block->accept(func_inliner.get());
+        if (func_inliner->still_inlining()) {
+//            if (!func_inliner->return_val_set()) {
+//                throw compiler_exception(pprintf("return variable of function not set", block->location()));
+//            }
+        } else {
+            return func_inliner->as_block(false);
         }
-        for (auto& var: func_inliner.call_arg_map_) {
-            std::cout << "++ call  [" << var.first << ", " << var.second->to_string() << "]" << std::endl;
-        }
-        std::cout << body->to_string() << "\n\n-- in progress\n" << std::endl;
-
-        if (!func_inliner.return_val_set()) {
-            throw compiler_exception(pprintf("return variable of function % not set", f->name()), e->location());
-        }
-        return body;
+        inline_block = func_inliner->as_block(false);
+        std::cout << "--after:\n" << inline_block->to_string() << std::endl;
     }
-    return {};
 }
+
+/*auto assign_to_func = e->is_assignment();
+auto ret_identifier = assign_to_func->lhs()->is_identifier();
+
+if(auto f = assign_to_func->rhs()->is_function_call()) {
+    auto body = f->function()->body()->clone();
+
+    for (auto&s: body->is_block()->statements()) {
+        s->semantic(e->scope());
+    }
+
+    FunctionInliner func_inliner(f->name(), ret_identifier, f->function()->args(), f->args(), e->scope());
+    body->accept(&func_inliner);
+
+    if (!func_inliner.return_val_set()) {
+        throw compiler_exception(pprintf("return variable of function % not set", f->name()), e->location());
+    }
+    return body;
+}
+return {};*/
+
 ///////////////////////////////////////////////////////////////////////////////
 //  function inliner
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,49 +80,88 @@ void FunctionInliner::replace_args(Expression* e) {
 }
 
 void FunctionInliner::visit(Expression* e) {
+    if (!processing_function_call_) {
+        statements_.push_back(e->clone());
+        return;
+    }
     throw compiler_exception(
             "I don't know how to do function inlining for this statement : "
             + e->to_string(), e->location());
 }
 
 void FunctionInliner::visit(LocalDeclaration* e) {
-    auto loc = e->location();
+    if (!processing_function_call_) {
+        statements_.push_back(e->clone());
+        return;
+    }
 
     std::map<std::string, Token> new_vars;
     for (auto& var: e->variables()) {
-        auto unique_decl = make_unique_local_decl(scope_, loc, "r_");
+        auto unique_decl = make_unique_local_decl(scope_, e->location(), "r_");
         auto unique_name = unique_decl.id->is_identifier()->spelling();
 
         // Local variables must be renamed to avoid collisions with the calling function.
         // The mappings are stored in local_arg_map
         local_arg_map_.insert({var.first, std::move(unique_decl.id)});
 
-//        std::cout << "++ local [" << var.first << ", " << local_arg_map_[var.first]->to_string() << "]" << std::endl;
-
         auto e_tok = var.second;
         e_tok.spelling = unique_name;
         new_vars[unique_name] =  e_tok;
     }
     e->variables().swap(new_vars);
-}
+    statements_.push_back(e->clone());
 
-void FunctionInliner::visit(BlockExpression* e) {
-    for (auto& expr: e->statements()) {
-        expr->accept(this);
-    }
 }
 
 void FunctionInliner::visit(UnaryExpression* e) {
+    if (!processing_function_call_) {
+        return;
+    }
     replace_args(e);
 }
 
 void FunctionInliner::visit(BinaryExpression* e) {
+    if (!processing_function_call_) {
+        return;
+    }
     replace_args(e);
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
-//    std::cout << "\\\\ " << e->to_string() << std::flush;
-//    std::cout << std::endl;
+    // If we're not already inlining a function and we have a function to inline,
+    // Set up the visitor to inline this function call
+    if (!processing_function_call_ && !inlined_func_ && e->rhs()->is_function_call()) {
+        auto f = e->rhs()->is_function_call();
+        auto& fargs = f->function()->args();
+        auto& cargs = f->args();
+
+        processing_function_call_ = true;
+        func_name_ = f->name();
+        lhs_ = e->lhs()->is_identifier()->clone();
+        scope_ = e->scope();
+
+        for (unsigned i = 0; i < fargs.size(); ++i) {
+            call_arg_map_.insert({fargs[i]->is_argument()->spelling(), cargs[i]->clone()});
+        }
+
+        auto body = f->function()->body()->clone();
+        for (auto&s: body->is_block()->statements()) {
+            s->semantic(e->scope());
+        }
+
+        body->accept(this);
+        processing_function_call_ = false;
+        inlined_func_ = true;
+        return;
+    }
+
+    // If we're not inlining a function call, don't change anything in the expression
+    if (!processing_function_call_) {
+        statements_.push_back(e->clone());
+        return;
+    }
+
+    // If we're inlining a function call, take care of variable renaming
     if (auto lhs = e->lhs()->is_identifier()) {
         if (lhs->spelling() == func_name_) {
             e->replace_lhs(lhs_->clone());
@@ -150,10 +187,13 @@ void FunctionInliner::visit(AssignmentExpression* e) {
     else {
         e->rhs()->accept(this);
     }
-//    std::cout << "// " << e->to_string() << std::endl;
+    statements_.push_back(e->clone());
 }
 
 void FunctionInliner::visit(IfExpression* e) {
+    expr_list_type outer;
+    std::swap(outer, statements_);
+
     bool if_ret;
     bool save_ret = return_set_;
 
@@ -161,13 +201,31 @@ void FunctionInliner::visit(IfExpression* e) {
 
     e->condition()->accept(this);
     e->true_branch()->accept(this);
+    auto true_branch = make_expression<BlockExpression>(
+            e->true_branch()->location(),
+            std::move(statements_),
+            true);
+
+    statements_.clear();
 
     if_ret = return_set_;
     return_set_ = false;
 
+    expression_ptr false_branch;
     if (e->false_branch()) {
         e->false_branch()->accept(this);
+        false_branch = make_expression<BlockExpression>(
+                e->false_branch()->location(),
+                std::move(statements_),
+                true);
     }
+
+    statements_ = std::move(outer);
+    statements_.push_back(make_expression<IfExpression>(
+            e->location(),
+            e->condition()->clone(),
+            std::move(true_branch),
+            std::move(false_branch)));
 
     if_ret &= return_set_;
 
@@ -187,19 +245,6 @@ void FunctionInliner::visit(CallExpression* e) {
             a->accept(this);
         }
     }
-    /*
-    for (auto& a: e->is_function_call()->args()) {
-        for (unsigned i = 0;  i < fargs_.size(); i++) {
-            if (auto id = a->is_identifier()) {
-                if (fargs_[i] == id->spelling()) {
-                    a = cargs_[i]->clone();
-                }
-            } else {
-                a->accept(this);
-            }
-        }
-    }
-     */
 }
 
 ///////////////////////////////////////////////////////////////////////////////
