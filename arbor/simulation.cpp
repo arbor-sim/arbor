@@ -75,6 +75,9 @@ public:
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
 
+    time_type min_delay() const;
+    time_type min_delay(time_type t);
+
 private:
     // Private helper function that sets up the event lanes for an epoch.
     // See comments on implementation for more information.
@@ -282,6 +285,15 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     exchange();
 
     return t_;
+}
+
+time_type simulation_state::min_delay() const {
+    return min_delay_;
+}
+
+time_type simulation_state::min_delay(time_type t) {
+    min_delay_ = std::min(t, min_delay_);
+    return min_delay_;
 }
 
 template <typename Seq, typename Value, typename Less = std::less<>>

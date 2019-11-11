@@ -5,7 +5,7 @@
 #include <fstream>
 #include <random>
 
-#include <aux/json_params.hpp>
+#include <sup/json_params.hpp>
 
 struct nest_params {
     nest_params() = default;
@@ -16,7 +16,7 @@ struct nest_params {
 };
 
 nest_params read_options_nest(int argc, char** argv) {
-    using aux::param_from_json;
+    using sup::param_from_json;
 
     nest_params params;
     if (argc<2) {

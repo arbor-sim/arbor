@@ -9,7 +9,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/mc_cell.hpp>
+#include "mc_cell_group.hpp"
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -17,9 +17,9 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
-#include <aux/with_mpi.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
+#include <arborenv/with_mpi.hpp>
 #include <mpi.h>
 
 #include "mpiutil.hpp"
@@ -28,7 +28,7 @@
 int main(int argc, char **argv)
 {
     try {
-        aux::with_mpi guard(argc, argv, false);
+        arborenv::with_mpi guard(argc, argv, false);
         auto info = get_comm_info(true);
         auto params = read_options(argc, argv);
         on_local_rank_zero(info, [&] {
