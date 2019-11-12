@@ -1,6 +1,18 @@
 /*
  * A miniapp that demonstrates using an external spike source.
+ * This is a nest proxy
  */
+
+#ifndef ARB_MPI_ENABLED
+
+#include <iostream>
+
+int main() {
+    std::cerr << "**** Only runs with ARB_MPI_ENABLED ***" << std::endl;
+    return 1;
+}
+
+#else //ARB_MPI_ENABLED
 
 #include <fstream>
 #include <iomanip>
@@ -51,7 +63,7 @@ int main(int argc, char** argv) {
         //  INITIALISE MPI
 
         auto info = get_comm_info(false);
-        bool root = mpi_rank(info.comm) == 0;
+        const bool root = info.local_rank == 0;
         std::cout << sup::mask_stream(root);
 
         //  MODEL SETUP
@@ -107,9 +119,7 @@ int main(int argc, char** argv) {
                 throw std::runtime_error(std::string("Bad step: ") + std::to_string(step) + " > " + std::to_string(steps_arbor));
             }
                 
-            on_local_rank_zero(info, [&] {
-                    std::cout << "NEST: callback " << step << " at t " << step*delta << std::endl;
-            });
+            std::cout << "NEST: callback " << step << " at t " << step*delta << std::endl;
 
             std::vector<arb::spike> local_spikes;
             if (!step) {
@@ -140,3 +150,5 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+
+#endif //ARB_MPI_ENABLED

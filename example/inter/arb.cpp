@@ -1,5 +1,6 @@
 /*
  * A miniapp that demonstrates using an external spike source.
+ * Actual miniapp that runs real arbor -- connect to real nest or nest proxy
  */
 
 #ifndef ARB_MPI_ENABLED

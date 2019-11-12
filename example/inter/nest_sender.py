@@ -1,5 +1,7 @@
 #! /usr/bin/python
 
+# This is the real nest program, which requires NESTIO + ARBOR-NESTIO
+
 from sys import argv
 argv.append('--quiet')
 
