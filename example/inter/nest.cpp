@@ -51,6 +51,8 @@ int main(int argc, char** argv) {
         //  INITIALISE MPI
 
         auto info = get_comm_info(false);
+        bool root = mpi_rank(info.comm) == 0;
+        std::cout << sup::mask_stream(root);
 
         //  MODEL SETUP
         auto params = read_options_nest(argc, argv);
@@ -58,23 +60,18 @@ int main(int argc, char** argv) {
         int num_nest_cells = params.num_cells;
         float nest_min_delay = params.min_delay;
 
-
         //  HAND SHAKE ARBOR-NEST
-        on_local_rank_zero(info, [&] {
-                std::cout << "NEST: starting handshake" << std::endl;
-        });
+        std::cout << "NEST: starting handshake" << std::endl;
 
         // hand shake #1: communicate cell populations
-        int num_arbor_cells = broadcast(0,   MPI_COMM_WORLD, info.arbor_root);
-        broadcast(num_nest_cells,   MPI_COMM_WORLD, info.nest_root);
+        int num_arbor_cells = broadcast(0, MPI_COMM_WORLD, info.arbor_root);
+        broadcast(num_nest_cells, MPI_COMM_WORLD, info.nest_root);
         int  total_cells = num_arbor_cells + num_nest_cells;
 
-        on_local_rank_zero(info, [&] {
-                std::cout << "NEST: num_nest_cells: " << num_nest_cells << ", "
-                          << "num_arbor_cells: " << num_arbor_cells << ", "
-                          << "total_cells: " << total_cells
-                          << std::endl;
-        });
+        std::cout << "NEST: num_nest_cells: " << num_nest_cells << ", "
+                  << "num_arbor_cells: " << num_arbor_cells << ", "
+                  << "total_cells: " << total_cells
+                  << std::endl;
 
         // hand shake #2: min delay
         float arb_comm_time = broadcast(0.f, MPI_COMM_WORLD, info.arbor_root);
@@ -82,10 +79,7 @@ int main(int argc, char** argv) {
         broadcast(nest_comm_time, MPI_COMM_WORLD, info.nest_root);
         float min_delay = std::min(nest_comm_time, arb_comm_time);
         
-        on_local_rank_zero(info, [&] {
-                std::cout << "NEST: min_delay=" << min_delay << std::endl;
-        });
-
+        std::cout << "NEST: min_delay=" << min_delay << std::endl;
 
         float delta = min_delay;
         float sim_duration = params.duration;
@@ -95,12 +89,10 @@ int main(int argc, char** argv) {
         // hand shake #3: steps
         unsigned steps_arbor = broadcast(0u, MPI_COMM_WORLD, info.arbor_root);
 
-        on_local_rank_zero(info, [&] {
-                std::cout << "NEST: delta=" << delta << ", "
-                          << "sim_duration=" << sim_duration << ", "
-                          << "steps=" << steps
-                          << std::endl;
-        });
+        std::cout << "NEST: delta=" << delta << ", "
+                  << "sim_duration=" << sim_duration << ", "
+                  << "steps=" << steps
+                  << std::endl;
 
         //  BUILD NEST PROXY MODEL
         std::vector<int> local_cells;
@@ -139,9 +131,7 @@ int main(int argc, char** argv) {
             throw std::runtime_error(std::string("Bad step: ") + std::to_string(steps) + " < " + std::to_string(steps_arbor));
         }
         
-        on_local_rank_zero(info, [&] {
-                std::cout << "NEST: reached end" << std::endl;
-        });
+        std::cout << "NEST: reached end" << std::endl;
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in nest proxy:\n" << e.what() << "\n";

@@ -9,7 +9,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
-#include "mc_cell_group.hpp"
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
