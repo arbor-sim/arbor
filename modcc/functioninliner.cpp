@@ -8,22 +8,23 @@ expression_ptr inline_function_calls(BlockExpression* block) {
     auto inline_block = block->clone();
 
     while(true) {
-        std::cout << "--before:\n" << inline_block->to_string() << std::endl;
+//        std::cout << "--before:\n" << inline_block->to_string() << std::endl;
         for (auto&s: inline_block->is_block()->statements()) {
             s->semantic(block->scope());
         }
 
         auto func_inliner = std::make_unique<FunctionInliner>();
         inline_block->accept(func_inliner.get());
+
         if (func_inliner->still_inlining()) {
-//            if (!func_inliner->return_val_set()) {
-//                throw compiler_exception(pprintf("return variable of function not set", block->location()));
-//            }
+            if (!func_inliner->return_val_set()) {
+                throw compiler_exception(pprintf("return variable of function not set", block->location()));
+            }
         } else {
             return func_inliner->as_block(false);
         }
         inline_block = func_inliner->as_block(false);
-        std::cout << "--after:\n" << inline_block->to_string() << std::endl;
+//        std::cout << "--after:\n" << inline_block->to_string() << std::endl;
     }
 }
 
@@ -149,6 +150,7 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         processing_function_call_ = true;
         func_name_ = f->name();
         lhs_ = e->lhs()->is_identifier()->clone();
+        return_set_ = false;
         scope_ = e->scope();
 
         for (unsigned i = 0; i < fargs.size(); ++i) {
@@ -207,6 +209,7 @@ void FunctionInliner::visit(IfExpression* e) {
 
     bool if_ret;
     bool save_ret = return_set_;
+    std::cout << " in " << func_name_ << " " << return_set_ << std::endl;
 
     return_set_ = false;
 
@@ -220,6 +223,7 @@ void FunctionInliner::visit(IfExpression* e) {
     statements_.clear();
 
     if_ret = return_set_;
+    std::cout << "after true " << return_set_ << std::endl;
     return_set_ = false;
 
     expression_ptr false_branch;
@@ -238,9 +242,11 @@ void FunctionInliner::visit(IfExpression* e) {
             std::move(true_branch),
             std::move(false_branch)));
 
+    std::cout << "after false " << return_set_ << std::endl;
     if_ret &= return_set_;
 
     return_set_ = save_ret? save_ret: if_ret;
+    std::cout << "end " << return_set_ << std::endl << std::endl;
 }
 
 void FunctionInliner::visit(CallExpression* e) {

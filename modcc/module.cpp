@@ -732,22 +732,6 @@ void Module::add_variables_to_symbols() {
     }
 }
 
-/*void Module::block_inline_function_calls(bool& keep_inlining, expr_list_type& stmts) {
-    for (auto &e: stmts) {
-        if (auto if_exp = e->is_if()) {
-            block_inline_function_calls(keep_inlining, if_exp->true_branch()->is_block()->statements());
-            if (if_exp->false_branch()) {
-                block_inline_function_calls(keep_inlining, if_exp->false_branch()->is_block()->statements());
-            }
-        } else if (auto ass = e->is_assignment()) {
-            if (ass->rhs()->is_function_call()) {
-                e = inline_function_call(e);
-                keep_inlining = true;
-            }
-        }
-    }
-}*/
-
 int Module::semantic_func_proc() {
     bool keep_inlining = true;
     int errors = 0;
@@ -802,12 +786,14 @@ int Module::semantic_func_proc() {
             auto& s = e.second;
 
             if(s->kind() == symbolKind::procedure) {
+                std::cout << s->is_procedure()->name() << std::endl;
+
                 if(errors==0) {
 
-                    std::cout << "before :" <<  s->is_procedure()->body()->to_string() << std::endl;
+//                    std::cout << "before :" <<  s->is_procedure()->body()->to_string() << std::endl;
                     auto rewritten = inline_function_calls(s->is_procedure()->body());
                     s->is_procedure()->body(std::move(rewritten));
-                    std::cout << "after :" <<  s->is_procedure()->body()->to_string() << std::endl << std::endl;
+//                    std::cout << "after :" <<  s->is_procedure()->body()->to_string() << std::endl << std::endl;
 
                     s->semantic(symbols_);
     #ifdef LOGGING

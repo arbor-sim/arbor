@@ -43,7 +43,7 @@ private:
     std::unordered_map<std::string, expression_ptr> call_arg_map_;
     std::unordered_map<std::string, expression_ptr> local_arg_map_;
     scope_ptr scope_;
-    bool return_set_ = false;
+    bool return_set_ = true;
     bool processing_function_call_ = false;
     bool inlined_func_ = false;
 
