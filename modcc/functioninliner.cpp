@@ -113,7 +113,7 @@ void FunctionInliner::visit(LocalDeclaration* e) {
 
         // Local variables must be renamed to avoid collisions with the calling function.
         // The mappings are stored in local_arg_map
-        local_arg_map_.insert({var.first, std::move(unique_decl.id)});
+        local_arg_map_.emplace(std::make_pair(var.first, std::move(unique_decl.id)));
 
         auto e_tok = var.second;
         e_tok.spelling = unique_name;
@@ -152,7 +152,7 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         scope_ = e->scope();
 
         for (unsigned i = 0; i < fargs.size(); ++i) {
-            call_arg_map_.insert({fargs[i]->is_argument()->spelling(), cargs[i]->clone()});
+            call_arg_map_.emplace(std::make_pair(fargs[i]->is_argument()->spelling(), cargs[i]->clone()));
         }
 
         auto body = f->function()->body()->clone();
