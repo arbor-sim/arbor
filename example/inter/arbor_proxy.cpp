@@ -1,5 +1,7 @@
 // This is the proxy for arbor
 
+#include <arbor/version.hpp>
+
 #ifndef ARB_MPI_ENABLED
 
 #include <iostream>
@@ -27,7 +29,6 @@ int main() {
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/version.hpp>
 
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
@@ -40,7 +41,7 @@ int main() {
 int main(int argc, char **argv)
 {
     try {
-        arborenv::with_mpi guard(argc, argv, false);
+        arbenv::with_mpi guard(argc, argv, false);
         auto info = get_comm_info(true);
         auto params = read_options(argc, argv);
         const bool root = info.local_rank == 0;

@@ -3,6 +3,8 @@
  * Actual miniapp that runs real arbor -- connect to real nest or nest proxy
  */
 
+#include <arbor/version.hpp>
+
 #ifndef ARB_MPI_ENABLED
 
 #include <iostream>
@@ -31,7 +33,6 @@ int main() {
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/version.hpp>
 
 #include <arborenv/concurrency.hpp>
 #include <arborenv/gpu_env.hpp>
