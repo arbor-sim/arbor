@@ -28,7 +28,7 @@ public:
     virtual void visit(IdentifierExpression* e)  override {};
 
     bool return_val_set() {return return_set_;};
-    bool still_inlining() {return inlined_func_;};
+    bool finished_inlining() {return !inlined_func_;};
 
     ~FunctionInliner() {}
 

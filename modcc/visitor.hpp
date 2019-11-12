@@ -166,9 +166,9 @@ public:
             std::move(body_stmts),
             is_nested);
 
-//        if (block_scope_) {
-//            body->semantic(block_scope_);
-//        }
+        if (block_scope_) {
+            body->semantic(block_scope_);
+        }
         return body;
     }
 

@@ -16,13 +16,14 @@ expression_ptr inline_function_calls(BlockExpression* block) {
         auto func_inliner = std::make_unique<FunctionInliner>();
         inline_block->accept(func_inliner.get());
 
-        if (func_inliner->still_inlining()) {
-            if (!func_inliner->return_val_set()) {
-                throw compiler_exception(pprintf("return variable of function not set", block->location()));
-            }
-        } else {
+        if (!func_inliner->return_val_set()) {
+            throw compiler_exception(pprintf("return variable of function not set", block->location()));
+        }
+
+        if (func_inliner->finished_inlining()) {
             return func_inliner->as_block(false);
         }
+
         inline_block = func_inliner->as_block(false);
 //        std::cout << "--after:\n" << inline_block->to_string() << std::endl;
     }
@@ -176,15 +177,17 @@ void FunctionInliner::visit(AssignmentExpression* e) {
 
     // If we're inlining a function call, take care of variable renaming
     if (auto lhs = e->lhs()->is_identifier()) {
-        if (lhs->spelling() == func_name_) {
+        std::string iden_name = lhs->spelling();
+
+        if (iden_name == func_name_) {
             e->replace_lhs(lhs_->clone());
             return_set_ = true;
         } else {
-            if (local_arg_map_.count(lhs->spelling())) {
-                e->replace_lhs(local_arg_map_.at(lhs->spelling())->clone());
+            if (local_arg_map_.count(iden_name)) {
+                e->replace_lhs(local_arg_map_.at(iden_name)->clone());
             }
-            if (call_arg_map_.count(lhs->spelling())) {
-                e->replace_lhs(call_arg_map_.at(lhs->spelling())->clone());
+            if (call_arg_map_.count(iden_name)) {
+                e->replace_lhs(call_arg_map_.at(iden_name)->clone());
             }
         }
     }
@@ -209,7 +212,6 @@ void FunctionInliner::visit(IfExpression* e) {
 
     bool if_ret;
     bool save_ret = return_set_;
-    std::cout << " in " << func_name_ << " " << return_set_ << std::endl;
 
     return_set_ = false;
 
@@ -223,7 +225,6 @@ void FunctionInliner::visit(IfExpression* e) {
     statements_.clear();
 
     if_ret = return_set_;
-    std::cout << "after true " << return_set_ << std::endl;
     return_set_ = false;
 
     expression_ptr false_branch;
@@ -242,11 +243,9 @@ void FunctionInliner::visit(IfExpression* e) {
             std::move(true_branch),
             std::move(false_branch)));
 
-    std::cout << "after false " << return_set_ << std::endl;
     if_ret &= return_set_;
 
     return_set_ = save_ret? save_ret: if_ret;
-    std::cout << "end " << return_set_ << std::endl << std::endl;
 }
 
 void FunctionInliner::visit(CallExpression* e) {
@@ -256,11 +255,12 @@ void FunctionInliner::visit(CallExpression* e) {
     }
     for (auto& a: e->is_function_call()->args()) {
         if (auto id = a->is_identifier()) {
-            if (local_arg_map_.count(id->spelling())) {
-                a = local_arg_map_.at(id->spelling())->clone();
+            std::string iden_name = id->spelling();
+            if (local_arg_map_.count(iden_name)) {
+                a = local_arg_map_.at(iden_name)->clone();
             }
-            if (call_arg_map_.count(id->spelling())) {
-                a = call_arg_map_.at(id->spelling())->clone();
+            if (call_arg_map_.count(iden_name)) {
+                a = call_arg_map_.at(iden_name)->clone();
             }
         } else {
             a->accept(this);
