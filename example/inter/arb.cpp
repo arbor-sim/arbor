@@ -94,7 +94,7 @@ public:
     // Each cell has one incoming connection from an external source.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         cell_gid_type src = num_cells_ + (gid%num_nest_cells_); // round robin
-        return {arb::cell_connection({src, 0}, {gid, 0}, even_weight_, min_delay_)};
+        return {arb::cell_connection({src, 0}, {gid, 0}, event_weight_, min_delay_)};
     }
 
     // No event generators.
@@ -111,7 +111,7 @@ public:
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
-        arb::mlocation loc(0, 0.0);
+        arb::mlocation loc{0, 0.0};
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
@@ -147,7 +147,7 @@ struct cell_stats {
         size_type ncomp_tmp = 0;
         for (size_type i=b; i<e; ++i) {
             auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs_tmp += c.num_segments();
+            nsegs_tmp += c.segments().size();
             ncomp_tmp += c.num_compartments();
         }
         MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, info.comm);
@@ -191,7 +191,7 @@ struct extern_callback {
 
 int main(int argc, char** argv) {
     try {
-        arborenv::with_mpi guard(argc, argv, false);
+        arbenv::with_mpi guard(argc, argv, false);
 
         auto info = get_comm_info(true);
 

@@ -57,19 +57,26 @@ public:
             const gathered_vector<spike>& global_spikes,
             std::vector<pse_vector>& queues);
 
+    void make_event_queues(
+        const std::vector<spike>& spikes,
+        std::vector<pse_vector>& queues);
+
+
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
 
     cell_size_type num_local_cells() const;
 
     const std::vector<connection>& connections() const;
-
+    const std::vector<connection>& extern_connections() const;
+    
     void reset();
 
 private:
     cell_size_type num_local_cells_;
     cell_size_type num_local_groups_;
     cell_size_type num_domains_;
+    std::vector<connection> extern_connections_;
     std::vector<connection> connections_;
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;

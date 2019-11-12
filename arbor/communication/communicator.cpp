@@ -73,15 +73,27 @@ communicator::communicator(const recipe& rec,
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
     std::vector<unsigned> src_domains;
+    unsigned ext_src_count = 0;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
     for (const auto& g: gid_infos) {
         for (auto con: g.conns) {
             const auto src = dom_dec.gid_domain(con.source.gid);
             src_domains.push_back(src);
-            src_counts[src]++;
+            // if src==-1 the connection is not coming from an arbor cell,
+            // which is either an error, or from an external model.
+            if (src>=0) {
+                ++src_counts[src];
+            }
+            else {
+                ++ext_src_count;
+            }
         }
     }
+
+    // exthack
+    // Construct the external connections
+    extern_connections_.reserve(ext_src_count-ext_src_count);
 
     // Construct the connections.
     // The loop above gave the information required to construct in place
@@ -92,11 +104,19 @@ communicator::communicator(const recipe& rec,
     std::size_t pos = 0;
     for (const auto& cell: gid_infos) {
         for (auto c: cell.conns) {
-            const auto i = offsets[src_domains[pos]]++;
-            connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+            auto dom = src_domains[pos];
+            if (dom>=0) {
+                const auto i = offsets[dom]++;
+                connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+            }
+            else {
+                extern_connections_.push_back(
+                    {c.source, c.dest, c.weight, c.delay, cell.index_on_domain});
+            }
             ++pos;
         }
     }
+    util::sort(extern_connections_);
 
     // Build cell partition by group for passing events to cell groups
     index_part_ = util::make_partition(index_divisions_,
@@ -121,6 +141,9 @@ std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_s
 time_type communicator::min_delay() {
     auto local_min = std::numeric_limits<time_type>::max();
     for (auto& con : connections_) {
+        local_min = std::min(local_min, con.delay());
+    }
+    for (auto& con : extern_connections_) {
         local_min = std::min(local_min, con.delay());
     }
 
@@ -203,6 +226,33 @@ void communicator::make_event_queues(
     }
 }
 
+/// Check each global spike in turn to see it generates local events.
+/// If so, make the events and insert them into the appropriate event list.
+///
+/// Takes reference to a vector of event lists as an argument, with one list
+/// for each local cell group. On completion, the events in each list are
+/// all events that must be delivered to targets in that cell group as a
+/// result of the global spike exchange, plus any events that were already
+/// in the list.
+void communicator::make_event_queues(
+    const std::vector<spike>& spikes,
+    std::vector<pse_vector>& queues)
+{
+    arb_assert(queues.size()==num_local_cells_);
+    
+    using util::make_range;
+    
+    auto& cons = extern_connections_;
+    
+    for (auto& sp: spikes) {
+        auto targets = std::equal_range(cons.begin(), cons.end(), sp.source);
+        for (auto c: make_range(targets)) {
+            queues[c.index_on_domain()].push_back(c.make_event(sp));
+        }
+    }
+}
+
+
 std::uint64_t communicator::num_spikes() const {
     return num_spikes_;
 }
@@ -213,6 +263,10 @@ cell_size_type communicator::num_local_cells() const {
 
 const std::vector<connection>& communicator::connections() const {
     return connections_;
+}
+
+const std::vector<connection>& communicator::extern_connections() const {
+    return extern_connections_;
 }
 
 void communicator::reset() {

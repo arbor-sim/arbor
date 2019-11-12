@@ -17,6 +17,7 @@
 namespace arb {
 
 using spike_export_function = std::function<void(const std::vector<spike>&)>;
+using external_spike_function = std::function<std::vector<spike>(time_type tfrom)>;
 
 // simulation_state comprises private implementation for simulation class.
 class simulation_state;
@@ -56,6 +57,10 @@ public:
     // Must be called before calling simulation::run, and must contain events that
     // are to be delivered at or after the current simulation time.
     void inject_events(const pse_vector& events);
+
+    time_type min_delay() const;
+    time_type min_delay(time_type t);
+    void set_external_spike_callback(external_spike_function callback);
 
     ~simulation();
 

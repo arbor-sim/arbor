@@ -7,20 +7,7 @@
 
 #include <sup/json_params.hpp>
 
-// Parameters used to generate the random cell morphologies.
-struct cell_parameters {
-    cell_parameters() = default;
-
-    //  Maximum number of levels in the cell (not including the soma)
-    unsigned max_depth = 5;
-
-    // The following parameters are described as ranges.
-    // The first value is at the soma, and the last value is used on the last level.
-    // Values at levels in between are found by linear interpolation.
-    std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
-    std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
-    std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
-};
+#include "branch_cell.hpp"
 
 struct ring_params {
     ring_params() = default;
