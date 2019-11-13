@@ -34,14 +34,14 @@ expression_ptr lower_functions(BlockExpression* block) {
 }
 
 // We only need to lower function arguments when visiting a Call expression
-// First arguments are checked for other Call expressions, which recurse.
+// Function arguments are checked for other Call expressions, which recurse.
 // When all Call arguments are handled, other arguments are checked, and
 // lowered if needed
 // e.g. foo(bar(x + 2), y - 1)
 // First, the visitor recurses for bar(x + 2) which gets its arguments lowered:
 //      ll0_ = x + 2;
 //      bar(ll0_);
-// Then, bar(x + 2) gets expanded in foo(bar(x + 2), y - 1) into
+// Then, bar(x + 2) gets expanded into
 //      ll1_ = bar(ll0_);
 //      foo(ll1_, y - 1);
 // Finally, foo(ll1_, y - 1) gets its arguments lowered into

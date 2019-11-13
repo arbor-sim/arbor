@@ -235,11 +235,9 @@ void FunctionInliner::visit(IfExpression* e) {
 }
 
 void FunctionInliner::visit(CallExpression* e) {
-    if (e->is_procedure_call()) {
-        statements_.push_back(e->clone());
-        return;
-    }
-    for (auto& a: e->is_function_call()->args()) {
+    auto& args = e->is_function_call() ? e->is_function_call()->args() : e->is_procedure_call()->args();
+
+    for (auto& a: args) {
         if (auto id = a->is_identifier()) {
             std::string iden_name = id->spelling();
             if (local_arg_map_.count(iden_name)) {
@@ -251,6 +249,10 @@ void FunctionInliner::visit(CallExpression* e) {
         } else {
             a->accept(this);
         }
+    }
+    if (e->is_procedure_call()) {
+        statements_.push_back(e->clone());
+        return;
     }
 }
 
