@@ -19,21 +19,7 @@ PARAMETER {
 ASSIGNED {
     v (mV)
 }
-FUNCTION bar() {
-    bar = 4
-}
-
-FUNCTION foo(x) {
-    foo = x*bar()
-}
 
 BREAKPOINT {
-:    LOCAL a
-:    a = 1
-:    if (v > 1) {
-:        if (exp(e)*bar() < 3) {
-:            a = foo(3)
-:        }
-:    }
     i = g*(v - e)
 }

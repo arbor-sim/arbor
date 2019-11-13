@@ -11,8 +11,8 @@
 // Return the new unique local identifier.
 expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e);
 
-// prototype for lowering function calls
-expression_ptr lower_function_calls(BlockExpression* block);
+// prototype for lowering function calls and arguments
+expression_ptr lower_functions(BlockExpression* block);
 
 class FunctionCallLowerer : public BlockRewriterBase {
 public:
@@ -39,33 +39,6 @@ private:
         // replace the function call in the original expression with the local
         // variable which holds the pre-computed value
         replacer(std::move(id));
-    }
-
-    void lower_call_arguments(std::vector<expression_ptr>& args) {
-        for(auto it=args.begin(); it!=args.end(); ++it) {
-            // get reference to the unique_ptr with the expression
-            auto& e = *it;
-#ifdef LOGGING
-            std::cout << "inspecting argument @ " << e->location() << " : " << e->to_string() << std::endl;
-#endif
-
-            if(e->is_number() || e->is_identifier()) {
-                // do nothing, because identifiers and literals are in the correct form
-                // for lowering
-                continue;
-            }
-
-            auto id = insert_unique_local_assignment(statements_, e.get());
-#ifdef LOGGING
-            std::cout << "  lowering to " << new_statements.back()->to_string() << "\n";
-#endif
-            // replace the function call in the original expression with the local
-            // variable which holds the pre-computed value
-            std::swap(e, id);
-        }
-#ifdef LOGGING
-        std::cout << "\n";
-#endif
     }
 
 protected:

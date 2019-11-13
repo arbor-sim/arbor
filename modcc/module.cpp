@@ -740,7 +740,6 @@ int Module::semantic_func_proc() {
     //  -   generate local variable table for each function/procedure
     //  -   inlining function calls
     ////////////////////////////////////////////////////////////////////////////
-
 #ifdef LOGGING
     std::cout << white("===================================\n");
         std::cout << cyan("        Function Inlining\n");
@@ -749,22 +748,24 @@ int Module::semantic_func_proc() {
     for (auto& e: symbols_) {
         auto& s = e.second;
         if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
-
-#ifdef LOGGING
-            std::cout << "\nfunction inlining for " << s->location() << "\n"
-                      << s->to_string() << "\n"
-                      << green("\n-call site lowering-\n\n");
-#endif
             // perform semantic analysis
             s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "\nfunction lowering for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
 
             if (s->kind() == symbolKind::function) {
-                auto rewritten = lower_function_calls(s->is_function()->body());
+                auto rewritten = lower_functions(s->is_function()->body());
                 s->is_function()->body(std::move(rewritten));
             } else {
-                auto rewritten = lower_function_calls(s->is_procedure()->body());
+                auto rewritten = lower_functions(s->is_procedure()->body());
                 s->is_procedure()->body(std::move(rewritten));
             }
+#ifdef LOGGING
+            std::cout << "body after function lowering\n"
+                      << s->to_string() << "\n\n";
+#endif
         }
     }
 
@@ -772,19 +773,25 @@ int Module::semantic_func_proc() {
         auto& s = e.second;
 
         if(s->kind() == symbolKind::procedure) {
+            // perform semantic analysis
             s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "function inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
 
             auto rewritten = inline_function_calls(s->is_procedure()->body());
             s->is_procedure()->body(std::move(rewritten));
-#ifdef LOGGING
-            std::cout << "body after inlining\n";
-            for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-#endif
+
             // Finally, run a constant simplification pass.
             if (auto proc = s->is_procedure()) {
                 proc->body(constant_simplify(proc->body()));
                 s->semantic(symbols_);
             }
+#ifdef LOGGING
+            std::cout << "body after inlining\n"
+                      << s->to_string() << "\n\n";
+#endif
         }
     }
 

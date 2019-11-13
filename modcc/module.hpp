@@ -105,10 +105,6 @@ public:
 
     bool is_linear() const { return linear_; }
 
-    void block_inline_function_calls(bool& keep_inlining, expr_list_type& stmts);
-//    void block_lower_function_arguments(expr_list_type& stmts);
-
-
 private:
     moduleKind kind_;
     std::string title_;

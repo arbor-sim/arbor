@@ -12,31 +12,53 @@ expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression*
     return std::move(exprs.id);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//  function call site lowering
-///////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////////////////
 // lower function call sites so that all function calls are of
 // the form : variable = call(<args>)
+// then lower function arguments that are not identifiers or literals
 // e.g.
 //      a = 2 + foo(2+x, y, 1)
 // becomes
 //      ll0_ = foo(2+x, y, 1)
 //      a = 2 + ll0_
-expression_ptr lower_function_calls(BlockExpression* block) {
+// becomes
+//       ll1_ = 2+x
+//       ll0_ = foo(ll1_, y, 1)
+//       a = 2 + ll0_
+/////////////////////////////////////////////////////////////////////
+expression_ptr lower_functions(BlockExpression* block) {
     auto v = std::make_unique<FunctionCallLowerer>();
     block->accept(v.get());
     return v->as_block(false);
 }
 
+// We only need to lower function arguments when visiting a Call expression
+// First arguments are checked for other Call expressions, which recurse.
+// When all Call arguments are handled, other arguments are checked, and
+// lowered if needed
+// e.g. foo(bar(x + 2), y - 1)
+// First, the visitor recurses for bar(x + 2) which gets its arguments lowered:
+//      ll0_ = x + 2;
+//      bar(ll0_);
+// Then, bar(x + 2) gets expanded in foo(bar(x + 2), y - 1) into
+//      ll1_ = bar(ll0_);
+//      foo(ll1_, y - 1);
+// Finally, foo(ll1_, y - 1) gets its arguments lowered into
+//      ll2_ = y - 1;
+//      foo(ll1_, ll2_);
+// which turns:
+//      foo(bar(x + 2), y - 1)
+// into:
+//      ll0_ = x + 2;
+//      ll1_ = bar(ll0_);
+//      ll2_ = y - 1;
+//      foo(ll1_, ll2_);
 void FunctionCallLowerer::visit(CallExpression *e) {
     for(auto& arg : e->args()) {
         if(auto func = arg->is_function_call()) {
+            // Recurse on the Call Expression
             func->accept(this);
-#ifdef LOGGING
-            std::cout << "  lowering : " << func->to_string() << "\n";
-#endif
-            lower_call_arguments(func->args());
             expand_call(func, [&arg](expression_ptr&& p){arg = std::move(p);});
             arg->semantic(block_scope_);
         }
@@ -44,8 +66,17 @@ void FunctionCallLowerer::visit(CallExpression *e) {
             arg->accept(this);
         }
     }
-    lower_call_arguments(e->args());
+    // Lower function arguments
+    for(auto& arg : e->args()) {
+        if(arg->is_number() || arg->is_identifier()) {
+            continue;
+        }
+        auto id = insert_unique_local_assignment(statements_, arg.get());
+        std::swap(arg, id);
+    }
 
+    // Procedure Expressions need to be printed stand alone
+    // Function Expressions are always part of a bigger expression
     if (e->is_procedure_call()) {
         statements_.push_back(e->clone());
     }
@@ -68,13 +99,11 @@ void FunctionCallLowerer::visit(LinearExpression *e) {
     statements_.push_back(e->clone());
 }
 
+// Binary Expressions need to handle function calls if they contain them
+// Functions calls have to be visited and expanded out of the expression
 void FunctionCallLowerer::visit(BinaryExpression *e) {
     if(auto func = e->lhs()->is_function_call()) {
         func->accept(this);
-#ifdef LOGGING
-        std::cout << "  lowering : " << func->to_string() << "\n";
-#endif
-        lower_call_arguments(func->args());
         expand_call(func, [&e](expression_ptr&& p){e->replace_lhs(std::move(p));});
         e->semantic(block_scope_);
     }
@@ -84,10 +113,6 @@ void FunctionCallLowerer::visit(BinaryExpression *e) {
 
     if(auto func = e->rhs()->is_function_call()) {
         func->accept(this);
-#ifdef LOGGING
-        std::cout << "  lowering : " << func->to_string() << "\n";
-#endif
-        lower_call_arguments(func->args());
         expand_call(func, [&e](expression_ptr&& p){e->replace_rhs(std::move(p));});
         e->semantic(block_scope_);
     }
@@ -96,13 +121,11 @@ void FunctionCallLowerer::visit(BinaryExpression *e) {
     }
 }
 
+// Unary Expressions need to handle function calls if they contain them
+// Functions calls have to be visited and expanded out of the expression
 void FunctionCallLowerer::visit(UnaryExpression *e) {
     if(auto func = e->expression()->is_function_call()) {
         func->accept(this);
-#ifdef LOGGING
-        std::cout << "  lowering : " << func->to_string() << "\n";
-#endif
-        lower_call_arguments(func->args());
         expand_call(func, [&e](expression_ptr&& p){e->replace_expression(std::move(p));});
         e->semantic(block_scope_);
     }
@@ -110,6 +133,10 @@ void FunctionCallLowerer::visit(UnaryExpression *e) {
         e->expression()->accept(this);
     }
 }
+
+// If expressions need to handle the condition before the true and false branches
+// The condition should be handled by the Binary Expression visitor which will
+// expand any contained function calls and lower their arguments
 void FunctionCallLowerer::visit(IfExpression *e) {
     expr_list_type outer;
 
@@ -139,39 +166,4 @@ void FunctionCallLowerer::visit(IfExpression *e) {
             std::move(true_branch),
             std::move(false_branch)));
 }
-
-///////////////////////////////////////////////////////////////////////////////
-//  function argument lowering
-///////////////////////////////////////////////////////////////////////////////
-
-/*void lower_function_arguments(std::vector<expression_ptr>& args)
-{
-    expr_list_type new_statements;
-    for(auto it=args.begin(); it!=args.end(); ++it) {
-        // get reference to the unique_ptr with the expression
-        auto& e = *it;
-#ifdef LOGGING
-        std::cout << "inspecting argument @ " << e->location() << " : " << e->to_string() << std::endl;
-#endif
-
-        if(e->is_number() || e->is_identifier()) {
-            // do nothing, because identifiers and literals are in the correct form
-            // for lowering
-            continue;
-        }
-
-        auto id = insert_unique_local_assignment(new_statements, e.get());
-#ifdef LOGGING
-        std::cout << "  lowering to " << new_statements.back()->to_string() << "\n";
-#endif
-        // replace the function call in the original expression with the local
-        // variable which holds the pre-computed value
-        std::swap(e, id);
-    }
-#ifdef LOGGING
-    std::cout << "\n";
-#endif
-
-    return new_statements;
-}*/
 

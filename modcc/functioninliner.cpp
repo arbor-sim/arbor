@@ -8,7 +8,6 @@ expression_ptr inline_function_calls(BlockExpression* block) {
     auto inline_block = block->clone();
 
     while(true) {
-//        std::cout << "--before:\n" << inline_block->to_string() << std::endl;
         for (auto&s: inline_block->is_block()->statements()) {
             s->semantic(block->scope());
         }
@@ -25,29 +24,8 @@ expression_ptr inline_function_calls(BlockExpression* block) {
         }
 
         inline_block = func_inliner->as_block(false);
-//        std::cout << "--after:\n" << inline_block->to_string() << std::endl;
     }
 }
-
-/*auto assign_to_func = e->is_assignment();
-auto ret_identifier = assign_to_func->lhs()->is_identifier();
-
-if(auto f = assign_to_func->rhs()->is_function_call()) {
-    auto body = f->function()->body()->clone();
-
-    for (auto&s: body->is_block()->statements()) {
-        s->semantic(e->scope());
-    }
-
-    FunctionInliner func_inliner(f->name(), ret_identifier, f->function()->args(), f->args(), e->scope());
-    body->accept(&func_inliner);
-
-    if (!func_inliner.return_val_set()) {
-        throw compiler_exception(pprintf("return variable of function % not set", f->name()), e->location());
-    }
-    return body;
-}
-return {};*/
 
 ///////////////////////////////////////////////////////////////////////////////
 //  function inliner
