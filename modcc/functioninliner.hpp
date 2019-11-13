@@ -28,14 +28,9 @@ public:
     virtual void visit(IdentifierExpression* e)  override {};
 
     bool return_val_set() {return return_set_;};
-    bool finished_inlining() {return !inlined_func_;};
+    bool finished_inlining() {return !inlining_executed_;};
 
     ~FunctionInliner() {}
-
-protected:
-    virtual void reset() override {
-        BlockRewriterBase::reset();
-    }
 
 private:
     std::string func_name_;
@@ -43,12 +38,30 @@ private:
     std::unordered_map<std::string, expression_ptr> call_arg_map_;
     std::unordered_map<std::string, expression_ptr> local_arg_map_;
     scope_ptr scope_;
+
+    // Tracks whether the return value of a function has been set
     bool return_set_ = true;
-    bool processing_function_call_ = false;
-    bool inlined_func_ = false;
+
+    // Tracks whether a function is being inlined
+    bool inlining_in_progress_ = false;
+
+    // Tracks whether a function has been inlined
+    bool inlining_executed_ = false;
 
     void replace_args(Expression* e);
 
+protected:
+    virtual void reset() override {
+        func_name_.clear();
+        lhs_ = nullptr;
+        call_arg_map_.clear();
+        local_arg_map_.clear();
+        scope_.reset();
+        return_set_ = true;
+        inlining_in_progress_ = false;
+        inlining_executed_ = false;
+        BlockRewriterBase::reset();
+    }
 };
 
 class VariableReplacer : public Visitor {

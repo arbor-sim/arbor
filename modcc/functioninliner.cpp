@@ -7,6 +7,9 @@
 expression_ptr inline_function_calls(BlockExpression* block) {
     auto inline_block = block->clone();
 
+    // The function inliner will inline one function at a time
+    // Once all functions in a block have been inlined, the
+    // while loop will be broken
     while(true) {
         for (auto&s: inline_block->is_block()->statements()) {
             s->semantic(block->scope());
@@ -60,7 +63,7 @@ void FunctionInliner::replace_args(Expression* e) {
 }
 
 void FunctionInliner::visit(Expression* e) {
-    if (!processing_function_call_) {
+    if (!inlining_in_progress_) {
         statements_.push_back(e->clone());
         return;
     }
@@ -68,6 +71,7 @@ void FunctionInliner::visit(Expression* e) {
             "I don't know how to do function inlining for this statement : "
             + e->to_string(), e->location());
 }
+
 void FunctionInliner::visit(ConserveExpression *e) {
     statements_.push_back(e->clone());
 }
@@ -81,7 +85,7 @@ void FunctionInliner::visit(LinearExpression *e) {
 }
 
 void FunctionInliner::visit(LocalDeclaration* e) {
-    if (!processing_function_call_) {
+    if (!inlining_in_progress_) {
         statements_.push_back(e->clone());
         return;
     }
@@ -105,28 +109,30 @@ void FunctionInliner::visit(LocalDeclaration* e) {
 }
 
 void FunctionInliner::visit(UnaryExpression* e) {
-    if (!processing_function_call_) {
+    if (!inlining_in_progress_) {
         return;
     }
     replace_args(e);
 }
 
 void FunctionInliner::visit(BinaryExpression* e) {
-    if (!processing_function_call_) {
+    if (!inlining_in_progress_) {
         return;
     }
     replace_args(e);
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
-    // If we're not already inlining a function and we have a function to inline,
-    // Set up the visitor to inline this function call
-    if (!processing_function_call_ && !inlined_func_ && e->rhs()->is_function_call()) {
+    // At this point, after function lowering, all function calls should be on the rhs of
+    // an Assignment Expression.
+    // If we find a new function to inline, we can do so, provided we aren't already inlining
+    // another function and we haven't inlined a function already.
+    if (!inlining_in_progress_ && !inlining_executed_ && e->rhs()->is_function_call()) {
         auto f = e->rhs()->is_function_call();
         auto& fargs = f->function()->args();
         auto& cargs = f->args();
 
-        processing_function_call_ = true;
+        inlining_in_progress_ = true;
         func_name_ = f->name();
         lhs_ = e->lhs()->is_identifier()->clone();
         return_set_ = false;
@@ -142,13 +148,13 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         }
 
         body->accept(this);
-        processing_function_call_ = false;
-        inlined_func_ = true;
+        inlining_in_progress_ = false;
+        inlining_executed_ = true;
         return;
     }
 
     // If we're not inlining a function call, don't change anything in the expression
-    if (!processing_function_call_) {
+    if (!inlining_in_progress_) {
         statements_.push_back(e->clone());
         return;
     }
@@ -157,6 +163,7 @@ void FunctionInliner::visit(AssignmentExpression* e) {
     if (auto lhs = e->lhs()->is_identifier()) {
         std::string iden_name = lhs->spelling();
 
+        // if the identifier name matches the function name, then we are setting the return value
         if (iden_name == func_name_) {
             e->replace_lhs(lhs_->clone());
             return_set_ = true;
@@ -188,6 +195,8 @@ void FunctionInliner::visit(IfExpression* e) {
     expr_list_type outer;
     std::swap(outer, statements_);
 
+    // Make sure if Expressions set the return value if not already set
+    // return_set_ will always be true unless we are inlining a function
     bool if_ret;
     bool save_ret = return_set_;
 
@@ -201,7 +210,6 @@ void FunctionInliner::visit(IfExpression* e) {
             true);
 
     statements_.clear();
-
     if_ret = return_set_;
     return_set_ = false;
 
@@ -214,16 +222,16 @@ void FunctionInliner::visit(IfExpression* e) {
                 true);
     }
 
+    statements_.clear();
+    if_ret &= return_set_;
+    return_set_ = save_ret? save_ret: if_ret;
+
     statements_ = std::move(outer);
     statements_.push_back(make_expression<IfExpression>(
             e->location(),
             e->condition()->clone(),
             std::move(true_branch),
             std::move(false_branch)));
-
-    if_ret &= return_set_;
-
-    return_set_ = save_ret? save_ret: if_ret;
 }
 
 void FunctionInliner::visit(CallExpression* e) {
