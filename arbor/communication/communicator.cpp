@@ -72,14 +72,14 @@ communicator::communicator(const recipe& rec,
 
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
-    std::vector<unsigned> src_domains;
+    std::vector<signed> src_domains;
     unsigned ext_src_count = 0;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
     for (const auto& g: gid_infos) {
         for (auto con: g.conns) {
             const auto src = dom_dec.gid_domain(con.source.gid);
-            src_domains.push_back(src);
+            src_domains.push_back({src});
             // if src==-1 the connection is not coming from an arbor cell,
             // which is either an error, or from an external model.
             if (src>=0) {
