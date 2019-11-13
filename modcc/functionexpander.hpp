@@ -28,7 +28,7 @@ public:
     virtual void visit(AssignmentExpression *e)  override;
     virtual void visit(BinaryExpression *e)      override;
     virtual void visit(UnaryExpression *e)       override;
-//   virtual void visit(IfExpression *e)          override;
+    virtual void visit(IfExpression *e)          override;
     virtual void visit(NumberExpression *e)      override {};
     virtual void visit(IdentifierExpression *e)  override {};
 

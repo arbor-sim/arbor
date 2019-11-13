@@ -110,15 +110,35 @@ void FunctionCallLowerer::visit(UnaryExpression *e) {
         e->expression()->accept(this);
     }
 }
-///TODO
-/*void FunctionCallLowerer::visit(IfExpression *e) {
-    auto copy = e->clone();
-//    e->condition()->accept(this);
+void FunctionCallLowerer::visit(IfExpression *e) {
+    expr_list_type outer;
+
+    e->condition()->accept(this);
+    std::swap(outer, statements_);
+
     e->true_branch()->accept(this);
+    auto true_branch = make_expression<BlockExpression>(
+            e->true_branch()->location(),
+            std::move(statements_),
+            true);
+
+    statements_.clear();
+    expression_ptr false_branch;
     if (e->false_branch()) {
         e->false_branch()->accept(this);
+        false_branch = make_expression<BlockExpression>(
+                e->false_branch()->location(),
+                std::move(statements_),
+                true);
     }
-}*/
+
+    statements_ = std::move(outer);
+    statements_.push_back(make_expression<IfExpression>(
+            e->location(),
+            e->condition()->clone(),
+            std::move(true_branch),
+            std::move(false_branch)));
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //  function argument lowering

@@ -847,7 +847,9 @@ public:
     virtual void visit(IfExpression* e) override {
         e->condition()->accept(this);
         e->true_branch()->accept(this);
-        e->false_branch()->accept(this);
+        if (e->false_branch()) {
+            e->false_branch()->accept(this);
+        }
     }
 
     virtual void visit(IdentifierExpression* e) override {
