@@ -28,6 +28,14 @@ struct cell_parameters {
     unsigned synapses = 1;
 };
 
+std::ostream& operator<<(std::ostream& o, cell_parameters& p) {
+    return o << "max_depth=" << p.max_depth
+             << ", branch_probs=[" << p.branch_probs[0] << ", " << p.branch_probs[1] << "]"
+             << ", compartments=[" << p.compartments[0] << ", " << p.compartments[1] << "]"
+             << ", lengths=[" << p.lengths[0] << ", " << p.lengths[1] << "]"
+             << ", synapses=" << p.synapses;
+}
+
 cell_parameters parse_cell_parameters(nlohmann::json& json) {
     cell_parameters params;
     sup::param_from_json(params.max_depth, "depth", json);

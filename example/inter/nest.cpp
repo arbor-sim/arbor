@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
 
         //  MODEL SETUP
         auto params = read_options_nest(argc, argv);
+        std::cout << "NEST: Params: " << params << std::endl;
 
         int num_nest_cells = params.num_cells;
         float nest_min_delay = params.min_delay;
@@ -88,10 +89,12 @@ int main(int argc, char** argv) {
 
         // hand shake #2: min delay
         float arb_comm_time = broadcast(0.f, MPI_COMM_WORLD, info.arbor_root);
+        std::cout << "NEST: arb_comm_time=" << arb_comm_time << std::endl;
         float nest_comm_time = nest_min_delay;
         broadcast(nest_comm_time, MPI_COMM_WORLD, info.nest_root);
-        float min_delay = std::min(nest_comm_time, arb_comm_time);
+        std::cout << "NEST: nest_comm_time=" << nest_comm_time << std::endl;
         
+        float min_delay = std::min(nest_comm_time, arb_comm_time);
         std::cout << "NEST: min_delay=" << min_delay << std::endl;
 
         float delta = min_delay;

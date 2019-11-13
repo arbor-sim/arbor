@@ -19,6 +19,14 @@ struct ring_params {
     cell_parameters cell;
 };
 
+std::ostream& operator<<(std::ostream& o, ring_params& p) {
+    return o << "name=" << p.name
+             << ", duration=" << p.duration
+             << ", num_cells=" << p.num_cells
+             << ", min_delay=" << p.min_delay
+             << ", cell=[" << p.cell << "]";
+}
+
 ring_params read_options(int argc, char** argv) {
     using sup::param_from_json;
 

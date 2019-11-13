@@ -17,6 +17,12 @@ struct nest_params {
     double min_delay = 7;
 };
 
+std::ostream& operator<<(std::ostream& o, nest_params& p) {
+    return o << "duration=" << p.duration
+             << ", num_cells=" << p.num_cells
+             << ", min_delay=" << p.min_delay;
+}
+
 nest_params read_options_nest(int argc, char** argv) {
     using sup::param_from_json;
 

@@ -215,6 +215,8 @@ int main(int argc, char** argv) {
         std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
 
         auto params = read_options(argc, argv);
+        std::cout << "ARB: Params: " << params << std::endl;
+
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(context);
@@ -243,8 +245,10 @@ int main(int argc, char** argv) {
 
         // hand shake #2: min delay
         float arb_comm_time = sim.min_delay()/2;
+        std::cout << "ARB: arb_comm_time=" << arb_comm_time << std::endl;
         broadcast(arb_comm_time, MPI_COMM_WORLD, info.arbor_root);
         float nest_comm_time = broadcast(0.f, MPI_COMM_WORLD, info.nest_root);
+        std::cout << "ARB: nest_comm_time=" << nest_comm_time << std::endl;
         auto min_delay = sim.min_delay(nest_comm_time*2);
         std::cout << "ARB: min_delay=" << min_delay << std::endl;
 

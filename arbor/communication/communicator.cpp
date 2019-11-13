@@ -98,7 +98,7 @@ communicator::communicator(const recipe& rec,
     // Construct the connections.
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
-    connections_.resize(n_cons);
+    connections_.resize(n_cons-ext_src_count);
     connection_part_ = algorithms::make_index(src_counts);
     auto offsets = connection_part_;
     std::size_t pos = 0;
@@ -143,6 +143,7 @@ time_type communicator::min_delay() {
     for (auto& con : connections_) {
         local_min = std::min(local_min, con.delay());
     }
+
     for (auto& con : extern_connections_) {
         local_min = std::min(local_min, con.delay());
     }
