@@ -166,125 +166,12 @@ void CExprEmitter::visit(IfExpression* e) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void SimdIfEmitter::emit_as_call(const char* sub, Expression* e) {
-    out_ << sub << '(';
-    e->accept(this);
-    out_ << ')';
-}
-
-void SimdIfEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2) {
-    out_ << sub << '(';
-    e1->accept(this);
-    out_ << ", ";
-    e2->accept(this);
-    out_ << ')';
-}
-
-void SimdIfEmitter::visit(NumberExpression* e) {
-    out_ << " " << as_c_double(e->value());
-}
-
-void SimdIfEmitter::visit(UnaryExpression* e) {
-    // Place a space in front of minus sign to avoid invalid
-    // expressions of the form: (v[i]--67)
-    static std::unordered_map<tok, const char*> unaryop_tbl = {
-            {tok::lnot,   " !"},
-            {tok::minus,   " -"},
-            {tok::exp,     "exp"},
-            {tok::cos,     "cos"},
-            {tok::sin,     "sin"},
-            {tok::log,     "log"},
-            {tok::abs,     "fabs"},
-            {tok::exprelr, "exprelr"}
-    };
-
-    if (!unaryop_tbl.count(e->op())) {
-        throw compiler_exception(
-                "CExprEmitter: unsupported unary operator "+token_string(e->op()), e->location());
-    }
-
-    const char* op_spelling = unaryop_tbl.at(e->op());
-    Expression* inner = e->expression();
-
-    // No need to use parenthesis for unary minus if inner expression is
-    // not binary.
-    if (e->op()==tok::minus && !inner->is_binary()) {
-        out_ << op_spelling;
-        inner->accept(this);
-    }
-    else {
-        emit_as_call(op_spelling, inner);
-    }
-}
-
 void SimdIfEmitter::visit(AssignmentExpression* e) {
     auto mask = processing_true_ ? current_mask_ : current_mask_bar_;
     out_ << "S::where(" << mask << ", ";
     e->lhs()->accept(this);
     out_ << ") = ";
     e->rhs()->accept(this);
-}
-
-void SimdIfEmitter::visit(PowBinaryExpression* e) {
-    emit_as_call("pow", e->lhs(), e->rhs());
-}
-
-void SimdIfEmitter::visit(BinaryExpression* e) {
-    static std::unordered_map<tok, const char*> binop_tbl = {
-            {tok::minus,    "-"},
-            {tok::plus,     "+"},
-            {tok::times,    "*"},
-            {tok::divide,   "/"},
-            {tok::lt,       "<"},
-            {tok::lte,      "<="},
-            {tok::gt,       ">"},
-            {tok::gte,      ">="},
-            {tok::equality, "=="},
-            {tok::ne,       "!="},
-            {tok::min,      "min"},
-            {tok::max,      "max"},
-    };
-
-    if (!binop_tbl.count(e->op())) {
-        throw compiler_exception(
-                "CExprEmitter: unsupported binary operator "+token_string(e->op()), e->location());
-    }
-
-    auto rhs = e->rhs();
-    auto lhs = e->lhs();
-    const char* op_spelling = binop_tbl.at(e->op());
-
-    if (e->is_infix()) {
-        associativityKind assoc = Lexer::operator_associativity(e->op());
-        int op_prec = Lexer::binop_precedence(e->op());
-
-        auto need_paren = [op_prec](Expression* subexpr, bool assoc_side) -> bool {
-            if (auto b = subexpr->is_binary()) {
-                int sub_prec = Lexer::binop_precedence(b->op());
-                return sub_prec<op_prec || (!assoc_side && sub_prec==op_prec);
-            }
-            return false;
-        };
-
-        if (need_paren(lhs, assoc==associativityKind::left)) {
-            emit_as_call("", lhs);
-        }
-        else {
-            lhs->accept(this);
-        }
-
-        out_ << op_spelling;
-
-        if (need_paren(rhs, assoc==associativityKind::right)) {
-            emit_as_call("", rhs);
-        }
-        else {
-            rhs->accept(this);
-        }
-    }
-    else {
-        emit_as_call(op_spelling, lhs, rhs);
-    }
 }
 
 void SimdIfEmitter::visit(BlockExpression* block) {
@@ -313,7 +200,7 @@ void SimdIfEmitter::visit(IfExpression* e) {
     auto old_mask     = current_mask_;
     auto old_mask_bar = current_mask_bar_;
 
-    // Create new mask names
+    // Create new mask name
     auto new_mask = unique_name(e->scope(), "mask_");
 
     // Set new masks
@@ -322,8 +209,9 @@ void SimdIfEmitter::visit(IfExpression* e) {
     out_ << ";\n";
 
     if (!current_mask_.empty()) {
-        current_mask_bar_ = current_mask_ + " && !" + new_mask;
-        current_mask_     = current_mask_ + " && " + new_mask;
+        auto base_mask = processing_true_ ? current_mask_ : current_mask_bar_;
+        current_mask_bar_ = base_mask + " && !" + new_mask;
+        current_mask_     = base_mask + " && " + new_mask;
 
     } else {
         current_mask_bar_ = "!" + new_mask;
@@ -338,6 +226,7 @@ void SimdIfEmitter::visit(IfExpression* e) {
         fb->accept(this);
     }
 
+    // Reset old masks
     current_mask_     = old_mask;
     current_mask_bar_ = old_mask_bar;
 
