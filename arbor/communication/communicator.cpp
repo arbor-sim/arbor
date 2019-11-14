@@ -93,7 +93,7 @@ communicator::communicator(const recipe& rec,
 
     // exthack
     // Construct the external connections
-    extern_connections_.reserve(ext_src_count-ext_src_count);
+    extern_connections_.reserve(ext_src_count);
 
     // Construct the connections.
     // The loop above gave the information required to construct in place
