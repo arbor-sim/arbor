@@ -593,11 +593,10 @@ void SimdPrinter::visit(BlockExpression* block) {
     }
 
     for (auto& stmt: block->statements()) {
-        if (stmt->is_if()) {
-            throw compiler_exception("Conditionals not yet supported in SIMD printer: "+stmt->to_string());
-        }
         if (!stmt->is_local_declaration()) {
             stmt->accept(this);
+        }
+        if (!stmt->is_if() && !stmt->is_block()) {
             out_ << ";\n";
         }
     }

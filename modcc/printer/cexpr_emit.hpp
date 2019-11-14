@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <unordered_set>
 
 #include "expression.hpp"
 #include "visitor.hpp"
@@ -33,6 +34,38 @@ protected:
 
 inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
     CExprEmitter emitter(out, fallback);
+    e->accept(&emitter);
+}
+
+class SimdIfEmitter: public Visitor {
+public:
+    SimdIfEmitter(std::ostream& out, Visitor* fallback):
+            out_(out), fallback_(fallback)
+    {}
+
+    void visit(Expression* e) override { e->accept(fallback_); }
+
+    void visit(BlockExpression *e) override;
+    void visit(UnaryExpression *e) override;
+    void visit(BinaryExpression *e) override;
+    void visit(AssignmentExpression *e) override;
+    void visit(PowBinaryExpression *e) override;
+    void visit(NumberExpression *e) override;
+    void visit(IfExpression *e) override;
+
+protected:
+    std::ostream& out_;
+    Visitor* fallback_;
+    std::unordered_set<std::string> mask_names_;
+    std::string current_mask_, current_mask_bar_;
+    bool processing_true_;
+
+    void emit_as_call(const char* sub, Expression*);
+    void emit_as_call(const char* sub, Expression*, Expression*);
+};
+
+inline void simd_if_emit(Expression* e, std::ostream& out, Visitor* fallback) {
+    SimdIfEmitter emitter(out, fallback);
     e->accept(&emitter);
 }
 

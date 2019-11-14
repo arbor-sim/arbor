@@ -21,5 +21,17 @@ ASSIGNED {
 }
 
 BREAKPOINT {
-    i = g*(v - e)
+    if (g > 2) {
+        if (g > 3) {
+            i = 0
+        } else {
+            i = 1
+        }
+    } else {
+        if (g < 1) {
+            i = 2
+        } else {
+            i = 3
+        }
+    }
 }
