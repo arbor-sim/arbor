@@ -197,8 +197,6 @@ void SimdIfEmitter::visit(IfExpression* e) {
             }
         }
     };
-//
-//    auto fake_mask = make_unique_local_mask(e->scope(), Location{}, "fake_mask_");
 
     // Save old masks
     auto old_mask     = current_mask_;
