@@ -34,4 +34,5 @@ BREAKPOINT {
             i = 3
         }
     }
+:     i = g*(v-e)
 }

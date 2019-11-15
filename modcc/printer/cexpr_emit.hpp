@@ -47,7 +47,6 @@ public:
     void visit(IfExpression *e) override;
 
 protected:
-    std::unordered_set<std::string> mask_names_;
     std::string current_mask_, current_mask_bar_;
     bool processing_true_;
 };

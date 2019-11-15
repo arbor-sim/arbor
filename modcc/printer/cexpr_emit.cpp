@@ -186,15 +186,19 @@ void SimdIfEmitter::visit(BlockExpression* block) {
 }
 
 void SimdIfEmitter::visit(IfExpression* e) {
+    static std::unordered_set<std::string> mask_names;
+
     auto unique_name = [&](scope_ptr scope, std::string prefix) {
         for (int i = 0;; ++i) {
             std::string name = prefix + std::to_string(i) + "_";
-            if (!scope->find(name) && !mask_names_.count(name)) {
-                mask_names_.insert(name);
+            if (!scope->find(name) && !mask_names.count(name)) {
+                mask_names.insert(name);
                 return name;
             }
         }
     };
+//
+//    auto fake_mask = make_unique_local_mask(e->scope(), Location{}, "fake_mask_");
 
     // Save old masks
     auto old_mask     = current_mask_;
