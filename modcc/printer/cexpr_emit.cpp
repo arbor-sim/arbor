@@ -178,9 +178,9 @@ void SimdIfEmitter::visit(BlockExpression* block) {
     for (auto& stmt: block->statements()) {
         if (!stmt->is_local_declaration()) {
             stmt->accept(this);
-        }
-        if (!stmt->is_if() && !stmt->is_block()) {
-            out_ << ";\n";
+            if (!stmt->is_if() && !stmt->is_block()) {
+                out_ << ";\n";
+            }
         }
     }
 }
