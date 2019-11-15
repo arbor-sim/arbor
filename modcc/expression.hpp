@@ -49,7 +49,6 @@ class ProcedureExpression;
 class NetReceiveExpression;
 class APIMethod;
 class IndexedVariable;
-class MaskVariable;
 class LocalVariable;
 
 using expression_ptr = std::unique_ptr<Expression>;
@@ -92,7 +91,6 @@ enum class symbolKind {
     function,         ///< function call
     procedure,        ///< procedure call
     variable,         ///< variable at module scope
-    mask_variable,    ///< a variable that holds a mask
     indexed_variable, ///< a variable that is indexed
     local_variable,   ///< variable at local scope
 };
@@ -238,7 +236,6 @@ public :
     virtual NetReceiveExpression* is_net_receive()       {return nullptr;}
     virtual APIMethod*            is_api_method()        {return nullptr;}
     virtual IndexedVariable*      is_indexed_variable()  {return nullptr;}
-    virtual MaskVariable*         is_mask_variable()     {return nullptr;}
     virtual LocalVariable*        is_local_variable()    {return nullptr;}
 
 private :
@@ -394,8 +391,8 @@ public:
     LocalDeclaration(Location loc)
     :   Expression(loc)
     {}
-    LocalDeclaration(Location loc, std::string const& name, bool is_mask = false)
-    :   Expression(loc), is_mask_(is_mask)
+    LocalDeclaration(Location loc, std::string const& name)
+    :   Expression(loc)
     {
         Token tok(tok::identifier, name, loc);
         add_variable(tok);
@@ -415,7 +412,6 @@ private:
     std::vector<Symbol*> symbols_;
     // there has to be some pointer to a table of identifiers
     std::map<std::string, Token> vars_;
-    bool is_mask_;
 };
 
 // declaration of an argument
@@ -526,22 +522,6 @@ protected:
     Symbol*        shadows_     = nullptr;
 };
 
-// MaskVariables refer to simd masks
-class MaskVariable : public Symbol {
-public:
-    MaskVariable(Location loc,
-                 std::string lookup_name)
-            :   Symbol(std::move(loc), std::move(lookup_name), symbolKind::mask_variable)
-    {}
-
-    std::string to_string() const override;
-
-    void accept(Visitor *v) override;
-    MaskVariable* is_mask_variable() override {return this;}
-
-    ~MaskVariable() {}
-};
-
 // Indexed variables refer to data held in the shared simulation state.
 // Printers will rewrite reads from or assignments from indexed variables
 // according to its data source and ion channel.
@@ -630,14 +610,6 @@ public :
         return kind_==localVariableKind::argument;
     }
 
-    MaskVariable* mask_variable() {
-        return mask_;
-    }
-
-    void mask_variable(MaskVariable *i) {
-        mask_ = i;
-    }
-
     IndexedVariable* external_variable() {
         return external_;
     }
@@ -650,7 +622,6 @@ public :
     void accept(Visitor *v) override;
 
 private :
-    MaskVariable *mask_ = nullptr;
     IndexedVariable *external_=nullptr;
     localVariableKind kind_;
 };

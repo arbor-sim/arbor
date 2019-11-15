@@ -9,8 +9,6 @@ inline std::string to_string(symbolKind k) {
             return std::string("variable");
         case symbolKind::indexed_variable:
             return std::string("indexed variable");
-        case symbolKind::mask_variable:
-            return std::string("mask variable");
         case symbolKind::local_variable:
             return std::string("local");
         case symbolKind::procedure:
@@ -222,15 +220,8 @@ void LocalDeclaration::semantic(scope_ptr scp) {
                                 " if the previously defined variable was intended.",
                                  yellow(name), s->location() ));
             } else {
-                if (is_mask_) {
-                    auto var = new LocalVariable(location_, name);
-                    auto mask_sym = make_symbol<MaskVariable>(location_, name);
-                    var->mask_variable(mask_sym->is_mask_variable());
-                    symbols_.push_back(scope_->add_local_symbol(name, scope_type::symbol_ptr{var}));
-                } else {
-                    auto symbol = make_symbol<LocalVariable>(location_, name);
-                    symbols_.push_back(scope_->add_local_symbol(name, std::move(symbol)));
-                }
+                auto symbol = make_symbol<LocalVariable>(location_, name);
+                symbols_.push_back( scope_->add_local_symbol(name, std::move(symbol)) );
             }
         }
         else {
@@ -281,13 +272,6 @@ std::string VariableExpression::to_string() const {
           + "link " + ::to_string(linkage())    + ", "
           + colorize("state", is_state() ? stringColor::green : stringColor::red) + ")";
     return s;
-}
-/*******************************************************************************
-  MaskVariable
-*******************************************************************************/
-
-std::string MaskVariable::to_string() const {
-    return blue("mask") + " " + yellow(name());
 }
 
 /*******************************************************************************
@@ -962,9 +946,6 @@ void DerivativeExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void VariableExpression::accept(Visitor *v) {
-    v->visit(this);
-}
-void MaskVariable::accept(Visitor *v) {
     v->visit(this);
 }
 void IndexedVariable::accept(Visitor *v) {

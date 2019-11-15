@@ -20,13 +20,7 @@ struct local_declaration {
 local_declaration make_unique_local_decl(
     scope_ptr scope,
     Location loc,
-    std::string const& prefix="ll",
-    bool is_mask = false);
-
-local_declaration make_unique_local_mask(
-        scope_ptr scope,
-        Location loc,
-        std::string const& prefix);
+    std::string const& prefix="ll");
 
 // Create a local declaration as for `make_unique_local_decl`, together with an
 // assignment to it from the given expression, using the location of that expression.

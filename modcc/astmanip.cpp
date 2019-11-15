@@ -28,18 +28,14 @@ local_assignment make_unique_local_assign(scope_ptr scope, Expression* e, std::s
     return { std::move(local), std::move(ass), std::move(id), scope };
 }
 
-local_declaration make_unique_local_decl(scope_ptr scope, Location loc, std::string const& prefix, bool is_mask) {
+local_declaration make_unique_local_decl(scope_ptr scope, Location loc, std::string const& prefix) {
     std::string name = unique_local_name(scope, prefix);
 
-    auto local = make_expression<LocalDeclaration>(loc, name, is_mask);
+    auto local = make_expression<LocalDeclaration>(loc, name);
     local->semantic(scope);
 
     auto id = make_expression<IdentifierExpression>(loc, name);
     id->semantic(scope);
 
     return { std::move(local), std::move(id), scope };
-}
-
-local_declaration make_unique_local_mask(scope_ptr scope, Location loc, std::string const& prefix) {
-    return make_unique_local_decl(scope, loc, prefix, true);
 }
