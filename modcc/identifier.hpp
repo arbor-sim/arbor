@@ -16,7 +16,8 @@ enum class moduleKind {
 enum class accessKind {
     read,
     write,
-    readwrite
+    readwrite,
+    noaccess
 };
 
 /// describes the scope of a variable

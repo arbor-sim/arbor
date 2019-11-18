@@ -48,20 +48,40 @@ class NrnCurrentRewriter: public BlockRewriterBase {
     }
 
     bool has_current_update_ = false;
-    std::set<std::string> ion_current_vars_;
+    std::set<std::string> current_vars_;
+    std::set<expression_ptr> conductivity_exps_;
 
 public:
     using BlockRewriterBase::visit;
 
     virtual void finalize() override {
         if (has_current_update_) {
-            // Initialize conductivity_ as first statement.
-            statements_.push_front(make_expression<AssignmentExpression>(loc_,
-                    id("conductivity_"),
-                    make_expression<NumberExpression>(loc_, 0.0)));
-            statements_.push_front(make_expression<AssignmentExpression>(loc_,
-                    id("current_"),
-                    make_expression<NumberExpression>(loc_, 0.0)));
+            expression_ptr current_sum, conductivity_sum;
+            for (auto& curr: current_vars_) {
+                auto curr_id = make_expression<IdentifierExpression>(Location{}, curr);
+                if (!current_sum) {
+                    current_sum = std::move(curr_id);
+                } else {
+                    current_sum = make_expression<AddBinaryExpression>(
+                            Location{}, std::move(current_sum), std::move(curr_id));
+                }
+            }
+            for (auto& cond: conductivity_exps_) {
+                if (!conductivity_sum) {
+                    conductivity_sum = cond->clone();
+                } else {
+                    conductivity_sum = make_expression<AddBinaryExpression>(
+                            Location{}, std::move(conductivity_sum), cond->clone());
+                }
+            }
+            if (current_sum) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                        id("current_"), std::move(current_sum)));
+            }
+            if (conductivity_sum) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                        id("conductivity_"), std::move(conductivity_sum)));
+            }
         }
     }
 
@@ -69,22 +89,13 @@ public:
     virtual void visit(ConductanceExpression *e) override {}
     virtual void visit(AssignmentExpression *e) override {
         statements_.push_back(e->clone());
-        auto loc = e->location();
 
         sourceKind current_source = current_update(e);
         if (current_source != sourceKind::no_source) {
             has_current_update_ = true;
 
-            if (current_source==sourceKind::ion_current_density || current_source==sourceKind::ion_current) {
-                ion_current_vars_.insert(e->lhs()->is_identifier()->name());
-            }
-            else {
-                // A 'nonspecific' current contribution.
-                // Remove data source; currents accumulated into `current_` instead.
-
-                e->lhs()->is_identifier()->symbol()->is_local_variable()
-                    ->external_variable()->data_source(sourceKind::no_source);
-            }
+            auto visited_current = current_vars_.count(e->lhs()->is_identifier()->name());
+            current_vars_.insert(e->lhs()->is_identifier()->name());
 
             linear_test_result L = linear_test(e->rhs(), {"v"});
             if (!L.is_linear) {
@@ -93,17 +104,8 @@ public:
                 return;
             }
             else {
-                statements_.push_back(make_expression<AssignmentExpression>(loc,
-                    id("current_", loc),
-                    make_expression<AddBinaryExpression>(loc,
-                        id("current_", loc),
-                        e->lhs()->clone())));
-                if (L.coef.count("v")) {
-                    statements_.push_back(make_expression<AssignmentExpression>(loc,
-                        id("conductivity_", loc),
-                        make_expression<AddBinaryExpression>(loc,
-                            id("conductivity_", loc),
-                            L.coef.at("v")->clone())));
+                if (L.coef.count("v") && !visited_current) {
+                    conductivity_exps_.insert(L.coef.at("v")->clone());
                 }
             }
         }
@@ -673,7 +675,7 @@ void Module::add_variables_to_symbols() {
 
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
-        create_indexed_variable(i.spelling, sourceKind::current, accessKind::write, "", i.location);
+        create_indexed_variable(i.spelling, current_kind, accessKind::noaccess, "", i.location);
     }
 
     for(auto const& ion : neuron_block_.ions) {
