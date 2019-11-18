@@ -165,14 +165,7 @@ void CExprEmitter::visit(IfExpression* e) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void SimdIfEmitter::visit(AssignmentExpression* e) {
-    auto mask = processing_true_ ? current_mask_ : current_mask_bar_;
-    out_ << "S::where(" << mask << ", ";
-    e->lhs()->accept(this);
-    out_ << ") = ";
-    e->rhs()->accept(this);
-}
+std::unordered_set<std::string> SimdIfEmitter::mask_names_;
 
 void SimdIfEmitter::visit(BlockExpression* block) {
     for (auto& stmt: block->statements()) {
@@ -185,25 +178,66 @@ void SimdIfEmitter::visit(BlockExpression* block) {
     }
 }
 
-void SimdIfEmitter::visit(IfExpression* e) {
-    static std::unordered_set<std::string> mask_names;
+void SimdIfEmitter::visit(CallExpression* e) {
+    if(is_indirect_)
+        out_ << e->name() << "(index_";
+    else
+        out_ << e->name() << "(i_";
 
-    auto unique_name = [&](scope_ptr scope, std::string prefix) {
-        for (int i = 0;; ++i) {
-            std::string name = prefix + std::to_string(i) + "_";
-            if (!scope->find(name) && !mask_names.count(name)) {
-                mask_names.insert(name);
-                return name;
-            }
-        }
-    };
+    if (processing_true_ && !current_mask_.empty()) {
+        out_ << ", " << current_mask_;
+    } else if (!processing_true_ && !current_mask_bar_.empty()) {
+        out_ << ", " << current_mask_bar_;
+    }
+    for (auto& arg: e->args()) {
+        out_ << ", ";
+        arg->accept(this);
+    }
+    out_ << ")";
+}
+
+void SimdIfEmitter::visit(AssignmentExpression* e) {
+    if (!e->lhs() || !e->lhs()->is_identifier() || !e->lhs()->is_identifier()->symbol()) {
+        throw compiler_exception("Expect symbol on lhs of assignment: "+e->to_string());
+    }
+
+    auto mask = processing_true_ ? current_mask_ : current_mask_bar_;
+    Symbol* lhs = e->lhs()->is_identifier()->symbol();
+
+    if (lhs->is_variable() && lhs->is_variable()->is_range()) {
+        auto simd_temp = make_unique_var(e->scope(), "temp_");
+        // Copy variable into temp vector
+        out_ << "simd_value " << simd_temp << " = simd_value(";
+        e->lhs()->accept(this);
+        out_ << ");\n";
+
+        // Overwrite the correct locations of the temporary vector
+        out_ << "S::where(" << mask << ", " << simd_temp << ") = ";
+        e->rhs()->accept(this);
+        out_ << ";\n";
+
+        // Copy back into memory
+        out_ << simd_temp;
+        if(is_indirect_)
+            out_ << ".copy_to(" << lhs->name() << "+index_)";
+        else
+            out_ << ".copy_to(" << lhs->name() << "+i_)";
+    } else {
+        out_ << "S::where(" << mask << ", ";
+        e->lhs()->accept(this);
+        out_ << ") = ";
+        e->rhs()->accept(this);
+    }
+}
+
+void SimdIfEmitter::visit(IfExpression* e) {
 
     // Save old masks
     auto old_mask     = current_mask_;
     auto old_mask_bar = current_mask_bar_;
 
     // Create new mask name
-    auto new_mask = unique_name(e->scope(), "mask_");
+    auto new_mask = make_unique_var(e->scope(), "mask_");
 
     // Set new masks
     out_ << "simd_value::simd_mask " << new_mask << " = ";

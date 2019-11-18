@@ -40,19 +40,38 @@ inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
 class SimdIfEmitter: public CExprEmitter {
     using CExprEmitter::visit;
 public:
-    SimdIfEmitter(std::ostream& out, Visitor* fallback): CExprEmitter(out, fallback) {}
+    SimdIfEmitter(std::ostream& out, bool input_mask, bool is_indirect, Visitor* fallback): CExprEmitter(out, fallback) {
+        if (input_mask) {
+            current_mask_ = "mask_input_";
+            current_mask_bar_ = "!mask_input";
+        }
+    }
 
     void visit(BlockExpression *e) override;
+    void visit(CallExpression *e) override;
     void visit(AssignmentExpression *e) override;
     void visit(IfExpression *e) override;
 
 protected:
+    static std::unordered_set<std::string> mask_names_;
     std::string current_mask_, current_mask_bar_;
     bool processing_true_;
+    bool is_indirect_;
+
+private:
+    std::string make_unique_var(scope_ptr scope, std::string prefix) {
+        for (int i = 0;; ++i) {
+            std::string name = prefix + std::to_string(i) + "_";
+            if (!scope->find(name) && !mask_names_.count(name)) {
+                mask_names_.insert(name);
+                return name;
+            }
+        }
+    };
 };
 
-inline void simd_if_emit(Expression* e, std::ostream& out, Visitor* fallback) {
-    SimdIfEmitter emitter(out, fallback);
+inline void simd_if_emit(Expression* e, std::ostream& out, bool is_masked, bool is_indirect, Visitor* fallback) {
+    SimdIfEmitter emitter(out, is_masked, is_indirect, fallback);
     e->accept(&emitter);
 }
 
