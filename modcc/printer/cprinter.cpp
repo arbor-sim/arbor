@@ -71,8 +71,10 @@ struct simdprint {
 
     friend std::ostream& operator<<(std::ostream& out, const simdprint& w) {
         SimdPrinter printer(out);
-        printer.set_var_masked_to(w.is_masked_);
-        printer.set_var_indexed_to(w.is_indirect_);
+        if(w.is_masked_) {
+            printer.set_input_mask("mask_input_");
+        }
+        printer.set_var_indexed(w.is_indirect_);
         return w.expr_->accept(&printer), out;
     }
 };
@@ -560,14 +562,14 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        if (is_masked_)
-            out_ << "S::const_where(mask_input_, simd_value(";
+        if (!input_mask_.empty())
+            out_ << "S::const_where(" << input_mask_ << ", simd_value(";
         else
             out_ << "simd_value(";
 
         e->rhs()->accept(this);
 
-        if (is_masked_)
+        if (!input_mask_.empty())
             out_ << ")";
 
         if(is_indirect_)
