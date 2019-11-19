@@ -52,7 +52,7 @@ public:
         throw compiler_exception("SimdPrinter cannot translate expression "+e->to_string());
     }
     void set_var_indexed_to(bool is_indirect_index) {
-        is_indirect_index_ = is_indirect_index;
+        is_indirect_ = is_indirect_index;
     }
     void set_var_masked_to(bool is_masked) {
         is_masked_ = is_masked;
@@ -68,10 +68,10 @@ public:
     void visit(NumberExpression* e) override { cexpr_emit(e, out_, this); }
     void visit(UnaryExpression* e) override { cexpr_emit(e, out_, this); }
     void visit(BinaryExpression* e) override { cexpr_emit(e, out_, this); }
-    void visit(IfExpression* e) override { simd_expr_emit(e, out_, is_masked_, is_indirect_index_, this); }
+    void visit(IfExpression* e) override { simd_expr_emit(e, out_, is_masked_, is_indirect_, this); }
 
 private:
     std::ostream& out_;
-    bool is_indirect_index_ = false;
+    bool is_indirect_ = false;
     bool is_masked_ = false;
 };

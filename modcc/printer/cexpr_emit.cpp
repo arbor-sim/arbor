@@ -205,6 +205,9 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
+        if (is_masked_) {
+            mask = mask + "&& mask_input_";
+        }
         out_ << "S::const_where(" << mask << ", " << "simd_value(";
         e->rhs()->accept(this);
         out_ << "))";

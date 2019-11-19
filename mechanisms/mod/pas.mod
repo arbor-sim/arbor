@@ -47,6 +47,7 @@ LOCAL u
          u = 7
     } else {
          u = 5
+         s = 42
     }
     s = u
 }

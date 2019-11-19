@@ -40,13 +40,8 @@ inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
 class SimdExprEmitter: public CExprEmitter {
     using CExprEmitter::visit;
 public:
-    SimdExprEmitter(std::ostream& out, bool input_mask, bool is_indirect, Visitor* fallback): CExprEmitter(out, fallback) {
-        if (input_mask) {
-            current_mask_ = "mask_input_";
-            current_mask_bar_ = "!mask_input";
-        }
-        is_indirect_ = is_indirect;
-    }
+    SimdExprEmitter(std::ostream& out, bool input_masked, bool is_indirect, Visitor* fallback):
+            CExprEmitter(out, fallback), is_indirect_(is_indirect), is_masked_(input_masked) {}
 
     void visit(BlockExpression *e) override;
     void visit(CallExpression *e) override;
@@ -58,6 +53,7 @@ protected:
     std::string current_mask_, current_mask_bar_;
     bool processing_true_;
     bool is_indirect_;
+    bool is_masked_;
 
 private:
     std::string make_unique_var(scope_ptr scope, std::string prefix) {
