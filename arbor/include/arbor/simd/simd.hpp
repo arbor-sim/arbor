@@ -408,6 +408,49 @@ namespace detail {
             simd_impl& data_;
         };
 
+        struct const_where_expression {
+            const_where_expression(const const_where_expression&) = default;
+            const_where_expression& operator=(const const_where_expression&) = delete;
+
+            const_where_expression(const simd_mask& m, simd_impl& s):
+                    mask_(m), data_(s) {}
+
+            const_where_expression& operator=(scalar_type v) {
+                data_.value_ = Impl::ifelse(mask_.value_, simd_impl(v).value_, data_.value_);
+                return *this;
+            }
+
+            const_where_expression& operator=(const simd_impl& v) {
+                data_.value_ = Impl::ifelse(mask_.value_, v.value_, data_.value_);
+                return *this;
+            }
+
+            void copy_to(scalar_type* p) const {
+                Impl::copy_to_masked(data_.value_, p, mask_.value_);
+            }
+
+            void copy_from(const scalar_type* p) {
+                data_.value_ = Impl::copy_from_masked(data_.value_, p, mask_.value_);
+            }
+
+            // Gather and scatter.
+
+            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
+            void copy_from(indirect_expression<IndexImpl, scalar_type> pi) {
+                data_.value_ = Impl::gather(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
+            }
+
+            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
+            void copy_to(indirect_expression<IndexImpl, scalar_type> pi) const {
+                Impl::scatter(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
+            }
+
+        private:
+            const simd_mask& mask_;
+            simd_impl data_;
+        };
+
+
         // Maths functions are implemented as top-level functions; declare as friends
         // for access to `wrap` and to enjoy ADL, allowing implicit conversion from
         // scalar_type in binary operation arguments.
@@ -640,10 +683,17 @@ template <typename Simd>
 using where_expression = typename Simd::where_expression;
 
 template <typename Simd>
+using const_where_expression = typename Simd::const_where_expression;
+
+template <typename Simd>
 where_expression<Simd> where(const typename Simd::simd_mask& m, Simd& v) {
     return where_expression<Simd>(m, v);
 }
 
+template <typename Simd>
+const_where_expression<Simd> const_where(const typename Simd::simd_mask& m, Simd v) {
+    return const_where_expression<Simd>(m, v);
+}
 template <typename>
 struct is_simd: std::false_type {};
 

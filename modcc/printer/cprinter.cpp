@@ -567,15 +567,31 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        out_ << "simd_value(";
+        if (is_masked_)
+            out_ << "S::const_where(mask_input_, simd_value(";
+        else
+            out_ << "simd_value(";
+
         e->rhs()->accept(this);
+
+        if (is_masked_)
+            out_ << ")";
+
         if(is_indirect_index_)
             out_ << ").copy_to(" << lhs->name() << "+index_)";
         else
             out_ << ").copy_to(" << lhs->name() << "+i_)";
-    }
-    else {
-        out_ << lhs->name() << " = ";
+    } else {
+//        if (is_masked_)
+//            out_ << "S::where(mask_input_, ";
+
+        out_ << lhs->name();
+
+//        if (is_masked_)
+//            out_ << ") = ";
+//        else
+            out_ << " = ";
+
         e->rhs()->accept(this);
     }
 }

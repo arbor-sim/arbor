@@ -165,9 +165,9 @@ void CExprEmitter::visit(IfExpression* e) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-std::unordered_set<std::string> SimdIfEmitter::mask_names_;
+std::unordered_set<std::string> SimdExprEmitter::mask_names_;
 
-void SimdIfEmitter::visit(BlockExpression* block) {
+void SimdExprEmitter::visit(BlockExpression* block) {
     for (auto& stmt: block->statements()) {
         if (!stmt->is_local_declaration()) {
             stmt->accept(this);
@@ -178,7 +178,7 @@ void SimdIfEmitter::visit(BlockExpression* block) {
     }
 }
 
-void SimdIfEmitter::visit(CallExpression* e) {
+void SimdExprEmitter::visit(CallExpression* e) {
     if(is_indirect_)
         out_ << e->name() << "(index_";
     else
@@ -196,7 +196,7 @@ void SimdIfEmitter::visit(CallExpression* e) {
     out_ << ")";
 }
 
-void SimdIfEmitter::visit(AssignmentExpression* e) {
+void SimdExprEmitter::visit(AssignmentExpression* e) {
     if (!e->lhs() || !e->lhs()->is_identifier() || !e->lhs()->is_identifier()->symbol()) {
         throw compiler_exception("Expect symbol on lhs of assignment: "+e->to_string());
     }
@@ -205,19 +205,9 @@ void SimdIfEmitter::visit(AssignmentExpression* e) {
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        auto simd_temp = make_unique_var(e->scope(), "temp_");
-        // Copy variable into temp vector
-        out_ << "simd_value " << simd_temp << " = simd_value(";
-        e->lhs()->accept(this);
-        out_ << ");\n";
-
-        // Overwrite the correct locations of the temporary vector
-        out_ << "S::where(" << mask << ", " << simd_temp << ") = ";
+        out_ << "S::const_where(" << mask << ", " << "simd_value(";
         e->rhs()->accept(this);
-        out_ << ";\n";
-
-        // Copy back into memory
-        out_ << simd_temp;
+        out_ << "))";
         if(is_indirect_)
             out_ << ".copy_to(" << lhs->name() << "+index_)";
         else
@@ -230,7 +220,7 @@ void SimdIfEmitter::visit(AssignmentExpression* e) {
     }
 }
 
-void SimdIfEmitter::visit(IfExpression* e) {
+void SimdExprEmitter::visit(IfExpression* e) {
 
     // Save old masks
     auto old_mask     = current_mask_;

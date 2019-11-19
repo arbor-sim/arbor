@@ -42,5 +42,11 @@ BREAKPOINT {
 }
 
 PROCEDURE rates(i) {
-     i = 2
+LOCAL u
+    if(i > 2) {
+         u = 7
+    } else {
+         u = 5
+    }
+    s = u
 }

@@ -37,14 +37,15 @@ inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
     e->accept(&emitter);
 }
 
-class SimdIfEmitter: public CExprEmitter {
+class SimdExprEmitter: public CExprEmitter {
     using CExprEmitter::visit;
 public:
-    SimdIfEmitter(std::ostream& out, bool input_mask, bool is_indirect, Visitor* fallback): CExprEmitter(out, fallback) {
+    SimdExprEmitter(std::ostream& out, bool input_mask, bool is_indirect, Visitor* fallback): CExprEmitter(out, fallback) {
         if (input_mask) {
             current_mask_ = "mask_input_";
             current_mask_bar_ = "!mask_input";
         }
+        is_indirect_ = is_indirect;
     }
 
     void visit(BlockExpression *e) override;
@@ -70,8 +71,8 @@ private:
     };
 };
 
-inline void simd_if_emit(Expression* e, std::ostream& out, bool is_masked, bool is_indirect, Visitor* fallback) {
-    SimdIfEmitter emitter(out, is_masked, is_indirect, fallback);
+inline void simd_expr_emit(Expression* e, std::ostream& out, bool is_masked, bool is_indirect, Visitor* fallback) {
+    SimdExprEmitter emitter(out, is_masked, is_indirect, fallback);
     e->accept(&emitter);
 }
 
