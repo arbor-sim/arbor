@@ -228,6 +228,7 @@ void SimdExprEmitter::visit(IfExpression* e) {
     // Save old masks
     auto old_mask     = current_mask_;
     auto old_mask_bar = current_mask_bar_;
+    auto old_branch   = processing_true_;
 
     // Create new mask name
     auto new_mask = make_unique_var(e->scope(), "mask_");
@@ -258,5 +259,6 @@ void SimdExprEmitter::visit(IfExpression* e) {
     // Reset old masks
     current_mask_     = old_mask;
     current_mask_bar_ = old_mask_bar;
+    processing_true_  = old_branch;
 
 }
