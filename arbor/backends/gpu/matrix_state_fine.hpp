@@ -123,7 +123,6 @@ public:
     std::size_t data_size;
 
     // the meta data for each level for each block layed out linearly in memory
-    managed_vector<level> levels;
     metadata_array levels_meta;
     iarray levels_lengths;
     iarray levels_parents;
@@ -305,10 +304,10 @@ public:
             }
         }
 
-        unsigned total_num_levels = std::accumulate(
+        /*unsigned total_num_levels = std::accumulate(
             branch_maps.begin(), branch_maps.end(), 0,
             [](unsigned value, decltype(branch_maps[0])& l) {
-                return value + l.size();});
+                return value + l.size();});*/
 
         // construct description for the set of branches on each level for each
         // block. This is later used to sort the branches in each block in each
@@ -318,7 +317,6 @@ public:
         std::vector<level_metadata> temp_meta;
         std::vector<size_type> temp_lengths, temp_parents;
 
-        levels.reserve(total_num_levels);
         levels_start.reserve(branch_maps.size() + 1);
         levels_start.push_back(0);
         data_partition.reserve(branch_maps.size());
@@ -328,16 +326,14 @@ public:
         for (const auto& branch_map: branch_maps) {
             for (const auto& lvl_branches: branch_map) {
 
-                level lvl(lvl_branches.size());
                 level_metadata lvl_meta;
                 std::vector<size_type> lvl_lengths, lvl_parents;
 
+                lvl_meta.num_branches = lvl_branches.size();
+
                 // The length of the first branch is the upper bound on branch
                 // length as they are sorted in descending order of length.
-                lvl.max_length = lvl_branches.front().length;
-                lvl.data_index = pos;
 
-                lvl_meta.num_branches = lvl_branches.size();
                 lvl_meta.max_length = lvl_branches.front().length;
                 lvl_meta.data_index = pos;
                 lvl_meta.data_array_start = data_start;
@@ -350,21 +346,18 @@ public:
                 unsigned bi = 0u;
                 for (const auto& b: lvl_branches) {
                     // Set the length of the branch.
-                    lvl.lengths[bi] = b.length;
                     lvl_lengths[bi] = b.length;
 
                     // Set the parent indexes. During the forward and backward
                     // substitution phases each branch accesses the last node in
                     // its parent branch.
                     auto index = b.parent_id==npos? npos: branch_locs[b.parent_id].index;
-                    lvl.parents[bi] = index;
                     lvl_parents[bi] = index;
                     ++bi;
                 }
 
-                pos += lvl.max_length*lvl.num_branches;
+                pos += lvl_meta.max_length*lvl_meta.num_branches;
 
-                levels.push_back(std::move(lvl));
                 temp_meta.push_back(std::move(lvl_meta));
                 std::move(lvl_lengths.begin(), lvl_lengths.end(), std::back_inserter(temp_lengths));
                 std::move(lvl_parents.begin(), lvl_parents.end(), std::back_inserter(temp_parents));
