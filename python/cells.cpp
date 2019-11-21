@@ -7,10 +7,12 @@
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
+#include <arbor/util/any.hpp>
 #include <arbor/util/unique_any.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"
+#include "morph_parse.hpp"
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
@@ -78,36 +80,57 @@ struct local_param_set_proxy {
     }
 };
 
-/*
-struct param_set_proxy {
-    arb::cable_cell_local_parameter_set params;
-    void set_membrane_potential(pybind11::object value) {
-        params.init_membrane_potential =
-            py2optional<double>(value, "membrane potential must be a number.", is_nonneg{});
-    }
-    void set_temperature(pybind11::object value) {
-        params.temperature_K =
-            py2optional<double>(value, "temperature in degrees K must be non-negative.", is_nonneg{});
-    }
-    void set_axial_resistivity(pybind11::object value) {
-        params.axial_resistivity =
-            py2optional<double>(value, "axial resistivity must be positive.", is_positive{});
-    }
-    void set_membrane_capacitance(pybind11::object value) {
-        params.membrane_capacitance =
-            py2optional<double>(value, "membrane capacitance must be positive.", is_positive{});
+struct label_dict_proxy {
+    arb::label_dict dict;
+
+    label_dict_proxy() = default;
+
+    label_dict_proxy(const std::unordered_map<std::string, std::string>& in) {
+        for (auto& i: in) {
+            set(i.first.c_str(), i.second.c_str());
+        }
     }
 
-    auto get_membrane_potential()   const { return params.init_membrane_potential; }
-    auto get_temperature()          const { return params.temperature_K; }
-    auto get_axial_resistivity()    const { return params.axial_resistivity; }
-    auto get_membrane_capacitance() const { return params.axial_resistivity; }
+    void set(const char* name, const char* desc) {
+        using namespace std::string_literals;
+        try{
+            auto result = eval(parse(desc));
+            if (!result) {
+                // there was a well-defined
+                throw std::string(result.error().message);
+            }
+            else if (result->type()==typeid(arb::region)) {
+                dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
+            }
+            else if (result->type()==typeid(arb::locset)) {
+                dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
+            }
+            else {
+                // I don't know what I just parsed!
+                throw util::pprintf("The defninition of '{} = {}' does not define a valid region or locset.", name, desc);
+            }
+        }
+        catch (std::string msg) {
+            const char* base = "\nError parsing the label '{}' = '{}'\n{}\n";
 
-    operator arb::cable_cell_local_parameter_set() const {
-        return params;
+            throw std::runtime_error(util::pprintf(base, name, desc, msg));
+        }
+        // parse_errors: line/column information
+        // std::exception: all others
+        catch (std::exception& e) {
+            const char* msg =
+                "\n----- internal error -------------------------------------------"
+                "\nError parsing the label: '{}' = '{}'"
+                "\n"
+                "\n{}"
+                "\n"
+                "\nPlease file a bug report with this full error message at:"
+                "\n    github.com/arbor-sim/arbor/issues"
+                "\n----------------------------------------------------------------";
+            throw arb::arbor_internal_error(util::pprintf(msg, name, desc, e.what()));
+        }
     }
 };
-*/
 
 //
 // string printers
@@ -203,13 +226,20 @@ void register_cells(pybind11::module& m) {
 
     lif_cell
         .def(pybind11::init<>())
-        .def_readwrite("tau_m",     &arb::lif_cell::tau_m,      "Membrane potential decaying constant [ms].")
-        .def_readwrite("V_th",      &arb::lif_cell::V_th,       "Firing threshold [mV].")
-        .def_readwrite("C_m",       &arb::lif_cell::C_m,        "Membrane capacitance [pF].")
-        .def_readwrite("E_L",       &arb::lif_cell::E_L,        "Resting potential [mV].")
-        .def_readwrite("V_m",       &arb::lif_cell::V_m,        "Initial value of the Membrane potential [mV].")
-        .def_readwrite("t_ref",     &arb::lif_cell::t_ref,      "Refractory period [ms].")
-        .def_readwrite("V_reset",   &arb::lif_cell::V_reset,    "Reset potential [mV].")
+        .def_readwrite("tau_m", &arb::lif_cell::tau_m,
+                "Membrane potential decaying constant [ms].")
+        .def_readwrite("V_th", &arb::lif_cell::V_th,
+                       "Firing threshold [mV].")
+        .def_readwrite("C_m", &arb::lif_cell::C_m,
+                      " Membrane capacitance [pF].")
+        .def_readwrite("E_L", &arb::lif_cell::E_L,
+                       "Resting potential [mV].")
+        .def_readwrite("V_m", &arb::lif_cell::V_m,
+                       "Initial value of the Membrane potential [mV].")
+        .def_readwrite("t_ref", &arb::lif_cell::t_ref,
+                       "Refractory period [ms].")
+        .def_readwrite("V_reset", &arb::lif_cell::V_reset,
+                       "Reset potential [mV].")
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
@@ -217,61 +247,29 @@ void register_cells(pybind11::module& m) {
     // regions and locsets
     //
 
-    // arb::locset
-
-    pybind11::class_<arb::locset> locset(m, "locset");
-    locset
-        .def(pybind11::init<>(),
-            "Default constructor creates empty/null locset")
-        .def("__str__", [](const arb::locset& ls) {return util::pprintf("<arbor.locset: {}>", ls);})
-        .def("__repr__", [](const arb::locset& ls) {return util::pprintf("{}", ls);});
-
-    m.def("ls_location",  &arb::ls::location, "location"_a, "An explicit location on a morphology.");
-    m.def("ls_sample",    &arb::ls::sample,   "sample_id"_a, "The location of a specific sample on the morphology.");
-    m.def("ls_terminal",  &arb::ls::terminal, "The terminal points on a morphology.");
-    m.def("ls_root",      &arb::ls::root,     "The root of a morphology, equivalent to location(0,0).");
-    m.def("ls_nil",       &arb::ls::nil,      "Empty set of locations.");
-    // expose 2, 3, 4 and 5 way joins
-    m.def("join", [](arb::locset l, arb::locset r){return join(l,r);});
-    m.def("join", [](arb::locset r0, arb::locset r1, arb::locset r2){return join(r0, r1, r2);});
-    m.def("join", [](arb::locset r0, arb::locset r1, arb::locset r2, arb::locset r3){return join(r0, r1, r2, r3);});
-    m.def("join", [](arb::locset r0, arb::locset r1, arb::locset r2, arb::locset r3, arb::locset r4){return join(r0, r1, r2, r3, r4);});
-    // expose 2, 3, 4 and 5 way sums
-    m.def("sum", [](arb::locset l, arb::locset r){return sum(l,r);});
-    m.def("sum", [](arb::locset r0, arb::locset r1, arb::locset r2){return sum(r0, r1, r2);});
-    m.def("sum", [](arb::locset r0, arb::locset r1, arb::locset r2, arb::locset r3){return sum(r0, r1, r2, r3);});
-    m.def("sum", [](arb::locset r0, arb::locset r1, arb::locset r2, arb::locset r3, arb::locset r4){return sum(r0, r1, r2, r3, r4);});
-
-    // arb::region
-
-    pybind11::class_<arb::region> region(m, "region");
-    region
-        .def(pybind11::init<>(),
-            "Default constructor creates empty/null region")
-        .def("__str__", [](const arb::region& r) {return util::pprintf("<arbor.region: {}>", r);})
-        .def("__repr__", [](const arb::region& r) {return util::pprintf("{}", r);});
-
-    m.def("reg_all",    &arb::reg::all,     "Region describing the entire morphology.");
-    m.def("reg_tag",    &arb::reg::tagged,  "Part of morphology that was tagged with tag.", "tag"_a);
-    m.def("reg_branch", &arb::reg::branch,  "The branch on a morphology with id.", "id"_a);
-    m.def("reg_cable",  &arb::reg::cable,   "An explicit cable section on a morphology.", "cable"_a);
-    m.def("reg_nil",    &arb::reg::nil,     "Empty region.");
-    // expose 2, 3, 4 and 5 way joins
-    m.def("join", [](arb::region l, arb::region r){return join(l,r);});
-    m.def("join", [](arb::region r0, arb::region r1, arb::region r2){return join(r0, r1, r2);});
-    m.def("join", [](arb::region r0, arb::region r1, arb::region r2, arb::region r3){return join(r0, r1, r2, r3);});
-    m.def("join", [](arb::region r0, arb::region r1, arb::region r2, arb::region r3, arb::region r4){return join(r0, r1, r2, r3, r4);});
-    // expose 2, 3, 4 and 5 way intersections
-    m.def("intersect", [](arb::region l, arb::region r){return intersect(l,r);});
-    m.def("intersect", [](arb::region r0, arb::region r1, arb::region r2){return intersect(r0, r1, r2);});
-    m.def("intersect", [](arb::region r0, arb::region r1, arb::region r2, arb::region r3){return intersect(r0, r1, r2, r3);});
-    m.def("intersect", [](arb::region r0, arb::region r1, arb::region r2, arb::region r3, arb::region r4){return intersect(r0, r1, r2, r3, r4);});
-
     // arb::label_dict
 
-    pybind11::class_<arb::label_dict> label_dict(m, "label_dict");
+    pybind11::class_<label_dict_proxy> label_dict(m, "label_dict");
     label_dict
         .def(pybind11::init<>())
+        .def(pybind11::init<const std::unordered_map<std::string, std::string>&>())
+        .def("set",
+            [](label_dict_proxy& l, const char* name, const char* desc) {
+                l.set(name, desc);})
+        .def("__setitem__",
+            [](label_dict_proxy& l, const char* name, const char* desc) {
+                l.set(name, desc);})
+        .def("__getitem__",
+            [](label_dict_proxy& l, const char* name) {
+                auto reg = l.dict.region(name);
+                if (reg) return util::pprintf("{}", *reg);
+                auto ls = l.dict.locset(name);
+                if (ls) return util::pprintf("{}", *ls);
+                throw std::runtime_error(util::pprintf("\nKeyError: '{}'", name));
+            })
+        .def("__str__",  [](const label_dict_proxy&){return std::string("dictionary");})
+        .def("__repr__", [](const label_dict_proxy&){return std::string("dictionary");});
+        /*
         .def("set",
             [](arb::label_dict& l, const std::string& name, arb::locset ls) {
                 l.set(name, std::move(ls));})
@@ -279,7 +277,7 @@ void register_cells(pybind11::module& m) {
             [](arb::label_dict& l, const std::string& name, arb::region reg) {
                 l.set(name, std::move(reg));})
         .def("size", &arb::label_dict::size,
-             "Rhe number of labels in the dictionary.")
+             "The number of labels in the dictionary.")
         .def("regions", &arb::label_dict::regions,
              "Returns a dictionary mapping region names to their definitions.")
         .def("locsets", &arb::label_dict::locsets,
@@ -296,6 +294,7 @@ void register_cells(pybind11::module& m) {
                 return ls? *ls: arb::ls::nil();
              },
              "name"_a, "Returns the locset with label name. Returns the empty locset nil if there is no locset with that label.");
+        */
 
     //
     // Data structures used to describe mechanisms, electrical properties,
@@ -383,10 +382,10 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell");
     cable_cell
         .def(pybind11::init(
-            [](const arb::morphology& m, const arb::label_dict& labels, bool cfd) {
-                return arb::cable_cell(m, labels, cfd);
+            [](const arb::morphology& m, const label_dict_proxy& labels, bool cfd) {
+                return arb::cable_cell(m, labels.dict, cfd);
             }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
-        .def_property_readonly("num_branches", [](const arb::morphology& m) {return m.num_branches();})
+        .def_property_readonly("num_branches", [](const arb::cable_cell& m) {return m.num_branches();})
         .def("paint",
             [](arb::cable_cell& c, const char* region, const arb::mechanism_desc& d) {
                 c.paint(region, d);

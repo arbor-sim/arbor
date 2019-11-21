@@ -123,7 +123,8 @@ struct cable_ {
     mcable cable;
 };
 
-region cable(mcable c) {
+region cable(msize_t id, double prox, double dist) {
+    mcable c{id, prox, dist};
     if (!test_invariants(c)) {
         throw morphology_error(util::pprintf("Invalid cable section {}", c));
     }
@@ -131,7 +132,7 @@ region cable(mcable c) {
 }
 
 region branch(msize_t bid) {
-    return cable({bid, 0, 1});
+    return cable(bid, 0, 1);
 }
 
 mcable_list thingify_(const cable_& reg, const em_morphology& em) {

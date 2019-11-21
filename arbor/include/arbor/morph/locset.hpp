@@ -133,4 +133,9 @@ locset nil();
 
 } // namespace ls
 
+// union of two locsets
+locset join(locset, locset);
+// multiset sum of two locsets
+locset sum(locset, locset);
+
 } // namespace arb

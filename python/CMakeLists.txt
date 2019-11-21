@@ -24,6 +24,7 @@ add_library(pyarb MODULE
     event_generator.cpp
     identifiers.cpp
     morphology.cpp
+    morph_parse.cpp
     mpi.cpp
     profiler.cpp
     pyarb.cpp
@@ -32,6 +33,7 @@ add_library(pyarb MODULE
     schedule.cpp
     simulation.cpp
     spikes.cpp
+    s_expr.cpp
 )
 
 target_link_libraries(pyarb PRIVATE arbor pybind11::module)

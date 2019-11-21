@@ -115,7 +115,7 @@ namespace reg {
 region nil();
 
 // An explicit cable section.
-region cable(mcable);
+region cable(msize_t, double, double);
 
 // An explicit branch.
 region branch(msize_t);
@@ -127,5 +127,10 @@ region tagged(int id);
 region all();
 
 } // namespace reg
+
+// union of two regions
+region join(region, region);
+// intersection of two regions
+region intersect(region, region);
 
 } // namespace arb

@@ -1,7 +1,7 @@
-#include <fstream>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
+#include <fstream>
 
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -141,14 +141,14 @@ void register_morphology(pybind11::module& m) {
     // Wraps calls to C++ functions arb::parse_swc_file() and arb::swc_as_sample_tree().
     m.def("load_swc",
         [](std::string fname) {
-            std::ifstream fid(fname);
+            std::ifstream fid{fname};
             if (!fid.good()) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
                 auto records = arb::parse_swc_file(fid);
                 arb::swc_canonicalize(records);
-                return swc_as_sample_tree(records);
+                return arb::swc_as_sample_tree(records);
             }
             catch (arb::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -206,7 +206,6 @@ void register_morphology(pybind11::module& m) {
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);
                 });
-
 }
 
 } // namespace pyarb

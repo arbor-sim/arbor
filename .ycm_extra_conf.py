@@ -36,18 +36,11 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
     '-DNDEBUG',
-    '-DARB_HAVE_CTHREAD',
     '-std=c++14',
     '-x',
     'c++',
     '-I',
-    'src',
-    '-I',
-    '.',
-    '-I',
     'modcc',
-    '-I',
-    'include',
     '-I',
     'arbor',
     '-I',
@@ -57,17 +50,13 @@ flags = [
     '-I',
     'ext/json/single_include',
     '-I',
-    'build/include',
-    '-I',
-    '/cm/shared/apps/cuda/8.0.44/include', # TODO: run a command to find this on "any" system
-    '-I',
     'python/pybind11/include',
-    '-I',
-    '/usr/include/python3.6m', # TODO: run a command to find this on "any" system
     '-I',
     'sup/include',
     '-I',
-    '/usr/include/python3.7m',
+    'test',
+    '-I',
+    '/usr/include/python3.8',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
@@ -153,13 +142,6 @@ def FlagsForFile( filename, **kwargs ):
       compilation_info.compiler_flags_,
       compilation_info.compiler_working_dir_ )
 
-    # NOTE: This is just for YouCompleteMe; it's highly likely that your project
-    # does NOT need to remove the stdlib flag. DO NOT USE THIS IN YOUR
-    # ycm_extra_conf IF YOU'RE NOT 100% SURE YOU NEED IT.
-    try:
-      final_flags.remove( '-stdlib=libc++' )
-    except ValueError:
-      pass
   else:
     relative_to = DirectoryOfThisScript()
     final_flags = MakeRelativePathsInFlagsAbsolute( flags, relative_to )

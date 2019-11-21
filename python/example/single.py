@@ -40,23 +40,21 @@ for i in range(m.num_branches):
 #print(m.sample_parents)
 
 print('\n----------------------------- make label dictionary -----------------------------\n')
-labels = arbor.label_dict()
-labels.set('soma', arbor.reg_tag(1))
-labels.set('axon', arbor.reg_tag(2))
-labels.set('dend', arbor.reg_tag(3))
-labels.set('all', arbor.reg_all())
-labels.set('terms', arbor.ls_terminal())
-print(labels.regions())
-print(labels.locsets())
+defs = {'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)', 'cat': '(join (tag 1) (tag 2))'}
+labels = arbor.label_dict(defs)
+print(labels)
+#print(labels.regions())
+#print(labels.locsets())
 
 print('\n----------------------------- make cable_cell -----------------------------\n')
 cell = arbor.cable_cell(m, labels, True)
 print(cell)
-print('cell has ', cell.num_branches())
+print('cell has', cell.num_branches, 'branches')
 
 print('\n-------------------------------------------------------------\n')
 
-labels.set('soma', '(tag 1)')
-labels.set('axon', '(tag 2)')
-labels.set('dend', '(tag 3)')
-labels.set('cat', '(join (tag 1) (tag 2))')
+labels['sdnd'] = '(join (tag 1) (tag 2))'
+
+print(labels['soma'])
+print(labels['sdnd'])
+print(labels['boofar'])
