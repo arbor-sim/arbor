@@ -86,6 +86,8 @@ public:
     template <typename ValueType>
     using managed_vector = std::vector<ValueType, memory::managed_allocator<ValueType>>;
 
+    using metadata_array = memory::device_vector<level_metadata>;
+
     iarray cv_to_cell;
 
     array d;     // [μS]
@@ -122,6 +124,9 @@ public:
 
     // the meta data for each level for each block layed out linearly in memory
     managed_vector<level> levels;
+    metadata_array levels_meta;
+    array levels_lengths;
+    array levels_parents;
     // the start of the levels of each block
     // block b owns { leves[level_start[b]], ..., leves[level_start[b+1] - 1] }
     // there is an additional entry at the end of the vector to make the above
@@ -309,38 +314,60 @@ public:
         // block. This is later used to sort the branches in each block in each
         // level into conineous chunks which are easier to read for the cuda
         // kernel.
+
+        std::vector<level_metadata> temp_meta;
+        std::vector<unsigned> temp_lengths, temp_parents;
+
         levels.reserve(total_num_levels);
         levels_start.reserve(branch_maps.size() + 1);
         levels_start.push_back(0);
         data_partition.reserve(branch_maps.size());
         // offset into the packed data format, used to apply permutation on data
         auto pos = 0u;
+        auto data_start = 0u;
         for (const auto& branch_map: branch_maps) {
             for (const auto& lvl_branches: branch_map) {
 
                 level lvl(lvl_branches.size());
+                level_metadata lvl_meta;
+                std::vector<unsigned> lvl_lengths, lvl_parents;
 
                 // The length of the first branch is the upper bound on branch
                 // length as they are sorted in descending order of length.
                 lvl.max_length = lvl_branches.front().length;
                 lvl.data_index = pos;
 
+                lvl_meta.num_branches = lvl_branches.size();
+                lvl_meta.max_length = lvl_branches.front().length;
+                lvl_meta.data_index = pos;
+                lvl_meta.data_array_start = data_start;
+
+                data_start+= lvl_branches.size();
+
+                lvl_lengths.resize(lvl_branches.size());
+                lvl_parents.resize(lvl_branches.size());
+
                 unsigned bi = 0u;
                 for (const auto& b: lvl_branches) {
                     // Set the length of the branch.
                     lvl.lengths[bi] = b.length;
+                    lvl_lengths[bi] = b.length;
 
                     // Set the parent indexes. During the forward and backward
                     // substitution phases each branch accesses the last node in
                     // its parent branch.
                     auto index = b.parent_id==npos? npos: branch_locs[b.parent_id].index;
                     lvl.parents[bi] = index;
+                    lvl_parents[bi] = index;
                     ++bi;
                 }
 
                 pos += lvl.max_length*lvl.num_branches;
 
                 levels.push_back(std::move(lvl));
+                temp_meta.push_back(std::move(lvl_meta));
+                std::move(lvl_lengths.begin(), lvl_lengths.end(), std::back_inserter(temp_lengths));
+                std::move(lvl_parents.begin(), lvl_parents.end(), std::back_inserter(temp_parents));
             }
             auto prev_end = levels_start.back();
             levels_start.push_back(prev_end + branch_map.size());
@@ -359,7 +386,7 @@ public:
             const auto first_level = levels_start[block];
 
             for (auto i: make_span(levels_start[block + 1] - first_level)) {
-                const auto& l = levels[first_level + i];
+                const auto& l = temp_meta[first_level + i];
                 for (auto j: make_span(l.num_branches)) {
                     const auto& b = branch_map[i][j];
                     auto to = l.data_index + j + l.num_branches*(l.lengths[j]-1);
@@ -370,6 +397,10 @@ public:
                 }
             }
         }
+
+        levels_meta = memory::make_const_view(temp_meta);
+        levels_lengths = memory::make_const_view(temp_lengths);
+        levels_parents = memory::make_const_view(temp_parents);
 
         auto perm_balancing = trees.permutation();
 

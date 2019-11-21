@@ -5,6 +5,13 @@
 namespace arb {
 namespace gpu {
 
+struct level_metadata {
+    unsigned num_branches = 0; // Number of branches
+    unsigned max_length = 0;   // Length of the longest branch
+    unsigned data_index = 0;   // Index into data values of the first branch
+    unsigned data_array_start = 0;
+};
+
 struct level {
     level() = default;
 
