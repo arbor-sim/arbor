@@ -101,8 +101,8 @@ void solve_matrix_fine(
     T* d,
     const T* u,
     const level_metadata* levels_meta,
-    const unsigned* levels_lengths,
-    const unsigned* levels_parents,
+    const fvm_size_type* levels_lengths,
+    const fvm_size_type* levels_parents,
     const unsigned* levels_start,
     unsigned* num_matrix, // number of packed matrices = number of cells
     unsigned* padded_size)
@@ -324,8 +324,8 @@ void solve_matrix_fine(
     fvm_value_type* d,                // diagonal values
     const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
     const level_metadata* levels_meta,
-    const unsigned* levels_lengths,
-    const unsigned* levels_parents,
+    const fvm_size_type* levels_lengths,
+    const fvm_size_type* levels_parents,
     const unsigned* levels_start,     // start index into levels for each cuda block
     unsigned* num_cells,              // he number of cells packed into this single matrix
     unsigned* padded_size,            // length of rhs, d, u, including padding
