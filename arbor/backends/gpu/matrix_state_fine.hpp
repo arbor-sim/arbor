@@ -125,8 +125,8 @@ public:
     // the meta data for each level for each block layed out linearly in memory
     managed_vector<level> levels;
     metadata_array levels_meta;
-    array levels_lengths;
-    array levels_parents;
+    iarray levels_lengths;
+    iarray levels_parents;
     // the start of the levels of each block
     // block b owns { leves[level_start[b]], ..., leves[level_start[b+1] - 1] }
     // there is an additional entry at the end of the vector to make the above
@@ -316,7 +316,7 @@ public:
         // kernel.
 
         std::vector<level_metadata> temp_meta;
-        std::vector<unsigned> temp_lengths, temp_parents;
+        std::vector<size_type> temp_lengths, temp_parents;
 
         levels.reserve(total_num_levels);
         levels_start.reserve(branch_maps.size() + 1);
@@ -330,7 +330,7 @@ public:
 
                 level lvl(lvl_branches.size());
                 level_metadata lvl_meta;
-                std::vector<unsigned> lvl_lengths, lvl_parents;
+                std::vector<size_type> lvl_lengths, lvl_parents;
 
                 // The length of the first branch is the upper bound on branch
                 // length as they are sorted in descending order of length.
@@ -389,7 +389,7 @@ public:
                 const auto& l = temp_meta[first_level + i];
                 for (auto j: make_span(l.num_branches)) {
                     const auto& b = branch_map[i][j];
-                    auto to = l.data_index + j + l.num_branches*(l.lengths[j]-1);
+                    auto to = l.data_index + j + l.num_branches*(temp_lengths[l.data_array_start + j]-1);
                     auto from = b.start_idx;
                     for (auto k: make_span(b.length)) {
                         perm_tmp[from + k] = to - k*l.num_branches;
