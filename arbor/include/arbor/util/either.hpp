@@ -13,8 +13,6 @@
 
 #include <arbor/util/uninitialized.hpp>
 
-#include "util/meta.hpp"
-
 namespace arb {
 namespace util {
 

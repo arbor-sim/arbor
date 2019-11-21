@@ -2,7 +2,9 @@
 
 #include <type_traits>
 
-#include <util/meta.hpp>
+#include <arbor/util/either.hpp>
+
+#include "util/meta.hpp"
 
 /*
  * Use a proxy iterator to present a range as having the same begin and

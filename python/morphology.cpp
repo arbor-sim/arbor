@@ -17,9 +17,10 @@ void register_morphology(pybind11::module& m) {
     using namespace pybind11::literals;
 
     //
-    // arb::mlocation
+    //  primitives: points, samples, locations, cables... etc.
     //
 
+    // arb::mlocation
     pybind11::class_<arb::mlocation> location(m, "location",
         "A location on a cable cell.");
     location
@@ -46,10 +47,7 @@ void register_morphology(pybind11::module& m) {
                 return util::pprintf("<arbor.location: branch {}, position {}>", l.branch, l.pos);
             });
 
-    //
     // arb::mpoint
-    //
-
     pybind11::class_<arb::mpoint> mpoint(m, "mpoint");
     mpoint
         .def(pybind11::init(
@@ -69,10 +67,7 @@ void register_morphology(pybind11::module& m) {
         .def("__repr__",
             [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
 
-    //
     // arb::msample
-    //
-
     pybind11::class_<arb::msample> msample(m, "msample");
     msample
         .def(pybind11::init(
@@ -97,10 +92,33 @@ void register_morphology(pybind11::module& m) {
             [](const arb::msample& s) {
                 return util::pprintf("{}>", s);});
 
+    // arb::mcable
+    pybind11::class_<arb::mcable> cable(m, "cable");
+    cable
+        .def(pybind11::init(
+                    [](arb::msize_t bid, double prox, double dist) {
+                        arb::mcable c{bid, prox, dist};
+                        if (!test_invariants(c)) {
+                            throw pyarb_error("Invalid cable description. Cable segments must have proximal and distal end points in the range [0,1].");
+                        }
+                        return c;
+                    }),
+             "branch_id"_a, "prox"_a, "dist"_a)
+        .def_readonly("prox_pos", &arb::mcable::prox_pos,
+                "The relative position of the proximal end of the cable on its branch ∈ [0,1].")
+        .def_readonly("dist_pos", &arb::mcable::dist_pos,
+                "The relative position of the distal end of the cable on its branch ∈ [0,1].")
+        .def_readonly("branch", &arb::mcable::branch,
+                "The id of the branch on which the cable lies.")
+        .def("__str__", [](const arb::mcable& c) {
+            return util::pprintf("<arbor.cable: branch {}, prox {}, dist {}", c.branch, c.prox_pos, c.dist_pos); })
+        .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
+
     //
-    // arb::sample_tree
+    // Higher-level data structures (sample_tree, morphology)
     //
 
+    // arb::sample_tree
     pybind11::class_<arb::sample_tree> sample_tree(m, "sample_tree");
     sample_tree
         // constructors
@@ -118,17 +136,14 @@ void register_morphology(pybind11::module& m) {
                 "A list with the parent index of each sample.")
         .def("__str__", [](const arb::sample_tree& s) {
                 return util::pprintf("<arbor.sample_tree:\n{}>", s);});
-    //
-    // load_swc
-    //
+
     // Function that creates a sample_tree from an swc file.
     // Wraps calls to C++ functions arb::parse_swc_file() and arb::swc_as_sample_tree().
-
     m.def("load_swc",
         [](std::string fname) {
             std::ifstream fid(fname);
             if (!fid.good()) {
-                throw std::runtime_error(util::pprintf("can't open file '{}'", fname));
+                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
                 auto records = arb::parse_swc_file(fid);
@@ -137,16 +152,14 @@ void register_morphology(pybind11::module& m) {
             }
             catch (arb::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
-                throw std::runtime_error(
+                throw pyarb_error(
                     util::pprintf("error parsing line {} of '{}': {}.",
                                   e.line_number, fname, e.what()));
             }
         },
         "Load an swc file and convert to a sample_tree.");
 
-    //
     // arb::morphology
-    //
 
     pybind11::class_<arb::morphology> morph(m, "morphology");
     morph
@@ -158,7 +171,7 @@ void register_morphology(pybind11::module& m) {
         .def(pybind11::init(
                 [](arb::sample_tree t, bool spherical_root) {
                     return arb::morphology(std::move(t), spherical_root);
-                }))
+                }), "sample_tree"_a, "spherical_root"_a)
         // morphology's interface is read-only by design, so most of it can
         // be implemented as read-only properties.
         .def_property_readonly("empty",
@@ -193,6 +206,7 @@ void register_morphology(pybind11::module& m) {
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);
                 });
+
 }
 
 } // namespace pyarb

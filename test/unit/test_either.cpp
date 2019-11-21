@@ -3,7 +3,8 @@
 #include <algorithm>
 
 #include "../gtest.h"
-#include "util/either.hpp"
+
+#include <arbor/util/either.hpp>
 
 // TODO: coverage!
 

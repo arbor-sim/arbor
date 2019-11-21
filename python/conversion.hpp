@@ -18,9 +18,16 @@ namespace pyarb {
 
 struct is_nonneg {
     template<typename T>
+    constexpr bool operator()(const T& v) {
+        return v>=T(0);
+    }
+};
+
+struct is_positive {
+    template<typename T>
     constexpr
     bool operator()(const T& v) {
-        return v>=T(0);
+        return v>T(0);
     }
 };
 
