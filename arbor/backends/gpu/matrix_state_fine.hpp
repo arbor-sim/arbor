@@ -342,7 +342,7 @@ public:
                 lvl_meta.data_index = pos;
                 lvl_meta.data_array_start = data_start;
 
-                data_start+= lvl_branches.size();
+                data_start+= lvl_meta.num_branches;
 
                 lvl_lengths.resize(lvl_branches.size());
                 lvl_parents.resize(lvl_branches.size());
@@ -490,7 +490,8 @@ public:
     void solve() {
         solve_matrix_fine(
             rhs.data(), d.data(), u.data(),
-            levels.data(), levels_start.data(),
+            levels_meta.data(), levels_lengths.data(), levels_parents.data(),
+            levels_start.data(),
             num_cells_in_block.data(),
             data_partition.data(),
             num_cells_in_block.size(), max_branches_per_level);
