@@ -101,8 +101,8 @@ void solve_matrix_fine(
     T* d,
     const T* u,
     const level_metadata* levels_meta,
-    const fvm_size_type* levels_lengths,
-    const fvm_size_type* levels_parents,
+    const fvm_index_type* levels_lengths,
+    const fvm_index_type* levels_parents,
     const unsigned* levels_start,
     unsigned* num_matrix, // number of packed matrices = number of cells
     unsigned* padded_size)
@@ -173,8 +173,7 @@ void solve_matrix_fine(
     {
         // the levels are sorted such that the root is the last level
         const auto& lvl_meta = block_levels_meta[num_levels-1];
-        const auto lvl_lengths = levels_lengths[lvl_meta.data_array_start];
-        const auto lvl_parents = levels_parents[lvl_meta.data_array_start];
+        const auto lvl_lengths = &levels_lengths[lvl_meta.data_array_start];
 
         //const auto& lvl = block_levels[num_levels-1];
         const unsigned width = num_matrix[bid];
@@ -324,8 +323,8 @@ void solve_matrix_fine(
     fvm_value_type* d,                // diagonal values
     const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
     const level_metadata* levels_meta,
-    const fvm_size_type* levels_lengths,
-    const fvm_size_type* levels_parents,
+    const fvm_index_type* levels_lengths,
+    const fvm_index_type* levels_parents,
     const unsigned* levels_start,     // start index into levels for each cuda block
     unsigned* num_cells,              // he number of cells packed into this single matrix
     unsigned* padded_size,            // length of rhs, d, u, including padding

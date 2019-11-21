@@ -76,8 +76,8 @@ void solve_matrix_fine(
     fvm_value_type* d,                // diagonal values
     const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
     const level_metadata* levels_meta,
-    const fvm_size_type* levels_lengths,
-    const fvm_size_type* levels_parents,
+    const fvm_index_type* levels_lengths,
+    const fvm_index_type* levels_parents,
     const unsigned* levels_end,       // end index (exclusive) into levels for each cuda block
     unsigned* num_cells,              // he number of cells packed into this single matrix
     unsigned* padded_size,            // length of rhs, d, u, including padding
