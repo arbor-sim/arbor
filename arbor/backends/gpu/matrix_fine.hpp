@@ -6,10 +6,10 @@ namespace arb {
 namespace gpu {
 
 struct level_metadata {
-    unsigned num_branches = 0; // Number of branches
+    unsigned num_branches = 0; // Number of branches in a level
     unsigned max_length = 0;   // Length of the longest branch
-    unsigned data_index = 0;   // Index into data values of the first branch
-    unsigned data_array_start = 0;
+    unsigned matrix_data_index = 0;   // Index into data values (d, u, rhs) of the first branch
+    unsigned level_data_index  = 0;   // Index into data values (lengths, parents) of each level
 };
 
 // C wrappers around kernels
@@ -42,16 +42,16 @@ void assemble_matrix_fine(
 
 void solve_matrix_fine(
     fvm_value_type* rhs,
-    fvm_value_type* d,                // diagonal values
-    const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
-    const level_metadata* levels_meta,
-    const fvm_index_type* levels_lengths,
-    const fvm_index_type* levels_parents,
-    const fvm_index_type* levels_end,       // end index (exclusive) into levels for each cuda block
-    fvm_index_type* num_cells,              // he number of cells packed into this single matrix
-    fvm_index_type* padded_size,            // length of rhs, d, u, including padding
-    unsigned num_blocks,              // nuber of blocks
-    unsigned blocksize);              // size of each block
+    fvm_value_type* d,                     // diagonal values
+    const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
+    const level_metadata* levels_meta,     // information pertaining to each level
+    const fvm_index_type* levels_lengths,  // lengths of branches of every level concatenated
+    const fvm_index_type* levels_parents,  // parents of branches of every level concatenated
+    const fvm_index_type* block_index,     // start index (exclusive) into levels for each cuda block
+    fvm_index_type* num_cells,             // he number of cells packed into this single matrix
+    fvm_index_type* padded_size,           // length of rhs, d, u, including padding
+    unsigned num_blocks,                   // number of blocks
+    unsigned blocksize);                   // size of each block
 
 } // namespace gpu
 } // namespace arb
