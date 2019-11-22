@@ -100,8 +100,7 @@ struct label_dict_proxy {
     void set(const char* name, const char* desc) {
         using namespace std::string_literals;
         try{
-            auto label = test_identifier(name);
-            if (!label || (*label != name)) {
+            if (!test_identifier(name)) {
                 throw std::string(util::pprintf("'{}' is not a valid label name.", name));
             }
             auto result = eval(parse(desc));
@@ -110,17 +109,17 @@ struct label_dict_proxy {
                 throw std::string(result.error().message);
             }
             else if (result->type()==typeid(arb::region)) {
-                dict.set(*label, std::move(arb::util::any_cast<arb::region&>(*result)));
+                dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
             }
             else if (result->type()==typeid(arb::locset)) {
-                dict.set(*label, std::move(arb::util::any_cast<arb::locset&>(*result)));
+                dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
             }
             else {
                 // I don't know what I just parsed!
                 throw util::pprintf("The defninition of '{} = {}' does not define a valid region or locset.", name, desc);
             }
             // The entry was added succesfully: store it in the cache.
-            cache[label->c_str()] = desc;
+            cache[name] = desc;
         }
         catch (std::string msg) {
             const char* base = "\nError adding the label '{}' = '{}'\n{}\n";

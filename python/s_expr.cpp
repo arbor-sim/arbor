@@ -253,11 +253,10 @@ private:
     }
 };
 
-arb::util::optional<std::string> test_identifier(const char* in) {
+bool test_identifier(const char* in) {
     lexer L(in);
     auto x = L.current();
-    if (x.kind==tok::name) return x.spelling;
-    return {};
+    return x.kind==tok::name && x.spelling==in;
 }
 
 //
