@@ -83,9 +83,6 @@ public:
     using const_view = typename array::const_view_type;
     using iarray     = memory::device_vector<size_type>;
 
-    template <typename ValueType>
-    using managed_vector = std::vector<ValueType, memory::managed_allocator<ValueType>>;
-
     using metadata_array = memory::device_vector<level_metadata>;
 
     iarray cv_to_cell;
@@ -116,10 +113,10 @@ public:
 
     // number of cells
     unsigned num_cells;
-    managed_vector<unsigned> num_cells_in_block;
+    iarray num_cells_in_block;
 
     // end of the data of each level
-    managed_vector<unsigned> data_partition;
+    iarray data_partition;
     std::size_t data_size;
 
     // the meta data for each level for each block layed out linearly in memory
@@ -130,7 +127,7 @@ public:
     // block b owns { leves[level_start[b]], ..., leves[level_start[b+1] - 1] }
     // there is an additional entry at the end of the vector to make the above
     // compuation save
-    managed_vector<unsigned> levels_start;
+    iarray levels_start;
 
     // permutation from front end storage to packed storage
     //      `solver_format[perm[i]] = external_format[i]`
@@ -165,7 +162,8 @@ public:
         unsigned current_block = 0;
         std::vector<unsigned> block_num_branches_per_depth;
         std::vector<unsigned> block_ix(num_cells);
-        num_cells_in_block.resize(1, 0);
+        std::vector<unsigned> ncells_in_block;
+        ncells_in_block.resize(1, 0);
 
         // branch_map = branch_maps[block] is a branch map for each cuda block
         // branch_map[depth] is list of branches is this level
@@ -213,7 +211,7 @@ public:
             if (fits_current_block) {
                 // put the cell into current block
                 block_ix[c] = current_block;
-                num_cells_in_block[block_ix[c]] += 1;
+                ncells_in_block[block_ix[c]] += 1;
                 // and increment counter
                 for (auto i: make_span(cell_num_levels)) {
                     block_num_branches_per_depth[i] += cell_num_branches_per_depth[i];
@@ -221,7 +219,7 @@ public:
             } else {
                 // otherwise start a new block
                 block_ix[c] = current_block + 1;
-                num_cells_in_block.push_back(1);
+                ncells_in_block.push_back(1);
                 branch_maps.resize(branch_maps.size()+1);
                 current_block += 1;
                 // and reset counter
@@ -235,6 +233,7 @@ public:
                     }
                 }
             }
+            num_cells_in_block = memory::make_const_view(ncells_in_block);
 
 
             // the branch map for the block in which we put the cell
@@ -315,11 +314,11 @@ public:
         // kernel.
 
         std::vector<level_metadata> temp_meta;
-        std::vector<size_type> temp_lengths, temp_parents;
+        std::vector<size_type> temp_lengths, temp_parents, temp_data_part, temp_levels_start;
 
-        levels_start.reserve(branch_maps.size() + 1);
-        levels_start.push_back(0);
-        data_partition.reserve(branch_maps.size());
+        temp_levels_start.reserve(branch_maps.size() + 1);
+        temp_levels_start.push_back(0);
+        temp_data_part.reserve(branch_maps.size());
         // offset into the packed data format, used to apply permutation on data
         auto pos = 0u;
         auto data_start = 0u;
@@ -362,11 +361,11 @@ public:
                 std::move(lvl_lengths.begin(), lvl_lengths.end(), std::back_inserter(temp_lengths));
                 std::move(lvl_parents.begin(), lvl_parents.end(), std::back_inserter(temp_parents));
             }
-            auto prev_end = levels_start.back();
-            levels_start.push_back(prev_end + branch_map.size());
-            data_partition.push_back(pos);
+            auto prev_end = temp_levels_start.back();
+            temp_levels_start.push_back(prev_end + branch_map.size());
+            temp_data_part.push_back(pos);
         }
-	data_size = pos;
+	    data_size = pos;
 
         // set matrix state
         matrix_size = p.size();
@@ -376,9 +375,9 @@ public:
         std::vector<size_type> perm_tmp(matrix_size);
         for (auto block: make_span(branch_maps.size())) {
             const auto& branch_map = branch_maps[block];
-            const auto first_level = levels_start[block];
+            const auto first_level = temp_levels_start[block];
 
-            for (auto i: make_span(levels_start[block + 1] - first_level)) {
+            for (auto i: make_span(temp_levels_start[block + 1] - first_level)) {
                 const auto& l = temp_meta[first_level + i];
                 for (auto j: make_span(l.num_branches)) {
                     const auto& b = branch_map[i][j];
@@ -391,9 +390,11 @@ public:
             }
         }
 
-        levels_meta = memory::make_const_view(temp_meta);
+        levels_meta    = memory::make_const_view(temp_meta);
         levels_lengths = memory::make_const_view(temp_lengths);
         levels_parents = memory::make_const_view(temp_parents);
+        data_partition = memory::make_const_view(temp_data_part);
+        levels_start   = memory::make_const_view(temp_levels_start);
 
         auto perm_balancing = trees.permutation();
 
@@ -419,7 +420,7 @@ public:
 
         // the invariant part of d is stored in in flat form
         std::vector<value_type> invariant_d_tmp(matrix_size, 0);
-        managed_vector<value_type> u_tmp(matrix_size, 0);
+        std::vector<value_type> u_tmp(matrix_size, 0);
         for (auto i: make_span(1u, matrix_size)) {
             auto gij = face_conductance[i];
 
