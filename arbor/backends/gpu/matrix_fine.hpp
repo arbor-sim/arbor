@@ -12,37 +12,6 @@ struct level_metadata {
     unsigned data_array_start = 0;
 };
 
-struct level {
-    level() = default;
-
-    level(unsigned branches);
-    level(level&& other);
-    level(const level& other);
-
-    ~level();
-
-    unsigned num_branches = 0; // Number of branches
-    unsigned max_length = 0;   // Length of the longest branch
-    unsigned data_index = 0;   // Index into data values of the first branch
-
-    //  The lengths and parents vectors are raw pointers to managed memory,
-    //  so there is need for tricksy deep copy of this type to GPU.
-
-    // An array holding the length of each branch in the level.
-    // length: num_branches.
-    unsigned* lengths = nullptr;
-
-    // An array with the index of the parent branch for each branch on this level.
-    // length: num_branches.
-    // When performing backward/forward substitution we need to update/read
-    // data values for the parent node for each branch.
-    // This can be done easily if we know where the parent branch is located
-    // on the next level.
-    unsigned* parents = nullptr;
-};
-
-std::ostream& operator<<(std::ostream& o, const level& l);
-
 // C wrappers around kernels
 void gather(
     const fvm_value_type* from,

@@ -117,9 +117,7 @@ public:
                 cv_index_.data(), values_, thresholds_.data());
 
             // Check that the number of spikes has not exceeded capacity.
-            // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
-            // host-device managed memory access.
-            arb_assert((cudaDeviceSynchronize(), !stack_.overflow()));
+            arb_assert(!stack_.overflow());
         }
     }
 
