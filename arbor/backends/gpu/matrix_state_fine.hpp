@@ -162,8 +162,8 @@ public:
         unsigned current_block = 0;
         std::vector<unsigned> block_num_branches_per_depth;
         std::vector<unsigned> block_ix(num_cells);
-        std::vector<unsigned> ncells_in_block;
-        ncells_in_block.resize(1, 0);
+        std::vector<size_type> temp_ncells_in_block;
+        temp_ncells_in_block.resize(1, 0);
 
         // branch_map = branch_maps[block] is a branch map for each cuda block
         // branch_map[depth] is list of branches is this level
@@ -211,7 +211,7 @@ public:
             if (fits_current_block) {
                 // put the cell into current block
                 block_ix[c] = current_block;
-                ncells_in_block[block_ix[c]] += 1;
+                temp_ncells_in_block[block_ix[c]] += 1;
                 // and increment counter
                 for (auto i: make_span(cell_num_levels)) {
                     block_num_branches_per_depth[i] += cell_num_branches_per_depth[i];
@@ -219,7 +219,7 @@ public:
             } else {
                 // otherwise start a new block
                 block_ix[c] = current_block + 1;
-                ncells_in_block.push_back(1);
+                temp_ncells_in_block.push_back(1);
                 branch_maps.resize(branch_maps.size()+1);
                 current_block += 1;
                 // and reset counter
@@ -233,7 +233,7 @@ public:
                     }
                 }
             }
-            num_cells_in_block = memory::make_const_view(ncells_in_block);
+            num_cells_in_block = memory::make_const_view(temp_ncells_in_block);
 
 
             // the branch map for the block in which we put the cell

@@ -103,9 +103,9 @@ void solve_matrix_fine(
     const level_metadata* levels_meta,
     const fvm_index_type* levels_lengths,
     const fvm_index_type* levels_parents,
-    const unsigned* levels_start,
-    unsigned* num_matrix, // number of packed matrices = number of cells
-    unsigned* padded_size)
+    const fvm_index_type* levels_start,
+    fvm_index_type* num_matrix, // number of packed matrices = number of cells
+    fvm_index_type* padded_size)
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
@@ -325,9 +325,9 @@ void solve_matrix_fine(
     const level_metadata* levels_meta,
     const fvm_index_type* levels_lengths,
     const fvm_index_type* levels_parents,
-    const unsigned* levels_start,     // start index into levels for each cuda block
-    unsigned* num_cells,              // he number of cells packed into this single matrix
-    unsigned* padded_size,            // length of rhs, d, u, including padding
+    const fvm_index_type* levels_start,     // start index into levels for each cuda block
+    fvm_index_type* num_cells,              // he number of cells packed into this single matrix
+    fvm_index_type* padded_size,            // length of rhs, d, u, including padding
     unsigned num_blocks,              // nuber of blocks
     unsigned blocksize)               // size of each block
 {
