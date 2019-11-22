@@ -127,34 +127,6 @@ namespace impl {
             }
         };
 
-        // bare bones implementation of standard compliant allocator for managed memory
-        template <size_type Alignment=1024>
-        struct managed_policy {
-            // Managed memory is aligned on 1024 byte boundaries.
-            // So the Alignment parameter must be a factor of 1024
-            static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 1024 byte boundaries");
-
-            void* allocate_policy(std::size_t n) {
-                if (!n) {
-                    return nullptr;
-                }
-                return cuda_malloc_managed(n);
-            }
-
-            static constexpr size_type alignment() {
-                return Alignment;
-            }
-
-            // managed memory can be used with standard memcpy
-            static constexpr bool is_malloc_compatible() {
-                return true;
-            }
-
-            void free_policy(void* p) {
-                cuda_free(p);
-            }
-        };
-
         class device_policy {
         public:
             void *allocate_policy(size_type size) {
@@ -267,13 +239,6 @@ namespace util {
         }
     };
 
-    template <>
-    struct type_printer<impl::cuda::managed_policy<>>{
-        static std::string print() {
-            return std::string("managed_policy");
-        }
-    };
-
     template <typename T, typename Policy>
     struct type_printer<allocator<T,Policy>>{
         static std::string print() {
@@ -295,9 +260,6 @@ using aligned_allocator = allocator<T, impl::aligned_policy<alignment>>;
 // however in practice it will return pointers that are 1k aligned.
 template <class T, size_t alignment=1024>
 using pinned_allocator = allocator<T, impl::cuda::pinned_policy<alignment>>;
-
-template <class T, size_t alignment=1024>
-using managed_allocator = allocator<T, impl::cuda::managed_policy<alignment>>;
 
 // use 256 as default alignment, because that is the default for cudaMalloc
 template <class T, size_t alignment=256>

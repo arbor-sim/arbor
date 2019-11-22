@@ -37,8 +37,6 @@ void gpu_context::set_gpu() const {
     throw arbor_exception("Arbor must be compiled with CUDA support to set a GPU.");
 }
 
-void gpu_context::synchronize_for_managed_access() const {}
-
 gpu_context::gpu_context(int) {
     throw arbor_exception("Arbor must be compiled with CUDA support to select a GPU.");
 }

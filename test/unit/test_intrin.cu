@@ -4,7 +4,6 @@
 
 #include "backends/gpu/cuda_atomic.hpp"
 #include "backends/gpu/math_cu.hpp"
-#include "backends/gpu/managed_ptr.hpp"
 #include "memory/memory.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -46,34 +45,42 @@ namespace kernels {
 TEST(gpu_intrinsics, cuda_atomic_add) {
     int expected = (128*129)/2;
 
-    auto f = arb::gpu::make_managed_ptr<float>(0.f);
-    kernels::test_atomic_add<<<1, 128>>>(f.get());
+    arb::memory::device_vector<float> f(1);
+    f[0] = 0.f;
+
+    kernels::test_atomic_add<<<1, 128>>>(f.data());
     cudaDeviceSynchronize();
 
-    EXPECT_EQ(float(expected), *f);
+    EXPECT_EQ(float(expected), f[0]);
 
-    auto d = arb::gpu::make_managed_ptr<double>(0.);
-    kernels::test_atomic_add<<<1, 128>>>(d.get());
+    arb::memory::device_vector<double> d(1);
+    d[0] = 0.f;
+
+    kernels::test_atomic_add<<<1, 128>>>(d.data());
     cudaDeviceSynchronize();
 
-    EXPECT_EQ(double(expected), *d);
+    EXPECT_EQ(double(expected), d[0]);
 }
 
 // test atomic subtraction wrapper for single and double precision
 TEST(gpu_intrinsics, cuda_atomic_sub) {
     int expected = -(128*129)/2;
 
-    auto f = arb::gpu::make_managed_ptr<float>(0.f);
-    kernels::test_atomic_sub<<<1, 128>>>(f.get());
+    arb::memory::device_vector<float> f(1);
+    f[0] = 0.f;
+
+    kernels::test_atomic_sub<<<1, 128>>>(f.data());
     cudaDeviceSynchronize();
 
-    EXPECT_EQ(float(expected), *f);
+    EXPECT_EQ(float(expected), f[0]);
 
-    auto d = arb::gpu::make_managed_ptr<double>(0.);
-    kernels::test_atomic_sub<<<1, 128>>>(d.get());
+    arb::memory::device_vector<double> d(1);
+    d[0] = 0.f;
+
+    kernels::test_atomic_sub<<<1, 128>>>(d.data());
     cudaDeviceSynchronize();
 
-    EXPECT_EQ(double(expected), *d);
+    EXPECT_EQ(double(expected), d[0]);
 }
 
 TEST(gpu_intrinsics, minmax) {
