@@ -126,11 +126,11 @@ public:
     // level sequentially in memory. Indexed by level_metadata::level_data_index
     iarray levels_lengths;
 
-    // Stores the index of the parent of each of the branches in each
+    // Stores the indices of the parent of each of the branches in each
     // level sequentially in memory. Indexed by level_metadata::level_data_index
     iarray levels_parents;
 
-    // Store the index to the first level belonging to each block
+    // Stores the indices to the first level belonging to each block
     // block b owns { levels[block_index[b]], ..., levels[block_index[b+1] - 1] }
     // there is an additional entry at the end of the vector to make the above
     // computation safe
@@ -334,21 +334,15 @@ public:
             for (const auto& lvl_branches: branch_map) {
 
                 level_metadata lvl_meta;
-                std::vector<size_type> lvl_lengths, lvl_parents;
+                std::vector<size_type> lvl_lengths(lvl_branches.size()), lvl_parents(lvl_branches.size());
 
                 lvl_meta.num_branches = lvl_branches.size();
-
-                // The length of the first branch is the upper bound on branch
-                // length as they are sorted in descending order of length.
-
-                lvl_meta.max_length = lvl_branches.front().length;
                 lvl_meta.matrix_data_index = pos;
                 lvl_meta.level_data_index = data_start;
 
-                data_start+= lvl_meta.num_branches;
-
-                lvl_lengths.resize(lvl_branches.size());
-                lvl_parents.resize(lvl_branches.size());
+                // The length of the first branch is the upper bound on branch
+                // length as they are sorted in descending order of length.
+                lvl_meta.max_length = lvl_branches.front().length;
 
                 unsigned bi = 0u;
                 for (const auto& b: lvl_branches) {
@@ -363,6 +357,7 @@ public:
                     ++bi;
                 }
 
+                data_start+= lvl_meta.num_branches;
                 pos += lvl_meta.max_length*lvl_meta.num_branches;
 
                 temp_meta.push_back(std::move(lvl_meta));
@@ -373,7 +368,7 @@ public:
             temp_block_index.push_back(prev_end + branch_map.size());
             temp_data_part.push_back(pos);
         }
-	    data_size = pos;
+        data_size = pos;
 
         // set matrix state
         matrix_size = p.size();

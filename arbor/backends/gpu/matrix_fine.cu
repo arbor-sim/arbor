@@ -122,7 +122,7 @@ void solve_matrix_fine(
         const auto& lvl_meta = block_levels_meta[l];
         const auto& next_lvl_meta = block_levels_meta[l+1];
 
-        // Adresses of the first elements of levels_lengths and levels_parents
+        // Addresses of the first elements of levels_lengths and levels_parents
         // that belong to this level
         const auto lvl_lengths = &levels_lengths[lvl_meta.level_data_index];
         const auto lvl_parents = &levels_parents[lvl_meta.level_data_index];
@@ -215,7 +215,7 @@ void solve_matrix_fine(
         const auto& lvl_meta = block_levels_meta[l-1];
         const auto& next_lvl_meta = block_levels_meta[l];
 
-        // Adresses of the first elements of levels_lengths and levels_parents
+        // Addresses of the first elements of levels_lengths and levels_parents
         // that belong to this level
         const auto lvl_lengths = &levels_lengths[lvl_meta.level_data_index];
         const auto lvl_parents = &levels_parents[lvl_meta.level_data_index];
@@ -319,16 +319,16 @@ void assemble_matrix_fine(
 // num_blocks   = level_start.size() - 1 = num_levels.size() = num_cells.size()
 void solve_matrix_fine(
     fvm_value_type* rhs,
-    fvm_value_type* d,                // diagonal values
-    const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
-    const level_metadata* levels_meta,
-    const fvm_index_type* levels_lengths,
-    const fvm_index_type* levels_parents,
+    fvm_value_type* d,                     // diagonal values
+    const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
+    const level_metadata* levels_meta,     // information pertaining to each level
+    const fvm_index_type* levels_lengths,  // lengths of branches of every level concatenated
+    const fvm_index_type* levels_parents,  // parents of branches of every level concatenated
     const fvm_index_type* block_index,     // start index into levels for each cuda block
-    fvm_index_type* num_cells,              // he number of cells packed into this single matrix
-    fvm_index_type* padded_size,            // length of rhs, d, u, including padding
-    unsigned num_blocks,              // nuber of blocks
-    unsigned blocksize)               // size of each block
+    fvm_index_type* num_cells,             // the number of cells packed into this single matrix
+    fvm_index_type* padded_size,           // length of rhs, d, u, including padding
+    unsigned num_blocks,                   // number of blocks
+    unsigned blocksize)                    // size of each block
 {
     kernels::solve_matrix_fine<<<num_blocks, blocksize>>>(
         rhs, d, u, levels_meta, levels_lengths, levels_parents, block_index,
