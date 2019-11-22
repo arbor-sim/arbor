@@ -1,28 +1,16 @@
 import arbor
 
 p = arbor.mpoint(1,2,3,5)
-#print(p)
-
 s = arbor.msample(p, 1)
-#print(s)
-
 tree = arbor.sample_tree()
-#print(tree.size)
-#print(tree.empty)
-#print(tree.parents)
-tree.reserve(42)
+print(tree.size, tree.empty, tree.parents)
 
+tree.reserve(10)
 tree.append(s)
-
-#print(tree.size)
-#print(tree.empty)
-#print(tree.parents)
-
-#print(s)
-#print(p)
+print(tree.size, tree.empty, tree.parents)
 tree.append(0, s)
 
-#print(tree)
+print(tree)
 
 tree = arbor.load_swc('../../test/unit/swc/ball_and_stick.swc')
 #tree = arbor.load_swc('../../test/unit/swc/example.swc')
@@ -40,7 +28,8 @@ for i in range(m.num_branches):
 #print(m.sample_parents)
 
 print('\n----------------------------- make label dictionary -----------------------------\n')
-defs = {'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)', 'cat': '(join (tag 1) (tag 2))'}
+# TODO: this should throw an error because `ax&on` is not a valid name for a region/locset
+defs = {'soma': '(tag 1)', 'axon ': '(tag 2)', 'dend': '(tag 3)', 'cat': '(join (tag 1) (tag 2))'}
 labels = arbor.label_dict(defs)
 print(labels)
 #print(labels.regions())
@@ -57,4 +46,9 @@ labels['sdnd'] = '(join (tag 1) (tag 2))'
 
 print(labels['soma'])
 print(labels['sdnd'])
-print(labels['boofar'])
+print()
+print('len(labels)', len(labels))
+for name in labels:
+    print('  ', name, ':', labels[name])
+
+labels['sdnd'] = '(join (tag 1) (tag 2))'

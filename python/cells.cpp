@@ -81,37 +81,49 @@ struct local_param_set_proxy {
 };
 
 struct label_dict_proxy {
+    using str_map = std::unordered_map<std::string, std::string>;
     arb::label_dict dict;
+    str_map cache;
 
     label_dict_proxy() = default;
 
-    label_dict_proxy(const std::unordered_map<std::string, std::string>& in) {
+    label_dict_proxy(const str_map& in) {
         for (auto& i: in) {
             set(i.first.c_str(), i.second.c_str());
         }
     }
 
+    std::size_t size() const {
+        return dict.size();
+    }
+
     void set(const char* name, const char* desc) {
         using namespace std::string_literals;
         try{
+            auto label = test_identifier(name);
+            if (!label || (*label != name)) {
+                throw std::string(util::pprintf("'{}' is not a valid label name.", name));
+            }
             auto result = eval(parse(desc));
             if (!result) {
                 // there was a well-defined
                 throw std::string(result.error().message);
             }
             else if (result->type()==typeid(arb::region)) {
-                dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
+                dict.set(*label, std::move(arb::util::any_cast<arb::region&>(*result)));
             }
             else if (result->type()==typeid(arb::locset)) {
-                dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
+                dict.set(*label, std::move(arb::util::any_cast<arb::locset&>(*result)));
             }
             else {
                 // I don't know what I just parsed!
                 throw util::pprintf("The defninition of '{} = {}' does not define a valid region or locset.", name, desc);
             }
+            // The entry was added succesfully: store it in the cache.
+            cache[label->c_str()] = desc;
         }
         catch (std::string msg) {
-            const char* base = "\nError parsing the label '{}' = '{}'\n{}\n";
+            const char* base = "\nError adding the label '{}' = '{}'\n{}\n";
 
             throw std::runtime_error(util::pprintf(base, name, desc, msg));
         }
@@ -253,29 +265,24 @@ void register_cells(pybind11::module& m) {
     label_dict
         .def(pybind11::init<>())
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>())
-        .def("set",
-            [](label_dict_proxy& l, const char* name, const char* desc) {
-                l.set(name, desc);})
         .def("__setitem__",
             [](label_dict_proxy& l, const char* name, const char* desc) {
                 l.set(name, desc);})
         .def("__getitem__",
             [](label_dict_proxy& l, const char* name) {
-                auto reg = l.dict.region(name);
-                if (reg) return util::pprintf("{}", *reg);
-                auto ls = l.dict.locset(name);
-                if (ls) return util::pprintf("{}", *ls);
-                throw std::runtime_error(util::pprintf("\nKeyError: '{}'", name));
+                if (!l.cache.count(name)) {
+                    throw std::runtime_error(util::pprintf("\nKeyError: '{}'", name));
+                }
+                return l.cache.at(name);
             })
+        .def("__len__", &label_dict_proxy::size)
+        .def("__iter__",
+            [](const label_dict_proxy &ld) {
+                return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
+            pybind11::keep_alive<0, 1>())
         .def("__str__",  [](const label_dict_proxy&){return std::string("dictionary");})
         .def("__repr__", [](const label_dict_proxy&){return std::string("dictionary");});
         /*
-        .def("set",
-            [](arb::label_dict& l, const std::string& name, arb::locset ls) {
-                l.set(name, std::move(ls));})
-        .def("set",
-            [](arb::label_dict& l, const std::string& name, arb::region reg) {
-                l.set(name, std::move(reg));})
         .def("size", &arb::label_dict::size,
              "The number of labels in the dictionary.")
         .def("regions", &arb::label_dict::regions,

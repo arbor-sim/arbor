@@ -108,9 +108,12 @@ const std::vector<point_prop>& sample_tree::properties() const {
 }
 
 std::ostream& operator<<(std::ostream& o, const sample_tree& m) {
-    o << "(sample_tree (" << io::sepval(m.samples_, ' ') <<  ")"
-      << " (" << io::sepval(m.parents_, ' ') <<  "))";
-    return o;
+    auto tstr = util::transform_view(m.parents_,
+            [](msize_t i) -> std::string {
+                return i==mnpos? "npos": std::to_string(i);
+            });
+    return o << "(sample_tree (" << io::sepval(m.samples_, ' ') <<  ")"
+             << " (" << io::sepval(tstr, ' ') <<  "))";
 }
 
 sample_tree swc_as_sample_tree(const std::vector<swc_record>& swc_records) {

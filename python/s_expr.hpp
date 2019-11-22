@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <arbor/util/either.hpp>
+#include <arbor/util/optional.hpp>
 
 namespace pyarb {
 
@@ -115,6 +116,8 @@ std::size_t length(const s_expr& l);
 int location(const s_expr& l);
 
 s_expr parse(const char* line);
+
+arb::util::optional<std::string> test_identifier(const char*);
 
 } // namespace pyarb
 
