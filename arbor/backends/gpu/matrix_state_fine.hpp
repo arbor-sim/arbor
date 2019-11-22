@@ -420,14 +420,16 @@ public:
 
         // the invariant part of d is stored in in flat form
         std::vector<value_type> invariant_d_tmp(matrix_size, 0);
-        std::vector<value_type> u_tmp(matrix_size, 0);
+        std::vector<value_type> temp_u_shuffled(matrix_size, 0);
+        array u_shuffled;
         for (auto i: make_span(1u, matrix_size)) {
             auto gij = face_conductance[i];
 
-            u_tmp[i] = -gij;
+            temp_u_shuffled[i] = -gij;
             invariant_d_tmp[i] += gij;
             invariant_d_tmp[p[i]] += gij;
         }
+        u_shuffled = memory::make_const_view(temp_u_shuffled);
 
         // the matrix components u, d and rhs are stored in packed form
         auto nan = std::numeric_limits<double>::quiet_NaN();
@@ -435,8 +437,8 @@ public:
         u   = array(data_size, nan);
         rhs = array(data_size, nan);
 
-        // transform u_tmp values into packed u vector.
-        flat_to_packed(u_tmp, u);
+        // transform u_shuffled values into packed u vector.
+        flat_to_packed(u_shuffled, u);
 
         // the invariant part of d, cv_area and the solution are in flat form
         solution_ = array(matrix_size, 0);
