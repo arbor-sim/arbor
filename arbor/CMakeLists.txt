@@ -67,7 +67,6 @@ if(ARB_WITH_CUDA)
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_interleave.cu
         backends/gpu/matrix_fine.cu
-        backends/gpu/matrix_fine.cpp
         backends/gpu/matrix_solve.cu
         backends/gpu/multi_event_stream.cpp
         backends/gpu/multi_event_stream.cu

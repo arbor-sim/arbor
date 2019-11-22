@@ -12,8 +12,7 @@
 namespace arb {
 
 enum gpu_flags {
-    has_concurrent_managed_access = 1,
-    has_atomic_double = 2
+    has_atomic_double = 1
 };
 
 gpu_context_handle make_gpu_context(int id) {
@@ -22,10 +21,6 @@ gpu_context_handle make_gpu_context(int id) {
 
 bool gpu_context_has_gpu(const gpu_context& ctx) {
     return ctx.has_gpu();
-}
-
-bool gpu_context::has_concurrent_managed_access() const {
-    return attributes_ & gpu_flags::has_concurrent_managed_access;
 }
 
 bool gpu_context::has_atomic_double() const {
@@ -66,17 +61,8 @@ gpu_context::gpu_context(int gpu_id) {
 
     // Record the device attributes
     attributes_ = 0;
-    if (prop.concurrentManagedAccess) {
-        attributes_ |= gpu_flags::has_concurrent_managed_access;
-    }
     if (prop.major*100 + prop.minor >= 600) {
         attributes_ |= gpu_flags::has_atomic_double;
-    }
-}
-
-void gpu_context::synchronize_for_managed_access() const {
-    if(!has_concurrent_managed_access()) {
-        cudaDeviceSynchronize();
     }
 }
 

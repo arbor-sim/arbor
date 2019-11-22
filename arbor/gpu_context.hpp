@@ -13,9 +13,7 @@ public:
     gpu_context() = default;
     gpu_context(int id);
 
-    bool has_concurrent_managed_access() const;
     bool has_atomic_double() const;
-    void synchronize_for_managed_access() const;
     bool has_gpu() const;
     // Calls cudaSetDevice(id), so that GPU calls from the calling thread will
     // be executed on the GPU.
