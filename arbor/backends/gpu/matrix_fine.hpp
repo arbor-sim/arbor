@@ -44,9 +44,9 @@ void solve_matrix_fine(
     fvm_value_type* rhs,
     fvm_value_type* d,                     // diagonal values
     const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
-    const level_metadata* levels_meta,     // information pertaining to each level
-    const fvm_index_type* levels_lengths,  // lengths of branches of every level concatenated
-    const fvm_index_type* levels_parents,  // parents of branches of every level concatenated
+    const level_metadata* level_meta,      // information pertaining to each level
+    const fvm_index_type* level_lengths,   // lengths of branches of every level concatenated
+    const fvm_index_type* level_parents,   // parents of branches of every level concatenated
     const fvm_index_type* block_index,     // start index (exclusive) into levels for each cuda block
     fvm_index_type* num_cells,             // the number of cells packed into this single matrix
     fvm_index_type* padded_size,           // length of rhs, d, u, including padding

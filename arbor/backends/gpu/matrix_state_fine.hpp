@@ -119,16 +119,16 @@ public:
     std::size_t data_size;
 
     // Metadata for each level
-    // Includes indices into d, u, rhs and levels_lengths, levels_parents
-    metadata_array levels_meta;
+    // Includes indices into d, u, rhs and level_lengths, level_parents
+    metadata_array level_meta;
 
     // Stores the lengths (number of compartments) of the branches of each
     // level sequentially in memory. Indexed by level_metadata::level_data_index
-    iarray levels_lengths;
+    iarray level_lengths;
 
     // Stores the indices of the parent of each of the branches in each
     // level sequentially in memory. Indexed by level_metadata::level_data_index
-    iarray levels_parents;
+    iarray level_parents;
 
     // Stores the indices to the first level belonging to each block
     // block b owns { levels[block_index[b]], ..., levels[block_index[b+1] - 1] }
@@ -328,7 +328,7 @@ public:
 
         // Offset into the packed data format, used to apply permutation on data
         auto pos = 0u;
-        // Offset into the packed data format, used to access levels_lengths and levels_parents
+        // Offset into the packed data format, used to access level_lengths and level_parents
         auto data_start = 0u;
         for (const auto& branch_map: branch_maps) {
             for (const auto& lvl_branches: branch_map) {
@@ -361,8 +361,8 @@ public:
                 pos += lvl_meta.max_length*lvl_meta.num_branches;
 
                 temp_meta.push_back(std::move(lvl_meta));
-                std::move(lvl_lengths.begin(), lvl_lengths.end(), std::back_inserter(temp_lengths));
-                std::move(lvl_parents.begin(), lvl_parents.end(), std::back_inserter(temp_parents));
+                util::append(temp_lengths, lvl_lengths);
+                util::append(temp_parents, lvl_parents);
             }
             auto prev_end = temp_block_index.back();
             temp_block_index.push_back(prev_end + branch_map.size());
@@ -394,9 +394,9 @@ public:
             }
         }
 
-        levels_meta    = memory::make_const_view(temp_meta);
-        levels_lengths = memory::make_const_view(temp_lengths);
-        levels_parents = memory::make_const_view(temp_parents);
+        level_meta     = memory::make_const_view(temp_meta);
+        level_lengths  = memory::make_const_view(temp_lengths);
+        level_parents  = memory::make_const_view(temp_parents);
         data_partition = memory::make_const_view(temp_data_part);
         block_index    = memory::make_const_view(temp_block_index);
 
@@ -490,7 +490,7 @@ public:
     void solve() {
         solve_matrix_fine(
             rhs.data(), d.data(), u.data(),
-            levels_meta.data(), levels_lengths.data(), levels_parents.data(),
+            level_meta.data(), level_lengths.data(), level_parents.data(),
             block_index.data(),
             num_cells_in_block.data(),
             data_partition.data(),

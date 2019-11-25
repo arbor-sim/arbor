@@ -49,7 +49,6 @@ TEST(gpu_intrinsics, cuda_atomic_add) {
     f[0] = 0.f;
 
     kernels::test_atomic_add<<<1, 128>>>(f.data());
-    cudaDeviceSynchronize();
 
     EXPECT_EQ(float(expected), f[0]);
 
@@ -57,7 +56,6 @@ TEST(gpu_intrinsics, cuda_atomic_add) {
     d[0] = 0.f;
 
     kernels::test_atomic_add<<<1, 128>>>(d.data());
-    cudaDeviceSynchronize();
 
     EXPECT_EQ(double(expected), d[0]);
 }
@@ -70,7 +68,6 @@ TEST(gpu_intrinsics, cuda_atomic_sub) {
     f[0] = 0.f;
 
     kernels::test_atomic_sub<<<1, 128>>>(f.data());
-    cudaDeviceSynchronize();
 
     EXPECT_EQ(float(expected), f[0]);
 
@@ -78,7 +75,6 @@ TEST(gpu_intrinsics, cuda_atomic_sub) {
     d[0] = 0.f;
 
     kernels::test_atomic_sub<<<1, 128>>>(d.data());
-    cudaDeviceSynchronize();
 
     EXPECT_EQ(double(expected), d[0]);
 }
@@ -116,26 +112,22 @@ TEST(gpu_intrinsics, minmax) {
 
     // test min
     kernels::test_min<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     kernels::test_min<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     // test max
     kernels::test_max<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
 
     kernels::test_max<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
@@ -152,7 +144,6 @@ TEST(gpu_intrinsics, exprelr) {
     arb::memory::device_vector<double> result(n);
 
     kernels::test_exprelr<<<1,n>>>(x.data(), result.data());
-    cudaDeviceSynchronize();
 
     auto index = arb::util::make_span(0, n);
     for (auto i: index) {
