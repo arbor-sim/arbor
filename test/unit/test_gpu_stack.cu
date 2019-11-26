@@ -2,7 +2,6 @@
 
 #include "backends/gpu/stack.hpp"
 #include "backends/gpu/stack_cu.hpp"
-#include "backends/gpu/managed_ptr.hpp"
 #include "gpu_context.hpp"
 
 using namespace arb;

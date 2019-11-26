@@ -40,7 +40,6 @@ std::vector<fvm_value_type> mechanism_field(gpu::mechanism* m, const std::string
     const fvm_value_type* field_data = *opt_ptr.value();
     std::vector<fvm_value_type> values(m->size());
 
-    cudaDeviceSynchronize();
     memory::cuda_memcpy_d2h(values.data(), field_data, sizeof(fvm_value_type)*m->size());
     return values;
 }
