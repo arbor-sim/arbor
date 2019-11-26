@@ -7,24 +7,6 @@ import sys
 import numpy as np
 import math
 
-#####################################################################
-# MPI configuration
-world = MPI.COMM_WORLD
-rank = world.Get_rank()
-
-# Need to formalize this nicer, currently the coupling is hardcoded
-comm = MPI.COMM_WORLD.Split(1) 
-
-
-########################################################################
-# Config
-num_arbor_cells = 100;
-min_delay = 10;
-duration = 100;
-
-arbor_root = 0
-nest_root = 1
-
 ############################################################################
 # Some helper functions
 
@@ -47,8 +29,28 @@ def print_spike_array_d (to_print , force = False):
     for spike in to_print:
         print ("S[ " + str(spike[0]) + ":" + str(spike[1]) + " t " + str(spike[2]) + " ]", end = '')
     print ("]")
-    sys.stdout.flush() # we are debuggin MPI code, force a print after each print statement
+    sys.stdout.flush() 
 
+
+#####################################################################
+# MPI configuration
+world = MPI.COMM_WORLD
+rank = world.Get_rank()
+
+# Need to formalize this nicer, currently the coupling is hardcoded
+comm = MPI.COMM_WORLD.Split(1) 
+
+
+########################################################################
+# Config
+num_arbor_cells = 100;
+min_delay = 10;
+duration = 100;
+
+arbor_root = 0
+nest_root = 1
+
+# we are debuggin MPI code, force a print after each print statement
 # Gather function
 def gather_spikes(spikes, comm):
     # We need to know how much data we will receive in this gather action
@@ -84,6 +86,7 @@ world.Bcast(data_array, arbor_root)
 #Receive nest cell_nr
 data_array = np.array([0],dtype=np.int32)  
 world.Bcast(data_array, root=nest_root) #Use Bcast allows setting of received size
+
 num_nest_cells = data_array[0] 
 num_total_cells = num_nest_cells + num_arbor_cells
 
