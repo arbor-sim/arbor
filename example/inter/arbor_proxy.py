@@ -38,6 +38,17 @@ def print_d (to_print , force = False):
     print (print_prefix + str(to_print))
     sys.stdout.flush() # we are debuggin MPI code, force a print after each print statement
 
+def print_spike_array_d (to_print , force = False):
+    if (not (print_debug or force) ):     # print_debug is 'global variable'
+        return
+
+    # Assume that we received a spike array, no error checking
+    print (print_prefix + "SPIKES: [", end = '')
+    for spike in to_print:
+        print ("S[ " + str(spike[0]) + ":" + str(spike[1]) + " t " + str(spike[2]) + " ]", end = '')
+    print ("]")
+    sys.stdout.flush() # we are debuggin MPI code, force a print after each print statement
+
 # Gather function
 def gather_spikes(spikes, comm):
     # We need to know how much data we will receive in this gather action
@@ -45,47 +56,24 @@ def gather_spikes(spikes, comm):
     receive_count_array = np.zeros(size, dtype='uint32')
     send_count_array = np.array([spikes.size], dtype='uint32')
     comm.Allgather(send_count_array, receive_count_array)
-    print_d("Reveived array with counts: " + str(receive_count_array))
 
-    # calculate displacements
-    disp_array = np.zeros(size+1, dtype='int32')
-    for idx, entry  in enumerate(receive_count_array):
-        disp_array[idx + 1] = disp_array[idx] + receive_count_array[idx]
-
-    print_d("displacements: " + str(disp_array))
-
-    receive_spikes_array = np.ones(disp_array[-1], dtype='byte')  # we are going to receive n spikes
-
-    print_d("nd_array as tuple" + str(tuple(receive_count_array)))
-
+    # Calculate the amount of spikes 
+    cummulative_sum_spikes = np.cumsum(receive_count_array)
     offsets = np.zeros(size) 
-    offsets[1:]=np.cumsum(receive_count_array)[:-1] 
+    offsets[1:]=cummulative_sum_spikes[:-1] # start with a zero and skip the last entry in cumsum
 
+    # Create buffers for sending and receiving
+    # Total nr spikes received is the last entry in cumsum
+    # Allgatherv only available as raw byte buffers
+    receive_spikes_array = np.ones(cummulative_sum_spikes[-1], dtype='byte')  
+    send_buffer = spikes.view(dtype=np.byte)  # send as a byte view in spikes
+    receive_buffer = [receive_spikes_array, receive_count_array, offsets, MPI.BYTE]
 
-    comm.Allgatherv(spikes.view(dtype=np.byte),
-                    [receive_spikes_array, receive_count_array, offsets, MPI.BYTE])
+    comm.Allgatherv(send_buffer, receive_buffer)
+    print_spike_array_d(receive_spikes_array.view('uint32,uint32, float32'))
 
-    print_d("spikes received: " + str(receive_spikes_array.view('uint32,uint32, float32')))
-
-
-
-#    int n_local = values.size()*sizeof(arb::spike);
-#    MPI_Allgather(&n_local, 1, MPI_INT, counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-#    std::vector<int> displ(size+1);
-#    for (int i=0; i<size; ++i) {
-#        displ[i+1] = displ[i] + counts[i];
-#    }
-
-#    std::vector<arb::spike> buffer(displ.back()/sizeof(arb::spike));
-#    MPI_Allgatherv(
-#            const_cast<arb::spike*>(values.data()), n_local, MPI_CHAR,  // send buffer
-#            buffer.data(), counts.data(), displ.data(), MPI_CHAR,       // receive buffer
-#            comm);
-
-#    return buffer;
-#}
-
-
+    return receive_spikes_array.view('uint32,uint32, float32')
+    
 
 ########################################################################
 # handshake #1: communicate the number of cells between arbor and nest
@@ -139,29 +127,15 @@ print_d("delta: " + str(delta) + ", " +
         "steps: " + str(steps) + ", ")
 
 #######################################################
-# main simulated simulation loop
-
-for step in range(steps):
+# main simulated simulation loop inclusive nr of steps.
+for step in range(steps+1):
     print_d("step: " + str(step) + ": " + str(step * delta))
 
     # We are sending no spikes from arbor to nest. Create a array with size zero with correct type
     data_array = np.zeros(0, dtype='uint32, uint32, float32')  
     gather_spikes(data_array, world)
 
-
-
-
-
-
-
-
-
-
-#float min_delay = 2*std::min(nest_comm_time, arb_comm_time);
-
-
-#print (num_nest_cells)
-
+print_d("Reached arbor_proxy.py end")
 
 
 

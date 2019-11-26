@@ -62,7 +62,8 @@ int main(int argc, char **argv)
         // hand shake #2: min delay
         float arb_comm_time = params.min_delay/2;
         broadcast(arb_comm_time, MPI_COMM_WORLD, info.arbor_root);
-        float nest_comm_time = broadcast(0.f, MPI_COMM_WORLD, info.nest_root);
+		// 0.f between machines this might cause problems, we might select a hard float32?
+        float nest_comm_time = broadcast(0.f, MPI_COMM_WORLD, info.nest_root);   
         float min_delay = 2*std::min(nest_comm_time, arb_comm_time);
 
         std::cout << "ARB: min_delay: " << min_delay << std::endl;
