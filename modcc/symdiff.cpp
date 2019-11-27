@@ -529,9 +529,9 @@ public:
                 return;
             case tok::gte:
                 as_number(loc, lval>=rval);
-            case tok::and_t:
+            case tok::land:
                 as_number(loc, lval&&rval);
-            case tok::or_t:
+            case tok::lor:
                 as_number(loc, lval||rval);
                     return;
             default: ;

@@ -195,20 +195,40 @@ Token Lexer::parse() {
                 }
                 return t;
             }
-            case '&':
+            case '&': {
+                bool valid = false;
                 t.spelling += character();
-                if(*current_=='&') {
+                if (*current_ == '&') {
                     t.spelling += character();
-                    t.type = tok::and_t;
-                    return t;
+                    if (*current_ != '&') {
+                        t.type = tok::land;
+                        valid = true;
+                    }
                 }
-            case '|':
+                if (!valid) {
+                    error_string_ = pprintf("& must be in pairs");
+                    status_ = lexerStatus::error;
+                    t.type = tok::reserved;
+                }
+                return t;
+            }
+            case '|': {
+                bool valid = false;
                 t.spelling += character();
-                if(*current_=='|') {
+                if (*current_ == '|') {
                     t.spelling += character();
-                    t.type = tok::or_t;
-                    return t;
+                    if (*current_ != '|') {
+                        t.type = tok::lor;
+                        valid = true;
+                    }
                 }
+                if (!valid) {
+                    error_string_ = pprintf("| must be in pairs");
+                    status_ = lexerStatus::error;
+                    t.type = tok::reserved;
+                }
+                return t;
+            }
             case '\'':
                 t.type = tok::prime;
                 t.spelling += character();
@@ -394,8 +414,8 @@ void Lexer::binop_prec_init() {
     // I have taken the operator precedence from C++
     // Note that only infix operators require precidence.
     binop_prec_[tok::eq]       = 1;
-    binop_prec_[tok::and_t]    = 2;
-    binop_prec_[tok::or_t]     = 3;
+    binop_prec_[tok::land]     = 2;
+    binop_prec_[tok::lor]      = 3;
     binop_prec_[tok::equality] = 4;
     binop_prec_[tok::ne]       = 4;
     binop_prec_[tok::lt]       = 5;

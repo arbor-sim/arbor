@@ -16,7 +16,7 @@ enum class tok {
     // infix binary ops
 
     // = + - * / ^
-    eq, plus, minus, times, divide, pow, and_t, or_t,
+    eq, plus, minus, times, divide, pow, land, lor,
     // comparison
     lnot,    // !   named logical not, to avoid clash with C++ not keyword
     lt,      // <
