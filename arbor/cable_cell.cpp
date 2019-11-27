@@ -159,7 +159,6 @@ struct cable_cell_impl {
     lid_range place(const mlocation_list& locs, const Desc& desc, std::vector<T>& list) {
         const auto first = list.size();
 
-        list.reserve(first+locs.size());
         for (auto loc: locs) {
             list.push_back({loc, desc});
         }
