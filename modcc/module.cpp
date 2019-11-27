@@ -278,8 +278,6 @@ bool Module::semantic() {
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
 
-    scope_ptr nrn_init_scope = api_init->scope();
-
     auto& init_body = api_init->body()->statements();
 
     for(auto& e : *proc_init->body()) {
