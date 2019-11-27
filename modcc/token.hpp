@@ -69,7 +69,7 @@ enum class tok {
     min, max,
 
     // unary operators
-    exp, sin, cos, log, fabs,
+    exp, sin, cos, log, abs,
     exprelr, // equivalent to x/(exp(x)-1) with exprelr(0)=1
 
     // logical keywords

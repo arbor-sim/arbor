@@ -1364,7 +1364,7 @@ expression_ptr Parser::parse_unaryop() {
         case tok::sin    :
         case tok::cos    :
         case tok::log    :
-        case tok::fabs   :
+        case tok::abs    :
         case tok::exprelr:
             get_token();        // consume operator (exp, sin, cos or log)
             if(token_.type!=tok::lparen) {

@@ -1073,7 +1073,7 @@ expression_ptr unary_expression( Location loc,
             return make_expression<SinUnaryExpression>(loc, std::move(e));
         case tok::log :
             return make_expression<LogUnaryExpression>(loc, std::move(e));
-        case tok::fabs :
+        case tok::abs :
             return make_expression<AbsUnaryExpression>(loc, std::move(e));
         case tok::exprelr :
             return make_expression<ExprelrUnaryExpression>(loc, std::move(e));
