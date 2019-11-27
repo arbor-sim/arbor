@@ -255,7 +255,7 @@ TEST(Parser, parse_if) {
     }
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_if,
-        "   if(abs(a-b)) {      \n"
+        "   if(fabs(a-b)) {      \n"
         "       a = 2+b    \n"
         "   } else if(b>a){\n"
         "       a = 2+b    \n"
