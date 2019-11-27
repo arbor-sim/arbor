@@ -16,6 +16,17 @@
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
+/* TODO
+ *
+ *  - Place calls
+ *      - synapses
+ *      - gap junctions
+ *      - clamp
+ *      - detectors
+ *  - Cell builder for ring test
+ *
+ */
+
 namespace pyarb {
 
 // Convert a cell description inside a Python object to a cell
@@ -51,39 +62,12 @@ arb::util::unique_any convert_cell(pybind11::object o) {
 //  proxies
 //
 
-struct local_param_set_proxy {
-    arb::cable_cell_local_parameter_set params;
-    void set_membrane_potential(pybind11::object value) {
-        params.init_membrane_potential =
-            py2optional<double>(value, "membrane potential must be a number.", is_nonneg{});
-    }
-    void set_temperature(pybind11::object value) {
-        params.temperature_K =
-            py2optional<double>(value, "temperature in degrees K must be non-negative.", is_nonneg{});
-    }
-    void set_axial_resistivity(pybind11::object value) {
-        params.axial_resistivity =
-            py2optional<double>(value, "axial resistivity must be positive.", is_positive{});
-    }
-    void set_membrane_capacitance(pybind11::object value) {
-        params.membrane_capacitance =
-            py2optional<double>(value, "membrane capacitance must be positive.", is_positive{});
-    }
-
-    auto get_membrane_potential()   const { return params.init_membrane_potential; }
-    auto get_temperature()          const { return params.temperature_K; }
-    auto get_axial_resistivity()    const { return params.axial_resistivity; }
-    auto get_membrane_capacitance() const { return params.axial_resistivity; }
-
-    operator arb::cable_cell_local_parameter_set() const {
-        return params;
-    }
-};
-
 struct label_dict_proxy {
     using str_map = std::unordered_map<std::string, std::string>;
     arb::label_dict dict;
     str_map cache;
+    std::vector<std::string> locsets;
+    std::vector<std::string> regions;
 
     label_dict_proxy() = default;
 
@@ -110,9 +94,13 @@ struct label_dict_proxy {
             }
             else if (result->type()==typeid(arb::region)) {
                 dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
+                auto it = std::lower_bound(regions.begin(), regions.end(), name);
+                if (it==regions.end() || *it!=name) regions.insert(it, name);
             }
             else if (result->type()==typeid(arb::locset)) {
                 dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
+                auto it = std::lower_bound(locsets.begin(), locsets.end(), name);
+                if (it==locsets.end() || *it!=name) locsets.insert(it, name);
             }
             else {
                 // I don't know what I just parsed!
@@ -155,7 +143,7 @@ std::string lif_str(const arb::lif_cell& c){
 
 
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
-    return util::pprintf("<arbor.mechanism_desc: name '{}', parameters {}",
+    return util::pprintf("<arbor.mechanism: name '{}', parameters {}",
             md.name(), util::dictionary_csv(md.values()));
 }
 
@@ -168,14 +156,6 @@ std::string ion_data_str(const arb::cable_cell_ion_data& d) {
     return util::pprintf(
         "<arbor.cable_cell_ion_data: con_in {}, con_ex {}, rev_pot {}>",
         d.init_int_concentration, d.init_ext_concentration, d.init_reversal_potential);
-}
-
-std::string local_parameter_set_str(const local_param_set_proxy& p) {
-    auto s = util::pprintf("<arbor.local_parameter_set: V_m {} (mV), temp {} (K), R_L {} (Ω·cm), C_m {} (F/m²), ion_data {}>",
-            p.params.init_membrane_potential, p.params.temperature_K,
-            p.params.axial_resistivity, p.params.membrane_capacitance,
-            util::dictionary_csv(p.params.ion_data));
-    return s;
 }
 
 void register_cells(pybind11::module& m) {
@@ -279,28 +259,12 @@ void register_cells(pybind11::module& m) {
             [](const label_dict_proxy &ld) {
                 return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
             pybind11::keep_alive<0, 1>())
+        .def_readonly("regions", &label_dict_proxy::regions,
+             "The region labels stored in a set.")
+        .def_readonly("locsets", &label_dict_proxy::locsets,
+             "The locset labels stored in a set.")
         .def("__str__",  [](const label_dict_proxy&){return std::string("dictionary");})
         .def("__repr__", [](const label_dict_proxy&){return std::string("dictionary");});
-        /*
-        .def("size", &arb::label_dict::size,
-             "The number of labels in the dictionary.")
-        .def("regions", &arb::label_dict::regions,
-             "Returns a dictionary mapping region names to their definitions.")
-        .def("locsets", &arb::label_dict::locsets,
-             "Returns a dictionary mapping locset names to their definitions.")
-        .def("region",
-             [](const arb::label_dict& d, const std::string& n) {
-                auto reg = d.region(n);
-                return reg? *reg: arb::reg::nil();
-             },
-             "name"_a, "Returns the region with label name. Returns the empty region nil if there is no region with that label.")
-        .def("locset",
-             [](const arb::label_dict& d, const std::string& n) {
-                auto ls = d.locset(n);
-                return ls? *ls: arb::ls::nil();
-             },
-             "name"_a, "Returns the locset with label name. Returns the empty locset nil if there is no locset with that label.");
-        */
 
     //
     // Data structures used to describe mechanisms, electrical properties,
@@ -308,12 +272,11 @@ void register_cells(pybind11::module& m) {
     //
 
     // arb::mechanism_desc
-    pybind11::class_<arb::mechanism_desc> mechanism_desc(m, "mechanism_desc");
+    pybind11::class_<arb::mechanism_desc> mechanism_desc(m, "mechanism");
     mechanism_desc
-        .def(pybind11::init<>())
         .def(pybind11::init([](const char* n) {return arb::mechanism_desc{n};}))
         // allow construction of a description with parameters provided in a dictionary:
-        //      mech = arbor.mechanism_desc('mech_name', {'param1': 1.2, 'param2': 3.14})
+        //      mech = arbor.mechanism('mech_name', {'param1': 1.2, 'param2': 3.14})
         .def(pybind11::init(
             [](const char* name, std::unordered_map<std::string, double> params) {
                 arb::mechanism_desc md(name);
@@ -330,59 +293,41 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", &mechanism_desc_str)
         .def("__str__",  &mechanism_desc_str);
 
-    // arb::cable_cell_ion_data
-    pybind11::class_<arb::cable_cell_ion_data> ion_data(m, "ion_data");
-    ion_data
-        .def(pybind11::init(
-            [](double ic, double ec, double rp) {
-                return arb::cable_cell_ion_data{ic, ec, rp};
-            }), "intern_con"_a, "extern_con"_a, "rev_pot"_a)
-        .def_readonly("intern_con",
-            &arb::cable_cell_ion_data::init_int_concentration,
-            "Initial internal concentration of ion species.")
-        .def_readonly("extern_con",
-            &arb::cable_cell_ion_data::init_ext_concentration,
-            "Initial external concentration of ion species.")
-        .def_readonly("rev_pot",
-            &arb::cable_cell_ion_data::init_reversal_potential,
-            "Initial reversal potential of ion species.")
-        .def("__repr__", &ion_data_str)
-        .def("__str__",  &ion_data_str);
-
-    // arb::cable_cell_local_parameter_set
-    pybind11::class_<local_param_set_proxy> local_cable_params(m, "local_parameter_set");
-    local_cable_params
+    // arb::gap_junction_site
+    pybind11::class_<arb::gap_junction_site> gjsite(m, "gap_junction");
+    gjsite
         .def(pybind11::init<>())
-        .def_property("temperature_K",
-            &local_param_set_proxy::get_temperature,
-            &local_param_set_proxy::set_temperature,
-            "Temperature in degrees Kelvin.")
-        .def_property("axial_resistivity",
-            &local_param_set_proxy::get_axial_resistivity,
-            &local_param_set_proxy::set_axial_resistivity,
-            "Axial resistivity in Ω·cm.")
-        .def_property("init_membrane_potential",
-            &local_param_set_proxy::get_membrane_potential,
-            &local_param_set_proxy::set_membrane_potential,
-            "Initial membrane potential in mV.")
-        .def_property("membrane_capacitance",
-            &local_param_set_proxy::get_membrane_capacitance,
-            &local_param_set_proxy::set_membrane_capacitance,
-            "Membrane capacitance in F/m².")
-        .def_property_readonly("ion_data",
-                [](const local_param_set_proxy& p) {
-                    return p.params.ion_data;
-                })
-        .def("set_ion",
-                [](local_param_set_proxy& p, std::string ion, arb::cable_cell_ion_data data) {
-                    p.params.ion_data[std::move(ion)] = data;
-                },
-            "name"_a, "props"_a,
-            "Set properties of an ion species with name.")
-        .def("__repr__", &local_parameter_set_str)
-        .def("__str__",  &local_parameter_set_str);
+        .def("__repr__", [](const arb::gap_junction_site&){return "<arbor.gap_junction>";})
+        .def("__str__", [](const arb::gap_junction_site&){return "<arbor.gap_junction>";});
 
-    //pybind11::class_<local_param_set_proxy> cable_params(m, "local_parameter_set");
+    // arb::i_clamp
+    pybind11::class_<arb::i_clamp> i_clamp(m, "iclamp");
+    i_clamp
+        .def(pybind11::init(
+                [](double del, double dur, double amp) {
+                    return arb::i_clamp{del, dur, amp};
+                }), "delay"_a=0, "duration"_a=0, "amplitude"_a=0)
+        .def_readonly("delay", &arb::i_clamp::delay,         "Delay before current starts [ms]")
+        .def_readonly("duration", &arb::i_clamp::duration,   "Duration of the current injection [ms]")
+        .def_readonly("amplitude", &arb::i_clamp::amplitude, "Amplitude of the injected current [nA]")
+        .def("__repr__", [](const arb::i_clamp& c){
+            return util::pprintf("<arbor.iclamp: delay {} ms, duration {} ms, amplitude {} nA>", c.delay, c.duration, c.amplitude);})
+        .def("__str__", [](const arb::i_clamp& c){
+            return util::pprintf("<arbor.iclamp: delay {} ms, duration {} ms, amplitude {} nA>", c.delay, c.duration, c.amplitude);});
+
+    // arb::threshold_detector
+    pybind11::class_<arb::threshold_detector> detector(m, "spike_detector",
+            "A spike detector that generates a spike when voltage crosses a threshold.");
+    detector
+        .def(pybind11::init(
+                [](double thresh) {
+                    return arb::threshold_detector{thresh};
+                }), "threshold"_a)
+        .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [ms]")
+        .def("__repr__", [](const arb::threshold_detector& d){
+            return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
+        .def("__str__", [](const arb::threshold_detector& d){
+            return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);});
 
     // arb::cable_cell
     pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell");
@@ -392,6 +337,7 @@ void register_cells(pybind11::module& m) {
                 return arb::cable_cell(m, labels.dict, cfd);
             }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
         .def_property_readonly("num_branches", [](const arb::cable_cell& m) {return m.num_branches();})
+        // Paint mechanisms.
         .def("paint",
             [](arb::cable_cell& c, const char* region, const arb::mechanism_desc& d) {
                 c.paint(region, d);
@@ -404,12 +350,41 @@ void register_cells(pybind11::module& m) {
             },
             "region"_a, "mechanism_name"_a,
             "Associate a mechanism with a region.")
-        .def("paint",
-            [](arb::cable_cell& c, const char* region, const local_param_set_proxy& p) {
-                c.paint(region, (arb::cable_cell_local_parameter_set)p);
+        // TODO: the place calls are not throwing an error when placed on a non-existant cell
+        // Place synapses.
+        .def("place",
+            [](arb::cable_cell& c, const char* locset, const arb::mechanism_desc& d) {
+                c.place(locset, d);
             },
-            "region"_a, "mechanism"_a,
-            "Associate a set of properties with a region. These properties will override the the global or cell-wide default values on the specific region.")
+            "locations"_a, "mechanism"_a,
+            "Associate a synapse with a set of locations.")
+        .def("place",
+            [](arb::cable_cell& c, const char* locset, const char* mech_name) {
+                c.place(locset, mech_name);
+            },
+            "locations"_a, "mechanism_name"_a,
+            "Associate a synapse with a set of locations.")
+        // Place gap junctions.
+        .def("place",
+            [](arb::cable_cell& c, const char* locset, const arb::gap_junction_site& site) {
+                c.place(locset, site);
+            },
+            "locations"_a, "gapjunction"_a,
+            "Add a set of gap junction locations.")
+        // Place current clamp stimulus.
+        .def("place",
+            [](arb::cable_cell& c, const char* locset, const arb::i_clamp& stim) {
+                c.place(locset, stim);
+            },
+            "locations"_a, "iclamp"_a,
+            "Add a stimulus to each location in locations.")
+        // Place spike detector.
+        .def("place",
+            [](arb::cable_cell& c, const char* locset, const arb::threshold_detector& d) {
+                c.place(locset, d);
+            },
+            "locations"_a, "detector"_a,
+            "Add a voltage threshold detector (spike detector) to each location in locations.")
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});
 }

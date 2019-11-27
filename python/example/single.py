@@ -28,12 +28,11 @@ for i in range(m.num_branches):
 #print(m.sample_parents)
 
 print('\n----------------------------- make label dictionary -----------------------------\n')
-# TODO: this should throw an error because `ax&on` is not a valid name for a region/locset
-defs = {'soma': '(tag 1)', 'axon ': '(tag 2)', 'dend': '(tag 3)', 'cat': '(join (tag 1) (tag 2))'}
+defs = {'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)', 'cat': '(join (tag 1) (tag 2))'}
 labels = arbor.label_dict(defs)
 print(labels)
-#print(labels.regions())
-#print(labels.locsets())
+print('regions:',labels.regions)
+print('locsets:',labels.locsets)
 
 print('\n----------------------------- make cable_cell -----------------------------\n')
 cell = arbor.cable_cell(m, labels, True)
@@ -43,12 +42,32 @@ print('cell has', cell.num_branches, 'branches')
 print('\n-------------------------------------------------------------\n')
 
 labels['sdnd'] = '(join (tag 1) (tag 2))'
+labels['x'] = '(root)'
+labels['a'] = '(terminal)'
+labels['z'] = '(sum (root) (terminal))'
 
-print(labels['soma'])
-print(labels['sdnd'])
-print()
 print('len(labels)', len(labels))
 for name in labels:
     print('  ', name, ':', labels[name])
 
 labels['sdnd'] = '(join (tag 1) (tag 2))'
+
+print(labels)
+print('regions:',labels.regions)
+print('locsets:',labels.locsets)
+
+print(labels.locsets)
+labels.locsets[2] = 'hello'
+print(labels.locsets)
+
+dmech = arbor.mechanism('expsyn', {'gbar':0.2, 'E':-40})
+print(dmech)
+print(dmech.values)
+
+cell.place('midpoints', arbor.mechanism('expsyn', {'gbar':12, 'E':-10}))
+cell.place('midpoints', arbor.mechanism('expsyn', {'gbar':12, 'E':-10}))
+cell.place('midpoints', arbor.gap_junction())
+cell.place('midpoints', arbor.iclamp(delay=1, duration=12, amplitude=2))
+cell.place('midpoints', arbor.spike_detector(threshold=-10))
+print(arbor.iclamp(delay=1, duration=12, amplitude=2))
+print(arbor.spike_detector(threshold=-10))
