@@ -81,7 +81,6 @@ private:
     Parser();
     Parser(Parser const &);
 
-    void parse_unit();
     bool expect(tok, const char *str="");
     bool expect(tok, std::string const& str);
 };
