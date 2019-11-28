@@ -79,6 +79,7 @@ std::string LocalVariable::to_string() const {
 *******************************************************************************/
 
 void IdentifierExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     auto s = scope_->find(spelling_);
@@ -142,6 +143,8 @@ expression_ptr DerivativeExpression::clone() const {
 }
 
 void DerivativeExpression::semantic(scope_ptr scp) {
+    error_ = false;
+
     IdentifierExpression::semantic(scp);
     auto v = symbol_->is_variable();
     if (!v || !v->is_state()) {
@@ -198,6 +201,7 @@ bool LocalDeclaration::add_variable(Token tok) {
 }
 
 void LocalDeclaration::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     // loop over the variables declared in this LOCAL statement
@@ -239,6 +243,7 @@ std::string ArgumentExpression::to_string() const {
 }
 
 void ArgumentExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     auto s = scope_->find(name_);
@@ -303,7 +308,9 @@ expression_ptr ReactionExpression::clone() const {
 }
 
 void ReactionExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     lhs()->semantic(scp);
     rhs()->semantic(scp);
 
@@ -329,7 +336,9 @@ expression_ptr StoichTermExpression::clone() const {
 }
 
 void StoichTermExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     ident()->semantic(scp);
     if(ident()->has_error()) {
         error("Error in semantic pass of Stoich Term");
@@ -361,7 +370,9 @@ std::string StoichExpression::to_string() const {
 }
 
 void StoichExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     for(auto& e: terms()) {
         e->semantic(scp);
         if(e->has_error()) {
@@ -398,7 +409,9 @@ std::string CompartmentExpression::to_string() const {
 }
 
 void CompartmentExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     scale_factor()->semantic(scp);
     if(scale_factor()->has_error()) {
         error("Error in semantic pass of Compartment Expression");
@@ -415,7 +428,9 @@ expression_ptr LinearExpression::clone() const {
 }
 
 void LinearExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     lhs_->semantic(scp);
     rhs_->semantic(scp);
 
@@ -437,7 +452,9 @@ expression_ptr ConserveExpression::clone() const {
 }
 
 void ConserveExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     lhs_->semantic(scp);
     rhs_->semantic(scp);
 
@@ -463,6 +480,7 @@ std::string CallExpression::to_string() const {
 }
 
 void CallExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     // look up to see if symbol is defined
@@ -534,6 +552,7 @@ std::string ProcedureExpression::to_string() const {
 }
 
 void ProcedureExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     // assert that the symbol is already visible in the global_symbols
@@ -572,6 +591,7 @@ void ProcedureExpression::semantic(scope_ptr scp) {
 void ProcedureExpression::semantic(scope_type::symbol_map &global_symbols) {
     // create the scope for this procedure and run semantic pass on it
     scope_ptr scp = std::make_shared<scope_type>(global_symbols);
+    error_ = false;
     switch (kind_) {
     case procedureKind::derivative:
     case procedureKind::kinetic:
@@ -614,6 +634,8 @@ void APIMethod::semantic(scope_type::symbol_map &global_symbols) {
     // create the scope for this procedure, marking it as an API context,
     // and run semantic pass on it
     scope_ptr scp = std::make_shared<scope_type>(global_symbols);
+    error_ = false;
+
     scp->in_api_context(true);
     semantic(scp);
 }
@@ -647,6 +669,7 @@ void NetReceiveExpression::semantic(scope_type::symbol_map &global_symbols) {
 
     // create the scope for this procedure
     scope_ = std::make_shared<scope_type>(global_symbols);
+    error_ = false;
 
     // add the argumemts to the list of local variables
     for(auto& a : args_) {
@@ -704,6 +727,7 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
 
     // create the scope for this procedure
     scope_ = std::make_shared<scope_type>(global_symbols);
+    error_ = false;
 
     // add the argumemts to the list of local variables
     for(auto& a : args_) {
@@ -741,6 +765,7 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
   UnaryExpression
 *******************************************************************************/
 void UnaryExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     expression_->semantic(scp);
@@ -765,7 +790,9 @@ expression_ptr UnaryExpression::clone() const {
   BinaryExpression
 *******************************************************************************/
 void BinaryExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     lhs_->semantic(scp);
     rhs_->semantic(scp);
 
@@ -799,7 +826,9 @@ std::string BinaryExpression::to_string() const {
 *******************************************************************************/
 
 void AssignmentExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
+
     lhs_->semantic(scp);
     rhs_->semantic(scp);
 
@@ -823,6 +852,7 @@ void AssignmentExpression::semantic(scope_ptr scp) {
 *******************************************************************************/
 
 void SolveExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     auto e = scp->find(name());
@@ -851,6 +881,7 @@ expression_ptr SolveExpression::clone() const {
 *******************************************************************************/
 
 void ConductanceExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
     // For now do nothing with the CONDUCTANCE statement, because it is not needed
     // to optimize conductance calculation.
@@ -883,6 +914,7 @@ std::string BlockExpression::to_string() const {
 }
 
 void BlockExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
     for(auto& e : statements_) {
         e->semantic(scope_);
@@ -917,6 +949,7 @@ std::string IfExpression::to_string() const {
 }
 
 void IfExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     condition_->semantic(scp);
@@ -960,6 +993,7 @@ std::string PDiffExpression::to_string() const {
 }
 
 void PDiffExpression::semantic(scope_ptr scp) {
+    error_ = false;
     scope_ = scp;
 
     if (!var_->is_identifier()) {

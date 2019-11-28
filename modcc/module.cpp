@@ -801,6 +801,7 @@ int Module::semantic_func_proc() {
     for(auto& e : symbols_) {
         auto &s = e.second;
         if(s->kind() == symbolKind::procedure) {
+            s->semantic(symbols_);
             ErrorVisitor v(source_name());
             s->accept(&v);
             errors += v.num_errors();
