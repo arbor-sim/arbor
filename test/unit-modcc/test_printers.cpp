@@ -88,7 +88,9 @@ TEST(scalar_printer, statement) {
         ASSERT_TRUE(e);
 
         e->semantic(scope);
-
+        if(e->has_error()) {
+            std::cout << e->error_message() << std::endl;
+        }
         {
             SCOPED_TRACE("CPrinter");
             std::stringstream out;

@@ -309,6 +309,11 @@ void ReactionExpression::semantic(scope_ptr scp) {
 
     fwd_rate()->semantic(scp);
     rev_rate()->semantic(scp);
+
+    if(lhs_->has_error() || rhs_->has_error() || fwd_rate_->has_error() || rev_rate_->has_error()) {
+        error("Error in semantic pass of Reaction Expression");
+    }
+
     if(fwd_rate_->is_procedure_call() || rev_rate_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
     }
@@ -326,6 +331,9 @@ expression_ptr StoichTermExpression::clone() const {
 void StoichTermExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     ident()->semantic(scp);
+    if(ident()->has_error()) {
+        error("Error in semantic pass of Stoich Term");
+    }
 }
 
 /*******************************************************************************
@@ -356,6 +364,9 @@ void StoichExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     for(auto& e: terms()) {
         e->semantic(scp);
+        if(e->has_error()) {
+            error("Error in semantic pass of Stoich Expression");
+        }
     }
 }
 
@@ -389,6 +400,9 @@ std::string CompartmentExpression::to_string() const {
 void CompartmentExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     scale_factor()->semantic(scp);
+    if(scale_factor()->has_error()) {
+        error("Error in semantic pass of Compartment Expression");
+    }
 }
 
 /*******************************************************************************
@@ -406,7 +420,7 @@ void LinearExpression::semantic(scope_ptr scp) {
     rhs_->semantic(scp);
 
     if(lhs_->has_error() || rhs_->has_error()) {
-        return;
+        error("Error in semantic pass of Linear Expression");
     }
     if(rhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
@@ -428,7 +442,7 @@ void ConserveExpression::semantic(scope_ptr scp) {
     rhs_->semantic(scp);
 
     if(lhs_->has_error() || rhs_->has_error()) {
-        return;
+        error("Error in semantic pass of Conserve Expression");
     }
     if(rhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
@@ -487,6 +501,9 @@ void CallExpression::semantic(scope_ptr scp) {
     // perform semantic analysis on the arguments
     for(auto& a : args_) {
         a->semantic(scp);
+        if(a->has_error()) {
+            error("Error in semantic pass of Call Expression");
+        }
     }
 }
 
@@ -531,6 +548,9 @@ void ProcedureExpression::semantic(scope_ptr scp) {
     // add the argumemts to the list of local variables
     for(auto& a : args_) {
         a->semantic(scope_);
+        if(a->has_error()) {
+            error("Error in semantic pass of an argument of Procedure expression");
+        }
     }
 
     // this loop could be used to then check the types of statements in the body
@@ -541,6 +561,9 @@ void ProcedureExpression::semantic(scope_ptr scp) {
 
     // perform semantic analysis for each expression in the body
     body_->semantic(scope_);
+    if(body_->has_error()) {
+        error("Error in semantic pass of Procedure Body");
+    }
 
     // the symbol for this expression is itself
     symbol_ = scope_->find_global(name());
@@ -628,10 +651,17 @@ void NetReceiveExpression::semantic(scope_type::symbol_map &global_symbols) {
     // add the argumemts to the list of local variables
     for(auto& a : args_) {
         a->semantic(scope_);
+        if(a->has_error()) {
+            error("Error in NET_RECIEVE args");
+        }
     }
 
     // perform semantic analysis for each expression in the body
     body_->semantic(scope_);
+    if(body_->has_error()) {
+        error("Error in semantic pass of NET_RECIEVE body");
+    }
+
     // this loop could be used to then check the types of statements in the body
     for(auto& e : *(body_->is_block())) {
         if(e->is_initial_block()) {
@@ -678,6 +708,9 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
     // add the argumemts to the list of local variables
     for(auto& a : args_) {
         a->semantic(scope_);
+        if(a->has_error()) {
+            error("Error in semantic pass of Function args");
+        }
     }
 
     // Add a variable that has the same name as the function,
@@ -691,6 +724,9 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
 
     // perform semantic analysis for each expression in the body
     body_->semantic(scope_);
+    if(body_->has_error()) {
+        error("Error in semantic pass of Function body");
+    }
     // this loop could be used to then check the types of statements in the body
     for(auto& e : *(body())) {
         if(e->is_initial_block()) error("INITIAL block not allowed inside FUNCTION definition");
@@ -708,6 +744,9 @@ void UnaryExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     expression_->semantic(scp);
+    if(expression_->has_error()) {
+        error("Error in semantic pass of Unary Expression");
+    }
 
     if(expression_->is_procedure_call()) {
         error("a procedure call can't be part of an expression");
@@ -731,7 +770,7 @@ void BinaryExpression::semantic(scope_ptr scp) {
     rhs_->semantic(scp);
 
     if(lhs_->has_error() || rhs_->has_error()) {
-        return;
+        error("Error in semantic pass of Binary Expression");
     }
     if(rhs_->is_procedure_call() || lhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
@@ -763,6 +802,10 @@ void AssignmentExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     lhs_->semantic(scp);
     rhs_->semantic(scp);
+
+    if(lhs_->has_error() || rhs_->has_error()) {
+        error("Error in semantic pass of Assignment Expression");
+    }
 
     // only flag an lvalue error if there was no error in the lhs expression
     // this ensures that we don't print redundant error messages when trying
@@ -843,6 +886,9 @@ void BlockExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     for(auto& e : statements_) {
         e->semantic(scope_);
+        if(e->has_error()) {
+            error("Error in semantic pass of a statement in Block Expression");
+        }
     }
 }
 
@@ -874,6 +920,9 @@ void IfExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     condition_->semantic(scp);
+    if(condition()->has_error()) {
+        error("Error in semantic pass of Condition of If Expression");
+    }
 
     auto cond = condition_->is_conditional();
     if(!cond) {
@@ -881,9 +930,15 @@ void IfExpression::semantic(scope_ptr scp) {
     }
 
     true_branch_->semantic(scp);
+    if(true_branch_->has_error()) {
+        error("Error in semantic pass of true branch of If Expression");
+    }
 
     if(false_branch_) {
         false_branch_->semantic(scp);
+        if(false_branch_->has_error()) {
+            error("Error in semantic pass of false branch of If Expression");
+        }
     }
 }
 
@@ -912,7 +967,13 @@ void PDiffExpression::semantic(scope_ptr scp) {
                       "an identifier, but instead %", yellow(var_->to_string())));
     }
     var_->semantic(scp);
+    if(var_->has_error()) {
+        error("Error in semantic pass of the varbiable in the partial differential eqution");
+    }
     arg_->semantic(scp);
+    if(arg_->has_error()) {
+        error("Error in semantic pass of the argument in the partial differential eqution");
+    }
 }
 
 expression_ptr PDiffExpression::clone() const {
