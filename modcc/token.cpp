@@ -84,6 +84,8 @@ static TokenString token_strings[] = {
     {">=",          tok::gte},
     {"==",          tok::equality},
     {"!=",          tok::ne},
+    {"&&",          tok::land},
+    {"||",          tok::lor},
     {"<->",         tok::arrow},
     {"~",           tok::tilde},
     {",",           tok::comma},
