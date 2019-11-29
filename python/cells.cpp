@@ -16,13 +16,8 @@
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
-/* TODO
+/*
  *
- *  - Place calls
- *      - synapses
- *      - gap junctions
- *      - clamp
- *      - detectors
  *  - Cell builder for ring test
  *
  */

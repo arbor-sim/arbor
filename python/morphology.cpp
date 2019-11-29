@@ -6,7 +6,6 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/sample_tree.hpp>
-#include <arbor/cable_cell.hpp>
 #include <arbor/swcio.hpp>
 
 #include "error.hpp"
@@ -14,105 +13,14 @@
 
 namespace pyarb {
 
-class cell_builder {
-    arb::sample_tree tree_;
-    std::vector<arb::msize_t> cable_distal_id_;
-    std::unordered_map<std::string, int> tag_map_;
-    bool spherical_root_;
-    int tag_count_ = 0;
-
-    // Get tag id of region.
-    // Add a new tag if region with that name has not already had a tag associated with it.
-    int get_tag(const std::string& name) {
-        auto it = tag_map_.find(name);
-        // If the name is not in the map, make a unique tag.
-        // Tags start from 1.
-        if (it==tag_map_.end()) {
-            tag_map_[name] = ++tag_count_;
-            return tag_count_;
-        }
-        return it->second;
-    }
-
-    double soma_rad() const {
-        return tree_.samples()[0].loc.radius;
-    }
-
-public:
-    cell_builder(): spherical_root_(false) {}
-
-    cell_builder(double r, const std::string& region): spherical_root_(true) {
-        tree_.append({{0,0,0,r}, get_tag("region")});
-        cable_distal_id_.push_back(0);
-    }
-
-    // Add a new branch that is attached to parent_cable.
-    // Returns the id of the new cable.
-    arb::msize_t add_cable(arb::msize_t parent_cable, double len, double r1, double r2, int ncomp,
-                    const std::string& region)
-    {
-        using arb::mnpos;
-
-        // Get tag id of region (add a new tag if region does not already exist).
-        int tag = get_tag(region);
-        const bool at_root = parent_cable==mnpos;
-
-        // somewhere we have to test for spherical root
-        arb::msize_t p = at_root? mnpos: cable_distal_id_[parent_cable];
-        double z = at_root? 0.:
-                   p? tree_.samples()[p].loc.z:
-                   soma_rad();
-            //tree_.samples()[p].loc.z: soma_rad();
-
-        p = tree_.append(p, {{0,0,z,r1}, tag});
-        if (ncomp>1) {
-            double dz = len/ncomp;
-            double dr = (r2-r1)/ncomp;
-            for (auto i=1; i<ncomp; ++i) {
-                p = tree_.append(p, {{0,0,z+i*dz, r1+i*dr}, tag});
-            }
-        }
-        p = tree_.append(p, {{0,0,z+len,r2}, tag});
-        cable_distal_id_.push_back(p);
-
-        return cable_distal_id_.size()-1;
-    }
-
-    arb::cable_cell make_cell() const {
-        // Test that a valid tree was generated, that is, every branch has
-        // either 0 children, or at least 2 children.
-        /*
-        for (auto i: cable_distal_id) {
-            if (i==0) continue;
-            auto prop = tree.properties()[i];
-            if (!is_fork(prop) && !is_terminal(prop)) {
-                throw cable_cell_error(
-                    "attempt to construct a cable_cell from a cell_builder "
-                    "where a branch has only one child branch.");
-            }
-        }
-        */
-
-        // Make label dictionary with one entry for each tag.
-        arb::label_dict dict;
-        for (auto& tag: tag_map_) {
-            dict.set(tag.first, arb::reg::tagged(tag.second));
-        }
-
-        // Make cable_cell from sample tree and dictionary.
-        // The true flag is used to force the discretization to make compartments
-        // at sample points.
-        return arb::cable_cell(tree_, dict, true);
-    }
-};
-
-
 void register_morphology(pybind11::module& m) {
     using namespace pybind11::literals;
 
     //
     //  primitives: points, samples, locations, cables... etc.
     //
+
+    m.attr("mnpos") = arb::mnpos;
 
     // arb::mlocation
     pybind11::class_<arb::mlocation> location(m, "location",

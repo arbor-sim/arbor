@@ -22,6 +22,7 @@ add_library(pyarb MODULE
     domain_decomposition.cpp
     error.cpp
     event_generator.cpp
+    flat_cell_builder.cpp
     identifiers.cpp
     morphology.cpp
     morph_parse.cpp

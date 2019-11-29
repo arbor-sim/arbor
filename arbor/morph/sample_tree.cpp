@@ -112,8 +112,8 @@ std::ostream& operator<<(std::ostream& o, const sample_tree& m) {
             [](msize_t i) -> std::string {
                 return i==mnpos? "npos": std::to_string(i);
             });
-    return o << "(sample_tree (" << io::sepval(m.samples_, ' ') <<  ")"
-             << " (" << io::sepval(tstr, ' ') <<  "))";
+    return o << "(sample_tree (\n  " << io::sepval(m.samples_, "\n  ") <<  ")\n"
+             << "  (" << io::sepval(tstr, ' ') <<  "))";
 }
 
 sample_tree swc_as_sample_tree(const std::vector<swc_record>& swc_records) {
