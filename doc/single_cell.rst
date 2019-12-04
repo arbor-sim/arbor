@@ -51,8 +51,12 @@ Morphology
 building the morphology there are two approaches: construct it manually using
 ``sample_tree`` or ``flat_cell_builder``, or load from swc file.
 
-Question: cover all of these here?
+TODO: cover all methods here?
     - we could just ``flat_cell_builder`` because it is most comfortable for
       users coming over from NEURON.
+    - have links to another page that goes into detail on all the different
+      methods for morphology building. That page could take a moderately
+      complicated, well-defined, morphology, and illustrate how to build
+      it using all of the different methods.
 
 
