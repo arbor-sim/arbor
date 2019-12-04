@@ -72,6 +72,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    :caption: Getting Stared:
 
    install
+   single_cell
 
 .. toctree::
    :caption: Arbor Models:
