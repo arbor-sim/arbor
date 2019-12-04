@@ -15,7 +15,7 @@ namespace pyarb {
 
 class flat_cell_builder {
     // The sample tree describing the morphology: constructed on the fly as
-    // the user adds cables/soma.
+    // the cables/spheres are added with add_cable/add_sphere.
     arb::sample_tree tree_;
 
     // The distal sample id of each cable.
@@ -38,36 +38,11 @@ class flat_cell_builder {
     // set on construction and unchanged thereafter.
     bool spherical_ = false;
 
-    // Get tag id of region.
-    // Add a new tag if region with that name has not already had a tag associated with it.
-    int get_tag(const std::string& name) {
-        auto it = tag_map_.find(name);
-        // If the name is not in the map, make a unique tag.
-        // Tags start from 1.
-        if (it==tag_map_.end()) {
-            tag_map_[name] = ++tag_count_;
-            dict_.set(name, arb::reg::tagged(tag_count_));
-            return tag_count_;
-        }
-        return it->second;
-    }
-
-    // Only valid if called on a non-empty tree with spherical soma.
-    double soma_rad() const {
-        return tree_.samples()[0].loc.radius;
-    }
-
-    // The number of cable segements (plus one optional soma) were used to
-    // construct the cell.
-    std::size_t size() const {
-        return cable_distal_id_.size();
-    }
-
 public:
 
     flat_cell_builder() = default;
 
-    arb::msize_t add_soma(double radius, const char* name) {
+    arb::msize_t add_sphere(double radius, const char* name) {
         cached_morpho_ = false;
         spherical_ = true;
         if (size()) {
@@ -113,7 +88,15 @@ public:
                    spherical_&&!parent? soma_rad(): // attach to spherical root
                    tree_.samples()[p].loc.z;        // attach to end of a cable
 
-        p = tree_.append(p, {{0,0,z,r1}, tag});
+        // Only add a first point at the very beginning of the cable if
+        // the cable is not attached to another
+        const bool add_first_point = p==arb::mnpos      // attached to the "root"
+                                  || (!p && spherical_) // attached to a spherical root
+                                  || (r1!=tree_.samples()[p].loc.radius);
+                                                        // proximal radius does not match r1
+        if (add_first_point) {
+            p = tree_.append(p, {{0,0,z,r1}, tag});
+        }
         if (ncomp>1) {
             double dz = len/ncomp;
             double dr = (r2-r1)/ncomp;
@@ -127,47 +110,16 @@ public:
         return size()-1;
     }
 
-    const arb::sample_tree& samples() const {
-        return tree_;
+    /*
+    arb::msize_t add_cable(arb::msize_t parent, double len,
+                           double r1, const char* region, int ncomp)
+    {
+        return add_cable(parent, len, r1, r1, region, ncomp);
     }
+    */
 
-    std::unordered_map<std::string, std::string> labels() const {
-        std::unordered_map<std::string, std::string> map;
-        for (auto& r: dict_.regions()) {
-            map[r.first] = util::pprintf("{}", r.second);
-        }
-        for (auto& l: dict_.regions()) {
-            map[l.first] = util::pprintf("{}", l.second);
-        }
-
-        return map;
-    }
-
-    const arb::morphology& morphology() const {
-        const std::lock_guard<std::mutex> guard(mutex_);
-        if (!cached_morpho_) {
-            morpho_ = arb::morphology(tree_, spherical_);
-            cached_morpho_ = true;
-        }
-        return morpho_;
-    }
-
-    // Indicates whether every cable added with add_cable() corresponds
-    // one to one with a branch.
-    bool cables_are_branches() const {
-        for (auto i: cable_distal_id_) {
-            if (spherical_ && i==0) continue;
-            const auto prop = tree_.properties()[i];
-            if (!arb::is_fork(prop) && !arb::is_terminal(prop)) {
-                return false;
-            }
-
-        }
-        return true;
-    }
 
     void add_label(const char* name, const char* description) {
-        // Validate the identifier name.
         if (!test_identifier(name)) {
             throw pyarb_error(util::pprintf("'{}' is not a valid label name.", name));
         }
@@ -206,12 +158,80 @@ public:
         }
     }
 
+    const arb::sample_tree& samples() const {
+        return tree_;
+    }
+
+    std::unordered_map<std::string, std::string> labels() const {
+        std::unordered_map<std::string, std::string> map;
+        for (auto& r: dict_.regions()) {
+            map[r.first] = util::pprintf("{}", r.second);
+        }
+        for (auto& l: dict_.regions()) {
+            map[l.first] = util::pprintf("{}", l.second);
+        }
+
+        return map;
+    }
+
+    const arb::morphology& morphology() const {
+        const std::lock_guard<std::mutex> guard(mutex_);
+        if (!cached_morpho_) {
+            morpho_ = arb::morphology(tree_, spherical_);
+            cached_morpho_ = true;
+        }
+        return morpho_;
+    }
+
     arb::cable_cell build() const {
         // Make cable_cell from sample tree and dictionary.
         // The true flag is used to force the discretization to make compartments
         // at sample points.
         return arb::cable_cell(morphology(), dict_, true);
     }
+
+    private:
+
+    // Get tag id of region with name.
+    // Add a new tag if region with that name has not already had a tag associated with it.
+    int get_tag(const std::string& name) {
+        using arb::reg::tagged;
+
+        auto it = tag_map_.find(name);
+        // Name is in the map: return the tag.
+        if (it!=tag_map_.end()) {
+            return it->second;
+        }
+        // Name is a locset: error.
+        if (dict_.locset(name)) {
+            throw pyarb_error(util::pprintf("'{}' is an label for a locset."));
+        }
+        // Name is a region: add tag to region definition.
+        else if(auto reg = dict_.region(name)) {
+            tag_map_[name] = ++tag_count_;
+            dict_.set(name, join(*reg, tagged(tag_count_)));
+            return tag_count_;
+        }
+        // Name has not been registerd: make a unique tag and new region.
+        else {
+            tag_map_[name] = ++tag_count_;
+            dict_.set(name, tagged(tag_count_));
+            return tag_count_;
+        }
+        return it->second;
+    }
+
+    // Only valid if called on a non-empty tree with spherical soma.
+    double soma_rad() const {
+        return tree_.samples()[0].loc.radius;
+    }
+
+    // The number of cable segements (plus one optional soma) were used to
+    // construct the cell.
+    std::size_t size() const {
+        return cable_distal_id_.size();
+    }
+
 };
 
 void register_flat_builder(pybind11::module& m) {
@@ -220,7 +240,7 @@ void register_flat_builder(pybind11::module& m) {
     pybind11::class_<flat_cell_builder> builder(m, "flat_cell_builder");
     builder
         .def(pybind11::init<>())
-        .def("add_soma", &flat_cell_builder::add_soma,
+        .def("add_sphere", &flat_cell_builder::add_sphere,
             "radius"_a, "name"_a)
         .def("add_cable", &flat_cell_builder::add_cable,
             "parent"_a, "length"_a, "rad_prox"_a, "rad_dist"_a, "name"_a, "ncomp"_a=1)

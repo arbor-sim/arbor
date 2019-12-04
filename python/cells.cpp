@@ -16,12 +16,6 @@
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
-/*
- *
- *  - Cell builder for ring test
- *
- */
-
 namespace pyarb {
 
 // Convert a cell description inside a Python object to a cell
@@ -78,27 +72,46 @@ struct label_dict_proxy {
 
     void set(const char* name, const char* desc) {
         using namespace std::string_literals;
+        // The error handling gets in the way of the followinjg code.
+        // It taks an input name and a region or locset description, e.g.:
+        //      name='reg', desc='(tag 4)'
+        //      name='loc', desc='(terminal)'
+        //      name='foo', desc='(join (tag 2) (tag 3))'
+        // Then it parses the description, and tests whether the description
+        // is a region or locset, and updates the label dictionary appropriately.
+        // Errors occur when:
+        //  * the name is not a valid name.
+        //  * the description contains an error (e.g. syntax error).
+        //  * a region is declared that has the same name as an existing locset (and vice versa.)
+        //  * the description describes neither a region or locset.
         try{
+            // Test that the identifier is valid, i.e.
+            //  * only numbers, letters and underscore.
+            //  * no leading number or underscore.
             if (!test_identifier(name)) {
                 throw std::string(util::pprintf("'{}' is not a valid label name.", name));
             }
-            auto result = eval(parse(desc));
-            if (!result) {
-                // there was a well-defined
+            // Parse the input string into an s-expression.
+            auto parsed = parse(desc);
+            // Evaluate the s-expression to build a region/locset.
+            auto result = eval(parsed);
+            if (!result) { // an error parsing / evaluating description.
                 throw std::string(result.error().message);
             }
             else if (result->type()==typeid(arb::region)) {
+                // Description is a region.
                 dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
                 auto it = std::lower_bound(regions.begin(), regions.end(), name);
                 if (it==regions.end() || *it!=name) regions.insert(it, name);
             }
             else if (result->type()==typeid(arb::locset)) {
+                // Description is a locset.
                 dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
                 auto it = std::lower_bound(locsets.begin(), locsets.end(), name);
                 if (it==locsets.end() || *it!=name) locsets.insert(it, name);
             }
             else {
-                // I don't know what I just parsed!
+                // Successfully parsed an expression that is neither region nor locset.
                 throw util::pprintf("The defninition of '{} = {}' does not define a valid region or locset.", name, desc);
             }
             // The entry was added succesfully: store it in the cache.
@@ -109,8 +122,7 @@ struct label_dict_proxy {
 
             throw std::runtime_error(util::pprintf(base, name, desc, msg));
         }
-        // parse_errors: line/column information
-        // std::exception: all others
+        // Exceptions are thrown in parse or eval if an unexpected error occured.
         catch (std::exception& e) {
             const char* msg =
                 "\n----- internal error -------------------------------------------"
@@ -140,17 +152,6 @@ std::string lif_str(const arb::lif_cell& c){
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
     return util::pprintf("<arbor.mechanism: name '{}', parameters {}",
             md.name(), util::dictionary_csv(md.values()));
-}
-
-std::ostream& operator<<(std::ostream& o, const arb::cable_cell_ion_data& d) {
-    return o << util::pprintf("(con_in {}, con_ex {}, rev_pot {})",
-            d.init_int_concentration, d.init_ext_concentration, d.init_reversal_potential);
-}
-
-std::string ion_data_str(const arb::cable_cell_ion_data& d) {
-    return util::pprintf(
-        "<arbor.cable_cell_ion_data: con_in {}, con_ex {}, rev_pot {}>",
-        d.init_int_concentration, d.init_ext_concentration, d.init_reversal_potential);
 }
 
 void register_cells(pybind11::module& m) {
@@ -229,10 +230,6 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
-    //
-    // regions and locsets
-    //
-
     // arb::label_dict
 
     pybind11::class_<label_dict_proxy> label_dict(m, "label_dict");
@@ -261,12 +258,11 @@ void register_cells(pybind11::module& m) {
         .def("__str__",  [](const label_dict_proxy&){return std::string("dictionary");})
         .def("__repr__", [](const label_dict_proxy&){return std::string("dictionary");});
 
-    //
     // Data structures used to describe mechanisms, electrical properties,
     // gap junction properties, etc.
-    //
 
     // arb::mechanism_desc
+
     pybind11::class_<arb::mechanism_desc> mechanism_desc(m, "mechanism");
     mechanism_desc
         .def(pybind11::init([](const char* n) {return arb::mechanism_desc{n};}))
@@ -289,6 +285,7 @@ void register_cells(pybind11::module& m) {
         .def("__str__",  &mechanism_desc_str);
 
     // arb::gap_junction_site
+
     pybind11::class_<arb::gap_junction_site> gjsite(m, "gap_junction");
     gjsite
         .def(pybind11::init<>())
@@ -296,6 +293,7 @@ void register_cells(pybind11::module& m) {
         .def("__str__", [](const arb::gap_junction_site&){return "<arbor.gap_junction>";});
 
     // arb::i_clamp
+
     pybind11::class_<arb::i_clamp> i_clamp(m, "iclamp");
     i_clamp
         .def(pybind11::init(
@@ -311,6 +309,7 @@ void register_cells(pybind11::module& m) {
             return util::pprintf("<arbor.iclamp: delay {} ms, duration {} ms, amplitude {} nA>", c.delay, c.duration, c.amplitude);});
 
     // arb::threshold_detector
+
     pybind11::class_<arb::threshold_detector> detector(m, "spike_detector",
             "A spike detector that generates a spike when voltage crosses a threshold.");
     detector
@@ -325,6 +324,7 @@ void register_cells(pybind11::module& m) {
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);});
 
     // arb::cable_cell
+
     pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell");
     cable_cell
         .def(pybind11::init(
@@ -345,8 +345,6 @@ void register_cells(pybind11::module& m) {
             },
             "region"_a, "mechanism_name"_a,
             "Associate a mechanism with a region.")
-        // TODO: the place calls are not throwing an error when placed on a non-existant cell
-        // Place synapses.
         .def("place",
             [](arb::cable_cell& c, const char* locset, const arb::mechanism_desc& d) {
                 c.place(locset, d);

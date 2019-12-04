@@ -171,6 +171,7 @@ struct cable_cell_impl {
     lid_range place(const std::string& target, const Desc& desc, std::vector<T>& list) {
         const auto first = list.size();
 
+        std::cout << " PLACE at: " << target << "\n";
         const auto it = locations.find(target);
         if (it==locations.end()) return lid_range(first, first);
 
