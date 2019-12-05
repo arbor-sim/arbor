@@ -14,7 +14,7 @@ import math
 print_debug = True
 print_prefix = "ARB_PROXY_PY: "
 def print_d (to_print , force = False):
-    if (not (print_debug or force) ):     # print_debug is 'global variable'
+    if (not print_debug ):     # print_debug is 'global variable'
         return
 
     print (print_prefix + str(to_print))
@@ -84,27 +84,21 @@ class comm_information():
         self.comm.Allgather(input, local_ranks)
         local_ranks.sort()
 
-        # look for first non concecutive entry. self would occur if we create the ranks interleaved
+        # Small helper function to look for first non concecutive entry. 
+        # Ranks can interleaved, the first non concecutive would be nest
         def first_missing(np_array):
             for idx in range(np_array.size-1):
-                
-                if not (np_array[idx+1] - np_array[idx] is 1):
+                if not (np_array[idx+1] - np_array[idx] == 1):
                     return np_array[idx] + 1
             # Default the last rank plus one
             return np_array[-1]+1
-
+        
         if (self.is_arbor):
             self.arbor_root = local_ranks[0]
-            print ("self.arbor_root:" + str(self.arbor_root))
-            print ("first_missing(local_ranks) " + str(first_missing(local_ranks)) )
-
             self.nest_root = first_missing(local_ranks) if self.arbor_root == 0 else 0
         else: 
             self.nest_root = local_ranks[0]
             self.arbor_root = first_missing(local_ranks) if self.nest_root == 0 else 0
-
-
-        print_d("self.nest_root" +str(self.nest_root))
 
     def __str__(self):
         return str("global ( rank: " + str(self.global_rank) + ", size: " + str(self.global_size) + "\n" +
@@ -116,16 +110,14 @@ class comm_information():
 #####################################################################
 # MPI configuration
 comm_info = comm_information(True)
-
+# Only print one the root arbor rank
+if comm_info.local_rank != comm_info.arbor_root:
+    print_debug = False
 ########################################################################
 # Config
 num_arbor_cells = 100;
 min_delay = 10;
 duration = 100;
-
-arbor_root = 0
-nest_root = 1
-
 
 ########################################################################
 # handshake #1: communicate the number of cells between arbor and nest
