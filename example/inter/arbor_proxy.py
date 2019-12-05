@@ -59,6 +59,8 @@ def gather_spikes(spikes, comm):
     return receive_spikes_array.view('uint32,uint32, float32')
     
 class comm_information(): 
+    # Helper class for MPI configuration
+    # TODO: with N>2 simulators self whole function needs to be cleaned up
     def __init__(self, is_arbor):
         self.is_arbor = is_arbor
         self.is_nest = not is_arbor
@@ -66,8 +68,7 @@ class comm_information():
         self.global_rank = MPI.COMM_WORLD.rank
         self.global_size = MPI.COMM_WORLD.size
 
-        # split MPI_COMM_WORLD: all arbor go into split 1
-        # TODO: with N>2 simulators self whole function needs to be cleaned up
+        # all arbor go into split 1
         color = 1 if is_arbor else 0
         self.world = MPI.COMM_WORLD
         self.comm = self.world.Split(color)
@@ -81,6 +82,7 @@ class comm_information():
         input = np.array([self.global_rank], dtype=np.int32) 
         local_ranks = np.zeros(local_size, dtype=np.int32)
        
+        # Grab all local ranks. Sort find the first non consecutive. This will be the other root 
         self.comm.Allgather(input, local_ranks)
         local_ranks.sort()
 
@@ -113,8 +115,8 @@ comm_info = comm_information(True)
 # Only print one the root arbor rank
 if comm_info.local_rank != comm_info.arbor_root:
     print_debug = False
-########################################################################
-# Config
+
+# Sim Config
 num_arbor_cells = 100;
 min_delay = 10;
 duration = 100;
@@ -122,14 +124,14 @@ duration = 100;
 ########################################################################
 # handshake #1: communicate the number of cells between arbor and nest
 # send nr of arbor cells
-data_array = np.array([num_arbor_cells],dtype=np.int32)  
-comm_info.world.Bcast(data_array, comm_info.arbor_root) 
+output = np.array([num_arbor_cells],dtype=np.int32)  
+comm_info.world.Bcast(output, comm_info.arbor_root) 
 
-#Receive nest cell_nr
-data_array = np.array([0],dtype=np.int32)  
-comm_info.world.Bcast(data_array, root=comm_info.nest_root) #Use Bcast allows setting of received size
+# Receive nest cell_nr
+output = np.array([0],dtype=np.int32)  
+comm_info.world.Bcast(output, root=comm_info.nest_root) 
 
-num_nest_cells = data_array[0] 
+num_nest_cells = output[0] 
 num_total_cells = num_nest_cells + num_arbor_cells
 
 print_d("num_arbor_cells: " + str(num_arbor_cells) + " " +
@@ -138,21 +140,20 @@ print_d("num_arbor_cells: " + str(num_arbor_cells) + " " +
 
 ########################################################################
 # hand shake #2: min delay
-
 # first send the arbor delays
 arb_com_time = min_delay / 2.0
-data_array = np.array([arb_com_time],dtype=np.float32)  
-comm_info.world.Bcast(data_array, comm_info.arbor_root)
+output = np.array([arb_com_time],dtype=np.float32)  
+comm_info.world.Bcast(output, comm_info.arbor_root)
 
 # receive the nest delays 
-data_array = np.array([0],dtype=np.float32)  
-comm_info.world.Bcast(data_array, comm_info.nest_root)
-nest_com_time = data_array[0]
+output = np.array([0],dtype=np.float32)  
+comm_info.world.Bcast(output, comm_info.nest_root)
+nest_com_time = output[0]
 print_d("nest_com_time: " + str(nest_com_time))
 
 ###############################################################
 # Process the delay and calculate new simulator settings
-# TODO: there is some magix going on here, found out why this doubling is done!
+# TODO: This doubling smells cludgy
 double_min_delay = 2 * min(arb_com_time, nest_com_time)
 print_d("min_delay: " + str(double_min_delay))
 delta = double_min_delay / 2.0
@@ -164,8 +165,8 @@ if (steps * delta < duration):
 
 ###############################################################
 # Handshake #3: steps
-data_array = np.array([steps], dtype=np.int32)  
-comm_info.world.Bcast(data_array, comm_info.arbor_root)
+output = np.array([steps], dtype=np.int32)  
+comm_info.world.Bcast(output, comm_info.arbor_root)
 
 print_d("delta: " + str(delta) + ", " +
         "sim_duration: " + str(duration) + ", " +
@@ -177,11 +178,7 @@ for step in range(steps+1):
     print_d("step: " + str(step) + ": " + str(step * delta))
 
     # We are sending no spikes from arbor to nest. Create a array with size zero with correct type
-    data_array = np.zeros(0, dtype='uint32, uint32, float32')  
-    gather_spikes(data_array, comm_info.world)
+    output = np.zeros(0, dtype='uint32, uint32, float32')  
+    gather_spikes(output, comm_info.world)
 
 print_d("Reached arbor_proxy.py end")
-
-
-
-
