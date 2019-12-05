@@ -1138,10 +1138,13 @@ expression_ptr binary_expression(Location loc,
             return make_expression<PowBinaryExpression>(
                 loc, std::move(lhs), std::move(rhs)
             );
+        case tok::ne       :
         case tok::lt       :
         case tok::lte      :
         case tok::gt       :
         case tok::gte      :
+        case tok::land     :
+        case tok::lor      :
         case tok::equality :
             return make_expression<ConditionalExpression>(loc, op, std::move(lhs), std::move(rhs));
         default         :
