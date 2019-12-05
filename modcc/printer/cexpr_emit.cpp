@@ -53,7 +53,8 @@ void CExprEmitter::visit(UnaryExpression* e) {
         {tok::sin,     "sin"},
         {tok::log,     "log"},
         {tok::abs,     "abs"},
-        {tok::exprelr, "exprelr"}
+        {tok::exprelr, "exprelr"},
+        {tok::safeinv, "safeinv"}
     };
 
     if (!unaryop_tbl.count(e->op())) {

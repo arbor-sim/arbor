@@ -154,6 +154,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "using size_type = base::size_type;\n"
         "using index_type = base::index_type;\n"
         "using ::arb::math::exprelr;\n"
+        "using ::arb::math::safeinv;\n"
         "using ::std::abs;\n"
         "using ::std::cos;\n"
         "using ::std::exp;\n"
@@ -190,6 +191,11 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out <<
             "using simd_value = S::simd<::arb::fvm_value_type, simd_width_, " << abi << ">;\n"
             "using simd_index = S::simd<::arb::fvm_index_type, simd_width_, " << abi << ">;\n"
+            "\n"
+            "inline simd_value safeinv(simd_value x) {\n"
+            "    S::where(x+1==1, x) = DBL_EPSILON;\n"
+            "    return 1/x;\n"
+            "}\n"
             "\n";
     }
 
