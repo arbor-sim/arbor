@@ -202,7 +202,7 @@ local_assignment SystemSolver::generate_normalizing_term(scope_ptr scope, std::v
     // Create a symbol for inv
     auto local_inv_term = make_unique_local_assign(scope, inv.get(), "inv_");
 
-    return std::move(local_inv_term);
+    return local_inv_term;
 }
 
 std::vector<expression_ptr> SystemSolver::generate_normalizing_assignments(expression_ptr normalizer, std::vector<symge::symbol> row_sym) {

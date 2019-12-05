@@ -191,6 +191,11 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out <<
             "using simd_value = S::simd<::arb::fvm_value_type, simd_width_, " << abi << ">;\n"
             "using simd_index = S::simd<::arb::fvm_index_type, simd_width_, " << abi << ">;\n"
+            "\n"
+            "inline simd_value safeinv(simd_value x) {\n"
+            "    S::where(x+1==1, x) = DBL_EPSILON;\n"
+            "    return 1/x;\n"
+            "}\n"
             "\n";
     }
 
