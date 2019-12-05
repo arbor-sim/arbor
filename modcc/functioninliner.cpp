@@ -62,6 +62,9 @@ void FunctionInliner::replace_args(Expression* e) {
     }
 }
 
+// The Function inliner works on inlining one function at a time.
+// If no function is being inlined when an expression is being visited,
+// the expression remains the same.
 void FunctionInliner::visit(Expression* e) {
     if (!inlining_in_progress_) {
         statements_.push_back(e->clone());
@@ -72,14 +75,17 @@ void FunctionInliner::visit(Expression* e) {
             + e->to_string(), e->location());
 }
 
+// Only in procedures, always stays the same
 void FunctionInliner::visit(ConserveExpression *e) {
     statements_.push_back(e->clone());
 }
 
+// Only in procedures, always stays the same
 void FunctionInliner::visit(CompartmentExpression *e) {
     statements_.push_back(e->clone());
 }
 
+// Only in procedures, always stays the same
 void FunctionInliner::visit(LinearExpression *e) {
     statements_.push_back(e->clone());
 }
@@ -235,6 +241,13 @@ void FunctionInliner::visit(IfExpression* e) {
 }
 
 void FunctionInliner::visit(CallExpression* e) {
+    if (!inlining_in_progress_) {
+        if (e->is_procedure_call()) {
+            statements_.push_back(e->clone());
+        }
+        return;
+    }
+
     auto& args = e->is_function_call() ? e->is_function_call()->args() : e->is_procedure_call()->args();
 
     for (auto& a: args) {
