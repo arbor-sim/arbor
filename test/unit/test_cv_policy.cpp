@@ -69,7 +69,7 @@ TEST(cv_policy, explicit_policy) {
 
     cv_policy pol = cv_policy_explicit(lset);
     for (auto& m: {m_sph_b6, m_reg_b6, m_mlt_b6}) {
-        cable_cell cell = make_cable_cell(m);
+        cable_cell cell(m);
 
         locset result = pol.cv_boundary_points(cell);
         EXPECT_EQ(thingify(lset, *cell.morphology()), thingify(result, *cell.morphology()));
@@ -89,7 +89,7 @@ TEST(cv_policy, empty_morphology) {
         cv_policy_max_extent(0.234, single_root_cv|interior_forks)
     };
 
-    cable_cell cell = make_cable_cell(m_empty);
+    cable_cell cell(m_empty);
     auto empty_loclist = thingify(ls::nil(), *cell.morphology());
 
     for (auto& pol: policies) {
@@ -112,7 +112,7 @@ TEST(cv_policy, single_root_cv) {
     };
 
     for (auto& morph: {m_sph_b1, m_reg_b1, m_sph_b6, m_reg_b6, m_mlt_b6}) {
-        cable_cell cell = make_cable_cell(morph);
+        cable_cell cell(morph);
 
         for (auto& polpair: policy_pairs) {
             mlocation_list p1 = thingify(polpair.first.cv_boundary_points(cell), *cell.morphology());
@@ -133,7 +133,7 @@ TEST(cv_policy, fixed_per_branch) {
 
     // root branch only
     for (auto& morph: {m_sph_b1, m_reg_b1}) {
-        cable_cell cell = make_cable_cell(morph);
+        cable_cell cell(morph);
         {
             // boundary fork points
             cv_policy pol = cv_policy_fixed_per_branch(4);
@@ -153,7 +153,7 @@ TEST(cv_policy, fixed_per_branch) {
     // spherical root, six branches and multiple top level branches cases:
     // expected points are the same.
     for (auto& morph: {m_sph_b6, m_mlt_b6}) {
-        cable_cell cell = make_cable_cell(morph);
+        cable_cell cell(morph);
 
         {
             // boundary fork points
@@ -184,7 +184,7 @@ TEST(cv_policy, max_extent) {
 
     // root branch only
     for (auto& morph: {m_sph_b1, m_reg_b1}) {
-        cable_cell cell = make_cable_cell(morph);
+        cable_cell cell(morph);
         ASSERT_EQ(1.0, cell.morphology()->branch_length(0));
 
         {
@@ -205,7 +205,7 @@ TEST(cv_policy, max_extent) {
 
     // cell with varying branch lengths; extent not exact fraction.
     {
-        cable_cell cell = make_cable_cell(m_mlt_b6);
+        cable_cell cell(m_mlt_b6);
         ASSERT_EQ(1.0, cell.morphology()->branch_length(0));
         ASSERT_EQ(1.0, cell.morphology()->branch_length(1));
         ASSERT_EQ(2.0, cell.morphology()->branch_length(2));

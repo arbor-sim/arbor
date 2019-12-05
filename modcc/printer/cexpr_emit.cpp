@@ -52,7 +52,7 @@ void CExprEmitter::visit(UnaryExpression* e) {
         {tok::cos,     "cos"},
         {tok::sin,     "sin"},
         {tok::log,     "log"},
-        {tok::abs,     "fabs"},
+        {tok::abs,     "abs"},
         {tok::exprelr, "exprelr"}
     };
 
@@ -96,6 +96,8 @@ void CExprEmitter::visit(BinaryExpression* e) {
         {tok::gt,       ">"},
         {tok::gte,      ">="},
         {tok::equality, "=="},
+        {tok::land,     "&&"},
+        {tok::lor,      "||"},
         {tok::ne,       "!="},
         {tok::min,      "min"},
         {tok::max,      "max"},

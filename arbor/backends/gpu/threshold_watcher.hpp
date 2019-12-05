@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
@@ -10,7 +13,6 @@
 
 #include "backends/threshold_crossing.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
-#include "backends/gpu/managed_ptr.hpp"
 #include "backends/gpu/stack.hpp"
 
 #include "stack.hpp"
@@ -115,9 +117,7 @@ public:
                 cv_index_.data(), values_, thresholds_.data());
 
             // Check that the number of spikes has not exceeded capacity.
-            // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
-            // host-device managed memory access.
-            arb_assert((cudaDeviceSynchronize(), !stack_.overflow()));
+            arb_assert(!stack_.overflow());
         }
     }
 

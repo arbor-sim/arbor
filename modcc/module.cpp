@@ -279,6 +279,7 @@ bool Module::semantic() {
     auto initial_api = make_empty_api_method("nrn_init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
+
     auto& init_body = api_init->body()->statements();
 
     api_init->semantic(symbols_);
@@ -289,7 +290,7 @@ bool Module::semantic() {
         if (solve_expression) {
             // Grab SOLVE statements, put them in `body` after translation.
             std::set<std::string> solved_ids;
-            std::unique_ptr<SolverVisitorBase> solver = std::make_unique<SparseSolverVisitor>();
+            std::unique_ptr<SolverVisitorBase> solver;
 
             // The solve expression inside an initial block can only refer to a linear block
             auto solve_proc = solve_expression->procedure();
@@ -300,9 +301,17 @@ bool Module::semantic() {
 
                 rewrite_body->semantic(nrn_init_scope);
                 rewrite_body->accept(solver.get());
+            } else if (solve_proc->kind() == procedureKind::kinetic &&
+                       solve_expression->variant() == solverVariant::steadystate) {
+                solver = std::make_unique<SparseSolverVisitor>(solverVariant::steadystate);
+                auto rewrite_body = kinetic_rewrite(solve_proc->body());
+
+                rewrite_body->semantic(nrn_init_scope);
+                rewrite_body->accept(solver.get());
             } else {
-                error("A SOLVE expression in an INITIAL block can only be used to solve a LINEAR block, which" +
-                      solve_expression->name() + "is not.", solve_expression->location());
+                error("A SOLVE expression in an INITIAL block can only be used to solve a "
+                      "LINEAR block or a KINETIC block at steadystate and " +
+                      solve_expression->name() + " is neither.", solve_expression->location());
                 return false;
             }
 
@@ -315,6 +324,9 @@ bool Module::semantic() {
                     }
                     solved_ids.insert(id);
                 }
+
+                solve_block = remove_unused_locals(solve_block->is_block());
+
                 // Copy body into nrn_init.
                 for (auto &stmt: solve_block->is_block()->statements()) {
                     init_body.emplace_back(stmt->clone());
@@ -847,5 +859,3 @@ void Module::check_revpot_mechanism() {
 
     kind_ = moduleKind::revpot;
 }
-
-

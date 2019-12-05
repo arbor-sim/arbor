@@ -13,10 +13,6 @@ add_custom_target(tests)
 # Builds: unit.
 add_subdirectory(unit)
 
-# Model validation.
-# Builds: validate.
-add_subdirectory(validation)
-
 # Test MPI wrappers and distribution operations.
 # Builds: unit-local and unit-mpi (if MPI enabled).
 add_subdirectory(unit-distributed)
