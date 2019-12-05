@@ -95,11 +95,16 @@ class comm_information():
 
         if (self.is_arbor):
             self.arbor_root = local_ranks[0]
-            self.nest_root = first_missing(local_ranks) if self.arbor_root is 0 else 0
+            print ("self.arbor_root:" + str(self.arbor_root))
+            print ("first_missing(local_ranks) " + str(first_missing(local_ranks)) )
+
+            self.nest_root = first_missing(local_ranks) if self.arbor_root == 0 else 0
         else: 
             self.nest_root = local_ranks[0]
-            self.arbor_root = first_missing(local_ranks) if self.nest_root is 0 else 0
+            self.arbor_root = first_missing(local_ranks) if self.nest_root == 0 else 0
 
+
+        print_d("self.nest_root" +str(self.nest_root))
 
     def __str__(self):
         return str("global ( rank: " + str(self.global_rank) + ", size: " + str(self.global_size) + "\n" +
@@ -130,7 +135,7 @@ comm_info.world.Bcast(data_array, comm_info.arbor_root)
 
 #Receive nest cell_nr
 data_array = np.array([0],dtype=np.int32)  
-comm_info.world.Bcast(data_array, root=nest_root) #Use Bcast allows setting of received size
+comm_info.world.Bcast(data_array, root=comm_info.nest_root) #Use Bcast allows setting of received size
 
 num_nest_cells = data_array[0] 
 num_total_cells = num_nest_cells + num_arbor_cells
@@ -149,7 +154,7 @@ comm_info.world.Bcast(data_array, comm_info.arbor_root)
 
 # receive the nest delays 
 data_array = np.array([0],dtype=np.float32)  
-comm_info.world.Bcast(data_array, nest_root)
+comm_info.world.Bcast(data_array, comm_info.nest_root)
 nest_com_time = data_array[0]
 print_d("nest_com_time: " + str(nest_com_time))
 
