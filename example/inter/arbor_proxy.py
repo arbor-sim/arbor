@@ -126,7 +126,7 @@ nest_root = 1
 # handshake #1: communicate the number of cells between arbor and nest
 # send nr of arbor cells
 data_array = np.array([num_arbor_cells],dtype=np.int32)  
-comm_info.world.Bcast(data_array, arbor_root) 
+comm_info.world.Bcast(data_array, comm_info.arbor_root) 
 
 #Receive nest cell_nr
 data_array = np.array([0],dtype=np.int32)  
@@ -145,7 +145,7 @@ print_d("num_arbor_cells: " + str(num_arbor_cells) + " " +
 # first send the arbor delays
 arb_com_time = min_delay / 2.0
 data_array = np.array([arb_com_time],dtype=np.float32)  
-comm_info.world.Bcast(data_array, arbor_root)
+comm_info.world.Bcast(data_array, comm_info.arbor_root)
 
 # receive the nest delays 
 data_array = np.array([0],dtype=np.float32)  
@@ -168,7 +168,7 @@ if (steps * delta < duration):
 ###############################################################
 # Handshake #3: steps
 data_array = np.array([steps], dtype=np.int32)  
-comm_info.world.Bcast(data_array, arbor_root)
+comm_info.world.Bcast(data_array, comm_info.arbor_root)
 
 print_d("delta: " + str(delta) + ", " +
         "sim_duration: " + str(duration) + ", " +
