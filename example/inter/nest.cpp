@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
             if (!step) {
                 for (unsigned gid: local_cells) {
                     arb::spike s;
-                    s.source = {gid, 0u};
+					s.source = {gid, 0u};  // Neuron spikes: gid, lid, float  lid is currently always zero
                     s.time = (float)(gid-num_arbor_cells);
                     local_spikes.push_back(s);
                 }

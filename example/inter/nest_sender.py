@@ -16,34 +16,26 @@ nest.set_communicator(comm)
 nest.SetKernelStatus({'recording_backends': {'arbor':{}}})
 
 print("Building network")
+
+# Create a spike generator
 pg = nest.Create('poisson_generator', params={'rate': 10.0})
-parrots = nest.Create('parrot_neuron', 100)
+
+# Poisson_generators are special, we need a parrot to forward the spikes to be able
+# to record
+g = nest.Create('poisson_generator', params={'rate': 10.0})
 nest.Connect(pg, parrots)
 
-# sd = nest.Create('spike_detector',
-                 # params={"record_to": "screen"})
-# nest.Connect(parrots, sd)
-
-sd2 = nest.Create('spike_detector',
-                  params={"record_to": "arbor"})
-				  
+# can now record from the parrots.
+sd2 = nest.Create('spike_detector', params={"record_to": "arbor"})			  
 nest.Connect(parrots, sd2)
 
-#print(nest.GetKernelStatus())
-
-#nest.SetKernelStatus({'recording_backends': {'screen': {}}})
 status = nest.GetKernelStatus()
 print('min_delay: ', status['min_delay'], ", max_delay: ", status['max_delay'])
-print( "debug 1*******************" + str( status['network_size'] ) + "*************")
 
-#nest.ResetKernel()
-#nest.SetKernelStatus({'min_delay': status['min_delay']/2,
-#                      'max_delay': status['max_delay']})
-status = nest.GetKernelStatus()
-print('min_delay: ', status['min_delay'], ", max_delay: ", status['max_delay'])
-print( "debug 2*******************" + str( status['network_size'] ) + "*************")
 print("Simulate")
 sys.stdout.flush()
-#nest.ResetKernel()
+
 nest.Simulate(100.0)
+
 print("Done")
+sys.stdout.flush()

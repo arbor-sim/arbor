@@ -8,6 +8,8 @@
 #include <arbor/spike.hpp>
 
 std::vector<arb::spike> gather_spikes(const std::vector<arb::spike>& values, MPI_Comm comm) {
+	// Arbor spikes follow the NEURON format: <uint gid, uint local_id, float time>
+    // TODO: Refactor so that local_id does not have to be send. 
     int size;
     MPI_Comm_size(comm, &size);
 

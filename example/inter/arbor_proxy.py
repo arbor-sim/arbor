@@ -1,7 +1,8 @@
 #! /usr/bin/python3
 
-# arbor_proxy.py simulates a arbor run including MPI. Reimplementation of the c++ version of Peyser
-# implemented as python to allow easy testing by external developers without building arbor
+# arbor_proxy.py simulates an arbor run with MPI spike exchange to external NEST.
+# Reimplementation of the c++ version of Peyser
+# implemented in pure python to allow easy testing by external developers without building arbor
 from mpi4py import MPI
 import sys
 import numpy as np
@@ -13,7 +14,7 @@ import math
 # for debug printing in MPI environment
 print_debug = True
 print_prefix = "ARB_PROXY_PY: "
-def print_d (to_print , force = False):
+def print_d (to_print):
     if (not print_debug ):     # print_debug is 'global variable'
         return
 

@@ -11,4 +11,3 @@ add_dependencies(examples arbor_proxy)
 target_link_libraries(arb_inter PRIVATE arbor arborenv arbor-sup ext-json)
 target_link_libraries(nest_proxy PRIVATE arbor arborenv arbor-sup ext-json)
 target_link_libraries(arbor_proxy PRIVATE arbor arborenv arbor-sup ext-json)
-
