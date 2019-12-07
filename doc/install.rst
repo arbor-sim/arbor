@@ -516,7 +516,7 @@ Putting it all together, a typical workflow to build Arbor on a Cray system is:
 
     export CRAYPE_LINK_TYPE=dynamic
     module swap PrgEnv-cray PrgEnv-gnu
-    moudle swap gcc/7.1.0
+    module swap gcc/7.1.0
     export CC=`which cc`; export CXX=`which CC`;
     cmake -DARB_WITH_MPI=ON    # MPI support
 
