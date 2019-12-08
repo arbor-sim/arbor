@@ -3,47 +3,28 @@
 Single Cell Models
 ==================
 
-This page is a practical guide for beginners on how to make and run single cell Arbor model in Python.
+This is a practical guide for beginners on how to make and run single cell Arbor model in Python.
+Building single cell models is typically the first step towards building network models.
 
-TODO: this should be designed to help people who are familiar with NEURON.
-    - We could even provide a custom *Note* style box called something like *Porting* or *NEURON* to highlight differences or
-      subtleties relative to NEURON as they arise.
+We break down *single cell model building* into the following steps:
 
-Python
-------
+    1. Defining the `morphology <single_morpho_>`_ of the cell.
+    2. Labeling regions and locations on the morphology.
+    3. Defining the mechanisms that will be applied to the cell.
+    4. Applying mechanisms to labeled regions and locations.
+    5. Attaching stimuli, spike detectors, event generators, probes (inputs & outputs).
+    6. Parameter sweeps.
 
-Arbor is a C++ library, designed for integration into simulation packages and high performance computing.
-Arbor's Python interface gives access to all of the C++ library's functionality from Python.
-
-The Python interface can incur significant performance overheads relative to C++ during the *model building* phase,
-however simulation performance will be the same for both interfaces.
+In this guide we will provide a simple example workflow of this kind that the reader
+can follow along with in Python, with links to separate guides that go into each
+step in more detail for when you develop your own models.
 
 .. Note::
-    To try this tutorial Arbor needs to be installed with the Python interface enabled.
-    See the `installation guide <_installarbor>`_ if you have not installed Arbor yet.
+    Most readers will most likely be at least familiar with NEURON. Boxes like this
+    will be used to highlight differences and subtleties between NEURON and Arbor
+    throughout the guide. Readers who have not used NEURON can skip these notes.
 
-.. Warning::
-    Python 2.7 will reach `end of life <https://pythonclock.org/>`_ in 2020.
-    Arbor should be installed using Python 3, and all examples in the documentation are in
-    Python 3. It might be possible to install and run Arbor using Python 2.7, however Arbor support
-    will only be provided for Python 3.
-
-To test that Arbor is available, open Python and try the following:
-
-.. container:: example-code
-
-    .. code-block:: python
-
-        import arbor
-        arbor.config()
-
-        {'mpi': True, 'mpi4py': True, 'gpu': False, 'version': '0.3'}
-
-Calling ``arbor.config()`` returns a dictionary with information about the Arbor installation.
-This can be used to check that Arbor supports features that you require to run your model,
-or even to dynamically decide how to run a model.
-To run single cell models like the one introduced here we don't need parallelism like
-that provided by MPI or GPUs, so the ``'mpi'`` and ``'gpu'`` fields can be ``False``.
+.. _single_morpho:
 
 Morphology
 ----------
