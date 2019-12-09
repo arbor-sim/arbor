@@ -5,7 +5,8 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "util/either.hpp"
+#include <arbor/util/either.hpp>
+
 #include "util/meta.hpp"
 #include "util/partition_iterator.hpp"
 #include "util/range.hpp"

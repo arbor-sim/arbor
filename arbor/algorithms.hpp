@@ -28,17 +28,9 @@ namespace algorithms {
 
 template <typename C>
 typename util::sequence_traits<C>::value_type
-sum(C const& c)
-{
-    using value_type = typename util::sequence_traits<C>::value_type;
-    return std::accumulate(std::cbegin(c), std::cend(c), value_type{0});
-}
-
-template <typename C>
-typename util::sequence_traits<C>::value_type
 mean(C const& c)
 {
-    return sum(c)/util::size(c);
+    return util::sum(c)/util::size(c);
 }
 
 // returns the prefix sum of c in the form `[0, c[0], c[0]+c[1], ..., sum(c)]`.

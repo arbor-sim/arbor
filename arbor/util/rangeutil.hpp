@@ -193,6 +193,17 @@ bool any_of(const Seq& seq, const Predicate& pred) {
     return std::any_of(canon.begin(), canon.end(), pred);
 }
 
+// Accumulate over range
+
+template <
+    typename Seq,
+    typename Value = typename util::sequence_traits<Seq>::value_type
+>
+Value sum(const Seq& seq, Value base = Value{}) {
+    auto canon = canonical_view(seq);
+    return std::accumulate(canon.begin(), canon.end(), base);
+}
+
 // Accumulate by projection `proj`
 
 template <

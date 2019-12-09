@@ -478,6 +478,26 @@ TEST(range, sort) {
     EXPECT_EQ(X, (std::vector<foo>{{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}}));
 }
 
+TEST(range, sum) {
+    std::string words[] = { "fish", "cakes", "!" };
+
+    auto result = util::sum(words);
+    EXPECT_EQ("fishcakes!", result);
+
+    result = util::sum(words, "tasty"s);
+    EXPECT_EQ("tastyfishcakes!", result);
+
+    struct uwrap {
+        unsigned value = 0;
+        uwrap(unsigned v): value(v) {}
+
+        uwrap operator+(const std::string& s) { return value+s.size(); }
+    };
+
+    auto count = util::sum(words, uwrap{3});
+    EXPECT_EQ(3u+4u+5u+1u, count.value);
+}
+
 TEST(range, sum_by) {
     std::string words[] = { "fish", "cakes", "!" };
     auto prepend_ = [](const std::string& x) { return "_"+x; };
