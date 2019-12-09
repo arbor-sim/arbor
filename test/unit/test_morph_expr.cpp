@@ -2,7 +2,11 @@
 
 #include <vector>
 
+<<<<<<< HEAD
 #include <arbor/morph/embed_pwlin.hpp>
+=======
+#include <arbor/morph/embed_pwlin1d.hpp>
+>>>>>>> Replace em_morphology middle layer API.
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
