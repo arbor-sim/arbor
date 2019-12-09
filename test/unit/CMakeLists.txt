@@ -25,6 +25,8 @@ set(test_mechanisms
     read_eX
     write_multiple_eX
     write_eX
+    read_cai_init
+    write_cai_breakpoint
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
