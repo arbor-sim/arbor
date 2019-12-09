@@ -580,7 +580,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     ion_config.init_revpot.assign(ncv, 0.);
     ion_config.init_econc.assign(ncv, 0.);
     ion_config.init_iconc.assign(ncv, 0.);
-    ion_config.reset_iconc.assign(ncv, 0.);
+    ion_config.reset_econc.assign(ncv, 0.);
     ion_config.reset_iconc.assign(ncv, 2.3e-4);
 
     auto read_cai  = cat.instance<backend>("read_cai_init");
@@ -606,7 +606,7 @@ TEST(fvm_lowered, ionic_concentrations) {
 
     EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
 
-    // expect 5.2 value in state 's' in read_cai_init after state update:
+    // expect 5.2 + 2.3 value in state 's' in read_cai_init after state update:
     read_cai_mech->nrn_state();
     write_cai_mech->nrn_state();
 
