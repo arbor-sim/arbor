@@ -81,7 +81,7 @@ public:
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
-            arb_assert(std::is_sorted(&ev_time_[ev_begin_i], &ev_time_[ev_i]));
+            arb_assert(util::is_sorted(util::subrange_view(ev_time_, ev_begin_i, ev_i)));
             mark_[s] = ev_begin_i;
             span_begin_[s] = ev_begin_i;
             span_end_[s] = ev_i;
