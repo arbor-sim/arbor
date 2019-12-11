@@ -72,4 +72,19 @@ arb::util::optional<T> py2optional(pybind11::object o, const char* msg) {
     return o.is_none()? arb::util::nullopt: arb::util::optional<T>(std::move(value));
 }
 
+// Attempt to cast a Python object to a C++ type T.
+// Returns an optional that is set if o could be cast
+// to T, otherwise it is empty. Hence not being able
+// to cast is not an error.
+template <typename T>
+arb::util::optional<T> try_cast(pybind11::object o) {
+    try {
+        return o.cast<T>();
+    }
+    // Ignore cast_error: if unable to perform cast.
+    catch (pybind11::cast_error& e) {}
+
+    return arb::util::nullopt;
 }
+
+} // namespace arb

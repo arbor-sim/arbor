@@ -6,6 +6,7 @@
 #include <arbor/morph/sample_tree.hpp>
 #include <arbor/cable_cell.hpp>
 
+#include "conversion.hpp"
 #include "error.hpp"
 #include "morph_parse.hpp"
 #include "s_expr.hpp"
@@ -84,6 +85,8 @@ public:
         // to the root.
         arb::msize_t p = at_root? (size()? 0: mnpos): cable_distal_id_[parent];
 
+        std::cout << " Parent " << p << "\n";
+
         double z = at_root? 0:                      // attach to root of non-spherical cell
                    spherical_&&!parent? soma_rad(): // attach to spherical root
                    tree_.samples()[p].loc.z;        // attach to end of a cable
@@ -95,6 +98,7 @@ public:
                                   || (r1!=tree_.samples()[p].loc.radius);
                                                         // proximal radius does not match r1
         if (add_first_point) {
+            std::cout << "   Up front\n";
             p = tree_.append(p, {{0,0,z,r1}, tag});
         }
         if (ncomp>1) {
@@ -110,21 +114,13 @@ public:
         return size()-1;
     }
 
-    /*
-    arb::msize_t add_cable(arb::msize_t parent, double len,
-                           double r1, const char* region, int ncomp)
-    {
-        return add_cable(parent, len, r1, r1, region, ncomp);
-    }
-    */
-
-
     void add_label(const char* name, const char* description) {
         if (!test_identifier(name)) {
             throw pyarb_error(util::pprintf("'{}' is not a valid label name.", name));
         }
 
         if (auto result = eval(parse(description)) ) {
+            // The description is a region.
             if (result->type()==typeid(arb::region)) {
                 if (dict_.locset(name)) {
                     throw pyarb_error("Region name clashes with a locset.");
@@ -197,14 +193,18 @@ public:
     int get_tag(const std::string& name) {
         using arb::reg::tagged;
 
-        auto it = tag_map_.find(name);
         // Name is in the map: return the tag.
+        auto it = tag_map_.find(name);
         if (it!=tag_map_.end()) {
             return it->second;
         }
+        // If the name is not in the map, the next step depends on
+        // whether the name is used for a locst, or a region that is
+        // not in the map, or is not used at all.
+
         // Name is a locset: error.
         if (dict_.locset(name)) {
-            throw pyarb_error(util::pprintf("'{}' is an label for a locset."));
+            throw pyarb_error(util::pprintf("'{}' is a label for a locset."));
         }
         // Name is a region: add tag to region definition.
         else if(auto reg = dict_.region(name)) {
@@ -218,7 +218,6 @@ public:
             dict_.set(name, tagged(tag_count_));
             return tag_count_;
         }
-        return it->second;
     }
 
     // Only valid if called on a non-empty tree with spherical soma.
@@ -242,8 +241,24 @@ void register_flat_builder(pybind11::module& m) {
         .def(pybind11::init<>())
         .def("add_sphere", &flat_cell_builder::add_sphere,
             "radius"_a, "name"_a)
-        .def("add_cable", &flat_cell_builder::add_cable,
-            "parent"_a, "length"_a, "rad_prox"_a, "rad_dist"_a, "name"_a, "ncomp"_a=1)
+        .def("add_cable",
+                [](flat_cell_builder& b, arb::msize_t p, double len, pybind11::object rad, const char* name, int ncomp) {
+                    using pybind11::isinstance;
+                    using pybind11::cast;
+                    if (auto radius = try_cast<double>(rad) ) {
+                        return b.add_cable(p, len, *radius, *radius, name, ncomp);
+                    }
+
+                    if (auto radii = try_cast<std::pair<double, double>>(rad)) {
+                        return b.add_cable(p, len, radii->first, radii->second, name, ncomp);
+                    }
+                    else {
+                        throw pyarb_error(
+                            "Radius parameter is not a scalar (constant branch radius) or "
+                            "a tuple (radius at proximal and distal ends respectively).");
+                    }
+                },
+            "parent"_a, "length"_a, "radius"_a, "name"_a, "ncomp"_a=1)
         .def("add_label", &flat_cell_builder::add_label,
             "name"_a, "description"_a)
         .def_property_readonly("samples",

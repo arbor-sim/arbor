@@ -96,55 +96,6 @@ function(set_arch_target optvar arch)
         else()
             set(arch_opt "-mcpu=${arch}")
         endif()
-
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-        # Translate target architecture names to Intel-compatible names.
-        # icc 17 recognizes the following specific microarchitecture names for -mtune:
-        #     broadwell, haswell, ivybridge, knl, sandybridge, skylake
-
-        if(arch MATCHES "sandybridge")
-            set(tune "${arch}")
-            set(arch "AVX")
-        elseif(arch MATCHES "ivybridge")
-            set(tune "${arch}")
-            set(arch "CORE-AVX-I")
-        elseif(arch MATCHES "broadwell|haswell|skylake")
-            set(tune "${arch}")
-            set(arch "CORE-AVX2")
-        elseif(arch MATCHES "knl")
-            set(tune "${arch}")
-            set(arch "MIC-AVX512")
-        elseif(arch MATCHES "nehalem|westmere")
-            set(tune "corei7")
-            set(arch "SSE4.2")
-        elseif(arch MATCHES "core2")
-            set(tune "core2")
-            set(arch "SSSE3")
-        elseif(arch MATCHES "native")
-            unset(tune)
-            set(arch "Host")
-        else()
-            set(tune "generic")
-            set(arch "SSE2") # default for icc
-        endif()
-
-        if(tune)
-            set(arch_opt "-x${arch};-mtune=${tune}")
-        else()
-            set(arch_opt "-x${arch}")
-        endif()
-
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "XL")
-        # xlC 13 for Linux uses -mcpu. Not even attempting to get xlC 12 for BG/Q right
-        # at this point: use CXXFLAGS as required!
-        #
-        # xlC, gcc, and clang all recognize power8 and power9 as architecture keywords.
-
-        if(arch MATCHES "native")
-            set(arch_opt "-qarch=auto")
-        else()
-            set(arch_opt "-mcpu=${arch}")
-        endif()
     endif()
 
     get_property(enabled_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
