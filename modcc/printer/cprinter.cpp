@@ -310,12 +310,13 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     }
 
     for (auto proc: normal_procedures(module_)) {
-        emit_procedure_proto(out, proc);
-        out << ";\n";
         if (with_simd) {
             emit_simd_procedure_proto(out, proc);
             out << ";\n";
             emit_masked_simd_procedure_proto(out, proc);
+            out << ";\n";
+        } else {
+            emit_procedure_proto(out, proc);
             out << ";\n";
         }
     }
@@ -377,12 +378,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     // Mechanism procedures
 
     for (auto proc: normal_procedures(module_)) {
-        emit_procedure_proto(out, proc, class_name);
-        out <<
-            " {\n" << indent <<
-            cprint(proc->body()) << popindent <<
-            "}\n\n";
-
         if (with_simd) {
             emit_simd_procedure_proto(out, proc, class_name);
             auto simd_print = simdprint(proc->body());
@@ -392,6 +387,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             auto masked_print = simdprint(proc->body());
             masked_print.set_masked();
             out << " {\n" << indent << masked_print << popindent << "}\n\n";
+        } else {
+            emit_procedure_proto(out, proc, class_name);
+            out <<
+                " {\n" << indent <<
+                cprint(proc->body()) << popindent <<
+                "}\n\n";
         }
     }
 
