@@ -363,6 +363,10 @@ bool Module::semantic() {
 
         for(auto& e: (breakpoint->body()->statements())) {
             SolveExpression* solve_expression = e->is_solve_statement();
+            LocalDeclaration* local_expression = e->is_local_declaration();
+            if(local_expression) {
+                continue;
+            }
             if(!solve_expression) {
                 found_non_solve = true;
                 continue;
