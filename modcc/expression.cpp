@@ -319,6 +319,7 @@ void ReactionExpression::semantic(scope_ptr scp) {
 
     if(lhs_->has_error() || rhs_->has_error() || fwd_rate_->has_error() || rev_rate_->has_error()) {
         error("Error in semantic pass of Reaction Expression");
+        return;
     }
 
     if(fwd_rate_->is_procedure_call() || rev_rate_->is_procedure_call()) {
@@ -436,6 +437,7 @@ void LinearExpression::semantic(scope_ptr scp) {
 
     if(lhs_->has_error() || rhs_->has_error()) {
         error("Error in semantic pass of Linear Expression");
+        return;
     }
     if(rhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
@@ -460,6 +462,7 @@ void ConserveExpression::semantic(scope_ptr scp) {
 
     if(lhs_->has_error() || rhs_->has_error()) {
         error("Error in semantic pass of Conserve Expression");
+        return;
     }
     if(rhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
@@ -771,8 +774,8 @@ void UnaryExpression::semantic(scope_ptr scp) {
     expression_->semantic(scp);
     if(expression_->has_error()) {
         error("Error in semantic pass of Unary Expression");
+        return;
     }
-
     if(expression_->is_procedure_call()) {
         error("a procedure call can't be part of an expression");
     }
@@ -798,6 +801,7 @@ void BinaryExpression::semantic(scope_ptr scp) {
 
     if(lhs_->has_error() || rhs_->has_error()) {
         error("Error in semantic pass of Binary Expression");
+        return;
     }
     if(rhs_->is_procedure_call() || lhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");

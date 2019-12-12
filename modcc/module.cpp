@@ -742,6 +742,22 @@ int Module::semantic_func_proc() {
     //  -   generate local variable table for each function/procedure
     //  -   inlining function calls
     ////////////////////////////////////////////////////////////////////////////
+
+    // Before, make sure there are no errors
+    int errors = 0;
+    for(auto& e : symbols_) {
+        auto &s = e.second;
+        if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
+            s->semantic(symbols_);
+            ErrorVisitor v(source_name());
+            s->accept(&v);
+            errors += v.num_errors();
+        }
+    }
+    if (errors > 0) {
+        return errors;
+    }
+
 #ifdef LOGGING
     std::cout << white("===================================\n");
         std::cout << cyan("        Function Inlining\n");
@@ -797,7 +813,7 @@ int Module::semantic_func_proc() {
         }
     }
 
-    int errors = 0;
+    errors = 0;
     for(auto& e : symbols_) {
         auto &s = e.second;
         if(s->kind() == symbolKind::procedure) {
