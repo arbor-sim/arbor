@@ -216,11 +216,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     while (remaining_steps) {
         // Update any required reversal potentials based on ionic concs.
 
-        PE(advance_update_revpot)
         for (auto& m: revpot_mechanisms_) {
             m->nrn_current();
         }
-        PL();
 
 
         // Deliver events and accumulate mechanism current contributions.
