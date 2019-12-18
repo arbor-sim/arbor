@@ -5,13 +5,13 @@
 #include "scope.hpp"
 #include "visitor.hpp"
 
-expression_ptr inline_function_calls(BlockExpression* block);
+expression_ptr inline_function_calls(BlockExpression* block, std::string calling_func);
 
 class FunctionInliner : public BlockRewriterBase {
 public:
     using BlockRewriterBase::visit;
 
-    FunctionInliner() : BlockRewriterBase() {};
+    FunctionInliner(std::string calling_func) : BlockRewriterBase(), calling_func_(calling_func) {};
     FunctionInliner(scope_ptr s): BlockRewriterBase(s) {}
 
     virtual void visit(Expression *e)            override;
@@ -33,7 +33,7 @@ public:
     ~FunctionInliner() {}
 
 private:
-    std::string func_name_;
+    std::string func_name_, calling_func_;
     expression_ptr lhs_;
     std::unordered_map<std::string, expression_ptr> call_arg_map_;
     std::unordered_map<std::string, expression_ptr> local_arg_map_;

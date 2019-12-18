@@ -788,6 +788,32 @@ int Module::semantic_func_proc() {
     }
 
     for(auto& e : symbols_) {
+        auto &s = e.second;
+
+        if (s->kind() == symbolKind::function) {
+            // perform semantic analysis
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "function inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
+
+            auto rewritten = inline_function_calls(s->is_function()->body(), s->is_function()->name());
+            s->is_function()->body(std::move(rewritten));
+
+            // Finally, run a constant simplification pass.
+            if (auto proc = s->is_function()) {
+                proc->body(constant_simplify(proc->body()));
+                s->semantic(symbols_);
+            }
+#ifdef LOGGING
+            std::cout << "body after inlining\n"
+                      << s->to_string() << "\n\n";
+#endif
+        }
+    }
+
+    for(auto& e : symbols_) {
         auto& s = e.second;
 
         if(s->kind() == symbolKind::procedure) {
@@ -798,7 +824,7 @@ int Module::semantic_func_proc() {
                       << s->to_string() << "\n\n";
 #endif
 
-            auto rewritten = inline_function_calls(s->is_procedure()->body());
+            auto rewritten = inline_function_calls(s->is_procedure()->body(), s->is_procedure()->name());
             s->is_procedure()->body(std::move(rewritten));
 
             // Finally, run a constant simplification pass.

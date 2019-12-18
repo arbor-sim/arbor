@@ -866,8 +866,7 @@ void IfExpression::semantic(scope_ptr scp) {
 
     condition_->semantic(scp);
 
-    auto cond = condition_->is_conditional();
-    if(!cond) {
+    if(!condition_->is_conditional() && !condition_->is_identifier() && !condition()->is_binary()) {
         error("not a valid conditional expression");
     }
 
@@ -876,6 +875,10 @@ void IfExpression::semantic(scope_ptr scp) {
     if(false_branch_) {
         false_branch_->semantic(scp);
     }
+}
+
+void IfExpression::replace_condition(expression_ptr&& other) {
+    std::swap(condition_, other);
 }
 
 expression_ptr IfExpression::clone() const {

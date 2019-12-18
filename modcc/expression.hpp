@@ -797,6 +797,8 @@ public:
     expression_ptr clone() const override;
 
     std::string to_string() const override;
+
+    void replace_condition(expression_ptr&& other);
     void semantic(scope_ptr scp) override;
 
     void accept(Visitor* v) override;

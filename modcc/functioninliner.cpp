@@ -4,18 +4,16 @@
 #include "error.hpp"
 #include "functioninliner.hpp"
 #include "errorvisitor.hpp"
-expression_ptr inline_function_calls(BlockExpression* block) {
+expression_ptr inline_function_calls(BlockExpression* block, std::string calling_func) {
     auto inline_block = block->clone();
 
     // The function inliner will inline one function at a time
     // Once all functions in a block have been inlined, the
     // while loop will be broken
     while(true) {
-        for (auto&s: inline_block->is_block()->statements()) {
-            s->semantic(block->scope());
-        }
+        inline_block->semantic(block->scope());
 
-        auto func_inliner = std::make_unique<FunctionInliner>();
+        auto func_inliner = std::make_unique<FunctionInliner>(calling_func);
         inline_block->accept(func_inliner.get());
 
         if (!func_inliner->return_val_set()) {
@@ -177,9 +175,6 @@ void FunctionInliner::visit(AssignmentExpression* e) {
             if (local_arg_map_.count(iden_name)) {
                 e->replace_lhs(local_arg_map_.at(iden_name)->clone());
             }
-            if (call_arg_map_.count(iden_name)) {
-                e->replace_lhs(call_arg_map_.at(iden_name)->clone());
-            }
         }
     }
 
@@ -246,6 +241,10 @@ void FunctionInliner::visit(CallExpression* e) {
             statements_.push_back(e->clone());
         }
         return;
+    }
+
+    if (e->is_function_call()->name() == func_name_ || e->is_function_call()->name() == calling_func_) {
+        throw compiler_exception(pprintf("Recursive functions not allowed", e->location()));
     }
 
     auto& args = e->is_function_call() ? e->is_function_call()->args() : e->is_procedure_call()->args();

@@ -85,6 +85,16 @@ void FunctionCallLowerer::visit(CallExpression *e) {
 
 void FunctionCallLowerer::visit(AssignmentExpression *e) {
     e->rhs()->accept(this);
+    if (auto func = e->rhs()->is_function_call()) {
+        for (auto& arg: func->args()) {
+            if (auto id = arg->is_identifier()) {
+                if (id->name() == e->lhs()->is_identifier()->name()) {
+                    expand_call(func, [&e](expression_ptr&& p){e->replace_rhs(std::move(p));});
+                    e->semantic(block_scope_);
+                }
+            }
+        }
+    }
     statements_.push_back(e->clone());
 }
 
@@ -142,6 +152,16 @@ void FunctionCallLowerer::visit(IfExpression *e) {
     expr_list_type outer;
 
     e->condition()->accept(this);
+
+    if(auto func = e->condition()->is_function_call()) {
+        func->accept(this);
+        expand_call(func, [&e](expression_ptr&& p){e->replace_condition(std::move(p));});
+        e->semantic(block_scope_);
+    }
+    else {
+        e->condition()->accept(this);
+    }
+
     std::swap(outer, statements_);
 
     e->true_branch()->accept(this);
