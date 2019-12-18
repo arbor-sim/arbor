@@ -91,6 +91,7 @@ void FunctionCallLowerer::visit(AssignmentExpression *e) {
                 if (id->name() == e->lhs()->is_identifier()->name()) {
                     expand_call(func, [&e](expression_ptr&& p){e->replace_rhs(std::move(p));});
                     e->semantic(block_scope_);
+                    break;
                 }
             }
         }
