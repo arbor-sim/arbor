@@ -16,7 +16,7 @@ function(check_git_submodule name path)
             "    git submodule init\n"
             "    git submodule update\n"
             "Or download submodules recursively when checking out:\n"
-            "    git clone --recursive https://github.com/eth-cscs/arbor.git\n"
+            "    git clone --recursive https://github.com/arbor-sim/arbor.git\n"
         )
 
         # if the repository was not available, and git failed, set AVAIL to false
