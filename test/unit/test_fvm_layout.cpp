@@ -101,17 +101,23 @@ namespace {
         cell.paint("soma", "hh");
         cell.paint("dend", "pas");
 
+/*
         cable_cell_local_parameter_set p1;
         p1.membrane_capacitance = 0.017;
         cable_cell_local_parameter_set p2;
         p2.membrane_capacitance = 0.013;
         cable_cell_local_parameter_set p3;
         p3.membrane_capacitance = 0.018;
-
+*/
         using ::arb::reg::branch;
+/*
         cell.paint(branch(b1), p1);
         cell.paint(branch(b2), p2);
         cell.paint(branch(b3), p3);
+*/
+        cell.paint(branch(b1), membrane_capacitance{0.017});
+        cell.paint(branch(b2), membrane_capacitance{0.013});
+        cell.paint(branch(b3), membrane_capacitance{0.018});
 
         cell.place(mlocation{2,1}, i_clamp{5.,  80., 0.45});
         cell.place(mlocation{3,1}, i_clamp{40., 10.,-0.2});

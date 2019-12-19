@@ -18,6 +18,17 @@ struct cable_cell_error: arbor_exception {
         arbor_exception("cable_cell: "+what) {}
 };
 
+// Ion inital concentration and reversal potential
+// parameters, as used in cable_cell_parameter_set,
+// and set locally via painting initial_ion_data
+// (see below).
+
+struct cable_cell_ion_data {
+    double init_int_concentration = NAN;
+    double init_ext_concentration = NAN;
+    double init_reversal_potential = NAN;
+};
+
 // Current clamp description for stimulus specification.
 struct i_clamp {
     using value_type = double;
@@ -40,6 +51,25 @@ struct threshold_detector {
 
 // Tag type for dispatching cable_cell::place() calls that add gap junction sites.
 struct gap_junction_site {};
+
+// Setter types for painting physical and ion parameters or setting
+// cell-wide default:
+
+struct init_membrane_potential {
+    double value = NAN; // [mV]
+};
+
+struct temperature_K {
+    double value = NAN; // [K]
+};
+
+struct axial_resistivity {
+    double value = NAN; // [[Ω·cm]
+};
+
+struct membrane_capacitance {
+    double value = NAN; // [F/m²]
+};
 
 // Mechanism description, viz. mechanism name and
 // (non-global) parameter settings. Used to assign
@@ -102,6 +132,16 @@ struct mechanism_desc {
 private:
     std::string name_;
     std::unordered_map<std::string, double> param_;
+};
+
+struct initial_ion_data {
+    std::string ion;
+    cable_cell_ion_data initial;
+};
+
+struct ion_reversal_potential_method {
+    std::string ion;
+    mechanism_desc method;
 };
 
 // FVM discretization policies/hints.
@@ -236,18 +276,13 @@ inline cv_policy default_cv_policy() {
 }
 
 // Cable cell ion and electrical defaults.
-//
+
+#if 0
 // Parameters can be overridden with `cable_cell_local_parameter_set`
 // on unbranched segments within a cell; per-cell and global defaults
 // use `cable_cell_parameter_set`, which extends the parameter set
 // to supply per-cell or global ion reversal potential calculation
 // mechanisms.
-
-struct cable_cell_ion_data {
-    double init_int_concentration = NAN;
-    double init_ext_concentration = NAN;
-    double init_reversal_potential = NAN;
-};
 
 struct cable_cell_local_parameter_set {
     std::unordered_map<std::string, cable_cell_ion_data> ion_data;
@@ -273,8 +308,29 @@ struct cable_cell_parameter_set: public cable_cell_local_parameter_set {
         discretization(std::move(d))
     {}
 };
+#else
+// Parameters can be given as per-cell and global defaults via
+// cable_cell::default_parameters and cable_cell_global_properties::default_parameters
+// respectively.
+//
+// With the exception of `reversal_potential_method`, these properties can
+// be set locally witihin a cell using the `cable_cell::paint()`, and the
+// cell defaults can be individually set with `cable_cell:set_default()`.
 
-extern cable_cell_local_parameter_set neuron_parameter_defaults;
+struct cable_cell_parameter_set {
+    util::optional<double> init_membrane_potential; // [mV]
+    util::optional<double> temperature_K;           // [K]
+    util::optional<double> axial_resistivity;       // [Ω·cm]
+    util::optional<double> membrane_capacitance;    // [F/m²]
+
+    std::unordered_map<std::string, cable_cell_ion_data> ion_data;
+    std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
+
+    cv_policy discretization = default_cv_policy();
+};
+#endif
+
+extern cable_cell_parameter_set neuron_parameter_defaults;
 
 // Global cable cell data.
 

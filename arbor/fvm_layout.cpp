@@ -5,6 +5,7 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/mcable_map.hpp>
 #include <arbor/util/optional.hpp>
 
 #include "algorithms.hpp"
@@ -14,10 +15,35 @@
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/partition.hpp"
+#include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 
 namespace arb {
+
+// Extract a branch of an mcable_map as pw_elements:
+
+using util::pw_elements;
+template <typename T>
+pw_elements<T> on_branch(const mcable_map<T>& mm, msize_t bid) {
+    using value_type = typename mcable_map<T>::value_type;
+    pw_elements<T> pw;
+
+    struct as_branch {
+        msize_t value;
+        as_branch(const value_type& x): value(x.first.branch) {}
+        as_branch(const msize_t& x): value(x) {}
+    };
+
+    auto eq = std::equal_range(mm.begin(), mm.end(), bid,
+            [](as_branch a, as_branch b) { return a.value<b.value; });
+
+    for (const auto& el: util::make_range(eq)) {
+        pw.push_back(el.first.prox_pos, el.first.dist_pos, el.second);
+    }
+    return pw;
+}
+
 
 using util::count_along;
 using util::keys;
@@ -557,7 +583,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         auto add_ion_segment =
             [&gparam, &cell, &ion_segments]
-            (const std::string& ion_name, size_type segment_idx, const cable_cell_local_parameter_set& seg_param, const ion_dependency* iondep = nullptr)
+            (const std::string& ion_name, size_type segment_idx, const cable_cell_parameter_set& seg_param, const ion_dependency* iondep = nullptr)
         {
             const auto& global_ion_data = gparam.ion_data;
             const auto& cell_ion_data = cell.default_parameters.ion_data;

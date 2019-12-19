@@ -7,6 +7,7 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/segment.hpp>
+#include <arbor/util/pp_util.hpp>
 
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
@@ -14,6 +15,21 @@
 #include "util/strprintf.hpp"
 
 namespace arb {
+
+namespace {
+    template <typename Property>
+    std::string property_key(const Property&) {
+        return "";
+    }
+
+    std::string property_key(const mechanism_desc& p) {
+        return p.name();
+    }
+
+    std::string property_key(const initial_ion_data& p) {
+        return p.ion;
+    }
+}
 
 using region_map = std::unordered_map<std::string, mcable_list>;
 using locset_map = std::unordered_map<std::string, mlocation_list>;
@@ -141,6 +157,12 @@ struct cable_cell_impl {
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
 
+    // Regional assignment.
+    cable_cell_region_map region_map;
+
+    // Mechanisms by name and by region.
+    // Local ion data by name and by region.
+
     template <typename Desc, typename T>
     lid_range place(const mlocation_list& locs, const Desc& desc, std::vector<T>& list) {
         const auto first = list.size();
@@ -179,21 +201,47 @@ struct cable_cell_impl {
         return test_invariants(loc) && loc.branch<segments.size();
     }
 
-    template <typename F>
-    void paint(const mcable_list& cables, F&& f) {
+    void paint_segment(segment_ptr& s, const mechanism_desc& p) {
+        s->add_mechanism(p);
+    }
+
+    void paint_segment(segment_ptr& s, init_membrane_potential p) {
+        s->parameters.init_membrane_potential = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, axial_resistivity p) {
+        s->parameters.axial_resistivity = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, temperature_K p) {
+        s->parameters.temperature_K = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, membrane_capacitance p) {
+        s->parameters.membrane_capacitance = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, initial_ion_data p) {
+        s->parameters.ion_data[p.ion] = p.initial;
+    }
+
+    template <typename Property>
+    void paint(const region& reg, const Property& prop) {
+        mcable_list cables = thingify(reg, provider);
+        auto& mm = region_map.get<Property>()[property_key(prop)];
+
         for (auto c: cables) {
+            if (!mm.insert(c, prop)) {
+                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+            }
+
             if (c.prox_pos!=0 || c.dist_pos!=1) {
                 throw cable_cell_error(util::pprintf(
                     "cable_cell does not support regions with partial branches: {}", c));
             }
             assert_valid_segment(c.branch);
-            f(segments[c.branch]);
+            paint_segment(segments[c.branch], prop);
         }
-    }
-
-    template <typename F>
-    void paint(const region& reg, F&& f) {
-        paint(thingify(reg, provider), std::forward<F>(f));
     }
 };
 
@@ -277,29 +325,21 @@ const mprovider& cable_cell::provider() const {
     return impl_->provider;
 }
 
+// Forward paint methods to implementation class.
 
-//
-// Painters.
-//
-// Implementation of user API for painting density channel and electrical properties on cells.
-//
-
-void cable_cell::paint(const region& target, mechanism_desc desc) {
-    impl_->paint(target,
-                 [&desc](segment_ptr& s){return s->add_mechanism(desc);});
+#define FWD_PAINT(proptype)\
+void cable_cell::paint(const region& target, proptype prop) {\
+    impl_->paint(target, prop);\
 }
+ARB_PP_FOREACH(FWD_PAINT,\
+    mechanism_desc, init_membrane_potential, axial_resistivity,\
+    temperature_K, membrane_capacitance, initial_ion_data)
 
-void cable_cell::paint(const region& target, cable_cell_local_parameter_set params) {
-    impl_->paint(target,
-                 [&params](segment_ptr& s){return s->parameters = params;});
-}
 
-//
 // Placers.
 //
 // Implementation of user API for placing discrete items on cell morphology,
 // such as synapses, spike detectors and stimuli.
-//
 
 //
 // Synapses.
