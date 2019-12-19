@@ -1,6 +1,5 @@
 set(unit-modcc_sources
     # unit tests
-    test_fn_rewriters.cpp
     test_lexer.cpp
     test_kinetic_rewriter.cpp
     test_module.cpp
