@@ -686,8 +686,7 @@ void Module::add_variables_to_symbols() {
     // Nonspecific current variables are represented by an indexed variable
     // with a 'current' data source. Assignments in the NrnCurrent block will
     // later be rewritten so that these contributions are accumulated in `current_`
-    // (potentially saving some weight multiplications); at that point the
-    // data source for the nonspecific current variable will be reset to 'no_source'.
+    // (potentially saving some weight multiplications);
 
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
@@ -787,8 +786,16 @@ int Module::semantic_func_proc() {
         }
     }
 
+    auto inline_and_simplify = [&](auto&& caller) {
+        auto rewritten = inline_function_calls(caller->name(), caller->body());
+        caller->body(std::move(rewritten));
+        caller->body(constant_simplify(caller->body()));
+    };
+
+    // First, inline all function calls inside the bodies of each function
+    // This catches recursions
     for(auto& e : symbols_) {
-        auto &s = e.second;
+        auto& s = e.second;
 
         if (s->kind() == symbolKind::function) {
             // perform semantic analysis
@@ -797,15 +804,8 @@ int Module::semantic_func_proc() {
             std::cout << "function inlining for " << s->location() << "\n"
                       << s->to_string() << "\n\n";
 #endif
-
-            auto rewritten = inline_function_calls(s->is_function()->body(), s->is_function()->name());
-            s->is_function()->body(std::move(rewritten));
-
-            // Finally, run a constant simplification pass.
-            if (auto proc = s->is_function()) {
-                proc->body(constant_simplify(proc->body()));
-                s->semantic(symbols_);
-            }
+            inline_and_simplify(s->is_function());
+            s->semantic(symbols_);
 #ifdef LOGGING
             std::cout << "body after inlining\n"
                       << s->to_string() << "\n\n";
@@ -813,6 +813,8 @@ int Module::semantic_func_proc() {
         }
     }
 
+    // Once all functions are inlined internally; we can inline
+    // function calls in the bodies of procedures
     for(auto& e : symbols_) {
         auto& s = e.second;
 
@@ -823,15 +825,8 @@ int Module::semantic_func_proc() {
             std::cout << "function inlining for " << s->location() << "\n"
                       << s->to_string() << "\n\n";
 #endif
-
-            auto rewritten = inline_function_calls(s->is_procedure()->body(), s->is_procedure()->name());
-            s->is_procedure()->body(std::move(rewritten));
-
-            // Finally, run a constant simplification pass.
-            if (auto proc = s->is_procedure()) {
-                proc->body(constant_simplify(proc->body()));
-                s->semantic(symbols_);
-            }
+            inline_and_simplify(s->is_procedure());
+            s->semantic(symbols_);
 #ifdef LOGGING
             std::cout << "body after inlining\n"
                       << s->to_string() << "\n\n";
@@ -841,7 +836,7 @@ int Module::semantic_func_proc() {
 
     int errors = 0;
     for(auto& e : symbols_) {
-        auto &s = e.second;
+        auto& s = e.second;
         if(s->kind() == symbolKind::procedure) {
             ErrorVisitor v(source_name());
             s->accept(&v);

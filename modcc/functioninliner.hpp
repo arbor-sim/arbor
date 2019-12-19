@@ -5,7 +5,7 @@
 #include "scope.hpp"
 #include "visitor.hpp"
 
-expression_ptr inline_function_calls(BlockExpression* block, std::string calling_func);
+expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block);
 
 class FunctionInliner : public BlockRewriterBase {
 public:
@@ -33,7 +33,7 @@ public:
     ~FunctionInliner() {}
 
 private:
-    std::string func_name_, calling_func_;
+    std::string inlining_func_, calling_func_;
     expression_ptr lhs_;
     std::unordered_map<std::string, expression_ptr> call_arg_map_;
     std::unordered_map<std::string, expression_ptr> local_arg_map_;
@@ -52,7 +52,7 @@ private:
 
 protected:
     virtual void reset() override {
-        func_name_.clear();
+        inlining_func_.clear();
         lhs_ = nullptr;
         call_arg_map_.clear();
         local_arg_map_.clear();

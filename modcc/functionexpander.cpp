@@ -155,12 +155,8 @@ void FunctionCallLowerer::visit(IfExpression *e) {
     e->condition()->accept(this);
 
     if(auto func = e->condition()->is_function_call()) {
-        func->accept(this);
         expand_call(func, [&e](expression_ptr&& p){e->replace_condition(std::move(p));});
         e->semantic(block_scope_);
-    }
-    else {
-        e->condition()->accept(this);
     }
 
     std::swap(outer, statements_);

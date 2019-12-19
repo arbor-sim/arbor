@@ -4,7 +4,7 @@
 #include "error.hpp"
 #include "functioninliner.hpp"
 #include "errorvisitor.hpp"
-expression_ptr inline_function_calls(BlockExpression* block, std::string calling_func) {
+expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block) {
     auto inline_block = block->clone();
 
     // The function inliner will inline one function at a time
@@ -137,7 +137,7 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         auto& cargs = f->args();
 
         inlining_in_progress_ = true;
-        func_name_ = f->name();
+        inlining_func_ = f->name();
         lhs_ = e->lhs()->is_identifier()->clone();
         return_set_ = false;
         scope_ = e->scope();
@@ -168,7 +168,7 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         std::string iden_name = lhs->spelling();
 
         // if the identifier name matches the function name, then we are setting the return value
-        if (iden_name == func_name_) {
+        if (iden_name == inlining_func_) {
             e->replace_lhs(lhs_->clone());
             return_set_ = true;
         } else {
@@ -243,7 +243,7 @@ void FunctionInliner::visit(CallExpression* e) {
         return;
     }
 
-    if (e->is_function_call()->name() == func_name_ || e->is_function_call()->name() == calling_func_) {
+    if (e->is_function_call()->name() == inlining_func_ || e->is_function_call()->name() == calling_func_) {
         throw compiler_exception(pprintf("Recursive functions not allowed", e->location()));
     }
 
