@@ -19,7 +19,7 @@ expression_ptr inline_function_calls(std::string calling_func, BlockExpression* 
         inline_block->accept(func_inliner.get());
 
         if (!func_inliner->return_val_set()) {
-            throw compiler_exception(pprintf("return variable of function not set", block->location()));
+            throw compiler_exception("return variable of function not set", block->location());
         }
 
         if (func_inliner->finished_inlining()) {
@@ -244,7 +244,7 @@ void FunctionInliner::visit(CallExpression* e) {
     }
 
     if (e->is_function_call()->name() == inlining_func_ || e->is_function_call()->name() == calling_func_) {
-        throw compiler_exception(pprintf("Recursive functions not allowed", e->location()));
+        throw compiler_exception("recursive functions not allowed", e->location());
     }
 
     auto& args = e->is_function_call() ? e->is_function_call()->args() : e->is_procedure_call()->args();
