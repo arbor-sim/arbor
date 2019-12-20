@@ -155,7 +155,11 @@ void FunctionCallLowerer::visit(IfExpression *e) {
     e->condition()->accept(this);
 
     if(auto func = e->condition()->is_function_call()) {
-        expand_call(func, [&e](expression_ptr&& p){e->replace_condition(std::move(p));});
+        expand_call(func, [&e](expression_ptr&& p){
+            auto zero_exp = make_expression<NumberExpression>(Location{}, 0.);
+            p = make_expression<ConditionalExpression>(p->location(), tok::ne, p->clone(), std::move(zero_exp));
+            e->replace_condition(std::move(p));
+        });
         e->semantic(block_scope_);
     }
 

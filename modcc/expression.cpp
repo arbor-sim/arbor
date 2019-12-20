@@ -866,7 +866,7 @@ void IfExpression::semantic(scope_ptr scp) {
 
     condition_->semantic(scp);
 
-    if(!condition_->is_conditional() && !condition_->is_identifier() && !condition()->is_binary()) {
+    if(!condition_->is_conditional()) {
         error("not a valid conditional expression");
     }
 
