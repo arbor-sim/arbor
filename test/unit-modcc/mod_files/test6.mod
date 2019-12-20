@@ -25,13 +25,16 @@ BREAKPOINT {
     rates(delta)
     s0 = s1 * s2
 }
+FUNCTION iden(x) {
+    iden = x
+}
 
 FUNCTION foo(x, y) {
     LOCAL temp
     if (x == 3) {
         foo = 2 * y
     } else if (x == 4) {
-        foo = y
+        foo = y * iden(6 + x)
     } else {
         temp = exp(y)
         foo = temp * x
