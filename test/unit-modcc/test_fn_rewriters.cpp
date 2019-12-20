@@ -6,76 +6,95 @@
 #include "expression.hpp"
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
+#include "module.hpp"
 #include "parser.hpp"
 #include "scope.hpp"
 
 // Test FunctionCallLowerer
 
-scope_ptr mock_symbols() {
-    static scope_type::symbol_map symbols;
-    if (symbols.empty()) {
-        std::string globals[] = {
-            "a", "b", "c"
-        };
+using symbol_map = scope_type::symbol_map;
 
-        std::string procdefs[] = {
-            "PROCEDURE p0() { a = 3 }",
-            "PROCEDURE p1(x) { a = x }",
-            "PROCEDURE p2(x, y) { a = g(x, y+3) }",
-        };
+struct symbol_map_store {
+    std::vector<std::unique_ptr<symbol_map>> keepies;
 
-        std::string fndefs[] = {
-            "FUNCTION f(p, q, r) { f = (q-p)/(r-p) }",
-            "FUNCTION g(a, b) { g = a+b }",
-            "FUNCTION h(x) { h = exp(x) }",
-            "FUNCTION long(x) {\n"
-            "    LOCAL y, z\n"
-            "    y = h(x)\n"
-            "    z = g(y, x)\n"
-            "    if (y>z) { long = f(x, 3, z)\n }\n"
-            "    else { long = h(z)\n }\n"
-            "}",
-            "FUNCTION assign2(x) {\n"
-            "    assign2 = x * 2\n"
-            "    if (x<2) { assign2 = 2\n }\n"
-            "}",
-            "FUNCTION recurse1(x) {\n"
-            "    LOCAL y\n"
-            "    if (x<2) { recurse1 = x\n }\n"
-            "    else { y = x/2\n recurse1 = recurse2(y)\n }\n"
-            "}",
-            "FUNCTION recurse2(x) {\n"
-            "    LOCAL y\n"
-            "    if (x<2) { recurse2 = x\n }\n"
-            "    else { y = x/5\n recuse2 = recurse1(y)\n }\n"
-            "}",
-            "FUNCTION shadow(x) {\n"
-            "    LOCAL x\n"
-            "    x = 2\n"
-            "    shadow = 1\n"
-            "}\n"
-        };
+    scope_ptr make_scope() {
+        keepies.push_back(std::make_unique<symbol_map>());
+        return std::make_shared<scope_type>(*keepies.back());
+    }
+} sym_store;
 
-        for (auto& g: globals) {
-            auto var = new VariableExpression(Location{}, g);
-            var->visibility(visibilityKind::global);
-            symbols[g] = symbol_ptr{std::move(var)};
-        }
+struct mock_definitions {
+    std::vector<std::string> globals = {
+        "a", "b", "c"
+    };
 
-        for (auto& f: fndefs) {
-            auto s = Parser{f}.parse_function();
-            symbols[s->name()] = std::move(s);
-        }
+    std::vector<std::string> functions = {
+        "FUNCTION f(p, q, r) { f = (q-p)/(r-p) }",
+        "FUNCTION g(a, b) { g = a+b }",
+        "FUNCTION h(x) { h = exp(x) }",
+        "FUNCTION long(x) {\n"
+        "    LOCAL y, z\n"
+        "    y = h(x)\n"
+        "    z = g(y, x)\n"
+        "    if (y>z) { long = f(x, 3, z)\n }\n"
+        "    else { long = h(z)\n }\n"
+        "}",
+        "FUNCTION assign2(x) {\n"
+        "    assign2 = x * 2\n"
+        "    if (x<2) { assign2 = 2\n }\n"
+        "}",
+        "FUNCTION shadow(x) {\n"
+        "    LOCAL x\n"
+        "    x = 2\n"
+        "    shadow = 1\n"
+        "}"
+    };
 
-        for (auto& p: procdefs) {
-            auto s = Parser{p}.parse_procedure();
-            symbols[s->name()] = std::move(s);
-        }
+    std::vector<std::string> procedures = {
+        "PROCEDURE p0() { a = 3 }",
+        "PROCEDURE p1(x) { a = x }",
+        "PROCEDURE p2(x, y) { a = g(x, y+3) }",
+    };
+};
+
+scope_ptr mock_symbols(const mock_definitions& defs = mock_definitions{}) {
+    scope_ptr scp = sym_store.make_scope();
+    scp->in_api_context(false);
+
+    symbol_map& symbols = *scp->globals();
+
+    for (auto& g: defs.globals) {
+        auto var = new VariableExpression(Location{}, g);
+        var->visibility(visibilityKind::global);
+        symbols[g] = symbol_ptr{std::move(var)};
     }
 
-    scope_ptr scp = std::make_shared<scope_type>(symbols);
-    scp->in_api_context(false);
+    for (auto& f: defs.functions) {
+        auto s = Parser{f}.parse_function();
+        auto name = s->name();
+        symbols[name] = std::move(s);
+    }
+
+    for (auto& p: defs.procedures) {
+        auto s = Parser{p}.parse_procedure();
+        auto name = s->name();
+        symbols[name] = std::move(s);
+    }
+
     return scp;
+}
+
+void inline_all_functions(scope_ptr scp) {
+    auto& globals = *scp->globals();
+
+    for (auto& entry: globals) {
+        auto& sym = entry.second;
+        if (auto fn = sym->is_function()) {
+            fn->semantic(globals);
+            fn->body(inline_function_calls(fn->name(), fn->body()));
+            fn->semantic(globals);
+        }
+    }
 }
 
 expression_ptr parse_block(const std::string& defn, scope_ptr syms, bool inner = false) {
@@ -92,7 +111,7 @@ TEST(lower_functions, simple) {
 
     const char* tests[] = {
         "{ a = b + c\n b = g(a, c)\n }",
-        "{ c = h(a)\n b = g(b, c)\n a = b + c\n c = f(a, b, c)\n }"
+        "{ c = h(a)\n b = g(a, c)\n a = b + c\n c = f(a, b, a)\n }"
     };
 
     for (auto& defn: tests) {
@@ -111,28 +130,30 @@ TEST(lower_functions, simple) {
 TEST(lower_functions, compound_args) {
     struct { const char *before, *after; } tests[] = {
         {
-            "{ a = g(a, a + b)\n }",
+            "{ a = g(c, a + b)\n }",
             "{ LOCAL ll0_\n"
             "  ll0_ = a + b\n"
-            "  a = g(a, ll0_)\n }"
+            "  a = g(c, ll0_)\n }"
         },
         {
             "{ a = f(1, 2, a)\n }",
-            "{ a = f(1, 2, a)\n }"
-            // But possibly should be:
-            // "{ LOCAL ll0_\n ll0_ = f(1, 2, a)\n a = ll0_\n }"
+            "{ LOCAL ll0_\n ll0_ = f(1, 2, a)\n a = ll0_\n }"
         },
         {
             "{ a = h(b + c)\n"
             "  b = g(a + b, b)\n"
             "  c = f(a, b, c)\n }",
-            "{ LOCAL ll1_\n"
+            "{ LOCAL ll3_\n"
+            "  LOCAL ll2_\n"
+            "  LOCAL ll1_\n"
             "  LOCAL ll0_\n"
             "  ll0_ = b + c\n"
             "  a = h(ll0_)\n"
             "  ll1_ = a + b\n"
-            "  b = g(ll1_, b)\n"
-            "  c = f(a, b, c)\n }"
+            "  ll2_ = g(ll1_, b)\n"
+            "  b = ll2_\n"
+            "  ll3_ = f(a, b, c)\n"
+            "  c = ll3_\n }"
         }
     };
 
@@ -249,7 +270,7 @@ TEST(lower_functions, ifexpr) {
             "{ if (f(a, 1, c)) { p1(a)\n }\n }",
             "{ LOCAL ll0_\n"
             "  ll0_ = f(a, 1, c)\n"
-            "  if (ll0_) { p1(a)\n }\n }"
+            "  if (ll0_ != 0) { p1(a)\n }\n }"
         },
         {
             "{ if (h(a + 2) > 1) { p1(a)\n }\n }",
@@ -295,7 +316,7 @@ TEST(inline_functions, simple) {
         auto block = bexpr->is_block();
         ASSERT_TRUE(block);
 
-        EXPECT_EXPR_EQ(block, inline_function_calls(block));
+        EXPECT_EXPR_EQ(block, inline_function_calls("", block));
     }
 }
 
@@ -335,7 +356,7 @@ TEST(inline_functions, compound) {
     auto expected = expr2->is_block();
     ASSERT_TRUE(expected);
 
-    EXPECT_EXPR_EQ(expected, inline_function_calls(before));
+    EXPECT_EXPR_EQ(expected, inline_function_calls("", before));
 }
 
 TEST(inline_functions, twice_assign) {
@@ -377,30 +398,30 @@ TEST(inline_functions, twice_assign) {
     auto expected = expr2->is_block();
     ASSERT_TRUE(expected);
 
-    EXPECT_EXPR_EQ(expected, inline_function_calls(lowered));
+    EXPECT_EXPR_EQ(expected, inline_function_calls("", lowered));
 }
 
 TEST(inline_functions, recursion) {
     // What happens if we try to inline a recursive function?
     // We should get an error, but error should mention recursion.
 
-    const char* before_defn =
-        "{ a = recurse1(b)\n }";
+    mock_definitions defs;
+    defs.functions.push_back(
+        "FUNCTION recurse1(x) {\n"
+        "    LOCAL y\n"
+        "    if (x<2) { recurse1 = x\n }\n"
+        "    else { y = x/2\n recurse1 = recurse2(y)\n }\n"
+        "}");
 
-    const char* after_defn =
-        "{ \n }";
+    defs.functions.push_back(
+        "FUNCTION recurse2(x) {\n"
+        "    LOCAL y\n"
+        "    if (x<2) { recurse2 = x\n }\n"
+        "    else { y = x/5\n recuse2 = recurse1(y)\n }\n"
+        "}");
 
-    auto expr1 = parse_block(before_defn, mock_symbols());
-    ASSERT_TRUE(expr1);
-    auto before = expr1->is_block();
-    ASSERT_TRUE(before);
-
-    auto expr2 = parse_block(after_defn, mock_symbols());
-    ASSERT_TRUE(expr2);
-    auto expected = expr2->is_block();
-    ASSERT_TRUE(expected);
-
-    EXPECT_EXPR_EQ(expected, inline_function_calls(before));
+    auto scp = mock_symbols(defs);
+    EXPECT_THROW(inline_all_functions(scp), compiler_exception);
 }
 
 TEST(inline_functions, local_shadow) {
@@ -430,5 +451,5 @@ TEST(inline_functions, local_shadow) {
     auto expected = expr2->is_block();
     ASSERT_TRUE(expected);
 
-    EXPECT_EXPR_EQ(expected, inline_function_calls(before));
+    EXPECT_EXPR_EQ(expected, inline_function_calls("", before));
 }
