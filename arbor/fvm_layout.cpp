@@ -575,11 +575,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     };
 
     auto cell_segment_part = D.cell_segment_part();
-    size_type target_id = 0;
+    size_type target_count = 0;
 
     for (auto cell_idx: make_span(0, D.ncell)) {
         auto& cell = cells[cell_idx];
         auto seg_range = cell_segment_part[cell_idx];
+        size_type target_offset = target_count;
 
         auto add_ion_segment =
             [&gparam, &cell, &ion_segments]
@@ -640,33 +641,40 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             }
         }
 
-        for (const auto& cellsyn: cell.synapses()) {
-            const mechanism_desc& desc = cellsyn.mechanism;
-            size_type cv = D.branch_location_cv(cell_idx, cellsyn.location);
-            const auto& name = desc.name();
-
+        for (const auto& cellsyn_by_name: cell.synapses()) {
+            const auto& name = cellsyn_by_name.first;
             point_mech_data& entry = point_mech_table[name];
-            update_paramset_and_validate(desc, entry.info, entry.paramset);
-            entry.points.push_back({cv, target_id++, &desc});
 
-            const segment_ptr& seg = cell.segments()[cellsyn.location.branch];
-            size_type segment_idx = D.cell_segment_bounds[cell_idx]+cellsyn.location.branch;
+            for (const auto& placed_synapse: cellsyn_by_name.second) {
+                mlocation loc = placed_synapse.loc;
+                cell_lid_type target = target_offset + placed_synapse.lid;
+                ++target_count;
+                const mechanism_desc& desc = placed_synapse.item;
 
-            for (const auto& ion_entry: entry.info->ions) {
-                const std::string& ion_name = ion_entry.first;
-                const ion_dependency& iondep = ion_entry.second;
+                update_paramset_and_validate(desc, entry.info, entry.paramset);
 
-                add_ion_segment(ion_name, segment_idx, seg->parameters, &iondep);
+                size_type cv = D.branch_location_cv(cell_idx, loc);
+                entry.points.push_back({cv, target, &desc});
 
-                if (ion_entry.second.read_reversal_potential) {
-                    ion_revpot_segments[ion_name][cell_idx].insert(segment_idx);
+                const segment_ptr& seg = cell.segments()[loc.branch];
+                size_type segment_idx = D.cell_segment_bounds[cell_idx]+loc.branch;
+
+                for (const auto& ion_entry: entry.info->ions) {
+                    const std::string& ion_name = ion_entry.first;
+                    const ion_dependency& iondep = ion_entry.second;
+
+                    add_ion_segment(ion_name, segment_idx, seg->parameters, &iondep);
+
+                    if (ion_entry.second.read_reversal_potential) {
+                        ion_revpot_segments[ion_name][cell_idx].insert(segment_idx);
+                    }
                 }
             }
         }
 
-        for (const auto& stimulus: cell.stimuli()) {
-            size_type cv = D.branch_location_cv(cell_idx, stimulus.location);
-            stimuli.push_back({cv, stimulus.clamp});
+        for (const auto& loc_clamp: cell.stimuli()) {
+            size_type cv = D.branch_location_cv(cell_idx, loc_clamp.loc);
+            stimuli.push_back({cv, loc_clamp.item});
         }
 
         // Add segments to ion_segments map which intersect with existing segments, so

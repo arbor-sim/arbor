@@ -43,15 +43,41 @@ struct cell_probe_address {
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
-// Map types for access to painted assignments:
+// Typed maps for access to painted and placed assignments:
 //
-// Each property is associated with a map from a string key to
-// a vector of region-property associations. The key is the
-// mechanism name, ion name, or empty (according to the property).
-template <typename T>
-using region_assignment = std::unordered_map<std::string, mcable_map<T>>;
+// Mechanisms and initial ion data are further keyed by
+// mechanism name and ion name respectively.
 
-using cable_cell_region_map = dynamic_typed_map<region_assignment>;
+template <typename T>
+using region_assignment =
+    std::conditional_t<
+        std::is_same<T, mechanism_desc>::value || std::is_same<T, initial_ion_data>::value,
+        std::unordered_map<std::string, mcable_map<T>>,
+        mcable_map<T>>;
+
+template <typename T>
+struct placed {
+    mlocation loc;
+    cell_lid_type lid;
+    T item;
+};
+
+template <typename T>
+using mlocation_map = std::vector<placed<T>>;
+
+template <typename T>
+using location_assignment =
+    std::conditional_t<
+        std::is_same<T, mechanism_desc>::value,
+        std::unordered_map<std::string, mlocation_map<T>>,
+        mlocation_map<T>>;
+
+using cable_cell_region_map = static_typed_map<region_assignment,
+    mechanism_desc, init_membrane_potential, axial_resistivity,
+    temperature_K, membrane_capacitance, initial_ion_data>;
+
+using cable_cell_location_map = static_typed_map<location_assignment,
+    mechanism_desc, i_clamp, gap_junction_site, threshold_detector>;
 
 // High-level abstract representation of a cell and its segments
 class cable_cell {
@@ -62,21 +88,6 @@ public:
     using point_type = point<value_type>;
 
     using gap_junction_instance = mlocation;
-
-    struct synapse_instance {
-        mlocation location;
-        mechanism_desc mechanism;
-    };
-
-    struct stimulus_instance {
-        mlocation location;
-        i_clamp clamp;
-    };
-
-    struct detector_instance {
-        mlocation location;
-        double threshold;
-    };
 
     cable_cell_parameter_set default_parameters;
 
@@ -176,26 +187,39 @@ public:
     void paint(const region&, membrane_capacitance);
     void paint(const region&, initial_ion_data);
 
-    // Access to painted items.
-    const cable_cell_region_map& region_assignments();
-
     // Synapses.
-    lid_range place(const locset&, const mechanism_desc&);
+    lid_range place(const locset&, mechanism_desc);
 
     // Stimuli.
-    lid_range place(const locset&, const i_clamp&);
+    lid_range place(const locset&, i_clamp);
 
     // Gap junctions.
     lid_range place(const locset&, gap_junction_site);
 
     // Spike detectors.
-    lid_range place(const locset&, const threshold_detector&);
+    lid_range place(const locset&, threshold_detector);
 
-    // Access to placed items.
-    const std::vector<synapse_instance>& synapses() const;
-    const std::vector<gap_junction_instance>& gap_junction_sites() const;
-    const std::vector<detector_instance>& detectors() const;
-    const std::vector<stimulus_instance>& stimuli() const;
+    // Convenience access to placed items.
+
+    const std::unordered_map<std::string, mlocation_map<mechanism_desc>>& synapses() const {
+        return location_assignments().get<mechanism_desc>();
+    }
+
+    const mlocation_map<gap_junction_site>& gap_junction_sites() const {
+        return location_assignments().get<gap_junction_site>();
+    }
+
+    const mlocation_map<threshold_detector>& detectors() const {
+        return location_assignments().get<threshold_detector>();
+    }
+
+    const mlocation_map<i_clamp>& stimuli() const {
+        return location_assignments().get<i_clamp>();
+    }
+
+    // Generic access to painted and placed items.
+    const cable_cell_region_map& region_assignments() const;
+    const cable_cell_location_map& location_assignments() const;
 
     // Checks that two cells have the same
     //  - number and type of segments

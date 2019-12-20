@@ -277,38 +277,6 @@ inline cv_policy default_cv_policy() {
 
 // Cable cell ion and electrical defaults.
 
-#if 0
-// Parameters can be overridden with `cable_cell_local_parameter_set`
-// on unbranched segments within a cell; per-cell and global defaults
-// use `cable_cell_parameter_set`, which extends the parameter set
-// to supply per-cell or global ion reversal potential calculation
-// mechanisms.
-
-struct cable_cell_local_parameter_set {
-    std::unordered_map<std::string, cable_cell_ion_data> ion_data;
-    util::optional<double> init_membrane_potential; // [mV]
-    util::optional<double> temperature_K;           // [K]
-    util::optional<double> axial_resistivity;       // [Ω·cm]
-    util::optional<double> membrane_capacitance;    // [F/m²]
-};
-
-struct cable_cell_parameter_set: public cable_cell_local_parameter_set {
-    std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
-    cv_policy discretization = default_cv_policy();
-
-    // We'll need something like this until C++17, for sane initialization syntax.
-    cable_cell_parameter_set() = default;
-    cable_cell_parameter_set(
-        cable_cell_local_parameter_set p,
-        std::unordered_map<std::string, mechanism_desc> m = {},
-        cv_policy d = default_cv_policy()
-    ):
-        cable_cell_local_parameter_set(std::move(p)),
-        reversal_potential_method(std::move(m)),
-        discretization(std::move(d))
-    {}
-};
-#else
 // Parameters can be given as per-cell and global defaults via
 // cable_cell::default_parameters and cable_cell_global_properties::default_parameters
 // respectively.
@@ -328,7 +296,6 @@ struct cable_cell_parameter_set {
 
     cv_policy discretization = default_cv_policy();
 };
-#endif
 
 extern cable_cell_parameter_set neuron_parameter_defaults;
 
