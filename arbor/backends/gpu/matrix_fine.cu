@@ -70,7 +70,7 @@ void assemble_matrix_fine(
             // conductance (gi) values have units μS (micro-Siemens).
             // See the model documentation in docs/model for more information.
             T oodt_factor = T(1e-3)/dt;
-	    T area_factor = T(1e-3)*area[tid];
+            T area_factor = T(1e-3)*area[tid];
 
             const auto gi = oodt_factor*cv_capacitance[tid] + area_factor*conductivity[tid];
             const auto pid = perm[tid];
@@ -100,30 +100,40 @@ void solve_matrix_fine(
     T* rhs,
     T* d,
     const T* u,
-    const level* levels,
-    const unsigned* levels_start,
-    unsigned* num_matrix, // number of packed matrices = number of cells
-    unsigned* padded_size)
+    const level_metadata* level_meta,
+    const fvm_index_type* level_lengths,
+    const fvm_index_type* level_parents,
+    const fvm_index_type* block_index,
+    fvm_index_type* num_matrix, // number of packed matrices = number of cells
+    fvm_index_type* padded_size)
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
 
-    const auto first_level = levels_start[bid];
-    const auto num_levels  = levels_start[bid + 1] - first_level;
-    const auto block_levels = &levels[first_level];
+    const auto first_level = block_index[bid];
+    const auto num_levels  = block_index[bid + 1] - first_level;
+
+    const auto block_level_meta = &level_meta[first_level];
 
     // backward substitution
 
     for (unsigned l=0; l<num_levels-1; ++l) {
-        const auto& lvl = block_levels[l];
+        // Metadata for this level and the next level
+        const auto& lvl_meta = block_level_meta[l];
+        const auto& next_lvl_meta = block_level_meta[l+1];
 
-        const unsigned width = lvl.num_branches;
+        // Addresses of the first elements of level_lengths and level_parents
+        // that belong to this level
+        const auto lvl_lengths = level_lengths + lvl_meta.level_data_index;
+        const auto lvl_parents = level_parents + lvl_meta.level_data_index;
+
+        const unsigned width = lvl_meta.num_branches;
 
         // Perform backward substitution for each branch on this level.
         // One thread per branch.
         if (tid < width) {
-            const unsigned len = lvl.lengths[tid];
-            unsigned pos = lvl.data_index + tid;
+            const unsigned len = lvl_lengths[tid];
+            unsigned pos = lvl_meta.matrix_data_index + tid;
 
             // Zero diagonal term implies dt==0; just leave rhs (for whole matrix)
             // alone in that case.
@@ -149,8 +159,8 @@ void solve_matrix_fine(
                 // Update d and rhs at the parent node of this branch.
                 // A parent may have more than one contributing to it, so we use
                 // atomic updates to avoid races conditions.
-                const unsigned parent_index = block_levels[l+1].data_index;
-                const unsigned p = parent_index + lvl.parents[tid];
+                const unsigned parent_index = next_lvl_meta.matrix_data_index;
+                const unsigned p = parent_index + lvl_parents[tid];
                 //d[p]   -= factor * u[pos];
                 cuda_atomic_add(d  +p, -factor*u[pos]);
                 //rhs[p] -= factor * rhs[pos];
@@ -161,13 +171,15 @@ void solve_matrix_fine(
     }
 
     {
-        // the levels are sorted such that the root is the last level
-        const auto& lvl = block_levels[num_levels-1];
+        // The levels are sorted such that the root is the last level
+        const auto& last_lvl_meta = block_level_meta[num_levels-1];
+        const auto lvl_lengths = level_lengths + last_lvl_meta.level_data_index;
+
         const unsigned width = num_matrix[bid];
 
         if (tid < width) {
-            const unsigned len = lvl.lengths[tid];
-            unsigned pos = lvl.data_index + tid;
+            const unsigned len = lvl_lengths[tid];
+            unsigned pos = last_lvl_meta.matrix_data_index + tid;
 
             if (d[pos]!=0) {
 
@@ -200,10 +212,15 @@ void solve_matrix_fine(
 
     // take great care with loop limits decrementing unsigned counter l
     for (unsigned l=num_levels-1; l>0; --l) {
-        const auto& lvl = block_levels[l-1];
+        const auto& lvl_meta = block_level_meta[l-1];
 
-        const unsigned width = lvl.num_branches;
-        const unsigned parent_index = block_levels[l].data_index;
+        // Addresses of the first elements of level_lengths and level_parents
+        // that belong to this level
+        const auto lvl_lengths = level_lengths + lvl_meta.level_data_index;
+        const auto lvl_parents = level_parents + lvl_meta.level_data_index;
+
+        const unsigned width = lvl_meta.num_branches;
+        const unsigned parent_index = block_level_meta[l].matrix_data_index;
 
         __syncthreads();
 
@@ -211,12 +228,12 @@ void solve_matrix_fine(
         // One thread per branch.
         if (tid < width) {
             // Load the rhs value for the parent node of this branch.
-            const unsigned p = parent_index + lvl.parents[tid];
+            const unsigned p = parent_index + lvl_parents[tid];
             T rhsp = rhs[p];
 
             // Find the index of the first node in this branch.
-            const unsigned len = lvl.lengths[tid];
-            unsigned pos = lvl.data_index + (len-1)*width + tid;
+            const unsigned len = lvl_lengths[tid];
+            unsigned pos = lvl_meta.matrix_data_index + (len-1)*width + tid;
 
             if (d[pos]!=0) {
                 // each branch perform substitution
@@ -295,23 +312,25 @@ void assemble_matrix_fine(
 //         |       |           |       |       |           |
 //
 // levels       = [L0, L1, L2, L3, L4, L5, L6, L7, ... ]
-// levels_start = [0, 3, 5, 8, ...]
+// block_index  = [0, 3, 5, 8, ...]
 // num_levels   = [3, 2, 3, ...]
 // num_cells    = [2, 3, ...]
 // num_blocks   = level_start.size() - 1 = num_levels.size() = num_cells.size()
 void solve_matrix_fine(
     fvm_value_type* rhs,
-    fvm_value_type* d,                // diagonal values
-    const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
-    const level* levels,              // pointer to an array containing level meta-data for all blocks
-    const unsigned* levels_start,     // start index into levels for each cuda block
-    unsigned* num_cells,              // he number of cells packed into this single matrix
-    unsigned* padded_size,            // length of rhs, d, u, including padding
-    unsigned num_blocks,              // nuber of blocks
-    unsigned blocksize)               // size of each block
+    fvm_value_type* d,                     // diagonal values
+    const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
+    const level_metadata* level_meta,      // information pertaining to each level
+    const fvm_index_type* level_lengths,   // lengths of branches of every level concatenated
+    const fvm_index_type* level_parents,   // parents of branches of every level concatenated
+    const fvm_index_type* block_index,     // start index into levels for each cuda block
+    fvm_index_type* num_cells,             // the number of cells packed into this single matrix
+    fvm_index_type* padded_size,           // length of rhs, d, u, including padding
+    unsigned num_blocks,                   // number of blocks
+    unsigned blocksize)                    // size of each block
 {
     kernels::solve_matrix_fine<<<num_blocks, blocksize>>>(
-        rhs, d, u, levels, levels_start,
+        rhs, d, u, level_meta, level_lengths, level_parents, block_index,
         num_cells, padded_size);
 }
 

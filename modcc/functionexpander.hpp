@@ -40,10 +40,5 @@ private:
         // variable which holds the pre-computed value
         replacer(std::move(id));
     }
-
-protected:
-    virtual void reset() override {
-        BlockRewriterBase::reset();
-    }
 };
 

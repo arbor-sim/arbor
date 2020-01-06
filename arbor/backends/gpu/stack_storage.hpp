@@ -7,8 +7,7 @@ namespace gpu {
 
 // Concrete storage of gpu stack datatype.
 // The stack datatype resides in host memory, and holds a pointer to the
-// stack_storage in managed memory, which can be accessed by both host and
-// gpu code.
+// stack_storage in device memory.
 template <typename T>
 struct stack_storage {
     using value_type = T;

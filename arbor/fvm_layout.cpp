@@ -210,7 +210,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
     fvm_discretization D;
 
     util::make_partition(D.cell_segment_bounds,
-        transform_view(cells, [](const cable_cell& c) { return c.num_segments(); }));
+        transform_view(cells, [](const cable_cell& c) { return c.num_branches(); }));
 
     std::vector<index_type> cell_cv_bounds;
     auto cell_cv_part = make_partition(cell_cv_bounds,
@@ -261,7 +261,7 @@ fvm_discretization fvm_discretize(const std::vector<cable_cell>& cells, const ca
         seg_cv_bounds.clear();
         auto seg_cv_part = make_partition(
             seg_cv_bounds,
-            transform_view(make_span(c.num_segments()), [&c](const unsigned s) {
+            transform_view(make_span(c.num_branches()), [&c](const unsigned s) {
                 if (!c.segment(s)->is_soma() && c.parent(s)->is_soma()) {
                     return c.segment(s)->num_compartments() + 1;
                 }
@@ -756,6 +756,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         ion_config.init_iconc.resize(ion_config.cv.size());
         ion_config.init_econc.resize(ion_config.cv.size());
+        ion_config.reset_iconc.resize(ion_config.cv.size());
+        ion_config.reset_econc.resize(ion_config.cv.size());
         ion_config.init_revpot.resize(ion_config.cv.size());
 
         for_each_cv_in_segments(D, keys(seg_ion_data),
@@ -767,6 +769,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 auto& seg_ion_entry = seg_ion_map[seg];
 
                 value_type weight = area/D.cv_area[cv];
+                ion_config.reset_iconc[i] += weight*seg_ion_entry.ion_data.init_int_concentration;
+                ion_config.reset_econc[i] += weight*seg_ion_entry.ion_data.init_ext_concentration;
+
                 if (!seg_ion_entry.mech_writes_iconc) {
                     ion_config.init_iconc[i] += weight*seg_ion_entry.ion_data.init_int_concentration;
                 }

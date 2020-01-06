@@ -161,7 +161,7 @@ struct cell_stats {
         size_type ncomp_tmp = 0;
         for (size_type i=b; i<e; ++i) {
             auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs_tmp += c.num_segments();
+            nsegs_tmp += c.num_branches();
             ncomp_tmp += c.num_compartments();
         }
         MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
@@ -170,7 +170,7 @@ struct cell_stats {
         ncells = r.num_cells();
         for (size_type i=0; i<ncells; ++i) {
             auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs += c.num_segments();
+            nsegs += c.num_branches();
             ncomp += c.num_compartments();
         }
 #endif
@@ -179,7 +179,7 @@ struct cell_stats {
     friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
         return o << "cell stats: "
                  << s.ncells << " cells; "
-                 << s.nsegs << " segments; "
+                 << s.nsegs << " branchess; "
                  << s.ncomp << " compartments.";
     }
 };
@@ -334,45 +334,52 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
 }
 
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
-    arb::cable_cell cell;
+    // Create the sample tree that defines the morphology.
+    arb::sample_tree tree;
+    double soma_rad = 22.360679775/2.0; // convert diameter to radius in μm
+    tree.append({{0,0,0,soma_rad}, 1}); // soma is a single sample point
+    double dend_rad = 3./2;
+    tree.append(0, {{0,0,soma_rad,     dend_rad}, 3});  // proximal point of the dendrite
+    tree.append(1, {{0,0,soma_rad+300, dend_rad}, 3});  // distal end of the dendrite
+
+    // Create a label dictionary that creates a single region that covers the whole cell.
+    arb::label_dict d;
+    d.set("all",  arb::reg::all());
+
+    // Create the cell and set its electrical properties.
+    arb::cable_cell cell(tree, d);
     cell.default_parameters.axial_resistivity = 100;       // [Ω·cm]
     cell.default_parameters.membrane_capacitance = 0.018;  // [F/m²]
 
+    // Define the density channels and their parameters.
     arb::mechanism_desc nax("nax");
+    nax["gbar"] = 0.04;
+    nax["sh"] = 10;
+
     arb::mechanism_desc kdrmt("kdrmt");
+    kdrmt["gbar"] = 0.0001;
+
     arb::mechanism_desc kamt("kamt");
+    kamt["gbar"] = 0.004;
+
     arb::mechanism_desc pas("pas");
+    pas["g"] =  1.0/12000.0;
+    pas["e"] =  -65;
 
-    auto set_reg_params = [&]() {
-        nax["gbar"] = 0.04;
-        nax["sh"] = 10;
-        kdrmt["gbar"] = 0.0001;
-        kamt["gbar"] = 0.004;
-        pas["g"] =  1.0/12000.0;
-        pas["e"] =  -65;
-    };
+    // Paint density channels on all parts of the cell
+    cell.paint("all", nax);
+    cell.paint("all", kdrmt);
+    cell.paint("all", kamt);
+    cell.paint("all", pas);
 
-    auto setup_seg = [&](auto seg) {
-        seg->add_mechanism(nax);
-        seg->add_mechanism(kdrmt);
-        seg->add_mechanism(kamt);
-        seg->add_mechanism(pas);
-    };
-
-    auto soma = cell.add_soma(22.360679775/2.0);
-    set_reg_params();
-    setup_seg(soma);
-
-    auto dend = cell.add_cable(0, arb::make_segment<arb::cable_segment>(arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300)); //cable 1
-    dend->set_compartments(1);
-    set_reg_params();
-    setup_seg(dend);
-
+    // Add a spike detector to the soma.
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
+    // Add two gap junction sites.
     cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
     cell.place(arb::mlocation{1, 1}, arb::gap_junction_site{});
 
+    // Attach a stimulus to the second cell.
     if (!gid) {
         arb::i_clamp stim(0, stim_duration, 0.4);
         cell.place(arb::mlocation{0, 0.5}, stim);

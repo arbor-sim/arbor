@@ -212,7 +212,7 @@ TEST(Lexer, symbols) {
 }
 
 TEST(Lexer, comparison_operators) {
-    char string[] = "< <= > >= == != !";
+    char string[] = "< <= > >= == != ! && ||";
     VerboseLexer lexer(string, string+sizeof(string));
 
     auto t1 = lexer.parse();
@@ -229,9 +229,12 @@ TEST(Lexer, comparison_operators) {
     EXPECT_EQ(t6.type, tok::ne);
     auto t7 = lexer.parse();
     EXPECT_EQ(t7.type, tok::lnot);
-
     auto t8 = lexer.parse();
-    EXPECT_EQ(t8.type, tok::eof);
+    EXPECT_EQ(t8.type, tok::land);
+    auto t9 = lexer.parse();
+    EXPECT_EQ(t9.type, tok::lor);
+    auto t10 = lexer.parse();
+    EXPECT_EQ(t10.type, tok::eof);
 }
 
 // test braces
@@ -338,6 +341,23 @@ TEST(Lexer, numbers) {
     EXPECT_EQ(lexerStatus::error, lexer.status());
 
     lexer = VerboseLexer("1.2E4.3");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    // single or triple & or | should give errors
+    lexer = VerboseLexer("&");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    lexer = VerboseLexer("&&&");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    lexer = VerboseLexer("|");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    lexer = VerboseLexer("|||");
     lexer.parse();
     EXPECT_EQ(lexerStatus::error, lexer.status());
 }

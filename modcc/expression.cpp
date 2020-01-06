@@ -866,8 +866,7 @@ void IfExpression::semantic(scope_ptr scp) {
 
     condition_->semantic(scp);
 
-    auto cond = condition_->is_conditional();
-    if(!cond) {
+    if(!condition_->is_conditional()) {
         error("not a valid conditional expression");
     }
 
@@ -876,6 +875,10 @@ void IfExpression::semantic(scope_ptr scp) {
     if(false_branch_) {
         false_branch_->semantic(scp);
     }
+}
+
+void IfExpression::replace_condition(expression_ptr&& other) {
+    std::swap(condition_, other);
 }
 
 expression_ptr IfExpression::clone() const {
@@ -996,6 +999,9 @@ void LogUnaryExpression::accept(Visitor *v) {
 void AbsUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void SafeInvUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void ExprelrUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1077,6 +1083,8 @@ expression_ptr unary_expression( Location loc,
             return make_expression<AbsUnaryExpression>(loc, std::move(e));
         case tok::exprelr :
             return make_expression<ExprelrUnaryExpression>(loc, std::move(e));
+        case tok::safeinv :
+            return make_expression<SafeInvUnaryExpression>(loc, std::move(e));
        default :
             std::cerr << yellow(token_string(op))
                       << " is not a valid unary operator"
@@ -1138,6 +1146,8 @@ expression_ptr binary_expression(Location loc,
         case tok::lte      :
         case tok::gt       :
         case tok::gte      :
+        case tok::land     :
+        case tok::lor      :
         case tok::equality :
             return make_expression<ConditionalExpression>(loc, op, std::move(lhs), std::move(rhs));
         default         :

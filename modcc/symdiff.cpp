@@ -529,7 +529,11 @@ public:
                 return;
             case tok::gte:
                 as_number(loc, lval>=rval);
-                return;
+            case tok::land:
+                as_number(loc, lval&&rval);
+            case tok::lor:
+                as_number(loc, lval||rval);
+                    return;
             default: ;
                 // unrecognized, fall through to non-numeric case below
             }

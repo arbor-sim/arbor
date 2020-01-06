@@ -4,7 +4,6 @@
 
 #include "backends/gpu/cuda_atomic.hpp"
 #include "backends/gpu/math_cu.hpp"
-#include "backends/gpu/managed_ptr.hpp"
 #include "memory/memory.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -46,34 +45,38 @@ namespace kernels {
 TEST(gpu_intrinsics, cuda_atomic_add) {
     int expected = (128*129)/2;
 
-    auto f = arb::gpu::make_managed_ptr<float>(0.f);
-    kernels::test_atomic_add<<<1, 128>>>(f.get());
-    cudaDeviceSynchronize();
+    arb::memory::device_vector<float> f(1);
+    f[0] = 0.f;
 
-    EXPECT_EQ(float(expected), *f);
+    kernels::test_atomic_add<<<1, 128>>>(f.data());
 
-    auto d = arb::gpu::make_managed_ptr<double>(0.);
-    kernels::test_atomic_add<<<1, 128>>>(d.get());
-    cudaDeviceSynchronize();
+    EXPECT_EQ(float(expected), f[0]);
 
-    EXPECT_EQ(double(expected), *d);
+    arb::memory::device_vector<double> d(1);
+    d[0] = 0.f;
+
+    kernels::test_atomic_add<<<1, 128>>>(d.data());
+
+    EXPECT_EQ(double(expected), d[0]);
 }
 
 // test atomic subtraction wrapper for single and double precision
 TEST(gpu_intrinsics, cuda_atomic_sub) {
     int expected = -(128*129)/2;
 
-    auto f = arb::gpu::make_managed_ptr<float>(0.f);
-    kernels::test_atomic_sub<<<1, 128>>>(f.get());
-    cudaDeviceSynchronize();
+    arb::memory::device_vector<float> f(1);
+    f[0] = 0.f;
 
-    EXPECT_EQ(float(expected), *f);
+    kernels::test_atomic_sub<<<1, 128>>>(f.data());
 
-    auto d = arb::gpu::make_managed_ptr<double>(0.);
-    kernels::test_atomic_sub<<<1, 128>>>(d.get());
-    cudaDeviceSynchronize();
+    EXPECT_EQ(float(expected), f[0]);
 
-    EXPECT_EQ(double(expected), *d);
+    arb::memory::device_vector<double> d(1);
+    d[0] = 0.f;
+
+    kernels::test_atomic_sub<<<1, 128>>>(d.data());
+
+    EXPECT_EQ(double(expected), d[0]);
 }
 
 TEST(gpu_intrinsics, minmax) {
@@ -109,26 +112,22 @@ TEST(gpu_intrinsics, minmax) {
 
     // test min
     kernels::test_min<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     kernels::test_min<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     // test max
     kernels::test_max<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
 
     kernels::test_max<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
@@ -145,7 +144,6 @@ TEST(gpu_intrinsics, exprelr) {
     arb::memory::device_vector<double> result(n);
 
     kernels::test_exprelr<<<1,n>>>(x.data(), result.data());
-    cudaDeviceSynchronize();
 
     auto index = arb::util::make_span(0, n);
     for (auto i: index) {

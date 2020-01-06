@@ -279,6 +279,7 @@ bool Module::semantic() {
     auto initial_api = make_empty_api_method("nrn_init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
+
     auto& init_body = api_init->body()->statements();
 
     api_init->semantic(symbols_);
@@ -289,7 +290,7 @@ bool Module::semantic() {
         if (solve_expression) {
             // Grab SOLVE statements, put them in `body` after translation.
             std::set<std::string> solved_ids;
-            std::unique_ptr<SolverVisitorBase> solver = std::make_unique<SparseSolverVisitor>();
+            std::unique_ptr<SolverVisitorBase> solver;
 
             // The solve expression inside an initial block can only refer to a linear block
             auto solve_proc = solve_expression->procedure();
@@ -300,9 +301,17 @@ bool Module::semantic() {
 
                 rewrite_body->semantic(nrn_init_scope);
                 rewrite_body->accept(solver.get());
+            } else if (solve_proc->kind() == procedureKind::kinetic &&
+                       solve_expression->variant() == solverVariant::steadystate) {
+                solver = std::make_unique<SparseSolverVisitor>(solverVariant::steadystate);
+                auto rewrite_body = kinetic_rewrite(solve_proc->body());
+
+                rewrite_body->semantic(nrn_init_scope);
+                rewrite_body->accept(solver.get());
             } else {
-                error("A SOLVE expression in an INITIAL block can only be used to solve a LINEAR block, which" +
-                      solve_expression->name() + "is not.", solve_expression->location());
+                error("A SOLVE expression in an INITIAL block can only be used to solve a "
+                      "LINEAR block or a KINETIC block at steadystate and " +
+                      solve_expression->name() + " is neither.", solve_expression->location());
                 return false;
             }
 
@@ -315,6 +324,9 @@ bool Module::semantic() {
                     }
                     solved_ids.insert(id);
                 }
+
+                solve_block = remove_unused_locals(solve_block->is_block());
+
                 // Copy body into nrn_init.
                 for (auto &stmt: solve_block->is_block()->statements()) {
                     init_body.emplace_back(stmt->clone());
@@ -351,6 +363,10 @@ bool Module::semantic() {
 
         for(auto& e: (breakpoint->body()->statements())) {
             SolveExpression* solve_expression = e->is_solve_statement();
+            LocalDeclaration* local_expression = e->is_local_declaration();
+            if(local_expression) {
+                continue;
+            }
             if(!solve_expression) {
                 found_non_solve = true;
                 continue;
@@ -670,8 +686,7 @@ void Module::add_variables_to_symbols() {
     // Nonspecific current variables are represented by an indexed variable
     // with a 'current' data source. Assignments in the NrnCurrent block will
     // later be rewritten so that these contributions are accumulated in `current_`
-    // (potentially saving some weight multiplications); at that point the
-    // data source for the nonspecific current variable will be reset to 'no_source'.
+    // (potentially saving some weight multiplications);
 
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
@@ -771,6 +786,35 @@ int Module::semantic_func_proc() {
         }
     }
 
+    auto inline_and_simplify = [&](auto&& caller) {
+        auto rewritten = inline_function_calls(caller->name(), caller->body());
+        caller->body(std::move(rewritten));
+        caller->body(constant_simplify(caller->body()));
+    };
+
+    // First, inline all function calls inside the bodies of each function
+    // This catches recursions
+    for(auto& e : symbols_) {
+        auto& s = e.second;
+
+        if (s->kind() == symbolKind::function) {
+            // perform semantic analysis
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "function inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
+            inline_and_simplify(s->is_function());
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "body after inlining\n"
+                      << s->to_string() << "\n\n";
+#endif
+        }
+    }
+
+    // Once all functions are inlined internally; we can inline
+    // function calls in the bodies of procedures
     for(auto& e : symbols_) {
         auto& s = e.second;
 
@@ -781,15 +825,8 @@ int Module::semantic_func_proc() {
             std::cout << "function inlining for " << s->location() << "\n"
                       << s->to_string() << "\n\n";
 #endif
-
-            auto rewritten = inline_function_calls(s->is_procedure()->body());
-            s->is_procedure()->body(std::move(rewritten));
-
-            // Finally, run a constant simplification pass.
-            if (auto proc = s->is_procedure()) {
-                proc->body(constant_simplify(proc->body()));
-                s->semantic(symbols_);
-            }
+            inline_and_simplify(s->is_procedure());
+            s->semantic(symbols_);
 #ifdef LOGGING
             std::cout << "body after inlining\n"
                       << s->to_string() << "\n\n";
@@ -799,7 +836,7 @@ int Module::semantic_func_proc() {
 
     int errors = 0;
     for(auto& e : symbols_) {
-        auto &s = e.second;
+        auto& s = e.second;
         if(s->kind() == symbolKind::procedure) {
             ErrorVisitor v(source_name());
             s->accept(&v);
@@ -847,5 +884,3 @@ void Module::check_revpot_mechanism() {
 
     kind_ = moduleKind::revpot;
 }
-
-

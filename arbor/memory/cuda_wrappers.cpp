@@ -56,15 +56,6 @@ void* cuda_malloc(std::size_t n) {
     return ptr;
 }
 
-void* cuda_malloc_managed(std::size_t n) {
-    void* ptr;
-
-    if (auto error = cudaMallocManaged(&ptr, n)) {
-        HANDLE_CUDA_ERROR(error, "unable to allocate "+to_string(n)+" bytes of managed memory");
-    }
-    return ptr;
-}
-
 void cuda_free(void* ptr) {
     if (auto error = cudaFree(ptr)) {
         HANDLE_CUDA_ERROR(error, "");
@@ -104,11 +95,6 @@ void cuda_host_unregister(void* ptr) {
 }
 
 void* cuda_malloc(std::size_t n) {
-    NOCUDA;
-    return 0;
-}
-
-void* cuda_malloc_managed(std::size_t n) {
     NOCUDA;
     return 0;
 }
