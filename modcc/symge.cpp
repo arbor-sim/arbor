@@ -94,10 +94,14 @@ std::vector<std::vector<symge::symbol>> gj_reduce(sym_matrix& A, symbol_table& t
             pivot p;
             p.row = r;
             const sym_row &row = A[r];
-            for (unsigned c = 0; c < A.nrow(); ++c) {
-                if (row[c]) {
-                    p.col = c;
-                    break;
+            if (row[r]) {
+                p.col = r;
+            } else {
+                for (unsigned c = 0; c < A.nrow(); ++c) {
+                    if (row[c]) {
+                        p.col = c;
+                        break;
+                    }
                 }
             }
             pivots.push_back(std::move(p));
