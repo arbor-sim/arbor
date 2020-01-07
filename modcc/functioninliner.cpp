@@ -4,22 +4,22 @@
 #include "error.hpp"
 #include "functioninliner.hpp"
 #include "errorvisitor.hpp"
-expression_ptr inline_function_calls(BlockExpression* block) {
+#include "symdiff.hpp"
+
+expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block) {
     auto inline_block = block->clone();
 
     // The function inliner will inline one function at a time
     // Once all functions in a block have been inlined, the
     // while loop will be broken
     while(true) {
-        for (auto&s: inline_block->is_block()->statements()) {
-            s->semantic(block->scope());
-        }
+        inline_block->semantic(block->scope());
 
-        auto func_inliner = std::make_unique<FunctionInliner>();
+        auto func_inliner = std::make_unique<FunctionInliner>(calling_func);
         inline_block->accept(func_inliner.get());
 
         if (!func_inliner->return_val_set()) {
-            throw compiler_exception(pprintf("return variable of function not set", block->location()));
+            throw compiler_exception("return variable of function not set", block->location());
         }
 
         if (func_inliner->finished_inlining()) {
@@ -34,34 +34,9 @@ expression_ptr inline_function_calls(BlockExpression* block) {
 //  function inliner
 ///////////////////////////////////////////////////////////////////////////////
 
-// Takes a Binary or Unary Expression and replaces its variables that match any
-// function argument with the mappings in call_arg_map and local_arg_map
-void FunctionInliner::replace_args(Expression* e) {
-    auto map_variables = [&](auto& map) {
-        for(auto& el: map) {
-            if(auto id = el.second->is_identifier()) {
-                VariableReplacer v(el.first, id->spelling());
-                e->accept(&v);
-            }
-            else if(auto value = el.second->is_number()) {
-                ValueInliner v(el.first, value->value());
-                e->accept(&v);
-            }
-        }
-    };
-
-    map_variables(local_arg_map_);
-    map_variables(call_arg_map_);
-
-    e->semantic(scope_);
-
-    ErrorVisitor v("");
-    e->accept(&v);
-    if(v.num_errors()) {
-        throw compiler_exception("something went wrong with inlined function call ", e->location());
-    }
-}
-
+// The Function inliner works on inlining one function at a time.
+// If no function is being inlined when an expression is being visited,
+// the expression remains the same.
 void FunctionInliner::visit(Expression* e) {
     if (!inlining_in_progress_) {
         statements_.push_back(e->clone());
@@ -72,14 +47,17 @@ void FunctionInliner::visit(Expression* e) {
             + e->to_string(), e->location());
 }
 
+// Only in procedures, always stays the same
 void FunctionInliner::visit(ConserveExpression *e) {
     statements_.push_back(e->clone());
 }
 
+// Only in procedures, always stays the same
 void FunctionInliner::visit(CompartmentExpression *e) {
     statements_.push_back(e->clone());
 }
 
+// Only in procedures, always stays the same
 void FunctionInliner::visit(LinearExpression *e) {
     statements_.push_back(e->clone());
 }
@@ -112,14 +90,39 @@ void FunctionInliner::visit(UnaryExpression* e) {
     if (!inlining_in_progress_) {
         return;
     }
-    replace_args(e);
+    auto sub = substitute(e->expression(), local_arg_map_);
+    sub = substitute(sub, call_arg_map_);
+    e->replace_expression(std::move(sub));
+
+    e->semantic(scope_);
+
+    ErrorVisitor v("");
+    e->accept(&v);
+    if(v.num_errors()) {
+        throw compiler_exception("something went wrong with inlined function call ", e->location());
+    }
 }
 
 void FunctionInliner::visit(BinaryExpression* e) {
     if (!inlining_in_progress_) {
         return;
     }
-    replace_args(e);
+    auto sub_lhs = substitute(e->lhs(), local_arg_map_);
+    sub_lhs = substitute(sub_lhs, call_arg_map_);
+
+    auto sub_rhs = substitute(e->rhs(), local_arg_map_);
+    sub_rhs = substitute(sub_rhs, call_arg_map_);
+
+    e->replace_lhs(std::move(sub_lhs));
+    e->replace_rhs(std::move(sub_rhs));
+
+    e->semantic(scope_);
+
+    ErrorVisitor v("");
+    e->accept(&v);
+    if(v.num_errors()) {
+        throw compiler_exception("something went wrong with inlined function call ", e->location());
+    }
 }
 
 void FunctionInliner::visit(AssignmentExpression* e) {
@@ -133,7 +136,7 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         auto& cargs = f->args();
 
         inlining_in_progress_ = true;
-        func_name_ = f->name();
+        inlining_func_ = f->name();
         lhs_ = e->lhs()->is_identifier()->clone();
         return_set_ = false;
         scope_ = e->scope();
@@ -164,15 +167,12 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         std::string iden_name = lhs->spelling();
 
         // if the identifier name matches the function name, then we are setting the return value
-        if (iden_name == func_name_) {
+        if (iden_name == inlining_func_) {
             e->replace_lhs(lhs_->clone());
             return_set_ = true;
         } else {
             if (local_arg_map_.count(iden_name)) {
                 e->replace_lhs(local_arg_map_.at(iden_name)->clone());
-            }
-            if (call_arg_map_.count(iden_name)) {
-                e->replace_lhs(call_arg_map_.at(iden_name)->clone());
             }
         }
     }
@@ -235,6 +235,17 @@ void FunctionInliner::visit(IfExpression* e) {
 }
 
 void FunctionInliner::visit(CallExpression* e) {
+    if (!inlining_in_progress_) {
+        if (e->is_procedure_call()) {
+            statements_.push_back(e->clone());
+        }
+        return;
+    }
+
+    if (e->is_function_call()->name() == inlining_func_ || e->is_function_call()->name() == calling_func_) {
+        throw compiler_exception("recursive functions not allowed", e->location());
+    }
+
     auto& args = e->is_function_call() ? e->is_function_call()->args() : e->is_procedure_call()->args();
 
     for (auto& a: args) {
@@ -253,93 +264,5 @@ void FunctionInliner::visit(CallExpression* e) {
     if (e->is_procedure_call()) {
         statements_.push_back(e->clone());
         return;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//  variable replacer
-///////////////////////////////////////////////////////////////////////////////
-
-void VariableReplacer::visit(Expression *e) {
-    throw compiler_exception(
-            "I don't know how to variable inlining for this statement : "
-            + e->to_string(), e->location());
-}
-
-void VariableReplacer::visit(UnaryExpression *e) {
-    auto exp = e->expression()->is_identifier();
-    if(exp && exp->spelling()==source_) {
-        e->replace_expression(
-            make_expression<IdentifierExpression>(exp->location(), target_)
-        );
-    }
-    else if(!exp) {
-        e->expression()->accept(this);
-    }
-}
-
-void VariableReplacer::visit(BinaryExpression *e) {
-    auto lhs = e->lhs()->is_identifier();
-    if(lhs && lhs->spelling()==source_) {
-        e->replace_lhs(
-            make_expression<IdentifierExpression>(lhs->location(), target_)
-        );
-    }
-    else if(!lhs){ // only inspect subexpressions that are not themselves identifiers
-        e->lhs()->accept(this);
-    }
-
-    auto rhs = e->rhs()->is_identifier();
-    if(rhs && rhs->spelling()==source_) {
-        e->replace_rhs(
-            make_expression<IdentifierExpression>(rhs->location(), target_)
-        );
-    }
-    else if(!rhs){ // only inspect subexpressions that are not themselves identifiers
-        e->rhs()->accept(this);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//  value inliner
-///////////////////////////////////////////////////////////////////////////////
-
-void ValueInliner::visit(Expression *e) {
-    throw compiler_exception(
-            "I don't know how to value inlining for this statement : "
-            + e->to_string(), e->location());
-}
-
-void ValueInliner::visit(UnaryExpression *e) {
-    auto exp = e->expression()->is_identifier();
-    if(exp && exp->spelling()==source_) {
-        e->replace_expression(
-            make_expression<NumberExpression>(exp->location(), value_)
-        );
-    }
-    else if(!exp){
-        e->expression()->accept(this);
-    }
-}
-
-void ValueInliner::visit(BinaryExpression *e) {
-    auto lhs = e->lhs()->is_identifier();
-    if(lhs && lhs->spelling()==source_) {
-        e->replace_lhs(
-            make_expression<NumberExpression>(lhs->location(), value_)
-        );
-    }
-    else if(!lhs) {
-        e->lhs()->accept(this);
-    }
-
-    auto rhs = e->rhs()->is_identifier();
-    if(rhs && rhs->spelling()==source_) {
-        e->replace_rhs(
-            make_expression<NumberExpression>(rhs->location(), value_)
-        );
-    }
-    else if(!rhs){
-        e->rhs()->accept(this);
     }
 }

@@ -79,38 +79,38 @@ public:
     /// Move constructor
     cable_cell(cable_cell&& other) = default;
 
-    /// add a soma to the cell
-    /// radius must be specified
-    soma_segment* add_soma(value_type radius, point_type center=point_type());
+    /// construct from morphology
+    cable_cell(const class morphology& m,
+               const label_dict& dictionary={},
+               bool compartments_from_discretization=false);
 
-    /// add a cable
-    /// parent is the index of the parent segment for the cable section
-    /// cable is the segment that will be moved into the cell
-    cable_segment* add_cable(index_type parent, segment_ptr&& cable);
+    // the number of branches in the cell
+    size_type num_branches() const;
 
+    // All of the members marked with LEGACY below will be removed once
+    // the discretization code has moved from consuming segments to em_morphology.
+
+    // LEGACY
     bool has_soma() const;
 
-    class segment* segment(index_type index);
+    // LEGACY
     const class segment* parent(index_type index) const;
+    // LEGACY
     const class segment* segment(index_type index) const;
 
     // access pointer to the soma
     // returns nullptr if the cell has no soma
     // LEGACY
-    soma_segment* soma();
     const soma_segment* soma() const;
 
     // access pointer to a cable segment
     // will throw an cable_cell_error exception if
     // the cable index is not valid
     // LEGACY
-    cable_segment* cable(index_type index);
     const cable_segment* cable(index_type index) const;
 
+    // LEGACY
     const std::vector<segment_ptr>& segments() const;
-
-    // the number of segments in the cell
-    size_type num_segments() const;
 
     // return a vector with the compartment count for each segment in the cell
     // LEGACY
@@ -128,27 +128,28 @@ public:
     //
 
     // Density channels.
-    void paint(const std::string& target, mechanism_desc);
+    void paint(const std::string&, mechanism_desc);
+    void paint(const region&, mechanism_desc);
+
+    // Properties.
+    void paint(const std::string&, cable_cell_local_parameter_set);
+    void paint(const region&, cable_cell_local_parameter_set);
 
     // Synapses.
-    lid_range place(const std::string& target, const mechanism_desc&);
-    lid_range place(const mlocation&, const mechanism_desc&);  // LEGACY
-    //lid_range place(const locset&, const mechanism_desc&);
+    lid_range place(const std::string&, const mechanism_desc&);
+    lid_range place(const locset&, const mechanism_desc&);
 
     // Stimuli.
-    lid_range place(const std::string& target, const i_clamp&);
-    lid_range place(const mlocation&, const i_clamp&);  // LEGACY
-    //lid_range place(const locset&, const i_clamp&);
+    lid_range place(const std::string&, const i_clamp&);
+    lid_range place(const locset&, const i_clamp&);
 
     // Gap junctions.
     lid_range place(const std::string&, gap_junction_site);
-    lid_range place(const mlocation& loc, gap_junction_site);  // LEGACY
-    //lid_range place(const locset&, gap_junction_site);
+    lid_range place(const locset&, gap_junction_site);
 
     // spike detectors
     lid_range place(const std::string&, const threshold_detector&);
-    lid_range place(const mlocation&, const threshold_detector&);  // LEGACY
-    //lid_range place(const locset&, const threshold_detector&);
+    lid_range place(const locset&, const threshold_detector&);
 
     //
     // access to placed items
@@ -158,13 +159,6 @@ public:
     const std::vector<gap_junction_instance>& gap_junction_sites() const;
     const std::vector<detector_instance>& detectors() const;
     const std::vector<stimulus_instance>& stimuli() const;
-
-    // These setters are temporary, for "side-loading" in make_cable_cell.
-    // In the regions, locset and morphology descriptions will be passed directly
-    // to the cable_cell constructor.
-    void set_regions(region_map r);
-    void set_locsets(locset_map l);
-    void set_morphology(em_morphology m);
 
     const em_morphology* morphology() const;
 
@@ -193,13 +187,5 @@ private:
 
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
-
-// Create a cable cell from a morphology specification.
-// If compartments_from_discretization is true, set number of compartments
-// in each segment to be the number of piecewise linear sections in the
-// corresponding section of the morphology.
-cable_cell make_cable_cell(const morphology& morph,
-                           const label_dict& labels={},
-                           bool compartments_from_discretization=false);
 
 } // namespace arb

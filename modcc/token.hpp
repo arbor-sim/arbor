@@ -16,7 +16,7 @@ enum class tok {
     // infix binary ops
 
     // = + - * / ^
-    eq, plus, minus, times, divide, pow,
+    eq, plus, minus, times, divide, pow, land, lor,
     // comparison
     lnot,    // !   named logical not, to avoid clash with C++ not keyword
     lt,      // <
@@ -69,7 +69,7 @@ enum class tok {
     min, max,
 
     // unary operators
-    exp, sin, cos, log, abs,
+    exp, sin, cos, log, abs, safeinv,
     exprelr, // equivalent to x/(exp(x)-1) with exprelr(0)=1
 
     // logical keywords

@@ -31,6 +31,8 @@
 #include "mechanisms/read_eX.hpp"
 #include "mechanisms/write_multiple_eX.hpp"
 #include "mechanisms/write_eX.hpp"
+#include "mechanisms/read_cai_init.hpp"
+#include "mechanisms/write_cai_breakpoint.hpp"
 
 #include "../gtest.h"
 
@@ -74,6 +76,8 @@ mechanism_catalogue make_unit_test_catalogue() {
     ADD_MECH(cat, read_eX)
     ADD_MECH(cat, write_multiple_eX)
     ADD_MECH(cat, write_eX)
+    ADD_MECH(cat, read_cai_init)
+    ADD_MECH(cat, write_cai_breakpoint)
 
     return cat;
 }

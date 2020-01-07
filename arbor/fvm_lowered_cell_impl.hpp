@@ -164,6 +164,18 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     update_ion_state();
 
+    state_->zero_currents();
+
+    // Note: mechanisms must be initialized again after the ion state is updated,
+    // as mechanisms can read/write the ion_state within the initialize block
+    for (auto& m: revpot_mechanisms_) {
+        m->initialize();
+    }
+
+    for (auto& m: mechanisms_) {
+        m->initialize();
+    }
+
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
     threshold_watcher_.reset();
@@ -204,11 +216,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     while (remaining_steps) {
         // Update any required reversal potentials based on ionic concs.
 
-        PE(advance_update_revpot)
         for (auto& m: revpot_mechanisms_) {
             m->nrn_current();
         }
-        PL();
 
 
         // Deliver events and accumulate mechanism current contributions.
@@ -422,7 +432,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         const std::string& ion_name = i.first;
 
         if (auto charge = value_by_key(global_props.ion_species, ion_name)) {
-            state_->add_ion(ion_name, *charge, i.second.cv, i.second.init_iconc, i.second.init_econc, i.second.init_revpot);
+            state_->add_ion(ion_name, *charge, i.second);
         }
         else {
             throw cable_cell_error("unrecognized ion '"+ion_name+"' in mechanism");

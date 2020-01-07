@@ -52,8 +52,9 @@ void CExprEmitter::visit(UnaryExpression* e) {
         {tok::cos,     "cos"},
         {tok::sin,     "sin"},
         {tok::log,     "log"},
-        {tok::abs,     "fabs"},
-        {tok::exprelr, "exprelr"}
+        {tok::abs,     "abs"},
+        {tok::exprelr, "exprelr"},
+        {tok::safeinv, "safeinv"}
     };
 
     if (!unaryop_tbl.count(e->op())) {
@@ -96,6 +97,8 @@ void CExprEmitter::visit(BinaryExpression* e) {
         {tok::gt,       ">"},
         {tok::gte,      ">="},
         {tok::equality, "=="},
+        {tok::land,     "&&"},
+        {tok::lor,      "||"},
         {tok::ne,       "!="},
         {tok::min,      "min"},
         {tok::max,      "max"},

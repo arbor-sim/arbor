@@ -27,11 +27,17 @@ struct test_recipe: public n_cable_cell_recipe {
     explicit test_recipe(int n): n_cable_cell_recipe(n, test_cell()) {}
 
     static cable_cell test_cell() {
-        cable_cell c;
-        c.add_soma(10.)->add_mechanism("pas");
+        sample_tree st;
+        st.append({0,0,0,10,1});
+
+        label_dict d;
+        d.set("soma", arb::reg::tagged(1));
+
+        cable_cell c(st, d, true);
         c.place(mlocation{0, 0.5}, "expsyn");
         c.place(mlocation{0, 0.5}, threshold_detector{-64});
         c.place(mlocation{0, 0.5}, gap_junction_site{});
+
         return c;
     }
 

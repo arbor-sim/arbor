@@ -797,6 +797,8 @@ public:
     expression_ptr clone() const override;
 
     std::string to_string() const override;
+
+    void replace_condition(expression_ptr&& other);
     void semantic(scope_ptr scp) override;
 
     void accept(Visitor* v) override;
@@ -1231,6 +1233,15 @@ class AbsUnaryExpression : public UnaryExpression {
 public:
     AbsUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::abs, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+class SafeInvUnaryExpression : public UnaryExpression {
+public:
+    SafeInvUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::safeinv, std::move(e))
     {}
 
     void accept(Visitor *v) override;

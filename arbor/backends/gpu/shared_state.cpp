@@ -50,20 +50,19 @@ std::pair<fvm_value_type, fvm_value_type> minmax_value_impl(fvm_size_type n, con
 
 ion_state::ion_state(
     int charge,
-    const std::vector<fvm_index_type>& cv,
-    const std::vector<fvm_value_type>& init_iconc,
-    const std::vector<fvm_value_type>& init_econc,
-    const std::vector<fvm_value_type>& init_erev,
+    const fvm_ion_config& ion_data,
     unsigned // alignment/padding ignored.
 ):
-    node_index_(make_const_view(cv)),
-    iX_(cv.size(), NAN),
-    eX_(cv.size(), NAN),
-    Xi_(cv.size(), NAN),
-    Xo_(cv.size(), NAN),
-    init_Xi_(make_const_view(init_iconc)),
-    init_Xo_(make_const_view(init_econc)),
-    init_eX_(make_const_view(init_erev)),
+    node_index_(make_const_view(ion_data.cv)),
+    iX_(ion_data.cv.size(), NAN),
+    eX_(ion_data.cv.size(), NAN),
+    Xi_(ion_data.cv.size(), NAN),
+    Xo_(ion_data.cv.size(), NAN),
+    init_Xi_(make_const_view(ion_data.init_iconc)),
+    init_Xo_(make_const_view(ion_data.init_econc)),
+    reset_Xi_(make_const_view(ion_data.reset_iconc)),
+    reset_Xo_(make_const_view(ion_data.reset_econc)),
+    init_eX_(make_const_view(ion_data.init_revpot)),
     charge(1u, charge)
 {
     arb_assert(node_index_.size()==init_Xi_.size());
@@ -82,7 +81,8 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    init_concentration();
+    memory::copy(reset_Xi_, Xi_);
+    memory::copy(reset_Xo_, Xo_);
     memory::copy(init_eX_, eX_);
 }
 
@@ -120,14 +120,11 @@ shared_state::shared_state(
 void shared_state::add_ion(
     const std::string& ion_name,
     int charge,
-    const std::vector<fvm_index_type>& cv,
-    const std::vector<fvm_value_type>& init_iconc,
-    const std::vector<fvm_value_type>& init_econc,
-    const std::vector<fvm_value_type>& init_erev)
+    const fvm_ion_config& ion_info)
 {
     ion_data.emplace(std::piecewise_construct,
         std::forward_as_tuple(ion_name),
-        std::forward_as_tuple(charge, cv, init_iconc, init_econc, init_erev, 1u));
+        std::forward_as_tuple(charge, ion_info, 1u));
 }
 
 void shared_state::reset() {

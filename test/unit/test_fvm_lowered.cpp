@@ -21,6 +21,7 @@
 #include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
+#include "mech_private_field_access.hpp"
 #include "sampler_map.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
@@ -92,8 +93,7 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cable_cell c;
-        c.add_soma(20);
+        cable_cell c = soma_cell_builder(20).make_cell();
         c.place(mlocation{0, 1}, gap_junction_site{});
         return {std::move(c)};
     }
@@ -138,9 +138,7 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
-        cable_cell c;
-        c.add_soma(20);
-        return {std::move(c)};
+        return soma_cell_builder(20).make_cell();
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -160,8 +158,7 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
-        cable_cell c;
-        c.add_soma(20);
+        cable_cell c = soma_cell_builder(20).make_cell();
         c.place(mlocation{0,1}, gap_junction_site{});
         return {std::move(c)};
     }
@@ -213,10 +210,9 @@ TEST(fvm_lowered, matrix_init)
     auto ispos = [](auto v) { return v>0; };
     auto isneg = [](auto v) { return v<0; };
 
-    cable_cell cell = make_cell_ball_and_stick();
-
-    ASSERT_EQ(2u, cell.num_segments());
-    cell.segment(1)->set_compartments(10);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 10, "dend"); // 10 compartments
+    cable_cell cell = builder.make_cell();
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -253,8 +249,8 @@ TEST(fvm_lowered, target_handles) {
         make_cell_ball_and_3stick()
     };
 
-    EXPECT_EQ(cells[0].num_segments(), 2u);
-    EXPECT_EQ(cells[1].num_segments(), 4u);
+    EXPECT_EQ(cells[0].num_branches(), 2u);
+    EXPECT_EQ(cells[1].num_branches(), 4u);
 
     // (in increasing target order)
     cells[0].place(mlocation{1, 0.4}, "expsyn");
@@ -397,30 +393,26 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
-    std::vector<cable_cell> cells(3);
+    std::vector<cable_cell> cells;
+    cells.reserve(3);
     for (int i = 0; i<3; ++i) {
-        cable_cell& c = cells[i];
-        c.add_soma(6.0);
-        c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
+        soma_cell_builder builder(6);
+        builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
+        auto cell = builder.make_cell();
 
-        c.segment(1)->set_compartments(4);
-        for (auto& seg: c.segments()) {
-            if (!seg->is_soma()) {
-                seg->as_cable()->set_compartments(4);
-            }
-            switch (i) {
+        switch (i) {
             case 0:
-                seg->add_mechanism("test_kin1");
+                cell.paint(reg::all(), "test_kin1");
                 break;
             case 1:
-                seg->add_mechanism("custom_kin1");
+                cell.paint(reg::all(), "custom_kin1");
                 break;
             case 2:
-                seg->add_mechanism("test_kin1");
-                seg->add_mechanism("custom_kin1");
+                cell.paint(reg::all(), "test_kin1");
+                cell.paint(reg::all(), "custom_kin1");
                 break;
-            }
         }
+        cells.push_back(std::move(cell));
     }
 
     cable1d_recipe rec(cells);
@@ -506,11 +498,10 @@ TEST(fvm_lowered, read_valence) {
     {
         std::vector<cable_cell> cells(1);
 
-        cable_cell& c = cells[0];
-        auto soma = c.add_soma(6.0);
-        soma->add_mechanism("test_ca_read_valence");
-
-        cable1d_recipe rec(cells);
+        soma_cell_builder builder(6);
+        auto cell = builder.make_cell();
+        cell.paint("soma", "test_ca_read_valence");
+        cable1d_recipe rec({std::move(cell)});
         rec.catalogue() = make_unit_test_catalogue();
 
         fvm_cell fvcell(context);
@@ -529,13 +520,11 @@ TEST(fvm_lowered, read_valence) {
 
     {
         // Check ion renaming.
-        std::vector<cable_cell> cells(1);
-
-        cable_cell& c = cells[0];
-        auto soma = c.add_soma(6.0);
-        soma->add_mechanism("cr_read_valence");
-
-        cable1d_recipe rec(cells);
+        soma_cell_builder builder(6);
+        auto cell = builder.make_cell();
+        cell.paint("soma", "cr_read_valence");
+        cable1d_recipe rec({std::move(cell)});
+        rec.catalogue() = make_unit_test_catalogue();
         rec.catalogue() = make_unit_test_catalogue();
 
         rec.catalogue().derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
@@ -555,15 +544,77 @@ TEST(fvm_lowered, read_valence) {
 }
 
 // Test correct scaling of ionic currents in reading and writing
+TEST(fvm_lowered, ionic_concentrations) {
+    auto cat = make_unit_test_catalogue();
+
+    // one cell, one CV:
+    fvm_size_type ncell = 1;
+    fvm_size_type ncv = 1;
+    std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
+    std::vector<fvm_value_type> temp(ncv, 23);
+    std::vector<fvm_value_type> diam(ncv, 1.);
+    std::vector<fvm_value_type> vinit(ncv, -65);
+    std::vector<fvm_gap_junction> gj = {};
+
+    fvm_ion_config ion_config;
+    mechanism_layout layout;
+    mechanism_overrides overrides;
+
+    layout.weight.assign(ncv, 1.);
+    for (fvm_size_type i = 0; i<ncv; ++i) {
+        layout.cv.push_back(i);
+        ion_config.cv.push_back(i);
+    }
+    ion_config.init_revpot.assign(ncv, 0.);
+    ion_config.init_econc.assign(ncv, 0.);
+    ion_config.init_iconc.assign(ncv, 0.);
+    ion_config.reset_econc.assign(ncv, 0.);
+    ion_config.reset_iconc.assign(ncv, 2.3e-4);
+
+    auto read_cai  = cat.instance<backend>("read_cai_init");
+    auto write_cai = cat.instance<backend>("write_cai_breakpoint");
+
+    auto& read_cai_mech  = read_cai.mech;
+    auto& write_cai_mech = write_cai.mech;
+
+    auto shared_state = std::make_unique<typename backend::shared_state>(
+            ncell, cv_to_intdom, gj, vinit, temp, diam, read_cai_mech->data_alignment());
+    shared_state->add_ion("ca", 2, ion_config);
+
+    read_cai_mech->instantiate(0, *shared_state, overrides, layout);
+    write_cai_mech->instantiate(1, *shared_state, overrides, layout);
+
+    shared_state->reset();
+
+    // expect 2.3 value in state 's' in read_cai_init after init:
+    read_cai_mech->initialize();
+    write_cai_mech->initialize();
+
+    std::vector<fvm_value_type> expected_s_values(ncv, 2.3e-4);
+
+    EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
+
+    // expect 5.2 + 2.3 value in state 's' in read_cai_init after state update:
+    read_cai_mech->nrn_state();
+    write_cai_mech->nrn_state();
+
+    read_cai_mech->write_ions();
+    write_cai_mech->write_ions();
+
+    read_cai_mech->nrn_state();
+
+    expected_s_values.assign(ncv, 7.5e-4);
+    EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
+}
 
 TEST(fvm_lowered, ionic_currents) {
-    cable_cell c;
-    auto soma = c.add_soma(6.0);
+    soma_cell_builder b(6);
 
     // Mechanism parameter is in NMODL units, i.e. mA/cm².
 
     const double jca = 1.5;
-    soma->add_mechanism(mechanism_desc("fixed_ica_current").set("ica_density", jca));
+    mechanism_desc m1("fixed_ica_current");
+    m1["ica_density"] = jca;
 
     // Mechanism models a well-mixed fixed-depth volume without replenishment,
     // giving a linear response to ica over time.
@@ -573,9 +624,14 @@ TEST(fvm_lowered, ionic_currents) {
     // with NMODL units: cai' [mM/ms]; ica [mA/cm²], giving coeff in [mol/cm/C].
 
     const double coeff = 0.5;
-    soma->add_mechanism(mechanism_desc("linear_ca_conc").set("coeff", coeff));
+    mechanism_desc m2("linear_ca_conc");
+    m2["coeff"] = coeff;
 
-    cable1d_recipe rec(c);
+    auto c = b.make_cell();
+    c.paint("soma", m1);
+    c.paint("soma", m2);
+
+    cable1d_recipe rec(std::move(c));
     rec.catalogue() = make_unit_test_catalogue();
 
     execution_context context;
@@ -604,10 +660,9 @@ TEST(fvm_lowered, ionic_currents) {
 // Test correct scaling of an ionic current updated via a point mechanism
 
 TEST(fvm_lowered, point_ionic_current) {
-    cable_cell c;
-
     double r = 6.0; // [µm]
-    c.add_soma(6.0);
+    soma_cell_builder b(r);
+    cable_cell c = b.make_cell();
 
     double soma_area_m2 = 4*math::pi<double>*r*r*1e-12; // [m²]
 
@@ -673,14 +728,12 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     execution_context context;
 
-    cable_cell c;
-    c.add_soma(5);
+    soma_cell_builder b(5);
+    b.add_branch(0, 100, 0.5, 0.5, 1, "dend");
+    b.add_branch(1, 200, 0.5, 0.5, 1, "dend");
+    b.add_branch(1, 100, 0.5, 0.5, 1, "dend");
 
-    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
-    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 200));
-    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.5, 0.5, 100));
-
-    for (auto& s: c.segments()) s->set_compartments(1);
+    cable_cell c = b.make_cell();
 
     const double con_int = 80;
     const double con_ext = 120;
@@ -768,18 +821,21 @@ TEST(fvm_lowered, gj_coords_simple) {
 
     gap_recipe rec;
     std::vector<cable_cell> cells;
-    cable_cell c, d;
-    c.add_soma(2.1);
-    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 10));
-    c.segment(1)->set_compartments(5);
-    c.place(mlocation{1, 0.8}, gap_junction_site{});
-    cells.push_back(std::move(c));
+    {
+        soma_cell_builder b(2.1);
+        b.add_branch(0, 10, 0.3, 0.2, 5, "dend");
+        auto c = b.make_cell();
+        c.place(mlocation{1, 0.8}, gap_junction_site{});
+        cells.push_back(std::move(c));
+    }
 
-    d.add_soma(2.4);
-    d.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 10));
-    d.segment(1)->set_compartments(2);
-    d.place(mlocation{1, 1}, gap_junction_site{});
-    cells.push_back(std::move(d));
+    {
+        soma_cell_builder b(2.4);
+        b.add_branch(0, 10, 0.3, 0.2, 2, "dend");
+        auto c = b.make_cell();
+        c.place(mlocation{1, 1}, gap_junction_site{});
+        cells.push_back(std::move(c));
+    }
 
     fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
@@ -840,56 +896,44 @@ TEST(fvm_lowered, gj_coords_complex) {
     execution_context context;
     fvm_cell fvcell(context);
 
-    gap_recipe rec;
-    cable_cell c0, c1, c2;
-    std::vector<cable_cell> cells;
-
-    // Make 3 cells
-    c0.add_soma(2.1);
-    c0.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 8));
-    c0.segment(1)->set_compartments(4);
-
-    c1.add_soma(1.4);
-    c1.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.5, 12));
-    c1.segment(1)->set_compartments(6);
-    c1.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.2, 9));
-    c1.segment(2)->set_compartments(3);
-    c1.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.2, 0.2, 15));
-    c1.segment(3)->set_compartments(5);
-
-    c2.add_soma(2.9);
-    c2.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 0.3, 0.5, 4));
-    c2.segment(1)->set_compartments(2);
-    c2.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.4, 0.2, 6));
-    c2.segment(2)->set_compartments(2);
-    c2.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 0.1, 0.2, 8));
-    c2.segment(3)->set_compartments(2);
-    c2.add_cable(2, make_segment<cable_segment>(section_kind::dendrite, 0.2, 0.2, 4));
-    c2.segment(4)->set_compartments(2);
-    c2.add_cable(2, make_segment<cable_segment>(section_kind::dendrite, 0.2, 0.2, 4));
-    c2.segment(5)->set_compartments(2);
-
     // Add 5 gap junctions
+    soma_cell_builder b0(2.1);
+    b0.add_branch(0, 8, 0.3, 0.2, 4, "dend");
+
+    auto c0 = b0.make_cell();
     c0.place(mlocation{1, 1}, gap_junction_site{});
     c0.place(mlocation{1, 0.5}, gap_junction_site{});
 
+    soma_cell_builder b1(1.4);
+    b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
+    b1.add_branch(1,  9, 0.3, 0.2, 3, "dend");
+    b1.add_branch(1,  5, 0.2, 0.2, 5, "dend");
+
+    auto c1 = b1.make_cell();
     c1.place(mlocation{2, 1}, gap_junction_site{});
     c1.place(mlocation{1, 1}, gap_junction_site{});
     c1.place(mlocation{1, 0.45}, gap_junction_site{});
     c1.place(mlocation{1, 0.1}, gap_junction_site{});
 
+    soma_cell_builder b2(2.9);
+    b2.add_branch(0, 4, 0.3, 0.5, 2, "dend");
+    b2.add_branch(1, 6, 0.4, 0.2, 2, "dend");
+    b2.add_branch(1, 8, 0.1, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
+
+    auto c2 = b2.make_cell();
     c2.place(mlocation{1, 0.5}, gap_junction_site{});
     c2.place(mlocation{4, 1}, gap_junction_site{});
     c2.place(mlocation{2, 1}, gap_junction_site{});
 
-    cells.push_back(std::move(c0));
-    cells.push_back(std::move(c1));
-    cells.push_back(std::move(c2));
+    std::vector<cable_cell> cells{std::move(c0), std::move(c1), std::move(c2)};
 
     std::vector<fvm_index_type> cell_to_intdom;
 
     std::vector<cell_gid_type> gids = {0, 1, 2};
 
+    gap_recipe rec;
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
     fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
 
@@ -955,8 +999,7 @@ TEST(fvm_lowered, cell_group_gj) {
 
     // Make 20 cells
     for (unsigned i = 0; i < 20; i++) {
-        cable_cell c;
-        c.add_soma(2.1);
+        cable_cell c = soma_cell_builder(2.1).make_cell();
         if (i % 2 == 0) {
             c.place(mlocation{0, 1}, gap_junction_site{});
         }

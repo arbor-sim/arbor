@@ -7,6 +7,8 @@
 
 #include <arbor/fvm_types.hpp>
 
+#include "fvm_layout.hpp"
+
 #include "backends/gpu/gpu_store_types.hpp"
 
 namespace arb {
@@ -33,6 +35,8 @@ struct ion_state {
 
     array init_Xi_;     // (mM) area-weighted initial internal concentration
     array init_Xo_;     // (mM) area-weighted initial external concentration
+    array reset_Xi_;    // (mM) area-weighted user-set internal concentration
+    array reset_Xo_;    // (mM) area-weighted user-set internal concentration
     array init_eX_;     // (mM) initial reversal potential
 
     array charge;       // charge of ionic species (global, length 1)
@@ -41,10 +45,7 @@ struct ion_state {
 
     ion_state(
         int charge,
-        const std::vector<fvm_index_type>& cv,
-        const std::vector<fvm_value_type>& init_Xi,
-        const std::vector<fvm_value_type>& init_Xo,
-        const std::vector<fvm_value_type>& init_eX,
+        const fvm_ion_config& ion_data,
         unsigned align
     );
 
@@ -97,10 +98,7 @@ struct shared_state {
     void add_ion(
         const std::string& ion_name,
         int charge,
-        const std::vector<fvm_index_type>& cv,
-        const std::vector<fvm_value_type>& init_iconc,
-        const std::vector<fvm_value_type>& init_econc,
-        const std::vector<fvm_value_type>& init_erev);
+        const fvm_ion_config& ion_data);
 
     void zero_currents();
 

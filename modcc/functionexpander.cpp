@@ -55,6 +55,7 @@ expression_ptr lower_functions(BlockExpression* block) {
 //      ll2_ = y - 1;
 //      foo(ll1_, ll2_);
 void FunctionCallLowerer::visit(CallExpression *e) {
+    // Lower function calls
     for(auto& arg : e->args()) {
         if(auto func = arg->is_function_call()) {
             // Recurse on the Call Expression
@@ -75,7 +76,7 @@ void FunctionCallLowerer::visit(CallExpression *e) {
         std::swap(arg, id);
     }
 
-    // Procedure Expressions need to be printed stand alone
+    // Procedure Expressions need to be printed stand-alone
     // Function Expressions are always part of a bigger expression
     if (e->is_procedure_call()) {
         statements_.push_back(e->clone());
@@ -84,6 +85,17 @@ void FunctionCallLowerer::visit(CallExpression *e) {
 
 void FunctionCallLowerer::visit(AssignmentExpression *e) {
     e->rhs()->accept(this);
+    if (auto func = e->rhs()->is_function_call()) {
+        for (auto& arg: func->args()) {
+            if (auto id = arg->is_identifier()) {
+                if (id->name() == e->lhs()->is_identifier()->name()) {
+                    expand_call(func, [&e](expression_ptr&& p){e->replace_rhs(std::move(p));});
+                    e->semantic(block_scope_);
+                    break;
+                }
+            }
+        }
+    }
     statements_.push_back(e->clone());
 }
 
@@ -141,6 +153,16 @@ void FunctionCallLowerer::visit(IfExpression *e) {
     expr_list_type outer;
 
     e->condition()->accept(this);
+
+    if(auto func = e->condition()->is_function_call()) {
+        expand_call(func, [&e](expression_ptr&& p){
+            auto zero_exp = make_expression<NumberExpression>(Location{}, 0.);
+            p = make_expression<ConditionalExpression>(p->location(), tok::ne, p->clone(), std::move(zero_exp));
+            e->replace_condition(std::move(p));
+        });
+        e->semantic(block_scope_);
+    }
+
     std::swap(outer, statements_);
 
     e->true_branch()->accept(this);

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "astmanip.hpp"
 #include "expression.hpp"
 #include "symdiff.hpp"
 #include "symge.hpp"
@@ -66,9 +67,75 @@ public:
     virtual void visit(AssignmentExpression *e) override;
 };
 
+class SystemSolver {
+protected:
+    // Symbolic matrix for backwards Euler step.
+    symge::sym_matrix A_;
+
+    // 'Symbol table' for initial variables.
+    symge::symbol_table symtbl_;
+
+public:
+    struct system_loc {
+        unsigned row, col;
+    };
+
+    explicit SystemSolver() {}
+
+    void reset() {
+        A_.clear();
+        symtbl_.clear();
+    }
+    unsigned size() const {
+        return A_.size();
+    }
+    bool empty() const {
+        return A_.empty();
+    }
+    bool empty_row(unsigned i) const {
+        return A_[i].empty();
+    }
+    void clear_row(unsigned i) {
+        A_[i].clear();
+    }
+    void create_square_matrix(unsigned n) {
+        A_ = symge::sym_matrix(n, n);
+    }
+    void add_entry(system_loc loc, std::string name) {
+        A_[loc.row].push_back({loc.col, symtbl_.define(name)});
+    }
+    void augment(std::vector<std::string> rhs) {
+        std::vector<symge::symbol> rhs_sym;
+        for (unsigned r = 0; r < rhs.size(); ++r) {
+            rhs_sym.push_back(symtbl_.define(rhs[r]));
+        }
+        A_.augment(rhs_sym);
+    }
+
+    // Returns a vector of rows of symbols
+    // Needed for normalization
+    std::vector<std::vector<symge::symbol>> reduce() {
+        return symge::gj_reduce(A_, symtbl_);
+    }
+
+    // Returns a vector of local assignments for row updates during system reduction
+    std::vector<local_assignment> generate_row_updates(scope_ptr scope, std::vector<symge::symbol> row_sym);
+
+    // Given a row of symbols, generates local assignment for a normalizing term
+    local_assignment generate_normalizing_term(scope_ptr scope, std::vector<symge::symbol> row_sym);
+
+    // Given a row of symbols, generates expressions normalizing row updates
+    std::vector<expression_ptr> generate_normalizing_assignments(expression_ptr normalizer, std::vector<symge::symbol> row_sym);
+
+    // Returns solution assignment of lhs_vars
+    std::vector<expression_ptr> generate_solution_assignments(std::vector<std::string> lhs_vars);
+
+};
+
 class SparseSolverVisitor : public SolverVisitorBase {
 protected:
     solverVariant solve_variant_;
+
     // 'Current' differential equation is for variable with this
     // index in `dvars`.
     unsigned deq_index_ = 0;
@@ -76,12 +143,6 @@ protected:
     // Expanded local assignments that need to be substituted in for derivative
     // calculations.
     substitute_map local_expr_;
-
-    // Symbolic matrix for backwards Euler step.
-    symge::sym_matrix A_;
-
-    // 'Symbol table' for symbolic manipulation.
-    symge::symbol_table symtbl_;
 
     // Flag to indicate whether conserve statements are part of the system
     bool conserve_ = false;
@@ -95,6 +156,10 @@ protected:
 
     // rhs of steadstate
     std::string steadystate_rhs_;
+
+    // System Solver helper
+    SystemSolver system_;
+
 public:
     using SolverVisitorBase::visit;
 
@@ -110,13 +175,12 @@ public:
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
-        A_.clear();
-        symtbl_.clear();
         conserve_ = false;
         scale_factor_.clear();
         conserve_rhs_.clear();
         conserve_idx_.clear();
         steadystate_rhs_.clear();
+        system_.reset();
         SolverVisitorBase::reset();
     }
 };
@@ -139,14 +203,11 @@ protected:
     std::vector<std::string> dvar_temp_;
     std::vector<std::string> dvar_init_;
 
-    // Symbolic matrix for backwards Euler step.
-    symge::sym_matrix A_;
-
-    // 'Symbol table' for symbolic manipulation.
-    symge::symbol_table symtbl_;
-
     // State variable multiplier/divider
     std::vector<expression_ptr> scale_factor_;
+
+    // System Solver helper
+    SystemSolver system_;
 
 public:
     using SolverVisitorBase::visit;
@@ -164,8 +225,8 @@ public:
         local_expr_.clear();
         F_.clear();
         J_.clear();
-        symtbl_.clear();
         scale_factor_.clear();
+        system_.reset();
         SolverVisitorBase::reset();
     }
 };
@@ -180,14 +241,11 @@ protected:
     // calculations.
     substitute_map local_expr_;
 
-    // Symbolic matrix for backwards Euler step.
-    symge::sym_matrix A_;
+    // Stores the rhs symbols of the linear system
+    std::vector<std::string> rhs_;
 
-    // RHS
-    std::vector<symge::symbol> rhs_;
-
-    // 'Symbol table' for symbolic manipulation.
-    symge::symbol_table symtbl_;
+    // System Solver helper
+    SystemSolver system_;
 
 public:
     using SolverVisitorBase::visit;
@@ -204,9 +262,8 @@ public:
     virtual void reset() override {
         deq_index_ = 0;
         local_expr_.clear();
-        A_.clear();
         rhs_.clear();
-        symtbl_.clear();
+        system_.reset();
         SolverVisitorBase::reset();
     }
 };
