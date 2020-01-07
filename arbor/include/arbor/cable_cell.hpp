@@ -1,7 +1,5 @@
 #pragma once
 
-
-#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -11,6 +9,7 @@
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/label_dict.hpp>
+#include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/segment.hpp>
@@ -48,9 +47,6 @@ public:
     using value_type = double;
     using point_type = point<value_type>;
 
-    using region_map = std::unordered_map<std::string, mcable_list>;
-    using locset_map = std::unordered_map<std::string, mlocation_list>;
-
     using gap_junction_instance = mlocation;
 
     struct synapse_instance {
@@ -83,6 +79,11 @@ public:
     cable_cell(const class morphology& m,
                const label_dict& dictionary={},
                bool compartments_from_discretization=false);
+
+    /// Access to morphology and embedding
+    const concrete_embedding& embedding() const;
+    const arb::morphology& morphology() const;
+    const mprovider& provider() const;
 
     // the number of branches in the cell
     size_type num_branches() const;
@@ -120,47 +121,35 @@ public:
     // LEGACY
     size_type num_compartments() const;
 
-    //
     // Painters and placers.
     //
     // Used to describe regions and locations where density channels, stimuli,
     // synapses, gap juncitons and detectors are located.
-    //
 
     // Density channels.
-    void paint(const std::string&, mechanism_desc);
     void paint(const region&, mechanism_desc);
 
     // Properties.
-    void paint(const std::string&, cable_cell_local_parameter_set);
     void paint(const region&, cable_cell_local_parameter_set);
 
     // Synapses.
-    lid_range place(const std::string&, const mechanism_desc&);
     lid_range place(const locset&, const mechanism_desc&);
 
     // Stimuli.
-    lid_range place(const std::string&, const i_clamp&);
     lid_range place(const locset&, const i_clamp&);
 
     // Gap junctions.
-    lid_range place(const std::string&, gap_junction_site);
     lid_range place(const locset&, gap_junction_site);
 
-    // spike detectors
-    lid_range place(const std::string&, const threshold_detector&);
+    // Spike detectors.
     lid_range place(const locset&, const threshold_detector&);
 
-    //
-    // access to placed items
-    //
+    // Access to placed items.
 
     const std::vector<synapse_instance>& synapses() const;
     const std::vector<gap_junction_instance>& gap_junction_sites() const;
     const std::vector<detector_instance>& detectors() const;
     const std::vector<stimulus_instance>& stimuli() const;
-
-    const em_morphology* morphology() const;
 
     // Checks that two cells have the same
     //  - number and type of segments
@@ -184,7 +173,6 @@ public:
         const cable_cell_parameter_set& global_defaults) const;
 
 private:
-
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 

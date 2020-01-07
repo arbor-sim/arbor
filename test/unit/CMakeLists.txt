@@ -89,7 +89,6 @@ set(unit_sources
     test_dry_run_context.cpp
     test_double_buffer.cpp
     test_either.cpp
-    test_em_morphology.cpp
     test_event_binner.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
@@ -113,15 +112,20 @@ set(unit_sources
     test_mechinfo.cpp
     test_merge_events.cpp
     test_morphology.cpp
+    test_morph_embedding.cpp
+    test_morph_expr.cpp
+    test_morph_primitives.cpp
     test_multi_event_stream.cpp
     test_optional.cpp
     test_padded.cpp
     test_partition.cpp
     test_partition_by_constraint.cpp
     test_path.cpp
+    test_piecewise.cpp
     test_point.cpp
     test_probe.cpp
     test_range.cpp
+    test_ratelem.cpp
     test_segment.cpp
     test_schedule.cpp
     test_spike_source.cpp

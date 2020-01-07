@@ -2,8 +2,9 @@
 #include <array>
 #include <algorithm>
 
+#include <arbor/util/either.hpp>
+
 #include "../gtest.h"
-#include "util/either.hpp"
 
 // TODO: coverage!
 

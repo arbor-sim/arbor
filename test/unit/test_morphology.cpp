@@ -1,7 +1,3 @@
-/*
- * Unit tests for sample_tree and morphology.
- */
-
 #include <fstream>
 #include <cmath>
 #include <string>
@@ -9,24 +5,13 @@
 
 #include "../test/gtest.h"
 
-#include <arbor/math.hpp>
-#include <arbor/morph/error.hpp>
+#include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/sample_tree.hpp>
 #include <arbor/cable_cell.hpp>
 
-#include "algorithms.hpp"
-#include "io/sepval.hpp"
 #include "morph/mbranch.hpp"
-#include "morph/em_morphology.hpp"
-#include "util/range.hpp"
 #include "util/span.hpp"
-#include "util/strprintf.hpp"
-
-template <typename T>
-std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
-    return o << "[" << arb::io::csv(v) << "]";
-}
 
 // Test basic functions on properties of mpoint
 TEST(morphology, mpoint) {
@@ -175,7 +160,7 @@ TEST(morphology, branches_from_parent_index) {
 
         // A cable morphology can't be constructed from a single sample.
         EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), false),
-                     arb::morphology_error);
+                     arb::incomplete_branch);
     }
     {
         pvec parents = {npos, 0};
@@ -186,7 +171,7 @@ TEST(morphology, branches_from_parent_index) {
 
         // A morphology can't be constructed with a spherical soma from two samples.
         EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true),
-                     arb::morphology_error);
+                     arb::incomplete_branch);
     }
 
     {
@@ -211,7 +196,7 @@ TEST(morphology, branches_from_parent_index) {
         auto tree = make_tree(parents);
 
         // A spherical root is not valid: each cable branch would have only one sample.
-        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true), arb::morphology_error);
+        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true), arb::incomplete_branch);
 
         // Two cables, with two samples each, with the first sample in each being the root
         auto bc = arb::impl::branches_from_parent_index(parents, tree.properties(), false);
@@ -248,7 +233,7 @@ TEST(morphology, branches_from_parent_index) {
         EXPECT_EQ(mb({0,3},npos), bc[1]);
 
         // A spherical root is not valid: the second cable branch would have only one sample.
-        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true), arb::morphology_error);
+        EXPECT_THROW(arb::impl::branches_from_parent_index(parents, tree.properties(), true), arb::incomplete_branch);
     }
 
     {
@@ -362,7 +347,7 @@ TEST(morphology, construction) {
                 {{0.0, 5.0, 0.0, 1.0}, 2}};
 
             arb::sample_tree sm(s, p);
-            EXPECT_THROW((arb::morphology(sm)), arb::morphology_error);
+            EXPECT_THROW((arb::morphology(sm)), arb::incomplete_branch);
         }
     }
     {
@@ -392,6 +377,17 @@ TEST(morphology, branches) {
     using pvec = std::vector<arb::msize_t>;
     using svec = std::vector<arb::msample>;
     auto npos = arb::mnpos;
+
+    auto check_terminal_branches = [](const arb::morphology& m) {
+        pvec expected;
+        arb::msize_t n = m.num_branches();
+
+        for (arb::msize_t i = 0; i<n; ++i) {
+            if (m.branch_children(i).empty()) expected.push_back(i);
+        }
+        EXPECT_EQ(expected, m.terminal_branches());
+    };
+
     {
         // 0
         pvec parents = {npos};
@@ -404,6 +400,8 @@ TEST(morphology, branches) {
         EXPECT_EQ(1u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
         EXPECT_EQ(pvec{}, m.branch_children(0));
+
+        check_terminal_branches(m);
     }
     {
         // 0 - 1
@@ -418,6 +416,8 @@ TEST(morphology, branches) {
         EXPECT_EQ(1u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
         EXPECT_EQ(pvec{}, m.branch_children(0));
+
+        check_terminal_branches(m);
     }
     {
         // 0 - 1 - 2
@@ -435,6 +435,8 @@ TEST(morphology, branches) {
             EXPECT_EQ(1u, m.num_branches());
             EXPECT_EQ(npos, m.branch_parent(0));
             EXPECT_EQ(pvec{}, m.branch_children(0));
+
+            check_terminal_branches(m);
         }
         {
             // First sample has unique tag -> spherical soma attached to a single-segment cable.
@@ -451,6 +453,8 @@ TEST(morphology, branches) {
             EXPECT_EQ(0u,   m.branch_parent(1));
             EXPECT_EQ(pvec{1}, m.branch_children(0));
             EXPECT_EQ(pvec{},  m.branch_children(1));
+
+            check_terminal_branches(m);
         }
     }
     {
@@ -470,6 +474,8 @@ TEST(morphology, branches) {
         EXPECT_EQ(npos,   m.branch_parent(1));
         EXPECT_EQ(pvec{}, m.branch_children(0));
         EXPECT_EQ(pvec{},  m.branch_children(1));
+
+        check_terminal_branches(m);
     }
     {
         // 0 - 1 - 2 - 3
@@ -521,6 +527,8 @@ TEST(morphology, branches) {
             EXPECT_EQ((pvec{3,4}), m.branch_children(2));
             EXPECT_EQ((pvec{}),    m.branch_children(3));
             EXPECT_EQ((pvec{}),    m.branch_children(4));
+
+            check_terminal_branches(m);
         }
         {
             svec samples = {
@@ -545,6 +553,8 @@ TEST(morphology, branches) {
             EXPECT_EQ((pvec{2,3}), m.branch_children(1));
             EXPECT_EQ((pvec{}),    m.branch_children(2));
             EXPECT_EQ((pvec{}),    m.branch_children(3));
+
+            check_terminal_branches(m);
         }
     }
 }
@@ -572,5 +582,56 @@ TEST(morphology, swc) {
     // Confirm that converting to a cable_cell generates the same number of branches.
     auto c = arb::cable_cell(m, {}, false);
     EXPECT_EQ(31u, c.num_branches());
+}
+
+TEST(morphology, minset) {
+    using pvec = std::vector<arb::msize_t>;
+    using svec = std::vector<arb::msample>;
+    using ll = arb::mlocation_list;
+    constexpr auto npos = arb::mnpos;
+
+    // Eight samples
+    //                  no-sphere  sphere
+    //          sample   branch    branch
+    //            0         0         0
+    //           1 3       0 1       1 2
+    //          2   4     0   1     1   2
+    //             5 6       2 3       3 4
+    //                7         3         4
+    pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
+    svec samples = {
+        {{  0,  0,  0,  2}, 3},
+        {{ 10,  0,  0,  2}, 3},
+        {{100,  0,  0,  2}, 3},
+        {{  0, 10,  0,  2}, 3},
+        {{  0,100,  0,  2}, 3},
+        {{100,100,  0,  2}, 3},
+        {{  0,200,  0,  2}, 3},
+        {{  0,300,  0,  2}, 3},
+    };
+    arb::sample_tree sm(samples, parents);
+    {
+        arb::morphology m(sm, false);
+
+        EXPECT_EQ((ll{}), minset(m, ll{}));
+        EXPECT_EQ((ll{{2,0.1}}), minset(m, ll{{2,0.1}}));
+        EXPECT_EQ((ll{{0,0.5}, {1,0.5}}), minset(m, ll{{0,0.5}, {1,0.5}}));
+        EXPECT_EQ((ll{{0,0.5}}), minset(m, ll{{0,0.5}}));
+        EXPECT_EQ((ll{{0,0}, {1,0}}), minset(m, ll{{0,0}, {0,0.5}, {1,0}, {1,0.5}}));
+        EXPECT_EQ((ll{{0,0}, {1,0.5}}), minset(m, ll{{0,0}, {0,0.5}, {1,0.5}, {2,0.5}}));
+        EXPECT_EQ((ll{{0,0}, {2,0.5}}), minset(m, ll{{0,0}, {0,0.5}, {2,0.5}}));
+        EXPECT_EQ((ll{{0,0}, {2,0.5}, {3,0}}), minset(m, ll{{0,0}, {0,0.5}, {2,0.5}, {3,0}, {3,1}}));
+        EXPECT_EQ((ll{{0,0}, {1,0}}), minset(m, ll{{0,0}, {0,0.5}, {1,0}, {2,0.5}, {3,0}, {3,1}}));
+    }
+    {
+        arb::morphology m(sm, true);
+
+        EXPECT_EQ((ll{}), minset(m, ll{}));
+        EXPECT_EQ((ll{{2,0.1}}), minset(m, ll{{2,0.1}}));
+        EXPECT_EQ((ll{{0,0.5}}), minset(m, ll{{0,0.5}, {1,0.5}}));
+        EXPECT_EQ((ll{{0,0.5}}), minset(m, ll{{0,0.5}}));
+        EXPECT_EQ((ll{{0,0}}), minset(m, ll{{0,0}, {0,0.5}, {1,0}, {1,0.5}}));
+        EXPECT_EQ((ll{{1,0.5}, {3,0.1}, {4,0.5}}), minset(m, ll{{1,0.5}, {1,1}, {3,0.1}, {4,0.5}, {4,0.7}}));
+    }
 }
 

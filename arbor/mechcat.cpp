@@ -6,8 +6,8 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/util/either.hpp>
 
-#include "util/either.hpp"
 #include "util/maputil.hpp"
 
 /* Notes on implementation:

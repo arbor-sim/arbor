@@ -7,7 +7,6 @@
 #include <arbor/math.hpp>
 #include <arbor/util/compat.hpp>
 
-#include "algorithms.hpp"
 #include "util/iterutil.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
@@ -88,7 +87,7 @@ public:
     template <typename Radii, typename Lengths>
     div_compartment_by_ends(size_type n, const Radii& radii, const Lengths& lengths):
         oon_(1/value_type(n)),
-        length_(algorithms::sum(lengths)),
+        length_(util::sum(lengths)),
         ra_(util::front(radii)),
         rb_(util::back(radii))
     {}

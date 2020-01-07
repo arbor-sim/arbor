@@ -13,9 +13,7 @@
 
 namespace arb {
 
-// Forward declare the backend em_morphology type, required for defining the
-// interface for concretising locsets.
-class em_morphology;
+struct mprovider;
 
 class region {
 public:
@@ -54,7 +52,11 @@ public:
         return *this;
     }
 
-    friend mcable_list thingify(const region& r, const em_morphology& m) {
+    // Implicitly convert string to named region expression.
+    region(std::string label);
+    region(const char* label);
+
+    friend mcable_list thingify(const region& r, const mprovider& m) {
         return r.impl_->thingify(m);
     }
 
@@ -83,7 +85,7 @@ private:
         virtual ~interface() {}
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
-        virtual mcable_list thingify(const em_morphology&) = 0;
+        virtual mcable_list thingify(const mprovider&) = 0;
     };
 
     std::unique_ptr<interface> impl_;
@@ -97,7 +99,7 @@ private:
             return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
         }
 
-        virtual mcable_list thingify(const em_morphology& m) override {
+        virtual mcable_list thingify(const mprovider& m) override {
             return thingify_(wrapped, m);
         }
 
@@ -127,6 +129,9 @@ region tagged(int id);
 
 // Region with all segments in a cell.
 region all();
+
+// Region associated with a name.
+region named(std::string);
 
 } // namespace reg
 

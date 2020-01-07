@@ -1,12 +1,10 @@
-#include <cmath>
+#include <iostream>
+#include <stdexcept>
 #include <vector>
 
-#include <arbor/math.hpp>
-
-#include <arbor/morph/error.hpp>
+#include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/sample_tree.hpp>
 
-#include "algorithms.hpp"
 #include "io/sepval.hpp"
 #include "util/span.hpp"
 
@@ -14,8 +12,7 @@ namespace arb {
 
 sample_tree::sample_tree(std::vector<msample> samples, std::vector<msize_t> parents) {
     if (samples.size()!=parents.size()) {
-        throw std::runtime_error(
-            "The same number of samples and parent indices used to create a sample morphology");
+        throw std::invalid_argument("sample and parent vectors differ in size");
     }
     reserve(samples.size());
     for (auto i: util::make_span(samples.size())) {
@@ -30,14 +27,11 @@ void sample_tree::reserve(msize_t n) {
 }
 
 msize_t sample_tree::append(msize_t p, const msample& s) {
-    if (empty()) {
-        if (p!=mnpos) throw morphology_error("Parent id of root sample must be mnpos");
+    if ((empty() && p!=mnpos) || p>=size()) {
+        if (p!=mnpos) throw invalid_sample_parent(p, size());
     }
-    else if (p>=size()) {
-        throw morphology_error("Parent id of a sample must be less than the sample id");
-    }
-    auto id = size();
 
+    auto id = size();
     samples_.push_back(s);
     parents_.push_back(p);
 

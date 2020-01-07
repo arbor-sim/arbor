@@ -5,8 +5,8 @@
 
 #include <arbor/math.hpp>
 
-#include "algorithms.hpp"
 #include "fvm_compartment.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
 #include "util/transform.hpp"
 
@@ -15,7 +15,7 @@ using namespace arb::math;
 
 using arb::util::make_span;
 using arb::util::transform_view;
-using arb::algorithms::sum;
+using arb::util::sum;
 
 // Divided compartments
 // (FVM-friendly compartment data)
