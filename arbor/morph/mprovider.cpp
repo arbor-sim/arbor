@@ -11,6 +11,9 @@
 namespace arb {
 
 void mprovider::init() {
+    // Evaluate each named region or locset in provided dictionary
+    // to populate concrete regions_, locsets_ maps.
+
     if (!label_dict_ptr) return;
 
     for (const auto& pair: label_dict_ptr->regions()) {
@@ -23,6 +26,14 @@ void mprovider::init() {
 
     label_dict_ptr = nullptr;
 }
+
+// Evaluation of a named region or locset requires the recursive evaluation of
+// any component regions or locsets in its definition.
+//
+// During the initialization phase, 'named' expressions will be looked up in the
+// provided label_dict, and the maps updated accordingly. Post-initialization,
+// label_dict_ptr will be null, and concrete regions/locsets will only be retrieved
+// from the maps established during initialization.
 
 template <typename RegOrLocMap, typename LabelDictMap, typename Err>
 static const auto& try_lookup(const mprovider& provider, const std::string& name, RegOrLocMap& map, const LabelDictMap* dict_ptr, Err errval) {

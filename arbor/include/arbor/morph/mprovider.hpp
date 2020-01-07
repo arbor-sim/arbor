@@ -3,21 +3,18 @@
 #include <string>
 #include <unordered_map>
 
-#include <arbor/morph/embed_pwlin1d.hpp>
+#include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/util/either.hpp>
 
 namespace arb {
 
-using concrete_embedding = embed_pwlin1d;
+using concrete_embedding = embed_pwlin;
 
 struct mprovider {
-    mprovider(arb::morphology m, const label_dict& dict):
-        morphology_(m), embedding_(m), label_dict_ptr(&dict) { init(); }
-
-    explicit mprovider(arb::morphology m):
-        morphology_(m), embedding_(m), label_dict_ptr(nullptr) { init(); }
+    mprovider(arb::morphology m, const label_dict& dict): mprovider(m, &dict) {}
+    explicit mprovider(arb::morphology m): mprovider(m, nullptr) {}
 
     // Throw exception on missing or recursive definition.
     const mcable_list& region(const std::string& name) const;
@@ -28,6 +25,9 @@ struct mprovider {
     const auto& embedding() const { return embedding_; }
 
 private:
+    mprovider(arb::morphology m, const label_dict* ldptr):
+        morphology_(m), embedding_(m), label_dict_ptr(ldptr) { init(); }
+
     arb::morphology morphology_;
     concrete_embedding embedding_;
 

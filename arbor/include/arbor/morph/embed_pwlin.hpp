@@ -9,16 +9,18 @@
 
 namespace arb {
 
-struct embed_pwlin1d_data;
+struct embed_pwlin_data;
 
 namespace util {
 template <typename X> struct pw_elements;
 }
 
+// Piecewise-constant functions are represented as scalar (double)
+// values defined over contiguous intervals.
 using pw_constant_fn = util::pw_elements<double>;
 
-struct embed_pwlin1d {
-    explicit embed_pwlin1d(const arb::morphology& m);
+struct embed_pwlin {
+    explicit embed_pwlin(const arb::morphology& m);
 
     mlocation sample_location(msize_t sid) const {
         return sample_locations_.at(sid);
@@ -35,7 +37,7 @@ struct embed_pwlin1d {
     double integrate_area(mcable c) const;
     double integrate_area(msize_t bid, const pw_constant_fn&) const;
 
-    // Integrated cross-sectional area of given mcable.
+    // Integrated inverse cross-sectional area of given mcable.
     double integrate_ixa(mcable c) const;
     double integrate_ixa(msize_t bid, const pw_constant_fn&) const;
 
@@ -46,7 +48,7 @@ struct embed_pwlin1d {
 
 private:
     std::vector<mlocation> sample_locations_;
-    std::shared_ptr<embed_pwlin1d_data> data_;
+    std::shared_ptr<embed_pwlin_data> data_;
 };
 
 } // namespace arb

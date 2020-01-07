@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <arbor/morph/embed_pwlin1d.hpp>
+#include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -15,7 +15,7 @@
 #include "util/strprintf.hpp"
 
 using namespace arb;
-using embedding = embed_pwlin1d;
+using embedding = embed_pwlin;
 
 ::testing::AssertionResult cable_eq(mcable a, mcable b) {
     if (a.branch!=b.branch) {

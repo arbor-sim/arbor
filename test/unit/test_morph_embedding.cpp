@@ -2,7 +2,7 @@
 #include <vector>
 
 #include <arbor/math.hpp>
-#include <arbor/morph/embed_pwlin1d.hpp>
+#include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/sample_tree.hpp>
@@ -13,7 +13,7 @@
 #include "common.hpp"
 
 using namespace arb;
-using embedding = embed_pwlin1d;
+using embedding = embed_pwlin;
 
 ::testing::AssertionResult location_eq(const morphology& m, mlocation a, mlocation b) {
     a = canonical(m, a);

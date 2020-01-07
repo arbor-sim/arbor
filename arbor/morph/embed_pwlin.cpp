@@ -2,7 +2,7 @@
 #include <utility>
 #include <vector>
 
-#include <arbor/morph/embed_pwlin1d.hpp>
+#include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
@@ -37,6 +37,12 @@ double interpolate(const branch_pw_ratpoly<p, q>& f, unsigned bid, double pos) {
     }
 }
 
+// Length, area, and ixa are polynomial or rational polynomial functions of branch position,
+// continuos and monotonically increasing with respect to distance from root.
+//
+// Integration wrt a piecewise constant function is performed by taking the difference between
+// interpolated values at the end points of each constant interval.
+
 template <unsigned p, unsigned q>
 double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_constant_fn& g) {
     double accum = 0;
@@ -47,13 +53,13 @@ double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_consta
     return accum;
 }
 
-struct embed_pwlin1d_data {
+struct embed_pwlin_data {
     branch_pw_ratpoly<1, 0> length;
     branch_pw_ratpoly<1, 0> radius;
     branch_pw_ratpoly<2, 0> area;
     branch_pw_ratpoly<1, 1> ixa;
 
-    explicit embed_pwlin1d_data(msize_t n_branch):
+    explicit embed_pwlin_data(msize_t n_branch):
         length(n_branch),
         radius(n_branch),
         area(n_branch),
@@ -61,48 +67,47 @@ struct embed_pwlin1d_data {
     {}
 };
 
-double embed_pwlin1d::radius(mlocation loc) const {
+double embed_pwlin::radius(mlocation loc) const {
     return interpolate(data_->radius, loc.branch, loc.pos);
 }
 
-double embed_pwlin1d::integrate_length(msize_t bid, const pw_constant_fn& g) const {
+double embed_pwlin::integrate_length(msize_t bid, const pw_constant_fn& g) const {
     return integrate(data_->length, bid, g);
 }
 
-double embed_pwlin1d::integrate_area(msize_t bid, const pw_constant_fn& g) const {
+double embed_pwlin::integrate_area(msize_t bid, const pw_constant_fn& g) const {
     return integrate(data_->area, bid, g);
 }
 
-double embed_pwlin1d::integrate_ixa(msize_t bid, const pw_constant_fn& g) const {
+double embed_pwlin::integrate_ixa(msize_t bid, const pw_constant_fn& g) const {
     return integrate(data_->ixa, bid, g);
 }
 
 // Cable versions of integration methods:
 
-double embed_pwlin1d::integrate_length(mcable c) const {
+double embed_pwlin::integrate_length(mcable c) const {
     return integrate_length(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-double embed_pwlin1d::integrate_area(mcable c) const {
+double embed_pwlin::integrate_area(mcable c) const {
     return integrate_area(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-double embed_pwlin1d::integrate_ixa(mcable c) const {
+double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
 // Initialization, creation of geometric data.
 
-embed_pwlin1d::embed_pwlin1d(const arb::morphology& m) {
+embed_pwlin::embed_pwlin(const arb::morphology& m) {
     constexpr double pi = math::pi<double>;
     msize_t n_branch = m.num_branches();
-    data_ = std::make_shared<embed_pwlin1d_data>(n_branch);
+    data_ = std::make_shared<embed_pwlin_data>(n_branch);
 
     if (!n_branch) return;
 
     const auto& samples = m.samples();
     sample_locations_.resize(m.num_samples());
-
 
     for (msize_t bid = 0; bid<n_branch; ++bid) {
         unsigned parent = m.branch_parent(bid);
@@ -158,6 +163,7 @@ embed_pwlin1d::embed_pwlin1d(const arb::morphology& m) {
                 double r = samples[sample_indices[0]].loc.radius;
                 data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
                 data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
+                data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
             }
             else {
                 for (auto i: util::count_along(sample_indices)) {

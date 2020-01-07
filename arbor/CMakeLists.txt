@@ -28,7 +28,7 @@ set(arbor_sources
     mechcat.cpp
     memory/cuda_wrappers.cpp
     memory/util.cpp
-    morph/embed_pwlin1d.cpp
+    morph/embed_pwlin.cpp
     morph/label_dict.cpp
     morph/locset.cpp
     morph/mbranch.cpp
