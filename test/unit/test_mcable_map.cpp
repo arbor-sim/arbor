@@ -7,38 +7,6 @@
 
 using namespace arb;
 
-namespace {
-::testing::AssertionResult cable_eq(mcable a, mcable b) {
-    if (a.branch!=b.branch) {
-        return ::testing::AssertionFailure()
-            << "cables " << a << " and " << b << " differ";
-    }
-
-    using FP = testing::internal::FloatingPoint<double>;
-    if (FP(a.prox_pos).AlmostEquals(FP(b.prox_pos)) && FP(a.dist_pos).AlmostEquals(FP(b.dist_pos))) {
-        return ::testing::AssertionSuccess();
-    }
-    else {
-        return ::testing::AssertionFailure()
-            << "cables " << a << " and " << b << " differ";
-    }
-}
-
-::testing::AssertionResult cablelist_eq(const mcable_list& as, const mcable_list& bs) {
-    if (as.size()!=bs.size()) {
-        return ::testing::AssertionFailure()
-            << "cablelists " << as << " and " << bs << " differ";
-    }
-
-    for (auto i: util::count_along(as)) {
-        auto result = cable_eq(as[i], bs[i]);
-        if (!result) return ::testing::AssertionFailure()
-            << "cablelists " << as << " and " << bs << " differ";
-    }
-    return ::testing::AssertionSuccess();
-}
-}
-
 TEST(mcable_map, insertion) {
     mcable_list cl{{0, 0.2, 0.8}, {1, 0, 1}, {2, 0.2, 0.4}, {2, 0.4, 0.7}, {2, 0.8, 1.}, {4, 0.2, 0.4}};
     mcable_map<int> mm;
