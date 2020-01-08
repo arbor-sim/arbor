@@ -25,10 +25,9 @@ class flat_cell_builder {
     // The number of unique region names used to label cables as they
     // are added to the cell.
     int tag_count_ = 0;
-    // Map between region names and the tag used to identify them.
+    // Map from region names to the tag used to identify them.
     std::unordered_map<std::string, int> tag_map_;
 
-    // The label dictionay.
     arb::label_dict dict_;
 
     // The morphology is cached, and only updated on request when it is out of date.
@@ -36,7 +35,8 @@ class flat_cell_builder {
     mutable arb::morphology morpho_;
     mutable std::mutex mutex_;
 
-    // set on construction and unchanged thereafter.
+    // Set on construction and unchanged thereafter.
+    // Indicates whether 
     bool spherical_ = false;
 
 public:
@@ -85,7 +85,7 @@ public:
         // to the root.
         arb::msize_t p = at_root? (size()? 0: mnpos): cable_distal_id_[parent];
 
-        std::cout << " Parent " << p << "\n";
+        //std::cout << " Parent " << p << "\n";
 
         double z = at_root? 0:                      // attach to root of non-spherical cell
                    spherical_&&!parent? soma_rad(): // attach to spherical root
@@ -98,7 +98,7 @@ public:
                                   || (r1!=tree_.samples()[p].loc.radius);
                                                         // proximal radius does not match r1
         if (add_first_point) {
-            std::cout << "   Up front\n";
+            //std::cout << "   Up front\n";
             p = tree_.append(p, {{0,0,z,r1}, tag});
         }
         if (ncomp>1) {

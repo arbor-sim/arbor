@@ -72,8 +72,8 @@ struct label_dict_proxy {
 
     void set(const char* name, const char* desc) {
         using namespace std::string_literals;
-        // The error handling gets in the way of the followinjg code.
-        // It taks an input name and a region or locset description, e.g.:
+        // The following code takes an input name and a region or locset
+        // description, e.g.:
         //      name='reg', desc='(tag 4)'
         //      name='loc', desc='(terminal)'
         //      name='foo', desc='(join (tag 2) (tag 3))'
@@ -81,9 +81,10 @@ struct label_dict_proxy {
         // is a region or locset, and updates the label dictionary appropriately.
         // Errors occur when:
         //  * the name is not a valid name.
-        //  * the description contains an error (e.g. syntax error).
-        //  * a region is declared that has the same name as an existing locset (and vice versa.)
-        //  * the description describes neither a region or locset.
+        //  * a region is described with a name that matches an existing locset
+        //    (and vice versa.)
+        //  * the description is not well formed, e.g. it contains a syntax error.
+        //  * the description is well-formed, but describes neither a region or locset.
         try{
             // Test that the identifier is valid, i.e.
             //  * only numbers, letters and underscore.
@@ -98,14 +99,12 @@ struct label_dict_proxy {
             if (!result) { // an error parsing / evaluating description.
                 throw std::string(result.error().message);
             }
-            else if (result->type()==typeid(arb::region)) {
-                // Description is a region.
+            else if (result->type()==typeid(arb::region)) { // describes a region.
                 dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
                 auto it = std::lower_bound(regions.begin(), regions.end(), name);
                 if (it==regions.end() || *it!=name) regions.insert(it, name);
             }
-            else if (result->type()==typeid(arb::locset)) {
-                // Description is a locset.
+            else if (result->type()==typeid(arb::locset)) { // describes a locset.
                 dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
                 auto it = std::lower_bound(locsets.begin(), locsets.end(), name);
                 if (it==locsets.end() || *it!=name) locsets.insert(it, name);
