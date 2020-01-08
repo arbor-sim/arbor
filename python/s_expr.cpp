@@ -28,6 +28,7 @@ std::ostream& operator<<(std::ostream& o, const tok& t) {
         case tok::real:   return o << "real";
         case tok::integer:return o << "integer";
         case tok::name:   return o << "name";
+        case tok::string: return o << "string";
         case tok::eof:    return o << "eof";
         case tok::error:  return o << "error";
     }
@@ -121,6 +122,9 @@ private:
                 case '0' ... '9':
                     token_ = number();
                     return;
+                case '"':
+                    token_ = string();
+                    return;
                 case '-':
                 case '+':
                     {
@@ -190,6 +194,18 @@ private:
             return {loc_, it->second, std::move(name)};
         }
         return {loc_, tok::name, std::move(name)};
+    }
+
+    token string() {
+        using namespace std::string_literals;
+
+        ++current_;
+        const char* begin = current_;
+        while (current_!=end_ && *current_!='"') ++current_;
+
+        if (current_==end_) return {loc_, tok::error, "string missing closing \""};
+
+        return {loc_, tok::string, std::string(begin, current_)};
     }
 
     token number() {

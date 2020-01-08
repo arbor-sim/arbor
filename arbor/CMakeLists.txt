@@ -28,11 +28,13 @@ set(arbor_sources
     mechcat.cpp
     memory/cuda_wrappers.cpp
     memory/util.cpp
-    morph/em_morphology.cpp
+    morph/embed_pwlin.cpp
     morph/label_dict.cpp
     morph/locset.cpp
     morph/mbranch.cpp
+    morph/morphexcept.cpp
     morph/morphology.cpp
+    morph/mprovider.cpp
     morph/primitives.cpp
     morph/region.cpp
     morph/sample_tree.cpp
@@ -67,7 +69,6 @@ if(ARB_WITH_CUDA)
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_interleave.cu
         backends/gpu/matrix_fine.cu
-        backends/gpu/matrix_fine.cpp
         backends/gpu/matrix_solve.cu
         backends/gpu/multi_event_stream.cpp
         backends/gpu/multi_event_stream.cu

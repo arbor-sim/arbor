@@ -253,6 +253,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
     out << "namespace {\n\n"; // place inside an anonymous namespace
 
     out << "using ::arb::gpu::exprelr;\n";
+    out << "using ::arb::gpu::safeinv;\n";
     out << "using ::arb::gpu::min;\n";
     out << "using ::arb::gpu::max;\n\n";
 

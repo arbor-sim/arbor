@@ -69,6 +69,11 @@ std::ostream& operator<<(std::ostream& o, const mlocation_list& l);
 // and that the locations in the vector are ordered.
 bool test_invariants(const mlocation_list&);
 
+// Multiset operations on location lists.
+mlocation_list sum(const mlocation_list&, const mlocation_list&);
+mlocation_list join(const mlocation_list&, const mlocation_list&);
+mlocation_list intersection(const mlocation_list&, const mlocation_list&);
+
 // Describe an unbranched cable in the morphology.
 struct mcable {
     // The id of the branch on which the cable lies.

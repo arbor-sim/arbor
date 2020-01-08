@@ -11,7 +11,6 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 #include "io/sepval.hpp"
-#include "morph/em_morphology.hpp"
 
 #include "common.hpp"
 #include "unit_test_catalogue.hpp"

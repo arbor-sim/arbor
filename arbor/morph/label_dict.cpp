@@ -1,17 +1,9 @@
-#include <algorithm>
-#include <set>
-#include <fstream>
 #include <unordered_map>
 
-#include <arbor/morph/error.hpp>
-#include <arbor/morph/locset.hpp>
+#include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/label_dict.hpp>
+#include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
-
-#include "util/filter.hpp"
-#include "util/span.hpp"
-#include "util/strprintf.hpp"
-#include "io/sepval.hpp"
 
 namespace arb {
 
@@ -21,16 +13,14 @@ size_t label_dict::size() const {
 
 void label_dict::set(const std::string& name, arb::locset ls) {
     if (regions_.count(name)) {
-        throw morphology_error(util::pprintf(
-                "Attempt to add a locset \"{}\" to a label dictionary that already contains a region with the same name.", name));
+        throw label_type_mismatch(name);
     }
     locsets_[name] = std::move(ls);
 }
 
 void label_dict::set(const std::string& name, arb::region reg) {
     if (locsets_.count(name)) {
-        throw morphology_error(util::pprintf(
-                "Attempt to add a region \"{}\" to a label dictionary that already contains a locset with the same name.", name));
+        throw label_type_mismatch(name);
     }
     regions_[name] = std::move(reg);
 }

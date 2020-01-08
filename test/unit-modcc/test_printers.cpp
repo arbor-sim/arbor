@@ -70,7 +70,7 @@ TEST(scalar_printer, statement) {
         {"z=a-(b+c)",        "z=a-(b+c)"},
         {"z=(a>0)<(b>0)",    "z=a>0.<(b>0.)"},
         {"z=a- -2",          "z=a- -2"},
-        {"z=abs(x-z)",       "z=fabs(x-z)"},
+        {"z=fabs(x-z)",      "z=abs(x-z)"},
         {"z=min(x,y)",       "z=min(x,y)"},
         {"z=min(max(a,b),y)","z=min(max(a,b),y)"},
     };
@@ -200,37 +200,44 @@ TEST(CPrinter, proc_body_const) {
 
 TEST(CPrinter, proc_body_inlined) {
     const char* expected =
-        "    r_0_ = s2[i_]/ 3;\n"
-        "    r_3_ = s1[i_]+ 2;\n"
-        "    if (s1[i_]== 3) {\n"
-        "        r_2_ =  2*r_3_;\n"
-        "    }\n"
-        "    else if (s1[i_]== 4) {\n"
-        "        r_2_ = r_3_;\n"
-        "    }\n"
-        "    else {\n"
-        "        r_5_ = exp(r_3_);\n"
-        "        r_2_ = r_5_*s1[i_];\n"
-        "    }\n"
-        "\n"
-        "    r_7_ = r_0_/s2[i_];\n"
-        "    r_8_ = log(r_7_);\n"
-        "    r_6_ =  42*r_8_;\n"
-        "    r_1_ = r_0_*r_6_;\n"
-        "    t0 = r_2_*r_1_;\n"
-        "    t1 = exprelr(t0);\n"
-        "    ll0_ = t1+ 2;\n"
-        "    if (ll0_== 3) {\n"
-        "        t2 =  10;\n"
-        "    }\n"
-        "    else if (ll0_== 4) {\n"
-        "        t2 =  5;\n"
-        "    }\n"
-        "    else {\n"
-        "        r_4_ =  148.4131591025766;\n"
-        "        t2 = r_4_*ll0_;\n"
-        "    }\n"
-        "    s2[i_] = t2+ 4;";
+        "r_9_=s2[i_]/3;\n"
+        "r_8_=s1[i_]+2;\n"
+        "if(s1[i_]==3){\n"
+        "   r_7_=2*r_8_;\n"
+        "}\n"
+        "else{\n"
+        "   if(s1[i_]==4){\n"
+        "       r_12_=6+s1[i_];\n"
+        "       r_11_=r_12_;\n"
+        "       r_7_=r_8_*r_11_;\n"
+        "   }\n"
+        "   else{\n"
+        "       r_10_=exp(r_8_);\n"
+        "       r_7_=r_10_*s1[i_];\n"
+        "   }\n"
+        "}\n"
+        "r_14_=r_9_/s2[i_];\n"
+        "r_15_=log(r_14_);\n"
+        "r_13_=42*r_15_;\n"
+        "r_6_=r_9_*r_13_;\n"
+        "t0=r_7_*r_6_;\n"
+        "t1=exprelr(t0);\n"
+        "ll0_=t1+2;\n"
+        "if(ll0_==3){\n"
+        "   t2=10;\n"
+        "}\n"
+        "else{\n"
+        "   if(ll0_==4){\n"
+        "       r_18_=6+ll0_;\n"
+        "       r_17_=r_18_;\n"
+        "       t2=5*r_17_;\n"
+        "   }\n"
+        "   else{\n"
+        "       r_16_=148.4131591025766;\n"
+        "       t2=r_16_*ll0_;\n"
+        "   }\n"
+        "}\n"
+        "s2[i_]=t2+4;\n";
 
     Module m(io::read_all(DATADIR "/mod_files/test6.mod"), "test6.mod");
     Parser p(m, false);

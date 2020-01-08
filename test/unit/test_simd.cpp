@@ -664,7 +664,7 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
 
         fp exprelr_u[N];
         for (unsigned i = 0; i<N; ++i) {
-            exprelr_u[i] = u[i]+fp(1)==fp(1)? fp(1): u[i]/(std::exp(u[i])-fp(1));
+            exprelr_u[i] = u[i]+fp(1)==fp(1)? fp(1): u[i]/(std::expm1(u[i]));
         }
         exprelr(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(exprelr_u, r));

@@ -16,6 +16,7 @@ enum class tok {
     name,       // name
     lparen,     // left parenthesis '('
     rparen,     // right parenthesis ')'
+    string,     // string, written as "spelling"
     eof,        // end of file/input
     error       // special error state marker
 };

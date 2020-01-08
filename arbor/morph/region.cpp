@@ -2,12 +2,12 @@
 #include <string>
 #include <vector>
 
-#include <arbor/morph/error.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/morph/morphexcept.hpp>
+#include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/region.hpp>
 
-#include "morph/em_morphology.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 #include "util/range.hpp"
@@ -15,6 +15,15 @@
 
 namespace arb {
 namespace reg {
+
+// Head and tail of an mcable as mlocations.
+inline mlocation head(mcable c) {
+    return mlocation{c.branch, c.prox_pos};
+}
+
+inline mlocation tail(mcable c) {
+    return mlocation{c.branch, c.dist_pos};
+}
 
 // Returns true iff cable sections a and b:
 //  1. are on the same branch
@@ -57,36 +66,61 @@ mcable_list merge(const mcable_list& v) {
     return L;
 }
 
-// Insert a zero-length region at the start of each child branch for every cable
-// that includes the end of a branch.
-// Insert a zero-length region at the end of the parent branch for each cable
-// that includes the start of the branch.
-mcable_list cover(mcable_list cables, const em_morphology& m) {
-    mcable_list L;
-    for (auto& c: cables) {
-        if (c.prox_pos==0) {
-            for (auto& x: m.cover(mlocation{c.branch, 0}, false)) {
-                L.push_back({x.branch, x.pos, x.pos});
-            }
-        }
-        if (c.dist_pos==1) {
-            for (auto& x: m.cover(mlocation{c.branch, 1}, false)) {
-                L.push_back({x.branch, x.pos, x.pos});
-            }
+// List of colocated mlocations, excluding the parameter.
+mlocation_list colocated(mlocation loc, const morphology& m) {
+    mlocation_list L{};
+
+    // Note: if the location is not at the end of a branch, there are no
+    // other colocated points.
+
+    if (loc.pos==0) {
+        // Include head of each branch with same parent,
+        // and end of parent branch if not mnpos.
+
+        auto p = m.branch_parent(loc.branch);
+        if (p!=mnpos) L.push_back({p, 1});
+
+        for (auto b: m.branch_children(p)) {
+            if (b!=loc.branch) L.push_back({b, 0});
         }
     }
-    L.insert(L.end(), cables.begin(), cables.end());
-    util::sort(L);
+    else if (loc.pos==1) {
+        // Include head of each child branch.
+
+        for (auto b: m.branch_children(loc.branch)) {
+            L.push_back({b, 0});
+        }
+    }
 
     return L;
 }
 
-mcable_list remove_cover(mcable_list cables, const em_morphology& m) {
+// Insert a zero-length region at the start of each child branch for every cable
+// that includes the end of a branch.
+// Insert a zero-length region at the end of the parent branch for each cable
+// that includes the start of the branch.
+mcable_list cover(mcable_list cables, const morphology& m) {
+    mcable_list L = cables;
+
+    for (auto& c: cables) {
+        for (auto& x: colocated(head(c), m)) {
+            L.push_back({x.branch, x.pos, x.pos});
+        }
+        for (auto& x: colocated(tail(c), m)) {
+            L.push_back({x.branch, x.pos, x.pos});
+        }
+    }
+
+    util::sort(L);
+    return L;
+}
+
+mcable_list remove_cover(mcable_list cables, const morphology& m) {
     // Find all zero-length cables at the end of cables, and convert to
     // their canonical representation.
     for (auto& c: cables) {
         if (c.dist_pos==0 || c.prox_pos==1) {
-            auto cloc = m.canonicalize({c.branch, c.prox_pos});
+            auto cloc = canonical(m, head(c));
             c = {cloc.branch, cloc.pos, cloc.pos};
         }
     }
@@ -98,16 +132,16 @@ mcable_list remove_cover(mcable_list cables, const em_morphology& m) {
     return merge(cables);
 }
 
-//
-// Null/empty region
-//
+
+// Empty region.
+
 struct nil_ {};
 
 region nil() {
     return region{nil_{}};
 }
 
-mcable_list thingify_(const nil_& x, const em_morphology& m) {
+mcable_list thingify_(const nil_& x, const mprovider&) {
     return {};
 }
 
@@ -115,9 +149,8 @@ std::ostream& operator<<(std::ostream& o, const nil_& x) {
     return o << "nil";
 }
 
-//
-// Explicit cable section
-//
+
+// Explicit cable section.
 
 struct cable_ {
     mcable cable;
@@ -126,7 +159,7 @@ struct cable_ {
 region cable(msize_t id, double prox, double dist) {
     mcable c{id, prox, dist};
     if (!test_invariants(c)) {
-        throw morphology_error(util::pprintf("Invalid cable section {}", c));
+        throw invalid_mcable(c);
     }
     return region(cable_{c});
 }
@@ -135,13 +168,10 @@ region branch(msize_t bid) {
     return cable(bid, 0, 1);
 }
 
-mcable_list thingify_(const cable_& reg, const em_morphology& em) {
-    auto& m = em.morph();
-
-    if (reg.cable.branch>=m.num_branches()) {
-        throw morphology_error(util::pprintf("Branch {} does not exist in morpology", reg.cable.branch));
+mcable_list thingify_(const cable_& reg, const mprovider& p) {
+    if (reg.cable.branch>=p.morphology().num_branches()) {
+        throw no_such_branch(reg.cable.branch);
     }
-
     return {reg.cable};
 }
 
@@ -149,9 +179,9 @@ std::ostream& operator<<(std::ostream& o, const cable_& c) {
     return o << c.cable;
 }
 
-//
-// region with all segments with the same numeric tag
-//
+
+// Region with all segments with the same numeric tag.
+
 struct tagged_ {
     int tag;
 };
@@ -160,8 +190,9 @@ region tagged(int id) {
     return region(tagged_{id});
 }
 
-mcable_list thingify_(const tagged_& reg, const em_morphology& em) {
-    auto& m = em.morph();
+mcable_list thingify_(const tagged_& reg, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
     size_t nb = m.num_branches();
 
     std::vector<mcable> L;
@@ -194,8 +225,8 @@ mcable_list thingify_(const tagged_& reg, const em_morphology& em) {
             auto first = start-1;
             auto last = std::find_if(start, end, not_matches);
 
-            auto l = first==beg? 0.: em.sample2loc(*first).pos;
-            auto r = last==end?  1.: em.sample2loc(*(last-1)).pos;
+            auto l = first==beg? 0.: e.sample_location(*first).pos;
+            auto r = last==end?  1.: e.sample_location(*(last-1)).pos;
             L.push_back({i, l, r});
 
             // Find the next sample in the branch that matches reg.tag.
@@ -212,17 +243,17 @@ std::ostream& operator<<(std::ostream& o, const tagged_& t) {
     return o << "(tag " << t.tag << ")";
 }
 
-//
-// region with all segments in a cell
-//
+
+// Region comprising whole morphology.
+
 struct all_ {};
 
 region all() {
     return region(all_{});
 }
 
-mcable_list thingify_(const all_&, const em_morphology& m) {
-    auto nb = m.morph().num_branches();
+mcable_list thingify_(const all_&, const mprovider& p) {
+    auto nb = p.morphology().num_branches();
     mcable_list branches;
     branches.reserve(nb);
     for (auto i: util::make_span(nb)) {
@@ -235,21 +266,42 @@ std::ostream& operator<<(std::ostream& o, const all_& t) {
     return o << "all";
 }
 
-//
-// intersection of two regions.
-//
+
+// Named region.
+
+struct named_ {
+    std::string name;
+};
+
+region named(std::string name) {
+    return region(named_{std::move(name)});
+}
+
+mcable_list thingify_(const named_& n, const mprovider& p) {
+    return p.region(n.name);
+}
+
+std::ostream& operator<<(std::ostream& o, const named_& x) {
+    return o << "(named \"" << x.name << "\")";
+}
+
+
+// Intersection of two regions.
+
 struct reg_and {
     region lhs;
     region rhs;
     reg_and(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mcable_list thingify_(const reg_and& P, const em_morphology& m) {
+mcable_list thingify_(const reg_and& P, const mprovider& p) {
+    auto& m = p.morphology();
+
     using cable_it = std::vector<mcable>::const_iterator;
     using cable_it_pair = std::pair<cable_it, cable_it>;
 
-    auto lhs = cover(thingify(P.lhs, m), m);
-    auto rhs = cover(thingify(P.rhs, m), m);
+    auto lhs = cover(thingify(P.lhs, p), m);
+    auto rhs = cover(thingify(P.rhs, p), m);
 
     // Perform intersection
     cable_it_pair it{lhs.begin(), rhs.begin()};
@@ -280,18 +332,18 @@ std::ostream& operator<<(std::ostream& o, const reg_and& x) {
     return o << "(intersect " << x.lhs << " " << x.rhs << ")";
 }
 
-//
-// union of two point sets
-//
+
+// Union of two regions.
+
 struct reg_or {
     region lhs;
     region rhs;
     reg_or(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mcable_list thingify_(const reg_or& P, const em_morphology& m) {
-    auto lhs = thingify(P.lhs, m);
-    auto rhs = thingify(P.rhs, m);
+mcable_list thingify_(const reg_or& P, const mprovider& p) {
+    auto lhs = thingify(P.lhs, p);
+    auto rhs = thingify(P.rhs, p);
     mcable_list L;
     L.resize(lhs.size() + rhs.size());
 
@@ -320,6 +372,14 @@ region join(region l, region r) {
 
 region::region() {
     *this = reg::nil();
+}
+
+region::region(std::string label) {
+    *this = reg::named(std::move(label));
+}
+
+region::region(const char* label) {
+    *this = reg::named(label);
 }
 
 } // namespace arb

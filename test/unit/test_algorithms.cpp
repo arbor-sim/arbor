@@ -9,27 +9,12 @@
 #include "algorithms.hpp"
 #include "util/index_into.hpp"
 #include "util/meta.hpp"
+#include "util/rangeutil.hpp"
 
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
 #include "threading/threading.hpp"
 #include "common.hpp"
-
-TEST(algorithms, sum)
-{
-    // sum of 10 times 2 is 20
-    std::vector<int> v1(10, 2);
-    EXPECT_EQ(10*2, arb::algorithms::sum(v1));
-
-    // make an array 1:20 and sum it up using formula for arithmetic sequence
-    auto n = 20;
-    std::vector<int> v2(n);
-    // can't use iota because the Intel compiler optimizes it out, despite
-    // the result being required in EXPECT_EQ
-    // std::iota(v2.begin(), v2.end(), 1);
-    for(auto i=0; i<n; ++i) { v2[i] = i+1; }
-    EXPECT_EQ((n+1)*n/2, arb::algorithms::sum(v2));
-}
 
 TEST(algorithms, make_index)
 {
@@ -39,7 +24,7 @@ TEST(algorithms, make_index)
 
         EXPECT_EQ(index.size(), 11u);
         EXPECT_EQ(index.front(), 0);
-        EXPECT_EQ(index.back(), arb::algorithms::sum(v));
+        EXPECT_EQ(index.back(), arb::util::sum(v));
     }
 
     {
@@ -49,7 +34,7 @@ TEST(algorithms, make_index)
 
         EXPECT_EQ(index.size(), 11u);
         EXPECT_EQ(index.front(), 0);
-        EXPECT_EQ(index.back(), arb::algorithms::sum(v));
+        EXPECT_EQ(index.back(), arb::util::sum(v));
     }
 }
 
@@ -663,7 +648,7 @@ TEST(algorithms, binary_find)
         auto ita = binary_find(a, 1);
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(a), ita), 0u);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 0);
         if (found) {
             EXPECT_EQ(*ita, 1);
         }
@@ -672,7 +657,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(v, 1);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(v), itv), 0u);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 0);
         if (found) {
             EXPECT_EQ(*itv, 1);
         }
@@ -684,7 +669,7 @@ TEST(algorithms, binary_find)
         auto ita = binary_find(a, 15);
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(a), ita), 2u);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 2);
         if (found) {
             EXPECT_EQ(*ita, 15);
         }
@@ -693,7 +678,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(v, 15);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(v), itv), 2u);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 2);
         if (found) {
             EXPECT_EQ(*itv, 15);
         }
@@ -705,7 +690,7 @@ TEST(algorithms, binary_find)
         auto ita = binary_find(a, 10);
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(a), ita), 1u);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 1);
         if (found) {
             EXPECT_EQ(*ita, 10);
         }
@@ -714,7 +699,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(v, 10);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(v), itv), 1u);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 1);
         if (found) {
             EXPECT_EQ(*itv, 10);
         }
@@ -726,7 +711,7 @@ TEST(algorithms, binary_find)
         auto ita = binary_find(a, 10);
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(a), ita), 1u);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 1);
         if (found) {
             EXPECT_EQ(*ita, 10);
         }
@@ -735,7 +720,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(v, 10);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::begin(v), itv), 1u);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 1);
         if (found) {
             EXPECT_EQ(*itv, 10);
         }
@@ -750,7 +735,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(vr, 10);
         auto found = itv!=std::end(vr);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(std::cbegin(v), itv), 1u);
+        EXPECT_EQ(std::distance(std::cbegin(v), itv), 1);
         if (found) {
             EXPECT_EQ(*itv, 10);
         }

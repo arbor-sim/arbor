@@ -171,7 +171,7 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
                 // Energy measurements are per "per node", so only normalise
                 // by the number of ranks per node. TODO, this is an
                 // approximation: better reduce a subset of measurements.
-                double energy = algorithms::sum(m.measurements[cp_index])/doms_per_host*1e-3;
+                double energy = util::sum(m.measurements[cp_index])/doms_per_host*1e-3;
                 sums[m_index] += energy;
                 o << strprintf("%16.3f", energy);
             }

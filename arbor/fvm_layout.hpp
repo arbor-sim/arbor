@@ -136,8 +136,13 @@ struct fvm_ion_config {
     std::vector<value_type> init_iconc;
     std::vector<value_type> init_econc;
 
+    // Normalized area contribution of default concentration contribution in corresponding CV set by users
+    std::vector<value_type> reset_iconc;
+    std::vector<value_type> reset_econc;
+
     // Ion-specific (initial) reversal potential per CV.
     std::vector<value_type> init_revpot;
+
 };
 
 struct fvm_mechanism_data {

@@ -48,20 +48,40 @@ class NrnCurrentRewriter: public BlockRewriterBase {
     }
 
     bool has_current_update_ = false;
-    std::set<std::string> ion_current_vars_;
+    std::set<std::string> current_vars_;
+    std::set<expression_ptr> conductivity_exps_;
 
 public:
     using BlockRewriterBase::visit;
 
     virtual void finalize() override {
         if (has_current_update_) {
-            // Initialize conductivity_ as first statement.
-            statements_.push_front(make_expression<AssignmentExpression>(loc_,
-                    id("conductivity_"),
-                    make_expression<NumberExpression>(loc_, 0.0)));
-            statements_.push_front(make_expression<AssignmentExpression>(loc_,
-                    id("current_"),
-                    make_expression<NumberExpression>(loc_, 0.0)));
+            expression_ptr current_sum, conductivity_sum;
+            for (auto& curr: current_vars_) {
+                auto curr_id = make_expression<IdentifierExpression>(Location{}, curr);
+                if (!current_sum) {
+                    current_sum = std::move(curr_id);
+                } else {
+                    current_sum = make_expression<AddBinaryExpression>(
+                            Location{}, std::move(current_sum), std::move(curr_id));
+                }
+            }
+            for (auto& cond: conductivity_exps_) {
+                if (!conductivity_sum) {
+                    conductivity_sum = cond->clone();
+                } else {
+                    conductivity_sum = make_expression<AddBinaryExpression>(
+                            Location{}, std::move(conductivity_sum), cond->clone());
+                }
+            }
+            if (current_sum) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                        id("current_"), std::move(current_sum)));
+            }
+            if (conductivity_sum) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                        id("conductivity_"), std::move(conductivity_sum)));
+            }
         }
     }
 
@@ -69,22 +89,13 @@ public:
     virtual void visit(ConductanceExpression *e) override {}
     virtual void visit(AssignmentExpression *e) override {
         statements_.push_back(e->clone());
-        auto loc = e->location();
 
         sourceKind current_source = current_update(e);
         if (current_source != sourceKind::no_source) {
             has_current_update_ = true;
 
-            if (current_source==sourceKind::ion_current_density || current_source==sourceKind::ion_current) {
-                ion_current_vars_.insert(e->lhs()->is_identifier()->name());
-            }
-            else {
-                // A 'nonspecific' current contribution.
-                // Remove data source; currents accumulated into `current_` instead.
-
-                e->lhs()->is_identifier()->symbol()->is_local_variable()
-                    ->external_variable()->data_source(sourceKind::no_source);
-            }
+            auto visited_current = current_vars_.count(e->lhs()->is_identifier()->name());
+            current_vars_.insert(e->lhs()->is_identifier()->name());
 
             linear_test_result L = linear_test(e->rhs(), {"v"});
             if (!L.is_linear) {
@@ -93,17 +104,8 @@ public:
                 return;
             }
             else {
-                statements_.push_back(make_expression<AssignmentExpression>(loc,
-                    id("current_", loc),
-                    make_expression<AddBinaryExpression>(loc,
-                        id("current_", loc),
-                        e->lhs()->clone())));
-                if (L.coef.count("v")) {
-                    statements_.push_back(make_expression<AssignmentExpression>(loc,
-                        id("conductivity_", loc),
-                        make_expression<AddBinaryExpression>(loc,
-                            id("conductivity_", loc),
-                            L.coef.at("v")->clone())));
+                if (L.coef.count("v") && !visited_current) {
+                    conductivity_exps_.insert(L.coef.at("v")->clone());
                 }
             }
         }
@@ -277,24 +279,39 @@ bool Module::semantic() {
     auto initial_api = make_empty_api_method("nrn_init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
+
     auto& init_body = api_init->body()->statements();
+
+    api_init->semantic(symbols_);
+    scope_ptr nrn_init_scope = api_init->scope();
 
     for(auto& e : *proc_init->body()) {
         auto solve_expression = e->is_solve_statement();
         if (solve_expression) {
             // Grab SOLVE statements, put them in `body` after translation.
             std::set<std::string> solved_ids;
-            std::unique_ptr<SolverVisitorBase> solver = std::make_unique<SparseSolverVisitor>();
+            std::unique_ptr<SolverVisitorBase> solver;
 
             // The solve expression inside an initial block can only refer to a linear block
             auto solve_proc = solve_expression->procedure();
 
             if (solve_proc->kind() == procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                linear_rewrite(solve_proc->body(), state_vars)->accept(solver.get());
+                auto rewrite_body = linear_rewrite(solve_proc->body(), state_vars);
+
+                rewrite_body->semantic(nrn_init_scope);
+                rewrite_body->accept(solver.get());
+            } else if (solve_proc->kind() == procedureKind::kinetic &&
+                       solve_expression->variant() == solverVariant::steadystate) {
+                solver = std::make_unique<SparseSolverVisitor>(solverVariant::steadystate);
+                auto rewrite_body = kinetic_rewrite(solve_proc->body());
+
+                rewrite_body->semantic(nrn_init_scope);
+                rewrite_body->accept(solver.get());
             } else {
-                error("A SOLVE expression in an INITIAL block can only be used to solve a LINEAR block, which" +
-                      solve_expression->name() + "is not.", solve_expression->location());
+                error("A SOLVE expression in an INITIAL block can only be used to solve a "
+                      "LINEAR block or a KINETIC block at steadystate and " +
+                      solve_expression->name() + " is neither.", solve_expression->location());
                 return false;
             }
 
@@ -307,6 +324,9 @@ bool Module::semantic() {
                     }
                     solved_ids.insert(id);
                 }
+
+                solve_block = remove_unused_locals(solve_block->is_block());
+
                 // Copy body into nrn_init.
                 for (auto &stmt: solve_block->is_block()->statements()) {
                     init_body.emplace_back(stmt->clone());
@@ -343,6 +363,10 @@ bool Module::semantic() {
 
         for(auto& e: (breakpoint->body()->statements())) {
             SolveExpression* solve_expression = e->is_solve_statement();
+            LocalDeclaration* local_expression = e->is_local_declaration();
+            if(local_expression) {
+                continue;
+            }
             if(!solve_expression) {
                 found_non_solve = true;
                 continue;
@@ -389,11 +413,15 @@ bool Module::semantic() {
                     solver = std::make_unique<SparseNonlinearSolverVisitor>();
                 }
 
+                rewrite_body->semantic(nrn_state_scope);
                 rewrite_body->accept(solver.get());
             }
             else if (deriv->kind()==procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
+                auto rewrite_body = linear_rewrite(deriv->body(), state_vars);
+
+                rewrite_body->semantic(nrn_state_scope);
+                rewrite_body->accept(solver.get());
             }
             else {
                 deriv->body()->accept(solver.get());
@@ -658,12 +686,11 @@ void Module::add_variables_to_symbols() {
     // Nonspecific current variables are represented by an indexed variable
     // with a 'current' data source. Assignments in the NrnCurrent block will
     // later be rewritten so that these contributions are accumulated in `current_`
-    // (potentially saving some weight multiplications); at that point the
-    // data source for the nonspecific current variable will be reset to 'no_source'.
+    // (potentially saving some weight multiplications);
 
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
-        create_indexed_variable(i.spelling, sourceKind::current, accessKind::write, "", i.location);
+        create_indexed_variable(i.spelling, current_kind, accessKind::noaccess, "", i.location);
     }
 
     for(auto const& ion : neuron_block_.ions) {
@@ -723,9 +750,6 @@ void Module::add_variables_to_symbols() {
 }
 
 int Module::semantic_func_proc() {
-    bool keep_inlining = true;
-    int errors = 0;
-
     ////////////////////////////////////////////////////////////////////////////
     // now iterate over the functions and procedures and perform semantic
     // analysis on each. This includes
@@ -733,128 +757,90 @@ int Module::semantic_func_proc() {
     //  -   generate local variable table for each function/procedure
     //  -   inlining function calls
     ////////////////////////////////////////////////////////////////////////////
-
-    while (keep_inlining) {
-    #ifdef LOGGING
-        std::cout << white("===================================\n");
+#ifdef LOGGING
+    std::cout << white("===================================\n");
         std::cout << cyan("        Function Inlining\n");
         std::cout << white("===================================\n");
-    #endif
-        keep_inlining = false;
+#endif
+    for (auto& e: symbols_) {
+        auto& s = e.second;
+        if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
+            // perform semantic analysis
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "\nfunction lowering for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
 
-        for (auto& e: symbols_) {
-            auto& s = e.second;
-            if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
-
-    #ifdef LOGGING
-                std::cout << "\nfunction inlining for " << s->location() << "\n"
-                          << s->to_string() << "\n"
-                          << green("\n-call site lowering-\n\n");
-    #endif
-
-                // perform semantic analysis
-                s->semantic(symbols_);
-
-                // then use an error visitor to print out all the semantic errors
-                ErrorVisitor v(source_name());
-                s->accept(&v);
-                errors += v.num_errors();
-
-                // inline function calls
-                // this requires that the symbol table has already been built
-                if (v.num_errors() == 0) {
-                    auto &b = s->kind() == symbolKind::function ?
-                              s->is_function()->body()->statements() :
-                              s->is_procedure()->body()->statements();
-
-                    // lower function call sites so that all function calls are of
-                    // the form : variable = call(<args>)
-                    // e.g.
-                    //      a = 2 + foo(2+x, y, 1)
-                    // becomes
-                    //      ll0_ = foo(2+x, y, 1)
-                    //      a = 2 + ll0_
-                    for (auto e = b.begin(); e != b.end(); ++e) {
-                        b.splice(e, lower_function_calls((*e).get()));
-                    }
-    #ifdef LOGGING
-                    std::cout << "body after call site lowering\n";
-                        for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                        std::cout << green("\n-argument lowering-\n\n");
-    #endif
-                    // lower function arguments that are not identifiers or literals
-                    // e.g.
-                    //      ll0_ = foo(2+x, y, 1)
-                    //      a = 2 + ll0_
-                    // becomes
-                    //      ll1_ = 2+x
-                    //      ll0_ = foo(ll1_, y, 1)
-                    //      a = 2 + ll0_
-                    for (auto e = b.begin(); e != b.end(); ++e) {
-                        if (auto be = (*e)->is_binary()) {
-                            // only apply to assignment expressions where rhs is a
-                            // function call because the function call lowering step
-                            // above ensures that all function calls are of this form
-                            if (auto rhs = be->rhs()->is_function_call()) {
-                                b.splice(e, lower_function_arguments(rhs->args()));
-                            }
-                        }
-                    }
-
-    #ifdef LOGGING
-                    std::cout << "body after argument lowering\n";
-                        for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                        std::cout << green("\n-inlining-\n\n");
-    #endif
-                }
+            if (s->kind() == symbolKind::function) {
+                auto rewritten = lower_functions(s->is_function()->body());
+                s->is_function()->body(std::move(rewritten));
+            } else {
+                auto rewritten = lower_functions(s->is_procedure()->body());
+                s->is_procedure()->body(std::move(rewritten));
             }
+#ifdef LOGGING
+            std::cout << "body after function lowering\n"
+                      << s->to_string() << "\n\n";
+#endif
         }
+    }
 
-        for(auto& e : symbols_) {
-            auto& s = e.second;
+    auto inline_and_simplify = [&](auto&& caller) {
+        auto rewritten = inline_function_calls(caller->name(), caller->body());
+        caller->body(std::move(rewritten));
+        caller->body(constant_simplify(caller->body()));
+    };
 
-            if(s->kind() == symbolKind::procedure)
-            {
-                if(errors==0) {
-                    auto &b = s->kind()==symbolKind::function ?
-                        s->is_function()->body()->statements() :
-                        s->is_procedure()->body()->statements();
+    // First, inline all function calls inside the bodies of each function
+    // This catches recursions
+    for(auto& e : symbols_) {
+        auto& s = e.second;
 
-                    // Do the inlining: supports multiline functions and if/else statements
-                    // e.g. if the function foo in the examples above is defined as follows
-                    //
-                    //  function foo(a, b, c) {
-                    //      Local t = b + c
-                    //      foo = a*t
-                    //  }
-                    //
-                    // the full inlined example is
-                    //      ll1_ = 2+x
-                    //      r_0_ = y+1
-                    //      ll0_ = ll1_*r_0_
-                    //      a = 2 + ll0_
+        if (s->kind() == symbolKind::function) {
+            // perform semantic analysis
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "function inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
+            inline_and_simplify(s->is_function());
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "body after inlining\n"
+                      << s->to_string() << "\n\n";
+#endif
+        }
+    }
 
-                    for (auto &e: b) {
-                        if (auto ass = e->is_assignment()) {
-                            if (ass->rhs()->is_function_call()) {
-                                e = inline_function_call(e);
-                                keep_inlining = true;
-                            }
-                        }
-                    }
+    // Once all functions are inlined internally; we can inline
+    // function calls in the bodies of procedures
+    for(auto& e : symbols_) {
+        auto& s = e.second;
 
+        if(s->kind() == symbolKind::procedure) {
+            // perform semantic analysis
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "function inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
+            inline_and_simplify(s->is_procedure());
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "body after inlining\n"
+                      << s->to_string() << "\n\n";
+#endif
+        }
+    }
 
-    #ifdef LOGGING
-                    std::cout << "body after inlining\n";
-                    for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-    #endif
-                    // Finally, run a constant simplification pass.
-                    if (auto proc = s->is_procedure()) {
-                        proc->body(constant_simplify(proc->body()));
-                        s->semantic(symbols_);
-                    }
-                }
-            }
+    int errors = 0;
+    for(auto& e : symbols_) {
+        auto& s = e.second;
+        if(s->kind() == symbolKind::procedure) {
+            ErrorVisitor v(source_name());
+            s->accept(&v);
+            errors += v.num_errors();
         }
     }
     return errors;
@@ -898,5 +884,3 @@ void Module::check_revpot_mechanism() {
 
     kind_ = moduleKind::revpot;
 }
-
-

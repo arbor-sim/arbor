@@ -18,7 +18,7 @@ namespace arb {
 using time_event_span = std::pair<const time_type*, const time_type*>;
 
 inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
-    return {&v[0], &v[0]+v.size()};
+    return {v.data(), v.data()+v.size()};
 }
 
 // A schedule describes a sequence of time values used for sampling. Schedules

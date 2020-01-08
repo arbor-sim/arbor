@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "astmanip.hpp"
 #include "expression.hpp"
 #include "parser.hpp"
 #include "solvers.hpp"
@@ -171,6 +170,84 @@ static expression_ptr as_expression(symge::symbol_term_diff diff) {
     }
 }
 
+std::vector<local_assignment> SystemSolver::generate_row_updates(scope_ptr scope, std::vector<symge::symbol> row_sym) {
+    std::vector<local_assignment> S_;
+    for (const auto& s: row_sym) {
+        if (primitive(s)) continue;
+
+        auto expr = as_expression(definition(s));
+        auto local_t_term = make_unique_local_assign(scope, expr.get(), "t_");
+        auto t_ = local_t_term.id->is_identifier()->spelling();
+        symtbl_.name(s, t_);
+        S_.push_back(std::move(local_t_term));
+    }
+    return S_;
+}
+
+local_assignment SystemSolver::generate_normalizing_term(scope_ptr scope, std::vector<symge::symbol> row_sym) {
+    // Get the max element in the row
+    expression_ptr max;
+    for (auto &s: row_sym) {
+        auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
+        auto abs = make_expression<AbsUnaryExpression>(elem->location(), elem->is_identifier()->clone());
+        if (!max) {
+            max = std::move(abs);
+        } else {
+            max = make_expression<MaxBinaryExpression>(elem->location(), max->clone(), std::move(abs));
+        }
+    }
+    // Safely invert max
+    auto inv = make_expression<SafeInvUnaryExpression>(max->location(), std::move(max));
+
+    // Create a symbol for inv
+    auto local_inv_term = make_unique_local_assign(scope, inv.get(), "inv_");
+
+    return local_inv_term;
+}
+
+std::vector<expression_ptr> SystemSolver::generate_normalizing_assignments(expression_ptr normalizer, std::vector<symge::symbol> row_sym) {
+    std::vector<expression_ptr> S_;
+    for (auto &s: row_sym) {
+        auto elem = make_expression<IdentifierExpression>(Location(), symtbl_.name(s));
+        auto ratio = make_expression<MulBinaryExpression>(elem->location(), elem->clone(), normalizer->clone());
+        auto assign = make_expression<AssignmentExpression>(elem->location(), elem->clone(), std::move(ratio));
+        S_.push_back(std::move(assign));
+    }
+    return S_;
+}
+
+std::vector<expression_ptr> SystemSolver::generate_solution_assignments(std::vector<std::string> lhs_vars) {
+    std::vector<expression_ptr> U_;
+
+    // State variable updates given by rhs/diagonal for reduced matrix.
+    Location loc;
+    auto nrow = A_.nrow();
+    for (unsigned i = 0; i < nrow; ++i) {
+        const symge::sym_row& row = A_[i];
+        unsigned rhs_col = A_.augcol();
+        unsigned lhs_col = -1;
+        for (unsigned r = 0; r < A_.nrow(); ++r) {
+            if (row[r]) {
+                lhs_col = r;
+                break;
+            }
+        }
+
+        if (lhs_col==unsigned(-1)) {
+            throw std::logic_error("zero row in matrix solver");
+        }
+        auto expr = make_expression<AssignmentExpression>(loc,
+                        make_expression<IdentifierExpression>(loc, lhs_vars[lhs_col]),
+                        make_expression<DivBinaryExpression>(loc,
+                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs_col])),
+                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs_col]))));
+
+        U_.push_back(std::move(expr));
+    }
+    return U_;
+}
+
+
 void SparseSolverVisitor::visit(BlockExpression* e) {
     // Do a first pass to extract variables comprising ODE system
     // lhs; can't really trust 'STATE' block.
@@ -212,9 +289,8 @@ void SparseSolverVisitor::visit(CompartmentExpression *e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
 
     auto loc = e->location();
@@ -237,7 +313,7 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         return;
     }
 
-    if (conserve_ && !A_[deq_index_].empty()) {
+    if (conserve_ && !system_.empty_row(deq_index_)) {
         deq_index_++;
         return;
     }
@@ -299,15 +375,14 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
 
-        A_[deq_index_].push_back({j, symtbl_.define(a_)});
+        system_.add_entry({deq_index_, j}, a_);
     }
     ++deq_index_;
 }
 
 void SparseSolverVisitor::visit(ConserveExpression *e) {
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
     conserve_ = true;
 
@@ -334,7 +409,7 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
     }
 
     // Replace that row with the conserve statement
-    A_[row_idx].clear();
+    system_.clear_row(row_idx);
 
     for (unsigned j = 0; j < dvars_.size(); ++j) {
         auto state = dvars_[j];
@@ -355,7 +430,7 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
             statements_.push_back(std::move(local_a_term.local_decl));
             statements_.push_back(std::move(local_a_term.assignment));
 
-            A_[row_idx].push_back({j, symtbl_.define(a_)});
+            system_.add_entry({(unsigned)row_idx, j}, a_);
         }
     }
 
@@ -378,62 +453,45 @@ void SparseSolverVisitor::finalize() {
         error({"Conserve statement(s) missing in steady-state solver", {}});
     }
 
-    std::vector<symge::symbol> rhs;
+    std::vector<std::string> rhs;
     for (const auto& var: dvars_) {
         auto v = solve_variant_ == solverVariant::steadystate? steadystate_rhs_ : var;
-        rhs.push_back(symtbl_.define(v));
+        rhs.push_back(v);
     }
     if (conserve_) {
         for (unsigned i = 0; i < conserve_idx_.size(); ++i) {
-            rhs[conserve_idx_[i]] = symtbl_.define(conserve_rhs_[i]);
+            rhs[conserve_idx_[i]] = conserve_rhs_[i];
         }
     }
-    A_.augment(rhs);
+    system_.augment(rhs);
 
-    symge::gj_reduce(A_, symtbl_);
+    // Reduce the system
+    auto row_symbols = system_.reduce();
 
-    // Create and assign intermediate variables.
-    for (unsigned i = 0; i<symtbl_.size(); ++i) {
-        symge::symbol s = symtbl_[i];
-
-        if (primitive(s)) continue;
-
-        auto expr = as_expression(definition(s));
-        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-        auto t_ = local_t_term.id->is_identifier()->spelling();
-        symtbl_.name(s, t_);
-
-        statements_.push_back(std::move(local_t_term.local_decl));
-        statements_.push_back(std::move(local_t_term.assignment));
-    }
-
-    // State variable updates given by rhs/diagonal for reduced matrix.
-    Location loc;
-    auto nrow = A_.nrow();
-    for (unsigned i = 0; i<nrow; ++i) {
-        const symge::sym_row& row = A_[i];
-        unsigned rhs_col = A_.augcol();
-        unsigned lhs_col = -1;
-        for (unsigned r = 0; r<A_.nrow(); ++r) {
-            if (row[r]) {
-                lhs_col = r;
-                break;
-            }
+    // Row by row:
+    // Generate entries of the system and declare and assign as local variables
+    // Generate normalizing terms and normalize the row
+    for (auto& row: row_symbols) {
+        auto entries = system_.generate_row_updates(block_scope_, row);
+        for (auto& l: entries) {
+            statements_.push_back(std::move(l.local_decl));
+            statements_.push_back(std::move(l.assignment));
         }
 
-        if (lhs_col==unsigned(-1)) {
-            throw std::logic_error("zero row in sparse solver matrix");
+        // If size of system > 5 normalize the row updates
+        if (system_.size() > 5) {
+            auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+            auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
+
+            statements_.push_back(std::move(norm_term.local_decl));
+            statements_.push_back(std::move(norm_term.assignment));
+            std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
         }
-
-        auto expr =
-            make_expression<AssignmentExpression>(loc,
-                make_expression<IdentifierExpression>(loc, dvars_[lhs_col]),
-                make_expression<DivBinaryExpression>(loc,
-                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs_col])),
-                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs_col]))));
-
-        statements_.push_back(std::move(expr));
     }
+
+    // Update the state variables
+    auto updates = system_.generate_solution_assignments(dvars_);
+    std::move(std::begin(updates), std::end(updates), std::back_inserter(statements_));
 
     BlockRewriterBase::finalize();
 }
@@ -451,9 +509,8 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
     auto loc = e->location();
     scope_ptr scope = e->scope();
 
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
 
     linear_test_result r = linear_test(e->lhs(), dvars_);
@@ -473,59 +530,42 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
 
         auto a_ = expr->is_identifier()->spelling();
 
-        A_[deq_index_].push_back({j, symtbl_.define(a_)});
+        system_.add_entry({deq_index_, j}, a_);
     }
-    rhs_.push_back(symtbl_.define(e->rhs()->is_identifier()->spelling()));
+    rhs_.push_back(e->rhs()->is_identifier()->spelling());
     ++deq_index_;
 }
 
 void LinearSolverVisitor::finalize() {
-    A_.augment(rhs_);
+    system_.augment(rhs_);
 
-    symge::gj_reduce(A_, symtbl_);
+    // Reduce the system
+    auto row_symbols = system_.reduce();
 
-    // Create and assign intermediate variables.
-    for (unsigned i = 0; i<symtbl_.size(); ++i) {
-        symge::symbol s = symtbl_[i];
-
-        if (primitive(s)) continue;
-
-        auto expr = as_expression(definition(s));
-        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
-        auto t_ = local_t_term.id->is_identifier()->spelling();
-        symtbl_.name(s, t_);
-
-        statements_.push_back(std::move(local_t_term.local_decl));
-        statements_.push_back(std::move(local_t_term.assignment));
-    }
-
-    // State variable updates given by rhs/diagonal for reduced matrix.
-    Location loc;
-    auto nrow = A_.nrow();
-    for (unsigned i = 0; i < nrow; ++i) {
-        const symge::sym_row& row = A_[i];
-        unsigned rhs = A_.augcol();
-        unsigned lhs = -1;
-        for (unsigned r = 0; r < A_.nrow(); ++r) {
-            if (row[r]) {
-                lhs = r;
-                break;
-            }
+    // Row by row:
+    // Generate entries of the system and declare and assign as local variables
+    // Generate normalizing terms and normalize the row
+    for (auto& row: row_symbols) {
+        auto entries = system_.generate_row_updates(block_scope_, row);
+        for (auto& l: entries) {
+            statements_.push_back(std::move(l.local_decl));
+            statements_.push_back(std::move(l.assignment));
         }
 
-        if (lhs==unsigned(-1)) {
-            throw std::logic_error("zero row in linear solver matrix");
+        // If size of system > 5 normalize the row updates
+        if (system_.size() > 5) {
+            auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+            auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
+
+            statements_.push_back(std::move(norm_term.local_decl));
+            statements_.push_back(std::move(norm_term.assignment));
+            std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(statements_));
         }
-
-        auto expr =
-            make_expression<AssignmentExpression>(loc,
-                    make_expression<IdentifierExpression>(loc, dvars_[lhs]),
-                    make_expression<DivBinaryExpression>(loc,
-                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
-                            make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs]))));
-
-        statements_.push_back(std::move(expr));
     }
+
+    // Update the state variables
+    auto updates = system_.generate_solution_assignments(dvars_);
+    std::move(std::begin(updates), std::end(updates), std::back_inserter(statements_));
 
     BlockRewriterBase::finalize();
 }
@@ -591,9 +631,8 @@ void SparseNonlinearSolverVisitor::visit(CompartmentExpression *e) {
 }
 
 void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
-    if (A_.empty()) {
-        unsigned n = dvars_.size();
-        A_ = symge::sym_matrix(n, n);
+    if (system_.empty()) {
+        system_.create_square_matrix(dvars_.size());
     }
 
     auto loc = e->location();
@@ -705,7 +744,7 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
         statements_.push_back(std::move(local_j_term.local_decl));
         J_.push_back(std::move(local_j_term.assignment));
 
-        A_[deq_index_].push_back({j, symtbl_.define(j_)});
+        system_.add_entry({deq_index_, j}, j_);
     }
     ++deq_index_;
 }
@@ -713,60 +752,49 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
 void SparseNonlinearSolverVisitor::finalize() {
 
     // Create rhs of A_
-    std::vector<symge::symbol> rhs;
+    std::vector<std::string> rhs;
     for (const auto& var: F_) {
         auto id = var->is_assignment()->lhs()->is_identifier()->spelling();
-        rhs.push_back(symtbl_.define(id));
+        rhs.push_back(id);
     }
 
-    A_.augment(rhs);
-    symge::gj_reduce(A_, symtbl_);
+    system_.augment(rhs);
 
-    // Create and assign intermediate variables.
-    // Save gaussian elimination solution statements in S_
+    // Reduce the system
+    auto row_symbols =  system_.reduce();
+
+    // Row by row:
+    // Generate entries of the system and declare and assign as local variables
+    // Generate normalizing terms and normalize the row
     std::vector<expression_ptr> S_;
-    for (unsigned i = 0; i < symtbl_.size(); ++i) {
-        symge::symbol s = symtbl_[i];
+    for (auto& row: row_symbols) {
+        auto entries = system_.generate_row_updates(block_scope_, row);
+        for (auto& l: entries) {
+            statements_.push_back(std::move(l.local_decl));
+            S_.push_back(std::move(l.assignment));
+        }
 
-        if (primitive(s)) continue;
+        // If size of system > 5 normalize the row updates
+        if (system_.size() > 5) {
+            auto norm_term = system_.generate_normalizing_term(block_scope_, row);
+            auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
-        auto expr = as_expression(definition(s));
-        auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "s_");
-        auto t_ = local_t_term.id->is_identifier()->spelling();
-        symtbl_.name(s, t_);
-
-        statements_.push_back(std::move(local_t_term.local_decl));
-        S_.push_back(std::move(local_t_term.assignment));
+            statements_.push_back(std::move(norm_term.local_decl));
+            S_.push_back(std::move(norm_term.assignment));
+            std::move(std::begin(norm_assigns), std::end(norm_assigns), std::back_inserter(S_));
+        }
     }
+
+    // Update the state variables
+    auto U_ = system_.generate_solution_assignments(dvar_temp_);
 
     // Create the statements that update the temporary state variables
     // (dvar_temp) after a Newton's iteration and save them in U_
-    std::vector<expression_ptr> U_;
-
-    Location loc;
-    for (unsigned i = 0; i < A_.nrow(); ++i) {
-        const symge::sym_row &row = A_[i];
-        unsigned rhs_col = A_.augcol();
-        int lhs_col = -1;
-        for (unsigned r = 0; r < A_.nrow(); r++) {
-            if (row[r]) {
-                lhs_col = r;
-                break;
-            }
-        }
-
-        if (lhs_col == -1) {
-            error({"Something went wrong in solving the sparse matrix", loc});
-            return;
-        }
-
-        auto var = make_expression<IdentifierExpression>(loc, dvar_temp_[lhs_col]);
-        auto expr = make_expression<AssignmentExpression>(loc, var->clone(),
-                        make_expression<SubBinaryExpression>(loc, var->clone(),
-                            make_expression<DivBinaryExpression>(loc, make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs_col])),
-                                make_expression<IdentifierExpression>(loc, symge::name(A_[i][lhs_col])))));
-
-        U_.push_back(std::move(expr));
+    for (auto& u: U_) {
+        auto lhs = u->is_assignment()->lhs();
+        auto rhs = u->is_assignment()->rhs();
+        u = make_expression<AssignmentExpression>(u->location(), lhs->clone(),
+                make_expression<SubBinaryExpression>(u->location(), lhs->clone(), rhs->clone()));
     }
 
     // Do 3 Newton iterations
@@ -786,6 +814,7 @@ void SparseNonlinearSolverVisitor::finalize() {
         }
     }
 
+    Location loc;
     // Finally update the state variables, dvars_ = dvar_temp_
     for (unsigned i = 0; i < dvars_.size(); ++i) {
         auto expr = make_expression<AssignmentExpression>(loc,
@@ -847,7 +876,9 @@ public:
     virtual void visit(IfExpression* e) override {
         e->condition()->accept(this);
         e->true_branch()->accept(this);
-        e->false_branch()->accept(this);
+        if (e->false_branch()) {
+            e->false_branch()->accept(this);
+        }
     }
 
     virtual void visit(IdentifierExpression* e) override {

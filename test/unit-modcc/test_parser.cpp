@@ -255,7 +255,7 @@ TEST(Parser, parse_if) {
     }
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_if,
-        "   if(abs(a-b)) {      \n"
+        "   if(fabs(a-b)) {      \n"
         "       a = 2+b    \n"
         "   } else if(b>a){\n"
         "       a = 2+b    \n"
@@ -265,8 +265,10 @@ TEST(Parser, parse_if) {
         EXPECT_NE(s->condition()->is_unary(), nullptr);
         EXPECT_NE(s->true_branch()->is_block(), nullptr);
         ASSERT_NE(s->false_branch(), nullptr);
-        ASSERT_NE(s->false_branch()->is_if(), nullptr);
-        EXPECT_EQ(s->false_branch()->is_if()->false_branch(), nullptr);
+        ASSERT_NE(s->false_branch()->is_block(), nullptr);
+
+        auto false_if_branch = s->false_branch()->is_block()->statements().front()->clone();
+        EXPECT_EQ(false_if_branch->is_if()->false_branch(), nullptr);
     }
 }
 
