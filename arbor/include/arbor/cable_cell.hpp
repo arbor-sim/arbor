@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -9,10 +11,12 @@
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/label_dict.hpp>
+#include <arbor/morph/mcable_map.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/segment.hpp>
+#include <arbor/util/typed_map.hpp>
 
 namespace arb {
 
@@ -39,6 +43,42 @@ struct cell_probe_address {
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
+// Typed maps for access to painted and placed assignments:
+//
+// Mechanisms and initial ion data are further keyed by
+// mechanism name and ion name respectively.
+
+template <typename T>
+using region_assignment =
+    std::conditional_t<
+        std::is_same<T, mechanism_desc>::value || std::is_same<T, initial_ion_data>::value,
+        std::unordered_map<std::string, mcable_map<T>>,
+        mcable_map<T>>;
+
+template <typename T>
+struct placed {
+    mlocation loc;
+    cell_lid_type lid;
+    T item;
+};
+
+template <typename T>
+using mlocation_map = std::vector<placed<T>>;
+
+template <typename T>
+using location_assignment =
+    std::conditional_t<
+        std::is_same<T, mechanism_desc>::value,
+        std::unordered_map<std::string, mlocation_map<T>>,
+        mlocation_map<T>>;
+
+using cable_cell_region_map = static_typed_map<region_assignment,
+    mechanism_desc, init_membrane_potential, axial_resistivity,
+    temperature_K, membrane_capacitance, initial_ion_data>;
+
+using cable_cell_location_map = static_typed_map<location_assignment,
+    mechanism_desc, i_clamp, gap_junction_site, threshold_detector>;
+
 // High-level abstract representation of a cell and its segments
 class cable_cell {
 public:
@@ -48,21 +88,6 @@ public:
     using point_type = point<value_type>;
 
     using gap_junction_instance = mlocation;
-
-    struct synapse_instance {
-        mlocation location;
-        mechanism_desc mechanism;
-    };
-
-    struct stimulus_instance {
-        mlocation location;
-        i_clamp clamp;
-    };
-
-    struct detector_instance {
-        mlocation location;
-        double threshold;
-    };
 
     cable_cell_parameter_set default_parameters;
 
@@ -87,6 +112,32 @@ public:
 
     // the number of branches in the cell
     size_type num_branches() const;
+
+    // Set cell-wide default physical and ion parameters.
+
+    void set_default(init_membrane_potential prop) {
+        default_parameters.init_membrane_potential = prop.value;
+    }
+
+    void set_default(axial_resistivity prop) {
+        default_parameters.axial_resistivity = prop.value;
+    }
+
+    void set_default(temperature_K prop) {
+        default_parameters.temperature_K = prop.value;
+    }
+
+    void set_default(membrane_capacitance prop) {
+        default_parameters.membrane_capacitance = prop.value;
+    }
+
+    void set_default(initial_ion_data prop) {
+        default_parameters.ion_data[prop.ion] = prop.initial;
+    }
+
+    void set_default(ion_reversal_potential_method prop) {
+        default_parameters.reversal_potential_method[prop.ion] = prop.method;
+    }
 
     // All of the members marked with LEGACY below will be removed once
     // the discretization code has moved from consuming segments to em_morphology.
@@ -130,26 +181,45 @@ public:
     void paint(const region&, mechanism_desc);
 
     // Properties.
-    void paint(const region&, cable_cell_local_parameter_set);
+    void paint(const region&, init_membrane_potential);
+    void paint(const region&, axial_resistivity);
+    void paint(const region&, temperature_K);
+    void paint(const region&, membrane_capacitance);
+    void paint(const region&, initial_ion_data);
 
     // Synapses.
-    lid_range place(const locset&, const mechanism_desc&);
+    lid_range place(const locset&, mechanism_desc);
 
     // Stimuli.
-    lid_range place(const locset&, const i_clamp&);
+    lid_range place(const locset&, i_clamp);
 
     // Gap junctions.
     lid_range place(const locset&, gap_junction_site);
 
     // Spike detectors.
-    lid_range place(const locset&, const threshold_detector&);
+    lid_range place(const locset&, threshold_detector);
 
-    // Access to placed items.
+    // Convenience access to placed items.
 
-    const std::vector<synapse_instance>& synapses() const;
-    const std::vector<gap_junction_instance>& gap_junction_sites() const;
-    const std::vector<detector_instance>& detectors() const;
-    const std::vector<stimulus_instance>& stimuli() const;
+    const std::unordered_map<std::string, mlocation_map<mechanism_desc>>& synapses() const {
+        return location_assignments().get<mechanism_desc>();
+    }
+
+    const mlocation_map<gap_junction_site>& gap_junction_sites() const {
+        return location_assignments().get<gap_junction_site>();
+    }
+
+    const mlocation_map<threshold_detector>& detectors() const {
+        return location_assignments().get<threshold_detector>();
+    }
+
+    const mlocation_map<i_clamp>& stimuli() const {
+        return location_assignments().get<i_clamp>();
+    }
+
+    // Generic access to painted and placed items.
+    const cable_cell_region_map& region_assignments() const;
+    const cable_cell_location_map& location_assignments() const;
 
     // Checks that two cells have the same
     //  - number and type of segments

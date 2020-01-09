@@ -113,7 +113,7 @@ public:
         return mechanisms_;
     }
 
-    cable_cell_local_parameter_set parameters; // override cell and global defaults
+    cable_cell_parameter_set parameters; // override cell and global defaults
 
 protected:
     segment(section_kind kind): kind_(kind) {}
