@@ -2,8 +2,7 @@
 
 // Represent an mcable_list where each cable has an associated value.
 //
-// Values may be mutated via operator[]; otherwise the only mutating operations
-// are insert, emplace, and clear.
+// The only mutating operations are insert, emplace, and clear.
 
 #include <algorithm>
 #include <vector>
@@ -42,8 +41,8 @@ struct mcable_map {
 
     const value_type& operator[](size_type i) const { return elements_[i]; }
 
-    auto front() const { return *begin(); }
-    auto back() const { return *rbegin(); }
+    decltype(auto) front() const { return *begin(); }
+    decltype(auto) back() const { return *rbegin(); }
 
     std::size_t size() const noexcept { return elements_.size(); }
     bool empty() const noexcept { return !size(); }
@@ -60,7 +59,8 @@ struct mcable_map {
         if (!opt_it) return false;
 
         elements_.insert(*opt_it, value_type{c, std::move(value)});
-        return assert_invariants(), true;
+        assert_invariants();
+        return true;
     }
 
     template <typename... Args>
@@ -73,7 +73,8 @@ struct mcable_map {
            std::forward_as_tuple(c),
            std::forward_as_tuple(std::forward<Args>(args)...));
 
-        return assert_invariants(), true;
+        assert_invariants();
+        return true;
     }
 
     mcable_list support() const {

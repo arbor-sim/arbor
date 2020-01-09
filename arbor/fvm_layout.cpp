@@ -21,30 +21,6 @@
 
 namespace arb {
 
-// Extract a branch of an mcable_map as pw_elements:
-
-using util::pw_elements;
-template <typename T>
-pw_elements<T> on_branch(const mcable_map<T>& mm, msize_t bid) {
-    using value_type = typename mcable_map<T>::value_type;
-    pw_elements<T> pw;
-
-    struct as_branch {
-        msize_t value;
-        as_branch(const value_type& x): value(x.first.branch) {}
-        as_branch(const msize_t& x): value(x) {}
-    };
-
-    auto eq = std::equal_range(mm.begin(), mm.end(), bid,
-            [](as_branch a, as_branch b) { return a.value<b.value; });
-
-    for (const auto& el: util::make_range(eq)) {
-        pw.push_back(el.first.prox_pos, el.first.dist_pos, el.second);
-    }
-    return pw;
-}
-
-
 using util::count_along;
 using util::keys;
 using util::make_span;
