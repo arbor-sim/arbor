@@ -50,9 +50,9 @@ using embedding = embed_pwlin;
 TEST(region, expr_repn) {
     using util::to_string;
 
-    auto c1 = reg::cable({1, 0, 1});
-    auto c2 = reg::cable({4, 0.125, 0.5});
-    auto c3 = join(reg::cable({4, 0.125, 0.5}), reg::cable({3, 0, 1}));
+    auto c1 = reg::cable(1, 0, 1);
+    auto c2 = reg::cable(4, 0.125, 0.5);
+    auto c3 = join(reg::cable(4, 0.125, 0.5), reg::cable(3, 0, 1));
     auto b1 = reg::branch(1);
     auto t1 = reg::tagged(1);
     auto t2 = reg::tagged(2);
@@ -74,8 +74,8 @@ TEST(region, expr_repn) {
 }
 
 TEST(region, invalid_mcable) {
-    EXPECT_NO_THROW(reg::cable({123, 0.5, 0.8}));
-    EXPECT_THROW(reg::cable({1, 0, 1.1}), invalid_mcable);
+    EXPECT_NO_THROW(reg::cable(123, 0.5, 0.8));
+    EXPECT_THROW(reg::cable(1, 0, 1.1), invalid_mcable);
     EXPECT_THROW(reg::branch(-1), invalid_mcable);
 }
 
@@ -152,7 +152,7 @@ TEST(region, thingify_named) {
     using svec = std::vector<msample>;
 
     region banana = reg::branch(0);
-    region cake = reg::cable(mcable{0, 0.2, 0.3});
+    region cake = reg::cable(0, 0.2, 0.3);
 
     // copy-paste ftw
 
@@ -277,8 +277,8 @@ TEST(region, thingify) {
         sample_tree sm(samples, parents);
         mprovider mp(morphology(sm, false));
 
-        auto h1  = reg::cable({0, 0, 0.5});
-        auto h2  = reg::cable({0, 0.5, 1});
+        auto h1  = reg::cable(0, 0, 0.5);
+        auto h2  = reg::cable(0, 0.5, 1);
         auto t1  = reg::tagged(1);
         auto t2  = reg::tagged(2);
         auto all = reg::all();
@@ -427,7 +427,7 @@ TEST(region, thingify) {
         //   |  xxxxx  |   xxx   | rand
         //   |xxxxxxxxx|xxxxxxxxx| ror
         auto lhs  = b13;
-        auto rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
+        auto rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         auto rand = cl{         {1,.2,.7}, {3,.3,.6}};
         auto ror  = cl{         {1,.0,1.}, {3,.0,1.}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -443,8 +443,8 @@ TEST(region, thingify) {
         //   |  -----  |   ---   | rhs
         //   |   xxxx  |   xx    | rand
         //   |  xxxxxx | xxxxx   | ror
-        lhs  = join(cable({1,.3,.8}), cable({3,.1,.5}));
-        rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
+        lhs  = join(cable(1,.3,.8), cable(3,.1,.5));
+        rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         rand = cl{         {1,.3,.7}, {3,.3,.5}};
         ror  = cl{         {1,.2,.8}, {3,.1,.6}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -460,8 +460,8 @@ TEST(region, thingify) {
         //   |  -----  |   ---   | rhs
         //   |  x x    |   x x   | rand
         //   | xxxxxx  | xxxxxxx | ror
-        lhs  = join(cable({1,.1,.3}), cable({1,.4,.5}), cable({3,.1,.4}), cable({3,.5,.9}));
-        rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
+        lhs  = join(cable(1,.1,.3), cable(1,.4,.5), cable(3,.1,.4), cable(3,.5,.9));
+        rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         rand = cl{         {1,.2,.3}, {1,.4,.5}, {3,.3,.4}, {3,.5,.6}};
         ror  = cl{         {1,.1,.7},            {3,.1,.9}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);

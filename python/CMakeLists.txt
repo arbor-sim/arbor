@@ -14,8 +14,7 @@ endif()
 set(PYBIND11_CPP_STANDARD -std=c++14)
 add_subdirectory(pybind11)
 
-# The Python library. MODULE will make a Python-exclusive model.
-add_library(pyarb MODULE
+set(pyarb_source
     cells.cpp
     config.cpp
     context.cpp
@@ -37,7 +36,14 @@ add_library(pyarb MODULE
     s_expr.cpp
 )
 
-target_link_libraries(pyarb PRIVATE arbor pybind11::module)
+# compile the pyarb sources into an object library that will be
+# use by both the Python wrapper target (pyarb) and for the
+# unit tests of the C++ components in the Python wrapper.
+add_library(pyarb_obj OBJECT ${pyarb_source})
+target_link_libraries(pyarb_obj PRIVATE arbor pybind11::module)
+
+# The Python library. MODULE will make a Python-exclusive model.
+add_library(pyarb MODULE $<TARGET_OBJECTS:pyarb_obj>)
 
 # The output name of the pyarb .so file is "arbor", to facilitate "import arbor"
 set_target_properties(pyarb PROPERTIES OUTPUT_NAME arbor)
@@ -58,3 +64,6 @@ endif()
 find_package(PythonInterp REQUIRED)
 set(ARB_PYEXECDIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
 install(TARGETS pyarb LIBRARY DESTINATION ${ARB_PYEXECDIR})
+
+# for unit tests on C++ side of Python wrappers
+add_subdirectory(test)
