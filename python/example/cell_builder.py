@@ -27,6 +27,60 @@ print(cell)
 
 print('----------------------------')
 
+class single_recipe (arb.recipe):
+
+    def __init__(self, cell):
+        # The base C++ class constructor must be called first, to ensure that
+        # all memory in the C++ class is initialized correctly.
+        arb.recipe.__init__(self)
+        self.cell = cell
+        #self.params = arb.cell_parameters()
+
+    # The num_cells method that returns the total number of cells in the model
+    # must be implemented.
+    def num_cells(self):
+        return 1
+
+    # The cell_description method returns a cell
+    def cell_description(self, gid):
+        return cell
+
+    def num_targets(self, gid):
+        return 1
+
+    def num_sources(self, gid):
+        return 1
+
+    # The kind method returns the type of cell with gid.
+    # Note: this must agree with the type returned by cell_description.
+    def cell_kind(self, gid):
+        return arb.cell_kind.cable
+
+    # Make a ring network
+    def connections_on(self, gid):
+        return []
+
+    # Attach a generator to the first cell in the ring.
+    def event_generators(self, gid):
+        #if gid==0:
+        #    sched = arb.explicit_schedule([1])
+        #    return [arb.event_generator(arb.cell_member(0,0), 0.1, sched)]
+        return []
+
+    # Define one probe (for measuring voltage at the soma) on each cell.
+    def num_probes(self, gid):
+        # TODO: we need some probes
+        return 1
+
+    def get_probe(self, id):
+        # TODO: we need some probes
+        #loc = arb.location(0, 0) # at the soma
+        #return arb.cable_probe('voltage', id, loc)
+        raise 43
+        return arb.cable_probe('voltage', id, loc)
+
+rec = single_recipe(cell)
+
 # Make a cell with no spherical root, two branches at the root, and two branches
 # hanging off of it.
 #b = arb.flat_cell_builder()
