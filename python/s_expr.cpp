@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <cctype>
 #include <cstring>
 #include <string>
@@ -201,11 +203,11 @@ private:
 
         ++current_;
         const char* begin = current_;
-        while (current_!=end_ && *current_!='"') ++current_;
+        while (current_!=end_ && character()!='"');
 
         if (current_==end_) return {loc_, tok::error, "string missing closing \""};
 
-        return {loc_, tok::string, std::string(begin, current_)};
+        return {loc_, tok::string, std::string(begin, current_-1)};
     }
 
     token number() {
@@ -392,6 +394,10 @@ s_expr parse(const char* in) {
         }
     }
     return result;
+}
+
+s_expr parse(const std::string& in) {
+    return parse(in.c_str());
 }
 
 } // namespace pyarb

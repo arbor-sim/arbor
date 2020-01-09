@@ -40,7 +40,7 @@ set(pyarb_source
 # use by both the Python wrapper target (pyarb) and for the
 # unit tests of the C++ components in the Python wrapper.
 add_library(pyarb_obj OBJECT ${pyarb_source})
-target_link_libraries(pyarb_obj PRIVATE arbor pybind11::module)
+target_link_libraries(pyarb_obj PUBLIC arbor pybind11::module)
 
 # The Python library. MODULE will make a Python-exclusive model.
 add_library(pyarb MODULE $<TARGET_OBJECTS:pyarb_obj>)
@@ -50,6 +50,10 @@ set_target_properties(pyarb PROPERTIES OUTPUT_NAME arbor)
 # With this, the full name of the library will be something like:
 #   arbor.cpython-37m-x86_64-linux-gnu.so
 set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
+# this dependency has to be spelt out again, despite being added to
+# pyarb_obj because CMake.
+target_link_libraries(pyarb PRIVATE arbor)
 
 # Add support for mpi4py if available.
 if (ARB_WITH_MPI)

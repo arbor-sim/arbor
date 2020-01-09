@@ -183,6 +183,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'branch' with 1 argument: (branch_id:integer)")},
     {"cable",   make_call<int, double, double>(arb::reg::cable,
                             "'cable' with 3 arguments: (branch_id:integer prox:real dist:real)")},
+    {"region",  make_call<std::string>(arb::reg::named,
+                            "'region' with 1 argument: (name:string)")},
     {"join",    make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::join),
                             "'join' with at least 2 arguments: (region region [...region])")},
     {"intersect",make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::intersect),
@@ -194,6 +196,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'terminal' with 0 arguments")},
     {"sample",  make_call<int>(arb::ls::sample,
                             "'sample' with 1 argument: (sample_id:integer)")},
+    {"locset",  make_call<std::string>(arb::ls::named,
+                            "'locset' with 1 argument: (name:string)")},
     {"join",    make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::join),
                             "'join' with at least 2 arguments: (locset locset [...locset])")},
     {"sum",     make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::sum),
@@ -270,6 +274,8 @@ parse_hopefully<arb::util::any> eval(const s_expr& e) {
                 return {std::stod(t.spelling)};
             case tok::nil:
                 return {nil_tag()};
+            case tok::string:
+                return {std::string(t.spelling)};
             case tok::error:
                 return parse_error_state{e.atom().spelling, location(e)};
             default:

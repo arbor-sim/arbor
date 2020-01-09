@@ -263,7 +263,7 @@ mcable_list thingify_(const all_&, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const all_& t) {
-    return o << "all";
+    return o << "(all)";
 }
 
 
@@ -282,7 +282,7 @@ mcable_list thingify_(const named_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(named \"" << x.name << "\")";
+    return o << "(region \"" << x.name << "\")";
 }
 
 

@@ -8,24 +8,24 @@ b1 = b.add_cable(parent=s, length=100, radius=2, name="bdend", ncomp=1)
 b2 = b.add_cable(parent=b1, length=50, radius=(2,0.5), name="edend", ncomp=1)
 b3 = b.add_cable(parent=b1, length=50, radius=1, name="edend", ncomp=1)
 
-#labels = {'soma': '(tag 1)',
-          #'axon': '(tag 2)',
-          #'dend': '(join (tag 3) (tag 4))',
-          #'all' : '(all)',
-          #'axso': '(join "soma" "axon")'}
-
-b.add_label("dend", "(join (tag 2) (tag 3))")
-b.add_label("all", "(all)")
-
-print(b.samples)
-print(b.labels)
+b.add_label('dend', '(join (region "edend") (region "bdend"))')
+b.add_label('terms', '(terminal)')
 
 # make the cell
 cell = b.build()
 
+cell.paint('dend', 'pas')
+cell.paint('soma', 'hh')
+cell.place('terms', 'expsyn')
+
+print('----------------------------')
+
+print(b.samples)
+print(b.labels)
+
 print(cell)
 
-#print('----------------------------')
+print('----------------------------')
 
 # Make a cell with no spherical root, two branches at the root, and two branches
 # hanging off of it.

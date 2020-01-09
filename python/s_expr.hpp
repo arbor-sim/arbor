@@ -117,6 +117,7 @@ std::size_t length(const s_expr& l);
 int location(const s_expr& l);
 
 s_expr parse(const char* line);
+s_expr parse(const std::string& line);
 
 bool test_identifier(const char* in);
 

@@ -57,6 +57,8 @@ flags = [
     'test',
     '-I',
     '/usr/include/python3.8',
+    '-I',
+    'python',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
