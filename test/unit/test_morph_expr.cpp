@@ -70,7 +70,7 @@ TEST(region, expr_repn) {
     EXPECT_EQ(to_string(join(t1, t2, t3)), "(join (join (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(intersect(t1, t2, t3)), "(intersect (intersect (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(intersect(join(c1, t2), c2)),  "(intersect (join (cable 1 0 1) (tag 2)) (cable 4 0.125 0.5))");
-    EXPECT_EQ(to_string(all), "all");
+    EXPECT_EQ(to_string(all), "(all)");
 }
 
 TEST(region, invalid_mcable) {
@@ -87,11 +87,11 @@ TEST(locset, expr_repn) {
     auto samp = ls::sample(42);
     auto loc = ls::location({2, 0.5});
 
-    EXPECT_EQ(to_string(root), "root");
-    EXPECT_EQ(to_string(term), "terminal");
-    EXPECT_EQ(to_string(sum(root, term)), "(sum root terminal)");
-    EXPECT_EQ(to_string(sum(root, term, samp)), "(sum (sum root terminal) (sample 42))");
-    EXPECT_EQ(to_string(sum(root, term, samp, loc)), "(sum (sum (sum root terminal) (sample 42)) (location 2 0.5))");
+    EXPECT_EQ(to_string(root), "(root)");
+    EXPECT_EQ(to_string(term), "(terminal)");
+    EXPECT_EQ(to_string(sum(root, term)), "(sum (root) (terminal))");
+    EXPECT_EQ(to_string(sum(root, term, samp)), "(sum (sum (root) (terminal)) (sample 42))");
+    EXPECT_EQ(to_string(sum(root, term, samp, loc)), "(sum (sum (sum (root) (terminal)) (sample 42)) (location 2 0.5))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 }
