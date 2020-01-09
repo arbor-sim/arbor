@@ -39,20 +39,19 @@ TEST(synapses, add_to_cell) {
     cell.place(mlocation{0, 0.2}, "exp2syn");
     cell.place(mlocation{0, 0.3}, "expsyn");
 
-    EXPECT_EQ(3u, cell.synapses().size());
-    const auto& syns = cell.synapses();
+    auto syns = cell.synapses();
 
-    EXPECT_EQ(syns[0].location.branch, 0u);
-    EXPECT_EQ(syns[0].location.pos, 0.1);
-    EXPECT_EQ(syns[0].mechanism.name(), "expsyn");
+    ASSERT_EQ(2u, syns["expsyn"].size());
+    ASSERT_EQ(1u, syns["exp2syn"].size());
 
-    EXPECT_EQ(syns[1].location.branch, 0u);
-    EXPECT_EQ(syns[1].location.pos, 0.2);
-    EXPECT_EQ(syns[1].mechanism.name(), "exp2syn");
+    EXPECT_EQ((mlocation{0, 0.1}), syns["expsyn"][0].loc);
+    EXPECT_EQ("expsyn", syns["expsyn"][0].item.name());
 
-    EXPECT_EQ(syns[2].location.branch, 0u);
-    EXPECT_EQ(syns[2].location.pos, 0.3);
-    EXPECT_EQ(syns[2].mechanism.name(), "expsyn");
+    EXPECT_EQ((mlocation{0, 0.3}), syns["expsyn"][1].loc);
+    EXPECT_EQ("expsyn", syns["expsyn"][1].item.name());
+
+    EXPECT_EQ((mlocation{0, 0.2}), syns["exp2syn"][0].loc);
+    EXPECT_EQ("exp2syn", syns["exp2syn"][0].item.name());
 
     // adding a synapse to an invalid branch location should throw.
     EXPECT_THROW(cell.place(mlocation{1, 0.3}, "expsyn"), std::runtime_error);

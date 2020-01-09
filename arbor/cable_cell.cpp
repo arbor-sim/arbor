@@ -7,6 +7,7 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/segment.hpp>
+#include <arbor/util/pp_util.hpp>
 
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
@@ -22,15 +23,14 @@ using value_type = cable_cell::value_type;
 using index_type = cable_cell::index_type;
 using size_type = cable_cell::size_type;
 
+template <typename T> struct constant_type {
+    template <typename> using type = T;
+};
+
 struct cable_cell_impl {
     using value_type = cable_cell::value_type;
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
-
-    using stimulus_instance     = cable_cell::stimulus_instance;
-    using synapse_instance      = cable_cell::synapse_instance;
-    using gap_junction_instance = cable_cell::gap_junction_instance;
-    using detector_instance     = cable_cell::detector_instance;
 
     cable_cell_impl(const arb::morphology& m,
                     const label_dict& dictionary,
@@ -105,11 +105,9 @@ struct cable_cell_impl {
 
     cable_cell_impl(const cable_cell_impl& other):
         parents(other.parents),
-        stimuli(other.stimuli),
-        synapses(other.synapses),
-        gap_junction_sites(other.gap_junction_sites),
-        spike_detectors(other.spike_detectors),
-        provider(other.provider)
+        provider(other.provider),
+        region_map(other.region_map),
+        location_map(other.location_map)
     {
         // unique_ptr's cannot be copy constructed, do a manual assignment
         segments.reserve(other.segments.size());
@@ -126,47 +124,38 @@ struct cable_cell_impl {
     // the segments
     std::vector<segment_ptr> segments;
 
-    // the stimuli
-    std::vector<stimulus_instance> stimuli;
-
-    // the synapses
-    std::vector<synapse_instance> synapses;
-
-    // the gap_junctions
-    std::vector<gap_junction_instance> gap_junction_sites;
-
-    // the sensors
-    std::vector<detector_instance> spike_detectors;
-
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
 
-    template <typename Desc, typename T>
-    lid_range place(const mlocation_list& locs, const Desc& desc, std::vector<T>& list) {
-        const auto first = list.size();
+    // Regional assignments.
+    cable_cell_region_map region_map;
 
-        for (auto loc: locs) {
-            list.push_back({loc, desc});
+    // Point assignments.
+    cable_cell_location_map location_map;
+
+    // Track number of point assignments by type for lid/target numbers.
+    dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
+
+    template <typename T>
+    mlocation_map<T>& get_location_map(const T&) {
+        return location_map.get<T>();
+    }
+
+    mlocation_map<mechanism_desc>& get_location_map(const mechanism_desc& desc) {
+        return location_map.get<mechanism_desc>()[desc.name()];
+    }
+
+    template <typename Item>
+    lid_range place(const locset& ls, const Item& item) {
+        auto& mm = get_location_map(item);
+        cell_lid_type& lid = placed_count.get<Item>();
+        cell_lid_type first = lid;
+
+        for (auto l: thingify(ls, provider)) {
+            placed<Item> p{l, lid++, item};
+            mm.push_back(p);
         }
-
-        return lid_range(first, list.size());
-    }
-
-    template <typename Desc, typename T>
-    lid_range place(const locset& locs, const Desc& desc, std::vector<T>& list) {
-        return place(thingify(locs, provider), desc, list);
-    }
-
-    lid_range place_gj(const mlocation_list& locs) {
-        const auto first = gap_junction_sites.size();
-
-        gap_junction_sites.insert(gap_junction_sites.end(), locs.begin(), locs.end());
-
-        return lid_range(first, gap_junction_sites.size());
-    }
-
-    lid_range place_gj(const locset& locs) {
-        return place_gj(thingify(locs, provider));
+        return lid_range(first, lid);
     }
 
     void assert_valid_segment(index_type i) const {
@@ -175,25 +164,60 @@ struct cable_cell_impl {
         }
     }
 
-    bool valid_location(const mlocation& loc) const {
-        return test_invariants(loc) && loc.branch<segments.size();
+    void paint_segment(segment_ptr& s, const mechanism_desc& p) {
+        s->add_mechanism(p);
     }
 
-    template <typename F>
-    void paint(const mcable_list& cables, F&& f) {
+    void paint_segment(segment_ptr& s, init_membrane_potential p) {
+        s->parameters.init_membrane_potential = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, axial_resistivity p) {
+        s->parameters.axial_resistivity = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, temperature_K p) {
+        s->parameters.temperature_K = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, membrane_capacitance p) {
+        s->parameters.membrane_capacitance = p.value;
+    }
+
+    void paint_segment(segment_ptr& s, initial_ion_data p) {
+        s->parameters.ion_data[p.ion] = p.initial;
+    }
+
+    template <typename T>
+    mcable_map<T>& get_region_map(const T&) {
+        return region_map.get<T>();
+    }
+
+    mcable_map<mechanism_desc>& get_region_map(const mechanism_desc& desc) {
+        return region_map.get<mechanism_desc>()[desc.name()];
+    }
+
+    mcable_map<initial_ion_data>& get_region_map(const initial_ion_data& init) {
+        return region_map.get<initial_ion_data>()[init.ion];
+    }
+
+    template <typename Property>
+    void paint(const region& reg, const Property& prop) {
+        mcable_list cables = thingify(reg, provider);
+        auto& mm = get_region_map(prop);
+
         for (auto c: cables) {
+            if (!mm.insert(c, prop)) {
+                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+            }
+
             if (c.prox_pos!=0 || c.dist_pos!=1) {
                 throw cable_cell_error(util::pprintf(
                     "cable_cell does not support regions with partial branches: {}", c));
             }
             assert_valid_segment(c.branch);
-            f(segments[c.branch]);
+            paint_segment(segments[c.branch], prop);
         }
-    }
-
-    template <typename F>
-    void paint(const region& reg, F&& f) {
-        paint(thingify(reg, provider), std::forward<F>(f));
     }
 };
 
@@ -249,22 +273,6 @@ bool cable_cell::has_soma() const {
     return !segment(0)->is_placeholder();
 }
 
-const std::vector<cable_cell::gap_junction_instance>& cable_cell::gap_junction_sites() const {
-    return impl_->gap_junction_sites;
-}
-
-const std::vector<cable_cell::synapse_instance>& cable_cell::synapses() const {
-    return impl_->synapses;
-}
-
-const std::vector<cable_cell::detector_instance>& cable_cell::detectors() const {
-    return impl_->spike_detectors;
-}
-
-const std::vector<cable_cell::stimulus_instance>& cable_cell::stimuli() const {
-    return impl_->stimuli;
-}
-
 const concrete_embedding& cable_cell::embedding() const {
     return impl_->provider.embedding();
 }
@@ -277,61 +285,32 @@ const mprovider& cable_cell::provider() const {
     return impl_->provider;
 }
 
-
-//
-// Painters.
-//
-// Implementation of user API for painting density channel and electrical properties on cells.
-//
-
-void cable_cell::paint(const region& target, mechanism_desc desc) {
-    impl_->paint(target,
-                 [&desc](segment_ptr& s){return s->add_mechanism(desc);});
+const cable_cell_location_map& cable_cell::location_assignments() const {
+    return impl_->location_map;
 }
 
-void cable_cell::paint(const region& target, cable_cell_local_parameter_set params) {
-    impl_->paint(target,
-                 [&params](segment_ptr& s){return s->parameters = params;});
+const cable_cell_region_map& cable_cell::region_assignments() const {
+    return impl_->region_map;
 }
 
-//
-// Placers.
-//
-// Implementation of user API for placing discrete items on cell morphology,
-// such as synapses, spike detectors and stimuli.
-//
+// Forward paint methods to implementation class.
 
-//
-// Synapses.
-//
-
-lid_range cable_cell::place(const locset& ls, const mechanism_desc& desc) {
-    return impl_->place(ls, desc, impl_->synapses);
+#define FWD_PAINT(proptype)\
+void cable_cell::paint(const region& target, proptype prop) {\
+    impl_->paint(target, prop);\
 }
+ARB_PP_FOREACH(FWD_PAINT,\
+    mechanism_desc, init_membrane_potential, axial_resistivity,\
+    temperature_K, membrane_capacitance, initial_ion_data)
 
-//
-// Stimuli.
-//
+// Forward place methods to implementation class.
 
-lid_range cable_cell::place(const locset& ls, const i_clamp& desc) {
-    return impl_->place(ls, desc, impl_->stimuli);
+#define FWD_PLACE(proptype)\
+lid_range cable_cell::place(const locset& target, proptype prop) {\
+    return impl_->place(target, prop);\
 }
-
-//
-// Gap junctions.
-//
-
-lid_range cable_cell::place(const locset& ls, gap_junction_site) {
-    return impl_->place_gj(ls);
-}
-
-//
-// Spike detectors.
-//
-
-lid_range cable_cell::place(const locset& ls, const threshold_detector& desc) {
-    return impl_->place(ls, desc.threshold, impl_->spike_detectors);
-}
+ARB_PP_FOREACH(FWD_PLACE,\
+    mechanism_desc, i_clamp, gap_junction_site, threshold_detector)
 
 //
 // TODO: deprectate the following as soon as discretization code catches up with em_morphology
