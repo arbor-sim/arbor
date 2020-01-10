@@ -127,6 +127,9 @@ region branch(msize_t);
 // Region with all segments with segment tag id.
 region tagged(int id);
 
+// Region with all segments distal from another region
+region distal_interval(region start, double distance);
+
 // Region with all segments in a cell.
 region all();
 

@@ -1,6 +1,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <stack>
 
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -240,6 +241,81 @@ mcable_list thingify_(const tagged_& reg, const mprovider& p) {
 
 std::ostream& operator<<(std::ostream& o, const tagged_& t) {
     return o << "(tag " << t.tag << ")";
+}
+
+// Region with all segments distal from another region
+
+struct distal_interval_ {
+    region start;
+    double distance; //um
+};
+
+region distal_interval(region start, double distance) {
+    return region(distal_interval_{start, distance});
+}
+
+mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+
+    auto start = thingify(reg.start, p);
+    auto distance = reg.distance;
+
+    struct branch_interval {
+        msize_t bid;
+        double distance;
+    };
+
+    for (auto c: start) {
+        std::stack<branch_interval> branches_reached;
+        bool first_branch = true;
+
+        auto branch = c.branch;
+        auto branch_length = e.branch_length(branch);
+
+        auto rem_dist = distance - (1 - c.dist_pos)*branch_length;
+        std::cout << rem_dist << std::endl;
+
+        if (c.dist_pos < 1) {
+            branches_reached.push({branch, rem_dist});
+        } else {
+            first_branch = false;
+            for (auto c: m.branch_children(branch)) {
+                branches_reached.push({c, rem_dist});
+            }
+        }
+
+        while (!branches_reached.empty()) {
+            auto bi = branches_reached.top();
+            branches_reached.pop();
+
+            auto branch = bi.bid;
+            auto rem_dist = bi.distance;
+
+            auto branch_length = e.branch_length(branch);
+            std::cout << branch_length << " "  << rem_dist << std::endl;
+            auto dist_pos = rem_dist / branch_length + first_branch*c.dist_pos;
+            std::cout << dist_pos << " " << rem_dist / branch_length <<  " + " << first_branch*c.dist_pos << std::endl;
+
+            if (dist_pos <= 1) {
+                L.push_back({branch, first_branch*c.dist_pos, dist_pos});
+            } else {
+                L.push_back({branch, 0, 1});
+                for (auto c: m.branch_children(branch)) {
+                    branches_reached.push({c, rem_dist - branch_length});
+                }
+            }
+
+            first_branch = false;
+        }
+    }
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
+    return o << "(distal_interval: " << d.start << ", " << d.distance << ")";
 }
 
 

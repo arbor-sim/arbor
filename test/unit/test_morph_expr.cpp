@@ -336,9 +336,12 @@ TEST(region, thingify) {
         mprovider mp(morphology(sm, true));
 
         using reg::tagged;
+        using reg::distal_interval;
         using reg::branch;
         using reg::all;
 
+
+        EXPECT_EQ(thingify(distal_interval(tagged(1), 2), mp), (mcable_list{{0,0,1}}));
         EXPECT_EQ(thingify(tagged(1), mp), (mcable_list{{0,0,1}}));
         EXPECT_EQ(thingify(tagged(2), mp), (mcable_list{{2,0,1}}));
         EXPECT_EQ(thingify(tagged(3), mp), (mcable_list{{1,0,1}}));
