@@ -130,6 +130,9 @@ region tagged(int id);
 // Region with all segments distal from another region
 region distal_interval(region start, double distance);
 
+// Region with all segments proximal from another region
+region proximal_interval(region end, double distance);
+
 // Region with all segments in a cell.
 region all();
 

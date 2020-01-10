@@ -337,11 +337,15 @@ TEST(region, thingify) {
 
         using reg::tagged;
         using reg::distal_interval;
+        using reg::proximal_interval;
         using reg::branch;
+        using reg::cable;
         using reg::all;
 
+        auto reg1_ = cable(mcable{1,1,1});
 
-        EXPECT_EQ(thingify(distal_interval(tagged(1), 2), mp), (mcable_list{{0,0,1}}));
+//        EXPECT_EQ(thingify(distal_interval(tagged(1), 45), mp), (mcable_list{{0,0,1}}));
+        EXPECT_EQ(thingify(proximal_interval(reg1_, 45), mp), (mcable_list{{0,0,1}}));
         EXPECT_EQ(thingify(tagged(1), mp), (mcable_list{{0,0,1}}));
         EXPECT_EQ(thingify(tagged(2), mp), (mcable_list{{2,0,1}}));
         EXPECT_EQ(thingify(tagged(3), mp), (mcable_list{{1,0,1}}));
@@ -383,6 +387,7 @@ TEST(region, thingify) {
         mprovider mp(morphology(sm, false));
 
         using reg::tagged;
+        using reg::distal_interval;
         using reg::branch;
         using reg::all;
         using reg::cable;
@@ -408,8 +413,10 @@ TEST(region, thingify) {
         mcable end1_{1,1,1};
         mcable root_{0,0,0};
 
+        auto reg0_ = cable(b0_);
+
         EXPECT_EQ(thingify(all(), mp), all_);
-        EXPECT_EQ(thingify(soma, mp), empty_);
+//        EXPECT_EQ(thingify(distal_interval(reg0_, 9), mp), (mcable_list{{0,0,0.1}}));
         EXPECT_EQ(thingify(axon, mp), (cl{b1_}));
         EXPECT_EQ(thingify(dend, mp), (cl{b0_,b3_}));
         EXPECT_EQ(thingify(apic, mp), (cl{b2_}));

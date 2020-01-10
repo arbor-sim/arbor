@@ -164,6 +164,16 @@ region cable(mcable c) {
     return region(cable_{c});
 }
 
+//region interval(mlocation lhs, mlocation rhs) {
+//    if (lhs.branch > rhs.branch) {
+//        throw invalid_interval(lhs, rhs);
+//    }
+//    if (lhs.branch == rhs.branch && lhs.pos > rhs.pos) {
+//        throw invalid_interval(lhs, rhs);
+//    }
+//    return region(interval_{c});
+//}
+
 region branch(msize_t bid) {
     return cable({bid, 0, 1});
 }
@@ -272,18 +282,13 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
         std::stack<branch_interval> branches_reached;
         bool first_branch = true;
 
-        auto branch = c.branch;
-        auto branch_length = e.branch_length(branch);
-
-        auto rem_dist = distance - (1 - c.dist_pos)*branch_length;
-        std::cout << rem_dist << std::endl;
-
+        // if we're starting at the end of a branch, start traversal with its children
         if (c.dist_pos < 1) {
-            branches_reached.push({branch, rem_dist});
+            branches_reached.push({c.branch, distance});
         } else {
             first_branch = false;
-            for (auto c: m.branch_children(branch)) {
-                branches_reached.push({c, rem_dist});
+            for (auto child: m.branch_children(c.branch)) {
+                branches_reached.push({child, distance});
             }
         }
 
@@ -295,29 +300,76 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
             auto rem_dist = bi.distance;
 
             auto branch_length = e.branch_length(branch);
-            std::cout << branch_length << " "  << rem_dist << std::endl;
             auto dist_pos = rem_dist / branch_length + first_branch*c.dist_pos;
-            std::cout << dist_pos << " " << rem_dist / branch_length <<  " + " << first_branch*c.dist_pos << std::endl;
 
             if (dist_pos <= 1) {
                 L.push_back({branch, first_branch*c.dist_pos, dist_pos});
             } else {
-                L.push_back({branch, 0, 1});
-                for (auto c: m.branch_children(branch)) {
-                    branches_reached.push({c, rem_dist - branch_length});
+                L.push_back({branch, first_branch*c.dist_pos, 1});
+                for (auto child: m.branch_children(branch)) {
+                    rem_dist = rem_dist - (1 - first_branch*c.dist_pos)*branch_length;
+                    branches_reached.push({child, rem_dist});
                 }
             }
 
             first_branch = false;
         }
     }
-    return L;
+    return merge(L);
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
     return o << "(distal_interval: " << d.start << ", " << d.distance << ")";
 }
 
+struct proximal_interval_ {
+    region end;
+    double distance; //um
+};
+
+region proximal_interval(region end, double distance) {
+    return region(proximal_interval_{end, distance});
+}
+
+mcable_list thingify_(const proximal_interval_& reg, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+
+    std::cout << "here" << std::endl;
+    auto start = thingify(reg.end, p);
+    auto distance = reg.distance;
+
+    for (auto c: start) {
+        std::cout << c.branch << std::endl;
+        bool last_branch = true;
+        auto branch = c.branch;
+        auto branch_length = e.branch_length(branch);
+        auto rem_dist = distance;
+        auto prox_pos = c.prox_pos - distance / branch_length;
+        std::cout << prox_pos << std::endl;
+
+        while (prox_pos < 0) {
+            auto dist_pos = last_branch ? c.prox_pos : 1;
+            L.push_back({branch, 0, dist_pos});
+
+            rem_dist = rem_dist - dist_pos*branch_length;
+
+            branch = m.branch_parent(branch);
+            branch_length = e.branch_length(branch);
+            prox_pos = 1 - rem_dist / branch_length;
+
+            last_branch = false;
+        }
+        L.push_back({branch, prox_pos, 1});
+    }
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
+    return o << "(distal_interval: " << d.end << ", " << d.distance << ")";
+}
 
 // Region comprising whole morphology.
 

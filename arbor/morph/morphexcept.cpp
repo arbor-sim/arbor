@@ -25,6 +25,11 @@ invalid_mcable::invalid_mcable(mcable cable):
     cable(cable)
 {}
 
+/*invalid_interval::invalid_interval(arb::mlocation lhs, arb::mlocation rhs):
+    morphology_error(pprintf("invalid interval {}, {}", lhs, rhs)),
+    lhs(lhs), rhs(rhs)
+{}*/
+
 invalid_sample_parent::invalid_sample_parent(msize_t parent, msize_t tree_size):
     morphology_error(pprintf("invalid sample parent {} for a sample tree of size {}", parent, tree_size)),
     parent(parent),
