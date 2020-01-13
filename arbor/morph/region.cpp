@@ -300,21 +300,22 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
             auto rem_dist = bi.distance;
 
             auto branch_length = e.branch_length(branch);
-            auto dist_pos = rem_dist / branch_length + first_branch*c.dist_pos;
+            auto prox_pos = first_branch*c.dist_pos;
+            auto dist_pos = rem_dist / branch_length + prox_pos;
 
             if (dist_pos <= 1) {
-                L.push_back({branch, first_branch*c.dist_pos, dist_pos});
+                L.push_back({branch, prox_pos, dist_pos});
             } else {
-                L.push_back({branch, first_branch*c.dist_pos, 1});
+                L.push_back({branch, prox_pos, 1});
+                rem_dist = rem_dist - (1 - prox_pos)*branch_length;
                 for (auto child: m.branch_children(branch)) {
-                    rem_dist = rem_dist - (1 - first_branch*c.dist_pos)*branch_length;
                     branches_reached.push({child, rem_dist});
                 }
             }
-
             first_branch = false;
         }
     }
+    util::sort(L);
     return merge(L);
 }
 
@@ -337,33 +338,35 @@ mcable_list thingify_(const proximal_interval_& reg, const mprovider& p) {
 
     std::vector<mcable> L;
 
-    std::cout << "here" << std::endl;
     auto start = thingify(reg.end, p);
     auto distance = reg.distance;
 
     for (auto c: start) {
-        std::cout << c.branch << std::endl;
-        bool last_branch = true;
         auto branch = c.branch;
         auto branch_length = e.branch_length(branch);
         auto rem_dist = distance;
-        auto prox_pos = c.prox_pos - distance / branch_length;
-        std::cout << prox_pos << std::endl;
+
+        auto dist_pos = c.prox_pos;
+        auto prox_pos = dist_pos - distance / branch_length;
 
         while (prox_pos < 0) {
-            auto dist_pos = last_branch ? c.prox_pos : 1;
             L.push_back({branch, 0, dist_pos});
 
             rem_dist = rem_dist - dist_pos*branch_length;
 
             branch = m.branch_parent(branch);
-            branch_length = e.branch_length(branch);
-            prox_pos = 1 - rem_dist / branch_length;
+            if (branch == mnpos) {
+                break;
+            }
 
-            last_branch = false;
+            dist_pos = 1;
+            prox_pos = dist_pos - rem_dist / e.branch_length(branch);
         }
-        L.push_back({branch, prox_pos, 1});
+        if (branch != mnpos) {
+            L.push_back({branch, prox_pos, dist_pos});
+        }
     }
+    util::sort(L);
     return merge(L);
 }
 

@@ -342,15 +342,22 @@ TEST(region, thingify) {
         using reg::cable;
         using reg::all;
 
-        auto reg1_ = cable(mcable{1,1,1});
+        mcable start1_{1,0,0};
+        mcable end1_{1,1,1};
 
-//        EXPECT_EQ(thingify(distal_interval(tagged(1), 45), mp), (mcable_list{{0,0,1}}));
-        EXPECT_EQ(thingify(proximal_interval(reg1_, 45), mp), (mcable_list{{0,0,1}}));
+        auto reg0_ = distal_interval(cable(start1_), 45);
+        auto reg1_ = proximal_interval(cable(end1_), 45);
+        auto reg2_ = proximal_interval(cable(end1_), 91);
+
         EXPECT_EQ(thingify(tagged(1), mp), (mcable_list{{0,0,1}}));
         EXPECT_EQ(thingify(tagged(2), mp), (mcable_list{{2,0,1}}));
         EXPECT_EQ(thingify(tagged(3), mp), (mcable_list{{1,0,1}}));
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), thingify(all(), mp));
+        EXPECT_EQ(thingify(reg0_, mp), (mcable_list{{1,0,0.5}}));
+        EXPECT_EQ(thingify(reg1_, mp), (mcable_list{{1,0.5,1}}));
+        EXPECT_EQ(thingify(join(reg0_, reg1_), mp), (mcable_list{{1,0,1}}));
+        EXPECT_EQ(thingify(reg2_, mp), (mcable_list{{0, 0.75, 1}, {1,0,1}}));
     }
 
     // Test multi-level morphologies.
@@ -388,6 +395,7 @@ TEST(region, thingify) {
 
         using reg::tagged;
         using reg::distal_interval;
+        using reg::proximal_interval;
         using reg::branch;
         using reg::all;
         using reg::cable;
@@ -413,15 +421,25 @@ TEST(region, thingify) {
         mcable end1_{1,1,1};
         mcable root_{0,0,0};
 
-        auto reg0_ = cable(b0_);
+        auto mid1_           = cable({1,0.5,0.5});
+        auto quar_interval1_ = cable({1,0,0.25});
+        auto end2_           = cable({2,1,1});
+        auto mid3_           = cable({3,0.5,0.5});
 
         EXPECT_EQ(thingify(all(), mp), all_);
-//        EXPECT_EQ(thingify(distal_interval(reg0_, 9), mp), (mcable_list{{0,0,0.1}}));
         EXPECT_EQ(thingify(axon, mp), (cl{b1_}));
         EXPECT_EQ(thingify(dend, mp), (cl{b0_,b3_}));
         EXPECT_EQ(thingify(apic, mp), (cl{b2_}));
         EXPECT_EQ(thingify(join(dend, apic), mp), (cl{b0_,b2_,b3_}));
         EXPECT_EQ(thingify(join(axon, join(dend, apic)), mp), all_);
+        EXPECT_EQ(thingify(distal_interval(mid1_, 1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}}));
+        EXPECT_EQ(thingify(distal_interval(mid1_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}}));
+        EXPECT_EQ(thingify(distal_interval(quar_interval1_, 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}}));
+        EXPECT_EQ(thingify(distal_interval(join(quar_interval1_, mid1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}}));
+        EXPECT_EQ(thingify(proximal_interval(mid3_, 100), mp), (mcable_list{{3,0,0.5}}));
+        EXPECT_EQ(thingify(proximal_interval(mid3_, 150), mp), (mcable_list{{1,0.5,1}, {3,0,0.5}}));
+        EXPECT_EQ(thingify(proximal_interval(end2_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}}));
+        EXPECT_EQ(thingify(proximal_interval(end2_, 500), mp), (mcable_list{{1,0,1}, {2,0,1}}));
 
         // Test that intersection correctly generates zero-length cables at
         // parent-child interfaces.
