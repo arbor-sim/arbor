@@ -97,7 +97,7 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-mcable_list embed_pwlin::radius_le(msize_t bid, double rad_lim) const {
+mcable_list embed_pwlin::radius_lt(msize_t bid, double rad_lim) const {
     mcable_list L;
     const auto& pw = data_->radius.at(bid);
     for (const auto& piece: pw) {
@@ -122,6 +122,38 @@ mcable_list embed_pwlin::radius_le(msize_t bid, double rad_lim) const {
             continue;
         }
         if (left_rad > rad_lim) {
+            L.push_back({bid, limit, normal_extents.second});
+            continue;
+        }
+    }
+    return L;
+}
+
+mcable_list embed_pwlin::radius_gt(msize_t bid, double rad_lim) const {
+    mcable_list L;
+    const auto& pw = data_->radius.at(bid);
+    for (const auto& piece: pw) {
+        auto normal_extents = piece.first;
+        auto left_rad = piece.second(0);
+        auto right_rad = piece.second(1);
+
+        if (left_rad <= rad_lim && right_rad <= rad_lim) {
+            continue;
+        }
+        if (left_rad > rad_lim && right_rad > rad_lim) {
+            L.push_back({bid, normal_extents.first, normal_extents.second});
+            continue;
+        }
+
+        auto normal_lim = (rad_lim - left_rad)/(right_rad - left_rad);
+        auto portion = normal_extents.second - normal_extents.first;
+        auto limit = normal_lim * portion + normal_extents.first;
+
+        if (left_rad > rad_lim) {
+            L.push_back({bid, normal_extents.first, limit});
+            continue;
+        }
+        if (left_rad < rad_lim) {
             L.push_back({bid, limit, normal_extents.second});
             continue;
         }

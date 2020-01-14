@@ -374,16 +374,17 @@ std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
     return o << "(distal_interval: " << d.end << ", " << d.distance << ")";
 }
 
-struct radius_le_ {
+// Region with all segments with radius less than r
+struct radius_lt_ {
     region reg;
     double radius_lim; //um
 };
 
-region radius_le(region reg, double radius_lim) {
-    return region(radius_le_{reg, radius_lim});
+region radius_lt(region reg, double radius_lim) {
+    return region(radius_lt_{reg, radius_lim});
 }
 
-mcable_list thingify_(const radius_le_& r, const mprovider& p) {
+mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
     const auto& m = p.morphology();
     const auto& e = p.embedding();
 
@@ -393,13 +394,43 @@ mcable_list thingify_(const radius_le_& r, const mprovider& p) {
     auto radius_lim = r.radius_lim;
 
     for (auto c: reg) {
-        util::append(L, e.radius_le(c.branch, radius_lim));
+        util::append(L, e.radius_lt(c.branch, radius_lim));
     }
     util::sort(L);
     return merge(L);
 }
 
-std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
+std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
+    return o << "(diam_le: " << r.reg << ", " << r.radius_lim << ")";
+}
+
+// Region with all segments with radius greater than r
+struct radius_gt_ {
+    region reg;
+    double radius_lim; //um
+};
+
+region radius_gt(region reg, double radius_lim) {
+    return region(radius_gt_{reg, radius_lim});
+}
+
+mcable_list thingify_(const radius_gt_& r, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+
+    auto reg = thingify(r.reg, p);
+    auto radius_lim = r.radius_lim;
+
+    for (auto c: reg) {
+        util::append(L, e.radius_gt(c.branch, radius_lim));
+    }
+    util::sort(L);
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
     return o << "(diam_le: " << r.reg << ", " << r.radius_lim << ")";
 }
 

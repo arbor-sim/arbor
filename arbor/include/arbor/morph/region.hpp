@@ -134,7 +134,10 @@ region distal_interval(region start, double distance);
 region proximal_interval(region end, double distance);
 
 // Region with all segments with radius less than r
-region radius_le(region reg, double r);
+region radius_lt(region reg, double r);
+
+// Region with all segments with radius greater than r
+region radius_gt(region reg, double r);
 
 // Region with all segments in a cell.
 region all();

@@ -396,7 +396,8 @@ TEST(region, thingify) {
         using reg::tagged;
         using reg::distal_interval;
         using reg::proximal_interval;
-        using reg::radius_le;
+        using reg::radius_lt;
+        using reg::radius_gt;
         using reg::branch;
         using reg::all;
         using reg::cable;
@@ -458,8 +459,10 @@ TEST(region, thingify) {
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(join(quar_interval3_, mid2_), 120), mp), (mcable_list{{1,0.3,1}, {2,0,0.5}, {3, 0, 0.4}})));
 
         // Test radius_le
-        EXPECT_TRUE(cablelist_eq(thingify(radius_le(all(), 2), mp), (mcable_list{{0,0,0.55}, {1,0,0.325}, {3,0.375,0.75}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_le(all(), 3), mp), (mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(all(), 2), mp), (mcable_list{{0,0,0.55}, {1,0,0.325}, {3,0.375,0.75}})));
+        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(all(), 3), mp), (mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(all(), 2), mp), (mcable_list{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(all(), 3), mp), (mcable_list{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}})));
 
         // Test some more interesting intersections and unions.
 
