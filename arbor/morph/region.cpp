@@ -374,6 +374,35 @@ std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
     return o << "(distal_interval: " << d.end << ", " << d.distance << ")";
 }
 
+struct radius_le_ {
+    region reg;
+    double radius_lim; //um
+};
+
+region radius_le(region reg, double radius_lim) {
+    return region(radius_le_{reg, radius_lim});
+}
+
+mcable_list thingify_(const radius_le_& r, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+
+    auto reg = thingify(r.reg, p);
+    auto radius_lim = r.radius_lim;
+
+    for (auto c: reg) {
+        util::append(L, e.radius_le(c.branch, radius_lim));
+    }
+    util::sort(L);
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
+    return o << "(diam_le: " << r.reg << ", " << r.radius_lim << ")";
+}
+
 // Region comprising whole morphology.
 
 struct all_ {};

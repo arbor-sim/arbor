@@ -379,14 +379,14 @@ TEST(region, thingify) {
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
         svec samples = {
-            {{  0,  0,  0,  2}, 1},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 2},
-            {{  0,100,  0,  2}, 2},
+            {{  0,  0,  0,  1}, 1},
+            {{ 10,  0,  0,  1}, 3},
+            {{100,  0,  0,  3}, 3},
+            {{  0, 10,  0,  1}, 2},
+            {{  0,100,  0,  5}, 2},
             {{100,100,  0,  2}, 4},
-            {{  0,200,  0,  2}, 3},
-            {{  0,300,  0,  2}, 3},
+            {{  0,200,  0,  1}, 3},
+            {{  0,300,  0,  3}, 3},
         };
         sample_tree sm(samples, parents);
 
@@ -396,6 +396,7 @@ TEST(region, thingify) {
         using reg::tagged;
         using reg::distal_interval;
         using reg::proximal_interval;
+        using reg::radius_le;
         using reg::branch;
         using reg::all;
         using reg::cable;
@@ -421,31 +422,44 @@ TEST(region, thingify) {
         mcable end1_{1,1,1};
         mcable root_{0,0,0};
 
-        auto mid1_           = cable({1,0.5,0.5});
-        auto quar_interval1_ = cable({1,0,0.25});
-        auto end2_           = cable({2,1,1});
-        auto mid3_           = cable({3,0.5,0.5});
-
         EXPECT_EQ(thingify(all(), mp), all_);
         EXPECT_EQ(thingify(axon, mp), (cl{b1_}));
         EXPECT_EQ(thingify(dend, mp), (cl{b0_,b3_}));
         EXPECT_EQ(thingify(apic, mp), (cl{b2_}));
         EXPECT_EQ(thingify(join(dend, apic), mp), (cl{b0_,b2_,b3_}));
         EXPECT_EQ(thingify(join(axon, join(dend, apic)), mp), all_);
-        EXPECT_EQ(thingify(distal_interval(mid1_, 1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}}));
-        EXPECT_EQ(thingify(distal_interval(mid1_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}}));
-        EXPECT_EQ(thingify(distal_interval(quar_interval1_, 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}}));
-        EXPECT_EQ(thingify(distal_interval(join(quar_interval1_, mid1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}}));
-        EXPECT_EQ(thingify(proximal_interval(mid3_, 100), mp), (mcable_list{{3,0,0.5}}));
-        EXPECT_EQ(thingify(proximal_interval(mid3_, 150), mp), (mcable_list{{1,0.5,1}, {3,0,0.5}}));
-        EXPECT_EQ(thingify(proximal_interval(end2_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}}));
-        EXPECT_EQ(thingify(proximal_interval(end2_, 500), mp), (mcable_list{{1,0,1}, {2,0,1}}));
 
         // Test that intersection correctly generates zero-length cables at
         // parent-child interfaces.
         EXPECT_EQ(thingify(intersect(apic, dend), mp), (cl{end1_}));
         EXPECT_EQ(thingify(intersect(apic, axon), mp), (cl{end1_}));
         EXPECT_EQ(thingify(intersect(axon, dend), mp), (cl{root_, end1_}));
+
+        // Test distal and proximal interavls
+        auto mid1_           = cable({1, 0.5, 0.5 });
+        auto quar_interval1_ = cable({1, 0,   0.25});
+        auto mid2_           = cable({2, 0.5, 0.5 });
+        auto end2_           = cable({2, 1,   1   });
+        auto mid3_           = cable({3, 0.5, 0.5 });
+        auto quar_interval3_ = cable({3, 0.4, 0.65});
+
+        // Distal from point and/or interval
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_, 1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(quar_interval1_, 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_interval1_, mid1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}})));
+
+        // Proximal from point and/or interval
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(mid3_, 100), mp), (mcable_list{{3,0,0.5}})));
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(mid3_, 150), mp), (mcable_list{{1,0.5,1}, {3,0,0.5}})));
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(end2_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(end2_, 500), mp), (mcable_list{{1,0,1}, {2,0,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(quar_interval3_, 100), mp), (mcable_list{{1,0.8,1}, {3,0,0.4}})));
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(join(quar_interval3_, mid2_), 120), mp), (mcable_list{{1,0.3,1}, {2,0,0.5}, {3, 0, 0.4}})));
+
+        // Test radius_le
+        EXPECT_TRUE(cablelist_eq(thingify(radius_le(all(), 2), mp), (mcable_list{{0,0,0.55}, {1,0,0.325}, {3,0.375,0.75}})));
+        EXPECT_TRUE(cablelist_eq(thingify(radius_le(all(), 3), mp), (mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}})));
 
         // Test some more interesting intersections and unions.
 
