@@ -53,14 +53,82 @@ double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_consta
     return accum;
 }
 
+template <unsigned p, unsigned q>
+mcable_list data_lt(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val) {
+    mcable_list L;
+    const auto& pw = f.at(bid);
+    for (const auto& piece: pw) {
+        auto normal_extents = piece.first;
+        auto left_val = piece.second(0);
+        auto right_val = piece.second(1);
+
+        if (left_val >= val && right_val >= val) {
+            continue;
+        }
+        if (left_val <= val && right_val <= val) {
+            L.push_back({bid, normal_extents.first, normal_extents.second});
+            continue;
+        }
+
+        auto normal_lim = (val - left_val)/(right_val - left_val);
+        auto portion = normal_extents.second - normal_extents.first;
+        auto limit = normal_lim * portion + normal_extents.first;
+
+        if (left_val < val) {
+            L.push_back({bid, normal_extents.first, limit});
+            continue;
+        }
+        if (left_val > val) {
+            L.push_back({bid, limit, normal_extents.second});
+            continue;
+        }
+    }
+    return L;
+}
+
+template <unsigned p, unsigned q>
+mcable_list data_gt(const branch_pw_ratpoly<p, q>& f, msize_t bid, double val) {
+    mcable_list L;
+    const auto& pw = f.at(bid);
+    for (const auto& piece: pw) {
+        auto normal_extents = piece.first;
+        auto left_val = piece.second(0);
+        auto right_val = piece.second(1);
+
+        if (left_val <= val && right_val <= val) {
+            continue;
+        }
+        if (left_val >= val && right_val >= val) {
+            L.push_back({bid, normal_extents.first, normal_extents.second});
+            continue;
+        }
+
+        auto normal_lim = (val - left_val)/(right_val - left_val);
+        auto portion = normal_extents.second - normal_extents.first;
+        auto limit = normal_lim * portion + normal_extents.first;
+
+        if (left_val > val) {
+            L.push_back({bid, normal_extents.first, limit});
+            continue;
+        }
+        if (left_val < val) {
+            L.push_back({bid, limit, normal_extents.second});
+            continue;
+        }
+    }
+    return L;
+}
+
 struct embed_pwlin_data {
     branch_pw_ratpoly<1, 0> length;
+    branch_pw_ratpoly<1, 0> directed_projection;
     branch_pw_ratpoly<1, 0> radius;
     branch_pw_ratpoly<2, 0> area;
     branch_pw_ratpoly<1, 1> ixa;
 
     explicit embed_pwlin_data(msize_t n_branch):
         length(n_branch),
+        directed_projection(n_branch),
         radius(n_branch),
         area(n_branch),
         ixa(n_branch)
@@ -69,6 +137,10 @@ struct embed_pwlin_data {
 
 double embed_pwlin::radius(mlocation loc) const {
     return interpolate(data_->radius, loc.branch, loc.pos);
+}
+
+double embed_pwlin::directed_projection(arb::mlocation loc) const {
+    return interpolate(data_->directed_projection, loc.branch, loc.pos);
 }
 
 double embed_pwlin::integrate_length(msize_t bid, const pw_constant_fn& g) const {
@@ -97,68 +169,20 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-mcable_list embed_pwlin::radius_lt(msize_t bid, double rad_lim) const {
-    mcable_list L;
-    const auto& pw = data_->radius.at(bid);
-    for (const auto& piece: pw) {
-        auto normal_extents = piece.first;
-        auto left_rad = piece.second(0);
-        auto right_rad = piece.second(1);
-
-        if (left_rad >= rad_lim && right_rad >= rad_lim) {
-            continue;
-        }
-        if (left_rad < rad_lim && right_rad < rad_lim) {
-            L.push_back({bid, normal_extents.first, normal_extents.second});
-            continue;
-        }
-
-        auto normal_lim = (rad_lim - left_rad)/(right_rad - left_rad);
-        auto portion = normal_extents.second - normal_extents.first;
-        auto limit = normal_lim * portion + normal_extents.first;
-
-        if (left_rad < rad_lim) {
-            L.push_back({bid, normal_extents.first, limit});
-            continue;
-        }
-        if (left_rad > rad_lim) {
-            L.push_back({bid, limit, normal_extents.second});
-            continue;
-        }
-    }
-    return L;
+mcable_list embed_pwlin::radius_lt(msize_t bid, double val) const {
+    return data_lt(data_->radius, bid, val);
 }
 
-mcable_list embed_pwlin::radius_gt(msize_t bid, double rad_lim) const {
-    mcable_list L;
-    const auto& pw = data_->radius.at(bid);
-    for (const auto& piece: pw) {
-        auto normal_extents = piece.first;
-        auto left_rad = piece.second(0);
-        auto right_rad = piece.second(1);
+mcable_list embed_pwlin::radius_gt(msize_t bid, double val) const {
+    return data_gt(data_->radius, bid, val);
+}
 
-        if (left_rad <= rad_lim && right_rad <= rad_lim) {
-            continue;
-        }
-        if (left_rad > rad_lim && right_rad > rad_lim) {
-            L.push_back({bid, normal_extents.first, normal_extents.second});
-            continue;
-        }
+mcable_list embed_pwlin::projection_lt(msize_t bid, double val) const {
+    return data_lt(data_->directed_projection, bid, val);
+}
 
-        auto normal_lim = (rad_lim - left_rad)/(right_rad - left_rad);
-        auto portion = normal_extents.second - normal_extents.first;
-        auto limit = normal_lim * portion + normal_extents.first;
-
-        if (left_rad > rad_lim) {
-            L.push_back({bid, normal_extents.first, limit});
-            continue;
-        }
-        if (left_rad < rad_lim) {
-            L.push_back({bid, limit, normal_extents.second});
-            continue;
-        }
-    }
-    return L;
+mcable_list embed_pwlin::projection_gt(msize_t bid, double val) const {
+    return data_gt(data_->directed_projection, bid, val);
 }
 
 // Initialization, creation of geometric data.
@@ -183,6 +207,7 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             // Treat spherical root as area-equivalent cylinder.
             double r = samples[0].loc.radius;
 
+            data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(-r, r));
             data_->length[bid].push_back(0., 1., rat_element<1, 0>(0, r*2));
             data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
 
@@ -225,7 +250,9 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             if (length_scale==0) {
                 // Zero-length branch? Weird, but make best show of it.
                 double r = samples[sample_indices[0]].loc.radius;
+                double z = samples[sample_indices[0]].loc.z;
                 data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
+                data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z, z));
                 data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
                 data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
             }
@@ -236,6 +263,10 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
                     double p0 = i>1? sample_locations_[sample_indices[i-1]].pos: 0;
                     double p1 = sample_locations_[sample_indices[i]].pos;
                     if (p0==p1) continue;
+
+                    double z0 = samples[sample_indices[i-1]].loc.z;
+                    double z1 = samples[sample_indices[i]].loc.z;
+                    data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
 
                     double r0 = samples[sample_indices[i-1]].loc.radius;
                     double r1 = samples[sample_indices[i]].loc.radius;

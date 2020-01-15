@@ -517,4 +517,39 @@ TEST(region, thingify) {
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
     }
+
+    // Test multi-level morphologies.
+    //
+    // Eight samples
+    //
+    //  sample ids:
+    //            0
+    //            1
+    //           2 3
+    //          4   5
+    {
+        pvec parents = {mnpos, 0, 1, 1, 2, 3};
+        svec samples = {
+                {{  0, 10, 10,  1}, 1},
+                {{  0, 30, 30,  1}, 2},
+                {{  0, 60,-20,  1}, 2},
+                {{  0, 90, 70,  1}, 2},
+                {{  0, 80,-10,  1}, 2},
+                {{  0,100,-40,  1}, 2}
+        };
+        sample_tree sm(samples, parents);
+
+        // Without spherical root
+        mprovider mp(morphology(sm, false));
+
+        using reg::all;
+        using reg::projection_lt;
+        using reg::projection_gt;
+        using reg::cable;
+
+        // Test radius_le
+        EXPECT_TRUE(cablelist_eq(thingify(projection_lt(20), mp), (mcable_list{{0,0,0.5}, {1,0.14456272544548071,1}, {2,0.6699940078464377,0.88999800261547934}})));
+        EXPECT_TRUE(cablelist_eq(thingify(projection_gt(20), mp), (mcable_list{{0,0.5,1}, {1,0,0.14456272544548071}, {2,0,0.6699940078464377}, {2,0.88999800261547934,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(join(projection_lt(20), projection_gt(20)), mp), thingify(all(), mp)));
+    }
 }

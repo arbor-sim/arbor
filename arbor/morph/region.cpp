@@ -253,6 +253,28 @@ std::ostream& operator<<(std::ostream& o, const tagged_& t) {
     return o << "(tag " << t.tag << ")";
 }
 
+// Region comprising whole morphology.
+
+struct all_ {};
+
+region all() {
+    return region(all_{});
+}
+
+mcable_list thingify_(const all_&, const mprovider& p) {
+    auto nb = p.morphology().num_branches();
+    mcable_list branches;
+    branches.reserve(nb);
+    for (auto i: util::make_span(nb)) {
+        branches.push_back({i,0,1});
+    }
+    return branches;
+}
+
+std::ostream& operator<<(std::ostream& o, const all_& t) {
+    return o << "all";
+}
+
 // Region with all segments distal from another region
 
 struct distal_interval_ {
@@ -323,6 +345,8 @@ std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
     return o << "(distal_interval: " << d.start << ", " << d.distance << ")";
 }
 
+// Region with all segments proximal from another region
+
 struct proximal_interval_ {
     region end;
     double distance; //um
@@ -375,87 +399,134 @@ std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
 }
 
 // Region with all segments with radius less than r
+
 struct radius_lt_ {
     region reg;
-    double radius_lim; //um
+    double val; //um
 };
 
-region radius_lt(region reg, double radius_lim) {
-    return region(radius_lt_{reg, radius_lim});
+region radius_lt(region reg, double val) {
+    return region(radius_lt_{reg, val});
 }
 
 mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
-    const auto& m = p.morphology();
     const auto& e = p.embedding();
 
     std::vector<mcable> L;
 
     auto reg = thingify(r.reg, p);
-    auto radius_lim = r.radius_lim;
+    auto val = r.val;
 
     for (auto c: reg) {
-        util::append(L, e.radius_lt(c.branch, radius_lim));
+        util::append(L, e.radius_lt(c.branch, val));
     }
     util::sort(L);
     return merge(L);
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
-    return o << "(diam_le: " << r.reg << ", " << r.radius_lim << ")";
+    return o << "(radius_le: " << r.reg << ", " << r.val << ")";
 }
 
 // Region with all segments with radius greater than r
+
 struct radius_gt_ {
     region reg;
-    double radius_lim; //um
+    double val; //um
 };
 
-region radius_gt(region reg, double radius_lim) {
-    return region(radius_gt_{reg, radius_lim});
+region radius_gt(region reg, double val) {
+    return region(radius_gt_{reg, val});
 }
 
 mcable_list thingify_(const radius_gt_& r, const mprovider& p) {
-    const auto& m = p.morphology();
     const auto& e = p.embedding();
 
     std::vector<mcable> L;
 
     auto reg = thingify(r.reg, p);
-    auto radius_lim = r.radius_lim;
+    auto val = r.val;
 
     for (auto c: reg) {
-        util::append(L, e.radius_gt(c.branch, radius_lim));
+        util::append(L, e.radius_gt(c.branch, val));
     }
     util::sort(L);
     return merge(L);
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
-    return o << "(diam_le: " << r.reg << ", " << r.radius_lim << ")";
+    return o << "(radius_gt: " << r.reg << ", " << r.val << ")";
 }
 
-// Region comprising whole morphology.
+// Region with all segments with projection less than val
 
-struct all_ {};
+struct proj_lt_{
+    double val; //um
+};
 
-region all() {
-    return region(all_{});
+region proj_lt(double val) {
+    return region(proj_lt_{val});
 }
 
-mcable_list thingify_(const all_&, const mprovider& p) {
-    auto nb = p.morphology().num_branches();
-    mcable_list branches;
-    branches.reserve(nb);
-    for (auto i: util::make_span(nb)) {
-        branches.push_back({i,0,1});
+mcable_list thingify_(const proj_lt_& r, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+
+    auto val = r.val;
+
+    for (auto i: util::make_span(m.num_branches())) {
+        util::append(L, e.projection_lt(i, val));
     }
-    return branches;
+    util::sort(L);
+    return merge(L);
 }
 
-std::ostream& operator<<(std::ostream& o, const all_& t) {
-    return o << "all";
+std::ostream& operator<<(std::ostream& o, const proj_lt_& r) {
+    return o << "(radius_le: " << r.val << ")";
 }
 
+// Region with all segments with projection greater than val
+
+struct proj_gt_ {
+    double val; //um
+};
+
+region proj_gt(double val) {
+    return region(proj_gt_{val});
+}
+
+mcable_list thingify_(const proj_gt_& r, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+
+    auto val = r.val;
+
+    for (auto i: util::make_span(m.num_branches())) {
+        util::append(L, e.projection_gt(i, val));
+    }
+    util::sort(L);
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const proj_gt_& r) {
+    return o << "(proj_gt: " << r.val << ")";
+}
+
+region projection_lt(double r0) {
+    region lt = reg::proj_lt(r0);
+    region gt = reg::proj_gt(-r0);
+    return region{intersect(std::move(lt), std::move(gt))};
+}
+
+region projection_gt(double r0) {
+    region lt = reg::proj_lt(-r0);
+    region gt = reg::proj_gt(r0);
+    return region{join(std::move(lt), std::move(gt))};
+}
 
 // Named region.
 

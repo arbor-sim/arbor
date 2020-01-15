@@ -31,6 +31,10 @@ struct embed_pwlin {
     mcable_list radius_lt(msize_t bid, double rad_lim) const;
     mcable_list radius_gt(msize_t bid, double rad_lim) const;
 
+    double directed_projection(mlocation) const;
+    mcable_list projection_lt(msize_t bid, double proj_lim) const;
+    mcable_list projection_gt(msize_t bid, double proj_lim) const;
+
     // Computed length of mcable.
     double integrate_length(mcable c) const;
     double integrate_length(msize_t bid, const pw_constant_fn&) const;
