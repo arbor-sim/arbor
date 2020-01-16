@@ -313,14 +313,58 @@ void register_cells(pybind11::module& m) {
             "A spike detector that generates a spike when voltage crosses a threshold.");
     detector
         .def(pybind11::init(
-                [](double thresh) {
-                    return arb::threshold_detector{thresh};
-                }), "threshold"_a)
+            [](double thresh) {
+                return arb::threshold_detector{thresh};
+            }), "threshold"_a)
         .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [ms]")
         .def("__repr__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
         .def("__str__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);});
+
+    // arb::init_membrane_potential
+
+    pybind11::class_<arb::init_membrane_potential> init_Vm(m, "init_Vm",
+        "initial membrane potential [mV]");
+    init_Vm
+        .def_readonly("value", &arb::init_membrane_potential::value, "initial membrane potential in mV")
+        .def("__repr__", [](const arb::init_membrane_potential& p) {
+            return util::pprintf("<arbor.init_VM: {} mV>", p.value);})
+        .def("__str__", [](const arb::init_membrane_potential& p) {
+            return util::pprintf("{} mV", p.value);});
+
+    // arb::temperature_K
+
+    pybind11::class_<arb::temperature_K> temperature_K(m, "temperature_K",
+        "temperature [°K]");
+    temperature_K
+        .def_readonly("value", &arb::temperature_K::value, "value [°K]")
+        .def("__repr__", [](const arb::temperature_K& p) {
+            return util::pprintf("<arbor.temperature_K: {} K>", p.value);})
+        .def("__str__", [](const arb::temperature_K& p) {
+            return util::pprintf("{} °K", p.value);});
+
+    // arb::axial_resistivity
+
+    pybind11::class_<arb::axial_resistivity> axial_resistivity(m, "axial_resistivity",
+        "axial resistivity (r_L) [Ω·cm]");
+    axial_resistivity
+        .def_readonly("value", &arb::axial_resistivity::value, "value [Ω·cm]")
+        .def("__repr__", [](const arb::axial_resistivity& p) {
+            return util::pprintf("<arbor.axial_resistivity: {} Ω·cm>", p.value);})
+        .def("__str__", [](const arb::axial_resistivity& p) {
+            return util::pprintf("{} Ω·cm", p.value);});
+
+    // arb::membrane_capacitance
+
+    pybind11::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance",
+        "membrane capacitance (c_m) [F/m²]");
+    membrane_capacitance
+        .def_readonly("value", &arb::membrane_capacitance::value, "value [F/m²]")
+        .def("__repr__", [](const arb::membrane_capacitance& p) {
+            return util::pprintf("<arbor.membrane_capacitance: {} F/m²>", p.value);})
+        .def("__str__", [](const arb::membrane_capacitance& p) {
+            return util::pprintf("{} F/m²", p.value);});
 
     // arb::cable_cell
 
@@ -344,10 +388,23 @@ void register_cells(pybind11::module& m) {
             },
             "region"_a, "mechanism_name"_a,
             "Associate a mechanism with a region.")
+        // Paint membrane/static properties.
+        .def("paint",
+            [](arb::cable_cell& c, const char* region, arb::init_membrane_potential d) { c.paint(region, d); },
+            "region"_a, "Vm"_a, "Set membrane property.")
+        .def("paint",
+            [](arb::cable_cell& c, const char* region, arb::membrane_capacitance d) { c.paint(region, d); },
+            "region"_a, "temperature"_a, "Set membrane property.")
+        .def("paint",
+            [](arb::cable_cell& c, const char* region, arb::temperature_K d) { c.paint(region, d); },
+            "region"_a, "rL"_a, "Set cable property.")
+        .def("paint",
+            [](arb::cable_cell& c, const char* region, arb::axial_resistivity d) { c.paint(region, d); },
+            "region"_a, "cm"_a, "Set cable property.")
+        // Place synapses
         .def("place",
             [](arb::cable_cell& c, const char* locset, const arb::mechanism_desc& d) {
-                c.place(locset, d);
-            },
+                c.place(locset, d); },
             "locations"_a, "mechanism"_a,
             "Associate a synapse with a set of locations.")
         .def("place",

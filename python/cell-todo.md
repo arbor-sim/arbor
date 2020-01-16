@@ -6,8 +6,8 @@ cell builder:
 morphology expressions and labels:
   [x] unit tests
   [x] named regions and locsets
-  [ ] cell parameters type wrapping
-  [ ] painting static membrane props
+  [x] cell parameters type wrapping
+  [x] painting static membrane props
   [x] painting mechanisms
   [x] placing mechanisms
   [x] placing gap junctions

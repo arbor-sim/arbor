@@ -13,7 +13,6 @@ def make_cable_cell(gid):
     b.add_label('synapse_site', '(location 1 0.5)')
     b.add_label('root', '(root)')
 
-    # make the cell
     cell = b.build()
 
     cell.paint('soma', 'hh')

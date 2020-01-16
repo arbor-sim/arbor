@@ -122,7 +122,7 @@ namespace ls {
 locset location(mlocation);
 
 // Explicit location on morphology.
-locset locatione(msize_t, double);
+locset location(msize_t, double);
 
 // Location of a sample.
 locset sample(msize_t);

@@ -48,7 +48,7 @@ locset location(mlocation loc) {
     return locset{location_{loc}};
 }
 
-locset locatione(msize_t branch, double pos) {
+locset location(msize_t branch, double pos) {
     return location({branch, pos});
 }
 
