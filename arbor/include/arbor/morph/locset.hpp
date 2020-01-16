@@ -118,8 +118,11 @@ private:
 
 namespace ls {
 
-// Location of a sample.
+// Explicit location on morphology.
 locset location(mlocation);
+
+// Explicit location on morphology.
+locset locatione(msize_t, double);
 
 // Location of a sample.
 locset sample(msize_t);

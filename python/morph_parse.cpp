@@ -192,6 +192,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
     // Functions that return locsets
     {"root",    make_call<>(arb::ls::root,
                             "'root' with 0 arguments")},
+    {"location", make_call<int, double>(arb::ls::locatione,
+                            "'location' with 2 arguments: (branch_id:integer position:real)")},
     {"terminal", make_call<>(arb::ls::terminal,
                             "'terminal' with 0 arguments")},
     {"sample",  make_call<int>(arb::ls::sample,

@@ -48,6 +48,10 @@ locset location(mlocation loc) {
     return locset{location_{loc}};
 }
 
+locset locatione(msize_t branch, double pos) {
+    return location({branch, pos});
+}
+
 mlocation_list thingify_(const location_& x, const mprovider& p) {
     assert_valid(x.loc);
     if (x.loc.branch>=p.morphology().num_branches()) {
