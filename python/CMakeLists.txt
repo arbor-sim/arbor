@@ -32,6 +32,7 @@ set(pyarb_source
     sampling.cpp
     schedule.cpp
     simulation.cpp
+    single_cell_model.cpp
     spikes.cpp
     s_expr.cpp
 )
