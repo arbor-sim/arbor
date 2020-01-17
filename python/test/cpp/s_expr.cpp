@@ -70,10 +70,10 @@ TEST(s_expr, parse) {
         return util::pprintf("{}", arb::util::any_cast<arb::locset>(*x));
     };
 
-    EXPECT_EQ("(cable 3 0 1)", round_trip_reg("(branch 3)"));
-    EXPECT_EQ("(cable 2 0.1 0.4)", round_trip_reg("(cable 2 0.1 0.4)"));
-    EXPECT_EQ("(all)", round_trip_reg("(all)"));
-    EXPECT_EQ("(region \"foo\")", round_trip_reg("(region \"foo\")"));
+    EXPECT_EQ("(cable 3 0 1)",      round_trip_reg("(branch 3)"));
+    EXPECT_EQ("(cable 2 0.1 0.4)",  round_trip_reg("(cable 2 0.1 0.4)"));
+    EXPECT_EQ("(all)",              round_trip_reg("(all)"));
+    EXPECT_EQ("(region \"foo\")",   round_trip_reg("(region \"foo\")"));
 
     EXPECT_EQ("(terminal)", round_trip_loc("(terminal)"));
     EXPECT_EQ("(root)",     round_trip_loc("(root)"));

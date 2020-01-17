@@ -15,6 +15,8 @@
 
 namespace pyarb {
 
+arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc);
+
 // pyarb::recipe is the recipe interface used by Python.
 // Calls that return generic types return pybind11::object, to avoid
 // having to wrap some C++ types used by the C++ interface (specifically
@@ -166,7 +168,7 @@ public:
         return try_catch_pyexception([&](){ return impl_->get_probe(id); }, msg);
     }
 
-    // TODO: wrap and make thread safe
+    // TODO: make thread safe
     arb::util::any get_global_properties(arb::cell_kind kind) const override {
         if (kind==arb::cell_kind::cable) {
             arb::cable_cell_global_properties gprop;

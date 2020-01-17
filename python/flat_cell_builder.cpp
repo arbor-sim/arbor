@@ -230,7 +230,6 @@ public:
     std::size_t size() const {
         return cable_distal_id_.size();
     }
-
 };
 
 void register_flat_builder(pybind11::module& m) {
