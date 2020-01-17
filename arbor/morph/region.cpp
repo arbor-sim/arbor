@@ -133,6 +133,41 @@ mcable_list remove_cover(mcable_list cables, const morphology& m) {
     return merge(cables);
 }
 
+mcable_list remove_redundancy(mcable_list cables, const morphology& m) {
+    struct branch_index_pair {
+        msize_t bid;
+        unsigned lid;
+    };
+    std::vector<branch_index_pair> end_branches;
+
+    for (unsigned i = 0; i < cables.size();) {
+        auto c = cables[i];
+        // Save zero length cables at the distal end of a branch
+        // Or at the proximal end of the soma
+        if ((c.prox_pos==1 && c.dist_pos==1) ||
+            (c.prox_pos==0 && c.dist_pos==0)) {
+            end_branches.push_back({c.branch, i});
+        }
+        // Look for branches that are children of the cables saved in end_branches
+        else if (c.prox_pos==0) {
+            auto parent = m.branch_parent(c.branch);
+            if (parent==mnpos) parent = 0;
+
+            auto it = std::find_if(end_branches.begin(), end_branches.end(),
+                                   [&](branch_index_pair& p) { return p.bid==parent;});
+
+            if (it!=end_branches.end()) {
+                cables.erase(cables.begin() + (*it).lid);
+                end_branches.erase(it);
+                continue;
+            }
+        }
+        // Only move on to next index if we don't delete an element
+        i++;
+    }
+
+    return cables;
+}
 
 // Empty region.
 
@@ -586,7 +621,7 @@ mcable_list thingify_(const reg_and& P, const mprovider& p) {
         at_end = it.first==end.first || it.second==end.second;
     }
 
-    return remove_cover(L, m);
+    return remove_redundancy(remove_cover(L, m), m);
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_and& x) {

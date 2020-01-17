@@ -516,6 +516,68 @@ TEST(region, thingify) {
         std::swap(lhs, rhs);
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        //       b1
+        //    123456789
+        //   |-----    | lhs
+        //   |-----    | rhs
+        //   |xxxxx    | rand
+        //   |xxxxx    | ror
+        lhs  = cable({1,0,.5});
+        rhs  = cable({1,0,.5});
+        rand = cl{{1,0,.5}};
+        ror  = cl{{1,0,.5}};
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        //       b3
+        //    123456789
+        //   |-----    | lhs
+        //   |-----    | rhs
+        //   |xxxxx    | rand
+        //   |xxxxx    | ror
+        lhs  = cable({3,0,.5});
+        rhs  = cable({3,0,.5});
+        rand = cl{{3,0,.5}};
+        ror  = cl{{3,0,.5}};
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        //       b0        b1
+        //    123456789 123456789
+        //   |xxxxx    |         | lhs
+        //   |         |xxxxx    | rhs
+        //   x         |         | rand
+        //   |xxxxx    |xxxxx    | ror
+        lhs  = cable({0,0,.5});
+        rhs  = cable({1,0,.5});
+        rand = cl{{0,0,0}};
+        ror  = cl{{0,0,.5},{1,0,.5}};;
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        // Assert communtativity
+        std::swap(lhs, rhs);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        //       b2        b3
+        //    123456789 123456789
+        //   |xxxxx    |         | lhs
+        //   |         |xxxxx    | rhs
+        //   x         |         | rand
+        //   |xxxxx    |xxxxx    | ror
+        lhs  = cable({2,0,.5});
+        rhs  = cable({3,0,.5});
+        rand = cl{{1,1,1}};
+        ror  = cl{{2,0,.5},{3,0,.5}};;
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        // Assert communtativity
+        std::swap(lhs, rhs);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
     }
 
     // Test multi-level morphologies.
