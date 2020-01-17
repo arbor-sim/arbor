@@ -138,8 +138,9 @@ mcable_list remove_redundancy(mcable_list cables, const morphology& m) {
         unsigned lid;
     };
     std::vector<branch_index_pair> end_branches;
+    std::vector<unsigned> erase_indices;
 
-    for (unsigned i = 0; i < cables.size();) {
+    for (unsigned i = 0; i < cables.size(); i++) {
         auto c = cables[i];
         // Save zero length cables at the distal end of a branch
         // Or at the proximal end of the soma
@@ -147,7 +148,7 @@ mcable_list remove_redundancy(mcable_list cables, const morphology& m) {
             (c.prox_pos==0 && c.dist_pos==0)) {
             end_branches.push_back({c.branch, i});
         }
-            // Look for branches that are children of the cables saved in end_branches
+        // Look for branches that are children of the cables saved in end_branches
         else if (c.prox_pos==0) {
             auto parent = m.branch_parent(c.branch);
             if (parent==mnpos) parent = 0;
@@ -156,13 +157,15 @@ mcable_list remove_redundancy(mcable_list cables, const morphology& m) {
                                    [&](branch_index_pair& p) { return p.bid==parent;});
 
             if (it!=end_branches.end()) {
-                cables.erase(cables.begin() + (*it).lid);
+                erase_indices.push_back((*it).lid);
                 end_branches.erase(it);
                 continue;
             }
         }
-        // Only move on to next index if we don't delete an element
-        i++;
+    }
+    util::sort(erase_indices);
+    for (auto it = erase_indices.rbegin(); it != erase_indices.rend(); it++) {
+        cables.erase(cables.begin() + *it);
     }
 
     return cables;

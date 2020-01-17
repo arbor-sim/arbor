@@ -113,6 +113,7 @@ private:
 
 namespace reg {
 
+mcable_list remove_redundancy(mcable_list cables, const morphology& m);
 // An empty region.
 region nil();
 

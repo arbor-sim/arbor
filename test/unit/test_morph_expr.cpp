@@ -507,7 +507,7 @@ TEST(region, thingify) {
         lhs  = cable({0,0,.5});
         rhs  = cable({1,0,.5});
         rand = cl{{0,0,0}};
-        ror  = cl{{0,0,.5},{1,0,.5}};;
+        ror  = cl{{0,0,.5},{1,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
 
@@ -525,7 +525,7 @@ TEST(region, thingify) {
         lhs  = cable({2,0,.5});
         rhs  = cable({3,0,.5});
         rand = cl{{1,1,1}};
-        ror  = cl{{2,0,.5},{3,0,.5}};;
+        ror  = cl{{2,0,.5},{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
 
@@ -533,5 +533,47 @@ TEST(region, thingify) {
         std::swap(lhs, rhs);
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        //       b0        b3
+        //    123456789 123456789
+        //   |xxxxx    |xxxxx    | lhs
+        //   |xxxxxxx  |xxx      | rhs
+        //   |xxxxx    |xxx      | rand
+        //   |xxxxxxx  |xxxxx    | ror
+        lhs  = join(cable({0,0,.5}), cable({3,0,.5}));
+        rhs  = join(cable({0,0,.7}), cable({3,0,.3}));
+        rand = cl{{0,0,.5},{3,0,.3}};
+        ror  = cl{{0,0,.7},{3,0,.5}};
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        // Assert communtativity
+        std::swap(lhs, rhs);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+    }
+    {
+        pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6, 5, 5, 9, 9};
+        svec samples = {
+                {{  0,  0,  0,  2}, 1}, //0
+                {{ 10,  0,  0,  2}, 3}, //1
+                {{100,  0,  0,  2}, 3}, //2
+                {{  0, 10,  0,  2}, 2}, //3
+                {{  0,100,  0,  2}, 2}, //4
+                {{100,100,  0,  2}, 4}, //5
+                {{  0,200,  0,  2}, 3}, //6
+                {{  0,300,  0,  2}, 3}, //7
+                {{200,100,  0,  2}, 3}, //8
+                {{100,200,  0,  2}, 3}, //9
+                {{200,200,  0,  2}, 3}, //10
+                {{100,300,  0,  2}, 3}, //11
+        };
+        sample_tree sm(samples, parents);
+        auto in = cl{{0,0,0},{1,0,0.5},{1,1,1},{2,0,1},{2,1,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
+        auto out = reg::remove_redundancy(in, morphology(sm, false));
+
+        auto expected = cl{{1,0,0.5},{2,0,1},{3,1,1},{4,0,1},{7,0,1}};
+        EXPECT_TRUE(cablelist_eq(out, expected));
     }
 }
