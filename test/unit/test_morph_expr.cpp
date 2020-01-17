@@ -17,6 +17,13 @@
 using namespace arb;
 using embedding = embed_pwlin;
 
+namespace arb {
+    namespace reg {
+        mcable_list remove_redundancy(mcable_list cables, const morphology& m);
+
+    }
+}
+
 ::testing::AssertionResult cable_eq(mcable a, mcable b) {
     if (a.branch!=b.branch) {
         return ::testing::AssertionFailure()
