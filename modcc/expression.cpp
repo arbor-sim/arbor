@@ -318,6 +318,7 @@ void ReactionExpression::semantic(scope_ptr scp) {
     rev_rate()->semantic(scp);
 
     if(lhs_->has_error() || rhs_->has_error() || fwd_rate_->has_error() || rev_rate_->has_error()) {
+        error("Error in semantic pass of Reaction Expression");
         return;
     }
 
@@ -340,6 +341,9 @@ void StoichTermExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     ident()->semantic(scp);
+    if(ident()->has_error()) {
+        error("Error in semantic pass of Stoich Term");
+    }
 }
 
 /*******************************************************************************
