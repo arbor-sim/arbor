@@ -327,6 +327,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::init_membrane_potential> init_Vm(m, "init_Vm",
         "initial membrane potential [mV]");
     init_Vm
+        .def(pybind11::init<double>())
         .def_readonly("value", &arb::init_membrane_potential::value, "initial membrane potential in mV")
         .def("__repr__", [](const arb::init_membrane_potential& p) {
             return util::pprintf("<arbor.init_VM: {} mV>", p.value);})
@@ -338,6 +339,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::temperature_K> temperature_K(m, "temperature_K",
         "temperature [°K]");
     temperature_K
+        .def(pybind11::init<double>())
         .def_readonly("value", &arb::temperature_K::value, "value [°K]")
         .def("__repr__", [](const arb::temperature_K& p) {
             return util::pprintf("<arbor.temperature_K: {} K>", p.value);})
@@ -349,6 +351,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::axial_resistivity> axial_resistivity(m, "axial_resistivity",
         "axial resistivity (r_L) [Ω·cm]");
     axial_resistivity
+        .def(pybind11::init<double>())
         .def_readonly("value", &arb::axial_resistivity::value, "value [Ω·cm]")
         .def("__repr__", [](const arb::axial_resistivity& p) {
             return util::pprintf("<arbor.axial_resistivity: {} Ω·cm>", p.value);})
@@ -360,6 +363,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance",
         "membrane capacitance (c_m) [F/m²]");
     membrane_capacitance
+        .def(pybind11::init<double>())
         .def_readonly("value", &arb::membrane_capacitance::value, "value [F/m²]")
         .def("__repr__", [](const arb::membrane_capacitance& p) {
             return util::pprintf("<arbor.membrane_capacitance: {} F/m²>", p.value);})

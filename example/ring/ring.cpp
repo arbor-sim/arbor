@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
         auto probe_id = cell_member_type{0, 0};
         // The schedule for sampling is 10 samples every 1 ms.
-        auto sched = arb::regular_schedule(0.1);
+        auto sched = arb::regular_schedule(1);
         // This is where the voltage samples will be stored as (time, value) pairs
         arb::trace_data<double> voltage;
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
