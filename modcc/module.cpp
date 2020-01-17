@@ -801,7 +801,7 @@ int Module::semantic_func_proc() {
 #endif
         }
     }
-    
+
     auto inline_and_simplify = [&](auto&& caller) {
         auto rewritten = inline_function_calls(caller->name(), caller->body());
         caller->body(std::move(rewritten));
