@@ -9,10 +9,14 @@ extensions = ['sphinx.ext.todo', 'sphinx.ext.mathjax']
 source_suffix = '.rst'
 master_doc = 'index'
 
+html_logo = 'images/arbor-logo.svg'
+
 project = 'Arbor'
 copyright = '2017, ETHZ & FZ Julich'
 author = 'ETHZ & FZ Julich'
 todo_include_todos = True
 
 html_theme = "sphinx_rtd_theme"
+html_theme_options = {
+    'logo_only': True}
 html_static_path = ['static']
