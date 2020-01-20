@@ -193,9 +193,7 @@ std::unordered_multimap<std::string, evaluator> eval_map {
     {"root",    make_call<>(arb::ls::root,
                             "'root' with 0 arguments")},
 
-
-
-    {"location", make_call<int, double>(static_cast<arb::locset(*)(arb::msize_t, double)>(arb::ls::location),
+    {"location", make_call<int, double>([](int bid, double pos){return arb::ls::location({arb::msize_t(bid), pos});},
                             "'location' with 2 arguments: (branch_id:integer position:real)")},
     {"terminal", make_call<>(arb::ls::terminal,
                             "'terminal' with 0 arguments")},
