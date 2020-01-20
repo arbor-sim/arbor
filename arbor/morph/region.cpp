@@ -159,7 +159,6 @@ mcable_list remove_redundancy(mcable_list cables, const morphology& m) {
             if (it!=end_branches.end()) {
                 erase_indices.push_back((*it).lid);
                 end_branches.erase(it);
-                continue;
             }
         }
     }
