@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+html_static_path = ['static']
+
 def setup(app):
     app.add_stylesheet('custom.css')
     app.add_object_type('generic', 'gen', 'pair: %s; generic')
@@ -18,5 +20,5 @@ todo_include_todos = True
 
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
-    'logo_only': True}
-html_static_path = ['static']
+    'logo_only': True,
+    'style_nav_header_background': '#dfdcdf'}
