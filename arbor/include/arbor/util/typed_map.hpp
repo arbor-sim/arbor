@@ -21,7 +21,7 @@
 
 namespace arb {
 
-template <template <class> typename E>
+template <template <class> class E>
 struct dynamic_typed_map {
     // Retrieve value by reference associated with type T; create entry with
     // default value if no entry in map for T.
@@ -50,7 +50,7 @@ private:
     std::unordered_map<std::type_index, arb::util::any> tmap_;
 };
 
-template <template <class> typename E, typename... Keys>
+template <template <class> class E, typename... Keys>
 struct static_typed_map {
     // Retrieve value by reference associated with type T.
     template <typename T>
