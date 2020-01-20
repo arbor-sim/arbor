@@ -48,6 +48,7 @@ for s in m.spikes:
 fig, ax = plt.subplots()
 for t in m.traces:
     ax.plot(t.time, t.value)
+
 ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='ring demo')
 ax.legend(['voltage'])
 plt.xlim(  0,tfinal)
