@@ -255,6 +255,79 @@ TEST(locset, thingify) {
         // In the absence of a spherical root, there is no branch 4.
         EXPECT_THROW(thingify(begb4, mp), no_such_branch);
     }
+    {
+        mprovider mp(morphology(sm, false));
+
+        auto all = reg::all();
+        auto ls0 = thingify(ls::uniform(all, 0, 10, 12), mp);
+        auto ls1 = thingify(ls::uniform(all, 5,  7, 12), mp);
+        auto ls2 = thingify(ls::uniform(all, 0, 10, 13), mp);
+        auto ls3 = thingify(ls::uniform(all, 2,  6, 12), mp);
+        auto ls4 = thingify(ls::uniform(all, 5, 12, 12), mp);
+
+        bool found_all = true;
+        for (auto l: ls1) {
+            auto it = std::find(ls0.begin(), ls0.end(), l);
+            if (it == ls0.end()) {
+                found_all = false;
+            }
+        }
+        EXPECT_TRUE(found_all);
+
+        bool found_none = true;
+        for (auto l: ls2) {
+            auto it = std::find(ls0.begin(), ls0.end(), l);
+            if (it != ls0.end()) {
+                found_none = false;
+            }
+        }
+        EXPECT_TRUE(found_none);
+
+        int found = 0;
+        for (auto l: ls3) {
+            auto it = std::find(ls1.begin(), ls1.end(), l);
+            if (it != ls1.end()) found++;
+        }
+        EXPECT_TRUE(found == 1);
+
+        found = 0;
+        for (auto l: ls4) {
+            auto it = std::find(ls1.begin(), ls1.end(), l);
+            if (it != ls1.end()) found++;
+        }
+        EXPECT_TRUE(found == 2);
+    }
+    {
+        mprovider mp(morphology(sm, false));
+
+        mcable c0{0, 0.2, 0.7};
+        mcable c1{1, 0.1, 1};
+        mcable c3{3, 0.5, 0.6};
+        auto sub_reg = join(reg::cable(c0), reg::cable(c1), reg::cable(c3));
+
+        auto ls0 = thingify(ls::uniform(sub_reg, 0, 1000, 72), mp);
+        for (auto l: ls0) {
+            switch(l.branch) {
+                case 0: {
+                    if (l.pos < c0.prox_pos || l.pos > c0.dist_pos) FAIL();
+                    break;
+                }
+                case 1: {
+                    if (l.pos < c1.prox_pos || l.pos > c1.dist_pos) FAIL();
+                    break;
+                }
+                case 3: {
+                    if (l.pos < c3.prox_pos || l.pos > c3.dist_pos) FAIL();
+                    break;
+                }
+                default: {
+                    FAIL();
+                    break;
+                }
+            }
+            SUCCEED();
+        }
+    }
 }
 
 TEST(region, thingify) {

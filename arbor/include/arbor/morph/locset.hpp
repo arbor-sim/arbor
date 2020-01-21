@@ -139,7 +139,7 @@ locset nil();
 
 // A range `left` to `right` of randomly selected of locations with a
 // uniform distribution from region `reg` generated using `seed`
-locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed);
+locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
 
 } // namespace ls
 
