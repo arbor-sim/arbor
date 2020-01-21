@@ -1,8 +1,7 @@
 include(BuildModules.cmake)
 
 # The list of library-provided mechanisms used to populate the default catalogue:
-set(mechanisms pas hh expsyn exp2syn nernst test_kin1 test_kinlva test_ca nax kdrmt kamt
-    Cav2_1 Cav3_1 Cav3_2 Cav3_3 cdp5 HCN1 Kca1_1 Kca2_2 Kca3_1 Kir2_3 Kv1_1 Kv1_5 Kv3_3 Kv3_4 Kv4_3 Leak Nav1_6)
+set(mechanisms pas hh expsyn exp2syn nernst test_kin1 test_kinlva test_ca nax kdrmt kamt)
 
 set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 
