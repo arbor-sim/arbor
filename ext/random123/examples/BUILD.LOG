@@ -1,0 +1,15 @@
+g++ -O -I../include   pi_aes.cpp   -o pi_aes
+cc -O -I../include   pi_capi.c   -o pi_capi
+g++ -O -I../include   pi_cppapi.cpp   -o pi_cppapi
+nvcc -O -I../include   pi_cuda.cu   -o pi_cuda
+nvcc -O -I../include   pi_cudapp.cu   -o pi_cudapp
+cc -O `gsl-config --cflags` -I../include   pi_gsl.c  `gsl-config --libs` -o pi_gsl
+xcrun --sdk macosx metal -I../include -c pi_metal_kernel.metal -o pi_metal_kernel.air
+xcrun --sdk macosx metallib pi_metal_kernel.air -o pi_metal_kernel.metallib
+cc  -I../include   pi_metal.m  -framework Metal -framework Foundation -o pi_metal
+g++ -O -I../include   pi_microurng.cpp   -o pi_microurng
+CC="cc" CPPFLAGS="-I../include" ./gencl.sh pi_opencl_kernel.ocl > pi_opencl_kernel.i
+cc -O -I. -I../include   pi_opencl.c  -lOpenCL -o pi_opencl
+g++ -O -I../include   pi_uniform.cpp   -o pi_uniform
+cc -O -I../include   simple.c   -o simple
+g++ -O -I../include   simplepp.cpp   -o simplepp
