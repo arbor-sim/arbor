@@ -2,6 +2,8 @@
 #include <iostream>
 #include <numeric>
 
+#include <Random123/threefry.h>
+
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
