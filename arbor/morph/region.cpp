@@ -132,7 +132,8 @@ mcable_list remove_cover(mcable_list cables, const morphology& m) {
     return merge(cables);
 }
 
-mcable_list remove_redundancy(mcable_list cables, const morphology& m) {
+// Remove zero-length regions from a sorted cable_list that are in the cover of another region in the list.
+mcable_list remove_covered_points(mcable_list cables, const morphology& m) {
     struct branch_index_pair {
         msize_t bid;
         unsigned lid;
@@ -361,7 +362,7 @@ mcable_list thingify_(const reg_and& P, const mprovider& p) {
         at_end = it.first==end.first || it.second==end.second;
     }
 
-    return remove_redundancy(remove_cover(L, m), m);
+    return remove_covered_points(remove_cover(L, m), m);
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_and& x) {

@@ -19,7 +19,7 @@ using embedding = embed_pwlin;
 
 namespace arb {
     namespace reg {
-        mcable_list remove_redundancy(mcable_list cables, const morphology& m);
+        mcable_list remove_covered_points(mcable_list cables, const morphology& m);
 
     }
 }
@@ -582,14 +582,14 @@ TEST(region, thingify) {
 
         {
             auto in = cl{{0,0,0},{1,0,0.5},{1,1,1},{2,0,1},{2,1,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
-            auto out = reg::remove_redundancy(in, m);
+            auto out = reg::remove_covered_points(in, m);
 
             auto expected = cl{{1,0,0.5},{2,0,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
             EXPECT_TRUE(cablelist_eq(out, expected));
         }
         {
             auto in = cl{{0,0,0},{1,0,0.5},{1,1,1},{2,1,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
-            auto out = reg::remove_redundancy(in, m);
+            auto out = reg::remove_covered_points(in, m);
 
             auto expected = cl{{1,0,0.5},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
             EXPECT_TRUE(cablelist_eq(out, expected));
