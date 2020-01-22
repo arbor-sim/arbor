@@ -17,6 +17,13 @@
 using namespace arb;
 using embedding = embed_pwlin;
 
+namespace arb {
+    namespace reg {
+        mcable_list remove_covered_points(mcable_list cables, const morphology& m);
+
+    }
+}
+
 ::testing::AssertionResult cable_eq(mcable a, mcable b) {
     if (a.branch!=b.branch) {
         return ::testing::AssertionFailure()
@@ -640,7 +647,7 @@ TEST(region, thingify) {
         lhs  = cable({0,0,.5});
         rhs  = cable({1,0,.5});
         rand = cl{{0,0,0}};
-        ror  = cl{{0,0,.5},{1,0,.5}};;
+        ror  = cl{{0,0,.5},{1,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
 
@@ -658,7 +665,7 @@ TEST(region, thingify) {
         lhs  = cable({2,0,.5});
         rhs  = cable({3,0,.5});
         rand = cl{{1,1,1}};
-        ror  = cl{{2,0,.5},{3,0,.5}};;
+        ror  = cl{{2,0,.5},{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
 
@@ -666,40 +673,59 @@ TEST(region, thingify) {
         std::swap(lhs, rhs);
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
-    }
 
-    // Test multi-level morphologies.
-    //
-    // Eight samples
-    //
-    //  sample ids:
-    //            0
-    //            1
-    //           2 3
-    //          4   5
+        //       b0        b3
+        //    123456789 123456789
+        //   |xxxxx    |xxxxx    | lhs
+        //   |xxxxxxx  |xxx      | rhs
+        //   |xxxxx    |xxx      | rand
+        //   |xxxxxxx  |xxxxx    | ror
+        lhs  = join(cable({0,0,.5}), cable({3,0,.5}));
+        rhs  = join(cable({0,0,.7}), cable({3,0,.3}));
+        rand = cl{{0,0,.5},{3,0,.3}};
+        ror  = cl{{0,0,.7},{3,0,.5}};
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+        // Assert communtativity
+        std::swap(lhs, rhs);
+        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
+        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+
+    }
     {
-        pvec parents = {mnpos, 0, 1, 1, 2, 3};
+        pvec parents = {mnpos, 0, 1, 0, 3, 4, 5, 5, 7, 7, 4, 10};
         svec samples = {
-                {{  0, 10, 10,  1}, 1},
-                {{  0, 30, 30,  1}, 2},
-                {{  0, 60,-20,  1}, 2},
-                {{  0, 90, 70,  1}, 2},
-                {{  0, 80,-10,  1}, 2},
-                {{  0,100,-40,  1}, 2}
+                {{  0,  0,  0,  2}, 3}, //0
+                {{ 10,  0,  0,  2}, 3}, //1
+                {{100,  0,  0,  2}, 3}, //2
+                {{  0, 10,  0,  2}, 3}, //3
+                {{  0,100,  0,  2}, 3}, //4
+                {{100,100,  0,  2}, 3}, //5
+                {{200,100,  0,  2}, 3}, //6
+                {{100,200,  0,  2}, 3}, //7
+                {{200,200,  0,  2}, 3}, //8
+                {{100,300,  0,  2}, 3}, //9
+                {{  0,200,  0,  2}, 3}, //10
+                {{  0,300,  0,  2}, 3}, //11
         };
         sample_tree sm(samples, parents);
+        auto m = morphology(sm, false);
+        std::cout << m.branch_parent(7);
 
-        // Without spherical root
-        mprovider mp(morphology(sm, false));
+        {
+            auto in = cl{{0,0,0},{1,0,0.5},{1,1,1},{2,0,1},{2,1,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
+            auto out = reg::remove_covered_points(in, m);
 
-        using reg::all;
-        using reg::projection_lt;
-        using reg::projection_gt;
-        using reg::cable;
+            auto expected = cl{{1,0,0.5},{2,0,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
+            EXPECT_TRUE(cablelist_eq(out, expected));
+        }
+        {
+            auto in = cl{{0,0,0},{1,0,0.5},{1,1,1},{2,1,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
+            auto out = reg::remove_covered_points(in, m);
 
-        // Test radius_le
-        EXPECT_TRUE(cablelist_eq(thingify(projection_lt(20), mp), (mcable_list{{0,0,0.5}, {1,0.14456272544548071,1}, {2,0.6699940078464377,0.88999800261547934}})));
-        EXPECT_TRUE(cablelist_eq(thingify(projection_gt(20), mp), (mcable_list{{0,0.5,1}, {1,0,0.14456272544548071}, {2,0,0.6699940078464377}, {2,0.88999800261547934,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(join(projection_lt(20), projection_gt(20)), mp), thingify(all(), mp)));
+            auto expected = cl{{1,0,0.5},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
+            EXPECT_TRUE(cablelist_eq(out, expected));
+        }
     }
 }

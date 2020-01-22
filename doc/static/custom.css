@@ -32,6 +32,6 @@ table.docutils td {
 @media screen and (min-width: 40em) {
     .wy-table-responsive table td,
     .wy-table-responsive table th {
-	white-space: normal;
+        white-space: normal;
     }
 }
