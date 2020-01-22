@@ -259,20 +259,15 @@ TEST(locset, thingify) {
         mprovider mp(morphology(sm, false));
 
         auto all = reg::all();
-        auto ls0 = thingify(ls::uniform(all, 0, 10, 12), mp);
-        auto ls1 = thingify(ls::uniform(all, 5,  7, 12), mp);
-        auto ls2 = thingify(ls::uniform(all, 0, 10, 13), mp);
-        auto ls3 = thingify(ls::uniform(all, 2,  6, 12), mp);
-        auto ls4 = thingify(ls::uniform(all, 5, 12, 12), mp);
+        auto ls0 = thingify(ls::uniform(all,  0, 10, 12), mp);
+        auto ls1 = thingify(ls::uniform(all,  0, 10, 12), mp);
+        auto ls2 = thingify(ls::uniform(all, 10, 20, 12), mp);
+        auto ls3 = thingify(ls::uniform(all,  0, 10, 13), mp);
+        auto ls4 = thingify(ls::uniform(all,  5,  7, 12), mp);
+        auto ls5 = thingify(ls::uniform(all,  2,  6, 12), mp);
+        auto ls6 = thingify(ls::uniform(all,  5, 12, 12), mp);
 
-        bool found_all = true;
-        for (auto l: ls1) {
-            auto it = std::find(ls0.begin(), ls0.end(), l);
-            if (it == ls0.end()) {
-                found_all = false;
-            }
-        }
-        EXPECT_TRUE(found_all);
+        EXPECT_EQ(ls0, ls1);
 
         bool found_none = true;
         for (auto l: ls2) {
@@ -283,17 +278,35 @@ TEST(locset, thingify) {
         }
         EXPECT_TRUE(found_none);
 
-        int found = 0;
+        found_none = true;
         for (auto l: ls3) {
-            auto it = std::find(ls1.begin(), ls1.end(), l);
-            if (it != ls1.end()) found++;
+            auto it = std::find(ls0.begin(), ls0.end(), l);
+            if (it != ls0.end()) {
+                found_none = false;
+            }
+        }
+        EXPECT_TRUE(found_none);
+
+        bool found_all = true;
+        for (auto l: ls4) {
+            auto it = std::find(ls0.begin(), ls0.end(), l);
+            if (it == ls0.end()) {
+                found_all = false;
+            }
+        }
+        EXPECT_TRUE(found_all);
+
+        int found = 0;
+        for (auto l: ls5) {
+            auto it = std::find(ls4.begin(), ls4.end(), l);
+            if (it != ls4.end()) found++;
         }
         EXPECT_TRUE(found == 1);
 
         found = 0;
-        for (auto l: ls4) {
-            auto it = std::find(ls1.begin(), ls1.end(), l);
-            if (it != ls1.end()) found++;
+        for (auto l: ls6) {
+            auto it = std::find(ls4.begin(), ls4.end(), l);
+            if (it != ls4.end()) found++;
         }
         EXPECT_TRUE(found == 2);
     }
@@ -415,12 +428,14 @@ TEST(region, thingify) {
         using reg::cable;
         using reg::all;
 
+        mcable mid0_  {0,0.5,0.5};
         mcable start1_{1,0,0};
-        mcable end1_{1,1,1};
+        mcable end1_  {1,1,1};
 
         auto reg0_ = distal_interval(cable(start1_), 45);
-        auto reg1_ = proximal_interval(cable(end1_), 45);
-        auto reg2_ = proximal_interval(cable(end1_), 91);
+        auto reg1_ = distal_interval(cable(mid0_),   74);
+        auto reg2_ = proximal_interval(cable(end1_), 45);
+        auto reg3_ = proximal_interval(cable(end1_), 91);
 
         EXPECT_EQ(thingify(tagged(1), mp), (mcable_list{{0,0,1}}));
         EXPECT_EQ(thingify(tagged(2), mp), (mcable_list{{2,0,1}}));
@@ -428,9 +443,9 @@ TEST(region, thingify) {
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), thingify(all(), mp));
         EXPECT_EQ(thingify(reg0_, mp), (mcable_list{{1,0,0.5}}));
-        EXPECT_EQ(thingify(reg1_, mp), (mcable_list{{1,0.5,1}}));
-        EXPECT_EQ(thingify(join(reg0_, reg1_), mp), (mcable_list{{1,0,1}}));
-        EXPECT_EQ(thingify(reg2_, mp), (mcable_list{{0, 0.75, 1}, {1,0,1}}));
+        EXPECT_EQ(thingify(reg1_, mp), (mcable_list{{0,0.5,1}, {1,0,0.8}, {2,0,0.8}}));
+        EXPECT_EQ(thingify(reg2_, mp), (mcable_list{{1,0.5,1}}));
+        EXPECT_EQ(thingify(reg3_, mp), (mcable_list{{0, 0.75, 1}, {1,0,1}}));
     }
 
     // Test multi-level morphologies.

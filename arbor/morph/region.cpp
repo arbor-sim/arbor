@@ -202,16 +202,6 @@ region cable(mcable c) {
     return region(cable_{c});
 }
 
-//region interval(mlocation lhs, mlocation rhs) {
-//    if (lhs.branch > rhs.branch) {
-//        throw invalid_interval(lhs, rhs);
-//    }
-//    if (lhs.branch == rhs.branch && lhs.pos > rhs.pos) {
-//        throw invalid_interval(lhs, rhs);
-//    }
-//    return region(interval_{c});
-//}
-
 region branch(msize_t bid) {
     return cable({bid, 0, 1});
 }
@@ -451,10 +441,8 @@ mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
     const auto& e = p.embedding();
 
     std::vector<mcable> L;
-
     auto reg = thingify(r.reg, p);
     auto val = r.val;
-
     for (auto c: reg) {
         util::append(L, e.radius_lt(c.branch, val));
     }
@@ -481,10 +469,8 @@ mcable_list thingify_(const radius_gt_& r, const mprovider& p) {
     const auto& e = p.embedding();
 
     std::vector<mcable> L;
-
     auto reg = thingify(r.reg, p);
     auto val = r.val;
-
     for (auto c: reg) {
         util::append(L, e.radius_gt(c.branch, val));
     }
@@ -511,9 +497,7 @@ mcable_list thingify_(const proj_lt_& r, const mprovider& p) {
     const auto& e = p.embedding();
 
     std::vector<mcable> L;
-
     auto val = r.val;
-
     for (auto i: util::make_span(m.num_branches())) {
         util::append(L, e.projection_lt(i, val));
     }
@@ -540,9 +524,7 @@ mcable_list thingify_(const proj_gt_& r, const mprovider& p) {
     const auto& e = p.embedding();
 
     std::vector<mcable> L;
-
     auto val = r.val;
-
     for (auto i: util::make_span(m.num_branches())) {
         util::append(L, e.projection_gt(i, val));
     }
