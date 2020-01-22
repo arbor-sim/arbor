@@ -305,7 +305,7 @@ TEST(locset, thingify) {
         mcable c3{3, 0.5, 0.6};
         auto sub_reg = join(reg::cable(c0), reg::cable(c1), reg::cable(c3));
 
-        auto ls0 = thingify(ls::uniform(sub_reg, 0, 1000, 72), mp);
+        auto ls0 = thingify(ls::uniform(sub_reg, 0, 10000, 72), mp);
         for (auto l: ls0) {
             switch(l.branch) {
                 case 0: {

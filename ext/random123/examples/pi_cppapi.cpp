@@ -60,7 +60,6 @@ int main(int, char **){
     G generator;
     G::key_type key = {{}}; // initialize with zeros
     G::ctr_type ctr = {{}};
-    std::cout << ctr << std::endl;
 
     printf("Throwing %lu darts at a square board using Threefry4x64\n", NTRIES);
 
@@ -68,7 +67,6 @@ int main(int, char **){
         ctr.incr();
         G::ctr_type r = generator(ctr, key);
         for(size_t j=0; j<r.size(); j+=2){
-            std::cout << ctr.size()<< ", " << r.size() << " -> " << r[j] <<", "<< r[j+1] << std::endl; 
             int64_t x = (int32_t)r[j];
             int64_t y = (int32_t)r[j+1];
             if( (x*x + y*y) < two_to_the_62 )
