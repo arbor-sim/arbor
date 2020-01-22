@@ -21,8 +21,6 @@ struct probe_info {
 };
 
 /* Recipe descriptions are cell-oriented: in order that the building
- * phase can be done distributed, and in order that the recipe
- * description can be built indepdently of any runtime execution environment.
  * phase can be distributed, and in order that the recipe description
  * can be built indepedently of any runtime execution environment.
  */
