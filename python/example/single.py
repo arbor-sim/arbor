@@ -12,8 +12,8 @@ tree.append(0, s)
 
 print(tree)
 
-tree = arbor.load_swc('../../test/unit/swc/ball_and_stick.swc')
-#tree = arbor.load_swc('../../test/unit/swc/example.swc')
+#tree = arbor.load_swc('../../test/unit/swc/ball_and_stick.swc')
+tree = arbor.load_swc('../../test/unit/swc/example.swc')
 
 print('\n----------------------------- sample tree load from swc -----------------------------\n')
 print('sample tree has ', tree.size, ' samples')
@@ -24,11 +24,8 @@ print('branch info:')
 for i in range(m.num_branches):
     print('  branch', i, ': parent =', m.branch_parent(i), ", children = ", m.branch_children(i), " indexes = ", m.branch_indexes(i))
 
-#print(m.samples)
-#print(m.sample_parents)
-
 print('\n----------------------------- make label dictionary -----------------------------\n')
-defs = {'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)', 'cat': '(join (tag 1) (tag 2))'}
+defs = {'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)', 'cat': '(join (tag 1) (tag 2))', 'midpoints': '(join (location 1 0.5) (location 1 0.2))'}
 labels = arbor.label_dict(defs)
 print(labels)
 print('regions:',labels.regions)
