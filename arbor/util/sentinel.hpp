@@ -3,6 +3,7 @@
 #include <type_traits>
 
 #include <arbor/util/either.hpp>
+
 #include "util/meta.hpp"
 
 /*

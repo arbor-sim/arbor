@@ -194,7 +194,8 @@ struct cable_ {
     mcable cable;
 };
 
-region cable(mcable c) {
+region cable(msize_t id, double prox, double dist) {
+    mcable c{id, prox, dist};
     if (!test_invariants(c)) {
         throw invalid_mcable(c);
     }
@@ -202,7 +203,7 @@ region cable(mcable c) {
 }
 
 region branch(msize_t bid) {
-    return cable({bid, 0, 1});
+    return cable(bid, 0, 1);
 }
 
 mcable_list thingify_(const cable_& reg, const mprovider& p) {
@@ -300,7 +301,7 @@ mcable_list thingify_(const all_&, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const all_& t) {
-    return o << "all";
+    return o << "(all)";
 }
 
 
@@ -319,7 +320,7 @@ mcable_list thingify_(const named_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(named \"" << x.name << "\")";
+    return o << "(region \"" << x.name << "\")";
 }
 
 

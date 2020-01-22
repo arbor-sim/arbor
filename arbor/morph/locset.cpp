@@ -96,7 +96,7 @@ mlocation_list thingify_(const terminal_&, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const terminal_& x) {
-    return o << "terminal";
+    return o << "(terminal)";
 }
 
 // Root location (most proximal point).
@@ -112,7 +112,7 @@ mlocation_list thingify_(const root_&, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const root_& x) {
-    return o << "root";
+    return o << "(root)";
 }
 
 // Named locset.
@@ -130,7 +130,7 @@ mlocation_list thingify_(const named_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(named \"" << x.name << "\")";
+    return o << "(locset \"" << x.name << "\")";
 }
 
 
