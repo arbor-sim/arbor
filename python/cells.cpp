@@ -138,7 +138,7 @@ arb::cable_cell make_cable_cell(arb::cell_gid_type gid, const cell_parameters& p
     d.set("soma",      tagged(1));
     d.set("dendrites", join(tagged(3), tagged(4)));
 
-    arb::cable_cell cell(arb::morphology(tree, true), d, true);
+    arb::cable_cell cell(arb::morphology(tree, true), d);
 
     cell.paint("soma", "hh");
     cell.paint("dendrites", "pas");
