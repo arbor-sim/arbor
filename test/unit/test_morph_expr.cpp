@@ -485,8 +485,8 @@ TEST(region, thingify) {
         //   |-----    | rhs
         //   |xxxxx    | rand
         //   |xxxxx    | ror
-        lhs  = cable({1,0,.5});
-        rhs  = cable({1,0,.5});
+        lhs  = cable(1,0,.5);
+        rhs  = cable(1,0,.5);
         rand = cl{{1,0,.5}};
         ror  = cl{{1,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -498,8 +498,8 @@ TEST(region, thingify) {
         //   |-----    | rhs
         //   |xxxxx    | rand
         //   |xxxxx    | ror
-        lhs  = cable({3,0,.5});
-        rhs  = cable({3,0,.5});
+        lhs  = cable(3,0,.5);
+        rhs  = cable(3,0,.5);
         rand = cl{{3,0,.5}};
         ror  = cl{{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -511,8 +511,8 @@ TEST(region, thingify) {
         //   |         |xxxxx    | rhs
         //   x         |         | rand
         //   |xxxxx    |xxxxx    | ror
-        lhs  = cable({0,0,.5});
-        rhs  = cable({1,0,.5});
+        lhs  = cable(0,0,.5);
+        rhs  = cable(1,0,.5);
         rand = cl{{0,0,0}};
         ror  = cl{{0,0,.5},{1,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -529,8 +529,8 @@ TEST(region, thingify) {
         //   |         |xxxxx    | rhs
         //   x         |         | rand
         //   |xxxxx    |xxxxx    | ror
-        lhs  = cable({2,0,.5});
-        rhs  = cable({3,0,.5});
+        lhs  = cable(2,0,.5);
+        rhs  = cable(3,0,.5);
         rand = cl{{1,1,1}};
         ror  = cl{{2,0,.5},{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -547,8 +547,8 @@ TEST(region, thingify) {
         //   |xxxxxxx  |xxx      | rhs
         //   |xxxxx    |xxx      | rand
         //   |xxxxxxx  |xxxxx    | ror
-        lhs  = join(cable({0,0,.5}), cable({3,0,.5}));
-        rhs  = join(cable({0,0,.7}), cable({3,0,.3}));
+        lhs  = join(cable(0,0,.5), cable(3,0,.5));
+        rhs  = join(cable(0,0,.7), cable(3,0,.3));
         rand = cl{{0,0,.5},{3,0,.3}};
         ror  = cl{{0,0,.7},{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
