@@ -108,7 +108,7 @@ pid = arbor.cell_member(0,0) # cell 0, probe 0
 # Sample rate of 10 sample every ms.
 sampler = arbor.attach_sampler(sim, 0.1, pid)
 
-sim.run(100)
+sim.run(10)
 print(f'{sim} finished')
 
 meters.checkpoint('simulation-run', context)

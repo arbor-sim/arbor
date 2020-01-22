@@ -13,12 +13,14 @@ morphology expressions and labels:
   [x] placing gap junctions
   [x] placing iclamp
   [x] placing detectors
+  [x] setting cell level parameters
 
 single-cell model wrapper
-  [ ] attaching voltage probes
-  [ ] automatic spike recording
-  [ ] accessing probe data
-  [ ] accessing spike data
+  [x] attaching voltage probes
+  [x] automatic spike recording
+  [x] accessing probe data
+  [x] accessing spike data
+  [ ] setting global parameters
 
 examples:
   [x] repair ring.py example

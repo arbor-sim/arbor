@@ -11,6 +11,7 @@
 #include <arbor/util/unique_any.hpp>
 
 #include "conversion.hpp"
+#include "dict.hpp"
 #include "error.hpp"
 #include "morph_parse.hpp"
 #include "schedule.hpp"
@@ -155,6 +156,7 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
 
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
+    using arb::util::optional;
 
     // arb::spike_source_cell
 
@@ -259,6 +261,28 @@ void register_cells(pybind11::module& m) {
 
     // Data structures used to describe mechanisms, electrical properties,
     // gap junction properties, etc.
+
+    // arb::cable_cell_ion_data
+
+    pybind11::class_<arb::initial_ion_data> ion_data(m, "ion");
+    ion_data
+        .def(pybind11::init(
+                [](const char* name,
+                   optional<double> int_con, optional<double> ext_con,
+                   optional<double> rev_pot)
+                {
+                    arb::initial_ion_data x;
+                    x.ion = name;
+                    if (int_con) x.initial.init_int_concentration = *int_con;
+                    if (ext_con) x.initial.init_int_concentration = *ext_con;
+                    if (rev_pot) x.initial.init_reversal_potential = *rev_pot;
+                    return x;
+                }
+            ),
+            "ion_name"_a,
+            pybind11::arg_v("int_con", pybind11::none(), "intial internal concentration"),
+            pybind11::arg_v("ext_con", pybind11::none(), "intial external concentration"),
+            pybind11::arg_v("rev_pot", pybind11::none(), "intial reversal potential"));
 
     // arb::mechanism_desc
 
@@ -379,6 +403,38 @@ void register_cells(pybind11::module& m) {
                 return arb::cable_cell(m, labels.dict, cfd);
             }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
         .def_property_readonly("num_branches", [](const arb::cable_cell& m) {return m.num_branches();})
+        // Set cell-wide properties
+        .def("set_properties",
+            [](arb::cable_cell& c,
+               optional<double> Vm, optional<double> cm,
+               optional<double> rL, optional<double> tempK)
+            {
+                if (Vm) c.default_parameters.init_membrane_potential = Vm;
+                if (cm) c.default_parameters.membrane_capacitance=cm;
+                if (rL) c.default_parameters.axial_resistivity=rL;
+                if (tempK) c.default_parameters.temperature_K=tempK;
+            },
+            pybind11::arg_v("Vm", pybind11::none(), "initial membrane voltage (mV)"),
+            pybind11::arg_v("cm", pybind11::none(), "membrane capacitance (F/m²)"),
+            pybind11::arg_v("rL", pybind11::none(), "axial resistivity (Ω·cm)"),
+            pybind11::arg_v("tempK", pybind11::none(), "temperature (Kelvin)"),
+            "Set default values for cable and cell properties.")
+        .def("set_ion",
+            [](arb::cable_cell& c, const char* ion,
+               optional<double> int_con, optional<double> ext_con,
+               optional<double> rev_pot, optional<arb::mechanism_desc> method)
+            {
+                auto& data = c.default_parameters.ion_data[ion];
+                if (int_con) data.init_int_concentration = *int_con;
+                if (ext_con) data.init_ext_concentration = *ext_con;
+                if (rev_pot) data.init_reversal_potential = *rev_pot;
+                if (method)  c.default_parameters.reversal_potential_method[ion] = *method;
+            },
+            "ion"_a,
+            pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration"),
+            pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration"),
+            pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential (mV)"),
+            pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential"))
         // Paint mechanisms.
         .def("paint",
             [](arb::cable_cell& c, const char* region, const arb::mechanism_desc& d) {
@@ -394,17 +450,29 @@ void register_cells(pybind11::module& m) {
             "Associate a mechanism with a region.")
         // Paint membrane/static properties.
         .def("paint",
-            [](arb::cable_cell& c, const char* region, arb::init_membrane_potential d) { c.paint(region, d); },
-            "region"_a, "Vm"_a, "Set membrane property.")
+            [](arb::cable_cell& c,
+                const char* region,
+               optional<double> Vm, optional<double> cm,
+               optional<double> rL, optional<double> tempK)
+            {
+                if (Vm) c.paint(region, arb::init_membrane_potential{*Vm});
+                if (cm) c.paint(region, arb::membrane_capacitance{*cm});
+                if (rL) c.paint(region, arb::axial_resistivity{*rL});
+                if (tempK) c.paint(region, arb::temperature_K{*tempK});
+            },
+            "region"_a,
+            pybind11::arg_v("Vm", pybind11::none(), "initial membrane voltage (mV)"),
+            pybind11::arg_v("cm", pybind11::none(), "membrane capacitance (F/m²)"),
+            pybind11::arg_v("rL", pybind11::none(), "axial resistivity (Ω·cm)"),
+            pybind11::arg_v("tempK", pybind11::none(), "temperature (Kelvin)"),
+            "Set cable property.")
+        // Paint ion species initial conditions on a region.
         .def("paint",
-            [](arb::cable_cell& c, const char* region, arb::membrane_capacitance d) { c.paint(region, d); },
-            "region"_a, "temperature"_a, "Set membrane property.")
-        .def("paint",
-            [](arb::cable_cell& c, const char* region, arb::temperature_K d) { c.paint(region, d); },
-            "region"_a, "rL"_a, "Set cable property.")
-        .def("paint",
-            [](arb::cable_cell& c, const char* region, arb::axial_resistivity d) { c.paint(region, d); },
-            "region"_a, "cm"_a, "Set cable property.")
+            [](arb::cable_cell& c, const char* region, const arb::initial_ion_data& d) {
+                c.paint(region, d);
+            },
+            "region"_a, "ion_data"_a,
+            "Set ion species inital conditions on a region.")
         // Place synapses
         .def("place",
             [](arb::cable_cell& c, const char* locset, const arb::mechanism_desc& d) {
