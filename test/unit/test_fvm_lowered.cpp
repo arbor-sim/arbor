@@ -9,7 +9,6 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/math.hpp>
 #include <arbor/cable_cell.hpp>
-#include <arbor/segment.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
@@ -26,6 +25,7 @@
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
+#include "util/transform.hpp"
 
 #include "common.hpp"
 #include "unit_test_catalogue.hpp"
@@ -249,8 +249,8 @@ TEST(fvm_lowered, target_handles) {
         make_cell_ball_and_3stick()
     };
 
-    EXPECT_EQ(cells[0].num_branches(), 2u);
-    EXPECT_EQ(cells[1].num_branches(), 4u);
+    EXPECT_EQ(cells[0].morphology().num_branches(), 2u);
+    EXPECT_EQ(cells[1].morphology().num_branches(), 4u);
 
     // (in increasing target order)
     cells[0].place(mlocation{1, 0.4}, "expsyn");
@@ -334,7 +334,7 @@ TEST(fvm_lowered, stimulus) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
     const auto& A = D.cv_area;
 
     std::vector<target_handle> targets;
@@ -702,8 +702,8 @@ TEST(fvm_lowered, point_ionic_current) {
 // Test area-weighted linear combination of ion species concentrations
 
 TEST(fvm_lowered, weighted_write_ion) {
-    // Create a cell with 4 segments (same morphopology as in fvm_layout.ion_weights test):
-    //   - Soma (segment 0) plus three dendrites (1, 2, 3) meeting at a branch point.
+    // Create a cell with 4 branches (same morphopology as in fvm_layout.ion_weights test):
+    //   - Soma (branch 0) plus three dendrites (1, 2, 3) meeting at a branch point.
     //   - Dendritic segments are given 1 compartments each.
     //
     //          /
@@ -714,7 +714,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     //         d3
     //
     // The CV corresponding to the branch point should comprise the terminal
-    // 1/2 of segment 1 and the initial 1/2 of segments 2 and 3.
+    // 1/2 of branch 1 and the initial 1/2 of branches 2 and 3.
     //
     // Geometry:
     //   soma 0: radius 5 µm
@@ -738,11 +738,11 @@ TEST(fvm_lowered, weighted_write_ion) {
     const double con_int = 80;
     const double con_ext = 120;
 
-    // Ca ion reader test_kinlva on CV 2 and 3 via segment 2:
-    c.segments()[2] ->add_mechanism("test_kinlva");
+    // Ca ion reader test_kinlva on CV 2 and 3 via branch 2:
+    c.paint(reg::branch(2), "test_kinlva");
 
-    // Ca ion writer test_ca on CV 2 and 4 via segment 3:
-    c.segments()[3] ->add_mechanism("test_ca");
+    // Ca ion writer test_ca on CV 2 and 4 via branch 3:
+    c.paint(reg::branch(3), "test_ca");
 
     cable1d_recipe rec(c);
     rec.add_ion("ca", 2, con_int, con_ext, 0.0);
@@ -764,7 +764,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     std::vector<double> ion_init_iconc = util::assign_from(ion.init_Xi_);
     std::vector<double> expected_init_iconc = {0.75*con_int, 1.*con_int, 0};
-    EXPECT_EQ(expected_init_iconc, ion_init_iconc);
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected_init_iconc, ion_init_iconc));
 
     auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
 
@@ -791,7 +791,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     ion.init_concentration();
     test_ca->write_ions();
     std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
-    EXPECT_EQ(expected_iconc, ion_iconc);
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
 }
 
 TEST(fvm_lowered, gj_coords_simple) {
@@ -837,7 +837,7 @@ TEST(fvm_lowered, gj_coords_simple) {
         cells.push_back(std::move(c));
     }
 
-    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
 
     std::vector<cell_gid_type> gids = {0, 1};
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
@@ -854,8 +854,6 @@ TEST(fvm_lowered, gj_coords_simple) {
 }
 
 TEST(fvm_lowered, gj_coords_complex) {
-    using pair = std::pair<int, int>;
-
     class gap_recipe: public recipe {
     public:
         gap_recipe() {}
@@ -868,23 +866,26 @@ TEST(fvm_lowered, gj_coords_complex) {
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
             switch (gid) {
-                case 0 :  return {
-                            gap_junction_connection({2, 0}, {0, 1}, 0.01),
-                            gap_junction_connection({1, 0}, {0, 0}, 0.03),
-                            gap_junction_connection({1, 1}, {0, 0}, 0.04)
-                    };
-                case 1 :  return {
-                            gap_junction_connection({0, 0}, {1, 0}, 0.03),
-                            gap_junction_connection({0, 0}, {1, 1}, 0.04),
-                            gap_junction_connection({2, 1}, {1, 2}, 0.02),
-                            gap_junction_connection({2, 2}, {1, 3}, 0.01)
-                    };
-                case 2 :  return {
-                            gap_junction_connection({0, 1}, {2, 0}, 0.01),
-                            gap_junction_connection({1, 2}, {2, 1}, 0.02),
-                            gap_junction_connection({1, 3}, {2, 2}, 0.01)
-                    };
-                default : return {};
+            case 0:
+                return {
+                    gap_junction_connection({2, 0}, {0, 1}, 0.01),
+                    gap_junction_connection({1, 0}, {0, 0}, 0.03),
+                    gap_junction_connection({1, 1}, {0, 0}, 0.04)
+                };
+            case 1:
+                return {
+                    gap_junction_connection({0, 0}, {1, 0}, 0.03),
+                    gap_junction_connection({0, 0}, {1, 1}, 0.04),
+                    gap_junction_connection({2, 1}, {1, 2}, 0.02),
+                    gap_junction_connection({2, 2}, {1, 3}, 0.01)
+                };
+            case 2:
+                return {
+                    gap_junction_connection({0, 1}, {2, 0}, 0.01),
+                    gap_junction_connection({1, 2}, {2, 1}, 0.02),
+                    gap_junction_connection({1, 3}, {2, 2}, 0.01)
+                };
+            default : return {};
             }
             return conns;
         }
@@ -901,8 +902,10 @@ TEST(fvm_lowered, gj_coords_complex) {
     b0.add_branch(0, 8, 0.3, 0.2, 4, "dend");
 
     auto c0 = b0.make_cell();
-    c0.place(mlocation{1, 1}, gap_junction_site{});
-    c0.place(mlocation{1, 0.5}, gap_junction_site{});
+    mlocation c0_gj[2] = {{1, 1}, {1, 0.5}};
+
+    c0.place(c0_gj[0], gap_junction_site{});
+    c0.place(c0_gj[1], gap_junction_site{});
 
     soma_cell_builder b1(1.4);
     b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
@@ -910,10 +913,13 @@ TEST(fvm_lowered, gj_coords_complex) {
     b1.add_branch(1,  5, 0.2, 0.2, 5, "dend");
 
     auto c1 = b1.make_cell();
-    c1.place(mlocation{2, 1}, gap_junction_site{});
-    c1.place(mlocation{1, 1}, gap_junction_site{});
-    c1.place(mlocation{1, 0.45}, gap_junction_site{});
-    c1.place(mlocation{1, 0.1}, gap_junction_site{});
+    mlocation c1_gj[4] = {{2, 1}, {1, 1}, {1, 0.45}, {1, 0.1}};
+
+    c1.place(c1_gj[0], gap_junction_site{});
+    c1.place(c1_gj[1], gap_junction_site{});
+    c1.place(c1_gj[2], gap_junction_site{});
+    c1.place(c1_gj[3], gap_junction_site{});
+
 
     soma_cell_builder b2(2.9);
     b2.add_branch(0, 4, 0.3, 0.5, 2, "dend");
@@ -923,9 +929,11 @@ TEST(fvm_lowered, gj_coords_complex) {
     b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
 
     auto c2 = b2.make_cell();
-    c2.place(mlocation{1, 0.5}, gap_junction_site{});
-    c2.place(mlocation{4, 1}, gap_junction_site{});
-    c2.place(mlocation{2, 1}, gap_junction_site{});
+    mlocation c2_gj[3] = {{1, 0.5}, {4, 1}, {2, 1}};
+
+    c2.place(c2_gj[0], gap_junction_site{});
+    c2.place(c2_gj[1], gap_junction_site{});
+    c2.place(c2_gj[2], gap_junction_site{});
 
     std::vector<cable_cell> cells{std::move(c0), std::move(c1), std::move(c2)};
 
@@ -935,32 +943,48 @@ TEST(fvm_lowered, gj_coords_complex) {
 
     gap_recipe rec;
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
-    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
 
-    auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
+    int c0_gj_cv[2];
+    for (int i = 0; i<2; ++i) c0_gj_cv[i] = D.geometry.location_cv(0, c0_gj[i]);
+
+    int c1_gj_cv[4];
+    for (int i = 0; i<4; ++i) c1_gj_cv[i] = D.geometry.location_cv(1, c1_gj[i]);
+
+    int c2_gj_cv[3];
+    for (int i = 0; i<3; ++i) c2_gj_cv[i] = D.geometry.location_cv(2, c2_gj[i]);
+
+    std::vector<fvm_gap_junction> GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
     EXPECT_EQ(10u, GJ.size());
 
     auto weight = [&](fvm_value_type g, fvm_index_type i){
         return g * 1e3 / D.cv_area[i];
     };
 
-    std::vector<pair> expected_loc = {{5, 16}, {5,13}, {3,24}, {16, 5}, {13,5} ,{10,31}, {8, 27}, {24,3}, {31,10}, {27, 8}};
-    std::vector<double> expected_weight = {
-            weight(0.03, 5), weight(0.04, 5), weight(0.01, 3), weight(0.03, 16), weight(0.04, 13),
-            weight(0.02, 10), weight(0.01, 8), weight(0.01, 24), weight(0.02, 31), weight(0.01, 27)
+    std::vector<fvm_gap_junction> expected = {
+        {{c0_gj_cv[0], c1_gj_cv[0]}, weight(0.03, c0_gj_cv[0])},
+        {{c0_gj_cv[0], c1_gj_cv[1]}, weight(0.04, c0_gj_cv[0])},
+        {{c0_gj_cv[1], c2_gj_cv[0]}, weight(0.01, c0_gj_cv[1])},
+        {{c1_gj_cv[0], c0_gj_cv[0]}, weight(0.03, c1_gj_cv[0])},
+        {{c1_gj_cv[1], c0_gj_cv[0]}, weight(0.04, c1_gj_cv[1])},
+        {{c1_gj_cv[2], c2_gj_cv[1]}, weight(0.02, c1_gj_cv[2])},
+        {{c1_gj_cv[3], c2_gj_cv[2]}, weight(0.01, c1_gj_cv[3])},
+        {{c2_gj_cv[0], c0_gj_cv[1]}, weight(0.01, c2_gj_cv[0])},
+        {{c2_gj_cv[1], c1_gj_cv[2]}, weight(0.02, c2_gj_cv[1])},
+        {{c2_gj_cv[2], c1_gj_cv[3]}, weight(0.01, c2_gj_cv[2])}
     };
 
-    for (unsigned i = 0; i < GJ.size(); i++) {
-        bool found = false;
-        for (unsigned j = 0; j < expected_loc.size(); j++) {
-            if (expected_loc[j].first ==  GJ[i].loc.first && expected_loc[j].second ==  GJ[i].loc.second) {
-                found = true;
-                EXPECT_EQ(expected_weight[j], GJ[i].weight);
-                break;
-            }
-        }
-        EXPECT_TRUE(found);
-    }
+    using util::sort_by;
+    using util::transform_view;
+
+    auto gj_loc = [](const fvm_gap_junction gj) { return gj.loc; };
+    auto gj_weight = [](const fvm_gap_junction gj) { return gj.weight; };
+
+    sort_by(GJ, [](fvm_gap_junction gj) { return gj.loc; });
+    sort_by(expected, [](fvm_gap_junction gj) { return gj.loc; });
+
+    EXPECT_TRUE(testing::seq_eq(transform_view(expected, gj_loc), transform_view(GJ, gj_loc)));
+    EXPECT_TRUE(testing::seq_almost_eq<double>(transform_view(expected, gj_weight), transform_view(GJ, gj_weight)));
 }
 
 TEST(fvm_lowered, cell_group_gj) {
@@ -1019,8 +1043,8 @@ TEST(fvm_lowered, cell_group_gj) {
     auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
     auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
 
-    fvm_discretization D0 = fvm_discretize(cell_group0, neuron_parameter_defaults);
-    fvm_discretization D1 = fvm_discretize(cell_group1, neuron_parameter_defaults);
+    fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults);
+    fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults);
 
     auto GJ0 = fvcell.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
     auto GJ1 = fvcell.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);

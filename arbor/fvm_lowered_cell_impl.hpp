@@ -66,7 +66,7 @@ public:
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
         const recipe& rec,
-        const fvm_discretization& D);
+        const fvm_cv_discretization& D);
 
     // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
     // Fills cell_to_intdom map; returns number of intdoms
@@ -397,14 +397,15 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize cells, build matrix.
 
-    fvm_discretization D = fvm_discretize(cells, global_props.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters);
 
-    std::vector<index_type> cv_to_intdom(D.ncv);
-    std::transform(D.cv_to_cell.begin(), D.cv_to_cell.end(), cv_to_intdom.begin(),
+    std::vector<index_type> cv_to_intdom(D.size());
+    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_intdom.begin(),
                    [&cell_to_intdom](index_type i){ return cell_to_intdom[i]; });
 
-    arb_assert(D.ncell == ncell);
-    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
+    arb_assert(D.n_cell() == ncell);
+    matrix_ = matrix<backend>(D.geometry.cv_parent, D.geometry.cell_cv_divs,
+                              D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
     sample_events_ = sample_event_stream(num_intdoms);
 
     // Discretize mechanism data.
@@ -439,7 +440,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         }
     }
 
-    target_handles.resize(mech_data.ntarget);
+    target_handles.resize(mech_data.n_target);
 
     unsigned mech_id = 0;
     for (auto& m: mech_data.mechanisms) {
@@ -517,7 +518,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         cell_gid_type gid = gids[cell_idx];
 
         for (auto entry: cells[cell_idx].detectors()) {
-            detector_cv.push_back(D.branch_location_cv(cell_idx, entry.loc));
+            detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc));
             detector_threshold.push_back(entry.item.threshold);
         }
 
@@ -525,7 +526,7 @@ void fvm_lowered_cell_impl<B>::initialize(
             probe_info pi = rec.get_probe({gid, j});
             auto where = any_cast<cell_probe_address>(pi.address);
 
-            auto cv = D.branch_location_cv(cell_idx, where.location);
+            auto cv = D.geometry.location_cv(cell_idx, where.location);
             probe_handle handle;
 
             switch (where.kind) {
@@ -553,21 +554,20 @@ template <typename B>
 std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
-        const recipe& rec, const fvm_discretization& D) {
+        const recipe& rec, const fvm_cv_discretization& D) {
 
     std::vector<fvm_gap_junction> v;
 
     std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
-    for (auto cell_idx: util::make_span(0, D.ncell)) {
+    for (auto cell_idx: util::make_span(0, D.n_cell())) {
+        if (!rec.num_gap_junction_sites(gids[cell_idx])) continue;
 
-        if (rec.num_gap_junction_sites(gids[cell_idx])) {
-            gid_to_cvs[gids[cell_idx]].reserve(rec.num_gap_junction_sites(gids[cell_idx]));
+        gid_to_cvs[gids[cell_idx]].reserve(rec.num_gap_junction_sites(gids[cell_idx]));
+        const auto& cell_gj = cells[cell_idx].gap_junction_sites();
 
-            const auto& cell_gj = cells[cell_idx].gap_junction_sites();
-            for (auto gj : cell_gj) {
-                auto cv = D.branch_location_cv(cell_idx, gj.loc);
-                gid_to_cvs[gids[cell_idx]].push_back(cv);
-            }
+        for (auto gj : cell_gj) {
+            auto cv = D.geometry.location_cv(cell_idx, gj.loc);
+            gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
 

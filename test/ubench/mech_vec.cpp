@@ -2,6 +2,9 @@
 //
 // Start with pas (passive dendrite) mechanism
 
+// NOTE: This targets an earlier version of the Arbor API and
+// will need to be reworked in order to compile.
+
 #include <fstream>
 
 #include <arbor/cable_cell.hpp>

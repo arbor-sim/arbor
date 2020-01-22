@@ -1,10 +1,10 @@
 #include <string>
 #include <vector>
 
-#include <arbor/util/optional.hpp>
-#include <arbor/mechcat.hpp>
-#include <arbor/math.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/math.hpp>
+#include <arbor/mechcat.hpp>
+#include <arbor/util/optional.hpp>
 
 #include "fvm_layout.hpp"
 #include "util/maputil.hpp"
@@ -24,40 +24,6 @@ using util::count_along;
 using util::value_by_key;
 
 namespace {
-    double area(const segment* s) {
-        if (auto soma = s->as_soma()) {
-            return math::area_sphere(soma->radius());
-        }
-        else if (auto cable = s->as_cable()) {
-            unsigned nc = cable->num_sub_segments();
-            double a = 0;
-            for (unsigned i = 0; i<nc; ++i) {
-                a += math::area_frustrum(cable->lengths()[i], cable->radii()[i], cable->radii()[i+1]);
-            }
-            return a;
-        }
-        else {
-            return 0;
-        }
-    }
-
-    double volume(const segment* s) {
-        if (auto soma = s->as_soma()) {
-            return math::volume_sphere(soma->radius());
-        }
-        else if (auto cable = s->as_cable()) {
-            unsigned nc = cable->num_sub_segments();
-            double v = 0;
-            for (unsigned i = 0; i<nc; ++i) {
-                v += math::volume_frustrum(cable->lengths()[i], cable->radii()[i], cable->radii()[i+1]);
-            }
-            return v;
-        }
-        else {
-            return 0;
-        }
-    }
-
     std::vector<cable_cell> two_cell_system() {
         std::vector<cable_cell> cells;
 
@@ -117,187 +83,11 @@ namespace {
     }
 
     void check_two_cell_system(std::vector<cable_cell>& cells) {
-        ASSERT_EQ(2u, cells[0].num_branches());
-        ASSERT_EQ(cells[0].segment(1)->num_compartments(), 4u);
-        ASSERT_EQ(cells[1].num_branches(), 4u);
-        ASSERT_EQ(cells[1].segment(1)->num_compartments(), 4u);
-        ASSERT_EQ(cells[1].segment(2)->num_compartments(), 4u);
-        ASSERT_EQ(cells[1].segment(3)->num_compartments(), 4u);
+        ASSERT_EQ(2u, cells.size());
+        ASSERT_EQ(2u, cells[0].morphology().num_branches());
+        ASSERT_EQ(4u, cells[1].morphology().num_branches());
     }
 } // namespace
-
-TEST(fvm_layout, topology) {
-    std::vector<cable_cell> cells = two_cell_system();
-    check_two_cell_system(cells);
-
-    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
-
-    // Expected CV layouts for cells, segment indices in paren.
-    //
-    // Cell 0:
-    //
-    // CV: |  0     ][1| 2 | 3 | 4 |5|
-    //     [soma (0)][  segment (1)  ]
-    // 
-    // Cell 1:
-    //
-    // CV: |  6     ][7| 8 | 9 | 10| 11 | 12 | 13 | 14 | 15|
-    //     [soma (2)][  segment (3)  ][  segment (4)       ]
-    //                                [  segment (5)       ]
-    //                                  | 16 | 17 | 18 | 19|
-
-    EXPECT_EQ(2u, D.ncell);
-    EXPECT_EQ(20u, D.ncv);
-
-    unsigned nseg = 6;
-    EXPECT_EQ(nseg, D.segments.size());
-
-    // General sanity checks:
-
-    ASSERT_EQ(D.ncell, D.cell_segment_part().size());
-    ASSERT_EQ(D.ncell, D.cell_cv_part().size());
-
-    ASSERT_EQ(D.ncv, D.parent_cv.size());
-    ASSERT_EQ(D.ncv, D.cv_to_cell.size());
-    ASSERT_EQ(D.ncv, D.face_conductance.size());
-    ASSERT_EQ(D.ncv, D.cv_area.size());
-    ASSERT_EQ(D.ncv, D.cv_capacitance.size());
-
-    // Partitions of CVs and segments by cell:
-
-    using spair = std::pair<fvm_size_type, fvm_size_type>;
-    using ipair = std::pair<fvm_index_type, fvm_index_type>;
-
-    EXPECT_EQ(spair(0, 2),    D.cell_segment_part()[0]);
-    EXPECT_EQ(spair(2, nseg), D.cell_segment_part()[1]);
-
-    EXPECT_EQ(ipair(0, 6),       D.cell_cv_part()[0]);
-    EXPECT_EQ(ipair(6, D.ncv), D.cell_cv_part()[1]);
-
-    // Segment and CV parent relationships:
-
-    using ivec = std::vector<fvm_index_type>;
-
-    EXPECT_EQ(ivec({0,0,1,2,3,4,6,6,7,8,9,10,11,12,13,14,11,16,17,18}), D.parent_cv);
-
-    EXPECT_FALSE(D.segments[0].has_parent());
-    EXPECT_EQ(1, D.segments[1].parent_cv);
-
-    EXPECT_FALSE(D.segments[2].has_parent());
-    EXPECT_EQ(7, D.segments[3].parent_cv);
-    EXPECT_EQ(11, D.segments[4].parent_cv);
-    EXPECT_EQ(11, D.segments[5].parent_cv);
-
-    // Segment CV ranges (half-open, exclusing parent):
-
-    EXPECT_EQ(ipair(0,1), D.segments[0].cv_range());
-    EXPECT_EQ(ipair(2,6), D.segments[1].cv_range());
-    EXPECT_EQ(ipair(6,7), D.segments[2].cv_range());
-    EXPECT_EQ(ipair(8,12), D.segments[3].cv_range());
-    EXPECT_EQ(ipair(12,16), D.segments[4].cv_range());
-    EXPECT_EQ(ipair(16,20), D.segments[5].cv_range());
-
-    // CV to cell index:
-
-    for (auto ci: make_span(D.ncell)) {
-        for (auto cv: make_span(D.cell_cv_part()[ci])) {
-            EXPECT_EQ(ci, (fvm_size_type)D.cv_to_cell[cv]);
-        }
-    }
-}
-
-TEST(fvm_layout, diam_and_area) {
-    std::vector<cable_cell> cells = two_cell_system();
-    check_two_cell_system(cells);
-
-    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
-
-    // Note: stick models have constant diameter segments.
-    // Refer to comment above for CV vs. segment layout.
-
-    EXPECT_FLOAT_EQ(12.6157, D.diam_um[0]);
-    EXPECT_FLOAT_EQ(1.0 ,    D.diam_um[1]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[2]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[3]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[4]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[5]);
-
-    EXPECT_FLOAT_EQ(14.0,    D.diam_um[6]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[7]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[8]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[9]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[10]);
-    EXPECT_FLOAT_EQ(1.0,     D.diam_um[11]);
-    EXPECT_FLOAT_EQ(0.8,     D.diam_um[12]);
-    EXPECT_FLOAT_EQ(0.8,     D.diam_um[13]);
-    EXPECT_FLOAT_EQ(0.8,     D.diam_um[14]);
-    EXPECT_FLOAT_EQ(0.8,     D.diam_um[15]);
-    EXPECT_FLOAT_EQ(0.7,     D.diam_um[16]);
-    EXPECT_FLOAT_EQ(0.7,     D.diam_um[17]);
-    EXPECT_FLOAT_EQ(0.7,     D.diam_um[18]);
-    EXPECT_FLOAT_EQ(0.7,     D.diam_um[19]);
-
-    std::vector<double> A;
-    for (auto ci: make_span(D.ncell)) {
-        for (auto si: make_span(cells[ci].num_branches())) {
-            A.push_back(area(cells[ci].segment(si)));
-        }
-    }
-
-    unsigned n = 4; // compartments per dendritic segment
-    EXPECT_FLOAT_EQ(A[0],       D.cv_area[0]);
-    EXPECT_FLOAT_EQ(A[1]/(2*n), D.cv_area[1]);
-    EXPECT_FLOAT_EQ(A[1]/n,     D.cv_area[2]);
-    EXPECT_FLOAT_EQ(A[1]/n,     D.cv_area[3]);
-    EXPECT_FLOAT_EQ(A[1]/n,     D.cv_area[4]);
-    EXPECT_FLOAT_EQ(A[1]/(2*n), D.cv_area[5]);
-
-    EXPECT_FLOAT_EQ(A[2],       D.cv_area[6]);
-    EXPECT_FLOAT_EQ(A[3]/(2*n), D.cv_area[7]);
-    EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[8]);
-    EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[9]);
-    EXPECT_FLOAT_EQ(A[3]/n,     D.cv_area[10]);
-    EXPECT_FLOAT_EQ((A[3]+A[4]+A[5])/(2*n), D.cv_area[11]);
-    EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[12]);
-    EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[13]);
-    EXPECT_FLOAT_EQ(A[4]/n,     D.cv_area[14]);
-    EXPECT_FLOAT_EQ(A[4]/(2*n), D.cv_area[15]);
-    EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[16]);
-    EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[17]);
-    EXPECT_FLOAT_EQ(A[5]/n,     D.cv_area[18]);
-    EXPECT_FLOAT_EQ(A[5]/(2*n), D.cv_area[19]);
-
-    // Confirm proportional allocation of surface capacitance:
-
-    // CV 9 should have area-weighted sum of the specific
-    // capacitance from segments 3, 4 and 5 (cell 1 segments
-    // 1, 2 and 3 respectively).
-
-    double cm1 = 0.017, cm2 = 0.013, cm3 = 0.018;
-
-    double c = A[3]/(2*n)*cm1+A[4]/(2*n)*cm2+A[5]/(2*n)*cm3;
-    EXPECT_FLOAT_EQ(c, D.cv_capacitance[11]);
-
-    double cm0 = neuron_parameter_defaults.membrane_capacitance.value();
-    c = A[2]*cm0;
-    EXPECT_FLOAT_EQ(c, D.cv_capacitance[6]);
-
-    // Confirm face conductance within a constant diameter
-    // equals a/h·1/rL where a is the cross sectional
-    // area, and h is the compartment length (given the
-    // regular discretization).
-
-    auto cable = cells[1].segment(2)->as_cable();
-    double a = volume(cable)/cable->length();
-    EXPECT_FLOAT_EQ(math::pi<double>*0.8*0.8/4, a);
-
-    double rL = 90;
-    double h = cable->length()/4;
-    double g = a/h/rL; // [µm·S/cm]
-    g *= 100; // [µS]
-
-    EXPECT_FLOAT_EQ(g, D.face_conductance[13]);
-}
 
 TEST(fvm_layout, mech_index) {
     std::vector<cable_cell> cells = two_cell_system();
@@ -312,7 +102,7 @@ TEST(fvm_layout, mech_index) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     auto& hh_config = M.mechanisms.at("hh");
@@ -320,16 +110,12 @@ TEST(fvm_layout, mech_index) {
     auto& exp2syn_config = M.mechanisms.at("exp2syn");
 
     using ivec = std::vector<fvm_index_type>;
-    using fvec = std::vector<fvm_value_type>;
 
     // HH on somas of two cells, with CVs 0 and 5.
     // Proportional area contrib: soma area/CV area.
 
     EXPECT_EQ(mechanismKind::density, hh_config.kind);
     EXPECT_EQ(ivec({0,6}), hh_config.cv);
-
-    fvec norm_area({area(cells[0].soma())/D.cv_area[0], area(cells[1].soma())/D.cv_area[6]});
-    EXPECT_TRUE(testing::seq_almost_eq<double>(norm_area, hh_config.norm_area));
 
     // Three expsyn synapses, two 0.4 along segment 1, and one 0.4 along segment 5.
     // These two synapses can be coalesced into 1 synapse
@@ -423,13 +209,12 @@ TEST(fvm_layout, coalescing_synapses) {
     {
         cable_cell cell = make_cell_ball_and_stick();
 
-        // Add synapses of two varieties.
         cell.place(mlocation{1, 0.3}, "expsyn");
         cell.place(mlocation{1, 0.5}, "expsyn");
         cell.place(mlocation{1, 0.7}, "expsyn");
         cell.place(mlocation{1, 0.9}, "expsyn");
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -445,7 +230,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.place(mlocation{1, 0.7}, "expsyn");
         cell.place(mlocation{1, 0.9}, "exp2syn");
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -464,7 +249,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.place(mlocation{1, 0.7}, "expsyn");
         cell.place(mlocation{1, 0.9}, "expsyn");
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -480,7 +265,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.place(mlocation{1, 0.7}, "expsyn");
         cell.place(mlocation{1, 0.9}, "exp2syn");
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -500,7 +285,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.place(mlocation{1, 0.7}, "expsyn");
         cell.place(mlocation{1, 0.7}, "expsyn");
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
@@ -516,7 +301,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.place(mlocation{1, 0.3}, syn_desc("expsyn", 0.1, 0.2));
         cell.place(mlocation{1, 0.7}, syn_desc("expsyn", 0.1, 0.2));
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         std::vector<exp_instance> instances{
@@ -542,7 +327,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.place(mlocation{1, 0.3}, syn_desc("expsyn", 0, 2));
         cell.place(mlocation{1, 0.3}, syn_desc("expsyn", 1, 2));
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         std::vector<exp_instance> instances{
@@ -571,7 +356,7 @@ TEST(fvm_layout, coalescing_synapses) {
         cell.place(mlocation{1, 0.7}, syn_desc_2("exp2syn", 2, 1));
         cell.place(mlocation{1, 0.7}, syn_desc_2("exp2syn", 2, 2));
 
-        fvm_discretization D = fvm_discretize({cell}, neuron_parameter_defaults);
+        fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
 
         for (auto &instance: {exp_instance(2, L{0,2,5}, 1, 2),
@@ -618,7 +403,7 @@ TEST(fvm_layout, synapse_targets) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     ASSERT_EQ(1u, M.mechanisms.count("expsyn"));
@@ -675,9 +460,9 @@ TEST(fvm_layout, density_norm_area) {
     // Test area-weighted linear combination of density mechanism parameters.
 
     // Create a cell with 4 segments:
-    //   - Soma (segment 0) plus three dendrites (1, 2, 3) meeting at a branch point.
+    //   - Soma (branch 0) plus three dendrites (1, 2, 3) meeting at a branch point.
     //   - HH mechanism on all segments.
-    //   - Dendritic segments are given 3 compartments each.
+    //   - Discretize with 3 CVs per non-soma branch, centred on forks.
     //
     // The CV corresponding to the branch point should comprise the terminal
     // 1/6 of segment 1 and the initial 1/6 of segments 2 and 3.
@@ -736,14 +521,12 @@ TEST(fvm_layout, density_norm_area) {
     std::vector<double> expected_gkbar(ncv, dflt_gkbar);
     std::vector<double> expected_gl(ncv, dflt_gl);
 
-    auto div_by_ends = [](const cable_segment* cable) {
-        return div_compartment_by_ends(cable->num_compartments(), cable->radii(), cable->lengths());
-    };
-    auto& segs = cells[0].segments();
-    double soma_area = area(segs[0].get());
-    auto seg1_divs = div_by_ends(segs[1]->as_cable());
-    auto seg2_divs = div_by_ends(segs[2]->as_cable());
-    auto seg3_divs = div_by_ends(segs[3]->as_cable());
+    // Last 1/6 of segment 1
+    double seg1_area_right = cells[0].embedding().integrate_area(mcable{1, 5./6., 1.});
+    // First 1/6 of segment 2
+    double seg2_area_left = cells[0].embedding().integrate_area(mcable{2, 0., 1./6.});
+    // First 1/6 of segment 3
+    double seg3_area_left = cells[0].embedding().integrate_area(mcable{3, 0., 1./6.});
 
     // CV 0: soma
     // CV1: left of segment 1
@@ -754,8 +537,8 @@ TEST(fvm_layout, density_norm_area) {
     expected_gl[3] = seg1_gl;
 
     // CV 4: mix of right of segment 1 and left of segments 2 and 3.
-    expected_gkbar[4] = wmean(seg1_divs(2).right.area, dflt_gkbar, seg2_divs(0).left.area, seg2_gkbar, seg3_divs(0).left.area, seg3_gkbar);
-    expected_gl[4] = wmean(seg1_divs(2).right.area, seg1_gl, seg2_divs(0).left.area, dflt_gl, seg3_divs(0).left.area, seg3_gl);
+    expected_gkbar[4] = wmean(seg1_area_right, dflt_gkbar, seg2_area_left, seg2_gkbar, seg3_area_left, seg3_gkbar);
+    expected_gl[4] = wmean(seg1_area_right, seg1_gl, seg2_area_left, dflt_gl, seg3_area_left, seg3_gl);
 
     // CV 5-7: just segment 2
     expected_gkbar[5] = seg2_gkbar;
@@ -773,25 +556,8 @@ TEST(fvm_layout, density_norm_area) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
-
-    // Check CV area assumptions.
-    // Note: area integrator used here and in `fvm_multicell` may differ, and so areas computed may
-    // differ some due to rounding area, even given that we're dealing with simple truncated cones
-    // for segments. Check relative error within a tolerance of (say) 10 epsilon.
-
-    double area_relerr = 10*std::numeric_limits<double>::epsilon();
-    EXPECT_TRUE(testing::near_relative(D.cv_area[0],
-        soma_area, area_relerr));
-    EXPECT_TRUE(testing::near_relative(D.cv_area[1],
-        seg1_divs(0).left.area, area_relerr));
-    EXPECT_TRUE(testing::near_relative(D.cv_area[2],
-        seg1_divs(0).right.area+seg1_divs(1).left.area, area_relerr));
-    EXPECT_TRUE(testing::near_relative(D.cv_area[4],
-        seg1_divs(2).right.area+seg2_divs(0).left.area+seg3_divs(0).left.area, area_relerr));
-    EXPECT_TRUE(testing::near_relative(D.cv_area[7],
-        seg2_divs(2).right.area, area_relerr));
 
     // Grab the HH parameters from the mechanism.
 
@@ -814,7 +580,7 @@ TEST(fvm_layout, valence_verify) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_discretization D = fvm_discretize(cells, neuron_parameter_defaults);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
 
     mechanism_catalogue testcat = make_unit_test_catalogue();
     gprop.catalogue = &testcat;
@@ -903,7 +669,7 @@ TEST(fvm_layout, ion_weights) {
 
         std::vector<cable_cell> cells{std::move(c)};
 
-        fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
+        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
         fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
         ASSERT_EQ(1u, M.ions.count("ca"s));
@@ -957,7 +723,7 @@ TEST(fvm_layout, revpot) {
         auto test_gprop = gprop;
         test_gprop.default_parameters.reversal_potential_method["b"] = write_eb_ec;
 
-        fvm_discretization D = fvm_discretize(cells, test_gprop.default_parameters);
+        fvm_cv_discretization D = fvm_cv_discretize(cells, test_gprop.default_parameters);
         EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, D), cable_cell_error);
     }
 
@@ -968,7 +734,7 @@ TEST(fvm_layout, revpot) {
         test_gprop.default_parameters.reversal_potential_method["c"] = write_eb_ec;
         cells[1].default_parameters.reversal_potential_method["c"] = "write_eX/c";
 
-        fvm_discretization D = fvm_discretize(cells, test_gprop.default_parameters);
+        fvm_cv_discretization D = fvm_cv_discretize(cells, test_gprop.default_parameters);
         EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, D), cable_cell_error);
     }
 
@@ -977,12 +743,12 @@ TEST(fvm_layout, revpot) {
     cell1_prop.reversal_potential_method["b"] = write_eb_ec;
     cell1_prop.reversal_potential_method["c"] = write_eb_ec;
 
-    fvm_discretization D = fvm_discretize(cells, gprop.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
 
     // Only CV which needs write_multiple_eX/x=b,y=c is the soma (first CV)
     // of the second cell.
-    auto soma1_index = D.cell_cv_bounds[1];
+    auto soma1_index = D.geometry.cell_cv_divs[1];
     ASSERT_EQ(1u, M.mechanisms.count(write_eb_ec.name()));
     EXPECT_EQ((std::vector<fvm_index_type>(1, soma1_index)), M.mechanisms.at(write_eb_ec.name()).cv);
 }
