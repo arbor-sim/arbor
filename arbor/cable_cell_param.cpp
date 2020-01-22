@@ -50,10 +50,6 @@ void check_global_properties(const cable_cell_global_properties& G) {
         }
     }
 }
-    util::optional<double> init_membrane_potential; // [mV]
-    util::optional<double> temperature_K;           // [K]
-    util::optional<double> axial_resistivity;       // [Ω·cm]
-    util::optional<double> membrane_capacitance;    // [F/m²]
 
 cable_cell_parameter_set neuron_parameter_defaults = {
     // initial membrane potential [mV]
@@ -108,7 +104,7 @@ locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
         ++bidx;
     }
 
-    return std::accumulate(points.begin(), points.end(), ls::nil(), [](auto& l, auto& p) { return join(l, ls::location(p)); });
+    return points;
 }
 
 locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) const {
@@ -140,7 +136,7 @@ locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) co
         ++bidx;
     }
 
-    return std::accumulate(points.begin(), points.end(), ls::nil(), [](auto& l, auto& p) { return join(l, ls::location(p)); });
+    return points;
 }
 
 } // namespace arb
