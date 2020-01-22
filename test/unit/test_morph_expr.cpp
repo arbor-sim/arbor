@@ -449,7 +449,7 @@ TEST(region, thingify) {
         EXPECT_EQ(thingify(tagged(3), mp), (mcable_list{{1,0,1}}));
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), thingify(all(), mp));
-        EXPECT_EQ(thingify(reg0_, mp), (mcable_list{{1,0,0.5}}));
+        EXPECT_EQ(thingify(reg0_, mp), (mcable_list{{1,0,0.5}, {2,0,0.5}}));
         EXPECT_EQ(thingify(reg1_, mp), (mcable_list{{0,0.5,1}, {1,0,0.8}, {2,0,0.8}}));
         EXPECT_EQ(thingify(reg2_, mp), (mcable_list{{1,0.5,1}}));
         EXPECT_EQ(thingify(reg3_, mp), (mcable_list{{0, 0.75, 1}, {1,0,1}}));
@@ -532,6 +532,7 @@ TEST(region, thingify) {
         EXPECT_EQ(thingify(intersect(axon, dend), mp), (cl{root_, end1_}));
 
         // Test distal and proximal interavls
+        auto start0_         = cable({0, 0,   0   });
         auto mid1_           = cable({1, 0.5, 0.5 });
         auto quar_interval1_ = cable({1, 0,   0.25});
         auto mid2_           = cable({2, 0.5, 0.5 });
@@ -540,10 +541,13 @@ TEST(region, thingify) {
         auto quar_interval3_ = cable({3, 0.4, 0.65});
 
         // Distal from point and/or interval
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(start0_, 1000), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}, {3,0,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_, 1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(quar_interval1_, 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_interval1_, mid1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_interval1_, quar_interval3_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_interval1_, quar_interval3_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
 
         // Proximal from point and/or interval
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(mid3_, 100), mp), (mcable_list{{3,0,0.5}})));
@@ -553,11 +557,15 @@ TEST(region, thingify) {
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(quar_interval3_, 100), mp), (mcable_list{{1,0.8,1}, {3,0,0.4}})));
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(join(quar_interval3_, mid2_), 120), mp), (mcable_list{{1,0.3,1}, {2,0,0.5}, {3, 0, 0.4}})));
 
-        // Test radius_le
+        // Test radius_lt and radius_gt
         EXPECT_TRUE(cablelist_eq(thingify(radius_lt(all(), 2), mp), (mcable_list{{0,0,0.55}, {1,0,0.325}, {3,0.375,0.75}})));
         EXPECT_TRUE(cablelist_eq(thingify(radius_lt(all(), 3), mp), (mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(radius_gt(all(), 2), mp), (mcable_list{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(radius_gt(all(), 3), mp), (mcable_list{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}})));
+
+        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(cable({3,0,0.5}), 2), mp), (mcable_list{{3,0.375,0.5}})));
+        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(join(cable({0,0.1,0.4}), cable({2,0,1}), cable({3,0.1,0.4})), 2), mp), (mcable_list{{0,0.1,0.4},{3,0.375,0.4}})));
+        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(join(cable({0,0.1,0.4}), cable({2,0,1}), cable({3,0.1,0.3})), 2), mp), (mcable_list{{0,0.1,0.4}})));
 
         // Test some more interesting intersections and unions.
 
@@ -727,5 +735,30 @@ TEST(region, thingify) {
             auto expected = cl{{1,0,0.5},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
             EXPECT_TRUE(cablelist_eq(out, expected));
         }
+    }
+    {
+        pvec parents = {mnpos, 0, 1, 1, 2, 3};
+        svec samples = {
+                {{  0, 10, 10,  1}, 1},
+                {{  0, 30, 30,  1}, 2},
+                {{  0, 60,-20,  1}, 2},
+                {{  0, 90, 70,  1}, 2},
+                {{  0, 80,-10,  1}, 2},
+                {{  0,100,-40,  1}, 2}
+        };
+        sample_tree sm(samples, parents);
+
+        // Without spherical root
+        mprovider mp(morphology(sm, false));
+
+        using reg::all;
+        using reg::projection_lt;
+        using reg::projection_gt;
+        using reg::cable;
+
+        // Test radius_le
+        EXPECT_TRUE(cablelist_eq(thingify(projection_lt(20), mp), (mcable_list{{0,0,0.5}, {1,0.14456272544548071,1}, {2,0.6699940078464377,0.88999800261547934}})));
+        EXPECT_TRUE(cablelist_eq(thingify(projection_gt(20), mp), (mcable_list{{0,0.5,1}, {1,0,0.14456272544548071}, {2,0,0.6699940078464377}, {2,0.88999800261547934,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(join(projection_lt(20), projection_gt(20)), mp), thingify(all(), mp)));
     }
 }

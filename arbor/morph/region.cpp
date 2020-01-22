@@ -333,6 +333,11 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
         std::stack<branch_interval> branches_reached;
         bool first_branch = true;
 
+        // Transform end point of branch into the start point of its parent
+        if (c.dist_pos == 0) {
+            c = {m.branch_parent(c.branch),1,1};
+        }
+
         // if we're starting at the end of a branch, start traversal with its children
         if (c.dist_pos < 1) {
             branches_reached.push({c.branch, distance});
@@ -445,7 +450,10 @@ mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
     auto reg = thingify(r.reg, p);
     auto val = r.val;
     for (auto c: reg) {
-        util::append(L, e.radius_lt(c.branch, val));
+        for (auto r: e.radius_lt(c.branch, val)) {
+            if (is_disjoint(c, r)) continue;
+            L.push_back(make_intersection(c, r));
+        }
     }
     util::sort(L);
     return merge(L);
