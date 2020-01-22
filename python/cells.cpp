@@ -11,7 +11,6 @@
 #include <arbor/util/unique_any.hpp>
 
 #include "conversion.hpp"
-#include "dict.hpp"
 #include "error.hpp"
 #include "morph_parse.hpp"
 #include "schedule.hpp"

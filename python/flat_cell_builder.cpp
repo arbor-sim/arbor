@@ -163,7 +163,7 @@ public:
         for (auto& r: dict_.regions()) {
             map[r.first] = util::pprintf("{}", r.second);
         }
-        for (auto& l: dict_.regions()) {
+        for (auto& l: dict_.locsets()) {
             map[l.first] = util::pprintf("{}", l.second);
         }
 
