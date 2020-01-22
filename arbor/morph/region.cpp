@@ -481,7 +481,10 @@ mcable_list thingify_(const radius_gt_& r, const mprovider& p) {
     auto reg = thingify(r.reg, p);
     auto val = r.val;
     for (auto c: reg) {
-        util::append(L, e.radius_gt(c.branch, val));
+        for (auto r: e.radius_gt(c.branch, val)) {
+            if (is_disjoint(c, r)) continue;
+            L.push_back(make_intersection(c, r));
+        }
     }
     util::sort(L);
     return merge(L);
@@ -492,7 +495,6 @@ std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
 }
 
 // Region with all segments with projection less than val
-
 struct proj_lt_{
     double val; //um
 };
@@ -519,7 +521,6 @@ std::ostream& operator<<(std::ostream& o, const proj_lt_& r) {
 }
 
 // Region with all segments with projection greater than val
-
 struct proj_gt_ {
     double val; //um
 };
@@ -545,10 +546,34 @@ std::ostream& operator<<(std::ostream& o, const proj_gt_& r) {
     return o << "(proj_gt: " << r.val << ")";
 }
 
+struct projection_lt_ {
+    double val; //um
+};
+
 region projection_lt(double r0) {
-    region lt = reg::proj_lt(r0);
-    region gt = reg::proj_gt(-r0);
-    return region{intersect(std::move(lt), std::move(gt))};
+    return region(projection_lt_{r0});
+}
+
+mcable_list thingify_(const projection_lt_& reg, const mprovider& p) {
+    std::vector<mcable> L;
+
+    region lt = reg::proj_lt(reg.val);
+    region gt = reg::proj_gt(-reg.val);
+
+    auto inter_reg = intersect(std::move(lt), std::move(gt));
+    auto inter_cables = thingify(inter_reg, p);
+
+    L.reserve(inter_cables.size());
+    for (auto c: inter_cables) {
+        if (c.dist_pos != c.prox_pos) {
+            L.push_back(c);
+        }
+    }
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
+    return o << "(projection_lt: " << r.val << ")";
 }
 
 region projection_gt(double r0) {
