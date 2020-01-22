@@ -58,7 +58,7 @@ mcable_list data_lt(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val) 
     mcable_list L;
     const auto& pw = f.at(bid);
     for (const auto& piece: pw) {
-        auto normal_extents = piece.first;
+        auto extents = piece.first;
         auto left_val = piece.second(0);
         auto right_val = piece.second(1);
 
@@ -66,20 +66,20 @@ mcable_list data_lt(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val) 
             continue;
         }
         if (left_val <= val && right_val <= val) {
-            L.push_back({bid, normal_extents.first, normal_extents.second});
+            L.push_back({bid, extents.first, extents.second});
             continue;
         }
 
-        auto normal_lim = (val - left_val)/(right_val - left_val);
-        auto portion = normal_extents.second - normal_extents.first;
-        auto limit = normal_lim * portion + normal_extents.first;
+        auto cable_loc = (val - left_val)/(right_val - left_val);
+        auto cable_portion = extents.second - extents.first;
+        auto edge = cable_loc * cable_portion + extents.first;
 
         if (left_val < val) {
-            L.push_back({bid, normal_extents.first, limit});
+            L.push_back({bid, extents.first, edge});
             continue;
         }
         if (left_val > val) {
-            L.push_back({bid, limit, normal_extents.second});
+            L.push_back({bid, edge, extents.second});
             continue;
         }
     }
@@ -91,7 +91,7 @@ mcable_list data_gt(const branch_pw_ratpoly<p, q>& f, msize_t bid, double val) {
     mcable_list L;
     const auto& pw = f.at(bid);
     for (const auto& piece: pw) {
-        auto normal_extents = piece.first;
+        auto extents = piece.first;
         auto left_val = piece.second(0);
         auto right_val = piece.second(1);
 
@@ -99,20 +99,20 @@ mcable_list data_gt(const branch_pw_ratpoly<p, q>& f, msize_t bid, double val) {
             continue;
         }
         if (left_val >= val && right_val >= val) {
-            L.push_back({bid, normal_extents.first, normal_extents.second});
+            L.push_back({bid, extents.first, extents.second});
             continue;
         }
 
-        auto normal_lim = (val - left_val)/(right_val - left_val);
-        auto portion = normal_extents.second - normal_extents.first;
-        auto limit = normal_lim * portion + normal_extents.first;
+        auto cable_loc = (val - left_val)/(right_val - left_val);
+        auto cable_portion = extents.second - extents.first;
+        auto edge = cable_loc * cable_portion + extents.first;
 
         if (left_val > val) {
-            L.push_back({bid, normal_extents.first, limit});
+            L.push_back({bid, extents.first, edge});
             continue;
         }
         if (left_val < val) {
-            L.push_back({bid, limit, normal_extents.second});
+            L.push_back({bid, edge, extents.second});
             continue;
         }
     }
@@ -201,11 +201,13 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
         unsigned parent = m.branch_parent(bid);
         auto sample_indices = util::make_range(m.branch_indexes(bid));
 
+        double proj_shift = 0;
         if (bid==0 && m.spherical_root()) {
             arb_assert(sample_indices.size()==1);
 
             // Treat spherical root as area-equivalent cylinder.
             double r = samples[0].loc.radius;
+            proj_shift = samples[0].loc.z;
 
             data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(-r, r));
             data_->length[bid].push_back(0., 1., rat_element<1, 0>(0, r*2));
@@ -244,15 +246,15 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
             data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
 
-            double area_0 = parent=mnpos? 0: data_->area[parent].back().second[1];
-            double ixa_0 = parent=mnpos? 0: data_->ixa[parent].back().second[1];
+            double area_0 = parent==mnpos? 0: data_->area[parent].back().second[1];
+            double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[1];
 
             if (length_scale==0) {
                 // Zero-length branch? Weird, but make best show of it.
                 double r = samples[sample_indices[0]].loc.radius;
                 double z = samples[sample_indices[0]].loc.z;
                 data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
-                data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z, z));
+                data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z-proj_shift, z-proj_shift));
                 data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
                 data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
             }
@@ -264,8 +266,8 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
                     double p1 = sample_locations_[sample_indices[i]].pos;
                     if (p0==p1) continue;
 
-                    double z0 = samples[sample_indices[i-1]].loc.z;
-                    double z1 = samples[sample_indices[i]].loc.z;
+                    double z0 = samples[sample_indices[i-1]].loc.z - proj_shift;
+                    double z1 = samples[sample_indices[i]].loc.z - proj_shift;
                     data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
 
                     double r0 = samples[sample_indices[i-1]].loc.radius;

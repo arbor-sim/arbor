@@ -11,7 +11,9 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 
+#include "util/partition.hpp"
 #include "util/rangeutil.hpp"
+#include "util/transform.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
@@ -137,7 +139,7 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
     return o << "(named \"" << x.name << "\")";
 }
 
-// Named locset.
+// Uniform locset.
 
 struct uniform_ {
     region reg;
@@ -160,44 +162,49 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     // Thingify the region and store relevant data
     auto reg_cables = thingify(u.reg, p);
 
-    std::vector<double> cable_extents;
+    std::vector<double> lengths_bounds;
+    auto lengths_part = util::make_partition(lengths_bounds,
+                                       util::transform_view(reg_cables, [&embed](const auto& c) {
+                                           return embed.integrate_length(c);
+                                       }));
 
-    double region_length = 0;
-    cable_extents.push_back(region_length);
-    for (auto c:reg_cables) {
-        region_length += embed.integrate_length(c);
-        cable_extents.push_back(region_length);
-    }
+    auto region_length = lengths_part.bounds().second;
 
     // Generate uniform random positions along the extent of the full region
     cbrng::key_type key = {{u.seed}};
     cbrng::ctr_type ctr = {{0,0}};
     cbrng g;
 
-    std::vector<double> random_extent;
-    for (auto i: util::make_span(u.left, u.right)) {
-        ctr[0] = i;
+    std::vector<double> random_pos;
+    auto left  = u.left%2  ? u.left  - 1 : u.left;
+    auto right = u.right%2 ? u.right + 1 : u.right;
+
+    for (unsigned i = left; i < right; i+=2) {
+        ctr[0] = i/2;
         cbrng::ctr_type rand = g(ctr, key);
-        random_extent.push_back(r123::u01<double>(rand[0])*region_length);
+        random_pos.push_back(r123::u01<double>(rand[0])*region_length);
+        random_pos.push_back(r123::u01<double>(rand[1])*region_length);
     }
 
-    util::sort(random_extent);
+    if (u.left%2) {
+        random_pos.erase(random_pos.begin());
+    }
+    if (u.right%2) {
+        random_pos.pop_back();
+    }
+    util::sort(random_pos);
 
     // Match random_extents to cables and find position on the associated branch
     unsigned cable_idx = 0;
-    auto left  = cable_extents[cable_idx];
-    auto right = cable_extents[cable_idx + 1];
+    auto range = lengths_part[cable_idx];
 
-    for (auto e: random_extent) {
-        while (e > right) {
-            cable_idx++;
-            left = right;
-            right = cable_extents[cable_idx + 1];
+    for (auto e: random_pos) {
+        while (e > range.second) {
+            range = lengths_part[++cable_idx];
         }
         auto cable = reg_cables[cable_idx];
-        auto pos_on_cable = (e - left)/(right - left);
+        auto pos_on_cable = (e - range.first)/(range.second - range.first);
         auto pos_on_branch = (cable.dist_pos - cable.prox_pos)*pos_on_cable + cable.prox_pos;
-//        std::cout << e << " (" <<  left << ", " << right << ") " << pos_on_cable << "; " << pos_on_branch << std::endl;
         L.push_back({cable.branch, pos_on_branch});
     }
 

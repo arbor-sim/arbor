@@ -26,12 +26,6 @@ struct invalid_mcable: morphology_error {
     mcable cable;
 };
 
-/*struct invalid_interval: morphology_error {
-    invalid_interval(mlocation lhs, mlocation rhs);
-    mlocation lhs;
-    mlocation rhs;
-};*/
-
 struct invalid_sample_parent: morphology_error {
     invalid_sample_parent(msize_t parent, msize_t tree_size);
     msize_t parent;
