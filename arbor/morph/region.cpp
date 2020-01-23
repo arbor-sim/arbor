@@ -495,15 +495,15 @@ std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
 }
 
 // Region with all segments with projection less than val
-struct proj_lt_{
+struct projection_lt_{
     double val; //um
 };
 
-region proj_lt(double val) {
-    return region(proj_lt_{val});
+region projection_lt(double val) {
+    return region(projection_lt_{val});
 }
 
-mcable_list thingify_(const proj_lt_& r, const mprovider& p) {
+mcable_list thingify_(const projection_lt_& r, const mprovider& p) {
     const auto& m = p.morphology();
     const auto& e = p.embedding();
 
@@ -516,20 +516,20 @@ mcable_list thingify_(const proj_lt_& r, const mprovider& p) {
     return merge(L);
 }
 
-std::ostream& operator<<(std::ostream& o, const proj_lt_& r) {
-    return o << "(radius_le: " << r.val << ")";
+std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
+    return o << "(projection_lt: " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
-struct proj_gt_ {
+struct projection_gt_ {
     double val; //um
 };
 
-region proj_gt(double val) {
-    return region(proj_gt_{val});
+region projection_gt(double val) {
+    return region(projection_gt_{val});
 }
 
-mcable_list thingify_(const proj_gt_& r, const mprovider& p) {
+mcable_list thingify_(const projection_gt_& r, const mprovider& p) {
     const auto& m = p.morphology();
     const auto& e = p.embedding();
 
@@ -542,23 +542,23 @@ mcable_list thingify_(const proj_gt_& r, const mprovider& p) {
     return merge(L);
 }
 
-std::ostream& operator<<(std::ostream& o, const proj_gt_& r) {
-    return o << "(proj_gt: " << r.val << ")";
+std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
+    return o << "(projection_gt: " << r.val << ")";
 }
 
-struct projection_lt_ {
+struct z_dist_from_soma_lt_ {
     double val; //um
 };
 
-region projection_lt(double r0) {
-    return region(projection_lt_{r0});
+region z_dist_from_soma_lt(double r0) {
+    return region(z_dist_from_soma_lt_{r0});
 }
 
-mcable_list thingify_(const projection_lt_& reg, const mprovider& p) {
+mcable_list thingify_(const z_dist_from_soma_lt_& reg, const mprovider& p) {
     std::vector<mcable> L;
 
-    region lt = reg::proj_lt(reg.val);
-    region gt = reg::proj_gt(-reg.val);
+    region lt = reg::projection_lt(reg.val);
+    region gt = reg::projection_gt(-reg.val);
 
     auto inter_reg = intersect(std::move(lt), std::move(gt));
     auto inter_cables = thingify(inter_reg, p);
@@ -572,13 +572,13 @@ mcable_list thingify_(const projection_lt_& reg, const mprovider& p) {
     return L;
 }
 
-std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
-    return o << "(projection_lt: " << r.val << ")";
+std::ostream& operator<<(std::ostream& o, const z_dist_from_soma_lt_& r) {
+    return o << "(z_dist_from_soma_lt: " << r.val << ")";
 }
 
-region projection_gt(double r0) {
-    region lt = reg::proj_lt(-r0);
-    region gt = reg::proj_gt(r0);
+region z_dist_from_soma_gt(double r0) {
+    region lt = reg::projection_lt(-r0);
+    region gt = reg::projection_gt(r0);
     return region{join(std::move(lt), std::move(gt))};
 }
 

@@ -741,14 +741,20 @@ TEST(region, thingify) {
         }
     }
     {
-        pvec parents = {mnpos, 0, 1, 1, 2, 3};
+        //                  0  1  2  3  4  5  6  7  8  9  10
+        pvec parents = {mnpos, 0, 1, 1, 2, 3, 0, 6, 7, 8, 7};
         svec samples = {
                 {{  0, 10, 10,  1}, 1},
                 {{  0, 30, 30,  1}, 2},
                 {{  0, 60,-20,  1}, 2},
                 {{  0, 90, 70,  1}, 2},
                 {{  0, 80,-10,  1}, 2},
-                {{  0,100,-40,  1}, 2}
+                {{  0,100,-40,  1}, 2},
+                {{  0,-50,-50,  1}, 2},
+                {{  0, 20,-30,  2}, 2},
+                {{  0, 40,-80,  2}, 2},
+                {{  0,-30,-80,  3}, 2},
+                {{  0, 90,-70,  5}, 2}
         };
         sample_tree sm(samples, parents);
 
@@ -756,22 +762,53 @@ TEST(region, thingify) {
         mprovider mp(morphology(sm, false));
 
         using reg::all;
-        using reg::projection_lt;
-        using reg::projection_gt;
+        using reg::z_dist_from_soma_lt;
+        using reg::z_dist_from_soma_gt;
         using reg::cable;
 
         // Test projection
-        EXPECT_TRUE(cablelist_eq(thingify(projection_lt(0), mp), (mcable_list{})));
-        EXPECT_TRUE(cablelist_eq(thingify(projection_gt(0), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_lt(0), mp), (mcable_list{})));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(0), mp), thingify(all(), mp)));
 
-        EXPECT_TRUE(cablelist_eq(thingify(projection_lt(100), mp), thingify(all(), mp)));
-        EXPECT_TRUE(cablelist_eq(thingify(projection_gt(100), mp), (mcable_list{})));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_lt(100), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(100), mp), (mcable_list{})));
 
-        EXPECT_TRUE(cablelist_eq(thingify(projection_lt(70), mp), thingify(all(), mp)));
-        EXPECT_TRUE(cablelist_eq(thingify(projection_gt(70), mp), (mcable_list{})));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_lt(80), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(80), mp), (mcable_list{})));
 
-        EXPECT_TRUE(cablelist_eq(thingify(projection_lt(20), mp), (mcable_list{{0,0,0.5}, {1,0.14456272544548071,1}, {2,0.6699940078464377,0.88999800261547934}})));
-        EXPECT_TRUE(cablelist_eq(thingify(projection_gt(20), mp), (mcable_list{{0,0.5,1}, {1,0,0.14456272544548071}, {2,0,0.6699940078464377}, {2,0.88999800261547934,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(join(projection_lt(20), projection_gt(20)), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_lt(20), mp),
+                (mcable_list{{0,0,0.5},
+                             {1,0.14456272544548071,1},
+                             {2,0.6699940078464377,0.88999800261547934},
+                             {3,0,0.269111030370473634}
+                })));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(20), mp),
+                (mcable_list{{0,0.5,1},
+                             {1,0,0.14456272544548071},
+                             {2,0,0.6699940078464377},
+                             {2,0.88999800261547934,1},
+                             {3,0.269111030370473634,1},
+                             {4,0,1},
+                             {5,0,1}
+                })));
+        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_soma_lt(20), z_dist_from_soma_gt(20)), mp), thingify(all(), mp)));
+
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_lt(40), mp),
+                                 (mcable_list{{0,0,1},
+                                              {1,0,1},
+                                              {2,0,0.0987472535962839589},
+                                              {2,0.5599920104619169714,1},
+                                              {3,0,0.4485183839507893905},
+                                              {3,0.7691110303704736343,1},
+                                              {4,0,0.0869615364994152821},
+                                              {5,0,0.25}
+                                 })));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(40), mp),
+                                 (mcable_list{{2,0.0987472535962839589,0.5599920104619169714},
+                                              {3,0.4485183839507893905,0.7691110303704736343},
+                                              {4,0.0869615364994152821,1},
+                                              {5,0.25,1}
+                                 })));
+        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_soma_lt(40), z_dist_from_soma_gt(40)), mp), thingify(all(), mp)));
     }
 }
