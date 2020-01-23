@@ -216,7 +216,7 @@ locset::locset(mlocation loc) {
 
 locset::locset(const mlocation_list& ll) {
     *this = std::accumulate(ll.begin(), ll.end(), ls::nil(),
-        [](auto& ls, auto& p) { return join(ls, locset(p)); });
+        [](auto& ls, auto& p) { return sum(ls, locset(p)); });
 }
 
 locset::locset(std::string name) {

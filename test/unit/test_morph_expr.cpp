@@ -211,6 +211,7 @@ TEST(locset, thingify) {
     auto begb2 = ls::location(2, 0);
     auto begb3 = ls::location(3, 0);
     auto begb4 = ls::location(4, 0);
+    auto multi = sum(begb3, midb2, midb1, midb2);
 
     // Eight samples
     //
@@ -247,7 +248,9 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(begb4, mp), (ll{{4,0}}));
 
         // Check round-trip of implicit locset conversions.
-        EXPECT_EQ(thingify(term, mp), thingify(locset(thingify(term, mp)), mp));
+        // (Use a locset which is non-trivially a multiset in order to
+        // test the fold in the constructor.)
+        EXPECT_EQ(thingify(multi, mp), thingify(locset(thingify(multi, mp)), mp));
     }
     {
         mprovider mp(morphology(sm, false));
