@@ -570,7 +570,7 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         if (!input_mask_.empty())
-            out_ << "S::const_where(" << input_mask_ << ", simd_value(";
+            out_ << "S::where(" << input_mask_ << ", simd_value(";
         else
             out_ << "simd_value(";
 

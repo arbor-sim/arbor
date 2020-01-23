@@ -185,10 +185,11 @@ TYPED_TEST_P(simd_value, copy_to_from_masked) {
     std::minstd_rand rng(1031);
 
     for (unsigned i = 0; i<nrounds; ++i) {
-        scalar buf1[N], buf2[N], buf3[N];
+        scalar buf1[N], buf2[N], buf3[N], buf4[N];
         fill_random(buf1, rng);
         fill_random(buf2, rng);
         fill_random(buf3, rng);
+        fill_random(buf4, rng);
 
         bool mbuf1[N], mbuf2[N];
         fill_random(mbuf1, rng);
@@ -211,6 +212,13 @@ TYPED_TEST_P(simd_value, copy_to_from_masked) {
 
         where(m2, s).copy_to(buf3);
         EXPECT_TRUE(testing::indexed_eq_n(N, expected, buf3));
+
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = mbuf2[i]? buf1[i]: buf4[i];
+        }
+
+        where(m2, simd(buf1)).copy_to(buf4);
+        EXPECT_TRUE(testing::indexed_eq_n(N, expected, buf4));
     }
 }
 
@@ -1026,6 +1034,14 @@ TYPED_TEST_P(simd_indirect, masked_scatter) {
         simd s(values);
         simd_mask m(mask);
         where(m, s).copy_to(indirect(array, simd_index(offset)));
+
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
+
+        for (unsigned j = 0; j<buflen; ++j) {
+            array[j] = test[j];
+        }
+
+        where(m, simd(values)).copy_to(indirect(array, simd_index(offset)));
 
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }

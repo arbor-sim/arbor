@@ -211,7 +211,7 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
         if (!input_mask_.empty()) {
             mask = mask + " && " + input_mask_;
         }
-        out_ << "S::const_where(" << mask << ", " << "simd_value(";
+        out_ << "S::where(" << mask << ", " << "simd_value(";
         e->rhs()->accept(this);
         out_ << "))";
         if(is_indirect_)
