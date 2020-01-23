@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <functional>
 #include <list>
