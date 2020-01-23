@@ -433,7 +433,6 @@ std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
 }
 
 // Region with all segments with radius less than r
-
 struct radius_lt_ {
     region reg;
     double val; //um
@@ -460,11 +459,40 @@ mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
+    return o << "(radius_lt: " << r.reg << ", " << r.val << ")";
+}
+
+// Region with all segments with radius less than r
+struct radius_le_ {
+    region reg;
+    double val; //um
+};
+
+region radius_le(region reg, double val) {
+    return region(radius_lt_{reg, val});
+}
+
+mcable_list thingify_(const radius_le_& r, const mprovider& p) {
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+    auto reg = thingify(r.reg, p);
+    auto val = r.val;
+    for (auto c: reg) {
+        for (auto r: e.radius_le(c.branch, val)) {
+            if (is_disjoint(c, r)) continue;
+            L.push_back(make_intersection(c, r));
+        }
+    }
+    util::sort(L);
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
     return o << "(radius_le: " << r.reg << ", " << r.val << ")";
 }
 
 // Region with all segments with radius greater than r
-
 struct radius_gt_ {
     region reg;
     double val; //um
@@ -494,6 +522,36 @@ std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
     return o << "(radius_gt: " << r.reg << ", " << r.val << ")";
 }
 
+// Region with all segments with radius greater than or equal to r
+struct radius_ge_ {
+    region reg;
+    double val; //um
+};
+
+region radius_ge(region reg, double val) {
+    return region(radius_gt_{reg, val});
+}
+
+mcable_list thingify_(const radius_ge_& r, const mprovider& p) {
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+    auto reg = thingify(r.reg, p);
+    auto val = r.val;
+    for (auto c: reg) {
+        for (auto r: e.radius_ge(c.branch, val)) {
+            if (is_disjoint(c, r)) continue;
+            L.push_back(make_intersection(c, r));
+        }
+    }
+    util::sort(L);
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
+    return o << "(radius_ge: " << r.reg << ", " << r.val << ")";
+}
+
 // Region with all segments with projection less than val
 struct projection_lt_{
     double val; //um
@@ -520,6 +578,32 @@ std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
     return o << "(projection_lt: " << r.val << ")";
 }
 
+// Region with all segments with projection less than or equal to val
+struct projection_le_{
+    double val; //um
+};
+
+region projection_le(double val) {
+    return region(projection_le_{val});
+}
+
+mcable_list thingify_(const projection_le_& r, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+    auto val = r.val;
+    for (auto i: util::make_span(m.num_branches())) {
+        util::append(L, e.projection_le(i, val));
+    }
+    util::sort(L);
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
+    return o << "(projection_le: " << r.val << ")";
+}
+
 // Region with all segments with projection greater than val
 struct projection_gt_ {
     double val; //um
@@ -544,6 +628,32 @@ mcable_list thingify_(const projection_gt_& r, const mprovider& p) {
 
 std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
     return o << "(projection_gt: " << r.val << ")";
+}
+
+// Region with all segments with projection greater than val
+struct projection_ge_ {
+    double val; //um
+};
+
+region projection_ge(double val) {
+    return region(projection_ge_{val});
+}
+
+mcable_list thingify_(const projection_ge_& r, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+    auto val = r.val;
+    for (auto i: util::make_span(m.num_branches())) {
+        util::append(L, e.projection_ge(i, val));
+    }
+    util::sort(L);
+    return merge(L);
+}
+
+std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
+    return o << "(projection_ge: " << r.val << ")";
 }
 
 struct z_dist_from_soma_lt_ {
@@ -576,12 +686,47 @@ std::ostream& operator<<(std::ostream& o, const z_dist_from_soma_lt_& r) {
     return o << "(z_dist_from_soma_lt: " << r.val << ")";
 }
 
+struct z_dist_from_soma_le_ {
+    double val; //um
+};
+
+region z_dist_from_soma_le(double r0) {
+    return region(z_dist_from_soma_le_{r0});
+}
+
+mcable_list thingify_(const z_dist_from_soma_le_& reg, const mprovider& p) {
+    std::vector<mcable> L;
+
+    region le = reg::projection_le(reg.val);
+    region ge = reg::projection_ge(-reg.val);
+
+    auto inter_reg = intersect(std::move(le), std::move(ge));
+    auto inter_cables = thingify(inter_reg, p);
+
+    L.reserve(inter_cables.size());
+    for (auto c: inter_cables) {
+        if (c.dist_pos != c.prox_pos) {
+            L.push_back(c);
+        }
+    }
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const z_dist_from_soma_le_& r) {
+    return o << "(z_dist_from_soma_le: " << r.val << ")";
+}
+
 region z_dist_from_soma_gt(double r0) {
     region lt = reg::projection_lt(-r0);
     region gt = reg::projection_gt(r0);
     return region{join(std::move(lt), std::move(gt))};
 }
 
+region z_dist_from_soma_ge(double r0) {
+    region lt = reg::projection_le(-r0);
+    region gt = reg::projection_ge(r0);
+    return region{join(std::move(lt), std::move(gt))};
+}
 // Named region.
 
 struct named_ {

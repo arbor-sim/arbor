@@ -133,17 +133,21 @@ region distal_interval(region start, double distance);
 // Region with all segments proximal from another region
 region proximal_interval(region end, double distance);
 
-// Region with all segments with radius less than r
+// Region with all segments with radius less than/less than or equal to r
 region radius_lt(region reg, double r);
+region radius_le(region reg, double r);
 
-// Region with all segments with radius greater than r
+// Region with all segments with radius greater than/greater than or equal to r
 region radius_gt(region reg, double r);
+region radius_ge(region reg, double r);
 
-// Region with all segments with projection less than r
+// Region with all segments with projection less than/less than or equal to r
 region z_dist_from_soma_lt(double r);
+region z_dist_from_soma_le(double r);
 
-// Region with all segments with projection greater than r
+// Region with all segments with projection greater than/greater than or equal to r
 region z_dist_from_soma_gt(double r);
+region z_dist_from_soma_ge(double r);
 
 // Region with all segments in a cell.
 region all();

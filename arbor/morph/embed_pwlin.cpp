@@ -53,8 +53,8 @@ double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_consta
     return accum;
 }
 
-template <unsigned p, unsigned q>
-mcable_list data_lt(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val) {
+template <unsigned p, unsigned q, typename operation>
+mcable_list data_cmp(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val, operation op) {
     mcable_list L;
     const auto& pw = f.at(bid);
     for (const auto& piece: pw) {
@@ -62,10 +62,10 @@ mcable_list data_lt(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val) 
         auto left_val = piece.second(0);
         auto right_val = piece.second(1);
 
-        if (left_val >= val && right_val >= val) {
+        if (!op(left_val, val) && !op(right_val, val)) {
             continue;
         }
-        if (left_val <= val && right_val <= val) {
+        if (op(left_val, val) && op(right_val, val)) {
             L.push_back({bid, extents.first, extents.second});
             continue;
         }
@@ -74,44 +74,11 @@ mcable_list data_lt(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val) 
         auto cable_portion = extents.second - extents.first;
         auto edge = cable_loc * cable_portion + extents.first;
 
-        if (left_val < val) {
+        if (op(left_val, val)) {
             L.push_back({bid, extents.first, edge});
             continue;
         }
-        if (left_val > val) {
-            L.push_back({bid, edge, extents.second});
-            continue;
-        }
-    }
-    return L;
-}
-
-template <unsigned p, unsigned q>
-mcable_list data_gt(const branch_pw_ratpoly<p, q>& f, msize_t bid, double val) {
-    mcable_list L;
-    const auto& pw = f.at(bid);
-    for (const auto& piece: pw) {
-        auto extents = piece.first;
-        auto left_val = piece.second(0);
-        auto right_val = piece.second(1);
-
-        if (left_val <= val && right_val <= val) {
-            continue;
-        }
-        if (left_val >= val && right_val >= val) {
-            L.push_back({bid, extents.first, extents.second});
-            continue;
-        }
-
-        auto cable_loc = (val - left_val)/(right_val - left_val);
-        auto cable_portion = extents.second - extents.first;
-        auto edge = cable_loc * cable_portion + extents.first;
-
-        if (left_val > val) {
-            L.push_back({bid, extents.first, edge});
-            continue;
-        }
-        if (left_val < val) {
+        if (!op(left_val, val)) {
             L.push_back({bid, edge, extents.second});
             continue;
         }
@@ -170,19 +137,35 @@ double embed_pwlin::integrate_ixa(mcable c) const {
 }
 
 mcable_list embed_pwlin::radius_lt(msize_t bid, double val) const {
-    return data_lt(data_->radius, bid, val);
+    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs < rhs;});
+}
+
+mcable_list embed_pwlin::radius_le(msize_t bid, double val) const {
+    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs <= rhs;});
 }
 
 mcable_list embed_pwlin::radius_gt(msize_t bid, double val) const {
-    return data_gt(data_->radius, bid, val);
+    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs > rhs;});
+}
+
+mcable_list embed_pwlin::radius_ge(msize_t bid, double val) const {
+    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs >= rhs;});
 }
 
 mcable_list embed_pwlin::projection_lt(msize_t bid, double val) const {
-    return data_lt(data_->directed_projection, bid, val);
+    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs < rhs;});
+}
+
+mcable_list embed_pwlin::projection_le(msize_t bid, double val) const {
+    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs <= rhs;});
 }
 
 mcable_list embed_pwlin::projection_gt(msize_t bid, double val) const {
-    return data_gt(data_->directed_projection, bid, val);
+    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs > rhs;});
+}
+
+mcable_list embed_pwlin::projection_ge(msize_t bid, double val) const {
+    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs >= rhs;});
 }
 
 // Initialization, creation of geometric data.
