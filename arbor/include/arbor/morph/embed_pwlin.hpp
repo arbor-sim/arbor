@@ -18,6 +18,7 @@ template <typename X> struct pw_elements;
 // Piecewise-constant functions are represented as scalar (double)
 // values defined over contiguous intervals.
 using pw_constant_fn = util::pw_elements<double>;
+using operation = std::function<bool(double,double)>;
 
 struct embed_pwlin {
     explicit embed_pwlin(const arb::morphology& m);
@@ -28,16 +29,10 @@ struct embed_pwlin {
 
     // Interpolated radius at location.
     double radius(mlocation) const;
-    mcable_list radius_lt(msize_t bid, double rad_lim) const;
-    mcable_list radius_le(msize_t bid, double rad_lim) const;
-    mcable_list radius_gt(msize_t bid, double rad_lim) const;
-    mcable_list radius_ge(msize_t bid, double rad_lim) const;
+    mcable_list radius_cmp(msize_t bid, double rad_lim, operation op) const;
 
     double directed_projection(mlocation) const;
-    mcable_list projection_lt(msize_t bid, double proj_lim) const;
-    mcable_list projection_le(msize_t bid, double proj_lim) const;
-    mcable_list projection_gt(msize_t bid, double proj_lim) const;
-    mcable_list projection_ge(msize_t bid, double proj_lim) const;
+    mcable_list projection_cmp(msize_t bid, double proj_lim, operation op) const;
 
     // Computed length of mcable.
     double integrate_length(mcable c) const;

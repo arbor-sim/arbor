@@ -432,6 +432,23 @@ std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
     return o << "(distal_interval: " << d.end << ", " << d.distance << ")";
 }
 
+template <typename operation>
+mcable_list radius_cmp(const mprovider& p, region r, double v, operation op) {
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+    auto reg = thingify(r, p);
+    auto val = v;
+    for (auto c: reg) {
+        for (auto r: e.radius_cmp(c.branch, val, op)) {
+            if (is_disjoint(c, r)) continue;
+            L.push_back(make_intersection(c, r));
+        }
+    }
+    util::sort(L);
+    return merge(L);
+}
+
 // Region with all segments with radius less than r
 struct radius_lt_ {
     region reg;
@@ -443,19 +460,7 @@ region radius_lt(region reg, double val) {
 }
 
 mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto reg = thingify(r.reg, p);
-    auto val = r.val;
-    for (auto c: reg) {
-        for (auto r: e.radius_lt(c.branch, val)) {
-            if (is_disjoint(c, r)) continue;
-            L.push_back(make_intersection(c, r));
-        }
-    }
-    util::sort(L);
-    return merge(L);
+    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l < r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
@@ -469,23 +474,11 @@ struct radius_le_ {
 };
 
 region radius_le(region reg, double val) {
-    return region(radius_lt_{reg, val});
+    return region(radius_le_{reg, val});
 }
 
 mcable_list thingify_(const radius_le_& r, const mprovider& p) {
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto reg = thingify(r.reg, p);
-    auto val = r.val;
-    for (auto c: reg) {
-        for (auto r: e.radius_le(c.branch, val)) {
-            if (is_disjoint(c, r)) continue;
-            L.push_back(make_intersection(c, r));
-        }
-    }
-    util::sort(L);
-    return merge(L);
+    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l <= r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
@@ -503,19 +496,7 @@ region radius_gt(region reg, double val) {
 }
 
 mcable_list thingify_(const radius_gt_& r, const mprovider& p) {
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto reg = thingify(r.reg, p);
-    auto val = r.val;
-    for (auto c: reg) {
-        for (auto r: e.radius_gt(c.branch, val)) {
-            if (is_disjoint(c, r)) continue;
-            L.push_back(make_intersection(c, r));
-        }
-    }
-    util::sort(L);
-    return merge(L);
+    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l > r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
@@ -533,23 +514,25 @@ region radius_ge(region reg, double val) {
 }
 
 mcable_list thingify_(const radius_ge_& r, const mprovider& p) {
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto reg = thingify(r.reg, p);
-    auto val = r.val;
-    for (auto c: reg) {
-        for (auto r: e.radius_ge(c.branch, val)) {
-            if (is_disjoint(c, r)) continue;
-            L.push_back(make_intersection(c, r));
-        }
-    }
-    util::sort(L);
-    return merge(L);
+    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l >= r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
     return o << "(radius_ge: " << r.reg << ", " << r.val << ")";
+}
+
+template <typename operation>
+mcable_list projection_cmp(const mprovider& p, double v, operation op) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mcable> L;
+    auto val = v;
+    for (auto i: util::make_span(m.num_branches())) {
+        util::append(L, e.projection_cmp(i, val, op));
+    }
+    util::sort(L);
+    return merge(L);
 }
 
 // Region with all segments with projection less than val
@@ -562,16 +545,7 @@ region projection_lt(double val) {
 }
 
 mcable_list thingify_(const projection_lt_& r, const mprovider& p) {
-    const auto& m = p.morphology();
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto val = r.val;
-    for (auto i: util::make_span(m.num_branches())) {
-        util::append(L, e.projection_lt(i, val));
-    }
-    util::sort(L);
-    return merge(L);
+    return projection_cmp(p, r.val, [](auto l, auto r){return l < r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
@@ -588,16 +562,7 @@ region projection_le(double val) {
 }
 
 mcable_list thingify_(const projection_le_& r, const mprovider& p) {
-    const auto& m = p.morphology();
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto val = r.val;
-    for (auto i: util::make_span(m.num_branches())) {
-        util::append(L, e.projection_le(i, val));
-    }
-    util::sort(L);
-    return merge(L);
+    return projection_cmp(p, r.val, [](auto l, auto r){return l <= r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
@@ -614,16 +579,7 @@ region projection_gt(double val) {
 }
 
 mcable_list thingify_(const projection_gt_& r, const mprovider& p) {
-    const auto& m = p.morphology();
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto val = r.val;
-    for (auto i: util::make_span(m.num_branches())) {
-        util::append(L, e.projection_gt(i, val));
-    }
-    util::sort(L);
-    return merge(L);
+    return projection_cmp(p, r.val, [](auto l, auto r){return l > r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
@@ -640,16 +596,7 @@ region projection_ge(double val) {
 }
 
 mcable_list thingify_(const projection_ge_& r, const mprovider& p) {
-    const auto& m = p.morphology();
-    const auto& e = p.embedding();
-
-    std::vector<mcable> L;
-    auto val = r.val;
-    for (auto i: util::make_span(m.num_branches())) {
-        util::append(L, e.projection_ge(i, val));
-    }
-    util::sort(L);
-    return merge(L);
+    return projection_cmp(p, r.val, [](auto l, auto r){return l >= r;});
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {

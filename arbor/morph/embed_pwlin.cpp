@@ -136,36 +136,12 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-mcable_list embed_pwlin::radius_lt(msize_t bid, double val) const {
-    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs < rhs;});
+mcable_list embed_pwlin::radius_cmp(msize_t bid, double val, operation op) const {
+    return data_cmp(data_->radius, bid, val, op);
 }
 
-mcable_list embed_pwlin::radius_le(msize_t bid, double val) const {
-    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs <= rhs;});
-}
-
-mcable_list embed_pwlin::radius_gt(msize_t bid, double val) const {
-    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs > rhs;});
-}
-
-mcable_list embed_pwlin::radius_ge(msize_t bid, double val) const {
-    return data_cmp(data_->radius, bid, val, [](double lhs, double rhs) {return lhs >= rhs;});
-}
-
-mcable_list embed_pwlin::projection_lt(msize_t bid, double val) const {
-    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs < rhs;});
-}
-
-mcable_list embed_pwlin::projection_le(msize_t bid, double val) const {
-    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs <= rhs;});
-}
-
-mcable_list embed_pwlin::projection_gt(msize_t bid, double val) const {
-    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs > rhs;});
-}
-
-mcable_list embed_pwlin::projection_ge(msize_t bid, double val) const {
-    return data_cmp(data_->directed_projection, bid, val, [](double lhs, double rhs) {return lhs >= rhs;});
+mcable_list embed_pwlin::projection_cmp(msize_t bid, double val, operation op) const {
+    return data_cmp(data_->directed_projection, bid, val, op);
 }
 
 // Initialization, creation of geometric data.
