@@ -26,6 +26,7 @@ constexpr bool with_profiling() {
 
 void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
 void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
+void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
 
 void emit_api_body(std::ostream&, APIMethod*);
 void emit_simd_api_body(std::ostream&, APIMethod*, moduleKind);
@@ -56,21 +57,24 @@ struct cprint {
 
 struct simdprint {
     Expression* expr_;
-    bool is_indirect_index_;
-    simd_expr_constraint constraint_;
+    bool is_indirect_ = false;
+    bool is_masked_ = false;
 
-    explicit simdprint(Expression* expr): expr_(expr), is_indirect_index_(false),
-                                          constraint_(simd_expr_constraint::other) {}
-    explicit simdprint(Expression* expr, bool is_indexed, simd_expr_constraint constraint):
-            expr_(expr), is_indirect_index_(is_indexed), constraint_(constraint) {}
+    explicit simdprint(Expression* expr): expr_(expr) {}
 
     void set_indirect_index() {
-        is_indirect_index_ = true;
+        is_indirect_ = true;
+    }
+    void set_masked() {
+        is_masked_ = true;
     }
 
     friend std::ostream& operator<<(std::ostream& out, const simdprint& w) {
         SimdPrinter printer(out);
-        printer.set_var_indexed_to(w.is_indirect_index_);
+        if(w.is_masked_) {
+            printer.set_input_mask("mask_input_");
+        }
+        printer.set_var_indexed(w.is_indirect_);
         return w.expr_->accept(&printer), out;
     }
 };
@@ -312,10 +316,13 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     }
 
     for (auto proc: normal_procedures(module_)) {
-        emit_procedure_proto(out, proc);
-        out << ";\n";
         if (with_simd) {
             emit_simd_procedure_proto(out, proc);
+            out << ";\n";
+            emit_masked_simd_procedure_proto(out, proc);
+            out << ";\n";
+        } else {
+            emit_procedure_proto(out, proc);
             out << ";\n";
         }
     }
@@ -377,17 +384,20 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     // Mechanism procedures
 
     for (auto proc: normal_procedures(module_)) {
-        emit_procedure_proto(out, proc, class_name);
-        out <<
-            " {\n" << indent <<
-            cprint(proc->body()) << popindent <<
-            "}\n\n";
-
         if (with_simd) {
             emit_simd_procedure_proto(out, proc, class_name);
+            auto simd_print = simdprint(proc->body());
+            out << " {\n" << indent << simd_print << popindent <<  "}\n\n";
+
+            emit_masked_simd_procedure_proto(out, proc, class_name);
+            auto masked_print = simdprint(proc->body());
+            masked_print.set_masked();
+            out << " {\n" << indent << masked_print << popindent << "}\n\n";
+        } else {
+            emit_procedure_proto(out, proc, class_name);
             out <<
                 " {\n" << indent <<
-                simdprint(proc->body()) << popindent <<
+                cprint(proc->body()) << popindent <<
                 "}\n\n";
         }
     }
@@ -541,7 +551,7 @@ void SimdPrinter::visit(LocalVariable* sym) {
 
 void SimdPrinter::visit(VariableExpression *sym) {
     if (sym->is_range()) {
-        if(is_indirect_index_)
+        if(is_indirect_)
             out_ << "simd_value(" << sym->name() << "+index_)";
         else
             out_ << "simd_value(" << sym->name() << "+i_)";
@@ -559,9 +569,17 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        out_ << "simd_value(";
+        if (!input_mask_.empty())
+            out_ << "S::where(" << input_mask_ << ", simd_value(";
+        else
+            out_ << "simd_value(";
+
         e->rhs()->accept(this);
-        if(is_indirect_index_)
+
+        if (!input_mask_.empty())
+            out_ << ")";
+
+        if(is_indirect_)
             out_ << ").copy_to(" << lhs->name() << "+index_)";
         else
             out_ << ").copy_to(" << lhs->name() << "+i_)";
@@ -573,7 +591,7 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 }
 
 void SimdPrinter::visit(CallExpression* e) {
-    if(is_indirect_index_)
+    if(is_indirect_)
         out_ << e->name() << "(index_";
     else
         out_ << e->name() << "(i_";
@@ -599,18 +617,26 @@ void SimdPrinter::visit(BlockExpression* block) {
     }
 
     for (auto& stmt: block->statements()) {
-        if (stmt->is_if()) {
-            throw compiler_exception("Conditionals not yet supported in SIMD printer: "+stmt->to_string());
-        }
         if (!stmt->is_local_declaration()) {
             stmt->accept(this);
-            out_ << ";\n";
+            if (!stmt->is_if() && !stmt->is_block()) {
+                out_ << ";\n";
+            }
         }
     }
 }
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(index_type i_";
+    for (auto& arg: e->args()) {
+        out << ", const simd_value& " << arg->is_argument()->name();
+    }
+    out << ")";
+}
+
+void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
+    out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
+    << "(index_type i_, simd_value::simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }

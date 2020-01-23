@@ -10,7 +10,6 @@ expression_ptr inline_function_calls(std::string calling_func, BlockExpression* 
 class FunctionInliner : public BlockRewriterBase {
 public:
     using BlockRewriterBase::visit;
-
     FunctionInliner(std::string calling_func) : BlockRewriterBase(), calling_func_(calling_func) {};
     FunctionInliner(scope_ptr s): BlockRewriterBase(s) {}
 
