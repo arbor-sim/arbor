@@ -270,22 +270,22 @@ TEST(SimdPrinter, simd_if_else) {
             "simd_value::simd_mask mask_0_ = i > 2;\n"
             "S::where(mask_0_,u) = 7;\n"
             "S::where(!mask_0_,u) = 5;\n"
-            "S::const_where(!mask_0_,simd_value(42)).copy_to(s+i_);\n"
+            "S::where(!mask_0_,simd_value(42)).copy_to(s+i_);\n"
             "simd_value(u).copy_to(s+i_);"
             ,
             "simd_value u;\n"
             "simd_value::simd_mask mask_1_ = i > 2;\n"
             "S::where(mask_1_,u) = 7;\n"
             "S::where(!mask_1_,u) = 5;\n"
-            "S::const_where(!mask_1_ && mask_input_,simd_value(42)).copy_to(s+i_);\n"
-            "S::const_where(mask_input_, simd_value(u)).copy_to(s+i_);"
+            "S::where(!mask_1_ && mask_input_,simd_value(42)).copy_to(s+i_);\n"
+            "S::where(mask_input_, simd_value(u)).copy_to(s+i_);"
             ,
             "simd_value::simd_mask mask_2_ = simd_value(g+i_)>2;\n"
             "simd_value::simd_mask mask_3_ = simd_value(g+i_)>3;\n"
             "S::where(mask_2_&&mask_3_,i) = 0.;\n"
             "S::where(mask_2_&&!mask_3_,i) = 1;\n"
             "simd_value::simd_mask mask_4_ = simd_value(g+i_)<1;\n"
-            "S::const_where(!mask_2_&& mask_4_,simd_value(2)).copy_to(s+i_);\n"
+            "S::where(!mask_2_&& mask_4_,simd_value(2)).copy_to(s+i_);\n"
             "rates(i_, !mask_2_&&!mask_4_, i);"
     };
 
