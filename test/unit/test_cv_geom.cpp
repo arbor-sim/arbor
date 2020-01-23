@@ -15,11 +15,6 @@
 using namespace arb;
 using util::make_span;
 
-template <typename... A>
-locset as_locset(mlocation head, A... tail) {
-    return join(ls::location(head), ls::location(tail)...);
-}
-
 TEST(cv_geom, empty) {
     using namespace common_morphology;
 
@@ -223,12 +218,11 @@ TEST(cv_geom, weird) {
     // CV 0 will comprise branches 0 and 2; CV 1 branches 1, 3, 5;
     // and CV 2 branch 4.
 
-    using L = mlocation;
     using C = mcable;
     using testing::seq_eq;
 
     cable_cell cell{common_morphology::m_reg_b6};
-    cv_geometry geom = cv_geometry_from_ends(cell, as_locset(L{1, 0}, L{4,0}));
+    cv_geometry geom = cv_geometry_from_ends(cell, mlocation_list{{1, 0}, {4,0}});
 
     ASSERT_EQ(3u, geom.size());
 
@@ -280,7 +274,7 @@ TEST(cv_geom, location_cv) {
 
     // CV 0 will comprise branches 0 and 2; CV 1 branches 1, 3, 5;
     // and CV 2 branch 4 (see test cv_geom.weird above).
-    cv_geometry gweird = cv_geometry_from_ends(cell, as_locset(mlocation{1, 0}, mlocation{4,0}));
+    cv_geometry gweird = cv_geometry_from_ends(cell, mlocation_list{{1, 0}, {4,0}});
 
     // Expect location (4, 0.) to be in CV 2, but colocated locations
     // (3, 0.), (5, 0.) and (1, 1.) to be in CV 1.

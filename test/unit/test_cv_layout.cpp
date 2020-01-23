@@ -89,9 +89,9 @@ TEST(cv_layout, cable) {
     params.init_membrane_potential = 0;
 
     cable_cell c(morph);
-    c.paint(reg::cable({0, 0.0, 0.2}), init_membrane_potential{10});
-    c.paint(reg::cable({0, 0.2, 0.7}), init_membrane_potential{20});
-    c.paint(reg::cable({0, 0.7, 1.0}), init_membrane_potential{30});
+    c.paint(reg::cable(0, 0.0, 0.2), init_membrane_potential{10});
+    c.paint(reg::cable(0, 0.2, 0.7), init_membrane_potential{20});
+    c.paint(reg::cable(0, 0.7, 1.0), init_membrane_potential{30});
 
     params.discretization = cv_policy_explicit(ls::nil());
     fvm_cv_discretization D = fvm_cv_discretize(c, params);
@@ -99,7 +99,7 @@ TEST(cv_layout, cable) {
     ASSERT_EQ(1u, D.size());
     EXPECT_DOUBLE_EQ(0.2*10+0.5*20+0.3*30, D.init_membrane_potential[0]);
 
-    params.discretization = cv_policy_explicit(ls::location({0, 0.3}));
+    params.discretization = cv_policy_explicit(ls::location(0, 0.3));
     D = fvm_cv_discretize(c, params);
 
     ASSERT_EQ(2u, D.size());
@@ -118,7 +118,7 @@ TEST(cv_layout, cable_conductance) {
     double radius = c.embedding().radius(mlocation{0, 0.5});
     double length = c.embedding().branch_length(0);
 
-    params.discretization = cv_policy_explicit(ls::location({0, 0.3}));
+    params.discretization = cv_policy_explicit(ls::location(0, 0.3));
     fvm_cv_discretization D = fvm_cv_discretize(c, params);
 
     ASSERT_EQ(2u, D.size());
