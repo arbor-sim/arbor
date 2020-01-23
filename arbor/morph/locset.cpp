@@ -23,7 +23,7 @@ void assert_valid(mlocation x) {
 
 // Empty locset.
 
-struct nil_ {};
+struct nil_: locset_tag {};
 
 locset nil() {
     return locset{nil_{}};
@@ -39,11 +39,13 @@ std::ostream& operator<<(std::ostream& o, const nil_& x) {
 
 // An explicit location.
 
-struct location_ {
+struct location_: locset_tag {
+    explicit location_(mlocation loc): loc(loc) {}
     mlocation loc;
 };
 
-locset location(mlocation loc) {
+locset location(msize_t branch, double pos) {
+    mlocation loc{branch, pos};
     assert_valid(loc);
     return locset{location_{loc}};
 }
@@ -63,7 +65,8 @@ std::ostream& operator<<(std::ostream& o, const location_& x) {
 
 // Location corresponding to a sample id.
 
-struct sample_ {
+struct sample_: locset_tag {
+    explicit sample_(msize_t index): index(index) {}
     msize_t index;
 };
 
@@ -81,7 +84,7 @@ std::ostream& operator<<(std::ostream& o, const sample_& x) {
 
 // Set of terminal points (most distal points).
 
-struct terminal_ {};
+struct terminal_: locset_tag {};
 
 locset terminal() {
     return locset{terminal_{}};
@@ -101,7 +104,7 @@ std::ostream& operator<<(std::ostream& o, const terminal_& x) {
 
 // Root location (most proximal point).
 
-struct root_ {};
+struct root_: locset_tag {};
 
 locset root() {
     return locset{root_{}};
@@ -117,7 +120,8 @@ std::ostream& operator<<(std::ostream& o, const root_& x) {
 
 // Named locset.
 
-struct named_ {
+struct named_: locset_tag {
+    explicit named_(std::string name): name(std::move(name)) {}
     std::string name;
 };
 
@@ -136,7 +140,7 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
 
 // Intersection of two point sets.
 
-struct land {
+struct land: locset_tag {
     locset lhs;
     locset rhs;
     land(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -152,7 +156,7 @@ std::ostream& operator<<(std::ostream& o, const land& x) {
 
 // Union of two point sets.
 
-struct lor {
+struct lor: locset_tag {
     locset lhs;
     locset rhs;
     lor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -168,7 +172,7 @@ std::ostream& operator<<(std::ostream& o, const lor& x) {
 
 // Sum of two point sets.
 
-struct lsum {
+struct lsum: locset_tag {
     locset lhs;
     locset rhs;
     lsum(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -200,12 +204,19 @@ locset sum(locset lhs, locset rhs) {
     return locset(ls::lsum(std::move(lhs), std::move(rhs)));
 }
 
+// Implicit constructors.
+
 locset::locset() {
     *this = ls::nil();
 }
 
 locset::locset(mlocation loc) {
-    *this = ls::location(loc);
+    *this = ls::location(loc.branch, loc.pos);
+}
+
+locset::locset(const mlocation_list& ll) {
+    *this = std::accumulate(ll.begin(), ll.end(), ls::nil(),
+        [](auto& ls, auto& p) { return sum(ls, locset(p)); });
 }
 
 locset::locset(std::string name) {
@@ -215,6 +226,5 @@ locset::locset(std::string name) {
 locset::locset(const char* name) {
     *this = ls::named(name);
 }
-
 
 } // namespace arb

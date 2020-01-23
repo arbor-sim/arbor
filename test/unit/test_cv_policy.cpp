@@ -51,15 +51,7 @@ namespace {
 
     template <typename... A>
     locset as_locset(mlocation head, A... tail) {
-        return join(ls::location(head), ls::location(tail)...);
-    }
-
-    template <typename Seq>
-    locset as_locset(const Seq& seq) {
-        using std::begin;
-        using std::end;
-        return std::accumulate(begin(seq), end(seq), ls::nil(),
-            [](locset ls, const mlocation& p) { return join(std::move(ls), ls::location(p)); });
+        return join(locset(head), locset(tail)...);
     }
 }
 

@@ -92,7 +92,7 @@ TEST(locset, expr_repn) {
     auto root = ls::root();
     auto term = ls::terminal();
     auto samp = ls::sample(42);
-    auto loc = ls::location({2, 0.5});
+    auto loc = ls::location(2, 0.5);
 
     EXPECT_EQ(to_string(root), "(root)");
     EXPECT_EQ(to_string(term), "(terminal)");
@@ -103,14 +103,14 @@ TEST(locset, expr_repn) {
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 }
 
-TEST(region, invalid_mlocation) {
+TEST(locset, invalid_mlocation) {
     // Location positions have to be in the range [0,1].
-    EXPECT_NO_THROW(ls::location({123, 0.0}));
-    EXPECT_NO_THROW(ls::location({123, 0.02}));
-    EXPECT_NO_THROW(ls::location({123, 1.0}));
+    EXPECT_NO_THROW(ls::location(123, 0.0));
+    EXPECT_NO_THROW(ls::location(123, 0.02));
+    EXPECT_NO_THROW(ls::location(123, 1.0));
 
-    EXPECT_THROW(ls::location({0, 1.5}), invalid_mlocation);
-    EXPECT_THROW(ls::location({unsigned(-1), 0.}), invalid_mlocation);
+    EXPECT_THROW(ls::location(0, 1.5), invalid_mlocation);
+    EXPECT_THROW(ls::location(unsigned(-1), 0.), invalid_mlocation);
 }
 
 // Name evaluation (thingify) tests:
@@ -204,13 +204,14 @@ TEST(locset, thingify) {
     auto root = ls::root();
     auto term = ls::terminal();
     auto samp = ls::sample(4);
-    auto midb2 = ls::location({2, 0.5});
-    auto midb1 = ls::location({1, 0.5});
-    auto begb0 = ls::location({0, 0});
-    auto begb1 = ls::location({1, 0});
-    auto begb2 = ls::location({2, 0});
-    auto begb3 = ls::location({3, 0});
-    auto begb4 = ls::location({4, 0});
+    auto midb2 = ls::location(2, 0.5);
+    auto midb1 = ls::location(1, 0.5);
+    auto begb0 = ls::location(0, 0);
+    auto begb1 = ls::location(1, 0);
+    auto begb2 = ls::location(2, 0);
+    auto begb3 = ls::location(3, 0);
+    auto begb4 = ls::location(4, 0);
+    auto multi = sum(begb3, midb2, midb1, midb2);
 
     // Eight samples
     //
@@ -245,6 +246,11 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(begb2, mp), (ll{{2,0}}));
         EXPECT_EQ(thingify(begb3, mp), (ll{{3,0}}));
         EXPECT_EQ(thingify(begb4, mp), (ll{{4,0}}));
+
+        // Check round-trip of implicit locset conversions.
+        // (Use a locset which is non-trivially a multiset in order to
+        // test the fold in the constructor.)
+        EXPECT_EQ(thingify(multi, mp), thingify(locset(thingify(multi, mp)), mp));
     }
     {
         mprovider mp(morphology(sm, false));
@@ -315,6 +321,10 @@ TEST(region, thingify) {
         EXPECT_TRUE(cablelist_eq(thingify(join(h1, t1), mp), (cl{{0, 0, 0.7}})));
         EXPECT_TRUE(cablelist_eq(thingify(join(h1, t2), mp), (cl{{0, 0, 0.5}, {0, 0.7, 1}})));
         EXPECT_TRUE(cablelist_eq(thingify(intersect(h2, t1), mp), (cl{{0, 0.5, 0.7}})));
+
+        // Check round-trip of implicit region conversions.
+        EXPECT_EQ((mcable_list{{0, 0.3, 0.6}}), thingify(region(mcable{0, 0.3, 0.6}), mp));
+        EXPECT_TRUE(cablelist_eq(t2_, thingify(region(t2_), mp)));
     }
 
 
