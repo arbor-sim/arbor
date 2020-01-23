@@ -21,12 +21,15 @@
 
 namespace arb {
 
-using util::value_by_key;
+using util::append;
+using util::assign;
+using util::assign_by;
 using util::count_along;
-using util::optional;
 using util::pw_elements;
 using util::pw_element;
-using util::sum_by;
+using util::sort;
+using util::sort_by;
+using util::value_by_key;
 
 namespace {
 struct get_value {
@@ -37,7 +40,7 @@ struct get_value {
 };
 
 template <typename V>
-optional<V> operator|(const optional<V>& a, const optional<V>& b) {
+util::optional<V> operator|(const util::optional<V>& a, const util::optional<V>& b) {
     return a? a: b;
 }
 
@@ -196,8 +199,8 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
             }
 
             n_cv_cables.push_back(cables.size());
-            util::sort(cables);
-            util::append(all_cables, std::move(cables));
+            sort(cables);
+            append(all_cables, std::move(cables));
         }
     }
 
@@ -258,7 +261,7 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
 
     // Build location query map.
     geom.branch_cv_map.resize(1);
-    std::vector<util::pw_elements<fvm_size_type>>& bmap = geom.branch_cv_map.back();
+    std::vector<pw_elements<fvm_size_type>>& bmap = geom.branch_cv_map.back();
 
     for (auto cv: util::make_span(geom.size())) {
         for (auto cable: geom.cables(cv)) {
@@ -295,7 +298,6 @@ namespace impl {
 
 // Merge CV geometry lists in-place.
 cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
-    using util::append;
     using impl::tail;
     using impl::append_offset;
 
@@ -335,7 +337,6 @@ cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
 fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
     append(dczn.geometry, right.geometry);
 
-    using util::append;
     append(dczn.face_conductance, right.face_conductance);
     append(dczn.cv_area, right.cv_area);
     append(dczn.cv_capacitance, right.cv_capacitance);
@@ -457,7 +458,6 @@ fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
 // CVs are absolute (taken from combined discretization) so do not need to be shifted.
 // Only target numbers need to be shifted.
 fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& right) {
-    using util::append;
     using impl::append_offset;
 
     fvm_size_type target_offset = left.n_target;
@@ -495,7 +495,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             arb_assert(util::is_sorted_by(R.param_values, util::first));
             arb_assert(L.param_values.size()==R.param_values.size());
 
-            for (auto j: util::count_along(R.param_values)) {
+            for (auto j: count_along(R.param_values)) {
                 arb_assert(L.param_values[j].first==R.param_values[j].first);
                 append(L.param_values[j].second, R.param_values[j].second);
             }
@@ -513,7 +513,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     const std::vector<cable_cell>& cells, const fvm_cv_discretization& D)
 {
     fvm_mechanism_data combined;
-    for (auto cell_idx: util::count_along(cells)) {
+    for (auto cell_idx: count_along(cells)) {
         append(combined, fvm_build_mechanism_data(gprop, cells[cell_idx], D, cell_idx));
     }
     return combined;
@@ -525,9 +525,6 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
     using value_type = fvm_value_type;
-
-    using util::assign;
-    using util::sort_by;
 
     const mechanism_catalogue& catalogue = *gprop.catalogue;
     const auto& embedding = cell.embedding();
@@ -596,16 +593,20 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         fvm_mechanism_config config;
         config.kind = mechanismKind::density;
 
-        for (auto& p: info.parameters) {
-            config.param_values.emplace_back(p.first, std::vector<value_type>{});
-            param_dflt.push_back(p.second.default_value);
+        std::vector<std::string> param_names;
+        assign(param_names, util::keys(info.parameters));
+        sort(param_names);
+
+        for (auto& p: param_names) {
+            config.param_values.emplace_back(p, std::vector<value_type>{});
+            param_dflt.push_back(info.parameters.at(p).default_value);
         }
 
         mcable_map<double> support;
         std::vector<mcable_map<double>> param_maps;
 
         {
-            std::map<std::string, mcable_map<double>> keyed_param_maps;
+            std::unordered_map<std::string, mcable_map<double>> keyed_param_maps;
             for (auto& on_cable: entry.second) {
                 verify_mechanism(info, on_cable.second);
                 mcable cable = on_cable.first;
@@ -615,8 +616,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                     keyed_param_maps[param_assign.first].insert(cable, param_assign.second);
                 }
             }
-            for (auto& e: config.param_values) {
-                param_maps.push_back(std::move(keyed_param_maps[e.first]));
+            for (auto& p: param_names) {
+                param_maps.push_back(std::move(keyed_param_maps[p]));
             }
         }
 
@@ -668,7 +669,6 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         update_ion_support(info, config.cv);
         M.mechanisms[name] = std::move(config);
     }
-
 
     // Synapses:
 
@@ -759,7 +759,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const auto& stimuli = cell.stimuli();
 
         std::vector<size_type> stimuli_cv;
-        util::assign_by(stimuli_cv, stimuli, [&D, cell_idx](auto& p) { return D.geometry.location_cv(cell_idx, p.loc); });
+        assign_by(stimuli_cv, stimuli, [&D, cell_idx](auto& p) { return D.geometry.location_cv(cell_idx, p.loc); });
 
         std::vector<size_type> cv_order;
         assign(cv_order, count_along(stimuli));
@@ -767,6 +767,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         fvm_mechanism_config config;
         config.kind = mechanismKind::point;
+        // (param_values entries must be ordered by parameter name)
         config.param_values = {{"amplitude", {}}, {"delay", {}}, {"duration", {}}};
 
         for (auto i: cv_order) {
@@ -807,7 +808,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.second*b.second; });
         };
 
-        for (auto i: util::count_along(config.cv)) {
+        for (auto i: count_along(config.cv)) {
             auto cv = config.cv[i];
             if (D.cv_area[cv]==0) continue;
 
@@ -889,7 +890,16 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);
 
+                    std::map<std::string, double> param_value; // uses ordering of std::map
+                    for (const auto& kv: info.parameters) {
+                        param_value[kv.first] = kv.second.default_value;
+                    }
+
                     for (auto& kv: revpot.values()) {
+                        param_value[kv.first] = kv.second;
+                    }
+
+                    for (auto& kv: param_value) {
                         config.param_values.emplace_back(kv.first, std::vector<value_type>(config.cv.size(), kv.second));
                     }
 
