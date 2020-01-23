@@ -135,6 +135,19 @@ struct label_dict_proxy {
             throw arb::arbor_internal_error(util::pprintf(msg, name, desc, e.what()));
         }
     }
+
+    std::string to_string() const {
+        std::string s;
+        s += "(label_dict";
+        for (auto& x: dict.regions()) {
+            s += util::pprintf(" (region  '{}' {})", x.first, x.second);
+        }
+        for (auto& x: dict.locsets()) {
+            s += util::pprintf(" (locset '{}' {})", x.first, x.second);
+        }
+        s += ")";
+        return s;
+    }
 };
 
 //
@@ -255,8 +268,12 @@ void register_cells(pybind11::module& m) {
              "The region labels stored in a set.")
         .def_readonly("locsets", &label_dict_proxy::locsets,
              "The locset labels stored in a set.")
-        .def("__str__",  [](const label_dict_proxy&){return std::string("dictionary");})
-        .def("__repr__", [](const label_dict_proxy&){return std::string("dictionary");});
+        .def("__repr__",
+                [](const label_dict_proxy& d){
+                    return std::string("<arbor.label_dict>");})
+        .def("__str__",
+                [](const label_dict_proxy& d){
+                    return d.to_string();});
 
     // Data structures used to describe mechanisms, electrical properties,
     // gap junction properties, etc.
@@ -400,6 +417,10 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init(
             [](const arb::morphology& m, const label_dict_proxy& labels, bool cfd) {
                 return arb::cable_cell(m, labels.dict, cfd);
+            }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
+        .def(pybind11::init(
+            [](const arb::sample_tree& t, const label_dict_proxy& labels, bool cfd) {
+                return arb::cable_cell(arb::morphology(t), labels.dict, cfd);
             }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
         .def_property_readonly("num_branches", [](const arb::cable_cell& m) {return m.num_branches();})
         // Set cell-wide properties

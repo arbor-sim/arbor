@@ -182,7 +182,6 @@ public:
         // Set callback that records spike times.
         sim_->set_global_spike_callback(
             [this](const std::vector<arb::spike>& spikes) {
-                std::cout << "pushing " << spikes.size() << " spikes\n";
                 for (auto& s: spikes) {
                     spike_times_.push_back(s.time);
                 }

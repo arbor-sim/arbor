@@ -78,7 +78,8 @@ print(context)
 meters = arbor.meter_manager()
 meters.start(context)
 
-recipe = ring_recipe(4)
+ncells = 4
+recipe = ring_recipe(ncells)
 print(f'{recipe}')
 
 meters.checkpoint('recipe-create', context)
@@ -103,35 +104,42 @@ meters.checkpoint('simulation-init', context)
 
 spike_recorder = arbor.attach_spike_recorder(sim)
 
-pid = arbor.cell_member(0,0) # cell 0, probe 0
 # Attach a sampler to the voltage probe on cell 0.
 # Sample rate of 10 sample every ms.
-sampler = arbor.attach_sampler(sim, 0.1, pid)
+samplers = [arbor.attach_sampler(sim, 0.1, arbor.cell_member(gid,0)) for gid in range(ncells)]
 
-sim.run(10)
+tfinal=100
+sim.run(tfinal)
 print(f'{sim} finished')
 
 meters.checkpoint('simulation-run', context)
 
+# Print profiling information
 print(f'{arbor.meter_report(meters, context)}')
 
+# Print spike times
 print('spikes:')
 for sp in spike_recorder.spikes:
     print(' ', sp)
 
-time = []
-value = []
-for sa in sampler.samples(pid):
-    time.append(sa.time)
-    value.append(sa.value)
-
-print('voltage samples for probe id', pid, ': saved to voltages.png')
-
-# plot the recorded voltages over time
+# Plot the voltage trace at the soma of each cell.
 fig, ax = plt.subplots()
-ax.plot(time, value)
+for gid in range(ncells):
+    times = [s.time  for s in samplers[gid].samples(arbor.cell_member(gid,0))]
+    volts = [s.value for s in samplers[gid].samples(arbor.cell_member(gid,0))]
+    ax.plot(times, volts)
+
+legends = ['cell {}'.format(gid) for gid in range(ncells)]
+ax.legend(legends)
+
 ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='ring demo')
-ax.legend(['voltage'])
-plt.xlim(0,100)
+plt.xlim(0,tfinal)
+plt.ylim(-80,40)
 ax.grid()
-fig.savefig("voltages.png", dpi=300)
+
+plot_to_file=False
+if plot_to_file:
+    fig.savefig("voltages.png", dpi=300)
+    print('voltage samples saved to voltages.png')
+else:
+    plt.show()
