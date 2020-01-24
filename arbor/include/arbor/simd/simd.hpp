@@ -408,6 +408,28 @@ namespace detail {
             simd_impl& data_;
         };
 
+        struct const_where_expression {
+            const_where_expression(const const_where_expression&) = default;
+            const_where_expression& operator=(const const_where_expression&) = delete;
+
+            const_where_expression(const simd_mask& m, const simd_impl& s):
+                    mask_(m), data_(s) {}
+
+            void copy_to(scalar_type* p) const {
+                Impl::copy_to_masked(data_.value_, p, mask_.value_);
+            }
+
+            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
+            void copy_to(indirect_expression<IndexImpl, scalar_type> pi) const {
+                Impl::scatter(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
+            }
+
+        private:
+            const simd_mask& mask_;
+            const simd_impl& data_;
+        };
+
+
         // Maths functions are implemented as top-level functions; declare as friends
         // for access to `wrap` and to enjoy ADL, allowing implicit conversion from
         // scalar_type in binary operation arguments.
@@ -640,8 +662,16 @@ template <typename Simd>
 using where_expression = typename Simd::where_expression;
 
 template <typename Simd>
+using const_where_expression = typename Simd::const_where_expression;
+
+template <typename Simd>
 where_expression<Simd> where(const typename Simd::simd_mask& m, Simd& v) {
     return where_expression<Simd>(m, v);
+}
+
+template <typename Simd>
+const_where_expression<Simd> where(const typename Simd::simd_mask& m, const Simd& v)  {
+    return const_where_expression<Simd>(m, v);
 }
 
 template <typename>

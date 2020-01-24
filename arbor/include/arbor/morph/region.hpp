@@ -14,11 +14,12 @@
 namespace arb {
 
 struct mprovider;
+struct region_tag {};
 
 class region {
 public:
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, region>::value>>
+              typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     explicit region(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
@@ -40,7 +41,7 @@ public:
     }
 
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, region>::value>>
+              typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     region& operator=(Impl&& other) {
         impl_ = new wrap<Impl>(std::forward<Impl>(other));
         return *this;
@@ -51,6 +52,10 @@ public:
         impl_ = new wrap<Impl>(other);
         return *this;
     }
+
+    // Implicit conversion from mcable or mcable_list.
+    region(mcable);
+    region(const mcable_list&);
 
     // Implicitly convert string to named region expression.
     region(std::string label);
@@ -117,9 +122,7 @@ namespace reg {
 region nil();
 
 // An explicit cable section.
-region cable(mcable);
-
-region interval(mlocation, mlocation);
+region cable(msize_t, double, double);
 
 // An explicit branch.
 region branch(msize_t);
@@ -156,5 +159,11 @@ region all();
 region named(std::string);
 
 } // namespace reg
+
+// Union of two regions.
+region join(region, region);
+
+// Intersection of two regions.
+region intersect(region, region);
 
 } // namespace arb

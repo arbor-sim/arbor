@@ -175,7 +175,7 @@ mcable_list remove_covered_points(mcable_list cables, const morphology& m) {
 
 // Empty region.
 
-struct nil_ {};
+struct nil_: region_tag {};
 
 region nil() {
     return region{nil_{}};
@@ -192,11 +192,13 @@ std::ostream& operator<<(std::ostream& o, const nil_& x) {
 
 // Explicit cable section.
 
-struct cable_ {
+struct cable_: region_tag {
+    explicit cable_(mcable c): cable(std::move(c)) {}
     mcable cable;
 };
 
-region cable(mcable c) {
+region cable(msize_t id, double prox, double dist) {
+    mcable c{id, prox, dist};
     if (!test_invariants(c)) {
         throw invalid_mcable(c);
     }
@@ -204,7 +206,7 @@ region cable(mcable c) {
 }
 
 region branch(msize_t bid) {
-    return cable({bid, 0, 1});
+    return cable(bid, 0, 1);
 }
 
 mcable_list thingify_(const cable_& reg, const mprovider& p) {
@@ -221,7 +223,8 @@ std::ostream& operator<<(std::ostream& o, const cable_& c) {
 
 // Region with all segments with the same numeric tag.
 
-struct tagged_ {
+struct tagged_: region_tag {
+    explicit tagged_(int tag): tag(tag) {}
     int tag;
 };
 
@@ -284,7 +287,7 @@ std::ostream& operator<<(std::ostream& o, const tagged_& t) {
 
 // Region comprising whole morphology.
 
-struct all_ {};
+struct all_: region_tag {};
 
 region all() {
     return region(all_{});
@@ -301,7 +304,7 @@ mcable_list thingify_(const all_&, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const all_& t) {
-    return o << "all";
+    return o << "(all)";
 }
 
 // Region with all segments distal from another region
@@ -676,7 +679,8 @@ region z_dist_from_soma_ge(double r0) {
 }
 // Named region.
 
-struct named_ {
+struct named_: region_tag {
+    explicit named_(std::string name): name(std::move(name)) {}
     std::string name;
 };
 
@@ -689,13 +693,13 @@ mcable_list thingify_(const named_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(named \"" << x.name << "\")";
+    return o << "(region \"" << x.name << "\")";
 }
 
 
 // Intersection of two regions.
 
-struct reg_and {
+struct reg_and: region_tag {
     region lhs;
     region rhs;
     reg_and(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -742,7 +746,7 @@ std::ostream& operator<<(std::ostream& o, const reg_and& x) {
 
 // Union of two regions.
 
-struct reg_or {
+struct reg_or: region_tag {
     region lhs;
     region rhs;
     reg_or(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -781,12 +785,23 @@ region::region() {
     *this = reg::nil();
 }
 
+// Implicit constructors/converters.
+
 region::region(std::string label) {
     *this = reg::named(std::move(label));
 }
 
 region::region(const char* label) {
     *this = reg::named(label);
+}
+
+region::region(mcable c) {
+    *this = reg::cable(c.branch, c.prox_pos, c.dist_pos);
+}
+
+region::region(const mcable_list& cl) {
+    *this = std::accumulate(cl.begin(), cl.end(), reg::nil(),
+        [](auto& rg, auto& p) { return join(rg, region(p)); });
 }
 
 } // namespace arb

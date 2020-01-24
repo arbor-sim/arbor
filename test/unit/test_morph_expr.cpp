@@ -57,9 +57,9 @@ namespace arb {
 TEST(region, expr_repn) {
     using util::to_string;
 
-    auto c1 = reg::cable({1, 0, 1});
-    auto c2 = reg::cable({4, 0.125, 0.5});
-    auto c3 = join(reg::cable({4, 0.125, 0.5}), reg::cable({3, 0, 1}));
+    auto c1 = reg::cable(1, 0, 1);
+    auto c2 = reg::cable(4, 0.125, 0.5);
+    auto c3 = join(reg::cable(4, 0.125, 0.5), reg::cable(3, 0, 1));
     auto b1 = reg::branch(1);
     auto t1 = reg::tagged(1);
     auto t2 = reg::tagged(2);
@@ -77,12 +77,12 @@ TEST(region, expr_repn) {
     EXPECT_EQ(to_string(join(t1, t2, t3)), "(join (join (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(intersect(t1, t2, t3)), "(intersect (intersect (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(intersect(join(c1, t2), c2)),  "(intersect (join (cable 1 0 1) (tag 2)) (cable 4 0.125 0.5))");
-    EXPECT_EQ(to_string(all), "all");
+    EXPECT_EQ(to_string(all), "(all)");
 }
 
 TEST(region, invalid_mcable) {
-    EXPECT_NO_THROW(reg::cable({123, 0.5, 0.8}));
-    EXPECT_THROW(reg::cable({1, 0, 1.1}), invalid_mcable);
+    EXPECT_NO_THROW(reg::cable(123, 0.5, 0.8));
+    EXPECT_THROW(reg::cable(1, 0, 1.1), invalid_mcable);
     EXPECT_THROW(reg::branch(-1), invalid_mcable);
 }
 
@@ -92,25 +92,25 @@ TEST(locset, expr_repn) {
     auto root = ls::root();
     auto term = ls::terminal();
     auto samp = ls::sample(42);
-    auto loc = ls::location({2, 0.5});
+    auto loc = ls::location(2, 0.5);
 
-    EXPECT_EQ(to_string(root), "root");
-    EXPECT_EQ(to_string(term), "terminal");
-    EXPECT_EQ(to_string(sum(root, term)), "(sum root terminal)");
-    EXPECT_EQ(to_string(sum(root, term, samp)), "(sum (sum root terminal) (sample 42))");
-    EXPECT_EQ(to_string(sum(root, term, samp, loc)), "(sum (sum (sum root terminal) (sample 42)) (location 2 0.5))");
+    EXPECT_EQ(to_string(root), "(root)");
+    EXPECT_EQ(to_string(term), "(terminal)");
+    EXPECT_EQ(to_string(sum(root, term)), "(sum (root) (terminal))");
+    EXPECT_EQ(to_string(sum(root, term, samp)), "(sum (sum (root) (terminal)) (sample 42))");
+    EXPECT_EQ(to_string(sum(root, term, samp, loc)), "(sum (sum (sum (root) (terminal)) (sample 42)) (location 2 0.5))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 }
 
-TEST(region, invalid_mlocation) {
+TEST(locset, invalid_mlocation) {
     // Location positions have to be in the range [0,1].
-    EXPECT_NO_THROW(ls::location({123, 0.0}));
-    EXPECT_NO_THROW(ls::location({123, 0.02}));
-    EXPECT_NO_THROW(ls::location({123, 1.0}));
+    EXPECT_NO_THROW(ls::location(123, 0.0));
+    EXPECT_NO_THROW(ls::location(123, 0.02));
+    EXPECT_NO_THROW(ls::location(123, 1.0));
 
-    EXPECT_THROW(ls::location({0, 1.5}), invalid_mlocation);
-    EXPECT_THROW(ls::location({unsigned(-1), 0.}), invalid_mlocation);
+    EXPECT_THROW(ls::location(0, 1.5), invalid_mlocation);
+    EXPECT_THROW(ls::location(unsigned(-1), 0.), invalid_mlocation);
 }
 
 // Name evaluation (thingify) tests:
@@ -159,7 +159,7 @@ TEST(region, thingify_named) {
     using svec = std::vector<msample>;
 
     region banana = reg::branch(0);
-    region cake = reg::cable(mcable{0, 0.2, 0.3});
+    region cake = reg::cable(0, 0.2, 0.3);
 
     // copy-paste ftw
 
@@ -204,13 +204,14 @@ TEST(locset, thingify) {
     auto root = ls::root();
     auto term = ls::terminal();
     auto samp = ls::sample(4);
-    auto midb2 = ls::location({2, 0.5});
-    auto midb1 = ls::location({1, 0.5});
-    auto begb0 = ls::location({0, 0});
-    auto begb1 = ls::location({1, 0});
-    auto begb2 = ls::location({2, 0});
-    auto begb3 = ls::location({3, 0});
-    auto begb4 = ls::location({4, 0});
+    auto midb2 = ls::location(2, 0.5);
+    auto midb1 = ls::location(1, 0.5);
+    auto begb0 = ls::location(0, 0);
+    auto begb1 = ls::location(1, 0);
+    auto begb2 = ls::location(2, 0);
+    auto begb3 = ls::location(3, 0);
+    auto begb4 = ls::location(4, 0);
+    auto multi = sum(begb3, midb2, midb1, midb2);
 
     // Eight samples
     //
@@ -245,6 +246,11 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(begb2, mp), (ll{{2,0}}));
         EXPECT_EQ(thingify(begb3, mp), (ll{{3,0}}));
         EXPECT_EQ(thingify(begb4, mp), (ll{{4,0}}));
+
+        // Check round-trip of implicit locset conversions.
+        // (Use a locset which is non-trivially a multiset in order to
+        // test the fold in the constructor.)
+        EXPECT_EQ(thingify(multi, mp), thingify(locset(thingify(multi, mp)), mp));
     }
     {
         mprovider mp(morphology(sm, false));
@@ -370,8 +376,8 @@ TEST(region, thingify) {
         sample_tree sm(samples, parents);
         mprovider mp(morphology(sm, false));
 
-        auto h1  = reg::cable({0, 0, 0.5});
-        auto h2  = reg::cable({0, 0.5, 1});
+        auto h1  = reg::cable(0, 0, 0.5);
+        auto h2  = reg::cable(0, 0.5, 1);
         auto t1  = reg::tagged(1);
         auto t2  = reg::tagged(2);
         auto all = reg::all();
@@ -401,6 +407,10 @@ TEST(region, thingify) {
         EXPECT_TRUE(cablelist_eq(thingify(join(h1, t1), mp), (cl{{0, 0, 0.7}})));
         EXPECT_TRUE(cablelist_eq(thingify(join(h1, t2), mp), (cl{{0, 0, 0.5}, {0, 0.7, 1}})));
         EXPECT_TRUE(cablelist_eq(thingify(intersect(h2, t1), mp), (cl{{0, 0.5, 0.7}})));
+
+        // Check round-trip of implicit region conversions.
+        EXPECT_EQ((mcable_list{{0, 0.3, 0.6}}), thingify(region(mcable{0, 0.3, 0.6}), mp));
+        EXPECT_TRUE(cablelist_eq(t2_, thingify(region(t2_), mp)));
     }
 
 
@@ -581,7 +591,7 @@ TEST(region, thingify) {
         //   |  xxxxx  |   xxx   | rand
         //   |xxxxxxxxx|xxxxxxxxx| ror
         auto lhs  = b13;
-        auto rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
+        auto rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         auto rand = cl{         {1,.2,.7}, {3,.3,.6}};
         auto ror  = cl{         {1,.0,1.}, {3,.0,1.}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -597,8 +607,8 @@ TEST(region, thingify) {
         //   |  -----  |   ---   | rhs
         //   |   xxxx  |   xx    | rand
         //   |  xxxxxx | xxxxx   | ror
-        lhs  = join(cable({1,.3,.8}), cable({3,.1,.5}));
-        rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
+        lhs  = join(cable(1,.3,.8), cable(3,.1,.5));
+        rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         rand = cl{         {1,.3,.7}, {3,.3,.5}};
         ror  = cl{         {1,.2,.8}, {3,.1,.6}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -614,8 +624,8 @@ TEST(region, thingify) {
         //   |  -----  |   ---   | rhs
         //   |  x x    |   x x   | rand
         //   | xxxxxx  | xxxxxxx | ror
-        lhs  = join(cable({1,.1,.3}), cable({1,.4,.5}), cable({3,.1,.4}), cable({3,.5,.9}));
-        rhs  = join(cable({1,.2,.7}), cable({3,.3,.6}));
+        lhs  = join(cable(1,.1,.3), cable(1,.4,.5), cable(3,.1,.4), cable(3,.5,.9));
+        rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         rand = cl{         {1,.2,.3}, {1,.4,.5}, {3,.3,.4}, {3,.5,.6}};
         ror  = cl{         {1,.1,.7},            {3,.1,.9}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -632,8 +642,8 @@ TEST(region, thingify) {
         //   |-----    | rhs
         //   |xxxxx    | rand
         //   |xxxxx    | ror
-        lhs  = cable({1,0,.5});
-        rhs  = cable({1,0,.5});
+        lhs  = cable(1,0,.5);
+        rhs  = cable(1,0,.5);
         rand = cl{{1,0,.5}};
         ror  = cl{{1,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -645,8 +655,8 @@ TEST(region, thingify) {
         //   |-----    | rhs
         //   |xxxxx    | rand
         //   |xxxxx    | ror
-        lhs  = cable({3,0,.5});
-        rhs  = cable({3,0,.5});
+        lhs  = cable(3,0,.5);
+        rhs  = cable(3,0,.5);
         rand = cl{{3,0,.5}};
         ror  = cl{{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -658,8 +668,8 @@ TEST(region, thingify) {
         //   |         |xxxxx    | rhs
         //   x         |         | rand
         //   |xxxxx    |xxxxx    | ror
-        lhs  = cable({0,0,.5});
-        rhs  = cable({1,0,.5});
+        lhs  = cable(0,0,.5);
+        rhs  = cable(1,0,.5);
         rand = cl{{0,0,0}};
         ror  = cl{{0,0,.5},{1,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -676,8 +686,8 @@ TEST(region, thingify) {
         //   |         |xxxxx    | rhs
         //   x         |         | rand
         //   |xxxxx    |xxxxx    | ror
-        lhs  = cable({2,0,.5});
-        rhs  = cable({3,0,.5});
+        lhs  = cable(2,0,.5);
+        rhs  = cable(3,0,.5);
         rand = cl{{1,1,1}};
         ror  = cl{{2,0,.5},{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
@@ -694,8 +704,8 @@ TEST(region, thingify) {
         //   |xxxxxxx  |xxx      | rhs
         //   |xxxxx    |xxx      | rand
         //   |xxxxxxx  |xxxxx    | ror
-        lhs  = join(cable({0,0,.5}), cable({3,0,.5}));
-        rhs  = join(cable({0,0,.7}), cable({3,0,.3}));
+        lhs  = join(cable(0,0,.5), cable(3,0,.5));
+        rhs  = join(cable(0,0,.7), cable(3,0,.3));
         rand = cl{{0,0,.5},{3,0,.3}};
         ror  = cl{{0,0,.7},{3,0,.5}};
         EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);

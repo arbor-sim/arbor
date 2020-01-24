@@ -7,6 +7,7 @@
 
 #include "io/sepval.hpp"
 #include "util/span.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
 
@@ -102,11 +103,12 @@ const std::vector<point_prop>& sample_tree::properties() const {
 }
 
 std::ostream& operator<<(std::ostream& o, const sample_tree& m) {
-    o << "sample_tree:"
-      << "\n  " << m.size() << " samples"
-      << "\n  samples [" << io::csv(m.samples_) <<  "]"
-      << "\n  parents [" << io::csv(m.parents_) <<  "]";
-    return o;
+    auto tstr = util::transform_view(m.parents_,
+            [](msize_t i) -> std::string {
+                return i==mnpos? "npos": std::to_string(i);
+            });
+    return o << "(sample_tree (\n  " << io::sepval(m.samples_, "\n  ") <<  ")\n"
+             << "  (" << io::sepval(tstr, ' ') <<  "))";
 }
 
 sample_tree swc_as_sample_tree(const std::vector<swc_record>& swc_records) {

@@ -17,11 +17,12 @@ namespace arb {
 struct mprovider;
 
 class locset;
+class locset_tag {};
 
 class locset {
 public:
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
+              typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     explicit locset(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
@@ -42,15 +43,16 @@ public:
     // The default constructor creates an empty "nil" set.
     locset();
 
-    // Construct an explicit location set with a single location.
+    // Implicity convert mlocation and mlocation_lists to locsets.
     locset(mlocation other);
+    locset(const mlocation_list& other);
 
     // Implicitly convert string to named locset expression.
     locset(std::string label);
     locset(const char* label);
 
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
+              typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     locset& operator=(Impl&& other) {
         impl_ = new wrap<Impl>(std::forward<Impl>(other));
         return *this;
@@ -119,8 +121,8 @@ private:
 
 namespace ls {
 
-// Location of a sample.
-locset location(mlocation);
+// Explicit location on morphology.
+locset location(msize_t branch, double pos);
 
 // Location of a sample.
 locset sample(msize_t);
@@ -142,5 +144,10 @@ locset nil();
 locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
 
 } // namespace ls
+
+// union of two locsets
+locset join(locset, locset);
+// multiset sum of two locsets
+locset sum(locset, locset);
 
 } // namespace arb

@@ -112,6 +112,7 @@ namespace {
         cell.default_parameters.axial_resistivity = 90;
 
         cells.push_back(std::move(cell));
+
         return cells;
     }
 
