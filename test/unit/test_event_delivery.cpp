@@ -33,7 +33,7 @@ struct test_recipe: public n_cable_cell_recipe {
         label_dict d;
         d.set("soma", arb::reg::tagged(1));
 
-        cable_cell c(st, d, true);
+        cable_cell c(st, d);
         c.place(mlocation{0, 0.5}, "expsyn");
         c.place(mlocation{0, 0.5}, threshold_detector{-64});
         c.place(mlocation{0, 0.5}, gap_junction_site{});

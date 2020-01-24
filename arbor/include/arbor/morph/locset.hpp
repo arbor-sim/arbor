@@ -138,6 +138,9 @@ locset named(std::string);
 // The null (empty) set.
 locset nil();
 
+// Proportional location on every branch.
+locset on_branches(double pos);
+
 } // namespace ls
 
 // union of two locsets

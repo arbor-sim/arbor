@@ -7,7 +7,7 @@ set(bench_sources
     default_construct.cpp
     event_setup.cpp
     event_binning.cpp
-    mech_vec.cpp
+    #    mech_vec.cpp --- requires rework for new API.
     task_system.cpp
 )
 

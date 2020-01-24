@@ -103,7 +103,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     d.set("soma",      tagged(1));
     d.set("dendrites", join(tagged(3), tagged(4)));
 
-    arb::cable_cell cell(arb::morphology(tree, true), d, true);
+    arb::cable_cell cell(arb::morphology(tree, true), d);
 
     cell.paint("soma", "hh");
     cell.paint("dendrites", "pas");
@@ -119,6 +119,9 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     for (unsigned i=1u; i<params.synapses; ++i) {
         cell.place(arb::mlocation{1, 0.5}, "expsyn");
     }
+
+    // Make a CV between every sample in the sample tree.
+    cell.default_parameters.discretization = arb::cv_policy_every_sample();
 
     return cell;
 }
