@@ -291,7 +291,8 @@ namespace impl {
     template <typename Container, typename Offset, typename Seq>
     void append_offset(Container& ctr, Offset offset, const Seq& rhs) {
         for (const auto& x: rhs) {
-            ctr.push_back(offset + x);
+            // Preserve -1 'npos' values.
+            ctr.push_back(x+1==0? x: offset+x);
         }
     }
 }

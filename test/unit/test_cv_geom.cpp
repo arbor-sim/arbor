@@ -7,6 +7,7 @@
 #include <arbor/morph/locset.hpp>
 
 #include "fvm_layout.hpp"
+#include "util/rangeutil.hpp"
 
 #include "common.hpp"
 #include "common_morphologies.hpp"
@@ -282,4 +283,41 @@ TEST(cv_geom, location_cv) {
     EXPECT_EQ(1u, gweird.location_cv(0, mlocation{3, 0.}));
     EXPECT_EQ(1u, gweird.location_cv(0, mlocation{5, 0.}));
     EXPECT_EQ(1u, gweird.location_cv(0, mlocation{1, 1.}));
+}
+
+TEST(cv_geom, multicell) {
+    using namespace common_morphology;
+    using index_type = cv_geometry::index_type;
+
+    cable_cell cell = cable_cell{m_reg_b6};
+
+    cv_geometry geom = cv_geometry_from_ends(cell, ls::on_branches(0.5));
+    unsigned n_cv = geom.size();
+
+    cv_geometry geom2 = geom;
+    append(geom2, geom);
+
+    ASSERT_EQ(2*n_cv, geom2.size());
+    for (unsigned i = 0; i<n_cv; ++i) {
+        EXPECT_EQ(geom.cv_parent[i], geom2.cv_parent[i]);
+
+        if (geom2.cv_parent[i]==-1) {
+            EXPECT_EQ(-1, geom2.cv_parent[i+n_cv]);
+        }
+        else {
+            EXPECT_EQ(geom2.cv_parent[i]+(int)n_cv, geom2.cv_parent[i+n_cv]);
+        }
+        EXPECT_EQ(0, geom2.cv_to_cell[i]);
+        EXPECT_EQ(1, geom2.cv_to_cell[i+n_cv]);
+
+        mcable_list cables, cables1, cables2;
+        util::assign(cables, geom.cables(i));
+        util::assign(cables1, geom2.cables(i));
+        util::assign(cables2, geom2.cables(i+n_cv));
+        EXPECT_EQ(cables, cables1);
+        EXPECT_EQ(cables, cables2);
+    }
+
+    EXPECT_EQ((std::pair<index_type, index_type>(0, n_cv)), geom2.cell_cv_interval(0));
+    EXPECT_EQ((std::pair<index_type, index_type>(n_cv, 2*n_cv)), geom2.cell_cv_interval(1));
 }
