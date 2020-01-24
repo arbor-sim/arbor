@@ -741,7 +741,6 @@ TEST(region, thingify) {
         }
     }
     {
-        //                  0  1  2  3  4  5  6  7  8  9  10
         pvec parents = {mnpos, 0, 1, 1, 2, 3, 0, 6, 7, 8, 7};
         svec samples = {
                 {{  0, 10, 10,  1}, 1},

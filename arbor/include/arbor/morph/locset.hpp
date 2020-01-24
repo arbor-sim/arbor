@@ -137,7 +137,7 @@ locset named(std::string);
 // The null (empty) set.
 locset nil();
 
-// A range `left` to `right` of randomly selected of locations with a
+// A range `left` to `right` of randomly selected locations with a
 // uniform distribution from region `reg` generated using `seed`
 locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
 
