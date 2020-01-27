@@ -53,8 +53,8 @@ double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_consta
     return accum;
 }
 
-template <unsigned p, unsigned q, typename operation>
-mcable_list data_cmp(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val, operation op) {
+template <typename operation>
+mcable_list data_cmp(const branch_pw_ratpoly<1, 0>& f, unsigned bid, double val, operation op) {
     mcable_list L;
     const auto& pw = f.at(bid);
     for (const auto& piece: pw) {
@@ -71,8 +71,7 @@ mcable_list data_cmp(const branch_pw_ratpoly<p, q>& f, unsigned bid, double val,
         }
 
         auto cable_loc = (val - left_val)/(right_val - left_val);
-        auto cable_portion = extents.second - extents.first;
-        auto edge = cable_loc * cable_portion + extents.first;
+        auto edge = math::lerp(extents.first, extents.second, cable_loc);
 
         if (op(left_val, val)) {
             L.push_back({bid, extents.first, edge});
@@ -136,12 +135,24 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-mcable_list embed_pwlin::radius_cmp(msize_t bid, double val, operation op) const {
-    return data_cmp(data_->radius, bid, val, op);
+mcable_list embed_pwlin::radius_cmp(msize_t bid, double val, comp_op op) const {
+    switch (op) {
+        case comp_op::lt: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l <  r;});
+        case comp_op::le: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l <= r;});
+        case comp_op::gt: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l >  r;});
+        case comp_op::ge: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l >= r;});
+        default: return {};
+    }
 }
 
-mcable_list embed_pwlin::projection_cmp(msize_t bid, double val, operation op) const {
-    return data_cmp(data_->directed_projection, bid, val, op);
+mcable_list embed_pwlin::projection_cmp(msize_t bid, double val, comp_op op) const {
+    switch (op) {
+        case comp_op::lt: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l <  r;});
+        case comp_op::le: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l <= r;});
+        case comp_op::gt: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l >  r;});
+        case comp_op::ge: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l >= r;});
+        default: return {};
+    }
 }
 
 // Initialization, creation of geometric data.
@@ -156,17 +167,16 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
     const auto& samples = m.samples();
     sample_locations_.resize(m.num_samples());
 
+    double proj_shift = samples.front().loc.z;
+
     for (msize_t bid = 0; bid<n_branch; ++bid) {
         unsigned parent = m.branch_parent(bid);
         auto sample_indices = util::make_range(m.branch_indexes(bid));
-
-        double proj_shift = 0;
         if (bid==0 && m.spherical_root()) {
             arb_assert(sample_indices.size()==1);
 
             // Treat spherical root as area-equivalent cylinder.
             double r = samples[0].loc.radius;
-            proj_shift = samples[0].loc.z;
 
             data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(-r, r));
             data_->length[bid].push_back(0., 1., rat_element<1, 0>(0, r*2));

@@ -435,8 +435,7 @@ std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
     return o << "(distal_interval: " << d.end << ", " << d.distance << ")";
 }
 
-template <typename operation>
-mcable_list radius_cmp(const mprovider& p, region r, double v, operation op) {
+mcable_list radius_cmp(const mprovider& p, region r, double v, comp_op op) {
     const auto& e = p.embedding();
 
     std::vector<mcable> L;
@@ -463,7 +462,7 @@ region radius_lt(region reg, double val) {
 }
 
 mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l < r;});
+    return radius_cmp(p, r.reg, r.val, comp_op::lt);
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
@@ -481,7 +480,7 @@ region radius_le(region reg, double val) {
 }
 
 mcable_list thingify_(const radius_le_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l <= r;});
+    return radius_cmp(p, r.reg, r.val, comp_op::le);
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
@@ -499,7 +498,7 @@ region radius_gt(region reg, double val) {
 }
 
 mcable_list thingify_(const radius_gt_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l > r;});
+    return radius_cmp(p, r.reg, r.val, comp_op::gt);
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
@@ -517,15 +516,14 @@ region radius_ge(region reg, double val) {
 }
 
 mcable_list thingify_(const radius_ge_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, [](auto l, auto r){return l >= r;});
+    return radius_cmp(p, r.reg, r.val, comp_op::ge);
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
     return o << "(radius_ge: " << r.reg << ", " << r.val << ")";
 }
 
-template <typename operation>
-mcable_list projection_cmp(const mprovider& p, double v, operation op) {
+mcable_list projection_cmp(const mprovider& p, double v, comp_op op) {
     const auto& m = p.morphology();
     const auto& e = p.embedding();
 
@@ -548,7 +546,7 @@ region projection_lt(double val) {
 }
 
 mcable_list thingify_(const projection_lt_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, [](auto l, auto r){return l < r;});
+    return projection_cmp(p, r.val, comp_op::lt);
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
@@ -565,7 +563,7 @@ region projection_le(double val) {
 }
 
 mcable_list thingify_(const projection_le_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, [](auto l, auto r){return l <= r;});
+    return projection_cmp(p, r.val, comp_op::le);
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
@@ -582,7 +580,7 @@ region projection_gt(double val) {
 }
 
 mcable_list thingify_(const projection_gt_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, [](auto l, auto r){return l > r;});
+    return projection_cmp(p, r.val, comp_op::gt);
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
@@ -599,7 +597,7 @@ region projection_ge(double val) {
 }
 
 mcable_list thingify_(const projection_ge_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, [](auto l, auto r){return l >= r;});
+    return projection_cmp(p, r.val, comp_op::ge);
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
@@ -677,8 +675,8 @@ region z_dist_from_soma_ge(double r0) {
     region gt = reg::projection_ge(r0);
     return region{join(std::move(lt), std::move(gt))};
 }
-// Named region.
 
+// Named region.
 struct named_: region_tag {
     explicit named_(std::string name): name(std::move(name)) {}
     std::string name;

@@ -2,15 +2,14 @@
 #include <iostream>
 #include <numeric>
 
-#include <Random123/threefry.h>
-#include <Random123/uniform.hpp>
-
+#include <arbor/math.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 
+#include "util/cbrng.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
@@ -175,27 +174,9 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     auto region_length = lengths_part.bounds().second;
 
     // Generate uniform random positions along the extent of the full region
-    cbrng::key_type key = {{u.seed}};
-    cbrng::ctr_type ctr = {{0,0}};
-    cbrng g;
-
-    std::vector<double> random_pos;
-    auto left  = u.left%2  ? u.left  - 1 : u.left;
-    auto right = u.right%2 ? u.right + 1 : u.right;
-
-    for (unsigned i = left; i < right; i+=2) {
-        ctr[0] = i/2;
-        cbrng::ctr_type rand = g(ctr, key);
-        random_pos.push_back(r123::u01<double>(rand[0])*region_length);
-        random_pos.push_back(r123::u01<double>(rand[1])*region_length);
-    }
-
-    if (u.left%2) {
-        random_pos.erase(random_pos.begin());
-    }
-    if (u.right%2) {
-        random_pos.pop_back();
-    }
+    auto random_pos = util::uniform(u.seed, u.left, u.right);
+    std::transform(random_pos.begin(), random_pos.end(), random_pos.begin(),
+            [&region_length](auto& c){return c*region_length;});
     util::sort(random_pos);
 
     // Match random_extents to cables and find position on the associated branch
@@ -208,7 +189,7 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
         }
         auto cable = reg_cables[cable_idx];
         auto pos_on_cable = (e - range.first)/(range.second - range.first);
-        auto pos_on_branch = (cable.dist_pos - cable.prox_pos)*pos_on_cable + cable.prox_pos;
+        auto pos_on_branch = math::lerp(cable.prox_pos, cable.dist_pos, pos_on_cable);
         L.push_back({cable.branch, pos_on_branch});
     }
 
