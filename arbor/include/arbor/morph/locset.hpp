@@ -143,6 +143,9 @@ locset nil();
 // uniform distribution from region `reg` generated using `seed`
 locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
 
+// Proportional location on every branch.
+locset on_branches(double pos);
+
 } // namespace ls
 
 // union of two locsets

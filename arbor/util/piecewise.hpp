@@ -146,6 +146,14 @@ struct pw_elements {
         else return partn.index(x);
     }
 
+    value_type operator()(double x) const {
+        size_type i = index_of(x);
+        if (i==npos) {
+            throw std::range_error("position outside support");
+        }
+        return (*this)[i];
+    }
+
     // mutating operations:
 
     void reserve(size_type n) {
@@ -411,8 +419,11 @@ auto zip(const pw_elements<A>& a, const pw_elements<B>& b, Combine combine = {})
     if (rmin<lmax) return z;
 
     double left = lmax;
-    pw_size_type ai = a.intervals().index(left);
-    pw_size_type bi = b.intervals().index(left);
+    pw_size_type ai = a.index_of(left);
+    pw_size_type bi = b.index_of(left);
+
+    arb_assert(ai!=(pw_size_type)-1);
+    arb_assert(bi!=(pw_size_type)-1);
 
     if (rmin==left) {
         z.push_back(left, left, combine(left, left, a[ai], b[bi]));
@@ -422,15 +433,17 @@ auto zip(const pw_elements<A>& a, const pw_elements<B>& b, Combine combine = {})
     double a_right = a.interval(ai).second;
     double b_right = b.interval(bi).second;
 
-    while (left<rmin) {
+    for (;;) {
         double right = std::min(a_right, b_right);
         right = std::min(right, rmin);
 
         z.push_back(left, right, combine(left, right, a[ai], b[bi]));
-        if (a_right<=right) {
+        if (right==rmin) break;
+
+        if (a_right==right) {
             a_right = a.interval(++ai).second;
         }
-        if (b_right<=right) {
+        if (b_right==right) {
             b_right = b.interval(++bi).second;
         }
 

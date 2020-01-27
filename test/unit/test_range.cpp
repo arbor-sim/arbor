@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <functional>
 #include <list>
@@ -666,6 +667,63 @@ TEST(range, is_sorted_by) {
     EXPECT_FALSE(util::is_sorted_by(seq, [](int x) { return x+2; }));
     EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return 2-x; }));
     EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
+}
+
+template <typename V>
+struct repeat_iterator {
+    typedef std::input_iterator_tag iterator_category;
+    typedef const V& reference;
+    typedef const V* pointer;
+    typedef V value_type;
+    typedef std::ptrdiff_t difference_type;
+
+    V v;
+    repeat_iterator(V v): v(std::move(v)) {}
+
+    bool operator==(const repeat_iterator<V>& i) const { return true; }
+    bool operator!=(const repeat_iterator<V>& i) const { return false; }
+    reference operator*() const { return v; }
+    repeat_iterator& operator++() { return *this; }
+    repeat_iterator& operator++(int) { return *this; }
+    pointer operator->() const { return &v; }
+};
+
+struct never_t {
+    template <typename X> friend bool operator==(never_t, const X&) { return false; }
+    template <typename X> friend bool operator==(const X&, never_t) { return false; }
+
+    template <typename X> friend bool operator!=(never_t, const X&) { return true; }
+    template <typename X> friend bool operator!=(const X&, never_t) { return true; }
+};
+static never_t never;
+
+template <typename V>
+auto repeat(V v) { return util::make_range(repeat_iterator<V>(std::move(v)), never); }
+
+TEST(range, equal) {
+    // Finite containers
+    unsigned a[5] = { 1, 3, 2, 5, 4};
+    std::array<unsigned, 5> b = { 1, 3, 2, 5, 4};
+
+    EXPECT_TRUE(util::equal(a, b));
+
+    a[3] = 10;
+    EXPECT_FALSE(util::equal(a, b));
+
+    unsigned abis[6] = { 1, 3, 2, 5, 4, 6};
+    EXPECT_FALSE(util::equal(abis, b));
+
+    std::vector<std::string> empty1;
+    std::vector<std::string> empty2;
+    EXPECT_TRUE(util::equal(empty1, empty2));
+
+    empty2.push_back("hello");
+    EXPECT_FALSE(util::equal(empty1, empty2));
+
+    // Infinite sequence
+    unsigned c[3] = { 2, 2, 2 };
+    EXPECT_FALSE(util::equal(c, repeat(2u)));
+    EXPECT_FALSE(util::equal(repeat(5u), repeat(2u)));
 }
 
 TEST(range, reverse) {

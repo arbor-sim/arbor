@@ -140,7 +140,6 @@ struct cell_stats {
     using size_type = unsigned;
     size_type ncells = 0;
     size_type nsegs = 0;
-    size_type ncomp = 0;
 
     cell_stats(arb::recipe& r) {
 #ifdef ARB_MPI_ENABLED
@@ -152,20 +151,16 @@ struct cell_stats {
         size_type b = rank*cells_per_rank;
         size_type e = (rank==nranks-1)? ncells: (rank+1)*cells_per_rank;
         size_type nsegs_tmp = 0;
-        size_type ncomp_tmp = 0;
         for (size_type i=b; i<e; ++i) {
             auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
             nsegs_tmp += c.num_branches();
-            ncomp_tmp += c.num_compartments();
         }
         MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 #else
         ncells = r.num_cells();
         for (size_type i=0; i<ncells; ++i) {
             auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs += c.num_branches();
-            ncomp += c.num_compartments();
+            nsegs += c.morphology().num_branches();
         }
 #endif
     }
@@ -173,8 +168,7 @@ struct cell_stats {
     friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
         return o << "cell stats: "
                  << s.ncells << " cells; "
-                 << s.nsegs << " branches; "
-                 << s.ncomp << " compartments.";
+                 << s.nsegs << " branches.";
     }
 };
 

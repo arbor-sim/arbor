@@ -578,10 +578,6 @@ TEST(morphology, swc) {
     // Test that the morphology contains the expected number of branches.
     auto m = arb::morphology(sm);
     EXPECT_EQ(31u, m.num_branches());
-
-    // Confirm that converting to a cable_cell generates the same number of branches.
-    auto c = arb::cable_cell(m, {}, false);
-    EXPECT_EQ(31u, c.num_branches());
 }
 
 TEST(morphology, minset) {

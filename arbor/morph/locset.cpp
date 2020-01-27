@@ -123,6 +123,29 @@ std::ostream& operator<<(std::ostream& o, const root_& x) {
     return o << "(root)";
 }
 
+// Proportional location on every branch.
+
+struct on_branches_ { double pos; };
+
+locset on_branches(double pos) {
+    return locset{on_branches_{pos}};
+}
+
+mlocation_list thingify_(const on_branches_& ob, const mprovider& p) {
+    msize_t n_branch = p.morphology().num_branches();
+
+    mlocation_list locs;
+    locs.reserve(n_branch);
+    for (msize_t b = 0; b<n_branch; ++b) {
+        locs.push_back({b, ob.pos});
+    }
+    return locs;
+}
+
+std::ostream& operator<<(std::ostream& o, const on_branches_& x) {
+    return o << "(on_branchs " << x.pos << ")";
+}
+
 // Named locset.
 
 struct named_: locset_tag {
