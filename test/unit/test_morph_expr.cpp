@@ -382,7 +382,7 @@ TEST(locset, thingify) {
     }
 }
 
-TEST(region, thingify) {
+TEST(region, thingify_simple_morphologies) {
     using pvec = std::vector<msize_t>;
     using svec = std::vector<msample>;
     using cl = mcable_list;
@@ -480,17 +480,29 @@ TEST(region, thingify) {
         auto reg1_ = distal_interval(mid0_,   74);
         auto reg2_ = proximal_interval(end1_, 45);
         auto reg3_ = proximal_interval(end1_, 91);
+        auto reg4_ = distal_interval(end1_, 0);
+        auto reg5_ = distal_interval(start1_, 0);
+        auto reg6_ = proximal_interval(start1_, 0);
 
         EXPECT_EQ(thingify(tagged(1), mp), (mcable_list{{0,0,1}}));
         EXPECT_EQ(thingify(tagged(2), mp), (mcable_list{{2,0,1}}));
         EXPECT_EQ(thingify(tagged(3), mp), (mcable_list{{1,0,1}}));
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
         EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), thingify(all(), mp));
-        EXPECT_EQ(thingify(reg0_, mp), (mcable_list{{1,0,0.5}, {2,0,0.5}}));
+        EXPECT_EQ(thingify(reg0_, mp), (mcable_list{{1,0,0.5}}));
         EXPECT_EQ(thingify(reg1_, mp), (mcable_list{{0,0.5,1}, {1,0,0.8}, {2,0,0.8}}));
         EXPECT_EQ(thingify(reg2_, mp), (mcable_list{{1,0.5,1}}));
         EXPECT_EQ(thingify(reg3_, mp), (mcable_list{{0, 0.75, 1}, {1,0,1}}));
+        EXPECT_EQ(thingify(reg4_, mp), (mcable_list{{1,1,1}}));
+        EXPECT_EQ(thingify(reg5_, mp), (mcable_list{{0,1,1}}));
+        EXPECT_EQ(thingify(reg6_, mp), (mcable_list{{0,1,1}}));
     }
+}
+
+TEST(region, thingify_moderate_morphologies) {
+    using pvec = std::vector<msize_t>;
+    using svec = std::vector<msample>;
+    using cl = mcable_list;
 
     // Test multi-level morphologies.
     //
@@ -555,8 +567,8 @@ TEST(region, thingify) {
         mcable b3_{3,0,1};
         cl all_  = {b0_,b1_,b2_,b3_};
 
-        mcable end1_{1,1,1};
-        mcable root_{0,0,0};
+        mcable c_end1_{1,1,1};
+        mcable c_root_{0,0,0};
 
         EXPECT_EQ(thingify(all(), mp), all_);
         EXPECT_EQ(thingify(axon, mp), (cl{b1_}));
@@ -567,14 +579,15 @@ TEST(region, thingify) {
 
         // Test that intersection correctly generates zero-length cables at
         // parent-child interfaces.
-        EXPECT_EQ(thingify(intersect(apic, dend), mp), (cl{end1_}));
-        EXPECT_EQ(thingify(intersect(apic, axon), mp), (cl{end1_}));
-        EXPECT_EQ(thingify(intersect(axon, dend), mp), (cl{root_, end1_}));
+        EXPECT_EQ(thingify(intersect(apic, dend), mp), (cl{c_end1_}));
+        EXPECT_EQ(thingify(intersect(apic, axon), mp), (cl{c_end1_}));
+        EXPECT_EQ(thingify(intersect(axon, dend), mp), (cl{c_root_, c_end1_}));
 
         // Test distal and proximal interavls
         auto start0_         = location(0, 0   );
-        auto mid1_           = location(1, 0.5 );
         auto quar_1_         = location(1, 0.25);
+        auto mid1_           = location(1, 0.5 );
+        auto end1_           = location(1, 1   );
         auto mid2_           = location(2, 0.5 );
         auto end2_           = location(2, 1   );
         auto mid3_           = location(3, 0.5 );
@@ -587,10 +600,11 @@ TEST(region, thingify) {
         auto reg_d_ = join(cable(0,0,0.7), cable(2,0,0.5), cable(3,0.1,0.9));
 
         // Distal from point and/or interval
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(start0_, 1000), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}, {3,0,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(start0_, 1000), mp), (mcable_list{{0,0,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(quar_1_,  150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_,   1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_,    150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(quar_1_,  150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(end1_,    100), mp), (mcable_list{{2,0,1},{3,0,0.5}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, mid1_),    150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, loc_3_1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, loc_3_1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
@@ -754,6 +768,11 @@ TEST(region, thingify) {
         EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
 
     }
+}
+TEST(region, thingify_complex_morphologies) {
+    using pvec = std::vector<msize_t>;
+    using svec = std::vector<msample>;
+    using cl = mcable_list;
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 5, 5, 7, 7, 4, 10};
         svec samples = {

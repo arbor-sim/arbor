@@ -336,16 +336,12 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
         std::stack<branch_interval> branches_reached;
         bool first_branch = true;
 
-        // Transform end point of branch into the start point of its parent
-        if (c.pos == 0) {
-            c = {m.branch_parent(c.branch),1};
-        }
-
         // if we're starting at the end of a branch, start traversal with its children
         if (c.pos < 1) {
             branches_reached.push({c.branch, distance});
         } else {
             first_branch = false;
+            L.push_back({c.branch,1,1});
             for (auto child: m.branch_children(c.branch)) {
                 branches_reached.push({child, distance});
             }
@@ -374,8 +370,7 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
             first_branch = false;
         }
     }
-    util::sort(L);
-    return merge(L);
+    return remove_covered_points(remove_cover(L, m), m);
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
@@ -427,8 +422,7 @@ mcable_list thingify_(const proximal_interval_& reg, const mprovider& p) {
             L.push_back({branch, prox_pos, dist_pos});
         }
     }
-    util::sort(L);
-    return merge(L);
+    return remove_cover(L, m);
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {

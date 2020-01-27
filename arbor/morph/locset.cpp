@@ -183,27 +183,18 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     auto cables = thingify(n.reg, p);
     util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.dist_pos < r.dist_pos);});
 
-    std::vector<unsigned> branches_visited;
+    std::unordered_set<msize_t> branches_visited;
     for (auto it= cables.rbegin(); it!= cables.rend(); it++) {
         auto bid = (*it).branch;
         auto pos = (*it).dist_pos;
 
         // Check if any other points on the branch or any of its children has been added as a distal point
-        auto r = std::find_if(branches_visited.begin(), branches_visited.end(), [&bid](unsigned p){return p == bid;});
-
-        if (r != branches_visited.end()) continue;
-
+        if (branches_visited.count(bid)) continue;
         L.push_back({bid, pos});
-        branches_visited.push_back(bid);
-
-        auto parent = p.morphology().branch_parent(bid);
-        while (parent!=mnpos) {
-            branches_visited.push_back(parent);
-            parent = p.morphology().branch_parent(parent);
+        while (bid != mnpos) {
+            branches_visited.insert(bid);
+            bid = p.morphology().branch_parent(bid);
         }
-        util::sort(branches_visited);
-        auto last = std::unique(branches_visited.begin(), branches_visited.end());
-        branches_visited.erase(last, branches_visited.end());
     }
 
     util::sort(L);
@@ -227,7 +218,7 @@ locset most_proximal(region reg) {
 
 mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
     auto cables = thingify(n.reg, p);
-    util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.prox_pos < r.prox_pos);});
+    arb_assert(test_invariants(cables));
 
     auto most_prox = cables.front();
     return {{most_prox.branch, most_prox.prox_pos}};
