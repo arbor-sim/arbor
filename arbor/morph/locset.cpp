@@ -8,6 +8,7 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/morph/region.hpp>
 
 #include "util/cbrng.hpp"
 #include "util/partition.hpp"
@@ -165,6 +166,78 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
     return o << "(locset \"" << x.name << "\")";
 }
 
+// Most distal points of a region
+
+struct most_distal_: locset_tag {
+    explicit most_distal_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset most_distal(region reg) {
+    return locset(most_distal_{std::move(reg)});
+}
+
+mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
+    mlocation_list L;
+
+    auto cables = thingify(n.reg, p);
+    util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.dist_pos < r.dist_pos);});
+
+    std::vector<unsigned> branches_visited;
+    for (auto it= cables.rbegin(); it!= cables.rend(); it++) {
+        auto bid = (*it).branch;
+        auto pos = (*it).dist_pos;
+
+        // Check if any other points on the branch or any of its children has been added as a distal point
+        auto r = std::find_if(branches_visited.begin(), branches_visited.end(), [&bid](unsigned p){return p == bid;});
+
+        if (r != branches_visited.end()) continue;
+
+        L.push_back({bid, pos});
+        branches_visited.push_back(bid);
+
+        auto parent = p.morphology().branch_parent(bid);
+        while (parent!=mnpos) {
+            branches_visited.push_back(parent);
+            parent = p.morphology().branch_parent(parent);
+        }
+        util::sort(branches_visited);
+        auto last = std::unique(branches_visited.begin(), branches_visited.end());
+        branches_visited.erase(last, branches_visited.end());
+    }
+
+    util::sort(L);
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
+    return o << "(locset \"" << x.reg << "\")";
+}
+
+// Most distal points of a region
+
+struct most_proximal_: locset_tag {
+    explicit most_proximal_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset most_proximal(region reg) {
+    return locset(most_proximal_{std::move(reg)});
+}
+
+mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
+    auto cables = thingify(n.reg, p);
+    util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.prox_pos < r.prox_pos);});
+
+    auto most_prox = cables.front();
+    return {{most_prox.branch, most_prox.prox_pos}};
+}
+
+std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
+    return o << "(locset \"" << x.reg << "\")";
+}
+
+
 // Uniform locset.
 
 struct uniform_ {
@@ -180,8 +253,6 @@ locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed) {
 
 mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     mlocation_list L;
-
-    typedef r123::Threefry2x64 cbrng;
     auto morpho = p.morphology();
     auto embed = p.embedding();
 

@@ -310,11 +310,11 @@ std::ostream& operator<<(std::ostream& o, const all_& t) {
 // Region with all segments distal from another region
 
 struct distal_interval_ {
-    region start;
+    locset start;
     double distance; //um
 };
 
-region distal_interval(region start, double distance) {
+region distal_interval(locset start, double distance) {
     return region(distal_interval_{start, distance});
 }
 
@@ -337,12 +337,12 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
         bool first_branch = true;
 
         // Transform end point of branch into the start point of its parent
-        if (c.dist_pos == 0) {
-            c = {m.branch_parent(c.branch),1,1};
+        if (c.pos == 0) {
+            c = {m.branch_parent(c.branch),1};
         }
 
         // if we're starting at the end of a branch, start traversal with its children
-        if (c.dist_pos < 1) {
+        if (c.pos < 1) {
             branches_reached.push({c.branch, distance});
         } else {
             first_branch = false;
@@ -359,7 +359,7 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
             auto rem_dist = bi.distance;
 
             auto branch_length = e.branch_length(branch);
-            auto prox_pos = first_branch*c.dist_pos;
+            auto prox_pos = first_branch*c.pos;
             auto dist_pos = rem_dist / branch_length + prox_pos;
 
             if (dist_pos <= 1) {
@@ -385,11 +385,11 @@ std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
 // Region with all segments proximal from another region
 
 struct proximal_interval_ {
-    region end;
+    locset end;
     double distance; //um
 };
 
-region proximal_interval(region end, double distance) {
+region proximal_interval(locset end, double distance) {
     return region(proximal_interval_{end, distance});
 }
 
@@ -407,7 +407,7 @@ mcable_list thingify_(const proximal_interval_& reg, const mprovider& p) {
         auto branch_length = e.branch_length(branch);
         auto rem_dist = distance;
 
-        auto dist_pos = c.prox_pos;
+        auto dist_pos = c.pos;
         auto prox_pos = dist_pos - distance / branch_length;
 
         while (prox_pos < 0) {
@@ -447,8 +447,7 @@ mcable_list radius_cmp(const mprovider& p, region r, double v, comp_op op) {
             L.push_back(make_intersection(c, r));
         }
     }
-    util::sort(L);
-    return merge(L);
+    return remove_cover(L, p.morphology());
 }
 
 // Region with all segments with radius less than r
@@ -532,8 +531,7 @@ mcable_list projection_cmp(const mprovider& p, double v, comp_op op) {
     for (auto i: util::make_span(m.num_branches())) {
         util::append(L, e.projection_cmp(i, val, op));
     }
-    util::sort(L);
-    return merge(L);
+    return remove_cover(L, p.morphology());
 }
 
 // Region with all segments with projection less than val
@@ -604,64 +602,19 @@ std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
     return o << "(projection_ge: " << r.val << ")";
 }
 
-struct z_dist_from_soma_lt_ {
-    double val; //um
-};
-
 region z_dist_from_soma_lt(double r0) {
-    return region(z_dist_from_soma_lt_{r0});
-}
-
-mcable_list thingify_(const z_dist_from_soma_lt_& reg, const mprovider& p) {
-    std::vector<mcable> L;
-
-    region lt = reg::projection_lt(reg.val);
-    region gt = reg::projection_gt(-reg.val);
-
-    auto inter_reg = intersect(std::move(lt), std::move(gt));
-    auto inter_cables = thingify(inter_reg, p);
-
-    L.reserve(inter_cables.size());
-    for (auto c: inter_cables) {
-        if (c.dist_pos != c.prox_pos) {
-            L.push_back(c);
-        }
+    if (r0 == 0) {
+        return {};
     }
-    return L;
+    region lt = reg::projection_lt(r0);
+    region gt = reg::projection_gt(-r0);
+    return intersect(std::move(lt), std::move(gt));
 }
-
-std::ostream& operator<<(std::ostream& o, const z_dist_from_soma_lt_& r) {
-    return o << "(z_dist_from_soma_lt: " << r.val << ")";
-}
-
-struct z_dist_from_soma_le_ {
-    double val; //um
-};
 
 region z_dist_from_soma_le(double r0) {
-    return region(z_dist_from_soma_le_{r0});
-}
-
-mcable_list thingify_(const z_dist_from_soma_le_& reg, const mprovider& p) {
-    std::vector<mcable> L;
-
-    region le = reg::projection_le(reg.val);
-    region ge = reg::projection_ge(-reg.val);
-
-    auto inter_reg = intersect(std::move(le), std::move(ge));
-    auto inter_cables = thingify(inter_reg, p);
-
-    L.reserve(inter_cables.size());
-    for (auto c: inter_cables) {
-        if (c.dist_pos != c.prox_pos) {
-            L.push_back(c);
-        }
-    }
-    return L;
-}
-
-std::ostream& operator<<(std::ostream& o, const z_dist_from_soma_le_& r) {
-    return o << "(z_dist_from_soma_le: " << r.val << ")";
+    region le = reg::projection_le(r0);
+    region ge = reg::projection_ge(-r0);
+    return intersect(std::move(le), std::move(ge));
 }
 
 region z_dist_from_soma_gt(double r0) {

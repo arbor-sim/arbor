@@ -10,7 +10,6 @@
 
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/morph/region.hpp>
 
 namespace arb {
 
@@ -119,8 +118,9 @@ private:
     };
 };
 
-namespace ls {
+class region;
 
+namespace ls {
 // Explicit location on morphology.
 locset location(msize_t branch, double pos);
 
@@ -138,6 +138,12 @@ locset named(std::string);
 
 // The null (empty) set.
 locset nil();
+
+// Most distal points of a region
+locset most_distal(region reg);
+
+// Most proximal point of a region
+locset most_proximal(region reg);
 
 // A range `left` to `right` of randomly selected locations with a
 // uniform distribution from region `reg` generated using `seed`

@@ -24,6 +24,22 @@ namespace arb {
     }
 }
 
+::testing::AssertionResult mlocation_eq(mlocation a, mlocation b) {
+    if (a.branch!=b.branch) {
+        return ::testing::AssertionFailure()
+                << "cables " << a << " and " << b << " differ";
+    }
+
+    using FP = testing::internal::FloatingPoint<double>;
+    if (FP(a.pos).AlmostEquals(FP(b.pos))) {
+        return ::testing::AssertionSuccess();
+    }
+    else {
+        return ::testing::AssertionFailure()
+                << "mlocations " << a << " and " << b << " differ";
+    }
+}
+
 ::testing::AssertionResult cable_eq(mcable a, mcable b) {
     if (a.branch!=b.branch) {
         return ::testing::AssertionFailure()
@@ -50,6 +66,20 @@ namespace arb {
         auto result = cable_eq(as[i], bs[i]);
         if (!result) return ::testing::AssertionFailure()
             << "cablelists " << as << " and " << bs << " differ";
+    }
+    return ::testing::AssertionSuccess();
+}
+
+::testing::AssertionResult mloctionlist_eq(const mlocation_list& as, const mlocation_list& bs) {
+    if (as.size()!=bs.size()) {
+        return ::testing::AssertionFailure()
+                << "cablelists " << as << " and " << bs << " differ";
+    }
+
+    for (auto i: util::count_along(as)) {
+        auto result = mlocation_eq(as[i], bs[i]);
+        if (!result) return ::testing::AssertionFailure()
+                    << "mlocation lists " << as << " and " << bs << " differ";
     }
     return ::testing::AssertionSuccess();
 }
@@ -272,13 +302,13 @@ TEST(locset, thingify) {
         mprovider mp(morphology(sm, false));
 
         auto all = reg::all();
-        auto ls0 = thingify(ls::uniform(all,  0, 10, 12), mp);
-        auto ls1 = thingify(ls::uniform(all,  0, 10, 12), mp);
-        auto ls2 = thingify(ls::uniform(all, 10, 20, 12), mp);
-        auto ls3 = thingify(ls::uniform(all,  0, 10, 13), mp);
-        auto ls4 = thingify(ls::uniform(all,  5,  7, 12), mp);
-        auto ls5 = thingify(ls::uniform(all,  2,  6, 12), mp);
-        auto ls6 = thingify(ls::uniform(all,  5, 12, 12), mp);
+        auto ls0 = thingify(ls::uniform(all,  0,  9, 12), mp);
+        auto ls1 = thingify(ls::uniform(all,  0,  9, 12), mp);
+        auto ls2 = thingify(ls::uniform(all, 10, 19, 12), mp);
+        auto ls3 = thingify(ls::uniform(all,  0,  9, 13), mp);
+        auto ls4 = thingify(ls::uniform(all,  5,  6, 12), mp);
+        auto ls5 = thingify(ls::uniform(all,  2,  5, 12), mp);
+        auto ls6 = thingify(ls::uniform(all,  5, 11, 12), mp);
 
         EXPECT_EQ(ls0, ls1);
 
@@ -434,6 +464,7 @@ TEST(region, thingify) {
         sample_tree sm(samples, parents);
         mprovider mp(morphology(sm, true));
 
+        using ls::location;
         using reg::tagged;
         using reg::distal_interval;
         using reg::proximal_interval;
@@ -441,9 +472,9 @@ TEST(region, thingify) {
         using reg::cable;
         using reg::all;
 
-        region mid0_   = cable(0,0.5,0.5);
-        region start1_ = cable(1,0,0);
-        region end1_   = cable(1,1,1);
+        locset mid0_   = location(0,0.5);
+        locset start1_ = location(1,0);
+        locset end1_   = location(1,1);
 
         auto reg0_ = distal_interval(start1_, 45);
         auto reg1_ = distal_interval(mid0_,   74);
@@ -494,6 +525,7 @@ TEST(region, thingify) {
         // Without spherical root
         mprovider mp(morphology(sm, false));
 
+        using ls::location;
         using reg::tagged;
         using reg::distal_interval;
         using reg::proximal_interval;
@@ -540,14 +572,15 @@ TEST(region, thingify) {
         EXPECT_EQ(thingify(intersect(axon, dend), mp), (cl{root_, end1_}));
 
         // Test distal and proximal interavls
-        auto start0_         = cable(0, 0,   0   );
-        auto mid1_           = cable(1, 0.5, 0.5 );
-        auto quar_interval1_ = cable(1, 0,   0.25);
-        auto mid2_           = cable(2, 0.5, 0.5 );
-        auto end2_           = cable(2, 1,   1   );
-        auto mid3_           = cable(3, 0.5, 0.5 );
-        auto quar_interval3_ = cable(3, 0.4, 0.65);
-        auto half_interval3_ = cable(3,0,0.5);
+        auto start0_         = location(0, 0   );
+        auto mid1_           = location(1, 0.5 );
+        auto quar_1_         = location(1, 0.25);
+        auto mid2_           = location(2, 0.5 );
+        auto end2_           = location(2, 1   );
+        auto mid3_           = location(3, 0.5 );
+        auto loc_3_0_        = location(3, 0.4 );
+        auto loc_3_1_        = location(3, 0.65);
+        auto mid_3_          = location(3, 0.5 );
         auto reg_a_ = join(cable(0,0.1,0.4), cable(2,0,1), cable(3,0.1,0.4));
         auto reg_b_ = join(cable(0,0.1,0.4), cable(2,0,1), cable(3,0.1,0.3));
         auto reg_c_ = join(cable(0,0,0.7), cable(2,0,0.5), cable(3,0.1,0.4), cable(3,0.9,1));
@@ -555,20 +588,20 @@ TEST(region, thingify) {
 
         // Distal from point and/or interval
         EXPECT_TRUE(cablelist_eq(thingify(distal_interval(start0_, 1000), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}, {3,0,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_, 1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(quar_interval1_, 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_interval1_, mid1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_interval1_, quar_interval3_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_interval1_, quar_interval3_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_,   1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_,    150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(quar_1_,  150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, mid1_),    150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, loc_3_1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
+        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, loc_3_1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
 
         // Proximal from point and/or interval
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(mid3_, 100), mp), (mcable_list{{3,0,0.5}})));
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(mid3_, 150), mp), (mcable_list{{1,0.5,1}, {3,0,0.5}})));
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(end2_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(end2_, 500), mp), (mcable_list{{1,0,1}, {2,0,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(quar_interval3_, 100), mp), (mcable_list{{1,0.8,1}, {3,0,0.4}})));
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(join(quar_interval3_, mid2_), 120), mp), (mcable_list{{1,0.3,1}, {2,0,0.5}, {3, 0, 0.4}})));
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(loc_3_0_, 100), mp), (mcable_list{{1,0.8,1}, {3,0,0.4}})));
+        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(join(loc_3_0_, mid2_), 120), mp), (mcable_list{{1,0.3,1}, {2,0,0.5}, {3, 0, 0.4}})));
 
         // Test radius_lt and radius_gt
         EXPECT_TRUE(cablelist_eq(thingify(radius_lt(all(), 2), mp), (mcable_list{{0,0,0.55}, {1,0,0.325}, {3,0.375,0.75}})));
@@ -580,9 +613,6 @@ TEST(region, thingify) {
         EXPECT_TRUE(cablelist_eq(thingify(radius_le(all(), 3), mp), (mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(radius_ge(all(), 2), mp), (mcable_list{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}})));
         EXPECT_TRUE(cablelist_eq(thingify(radius_ge(all(), 3), mp), (mcable_list{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}})));
-
-        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(half_interval3_, 2), mp), (mcable_list{{3,0.375,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(half_interval3_, 2), mp), (mcable_list{{3,0,  0.375}})));
 
         EXPECT_TRUE(cablelist_eq(thingify(radius_lt(reg_a_, 2), mp), (mcable_list{{0,0.1,0.4},{3,0.375,0.4}})));
         EXPECT_TRUE(cablelist_eq(thingify(radius_gt(reg_a_, 2), mp), (mcable_list{{2,0,1},{3,0.1,0.375}})));
@@ -756,6 +786,33 @@ TEST(region, thingify) {
             auto expected = cl{{1,0,0.5},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
             EXPECT_TRUE(cablelist_eq(out, expected));
         }
+        {
+            mprovider mp(m);
+            using reg::cable;
+            using ls::most_distal;
+            using ls::most_proximal;
+
+            auto reg_a_ = join(cable(0,0.1,0.4), cable(0,0,0.9), cable(1,0.1,0.4));
+            auto reg_b_ = join(cable(0,0.1,0.4), cable(0,0,0.9), cable(1,0.1,0.4), cable(1,0.2,0.5));
+            auto reg_c_ = join(cable(0,0.1,0.4), cable(0,0,0.9), cable(1,0.1,0.4), cable(2,0.2,0.5));
+            auto reg_d_ = join(cable(2,0,0.9), cable(3,0.1,0.1), cable(4,0.1,0.6));
+            auto reg_e_ = join(cable(2,0,0.9), cable(4,0.1,0.1), cable(5,0.1,0.6));
+            auto reg_f_ = join(cable(7,0,1), cable(2,0,0.9), cable(4,0.1,0.1), cable(5,0.1,0.6));
+
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_a_), mp), mlocation_list{{0,0.9},{1,0.4}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_b_), mp), mlocation_list{{0,0.9},{1,0.5}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_c_), mp), mlocation_list{{0,0.9},{2,0.5}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_d_), mp), mlocation_list{{3,0.1},{4,0.6}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_e_), mp), mlocation_list{{5,0.6}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_f_), mp), mlocation_list{{5,0.6},{7,1}}));
+
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_a_), mp), mlocation_list{{0,0}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_b_), mp), mlocation_list{{0,0}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_c_), mp), mlocation_list{{0,0}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_d_), mp), mlocation_list{{2,0}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_e_), mp), mlocation_list{{2,0}}));
+            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_f_), mp), mlocation_list{{2,0}}));
+        }
     }
     {
         pvec parents = {mnpos, 0, 1, 1, 2, 3, 0, 6, 7, 8, 7};
@@ -802,7 +859,6 @@ TEST(region, thingify) {
                                 })));
         EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_ge(20), mp),
                                 (mcable_list{{0,1,1},
-                                             {1,0,0},
                                              {1,0.578250901781922829,1},
                                              {2,0,0.61499300915417734997},
                                              {2,0.8349970039232188642,1},

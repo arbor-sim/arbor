@@ -116,6 +116,8 @@ private:
     };
 };
 
+class locset;
+
 namespace reg {
 
 // An empty region.
@@ -131,10 +133,10 @@ region branch(msize_t);
 region tagged(int id);
 
 // Region with all segments distal from another region
-region distal_interval(region start, double distance);
+region distal_interval(locset start, double distance);
 
 // Region with all segments proximal from another region
-region proximal_interval(region end, double distance);
+region proximal_interval(locset end, double distance);
 
 // Region with all segments with radius less than/less than or equal to r
 region radius_lt(region reg, double r);

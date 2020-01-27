@@ -16,20 +16,20 @@ std::vector<double> uniform(uint64_t seed, unsigned left, unsigned right) {
     cbrng g;
 
     unsigned i = left;
-    if (i%2 && i<right) {
+    if (i%2 && i<=right) {
         ctr[0] = i/2;
         cbrng::ctr_type rand = g(ctr, key);
         r.push_back(r123::u01<double>(rand[1]));;
         ++i;
     }
-    while (i < 2*(right/2)) {
+    while (i < 2*((right+1)/2)) {
         ctr[0] = i/2;
         cbrng::ctr_type rand = g(ctr, key);
         r.push_back(r123::u01<double>(rand[0]));
         r.push_back(r123::u01<double>(rand[1]));
         i += 2;
     }
-    if (i<right) {
+    if (i<=right) {
         ctr[0] = i/2;
         cbrng::ctr_type rand = g(ctr, key);
         r.push_back(r123::u01<double>(rand[0]));
