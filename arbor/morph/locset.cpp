@@ -2,13 +2,19 @@
 #include <iostream>
 #include <numeric>
 
+#include <arbor/math.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/morph/region.hpp>
 
+#include "util/cbrng.hpp"
+#include "util/partition.hpp"
 #include "util/rangeutil.hpp"
+#include "util/transform.hpp"
+#include "util/span.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
@@ -160,6 +166,125 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
     return o << "(locset \"" << x.name << "\")";
 }
 
+// Most distal points of a region
+
+struct most_distal_: locset_tag {
+    explicit most_distal_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset most_distal(region reg) {
+    return locset(most_distal_{std::move(reg)});
+}
+
+mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
+    mlocation_list L;
+
+    auto cables = thingify(n.reg, p);
+    util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.dist_pos < r.dist_pos);});
+
+    std::unordered_set<msize_t> branches_visited;
+    for (auto it= cables.rbegin(); it!= cables.rend(); it++) {
+        auto bid = (*it).branch;
+        auto pos = (*it).dist_pos;
+
+        // Check if any other points on the branch or any of its children has been added as a distal point
+        if (branches_visited.count(bid)) continue;
+        L.push_back({bid, pos});
+        while (bid != mnpos) {
+            branches_visited.insert(bid);
+            bid = p.morphology().branch_parent(bid);
+        }
+    }
+
+    util::sort(L);
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
+    return o << "(locset \"" << x.reg << "\")";
+}
+
+// Most distal points of a region
+
+struct most_proximal_: locset_tag {
+    explicit most_proximal_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset most_proximal(region reg) {
+    return locset(most_proximal_{std::move(reg)});
+}
+
+mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
+    auto cables = thingify(n.reg, p);
+    arb_assert(test_invariants(cables));
+
+    auto most_prox = cables.front();
+    return {{most_prox.branch, most_prox.prox_pos}};
+}
+
+std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
+    return o << "(locset \"" << x.reg << "\")";
+}
+
+
+// Uniform locset.
+
+struct uniform_ {
+    region reg;
+    unsigned left;
+    unsigned right;
+    uint64_t seed;
+};
+
+locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed) {
+    return locset(uniform_{reg, left, right, seed});
+}
+
+mlocation_list thingify_(const uniform_& u, const mprovider& p) {
+    mlocation_list L;
+    auto morpho = p.morphology();
+    auto embed = p.embedding();
+
+    // Thingify the region and store relevant data
+    auto reg_cables = thingify(u.reg, p);
+
+    std::vector<double> lengths_bounds;
+    auto lengths_part = util::make_partition(lengths_bounds,
+                                       util::transform_view(reg_cables, [&embed](const auto& c) {
+                                           return embed.integrate_length(c);
+                                       }));
+
+    auto region_length = lengths_part.bounds().second;
+
+    // Generate uniform random positions along the extent of the full region
+    auto random_pos = util::uniform(u.seed, u.left, u.right);
+    std::transform(random_pos.begin(), random_pos.end(), random_pos.begin(),
+            [&region_length](auto& c){return c*region_length;});
+    util::sort(random_pos);
+
+    // Match random_extents to cables and find position on the associated branch
+    unsigned cable_idx = 0;
+    auto range = lengths_part[cable_idx];
+
+    for (auto e: random_pos) {
+        while (e > range.second) {
+            range = lengths_part[++cable_idx];
+        }
+        auto cable = reg_cables[cable_idx];
+        auto pos_on_cable = (e - range.first)/(range.second - range.first);
+        auto pos_on_branch = math::lerp(cable.prox_pos, cable.dist_pos, pos_on_cable);
+        L.push_back({cable.branch, pos_on_branch});
+    }
+
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const uniform_& u) {
+    return o << "(uniform from region: \"" << u.reg << "\"; using seed: " << u.seed
+             << "; range: {" << u.left << ", " << u.right << "})";
+}
 
 // Intersection of two point sets.
 

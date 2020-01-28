@@ -28,6 +28,10 @@ struct embed_pwlin {
 
     // Interpolated radius at location.
     double radius(mlocation) const;
+    mcable_list radius_cmp(msize_t bid, double rad_lim, comp_op op) const;
+
+    double directed_projection(mlocation) const;
+    mcable_list projection_cmp(msize_t bid, double proj_lim, comp_op op) const;
 
     // Computed length of mcable.
     double integrate_length(mcable c) const;

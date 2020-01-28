@@ -53,14 +53,48 @@ double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_consta
     return accum;
 }
 
+template <typename operation>
+mcable_list data_cmp(const branch_pw_ratpoly<1, 0>& f, unsigned bid, double val, operation op) {
+    mcable_list L;
+    const auto& pw = f.at(bid);
+    for (const auto& piece: pw) {
+        auto extents = piece.first;
+        auto left_val = piece.second(0);
+        auto right_val = piece.second(1);
+
+        if (!op(left_val, val) && !op(right_val, val)) {
+            continue;
+        }
+        if (op(left_val, val) && op(right_val, val)) {
+            L.push_back({bid, extents.first, extents.second});
+            continue;
+        }
+
+        auto cable_loc = (val - left_val)/(right_val - left_val);
+        auto edge = math::lerp(extents.first, extents.second, cable_loc);
+
+        if (op(left_val, val)) {
+            L.push_back({bid, extents.first, edge});
+            continue;
+        }
+        if (!op(left_val, val)) {
+            L.push_back({bid, edge, extents.second});
+            continue;
+        }
+    }
+    return L;
+}
+
 struct embed_pwlin_data {
     branch_pw_ratpoly<1, 0> length;
+    branch_pw_ratpoly<1, 0> directed_projection;
     branch_pw_ratpoly<1, 0> radius;
     branch_pw_ratpoly<2, 0> area;
     branch_pw_ratpoly<1, 1> ixa;
 
     explicit embed_pwlin_data(msize_t n_branch):
         length(n_branch),
+        directed_projection(n_branch),
         radius(n_branch),
         area(n_branch),
         ixa(n_branch)
@@ -69,6 +103,10 @@ struct embed_pwlin_data {
 
 double embed_pwlin::radius(mlocation loc) const {
     return interpolate(data_->radius, loc.branch, loc.pos);
+}
+
+double embed_pwlin::directed_projection(arb::mlocation loc) const {
+    return interpolate(data_->directed_projection, loc.branch, loc.pos);
 }
 
 double embed_pwlin::integrate_length(msize_t bid, const pw_constant_fn& g) const {
@@ -97,6 +135,26 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
+mcable_list embed_pwlin::radius_cmp(msize_t bid, double val, comp_op op) const {
+    switch (op) {
+        case comp_op::lt: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l <  r;});
+        case comp_op::le: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l <= r;});
+        case comp_op::gt: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l >  r;});
+        case comp_op::ge: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l >= r;});
+        default: return {};
+    }
+}
+
+mcable_list embed_pwlin::projection_cmp(msize_t bid, double val, comp_op op) const {
+    switch (op) {
+        case comp_op::lt: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l <  r;});
+        case comp_op::le: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l <= r;});
+        case comp_op::gt: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l >  r;});
+        case comp_op::ge: return data_cmp(data_->directed_projection, bid, val, [](auto l, auto r){return l >= r;});
+        default: return {};
+    }
+}
+
 // Initialization, creation of geometric data.
 
 embed_pwlin::embed_pwlin(const arb::morphology& m) {
@@ -109,16 +167,18 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
     const auto& samples = m.samples();
     sample_locations_.resize(m.num_samples());
 
+    double proj_shift = samples.front().loc.z;
+
     for (msize_t bid = 0; bid<n_branch; ++bid) {
         unsigned parent = m.branch_parent(bid);
         auto sample_indices = util::make_range(m.branch_indexes(bid));
-
         if (bid==0 && m.spherical_root()) {
             arb_assert(sample_indices.size()==1);
 
             // Treat spherical root as area-equivalent cylinder.
             double r = samples[0].loc.radius;
 
+            data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(-r, r));
             data_->length[bid].push_back(0., 1., rat_element<1, 0>(0, r*2));
             data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
 
@@ -155,13 +215,15 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
             data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
 
-            double area_0 = parent=mnpos? 0: data_->area[parent].back().second[1];
-            double ixa_0 = parent=mnpos? 0: data_->ixa[parent].back().second[1];
+            double area_0 = parent==mnpos? 0: data_->area[parent].back().second[1];
+            double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[1];
 
             if (length_scale==0) {
                 // Zero-length branch? Weird, but make best show of it.
                 double r = samples[sample_indices[0]].loc.radius;
+                double z = samples[sample_indices[0]].loc.z;
                 data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
+                data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z-proj_shift, z-proj_shift));
                 data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
                 data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
             }
@@ -172,6 +234,10 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
                     double p0 = i>1? sample_locations_[sample_indices[i-1]].pos: 0;
                     double p1 = sample_locations_[sample_indices[i]].pos;
                     if (p0==p1) continue;
+
+                    double z0 = samples[sample_indices[i-1]].loc.z - proj_shift;
+                    double z1 = samples[sample_indices[i]].loc.z - proj_shift;
+                    data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
 
                     double r0 = samples[sample_indices[i-1]].loc.radius;
                     double r1 = samples[sample_indices[i]].loc.radius;

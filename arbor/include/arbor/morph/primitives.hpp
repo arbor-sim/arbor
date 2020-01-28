@@ -28,6 +28,14 @@ mpoint lerp(const mpoint& a, const mpoint& b, double u);
 bool is_collocated(const mpoint& a, const mpoint& b);
 double distance(const mpoint& a, const mpoint& b);
 
+// Indicate allowed comparison operations for classifying regions
+enum class comp_op {
+    lt,
+    le,
+    gt,
+    ge
+};
+
 // A morphology sample consists of a location and an integer tag.
 // When loaded from an SWC file, the tag will correspond to the SWC label,
 // which are standardised as follows:

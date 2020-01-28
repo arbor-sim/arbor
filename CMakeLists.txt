@@ -130,7 +130,7 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 # for the arbor library.
 
 add_library(arbor-private-deps INTERFACE)
-target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs)
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123)
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.

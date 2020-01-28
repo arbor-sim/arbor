@@ -116,6 +116,8 @@ private:
     };
 };
 
+class locset;
+
 namespace reg {
 
 // An empty region.
@@ -129,6 +131,28 @@ region branch(msize_t);
 
 // Region with all segments with segment tag id.
 region tagged(int id);
+
+// Region with all segments distal from another region
+region distal_interval(locset start, double distance);
+
+// Region with all segments proximal from another region
+region proximal_interval(locset end, double distance);
+
+// Region with all segments with radius less than/less than or equal to r
+region radius_lt(region reg, double r);
+region radius_le(region reg, double r);
+
+// Region with all segments with radius greater than/greater than or equal to r
+region radius_gt(region reg, double r);
+region radius_ge(region reg, double r);
+
+// Region with all segments with projection less than/less than or equal to r
+region z_dist_from_soma_lt(double r);
+region z_dist_from_soma_le(double r);
+
+// Region with all segments with projection greater than/greater than or equal to r
+region z_dist_from_soma_gt(double r);
+region z_dist_from_soma_ge(double r);
 
 // Region with all segments in a cell.
 region all();
