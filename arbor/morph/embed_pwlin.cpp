@@ -135,6 +135,20 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
+// Point to point integration:
+
+double embed_pwlin::integrate_length(mlocation proximal, mlocation distal) const {
+    return interpolate(data_->length, distal.branch, distal.pos) -
+           interpolate(data_->length, proximal.branch, proximal.pos);
+}
+
+double embed_pwlin::integrate_area(mlocation proximal, mlocation distal) const {
+    return interpolate(data_->area, distal.branch, distal.pos) -
+           interpolate(data_->area, proximal.branch, proximal.pos);
+}
+
+// Subregions defined by geometric inequalities:
+
 mcable_list embed_pwlin::radius_cmp(msize_t bid, double val, comp_op op) const {
     switch (op) {
         case comp_op::lt: return data_cmp(data_->radius, bid, val, [](auto l, auto r){return l <  r;});
@@ -215,8 +229,8 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
             data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
 
-            double area_0 = parent==mnpos? 0: data_->area[parent].back().second[1];
-            double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[1];
+            double area_0 = parent==mnpos? 0: data_->area[parent].back().second[2];
+            double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[2];
 
             if (length_scale==0) {
                 // Zero-length branch? Weird, but make best show of it.
