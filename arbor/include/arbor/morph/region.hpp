@@ -14,11 +14,12 @@
 namespace arb {
 
 struct mprovider;
+struct region_tag {};
 
 class region {
 public:
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, region>::value>>
+              typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     explicit region(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
@@ -40,7 +41,7 @@ public:
     }
 
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, region>::value>>
+              typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     region& operator=(Impl&& other) {
         impl_ = new wrap<Impl>(std::forward<Impl>(other));
         return *this;
@@ -51,6 +52,10 @@ public:
         impl_ = new wrap<Impl>(other);
         return *this;
     }
+
+    // Implicit conversion from mcable or mcable_list.
+    region(mcable);
+    region(const mcable_list&);
 
     // Implicitly convert string to named region expression.
     region(std::string label);
@@ -111,6 +116,8 @@ private:
     };
 };
 
+class locset;
+
 namespace reg {
 
 // An empty region.
@@ -125,6 +132,28 @@ region branch(msize_t);
 // Region with all segments with segment tag id.
 region tagged(int id);
 
+// Region with all segments distal from another region
+region distal_interval(locset start, double distance);
+
+// Region with all segments proximal from another region
+region proximal_interval(locset end, double distance);
+
+// Region with all segments with radius less than/less than or equal to r
+region radius_lt(region reg, double r);
+region radius_le(region reg, double r);
+
+// Region with all segments with radius greater than/greater than or equal to r
+region radius_gt(region reg, double r);
+region radius_ge(region reg, double r);
+
+// Region with all segments with projection less than/less than or equal to r
+region z_dist_from_soma_lt(double r);
+region z_dist_from_soma_le(double r);
+
+// Region with all segments with projection greater than/greater than or equal to r
+region z_dist_from_soma_gt(double r);
+region z_dist_from_soma_ge(double r);
+
 // Region with all segments in a cell.
 region all();
 
@@ -133,9 +162,10 @@ region named(std::string);
 
 } // namespace reg
 
-// union of two regions
+// Union of two regions.
 region join(region, region);
-// intersection of two regions
+
+// Intersection of two regions.
 region intersect(region, region);
 
 } // namespace arb

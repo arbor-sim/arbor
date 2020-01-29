@@ -170,9 +170,15 @@ TEST(embedding, partial_branch_length) {
     EXPECT_DOUBLE_EQ(10., em.integrate_length(mcable{1, 0., 1.}));
     EXPECT_DOUBLE_EQ(7.5, em.integrate_length(mcable{1, 0.25, 1.0}));
 
-    // expect 2*0.25+3*0.5 = 2.0 times corresponding cable length.
+    // Expect 2*0.25+3*0.5 = 2.0 times corresponding cable length.
     pw_elements<double> pw({0.25, 0.5, 1.}, {2., 3.});
     EXPECT_DOUBLE_EQ(20., em.integrate_length(1, pw));
+
+    // Distamce between points on different branches:
+    ASSERT_EQ(3u, m.num_branches());
+    ASSERT_EQ(0u, m.branch_parent(2));
+    EXPECT_DOUBLE_EQ(em.integrate_length(mcable{0, 0.75, 1.})+em.integrate_length(mcable{2, 0, 0.5}),
+        em.integrate_length(mlocation{0, 0.75}, mlocation{2, 0.5}));
 }
 
 TEST(embedding, partial_area) {
@@ -232,6 +238,13 @@ TEST(embedding, partial_area) {
 
     double expected_pw_area = 5.*sub_area1+7.*(sub_area2+sub_area3);
     EXPECT_TRUE(near_relative(expected_pw_area, em.integrate_area(0, pw), reltol));
+
+    // Area between points on different branches:
+    ASSERT_EQ(3u, m.num_branches());
+    ASSERT_EQ(0u, m.branch_parent(2));
+    EXPECT_TRUE(near_relative(
+        em.integrate_area(mcable{0, 0.8, 1.})+em.integrate_area(mcable{2, 0, 0.3}),
+        em.integrate_area(mlocation{0, 0.8}, mlocation{2, 0.3}), reltol));
 
     // Integrated inverse cross-sectional area in cable 1 from 0.1 to 0.4:
     // radius r₀ = 9.5, r₁ = 8, length = 3.

@@ -20,6 +20,7 @@ struct options {
     double t_end = 20;
     double dt = 0.025;
     float syn_weight = 0.01;
+    arb::cv_policy policy = arb::default_cv_policy();
 };
 
 options parse_options(int argc, char** argv);
@@ -27,8 +28,9 @@ arb::morphology default_morphology();
 arb::morphology read_swc(const std::string& path);
 
 struct single_recipe: public arb::recipe {
-    explicit single_recipe(arb::morphology m): morpho(std::move(m)) {
+    explicit single_recipe(arb::morphology m, arb::cv_policy pol): morpho(std::move(m)) {
         gprop.default_parameters = arb::neuron_parameter_defaults;
+        gprop.default_parameters.discretization = pol;
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
@@ -58,26 +60,15 @@ struct single_recipe: public arb::recipe {
         using arb::reg::tagged;
         dict.set("soma", tagged(1));
         dict.set("dend", join(tagged(3), tagged(4), tagged(42)));
-        arb::cable_cell c(morpho, dict, false);
+        arb::cable_cell c(morpho, dict);
 
         // Add HH mechanism to soma, passive channels to dendrites.
         c.paint("soma", "hh");
         c.paint("dend", "pas");
 
-        // Discretize dendrites according to the NEURON d-lambda rule.
-        /* skip this during refactoring of the morphology interface
-        for (std::size_t i=1; i<c.num_branches(); ++i) {
-            arb::cable_segment* branch = c.cable(i);
-
-            double dx = c.segment_length_constant(100., i, gprop.default_parameters)*0.3;
-            unsigned n = std::ceil(branch->length()/dx);
-            branch->set_compartments(n);
-        }
-        */
-
         // Add synapse to last branch.
 
-        arb::cell_lid_type last_branch = c.num_branches()-1;
+        arb::cell_lid_type last_branch = c.morphology().num_branches()-1;
         arb::mlocation end_last_branch = { last_branch, 1. };
         c.place(end_last_branch, "exp2syn");
 
@@ -91,7 +82,7 @@ struct single_recipe: public arb::recipe {
 int main(int argc, char** argv) {
     try {
         options opt = parse_options(argc, argv);
-        single_recipe R(opt.swc_file.empty()? default_morphology(): read_swc(opt.swc_file));
+        single_recipe R(opt.swc_file.empty()? default_morphology(): read_swc(opt.swc_file), opt.policy);
 
         auto context = arb::make_context();
         arb::simulation sim(R, arb::partition_load_balance(R, context), context);
@@ -138,8 +129,11 @@ options parse_options(int argc, char** argv) {
         else if (auto swc = parse_opt<std::string>(arg, 'm', "morphology")) {
             opt.swc_file = swc.value();
         }
+        else if (auto nseg = parse_opt<unsigned>(arg, 'n', "cv-per-branch")) {
+            opt.policy = arb::cv_policy_fixed_per_branch(nseg.value(), arb::cv_policy_flag::single_root_cv);
+        }
         else {
-            usage(argv[0], "[-m|--morphology SWCFILE] [-d|--dt TIME] [-t|--t-end TIME] [-w|--weight WEIGHT]");
+            usage(argv[0], "[-m|--morphology SWCFILE] [-d|--dt TIME] [-t|--t-end TIME] [-w|--weight WEIGHT] [-n|--cv-per-branch N]");
             std::exit(1);
         }
     }

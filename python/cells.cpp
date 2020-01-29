@@ -9,6 +9,8 @@
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/util/any.hpp>
 #include <arbor/util/unique_any.hpp>
+#include <arbor/morph/region.hpp>
+#include <arbor/morph/locset.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"
@@ -66,8 +68,8 @@ struct label_dict_proxy {
         }
     }
 
-    std::size_t size() const {
-        return dict.size();
+    std::size_t size() const  {
+        return locsets.size() + regions.size();
     }
 
     void set(const char* name, const char* desc) {
@@ -336,16 +338,18 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::i_clamp> i_clamp(m, "iclamp");
     i_clamp
         .def(pybind11::init(
-                [](double del, double dur, double amp) {
-                    return arb::i_clamp{del, dur, amp};
-                }), "delay"_a=0, "duration"_a=0, "amplitude"_a=0)
-        .def_readonly("delay", &arb::i_clamp::delay,         "Delay before current starts [ms]")
-        .def_readonly("duration", &arb::i_clamp::duration,   "Duration of the current injection [ms]")
-        .def_readonly("amplitude", &arb::i_clamp::amplitude, "Amplitude of the injected current [nA]")
+                [](double ts, double dur, double cur) {
+                    return arb::i_clamp{ts, dur, cur};
+                }), "tstart"_a=0, "duration"_a=0, "current"_a=0)
+        .def_readonly("tstart", &arb::i_clamp::delay,       "Time at which current starts [ms]")
+        .def_readonly("duration", &arb::i_clamp::duration,  "Duration of the current injection [ms]")
+        .def_readonly("current", &arb::i_clamp::amplitude,  "Amplitude of the injected current [nA]")
         .def("__repr__", [](const arb::i_clamp& c){
-            return util::pprintf("<arbor.iclamp: delay {} ms, duration {} ms, amplitude {} nA>", c.delay, c.duration, c.amplitude);})
+            return util::pprintf("<arbor.iclamp: tstart {} ms, duration {} ms, current {} nA>",
+                                 c.delay, c.duration, c.amplitude);})
         .def("__str__", [](const arb::i_clamp& c){
-            return util::pprintf("<arbor.iclamp: delay {} ms, duration {} ms, amplitude {} nA>", c.delay, c.duration, c.amplitude);});
+            return util::pprintf("<arbor.iclamp: tstart {} ms, duration {} ms, current {} nA>",
+                                 c.delay, c.duration, c.amplitude);});
 
     // arb::threshold_detector
 
@@ -362,67 +366,19 @@ void register_cells(pybind11::module& m) {
         .def("__str__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);});
 
-    // arb::init_membrane_potential
-
-    pybind11::class_<arb::init_membrane_potential> init_Vm(m, "init_Vm",
-        "initial membrane potential [mV]");
-    init_Vm
-        .def(pybind11::init<double>())
-        .def_readonly("value", &arb::init_membrane_potential::value, "initial membrane potential in mV")
-        .def("__repr__", [](const arb::init_membrane_potential& p) {
-            return util::pprintf("<arbor.init_VM: {} mV>", p.value);})
-        .def("__str__", [](const arb::init_membrane_potential& p) {
-            return util::pprintf("{} mV", p.value);});
-
-    // arb::temperature_K
-
-    pybind11::class_<arb::temperature_K> temperature_K(m, "temperature_K",
-        "temperature [°K]");
-    temperature_K
-        .def(pybind11::init<double>())
-        .def_readonly("value", &arb::temperature_K::value, "value [°K]")
-        .def("__repr__", [](const arb::temperature_K& p) {
-            return util::pprintf("<arbor.temperature_K: {} K>", p.value);})
-        .def("__str__", [](const arb::temperature_K& p) {
-            return util::pprintf("{} °K", p.value);});
-
-    // arb::axial_resistivity
-
-    pybind11::class_<arb::axial_resistivity> axial_resistivity(m, "axial_resistivity",
-        "axial resistivity (r_L) [Ω·cm]");
-    axial_resistivity
-        .def(pybind11::init<double>())
-        .def_readonly("value", &arb::axial_resistivity::value, "value [Ω·cm]")
-        .def("__repr__", [](const arb::axial_resistivity& p) {
-            return util::pprintf("<arbor.axial_resistivity: {} Ω·cm>", p.value);})
-        .def("__str__", [](const arb::axial_resistivity& p) {
-            return util::pprintf("{} Ω·cm", p.value);});
-
-    // arb::membrane_capacitance
-
-    pybind11::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance",
-        "membrane capacitance (c_m) [F/m²]");
-    membrane_capacitance
-        .def(pybind11::init<double>())
-        .def_readonly("value", &arb::membrane_capacitance::value, "value [F/m²]")
-        .def("__repr__", [](const arb::membrane_capacitance& p) {
-            return util::pprintf("<arbor.membrane_capacitance: {} F/m²>", p.value);})
-        .def("__str__", [](const arb::membrane_capacitance& p) {
-            return util::pprintf("{} F/m²", p.value);});
-
     // arb::cable_cell
 
     pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell");
     cable_cell
         .def(pybind11::init(
-            [](const arb::morphology& m, const label_dict_proxy& labels, bool cfd) {
-                return arb::cable_cell(m, labels.dict, cfd);
-            }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
+            [](const arb::morphology& m, const label_dict_proxy& labels) {
+                return arb::cable_cell(m, labels.dict);
+            }), "morphology"_a, "labels"_a)
         .def(pybind11::init(
-            [](const arb::sample_tree& t, const label_dict_proxy& labels, bool cfd) {
-                return arb::cable_cell(arb::morphology(t), labels.dict, cfd);
-            }), "morphology"_a, "labels"_a, "compartments_from_discretization"_a=true)
-        .def_property_readonly("num_branches", [](const arb::cable_cell& m) {return m.num_branches();})
+            [](const arb::sample_tree& t, const label_dict_proxy& labels) {
+                return arb::cable_cell(arb::morphology(t), labels.dict);
+            }), "morphology"_a, "labels"_a)
+        .def_property_readonly("num_branches", [](const arb::cable_cell& c) {return c.morphology().num_branches();})
         // Set cell-wide properties
         .def("set_properties",
             [](arb::cable_cell& c,
@@ -434,11 +390,11 @@ void register_cells(pybind11::module& m) {
                 if (rL) c.default_parameters.axial_resistivity=rL;
                 if (tempK) c.default_parameters.temperature_K=tempK;
             },
-            pybind11::arg_v("Vm", pybind11::none(), "initial membrane voltage (mV)"),
-            pybind11::arg_v("cm", pybind11::none(), "membrane capacitance (F/m²)"),
-            pybind11::arg_v("rL", pybind11::none(), "axial resistivity (Ω·cm)"),
-            pybind11::arg_v("tempK", pybind11::none(), "temperature (Kelvin)"),
-            "Set default values for cable and cell properties.")
+            pybind11::arg_v("Vm", pybind11::none(), "initial membrane voltage [mV]"),
+            pybind11::arg_v("cm", pybind11::none(), "membrane capacitance [F/m²]"),
+            pybind11::arg_v("rL", pybind11::none(), "axial resistivity [Ω·cm]"),
+            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]"),
+            "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
         .def("set_ion",
             [](arb::cable_cell& c, const char* ion,
                optional<double> int_con, optional<double> ext_con,
@@ -451,10 +407,11 @@ void register_cells(pybind11::module& m) {
                 if (method)  c.default_parameters.reversal_potential_method[ion] = *method;
             },
             "ion"_a,
-            pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration"),
-            pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration"),
-            pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential (mV)"),
-            pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential"))
+            pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mML⁻¹]"),
+            pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mML⁻¹]"),
+            pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]"),
+            pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential"),
+            "Set the propoerties of ion species named 'ion' that will be applied by default everywhere on the cell. The concentrations and reversal potential can be overridden on specific regions using the paint interface. The method for calculating reversal potential is global for all compartments in the cell.")
         // Paint mechanisms.
         .def("paint",
             [](arb::cable_cell& c, const char* region, const arb::mechanism_desc& d) {
@@ -526,6 +483,17 @@ void register_cells(pybind11::module& m) {
             },
             "locations"_a, "detector"_a,
             "Add a voltage threshold detector (spike detector) to each location in locations.")
+        .def("compartments_on_samples",
+            [](arb::cable_cell& c) {c.default_parameters.discretization = arb::cv_policy_every_sample{};},
+            "Decompose each branch into compartments defined by sample locations.")
+        .def("compartments_length",
+            [](arb::cable_cell& c, double len) {
+                c.default_parameters.discretization = arb::cv_policy_max_extent{len};
+            },
+            "maxlen"_a, "Decompose each branch into compartments of equal length, not exceeding maxlen.")
+        .def("compartments_per_branch",
+            [](arb::cable_cell& c, unsigned n) {c.default_parameters.discretization = arb::cv_policy_fixed_per_branch{n};},
+            "n"_a, "Decompose each branch into n compartments of equal length.")
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});
 }

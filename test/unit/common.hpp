@@ -11,6 +11,15 @@
 
 #include "../gtest.h"
 
+// Pair printer.
+
+namespace std {
+    template <typename A, typename B>
+    std::ostream& operator<<(std::ostream& out, const std::pair<A, B>& p) {
+        return out << '(' << p.first << ',' << p.second << ')';
+    }
+}
+
 namespace testing {
 
 // Sentinel for C-style strings, for use with range-related tests.

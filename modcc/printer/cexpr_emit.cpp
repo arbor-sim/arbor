@@ -7,6 +7,7 @@
 #include "error.hpp"
 #include "lexer.hpp"
 #include "io/ostream_wrappers.hpp"
+#include "astmanip.hpp"
 #include "io/prefixbuf.hpp"
 
 std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
@@ -164,4 +165,103 @@ void CExprEmitter::visit(IfExpression* e) {
             out_ << io::popindent << "}\n";
         }
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+std::unordered_set<std::string> SimdExprEmitter::mask_names_;
+
+void SimdExprEmitter::visit(BlockExpression* block) {
+    for (auto& stmt: block->statements()) {
+        if (!stmt->is_local_declaration()) {
+            stmt->accept(this);
+            if (!stmt->is_if() && !stmt->is_block()) {
+                out_ << ";\n";
+            }
+        }
+    }
+}
+
+void SimdExprEmitter::visit(CallExpression* e) {
+    if(is_indirect_)
+        out_ << e->name() << "(index_";
+    else
+        out_ << e->name() << "(i_";
+
+    if (processing_true_ && !current_mask_.empty()) {
+        out_ << ", " << current_mask_;
+    } else if (!processing_true_ && !current_mask_bar_.empty()) {
+        out_ << ", " << current_mask_bar_;
+    }
+    for (auto& arg: e->args()) {
+        out_ << ", ";
+        arg->accept(this);
+    }
+    out_ << ")";
+}
+
+void SimdExprEmitter::visit(AssignmentExpression* e) {
+    if (!e->lhs() || !e->lhs()->is_identifier() || !e->lhs()->is_identifier()->symbol()) {
+        throw compiler_exception("Expect symbol on lhs of assignment: "+e->to_string());
+    }
+
+    auto mask = processing_true_ ? current_mask_ : current_mask_bar_;
+    Symbol* lhs = e->lhs()->is_identifier()->symbol();
+
+    if (lhs->is_variable() && lhs->is_variable()->is_range()) {
+        if (!input_mask_.empty()) {
+            mask = mask + " && " + input_mask_;
+        }
+        out_ << "S::where(" << mask << ", " << "simd_value(";
+        e->rhs()->accept(this);
+        out_ << "))";
+        if(is_indirect_)
+            out_ << ".copy_to(" << lhs->name() << "+index_)";
+        else
+            out_ << ".copy_to(" << lhs->name() << "+i_)";
+    } else {
+        out_ << "S::where(" << mask << ", ";
+        e->lhs()->accept(this);
+        out_ << ") = ";
+        e->rhs()->accept(this);
+    }
+}
+
+void SimdExprEmitter::visit(IfExpression* e) {
+
+    // Save old masks
+    auto old_mask     = current_mask_;
+    auto old_mask_bar = current_mask_bar_;
+    auto old_branch   = processing_true_;
+
+    // Create new mask name
+    auto new_mask = make_unique_var(e->scope(), "mask_");
+
+    // Set new masks
+    out_ << "simd_value::simd_mask " << new_mask << " = ";
+    e->condition()->accept(this);
+    out_ << ";\n";
+
+    if (!current_mask_.empty()) {
+        auto base_mask = processing_true_ ? current_mask_ : current_mask_bar_;
+        current_mask_bar_ = base_mask + " && !" + new_mask;
+        current_mask_     = base_mask + " && " + new_mask;
+
+    } else {
+        current_mask_bar_ = "!" + new_mask;
+        current_mask_ = new_mask;
+    }
+
+    processing_true_ = true;
+    e->true_branch()->accept(this);
+
+    processing_true_ = false;
+    if (auto fb = e->false_branch()) {
+        fb->accept(this);
+    }
+
+    // Reset old masks
+    current_mask_     = old_mask;
+    current_mask_bar_ = old_mask_bar;
+    processing_true_  = old_branch;
+
 }

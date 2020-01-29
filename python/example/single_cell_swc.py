@@ -28,20 +28,23 @@ cell.paint('axon', 'hh')
 cell.paint('dend', 'pas')
 # Increase resistivity on dendrites
 cell.paint('dend', rL=500)
-# Attach a stimulus that injects 0.8 nA for 1 ms starting at t=3ms.
-cell.place('stim_site', arbor.iclamp( 3, 1, 0.8))
-cell.place('stim_site', arbor.iclamp( 8, 1, 0.8))
+# Attach stimuli that inject 0.8 nA currents for 1 ms.
+cell.place('stim_site', arbor.iclamp(3, 1, current=0.8))
+cell.place('stim_site', arbor.iclamp(8, 1, 0.8))
 # Detect spikes at the soma with a voltage threshold of -10 mV.
 cell.place('root', arbor.spike_detector(-10))
+
+# Have one compartment between each sample point.
+cell.compartments_on_samples()
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe('voltage', loc(0,0),  50000)
-m.probe('voltage', loc(2,1),  50000)
-m.probe('voltage', loc(4,1),  50000)
-m.probe('voltage', loc(30,1), 50000)
+m.probe('voltage', where=loc(0,0),  frequency=50000)
+m.probe('voltage', where=loc(2,1),  frequency=50000)
+m.probe('voltage', where=loc(4,1),  frequency=50000)
+m.probe('voltage', where=loc(30,1), frequency=50000)
 
 # Simulate the cell for tfinal ms.
 tfinal=15

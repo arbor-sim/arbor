@@ -150,7 +150,7 @@ public:
             throw pyarb_error(
                 util::pprintf("sampling frequency is not greater than zero", what));
         }
-        if (where.branch>=cell_.num_branches()) {
+        if (where.branch>=cell_.morphology().num_branches()) {
             throw pyarb_error(
                 util::pprintf("invalid location", what));
         }
@@ -158,6 +158,7 @@ public:
     }
 
     void run(double tfinal) {
+
         single_cell_recipe rec(cell_, probes_, generators_);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);

@@ -51,15 +51,7 @@ namespace {
 
     template <typename... A>
     locset as_locset(mlocation head, A... tail) {
-        return join(ls::location(head), ls::location(tail)...);
-    }
-
-    template <typename Seq>
-    locset as_locset(const Seq& seq) {
-        using std::begin;
-        using std::end;
-        return std::accumulate(begin(seq), end(seq), ls::nil(),
-            [](locset ls, const mlocation& p) { return join(std::move(ls), ls::location(p)); });
+        return join(locset(head), locset(tail)...);
     }
 }
 
@@ -233,3 +225,51 @@ TEST(cv_policy, max_extent) {
     }
 }
 
+TEST(cv_policy, every_sample) {
+    using namespace cv_policy_flag;
+
+    // Cell with root branch and two child branches, with multiple samples per branch.
+    // Fork is at (0., 0., 4.0).
+
+    std::vector<msample> ms;
+
+    ms.push_back({{  0.,   0., 0., 0.5}, 5});
+    for (auto i: make_span(4)) ms.push_back({{  0.,   0., i+1., 0.5}, 5});
+    for (auto i: make_span(4)) ms.push_back({{  0., i+1.,  4.0, 0.5}, 5});
+    for (auto i: make_span(4)) ms.push_back({{i+1.,    0,  4.0, 0.5}, 5});
+
+    std::vector<msize_t> parents = {mnpos, 0, 1, 2, 3, 4, 5, 6, 7, 4, 9, 10, 11 };
+    morphology m{sample_tree(ms, parents), false};
+
+    // Including all samples:
+    {
+        cable_cell cell(m);
+        cv_policy pol = cv_policy_every_sample();
+        mlocation_list points = thingify(pol.cv_boundary_points(cell), cell.provider());
+        util::sort(points);
+
+        mlocation_list expected = {
+            {0, 0}, {0, 0.25}, {0, 0.5}, {0, 0.75}, {0, 1.},
+            {1, 0}, {1, 0.25}, {1, 0.5}, {1, 0.75}, {1, 1.},
+            {2, 0}, {2, 0.25}, {2, 0.5}, {2, 0.75}, {2, 1.}
+        };
+
+        EXPECT_EQ(expected, points);
+    }
+
+    // Single root CV:
+    {
+        cable_cell cell(m);
+        cv_policy pol = cv_policy_every_sample(single_root_cv);
+        mlocation_list points = thingify(pol.cv_boundary_points(cell), cell.provider());
+        util::sort(points);
+
+        mlocation_list expected = {
+            {0, 0}, {0, 1.},
+            {1, 0}, {1, 0.25}, {1, 0.5}, {1, 0.75}, {1, 1.},
+            {2, 0}, {2, 0.25}, {2, 0.5}, {2, 0.75}, {2, 1.}
+        };
+
+        EXPECT_EQ(expected, points);
+    }
+}

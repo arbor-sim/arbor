@@ -90,7 +90,6 @@ void FunctionInliner::visit(UnaryExpression* e) {
     if (!inlining_in_progress_) {
         return;
     }
-
     auto sub = substitute(e->expression(), local_arg_map_);
     sub = substitute(sub, call_arg_map_);
     e->replace_expression(std::move(sub));

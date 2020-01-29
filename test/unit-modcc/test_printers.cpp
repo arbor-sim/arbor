@@ -263,3 +263,61 @@ TEST(CPrinter, proc_body_inlined) {
 
     EXPECT_EQ(strip(expected), proc_with_locals);
 }
+
+TEST(SimdPrinter, simd_if_else) {
+    std::vector<const char*> expected_procs = {
+            "simd_value u;\n"
+            "simd_value::simd_mask mask_0_ = i > 2;\n"
+            "S::where(mask_0_,u) = 7;\n"
+            "S::where(!mask_0_,u) = 5;\n"
+            "S::where(!mask_0_,simd_value(42)).copy_to(s+i_);\n"
+            "simd_value(u).copy_to(s+i_);"
+            ,
+            "simd_value u;\n"
+            "simd_value::simd_mask mask_1_ = i > 2;\n"
+            "S::where(mask_1_,u) = 7;\n"
+            "S::where(!mask_1_,u) = 5;\n"
+            "S::where(!mask_1_ && mask_input_,simd_value(42)).copy_to(s+i_);\n"
+            "S::where(mask_input_, simd_value(u)).copy_to(s+i_);"
+            ,
+            "simd_value::simd_mask mask_2_ = simd_value(g+i_)>2;\n"
+            "simd_value::simd_mask mask_3_ = simd_value(g+i_)>3;\n"
+            "S::where(mask_2_&&mask_3_,i) = 0.;\n"
+            "S::where(mask_2_&&!mask_3_,i) = 1;\n"
+            "simd_value::simd_mask mask_4_ = simd_value(g+i_)<1;\n"
+            "S::where(!mask_2_&& mask_4_,simd_value(2)).copy_to(s+i_);\n"
+            "rates(i_, !mask_2_&&!mask_4_, i);"
+    };
+
+    Module m(io::read_all(DATADIR "/mod_files/test7.mod"), "test7.mod");
+    Parser p(m, false);
+    p.parse();
+    m.semantic();
+
+    struct proc {
+        std::string name;
+        bool masked;
+    };
+
+    std::vector<proc> procs = {{"rates", false}, {"rates", true}, {"foo", false}};
+    for (unsigned i = 0; i < procs.size(); i++) {
+        auto p = procs[i];
+        std::stringstream out;
+        auto &proc = m.symbols().at(p.name);
+        ASSERT_TRUE(proc->is_symbol());
+
+        auto v = std::make_unique<SimdPrinter>(out);
+        if (p.masked) {
+            v->set_input_mask("mask_input_");
+        }
+        proc->is_procedure()->body()->accept(v.get());
+        std::string text = out.str();
+
+        verbose_print(proc->is_procedure()->body()->to_string());
+        verbose_print(" :--: ", text);
+
+        auto proc_with_locals = strip(text);
+        EXPECT_EQ(strip(expected_procs[i]), proc_with_locals);
+
+    }
+}

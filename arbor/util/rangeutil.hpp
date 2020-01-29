@@ -305,6 +305,31 @@ bool is_sorted(const Seq& seq) {
     return std::is_sorted(canon.begin(), canon.end());
 }
 
+// Range version of std::equal.
+
+template <
+    typename Seq1, typename Seq2,
+    typename Eq = std::equal_to<void>,
+    typename = util::enable_if_sequence_t<const Seq1&>,
+    typename = util::enable_if_sequence_t<const Seq2&>
+>
+bool equal(const Seq1& seq1, const Seq2& seq2, Eq p = Eq{}) {
+    using std::begin;
+    using std::end;
+
+    auto i1 = begin(seq1);
+    auto e1 = end(seq1);
+
+    auto i2 = begin(seq2);
+    auto e2 = end(seq2);
+
+    while (i1!=e1 && i2!=e2) {
+        if (!p(*i1, *i2)) return false;
+        ++i1;
+        ++i2;
+    }
+    return i1==e1 && i2==e2;
+}
 
 // Test if sequence is sorted after apply projection `proj` to elements.
 // (TODO: this will perform unnecessary copies if `proj` returns a reference;

@@ -181,9 +181,9 @@ public:
 
     arb::cable_cell build() const {
         // Make cable_cell from sample tree and dictionary.
-        // The true flag is used to force the discretization to make compartments
-        // at sample points.
-        return arb::cable_cell(morphology(), dict_, true);
+        auto c = arb::cable_cell(morphology(), dict_);
+        c.default_parameters.discretization = arb::cv_policy_every_sample{};
+        return c;
     }
 
     private:

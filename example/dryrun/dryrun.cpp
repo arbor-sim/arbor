@@ -148,7 +148,6 @@ struct cell_stats {
     size_type ncells = 0;
     int nranks = 1;
     size_type nsegs = 0;
-    size_type ncomp = 0;
 
     cell_stats(arb::recipe& r, run_params params) {
 #ifdef ARB_MPI_ENABLED
@@ -161,14 +160,11 @@ struct cell_stats {
             size_type b = rank*cells_per_rank;
             size_type e = (rank+1)*cells_per_rank;
             size_type nsegs_tmp = 0;
-            size_type ncomp_tmp = 0;
             for (size_type i=b; i<e; ++i) {
                 auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs_tmp += c.num_branches();
-                ncomp_tmp += c.num_compartments();
+                nsegs_tmp += c.morphology().num_branches();
             }
             MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-            MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
         }
 #else
         if(!params.dry_run) {
@@ -176,8 +172,7 @@ struct cell_stats {
             ncells = r.num_cells();
             for (size_type i = 0; i < ncells; ++i) {
                 auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs += c.num_branches();
-                ncomp += c.num_compartments();
+                nsegs += c.morphology().num_branches();
             }
         }
 #endif
@@ -187,12 +182,10 @@ struct cell_stats {
 
             for (size_type i = 0; i < params.num_cells_per_rank; ++i) {
                 auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs += c.num_branches();
-                ncomp += c.num_compartments();
+                nsegs += c.morphology().num_branches();
             }
 
             nsegs *= params.num_ranks;
-            ncomp *= params.num_ranks;
         }
     }
 
@@ -200,8 +193,7 @@ struct cell_stats {
         return o << "cell stats: "
                  << s.nranks << " ranks; "
                  << s.ncells << " cells; "
-                 << s.nsegs << " branches; "
-                 << s.ncomp << " compartments.";
+                 << s.nsegs << " branches. ";
     }
 };
 

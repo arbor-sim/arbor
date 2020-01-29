@@ -16,11 +16,12 @@ namespace arb {
 struct mprovider;
 
 class locset;
+class locset_tag {};
 
 class locset {
 public:
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
+              typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     explicit locset(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
@@ -41,15 +42,16 @@ public:
     // The default constructor creates an empty "nil" set.
     locset();
 
-    // Construct an explicit location set with a single location.
+    // Implicity convert mlocation and mlocation_lists to locsets.
     locset(mlocation other);
+    locset(const mlocation_list& other);
 
     // Implicitly convert string to named locset expression.
     locset(std::string label);
     locset(const char* label);
 
     template <typename Impl,
-              typename X=std::enable_if_t<!std::is_same<std::decay_t<Impl>, locset>::value>>
+              typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     locset& operator=(Impl&& other) {
         impl_ = new wrap<Impl>(std::forward<Impl>(other));
         return *this;
@@ -116,10 +118,11 @@ private:
     };
 };
 
-namespace ls {
+class region;
 
+namespace ls {
 // Explicit location on morphology.
-locset location(mlocation);
+locset location(msize_t branch, double pos);
 
 // Location of a sample.
 locset sample(msize_t);
@@ -135,6 +138,19 @@ locset named(std::string);
 
 // The null (empty) set.
 locset nil();
+
+// Most distal points of a region
+locset most_distal(region reg);
+
+// Most proximal point of a region
+locset most_proximal(region reg);
+
+// A range `left` to `right` of randomly selected locations with a
+// uniform distribution from region `reg` generated using `seed`
+locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
+
+// Proportional location on every branch.
+locset on_branches(double pos);
 
 } // namespace ls
 

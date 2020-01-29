@@ -2,13 +2,19 @@
 #include <iostream>
 #include <numeric>
 
+#include <arbor/math.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/morph/region.hpp>
 
+#include "util/cbrng.hpp"
+#include "util/partition.hpp"
 #include "util/rangeutil.hpp"
+#include "util/transform.hpp"
+#include "util/span.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
@@ -23,7 +29,7 @@ void assert_valid(mlocation x) {
 
 // Empty locset.
 
-struct nil_ {};
+struct nil_: locset_tag {};
 
 locset nil() {
     return locset{nil_{}};
@@ -39,11 +45,13 @@ std::ostream& operator<<(std::ostream& o, const nil_& x) {
 
 // An explicit location.
 
-struct location_ {
+struct location_: locset_tag {
+    explicit location_(mlocation loc): loc(loc) {}
     mlocation loc;
 };
 
-locset location(mlocation loc) {
+locset location(msize_t branch, double pos) {
+    mlocation loc{branch, pos};
     assert_valid(loc);
     return locset{location_{loc}};
 }
@@ -63,7 +71,8 @@ std::ostream& operator<<(std::ostream& o, const location_& x) {
 
 // Location corresponding to a sample id.
 
-struct sample_ {
+struct sample_: locset_tag {
+    explicit sample_(msize_t index): index(index) {}
     msize_t index;
 };
 
@@ -81,7 +90,7 @@ std::ostream& operator<<(std::ostream& o, const sample_& x) {
 
 // Set of terminal points (most distal points).
 
-struct terminal_ {};
+struct terminal_: locset_tag {};
 
 locset terminal() {
     return locset{terminal_{}};
@@ -101,7 +110,7 @@ std::ostream& operator<<(std::ostream& o, const terminal_& x) {
 
 // Root location (most proximal point).
 
-struct root_ {};
+struct root_: locset_tag {};
 
 locset root() {
     return locset{root_{}};
@@ -115,9 +124,33 @@ std::ostream& operator<<(std::ostream& o, const root_& x) {
     return o << "(root)";
 }
 
+// Proportional location on every branch.
+
+struct on_branches_ { double pos; };
+
+locset on_branches(double pos) {
+    return locset{on_branches_{pos}};
+}
+
+mlocation_list thingify_(const on_branches_& ob, const mprovider& p) {
+    msize_t n_branch = p.morphology().num_branches();
+
+    mlocation_list locs;
+    locs.reserve(n_branch);
+    for (msize_t b = 0; b<n_branch; ++b) {
+        locs.push_back({b, ob.pos});
+    }
+    return locs;
+}
+
+std::ostream& operator<<(std::ostream& o, const on_branches_& x) {
+    return o << "(on_branchs " << x.pos << ")";
+}
+
 // Named locset.
 
-struct named_ {
+struct named_: locset_tag {
+    explicit named_(std::string name): name(std::move(name)) {}
     std::string name;
 };
 
@@ -133,10 +166,129 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
     return o << "(locset \"" << x.name << "\")";
 }
 
+// Most distal points of a region
+
+struct most_distal_: locset_tag {
+    explicit most_distal_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset most_distal(region reg) {
+    return locset(most_distal_{std::move(reg)});
+}
+
+mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
+    mlocation_list L;
+
+    auto cables = thingify(n.reg, p);
+    util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.dist_pos < r.dist_pos);});
+
+    std::unordered_set<msize_t> branches_visited;
+    for (auto it= cables.rbegin(); it!= cables.rend(); it++) {
+        auto bid = (*it).branch;
+        auto pos = (*it).dist_pos;
+
+        // Check if any other points on the branch or any of its children has been added as a distal point
+        if (branches_visited.count(bid)) continue;
+        L.push_back({bid, pos});
+        while (bid != mnpos) {
+            branches_visited.insert(bid);
+            bid = p.morphology().branch_parent(bid);
+        }
+    }
+
+    util::sort(L);
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
+    return o << "(locset \"" << x.reg << "\")";
+}
+
+// Most distal points of a region
+
+struct most_proximal_: locset_tag {
+    explicit most_proximal_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset most_proximal(region reg) {
+    return locset(most_proximal_{std::move(reg)});
+}
+
+mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
+    auto cables = thingify(n.reg, p);
+    arb_assert(test_invariants(cables));
+
+    auto most_prox = cables.front();
+    return {{most_prox.branch, most_prox.prox_pos}};
+}
+
+std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
+    return o << "(locset \"" << x.reg << "\")";
+}
+
+
+// Uniform locset.
+
+struct uniform_ {
+    region reg;
+    unsigned left;
+    unsigned right;
+    uint64_t seed;
+};
+
+locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed) {
+    return locset(uniform_{reg, left, right, seed});
+}
+
+mlocation_list thingify_(const uniform_& u, const mprovider& p) {
+    mlocation_list L;
+    auto morpho = p.morphology();
+    auto embed = p.embedding();
+
+    // Thingify the region and store relevant data
+    auto reg_cables = thingify(u.reg, p);
+
+    std::vector<double> lengths_bounds;
+    auto lengths_part = util::make_partition(lengths_bounds,
+                                       util::transform_view(reg_cables, [&embed](const auto& c) {
+                                           return embed.integrate_length(c);
+                                       }));
+
+    auto region_length = lengths_part.bounds().second;
+
+    // Generate uniform random positions along the extent of the full region
+    auto random_pos = util::uniform(u.seed, u.left, u.right);
+    std::transform(random_pos.begin(), random_pos.end(), random_pos.begin(),
+            [&region_length](auto& c){return c*region_length;});
+    util::sort(random_pos);
+
+    // Match random_extents to cables and find position on the associated branch
+    unsigned cable_idx = 0;
+    auto range = lengths_part[cable_idx];
+
+    for (auto e: random_pos) {
+        while (e > range.second) {
+            range = lengths_part[++cable_idx];
+        }
+        auto cable = reg_cables[cable_idx];
+        auto pos_on_cable = (e - range.first)/(range.second - range.first);
+        auto pos_on_branch = math::lerp(cable.prox_pos, cable.dist_pos, pos_on_cable);
+        L.push_back({cable.branch, pos_on_branch});
+    }
+
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const uniform_& u) {
+    return o << "(uniform from region: \"" << u.reg << "\"; using seed: " << u.seed
+             << "; range: {" << u.left << ", " << u.right << "})";
+}
 
 // Intersection of two point sets.
 
-struct land {
+struct land: locset_tag {
     locset lhs;
     locset rhs;
     land(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -152,7 +304,7 @@ std::ostream& operator<<(std::ostream& o, const land& x) {
 
 // Union of two point sets.
 
-struct lor {
+struct lor: locset_tag {
     locset lhs;
     locset rhs;
     lor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -168,7 +320,7 @@ std::ostream& operator<<(std::ostream& o, const lor& x) {
 
 // Sum of two point sets.
 
-struct lsum {
+struct lsum: locset_tag {
     locset lhs;
     locset rhs;
     lsum(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -200,12 +352,19 @@ locset sum(locset lhs, locset rhs) {
     return locset(ls::lsum(std::move(lhs), std::move(rhs)));
 }
 
+// Implicit constructors.
+
 locset::locset() {
     *this = ls::nil();
 }
 
 locset::locset(mlocation loc) {
-    *this = ls::location(loc);
+    *this = ls::location(loc.branch, loc.pos);
+}
+
+locset::locset(const mlocation_list& ll) {
+    *this = std::accumulate(ll.begin(), ll.end(), ls::nil(),
+        [](auto& ls, auto& p) { return sum(ls, locset(p)); });
 }
 
 locset::locset(std::string name) {
@@ -215,6 +374,5 @@ locset::locset(std::string name) {
 locset::locset(const char* name) {
     *this = ls::named(name);
 }
-
 
 } // namespace arb
