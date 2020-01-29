@@ -90,7 +90,7 @@ mlocation_list thingify_(const location_list_& x, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const location_list_& x) {
-    o << "(list";
+    o << "(sum";
     for (mlocation loc: x.ll) { o << ' ' << location_(loc); }
     return o << ')';
 }
