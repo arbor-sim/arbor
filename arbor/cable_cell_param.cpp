@@ -8,6 +8,7 @@
 #include <arbor/morph/locset.hpp>
 
 #include "util/maputil.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -104,6 +105,7 @@ locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
         ++bidx;
     }
 
+    util::sort(points);
     return points;
 }
 
@@ -136,6 +138,7 @@ locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) co
         ++bidx;
     }
 
+    util::sort(points);
     return points;
 }
 
