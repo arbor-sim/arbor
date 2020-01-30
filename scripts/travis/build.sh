@@ -22,18 +22,6 @@ echo "build path : ${build_path}"
 echo "base path  : ${base_path}"
 echo "python3    : $(which python3)"
 echo "python3ver : $(python3 --version)"
-echo "python3    : $(which python3)"
-x=$(python-config --prefix)
-echo "pytchon-config --prefix: $x"
-echo DPYTHON_EXECUTABLE  : $(ls $x/bin/python3*)
-echo DPYTHON_INCLUDE_DIR : $(ls $x/include/ | grep python3)
-echo =-----------------------=
-echo DPYTHON_LIBRARY     : $(ls $x/lib/ | grep python)
-echo DPYTHON_LIBRARY     : $(ls $x/lib/python3.6)
-echo DPYTHON_LIBRARY     : $(find $x | grep libpython)
-echo =-----------------------=
-
-#-DPYTHON_LIBRARY=$pypref/lib/libpython3.5m.so
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
     echo "mpi        : on"
@@ -91,7 +79,7 @@ cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTH
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
-export NMC_NUM_THREADS=2
+export ARB_NUM_THREADS=2
 
 progress "C++ unit tests"
 make unit -j4                || error "building unit tests"

@@ -1,8 +1,7 @@
 ######## Testing minimal compiler requirements ########
 # GCC          6.4.0
 # Clang        7.0
-# Apple Clang  900.0.39.2
-# Python       3.6
+# Apple Clang  1100.0.33.16
 #######################################################
 
 language: cpp
