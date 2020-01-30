@@ -63,10 +63,8 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
 
     if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then
         pypref=$(python-config --prefix)
-        cmake_pyflaps="-DPYTHON_EXECUTABLE=$pypref/bin/python3.6 -DPYTHON_INCLUDE_DIR=$pypref/include/python3.6m""
-
-
-
+        #cmake_pyflaps="-DPYTHON_EXECUTABLE=$pypref/bin/python3.6 -DPYTHON_INCLUDE_DIR=$pypref/include/python3.6m""
+    fi
 else
     echo "python     : off"
     ARB_WITH_PYTHON="OFF"
