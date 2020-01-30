@@ -63,7 +63,6 @@ matrix:
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
         packages:
           - g++-6
           - openmpi-bin
@@ -81,7 +80,6 @@ matrix:
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
         packages:
           - g++-6
           - openmpi-bin
@@ -99,7 +97,6 @@ matrix:
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
         packages:
           - openmpi-bin
           - libopenmpi-dev
@@ -116,7 +113,6 @@ matrix:
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
         packages:
           - openmpi-bin
           - libopenmpi-dev
@@ -132,8 +128,10 @@ before_install:
     if [[ "$WITH_PYTHON" == "true" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         #source ~/virtualenv/python3.6/bin/activate
+        python --version
       elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         #python --version
+        python --version
       fi
     fi
 
