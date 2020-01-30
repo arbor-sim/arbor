@@ -60,7 +60,6 @@ matrix:
   - name: "linux, gcc, serial, py"
     os: linux
     dist: bionic
-    python: 3.6
     addons:
       apt:
         sources:
@@ -79,7 +78,6 @@ matrix:
   - name: "linux, gcc, mpi, py"
     os: linux
     dist: bionic
-    python: 3.6
     addons:
       apt:
         sources:
@@ -98,7 +96,6 @@ matrix:
   - name: "linux, clang, serial, py"
     os: linux
     dist: bionic
-    python: 3.6
     addons:
       apt:
         sources:
@@ -116,7 +113,6 @@ matrix:
   - name: "linux, clang, mpi, py"
     os: linux
     dist: bionic
-    python: 3.6
     addons:
       apt:
         sources:
