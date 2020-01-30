@@ -25,9 +25,13 @@ echo "python3ver : $(python3 --version)"
 echo "python3    : $(which python3)"
 x=$(python-config --prefix)
 echo "pytchon-config --prefix: $x"
-echo DPYTHON_EXECUTABLE  : $(ls $x/bin/)
-echo DPYTHON_LIBRARY     : $(ls $x/lib/)
-echo DPYTHON_INCLUDE_DIR : $(ls $x/include/)
+echo DPYTHON_EXECUTABLE  : $(ls $x/bin/python3*)
+echo DPYTHON_LIBRARY     : $(ls $x/lib/libpython*.so)
+echo DPYTHON_INCLUDE_DIR : $(ls $x/include/ | grep python3)
+-DPYTHON_EXECUTABLE=$(python-config --prefix)/bin/python3.5
+-DPYTHON_LIBRARY=$(python-config --prefix)/lib/libpython3.5m.so
+-DPYTHON_INCLUDE_DIR=$(python-config --prefix)/include/python3.5m ..
+
 
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
