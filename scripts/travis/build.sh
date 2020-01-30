@@ -20,6 +20,8 @@ echo "compiler   : ${compiler_version}"
 echo "cmake      : ${cmake_version}"
 echo "build path : ${build_path}"
 echo "base path  : ${base_path}"
+echo "python3    : $(which python3)"
+echo "python3ver : $(python3 --version)"
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
     echo "mpi        : on"
