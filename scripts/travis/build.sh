@@ -30,9 +30,10 @@ echo DPYTHON_INCLUDE_DIR : $(ls $x/include/ | grep python3)
 echo =-----------------------=
 echo DPYTHON_LIBRARY     : $(ls $x/lib/ | grep python)
 echo DPYTHON_LIBRARY     : $(ls $x/lib/python3.6)
+echo DPYTHON_LIBRARY     : $(find $x | grep libpython)
 echo =-----------------------=
 
-#-DPYTHON_LIBRARY=$(python-config --prefix)/lib/libpython3.5m.so
+#-DPYTHON_LIBRARY=$pypref/lib/libpython3.5m.so
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
     echo "mpi        : on"
@@ -66,7 +67,7 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
 
     if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then
         pypref=$(python-config --prefix)
-        #cmake_pyflaps="-DPYTHON_EXECUTABLE=$pypref/bin/python3.6 -DPYTHON_INCLUDE_DIR=$pypref/include/python3.6m""
+        #cmake_pyflags="-DPYTHON_EXECUTABLE=$pypref/bin/python3.6 -DPYTHON_INCLUDE_DIR=$pypref/include/python3.6m""
     fi
 else
     echo "python     : off"
