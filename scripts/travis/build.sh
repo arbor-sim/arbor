@@ -67,7 +67,9 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
 
     if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then
         pypref=$(python-config --prefix)
-        #cmake_pyflags="-DPYTHON_EXECUTABLE=$pypref/bin/python3.6 -DPYTHON_INCLUDE_DIR=$pypref/include/python3.6m""
+        PY_FLAGS="-DPYTHON_EXECUTABLE=$pypref/bin/python3.6 -DPYTHON_INCLUDE_DIR=$pypref/include/python3.6m -DPYTHON_LIBRARY=$pypref/lib/python3.6/config-3.6m-x86_64-linux-gnu/libpython3.6m.so"
+    else
+        PY_FLAGS=""
     fi
 else
     echo "python     : off"
@@ -85,7 +87,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} ${CXX_FLAGS} ${PY_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
