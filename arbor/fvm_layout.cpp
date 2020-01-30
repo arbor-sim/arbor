@@ -149,7 +149,6 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
     next_cv_head.push_back({mnpos, 0});
 
     mcable_list cables, all_cables;
-    mlocation_list ends;
     std::vector<msize_t> branches;
 
     mlocation_map head_count;

@@ -34,6 +34,8 @@ public:
     locset(const locset& other):
         impl_(other.impl_->clone()) {}
 
+    locset& operator=(locset&& other) = default;
+
     locset& operator=(const locset& other) {
         impl_ = other.impl_->clone();
         return *this;
@@ -44,7 +46,7 @@ public:
 
     // Implicity convert mlocation and mlocation_lists to locsets.
     locset(mlocation other);
-    locset(const mlocation_list& other);
+    locset(mlocation_list other);
 
     // Implicitly convert string to named locset expression.
     locset(std::string label);
@@ -54,12 +56,6 @@ public:
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     locset& operator=(Impl&& other) {
         impl_ = new wrap<Impl>(std::forward<Impl>(other));
-        return *this;
-    }
-
-    template <typename Impl>
-    locset& operator=(const Impl& other) {
-        impl_ = new wrap<Impl>(other);
         return *this;
     }
 
@@ -121,6 +117,7 @@ private:
 class region;
 
 namespace ls {
+
 // Explicit location on morphology.
 locset location(msize_t branch, double pos);
 
@@ -139,10 +136,10 @@ locset named(std::string);
 // The null (empty) set.
 locset nil();
 
-// Most distal points of a region
+// Most distal points of a region.
 locset most_distal(region reg);
 
-// Most proximal point of a region
+// Most proximal point of a region.
 locset most_proximal(region reg);
 
 // A range `left` to `right` of randomly selected locations with a
@@ -154,9 +151,9 @@ locset on_branches(double pos);
 
 } // namespace ls
 
-// union of two locsets
+// Union of two locsets.
 locset join(locset, locset);
-// multiset sum of two locsets
+// Multiset sum of two locsets.
 locset sum(locset, locset);
 
 } // namespace arb

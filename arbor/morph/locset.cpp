@@ -68,6 +68,32 @@ std::ostream& operator<<(std::ostream& o, const location_& x) {
     return o << "(location " << x.loc.branch << " " << x.loc.pos << ")";
 }
 
+// Wrap mlocation_list (not part of public API).
+
+struct location_list_: locset_tag {
+    explicit location_list_(mlocation_list ll): ll(std::move(ll)) {}
+    mlocation_list ll;
+};
+
+locset location_list(mlocation_list ll) {
+    return locset{location_list_{std::move(ll)}};
+}
+
+mlocation_list thingify_(const location_list_& x, const mprovider& p) {
+    auto n_branch = p.morphology().num_branches();
+    for (mlocation loc: x.ll) {
+        if (loc.branch>=n_branch) {
+            throw no_such_branch(loc.branch);
+        }
+    }
+    return x.ll;
+}
+
+std::ostream& operator<<(std::ostream& o, const location_list_& x) {
+    o << "(sum";
+    for (mlocation loc: x.ll) { o << ' ' << location_(loc); }
+    return o << ')';
+}
 
 // Location corresponding to a sample id.
 
@@ -362,9 +388,8 @@ locset::locset(mlocation loc) {
     *this = ls::location(loc.branch, loc.pos);
 }
 
-locset::locset(const mlocation_list& ll) {
-    *this = std::accumulate(ll.begin(), ll.end(), ls::nil(),
-        [](auto& ls, auto& p) { return sum(ls, locset(p)); });
+locset::locset(mlocation_list ll) {
+    *this = ls::location_list(std::move(ll));
 }
 
 locset::locset(std::string name) {
