@@ -29,6 +29,7 @@ echo DPYTHON_EXECUTABLE  : $(ls $x/bin/python3*)
 echo DPYTHON_INCLUDE_DIR : $(ls $x/include/ | grep python3)
 echo =-----------------------=
 echo DPYTHON_LIBRARY     : $(ls $x/lib/ | grep python)
+echo DPYTHON_LIBRARY     : $(ls $x/lib/python3.6)
 echo =-----------------------=
 
 #-DPYTHON_LIBRARY=$(python-config --prefix)/lib/libpython3.5m.so
