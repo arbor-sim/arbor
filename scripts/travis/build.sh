@@ -26,8 +26,10 @@ echo "python3    : $(which python3)"
 x=$(python-config --prefix)
 echo "pytchon-config --prefix: $x"
 echo DPYTHON_EXECUTABLE  : $(ls $x/bin/python3*)
-echo DPYTHON_LIBRARY     : $(ls $x/lib/ | grep python)
 echo DPYTHON_INCLUDE_DIR : $(ls $x/include/ | grep python3)
+echo =-----------------------=
+echo DPYTHON_LIBRARY     : $(ls $x/lib/ | grep python)
+echo =-----------------------=
 
 #-DPYTHON_LIBRARY=$(python-config --prefix)/lib/libpython3.5m.so
 
