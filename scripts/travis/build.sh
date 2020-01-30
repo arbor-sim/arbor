@@ -22,6 +22,13 @@ echo "build path : ${build_path}"
 echo "base path  : ${base_path}"
 echo "python3    : $(which python3)"
 echo "python3ver : $(python3 --version)"
+echo "python3    : $(which python3)"
+x=$(python-config --prefix)
+echo "pytchon-config --prefix: $x"
+echo DPYTHON_EXECUTABLE  : $(ls $x/bin/)
+echo DPYTHON_LIBRARY     : $(ls $x/lib/)
+echo DPYTHON_INCLUDE_DIR : $(ls $x/include/)
+
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
     echo "mpi        : on"

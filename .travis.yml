@@ -131,9 +131,9 @@ before_install:
   - |
     if [[ "$WITH_PYTHON" == "true" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        source ~/virtualenv/python3.6/bin/activate
+        #source ~/virtualenv/python3.6/bin/activate
       elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        python --version
+        #python --version
       fi
     fi
 
