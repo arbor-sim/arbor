@@ -61,5 +61,6 @@ static inline bool operator<(cell_member_type lhs, const connection& rhs) {
 static inline std::ostream& operator<<(std::ostream& o, arb::connection const& con) {
     return o << "con [" << con.source() << " -> " << con.destination()
              << " : weight " << con.weight()
-             << ", delay " << con.delay() << "]";
+             << ", delay " << con.delay()
+             << ", index " << con.index_on_domain() << "]";
 }
