@@ -50,12 +50,14 @@ struct single_cell_recipe: arb::recipe {
     // todo: make these references
     const std::vector<probe_site>& probes_;
     const std::vector<arb::event_generator>& generators_;
+    const arb::cable_cell_global_properties& gprop_;
 
     single_cell_recipe(
             const arb::cable_cell& c,
             const std::vector<probe_site>& probes,
-            const std::vector<arb::event_generator>& gens):
-        cell_(c), probes_(probes), generators_(gens)
+            const std::vector<arb::event_generator>& gens,
+            const arb::cable_cell_global_properties& props):
+        cell_(c), probes_(probes), generators_(gens), gprop_(props)
     {}
 
     virtual arb::cell_size_type num_cells() const override {
@@ -117,9 +119,9 @@ struct single_cell_recipe: arb::recipe {
 
     virtual arb::util::any get_global_properties(arb::cell_kind) const override {
         // TODO: make this setable
-        arb::cable_cell_global_properties gprop;
-        gprop.default_parameters = arb::neuron_parameter_defaults;
-        return gprop;
+        //arb::cable_cell_global_properties gprop;
+        //gprop.default_parameters = arb::neuron_parameter_defaults;
+        return gprop_;
     }
 };
 
@@ -127,6 +129,7 @@ class single_cell_model {
     arb::cable_cell cell_;
     arb::context ctx_;
     bool run_ = false;
+    arb::cable_cell_global_properties gprop_;
 
     std::vector<probe_site> probes_;
     std::vector<arb::event_generator> generators_;
@@ -137,7 +140,10 @@ class single_cell_model {
 
 public:
     single_cell_model(arb::cable_cell c):
-        cell_(std::move(c)), ctx_(arb::make_context()) {}
+        cell_(std::move(c)), ctx_(arb::make_context())
+    {
+        gprop_.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     // example use:
     //      m.probe('voltage', arbor.location(2,0.5))
@@ -157,9 +163,12 @@ public:
         probes_.push_back({where, frequency});
     }
 
-    void run(double tfinal) {
+    void add_ion(const std::string& ion, double valence, double int_con, double ext_con, double rev_pot) {
+        gprop_.add_ion(ion, valence, int_con, ext_con, rev_pot);
+    }
 
-        single_cell_recipe rec(cell_, probes_, generators_);
+    void run(double tfinal) {
+        single_cell_recipe rec(cell_, probes_, generators_, gprop_);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 
@@ -219,6 +228,9 @@ void register_single_cell(pybind11::module& m) {
         .def(pybind11::init<arb::cable_cell>(),
             "cell"_a, "Build a single cell model.")
         .def("run", &single_cell_model::run, "tfinal"_a, "run model from t=0 to t=tfinal ms")
+        .def("add_ion", &single_cell_model::add_ion,
+                "ion"_a, "valence"_a, "int_con"_a, "ext_con"_a, "rev_pot"_a,
+                "Add a new ion species to the model")
         .def("probe", &single_cell_model::probe, "what"_a, "where"_a, "frequency"_a)
         .def_property_readonly("spikes", [](const single_cell_model& m) {return m.spike_times();}, "spike times (ms)")
         .def_property_readonly("traces", [](const single_cell_model& m) {return m.traces();}, "traces from probes")
