@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 # Make a ball and stick cell model
 b = arbor.flat_cell_builder()
 
+# Construct a cell with the following morphology.
+# The soma (at the root of the tree) is marked 's', and
+# the end of each branch i is marked 'bi'.
+#
 #               b5
 #              /
 #             /
@@ -24,6 +28,7 @@ s  = b.add_sphere(6, "soma")
 # and those furthest with "dendx" because we will set different electrical
 # properties for the two regions.
 b1 = b.add_cable(parent=s,  length=100, radius=2, name="dendn", ncomp=100)
+# Radius tapers from 2 to 0.5 over the length of the branch.
 b2 = b.add_cable(parent=b1, length= 50, radius=(2,0.5), name="dendn", ncomp=50)
 b3 = b.add_cable(parent=b1, length= 50, radius=1, name="dendn", ncomp=50)
 b4 = b.add_cable(parent=b2, length= 50, radius=1, name="dendx", ncomp=50)
