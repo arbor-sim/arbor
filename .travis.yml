@@ -123,16 +123,6 @@ matrix:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
-  - |
-    if [[ "$WITH_PYTHON" == "true" ]]; then
-      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        #source ~/virtualenv/python3.6/bin/activate
-        python --version
-      elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        #python --version
-        python --version
-      fi
-    fi
 
 install:
   - |

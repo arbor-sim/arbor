@@ -105,8 +105,12 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Python unit tests"
     python$PY $python_path/test/unit/runner.py -v2                           || error "running python unit tests (serial)"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
-        progress "Python distributed unit tests (MPI)"
-        ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
+        if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
+            progress "Python distributed unit tests (MPI)"
+            ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
+        else
+            progress "Python distributed unit tests (MPI) -- skipping on Linux due to Travis config issues on Bionic."
+        fi
     fi
 fi
 

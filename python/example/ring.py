@@ -128,7 +128,7 @@ spike_recorder = arbor.attach_spike_recorder(sim)
 # Sample rate of 10 sample every ms.
 samplers = [arbor.attach_sampler(sim, 0.1, arbor.cell_member(gid,0)) for gid in range(ncells)]
 
-tfinal=100
+tfinal=1
 sim.run(tfinal)
 print(f'{sim} finished')
 
@@ -147,7 +147,7 @@ fig, ax = plt.subplots()
 for gid in range(ncells):
     times = [s.time  for s in samplers[gid].samples(arbor.cell_member(gid,0))]
     volts = [s.value for s in samplers[gid].samples(arbor.cell_member(gid,0))]
-    ax.plot(times, volts)
+    ax.plot(times, volts, '.')
 
 legends = ['cell {}'.format(gid) for gid in range(ncells)]
 ax.legend(legends)
