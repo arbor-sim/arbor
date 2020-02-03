@@ -2,22 +2,42 @@ import sys
 import arbor
 import matplotlib.pyplot as plt
 
+# Construct a cell with the following morphology.
+# The soma (at the root of the tree) is marked 's', and
+# the end of each branch i is marked 'bi'.
+#
+#         b2
+#        /
+# s----b1
+#        \
+#         b3
+
 def make_cable_cell(gid):
     b = arbor.flat_cell_builder()
 
+    # Soma with radius 6 μm.
     s  = b.add_sphere(6, "soma")
+    # Single dendrte of length 100 μm and radius 2 μm attached to soma.
     b1 = b.add_cable(parent=s, length=100, radius=2, name="dend", ncomp=1)
+    # Attach two dendrites of length 50 μm to the end of the first dendrite.
+    # Radius tapers from 2 to 0.5 μm over the length of the dendrite.
     b2 = b.add_cable(parent=b1, length=50, radius=(2,0.5), name="dend", ncomp=1)
+    # Constant radius of 1 μm over the length of the dendrite.
     b3 = b.add_cable(parent=b1, length=50, radius=1, name="dend", ncomp=1)
 
+    # Mark location for synapse at the midpoint of branch 1 (the first dendrite).
     b.add_label('synapse_site', '(location 1 0.5)')
+    # Mark the root of the tree.
     b.add_label('root', '(root)')
 
     cell = b.build()
 
+    # Put hh dynamics on soma, and passive propterties on the dendrites.
     cell.paint('soma', 'hh')
     cell.paint('dend', 'pas')
+    # Attach a single synapse.
     cell.place('synapse_site', 'expsyn')
+    # Attach a spike detector with threshold of -10 mV.
     cell.place('root', arbor.spike_detector(-10))
 
     return cell

@@ -127,8 +127,8 @@ void register_morphology(pybind11::module& m) {
         .def(pybind11::init<>())
         // modifiers
         .def("reserve", &arb::sample_tree::reserve)
-        .def("append", [](arb::sample_tree& t, arb::msample s){t.append(s);})
-        .def("append", [](arb::sample_tree& t, arb::msize_t p, arb::msample s){t.append(p, s);})
+        .def("append", [](arb::sample_tree& t, arb::msample s){return t.append(s);})
+        .def("append", [](arb::sample_tree& t, arb::msize_t p, arb::msample s){return t.append(p, s);})
         // properties
         .def_property_readonly("empty", [](const arb::sample_tree& st){return st.empty();},
                 "Indicates whether the sample tree is empty (i.e. whether it has size 0)")

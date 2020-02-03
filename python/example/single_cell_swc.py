@@ -15,18 +15,19 @@ defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
         'stim_site': '(location 1 0.5)'} # site for the stimulus, in the middle of branch 1.
 labels = arbor.label_dict(defs)
 
+# Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(tree, labels)
 
 # Set initial membrane potential to -55 mV
 cell.set_properties(Vm=-55)
-# Use Nernst to calculate reversal potential for calcium
+# Use Nernst to calculate reversal potential for calcium.
 cell.set_ion('ca', method=mech('nernst/x=ca'))
 # hh mechanism on the soma and axon.
 cell.paint('soma', 'hh')
 cell.paint('axon', 'hh')
 # pas mechanism the dendrites.
 cell.paint('dend', 'pas')
-# Increase resistivity on dendrites
+# Increase resistivity on dendrites.
 cell.paint('dend', rL=500)
 # Attach stimuli that inject 0.8 nA currents for 1 ms.
 cell.place('stim_site', arbor.iclamp(3, 1, current=0.8))
@@ -46,7 +47,7 @@ m.probe('voltage', where=loc(2,1),  frequency=50000)
 m.probe('voltage', where=loc(4,1),  frequency=50000)
 m.probe('voltage', where=loc(30,1), frequency=50000)
 
-# Simulate the cell for tfinal ms.
+# Simulate the cell for 15 ms.
 tfinal=15
 m.run(tfinal)
 
