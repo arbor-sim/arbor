@@ -390,11 +390,12 @@ void register_cells(pybind11::module& m) {
                 if (rL) c.default_parameters.axial_resistivity=rL;
                 if (tempK) c.default_parameters.temperature_K=tempK;
             },
-            pybind11::arg_v("Vm", pybind11::none(), "initial membrane voltage [mV]"),
-            pybind11::arg_v("cm", pybind11::none(), "membrane capacitance [F/m²]"),
-            pybind11::arg_v("rL", pybind11::none(), "axial resistivity [Ω·cm]"),
-            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]"),
-            "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
+            "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
+            "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.\n"
+            " Vm   : initial membrane voltage [mV].\n"
+            " cm   : membrane capacitance [F/m²].\n"
+            " rL   : axial resistivity [Ω·cm].\n"
+            " tempK: temperature [Kelvin].")
         .def("set_ion",
             [](arb::cable_cell& c, const char* ion,
                optional<double> int_con, optional<double> ext_con,

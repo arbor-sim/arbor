@@ -13,24 +13,36 @@
 
 namespace pyarb {
 
+//
+// Implementation of sampling infrastructure for Python single cell models.
+//
+// Note that only voltage sampling is currently supported, which simplifies the
+// code somewhat.
+//
+
+// Stores the location and sampling frequency for a probe in a single cell model.
 struct probe_site {
-    arb::mlocation site;
-    double frequency;     // [Hz]
+    arb::mlocation site;  // Location of sample on morphology.
+    double frequency;     // Sampling frequency [Hz].
 };
 
+// Stores a single trace, which can be queried and viewed by the user at the end
+// of a simulation run.
 struct trace {
-    std::string variable;
-    arb::mlocation loc;
-    std::vector<arb::time_type> t;
-    std::vector<double> v;
+    std::string variable;           // Name of the variable being recorded.
+    arb::mlocation loc;             // Sample site on morphology.
+    std::vector<arb::time_type> t;  // Sample times [ms].
+    std::vector<double> v;          // Sample values [units specific to sample variable].
 };
 
+// Callback provided to sampling API that records into a trace variable.
 struct trace_callback {
     trace& trace_;
 
     trace_callback(trace& t): trace_(t) {}
 
     void operator()(arb::cell_member_type probe_id, arb::probe_tag tag, std::size_t n, const arb::sample_record* recs) {
+        // Push each (time, value) pair from the last epoch into trace_.
         for (std::size_t i=0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
                 trace_.t.push_back(recs[i].time);
@@ -43,19 +55,22 @@ struct trace_callback {
     }
 };
 
-// Used internally by the single cell model.
+// Used internally by the single cell model to expose model information to the
+// arb::simulation API when a model is instantiated.
+// Model descriptors, i.e. the cable_cell and probes, are instantiated
+// in the single_cell_model by user calls. The recipe is generated lazily, just
+// before simulation construction, so the recipe can use const references to all
+// of the model descriptors.
 struct single_cell_recipe: arb::recipe {
+    // The cell description.
     const arb::cable_cell& cell_;
-
-    // todo: make these references
+    // Probe sites.
     const std::vector<probe_site>& probes_;
-    const std::vector<arb::event_generator>& generators_;
 
     single_cell_recipe(
             const arb::cable_cell& c,
-            const std::vector<probe_site>& probes,
-            const std::vector<arb::event_generator>& gens):
-        cell_(c), probes_(probes), generators_(gens)
+            const std::vector<probe_site>& probes):
+        cell_(c), probes_(probes)
     {}
 
     virtual arb::cell_size_type num_cells() const override {
@@ -85,7 +100,7 @@ struct single_cell_recipe: arb::recipe {
     }
 
     virtual std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
-        return generators_;
+        return {};
     }
 
     // probes
@@ -95,11 +110,12 @@ struct single_cell_recipe: arb::recipe {
     }
 
     virtual arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
+        // Test that a valid probe site is requested.
         if (probe_id.gid || probe_id.index>=probes_.size()) {
             throw arb::bad_probe_id(probe_id);
         }
 
-        // For now only voltage can be measured.
+        // For now only voltage can be selected for measurement.
         auto kind = arb::cell_probe_address::membrane_voltage;
         const auto& loc = probes_[probe_id.index].site;
         return arb::probe_info{probe_id, kind, arb::cell_probe_address{loc, kind}};
@@ -108,11 +124,11 @@ struct single_cell_recipe: arb::recipe {
     // gap junctions
 
     virtual arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid)  const override {
-        return 0; // no gap junctions on a single cell model
+        return 0; // No gap junctions on a single cell model.
     }
 
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const override {
-        return {}; // no gap junctions on a single cell model
+        return {}; // No gap junctions on a single cell model.
     }
 
     virtual arb::util::any get_global_properties(arb::cell_kind) const override {
@@ -129,7 +145,6 @@ class single_cell_model {
     bool run_ = false;
 
     std::vector<probe_site> probes_;
-    std::vector<arb::event_generator> generators_;
     std::unique_ptr<arb::simulation> sim_;
     std::vector<double> spike_times_;
     // Create one trace for each probe.
@@ -159,7 +174,7 @@ public:
 
     void run(double tfinal) {
 
-        single_cell_recipe rec(cell_, probes_, generators_);
+        single_cell_recipe rec(cell_, probes_);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 
@@ -205,23 +220,28 @@ public:
 void register_single_cell(pybind11::module& m) {
     using namespace pybind11::literals;
 
-    pybind11::class_<trace> tr(m, "trace");
+    pybind11::class_<trace> tr(m, "trace", "Values and meta-data for a sample-trace on a single cell model.");
     tr
-        .def_readonly("variable", &trace::variable)
-        .def_readonly("location", &trace::loc)
-        .def_readonly("time",    &trace::t)
-        .def_readonly("value",   &trace::v);
+        .def_readonly("variable", &trace::variable, "Name of the variable being recorded.")
+        .def_readonly("location", &trace::loc, "Location on cell morphology.")
+        .def_readonly("time",    &trace::t, "Time stamps of samples [ms].")
+        .def_readonly("value",   &trace::v, "Sample values.");
 
     pybind11::class_<single_cell_model> model(m, "single_cell_model",
-        "Wrapper for easily building and running single cell models.");
+        "Wrapper for simplified description, and execution, of single cell models.");
 
     model
         .def(pybind11::init<arb::cable_cell>(),
-            "cell"_a, "Build a single cell model.")
-        .def("run", &single_cell_model::run, "tfinal"_a, "run model from t=0 to t=tfinal ms")
-        .def("probe", &single_cell_model::probe, "what"_a, "where"_a, "frequency"_a)
-        .def_property_readonly("spikes", [](const single_cell_model& m) {return m.spike_times();}, "spike times (ms)")
-        .def_property_readonly("traces", [](const single_cell_model& m) {return m.traces();}, "traces from probes")
+            "cell"_a, "Initialise a single cell model for a cable cell.")
+        .def("run", &single_cell_model::run, "tfinal"_a, "Run model from t=0 to t=tfinal ms.")
+        .def("probe", &single_cell_model::probe,
+            "what"_a, "where"_a, "frequency"_a,
+            "Sample a variable on the cell.\n"
+            " 'what':      Name of the variable to record (currently only 'voltage').\n"
+            " 'where':     Location on cell morphology at which to sample the variable.\n"
+            " 'frequency': The target frequency at which to sample [Hz].")
+        .def_property_readonly("spikes", [](const single_cell_model& m) {return m.spike_times();}, "Holds spike times [ms] after a call to run().")
+        .def_property_readonly("traces", [](const single_cell_model& m) {return m.traces();}, "Holds sample traces after a call to run().")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }
