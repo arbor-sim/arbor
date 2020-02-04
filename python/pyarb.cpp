@@ -11,6 +11,7 @@ void register_config(pybind11::module& m);
 void register_contexts(pybind11::module& m);
 void register_domain_decomposition(pybind11::module& m);
 void register_event_generators(pybind11::module& m);
+void register_flat_builder(pybind11::module& m);
 void register_identifiers(pybind11::module& m);
 void register_morphology(pybind11::module& m);
 void register_profiler(pybind11::module& m);
@@ -18,6 +19,7 @@ void register_recipe(pybind11::module& m);
 void register_sampling(pybind11::module& m);
 void register_schedules(pybind11::module& m);
 void register_simulation(pybind11::module& m);
+void register_single_cell(pybind11::module& m);
 void register_spike_handling(pybind11::module& m);
 
 #ifdef ARB_MPI_ENABLED
@@ -26,7 +28,7 @@ void register_mpi(pybind11::module& m);
 }
 
 PYBIND11_MODULE(arbor, m) {
-    m.doc() = "arbor: Python bindings for Arbor.";
+    m.doc() = "arbor: multicompartment neural network models.";
     m.attr("__version__") = ARB_VERSION;
 
     pyarb::register_cells(m);
@@ -34,6 +36,7 @@ PYBIND11_MODULE(arbor, m) {
     pyarb::register_contexts(m);
     pyarb::register_domain_decomposition(m);
     pyarb::register_event_generators(m);
+    pyarb::register_flat_builder(m);
     pyarb::register_identifiers(m);
     pyarb::register_morphology(m);
     pyarb::register_profiler(m);
@@ -41,8 +44,9 @@ PYBIND11_MODULE(arbor, m) {
     pyarb::register_sampling(m);
     pyarb::register_schedules(m);
     pyarb::register_simulation(m);
+    pyarb::register_single_cell(m);
     pyarb::register_spike_handling(m);
-    
+
     #ifdef ARB_MPI_ENABLED
     pyarb::register_mpi(m);
     #endif

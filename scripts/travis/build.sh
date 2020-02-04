@@ -20,6 +20,8 @@ echo "compiler   : ${compiler_version}"
 echo "cmake      : ${cmake_version}"
 echo "build path : ${build_path}"
 echo "base path  : ${base_path}"
+echo "python3    : $(which python3)"
+echo "python3ver : $(python3 --version)"
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
     echo "mpi        : on"
@@ -50,6 +52,13 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     python_path=$base_path/python
     echo "python src : ${python_path}"
     echo "PYTHONPATH : ${PYTHONPATH}"
+
+    if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then
+        pypref=$(python-config --prefix)
+        PY_FLAGS="-DPYTHON_EXECUTABLE=$pypref/bin/python3.6 -DPYTHON_INCLUDE_DIR=$pypref/include/python3.6m -DPYTHON_LIBRARY=$pypref/lib/python3.6/config-3.6m-x86_64-linux-gnu/libpython3.6m.so"
+    else
+        PY_FLAGS=""
+    fi
 else
     echo "python     : off"
     ARB_WITH_PYTHON="OFF"
@@ -66,11 +75,11 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} ${CXX_FLAGS} ${PY_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
-export NMC_NUM_THREADS=2
+export ARB_NUM_THREADS=2
 
 progress "C++ unit tests"
 make unit -j4                || error "building unit tests"
@@ -96,8 +105,12 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Python unit tests"
     python$PY $python_path/test/unit/runner.py -v2                           || error "running python unit tests (serial)"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
-        progress "Python distributed unit tests (MPI)"
-        ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
+        if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
+            progress "Python distributed unit tests (MPI)"
+            ${launch} python$PY $python_path/test/unit_distributed/runner.py -v2 || error "running python distributed unit tests (MPI)"
+        else
+            progress "Python distributed unit tests (MPI) -- skipping on Linux due to Travis config issues on Bionic."
+        fi
     fi
 fi
 

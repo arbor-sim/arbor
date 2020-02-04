@@ -1,8 +1,7 @@
 ######## Testing minimal compiler requirements ########
 # GCC          6.4.0
-# Clang        4.0
-# Apple Clang  900.0.39.2
-# Python       3.6
+# Clang        7.0
+# Apple Clang  1100.0.33.16
 #######################################################
 
 language: cpp
@@ -14,10 +13,10 @@ matrix:
 ## test gcc6 - single node/rank with threading backend ##
   - name: "osx, gcc, serial, py"
     os: osx
-    osx_image: xcode9.2
+    osx_image: xcode11.3
     python: 3.6
     env:
-      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-osx-gcc-py
       - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: gcc-6
@@ -25,10 +24,10 @@ matrix:
 ## test gcc6 - mpi with threading backend ##
   - name: "osx, gcc, mpi, py"
     os: osx
-    osx_image: xcode9.2
+    osx_image: xcode11.3
     python: 3.6
     env:
-      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-osx-gcc-py
       - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: gcc-6
@@ -36,7 +35,7 @@ matrix:
 ## test clang9 - single node/rank with threading backend ##
   - name: "osx, apple clang, serial, py"
     os: osx
-    osx_image: xcode9.2
+    osx_image: xcode11.3
     python: 3.6
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
@@ -47,7 +46,7 @@ matrix:
 ## test clang9 - mpi with threading backend ##
   - name: "osx, apple clang, mpi, py"
     os: osx
-    osx_image: xcode9.2
+    osx_image: xcode11.3
     python: 3.6
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
@@ -59,12 +58,10 @@ matrix:
 ## test gcc6 - single node/rank with threading backend ##
   - name: "linux, gcc, serial, py"
     os: linux
-    dist: trusty
-    python: 3.6
+    dist: bionic
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
         packages:
           - g++-6
           - openmpi-bin
@@ -78,12 +75,10 @@ matrix:
 ## test gcc6 - mpi with threading backend ##
   - name: "linux, gcc, mpi, py"
     os: linux
-    dist: trusty
-    python: 3.6
+    dist: bionic
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
         packages:
           - g++-6
           - openmpi-bin
@@ -97,20 +92,15 @@ matrix:
 ## test clang4 - single node/rank with threading backend ##
   - name: "linux, clang, serial, py"
     os: linux
-    dist: trusty
-    python: 3.6
+    dist: bionic
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
-          - llvm-toolchain-trusty-4.0
         packages:
-          - clang-4.0
-          - g++-6
           - openmpi-bin
           - libopenmpi-dev
     env:
-      - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+      - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=cthread-linux-clang-py
       - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: clang-4.0
@@ -118,36 +108,21 @@ matrix:
 ## test clang4 - mpi with threading backend ##
   - name: "linux, clang, mpi, py"
     os: linux
-    dist: trusty
-    python: 3.6
+    dist: bionic
     addons:
       apt:
         sources:
-          - ubuntu-toolchain-r-test
-          - llvm-toolchain-trusty-4.0
         packages:
-          - clang-4.0
-          - g++-6
           - openmpi-bin
           - libopenmpi-dev
     env:
-      - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+      - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=mpi-linux-clang-py
       - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: clang-4.0
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
-  - |
-    if [[ "$WITH_PYTHON" == "true" ]]; then
-      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        source ~/virtualenv/python3.6/bin/activate
-      elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        brew unlink python
-        brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/e128fa1bce3377de32cbf11bd8e46f7334dfd7a6/Formula/python.rb
-        brew switch python 3.6.5
-      fi
-    fi
 
 install:
   - |

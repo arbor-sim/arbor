@@ -29,18 +29,18 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
                 "Python error already thrown");
 }
 
-arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
-    arb::cell_probe_address::probe_kind pkind;
-    if (kind == "voltage") {
-        pkind = arb::cell_probe_address::probe_kind::membrane_voltage;
+arb::cell_probe_address::probe_kind probe_kind_from_string(const std::string& name) {
+    if (name == "voltage") {
+        return arb::cell_probe_address::probe_kind::membrane_voltage;
     }
-    else if (kind == "current") {
-        pkind = arb::cell_probe_address::probe_kind::membrane_current;
+    else if (name == "current") {
+        return arb::cell_probe_address::probe_kind::membrane_current;
     }
-    else throw pyarb_error(
-                util::pprintf(
-                    "invalid probe kind: {}, neither voltage nor current", kind));
+    else throw pyarb_error(util::pprintf("invalid probe kind: {}, neither voltage nor current", name));
+}
 
+arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
+    auto pkind = probe_kind_from_string(kind);
     arb::cell_probe_address probe{loc, pkind};
     return arb::probe_info{id, pkind, probe};
 };

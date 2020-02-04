@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <system_error>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -132,6 +133,25 @@ namespace impl {
         }
     };
 
+    template <typename Seq, typename F>
+    struct sepval_transform {
+        const Seq& seq_;
+        const char* sep_;
+        const F f_;
+
+        sepval_transform(const Seq& seq, const char* sep, F&& f): seq_(seq), sep_(sep), f_(std::forward(f)) {}
+
+        friend std::ostream& operator<<(std::ostream& o, const sepval_transform& s) {
+            bool first = true;
+            for (auto& x: s.seq_) {
+                if (!first) o << s.sep_;
+                first = false;
+                o << s.f(x);
+            }
+            return o;
+        }
+    };
+
     template <typename Seq>
     struct sepval_lim {
         const Seq& seq_;
@@ -177,6 +197,21 @@ impl::sepval<Seq> csv(const Seq& seq) {
 template <typename Seq>
 impl::sepval_lim<Seq> csv(const Seq& seq, unsigned n) {
     return impl::sepval_lim<Seq>(seq, ", ", n);
+}
+
+// Print dictionary: this could be done easily with range adaptors in C++17
+template <typename Key, typename T>
+std::string dictionary_csv(const std::unordered_map<Key, T>& dict) {
+    constexpr bool string_key = std::is_same<std::string, std::decay_t<Key>>::value;
+    std::string s = "{";
+    bool first = true;
+    for (auto& p: dict) {
+        if (!first) s += ", ";
+        first = false;
+        s += pprintf(string_key? "'{}': {}": "{}: {}", p.first, p.second);
+    }
+    s += "}";
+    return s;
 }
 
 } // namespace util
