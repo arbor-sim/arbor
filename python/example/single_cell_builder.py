@@ -49,6 +49,7 @@ cell = b.build()
 
 # Set initial membrane potential everywhere on the cell to -40 mV.
 cell.set_properties(Vm=-40)
+# Put hh dynamics on soma, and passive properties on the dendrites.
 cell.paint('soma', 'hh')
 cell.paint('dend', 'pas')
 # Set axial resistivity in dendrite regions (Ohm.cm)

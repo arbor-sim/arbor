@@ -3,9 +3,9 @@
 Python
 ======
 
-Arbor provies access to all of the C++ library's functionality in Python,
-which is the only interface that the vast majority of users will use.
-The getting started guides will introduce Arbor using the Python.
+Arbor provides access to all of the C++ library's functionality in Python,
+which is the only interface for many users.
+The getting started guides will introduce Arbor via the Python interface.
 
 Before starting Arbor needs to be installed with the Python interface enabled,
 as per the `installation guide <_installarbor>`_.
@@ -23,7 +23,7 @@ To test that Arbor is available, open `Python 3 <python2_>`_, and try the follow
 Calling ``arbor.config()`` returns a dictionary with information about the Arbor installation.
 This can be used to check that Arbor supports features that you require to run your model,
 or even to dynamically decide how to run a model.
-To run single cell models like the one introduced here we don't need parallelism like
+Single cell models like the one introduced here we do not require parallelism like
 that provided by MPI or GPUs, so the ``'mpi'`` and ``'gpu'`` fields can be ``False``.
 
 Performance

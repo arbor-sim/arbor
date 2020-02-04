@@ -29,7 +29,7 @@ cell.paint('axon', 'hh')
 cell.paint('dend', 'pas')
 # Increase resistivity on dendrites.
 cell.paint('dend', rL=500)
-# Attach stimuli that inject 0.8 nA currents for 1 ms.
+# Attach stimuli that inject 0.8 nA currents for 1 ms, starting at 3 and 8 ms.
 cell.place('stim_site', arbor.iclamp(3, 1, current=0.8))
 cell.place('stim_site', arbor.iclamp(8, 1, 0.8))
 # Detect spikes at the soma with a voltage threshold of -10 mV.

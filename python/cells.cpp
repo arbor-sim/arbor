@@ -480,11 +480,10 @@ void register_cells(pybind11::module& m) {
             },
             "region"_a, "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
             "Set cable properties on a region.\n"
-            " region: Initial membrane voltage [mV].\n"
-            " cm:     Membrane capacitance [F/m²].\n"
-            " rL:     Axial resistivity [Ω·cm].\n"
-            " tempK:  Temperature [Kelvin].")
-
+            " region: initial membrane voltage [mV].\n"
+            " cm:     membrane capacitance [F/m²].\n"
+            " rL:     axial resistivity [Ω·cm].\n"
+            " tempK:  temperature [Kelvin].")
 
         // Paint ion species initial conditions on a region.
         .def("paint",

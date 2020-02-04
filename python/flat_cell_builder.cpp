@@ -1,10 +1,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/sample_tree.hpp>
-#include <arbor/cable_cell.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"
@@ -85,8 +85,6 @@ public:
         // to the root.
         arb::msize_t p = at_root? (size()? 0: mnpos): cable_distal_id_[parent];
 
-        //std::cout << " Parent " << p << "\n";
-
         double z = at_root? 0:                      // attach to root of non-spherical cell
                    spherical_&&!parent? soma_rad(): // attach to spherical root
                    tree_.samples()[p].loc.z;        // attach to end of a cable
@@ -98,7 +96,6 @@ public:
                                   || (r1!=tree_.samples()[p].loc.radius);
                                                         // proximal radius does not match r1
         if (add_first_point) {
-            //std::cout << "   Up front\n";
             p = tree_.append(p, {{0,0,z,r1}, tag});
         }
         if (ncomp>1) {
@@ -225,8 +222,7 @@ public:
         return tree_.samples()[0].loc.radius;
     }
 
-    // The number of cable segements (plus one optional soma) were used to
-    // construct the cell.
+    // The number of cable segements (plus one optional soma) used to construct the cell.
     std::size_t size() const {
         return cable_distal_id_.size();
     }

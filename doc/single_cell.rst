@@ -33,17 +33,17 @@ Morphology
 ----------
 
 The first step in building a cell model is to define the cell's *morphology*.
-Conceptually, Arbor describes morphologies as a tree truncated frustrums, with
+Conceptually, Arbor treats morphologies as a tree of truncated frustums, with
 an optional spherical segment at the root of the tree.
-Internally Arbor represents morphologies as a tree of sample points, where
-each sample has a 3D location, a radius and a tag.
+These are represented as a tree of sample points, where each sample has a 3D location,
+a radius, and a tag, and a parent sample.
 
 .. note::
     NEURON represents morphologies as a tree of cylindrical *segments*, whereas
     in Arbor the radius can vary linearly between two sample locations.
 
     A cylinder with equal diameter and length is used to model spherical somata
-    in NEURON, which conincdently has the same surface area as a sphere of the same diameter.
+    in NEURON, which coincidently has the same surface area as a sphere of the same diameter.
     Arbor allows the user to optionally use a spherical section at the root
     of the tree to represent spherical somata.
 
@@ -65,7 +65,7 @@ Let's start with a simple "ball and stick" model cell.
         # Label this segment 'soma'.
         p = builder.add_sphere(radius=10, name='soma')
 
-        # Attach a cable to the soma with length 100 μm and constant raidus 4 μm.
+        # Attach a cable to the soma with length 100 μm and constant radius 4 μm.
         q = builder.add_cable(parent=p, length=100, radius=4, name='dend')
 
         # Attach two dendrites to the first of length 50 μm, that taper from 4 μm to 2 μm.
@@ -73,7 +73,7 @@ Let's start with a simple "ball and stick" model cell.
         p = builder.add_cable(parent=q, length=50, radius=(4,2), name='dend')
 
 
-building the morphology there are two approaches: construct it manually using
+Building the morphology there are two approaches: construct it manually using
 ``sample_tree`` or ``flat_cell_builder``, or load from swc file.
 
 TODO: cover all methods here?

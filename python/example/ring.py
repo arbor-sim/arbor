@@ -17,7 +17,7 @@ def make_cable_cell(gid):
 
     # Soma with radius 6 μm.
     s  = b.add_sphere(6, "soma")
-    # Single dendrte of length 100 μm and radius 2 μm attached to soma.
+    # Single dendrite of length 100 μm and radius 2 μm attached to soma.
     b1 = b.add_cable(parent=s, length=100, radius=2, name="dend", ncomp=1)
     # Attach two dendrites of length 50 μm to the end of the first dendrite.
     # Radius tapers from 2 to 0.5 μm over the length of the dendrite.
@@ -32,7 +32,7 @@ def make_cable_cell(gid):
 
     cell = b.build()
 
-    # Put hh dynamics on soma, and passive propterties on the dendrites.
+    # Put hh dynamics on soma, and passive properties on the dendrites.
     cell.paint('soma', 'hh')
     cell.paint('dend', 'pas')
     # Attach a single synapse.
