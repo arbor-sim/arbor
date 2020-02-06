@@ -854,29 +854,29 @@ TEST(region, thingify_complex_morphologies) {
         mprovider mp(morphology(sm, false));
 
         using reg::all;
-        using reg::z_dist_from_soma_lt;
-        using reg::z_dist_from_soma_le;
-        using reg::z_dist_from_soma_gt;
-        using reg::z_dist_from_soma_ge;
+        using reg::z_dist_from_root_lt;
+        using reg::z_dist_from_root_le;
+        using reg::z_dist_from_root_gt;
+        using reg::z_dist_from_root_ge;
         using reg::cable;
 
         // Test projection
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_lt(0), mp), (mcable_list{})));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_ge(0), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_lt(0), mp), (mcable_list{})));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_ge(0), mp), thingify(all(), mp)));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_le(100), mp), thingify(all(), mp)));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(100), mp), (mcable_list{})));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_le(100), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_gt(100), mp), (mcable_list{})));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_le(90), mp), thingify(all(), mp)));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(90), mp), (mcable_list{})));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_le(90), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_gt(90), mp), (mcable_list{})));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_lt(20), mp),
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_lt(20), mp),
                                 (mcable_list{{0,0,1},
                                              {1,0,0.578250901781922829},
                                              {2,0.61499300915417734997,0.8349970039232188642},
                                              {3,0,0.179407353580315756}
                                 })));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_ge(20), mp),
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_ge(20), mp),
                                 (mcable_list{{0,1,1},
                                              {1,0.578250901781922829,1},
                                              {2,0,0.61499300915417734997},
@@ -885,9 +885,9 @@ TEST(region, thingify_complex_morphologies) {
                                              {4,0,1},
                                              {5,0,1}
                                 })));
-        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_soma_lt(20), z_dist_from_soma_ge(20)), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_root_lt(20), z_dist_from_root_ge(20)), mp), thingify(all(), mp)));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_le(50), mp),
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_le(50), mp),
                                 (mcable_list{{0,0,1},
                                              {1,0,1},
                                              {2,0,0.2962417607888518767},
@@ -897,12 +897,12 @@ TEST(region, thingify_complex_morphologies) {
                                              {4,0,0.0869615364994152821},
                                              {5,0,0.25}
                                 })));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_soma_gt(50), mp),
+        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_gt(50), mp),
                                 (mcable_list{{2,0.2962417607888518767,0.4499900130773962142},
                                              {3,0.4485183839507893905,0.7691110303704736343},
                                              {4,0.0869615364994152821,1},
                                              {5,0.25,1}})));
 
-        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_soma_le(50), z_dist_from_soma_gt(50)), mp), thingify(all(), mp)));
+        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_root_le(50), z_dist_from_root_gt(50)), mp), thingify(all(), mp)));
     }
 }

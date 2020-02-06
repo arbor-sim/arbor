@@ -147,12 +147,12 @@ region radius_gt(region reg, double r);
 region radius_ge(region reg, double r);
 
 // Region with all segments with projection less than/less than or equal to r
-region z_dist_from_soma_lt(double r);
-region z_dist_from_soma_le(double r);
+region z_dist_from_root_lt(double r);
+region z_dist_from_root_le(double r);
 
 // Region with all segments with projection greater than/greater than or equal to r
-region z_dist_from_soma_gt(double r);
-region z_dist_from_soma_ge(double r);
+region z_dist_from_root_gt(double r);
+region z_dist_from_root_ge(double r);
 
 // Region with all segments in a cell.
 region all();

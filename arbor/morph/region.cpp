@@ -374,7 +374,7 @@ mcable_list thingify_(const distal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
-    return o << "(distal_interval: " << d.start << ", " << d.distance << ")";
+    return o << "(distal_interval " << d.start << " " << d.distance << ")";
 }
 
 // Region with all segments proximal from another region
@@ -426,7 +426,7 @@ mcable_list thingify_(const proximal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
-    return o << "(distal_interval: " << d.end << ", " << d.distance << ")";
+    return o << "(distal_interval " << d.end << " " << d.distance << ")";
 }
 
 mcable_list radius_cmp(const mprovider& p, region r, double v, comp_op op) {
@@ -459,7 +459,7 @@ mcable_list thingify_(const radius_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
-    return o << "(radius_lt: " << r.reg << ", " << r.val << ")";
+    return o << "(radius_lt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius less than r
@@ -477,7 +477,7 @@ mcable_list thingify_(const radius_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
-    return o << "(radius_le: " << r.reg << ", " << r.val << ")";
+    return o << "(radius_le " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than r
@@ -495,7 +495,7 @@ mcable_list thingify_(const radius_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
-    return o << "(radius_gt: " << r.reg << ", " << r.val << ")";
+    return o << "(radius_gt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than or equal to r
@@ -513,7 +513,7 @@ mcable_list thingify_(const radius_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
-    return o << "(radius_ge: " << r.reg << ", " << r.val << ")";
+    return o << "(radius_ge " << r.reg << " " << r.val << ")";
 }
 
 mcable_list projection_cmp(const mprovider& p, double v, comp_op op) {
@@ -542,7 +542,7 @@ mcable_list thingify_(const projection_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
-    return o << "(projection_lt: " << r.val << ")";
+    return o << "(projection_lt " << r.val << ")";
 }
 
 // Region with all segments with projection less than or equal to val
@@ -559,7 +559,7 @@ mcable_list thingify_(const projection_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
-    return o << "(projection_le: " << r.val << ")";
+    return o << "(projection_le " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -576,7 +576,7 @@ mcable_list thingify_(const projection_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
-    return o << "(projection_gt: " << r.val << ")";
+    return o << "(projection_gt " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -593,10 +593,10 @@ mcable_list thingify_(const projection_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
-    return o << "(projection_ge: " << r.val << ")";
+    return o << "(projection_ge " << r.val << ")";
 }
 
-region z_dist_from_soma_lt(double r0) {
+region z_dist_from_root_lt(double r0) {
     if (r0 == 0) {
         return {};
     }
@@ -605,19 +605,19 @@ region z_dist_from_soma_lt(double r0) {
     return intersect(std::move(lt), std::move(gt));
 }
 
-region z_dist_from_soma_le(double r0) {
+region z_dist_from_root_le(double r0) {
     region le = reg::projection_le(r0);
     region ge = reg::projection_ge(-r0);
     return intersect(std::move(le), std::move(ge));
 }
 
-region z_dist_from_soma_gt(double r0) {
+region z_dist_from_root_gt(double r0) {
     region lt = reg::projection_lt(-r0);
     region gt = reg::projection_gt(r0);
     return region{join(std::move(lt), std::move(gt))};
 }
 
-region z_dist_from_soma_ge(double r0) {
+region z_dist_from_root_ge(double r0) {
     region lt = reg::projection_le(-r0);
     region gt = reg::projection_ge(r0);
     return region{join(std::move(lt), std::move(gt))};

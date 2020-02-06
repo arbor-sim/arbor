@@ -308,8 +308,7 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const uniform_& u) {
-    return o << "(uniform from region: \"" << u.reg << "\"; using seed: " << u.seed
-             << "; range: {" << u.left << ", " << u.right << "})";
+    return o << "(uniform " << u.reg << " " << u.left << " " << u.right << " " << u.seed << ")";
 }
 
 // Intersection of two point sets.
