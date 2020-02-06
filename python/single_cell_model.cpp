@@ -157,7 +157,10 @@ public:
 
     // example use:
     //      m.probe('voltage', arbor.location(2,0.5))
-    void probe(const std::string& what, const arb::mlocation& where, double frequency) {
+    //      m.probe('voltage', '(location 2 0.5)')
+    //      m.probe('voltage', 'term')
+
+    void probe(const std::string& what, const arb::locset& where, double frequency) {
         if (what != "voltage") {
             throw pyarb_error(
                 util::pprintf("{} does not name a valid variable to trace (currently only 'voltage' is supported)", what));
@@ -166,11 +169,9 @@ public:
             throw pyarb_error(
                 util::pprintf("sampling frequency is not greater than zero", what));
         }
-        if (where.branch>=cell_.morphology().num_branches()) {
-            throw pyarb_error(
-                util::pprintf("invalid location", what));
+        for (auto& l: cell_.locations(where)) {
+            probes_.push_back({l, frequency});
         }
-        probes_.push_back({where, frequency});
     }
 
     void add_ion(const std::string& ion, double valence, double int_con, double ext_con, double rev_pot) {
@@ -238,7 +239,17 @@ void register_single_cell(pybind11::module& m) {
         .def(pybind11::init<arb::cable_cell>(),
             "cell"_a, "Initialise a single cell model for a cable cell.")
         .def("run", &single_cell_model::run, "tfinal"_a, "Run model from t=0 to t=tfinal ms.")
-        .def("probe", &single_cell_model::probe,
+        .def("probe",
+            [](single_cell_model& m, const char* what, const char* where, double frequency) {
+                m.probe(what, where, frequency);},
+            "what"_a, "where"_a, "frequency"_a,
+            "Sample a variable on the cell.\n"
+            " what:      Name of the variable to record (currently only 'voltage').\n"
+            " where:     Location on cell morphology at which to sample the variable.\n"
+            " frequency: The target frequency at which to sample [Hz].")
+        .def("probe",
+            [](single_cell_model& m, const char* what, const arb::mlocation& where, double frequency) {
+                m.probe(what, where, frequency);},
             "what"_a, "where"_a, "frequency"_a,
             "Sample a variable on the cell.\n"
             " what:      Name of the variable to record (currently only 'voltage').\n"

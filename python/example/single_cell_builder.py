@@ -43,6 +43,8 @@ b.add_label('dend', '(join (region "dendn") (region "dendx"))')
 b.add_label('stim_site', '(location 2 0.5)')
 # The root of the tree (equivalent to '(location 0 0)')
 b.add_label('root', '(root)')
+# The tips of the dendrites (3 locations at b4, b3, b5).
+b.add_label('dtips', '(terminal)')
 
 # Extract the cable cell from the builder.
 cell = b.build()
@@ -63,13 +65,12 @@ cell.place('stim_site', arbor.iclamp( 80, 2, 0.8))
 # Add a spike detector with threshold of -10 mV.
 cell.place('root', arbor.spike_detector(-10))
 
-# make single cell model
+# Make single cell model.
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes, sampling at 10 kHz.
-m.probe('voltage', loc(0,0), 10000) # at the soma
-m.probe('voltage', loc(3,1), 10000) # at the end of branch 3
-m.probe('voltage', loc(4,1), 10000) # at the end of branch 4
+m.probe('voltage', loc(0,0), 10000) # at the soma.
+m.probe('voltage', 'dtips',   10000) # at the tips of the dendrites.
 
 # Run simulation for 100 ms of simulated activity.
 tfinal=100
