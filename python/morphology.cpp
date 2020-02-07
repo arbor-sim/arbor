@@ -41,13 +41,9 @@ void register_morphology(pybind11::module& m) {
         .def_readonly("position", &arb::mlocation::pos,
             "The relative position on the branch (∈ [0.,1.], where 0. means proximal and 1. distal).")
         .def("__str__",
-            [](arb::mlocation l) {
-                return util::pprintf("(location {} {})", l.branch, l.pos);
-            })
+            [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); })
         .def("__repr__",
-            [](arb::mlocation l) {
-                return util::pprintf("<arbor.location: branch {}, position {}>", l.branch, l.pos);
-            });
+            [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); });
 
     // arb::mpoint
     pybind11::class_<arb::mpoint> mpoint(m, "mpoint");
