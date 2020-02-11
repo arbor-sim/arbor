@@ -42,7 +42,7 @@ cell.compartments_on_samples()
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe('voltage', where=loc(0,0),  frequency=50000)
+m.probe('voltage', where='root',  frequency=50000)
 m.probe('voltage', where=loc(2,1),  frequency=50000)
 m.probe('voltage', where=loc(4,1),  frequency=50000)
 m.probe('voltage', where=loc(30,1), frequency=50000)
