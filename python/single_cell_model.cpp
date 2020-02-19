@@ -169,7 +169,7 @@ public:
             throw pyarb_error(
                 util::pprintf("sampling frequency is not greater than zero", what));
         }
-        for (auto& l: cell_.locations(where)) {
+        for (auto& l: cell_.concrete_locset(where)) {
             probes_.push_back({l, frequency});
         }
     }

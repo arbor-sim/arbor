@@ -104,8 +104,12 @@ struct cable_cell_impl {
         }
     }
 
-    mlocation_list locations(const locset& l) const {
+    mlocation_list concrete_locset(const locset& l) const {
         return thingify(l, provider);
+    }
+
+    mcable_list concrete_region(const region& r) const {
+        return thingify(r, provider);
     }
 };
 
@@ -137,8 +141,12 @@ const mprovider& cable_cell::provider() const {
     return impl_->provider;
 }
 
-mlocation_list cable_cell::locations(const locset& l) const {
-    return impl_->locations(l);
+mlocation_list cable_cell::concrete_locset(const locset& l) const {
+    return impl_->concrete_locset(l);
+}
+
+mcable_list cable_cell::concrete_region(const region& r) const {
+    return impl_->concrete_region(r);
 }
 
 const cable_cell_location_map& cable_cell::location_assignments() const {

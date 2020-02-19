@@ -527,8 +527,11 @@ void register_cells(pybind11::module& m) {
             "Add a voltage spike detector at each location in locations.")
         // Get locations associated with a locset label.
         .def("locations",
-            [](arb::cable_cell& c, const char* label) {return c.locations(label);},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(label);},
             "label"_a, "The locations of the cell morphology for a locset label.")
+        .def("region",
+            [](arb::cable_cell& c, const char* label) {return c.concrete_region(label);},
+            "label"_a, "The cable segments of the cell morphology for a region label.")
         // Discretization control.
         .def("compartments_on_samples",
             [](arb::cable_cell& c) {c.default_parameters.discretization = arb::cv_policy_every_sample{};},
