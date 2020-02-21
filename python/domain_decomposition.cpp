@@ -28,7 +28,7 @@ std::string dd_string(const arb::domain_decomposition& d) {
         d.domain_id, d.num_domains, d.num_local_cells, d.num_global_cells, d.groups.size());
 }
 
-std::string ph_string(const arb::partition_hint& h) {
+std::string ph_string(const arb::cell_group_hint& h) {
     return util::pprintf(
         "<arbor.partition_hint: cpu_group_size {}, gpu_group_size {}, prefer_gpu {}>",
         h.cpu_group_size, h.gpu_group_size, (h.prefer_gpu == 1) ? "True" : "False");
@@ -54,9 +54,9 @@ void register_domain_decomposition(pybind11::module& m) {
         .def("__repr__", &gd_string);
 
     // Partition hint
-    pybind11::class_<arb::partition_hint> partition_hint(m, "partition_hint",
+    pybind11::class_<arb::cell_group_hint> cell_group_hint(m, "cell_group_hint",
         "Provide a hint on how the cell groups should be partitioned.");
-    partition_hint
+    cell_group_hint
         .def(pybind11::init<std::size_t, std::size_t, bool>(),
             "cpu_group_size"_a = 1, "gpu_group_size"_a = std::numeric_limits<std::size_t>::max(), "prefer_gpu"_a = true,
             "Construct a partition hint with arguments:\n"
@@ -65,13 +65,13 @@ void register_domain_decomposition(pybind11::module& m) {
             "  gpu_group_size: The size of cell group assigned to GPU, all cells in one group by default.\n"
             "                  Must be positive, else set to default value.\n"
             "  prefer_gpu:     Whether GPU is preferred, True by default.")
-        .def_readwrite("cpu_group_size", &arb::partition_hint::cpu_group_size,
+        .def_readwrite("cpu_group_size", &arb::cell_group_hint::cpu_group_size,
                                         "The size of cell group assigned to CPU.")
-        .def_readwrite("gpu_group_size", &arb::partition_hint::gpu_group_size,
+        .def_readwrite("gpu_group_size", &arb::cell_group_hint::gpu_group_size,
                                         "The size of cell group assigned to GPU.")
-        .def_readwrite("prefer_gpu", &arb::partition_hint::prefer_gpu,
+        .def_readwrite("prefer_gpu", &arb::cell_group_hint::prefer_gpu,
                                         "Whether GPU usage is preferred.")
-        .def_property_readonly_static("max_size",  [](pybind11::object) { return arb::partition_hint::max_size; },
+        .def_property_readonly_static("max_size",  [](pybind11::object) { return arb::cell_group_hint::max_size; },
                                         "Get the maximum size of cell groups.")
         .def("__str__",  &ph_string)
         .def("__repr__", &ph_string);
@@ -104,7 +104,7 @@ void register_domain_decomposition(pybind11::module& m) {
     // Partition load balancer
     // The Python recipe has to be shimmed for passing to the function that takes a C++ recipe.
     m.def("partition_load_balance",
-        [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
+        [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, arb::partition_hint hint_map) {
             try {
                 return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context, std::move(hint_map));
             }
@@ -116,7 +116,7 @@ void register_domain_decomposition(pybind11::module& m) {
         "Construct a domain_decomposition that distributes the cells in the model described by recipe\n"
         "over the distributed and local hardware resources described by context.\n"
         "Optionally, provide a dictionary of partition hints for certain cell kinds, by default empty.",
-        "recipe"_a, "context"_a, "hints"_a=arb::partition_hint_map{});
+        "recipe"_a, "context"_a, "hints"_a=arb::partition_hint{});
 }
 
 } // namespace pyarb

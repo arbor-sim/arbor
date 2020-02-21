@@ -1,6 +1,7 @@
 #include <queue>
 #include <unordered_set>
 #include <vector>
+#include <iostream>
 
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
@@ -21,7 +22,7 @@ namespace arb {
 domain_decomposition partition_load_balance(
     const recipe& rec,
     const context& ctx,
-    partition_hint_map hint_map)
+    partition_hint hints)
 {
     const bool gpu_avail = ctx->gpu->has_gpu();
 
@@ -53,17 +54,24 @@ domain_decomposition partition_load_balance(
     unsigned domain_id = ctx->distributed->id();
     auto num_global_cells = rec.num_cells();
 
-    auto dom_size = [&](unsigned dom) -> cell_gid_type {
-        const cell_gid_type B = num_global_cells/num_domains;
-        const cell_gid_type R = num_global_cells - num_domains*B;
-        return B + (dom<R);
-    };
 
     // Global load balance
 
+    hints.verify_gid_ranges(rec.num_cells());
+
+    std::vector<cell_gid_type> size_per_domain;
+    for (auto dom: make_span(num_domains)) {
+        for (auto gid_range: hints.gid_range_hint_set) {
+            auto range_size = gid_range.gid_range.second - gid_range.gid_range.first;
+            const cell_gid_type B = range_size / num_domains;
+            const cell_gid_type R = range_size - num_domains * B;
+            size_per_domain.push_back(B + (dom < R));
+        }
+    }
+
     std::vector<cell_gid_type> gid_divisions;
-    auto gid_part = make_partition(
-        gid_divisions, transform_view(make_span(num_domains), dom_size));
+    auto partitions_per_domain = hints.gid_range_hint_set.size();
+    auto gid_part = util::make_partition(gid_divisions, size_per_domain);
 
     // Local load balance
 
@@ -75,38 +83,39 @@ domain_decomposition partition_load_balance(
 
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
-    for (auto gid: make_span(gid_part[domain_id])) {
-        if (!rec.gap_junctions_on(gid).empty()) {
-            // If cell hasn't been visited yet, must belong to new super_cell
-            // Perform BFS starting from that cell
-            if (!visited.count(gid)) {
-                visited.insert(gid);
-                std::vector<cell_gid_type> cg;
-                q.push(gid);
-                while (!q.empty()) {
-                    auto element = q.front();
-                    q.pop();
-                    cg.push_back(element);
-                    // Adjacency list
-                    auto conns = rec.gap_junctions_on(element);
-                    for (auto c: conns) {
-                        if (element != c.local.gid && element != c.peer.gid) {
-                            throw bad_cell_description(cell_kind::cable, element);
-                        }
-                        cell_member_type other = c.local.gid == element ? c.peer : c.local;
+    for (unsigned pid : make_span(partitions_per_domain)) {
+        for (auto gid: make_span(gid_part[domain_id + pid*num_domains])) {
+            if (!rec.gap_junctions_on(gid).empty()) {
+                // If cell hasn't been visited yet, must belong to new super_cell
+                // Perform BFS starting from that cell
+                if (!visited.count(gid)) {
+                    visited.insert(gid);
+                    std::vector<cell_gid_type> cg;
+                    q.push(gid);
+                    while (!q.empty()) {
+                        auto element = q.front();
+                        q.pop();
+                        cg.push_back(element);
+                        // Adjacency list
+                        auto conns = rec.gap_junctions_on(element);
+                        for (auto c: conns) {
+                            if (element != c.local.gid && element != c.peer.gid) {
+                                throw bad_cell_description(cell_kind::cable, element);
+                            }
+                            cell_member_type other = c.local.gid == element ? c.peer : c.local;
 
-                        if (!visited.count(other.gid)) {
-                            visited.insert(other.gid);
-                            q.push(other.gid);
+                            if (!visited.count(other.gid)) {
+                                visited.insert(other.gid);
+                                q.push(other.gid);
+                            }
                         }
                     }
+                    super_cells.push_back(cg);
                 }
-                super_cells.push_back(cg);
+            } else {
+                // If cell has no gap_junctions, put in separate group of independent cells
+                reg_cells.push_back(gid);
             }
-        }
-        else {
-            // If cell has no gap_junctions, put in separate group of independent cells
-            reg_cells.push_back(gid);
         }
     }
 
@@ -165,8 +174,8 @@ domain_decomposition partition_load_balance(
 
     std::vector<group_description> groups;
     for (auto k: kinds) {
-        partition_hint hint;
-        if (auto opt_hint = util::value_by_key(hint_map, k)) {
+        cell_group_hint hint;
+        if (auto opt_hint = util::value_by_key(hints.cell_group_hint_map, k)) {
             hint = opt_hint.value();
             if(!hint.cpu_group_size) {
                 throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}", k, hint.cpu_group_size));

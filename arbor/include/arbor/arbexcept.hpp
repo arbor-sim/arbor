@@ -116,4 +116,9 @@ struct range_check_failure: arbor_exception {
     double value;
 };
 
+// Partition hint sanity check
+struct gid_range_check_failure: arbor_exception {
+    explicit gid_range_check_failure(const std::string& whatstr);
+};
+
 } // namespace arb
