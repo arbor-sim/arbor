@@ -397,8 +397,8 @@ struct neon_double2 : implbase<neon_double2> {
         auto is_small = cmp_lt(x, broadcast(exp_minarg));
 
         bool a[2];
-        a[0] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
-        a[1] = isnan(vgetq_lane_f64(x, 1)) == 0 ? 0 : 1;
+        a[0] = std::isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
+        a[1] = std::isnan(vgetq_lane_f64(x, 1)) == 0 ? 0 : 1;
 
         auto is_nan = mask_copy_from(a);
 
@@ -445,8 +445,8 @@ struct neon_double2 : implbase<neon_double2> {
         auto is_small = cmp_lt(x, broadcast(expm1_minarg));
 
         bool a[2];
-        a[0] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
-        a[1] = isnan(vgetq_lane_f64(x, 1)) == 0 ? 0 : 1;
+        a[0] = std::isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
+        a[1] = std::isnan(vgetq_lane_f64(x, 1)) == 0 ? 0 : 1;
 
         auto is_nan = mask_copy_from(a);
 
@@ -515,8 +515,8 @@ struct neon_double2 : implbase<neon_double2> {
         auto is_domainerr = cmp_lt(x, broadcast(0));
 
         bool a[2];
-        a[0] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
-        a[1] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
+        a[0] = std::isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
+        a[1] = std::isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
 
         auto is_nan = mask_copy_from(a);
         is_domainerr = logical_or(is_nan, is_domainerr);
