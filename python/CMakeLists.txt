@@ -46,8 +46,8 @@ target_link_libraries(pyarb_obj PRIVATE arbor pybind11::module)
 # The Python library. MODULE will make a Python-exclusive model.
 add_library(pyarb MODULE $<TARGET_OBJECTS:pyarb_obj>)
 
-# The output name of the pyarb .so file is "arbor", to facilitate "import arbor"
-set_target_properties(pyarb PROPERTIES OUTPUT_NAME arbor)
+# The output name of the pyarb .so file is "_arbor"
+set_target_properties(pyarb PROPERTIES OUTPUT_NAME _arbor)
 # With this, the full name of the library will be something like:
 #   arbor.cpython-37m-x86_64-linux-gnu.so
 set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
@@ -65,10 +65,24 @@ if (ARB_WITH_MPI)
     endif()
 endif()
 
+# For unit tests on C++ side of Python wrappers
+add_subdirectory(test)
+
 # Determine the installation path, according to the Python version.
 find_package(PythonInterp REQUIRED)
 set(ARB_PYEXECDIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
 install(TARGETS pyarb LIBRARY DESTINATION ${ARB_PYEXECDIR})
 
-# for unit tests on C++ side of Python wrappers
-add_subdirectory(test)
+# Use pip/setuptools to install the Python module.
+# Copy the binary module, the Python files (currently just __init__.py),
+# and a setup.py file into python_mod_path in the build directory.
+# The setup.py uses setuptools to install the contents of python_mod_path.
+# Then call the setup.py file to make the installation.
+set(python_mod_path "${CMAKE_CURRENT_BINARY_DIR}/arbor")
+file(MAKE_DIRECTORY "${python_mod_path}")
+install(CODE "file(COPY \"${CMAKE_SOURCE_DIR}/python/setup.py\" DESTINATION \"${CMAKE_CURRENT_BINARY_DIR}\")")
+install(CODE "file(COPY \"${CMAKE_SOURCE_DIR}/python/__init__.py\" DESTINATION \"${python_mod_path}\")")
+install(CODE "file(COPY \"${CMAKE_SOURCE_DIR}/VERSION\" DESTINATION \"${python_mod_path}\")")
+#install(CODE "execute_process(COMMAND python setup.py install --user WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")")
+install(CODE "execute_process(COMMAND pip install . --user WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")")
+install(TARGETS pyarb LIBRARY DESTINATION "${python_mod_path}")

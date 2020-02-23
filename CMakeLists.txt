@@ -53,6 +53,9 @@ option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
 option(ARB_WITH_PYTHON "enable Python front end" OFF)
 
+set(ARB_PY_INSTALL "user" CACHE STRING "The method used to install Arbor: user=`pip install --user`; global=`pip install`; lib=install with Arbor libraries.")
+set_property(CACHE ARB_PY_INSTALL PROPERTY STRINGS user global lib)
+
 #----------------------------------------------------------
 # Global CMake configuration
 #----------------------------------------------------------

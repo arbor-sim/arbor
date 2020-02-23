@@ -27,7 +27,7 @@ void register_mpi(pybind11::module& m);
 #endif
 }
 
-PYBIND11_MODULE(arbor, m) {
+PYBIND11_MODULE(_arbor, m) {
     m.doc() = "arbor: multicompartment neural network models.";
     m.attr("__version__") = ARB_VERSION;
 
