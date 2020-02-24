@@ -365,7 +365,7 @@ CMake ``ARB_WITH_PYTHON`` option:
 
 .. code-block:: bash
 
-    cmake -ARB_WITH_PYTHON=ON
+    cmake -DARB_WITH_PYTHON=ON
 
 By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
@@ -395,7 +395,7 @@ On the target LINUX system, the Arbor package was installed in
 The Arbor Python wrapper has optional support for the mpi4py, though
 it is not required to use Arbor with Python and MPI.
 CMake will attempt to automatically detect ``mpi4py`` if configured
-with both ``-ARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
+with both ``-DARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
 If CMake fails to find ``mpi4py`` when it should, the easiest workaround is to
 add the path to the include directory for ``mpi4py`` to the ``CPATH`` environment
 variable before configuring and building Arbor:
@@ -411,7 +411,7 @@ variable before configuring and building Arbor:
     # set CPATH and run cmake
     export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
 
-    cmake -ARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
+    cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
 
 .. _install:
 
