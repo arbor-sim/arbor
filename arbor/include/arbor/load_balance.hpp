@@ -18,7 +18,7 @@ struct cell_group_hint {
 
 struct gid_range_hint {
     std::pair<cell_gid_type, cell_gid_type> gid_range;
-    unsigned complexity;
+    unsigned complexity = 0;
 };
 
 struct partition_hint {
@@ -34,6 +34,7 @@ struct partition_hint {
     void verify_gid_ranges(cell_gid_type num_cells) {
         std::vector<gid_range_hint> missing_ranges;
         cell_gid_type prev_range_end = 0;
+
         for (auto hint: gid_range_hint_set) {
             if (hint.gid_range.first < prev_range_end) {
                 throw gid_range_check_failure("overlapping ranges");
@@ -56,6 +57,6 @@ struct partition_hint {
 domain_decomposition partition_load_balance(
     const recipe& rec,
     const context& ctx,
-    partition_hint hint_map = {});
+    partition_hint hint_map = partition_hint());
 
 } // namespace arb
