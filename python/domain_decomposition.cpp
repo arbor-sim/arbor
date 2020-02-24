@@ -104,9 +104,11 @@ void register_domain_decomposition(pybind11::module& m) {
     // Partition load balancer
     // The Python recipe has to be shimmed for passing to the function that takes a C++ recipe.
     m.def("partition_load_balance",
-        [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, arb::partition_hint hint_map) {
+        [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, arb::cell_group_hint_map hint_map) {
             try {
-                return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context, std::move(hint_map));
+                arb::partition_hint hint;
+                hint.cell_group_map = std::move(hint_map);
+                return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context, std::move(hint));
             }
             catch (...) {
                 py_reset_and_throw();
@@ -116,7 +118,7 @@ void register_domain_decomposition(pybind11::module& m) {
         "Construct a domain_decomposition that distributes the cells in the model described by recipe\n"
         "over the distributed and local hardware resources described by context.\n"
         "Optionally, provide a dictionary of partition hints for certain cell kinds, by default empty.",
-        "recipe"_a, "context"_a, "hints"_a=arb::partition_hint{});
+        "recipe"_a, "context"_a, "hints"_a=arb::cell_group_hint_map{});
 }
 
 } // namespace pyarb

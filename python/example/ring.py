@@ -107,7 +107,7 @@ meters.checkpoint('recipe-create', context)
 decomp = arbor.partition_load_balance(recipe, context)
 print(f'{decomp}')
 
-hint = arbor.partition_hint()
+hint = arbor.cell_group_hint()
 hint.prefer_gpu = True
 hint.gpu_group_size = 1000
 print(f'{hint}')

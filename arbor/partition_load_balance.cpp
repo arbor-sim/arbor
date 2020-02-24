@@ -60,7 +60,7 @@ domain_decomposition partition_load_balance(
     hints.verify_gid_ranges(rec.num_cells());
 
     std::vector<cell_gid_type> size_per_domain;
-    for (auto gid_range: hints.gid_range_hint_set) {
+    for (auto gid_range: hints.gid_range_set) {
         for (auto dom: make_span(num_domains)) {
             auto range_size = gid_range.gid_range.second - gid_range.gid_range.first;
             const cell_gid_type B = range_size / num_domains;
@@ -70,7 +70,7 @@ domain_decomposition partition_load_balance(
     }
 
     std::vector<cell_gid_type> gid_divisions;
-    auto partitions_per_domain = hints.gid_range_hint_set.size();
+    auto partitions_per_domain = hints.gid_range_set.size();
     auto gid_part = util::make_partition(gid_divisions, size_per_domain);
 
     // Local load balance
@@ -175,7 +175,7 @@ domain_decomposition partition_load_balance(
     std::vector<group_description> groups;
     for (auto k: kinds) {
         cell_group_hint hint;
-        if (auto opt_hint = util::value_by_key(hints.cell_group_hint_map, k)) {
+        if (auto opt_hint = util::value_by_key(hints.cell_group_map, k)) {
             hint = opt_hint.value();
             if(!hint.cpu_group_size) {
                 throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}", k, hint.cpu_group_size));

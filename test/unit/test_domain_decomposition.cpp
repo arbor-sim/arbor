@@ -276,9 +276,9 @@ TEST(domain_decomposition, hints) {
     auto ctx = make_context();
 
     partition_hint hints;
-    hints.cell_group_hint_map[cell_kind::cable].cpu_group_size = 3;
-    hints.cell_group_hint_map[cell_kind::cable].prefer_gpu = false;
-    hints.cell_group_hint_map[cell_kind::spike_source].cpu_group_size = 4;
+    hints.cell_group_map[cell_kind::cable].cpu_group_size = 3;
+    hints.cell_group_map[cell_kind::cable].prefer_gpu = false;
+    hints.cell_group_map[cell_kind::spike_source].cpu_group_size = 4;
 
     domain_decomposition D = partition_load_balance(
         hetero_recipe(20),
@@ -328,8 +328,8 @@ TEST(domain_decomposition, compulsory_groups)
 
     // Test different group_hints
     partition_hint hints;
-    hints.cell_group_hint_map[cell_kind::cable].cpu_group_size = 3;
-    hints.cell_group_hint_map[cell_kind::cable].prefer_gpu = false;
+    hints.cell_group_map[cell_kind::cable].cpu_group_size = 3;
+    hints.cell_group_map[cell_kind::cable].prefer_gpu = false;
 
 //    hints.gid_range_hint_set = { {{100, 180}, 0},
 //                                 {{200, 220}, 1},
@@ -337,7 +337,7 @@ TEST(domain_decomposition, compulsory_groups)
 //                               };
 //
 //    hints.verify_gid_ranges(220);
-    for (auto hint: hints.gid_range_hint_set) {
+    for (auto hint: hints.gid_range_set) {
         std::cout << hint.gid_range.first << " " << hint.gid_range.second << std::endl;
     }
     const auto D1 = partition_load_balance(R, ctx, hints);
@@ -350,8 +350,8 @@ TEST(domain_decomposition, compulsory_groups)
         EXPECT_EQ(expected_groups1[i], D1.groups[i].gids);
     }
 
-    hints.cell_group_hint_map[cell_kind::cable].cpu_group_size = 20;
-    hints.cell_group_hint_map[cell_kind::cable].prefer_gpu = false;
+    hints.cell_group_map[cell_kind::cable].cpu_group_size = 20;
+    hints.cell_group_map[cell_kind::cable].prefer_gpu = false;
 
     const auto D2 = partition_load_balance(R, ctx, hints);
     EXPECT_EQ(1u, D2.groups.size());

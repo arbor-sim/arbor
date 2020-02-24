@@ -21,21 +21,24 @@ struct gid_range_hint {
     unsigned complexity = 0;
 };
 
-struct partition_hint {
-    struct custom_compare {
-        bool operator() (const gid_range_hint& lhs, const gid_range_hint& rhs) const {
-            return lhs.gid_range.first < rhs.gid_range.first;
-        }
-    };
+struct custom_compare {
+    bool operator() (const gid_range_hint& lhs, const gid_range_hint& rhs) const {
+        return lhs.gid_range.first < rhs.gid_range.first;
+    }
+};
 
-    std::unordered_map<cell_kind, cell_group_hint> cell_group_hint_map;
-    std::set<gid_range_hint, custom_compare> gid_range_hint_set;
+using cell_group_hint_map = std::unordered_map<cell_kind, cell_group_hint>;
+using gid_range_hint_set  = std::set<gid_range_hint, custom_compare>;
+
+struct partition_hint {
+    cell_group_hint_map cell_group_map;
+    gid_range_hint_set gid_range_set;
 
     void verify_gid_ranges(cell_gid_type num_cells) {
         std::vector<gid_range_hint> missing_ranges;
         cell_gid_type prev_range_end = 0;
 
-        for (auto hint: gid_range_hint_set) {
+        for (auto hint: gid_range_set) {
             if (hint.gid_range.first < prev_range_end) {
                 throw gid_range_check_failure("overlapping ranges");
             }
@@ -48,9 +51,9 @@ struct partition_hint {
             throw gid_range_check_failure("range outside total number of cells");
         }
         if (prev_range_end < num_cells) {
-            gid_range_hint_set.insert({{prev_range_end, num_cells}, 0});
+            gid_range_set.insert({{prev_range_end, num_cells}, 0});
         }
-        gid_range_hint_set.insert(missing_ranges.begin(), missing_ranges.end());
+        gid_range_set.insert(missing_ranges.begin(), missing_ranges.end());
     }
 };
 

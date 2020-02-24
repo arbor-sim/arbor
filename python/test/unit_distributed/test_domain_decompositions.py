@@ -327,7 +327,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             self.assertEqual(int(i/cells_per_rank), decomp0.gid_domain(i))
 
         # Test different group_hints
-        hint1 = arb.partition_hint()
+        hint1 = arb.cell_group_hint()
         hint1.prefer_gpu = False
         hint1.cpu_group_size = recipe.num_cells()
         hints1 = dict([(arb.cell_kind.cable, hint1)])
@@ -343,7 +343,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
         for i in range(recipe.num_cells()):
             self.assertEqual(int(i/cells_per_rank), decomp1.gid_domain(i))
 
-        hint2 = arb.partition_hint()
+        hint2 = arb.cell_group_hint()
         hint2.prefer_gpu = False
         hint2.cpu_group_size = int(cells_per_rank/2)
         hints2 = dict([(arb.cell_kind.cable, hint2)])
@@ -414,7 +414,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
 
         recipe = gj_symmetric(nranks)
 
-        hint1 = arb.partition_hint()
+        hint1 = arb.cell_group_hint()
         hint1.prefer_gpu = False
         hint1.cpu_group_size = 0
         hints1 = dict([(arb.cell_kind.cable, hint1)])
@@ -423,7 +423,7 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
             "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0"):
             decomp1 = arb.partition_load_balance(recipe, context, hints1)
 
-        hint2 = arb.partition_hint()
+        hint2 = arb.cell_group_hint()
         hint2.prefer_gpu = True
         hint2.gpu_group_size = 0
         hints2 = dict([(arb.cell_kind.cable, hint2)])

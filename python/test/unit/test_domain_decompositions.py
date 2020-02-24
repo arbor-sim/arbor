@@ -186,10 +186,10 @@ class Domain_Decompositions(unittest.TestCase):
         # The hints perfer the multicore backend, so the decomposition is expected
         # to never have cell groups on the GPU, regardless of whether a GPU is
         # available or not.
-        cable_hint = arb.partition_hint()
+        cable_hint = arb.cell_group_hint()
         cable_hint.prefer_gpu = False
         cable_hint.cpu_group_size = 3
-        spike_hint = arb.partition_hint()
+        spike_hint = arb.cell_group_hint()
         spike_hint.prefer_gpu = False
         spike_hint.cpu_group_size = 4
         hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
@@ -220,10 +220,10 @@ class Domain_Decompositions(unittest.TestCase):
         # The hints perfer the multicore backend, so the decomposition is expected
         # to never have cell groups on the GPU, regardless of whether a GPU is
         # available or not.
-        cable_hint = arb.partition_hint()
+        cable_hint = arb.cell_group_hint()
         cable_hint.prefer_gpu = False
         cable_hint.cpu_group_size = 0
-        spike_hint = arb.partition_hint()
+        spike_hint = arb.cell_group_hint()
         spike_hint.prefer_gpu = False
         spike_hint.gpu_group_size = 1
         hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
@@ -232,10 +232,10 @@ class Domain_Decompositions(unittest.TestCase):
             "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0"):
             decomp = arb.partition_load_balance(recipe, context, hints)
 
-        cable_hint = arb.partition_hint()
+        cable_hint = arb.cell_group_hint()
         cable_hint.prefer_gpu = False
         cable_hint.cpu_group_size = 1
-        spike_hint = arb.partition_hint()
+        spike_hint = arb.cell_group_hint()
         spike_hint.prefer_gpu = True
         spike_hint.gpu_group_size = 0
         hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])

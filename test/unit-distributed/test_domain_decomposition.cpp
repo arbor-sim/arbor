@@ -329,8 +329,8 @@ TEST(domain_decomposition, symmetric_groups)
 
     // Test different group_hints
     partition_hint hints;
-    hints.cell_group_hint_map[cell_kind::cable].cpu_group_size = R.num_cells();
-    hints.cell_group_hint_map[cell_kind::cable].prefer_gpu = false;
+    hints.cell_group_map[cell_kind::cable].cpu_group_size = R.num_cells();
+    hints.cell_group_map[cell_kind::cable].prefer_gpu = false;
 
     const auto D1 = partition_load_balance(R, ctx, hints);
     EXPECT_EQ(1u, D1.groups.size());
@@ -345,8 +345,8 @@ TEST(domain_decomposition, symmetric_groups)
         EXPECT_EQ(i/cells_per_rank, (unsigned)D1.gid_domain(i));
     }
 
-    hints.cell_group_hint_map[cell_kind::cable].cpu_group_size = cells_per_rank/2;
-    hints.cell_group_hint_map[cell_kind::cable].prefer_gpu = false;
+    hints.cell_group_map[cell_kind::cable].cpu_group_size = cells_per_rank/2;
+    hints.cell_group_map[cell_kind::cable].prefer_gpu = false;
 
     const auto D2 = partition_load_balance(R, ctx, hints);
     EXPECT_EQ(2u, D2.groups.size());
