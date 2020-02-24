@@ -626,7 +626,7 @@ struct neon_double2 : implbase<neon_double2> {
     }
 };
 
-}  // namespace detail
+};  // namespace detail
 
 namespace simd_abi {
 template <typename T, unsigned N>
