@@ -331,15 +331,6 @@ TEST(domain_decomposition, compulsory_groups)
     hints.cell_group_map[cell_kind::cable].cpu_group_size = 3;
     hints.cell_group_map[cell_kind::cable].prefer_gpu = false;
 
-//    hints.gid_range_hint_set = { {{100, 180}, 0},
-//                                 {{200, 220}, 1},
-//                                 {{50, 100},   2}
-//                               };
-//
-//    hints.verify_gid_ranges(220);
-    for (auto hint: hints.gid_range_set) {
-        std::cout << hint.gid_range.first << " " << hint.gid_range.second << std::endl;
-    }
     const auto D1 = partition_load_balance(R, ctx, hints);
     EXPECT_EQ(5u, D1.groups.size());
 

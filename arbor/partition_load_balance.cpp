@@ -62,7 +62,7 @@ domain_decomposition partition_load_balance(
     std::vector<cell_gid_type> size_per_domain;
     for (auto gid_range: hints.gid_range_set) {
         for (auto dom: make_span(num_domains)) {
-            auto range_size = gid_range.gid_range.second - gid_range.gid_range.first;
+            auto range_size = gid_range.second - gid_range.first;
             const cell_gid_type B = range_size / num_domains;
             const cell_gid_type R = range_size - num_domains * B;
             size_per_domain.push_back(B + (dom < R));

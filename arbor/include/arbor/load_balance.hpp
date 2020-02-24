@@ -16,14 +16,11 @@ struct cell_group_hint {
     bool prefer_gpu = true;
 };
 
-struct gid_range_hint {
-    std::pair<cell_gid_type, cell_gid_type> gid_range;
-    unsigned complexity = 0;
-};
+using gid_range_hint =  std::pair<cell_gid_type, cell_gid_type>;
 
 struct custom_compare {
     bool operator() (const gid_range_hint& lhs, const gid_range_hint& rhs) const {
-        return lhs.gid_range.first < rhs.gid_range.first;
+        return lhs.first < rhs.first;
     }
 };
 
@@ -39,19 +36,19 @@ struct partition_hint {
         cell_gid_type prev_range_end = 0;
 
         for (auto hint: gid_range_set) {
-            if (hint.gid_range.first < prev_range_end) {
+            if (hint.first < prev_range_end) {
                 throw gid_range_check_failure("overlapping ranges");
             }
-            if (hint.gid_range.second > prev_range_end) {
-                missing_ranges.push_back({{prev_range_end, hint.gid_range.first}, 0});
+            if (hint.second > prev_range_end) {
+                missing_ranges.push_back({prev_range_end, hint.first});
             }
-            prev_range_end = hint.gid_range.second;
+            prev_range_end = hint.second;
         }
         if (prev_range_end > num_cells) {
             throw gid_range_check_failure("range outside total number of cells");
         }
         if (prev_range_end < num_cells) {
-            gid_range_set.insert({{prev_range_end, num_cells}, 0});
+            gid_range_set.insert({prev_range_end, num_cells});
         }
         gid_range_set.insert(missing_ranges.begin(), missing_ranges.end());
     }
