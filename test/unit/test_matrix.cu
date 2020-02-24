@@ -153,7 +153,7 @@ TEST(matrix, interleave)
         ivec starts(num_mtx, 0);
         std::partial_sum(begin(sizes), end(sizes)-1, begin(starts)+1);
 
-        tvec values(algorithms::sum(sizes));
+        tvec values(util::sum(sizes));
         std::iota(values.begin(), values.end(), 0);
 
         EXPECT_TRUE((test_interleave<T, I, 1, 1>(sizes, starts, values, padded_size)));
@@ -199,7 +199,7 @@ TEST(matrix, interleave)
         ivec starts(num_mtx, 0);
         std::partial_sum(begin(sizes), end(sizes)-1, begin(starts)+1);
 
-        tvec values(algorithms::sum(sizes));
+        tvec values(util::sum(sizes));
         std::iota(values.begin(), values.end(), 0);
 
         // test in "full" 1024 thread configuration with 32 threads per matrix

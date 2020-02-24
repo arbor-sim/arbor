@@ -9,8 +9,8 @@ tree = arbor.load_swc('../../test/unit/swc/example.swc')
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
-        'axon': '(tag 2)',  # axon has tag 1 in swc files.
-        'dend': '(tag 3)',  # dendrites have tag 1 in swc files.
+        'axon': '(tag 2)',  # axon has tag 2 in swc files.
+        'dend': '(tag 3)',  # dendrites have tag 3 in swc files.
         'root': '(root)',   # the start of the soma in this morphology is at the root of the cell.
         'stim_site': '(location 1 0.5)'} # site for the stimulus, in the middle of branch 1.
 labels = arbor.label_dict(defs)
@@ -42,7 +42,7 @@ cell.compartments_on_samples()
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe('voltage', where=loc(0,0),  frequency=50000)
+m.probe('voltage', where='root',  frequency=50000)
 m.probe('voltage', where=loc(2,1),  frequency=50000)
 m.probe('voltage', where=loc(4,1),  frequency=50000)
 m.probe('voltage', where=loc(30,1), frequency=50000)
