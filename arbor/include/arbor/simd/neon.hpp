@@ -475,6 +475,7 @@ struct neon_double2 : implbase<neon_double2> {
         return ifelse(is_large, broadcast(HUGE_VAL),
                       ifelse(is_small, broadcast(-1),
                              ifelse(is_not_nan, ifelse(nzero, expgm1, scaled), broadcast(NAN))));
+    }
 
     // Natural logarithm:
     //
