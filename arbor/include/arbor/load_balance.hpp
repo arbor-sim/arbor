@@ -36,7 +36,7 @@ struct partition_hint {
             if (hint.first < prev_range_end) {
                 throw gid_range_check_failure("overlapping ranges");
             }
-            if (hint.second > prev_range_end) {
+            if (hint.first > prev_range_end) {
                 missing_ranges.emplace_back(prev_range_end, hint.first);
             }
             prev_range_end = hint.second;
