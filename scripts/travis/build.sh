@@ -48,7 +48,8 @@ fi
 if [[ "${WITH_PYTHON}" == "true" ]]; then
     echo "python     : on"
     ARB_WITH_PYTHON="ON"
-    export PYTHONPATH=$PYTHONPATH:${base_path}/${build_path}/lib
+    # The build process creates the arbor module in build_path/python/arbor
+    export PYTHONPATH=$PYTHONPATH:${base_path}/${build_path}/python
     python_path=$base_path/python
     echo "python src : ${python_path}"
     echo "PYTHONPATH : ${PYTHONPATH}"

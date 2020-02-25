@@ -16,8 +16,7 @@ except ModuleNotFoundError:
     from test import options
 
 # check Arbor's configuration of mpi
-config = arb.config()
-mpi_enabled = config["mpi"]
+mpi_enabled = arb.__config__["mpi"]
 
 """
 all tests for distributed arb.context using arbor mpi wrappers

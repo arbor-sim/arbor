@@ -117,10 +117,11 @@ More information on building with MPI is in the `HPC cluster section <cluster_>`
 Python
 ~~~~~~
 
-Arbor has a Python frontend, for which Python 3.6 is required.
+Arbor has a Python frontend, for which a minimum of Python 3.6 is required.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
-Python package is recommended.
+Python package is recommended. See :ref:`pythonfrontend` for more information.
+
 
 Documentation
 ~~~~~~~~~~~~~~
@@ -354,6 +355,8 @@ example:
     Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
 
 
+.. _pythonfrontend:
+
 Python Frontend
 ----------------
 
@@ -362,13 +365,46 @@ CMake ``ARB_WITH_PYTHON`` option:
 
 .. code-block:: bash
 
-    cmake -ARB_WITH_PYTHON=ON
+    cmake -DARB_WITH_PYTHON=ON
 
-By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a python module called :py:mod:`arbor` is built.
+By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
-The Arbor Python wrapper has optional support for the ``mpi4py`` Python module
-for MPI. CMake will attempt to automatically detect ``mpi4py`` if configured
-with both ``-ARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
+A specific version of Python can be set when configuring with CMake using the
+``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.7 installed on a Linux
+system with the executable in ``/usr/bin/python3.7``:
+
+.. code-block:: bash
+
+    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.7
+
+By default the Python module will be installed in the standard ``CMAKE_INSTALL_PREFIX``
+location. To install the module in a different location, for example as a
+user module or in a virtual environment, set ``ARB_PYTHON_PREFIX``.
+For example, the CMake configuration for targetting Python 3.8 and install as a
+user site package might look like the following:
+
+.. code-block:: bash
+
+    cmake .. -DARB_WITH_PYTHON=ON                   \
+             -DARB_PYTHON_PREFIX=${HOME}/.local     \
+             -DPYTHON_EXECUTABLE=/user/bin/python3.8
+
+On the target LINUX system, the Arbor package was installed in
+``/home/$USER/.local/lib/python3.8/site-packages``.
+
+.. Note::
+    By default CMake sets ``CMAKE_INSTALL_PREFIX`` to ``/usr/local`` on Linux and OS X.
+    The compiled libraries are installed in ``/usr/local/lib``, headers are installed in
+    ``/usr/local/include``, and the Python module will be installed in a path like
+    ``/usr/local/lib/python3.7/site-packages``.
+    Because ``/usr/local`` is a system path, the installation phase needs to be run as root,
+    i.e. ``sudo make install``, even if ``ARB_PYTHON_PREFIX`` is set to a user path
+    that does not require root to install.
+
+The Arbor Python wrapper has optional support for the mpi4py, though
+it is not required to use Arbor with Python and MPI.
+CMake will attempt to automatically detect ``mpi4py`` if configured
+with both ``-DARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
 If CMake fails to find ``mpi4py`` when it should, the easiest workaround is to
 add the path to the include directory for ``mpi4py`` to the ``CPATH`` environment
 variable before configuring and building Arbor:
@@ -384,7 +420,7 @@ variable before configuring and building Arbor:
     # set CPATH and run cmake
     export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
 
-    cmake -ARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
+    cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
 
 .. _install:
 

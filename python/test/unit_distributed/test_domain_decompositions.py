@@ -16,9 +16,8 @@ except ModuleNotFoundError:
     from test import options
 
 # check Arbor's configuration of mpi and gpu
-config = arb.config()
-gpu_enabled = config["gpu"]
-mpi_enabled = config["mpi"]
+mpi_enabled = arb.__config__["mpi"]
+gpu_enabled = arb.__config__["gpu"]
 
 """
 all tests for distributed arb.domain_decomposition
