@@ -53,6 +53,13 @@ option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
 option(ARB_WITH_PYTHON "enable Python front end" OFF)
 
+# Path in which to install the Python module.
+# For Python 3.8, the module would ibe installed in
+#       ${ARB_PYTHON_PREFIX}/python3.8/site-packages
+# To install Arbor eqivalently to `pip install --user` on a linux system:
+#       -DARB_PYTHON_PREFIX="${HOME}/.local/lib""
+set(ARB_PYTHON_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE PATH "path for installing Python module for Arbor.")
+
 #----------------------------------------------------------
 # Global CMake configuration
 #----------------------------------------------------------

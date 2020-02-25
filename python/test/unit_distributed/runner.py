@@ -6,9 +6,8 @@ import unittest
 import arbor as arb
 
 # check Arbor's configuration of mpi
-config = arb.config()
-mpi_enabled = config["mpi"]
-mpi4py_enabled = config["mpi4py"]
+mpi_enabled    = arb.__config__["mpi"]
+mpi4py_enabled = arb.__config__["mpi4py"]
 
 if (mpi_enabled and mpi4py_enabled):
     import mpi4py.MPI as mpi

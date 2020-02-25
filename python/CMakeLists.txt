@@ -46,13 +46,13 @@ target_link_libraries(pyarb_obj PRIVATE arbor pybind11::module)
 # The Python library. MODULE will make a Python-exclusive model.
 add_library(pyarb MODULE $<TARGET_OBJECTS:pyarb_obj>)
 
-# The output name of the pyarb .so file is "arbor", to facilitate "import arbor"
-set_target_properties(pyarb PROPERTIES OUTPUT_NAME arbor)
+# The output name of the pyarb .so file is "_arbor"
+set_target_properties(pyarb PROPERTIES OUTPUT_NAME _arbor)
 # With this, the full name of the library will be something like:
-#   arbor.cpython-37m-x86_64-linux-gnu.so
+#   arbor.cpython-36m-x86_64-linux-gnu.so
 set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-# this dependency has to be spelt out again, despite being added to
+# This dependency has to be spelt out again, despite being added to
 # pyarb_obj because CMake.
 target_link_libraries(pyarb PRIVATE arbor pybind11::module)
 
@@ -65,10 +65,21 @@ if (ARB_WITH_MPI)
     endif()
 endif()
 
-# Determine the installation path, according to the Python version.
-find_package(PythonInterp REQUIRED)
-set(ARB_PYEXECDIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
-install(TARGETS pyarb LIBRARY DESTINATION ${ARB_PYEXECDIR})
-
-# for unit tests on C++ side of Python wrappers
+# For unit tests on C++ side of Python wrappers
 add_subdirectory(test)
+
+# Create the Python module in the build directory.
+# The module contains the dynamic library, __init__.py and VERSION information.
+set(python_mod_path "${CMAKE_CURRENT_BINARY_DIR}/arbor")
+set_target_properties(pyarb PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${python_mod_path}")
+file(COPY "${CMAKE_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
+file(COPY "${CMAKE_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
+
+# Determine the installation path, according to the Python version.
+# The installation for Python 3.8 would be:
+#  ${ARB_PYTHON_PREFIX}/python3.8/site-packages
+# By default ARB_PYTHON_PREFIX is set to CMAKE_INSTALL_PREFIX, and can be optionally
+# used to install the Python module as a user module, or in a virtualenv.
+find_package(PythonInterp REQUIRED)
+set(arb_pyexecdir "${ARB_PYTHON_PREFIX}/lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
+install(DIRECTORY ${python_mod_path} DESTINATION ${arb_pyexecdir})
