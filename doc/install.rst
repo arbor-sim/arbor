@@ -386,11 +386,20 @@ user site package might look like the following:
 .. code-block:: bash
 
     cmake .. -DARB_WITH_PYTHON=ON                   \
-             -DARB_PYTHON_PREFIX=${HOME}/.local/lib \
+             -DARB_PYTHON_PREFIX=${HOME}/.local     \
              -DPYTHON_EXECUTABLE=/user/bin/python3.8
 
 On the target LINUX system, the Arbor package was installed in
 ``/home/$USER/.local/lib/python3.8/site-packages``.
+
+.. Note::
+    By default CMake sets ``CMAKE_INSTALL_PREFIX`` to ``/usr/local`` on Linux and OS X.
+    The compiled libraries are installed in ``/usr/local/lib``, headers are installed in
+    ``/usr/local/include``, and the Python module will be installed in a path like
+    ``/usr/local/lib/python3.7/site-packages``.
+    Because ``/usr/local`` is a system path, the installation phase needs to be run as root,
+    i.e. ``sudo make install``, even if ``ARB_PYTHON_PREFIX`` is set to a user path
+    that does not require root to install.
 
 The Arbor Python wrapper has optional support for the mpi4py, though
 it is not required to use Arbor with Python and MPI.

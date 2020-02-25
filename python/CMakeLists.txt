@@ -81,5 +81,5 @@ file(COPY "${CMAKE_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 # By default ARB_PYTHON_PREFIX is set to CMAKE_INSTALL_PREFIX, and can be optionally
 # used to install the Python module as a user module, or in a virtualenv.
 find_package(PythonInterp REQUIRED)
-set(arb_pyexecdir "${ARB_PYTHON_PREFIX}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
+set(arb_pyexecdir "${ARB_PYTHON_PREFIX}/lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
 install(DIRECTORY ${python_mod_path} DESTINATION ${arb_pyexecdir})
