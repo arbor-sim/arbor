@@ -1,7 +1,6 @@
 #pragma once
 
 #include <set>
-#include <iostream>
 
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -38,7 +37,7 @@ struct partition_hint {
 
         for (auto hint: gid_range_set) {
             if (hint.first > hint.second) {
-                throw gid_range_check_failure("incorrect range: start greater than end");
+                throw gid_range_check_failure("incorrect range description: start greater than end");
             }
             if (hint.first < prev_range_end) {
                 throw gid_range_check_failure("overlapping ranges");
@@ -48,12 +47,14 @@ struct partition_hint {
             }
             prev_range_end = hint.second;
         }
+
         if (prev_range_end > num_cells) {
             throw gid_range_check_failure("range outside total number of cells");
         }
         if (prev_range_end < num_cells) {
             gid_range_set.insert({prev_range_end, num_cells});
         }
+
         gid_range_set.insert(missing_ranges.begin(), missing_ranges.end());
     }
 };

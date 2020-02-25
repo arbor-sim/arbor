@@ -102,7 +102,7 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
 {}
 
 gid_range_check_failure::gid_range_check_failure(const std::string& whatstr):
-    arbor_exception(pprintf("gid range hint check failure: {}", whatstr))
+    arbor_exception(pprintf("gid_range check failure: {}", whatstr))
 {}
 
 } // namespace arb

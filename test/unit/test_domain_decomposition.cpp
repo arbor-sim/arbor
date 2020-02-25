@@ -276,10 +276,10 @@ TEST(domain_decomposition, hints) {
     auto ctx = make_context();
 
     std::vector<std::vector<cell_gid_type>> expected_c1d_groups =
-            {{0, 2, 4}, {6, 8, 10}, {12, 14, 16}, {18}};
+        {{0, 2, 4}, {6, 8, 10}, {12, 14, 16}, {18}};
 
     std::vector<std::vector<cell_gid_type>> expected_ss_groups =
-            {{1, 3, 5, 7}, {9, 11, 13, 15}, {17, 19}};
+        {{1, 3, 5, 7}, {9, 11, 13, 15}, {17, 19}};
 
     auto partition = [&](partition_hint hints) {
         domain_decomposition D = partition_load_balance(hetero_recipe(20), ctx, hints);

@@ -1,7 +1,6 @@
 #include <queue>
 #include <unordered_set>
 #include <vector>
-#include <iostream>
 
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
@@ -69,8 +68,8 @@ domain_decomposition partition_load_balance(
         }
     }
 
-    std::vector<cell_gid_type> gid_divisions;
     auto partitions_per_domain = hints.gid_range_set.size();
+    std::vector<cell_gid_type> gid_divisions;
     auto gid_part = util::make_partition(gid_divisions, size_per_domain);
 
     // Local load balance
