@@ -589,7 +589,7 @@ typedef ::testing::Types<
     simd<int, 8, simd_abi::avx512>,
     simd<double, 8, simd_abi::avx512>,
 #endif
-#if defined(__ARM_NEON__) || defined(__aarch64__)
+#if defined(__ARM_NEON)
     simd<int, 2, simd_abi::neon>,
     simd<double, 2, simd_abi::neon>,
 #endif
@@ -875,7 +875,7 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd<double, 8, simd_abi::avx512>,
 #endif
-#if defined(__ARM_NEON__) || defined(__aarch64__)
+#if defined(__ARM_NEON)
     simd<double, 2, simd_abi::neon>,
 #endif
 
@@ -1202,7 +1202,7 @@ typedef ::testing::Types<
     simd_and_index<simd<int, 8, simd_abi::avx512>,
                    simd<int, 8, simd_abi::avx512>>,
 #endif
-#if defined(__ARM_NEON__) || defined(__aarch64__)
+#if defined(__ARM_NEON)
     simd_and_index<simd<double, 2, simd_abi::neon>,
                    simd<int, 2, simd_abi::neon>>,
 
@@ -1288,7 +1288,7 @@ typedef ::testing::Types<
     simd_pair<simd<double, 8, simd_abi::avx512>,
               simd<int, 8, simd_abi::avx512>>,
 #endif
-#if defined(__ARM_NEON__) || defined(__aarch64__)
+#if defined(__ARM_NEON)
     simd_pair<simd<double, 2, simd_abi::neon>,
               simd<int, 2, simd_abi::neon>>,
 #endif
