@@ -58,9 +58,10 @@ MAKE_TRAITS(unsigned long,      MPI_UNSIGNED_LONG)
 MAKE_TRAITS(long long,          MPI_LONG_LONG)
 MAKE_TRAITS(unsigned long long, MPI_UNSIGNED_LONG_LONG)
 
-static_assert(std::is_same<std::size_t, unsigned long>::value ||
+static_assert(std::is_same<std::size_t, unsigned>::value ||
+              std::is_same<std::size_t, unsigned long>::value ||
               std::is_same<std::size_t, unsigned long long>::value,
-              "size_t is not the same as unsigned long or unsigned long long");
+              "size_t is not the same as any MPI unsigned type");
 
 // Gather individual values of type T from each rank into a std::vector on
 // the root rank.
