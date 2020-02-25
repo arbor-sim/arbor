@@ -2,7 +2,7 @@
 
 // NEON SIMD intrinsics implementation.
 
-#if defined(__ARM_NEON__) || defined(__aarch64__)
+#if defined(__ARM_NEON)
 #include <arm_neon.h>
 #include <cmath>
 #include <cstdint>
@@ -647,4 +647,4 @@ struct neon<int, 2> {
 }  // namespace simd
 }  // namespace arb
 
-#endif  // def __ARM_NEON__
+#endif  // def __ARM_NEON
