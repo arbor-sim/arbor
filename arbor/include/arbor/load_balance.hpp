@@ -18,14 +18,8 @@ struct cell_group_hint {
 
 using gid_range_hint =  std::pair<cell_gid_type, cell_gid_type>;
 
-struct custom_compare {
-    bool operator() (const gid_range_hint& lhs, const gid_range_hint& rhs) const {
-        return lhs.first < rhs.first;
-    }
-};
-
 using cell_group_hint_map = std::unordered_map<cell_kind, cell_group_hint>;
-using gid_range_hint_set  = std::set<gid_range_hint, custom_compare>;
+using gid_range_hint_set  = std::set<gid_range_hint>;
 
 struct partition_hint {
     cell_group_hint_map cell_group_map;
@@ -43,7 +37,7 @@ struct partition_hint {
                 throw gid_range_check_failure("overlapping ranges");
             }
             if (hint.second > prev_range_end) {
-                missing_ranges.push_back({prev_range_end, hint.first});
+                missing_ranges.emplace_back(prev_range_end, hint.first);
             }
             prev_range_end = hint.second;
         }
@@ -52,7 +46,7 @@ struct partition_hint {
             throw gid_range_check_failure("range outside total number of cells");
         }
         if (prev_range_end < num_cells) {
-            gid_range_set.insert({prev_range_end, num_cells});
+            missing_ranges.emplace_back(prev_range_end, num_cells);
         }
 
         gid_range_set.insert(missing_ranges.begin(), missing_ranges.end());
