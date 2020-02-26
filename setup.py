@@ -19,13 +19,10 @@ def check_cmake():
     except OSError:
         return False
 
-def check_cuda():
-    try:
-        out = subprocess.check_output(['nvcc', '--version'])
-        return True
-    except OSError:
-        return False
-
+# Extend the command line options available to the install phase.
+# These arguments must come after `install` on the command line, e.g.:
+#    python3 setup.py install --mpi --arch=skylake
+#    pip3 install --install-option '--mpi' --install-option '--arch=skylake' .
 class install_command(install):
     user_options = install.user_options + [
         ('mpi',   None, 'enable mpi support (requires MPI library)'),
@@ -45,12 +42,12 @@ class install_command(install):
         install.finalize_options(self)
 
     def run(self):
+        # The options are stored in a dictionary cl_opt, with the following keys:
+        #   'mpi'  : build with MPI support (boolean).
+        #   'gpu'  : build with CUDA support (boolean).
+        #   'vec'  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
+        #   'arch' : target CPU micro-architecture (string).
         global cl_opt
-        # Global variables set by install flags/command line arguments.
-        #   'mpi'  : build with MPI support.
-        #   'gpu'  : build with CUDA support.
-        #   'vec'  : generate SIMD vectorized kernels for CPU micro-architecture.
-        #   'arch' : target CPU micro-architecture.
         cl_opt = {
             'mpi' : self.mpi is not None,
             'gpu' : self.gpu is not None,
@@ -67,9 +64,6 @@ class cmake_build(build_ext):
     def run(self):
         if not check_cmake():
             raise RuntimeError('CMake is not available. CMake 3.12 is required.')
-
-        if cl_opt['gpu'] and not check_cuda():
-            raise RuntimeError('NVCC is not available. Can\'t provide GPU support.')
 
         # The path where CMake will be configured and Arbor will be built.
         build_directory = os.path.abspath(self.build_temp)
