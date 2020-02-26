@@ -4,11 +4,60 @@ import setuptools
 import pathlib
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
+from setuptools.command.install import install
 import subprocess
 
+# VERSION is in the same path as setup.py
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
     version_ = version_file.read().strip()
+
+def check_cmake():
+    try:
+        out = subprocess.check_output(['cmake', '--version'])
+        return True
+    except OSError:
+        return False
+
+def check_cuda():
+    try:
+        out = subprocess.check_output(['nvcc', '--version'])
+        return True
+    except OSError:
+        return False
+
+class install_command(install):
+    user_options = install.user_options + [
+        ('mpi',   None, 'enable mpi support (requires MPI library)'),
+        ('gpu',   None, 'enable nvidia cuda support (requires cudaruntime and nvcc)'),
+        ('vec',   None, 'enable vectorization'),
+        ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a'),
+    ]
+
+    def initialize_options(self):
+        install.initialize_options(self)
+        self.mpi  = None
+        self.gpu  = None
+        self.arch = None
+        self.vec  = None
+
+    def finalize_options(self):
+        install.finalize_options(self)
+
+    def run(self):
+        global cl_opt
+        # Global variables set by install flags/command line arguments.
+        #   'mpi'  : build with MPI support.
+        #   'gpu'  : build with CUDA support.
+        #   'vec'  : generate SIMD vectorized kernels for CPU micro-architecture.
+        #   'arch' : target CPU micro-architecture.
+        cl_opt = {
+            'mpi' : self.mpi is not None,
+            'gpu' : self.gpu is not None,
+            'vec' : self.vec is not None,
+            'arch': "native" if self.arch is None else self.arch
+        }
+        install.run(self)
 
 class cmake_extension(Extension):
     def __init__(self, name):
@@ -16,19 +65,34 @@ class cmake_extension(Extension):
 
 class cmake_build(build_ext):
     def run(self):
-        try:
-            out = subprocess.check_output(['cmake', '--version'])
-        except OSError:
-            raise RuntimeError(
-                "CMake must be installed to build the following extensions: " +
-                ", ".join(e.name for e in self.extensions))
+        if not check_cmake():
+            raise RuntimeError('CMake is not available. CMake 3.12 is required.')
 
+        if cl_opt['gpu'] and not check_cuda():
+            raise RuntimeError('NVCC is not available. Can\'t provide GPU support.')
+
+        # The path where CMake will be configured and Arbor will be built.
         build_directory = os.path.abspath(self.build_temp)
+        # The path where the package will be copied after building.
+        lib_directory = os.path.abspath(self.build_lib)
+        # The path where the Python package will be compiled.
+        source_path = build_directory + '/python/arbor'
+        # Where to copy the package after it is built, so that whatever the next phase is
+        # can copy it into the target 'prefix' path.
+        dest_path = lib_directory + '/arbor'
+
+        #print('-'*5, 'command line options:\n  mpi {}\n  gpu {}\n  vectorize {}\n  arch {}'.format(opt_mpi, opt_gpu, opt_vec, opt_arch))
+        print('-'*5, 'command line options: {}'.format(cl_opt))
 
         cmake_args = [
             '-DARB_WITH_PYTHON=on',
-            '-DPYTHON_EXECUTABLE=' + sys.executable
+            '-DPYTHON_EXECUTABLE=' + sys.executable,
+            '-DARB_WITH_MPI={}'.format('on' if cl_opt['mpi'] else 'off'),
+            '-DARB_WITH_GPU={}'.format('on' if cl_opt['gpu'] else 'off'),
+            '-DARB_VECTORIZE={}'.format('on' if cl_opt['vec'] else 'off'),
+            '-DARB_ARCH={}'.format(cl_opt['arch']),
         ]
+        print('-'*5, 'cmake arguments: {}'.format(cmake_args))
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
@@ -47,51 +111,42 @@ class cmake_build(build_ext):
 
         # CMakeLists.txt is in the same directory as this setup.py file
         cmake_list_dir = os.path.abspath(os.path.dirname(__file__))
-        print('-'*10, 'Running CMake prepare', '-'*40)
+        print('-'*20, 'Configure CMake')
         subprocess.check_call(['cmake', cmake_list_dir] + cmake_args,
                               cwd=self.build_temp, env=env)
 
-        print('-'*10, 'Building extensions', '-'*40)
+        print('-'*20, 'Build')
         cmake_cmd = ['cmake', '--build', '.'] + self.build_args
-        print('CMake command: ', cmake_cmd)
         subprocess.check_call(cmake_cmd,
                               cwd=self.build_temp)
 
-        # Move from build temp to final position
-        for ext in self.extensions:
-            self.move_output(ext)
-
-    def move_output(self, ext):
-        build_temp = pathlib.Path(self.build_temp).resolve()
-        dest_path = pathlib.Path(self.get_ext_fullpath(ext.name)).resolve()
-        source_path = build_temp / self.get_ext_filename(ext.name)
-        print('build_temp: ', build_temp)
-        print('dest_path: ', dest_path)
-        print('source_path: ', source_path)
-        dest_directory = dest_path.parents[0]
-        dest_directory.mkdir(parents=True, exist_ok=True)
-        self.copy_file(source_path, dest_path)
+        # Move from build path to some other place from whence it will later be installed.
+        # ... or something like that
+        # ... setuptools is an enigma monkey patched on a mystery
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path, exist_ok=True)
+        self.copy_tree(source_path, dest_path)
 
 setuptools.setup(
     name='arbor',
-    #packages=['arbor'],
     version=version_,
-    #package_data={
-        #'arbor': ['VERSION', '_arbor.*.so'],
-    #},
     python_requires='>=3.6',
+
     install_requires=[],
     setup_requires=[],
     zip_safe=False,
     ext_modules=[cmake_extension('arbor')],
-    cmdclass=dict(build_ext=cmake_build),
+    cmdclass={
+        'build_ext': cmake_build,
+        'install':   install_command,
+    },
 
-    author='CSCS and FSJ',
+    author='The lovely Arbor devs.',
     url='https://github.com/arbor-sim/arbor',
     description='High performance simulation of networks of multicompartment neurons.',
     long_description='',
     classifiers=[
-        'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release.
+        'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release of v0.3
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Build Tools',
         'License :: OSI Approved :: BSD License'
