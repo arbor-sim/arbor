@@ -29,10 +29,10 @@ with very few tools.
     =========== ============================================
     Git         To check out the code, minimum version 2.0.
     CMake       To set up the build, minimum version 3.9
-    compiler    A C++14 compiler. See `compilers <compilers_>`_.
+    compiler    A C++14 compiler. See `compilers <install-compilers_>`_.
     =========== ============================================
 
-.. _compilers:
+.. _install-compilers:
 
 Compilers
 ~~~~~~~~~
@@ -120,7 +120,7 @@ Python
 Arbor has a Python frontend, for which a minimum of Python 3.6 is required.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
-Python package is recommended. See :ref:`pythonfrontend` for more information.
+Python package is recommended. See :ref:`install-python` for more information.
 
 
 Documentation
@@ -129,7 +129,7 @@ Documentation
 To build a local copy of the html documentation that you are reading now, you will need to
 install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
-.. _downloading:
+.. _install-downloading:
 
 Getting the Code
 ================
@@ -217,13 +217,13 @@ CMake parameters and flags, follow links to the more detailed descriptions below
         cmake -DARB_WITH_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=debug
 
 .. topic:: `Release <buildtarget_>`_ mode (compiler optimizations enabled) with the default
-           compiler, optimized for the local `system architecture <architecture_>`_.
+           compiler, optimized for the local `system architecture <install-architecture_>`_.
 
     .. code-block:: bash
 
         cmake -DARB_ARCH=native
 
-.. topic:: `Release <buildtarget_>`_ mode with `Clang <compilers_>`_.
+.. topic:: `Release <buildtarget_>`_ mode with `Clang <install-compilers_>`_.
 
     .. code-block:: bash
 
@@ -231,13 +231,13 @@ CMake parameters and flags, follow links to the more detailed descriptions below
         export CXX=`which clang++`
         cmake
 
-.. topic:: `Release <buildtarget_>`_ mode for the `Haswell architecture <architecture_>`_ and `explicit vectorization <vectorize_>`_ of kernels.
+.. topic:: `Release <buildtarget_>`_ mode for the `Haswell architecture <install-architecture_>`_ and `explicit vectorization <install-vectorize_>`_ of kernels.
 
     .. code-block:: bash
 
         cmake -DARB_VECTORIZE=ON -DARB_ARCH=haswell
 
-.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, targeting the `Broadwell architecture <vectorize_>`_, with support for `P100 GPUs <gpu_>`_, and building with `GCC 6 <compilers_>`_.
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, targeting the `Broadwell architecture <install-vectorize_>`_, with support for `P100 GPUs <install-gpu_>`_, and building with `GCC 6 <install-compilers_>`_.
 
     .. code-block:: bash
 
@@ -245,7 +245,7 @@ CMake parameters and flags, follow links to the more detailed descriptions below
         export CXX=g++-6
         cmake -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_WITH_GPU=ON
 
-.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, optimized for the `local system architecture <architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, optimized for the `local system architecture <install-architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
 
     .. code-block:: bash
 
@@ -264,7 +264,7 @@ with ``-g -O0`` flags), use the ``CMAKE_BUILD_TYPE`` CMake parameter.
 
     cmake -DCMAKE_BUILD_TYPE={debug,release}
 
-..  _architecture:
+..  _install-architecture:
 
 Architecture
 ------------
@@ -306,7 +306,7 @@ and `ARM options <https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html>`_.
      # IBM Power8
      cmake -DARB_ARCH=power8
 
-..  _vectorize:
+..  _install-vectorize:
 
 Vectorization
 -------------
@@ -324,7 +324,7 @@ With this flag set, the library will use architecture-specific vectorization int
 to implement these kernels. Arbor currently has vectorization support for x86 architectures
 with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support for AArch64 NEON intrinsics (first available on ARMv8-A).
 
-.. _gpu:
+.. _install-gpu:
 
 GPU Backend
 -----------
@@ -355,7 +355,7 @@ example:
     Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
 
 
-.. _pythonfrontend:
+.. _install-python:
 
 Python Frontend
 ----------------
@@ -460,6 +460,8 @@ software, so we cover some common issues in this section.  If you have problems
 on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
+
+.. _install-mpi:
 
 MPI
 ---
@@ -730,7 +732,7 @@ CMake Git Submodule Warnings
 ----------------------------
 
 When running CMake, warnings like the following indicate that the Git submodules
-need to be `updated <downloading_>`_.
+need to be `updated <install-downloading_>`_.
 
 .. code-block:: none
 

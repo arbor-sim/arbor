@@ -39,7 +39,7 @@ Python 2 reached `end of life <https://pythonclock.org/>`_ in January 2020.
 Arbor only officially supports Python 3.6 and later, and all examples in the
 documentation are in Python 3. While it is possible to install and run Arbor
 using Python 2.7 by setting the ``PYTHON_EXECUTABLE`` variable when
-:ref:`configuring CMake <pythonfrontend>`, support is only provided for using
+:ref:`configuring CMake <install-python>`, support is only provided for using
 Arbor with Python 3.6 and later.
 
 Installing
@@ -83,22 +83,23 @@ Vanilla install with no additional options/features enabled:
     python3 ./arbor/setup.py install
 
 Enable MPI support. This might require loading an MPI module or setting the ``CC`` and ``CXX``
-environment flags.
+:ref:`environment variables <install-mpi>`.
 
 .. code-block:: bash
 
     pip3 install --install-option='--mpi' ./arbor
     python3 ./arbor/setup.py install --mpi
 
-Compile with vectorization on a system with SkyLake micro-archtecture:
+Compile with :ref:`vectorization <install-vectorize>` on a system with SkyLake
+:ref:`architecture <install-architecture>`:
 
 .. code-block:: bash
 
     pip3 install --install-option='--vec' --install-option='--arch=skylake' ./arbor
     python3 ./arbor/setup.py install --vec --arch=skylake
 
-Compile with support for NVIDIA GPUs. This requires that the CUDA toolkit is installed
-and the CUDA compiler nvcc is available:
+Compile with support for NVIDIA GPUs. This requires that the :ref:`CUDA toolkit <install-gpu>`
+is installed and the CUDA compiler nvcc is available:
 
 .. code-block:: bash
 
@@ -113,7 +114,7 @@ and the CUDA compiler nvcc is available:
 
 .. Note::
     Detailed instructions on how to install using CMake are in the
-    :ref:`Python configuration <pythonfrontend>` section of the
+    :ref:`Python configuration <install-python>` section of the
     :ref:`installation guide <installarbor>`.
     CMake is recommended for developers, integration with package managers such as
     Spack and EasyBuild, and users who require fine grained control over compilation

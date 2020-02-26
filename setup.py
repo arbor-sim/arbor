@@ -75,9 +75,6 @@ class cmake_build(build_ext):
         # can copy it into the target 'prefix' path.
         dest_path = lib_directory + '/arbor'
 
-        #print('-'*5, 'command line options:\n  mpi {}\n  gpu {}\n  vectorize {}\n  arch {}'.format(opt_mpi, opt_gpu, opt_vec, opt_arch))
-        print('-'*5, 'command line options: {}'.format(cl_opt))
-
         cmake_args = [
             '-DARB_WITH_PYTHON=on',
             '-DPYTHON_EXECUTABLE=' + sys.executable,
@@ -86,6 +83,8 @@ class cmake_build(build_ext):
             '-DARB_VECTORIZE={}'.format('on' if cl_opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(cl_opt['arch']),
         ]
+
+        print('-'*5, 'command line options: {}'.format(cl_opt))
         print('-'*5, 'cmake arguments: {}'.format(cmake_args))
 
         cfg = 'Debug' if self.debug else 'Release'
@@ -114,7 +113,7 @@ class cmake_build(build_ext):
         subprocess.check_call(cmake_cmd,
                               cwd=self.build_temp)
 
-        # Move from build path to some other place from whence it will later be installed.
+        # Copy from build path to some other place from whence it will later be installed.
         # ... or something like that
         # ... setuptools is an enigma monkey patched on a mystery
         if not os.path.exists(dest_path):
