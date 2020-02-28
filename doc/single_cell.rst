@@ -3,17 +3,10 @@
 Single Cell Models
 ==================
 
-A *single cell model* has, as the name suggests, one cell with no network, and attached 
-Arbor supports a workflow for building single cells, that can be used to
-define and test individual cells that can be saved, then used in network simulations.
-
-Building *single cell models* 
-
-1. Defining the `morphology <single_morpho_>`_ of the cell.
-2. Labeling regions and locations on the morphology.
-3. Defining the mechanisms that will be applied to the cell.
-4. Adding ion channels and synapses (mechanisms) to labeled regions and locations.
-5. Attaching stimuli, spike detectors, event generators and probes to locations (inputs & outputs).
+Building and testing detailed models of individual cells, then optimizing their parameters
+is usually the first step in building models with multi-compartment cells.
+Arbor supports a *single cell model* workflow for this purpose, which is a good way to
+introduce Arbor's cell modeling concepts and approach.
 
 This guide will walk through a series of single cell models of increasing
 complexity that the reader is encouraged to follow along with in Python. Links
@@ -24,16 +17,22 @@ are provide to separate documentation that covers relevant topics in more detail
 Example 1: Single compartment cell with HH dynamics
 ----------------------------------------------------
 
+The most trivial representation of a cell in Arbor is to model the entire cell as a sphere.
+The following model shows the steps required to construct a model of a spherical cell with
+radius 3 μm, Hodgkin–Huxley dynamics and a current clamp stimulus, then run the model for
+30 ms.
+
 .. code-block:: python
 
     import arbor
 
-    # Define the morphology: a single sample with radius 3 μm.
+    # (1) Define the morphology: a single sample with radius 3 μm.
     tree = arbor.sample_tree()
     tree.append(arbor.msample(x=0, y=0, z=0, radius=3, tag=2))
 
-    # Define the soma and its center
-    labels = arbor.label_dict({'soma': '(tag 2)', 'center': '(location 0 0.5)'})
+    # (2) Define the soma and its center
+    labels = arbor.label_dict({'soma': '(tag 2)',
+                               'center': '(location 0 0.5)'})
 
     # Build the full cell description.
     cell = arbor.cable_cell(tree, labels)
@@ -139,4 +138,10 @@ Arbor is from a fresh start.
     In NEURON cell morphologies are constructed by creating individual sections,
     then connecting them together. In Arbor we start with an "empty"
     sample tree, to which samples are appended to build a connected morphology.
+
+1. Defining the `morphology <single_morpho_>`_ of the cell.
+2. Labeling regions and locations on the morphology.
+3. Defining the mechanisms that will be applied to the cell.
+4. Adding ion channels and synapses (mechanisms) to labeled regions and locations.
+5. Attaching stimuli, spike detectors, event generators and probes to locations (inputs & outputs).
 

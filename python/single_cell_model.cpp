@@ -230,7 +230,9 @@ void register_single_cell(pybind11::module& m) {
         .def_readonly("variable", &trace::variable, "Name of the variable being recorded.")
         .def_readonly("location", &trace::loc, "Location on cell morphology.")
         .def_readonly("time",    &trace::t, "Time stamps of samples [ms].")
-        .def_readonly("value",   &trace::v, "Sample values.");
+        .def_readonly("value",   &trace::v, "Sample values.")
+        .def("__str__", [](const trace& tr) {return util::pprintf("(trace \"{}\" {})", tr.variable, tr.loc);})
+        .def("__repr__", [](const trace& tr) {return util::pprintf("(trace \"{}\" {})", tr.variable, tr.loc);});
 
     pybind11::class_<single_cell_model> model(m, "single_cell_model",
         "Wrapper for simplified description, and execution, of single cell models.");
