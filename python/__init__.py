@@ -6,10 +6,15 @@
 
 from ._arbor import *
 
-import os
+# Parse VERSION file for the Arbor version string.
+def get_version():
+    import os
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, 'VERSION')) as version_file:
+        return version_file.read().strip()
 
-here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'VERSION')) as version_file:
-    __version__ = version_file.read().strip()
+__version__ = get_version()
+__config__  = config()
 
-__config__ = config()
+# Remove get_version from arbor module.
+del get_version
