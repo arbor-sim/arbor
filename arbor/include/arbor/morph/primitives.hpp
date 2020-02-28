@@ -83,6 +83,11 @@ mlocation_list join(const mlocation_list&, const mlocation_list&);
 mlocation_list intersection(const mlocation_list&, const mlocation_list&);
 
 // Describe an unbranched cable in the morphology.
+//
+// Cables are a representation of a closed interval of a branch in a morphology.
+// They may be zero-length, and fork points in the morphology may have multiple,
+// equivalent zero-length cable representations.
+
 struct mcable {
     // The id of the branch on which the cable lies.
     msize_t branch;

@@ -25,6 +25,10 @@ invalid_mcable::invalid_mcable(mcable cable):
     cable(cable)
 {}
 
+invalid_mcable_list::invalid_mcable_list():
+    morphology_error("bad mcable_list")
+{}
+
 invalid_sample_parent::invalid_sample_parent(msize_t parent, msize_t tree_size):
     morphology_error(pprintf("invalid sample parent {} for a sample tree of size {}", parent, tree_size)),
     parent(parent),

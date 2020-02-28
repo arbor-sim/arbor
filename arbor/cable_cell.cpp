@@ -94,10 +94,13 @@ struct cable_cell_impl {
 
     template <typename Property>
     void paint(const region& reg, const Property& prop) {
-        mcable_list cables = thingify(reg, provider);
+        mextent cables = thingify(reg, provider);
         auto& mm = get_region_map(prop);
 
         for (auto c: cables) {
+            // Skip zero-length cables in extent:
+            if (c.prox_pos==c.dist_pos) continue;
+
             if (!mm.insert(c, prop)) {
                 throw cable_cell_error(util::pprintf("cable {} overpaints", c));
             }
@@ -108,7 +111,7 @@ struct cable_cell_impl {
         return thingify(l, provider);
     }
 
-    mcable_list concrete_region(const region& r) const {
+    mextent concrete_region(const region& r) const {
         return thingify(r, provider);
     }
 };
@@ -145,7 +148,7 @@ mlocation_list cable_cell::concrete_locset(const locset& l) const {
     return impl_->concrete_locset(l);
 }
 
-mcable_list cable_cell::concrete_region(const region& r) const {
+mextent cable_cell::concrete_region(const region& r) const {
     return impl_->concrete_region(r);
 }
 

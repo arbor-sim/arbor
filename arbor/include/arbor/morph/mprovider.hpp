@@ -17,7 +17,7 @@ struct mprovider {
     explicit mprovider(arb::morphology m): mprovider(m, nullptr) {}
 
     // Throw exception on missing or recursive definition.
-    const mcable_list& region(const std::string& name) const;
+    const mextent& region(const std::string& name) const;
     const mlocation_list& locset(const std::string& name) const;
 
     // Read-only access to morphology and constructed embedding.
@@ -34,7 +34,7 @@ private:
     struct circular_def {};
 
     // Maps are mutated only during initialization phase of mprovider.
-    mutable std::unordered_map<std::string, util::either<mcable_list, circular_def>> regions_;
+    mutable std::unordered_map<std::string, util::either<mextent, circular_def>> regions_;
     mutable std::unordered_map<std::string, util::either<mlocation_list, circular_def>> locsets_;
 
     // Non-null only during initialization phase.

@@ -30,6 +30,10 @@ TEST(cv_geom, empty) {
     EXPECT_EQ(1u, geom.n_cell()); // can have no CVs but >0 cells.
 }
 
+static bool region_eq(const mprovider& p, region a, region b) {
+    return thingify(a, p)==thingify(b, p);
+}
+
 TEST(cv_geom, trivial) {
     using namespace common_morphology;
 
@@ -57,8 +61,8 @@ TEST(cv_geom, trivial) {
             EXPECT_EQ(geom1.cv_cables, geom4.cv_cables);
         }
 
-        mcable_list all_cables = thingify(reg::all(), cell.provider());
-        EXPECT_TRUE(testing::seq_eq(all_cables, geom1.cables(0)));
+        mcable_list geom1_cables = util::assign_from(geom1.cables(0));
+        EXPECT_TRUE(region_eq(cell.provider(), reg::all(), geom1_cables));
     }
 }
 
