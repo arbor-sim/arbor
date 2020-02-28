@@ -65,6 +65,22 @@ class cmake_build(build_ext):
         if not check_cmake():
             raise RuntimeError('CMake is not available. CMake 3.12 is required.')
 
+        # cl_opt contains the command line arguments passed to install, via
+        # --install-option if using pip.
+        # pip skips building wheels when --install-option flags are set.
+        # However, when no --install-options are passed, it runs build_ext
+        # without running install_command, required to create and set cl_opt.
+        # This hack works around this. I think that the upshot of this is
+        # that only wheels built with default configuration will be possible.
+
+        if 'cl_opt' not in globals():
+            cl_opt = {
+                    'mpi': False,
+                    'gpu': False,
+                    'vec': False,
+                    'arch': 'native'
+            }
+
         # The path where CMake will be configured and Arbor will be built.
         build_directory = os.path.abspath(self.build_temp)
         # The path where the package will be copied after building.
