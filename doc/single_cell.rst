@@ -22,42 +22,74 @@ The following model shows the steps required to construct a model of a spherical
 radius 3 μm, Hodgkin–Huxley dynamics and a current clamp stimulus, then run the model for
 30 ms.
 
+The first step is to construct the cell. In Arbor, the abstract representation used to define
+a cell with branching "cable" morphology is a ``cable_cell``, which holds a description
+of the cell's morphology, named regions and locations on the morphology, and descriptions of
+ion channels, synapses, spike detectors and electrical properties.
+
+Our "single-compartment HH cell" has a trivial morphology and dynamics, so the steps to
+create the ``cable_cell`` that represents it are quite straightforward:
+
 .. code-block:: python
 
     import arbor
 
     # (1) Define the morphology: a single sample with radius 3 μm.
     tree = arbor.sample_tree()
-    tree.append(arbor.msample(x=0, y=0, z=0, radius=3, tag=2))
+    tree.append(x=0, y=0, z=0, radius=3, tag=2)
 
     # (2) Define the soma and its center
-    labels = arbor.label_dict({'soma': '(tag 2)',
+    labels = arbor.label_dict({'soma':   '(tag 2)',
                                'center': '(location 0 0.5)'})
 
-    # Build the full cell description.
+    # (3) Create cell and set properties
     cell = arbor.cable_cell(tree, labels)
-
-    # Set properties of the cell.
     cell.set_properties(Vm=-40)
     cell.paint('soma', 'hh')
     cell.place('center', arbor.iclamp( 10, 2, 0.8))
     cell.place('center', arbor.spike_detector(-10))
 
-    # Make single cell model.
+Arbor's cell morphologies are constructed from a *sample tree*, which is a list of
+samples, each with (*x*, *y*, *z*), a *radius* and a *tag*.
+Step **(1)** above shows how the spherical cell is represented using a single sample.
+
+Cell builders need to refer to *regions* and *locations* on a cell morphology.
+Arbor uses a domains specific language (DSL) to describe regions and locations,
+which are given labels. In step **(2)** a dictionary of labels is created
+with two labels:
+
+* ``soma`` defines a *region* with ``(tag  2)``. Note that this corresponds to the ``tag`` parameter that was used to define the single sample in step (1).
+* ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5`` of branch ``0``, which corresponds to the center of the soma on the morphology defined in Step (1).
+
+In step **(3)** the cable cell is constructed by combining the sample tree with
+the named regions and locations.
+
+* Set initial membrane potential everywhere on the cell to -40 mV.
+* Use HH dynamics on soma.
+* Attach stimuli with duration of 2 ms and current of 0.8 nA.
+* Add a spike detector with threshold of -10 mV.
+
+Arbor can simulate networks with multiple individual cells, connected together in a network.
+Single cell models do not require the full *recipe* interface used to describing such
+network models, with many unique cells, network and gap junctions.
+Arbor provides a ``single_cell_model`` helper that wraps a cell description, and provides
+an interface for recording 
+
+
+.. code-block:: python
+
+    # (4) Make single cell model.
     m = arbor.single_cell_model(cell)
 
-    # Attach voltage probes, sampling at 10 kHz.
-    m.probe('voltage', 'center',  10000)
+    # (5) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
+    m.probe('voltage', 'center', frequency=10000)
 
-    # Run simulation for 100 ms of simulated activity.
-    tfinal=30
-    m.run(tfinal)
+    # (6) Run simulation for 100 ms of simulated activity.
+    m.run(tfinal=100)
 
-Create a sample tree with a single sample of radius 3 μm
-Set initial membrane potential everywhere on the cell to -40 mV.
-Put hh dynamics on soma, and passive properties on the dendrites.
-Attach stimuli with duration of 2 ms and current of 0.8 nA.
-Add a spike detector with threshold of -10 mV.
+Step (4) instantiates the single cell model using our single-compartment cell.
+To record variables from the model three pieces of information are prov
+* 
 
 
 **Everything below here is to be discarded/moved**

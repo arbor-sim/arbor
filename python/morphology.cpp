@@ -123,8 +123,23 @@ void register_morphology(pybind11::module& m) {
         .def(pybind11::init<>())
         // modifiers
         .def("reserve", &arb::sample_tree::reserve)
-        .def("append", [](arb::sample_tree& t, arb::msample s){return t.append(s);})
-        .def("append", [](arb::sample_tree& t, arb::msize_t p, arb::msample s){return t.append(p, s);})
+        .def("append", [](arb::sample_tree& t, arb::msample s){return t.append(s);},
+                "Append a sample whose parent is the last sample added to the tree.")
+        .def("append", [](arb::sample_tree& t, arb::msize_t p, arb::msample s){return t.append(p, s);},
+                "parent"_a, "sample"_a,
+                "Append a sample.")
+        .def("append",
+                [](arb::sample_tree& t, double x, double y, double z, double radius, int tag) {
+                    return t.append(arb::msample{{x,y,z,radius}, tag});
+                },
+                "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
+                "Append a sample whose parent is the last sample added to the tree.")
+        .def("append",
+                [](arb::sample_tree& t, arb::msize_t p, double x, double y, double z, double radius, int tag) {
+                    return t.append(p, arb::msample{{x,y,z,radius}, tag});
+                },
+                "parent"_a, "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
+                "Append a sample.")
         // properties
         .def_property_readonly("empty", [](const arb::sample_tree& st){return st.empty();},
                 "Indicates whether the sample tree is empty (i.e. whether it has size 0)")

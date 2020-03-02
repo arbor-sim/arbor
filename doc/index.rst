@@ -76,6 +76,11 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    single_cell
 
 .. toctree::
+   :caption: Concepts:
+
+   morphology
+
+.. toctree::
    :caption: Arbor Models:
 
    model_intro
