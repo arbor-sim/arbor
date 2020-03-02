@@ -287,14 +287,14 @@ mlocation canonical(const morphology& m, mlocation loc) {
 mcable_list build_mextent_cables(const morphology& m, const mcable_list& cables) {
     arb_assert(test_invariants(cables));
 
-    std::unordered_set<msize_t> branch_heads, branch_tails;
+    std::unordered_set<msize_t> branch_tails;
 
     mcable_list cs;
     for (auto& c: cables) {
         mcable* prev = cs.empty()? nullptr: &cs.back();
 
         if (c.prox_pos==0) {
-            branch_heads.insert(c.branch);
+            branch_tails.insert(m.branch_parent(c.branch));
         }
         if (c.dist_pos==1) {
             branch_tails.insert(c.branch);
@@ -308,12 +308,8 @@ mcable_list build_mextent_cables(const morphology& m, const mcable_list& cables)
         }
     }
 
-    if (!branch_heads.empty() || !branch_tails.empty()) {
+    if (!branch_tails.empty()) {
         std::vector<mcable> fork_covers;
-
-        for (auto b: branch_heads) {
-            branch_tails.insert(m.branch_parent(b));
-        }
 
         for (auto b: branch_tails) {
             if (b!=mnpos) fork_covers.push_back(mcable{b, 1., 1.});
