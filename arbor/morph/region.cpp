@@ -580,15 +580,6 @@ struct reg_or: region_tag {
 mextent thingify_(const reg_or& P, const mprovider& p) {
     return join(thingify(P.lhs, p), thingify(P.rhs, p));
 }
-#if 0
-    mcable_list L;
-    L.resize(lhs.size() + rhs.size());
-
-    std::merge(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), L.begin());
-
-    return merge(L);
-}
-#endif
 
 std::ostream& operator<<(std::ostream& o, const reg_or& x) {
     return o << "(join " << x.lhs << " " << x.rhs << ")";
