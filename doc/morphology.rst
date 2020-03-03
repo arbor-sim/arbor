@@ -10,9 +10,10 @@ Sample Trees
 ------------
 
 A sample is a three-dimensionsal location, with additional radius and tag meta-data:
+
 * ``x``, ``y``, ``z`` : *location* of the sample.
 * ``radius``: the *radius* of the cable/sphere centered at *location*.
-* ``tag``: a non-negative integer for encoding additional user-defined meta data.
+* ``tag``: an integer for encoding additional user-defined meta data.
 
 **CODE** example of creating a sample.
 
@@ -48,45 +49,68 @@ The following rules and corollaries apply to the samples in a sample tree:
 Sample Tree Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The simplest sample tree, besides the trivial empty tree, is a single sample, which is used
-to represent a spherical cell.
+The simplest sample tree is a single sample, used to represent a *spherical cell*.
+:ref:`Tree₁ <tree1>` describes a sphere of radius 3 μm centered at the origin.
 
-.. csv-table:: Example 1: single sample
+.. _tree1:
+
+.. csv-table:: Tree₁: Single sample tree
    :widths: 10, 10, 10, 10, 10, 10
 
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,        3,     1
 
-Next in order of complexity is a single unbranched cable segment between two samples.
-In this case we have a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm.
+Next in order of complexity is a single *unbranched cable segment* defined by two samples.
+:ref:`Tree₂ <tree2>` defines a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm.
 
-.. csv-table:: A single cable segment
+.. _tree2:
+
+.. csv-table:: Tree₂: Single cable segment
    :widths: 10, 10, 10, 10, 10, 10
 
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,    0.50,     1
       0,       0,   0,  10,    0.25,     1
 
-.. csv-table:: A y-shaped cell
+The simplest branching morphology is a cable that bifurcates, a *y-shaped cell*.
+First branch of the tree is a cable of length 10 μm and radius 0.5 μm.
+The two child branches start with the to the distal sample of the first branch
+and end with points 0.25 μm.
+taper to
+
+.. _tree3:
+
+.. csv-table:: Tree₃: y-shaped cell
    :widths: 10, 10, 10, 10, 10, 10
 
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,    0.50,     1
-      0,       0,   0,  10,    0.25,     1
-      1,       0,   5,  15,    0.25,     1
-      1,       0,   5,  15,    0.25,     1
+      0,       0,   0,  10,    0.50,     1
+      1,       0,   3,  15,    0.25,     1
+      1,       0,  -3,  15,    0.25,     1
+
+
+For the child branches in Tree₃  to have constant radius of 0.25 μm, instead of tapering from 0.5 μm to 0.25 μm,
+additional samples with radius 0.25 μm can be inserted at the start of each branch, collocated with
+the distal sample of the first branch.
+
+.. _tree4:
+
+.. csv-table:: Tree₄: y-shaped cell
+   :widths: 10, 10, 10, 10, 10, 10
+
+   *parent*, *x*, *y*, *z*, *radius*, *tag*
+   npos,       0,   0,   0,    0.50,     1
+      0,       0,   0,  10,    0.50,     1
+      1,       0,   0,  10,    0.25,     1
+      2,       0,   3,  15,    0.25,     1
+      1,       0,   0,  15,    0.25,     1
+      4,       0,  -3,  15,    0.25,     1
+
 
 Sample Tree Construction
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sample trees are built by appending samples to an initially empty tree.
-
-.. csv-table:: two point morpho
-   :widths: 10, 10, 10, 10, 10, 10
-
-   *parent*, *x*, *y*, *z*, *radius*, *tag*
-   npos,       0,   0,   0,        3,     1
-      0,       0,   0,   0,        3,     1
 
 
 Morphology
