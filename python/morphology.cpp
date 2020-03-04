@@ -84,11 +84,10 @@ void register_morphology(pybind11::module& m) {
             "If loaded from standard SWC file the following tags are used: soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary tags can be used.")
         .def("__str__",
             [](const arb::msample& s) {
-                return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}, tag {}>",
-                        s.loc.x, s.loc.y, s.loc.z, s.loc.radius, s.tag); })
+                return util::pprintf("{}", s);})
         .def("__repr__",
             [](const arb::msample& s) {
-                return util::pprintf("{}>", s);});
+                return util::pprintf("{}", s);});
 
     // arb::mcable
     pybind11::class_<arb::mcable> cable(m, "cable");

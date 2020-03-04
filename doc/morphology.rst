@@ -3,19 +3,34 @@
 Morphology
 ==========
 
-In Arbor, a *morphology* describes a cell's three-dimensional branching structure.
-Arbor treats morphologies as a tree of truncated frustums, with an optional spherical segment at the root of the tree.
+A cell's *morphology* describes it's three-dimensional branching structure.
+This guide will describe how morphologies are defined and used in Arbor,
+followed by API documentation.
 
 Sample Trees
 ------------
 
-A sample is a three-dimensionsal location, with additional radius and tag meta-data:
+A *sample tree* is a low-level description of a cell's morphology.
+It is simple and flexible to support the diverse descriptions
+of cell morphologies (e.g. SWC, NeuroLicida, NeuroML), and to support tools that
+iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
 
-* ``x``, ``y``, ``z`` : *location* of the sample.
-* ``radius``: the *radius* of the cable/sphere centered at *location*.
-* ``tag``: an integer for encoding additional user-defined meta data.
+The basic unit used to define a morphology in a sample tree is a *sample*, which
+is a three-dimensionsal *location*, with a *radius* and *tag* meta-data.
+Samples are stored in :class:`msample` types, for example in Python a sample centred at the origin
+with radius 3 μm, and a *tag* of 1 can is created with:
 
-**CODE** example of creating a sample.
+.. code:: Python
+
+    s = arbor.msample(x=0, y=0, z=0, radius=3, tag=1)
+
+.. note::
+
+    A *tag* is an integer label on every sample, which can be used later to define
+    regions on cell models. For example, tags could store the *structure identifier* field in the
+    `SWC format <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
+    which identifies whether samples lie in the soma, axons, dendrites, etc. In Arbor tag definitions
+    are not fixed, and users can customise them for their requirements.
 
 A *sample tree* defines parent-child relationships between samples that define a morphology.
 It is assumed that neuron morphology can be modelled as a *tree*, that is, starting with a single
@@ -27,8 +42,15 @@ samples with a parent index for each sample.
 * *root*: The first sample in the sample tree, with index 0.
 * *parent*: Each sample has one and only one parent sample.
 * *child*: The children of sample *s* are samples whose parent is *s*.
-* *cable segment*: an unbranched cable between two sample points *s₁* and *s₂*.
-  A segment is a tapered cylinder, with radius at each end 
+* *terminal*: A sample with no children.
+* *fork*: A sample with more than one child.
+* *proximal*: closer to the root.
+* *distal*: further from the root.
+* *cable segment*: an unbranched cable between two adjacent sample points *s₁* and *s₂*.
+
+.. image:: gen-images/stree.svg
+  :width: 500
+  :alt: A sample tree with 7 points, with root, fork and terminal samples marked.
 
 The following rules and corollaries apply to the samples in a sample tree:
 
@@ -43,8 +65,11 @@ The following rules and corollaries apply to the samples in a sample tree:
   * Every sample has an id greater than the id of its parent.
   * Ids of samples on the same unbranched section do not need to be contiguous.
 
-* foobar
 * a child can have the same location as its parent, which is used to step discontinuity in radius.
+
+.. warning::
+
+    Alert!
 
 Sample Tree Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -150,6 +175,8 @@ Sample Tree Construction
 
 Morphology
 ----------
+
+Arbor treats morphologies as a tree of truncated frustums, with an optional spherical segment at the root of the tree.
 
 A morphology is a concrete description of a morphology in terms of cable branches, and optionally a spherical root branch.
 

@@ -1,3 +1,2 @@
 sphinx>=2.3.0
-sphinxcontrib-contentui
 svgwrite
