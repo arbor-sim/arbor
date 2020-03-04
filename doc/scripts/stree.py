@@ -48,9 +48,9 @@ def generate(path):
         numbers.add(dwg.text(str(i), insert=tcenter))
 
     labels = ['root', 'fork', 'terminal', 'terminal']
-    lX = [-1,  12.5, 18.5, 15]
-    lY = [ 3.5, 1.5,  9,   -5]
-    lC = [ 1,   2,    3,    3]
+    lX = [-1,  12.5, 19,  15.2]
+    lY = [ 3.5, 1.5,  9,  -5]
+    lC = [ 1,   2,    3,   3]
     nlab = len(labels)
 
     lX = [sc*x for x in lX]

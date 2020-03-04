@@ -32,44 +32,53 @@ with radius 3 μm, and a *tag* of 1 can is created with:
     which identifies whether samples lie in the soma, axons, dendrites, etc. In Arbor tag definitions
     are not fixed, and users can customise them for their requirements.
 
-A *sample tree* defines parent-child relationships between samples that define a morphology.
+A *sample tree* defines parent-child relationships between samples.
 It is assumed that neuron morphology can be modelled as a *tree*, that is, starting with a single
-root sample, the cables that represent dendrites and axons can branches, but branches can not
-rejoin.
-Given this assumption, it is possible to represent the tree structure by augmenting a set of
-samples with a parent index for each sample.
+root sample, the cables that represent dendrites and axons can branch, but branches can not rejoin.
+Given this assumption, it is possible to represent the tree structure by asigning a parent id
+to each sample in a list of samples that represent the radius of the cell morphology at a set
+of locations.
+In a sample tree with *n* samples, each sample has a unique id in the range ``[0, 1, ..., n-1]``.
+The following labels can be applied to samples
 
 * *root*: The first sample in the sample tree, with index 0.
-* *parent*: Each sample has one and only one parent sample.
+* *parent*: Each sample has one parent.
 * *child*: The children of sample *s* are samples whose parent is *s*.
 * *terminal*: A sample with no children.
-* *fork*: A sample with more than one child.
-* *proximal*: closer to the root.
-* *distal*: further from the root.
-* *cable segment*: an unbranched cable between two adjacent sample points *s₁* and *s₂*.
+* *fork*: A sample with more than one child. Fork points are where a cable splits into two or more branches.
 
-.. image:: gen-images/stree.svg
-  :width: 500
+These labels
+* The tree is composed of 7 samples, numbered from 0 to 6.
+* Sample 3 is a fork point whose children are samples 4 and 5.
+* Samples 5 and 6 are terminals with no children.
+* Every sample has one parent, except for the root sample.
+
+.. _morph-img-stree:
+
+.. figure:: gen-images/stree.svg
+  :width: 400
+  :align: left
   :alt: A sample tree with 7 points, with root, fork and terminal samples marked.
 
-The following rules and corollaries apply to the samples in a sample tree:
+  A sample tree with 7 samples, and a single fork point. The parent index for
+  the sample tree is ``[npos 0 1 2 3 4 3]``, where ``npos`` is a placeholder
+  parent index for the root sample.
+
+The following rules and corollaries apply to sample trees in Arbor:
 
 * Every sample has one and only one parent:
 
   * the root sample has a special placeholder parent indicated with ``npos``.
 
-* A sample can have 0 or more children.
 * In a sample tree with *n* samples, the samples have unique ids in the half open interval *[0, n)*:
 
-  * The root sample has index 0
-  * Every sample has an id greater than the id of its parent.
+  * The root sample has index 0;
+  * Every sample has an id greater than the id of its parent;
   * Ids of samples on the same unbranched section do not need to be contiguous.
 
-* a child can have the same location as its parent, which is used to step discontinuity in radius.
-
-.. warning::
-
-    Alert!
+* A child can be *collocated* with its parent, where both have the same location.
+  This is used in practice to indicate a step discontinuity in of a cable, or the
+  start of a child branch with a different radius than its parent.
 
 Sample Tree Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -101,7 +110,7 @@ specifically a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm.
 
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,    0.50,     1
-      0,       0,   0,  10,    0.25,     1
+      0,      10,   0,   0,    0.25,     1
 
 .. _morph-tree3:
 
@@ -118,9 +127,9 @@ and end with points 0.25 μm.
 
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,    0.50,     1
-      0,       0,   0,  10,    0.50,     1
-      1,       0,   3,  15,    0.25,     1
-      1,       0,  -3,  15,    0.25,     1
+      0,      10,   0,   0,    0.50,     1
+      1,      15,   3,   0,    0.25,     1
+      1,      15,  -3,   0,    0.25,     1
 
 
 .. _morph-tree4:
@@ -137,11 +146,11 @@ the distal sample of the first branch.
 
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,    0.50,     1
-      0,       0,   0,  10,    0.50,     1
-      1,       0,   0,  10,    0.25,     1
-      2,       0,   3,  15,    0.25,     1
-      1,       0,   0,  10,    0.25,     1
-      4,       0,  -3,  15,    0.25,     1
+      0,      10,   0,   0,    0.50,     1
+      1,      10,   0,   0,    0.25,     1
+      2,      15,   3,   0,    0.25,     1
+      1,      10,   0,   0,    0.25,     1
+      4,      15,  -3,   0,    0.25,     1
 
 .. _morph-tree5:
 
@@ -156,8 +165,8 @@ The next example is a spherical soma of radius 3 μm with a branch of length
 
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,       3,     1
-      0,       0,   0,   3,       1,     1
-      1,       0,   0,  10,       1,     1
+      0,       3,   0,   0,       1,     1
+      1,      10,   0,   0,       1,     1
 
 .. note::
     The sample tree above could
@@ -175,6 +184,8 @@ Sample Tree Construction
 
 Morphology
 ----------
+
+A sample tree does not describe the actual branches
 
 Arbor treats morphologies as a tree of truncated frustums, with an optional spherical segment at the root of the tree.
 
