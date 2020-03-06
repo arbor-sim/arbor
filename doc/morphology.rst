@@ -1,5 +1,9 @@
 .. _morphology:
 
+.. |br| raw:: html
+
+  <br/>
+
 Morphology
 ==========
 
@@ -39,7 +43,7 @@ Given this assumption, it is possible to represent the tree structure by asignin
 to each sample in a list of samples that represent the radius of the cell morphology at a set
 of locations.
 In a sample tree with *n* samples, each sample has a unique id in the range ``[0, 1, ..., n-1]``.
-The following labels can be applied to samples
+The following terms are used to label samples in a sample tree:
 
 * *root*: The first sample in the sample tree, with index 0.
 * *parent*: Each sample has one parent.
@@ -47,9 +51,10 @@ The following labels can be applied to samples
 * *terminal*: A sample with no children.
 * *fork*: A sample with more than one child. Fork points are where a cable splits into two or more branches.
 
-These labels
-* The tree is composed of 7 samples, numbered from 0 to 6.
-* Sample 3 is a fork point whose children are samples 4 and 5.
+Given these definitions, for the sample tree illustrated below:
+
+* The tree is composed of 7 samples, numbered from 0 to 6 inclusive.
+* Sample 3 is a fork point whose children are samples 4 and 6.
 * Samples 5 and 6 are terminals with no children.
 * Every sample has one parent, except for the root sample.
 
@@ -97,6 +102,11 @@ This example has a sphere of radius 3 μm centered at the origin.
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,        3,     1
 
+
+.. figure:: gen-images/tree1.svg
+  :width: 100
+  :align: center
+
 .. _morph-tree2:
 
 Tree₂: Single cable segment
@@ -111,6 +121,10 @@ specifically a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm.
    *parent*, *x*, *y*, *z*, *radius*, *tag*
    npos,       0,   0,   0,    0.50,     1
       0,      10,   0,   0,    0.25,     1
+
+.. figure:: gen-images/tree2.svg
+  :width: 300
+  :align: center
 
 .. _morph-tree3:
 
@@ -131,6 +145,9 @@ and end with points 0.25 μm.
       1,      15,   3,   0,    0.25,     1
       1,      15,  -3,   0,    0.25,     1
 
+.. figure:: gen-images/tree3.svg
+  :width: 400
+  :align: center
 
 .. _morph-tree4:
 
@@ -152,6 +169,10 @@ the distal sample of the first branch.
       1,      10,   0,   0,    0.25,     1
       4,      15,  -3,   0,    0.25,     1
 
+.. figure:: gen-images/tree4.svg
+  :width: 400
+  :align: center
+
 .. _morph-tree5:
 
 Tree₅: ball and stick
@@ -167,6 +188,10 @@ The next example is a spherical soma of radius 3 μm with a branch of length
    npos,       0,   0,   0,       3,     1
       0,       3,   0,   0,       1,     1
       1,      10,   0,   0,       1,     1
+
+.. figure:: gen-images/tree5.svg
+  :width: 300
+  :align: center
 
 .. note::
     The sample tree above could

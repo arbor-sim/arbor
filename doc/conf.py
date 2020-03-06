@@ -43,7 +43,7 @@ if not os.path.exists(img_path):
     os.mkdir(img_path)
 
 # Create images.
-import stree
-stree.generate(img_path)
+import sample_tree
+sample_tree.generate(img_path)
 
 print("-------------------------")
