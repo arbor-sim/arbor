@@ -169,7 +169,11 @@ the distal sample of the first branch.
       1,      10,   0,   0,    0.25,     1
       4,      15,  -3,   0,    0.25,     1
 
-.. figure:: gen-images/tree4.svg
+.. figure:: gen-images/tree4a.svg
+  :width: 400
+  :align: center
+
+.. figure:: gen-images/tree4b.svg
   :width: 400
   :align: center
 
