@@ -215,9 +215,13 @@ def make_image(samples, filename, sc=20):
         ns = len(collocated[i])
         iscol = ns>1
 
-        # only label samples that are either:
-        #  * not collocated
-        #  * are the root of a collocated set
+        # Place a number next to each sample.
+        # The location of the number should not be on top of a branch, and
+        # if there are collocated points, we need to place all collacted labels
+        # at the same time.
+        # When points are collocated, we draw all labels of collocated points when
+        # we find the first sample in a collocated set (hence skipping labeling if
+        # a sample is collacted with its parent, which means it has already been drawn)
         if i==0 or not is_collocated(X,Y,i,P[i]):
             angles = [angle_norm(X,Y,i,j) for j in arms[i]]
             if len(angles)==0:
@@ -251,12 +255,6 @@ def make_image(samples, filename, sc=20):
                 end = (end[0]+label_rad*u[0], end[1]+label_rad*u[1])
                 text_pos = align_number(end, sc)
                 numbers.add(dwg.text(str(lab), insert=text_pos, stroke=color, fill=color, text_anchor='start'))
-
-        elif not iscol:
-            color = sample_color(children,i)
-            tcenter = (X[i], Y[i]+0.3*sc)
-            numbers.add(dwg.text(str(i), insert=tcenter, fill=color, stroke=color))
-
 
     # Find extent of image.
     minx = min([X[i]-R[i] for i in range(nsamp)]) - fudge
