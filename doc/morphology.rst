@@ -38,7 +38,7 @@ with radius 3 μm, and a *tag* of 1 can is created with:
 
 A *sample tree* defines parent-child relationships between samples.
 It is assumed that neuron morphology can be modelled as a *tree*, that is, starting with a single
-root sample, the cables that represent dendrites and axons can branch, but branches can not rejoin.
+root location, the cables that represent dendrites and axons can branch, but branches can not rejoin.
 Given this assumption, it is possible to represent the tree structure by asigning a parent id
 to each sample in a list of samples that represent the radius of the cell morphology at a set
 of locations.
@@ -51,11 +51,11 @@ The following terms are used to label samples in a sample tree:
 * *terminal*: A sample with no children.
 * *fork*: A sample with more than one child. Fork points are where a cable splits into two or more branches.
 
-Given these definitions, for the sample tree illustrated below:
+To demonstrate these concepts, the following observations apply to the sample tree :ref:`below <morph-img-stree>`:
 
 * The tree is composed of 7 samples, numbered from 0 to 6 inclusive.
 * Sample 3 is a fork point whose children are samples 4 and 6.
-* Samples 5 and 6 are terminals with no children.
+* Samples 5 and 6 are terminals, and have no children.
 * Every sample has one parent, except for the root sample.
 
 .. _morph-img-stree:
@@ -82,11 +82,18 @@ The following rules and corollaries apply to sample trees in Arbor:
   * Ids of samples on the same unbranched section do not need to be contiguous.
 
 * A child can be *collocated* with its parent, where both have the same location.
-  This is used in practice to indicate a step discontinuity in of a cable, or the
+  This is used in practice to indicate a discontinuity in the radius of a cable, or the
   start of a child branch with a different radius than its parent.
 
 Sample Tree Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Cell morphologies are constructed from a series of connected truncated frustums, with an optional
+spherical segment at the root of the morphology, which conventionally corresponds to the soma.
+
+
+A sample tree is a connected set of samples, without the concept of truncated frustums, or spherical segments.
+A :ref:`morphology <morph-morphology>`
 
 .. _morph-tree1:
 
@@ -233,7 +240,7 @@ rules:
 
 * Every cable branch has at least two samples, one at either end, which are referred to as the proximal and distal samples of the branch.
 
-When a morphology spherical root, the root sample defines a special spherical branch.
+For morphologies with a spherical root, the root sample defines a special spherical branch.
 Rules imposed on spherical:
 * samples with parent *root* (i.e. *s.parent==0*) must be a distance of *root.radius* from *root.location*.
 * samples with *root* as parent are the start of a branch, and hence must have at least one child sample.

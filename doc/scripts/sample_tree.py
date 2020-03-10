@@ -151,22 +151,11 @@ def sample_color(children, i):
         return 'tomato'
     return 'gray'
 
-def align_number(end, u, h):
-    shift = 0.4*h
-    x = end[0]+shift*u[0]
-    y = end[1]+shift*u[1]
-    theta = angle(u[0], u[1])/math.pi*180
-    if theta<45:
-        anchor='start'
-    elif theta<135:
-        anchor='middle'
-    else:
-        anchor='end'
+def align_number(end, r):
+    x = end[0]-r/4
+    y = end[1]+r/3
 
-    if u[1]>0:
-        y += h
-
-    return (x,y), anchor
+    return (x,y)
 #
 # ############################################
 #
@@ -179,7 +168,7 @@ def make_image(samples, filename, sc=20):
     line_width=0.15*sc
 
     # Padding around image.
-    fudge=0.5*sc
+    fudge=sc
 
     # Extract sample locations and radii
     X = samples['x']
@@ -202,6 +191,7 @@ def make_image(samples, filename, sc=20):
 
     # Find list of samples that branch off from each sample.
     arms = find_arms(X, Y, P, children);
+    print(arms)
 
     # Draw a line from every (non-root) sample to its parent
     lines = dwg.add(dwg.g(id='lines', stroke='black', stroke_linecap='round', stroke_width=line_width))
@@ -223,29 +213,45 @@ def make_image(samples, filename, sc=20):
     numbers = dwg.add(dwg.g(id='numbers', text_anchor='middle'))
     label_lines = dwg.add(dwg.g(id='lines', stroke='black', stroke_linecap='round', stroke_width=line_width))
     for i in range(nsamp):
-        iscol = len(collocated[i])>1
+        ns = len(collocated[i])
+        iscol = ns>1
 
-        if iscol and (i==0 or not is_collocated(X,Y,i,P[i])):
+        # only label samples that are either:
+        #  * not collocated
+        #  * are the root of a collocated set
+        if i==0 or not is_collocated(X,Y,i,P[i]):
             angles = [angle_norm(X,Y,i,j) for j in arms[i]]
+            if len(angles)==0:
+                angles = [math.pi/2]
             angles.sort()
             angles.append(angles[0]+2*math.pi)
 
             diff = [angles[j]-angles[j-1] for j in range(1,len(angles))]
 
             label_ids = collocated[i]
-            out_rad = 1.25*max([R[j] for j in label_ids])
+            max_rad = max([R[j] for j in label_ids])
+            label_rad = sc/2
+            out_rad = label_rad+max_rad
 
             center= (X[i], Y[i])
             for j in range(len(label_ids)):
-                l = label_ids[j]
-                color = sample_color(children,l)
-                in_rad = R[l]
+                lab = label_ids[j]
+                rad = R[lab]
+                # Color of label
+                color = sample_color(children,lab)
+                # Direction relative to sample at which label will be drawn
                 u = unit_at_angle(angles[j]+diff[j]/2)
-                start = (X[i]+in_rad *u[0], Y[i]+in_rad *u[1])
-                end   = (X[i]+out_rad*u[0], Y[i]+out_rad*u[1])
-                label_lines.add(dwg.line(start=start, end=end, stroke=color))
-                text_pos, anchor = align_number(end, u, 0.7*sc)
-                numbers.add(dwg.text(str(l), insert=text_pos, stroke=color, fill=color, text_anchor=anchor))
+                start = (X[i]+rad*u[0], Y[i]+rad*u[1])
+                if rad<max_rad:
+                    in_rad = R[lab]
+                    end   = (X[i]+(max_rad+label_rad)*u[0], Y[i]+(max_rad+label_rad)*u[1])
+                    label_lines.add(dwg.line(start=start, end=end, stroke=color, stroke_width=line_width/2))
+                else:
+                    end = start
+
+                end = (end[0]+label_rad*u[0], end[1]+label_rad*u[1])
+                text_pos = align_number(end, sc)
+                numbers.add(dwg.text(str(lab), insert=text_pos, stroke=color, fill=color, text_anchor='start'))
 
         elif not iscol:
             color = sample_color(children,i)
@@ -280,28 +286,28 @@ def generate(path=''):
         'p': [npos, 0],
         'x': [0, 10],
         'y': [0, 0],
-        'r': [2, 1],
+        'r': [1, 0.5],
     }
 
     tree3 = {
         'p': [npos, 0, 1, 1],
         'x': [0, 10, 15, 15],
         'y': [0, 0, 3, -3],
-        'r': [2, 1.5, 1, 1],
+        'r': [1, 0.5, 0.25, 0.25],
     }
 
     tree4a = {
         'p': [npos, 0, 1,  2,  1,  4,],
         'x': [0, 10,  10, 15, 10, 15,],
         'y': [0, 0,    0,  3,  0, -3,],
-        'r': [2, 1.5,  1,  1,  1,  1],
+        'r': [1, 0.5,  0.25, 0.25,  0.25,  0.25],
     }
 
     tree4b = {
-        'p': [npos, 0,    1, 2,  2],
-        'x': [0,   10,   10, 15, 15],
-        'y': [0,    0,    0,  3, -3],
-        'r': [2,    1.5,  1,  1,  1],
+        'p': [npos, 0,      1,    2,  2],
+        'x': [0,   10,     10,   15, 15],
+        'y': [0,    0,      0,    3, -3],
+        'r': [1,    0.5, 0.25, 0.25, 0.25],
     }
 
     tree5 = {
