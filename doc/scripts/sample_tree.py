@@ -191,7 +191,6 @@ def make_image(samples, filename, sc=20):
 
     # Find list of samples that branch off from each sample.
     arms = find_arms(X, Y, P, children);
-    print(arms)
 
     # Draw a line from every (non-root) sample to its parent
     lines = dwg.add(dwg.g(id='lines', stroke='black', stroke_linecap='round', stroke_width=line_width))

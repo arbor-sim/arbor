@@ -114,6 +114,10 @@ This example has a sphere of radius 3 μm centered at the origin.
   :width: 100
   :align: center
 
+.. figure:: gen-images/morph1.svg
+  :width: 100
+  :align: center
+
 .. _morph-tree2:
 
 Tree₂: Single cable segment
@@ -130,6 +134,10 @@ specifically a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm.
       0,      10,   0,   0,    0.25,     1
 
 .. figure:: gen-images/tree2.svg
+  :width: 300
+  :align: center
+
+.. figure:: gen-images/morph2.svg
   :width: 300
   :align: center
 
@@ -153,6 +161,10 @@ and end with points 0.25 μm.
       1,      15,  -3,   0,    0.25,     1
 
 .. figure:: gen-images/tree3.svg
+  :width: 400
+  :align: center
+
+.. figure:: gen-images/morph3.svg
   :width: 400
   :align: center
 
@@ -184,6 +196,10 @@ the distal sample of the first branch.
   :width: 400
   :align: center
 
+.. figure:: gen-images/morph4.svg
+  :width: 400
+  :align: center
+
 .. _morph-tree5:
 
 Tree₅: ball and stick
@@ -201,6 +217,10 @@ The next example is a spherical soma of radius 3 μm with a branch of length
       1,      10,   0,   0,       1,     1
 
 .. figure:: gen-images/tree5.svg
+  :width: 300
+  :align: center
+
+.. figure:: gen-images/morph5.svg
   :width: 300
   :align: center
 

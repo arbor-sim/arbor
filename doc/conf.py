@@ -46,4 +46,7 @@ if not os.path.exists(img_path):
 import sample_tree
 sample_tree.generate(img_path)
 
+import morphology
+morphology.generate(img_path)
+
 print("-------------------------")
