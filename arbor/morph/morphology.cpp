@@ -285,7 +285,7 @@ mlocation canonical(const morphology& m, mlocation loc) {
 // around fork-points.
 
 mcable_list build_mextent_cables(const morphology& m, const mcable_list& cables) {
-    arb_assert(test_invariants(cables));
+    arb_assert(arb::test_invariants(cables));
 
     std::unordered_set<msize_t> branch_tails;
 
@@ -398,6 +398,8 @@ bool mextent::test_invariants(const morphology& m) const {
 }
 
 bool mextent::intersects(const mcable_list& a) const {
+    arb_assert(arb::test_invariants(a));
+
     // Early exit?
     if (empty() || a.empty() ||
         cables_.front().branch>a.back().branch ||
