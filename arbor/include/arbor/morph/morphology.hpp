@@ -114,9 +114,9 @@ struct mextent {
     friend mextent join(const mextent& a, const mextent& b);
 
     // Forward const container operations:
-    decltype(auto) cbegin() const { return cables_.begin(); }
+    decltype(auto) cbegin() const { return cables_.cbegin(); }
     decltype(auto) begin() const { return cables_.begin(); }
-    decltype(auto) cend() const { return cables_.end(); }
+    decltype(auto) cend() const { return cables_.cend(); }
     decltype(auto) end() const { return cables_.end(); }
 
     bool empty() const { return cables_.empty(); }
