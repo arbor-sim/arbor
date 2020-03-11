@@ -146,6 +146,8 @@ void register_morphology(pybind11::module& m) {
                 "The number of samples in the sample tree.")
         .def_property_readonly("parents", [](const arb::sample_tree& st){return st.parents();},
                 "A list with the parent index of each sample.")
+        .def_property_readonly("samples", [](const arb::sample_tree& st){return st.samples();},
+                "A list of the samples.")
         .def("__str__", [](const arb::sample_tree& s) {
                 return util::pprintf("<arbor.sample_tree:\n{}>", s);});
 

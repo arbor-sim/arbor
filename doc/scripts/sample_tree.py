@@ -10,7 +10,7 @@ def make_annotated(filename):
 
     sc=18
     line_width=0.2*sc
-    fudge=1*sc
+    fudge=1.5*sc
 
     colors = ['black', 'cornflowerblue', 'tomato', 'mediumseagreen']
 
@@ -168,7 +168,7 @@ def make_image(samples, filename, sc=20):
     line_width=0.15*sc
 
     # Padding around image.
-    fudge=sc
+    fudge=1.5*sc
 
     # Extract sample locations and radii
     X = samples['x']
@@ -268,6 +268,22 @@ def make_image(samples, filename, sc=20):
     # Write the image to file.
     dwg.save()
 
+def make_table(tree, name):
+    X = tree['x']
+    Y = tree['y']
+    R = tree['r']
+    P = tree['p']
+    T = tree['t']
+
+    n = len(X)
+
+    print(name)
+    for i in range(n):
+        p = str(P[i]) if i>0 else 'npos'
+        s = '{ID:4d}, {p:>8s}, {x:4.1f}, {y:4.1f}, {z:4.1f}, {r:4.1f}, {tag:4d}'.format(ID=i, p=p, x=X[i], y=Y[i], z=0, r=R[i], tag=T[i])
+        print(s)
+    print()
+
 def generate(path=''):
 
     npos = -1
@@ -277,13 +293,31 @@ def generate(path=''):
         'x': [0],
         'y': [0],
         'r': [2],
+        't': [1],
     }
 
-    tree2 = {
+    tree2a = {
         'p': [npos, 0],
         'x': [0, 10],
         'y': [0, 0],
         'r': [1, 0.5],
+        't': [1, 1],
+    }
+
+    tree2b = {
+        'p': [npos, 0, 1, 2, 3],
+        'x': [0, 3, 5, 8, 10],
+        'y': [0, 0.2, -0.1, 0,   0],
+        'r': [1, 0.8, 0.7,  0.6, 0.5],
+        't': [1,  1,  1,  1,  1],
+    }
+
+    tree2c = {
+        'p': [npos, 0, 1, 2, 3, 4],
+        'x': [0, 3, 5, 5, 8, 10],
+        'y': [0, 0.2, -0.1, -0.1, 0,   0],
+        'r': [1, 0.8, 0.7,  0.3, 0.5, 0.5],
+        't': [1,  1,  1,  1,  1,  1],
     }
 
     tree3 = {
@@ -291,6 +325,7 @@ def generate(path=''):
         'x': [0, 10, 15, 15],
         'y': [0, 0, 3, -3],
         'r': [1, 0.5, 0.25, 0.25],
+        't': [1,  1,  1,  1],
     }
 
     tree4a = {
@@ -298,6 +333,7 @@ def generate(path=''):
         'x': [0, 10,  10, 15, 10, 15,],
         'y': [0, 0,    0,  3,  0, -3,],
         'r': [1, 0.5,  0.25, 0.25,  0.25,  0.25],
+        't': [1,  1,  1,  1,  1,  1],
     }
 
     tree4b = {
@@ -305,22 +341,55 @@ def generate(path=''):
         'x': [0,   10,     10,   15, 15],
         'y': [0,    0,      0,    3, -3],
         'r': [1,    0.5, 0.25, 0.25, 0.25],
+        't': [1,    1, 1, 1, 1],
     }
 
     tree5 = {
         'p': [npos, 0, 1],
         'x': [0, 2, 10],
         'y': [0, 0, 0],
-        'r': [2, 1, 1]
+        'r': [2, 1, 1],
+        't': [1, 1, 1]
     }
+
+    tree6a = {
+       'x': [ 0,  5,   10,   15, 18,   23,   20],
+       'y': [ 0, -1,    0.5,  0,  5,    8,   -4],
+       'r': [ 3,  1.2,  1.2,  1,  1,  0.7,  0.8],
+       'p': [-1,  0,    1,    2,  3,    4,    3],
+       't': [ 1,  1,    1,    1,  1,    1,    1]
+    }
+
+    tree6b = {
+       'x': [ 0,  3,     5,  10  , 15, 18,   23,   20],
+       'y': [ 0,  0,    -1,   0.5,  0,  5,    8,   -4],
+       'r': [ 3,  1.2, 1.2,   1.2,  1,  1,  0.7,  0.8],
+       'p': [-1,  0,     1,   2  ,  3,    4,  5,    4],
+       't': [ 1,  1,     1,   1  ,  1,    1,   1,   1]
+    }
+
+    branches = [[0], [1, 2, 3, 4], [4, 5, 6], [4, 7]]
 
     make_annotated(path+'/stree.svg')
     make_image(tree1, path+'/tree1.svg')
-    make_image(tree2, path+'/tree2.svg')
+    make_image(tree2a, path+'/tree2a.svg')
+    make_image(tree2b, path+'/tree2b.svg')
+    make_image(tree2c, path+'/tree2c.svg')
     make_image(tree3, path+'/tree3.svg')
     make_image(tree4a, path+'/tree4a.svg')
     make_image(tree4b, path+'/tree4b.svg')
     make_image(tree5, path+'/tree5.svg')
+    make_image(tree6a, path+'/tree6a.svg')
+    make_image(tree6b, path+'/tree6b.svg')
+
+    make_table(tree1,  'tree1')
+    make_table(tree2a, 'tree2a')
+    make_table(tree2b, 'tree2b')
+    make_table(tree2c, 'tree2c')
+    make_table(tree3,  'tree3')
+    make_table(tree4a, 'tree4a')
+    make_table(tree4b, 'tree4b')
+    make_table(tree5,  'tree5')
 
 if __name__ == '__main__':
     generate('.')

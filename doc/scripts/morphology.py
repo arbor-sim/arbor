@@ -36,7 +36,7 @@ def make_image(morph, filename, sc=20):
     line_width=0.1*sc
 
     # Padding around image.
-    fudge=1*sc
+    fudge=1.5*sc
 
     nbranches = len(morph)
 
@@ -91,14 +91,15 @@ def make_image(morph, filename, sc=20):
                 b = (X[j-1], Y[j-1])
                 e = (X[j],   Y[j])
                 d = sub_vec(e,b)
-                o = rot90_vec(unit_vec(d))
-                rb = R[j-1]
-                re = R[j]
-                p1 = add_vec(b, scal_vec(rb, o))
-                p2 = add_vec(e, scal_vec(re, o))
-                p3 = sub_vec(e, scal_vec(re, o))
-                p4 = sub_vec(b, scal_vec(rb, o))
-                lines.add(dwg.polygon(points=[p1,p2,p3,p4]))
+                if norm_vec(d)>0.00001: # only draw nonzero length segments
+                    o = rot90_vec(unit_vec(d))
+                    rb = R[j-1]
+                    re = R[j]
+                    p1 = add_vec(b, scal_vec(rb, o))
+                    p2 = add_vec(e, scal_vec(re, o))
+                    p3 = sub_vec(e, scal_vec(re, o))
+                    p4 = sub_vec(b, scal_vec(rb, o))
+                    lines.add(dwg.polygon(points=[p1,p2,p3,p4]))
 
         for j in range(nsamp):
             points.add(dwg.circle(center=(X[j], Y[j]), r=sc*0.05))
@@ -115,6 +116,33 @@ def make_image(morph, filename, sc=20):
     # Write the image to file.
     dwg.save()
 
+def make_morph(tree, branches):
+    X = tree['x']
+    Y = tree['y']
+    R = tree['r']
+    nb = len(branches)
+    m = []
+    for i in range(nb):
+        b = {}
+        ids = branches[i]
+        if len(ids)==1:
+            b = {
+                'kind': 'sphere',
+                'x': [X[0]],
+                'y': [Y[0]],
+                'r': [R[0]]
+            }
+        else:
+            b = {
+                'kind': 'cable',
+                'x': [X[j] for j in ids],
+                'y': [Y[j] for j in ids],
+                'r': [R[j] for j in ids]
+            }
+        m.append(b)
+
+    return m
+
 def generate(path=''):
 
     npos = -1
@@ -127,12 +155,28 @@ def generate(path=''):
          'parent':-1},
     ]
 
-    morph2 = [
+    morph2a = [
         {'kind': 'cable',
          'x': [0, 10],
          'y': [0, 0],
          'r': [1, 0.5],
          'parent':-1},
+    ]
+
+    morph2b = [
+        {'kind': 'cable',
+        'x': [0, 3, 5, 8, 10],
+        'y': [0, 0.2, -0.1, 0,   0],
+        'r': [1, 0.8, 0.7,  0.6, 0.5],
+        'parent':-1},
+    ]
+
+    morph2c = [
+        {'kind': 'cable',
+        'x': [0, 3, 5, 5, 8, 10],
+        'y': [0, 0.2, -0.1, -0.1, 0,   0],
+        'r': [1, 0.8, 0.7,  0.3, 0.5, 0.5],
+        'parent':-1},
     ]
 
     morph3 = [
@@ -171,7 +215,7 @@ def generate(path=''):
          'parent':1},
     ]
 
-    morph5 = [
+    morph5a = [
         {'kind': 'sphere',
          'x': [0],
          'y': [0],
@@ -182,6 +226,14 @@ def generate(path=''):
          'y': [0, 0],
          'r': [1, 0.5],
          'parent':0},
+    ]
+
+    morph5b = [
+        {'kind': 'cable',
+         'x': [0, 2, 10],
+         'y': [0, 0, 0],
+         'r': [2, 1, 0.5],
+         'parent':-1},
     ]
 
     morphx = [
@@ -207,11 +259,38 @@ def generate(path=''):
          'parent':1},
     ]
 
-    make_image(morph1, path+'/morph1.svg')
-    make_image(morph2, path+'/morph2.svg')
-    make_image(morph3, path+'/morph3.svg')
-    make_image(morph4, path+'/morph4.svg')
-    make_image(morph5, path+'/morph5.svg')
+    make_image(morph1,  path+'/morph1.svg')
+    make_image(morph2a, path+'/morph2a.svg')
+    make_image(morph2b, path+'/morph2b.svg')
+    make_image(morph2c, path+'/morph2c.svg')
+    make_image(morph3,  path+'/morph3.svg')
+    make_image(morph4,  path+'/morph4.svg')
+    make_image(morph5a, path+'/morph5a.svg')
+    make_image(morph5b, path+'/morph5b.svg')
+
+    tree6a = {
+       'x': [ 0,  5,   10,   15, 18,   23,   20],
+       'y': [ 0, -1,    0.5,  0,  5,    8,   -4],
+       'r': [ 3,  1.2,  1.2,  1,  1,  0.7,  0.8],
+       'p': [-1,  0,    1,    2,  3,    4,    3],
+       't': [ 1,  1,    1,    1,  1,    1,    1]
+    }
+    branches6a = [[0, 1, 2, 3], [3, 4, 5], [3, 6]]
+
+    morph6a = make_morph(tree6a, branches6a)
+    make_image(morph6a, path+'/morph6a.svg')
+
+    tree6b = {
+       'x': [ 0,  3,     5,  10  , 15, 18,   23,   20],
+       'y': [ 0,  0,    -1,   0.5,  0,  5,    8,   -4],
+       'r': [ 3,  1.2, 1.2,   1.2,  1,  1,  0.7,  0.8],
+       'p': [-1,  0,     1,   2  ,  3,    4,  5,    4],
+       't': [ 1,  1,     1,   1  ,  1,    1,   1,   1]
+    }
+    branches6b = [[0], [1, 2, 3, 4], [4, 5, 6], [4, 7]]
+
+    morph6b = make_morph(tree6b, branches6b)
+    make_image(morph6b, path+'/morph6b.svg')
 
 if __name__ == '__main__':
     generate('.')

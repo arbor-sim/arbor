@@ -50,6 +50,7 @@ The following terms are used to label samples in a sample tree:
 * *child*: The children of sample *s* are samples whose parent is *s*.
 * *terminal*: A sample with no children.
 * *fork*: A sample with more than one child. Fork points are where a cable splits into two or more branches.
+* *collocated*: Two points are collocated if they have the same location.
 
 To demonstrate these concepts, the following observations apply to the sample tree :ref:`below <morph-img-stree>`:
 
@@ -82,32 +83,129 @@ The following rules and corollaries apply to sample trees in Arbor:
   * Ids of samples on the same unbranched section do not need to be contiguous.
 
 * A child can be *collocated* with its parent, where both have the same location.
+  More than two samples can be collocated at the same location, however there must be a direct
+  parent-child relationship between all samples.
   This is used in practice to indicate a discontinuity in the radius of a cable, or the
   start of a child branch with a different radius than its parent.
 
-Sample Tree Examples
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This sample tree can be created in Python by creating an empty sample tree, and appending samples to the tree:
 
-Cell morphologies are constructed from a series of connected truncated frustums, with an optional
-spherical segment at the root of the morphology, which conventionally corresponds to the soma.
+.. code:: Python
+
+    import arbor
+    tree = arbor.sample_tree()
+    tree.append(          x= 0.0, y= 0.0, z=0.0, radius=3.0, tag=1)
+    tree.append(parent=0, x= 5.0, y=-1.0, z=0.0, radius=1.2, tag=1)
+    tree.append(parent=1, x=10.0, y= 0.5, z=0.0, radius=1.2, tag=3)
+    tree.append(parent=2, x=15.0, y= 0.0, z=0.0, radius=1.0, tag=3)
+    tree.append(parent=3, x=18.0, y= 5.0, z=0.0, radius=1.0, tag=3)
+    tree.append(parent=4, x=23.0, y= 8.0, z=0.0, radius=0.7, tag=3)
+    tree.append(parent=3, x=20.0, y=-4.0, z=0.0, radius=0.8, tag=3)
+
+A ``parent`` isn't provided when adding the root sample, and can dropped when adding subsequent samples
+if the sample's parent is the last sample that was added to the tree.
+Sample trees constructed in this manner, where the parent of each new sample must already be in the tree
+are always valid.
+
+.. _morph-morphology:
+
+Morphology
+----------
+
+Sample trees do not describe the geometry between samples or whether the sample
+at the root of the tree should be interpreted as a sphere or as the start of one or more cable sections.
+This interpretation is provided in Arbor by a *morphology*, which interpr takes a sample tree 
+
+The following terms are used to describe parts of a cell morphology, on top of those introduced above
+for sample trees:
+
+* *cable segment*: a frustum (cylinder or truncated cone) between two adjacent samples.
+* *branch*: an unbranched sequence of cable segments that has fork, terminal or root points at each end.
+* *spherical branch*: a special branch, represented by a single sample, that is a sphere with center and radius defined by the root sample.
+* *distal*: a location is distal to another if it is further from the root.
+* *proximal*: a location is distal to another if it is further from the root.
+* *location*: a point on the morphology, uniquely identified by a tuple ``(branch, pos)``, where branch identifies the branch, and pos is a relative position  between 0 and 1.
+
+Taking the example sample tree from above:
+
+.. code:: Python
+
+    >>> morph = arbor.morphology(tree, spherical_soma=False)
+    # query basic information about the morphology
+    >>> morph.num_branches
+    3
+    >>> morph.num_samples
+    7
+    >>> morph.spherical_root
+    False
+
+    # query the sample indexes along each branch
+    >>> morph.branch_indexes(0)
+    [0, 1, 2, 3]
+    >>> morph.branch_indexes(1)
+    [3, 4, 5]
+    >>> morph.branch_indexes(2)
+    [3, 6]
+
+    # The ids of the branches that are children of branch 0
+    >>> morph.branch_children(0)
+    [1, 2]
+    # The ids of the parent of branch 1
+    >>> morph.branch_parent(0)
+    0
+
+    # the underlying samples and parents
+    >>> morph.samples
+    [(sample (point 0 0 0 3) 1), (sample (point 5 -1 0 1.2) 3), (sample (point 10 0.5 0 1.2) 3), (sample (point 15 0 0 1) 3), (sample (point 18 5 0 1) 3), (sample (point 23 8 0 0.7) 3), (sample (point 20 -4 0 0.8) 3)]
+    >>> morph.sample_parents
+    [4294967295, 0, 1, 2, 3, 4, 3]
 
 
-A sample tree is a connected set of samples, without the concept of truncated frustums, or spherical segments.
-A :ref:`morphology <morph-morphology>`
+Rules about branches
+
+* Every cable branch has at least two samples, which define a single cable segment.
+* There can be either zero or one spherical 
+* Branches are numbered starting from 0
+
+    * parent id less than child id
+    * root branch has index 0, and always contains the root sample.
+    * branches are numbered deterministically from a sample tree: in the order of the first sample in each branch.
+
+For morphologies with a spherical root, the root sample defines a special spherical branch.
+Rules imposed on spherical:
+
+* samples with parent *root* (i.e. *s.parent==0*) must be a distance of *root.radius* from *root.location*.
+* samples with *root* as parent are the start of a branch, and hence must have at least one child sample.
+
+Morphology Construction
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In Arbor morphologies can have the following features:
+
+* Spherical soma.
+* Somas compsed of cylindrical segments.
+* Cables that taper linearly between two points.
+* Cables that have step discontinuities in radius.
+* Branches that bifurcate into branches with different radius.
+
+These features are required to faithfully reproduce morphologies specified in
+model specification formats such as SWC, NeuroML, NEURON HOC and NeuroLicida ASCI ASC files.
+Methods for reproducing these features are shown in a seris of examples below.
 
 .. _morph-tree1:
 
 Tree₁: Spherical cell
 """"""""""""""""""""""""""""""
 
-The simplest sample tree is a single sample, used to represent a *spherical cell*.
+The simplest morphology in Arbor is to model the cell as a sphere.
+For this a  single sample, used to represent a *spherical cell*.
 This example has a sphere of radius 3 μm centered at the origin.
 
 .. csv-table::
-   :widths: 10, 10, 10, 10, 10, 10
+   :widths: 8, 10, 10, 10, 10, 10, 10
 
-   *parent*, *x*, *y*, *z*, *radius*, *tag*
-   npos,       0,   0,   0,        3,     1
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,    npos,       0,   0,   0,        3,     1
 
 
 .. figure:: gen-images/tree1.svg
@@ -123,23 +221,75 @@ This example has a sphere of radius 3 μm centered at the origin.
 Tree₂: Single cable segment
 """"""""""""""""""""""""""""""
 
-Next in order of complexity is a single *unbranched cable segment* defined by two samples,
-specifically a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm.
+Next in order of complexity is a cable branch, with no fork points.
+
+The first example is a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm
+at the proximal and distal ends respectively.
+It is constructed from a sample tree of two points that define the end points of the cable.
 
 .. csv-table::
-   :widths: 10, 10, 10, 10, 10, 10
+   :widths: 8, 10, 10, 10, 10, 10, 10
 
-   *parent*, *x*, *y*, *z*, *radius*, *tag*
-   npos,       0,   0,   0,    0.50,     1
-      0,      10,   0,   0,    0.25,     1
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,    npos,       0,   0,   0,    0.50,     1
+   1,       0,      10,   0,   0,    0.25,     1
 
-.. figure:: gen-images/tree2.svg
+.. figure:: gen-images/tree2a.svg
   :width: 300
   :align: center
 
-.. figure:: gen-images/morph2.svg
+.. figure:: gen-images/morph2a.svg
   :width: 300
   :align: center
+
+The radius and centre of a cable segment vary lineary between its end points. To define an unbranched cable
+with non uniform center and/or radius, use multiple samples to build a piecewise linear reconstruction
+of the cable geometry.
+This example starts and ends at the same locations as the previous, however it is constructed from 4
+distinct cable segments:
+
+.. csv-table::
+   :widths: 8, 10, 10, 10, 10, 10, 10
+
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
+   1,        0,  3.0,  0.2,  0.0,  0.8,    1
+   2,        1,  5.0, -0.1,  0.0,  0.7,    1
+   3,        2,  8.0,  0.0,  0.0,  0.6,    1
+   4,        3, 10.0,  0.0,  0.0,  0.5,    1
+
+.. figure:: gen-images/tree2b.svg
+  :width: 300
+  :align: center
+
+.. figure:: gen-images/morph2b.svg
+  :width: 300
+  :align: center
+
+It is possible to have a discontinuity in cable radius, by using collocated samples.
+The next example adds a discontinuity to the previous example at sample 2, where the
+radius now changes from 0.7 μm to 0.3 μm:
+
+.. csv-table::
+   :widths: 8, 10, 10, 10, 10, 10, 10
+
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
+   1,        0,  3.0,  0.2,  0.0,  0.8,    1
+   2,        1,  5.0, -0.1,  0.0,  0.7,    1
+   3,        2,  5.0, -0.1,  0.0,  0.3,    1
+   4,        3,  8.0,  0.0,  0.0,  0.5,    1
+   5,        4, 10.0,  0.0,  0.0,  0.5,    1
+
+.. figure:: gen-images/tree2c.svg
+  :width: 300
+  :align: center
+
+.. figure:: gen-images/morph2c.svg
+  :width: 300
+  :align: center
+
+  really confusions
 
 .. _morph-tree3:
 
@@ -152,13 +302,13 @@ The two child branches start with the to the distal sample of the first branch
 and end with points 0.25 μm.
 
 .. csv-table::
-   :widths: 10, 10, 10, 10, 10, 10
+   :widths: 8, 10, 10, 10, 10, 10, 10
 
-   *parent*, *x*, *y*, *z*, *radius*, *tag*
-   npos,       0,   0,   0,    0.50,     1
-      0,      10,   0,   0,    0.50,     1
-      1,      15,   3,   0,    0.25,     1
-      1,      15,  -3,   0,    0.25,     1
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,    npos,       0,   0,   0,    0.50,     1
+   1,       0,      10,   0,   0,    0.50,     1
+   2,       1,      15,   3,   0,    0.25,     1
+   4,       1,      15,  -3,   0,    0.25,     1
 
 .. figure:: gen-images/tree3.svg
   :width: 400
@@ -178,15 +328,22 @@ additional samples with radius 0.25 μm can be inserted at the start of each bra
 the distal sample of the first branch.
 
 .. csv-table::
-   :widths: 10, 10, 10, 10, 10, 10
+   :widths: 8, 10, 10, 10, 10, 10, 10
 
-   *parent*, *x*, *y*, *z*, *radius*, *tag*
-   npos,       0,   0,   0,    0.50,     1
-      0,      10,   0,   0,    0.50,     1
-      1,      10,   0,   0,    0.25,     1
-      2,      15,   3,   0,    0.25,     1
-      1,      10,   0,   0,    0.25,     1
-      4,      15,  -3,   0,    0.25,     1
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
+   1,        0, 10.0,  0.0,  0.0,  0.5,    1
+   2,        1, 15.0,  3.0,  0.0,  0.2,    1
+   3,        1, 15.0, -3.0,  0.0,  0.2,    1
+
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
+   1,        0, 10.0,  0.0,  0.0,  0.5,    1
+   2,        1, 10.0,  0.0,  0.0,  0.2,    1
+   3,        2, 15.0,  3.0,  0.0,  0.2,    1
+   4,        1, 10.0,  0.0,  0.0,  0.2,    1
+   5,        4, 15.0, -3.0,  0.0,  0.2,    1
+
 
 .. figure:: gen-images/tree4a.svg
   :width: 400
@@ -220,47 +377,40 @@ The next example is a spherical soma of radius 3 μm with a branch of length
   :width: 300
   :align: center
 
-.. figure:: gen-images/morph5.svg
+This sample tree can be interpreted two ways: either as a single unbranched cable composed of
+two cable segments, or as two branches: a spherical root with a cable branch attached:
+
+.. figure:: gen-images/morph5a.svg
   :width: 300
   :align: center
 
-.. note::
-    The sample tree above could
-    also be used to represent a single unbranched cable, with two segments:
-    the first 3 μm segment tapers from 3 μm to 1 μm, and the second 7 μm segment
-    has constant radius of 1 μm.
+.. figure:: gen-images/morph5b.svg
+  :width: 300
+  :align: center
 
-    This ambiguity is cleared up when
-    :ref:`transforming a sample tree into a morphology <morph-morphology>`.
+Example 6: a bit more involved
+""""""""""""""""""""""""""""""
 
-Sample Tree Construction
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Take our example from throughout this page:
 
-.. _morph-morphology:
+.. figure:: gen-images/tree6a.svg
+  :width: 400
+  :align: center
 
-Morphology
-----------
+.. figure:: gen-images/morph6a.svg
+  :width: 400
+  :align: center
 
-A sample tree does not describe the actual branches
+To use a spherical soma, add an aditional sample on the edge of the soma that represents the
+start of the dendrite that branches off the soma, then instantiate the morphology with
+``spherical_root`` set to ``True``:
 
-Arbor treats morphologies as a tree of truncated frustums, with an optional spherical segment at the root of the tree.
+.. figure:: gen-images/tree6b.svg
+  :width: 400
+  :align: center
 
-A morphology is a concrete description of a morphology in terms of cable branches, and optionally a spherical root branch.
+.. figure:: gen-images/morph6b.svg
+  :width: 400
+  :align: center
 
-When spherical roots are optional, as in Arbor, it is possible for the morphology represented by a sample tree to be ambiguous.
 
-* *fork*: a sample that has at least two children.
-* *terminal*: a sample that has no children (e.g. the tip of a dendrite.)
-* *cable branch*: an unbranched series of cable segments that has fork points at each end.
-* *spherical branch*: always at root, represented by a single sample, sphere with center *location* and *radius*.
-* *distal*: away from the root relative.
-* *proximal*: towards the root relative.
-
-rules:
-
-* Every cable branch has at least two samples, one at either end, which are referred to as the proximal and distal samples of the branch.
-
-For morphologies with a spherical root, the root sample defines a special spherical branch.
-Rules imposed on spherical:
-* samples with parent *root* (i.e. *s.parent==0*) must be a distance of *root.radius* from *root.location*.
-* samples with *root* as parent are the start of a branch, and hence must have at least one child sample.
