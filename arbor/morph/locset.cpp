@@ -203,20 +203,40 @@ locset most_distal(region reg) {
     return locset(most_distal_{std::move(reg)});
 }
 
+template <typename X>
+void unique_in_place(std::vector<X>& v) {
+    if (v.empty()) return;
+
+    auto write = v.begin();
+    auto read = write;
+
+    while (++read!=v.end()) {
+        if (*read==*write) continue;
+        if (++write!=read) *write = std::move(*read);
+    }
+
+    v.erase(++write, v.end());
+}
+
 mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     mlocation_list L;
 
-    auto cables = thingify(n.reg, p);
+    auto cables = thingify(n.reg, p).cables();
     util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.dist_pos < r.dist_pos);});
 
     std::unordered_set<msize_t> branches_visited;
-    for (auto it= cables.rbegin(); it!= cables.rend(); it++) {
-        auto bid = (*it).branch;
-        auto pos = (*it).dist_pos;
+    for (auto it = cables.rbegin(); it!=cables.rend(); ++it) {
+        auto bid = it->branch;
+        auto pos = it->dist_pos;
+
+        // Exclude any initial branch points unless they are top-level.
+        if (pos==0 && p.morphology().branch_parent(bid)!=mnpos) {
+            continue;
+        }
 
         // Check if any other points on the branch or any of its children has been added as a distal point
         if (branches_visited.count(bid)) continue;
-        L.push_back({bid, pos});
+        L.push_back(canonical(p.morphology(), mlocation{bid, pos}));
         while (bid != mnpos) {
             branches_visited.insert(bid);
             bid = p.morphology().branch_parent(bid);
@@ -224,6 +244,7 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     }
 
     util::sort(L);
+    unique_in_place(L);
     return L;
 }
 
@@ -243,10 +264,11 @@ locset most_proximal(region reg) {
 }
 
 mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
-    auto cables = thingify(n.reg, p);
-    arb_assert(test_invariants(cables));
+    auto extent = thingify(n.reg, p);
+    if (extent.empty()) return {};
 
-    auto most_prox = cables.front();
+    arb_assert(extent.test_invariants(p.morphology()));
+    auto most_prox = extent.cables().front();
     return {{most_prox.branch, most_prox.prox_pos}};
 }
 
@@ -274,7 +296,8 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     auto embed = p.embedding();
 
     // Thingify the region and store relevant data
-    auto reg_cables = thingify(u.reg, p);
+    mextent reg_extent = thingify(u.reg, p);
+    const mcable_list& reg_cables = reg_extent.cables();
 
     std::vector<double> lengths_bounds;
     auto lengths_part = util::make_partition(lengths_bounds,
