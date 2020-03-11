@@ -143,60 +143,6 @@ private:
     float event_weight_ = 0.01;
 };
 
-struct cell_stats {
-    using size_type = unsigned;
-    size_type ncells = 0;
-    int nranks = 1;
-    size_type nsegs = 0;
-
-    cell_stats(arb::recipe& r, run_params params) {
-#ifdef ARB_MPI_ENABLED
-        if(!params.dry_run) {
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            MPI_Comm_size(MPI_COMM_WORLD, &nranks);
-            ncells = r.num_cells();
-            size_type cells_per_rank = ncells/nranks;
-            size_type b = rank*cells_per_rank;
-            size_type e = (rank+1)*cells_per_rank;
-            size_type nsegs_tmp = 0;
-            for (size_type i=b; i<e; ++i) {
-                auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs_tmp += c.morphology().num_branches();
-            }
-            MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-        }
-#else
-        if(!params.dry_run) {
-            nranks = 1;
-            ncells = r.num_cells();
-            for (size_type i = 0; i < ncells; ++i) {
-                auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs += c.morphology().num_branches();
-            }
-        }
-#endif
-        else {
-            nranks = params.num_ranks;
-            ncells = r.num_cells(); //total number of cells across all ranks
-
-            for (size_type i = 0; i < params.num_cells_per_rank; ++i) {
-                auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-                nsegs += c.morphology().num_branches();
-            }
-
-            nsegs *= params.num_ranks;
-        }
-    }
-
-    friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
-        return o << "cell stats: "
-                 << s.nranks << " ranks; "
-                 << s.ncells << " cells; "
-                 << s.nsegs << " branches. ";
-    }
-};
-
 int main(int argc, char** argv) {
     try {
 #ifdef ARB_MPI_ENABLED
@@ -244,9 +190,6 @@ int main(int argc, char** argv) {
         auto tile = std::make_unique<tile_desc>(params.num_cells_per_rank,
                 params.num_ranks, params.cell, params.min_delay);
         arb::symmetric_recipe recipe(std::move(tile));
-
-        cell_stats stats(recipe, params);
-        std::cout << stats << "\n";
 
         auto decomp = arb::partition_load_balance(recipe, ctx);
 
