@@ -40,9 +40,9 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 10;
+    unsigned num_cells = 10000;
     double min_delay = 10;
-    double duration = 100;
+    double duration = 1;
     cell_parameters cell;
 };
 
@@ -136,42 +136,6 @@ private:
     arb::cable_cell_global_properties gprop_;
 };
 
-struct cell_stats {
-    using size_type = unsigned;
-    size_type ncells = 0;
-    size_type nsegs = 0;
-
-    cell_stats(arb::recipe& r) {
-#ifdef ARB_MPI_ENABLED
-        int nranks, rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &nranks);
-        ncells = r.num_cells();
-        size_type cells_per_rank = ncells/nranks;
-        size_type b = rank*cells_per_rank;
-        size_type e = (rank==nranks-1)? ncells: (rank+1)*cells_per_rank;
-        size_type nsegs_tmp = 0;
-        for (size_type i=b; i<e; ++i) {
-            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs_tmp += c.num_branches();
-        }
-        MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-#else
-        ncells = r.num_cells();
-        for (size_type i=0; i<ncells; ++i) {
-            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs += c.morphology().num_branches();
-        }
-#endif
-    }
-
-    friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
-        return o << "cell stats: "
-                 << s.ncells << " cells; "
-                 << s.nsegs << " branches.";
-    }
-};
-
 int main(int argc, char** argv) {
     try {
         bool root = true;
@@ -213,10 +177,10 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
-        cell_stats stats(recipe);
-        std::cout << stats << "\n";
 
-        auto decomp = arb::partition_load_balance(recipe, context);
+        arb::partition_hint_map hints;
+        hints[cell_kind::cable].cpu_group_size = arb::partition_hint::max_size;
+        auto decomp = arb::partition_load_balance(recipe, context, hints);
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
@@ -272,6 +236,9 @@ int main(int argc, char** argv) {
 
         // Write the samples to a json file.
         if (root) write_trace_json(voltage);
+
+        auto profile = arb::profile::profiler_summary();
+        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;

@@ -351,21 +351,26 @@ void fvm_lowered_cell_impl<B>::initialize(
     using util::value_by_key;
     using util::keys;
 
+    PE(sim_0);
     set_gpu();
 
     std::vector<cable_cell> cells;
     const std::size_t ncell = gids.size();
 
-    cells.reserve(ncell);
-    for (auto gid: gids) {
-        try {
-            cells.push_back(any_cast<cable_cell>(rec.get_cell_description(gid)));
-        }
-        catch (util::bad_any_cast&) {
-            throw bad_cell_description(rec.get_cell_kind(gid), gid);
-        }
-    }
+    cells.resize(ncell);
+    threading::parallel_for::apply(0, gids.size(), context_.thread_pool.get(),
+           [&](cell_size_type i) {
+               auto gid = gids[i];
+               try {
+                   cells[i] = std::move(any_cast<cable_cell>(rec.get_cell_description(gid)));
+               }
+               catch (util::bad_any_cast&) {
+                   throw bad_cell_description(rec.get_cell_kind(gid), gid);
+               }
+           });
 
+    PL();
+    PE(sim_1);
     cable_cell_global_properties global_props;
     try {
         util::any rec_props = rec.get_global_properties(cell_kind::cable);
@@ -397,8 +402,12 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize cells, build matrix.
 
-    fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters);
+    PL();
+    PE(sim_2);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters, context_);
 
+    PL();
+    PE(sim_3);
     std::vector<index_type> cv_to_intdom(D.size());
     std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_intdom.begin(),
                    [&cell_to_intdom](index_type i){ return cell_to_intdom[i]; });
@@ -408,14 +417,18 @@ void fvm_lowered_cell_impl<B>::initialize(
                               D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
     sample_events_ = sample_event_stream(num_intdoms);
 
+    PL();
+    PE(sim_4);
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props,  cells, D);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, D, context_);
 
     // Discretize and build gap junction info.
 
     auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
+    PL();
+    PE(sim_5);
     // Create shared cell state.
     // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)
 
@@ -442,6 +455,8 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     target_handles.resize(mech_data.n_target);
 
+    PL();
+    PE(sim_6);
     unsigned mech_id = 0;
     for (auto& m: mech_data.mechanisms) {
         auto& name = m.first;
@@ -508,6 +523,8 @@ void fvm_lowered_cell_impl<B>::initialize(
             mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
         }
     }
+    PL();
+    PE(sim_7);
 
     // Collect detectors, probe handles.
 
@@ -546,6 +563,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
 
+    PL();
     reset();
 }
 

@@ -11,6 +11,7 @@
 #include <arbor/mechcat.hpp>
 #include <arbor/recipe.hpp>
 
+#include "execution_context.hpp"
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -112,7 +113,7 @@ fvm_cv_discretization& append(fvm_cv_discretization&, const fvm_cv_discretizatio
 // Construct fvm_cv_discretization from one or more cells.
 
 fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt);
-fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells, const cable_cell_parameter_set& global_defaults);
+fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells, const cable_cell_parameter_set& global_defaults, const arb::execution_context& ctx);
 
 // Post-discretization data for point and density mechanism instantiation.
 
@@ -172,6 +173,6 @@ struct fvm_mechanism_data {
     std::size_t n_target = 0;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_cv_discretization& D);
+fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const arb::execution_context& ctx);
 
 } // namespace arb
