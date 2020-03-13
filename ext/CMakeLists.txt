@@ -8,6 +8,9 @@ target_include_directories(ext-json INTERFACE json/single_include)
 add_library(ext-tclap INTERFACE)
 target_include_directories(ext-tclap INTERFACE tclap/include)
 
+add_library(ext-tinyopt INTERFACE)
+target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
+
 # Random123 (DE Shaw Research) counter-based random number generators (header-only)
 
 add_library(ext-random123 INTERFACE)
