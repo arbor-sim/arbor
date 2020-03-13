@@ -3,10 +3,7 @@
 add_library(ext-json INTERFACE)
 target_include_directories(ext-json INTERFACE json/single_include)
 
-# TCLAP command line parsing libary (header-only).
-
-add_library(ext-tclap INTERFACE)
-target_include_directories(ext-tclap INTERFACE tclap/include)
+# tinyopt command line parsing libary (header-only).
 
 add_library(ext-tinyopt INTERFACE)
 target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
