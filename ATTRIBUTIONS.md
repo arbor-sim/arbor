@@ -7,14 +7,14 @@ MIT license.
 
 https://github.com/nlohmann/json
 
-## C++ Command Line Parser Library (tinyopt)
+## tinyopt
 
 A header only C++ library for command line argument parsing, written by Stuart Yates.
 BSD license.
 
 https://github.com/halfflat/tinyopt
 
-##  C++ Random number generator (Random123)
+##  Random123
 A header only counter-based random number generator, written by DE Shaw research
 BSD license.
 
