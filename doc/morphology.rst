@@ -192,12 +192,15 @@ These features are required to faithfully reproduce morphologies specified in
 model specification formats such as SWC, NeuroML, NEURON HOC and NeuroLicida ASCI ASC files.
 Methods for reproducing these features are shown in a seris of examples below.
 
+In all of the exampels morphologies are two dimensional, with the z-dimension set to zero,
+for illustration.
+
 .. _morph-tree1:
 
-Tree₁: Spherical cell
+Example 1: Spherical cell
 """"""""""""""""""""""""""""""
 
-The simplest morphology in Arbor is to model the cell as a sphere.
+The simplest morphology in Arbor is a sphere.
 For this a  single sample, used to represent a *spherical cell*.
 This example has a sphere of radius 3 μm centered at the origin.
 
@@ -212,18 +215,22 @@ This example has a sphere of radius 3 μm centered at the origin.
   :width: 100
   :align: center
 
+  The sample tree is a single sample with radius 3 μm.
+
 .. figure:: gen-images/morph1.svg
   :width: 100
   :align: center
 
+  The corresponding morphology is a sphere of radius 3 μm.
+
 .. _morph-tree2:
 
-Tree₂: Single cable segment
+Example 2: Unbranched cable
 """"""""""""""""""""""""""""""
 
 Next in order of complexity is a cable branch, with no fork points.
 
-The first example is a cable of length 10 μm, with radii of 0.5 μm and 0.25 μm
+We start with a cable of length 10 μm, with a radius that tapes from 0.5 μm to 0.25 μm
 at the proximal and distal ends respectively.
 It is constructed from a sample tree of two points that define the end points of the cable.
 
@@ -238,9 +245,13 @@ It is constructed from a sample tree of two points that define the end points of
   :width: 300
   :align: center
 
+  The sample tree has a root and terminal point, marked in blue and green respectively.
+
 .. figure:: gen-images/morph2a.svg
   :width: 300
   :align: center
+
+  The morphology is a tapered cable with one cable segment.
 
 The radius and centre of a cable segment vary lineary between its end points. To define an unbranched cable
 with non uniform center and/or radius, use multiple samples to build a piecewise linear reconstruction
@@ -262,11 +273,17 @@ distinct cable segments:
   :width: 300
   :align: center
 
+  The sample tree has 5 samples, where each sample has at most one child.
+
 .. figure:: gen-images/morph2b.svg
-  :width: 300
+  :width: 600
   :align: center
 
-It is possible to have a discontinuity in cable radius, by using collocated samples.
+  **left:** The resulting morphology is an ubranched cable comprised of 4 cable segments.
+
+  **right** The four segments form a one contiguous branch.
+
+Collocated samples can be used to create a discontinuity in cable radius.
 The next example adds a discontinuity to the previous example at sample 2, where the
 radius now changes from 0.7 μm to 0.3 μm:
 
@@ -285,15 +302,17 @@ radius now changes from 0.7 μm to 0.3 μm:
   :width: 300
   :align: center
 
+  Samples 2 and 3 are collocated with different radii.
+
 .. figure:: gen-images/morph2c.svg
-  :width: 300
+  :width: 600
   :align: center
 
-  really confusions
+  The resulting morphology has a step discontinuity in radius.
 
 .. _morph-tree3:
 
-Tree₃: Y-shaped cell
+Example 3: Y-shaped cell
 """"""""""""""""""""""""""""""
 
 The simplest branching morphology is a cable that bifurcates, a *y-shaped cell*.
@@ -308,7 +327,7 @@ and end with points 0.25 μm.
    0,    npos,       0,   0,   0,    0.50,     1
    1,       0,      10,   0,   0,    0.50,     1
    2,       1,      15,   3,   0,    0.25,     1
-   4,       1,      15,  -3,   0,    0.25,     1
+   3,       1,      15,  -3,   0,    0.25,     1
 
 .. figure:: gen-images/tree3.svg
   :width: 400
@@ -318,23 +337,15 @@ and end with points 0.25 μm.
   :width: 400
   :align: center
 
-.. _morph-tree4:
-
-Tree₄: Y-shaped cell variant
-""""""""""""""""""""""""""""""
-
-For the child branches in Tree₃  to have constant radius of 0.25 μm, instead of tapering from 0.5 μm to 0.25 μm,
-additional samples with radius 0.25 μm can be inserted at the start of each branch, collocated with
-the distal sample of the first branch.
+The child branches above start with the same radius of 0.5 μm as the distal end of their parent branch.
+If we wanted the branches to have a constant radius of 0.25 μm, instead of tapering from 0.5 μm to 0.25 μm,
+we use collocated samples of radius 0.25 μm.
+Two methods that use the same approach are illustrated below:
+* insert collocated points at the start of each child branch;
+* insert a single collocated point at the end of the parent branch.
 
 .. csv-table::
    :widths: 8, 10, 10, 10, 10, 10, 10
-
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
-   1,        0, 10.0,  0.0,  0.0,  0.5,    1
-   2,        1, 15.0,  3.0,  0.0,  0.2,    1
-   3,        1, 15.0, -3.0,  0.0,  0.2,    1
 
    *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
    0,     npos,  0.0,  0.0,  0.0,  1.0,    1
@@ -344,18 +355,33 @@ the distal sample of the first branch.
    4,        1, 10.0,  0.0,  0.0,  0.2,    1
    5,        4, 15.0, -3.0,  0.0,  0.2,    1
 
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
+   1,        0, 10.0,  0.0,  0.0,  0.5,    1
+   2,        1, 10.0,  0.0,  0.0,  0.2,    1
+   3,        2, 15.0,  3.0,  0.0,  0.2,    1
+   4,        2, 15.0, -3.0,  0.0,  0.2,    1
 
 .. figure:: gen-images/tree4a.svg
   :width: 400
   :align: center
 
+  The first approach has 3 collocated points at the fork: sample 1 is at the end
+  of the parent branch, and samples 2 and 4 are attached to sample 1 and are at
+  the start of the children branches.
+
 .. figure:: gen-images/tree4b.svg
   :width: 400
   :align: center
 
+  The second approach has 2 collocated points at the fork, and the children attach to 
+  the second collocated sample, which sets the radius to 0.25 μm.
+
 .. figure:: gen-images/morph4.svg
   :width: 400
   :align: center
+
+  The resulting morphology is the same for both approaches.
 
 .. _morph-tree5:
 
@@ -366,12 +392,12 @@ The next example is a spherical soma of radius 3 μm with a branch of length
 7 μm and constant radius of 1 μm attached.
 
 .. csv-table::
-   :widths: 10, 10, 10, 10, 10, 10
+   :widths: 8, 10, 10, 10, 10, 10, 10
 
-   *parent*, *x*, *y*, *z*, *radius*, *tag*
-   npos,       0,   0,   0,       3,     1
-      0,       3,   0,   0,       1,     1
-      1,      10,   0,   0,       1,     1
+   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
+   0,     npos,  0.0,  0.0,  0.0,  2.0,    1
+   1,        0,  2.0,  0.0,  0.0,  1.0,    1
+   2,        1, 10.0,  0.0,  0.0,  1.0,    1
 
 .. figure:: gen-images/tree5.svg
   :width: 300
@@ -381,11 +407,11 @@ This sample tree can be interpreted two ways: either as a single unbranched cabl
 two cable segments, or as two branches: a spherical root with a cable branch attached:
 
 .. figure:: gen-images/morph5a.svg
-  :width: 300
+  :width: 600
   :align: center
 
 .. figure:: gen-images/morph5b.svg
-  :width: 300
+  :width: 600
   :align: center
 
 Example 6: a bit more involved
@@ -398,7 +424,11 @@ Take our example from throughout this page:
   :align: center
 
 .. figure:: gen-images/morph6a.svg
-  :width: 400
+  :width: 800
+  :align: center
+
+.. figure:: gen-images/morph6c.svg
+  :width: 800
   :align: center
 
 To use a spherical soma, add an aditional sample on the edge of the soma that represents the
@@ -410,7 +440,6 @@ start of the dendrite that branches off the soma, then instantiate the morpholog
   :align: center
 
 .. figure:: gen-images/morph6b.svg
-  :width: 400
+  :width: 800
   :align: center
-
 

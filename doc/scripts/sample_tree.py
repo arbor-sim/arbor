@@ -1,5 +1,6 @@
 import svgwrite
 import math
+import tree_inputs as trees
 
 # Make the 7-sample sample tree image with annotations used to introduce sample
 # tree concepts in the documentation.
@@ -286,110 +287,28 @@ def make_table(tree, name):
 
 def generate(path=''):
 
-    npos = -1
-
-    tree1 = {
-        'p': [npos],
-        'x': [0],
-        'y': [0],
-        'r': [2],
-        't': [1],
-    }
-
-    tree2a = {
-        'p': [npos, 0],
-        'x': [0, 10],
-        'y': [0, 0],
-        'r': [1, 0.5],
-        't': [1, 1],
-    }
-
-    tree2b = {
-        'p': [npos, 0, 1, 2, 3],
-        'x': [0, 3, 5, 8, 10],
-        'y': [0, 0.2, -0.1, 0,   0],
-        'r': [1, 0.8, 0.7,  0.6, 0.5],
-        't': [1,  1,  1,  1,  1],
-    }
-
-    tree2c = {
-        'p': [npos, 0, 1, 2, 3, 4],
-        'x': [0, 3, 5, 5, 8, 10],
-        'y': [0, 0.2, -0.1, -0.1, 0,   0],
-        'r': [1, 0.8, 0.7,  0.3, 0.5, 0.5],
-        't': [1,  1,  1,  1,  1,  1],
-    }
-
-    tree3 = {
-        'p': [npos, 0, 1, 1],
-        'x': [0, 10, 15, 15],
-        'y': [0, 0, 3, -3],
-        'r': [1, 0.5, 0.25, 0.25],
-        't': [1,  1,  1,  1],
-    }
-
-    tree4a = {
-        'p': [npos, 0, 1,  2,  1,  4,],
-        'x': [0, 10,  10, 15, 10, 15,],
-        'y': [0, 0,    0,  3,  0, -3,],
-        'r': [1, 0.5,  0.25, 0.25,  0.25,  0.25],
-        't': [1,  1,  1,  1,  1,  1],
-    }
-
-    tree4b = {
-        'p': [npos, 0,      1,    2,  2],
-        'x': [0,   10,     10,   15, 15],
-        'y': [0,    0,      0,    3, -3],
-        'r': [1,    0.5, 0.25, 0.25, 0.25],
-        't': [1,    1, 1, 1, 1],
-    }
-
-    tree5 = {
-        'p': [npos, 0, 1],
-        'x': [0, 2, 10],
-        'y': [0, 0, 0],
-        'r': [2, 1, 1],
-        't': [1, 1, 1]
-    }
-
-    tree6a = {
-       'x': [ 0,  5,   10,   15, 18,   23,   20],
-       'y': [ 0, -1,    0.5,  0,  5,    8,   -4],
-       'r': [ 3,  1.2,  1.2,  1,  1,  0.7,  0.8],
-       'p': [-1,  0,    1,    2,  3,    4,    3],
-       't': [ 1,  1,    1,    1,  1,    1,    1]
-    }
-
-    tree6b = {
-       'x': [ 0,  3,     5,  10  , 15, 18,   23,   20],
-       'y': [ 0,  0,    -1,   0.5,  0,  5,    8,   -4],
-       'r': [ 3,  1.2, 1.2,   1.2,  1,  1,  0.7,  0.8],
-       'p': [-1,  0,     1,   2  ,  3,    4,  5,    4],
-       't': [ 1,  1,     1,   1  ,  1,    1,   1,   1]
-    }
-
-    branches = [[0], [1, 2, 3, 4], [4, 5, 6], [4, 7]]
-
     make_annotated(path+'/stree.svg')
-    make_image(tree1, path+'/tree1.svg')
-    make_image(tree2a, path+'/tree2a.svg')
-    make_image(tree2b, path+'/tree2b.svg')
-    make_image(tree2c, path+'/tree2c.svg')
-    make_image(tree3, path+'/tree3.svg')
-    make_image(tree4a, path+'/tree4a.svg')
-    make_image(tree4b, path+'/tree4b.svg')
-    make_image(tree5, path+'/tree5.svg')
-    make_image(tree6a, path+'/tree6a.svg')
-    make_image(tree6b, path+'/tree6b.svg')
+    make_image(trees.tree1, path+'/tree1.svg')
+    make_image(trees.tree2a, path+'/tree2a.svg')
+    make_image(trees.tree2b, path+'/tree2b.svg')
+    make_image(trees.tree2c, path+'/tree2c.svg')
+    make_image(trees.tree3, path+'/tree3.svg')
+    make_image(trees.tree4a, path+'/tree4a.svg')
+    make_image(trees.tree4b, path+'/tree4b.svg')
+    make_image(trees.tree5, path+'/tree5.svg')
+    make_image(trees.tree6a, path+'/tree6a.svg')
+    make_image(trees.tree6b, path+'/tree6b.svg')
 
-    make_table(tree1,  'tree1')
-    make_table(tree2a, 'tree2a')
-    make_table(tree2b, 'tree2b')
-    make_table(tree2c, 'tree2c')
-    make_table(tree3,  'tree3')
-    make_table(tree4a, 'tree4a')
-    make_table(tree4b, 'tree4b')
-    make_table(tree5,  'tree5')
+    make_table(trees.tree1,  'tree1')
+    make_table(trees.tree2a, 'tree2a')
+    make_table(trees.tree2b, 'tree2b')
+    make_table(trees.tree2c, 'tree2c')
+    make_table(trees.tree3,  'tree3')
+    make_table(trees.tree4a, 'tree4a')
+    make_table(trees.tree4b, 'tree4b')
+    make_table(trees.tree5,  'tree5')
+    make_table(trees.tree6a, 'tree6a')
+    make_table(trees.tree6b, 'tree6b')
 
 if __name__ == '__main__':
     generate('.')
