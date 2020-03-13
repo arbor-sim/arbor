@@ -45,3 +45,9 @@ Custom license (as it appears in the original `readme` from the project's page):
 >commercial product. In either event, it is copyrighted by the author.
 >What you see here may be used freely but it comes with no support or
 >guarantee.
+
+## Acknowledgements
+This open source software code was developed in part or in whole in the Human
+Brain Project, funded from the European Union’s Horizon 2020 Framework
+Programme for Research and Innovation under the Specific Grant Agreement 
+No. 720270 (Human Brain Project SGA1) and No. 785907 (Human Brain Project SGA2).
