@@ -20,6 +20,7 @@ struct simd_spec {
                 break;
             case neon:
                 width = 2;
+                break;
             default: ;
             }
         }

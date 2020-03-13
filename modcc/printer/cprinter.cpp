@@ -187,7 +187,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         case simd_spec::avx:    abi += "avx";    break;
         case simd_spec::avx2:   abi += "avx2";   break;
         case simd_spec::avx512: abi += "avx512"; break;
-        case simd_spec::neon:   abi += "neon"; break;
+        case simd_spec::neon:   abi += "neon";   break;
         case simd_spec::native: abi += "native"; break;
         default:
             abi += "default_abi"; break;

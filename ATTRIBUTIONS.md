@@ -16,7 +16,7 @@ https://github.com/halfflat/tinyopt
 
 ##  C++ Random number generator (Random123)
 A header only counter-based random number generator, written by DE Shaw research
-BSD license. 
+BSD license.
 
 https://www.deshawresearch.com/downloads/download_random123.cgi/
 
