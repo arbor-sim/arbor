@@ -7,7 +7,7 @@
 #include <set>
 #include <vector>
 
-#include <tinyopt/tinyopt.h>
+#include <tinyopt/smolopt.h>
 
 #include <arbor/context.hpp>
 #include <arbor/common_types.hpp>
@@ -354,75 +354,55 @@ std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start,
 // Read options from (optional) json file and command line arguments.
 cl_options read_options(int argc, char** argv) {
     using namespace to;
-    cl_options opt;
+    auto usage_str = "\n"
+                     "\t-n|--n-excitatory      \t[Number of cells in the excitatory population]\n"
+                     "\t-m|--n-inhibitory      \t[Number of cells in the inhibitory population]\n"
+                     "\t-e|--n-external        \t[Number of incoming Poisson (external) connections per cell]\n"
+                     "\t-p|--in-degree-prop    \t[Proportion of the connections received per cell]\n"
+                     "\t-w|--weight            \t[Weight of excitatory connections]\n"
+                     "\t-d|--delay             \t[Delay of all connections]\n"
+                     "\t-g|--rel-inh-w         \t[Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
+                     "\t-l|--lambda            \t[Expected number of spikes from a single poisson cell per ms]\n"
+                     "\t-t|--tfinal            \t[Length of the simulation period (ms)]\n"
+                     "\t-s|--dt                \t[Simulation time step (ms)]\n"
+                     "\t-G|--group-size        \t[Number of cells per cell group]\n"
+                     "\t-S|--seed              \t[Seed for poisson spike generators]\n"
+                     "\t-f|--write-spikes      \t[Save spikes to file]\n"
+                     "\t-z|--profile-rank-zero \t[Only output profile information for rank 0]\n"
+                     "\t-v|--verbose           \t[Print more verbose information to stdout]\n";
 
-    char** arg = argv+1;
-    while (*arg) {
-        if (auto nexc = parse<uint32_t>(arg, 'n', "n-excitatory")) {
-            opt.nexc = nexc.value();
-        }
-        else if (auto ninh = parse<uint32_t>(arg, 'm', "n-inhibitory")) {
-            opt.ninh = ninh.value();
-        }
-        else if (auto next = parse<uint32_t>(arg, 'e', "n-external")) {
-            opt.next = next.value();
-        }
-        else if (auto syn_per_cell_prop = parse<double>(arg, 'p', "in-degree-prop")) {
-            opt.syn_per_cell_prop = syn_per_cell_prop.value();
-        }
-        else if (auto weight = parse<float>(arg, 'w', "weight")) {
-            opt.weight = weight.value();
-        }
-        else if (auto delay = parse<float>(arg, 'd', "delay")) {
-            opt.delay = delay.value();
-        }
-        else if (auto rel_inh_strength = parse<float>(arg, 'g', "rel-inh-w")) {
-            opt.rel_inh_strength = rel_inh_strength.value();
-        }
-        else if (auto lambda = parse<double>(arg, 'l', "lambda")) {
-            opt.poiss_lambda = lambda.value();
-        }
-        else if (auto tfinal = parse<double>(arg, 't', "tfinal")) {
-            opt.tfinal = tfinal.value();
-        }
-        else if (auto dt = parse<double>(arg, 's', "dt")) {
-            opt.dt = dt.value();
-        }
-        else if (auto group_size = parse<uint32_t>(arg, 'G', "group-size")) {
-            opt.group_size = group_size.value();
-        }
-        else if (auto seed = parse<uint32_t>(arg, 'S', "seed")) {
-            opt.seed = seed.value();
-        }
-        else if (parse(arg, 'f', "write-spikes")) {
-            opt.spike_file_output = true;
-        }
-        else if (parse(arg, 'z', "profile-rank-zero")) {
-            opt.profile_only_zero = true;
-        }
-        else if (parse(arg, 'v', "verbose")) {
-            opt.verbose = true;
-        }
-        else {
-            auto help = "\n"
-                        "\t-n|--n-excitatory      \t[Number of cells in the excitatory population]\n"
-                        "\t-m|--n-inhibitory      \t[Number of cells in the inhibitory population]\n"
-                        "\t-e|--n-external        \t[Number of incoming Poisson (external) connections per cell]\n"
-                        "\t-p|--in-degree-prop    \t[Proportion of the connections received per cell]\n"
-                        "\t-w|--weight            \t[Weight of excitatory connections]\n"
-                        "\t-d|--delay             \t[Delay of all connections]\n"
-                        "\t-g|--rel-inh-w         \t[Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
-                        "\t-l|--lambda            \t[Expected number of spikes from a single poisson cell per ms]\n"
-                        "\t-t|--tfinal            \t[Length of the simulation period (ms)]\n"
-                        "\t-s|--dt                \t[Simulation time step (ms)]\n"
-                        "\t-G|--group-size        \t[Number of cells per cell group]\n"
-                        "\t-S|--seed              \t[Seed for poisson spike generators]\n"
-                        "\t-f|--write-spikes      \t[Save spikes to file]\n"
-                        "\t-z|--profile-rank-zero \t[Only output profile information for rank 0]\n"
-                        "\t-v|--verbose           \t[Print more verbose information to stdout]\n";
-            usage(argv[0], help);
-            std::exit(1);
-        }
+    cl_options opt;
+    auto help = [argv0 = argv[0], &usage_str] {
+        to::usage(argv0, usage_str);
+    };
+
+    to::option options[] = {
+            { opt.nexc,              "-n", "--n-excitatory" },
+            { opt.ninh,              "-m", "--n-inhibitory" },
+            { opt.next,              "-e", "--n-external" },
+            { opt.syn_per_cell_prop, "-p", "--in-degree-prop" },
+            { opt.weight,            "-w", "--weight" },
+            { opt.delay,             "-d", "--delay" },
+            { opt.rel_inh_strength,  "-g", "--rel-inh-w" },
+            { opt.poiss_lambda,      "-l", "--lambda" },
+            { opt.tfinal,            "-t", "--tfinal" },
+            { opt.dt,                "-s", "--dt" },
+            { opt.group_size,        "-G", "--group-size" },
+            { opt.seed,              "-s", "--seed" },
+            { to::set(opt.spike_file_output), to::flag, "-f", "--write-spikes" },
+            { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
+            { to::set(opt.verbose),           to::flag, "-v", "--verbose" },
+            { to::action(help),               to::flag, to::exit, "-h", "--help" }
+    };
+
+    to::run(options, argc, argv+1);
+
+    if (opt.group_size < 1) {
+        throw std::runtime_error("minimum of one cell per group");
+    }
+
+    if (opt.rel_inh_strength <= 0 || opt.rel_inh_strength > 1) {
+        throw std::runtime_error("relative strength of inhibitory connections must be in the interval (0, 1].");
     }
 
     // If verbose output requested, emit option summary.

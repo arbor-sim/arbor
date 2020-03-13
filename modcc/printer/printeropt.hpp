@@ -8,7 +8,7 @@
 #include "simd.hpp"
 struct printer_options {
     // C++ namespace for generated code.
-    std::string cpp_namespace = "arb";
+    std::string cpp_namespace;
 
     // Explicit vectorization (C printer only)? Default is none.
     simd_spec simd;

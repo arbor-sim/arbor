@@ -64,12 +64,12 @@ auto key_by_value(const Map& map, const V& v) -> decltype(map.begin()->first) {
 }
 
 struct Options {
-    std::string outprefix = "";
-    std::string modfile = "";
-    std::string modulename = "";
+    std::string outprefix;
+    std::string modfile;
+    std::string modulename;
     bool verbose = false;
     bool analysis = false;
-    std::unordered_set<targetKind> targets = {};
+    std::unordered_set<targetKind> targets;
 };
 
 // Helper for formatting tabulated output (option reporting).

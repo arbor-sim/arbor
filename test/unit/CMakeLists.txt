@@ -42,7 +42,7 @@ build_modules(
     SOURCE_DIR mod
     DEST_DIR "${test_mech_dir}"
     ${external_modcc}
-    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N testing
+    MODCC_FLAGS -t cpu,gpu ${ARB_MODCC_FLAGS} -N testing
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     TARGET build_test_mods
 )
