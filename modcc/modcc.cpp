@@ -129,15 +129,15 @@ simd_spec parse_simd_spec(std::string spec) {
 
 const char* usage_str =
         "\n"
-        "\t-o|--output            \t[Prefix for output file names]\n"
-        "\t-N|--namespace         \t[Namespace for generated code]\n"
-        "\t-t|--target=t0(,t1)    \t[Build module for target t0 (and t1); Avaliable targets: 'cpu', 'gpu']\n"
-        "\t-s|--simd              \t[Generate code with explicit SIMD vectorization]\n"
-        "\t-S|--simd-abi          \t[Override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...]\n"
-        "\t-P|--profile           \t[Build with profiled kernels]\n"
-        "\t-V|--verbose           \t[Toggle verbose mode]\n"
-        "\t-A|--analyse           \t[Toggle analysis mode]\n"
-        "\t<filename>             \t[File to be compiled]\n";
+        "-o|--output            [Prefix for output file names]\n"
+        "-N|--namespace         [Namespace for generated code]\n"
+        "-t|--target=t0(,t1)    [Build module for target t0 (and t1); Avaliable targets: 'cpu', 'gpu']\n"
+        "-s|--simd              [Generate code with explicit SIMD vectorization]\n"
+        "-S|--simd-abi          [Override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...]\n"
+        "-P|--profile           [Build with profiled kernels]\n"
+        "-V|--verbose           [Toggle verbose mode]\n"
+        "-A|--analyse           [Toggle analysis mode]\n"
+        "<filename>             [File to be compiled]\n";
 
 int main(int argc, char **argv) {
     using namespace to;
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
                 { to::action(help), to::flag, to::exit, "-h", "--help" }
         };
 
-        to::run(options, argc, argv+1);
+        if (!to::run(options, argc, argv+1)) return 0;
 
         if (simd_enabled) {
             popt.simd = simd_spec(simd_spec::native);

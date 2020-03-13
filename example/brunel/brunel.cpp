@@ -68,7 +68,7 @@ struct cl_options {
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
-cl_options read_options(int argc, char** argv);
+util::optional<cl_options> read_options(int argc, char** argv);
 
 void banner(const context& ctx);
 
@@ -237,7 +237,9 @@ int main(int argc, char** argv) {
         meters.start(context);
 
         // read parameters
-        cl_options options = read_options(argc, argv);
+        auto o = read_options(argc, argv);
+        if (!o) {return 0; }
+        cl_options options = o.value();
 
         std::fstream spike_out;
         if (options.spike_file_output && root) {
@@ -352,24 +354,24 @@ std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start,
 }
 
 // Read options from (optional) json file and command line arguments.
-cl_options read_options(int argc, char** argv) {
+util::optional<cl_options> read_options(int argc, char** argv) {
     using namespace to;
     auto usage_str = "\n"
-                     "\t-n|--n-excitatory      \t[Number of cells in the excitatory population]\n"
-                     "\t-m|--n-inhibitory      \t[Number of cells in the inhibitory population]\n"
-                     "\t-e|--n-external        \t[Number of incoming Poisson (external) connections per cell]\n"
-                     "\t-p|--in-degree-prop    \t[Proportion of the connections received per cell]\n"
-                     "\t-w|--weight            \t[Weight of excitatory connections]\n"
-                     "\t-d|--delay             \t[Delay of all connections]\n"
-                     "\t-g|--rel-inh-w         \t[Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
-                     "\t-l|--lambda            \t[Expected number of spikes from a single poisson cell per ms]\n"
-                     "\t-t|--tfinal            \t[Length of the simulation period (ms)]\n"
-                     "\t-s|--dt                \t[Simulation time step (ms)]\n"
-                     "\t-G|--group-size        \t[Number of cells per cell group]\n"
-                     "\t-S|--seed              \t[Seed for poisson spike generators]\n"
-                     "\t-f|--write-spikes      \t[Save spikes to file]\n"
-                     "\t-z|--profile-rank-zero \t[Only output profile information for rank 0]\n"
-                     "\t-v|--verbose           \t[Print more verbose information to stdout]\n";
+                     "-n|--n-excitatory      [Number of cells in the excitatory population]\n"
+                     "-m|--n-inhibitory      [Number of cells in the inhibitory population]\n"
+                     "-e|--n-external        [Number of incoming Poisson (external) connections per cell]\n"
+                     "-p|--in-degree-prop    [Proportion of the connections received per cell]\n"
+                     "-w|--weight            [Weight of excitatory connections]\n"
+                     "-d|--delay             [Delay of all connections]\n"
+                     "-g|--rel-inh-w         [Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
+                     "-l|--lambda            [Expected number of spikes from a single poisson cell per ms]\n"
+                     "-t|--tfinal            [Length of the simulation period (ms)]\n"
+                     "-s|--dt                [Simulation time step (ms)]\n"
+                     "-G|--group-size        [Number of cells per cell group]\n"
+                     "-S|--seed              [Seed for poisson spike generators]\n"
+                     "-f|--write-spikes      [Save spikes to file]\n"
+                     "-z|--profile-rank-zero [Only output profile information for rank 0]\n"
+                     "-v|--verbose           [Print more verbose information to stdout]\n";
 
     cl_options opt;
     auto help = [argv0 = argv[0], &usage_str] {
@@ -395,7 +397,7 @@ cl_options read_options(int argc, char** argv) {
             { to::action(help),               to::flag, to::exit, "-h", "--help" }
     };
 
-    to::run(options, argc, argv+1);
+    if (!to::run(options, argc, argv+1)) return {};
     if (argv[1]) throw to::option_error("unrecogonized argument", argv[1]);
 
     if (opt.group_size < 1) {
