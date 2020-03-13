@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
                 { to::action(help), to::flag, to::exit, "-h", "--help" }
         };
 
-        if (!to::run(options, argc, argv+1)) return 0;
+        to::run(options, argc, argv+1);
 
         if (simd_enabled) {
             popt.simd = simd_spec(simd_spec::native);

@@ -396,6 +396,7 @@ cl_options read_options(int argc, char** argv) {
     };
 
     to::run(options, argc, argv+1);
+    if (argv[1]) throw to::option_error("unrecogonized argument", argv[1]);
 
     if (opt.group_size < 1) {
         throw std::runtime_error("minimum of one cell per group");
