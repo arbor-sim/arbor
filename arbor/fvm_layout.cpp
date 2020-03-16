@@ -12,6 +12,7 @@
 #include <arbor/util/optional.hpp>
 
 #include "fvm_layout.hpp"
+#include "threading/threading.hpp"
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/partition.hpp"
@@ -446,12 +447,16 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
 }
 
 fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
-    const cable_cell_parameter_set& global_defaults)
+    const cable_cell_parameter_set& global_defaults,
+    const arb::execution_context& ctx)
 {
-    fvm_cv_discretization combined;
+    std::vector<fvm_cv_discretization> cell_disc(cells.size());
+    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
+          [&] (int i) { cell_disc[i]=fvm_cv_discretize(cells[i], global_defaults);});
 
-    for (const auto& c: cells) {
-        append(combined, fvm_cv_discretize(c, global_defaults));
+    fvm_cv_discretization combined;
+    for (auto cell_idx: count_along(cells)) {
+        append(combined, cell_disc[cell_idx]);
     }
     return combined;
 }
@@ -511,11 +516,15 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx);
 
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const std::vector<cable_cell>& cells, const fvm_cv_discretization& D)
+    const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const execution_context& ctx)
 {
+    std::vector<fvm_mechanism_data> cell_mech(cells.size());
+    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
+          [&] (int i) { cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], D, i);});
+
     fvm_mechanism_data combined;
     for (auto cell_idx: count_along(cells)) {
-        append(combined, fvm_build_mechanism_data(gprop, cells[cell_idx], D, cell_idx));
+        append(combined, cell_mech[cell_idx]);
     }
     return combined;
 }

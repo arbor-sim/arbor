@@ -356,15 +356,17 @@ void fvm_lowered_cell_impl<B>::initialize(
     std::vector<cable_cell> cells;
     const std::size_t ncell = gids.size();
 
-    cells.reserve(ncell);
-    for (auto gid: gids) {
-        try {
-            cells.push_back(any_cast<cable_cell>(rec.get_cell_description(gid)));
-        }
-        catch (util::bad_any_cast&) {
-            throw bad_cell_description(rec.get_cell_kind(gid), gid);
-        }
-    }
+    cells.resize(ncell);
+    threading::parallel_for::apply(0, gids.size(), context_.thread_pool.get(),
+           [&](cell_size_type i) {
+               auto gid = gids[i];
+               try {
+                   cells[i] = any_cast<cable_cell&&>(rec.get_cell_description(gid));
+               }
+               catch (util::bad_any_cast&) {
+                   throw bad_cell_description(rec.get_cell_kind(gid), gid);
+               }
+           });
 
     cable_cell_global_properties global_props;
     try {
@@ -397,7 +399,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize cells, build matrix.
 
-    fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters, context_);
 
     std::vector<index_type> cv_to_intdom(D.size());
     std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_intdom.begin(),
@@ -410,7 +412,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props,  cells, D);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, D, context_);
 
     // Discretize and build gap junction info.
 
