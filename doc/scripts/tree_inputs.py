@@ -36,6 +36,7 @@ tree1 = {
 }
 branches1 = [[0]]
 
+# single cable segment
 tree2a = {
     'p': [npos, 0],
     'x': [0, 10],
@@ -45,6 +46,7 @@ tree2a = {
 }
 branches2a = [[0, 1]]
 
+# unbranched cable with 4 segments
 tree2b = {
     'p': [npos, 0, 1, 2, 3],
     'x': [0, 3, 5, 8, 10],
@@ -54,12 +56,13 @@ tree2b = {
 }
 branches2b = [[0, 1, 2, 3, 4]]
 
+# unbranched cable with discontinuity of radius.
 tree2c = {
     'p': [npos, 0, 1, 2, 3, 4],
-    'x': [0, 3, 5, 5, 8, 10],
-    'y': [0, 0.2, -0.1, -0.1, 0,   0],
-    'r': [1, 0.8, 0.7,  0.3, 0.5, 0.5],
-    't': [1,  1,  1,  1,  1,  1],
+    'x': [0, 3, 5, 8, 8, 10],
+    'y': [0, 0.2, -0.1, 0, 0,  0],
+    'r': [1, 0.8, 0.7,  0.6, 0.3, 0.5],
+    't': [1,  1,  1,  1,  1, 1],
 }
 branches2c = [[0, 1, 2, 3, 4, 5]]
 

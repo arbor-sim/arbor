@@ -42,7 +42,7 @@ def make_annotated(filename):
 
     # Draw a circle for each sample
     circles = dwg.add(dwg.g(id='samples', stroke='black', fill='white', stroke_width=line_width))
-    numbers = dwg.add(dwg.g(id='numbers', text_anchor='middle'))
+    numbers = dwg.add(dwg.g(id='numbers', text_anchor='middle', alignment_baseline='middle'))
     for i in range(nsamp):
         center = (X[i], Y[i])
         circles.add(dwg.circle(center=center, r=R[i], stroke=colors[C[i]]))
@@ -278,11 +278,22 @@ def make_table(tree, name):
 
     n = len(X)
 
-    print(name)
+    print('-----\n', name)
     for i in range(n):
         p = str(P[i]) if i>0 else 'npos'
         s = '{ID:4d}, {p:>8s}, {x:4.1f}, {y:4.1f}, {z:4.1f}, {r:4.1f}, {tag:4d}'.format(ID=i, p=p, x=X[i], y=Y[i], z=0, r=R[i], tag=T[i])
         print(s)
+    print()
+
+    print('import arbor')
+    print('tree = sample_tree()')
+    s = 'x={x:4.1f}, y={y:4.1f}, z={z:4.1f}, radius={r:3.1f}, tag={tag:2d}'.format(x=X[0], y=Y[0], z=0, r=R[0], tag=T[0])
+    print('tree.append({})'.format(s))
+    for i in range(1,n):
+        s = 'p={p:2d}, x={x:4.1f}, y={y:4.1f}, z={z:4.1f}, radius={r:4.1f}, tag={tag:2d}'.format(
+             p=P[i], x=X[i], y=Y[i], z=0, r=R[i], tag=T[i])
+        print('tree.append({})'.format(s))
+    print('morph = arbor.morphology(tree, spherical_root=True)')
     print()
 
 def generate(path=''):

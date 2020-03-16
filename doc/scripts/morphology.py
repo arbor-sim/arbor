@@ -54,6 +54,9 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                            stroke=pointcolor,
                            fill=pointcolor,
                            stroke_width=line_width))
+    numbers = dwg.add(dwg.g(id='numbers',
+                             text_anchor='middle',
+                             alignment_baseline='middle'))
 
     minx = math.inf
     miny = math.inf
@@ -65,6 +68,10 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
     methods = []
     if draw_segments[0]: methods.append('withseg')
     if draw_segments[1]: methods.append('noseg')
+
+    bcolor = 'mediumslateblue'
+    pcolor = 'white'
+    segfillcolor = 'lightgray'
 
     for method in methods:
         for i in range(nbranches):
@@ -91,9 +98,14 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
             if is_sphere:
                 center = (X[0], Y[0])
                 radius = R[0]
-                lines.add(dwg.circle(center=center, r=radius))
+                lines.add(dwg.circle(center=center, r=radius, fill=segfillcolor))
                 if method=='withseg':
-                    points.add(dwg.circle(center=(X[0], Y[0]), stroke='black', r=sc*0.2, fill='white'))
+                    points.add(dwg.circle(center=(X[0], Y[0]), stroke='black', r=sc*0.2, fill=pcolor))
+                else:
+                    # Setting alignment-baseline doesn't have any effect on text positioning,
+                    # so we adjust manually by nudging the Y positin of the text.
+                    points.add(dwg.circle(center=(X[0], Y[0]), stroke=bcolor, r=sc*0.55, fill=bcolor))
+                    numbers.add(dwg.text(str(i), insert=(X[0], Y[0]+sc/3), stroke='white', fill='white', alignment_baseline='middle'))
 
             else:
                 if method=='withseg':
@@ -109,10 +121,10 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                             p2 = add_vec(e, scal_vec(re, o))
                             p3 = sub_vec(e, scal_vec(re, o))
                             p4 = sub_vec(b, scal_vec(rb, o))
-                            lines.add(dwg.polygon(points=[p1,p2,p3,p4]))
+                            lines.add(dwg.polygon(points=[p1,p2,p3,p4], fill=segfillcolor))
 
                     for j in range(nsamp):
-                        points.add(dwg.circle(center=(X[j], Y[j]), stroke='black', r=sc*0.2, fill='lightblue'))
+                        points.add(dwg.circle(center=(X[j], Y[j]), stroke='black', r=sc*0.2, fill=pcolor))
 
                 elif method=='noseg':
                     index = []
@@ -138,7 +150,19 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                         left += [p1, p2]
                         right += [p4, p3]
                     right.reverse()
-                    lines.add(dwg.polygon(points=left+right))
+                    lines.add(dwg.polygon(points=left+right,fill=segfillcolor))
+                    # Place the number in the "middle" of the branch
+                    if not nseg%2:
+                        # Even number of segments: location lies at interface between segments
+                        k = index[int(nseg/2)][0]
+                        pos = (X[k], Y[k])
+                    else:
+                        # odd number of segments: location lies in center of middle segment
+                        k1, k2 = index[int((nseg-1)/2)]
+                        pos = ((X[k1]+X[k2])/2, (Y[k1]+Y[k2])/2)
+                    label_pos = (pos[0], pos[1]+sc/3)
+                    points.add(dwg.circle(center=pos, stroke=bcolor, r=sc*0.55, fill=bcolor))
+                    numbers.add(dwg.text(str(i), insert=label_pos, stroke='white', fill='white', alignment_baseline='middle'))
 
         offset = maxx - minx + sc
 
@@ -161,14 +185,14 @@ def generate(path=''):
     morph_image(trees.morph1,  path+'/morph1.svg', draw_segments=[True,False])
 
     # single cable segment
-    morph_image(trees.morph2a, path+'/morph2a.svg', draw_segments=[True,False])
+    morph_image(trees.morph2a, path+'/morph2a.svg')
     # cables with multipe segments
     morph_image(trees.morph2b, path+'/morph2b.svg')
     morph_image(trees.morph2c, path+'/morph2c.svg')
 
     # the y-shaped cells have one segment per branch
-    morph_image(trees.morph3,  path+'/morph3.svg', draw_segments=[True,False])
-    morph_image(trees.morph4a, path+'/morph4.svg', draw_segments=[True,False])
+    morph_image(trees.morph3,  path+'/morph3.svg')
+    morph_image(trees.morph4a, path+'/morph4.svg')
 
     morph_image(trees.morph5a, path+'/morph5a.svg')
     morph_image(trees.morph5b, path+'/morph5b.svg')
