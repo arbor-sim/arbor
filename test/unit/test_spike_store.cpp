@@ -13,7 +13,7 @@ TEST(spike_store, insert)
     using store_type = arb::thread_private_spike_store;
 
     arb::proc_allocation resources;
-    resources.num_threads = arbenv::num_threads();
+    resources.num_threads = arbenv::get_env_num_threads();
 
     arb::execution_context context(resources);
     store_type store(context.thread_pool);
@@ -61,7 +61,7 @@ TEST(spike_store, clear)
     using store_type = arb::thread_private_spike_store;
 
     arb::proc_allocation resources;
-    resources.num_threads = arbenv::num_threads();
+    resources.num_threads = arbenv::get_env_num_threads();
 
     arb::execution_context context(resources);
     store_type store(context.thread_pool);
@@ -80,7 +80,7 @@ TEST(spike_store, gather)
     using store_type = arb::thread_private_spike_store;
 
     arb::proc_allocation resources;
-    resources.num_threads = arbenv::num_threads();
+    resources.num_threads = arbenv::get_env_num_threads();
 
     arb::execution_context context(resources);
     store_type store(context.thread_pool);

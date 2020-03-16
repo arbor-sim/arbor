@@ -26,14 +26,6 @@ unsigned get_env_num_threads();
 // Will return at least 1.
 unsigned thread_concurrency();
 
-unsigned num_threads() {
-    if (auto nt = arbenv::get_env_num_threads()) {
-        return nt;
-    }
-    else {
-        return arbenv::thread_concurrency();
-    }
-}
 
 // The list of logical processors for which the calling thread has affinity.
 // If calling from the main thread at application start up, before
