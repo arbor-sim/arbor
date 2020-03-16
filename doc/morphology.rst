@@ -204,18 +204,20 @@ The simplest morphology in Arbor is a sphere.
 For this a  single sample, used to represent a *spherical cell*.
 This example has a sphere of radius 3 μm centered at the origin.
 
-.. csv-table::
-   :widths: 8, 10, 10, 10, 10, 10, 10
+.. code:: Python
 
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,    npos,       0,   0,   0,        3,     1
-
+    tree = arbor.sample_tree()
+    tree.append(x= 0.0, y= 0.0, z= 0.0, radius=2.0, tag= 1)
 
 .. figure:: gen-images/tree1.svg
   :width: 100
   :align: center
 
   The sample tree is a single sample with radius 3 μm.
+
+.. code:: Python
+
+    morph = arbor.morphology(tree, spherical_root=True)
 
 .. figure:: gen-images/morph1.svg
   :width: 100
@@ -234,18 +236,21 @@ We start with a cable of length 10 μm, with a radius that tapes from 0.5 μm to
 at the proximal and distal ends respectively.
 It is constructed from a sample tree of two points that define the end points of the cable.
 
-.. csv-table::
-   :widths: 8, 10, 10, 10, 10, 10, 10
+.. code:: Python
 
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,    npos,       0,   0,   0,    0.50,     1
-   1,       0,      10,   0,   0,    0.25,     1
+    tree = arbor.sample_tree()
+    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+    tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
 
 .. figure:: gen-images/tree2a.svg
   :width: 300
   :align: center
 
   The sample tree has a root and terminal point, marked in blue and green respectively.
+
+.. code:: Python
+
+    morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph2a.svg
   :width: 600
@@ -259,21 +264,24 @@ of the cable geometry.
 This example starts and ends at the same locations as the previous, however it is constructed from 4
 distinct cable segments:
 
-.. csv-table::
-   :widths: 8, 10, 10, 10, 10, 10, 10
+.. code:: Python
 
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
-   1,        0,  3.0,  0.2,  0.0,  0.8,    1
-   2,        1,  5.0, -0.1,  0.0,  0.7,    1
-   3,        2,  8.0,  0.0,  0.0,  0.6,    1
-   4,        3, 10.0,  0.0,  0.0,  0.5,    1
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+   tree.append(parent= 0, x= 3.0, y= 0.2, z= 0.0, radius= 0.8, tag= 1)
+   tree.append(parent= 1, x= 5.0, y=-0.1, z= 0.0, radius= 0.7, tag= 1)
+   tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.6, tag= 1)
+   tree.append(parent= 3, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
 
 .. figure:: gen-images/tree2b.svg
   :width: 300
   :align: center
 
   The sample tree has 5 samples, where each sample has at most one child.
+
+.. code:: Python
+
+    morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph2b.svg
   :width: 600
@@ -286,22 +294,25 @@ Collocated samples can be used to create a discontinuity in cable radius.
 The next example adds a discontinuity to the previous example at sample 3, where the
 radius changes from 0.5 μm to 0.3 μm:
 
-.. csv-table::
-   :widths: 8, 10, 10, 10, 10, 10, 10
+.. code:: Python
 
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
-   1,        0,  3.0,  0.2,  0.0,  0.8,    1
-   2,        1,  5.0, -0.1,  0.0,  0.7,    1
-   3,        2,  8.0,  0.0,  0.0,  0.6,    1
-   4,        3,  8.0,  0.0,  0.0,  0.3,    1
-   5,        4, 10.0,  0.0,  0.0,  0.5,    1
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+   tree.append(parent= 0, x= 3.0, y= 0.2, z= 0.0, radius= 0.8, tag= 1)
+   tree.append(parent= 1, x= 5.0, y=-0.1, z= 0.0, radius= 0.7, tag= 1)
+   tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.6, tag= 1)
+   tree.append(parent= 3, x= 8.0, y= 0.0, z= 0.0, radius= 0.3, tag= 1)
+   tree.append(parent= 4, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
 
 .. figure:: gen-images/tree2c.svg
   :width: 300
   :align: center
 
   Samples 3 and 4 are collocated with different radii.
+
+.. code:: Python
+
+    morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph2c.svg
   :width: 600
@@ -311,7 +322,7 @@ radius changes from 0.5 μm to 0.3 μm:
 
 .. _morph-example4:
 
-Example 4: Y-shaped cell
+Example 3: Y-shaped cell
 """"""""""""""""""""""""""""""
 
 The simplest branching morphology is a cable that bifurcates into two branches,
@@ -319,20 +330,23 @@ which we call a *y-shaped cell*.
 In the example below, the first branch of the tree is a cable of length 10 μm with a
 a radius that tapers from 0.5 μm to 1 μm.
 The two child branches are attached to the end of the first branch, and taper from from 0.5 μ m
-to 0.25 μm.
+to 0.2 μm.
 
-.. csv-table::
-   :widths: 8, 10, 10, 10, 10, 10, 10
+.. code:: Python
 
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
-   1,        0, 10.0,  0.0,  0.0,  0.5,    1
-   2,        1, 15.0,  3.0,  0.0,  0.2,    1
-   3,        1, 15.0, -3.0,  0.0,  0.2,    1
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 1, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(parent= 1, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 1)
 
 .. figure:: gen-images/tree3.svg
   :width: 400
   :align: center
+
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph3.svg
   :width: 800
@@ -340,9 +354,11 @@ to 0.25 μm.
 
 .. note::
 
-    Branches are numbered contiguously, starting from 0, when the morphology is constructed from the sample tree.
-    Branches are sorted lexicographically according to the lowest sample id in each branch,
-    if two branches have the same parent, then the next lowest id in each branch
+    Branches are numbered contiguously, starting from 0, and is *determinsitic and reproducable*
+    for every sample tree.
+    Branches are sorted lexicographically according to the lowest sample id in each branch.
+    If two branches have the same parent, which will be the lowest id by virtue of parents
+    having lower id than children, then the next lowest id in each branch
     is used for ordering. Following this rule, the branch numbering is *deterministic and reproducable*.
 
 The child branches above start with the same radius of 0.5 μm as the distal end of their parent branch.
@@ -353,23 +369,15 @@ Two methods that use the same approach are illustrated below:
 * insert collocated points at the start of each child branch;
 * insert a single collocated point at the end of the parent branch.
 
-.. csv-table::
-   :widths: 8, 10, 10, 10, 10, 10, 10
+.. code:: Python
 
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
-   1,        0, 10.0,  0.0,  0.0,  0.5,    1
-   2,        1, 10.0,  0.0,  0.0,  0.2,    1
-   3,        2, 15.0,  3.0,  0.0,  0.2,    1
-   4,        1, 10.0,  0.0,  0.0,  0.2,    1
-   5,        4, 15.0, -3.0,  0.0,  0.2,    1
-
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,     npos,  0.0,  0.0,  0.0,  1.0,    1
-   1,        0, 10.0,  0.0,  0.0,  0.5,    1
-   2,        1, 10.0,  0.0,  0.0,  0.2,    1
-   3,        2, 15.0,  3.0,  0.0,  0.2,    1
-   4,        2, 15.0, -3.0,  0.0,  0.2,    1
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(parent= 4, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 1)
 
 .. figure:: gen-images/tree4a.svg
   :width: 400
@@ -379,6 +387,15 @@ Two methods that use the same approach are illustrated below:
   of the parent branch, and samples 2 and 4 are attached to sample 1 and are at
   the start of the children branches.
 
+.. code:: Python
+
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(parent= 2, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 1)
+
 .. figure:: gen-images/tree4b.svg
   :width: 400
   :align: center
@@ -386,6 +403,10 @@ Two methods that use the same approach are illustrated below:
   The second approach has 2 collocated points at the fork.
   The first collocated sample with radius 0.5 μm is the end of the parent branch, and
   both child branches connect to the second sample with radius to 0.2 μm.
+
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph4.svg
   :width: 800
@@ -395,47 +416,76 @@ Two methods that use the same approach are illustrated below:
 
 .. _morph-tree5:
 
-Example 5: ball and stick
+Example 5: Ball and stick
 """"""""""""""""""""""""""""""
 
-The next example is a spherical soma of radius 3 μm with a branch of length
+The next example is a spherical soma of radius 3 μm with a single branch of length
 7 μm and constant radius of 1 μm attached.
 
-.. csv-table::
-   :widths: 8, 10, 10, 10, 10, 10, 10
+.. code:: Python
 
-   *id*, *parent*, *x*, *y*, *z*, *radius*, *tag*
-   0,     npos,  0.0,  0.0,  0.0,  2.0,    1
-   1,        0,  2.0,  0.0,  0.0,  1.0,    1
-   2,        1, 10.0,  0.0,  0.0,  1.0,    1
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
+   tree.append(parent= 0, x= 2.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
 
 .. figure:: gen-images/tree5.svg
   :width: 300
   :align: center
 
-This sample tree can be interpreted two ways: either as a single unbranched cable composed of
-two cable segments, or as two branches: a spherical root with a cable branch attached:
+This sample tree has three points that are connected together in a line, and could
+be interpreted as a single unbranched cable.
+
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph5a.svg
   :width: 600
   :align: center
 
+To achieve the desired model of a spherical soma with a single cable segment attached,
+generate the morphology with the ``spherical_root=True`` flag:
+
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=True)
+
 .. figure:: gen-images/morph5b.svg
   :width: 600
   :align: center
 
-Example 6: a bit more involved
-""""""""""""""""""""""""""""""
+  The spherical root is a special branch with id 0, and the dendrite is a second branch numbered 1.
 
-Take our example from throughout this page:
+Example 6: something more interesting
+"""""""""""""""""""""""""""""""""""""
+
+.. code:: Python
+
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 3.0, tag= 1)
+   tree.append(parent= 0, x= 5.0, y=-1.0, z= 0.0, radius= 0.8, tag= 1)
+   tree.append(parent= 1, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 2, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 3, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 1)
+   tree.append(parent= 4, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 1)
+   tree.append(parent= 3, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 1)
 
 .. figure:: gen-images/tree6a.svg
   :width: 400
   :align: center
 
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=False)
+
 .. figure:: gen-images/morph6a.svg
   :width: 800
   :align: center
+
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=True)
 
 .. figure:: gen-images/morph6c.svg
   :width: 800
@@ -445,9 +495,25 @@ To use a spherical soma, add an aditional sample on the edge of the soma that re
 start of the dendrite that branches off the soma, then instantiate the morphology with
 ``spherical_root`` set to ``True``:
 
+.. code:: Python
+
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 3.0, tag= 1)
+   tree.append(parent= 0, x= 3.0, y=-0.8, z= 0.0, radius= 0.8, tag= 1)
+   tree.append(parent= 1, x= 5.0, y=-1.0, z= 0.0, radius= 0.8, tag= 1)
+   tree.append(parent= 2, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 3, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 4, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 1)
+   tree.append(parent= 5, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 1)
+   tree.append(parent= 4, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 1)
+
 .. figure:: gen-images/tree6b.svg
   :width: 400
   :align: center
+
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=True)
 
 .. figure:: gen-images/morph6b.svg
   :width: 800

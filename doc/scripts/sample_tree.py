@@ -278,22 +278,27 @@ def make_table(tree, name):
 
     n = len(X)
 
-    print('-----\n', name)
-    for i in range(n):
-        p = str(P[i]) if i>0 else 'npos'
-        s = '{ID:4d}, {p:>8s}, {x:4.1f}, {y:4.1f}, {z:4.1f}, {r:4.1f}, {tag:4d}'.format(ID=i, p=p, x=X[i], y=Y[i], z=0, r=R[i], tag=T[i])
-        print(s)
-    print()
+    #print('-----\n', name)
+    #for i in range(n):
+        #p = str(P[i]) if i>0 else 'npos'
+        #s = '{ID:4d}, {p:>8s}, {x:4.1f}, {y:4.1f}, {z:4.1f}, {r:4.1f}, {tag:4d}'.format(ID=i, p=p, x=X[i], y=Y[i], z=0, r=R[i], tag=T[i])
+        #print(s)
+    #print()
 
-    print('import arbor')
-    print('tree = sample_tree()')
-    s = 'x={x:4.1f}, y={y:4.1f}, z={z:4.1f}, radius={r:3.1f}, tag={tag:2d}'.format(x=X[0], y=Y[0], z=0, r=R[0], tag=T[0])
-    print('tree.append({})'.format(s))
+    print('----------------\nExample', name, '\n----------------')
+
+    print('.. code:: Python')
+    print()
+    print('   tree = arbor.sample_tree()')
+    s = 'x={x:4.1f}, y={y:4.1f}, z={z:4.1f}, radius={r:4.1f}, tag={tag:2d}'.format(x=X[0], y=Y[0], z=0, r=R[0], tag=T[0])
+    if n>1:
+        s = '           ' + s
+    print('   tree.append({})'.format(s))
     for i in range(1,n):
-        s = 'p={p:2d}, x={x:4.1f}, y={y:4.1f}, z={z:4.1f}, radius={r:4.1f}, tag={tag:2d}'.format(
+        s = 'parent={p:2d}, x={x:4.1f}, y={y:4.1f}, z={z:4.1f}, radius={r:4.1f}, tag={tag:2d}'.format(
              p=P[i], x=X[i], y=Y[i], z=0, r=R[i], tag=T[i])
-        print('tree.append({})'.format(s))
-    print('morph = arbor.morphology(tree, spherical_root=True)')
+        print('   tree.append({})'.format(s))
+    print('   morph = arbor.morphology(tree, spherical_root=True)')
     print()
 
 def generate(path=''):
@@ -310,16 +315,16 @@ def generate(path=''):
     make_image(trees.tree6a, path+'/tree6a.svg')
     make_image(trees.tree6b, path+'/tree6b.svg')
 
-    make_table(trees.tree1,  'tree1')
-    make_table(trees.tree2a, 'tree2a')
-    make_table(trees.tree2b, 'tree2b')
-    make_table(trees.tree2c, 'tree2c')
-    make_table(trees.tree3,  'tree3')
-    make_table(trees.tree4a, 'tree4a')
-    make_table(trees.tree4b, 'tree4b')
-    make_table(trees.tree5,  'tree5')
-    make_table(trees.tree6a, 'tree6a')
-    make_table(trees.tree6b, 'tree6b')
+    make_table(trees.tree1,  '1')
+    make_table(trees.tree2a, '2a')
+    make_table(trees.tree2b, '2b')
+    make_table(trees.tree2c, '2c')
+    make_table(trees.tree3,  '3')
+    make_table(trees.tree4a, '4a')
+    make_table(trees.tree4b, '4b')
+    make_table(trees.tree5,  '5')
+    make_table(trees.tree6a, '6a')
+    make_table(trees.tree6b, '6b')
 
 if __name__ == '__main__':
     generate('.')
