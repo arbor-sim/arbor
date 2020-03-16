@@ -61,7 +61,7 @@ static const auto& try_lookup(const mprovider& provider, const std::string& name
     }
 }
 
-const mcable_list& mprovider::region(const std::string& name) const {
+const mextent& mprovider::region(const std::string& name) const {
     const auto* regions_ptr = label_dict_ptr? &(label_dict_ptr->regions()): nullptr;
     return try_lookup(*this, name, regions_, regions_ptr, circular_def{});
 }

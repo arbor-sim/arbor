@@ -53,15 +53,16 @@ public:
         return *this;
     }
 
-    // Implicit conversion from mcable or mcable_list.
+    // Implicit conversion from mcable, mcable_list, or mextent.
     region(mcable);
-    region(const mcable_list&);
+    region(mextent);
+    region(mcable_list);
 
     // Implicitly convert string to named region expression.
     region(std::string label);
     region(const char* label);
 
-    friend mcable_list thingify(const region& r, const mprovider& m) {
+    friend mextent thingify(const region& r, const mprovider& m) {
         return r.impl_->thingify(m);
     }
 
@@ -90,7 +91,7 @@ private:
         virtual ~interface() {}
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
-        virtual mcable_list thingify(const mprovider&) = 0;
+        virtual mextent thingify(const mprovider&) = 0;
     };
 
     std::unique_ptr<interface> impl_;
@@ -104,7 +105,7 @@ private:
             return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
         }
 
-        virtual mcable_list thingify(const mprovider& m) override {
+        virtual mextent thingify(const mprovider& m) override {
             return thingify_(wrapped, m);
         }
 

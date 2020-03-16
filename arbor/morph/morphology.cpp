@@ -8,13 +8,14 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "morph/mbranch.hpp"
+#include "util/mergeview.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
 using arb::util::make_span;
 
 namespace arb {
-namespace impl{
+namespace impl {
 
 std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents,
                                                 const std::vector<point_prop>& props,
@@ -277,6 +278,207 @@ mlocation canonical(const morphology& m, mlocation loc) {
         return parent==mnpos? mlocation{0, 0.}: mlocation{parent, 1.};
     }
     return loc;
+}
+
+// Constructing an mextent from an mcable_list consists of taking the union
+// of any intersecting cables, and adding any required zero-length cables
+// around fork-points.
+
+mcable_list build_mextent_cables(const morphology& m, const mcable_list& cables) {
+    arb_assert(arb::test_invariants(cables));
+
+    std::unordered_set<msize_t> branch_tails;
+
+    mcable_list cs;
+    for (auto& c: cables) {
+        mcable* prev = cs.empty()? nullptr: &cs.back();
+
+        if (c.prox_pos==0) {
+            branch_tails.insert(m.branch_parent(c.branch));
+        }
+        if (c.dist_pos==1) {
+            branch_tails.insert(c.branch);
+        }
+
+        if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
+            prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
+        }
+        else {
+            cs.push_back(c);
+        }
+    }
+
+    if (!branch_tails.empty()) {
+        std::vector<mcable> fork_covers;
+
+        for (auto b: branch_tails) {
+            if (b!=mnpos) fork_covers.push_back(mcable{b, 1., 1.});
+            for (auto b_child: m.branch_children(b)) {
+                fork_covers.push_back(mcable{b_child, 0., 0.});
+            }
+        }
+        util::sort(fork_covers);
+
+        // Merge cables in cs with 0-length cables corresponding to fork covers.
+        mcable_list a;
+        a.swap(cs);
+
+        for (auto c: util::merge_view(a, fork_covers)) {
+            mcable* prev = cs.empty()? nullptr: &cs.back();
+
+            if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
+                prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
+            }
+            else {
+                cs.push_back(c);
+            }
+        }
+    }
+
+    return cs;
+
+}
+
+mextent::mextent(const morphology& m, const mcable_list& cables):
+    cables_(build_mextent_cables(m, cables)) {}
+
+bool mextent::test_invariants() const {
+    // Checks for sortedness:
+    if (!arb::test_invariants(cables_)) return false;
+
+    // Check for intersections:
+    for (auto i: util::count_along(cables_)) {
+        if (!i) continue;
+
+        const auto& c = cables_[i];
+        const auto& p = cables_[i-1];
+        if (p.branch==c.branch && p.dist_pos>=c.prox_pos) return false;
+    }
+
+    return true;
+}
+
+bool mextent::test_invariants(const morphology& m) const {
+    // Check for sortedness, intersections:
+    if (!test_invariants()) return false;
+
+    // Too many branches?
+    if (!empty() && cables_.back().branch>=m.num_branches()) return false;
+
+    // Gather branches which are covered at the proximal or distal end:
+    std::unordered_set<msize_t> branch_heads, branch_tails;
+    for (auto& c: cables_) {
+        if (c.prox_pos==0) branch_heads.insert(c.branch);
+        if (c.dist_pos==1) branch_tails.insert(c.branch);
+    }
+
+    // There should be an entry in branch_tails for parent(j) for all j
+    // in branch_heads, and an entry j in branch_heads for every j
+    // with parent(j) in branch_tails.
+
+    for (auto b: branch_heads) {
+        msize_t parent = m.branch_parent(b);
+        if (parent==mnpos) {
+            branch_tails.insert(mnpos);
+        }
+        else if (!branch_tails.count(parent)) {
+            return false;
+        }
+    }
+
+    for (auto b: branch_tails) {
+        for (auto child: m.branch_children(b)) {
+            if (!branch_heads.count(child)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool mextent::intersects(const mcable_list& a) const {
+    arb_assert(arb::test_invariants(a));
+
+    // Early exit?
+    if (empty() || a.empty() ||
+        cables_.front().branch>a.back().branch ||
+        cables_.back().branch<a.front().branch)
+    {
+        return false;
+    }
+
+    auto from = cables_.begin();
+    for (auto& c: a) {
+        auto i = std::lower_bound(from, cables_.end(), c);
+
+        if (i!=cables_.end() && i->branch==c.branch) {
+            arb_assert(i->prox_pos>=c.prox_pos);
+            if (i->prox_pos<=c.dist_pos) return true;
+        }
+
+        if (i!=cables_.begin()) {
+           auto j = std::prev(i);
+           if (j->branch==c.branch) {
+               arb_assert(j->prox_pos<c.prox_pos);
+               if (j->dist_pos>=c.prox_pos) return true;
+           }
+        }
+
+        from = i;
+    }
+
+    return false;
+}
+
+mextent intersect(const mextent& a, const mextent& b) {
+    auto precedes = [](mcable x, mcable y) {
+        return x.branch<y.branch || (x.branch==y.branch && x.dist_pos<y.prox_pos);
+    };
+
+    mextent m;
+    auto ai = a.cables().begin();
+    auto ae = a.cables().end();
+    auto bi = b.cables().begin();
+    auto be = b.cables().end();
+
+    while (ai!=ae && bi!=be) {
+        if (precedes(*ai, *bi)) {
+            ++ai;
+        }
+        else if (precedes(*bi, *ai)) {
+            ++bi;
+        }
+        else {
+            m.cables_.push_back(mcable{ai->branch,
+                std::max(ai->prox_pos, bi->prox_pos),
+                std::min(ai->dist_pos, bi->dist_pos)});
+            if (ai->dist_pos<bi->dist_pos) {
+                ++ai;
+            }
+            else {
+                ++bi;
+            }
+        }
+    }
+    return m;
+}
+
+mextent join(const mextent& a, const mextent& b) {
+    mextent m;
+    mcable_list& cs = m.cables_;
+
+    for (auto c: util::merge_view(a.cables(), b.cables())) {
+        mcable* prev = cs.empty()? nullptr: &cs.back();
+
+        if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
+            prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
+        }
+        else {
+            cs.push_back(c);
+        }
+    }
+    return m;
 }
 
 } // namespace arb

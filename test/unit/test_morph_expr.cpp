@@ -14,75 +14,14 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
+#include "morph_pred.hpp"
+
 using namespace arb;
 using embedding = embed_pwlin;
 
-namespace arb {
-    namespace reg {
-        mcable_list remove_covered_points(mcable_list cables, const morphology& m);
-
-    }
-}
-
-::testing::AssertionResult mlocation_eq(mlocation a, mlocation b) {
-    if (a.branch!=b.branch) {
-        return ::testing::AssertionFailure()
-                << "cables " << a << " and " << b << " differ";
-    }
-
-    using FP = testing::internal::FloatingPoint<double>;
-    if (FP(a.pos).AlmostEquals(FP(b.pos))) {
-        return ::testing::AssertionSuccess();
-    }
-    else {
-        return ::testing::AssertionFailure()
-                << "mlocations " << a << " and " << b << " differ";
-    }
-}
-
-::testing::AssertionResult cable_eq(mcable a, mcable b) {
-    if (a.branch!=b.branch) {
-        return ::testing::AssertionFailure()
-            << "cables " << a << " and " << b << " differ";
-    }
-
-    using FP = testing::internal::FloatingPoint<double>;
-    if (FP(a.prox_pos).AlmostEquals(FP(b.prox_pos)) && FP(a.dist_pos).AlmostEquals(FP(b.dist_pos))) {
-        return ::testing::AssertionSuccess();
-    }
-    else {
-        return ::testing::AssertionFailure()
-            << "cables " << a << " and " << b << " differ";
-    }
-}
-
-::testing::AssertionResult cablelist_eq(const mcable_list& as, const mcable_list& bs) {
-    if (as.size()!=bs.size()) {
-        return ::testing::AssertionFailure()
-            << "cablelists " << as << " and " << bs << " differ";
-    }
-
-    for (auto i: util::count_along(as)) {
-        auto result = cable_eq(as[i], bs[i]);
-        if (!result) return ::testing::AssertionFailure()
-            << "cablelists " << as << " and " << bs << " differ";
-    }
-    return ::testing::AssertionSuccess();
-}
-
-::testing::AssertionResult mloctionlist_eq(const mlocation_list& as, const mlocation_list& bs) {
-    if (as.size()!=bs.size()) {
-        return ::testing::AssertionFailure()
-                << "cablelists " << as << " and " << bs << " differ";
-    }
-
-    for (auto i: util::count_along(as)) {
-        auto result = mlocation_eq(as[i], bs[i]);
-        if (!result) return ::testing::AssertionFailure()
-                    << "mlocation lists " << as << " and " << bs << " differ";
-    }
-    return ::testing::AssertionSuccess();
-}
+using testing::region_eq;
+using testing::cablelist_eq;
+using testing::mlocationlist_eq;
 
 TEST(region, expr_repn) {
     using util::to_string;
@@ -416,27 +355,25 @@ TEST(region, thingify_simple_morphologies) {
         cl all_{{0, 0, 1}};
         cl empty_{};
 
-        EXPECT_EQ(thingify(h1, mp), h1_);
-        EXPECT_EQ(thingify(h2, mp), h2_);
-        EXPECT_EQ(thingify(join(h1, h2), mp), all_);
-        EXPECT_EQ(thingify(intersect(h1, h2), mp), (cl{{0, 0.5, 0.5}}));
-
-        EXPECT_TRUE(cablelist_eq(thingify(t1, mp), t1_));
-        EXPECT_TRUE(cablelist_eq(thingify(t2, mp), t2_));
-        EXPECT_TRUE(cablelist_eq(thingify(intersect(h1, h1), mp), h1_));
-        EXPECT_TRUE(cablelist_eq(thingify(intersect(t1, t1), mp), t1_));
-        EXPECT_TRUE(cablelist_eq(thingify(join(t1, t2), mp), all_));
-        EXPECT_TRUE(cablelist_eq(thingify(intersect(all, t1), mp), t1_));
-        EXPECT_TRUE(cablelist_eq(thingify(intersect(all, t2), mp), t2_));
-        EXPECT_TRUE(cablelist_eq(thingify(join(all, t1), mp), all_));
-        EXPECT_TRUE(cablelist_eq(thingify(join(all, t2), mp), all_));
-        EXPECT_TRUE(cablelist_eq(thingify(join(h1, t1), mp), (cl{{0, 0, 0.7}})));
-        EXPECT_TRUE(cablelist_eq(thingify(join(h1, t2), mp), (cl{{0, 0, 0.5}, {0, 0.7, 1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(intersect(h2, t1), mp), (cl{{0, 0.5, 0.7}})));
+        EXPECT_TRUE(region_eq(mp, join(h1, h2), all_));
+        EXPECT_TRUE(region_eq(mp, intersect(h1, h2), cl{{0, 0.5, 0.5}}));
+        EXPECT_TRUE(region_eq(mp, t1, t1_));
+        EXPECT_TRUE(region_eq(mp, t2, t2_));
+        EXPECT_TRUE(region_eq(mp, intersect(h1, h1), h1_));
+        EXPECT_TRUE(region_eq(mp, intersect(t1, t1), t1_));
+        EXPECT_TRUE(region_eq(mp, join(t1, t2), all_));
+        EXPECT_TRUE(region_eq(mp, intersect(all, t1), t1_));
+        EXPECT_TRUE(region_eq(mp, intersect(all, t2), t2_));
+        EXPECT_TRUE(region_eq(mp, join(all, t1), all_));
+        EXPECT_TRUE(region_eq(mp, join(all, t2), all_));
+        EXPECT_TRUE(region_eq(mp, join(h1, t1), cl{{0, 0, 0.7}}));
+        EXPECT_TRUE(region_eq(mp, join(h1, t2), cl{{0, 0, 0.5}, {0, 0.7, 1}}));
+        EXPECT_TRUE(region_eq(mp, intersect(h2, t1), cl{{0, 0.5, 0.7}}));
 
         // Check round-trip of implicit region conversions.
-        EXPECT_EQ((mcable_list{{0, 0.3, 0.6}}), thingify(region(mcable{0, 0.3, 0.6}), mp));
-        EXPECT_TRUE(cablelist_eq(t2_, thingify(region(t2_), mp)));
+        // (No fork points in cables, so extent should not including anyhing extra).
+        EXPECT_EQ((mcable_list{{0, 0.3, 0.6}}), thingify(region(mcable{0, 0.3, 0.6}), mp).cables());
+        EXPECT_TRUE(cablelist_eq(t2_, thingify(region(t2_), mp).cables()));
     }
 
 
@@ -484,18 +421,18 @@ TEST(region, thingify_simple_morphologies) {
         auto reg5_ = distal_interval(start1_, 0);
         auto reg6_ = proximal_interval(start1_, 0);
 
-        EXPECT_EQ(thingify(tagged(1), mp), (mcable_list{{0,0,1}}));
-        EXPECT_EQ(thingify(tagged(2), mp), (mcable_list{{2,0,1}}));
-        EXPECT_EQ(thingify(tagged(3), mp), (mcable_list{{1,0,1}}));
-        EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), (mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
-        EXPECT_EQ(thingify(join(tagged(1), tagged(2), tagged(3)), mp), thingify(all(), mp));
-        EXPECT_EQ(thingify(reg0_, mp), (mcable_list{{1,0,0.5}}));
-        EXPECT_EQ(thingify(reg1_, mp), (mcable_list{{0,0.5,1}, {1,0,0.8}, {2,0,0.8}}));
-        EXPECT_EQ(thingify(reg2_, mp), (mcable_list{{1,0.5,1}}));
-        EXPECT_EQ(thingify(reg3_, mp), (mcable_list{{0, 0.75, 1}, {1,0,1}}));
-        EXPECT_EQ(thingify(reg4_, mp), (mcable_list{{1,1,1}}));
-        EXPECT_EQ(thingify(reg5_, mp), (mcable_list{{0,1,1}}));
-        EXPECT_EQ(thingify(reg6_, mp), (mcable_list{{0,1,1}}));
+        EXPECT_TRUE(region_eq(mp, tagged(1), mcable_list{{0,0,1}}));
+        EXPECT_TRUE(region_eq(mp, tagged(2), mcable_list{{2,0,1}}));
+        EXPECT_TRUE(region_eq(mp, tagged(3), mcable_list{{1,0,1}}));
+        EXPECT_TRUE(region_eq(mp, join(tagged(1), tagged(2), tagged(3)), mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
+        EXPECT_TRUE(region_eq(mp, join(tagged(1), tagged(2), tagged(3)), all()));
+        EXPECT_TRUE(region_eq(mp, reg0_, mcable_list{{1,0,0.5}}));
+        EXPECT_TRUE(region_eq(mp, reg1_, mcable_list{{0,0.5,1}, {1,0,0.8}, {2,0,0.8}}));
+        EXPECT_TRUE(region_eq(mp, reg2_, mcable_list{{1,0.5,1}}));
+        EXPECT_TRUE(region_eq(mp, reg3_, mcable_list{{0, 0.75, 1}, {1,0,1}}));
+        EXPECT_TRUE(region_eq(mp, reg4_, mcable_list{{1,1,1}}));
+        EXPECT_TRUE(region_eq(mp, reg5_, mcable_list{{0,1,1}}));
+        EXPECT_TRUE(region_eq(mp, reg6_, mcable_list{{0,1,1}}));
     }
 }
 
@@ -570,18 +507,18 @@ TEST(region, thingify_moderate_morphologies) {
         mcable c_end1_{1,1,1};
         mcable c_root_{0,0,0};
 
-        EXPECT_EQ(thingify(all(), mp), all_);
-        EXPECT_EQ(thingify(axon, mp), (cl{b1_}));
-        EXPECT_EQ(thingify(dend, mp), (cl{b0_,b3_}));
-        EXPECT_EQ(thingify(apic, mp), (cl{b2_}));
-        EXPECT_EQ(thingify(join(dend, apic), mp), (cl{b0_,b2_,b3_}));
-        EXPECT_EQ(thingify(join(axon, join(dend, apic)), mp), all_);
+        EXPECT_TRUE(region_eq(mp, all(), all_));
+        EXPECT_TRUE(region_eq(mp, axon, cl{b1_}));
+        EXPECT_TRUE(region_eq(mp, dend, cl{b0_,b3_}));
+        EXPECT_TRUE(region_eq(mp, apic, cl{b2_}));
+        EXPECT_TRUE(region_eq(mp, join(dend, apic), cl{b0_,b2_,b3_}));
+        EXPECT_TRUE(region_eq(mp, join(axon, join(dend, apic)), all_));
 
         // Test that intersection correctly generates zero-length cables at
         // parent-child interfaces.
-        EXPECT_EQ(thingify(intersect(apic, dend), mp), (cl{c_end1_}));
-        EXPECT_EQ(thingify(intersect(apic, axon), mp), (cl{c_end1_}));
-        EXPECT_EQ(thingify(intersect(axon, dend), mp), (cl{c_root_, c_end1_}));
+        EXPECT_TRUE(region_eq(mp, intersect(apic, dend), cl{c_end1_}));
+        EXPECT_TRUE(region_eq(mp, intersect(apic, axon), cl{c_end1_}));
+        EXPECT_TRUE(region_eq(mp, intersect(axon, dend), cl{c_root_, c_end1_}));
 
         // Test distal and proximal interavls
         auto start0_         = location(0, 0   );
@@ -600,39 +537,39 @@ TEST(region, thingify_moderate_morphologies) {
         auto reg_d_ = join(cable(0,0,0.7), cable(2,0,0.5), cable(3,0.1,0.9));
 
         // Distal from point and/or interval
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(start0_, 1000), mp), (mcable_list{{0,0,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(quar_1_,  150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_,   1000), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(mid1_,    150), mp), (mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(end1_,    100), mp), (mcable_list{{2,0,1},{3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, mid1_),    150), mp), (mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, loc_3_1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(distal_interval(join(quar_1_, loc_3_1_), 150), mp), (mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}})));
+        EXPECT_TRUE(region_eq(mp, distal_interval(start0_, 1000), mcable_list{{0,0,1}}));
+        EXPECT_TRUE(region_eq(mp, distal_interval(quar_1_,  150), mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}}));
+        EXPECT_TRUE(region_eq(mp, distal_interval(mid1_,   1000), mcable_list{{1,0.5,1}, {2,0,1}, {3,0,1}}));
+        EXPECT_TRUE(region_eq(mp, distal_interval(mid1_,    150), mcable_list{{1,0.5,1}, {2,0,1}, {3,0,0.5}}));
+        EXPECT_TRUE(region_eq(mp, distal_interval(end1_,    100), mcable_list{{2,0,1},{3,0,0.5}}));
+        EXPECT_TRUE(region_eq(mp, distal_interval(join(quar_1_, mid1_),    150), mcable_list{{1,0.25,1}, {2,0,1}, {3,0,0.5}}));
+        EXPECT_TRUE(region_eq(mp, distal_interval(join(quar_1_, loc_3_1_), 150), mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}}));
+        EXPECT_TRUE(region_eq(mp, distal_interval(join(quar_1_, loc_3_1_), 150), mcable_list{{1,0.25,1}, {2,0,0.75}, {3,0,0.375}, {3,0.65,1}}));
 
         // Proximal from point and/or interval
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(mid3_, 100), mp), (mcable_list{{3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(mid3_, 150), mp), (mcable_list{{1,0.5,1}, {3,0,0.5}})));
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(end2_, 150), mp), (mcable_list{{1,0.5,1}, {2,0,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(end2_, 500), mp), (mcable_list{{1,0,1}, {2,0,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(loc_3_0_, 100), mp), (mcable_list{{1,0.8,1}, {3,0,0.4}})));
-        EXPECT_TRUE(cablelist_eq(thingify(proximal_interval(join(loc_3_0_, mid2_), 120), mp), (mcable_list{{1,0.3,1}, {2,0,0.5}, {3, 0, 0.4}})));
+        EXPECT_TRUE(region_eq(mp, proximal_interval(mid3_, 100), mcable_list{{3,0,0.5}}));
+        EXPECT_TRUE(region_eq(mp, proximal_interval(mid3_, 150), mcable_list{{1,0.5,1}, {3,0,0.5}}));
+        EXPECT_TRUE(region_eq(mp, proximal_interval(end2_, 150), mcable_list{{1,0.5,1}, {2,0,1}}));
+        EXPECT_TRUE(region_eq(mp, proximal_interval(end2_, 500), mcable_list{{1,0,1}, {2,0,1}}));
+        EXPECT_TRUE(region_eq(mp, proximal_interval(loc_3_0_, 100), mcable_list{{1,0.8,1}, {3,0,0.4}}));
+        EXPECT_TRUE(region_eq(mp, proximal_interval(join(loc_3_0_, mid2_), 120), mcable_list{{1,0.3,1}, {2,0,0.5}, {3, 0, 0.4}}));
 
         // Test radius_lt and radius_gt
-        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(all(), 2), mp), (mcable_list{{0,0,0.55}, {1,0,0.325}, {3,0.375,0.75}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(all(), 3), mp), (mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(all(), 2), mp), (mcable_list{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(all(), 3), mp), (mcable_list{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}})));
+        EXPECT_TRUE(region_eq(mp, radius_lt(all(), 2), mcable_list{{0,0,0.55}, {1,0,0.325}, {3,0.375,0.75}}));
+        EXPECT_TRUE(region_eq(mp, radius_lt(all(), 3), mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}}));
+        EXPECT_TRUE(region_eq(mp, radius_gt(all(), 2), mcable_list{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}}));
+        EXPECT_TRUE(region_eq(mp, radius_gt(all(), 3), mcable_list{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}}));
 
-        EXPECT_TRUE(cablelist_eq(thingify(radius_le(all(), 2), mp), (mcable_list{{0,0,0.55}, {1,0,0.325}, {2,1,1}, {3,0.375,0.75}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_le(all(), 3), mp), (mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_ge(all(), 2), mp), (mcable_list{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_ge(all(), 3), mp), (mcable_list{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}})));
+        EXPECT_TRUE(region_eq(mp, radius_le(all(), 2), mcable_list{{0,0,0.55}, {1,0,0.325}, {2,1,1}, {3,0.375,0.75}}));
+        EXPECT_TRUE(region_eq(mp, radius_le(all(), 3), mcable_list{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}}));
+        EXPECT_TRUE(region_eq(mp, radius_ge(all(), 2), mcable_list{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}}));
+        EXPECT_TRUE(region_eq(mp, radius_ge(all(), 3), mcable_list{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}}));
 
-        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(reg_a_, 2), mp), (mcable_list{{0,0.1,0.4},{3,0.375,0.4}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(reg_a_, 2), mp), (mcable_list{{2,0,1},{3,0.1,0.375}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_lt(reg_b_, 2), mp), (mcable_list{{0,0.1,0.4}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(reg_c_, 2), mp), (mcable_list{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.9,1}})));
-        EXPECT_TRUE(cablelist_eq(thingify(radius_gt(reg_d_, 2), mp), (mcable_list{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.75,0.9}})));
+        EXPECT_TRUE(region_eq(mp, radius_lt(reg_a_, 2), mcable_list{{0,0.1,0.4},{3,0.375,0.4}}));
+        EXPECT_TRUE(region_eq(mp, radius_gt(reg_a_, 2), mcable_list{{2,0,1},{3,0.1,0.375}}));
+        EXPECT_TRUE(region_eq(mp, radius_lt(reg_b_, 2), mcable_list{{0,0.1,0.4}}));
+        EXPECT_TRUE(region_eq(mp, radius_gt(reg_c_, 2), mcable_list{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.9,1}}));
+        EXPECT_TRUE(region_eq(mp, radius_gt(reg_d_, 2), mcable_list{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.75,0.9}}));
 
         // Test some more interesting intersections and unions.
 
@@ -643,15 +580,15 @@ TEST(region, thingify_moderate_morphologies) {
         //   |xxxxxxxxx|xxxxxxxxx| ror
         auto lhs  = b13;
         auto rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
-        auto rand = cl{         {1,.2,.7}, {3,.3,.6}};
-        auto ror  = cl{         {1,.0,1.}, {3,.0,1.}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        auto rand = cl{{1,.2,.7}, {3,.3,.6}};
+        auto ror  = cl{{1,.0,1.}, {3,.0,1.}};
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         //    123456789 123456789
         //   |   ----- | ----    | lhs
@@ -662,13 +599,13 @@ TEST(region, thingify_moderate_morphologies) {
         rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         rand = cl{         {1,.3,.7}, {3,.3,.5}};
         ror  = cl{         {1,.2,.8}, {3,.1,.6}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         //    123456789 123456789
         //   | -- -    | --- --- | lhs
@@ -679,13 +616,13 @@ TEST(region, thingify_moderate_morphologies) {
         rhs  = join(cable(1,.2,.7), cable(3,.3,.6));
         rand = cl{         {1,.2,.3}, {1,.4,.5}, {3,.3,.4}, {3,.5,.6}};
         ror  = cl{         {1,.1,.7},            {3,.1,.9}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         //       b1
         //    123456789
@@ -697,8 +634,8 @@ TEST(region, thingify_moderate_morphologies) {
         rhs  = cable(1,0,.5);
         rand = cl{{1,0,.5}};
         ror  = cl{{1,0,.5}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         //       b3
         //    123456789
@@ -710,8 +647,8 @@ TEST(region, thingify_moderate_morphologies) {
         rhs  = cable(3,0,.5);
         rand = cl{{3,0,.5}};
         ror  = cl{{3,0,.5}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         //       b0        b1
         //    123456789 123456789
@@ -723,13 +660,13 @@ TEST(region, thingify_moderate_morphologies) {
         rhs  = cable(1,0,.5);
         rand = cl{{0,0,0}};
         ror  = cl{{0,0,.5},{1,0,.5}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         //       b2        b3
         //    123456789 123456789
@@ -741,13 +678,13 @@ TEST(region, thingify_moderate_morphologies) {
         rhs  = cable(3,0,.5);
         rand = cl{{1,1,1}};
         ror  = cl{{2,0,.5},{3,0,.5}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         //       b0        b3
         //    123456789 123456789
@@ -759,20 +696,19 @@ TEST(region, thingify_moderate_morphologies) {
         rhs  = join(cable(0,0,.7), cable(3,0,.3));
         rand = cl{{0,0,.5},{3,0,.3}};
         ror  = cl{{0,0,.7},{3,0,.5}};
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
         // Assert communtativity
         std::swap(lhs, rhs);
-        EXPECT_EQ(thingify(intersect(lhs, rhs), mp), rand);
-        EXPECT_EQ(thingify(join(lhs, rhs), mp), ror);
+        EXPECT_TRUE(region_eq(mp, intersect(lhs, rhs), rand));
+        EXPECT_TRUE(region_eq(mp, join(lhs, rhs), ror));
 
     }
 }
 TEST(region, thingify_complex_morphologies) {
     using pvec = std::vector<msize_t>;
     using svec = std::vector<msample>;
-    using cl = mcable_list;
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 5, 5, 7, 7, 4, 10};
         svec samples = {
@@ -792,20 +728,6 @@ TEST(region, thingify_complex_morphologies) {
         sample_tree sm(samples, parents);
         auto m = morphology(sm, false);
         {
-            auto in = cl{{0,0,0},{1,0,0.5},{1,1,1},{2,0,1},{2,1,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
-            auto out = reg::remove_covered_points(in, m);
-
-            auto expected = cl{{1,0,0.5},{2,0,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
-            EXPECT_TRUE(cablelist_eq(out, expected));
-        }
-        {
-            auto in = cl{{0,0,0},{1,0,0.5},{1,1,1},{2,1,1},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
-            auto out = reg::remove_covered_points(in, m);
-
-            auto expected = cl{{1,0,0.5},{3,1,1},{4,0,1},{5,1,1},{7,0,1}};
-            EXPECT_TRUE(cablelist_eq(out, expected));
-        }
-        {
             mprovider mp(m);
             using reg::cable;
             using ls::most_distal;
@@ -818,19 +740,19 @@ TEST(region, thingify_complex_morphologies) {
             auto reg_e_ = join(cable(2,0,0.9), cable(4,0.1,0.1), cable(5,0.1,0.6));
             auto reg_f_ = join(cable(7,0,1), cable(2,0,0.9), cable(4,0.1,0.1), cable(5,0.1,0.6));
 
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_a_), mp), mlocation_list{{0,0.9},{1,0.4}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_b_), mp), mlocation_list{{0,0.9},{1,0.5}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_c_), mp), mlocation_list{{0,0.9},{2,0.5}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_d_), mp), mlocation_list{{3,0.1},{4,0.6}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_e_), mp), mlocation_list{{5,0.6}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_distal(reg_f_), mp), mlocation_list{{5,0.6},{7,1}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_distal(reg_a_), mp), mlocation_list{{0,0.9},{1,0.4}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_distal(reg_b_), mp), mlocation_list{{0,0.9},{1,0.5}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_distal(reg_c_), mp), mlocation_list{{0,0.9},{2,0.5}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_distal(reg_d_), mp), mlocation_list{{3,0.1},{4,0.6}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_distal(reg_e_), mp), mlocation_list{{5,0.6}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_distal(reg_f_), mp), mlocation_list{{5,0.6},{7,1}}));
 
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_a_), mp), mlocation_list{{0,0}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_b_), mp), mlocation_list{{0,0}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_c_), mp), mlocation_list{{0,0}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_d_), mp), mlocation_list{{2,0}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_e_), mp), mlocation_list{{2,0}}));
-            EXPECT_TRUE(mloctionlist_eq(thingify(most_proximal(reg_f_), mp), mlocation_list{{2,0}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_a_), mp), mlocation_list{{0,0}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_b_), mp), mlocation_list{{0,0}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_c_), mp), mlocation_list{{0,0}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_d_), mp), mlocation_list{{1,1}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_e_), mp), mlocation_list{{1,1}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_f_), mp), mlocation_list{{1,1}}));
         }
     }
     {
@@ -854,6 +776,7 @@ TEST(region, thingify_complex_morphologies) {
         mprovider mp(morphology(sm, false));
 
         using reg::all;
+        using reg::nil;
         using reg::z_dist_from_root_lt;
         using reg::z_dist_from_root_le;
         using reg::z_dist_from_root_gt;
@@ -861,48 +784,45 @@ TEST(region, thingify_complex_morphologies) {
         using reg::cable;
 
         // Test projection
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_lt(0), mp), (mcable_list{})));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_ge(0), mp), thingify(all(), mp)));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_lt(0), nil()));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_gt(0), all()));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_le(100), mp), thingify(all(), mp)));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_gt(100), mp), (mcable_list{})));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_le(100), all()));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_gt(100), nil()));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_le(90), mp), thingify(all(), mp)));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_gt(90), mp), (mcable_list{})));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_le(90), all()));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_gt(90), nil()));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_lt(20), mp),
-                                (mcable_list{{0,0,1},
-                                             {1,0,0.578250901781922829},
-                                             {2,0.61499300915417734997,0.8349970039232188642},
-                                             {3,0,0.179407353580315756}
-                                })));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_ge(20), mp),
-                                (mcable_list{{0,1,1},
-                                             {1,0.578250901781922829,1},
-                                             {2,0,0.61499300915417734997},
-                                             {2,0.8349970039232188642,1},
-                                             {3,0.179407353580315756,1},
-                                             {4,0,1},
-                                             {5,0,1}
-                                })));
-        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_root_lt(20), z_dist_from_root_ge(20)), mp), thingify(all(), mp)));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_lt(20),
+                                  mcable_list{{0,0,1},
+                                              {1,0,0.578250901781922829},
+                                              {2,0.61499300915417734997,0.8349970039232188642},
+                                              {3,0,0.179407353580315756}}));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_ge(20),
+                                  mcable_list{{0,1,1},
+                                              {1,0.578250901781922829,1},
+                                              {2,0,0.61499300915417734997},
+                                              {2,0.8349970039232188642,1},
+                                              {3,0.179407353580315756,1},
+                                              {4,0,1},
+                                              {5,0,1}}));
+        EXPECT_TRUE(region_eq(mp, join(z_dist_from_root_lt(20), z_dist_from_root_ge(20)), all()));
 
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_le(50), mp),
-                                (mcable_list{{0,0,1},
-                                             {1,0,1},
-                                             {2,0,0.2962417607888518767},
-                                             {2,0.4499900130773962142,1},
-                                             {3,0,0.4485183839507893905},
-                                             {3,0.7691110303704736343,1},
-                                             {4,0,0.0869615364994152821},
-                                             {5,0,0.25}
-                                })));
-        EXPECT_TRUE(cablelist_eq(thingify(z_dist_from_root_gt(50), mp),
-                                (mcable_list{{2,0.2962417607888518767,0.4499900130773962142},
-                                             {3,0.4485183839507893905,0.7691110303704736343},
-                                             {4,0.0869615364994152821,1},
-                                             {5,0.25,1}})));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_le(50),
+                                  mcable_list{{0,0,1},
+                                              {1,0,1},
+                                              {2,0,0.2962417607888518767},
+                                              {2,0.4499900130773962142,1},
+                                              {3,0,0.4485183839507893905},
+                                              {3,0.7691110303704736343,1},
+                                              {4,0,0.0869615364994152821},
+                                              {5,0,0.25}}));
+        EXPECT_TRUE(region_eq(mp, z_dist_from_root_gt(50),
+                                  mcable_list{{2,0.2962417607888518767,0.4499900130773962142},
+                                              {3,0.4485183839507893905,0.7691110303704736343},
+                                              {4,0.0869615364994152821,1},
+                                              {5,0.25,1}}));
 
-        EXPECT_TRUE(cablelist_eq(thingify(join(z_dist_from_root_le(50), z_dist_from_root_gt(50)), mp), thingify(all(), mp)));
+        EXPECT_TRUE(region_eq(mp, join(z_dist_from_root_le(50), z_dist_from_root_gt(50)), all()));
     }
 }

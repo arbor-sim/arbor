@@ -182,7 +182,7 @@ public:
     mlocation_list concrete_locset(const locset&) const;
 
     // Access to a concrete list of cable segments for a region.
-    mcable_list concrete_region(const region&) const;
+    mextent concrete_region(const region&) const;
 
     // Generic access to painted and placed items.
     const cable_cell_region_map& region_assignments() const;
