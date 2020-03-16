@@ -361,7 +361,7 @@ void fvm_lowered_cell_impl<B>::initialize(
            [&](cell_size_type i) {
                auto gid = gids[i];
                try {
-                   cells[i] = std::move(any_cast<cable_cell>(rec.get_cell_description(gid)));
+                   cells[i] = any_cast<cable_cell&&>(rec.get_cell_description(gid));
                }
                catch (util::bad_any_cast&) {
                    throw bad_cell_description(rec.get_cell_kind(gid), gid);
