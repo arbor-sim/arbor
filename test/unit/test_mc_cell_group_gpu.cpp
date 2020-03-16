@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
+#include <arborenv/gpu_env.hpp>
 
 #include "epoch.hpp"
 #include "execution_context.hpp"
@@ -14,7 +15,9 @@ using namespace arb;
 
 namespace {
     fvm_lowered_cell_ptr lowered_cell() {
-        execution_context context;
+        arb::proc_allocation resources;
+        resources.gpu_id = arbenv::default_gpu();
+        execution_context context(resources);
         return make_fvm_lowered_cell(backend_kind::gpu, context);
     }
 
