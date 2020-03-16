@@ -7,7 +7,6 @@
 #include <arbor/morph/locset.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "execution_context.hpp"
 #include "fvm_layout.hpp"
 #include "util/span.hpp"
 
@@ -39,7 +38,6 @@ TEST(cv_layout, empty) {
 TEST(cv_layout, trivial) {
     using namespace common_morphology;
 
-    execution_context ctx;
     auto params = neuron_parameter_defaults;
     params.discretization = cv_policy_explicit(ls::nil());
 
@@ -54,7 +52,7 @@ TEST(cv_layout, trivial) {
     }
 
     auto n_cells = cells.size();
-    fvm_cv_discretization D = fvm_cv_discretize(cells, params, ctx);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, params);
 
     EXPECT_EQ(n_cv, D.size());
     for (unsigned i = 0; i<n_cells; ++i) {
