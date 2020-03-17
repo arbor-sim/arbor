@@ -26,7 +26,6 @@ unsigned get_env_num_threads();
 // Will return at least 1.
 unsigned thread_concurrency();
 
-
 // The list of logical processors for which the calling thread has affinity.
 // If calling from the main thread at application start up, before
 // attempting to change thread affinity, may produce unreliable
