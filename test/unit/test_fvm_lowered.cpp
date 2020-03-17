@@ -334,7 +334,7 @@ TEST(fvm_lowered, stimulus) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters, context);
     const auto& A = D.cv_area;
 
     std::vector<target_handle> targets;
@@ -837,7 +837,7 @@ TEST(fvm_lowered, gj_coords_simple) {
         cells.push_back(std::move(c));
     }
 
-    fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
 
     std::vector<cell_gid_type> gids = {0, 1};
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
@@ -943,7 +943,7 @@ TEST(fvm_lowered, gj_coords_complex) {
 
     gap_recipe rec;
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
-    fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
 
     int c0_gj_cv[2];
     for (int i = 0; i<2; ++i) c0_gj_cv[i] = D.geometry.location_cv(0, c0_gj[i]);
@@ -1043,8 +1043,8 @@ TEST(fvm_lowered, cell_group_gj) {
     auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
     auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
 
-    fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults);
-    fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults);
+    fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, context);
+    fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, context);
 
     auto GJ0 = fvcell.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
     auto GJ1 = fvcell.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);
