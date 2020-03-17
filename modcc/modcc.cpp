@@ -114,24 +114,27 @@ std::ostream& operator<<(std::ostream& out, const printer_options& popt) {
         table_prefix{"simd"} << popt.simd << line_end;
 }
 
-simd_spec parse_simd_spec(std::string spec) {
+std::istream& operator>> (std::istream& i, simd_spec& spec) {
     auto npos = std::string::npos;
+    std::string s;
+    i >> s;
     unsigned width = 0;
 
-    auto suffix = spec.find_last_of('/');
+    auto suffix = s.find_last_of('/');
     if (suffix!=npos) {
-        width = stoul(spec.substr(suffix+1));
-        spec = spec.substr(0, suffix);
+        width = stoul(s.substr(suffix+1));
+        s = s.substr(0, suffix);
     }
 
-    return simd_spec(simdAbiMap.at(spec.c_str()), width);
+    spec = simd_spec(simdAbiMap.at(s.c_str()), width);
+    return i;
 }
 
 const char* usage_str =
         "\n"
         "-o|--output            [Prefix for output file names]\n"
         "-N|--namespace         [Namespace for generated code]\n"
-        "-t|--target=t0(,t1)    [Build module for target t0 (and t1); Avaliable targets: 'cpu', 'gpu']\n"
+        "-t|--target            [Build module for target; Avaliable targets: 'cpu', 'gpu']\n"
         "-s|--simd              [Generate code with explicit SIMD vectorization]\n"
         "-S|--simd-abi          [Override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...]\n"
         "-P|--profile           [Build with profiled kernels]\n"
@@ -146,38 +149,36 @@ int main(int argc, char **argv) {
     printer_options popt;
     try {
         std::vector<std::string> targets;
-        std::string spec;
-        bool simd_enabled = false;
 
         auto help = [argv0 = argv[0]] {
             to::usage(argv0, usage_str);
         };
 
+        auto enable_simd = [&popt] {
+            if (popt.simd.abi==simd_spec::none) {
+                popt.simd = simd_spec(simd_spec::native);
+            }
+        };
+
+        auto add_target = [&opt](targetKind t) {
+            opt.targets.insert(t);
+        };
+
         to::option options[] = {
                 { opt.modfile,  to::mandatory},
-                { opt.outprefix,                    "-o", "--output" },
-                { to::set(opt.verbose),  to::flag,  "-V", "--verbose" },
-                { to::set(opt.analysis), to::flag,  "-A", "--analyse" },
-                { opt.modulename,                   "-m", "--module" },
-                { to::set(popt.profile), to::flag,  "-P", "--profile" },
-                { popt.cpp_namespace,               "-N", "--namespace" },
-                { to::set(simd_enabled), to::flag,  "-s", "--simd" },
-                { spec,                             "-S", "--simd-abi" },
-                { {targets, to::delimited<std::string>()}, "-t", "--target" },
-                { to::action(help), to::flag, to::exit, "-h", "--help" }
+                { opt.outprefix,                     "-o", "--output" },
+                { to::set(opt.verbose),  to::flag,   "-V", "--verbose" },
+                { to::set(opt.analysis), to::flag,   "-A", "--analyse" },
+                { opt.modulename,                    "-m", "--module" },
+                { to::set(popt.profile), to::flag,   "-P", "--profile" },
+                { popt.cpp_namespace,                "-N", "--namespace" },
+                { to::action(enable_simd), to::flag, "-s", "--simd" },
+                { popt.simd,                         "-S", "--simd-abi" },
+                { {to::action(add_target, to::keywords(targetKindMap))}, "-t", "--target" },
+                { to::action(help), to::flag, to::exit,    "-h", "--help" }
         };
 
         if (!to::run(options, argc, argv+1)) return 0;
-
-        if (simd_enabled) {
-            popt.simd = simd_spec(simd_spec::native);
-            if (!spec.empty()) {
-                popt.simd = simd_spec(parse_simd_spec(spec));
-            }
-        }
-        for (auto target: targets) {
-            opt.targets.insert(targetKindMap.at(target));
-        }
     }
     catch (to::option_error& e) {
         to::usage(argv[0], usage_str, e.what());
