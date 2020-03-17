@@ -105,6 +105,10 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                     # Setting alignment-baseline doesn't have any effect on text positioning,
                     # so we adjust manually by nudging the Y positin of the text.
                     points.add(dwg.circle(center=(X[0], Y[0]), stroke=bcolor, r=sc*0.55, fill=bcolor))
+                    # alignment_baseline
+                    #   - works on Chrome/Chromium
+                    #   - doesn't work on Firefox
+                    numbers.add(dwg.text(str(i), insert=(X[0], Y[0]+sc/3), stroke='white', fill='white'))
                     numbers.add(dwg.text(str(i), insert=(X[0], Y[0]+sc/3), stroke='white', fill='white', alignment_baseline='middle'))
 
             else:
@@ -162,7 +166,11 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                         pos = ((X[k1]+X[k2])/2, (Y[k1]+Y[k2])/2)
                     label_pos = (pos[0], pos[1]+sc/3)
                     points.add(dwg.circle(center=pos, stroke=bcolor, r=sc*0.55, fill=bcolor))
-                    numbers.add(dwg.text(str(i), insert=label_pos, stroke='white', fill='white', alignment_baseline='middle'))
+                    # alignment_baseline
+                    #   - works on Chrome/Chromium
+                    #   - doesn't work on Firefox
+                    numbers.add(dwg.text(str(i), insert=label_pos, stroke='white', fill='white'))
+                    #numbers.add(dwg.text(str(i), insert=label_pos, stroke='white', fill='white', alignment_baseline='middle'))
 
         offset = maxx - minx + sc
 

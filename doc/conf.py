@@ -27,6 +27,10 @@ html_theme_options = {
     'logo_only': True,
     'style_nav_header_background': '#dfdcdf'}
 
+# This style makes the source code pop out a bit more
+# from the background text, without being overpowering.
+pygments_style = 'perldoc'
+
 # Generate images for the documentation.
 print("--- generating images ---")
 import sys, os

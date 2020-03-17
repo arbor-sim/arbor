@@ -457,8 +457,10 @@ generate the morphology with the ``spherical_root=True`` flag:
 
   The spherical root is a special branch with id 0, and the dendrite is a second branch numbered 1.
 
-Example 6: something more interesting
+Example 6: Branches and soma
 """""""""""""""""""""""""""""""""""""
+
+This example works on a cell with a soma with large radius, with a simple dendritic tree attached.
 
 .. code:: Python
 
@@ -471,9 +473,15 @@ Example 6: something more interesting
    tree.append(parent= 4, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 1)
    tree.append(parent= 3, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 1)
 
+The root sample with id 0 has a large radius to represent the soma, and the dendritic
+tree is represented by samples 1-6.
+
 .. figure:: gen-images/tree6a.svg
   :width: 400
   :align: center
+
+If the morphology is generated without a spherical root, that is with ``spherical_root=False``,
+the soma is treated as a truncated cone whose end points are defined by between samples 0 and 1.
 
 .. code:: Python
 
@@ -483,6 +491,13 @@ Example 6: something more interesting
   :width: 800
   :align: center
 
+  **(Left)**: The entire cell is composed of frustums. **(Right)**: There are three branches, with
+  branch 0 containing both the soma and the first dendrite.
+
+If the first sample is treated as a spherical soma by setting ``spherical_root=True``, the
+morphology has 4 branches, with the soma having its own spherical branch, and the dendritic tree
+composed of 3 branches.
+
 .. code:: Python
 
    morph = arbor.morphology(tree, spherical_root=True)
@@ -491,9 +506,30 @@ Example 6: something more interesting
   :width: 800
   :align: center
 
-To use a spherical soma, add an aditional sample on the edge of the soma that represents the
-start of the dendrite that branches off the soma, then instantiate the morphology with
-``spherical_root`` set to ``True``:
+.. note::
+
+    Sample 1, which defines the start of the dendritic tree does does not conincide with
+    the surface of the spherical soma branch, resulting in a gap in the image above.
+    This does not neccesarily mean that the morphology isn't valid, and could be the result of
+    converting a sample-based representation into sphere and frustums.
+
+    For example, a potato shaped soma could be modeled as a sphere of the
+    same volume or surface area, and sample 1 is the location where the dendrite extends from the
+    potato soma.
+
+    Arbor models branches attached to a spherical root branch as though they
+    are all attached to a single location on the sphere's surface, regardless of where they
+    start in space.
+
+.. warning::
+
+    Don't use spheres to represent the soma for models where it is important to model the location
+    of cables are attached to the soma, for example differentiating between apical and distal
+    dendrites, or the location of the axon hillock.
+    Construct the soma from one or more frustums, and attach the cables to the end points of the frustums.
+
+If the morphology is meant to model a cell with a spyherical soma, an additional sample can be added at
+the edge of the soma to bridge the gap and "fix" the cell.
 
 .. code:: Python
 
@@ -511,6 +547,8 @@ start of the dendrite that branches off the soma, then instantiate the morpholog
   :width: 400
   :align: center
 
+  Sample tree with an additional sample added to the surface of the spherical root.
+
 .. code:: Python
 
    morph = arbor.morphology(tree, spherical_root=True)
@@ -518,4 +556,6 @@ start of the dendrite that branches off the soma, then instantiate the morpholog
 .. figure:: gen-images/morph6b.svg
   :width: 800
   :align: center
+
+  The morphology has no gap between the soma and the start of the dendritic tree.
 
