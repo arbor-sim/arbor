@@ -2,6 +2,8 @@ import svgwrite
 import math
 import tree_inputs as trees
 
+tag_colors = ['white', '#ffc2c2', '#c2ffcc', '#c2caff']
+
 #
 # Helpers for working with 2D vectors
 #
@@ -32,7 +34,9 @@ def is_colloc(X,Y,i,j):
 # ############################################
 #
 
-def morph_image(morph, filename, draw_segments=[True,True], sc=20):
+def morph_image(morphs, methods, filename, sc=20):
+    assert(len(morphs)==len(methods))
+
     print('image:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
 
@@ -41,8 +45,6 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
 
     # Padding around image.
     fudge=1.5*sc
-
-    nbranches = len(morph)
 
     linecolor='black'
     pointcolor='red'
@@ -65,15 +67,18 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
 
     offset = 0
 
-    methods = []
-    if draw_segments[0]: methods.append('withseg')
-    if draw_segments[1]: methods.append('noseg')
-
     bcolor = 'mediumslateblue'
     pcolor = 'white'
-    segfillcolor = 'lightgray'
+    branchfillcolor = 'lightgray'
 
-    for method in methods:
+    nmorph = len(morphs)
+
+    for l in range(nmorph):
+        morph = morphs[l]
+        method = methods[l]
+
+        nbranches = len(morph)
+
         for i in range(nbranches):
             branch = morph[i]
 
@@ -81,6 +86,7 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
             X = branch['x']
             Y = branch['y']
             R = branch['r']
+            T = branch['t']
             nsamp = len(X)
 
             # Scale locations and radii for drawing
@@ -98,8 +104,9 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
             if is_sphere:
                 center = (X[0], Y[0])
                 radius = R[0]
-                lines.add(dwg.circle(center=center, r=radius, fill=segfillcolor))
-                if method=='withseg':
+                color = tag_colors[T[0]] if method=='segments' else branchfillcolor
+                lines.add(dwg.circle(center=center, r=radius, fill=color))
+                if method=='segments':
                     points.add(dwg.circle(center=(X[0], Y[0]), stroke='black', r=sc*0.2, fill=pcolor))
                 else:
                     # Setting alignment-baseline doesn't have any effect on text positioning,
@@ -112,7 +119,7 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                     numbers.add(dwg.text(str(i), insert=(X[0], Y[0]+sc/3), stroke='white', fill='white', alignment_baseline='middle'))
 
             else:
-                if method=='withseg':
+                if method=='segments':
                     for j in range(1, nsamp):
                         b = (X[j-1], Y[j-1])
                         e = (X[j],   Y[j])
@@ -125,12 +132,12 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                             p2 = add_vec(e, scal_vec(re, o))
                             p3 = sub_vec(e, scal_vec(re, o))
                             p4 = sub_vec(b, scal_vec(rb, o))
-                            lines.add(dwg.polygon(points=[p1,p2,p3,p4], fill=segfillcolor))
+                            lines.add(dwg.polygon(points=[p1,p2,p3,p4], fill=tag_colors[T[j]]))
 
                     for j in range(nsamp):
                         points.add(dwg.circle(center=(X[j], Y[j]), stroke='black', r=sc*0.2, fill=pcolor))
 
-                elif method=='noseg':
+                elif method=='branches':
                     index = []
                     for j in range(nsamp-1):
                         if not is_colloc(X,Y,j,j+1):
@@ -154,7 +161,7 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
                         left += [p1, p2]
                         right += [p4, p3]
                     right.reverse()
-                    lines.add(dwg.polygon(points=left+right,fill=segfillcolor))
+                    lines.add(dwg.polygon(points=left+right,fill=branchfillcolor))
                     # Place the number in the "middle" of the branch
                     if not nseg%2:
                         # Even number of segments: location lies at interface between segments
@@ -190,23 +197,28 @@ def morph_image(morph, filename, draw_segments=[True,True], sc=20):
 def generate(path=''):
 
     # spherical morpho: no need for two images
-    morph_image(trees.morph1,  path+'/morph1.svg', draw_segments=[True,False])
+    morph_image([trees.morph1], ['branchs'],  path+'/morph1.svg')
 
     # single cable segment
-    morph_image(trees.morph2a, path+'/morph2a.svg')
+    morph_image([trees.morph2a, trees.morph2a], ['segments','branches'], path+'/morph2a.svg')
     # cables with multipe segments
-    morph_image(trees.morph2b, path+'/morph2b.svg')
-    morph_image(trees.morph2c, path+'/morph2c.svg')
+    morph_image([trees.morph2b, trees.morph2b], ['segments','branches'], path+'/morph2b.svg')
+    morph_image([trees.morph2c, trees.morph2c], ['segments','branches'], path+'/morph2c.svg')
 
     # the y-shaped cells have one segment per branch
-    morph_image(trees.morph3,  path+'/morph3.svg')
-    morph_image(trees.morph4a, path+'/morph4.svg')
+    morph_image([trees.morph3a,  trees.morph3a],['segments','branches'], path+'/morph3a.svg')
+    morph_image([trees.morph3b, trees.morph3b], ['segments','branches'], path+'/morph3b.svg')
 
-    morph_image(trees.morph5a, path+'/morph5a.svg')
-    morph_image(trees.morph5b, path+'/morph5b.svg')
-    morph_image(trees.morph6a, path+'/morph6a.svg')
-    morph_image(trees.morph6b, path+'/morph6b.svg')
-    morph_image(trees.morph6c, path+'/morph6c.svg')
+    morph_image([trees.morph4a, trees.morph4a], ['segments','branches'], path+'/morph4a.svg')
+    morph_image([trees.morph4b, trees.morph4b], ['segments','branches'], path+'/morph4b.svg')
+
+    morph_image([trees.morph5a_sphere, trees.morph5a_sphere], ['segments','branches'], path+'/morph5a_sphere.svg')
+    morph_image([trees.morph5a_cable,  trees.morph5a_cable],  ['segments','branches'], path+'/morph5a_cable.svg')
+    morph_image([trees.morph5b_sphere, trees.morph5b_sphere], ['segments','branches'], path+'/morph5b_sphere.svg')
+    morph_image([trees.morph5b_cable,  trees.morph5b_cable],  ['segments','branches'], path+'/morph5b_cable.svg')
+
+    morph_image([trees.morph5a_cable, trees.morph5a_sphere], ['branches','branches'], path+'/morph-branches.svg')
+    morph_image([trees.morph5a_cable, trees.morph5a_sphere], ['segments','segments'], path+'/morph-segments.svg')
 
 if __name__ == '__main__':
     generate('.')
