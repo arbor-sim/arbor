@@ -3,20 +3,23 @@
 Morphology
 ==========
 
-A cell's *morphology* describes both its geometry and branching structure. Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius, joined together to form a tree. The geometry is given by a series of sample points, which comprise a three-dimensional location and a cross-sectional radius of the cell at that point.
+A cell's *morphology* describes both its geometry and branching structure.
+Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius,
+joined together to form a tree. The geometry is given by a series of sample points,
+which comprise a three-dimensional location and a cross-sectional radius of the cell at that point.
 
 Sample Trees
 ------------
 
 A *sample tree* is a sample-based description of a cell's morphology
-that is simple and flexible to support the diverse descriptions
-of cell morphologies (e.g. SWC, NeuroLicida, NeuroML), and to support tools that
+that is designed to support both the diverse descriptions
+of cell morphologies (e.g. SWC, NeuroLicida, NeuroML), and tools that
 iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
 
-The building block used to define a morphology in a sample tree is a *sample*, which
+The building block of sample trees is a *sample*, which
 is a three-dimensionsal *location*, with a *radius* and *tag* meta-data.
 
-.. csv-table:: Fields that define a *sample*.
+.. csv-table:: Fields that define a sample.
    :widths: 10, 10, 30
 
    **Field**,   **Type**, **Description**
@@ -37,30 +40,31 @@ is a three-dimensionsal *location*, with a *radius* and *tag* meta-data.
 
 
 Sample trees comprise a sequence of samples starting from a *root* sample, together with a parent-child
-adjacency relationship where a child sample is distal to its parent 
-Branches in the tree occur where a parent sample has more than one child, and a sample can not have more than one parent.
+adjacency relationship where a child sample is distal to its parent.
+Branches in the tree occur where a sample has more than one child.
+Furthermore, a sample can not have more than one parent.
 In this manner, neuron morphologies are modelled as a *tree*, where cables that represent dendrites and axons can branch, but branches can not rejoin.
+
+When refering to samples in a sample tree, the following definitions are used:
 
 * *root*: The first sample in the sample tree, assigned id 0.
 
-  * later xxx
-
-* *parent*: Each sample has one parent parent, except the root sample.
+* *parent*: Each sample has one parent, except the root sample.
 
   * A sample's id is always greater than the id of its parent.
   * The ids of samples on the same unbranched section of cable do not need to be contiguous.
 
 * *child*: The children of sample *s* are samples whose parent is *s*.
-* *terminal*: A sample with no children.
+* *terminal*: A sample with no children. Terminals lie at the end of dendritic trees or axons.
 * *fork*: A sample with more than one child. Fork points are where a cable splits into two or more branches.
-* *collocated*: A sample is collocated with its parent if they have the same location
+* *collocated*: A sample is collocated with its parent if they have the same location.
 
-  * Used in to indicate a discontinuity in the radius of a cable, or the start of a
+  * collocation is used to indicate a discontinuity in the radius of a cable, or the start of a
     child branch with a different radius than its parent.
 
-Some of these concepts are illustrated in the sample tree :ref:`below <morph-stree-fig>`:
+Some of these definitions are illustrated in the sample tree :ref:`below <morph-stree-fig>`:
 
-* The tree is composed of 7 samples, enumerated from 0 to 6.
+* The tree is composed of 7 samples, enumerated with ids from 0 to 6.
 * The root of the tree is sample 0.
 * Sample 3 is a fork point whose children are samples 4 and 6.
 * Samples 5 and 6 are terminals, with no children.
@@ -92,20 +96,21 @@ Some of these concepts are illustrated in the sample tree :ref:`below <morph-str
 Morphology
 ----------
 
-A *morphology* provides an description of the geometry of a cell in terms of variable radius unbranched cables, an optional spherical segment at the root of the tree, and their associated tree structure.
+A *morphology* provides a description of the geometry of a cell in terms of unbranched cables with variable radius,
+an optional spherical segment at the root of the tree, and their associated tree structure.
 
 Segmentation
 ~~~~~~~~~~~~
 
 The first step in constructing a morphology from a sample tree is to generate *segments*, of which there are two kinds:
 
-* *cable segment*: a frustum (cylinder or truncated cone) between two adjacent samples,
+* *Cable segment*: a frustum (cylinder or truncated cone) between two adjacent samples,
   with the centre and radius of each end defined by the location and radius of the samples.
-* *spherical segment*: a sphere with centre and radius specified by the location and radius
-  of the root sample. Only the root sample can be interpreted as a spherical segment,
-  which is a user option.
+* *Spherical segment*: a sphere with centre and radius specified by the location and radius
+  of the root sample. Only the root sample can be interpreted as a spherical segment.
 
-The following example, based on the model of a soma with a branching dendrite above, illustrates the segments generated from a sample tree.
+The following example, based on the model of a soma with a branching dendrite :ref:`above <morph-stree-fig>`,
+illustrates the segments generated from a sample tree.
 
 .. _morph-segment-fig:
 
@@ -119,7 +124,8 @@ The following example, based on the model of a soma with a branching dendrite ab
   :width: 800
   :align: center
 
-  **Left**: The segments generated without a spherical root.
+  **Left**: The segments generated without a spherical root. See the :ref:`tags <morph-tags>` section
+  for a description of the segment coloring.
 
   **Right**: Segments with a spherical root segment.
 
@@ -127,14 +133,17 @@ The following example, based on the model of a soma with a branching dendrite ab
 The surface of  the spherical root segment above does not conincide with
 the first sample of the dendritic tree, so there is a gap between the
 sphere and the start of the dendrite.
-This does not neccesarily mean that the segmentation is not valid.
-
-To illustrate why, consider a potato-shaped soma modeled with a sphere of the
-same surface area, where sample 1 is the location where the dendrite attaches
-to the potato soma.
 Segments attached to a spherical root branch are modeled as though they
 were attached to a single location on the sphere's surface, regardless of where they
 start in space.
+
+A gap between a spherical root and branches attached to it does not mean
+that the segmentation is not valid.
+To illustrate why, consider a potato-shaped soma modeled with a sphere of the
+same surface area, where sample 1 above is the location where the dendrite attaches
+to the potato soma.
+The cell will be modeled as a spherical soma, with the dendrite attached, consistent with
+the simplification of the complex soma geometry.
 
 .. warning::
 
@@ -144,7 +153,7 @@ start in space.
     In this case, construct the soma from one or more frustums, and attach the cables to
     the end points of the frustums.
 
-.. _morpho-tags:
+.. _morph-tags:
 
 Tags
 ~~~~
@@ -152,7 +161,7 @@ Tags
 The tag meta-data attached to each sample is used to attach tags to segments.
 
 * Cable segments take the tag of the distal sample.
-* Spherical segments get the tag of the root samle.
+* Spherical segments get the tag of the root sample.
 
 The segments :ref:`above <morph-segment-fig>` are colored according to the tags in
 the :ref:`sample tree  <morph-stree-fig>`: tag 1 pink; tag 2 green; and tag 3 blue.
@@ -160,7 +169,7 @@ the :ref:`sample tree  <morph-stree-fig>`: tag 1 pink; tag 2 green; and tag 3 bl
 .. note::
 
     The tag of the root sample is ignored when not using a spherical root,
-    because it is the proximal end of any cable segment.
+    because it can only be used as the proximal end of cable segments.
 
 
 Branches
@@ -182,7 +191,7 @@ As a result, there is only one possible set of branches that describe a morpholo
   :width: 800
   :align: center
 
-  The branches from the segmentations without and with a spherical root.
+  The branches from the segmentations in the :ref:`example morphology <morph-segment-fig>`.
 
   **Left**: The branches generated with no spherical root. The segment at the root is
   part of the first dendrite cable branch:
