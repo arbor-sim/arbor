@@ -191,9 +191,9 @@ As a result, there is only one possible set of branches that describe a morpholo
   :width: 800
   :align: center
 
-  The branches from the segmentations in the :ref:`example morphology <morph-segment-fig>`.
+  The branches from the two segmentations of the :ref:`example morphology <morph-segment-fig>`.
 
-  **Left**: The branches generated with no spherical root. The segment at the root is
+  **Left**: Branches generated without a spherical root segment. The segment at the root is
   part of the first dendrite cable branch:
 
    .. csv-table::
@@ -204,7 +204,7 @@ As a result, there is only one possible set of branches that describe a morpholo
        1,            "[3, 4, 5]"
        2,            "[3, 6]"
 
-  **Right**: An additional branch is created for a spherical root segment, with only the root sample:
+  **Right**: An additional branch is created for a spherical root segment:
 
    .. csv-table::
        :widths: 10, 10
@@ -252,7 +252,7 @@ with a radius of 3 μm, centered at the origin.
   :width: 100
   :align: center
 
-  The sample tree is a single sample with radius 3 μm.
+  The sample tree is a single sample with radius 3 μm and id 0.
 
 .. code:: Python
 
@@ -262,7 +262,7 @@ with a radius of 3 μm, centered at the origin.
   :width: 100
   :align: center
 
-  The corresponding morphology is a sphere of radius 3 μm.
+  The morphology is a single spherical segment that forms branch 0.
 
 .. _morph-tree2:
 
@@ -276,8 +276,8 @@ It is constructed from a sample tree of two points that define the end points of
 .. code:: Python
 
     tree = arbor.sample_tree()
-    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
-    tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
+    tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
 
 .. figure:: gen-images/tree2a.svg
   :width: 300
@@ -306,9 +306,9 @@ distinct cable segments:
    tree = arbor.sample_tree()
    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
    tree.append(parent= 0, x= 3.0, y= 0.2, z= 0.0, radius= 0.8, tag= 1)
-   tree.append(parent= 1, x= 5.0, y=-0.1, z= 0.0, radius= 0.7, tag= 1)
-   tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.6, tag= 1)
-   tree.append(parent= 3, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 1, x= 5.0, y=-0.1, z= 0.0, radius= 0.7, tag= 2)
+   tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.6, tag= 2)
+   tree.append(parent= 3, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
 
 .. figure:: gen-images/tree2b.svg
   :width: 300
@@ -324,7 +324,10 @@ distinct cable segments:
   :width: 600
   :align: center
 
-  **Left**: The resulting morphology is an ubranched cable comprised of 4 cable segments.
+  **Left**: The morphology is an ubranched cable comprised of 4 cable segments.
+  The color of the segments is determined by the tags of their distal samples:
+  tag 1 red; tag 2 gree; tag 3 blue.
+
   **Right**: The four segments form one branch.
 
 Collocated samples can be used to create a discontinuity in cable radius.
@@ -336,10 +339,10 @@ radius changes from 0.5 μm to 0.3 μm:
    tree = arbor.sample_tree()
    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
    tree.append(parent= 0, x= 3.0, y= 0.2, z= 0.0, radius= 0.8, tag= 1)
-   tree.append(parent= 1, x= 5.0, y=-0.1, z= 0.0, radius= 0.7, tag= 1)
-   tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.6, tag= 1)
-   tree.append(parent= 3, x= 8.0, y= 0.0, z= 0.0, radius= 0.3, tag= 1)
-   tree.append(parent= 4, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
+   tree.append(parent= 1, x= 5.0, y=-0.1, z= 0.0, radius= 0.7, tag= 2)
+   tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.6, tag= 2)
+   tree.append(parent= 3, x= 8.0, y= 0.0, z= 0.0, radius= 0.3, tag= 3)
+   tree.append(parent= 4, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
 
 .. figure:: gen-images/tree2c.svg
   :width: 300
@@ -363,19 +366,19 @@ Example 3: Y-shaped cell
 """"""""""""""""""""""""""""""
 
 The simplest branching morphology is a cable that bifurcates into two branches,
-which we call a *y-shaped cell*.
+which we will call a *y-shaped cell*.
 In the example below, the first branch of the tree is a cable of length 10 μm with a
-a radius that tapers from 0.5 μm to 1 μm.
+a radius that tapers from 1 μm to 0.5 μm.
 The two child branches are attached to the end of the first branch, and taper from from 0.5 μ m
 to 0.2 μm.
 
 .. code:: Python
 
    tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
-   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
-   tree.append(parent= 1, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 1)
-   tree.append(parent= 1, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
+   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 1, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 3)
+   tree.append(parent= 1, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 3)
 
 .. figure:: gen-images/tree3a.svg
   :width: 400
@@ -390,23 +393,23 @@ to 0.2 μm.
   :align: center
 
 
-The child branches above start with the same radius of 0.5 μm as the distal end of their parent branch.
+The child branches start with the same 0.5 μm radius as the distal end of their parent branch.
 For the children to have a constant radius of 0.2 μm, instead of tapering from 0.5 μm to 0.2 μm,
-we use collocated samples of radius 0.2 μm.
+use samples of radius 0.2 μm collocated with the end of the parent branch.
 Two methods that use the same approach are illustrated below:
 
-* insert collocated points at the start of each child branch;
-* insert a single collocated point at the end of the parent branch.
+1. Insert collocated points at the start of each child branch;
+2. Insert a single collocated point at the end of the parent branch.
 
 .. code:: Python
 
    tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
-   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 1)
-   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 1)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 1)
-   tree.append(parent= 4, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
+   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 3)
+   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 3)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 3)
+   tree.append(parent= 4, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 3)
 
 .. figure:: gen-images/tree3b.svg
   :width: 400
@@ -419,11 +422,11 @@ Two methods that use the same approach are illustrated below:
 .. code:: Python
 
    tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
-   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 1)
-   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 1)
-   tree.append(parent= 2, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 1)
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
+   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 3)
+   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 3)
+   tree.append(parent= 2, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 3)
 
 .. figure:: gen-images/tree3c.svg
   :width: 400
@@ -448,15 +451,16 @@ Two methods that use the same approach are illustrated below:
 Example 4: Ball and stick
 """"""""""""""""""""""""""""""
 
-The next example is a spherical soma of radius 3 μm with a single branch of length
-7 μm and constant radius of 1 μm attached.
+The next example is a spherical soma of radius 2 μm with a single branch of length
+8 μm and constant radius of 1 μm attached.
 
 .. code:: Python
 
    tree = arbor.sample_tree()
    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
    tree.append(parent= 0, x= 2.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
+   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
+   morph = arbor.morphology(tree, spherical_root=True)
 
 .. figure:: gen-images/tree4.svg
   :width: 300
@@ -486,8 +490,8 @@ generate the morphology with ``spherical_root=True``:
 
   The spherical root is a special branch with id 0, and the dendrite is a second branch numbered 1.
 
-Example 5: Branches and soma
-"""""""""""""""""""""""""""""""""""""
+Example 5: Soma with y-shaped dendrites
+"""""""""""""""""""""""""""""""""""""""
 
 This example models a cell with a simple dendritic tree attached to a soma.
 
@@ -496,11 +500,11 @@ This example models a cell with a simple dendritic tree attached to a soma.
    tree = arbor.sample_tree()
    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 3.0, tag= 1)
    tree.append(parent= 0, x= 5.0, y=-1.0, z= 0.0, radius= 0.8, tag= 1)
-   tree.append(parent= 1, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 1)
-   tree.append(parent= 2, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
-   tree.append(parent= 3, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 1)
-   tree.append(parent= 4, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 1)
-   tree.append(parent= 3, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 1)
+   tree.append(parent= 1, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 2, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 3, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 2)
+   tree.append(parent= 4, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 2)
+   tree.append(parent= 3, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 3)
 
 The root sample with id 0 has a large radius to represent the soma, and the dendritic
 tree is represented by samples 1-6.
@@ -509,7 +513,7 @@ tree is represented by samples 1-6.
   :width: 400
   :align: center
 
-If the morphology is generated without a spherical root, that is with ``spherical_root=False``,
+If the morphology is generated with ``spherical_root=False``,
 the soma is treated as a truncated cone whose end points are defined by between samples 0 and 1.
 
 .. code:: Python
@@ -535,26 +539,27 @@ composed of 3 branches.
   :width: 800
   :align: center
 
-If the morphology is meant to model a cell with a spyherical soma, an additional sample can be added at
-the edge of the soma to bridge the gap and "fix" the cell.
+If the intention is to model a spherical soma with a cable segment attached to its surface,
+an additional sample can be added at the edge of the soma to bridge the gap.
 
 .. code:: Python
 
    tree = arbor.sample_tree()
    tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 3.0, tag= 1)
    tree.append(parent= 0, x= 3.0, y=-0.8, z= 0.0, radius= 0.8, tag= 1)
-   tree.append(parent= 1, x= 5.0, y=-1.0, z= 0.0, radius= 0.8, tag= 1)
-   tree.append(parent= 2, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 1)
-   tree.append(parent= 3, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 1)
-   tree.append(parent= 4, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 1)
-   tree.append(parent= 5, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 1)
-   tree.append(parent= 4, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 1)
+   tree.append(parent= 1, x= 5.0, y=-1.0, z= 0.0, radius= 0.8, tag= 3)
+   tree.append(parent= 2, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 3, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 4, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 2)
+   tree.append(parent= 5, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 2)
+   tree.append(parent= 4, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 3)
 
 .. figure:: gen-images/tree5b.svg
   :width: 400
   :align: center
 
-  Sample tree with an additional sample added to the surface of the spherical root.
+  Sample tree with an additional sample added to the surface, at a distance of 3
+  μm of the spherical root.
 
 .. code:: Python
 
@@ -566,3 +571,46 @@ the edge of the soma to bridge the gap and "fix" the cell.
 
   The morphology has no gap between the soma and the start of the dendritic tree.
 
+Example 6: Connecting branches to a soma
+""""""""""""""""""""""""""""""""""""""""""
+
+This example shows how to attach multiple branches to a soma when the location
+where the branches are attached is important. Specifically, a cylindrical soma
+with two dendrites branching from one end, and an axon hillock on the other end.
+A cable segment is used to model the soma so that branches can be attached to
+either it's proximal or distal end.
+
+.. code:: Python
+
+   tree = arbor.sample_tree()
+   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
+   tree.append(parent= 0, x= 6.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
+   tree.append(parent= 1, x= 6.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 2, x=15.0, y= 5.0, z= 0.0, radius= 0.5, tag= 3)
+   tree.append(parent= 3, x=20.0, y= 7.0, z= 0.0, radius= 0.3, tag= 3)
+   tree.append(parent= 2, x=21.0, y=-3.0, z= 0.0, radius= 0.3, tag= 3)
+   tree.append(parent= 0, x=-5.0, y= 0.0, z= 0.0, radius= 0.5, tag= 2)
+
+
+.. figure:: gen-images/tree6.svg
+  :width: 400
+  :align: center
+
+  Samples 0 and 1 have the same radius, and define the extent of the soma. Sample 2
+  is collocated with sample 1, as the starting start of the two dendrites with radius
+  0.5 μm. Sample 6 defines the narrow end of the axonal hillock, with the root as parent.
+
+.. code:: Python
+
+   morph = arbor.morphology(tree, spherical_root=False)
+
+.. figure:: gen-images/morph6.svg
+  :width: 800
+  :align: center
+
+  **Left**: The segmentation. The soma (red) is a cylinder, with the blue dendrite
+  segments attached on its distal end. The axon hillock is modeled by the single
+  green tapered cable segment.
+
+  **Right**: Branch 0 is the soma, the dendrites are branches 1 and 2, and the axon
+  hillock is branch 3.

@@ -314,6 +314,7 @@ def generate(path=''):
     make_image(trees.tree4,  path+'/tree4.svg')
     make_image(trees.tree5a, path+'/tree5a.svg')
     make_image(trees.tree5b, path+'/tree5b.svg')
+    make_image(trees.tree6,  path+'/tree6.svg')
 
     make_table(trees.tree1,  '1')
     make_table(trees.tree2a, '2a')
@@ -323,6 +324,9 @@ def generate(path=''):
     make_table(trees.tree3b, '3b')
     make_table(trees.tree3c, '3c')
     make_table(trees.tree4,  '4')
+    make_table(trees.tree5a, '5a')
+    make_table(trees.tree5b, '5b')
+    make_table(trees.tree6,  '6')
 
 if __name__ == '__main__':
     generate('.')

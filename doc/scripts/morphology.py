@@ -220,5 +220,7 @@ def generate(path=''):
     morph_image([trees.morph5a_cable, trees.morph5a_sphere], ['branches','branches'], path+'/morph-branches.svg')
     morph_image([trees.morph5a_cable, trees.morph5a_sphere], ['segments','segments'], path+'/morph-segments.svg')
 
+    morph_image([trees.morph6, trees.morph6], ['segments','branches'], path+'/morph6.svg')
+
 if __name__ == '__main__':
     generate('.')
