@@ -34,172 +34,266 @@ mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
 class recipe_expsyn_1_branch: public recipe {
     unsigned num_comp_;
     unsigned num_synapse_;
+    arb::cable_cell_global_properties gprop_;
+
 public:
     recipe_expsyn_1_branch(unsigned num_comp, unsigned num_synapse):
-            num_comp_(num_comp), num_synapse_(num_synapse) {}
+            num_comp_(num_comp), num_synapse_(num_synapse) {
+        gprop_.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     cell_size_type num_cells() const override {
         return 1;
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cable_cell c;
+        using arb::reg::tagged;
 
-        auto soma = c.add_soma(12.6157/2.0);
-        soma->add_mechanism("pas");
+        arb::sample_tree tree;
+        arb::label_dict d;
 
-        c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
+        double soma_radius = 12.6157/2.0;
+        double dend_radius = 1.0/2;
+        double dend_length = 200;
 
-        for (auto& seg: c.segments()) {
-            if (seg->is_dendrite()) {
-                seg->set_compartments(num_comp_-1);
-            }
-        }
+        // Add soma.
+        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
 
+        // Add dendrite
+        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
+        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+
+        d.set("soma",      tagged(1));
+        d.set("dend", tagged(3));
+
+        arb::cable_cell cell(arb::morphology(tree, true), d);
+
+        cell.paint("soma", "pas");
         auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
-
         for(unsigned i = 0; i < num_synapse_; i++) {
             auto gen = std::mt19937(i);
-            c.add_synapse({1, distribution(gen)}, "expsyn");
+            cell.place(arb::mlocation{1, distribution(gen)}, "expsyn");
         }
 
-        return std::move(c);
+        cell.default_parameters = arb::neuron_parameter_defaults;
+        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
+        return std::move(cell);
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable;
     }
 
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        return gprop_;
+    }
 };
 
 class recipe_pas_1_branch: public recipe {
     unsigned num_comp_;
+    arb::cable_cell_global_properties gprop_;
 public:
-    recipe_pas_1_branch(unsigned num_comp): num_comp_(num_comp) {}
+    recipe_pas_1_branch(unsigned num_comp): num_comp_(num_comp) {
+        gprop_.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     cell_size_type num_cells() const override {
         return 1;
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cable_cell c;
+        using arb::reg::tagged;
 
-        auto soma = c.add_soma(12.6157/2.0);
-        soma->add_mechanism("pas");
+        arb::sample_tree tree;
+        arb::label_dict d;
 
-        c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
+        double soma_radius = 12.6157/2.0;
+        double dend_radius = 1.0/2;
+        double dend_length = 200;
 
-        for (auto& seg: c.segments()) {
-            if (seg->is_dendrite()) {
-                seg->add_mechanism("pas");
-                seg->set_compartments(num_comp_-1);
-            }
-        }
-        return std::move(c);
+        // Add soma.
+        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+
+        // Add dendrite
+        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
+        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+
+        d.set("soma",      tagged(1));
+        d.set("dend", tagged(3));
+
+        arb::cable_cell cell(arb::morphology(tree, true), d);
+
+        cell.paint("soma", "pas");
+        cell.paint("dend", "pas");
+
+        cell.default_parameters = arb::neuron_parameter_defaults;
+        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
+        return std::move(cell);
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable;
     }
 
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        return gprop_;
+    }
 };
 
 class recipe_pas_3_branches: public recipe {
     unsigned num_comp_;
+    arb::cable_cell_global_properties gprop_;
 public:
-    recipe_pas_3_branches(unsigned num_comp): num_comp_(num_comp) {}
+    recipe_pas_3_branches(unsigned num_comp): num_comp_(num_comp) {
+        gprop_.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     cell_size_type num_cells() const override {
         return 1;
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cable_cell c;
+        using arb::reg::tagged;
 
-        auto soma = c.add_soma(12.6157/2.0);
-        soma->add_mechanism("pas");
+        arb::sample_tree tree;
+        arb::label_dict d;
 
-        c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
-        c.add_cable(1, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
-        c.add_cable(1, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
+        double soma_radius = 12.6157/2.0;
+        double dend_radius = 1.0/2;
+        double dend_length = 200;
 
-        for (auto& seg: c.segments()) {
-            if (seg->is_dendrite()) {
-                seg->add_mechanism("pas");
-                seg->set_compartments(num_comp_-1);
-            }
-        }
-        return std::move(c);
+        // Add soma.
+        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+
+        // Add dendrite
+        tree.append(0, {{0          ,0          ,soma_radius,             dend_radius}, 3});
+        tree.append(1, {{0          ,0          ,soma_radius+dend_length, dend_radius}, 3});
+        tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
+        tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
+
+        d.set("soma",      tagged(1));
+        d.set("dend", tagged(3));
+
+        arb::cable_cell cell(arb::morphology(tree, true), d);
+
+        cell.paint("soma", "pas");
+        cell.paint("dend", "pas");
+
+        cell.default_parameters = arb::neuron_parameter_defaults;
+        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length*3/num_comp_);
+        return std::move(cell);
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable;
     }
 
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        return gprop_;
+    }
 };
 
 class recipe_hh_1_branch: public recipe {
     unsigned num_comp_;
+    arb::cable_cell_global_properties gprop_;
 public:
-    recipe_hh_1_branch(unsigned num_comp): num_comp_(num_comp) {}
+    recipe_hh_1_branch(unsigned num_comp): num_comp_(num_comp) {
+        gprop_.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     cell_size_type num_cells() const override {
         return 1;
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cable_cell c;
+        using arb::reg::tagged;
 
-        auto soma = c.add_soma(12.6157/2.0);
-        soma->add_mechanism("hh");
+        arb::sample_tree tree;
+        arb::label_dict d;
 
-        c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
+        double soma_radius = 12.6157/2.0;
+        double dend_radius = 1.0/2;
+        double dend_length = 200;
 
-        for (auto& seg: c.segments()) {
-            if (seg->is_dendrite()) {
-                seg->add_mechanism("hh");
-                seg->set_compartments(num_comp_-1);
-            }
-        }
-        return std::move(c);
+        // Add soma.
+        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+
+        // Add dendrite
+        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
+        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+
+        d.set("soma",      tagged(1));
+        d.set("dend", tagged(3));
+
+        arb::cable_cell cell(arb::morphology(tree, true), d);
+
+        cell.paint("soma", "hh");
+        cell.paint("dend", "hh");
+
+        cell.default_parameters = arb::neuron_parameter_defaults;
+        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
+        return std::move(cell);
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable;
     }
 
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        return gprop_;
+    }
 };
 
 class recipe_hh_3_branches: public recipe {
     unsigned num_comp_;
+    arb::cable_cell_global_properties gprop_;
 public:
-    recipe_hh_3_branches(unsigned num_comp): num_comp_(num_comp) {}
+    recipe_hh_3_branches(unsigned num_comp): num_comp_(num_comp) {
+        gprop_.default_parameters = arb::neuron_parameter_defaults;
+    }
 
     cell_size_type num_cells() const override {
         return 1;
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cable_cell c;
+        using arb::reg::tagged;
 
-        auto soma = c.add_soma(12.6157/2.0);
-        soma->add_mechanism("pas");
+        arb::sample_tree tree;
+        arb::label_dict d;
 
-        c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
-        c.add_cable(1, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
-        c.add_cable(1, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
+        double soma_radius = 12.6157/2.0;
+        double dend_radius = 1.0/2;
+        double dend_length = 200;
 
-        for (auto& seg: c.segments()) {
-            if (seg->is_dendrite()) {
-                seg->add_mechanism("hh");
-                seg->set_compartments(num_comp_-1);
-            }
-        }
-        return std::move(c);
+        // Add soma.
+        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+
+        // Add dendrite
+        tree.append(0, {{0          ,0          ,soma_radius,             dend_radius}, 3});
+        tree.append(1, {{0          ,0          ,soma_radius+dend_length, dend_radius}, 3});
+        tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
+        tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
+
+        d.set("soma",      tagged(1));
+        d.set("dend", tagged(3));
+
+        arb::cable_cell cell(arb::morphology(tree, true), d);
+
+        cell.paint("soma", "hh");
+        cell.paint("dend", "hh");
+
+        cell.default_parameters = arb::neuron_parameter_defaults;
+        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length*3/num_comp_);
+        return std::move(cell);
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable;
+    }
+
+    arb::util::any get_global_properties(arb::cell_kind) const override {
+        return gprop_;
     }
 };
 
@@ -358,12 +452,12 @@ void hh_3_branches_current(benchmark::State& state) {
 }
 
 void run_custom_arguments(benchmark::internal::Benchmark* b) {
-    for (auto ncomps: {10, 100, 1000, 10000, 100000, 1000000, 10000000}) {
+    for (auto ncomps: {10, 100, 1000, 10000, 100000}) {
         b->Args({ncomps});
     }
 }
 void run_exp_custom_arguments(benchmark::internal::Benchmark* b) {
-    for (auto ncomps: {10, 100, 1000, 10000, 100000, 1000000}) {
+    for (auto ncomps: {10, 100, 1000, 10000}) {
         b->Args({ncomps, ncomps*10});
     }
 }
