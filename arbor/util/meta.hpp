@@ -2,8 +2,11 @@
 
 /* Type utilities and convenience expressions.  */
 
+#include <array>
 #include <cstddef>
 #include <iterator>
+#include <tuple>
+#include <utility>
 #include <type_traits>
 
 namespace arb {
@@ -269,34 +272,19 @@ template <typename I, typename E>
 struct has_common_random_access_iterator<I, E, void_t<util::common_random_access_iterator_t<I, E>>>:
     std::true_type {};
 
-// No generic lambdas in C++11, so some convenience accessors for pairs that
-// are type-generic
+// Generic accessors:
+//    * first and second for pairs and tuples;
+//    * util::get<I> to forward to std::get<I> where applicable, but
+//      is otherwise extensible to non-std types.
 
-struct first_t {
-    template <typename U, typename V>
-    U& operator()(std::pair<U, V>& p) {
-        return p.first;
-    }
+static auto first = [](auto&& pair) -> decltype(auto) { return std::get<0>(std::forward<decltype(pair)>(pair)); };
+static auto second = [](auto&& pair) -> decltype(auto) { return std::get<1>(std::forward<decltype(pair)>(pair)); };
 
-    template <typename U, typename V>
-    const U& operator()(const std::pair<U, V>& p) const {
-        return p.first;
-    }
-};
-constexpr first_t first{};
+template <typename X, typename U>
+decltype(auto) get(U&& u) { return std::get<X>(std::forward<U>(u));}
 
-struct second_t {
-    template <typename U, typename V>
-    V& operator()(std::pair<U, V>& p) {
-        return p.second;
-    }
-
-    template <typename U, typename V>
-    const V& operator()(const std::pair<U, V>& p) const {
-        return p.second;
-    }
-};
-constexpr second_t second{};
+template <std::size_t I, typename U>
+decltype(auto) get(U&& u) { return std::get<I>(std::forward<U>(u));}
 
 } // namespace util
 } // namespace arb
