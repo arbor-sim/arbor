@@ -79,6 +79,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    :caption: Concepts:
 
    morphology
+   labels
 
 .. toctree::
    :caption: Arbor Models:
