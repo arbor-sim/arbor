@@ -14,6 +14,8 @@
 #include <arbor/simulation.hpp>
 #include <arbor/schedule.hpp>
 
+#include <arborenv/concurrency.hpp>
+
 #include "algorithms.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
@@ -204,7 +206,14 @@ private:
 
 TEST(fvm_lowered, matrix_init)
 {
-    execution_context context;
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
 
     auto isnan = [](auto v) { return std::isnan(v); };
     auto ispos = [](auto v) { return v>0; };
@@ -242,7 +251,14 @@ TEST(fvm_lowered, matrix_init)
 TEST(fvm_lowered, target_handles) {
     using namespace arb;
 
-    execution_context context;
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
 
     cable_cell cells[] = {
         make_cell_ball_and_stick(),
@@ -312,7 +328,14 @@ TEST(fvm_lowered, stimulus) {
     // amplitude | 0.3  |  0.1
     // CV        |   5  |    0
 
-    execution_context context;
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
 
     std::vector<cable_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
@@ -393,6 +416,14 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+
     std::vector<cable_cell> cells;
     cells.reserve(3);
     for (int i = 0; i<3; ++i) {
@@ -430,7 +461,7 @@ TEST(fvm_lowered, derived_mechs) {
         std::vector<fvm_index_type> cell_to_intdom;
         probe_association_map<probe_handle> probe_map;
 
-        execution_context context;
+        arb::execution_context context(resources);
         fvm_cell fvcell(context);
         fvcell.initialize({0, 1, 2}, rec, cell_to_intdom, targets, probe_map);
 
@@ -468,7 +499,7 @@ TEST(fvm_lowered, derived_mechs) {
 
         float times[] = {10.f, 20.f};
 
-        auto ctx = make_context();
+        auto ctx = make_context(resources);
         auto decomp = partition_load_balance(rec, ctx);
         simulation sim(rec, decomp, ctx);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
@@ -489,7 +520,13 @@ TEST(fvm_lowered, derived_mechs) {
 // Test that ion charge is propagated into mechanism variable.
 
 TEST(fvm_lowered, read_valence) {
-    execution_context context;
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -504,6 +541,7 @@ TEST(fvm_lowered, read_valence) {
         cable1d_recipe rec({std::move(cell)});
         rec.catalogue() = make_unit_test_catalogue();
 
+        arb::execution_context context(resources);
         fvm_cell fvcell(context);
         fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
 
@@ -531,6 +569,7 @@ TEST(fvm_lowered, read_valence) {
         rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "mn"}});
         rec.add_ion("mn", 7, 0, 0, 0);
 
+        arb::execution_context context(resources);
         fvm_cell fvcell(context);
         fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
 
@@ -608,6 +647,15 @@ TEST(fvm_lowered, ionic_concentrations) {
 }
 
 TEST(fvm_lowered, ionic_currents) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
     soma_cell_builder b(6);
 
     // Mechanism parameter is in NMODL units, i.e. mA/cm².
@@ -634,8 +682,6 @@ TEST(fvm_lowered, ionic_currents) {
     cable1d_recipe rec(std::move(c));
     rec.catalogue() = make_unit_test_catalogue();
 
-    execution_context context;
-
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
     probe_association_map<probe_handle> probe_map;
@@ -660,6 +706,15 @@ TEST(fvm_lowered, ionic_currents) {
 // Test correct scaling of an ionic current updated via a point mechanism
 
 TEST(fvm_lowered, point_ionic_current) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
     double r = 6.0; // [µm]
     soma_cell_builder b(r);
     cable_cell c = b.make_cell();
@@ -671,8 +726,6 @@ TEST(fvm_lowered, point_ionic_current) {
 
     cable1d_recipe rec(c);
     rec.catalogue() = make_unit_test_catalogue();
-
-    execution_context context;
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -726,7 +779,14 @@ TEST(fvm_lowered, weighted_write_ion) {
     // the same as a 100 µm dendrite, which makes it easier to describe the
     // expected weights.
 
-    execution_context context;
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
 
     soma_cell_builder b(5);
     b.add_branch(0, 100, 0.5, 0.5, 1, "dend");
@@ -795,6 +855,15 @@ TEST(fvm_lowered, weighted_write_ion) {
 }
 
 TEST(fvm_lowered, gj_coords_simple) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
     using pair = std::pair<int, int>;
 
     class gap_recipe: public recipe {
@@ -816,7 +885,6 @@ TEST(fvm_lowered, gj_coords_simple) {
         cell_size_type n_ = 2;
     };
 
-    execution_context context;
     fvm_cell fvcell(context);
 
     gap_recipe rec;
@@ -854,6 +922,15 @@ TEST(fvm_lowered, gj_coords_simple) {
 }
 
 TEST(fvm_lowered, gj_coords_complex) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
     class gap_recipe: public recipe {
     public:
         gap_recipe() {}
@@ -893,9 +970,6 @@ TEST(fvm_lowered, gj_coords_complex) {
     protected:
         cell_size_type n_ = 3;
     };
-
-    execution_context context;
-    fvm_cell fvcell(context);
 
     // Add 5 gap junctions
     soma_cell_builder b0(2.1);
@@ -942,6 +1016,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     std::vector<cell_gid_type> gids = {0, 1, 2};
 
     gap_recipe rec;
+    fvm_cell fvcell(context);
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
 
@@ -988,6 +1063,15 @@ TEST(fvm_lowered, gj_coords_complex) {
 }
 
 TEST(fvm_lowered, cell_group_gj) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
     using pair = std::pair<int, int>;
 
     class gap_recipe: public recipe {
@@ -1014,8 +1098,6 @@ TEST(fvm_lowered, cell_group_gj) {
     protected:
         cell_size_type n_ = 20;
     };
-    execution_context context;
-    fvm_cell fvcell(context);
 
     gap_recipe rec;
     std::vector<cable_cell> cell_group0;
@@ -1039,6 +1121,8 @@ TEST(fvm_lowered, cell_group_gj) {
     std::vector<cell_gid_type> gids_cg1 = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
 
     std::vector<fvm_index_type> cell_to_intdom0, cell_to_intdom1;
+
+    fvm_cell fvcell(context);
 
     auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
     auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
