@@ -7,20 +7,18 @@ MIT license.
 
 https://github.com/nlohmann/json
 
-## Templatized C++ Command Line Parser Library (TCLAP)
+## tinyopt
 
-A header only C++ library for command line argument parsing, written by Michael E. Smoot.
-MIT license.
+A header only C++ library for command line argument parsing, written by Stuart Yates.
+BSD license.
 
-https://sourceforge.net/projects/tclap
+https://github.com/halfflat/tinyopt
 
-## TBB module for CMake
+##  Random123
+A header only counter-based random number generator, written by DE Shaw research
+BSD license.
 
-The CMake scripts provided in the Intel Threading Building Blocks respository are
-to configure TBB. These are located in the cmake/tbb path.
-Apache 2.0 license.
-
-https://github.com/01org/tbb/blob/tbb_2017/LICENSE
+https://www.deshawresearch.com/downloads/download_random123.cgi/
 
 ## Sphinx module for CMake
 
@@ -47,3 +45,9 @@ Custom license (as it appears in the original `readme` from the project's page):
 >commercial product. In either event, it is copyrighted by the author.
 >What you see here may be used freely but it comes with no support or
 >guarantee.
+
+## Acknowledgements
+This open source software code was developed in part or in whole in the Human
+Brain Project, funded from the European Union’s Horizon 2020 Framework
+Programme for Research and Innovation under the Specific Grant Agreement 
+No. 720270 (Human Brain Project SGA1) and No. 785907 (Human Brain Project SGA2).

@@ -1,7 +1,7 @@
 #pragma once
 
 struct simd_spec {
-    enum simd_abi { none, avx, avx2, avx512, native, default_abi } abi = none;
+    enum simd_abi { none, neon, avx, avx2, avx512, native, default_abi } abi = none;
     unsigned width = 0; // zero => use `simd::native_width` to determine.
 
     simd_spec() = default;
@@ -17,6 +17,9 @@ struct simd_spec {
                 break;
             case avx512:
                 width = 8;
+                break;
+            case neon:
+                width = 2;
                 break;
             default: ;
             }

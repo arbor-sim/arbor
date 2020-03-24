@@ -33,7 +33,7 @@ target_include_directories(libmodcc PUBLIC .)
 set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
 
 add_executable(modcc ${modcc_sources})
-target_link_libraries(modcc libmodcc ext-tclap)
+target_link_libraries(modcc libmodcc ext-tinyopt)
 
 set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
 
