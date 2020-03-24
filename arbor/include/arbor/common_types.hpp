@@ -54,7 +54,7 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.inde
 
 // For storing time values [ms]
 
-using time_type = float;
+using time_type = double;
 constexpr time_type terminal_time = std::numeric_limits<time_type>::max();
 
 // Extra contextual information associated with a probe.
