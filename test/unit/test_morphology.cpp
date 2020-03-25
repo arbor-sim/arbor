@@ -734,3 +734,56 @@ TEST(mextent, intersects) {
     EXPECT_TRUE(x3.intersects(mlocation{3, 0.}));
     EXPECT_FALSE(x3.intersects(mlocation{3, 1.}));
 }
+
+TEST(mextent, canonical) {
+    using namespace arb;
+    using testing::cablelist_eq;
+
+    using pvec = std::vector<msize_t>;
+    using svec = std::vector<msample>;
+    using cl = mcable_list;
+
+    // Eight samples
+    //                  no-sphere
+    //          sample   branch
+    //            0         0
+    //           1 3       0 1
+    //          2   4     0   1
+    //             5 6       2 3
+    //                7         3
+    pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
+    svec samples = {
+        {{  0,  0,  0,  2}, 3},
+        {{ 10,  0,  0,  2}, 3},
+        {{100,  0,  0,  2}, 3},
+        {{  0, 10,  0,  2}, 3},
+        {{  0,100,  0,  2}, 3},
+        {{100,100,  0,  2}, 3},
+        {{  0,200,  0,  2}, 3},
+        {{  0,300,  0,  2}, 3},
+    };
+
+    morphology m(sample_tree(samples, parents));
+
+    mextent x1(m, cl{{0, 0.3, 0.7}, {1, 0.5, 0.7}, {3, 0.4, 1}});
+    EXPECT_TRUE(cablelist_eq(canonical(m, x1), x1.cables()));
+
+    mcable_list cl2{{1, 0.5, 1}, {2, 0, 0.5}}; // a reduced representation
+    mextent x2(m, cl2);
+    EXPECT_FALSE(cablelist_eq(cl2, x2.cables()));
+    EXPECT_TRUE(cablelist_eq(cl2, canonical(m, x2)));
+
+    mcable_list cl3{{3, 0, 0}}; // extent is cover of fork point
+    mextent x3(m, cl3);
+    EXPECT_TRUE(cablelist_eq(cl{{1, 1, 1}}, canonical(m, x3)));
+
+    mcable_list cl4{{1, 1, 1}, {3, 0, 0.5}}; // canonical repn excludes zero-length cable
+    mextent x4(m, cl4);
+    EXPECT_TRUE(cablelist_eq(cl{{3, 0, 0.5}}, canonical(m, x4)));
+
+    // Heads of top-level branches should be preserved.
+    mcable_list cl5{{1, 0, 0}};
+    mextent x5(m, cl5);
+    EXPECT_TRUE(cablelist_eq(cl{{0, 0, 0}, {1, 0, 0}}, x5.cables()));
+    EXPECT_TRUE(cablelist_eq(x5.cables(), canonical(m, x5)));
+}

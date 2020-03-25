@@ -128,5 +128,8 @@ private:
     mcable_list cables_;
 };
 
+// Reduced representation of an extent, excluding zero-length cables
+// that are covered by more proximal or non-zero-length cables.
+mcable_list canonical(const morphology& m, const mextent& a);
 
 } // namespace arb

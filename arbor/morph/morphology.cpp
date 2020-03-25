@@ -481,5 +481,26 @@ mextent join(const mextent& a, const mextent& b) {
     return m;
 }
 
+mcable_list canonical(const morphology& m, const mextent& a) {
+    // For zero-length cables representing isolated points, keep
+    // only the most proximal. All other zero-length cables should be
+    // elided.
+
+    mcable_list result;
+    std::unordered_set<msize_t> remove_set;
+
+    for (auto& c: a.cables()) {
+        if (c.prox_pos==0 && c.dist_pos>0) {
+            remove_set.insert(m.branch_parent(c.branch));
+        }
+    }
+    for (auto& c: a.cables()) {
+        if (c.prox_pos==1 && remove_set.count(c.branch)) continue;
+        if (c.dist_pos==0 && m.branch_parent(c.branch)!=mnpos) continue;
+        result.push_back(c);
+    }
+    return result;
+}
+
 } // namespace arb
 
