@@ -328,5 +328,7 @@ def generate(path=''):
     make_table(trees.tree5b, '5b')
     make_table(trees.tree6,  '6')
 
+    make_table(trees.treelab,  'label_demo')
+
 if __name__ == '__main__':
     generate('.')

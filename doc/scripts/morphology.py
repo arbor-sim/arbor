@@ -3,7 +3,7 @@ import svgwrite
 import math
 import tree_inputs as trees
 
-tag_colors = ['white', '#ffc2c2', '#c2ffcc', '#c2caff']
+tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 
 #
 # Helpers for working with 2D vectors
@@ -273,9 +273,10 @@ def morph_image(morphs, methods, filename, sc=20):
     # Write the image to file.
     dwg.save()
 
-def label_image(morph, labels, filename, sc=20):
+def label_image(morphology, labels, filename, sc=20):
     print('image:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
+    morph = copy.deepcopy(morphology)
 
     # Width of lines and circle strokes.
     line_width=0.1*sc
@@ -373,10 +374,13 @@ def label_image(morph, labels, filename, sc=20):
                 pos = loc[1]
                 idx, x, y, r = sample_by_pos(morph[bid], meta[bid], pos)
 
-                points.add(dwg.circle(center=(x,y), stroke='blue', r=sc/3, fill='blue'))
+                points.add(dwg.circle(center=(x,y), stroke='black', r=sc/3, fill='black'))
 
         if lab['type'] == 'region':
             for cab in lab['value']:
+                # skip zero length cables
+                if cab[1]==cab[2]: continue
+
                 bid  = cab[0]
                 branch = morph[bid]
                 lens   = meta[bid]
@@ -387,21 +391,21 @@ def label_image(morph, labels, filename, sc=20):
                 Y = branch['y']
                 R = branch['r']
 
-                points  = [(prox[1], prox[2])]
-                rads    = [prox[3]]
+                pointl  = [(prox[1], prox[2])]
+                radl    = [prox[3]]
                 for k in range(prox[0]+1, dist[0]+1):
-                    points += [(X[k], Y[k])]
-                    rads   += [R[k]]
-                points += [(dist[1], dist[2])]
-                rads   += [dist[3]]
+                    pointl += [(X[k], Y[k])]
+                    radl   += [R[k]]
+                pointl += [(dist[1], dist[2])]
+                radl   += [dist[3]]
                 left = []
                 right = []
-                np = len(points)
+                np = len(pointl)
                 for k in range(np-1):
-                    cable_corners(points[k], points[k+1], rads[k], rads[k+1], left, right)
+                    cable_corners(pointl[k], pointl[k+1], radl[k], radl[k+1], left, right)
 
                 right.reverse()
-                lines.add(dwg.polygon(points=left+right, fill='blue', stroke='blue'))
+                lines.add(dwg.polygon(points=left+right, fill='black', stroke='lightgray'))
 
         offset = maxx - minx + sc
         for branch in morph:
@@ -450,10 +454,18 @@ def generate(path=''):
 
     morph_image([trees.morphlab, trees.morphlab], ['segments','branches'], path+'/morphlab.svg')
 
-    cab1 = {'type':'region', 'value': [(3,0.1,0.8), (0,0,0.2), (0,0.4,0.6), (5,0.2,0.8), (6,0,1)]}
-    loc1 = {'type':'locset', 'value': [(3,1), (5,0.8), (3,0.0), (3,0.1), (3,0.5), (1,0), (6,1)]}
-    loc2 = {'type':'locset', 'value': [(3,0.0), (3,0.1), (3,0.5)]}
-    label_image(trees.morphlab, [loc1, cab1], path+'/labels.svg')
+    terms_lab  = {'type':'locset', 'value': [( 1,1.000), ( 3,1.000), ( 4,1.000), ( 5,1.000), ]}
+    rand_dend_lab = {'type':'locset', 'value': [( 0,0.457), ( 0,0.629), ( 0,0.636), ( 0,0.768), ( 0,0.901), ( 0,0.973), ( 1,0.001), ( 1,0.019), ( 1,0.082), ( 1,0.152), ( 1,0.191), ( 1,0.206), ( 1,0.309), ( 1,0.396), ( 1,0.428), ( 1,0.560), ( 1,0.646), ( 1,0.790), ( 1,0.794), ( 1,0.818), ( 1,0.825), ( 1,0.947), ( 2,0.101), ( 2,0.104), ( 2,0.470), ( 2,0.529), ( 2,0.560), ( 2,0.575), ( 2,0.681), ( 2,0.696), ( 2,0.771), ( 2,0.788), ( 2,0.819), ( 2,0.824), ( 2,0.868), ( 2,0.898), ( 2,0.923), ( 3,0.046), ( 3,0.046), ( 3,0.047), ( 3,0.151), ( 3,0.228), ( 3,0.249), ( 3,0.699), ( 4,0.005), ( 4,0.255), ( 4,0.345), ( 4,0.408), ( 4,0.845), ( 4,0.890), ]}
+
+    label_image(trees.morphlab, [terms_lab, rand_dend_lab], path+'/locset_label_examples.svg')
+
+    axon_lab   = {'type':'region', 'value': [( 0,0.000,0.000), ( 5,0.000,1.000), ]}
+    dend_lab   = {'type':'region', 'value': [( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ]}
+    branch1_lab    = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,1.000), ( 2,0.000,0.000), ]}
+    radlt5_lab = {'type':'region', 'value': [( 1,0.439,1.000), ( 2,1.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
+    radle5_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
+
+    label_image(trees.morphlab, [dend_lab, radlt5_lab], path+'/region_label_examples.svg')
 
 if __name__ == '__main__':
     generate('.')
