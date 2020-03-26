@@ -523,14 +523,7 @@ struct implbase {
     }
 
     static vector_type pow(const vector_type& s, const vector_type &t) {
-        store a, b, r;
-        I::copy_to(s, a);
-        I::copy_to(t, b);
-
-        for (unsigned i = 0; i<width; ++i) {
-            r[i] = std::pow(a[i], b[i]);
-        }
-        return I::copy_from(r);
+        return I::exp(I::mul(I::log(s), t));
     }
 };
 
