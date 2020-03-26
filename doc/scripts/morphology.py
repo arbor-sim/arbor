@@ -300,7 +300,7 @@ def label_image(morphology, labels, filename, sc=20):
     maxx = -math.inf
     maxy = -math.inf
 
-    offset = 0
+    offset = None
 
     branchfillcolor = 'lightgray'
     bcol = branchfillcolor
@@ -407,7 +407,9 @@ def label_image(morphology, labels, filename, sc=20):
                 right.reverse()
                 lines.add(dwg.polygon(points=left+right, fill='black', stroke='lightgray'))
 
-        offset = maxx - minx + sc
+        if offset==None:
+            offset = maxx - minx + sc
+
         for branch in morph:
             branch['x'] = [ x+offset for x in branch['x']]
 
@@ -454,18 +456,34 @@ def generate(path=''):
 
     morph_image([trees.morphlab, trees.morphlab], ['segments','branches'], path+'/morphlab.svg')
 
-    terms_lab  = {'type':'locset', 'value': [( 1,1.000), ( 3,1.000), ( 4,1.000), ( 5,1.000), ]}
+    term_lab  = {'type':'locset', 'value': [( 1,1.000), ( 3,1.000), ( 4,1.000), ( 5,1.000), ]}
     rand_dend_lab = {'type':'locset', 'value': [( 0,0.457), ( 0,0.629), ( 0,0.636), ( 0,0.768), ( 0,0.901), ( 0,0.973), ( 1,0.001), ( 1,0.019), ( 1,0.082), ( 1,0.152), ( 1,0.191), ( 1,0.206), ( 1,0.309), ( 1,0.396), ( 1,0.428), ( 1,0.560), ( 1,0.646), ( 1,0.790), ( 1,0.794), ( 1,0.818), ( 1,0.825), ( 1,0.947), ( 2,0.101), ( 2,0.104), ( 2,0.470), ( 2,0.529), ( 2,0.560), ( 2,0.575), ( 2,0.681), ( 2,0.696), ( 2,0.771), ( 2,0.788), ( 2,0.819), ( 2,0.824), ( 2,0.868), ( 2,0.898), ( 2,0.923), ( 3,0.046), ( 3,0.046), ( 3,0.047), ( 3,0.151), ( 3,0.228), ( 3,0.249), ( 3,0.699), ( 4,0.005), ( 4,0.255), ( 4,0.345), ( 4,0.408), ( 4,0.845), ( 4,0.890), ]}
 
-    label_image(trees.morphlab, [terms_lab, rand_dend_lab], path+'/locset_label_examples.svg')
+    label_image(trees.morphlab, [term_lab, rand_dend_lab], path+'/locset_label_examples.svg')
 
     axon_lab   = {'type':'region', 'value': [( 0,0.000,0.000), ( 5,0.000,1.000), ]}
     dend_lab   = {'type':'region', 'value': [( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ]}
-    branch1_lab    = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,1.000), ( 2,0.000,0.000), ]}
     radlt5_lab = {'type':'region', 'value': [( 1,0.439,1.000), ( 2,1.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
     radle5_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
 
     label_image(trees.morphlab, [dend_lab, radlt5_lab], path+'/region_label_examples.svg')
+
+    root_lab   = {'type':'locset', 'value': [( 0,0.000), ]}
+    label_image(trees.morphlab, [root_lab], path+'/root_label.svg')
+    label_image(trees.morphlab, [term_lab], path+'/term_label.svg')
+
+    location_lab   = {'type':'locset', 'value': [(1, 0.5)]}
+    label_image(trees.morphlab, [location_lab], path+'/location_label.svg')
+
+    radin3_5_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,0.793), ( 2,0.000,1.000), ( 3,0.000,0.667), ( 4,0.000,0.391), ( 5,0.656,1.000), ]}
+    distloc_lab = {'type':'locset', 'value': [( 1,0.793), ( 3,0.667), ( 4,0.391), ( 5,1.000), ]}
+    proxloc_lab = {'type':'locset', 'value': [( 0,1.000), ]}
+    label_image(trees.morphlab, [radin3_5_lab, proxloc_lab], path+'/prox_label.svg')
+    label_image(trees.morphlab, [radin3_5_lab, distloc_lab], path+'/dist_label.svg')
+
+    uniform0_lab = {'type':'locset', 'value': [( 0,0.975), ( 1,0.200), ( 1,0.841), ( 2,0.924), ( 2,0.927), ( 2,0.991), ( 3,0.993), ( 4,0.364), ( 4,0.479), ( 4,0.514), ]}
+    uniform1_lab = {'type':'locset', 'value': [( 0,0.455), ( 0,0.942), ( 1,0.201), ( 1,0.281), ( 1,0.496), ( 1,0.685), ( 2,0.224), ( 3,0.795), ( 4,0.013), ( 4,0.319), ]}
+    label_image(trees.morphlab, [uniform0_lab, uniform1_lab], path+'/uniform_label.svg')
 
 if __name__ == '__main__':
     generate('.')
