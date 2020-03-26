@@ -245,6 +245,28 @@ Locset Expressions
     but they are not easy to reason about, and more importantly are not useful or consistent from
     a user's perspective.
 
+    To illustrate this, consider the following user story we should be able to support:
+
+    * starting at the root of the morphology, I want to traverse every path from the root to a
+      terminal point, and record the first location on each traversal where the radius
+      is less than or equal to 0.5 μm.
+
+    How do we do this for our demo morphology?
+
+    The dendrite in branch 0 has radius 0.75. It has two children: branch 1 tapers from 0.75 to 0.2,
+    so one of the locations somewhere in the middle of branch 0.
+    branch 2 has constant radius 0.5 (by virtue of using a collocated point), so the second point
+    of interest is at (location 2 0).
+    The skinny part of the axon has radius 0.4, so the point where it is ≤ 0.5 is again somewhere in the middle.
+
+    With the proposed approach ``(distal (radius_le (all) 0.5))``
+
+    .. figure:: gen-images/radle5_prox.svg
+      :width: 600
+      :align: center
+
+   We get two locations ``(0 1)`` and ``(5 0.656)``, which isn't what the user wanted.
+
 .. label:: (distal reg:region)
 
     The location at the distal ends of all topologically connected trees in the region ``reg``.

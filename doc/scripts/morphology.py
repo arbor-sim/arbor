@@ -503,5 +503,9 @@ def generate(path=''):
     prox_b5dend_lab = {'type':'locset', 'value': [( 0,0.332), ( 5,0.100), ]}
     label_image(trees.morphlab, [b5dend_lab, prox_b5dend_lab], path+'/b5dend_prox.svg')
 
+    prox_radle5_lab = {'type':'locset', 'value': [( 0,1.000), ( 5,0.656), ]}
+    label_image(trees.morphlab, [radle5_lab, prox_radle5_lab], path+'/radle5_prox.svg')
+
+
 if __name__ == '__main__':
     generate('.')
