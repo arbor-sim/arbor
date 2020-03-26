@@ -99,6 +99,8 @@ public:
     /// Move constructor
     cable_cell(cable_cell&& other) = default;
 
+    cable_cell& operator=(cable_cell&&) = default;
+
     /// construct from morphology
     cable_cell(const class morphology& m, const label_dict& dictionary={});
 

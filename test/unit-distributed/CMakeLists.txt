@@ -13,7 +13,7 @@ add_dependencies(tests unit-local)
 
 target_compile_options(unit-local PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit-local PRIVATE TEST_LOCAL)
-target_link_libraries(unit-local PRIVATE gtest arbor arborenv arbor-sup arbor-private-headers)
+target_link_libraries(unit-local PRIVATE gtest arbor arborenv arbor-sup arbor-private-headers ext-tinyopt)
 
 if(ARB_WITH_MPI)
     add_executable(unit-mpi EXCLUDE_FROM_ALL ${unit-distributed_sources})
@@ -21,6 +21,6 @@ if(ARB_WITH_MPI)
 
     target_compile_options(unit-mpi PRIVATE ${ARB_CXXOPT_ARCH})
     target_compile_definitions(unit-mpi PRIVATE TEST_MPI)
-    target_link_libraries(unit-mpi PRIVATE gtest arbor arborenv arbor-sup arbor-private-headers)
+    target_link_libraries(unit-mpi PRIVATE gtest arbor arborenv arbor-sup arbor-private-headers ext-tinyopt)
 endif()
 

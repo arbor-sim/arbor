@@ -6,6 +6,8 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 
+#include <arborenv/gpu_env.hpp>
+
 #include "util/span.hpp"
 
 #include "../common_cells.hpp"
@@ -116,7 +118,7 @@ namespace {
 TEST(domain_decomposition, homogenous_population)
 {
     proc_allocation resources;
-    resources.num_threads = 1;
+    resources.gpu_id = arbenv::default_gpu();
 
     if (resources.has_gpu()) {
         // Test on a node with 1 gpu and 1 cpu core.
@@ -181,7 +183,7 @@ TEST(domain_decomposition, homogenous_population)
 TEST(domain_decomposition, heterogenous_population)
 {
     proc_allocation resources;
-    resources.num_threads = 1;
+    resources.gpu_id = arbenv::default_gpu();
 
     if (resources.has_gpu()) {
         // Test on a node with 1 gpu and 1 cpu core.

@@ -8,7 +8,7 @@
 #include <arbor/context.hpp>
 
 #include <sup/ioutil.hpp>
-#include <sup/tinyopt.hpp>
+#include <tinyopt/tinyopt.h>
 
 #ifdef TEST_MPI
 #include <arborenv/with_mpi.hpp>
@@ -57,9 +57,9 @@ int main(int argc, char **argv) {
     try {
         auto arg = argv+1;
         while (*arg) {
-            if (auto comm_size = to::parse_opt<unsigned>(arg, 'd', "dryrun")) {
+            if (auto comm_size = to::parse<unsigned>(arg, 'd', "dryrun")) {
                 if (*comm_size==0) {
-                    throw to::parse_opt_error(*arg, "must be positive integer");
+                    throw to::option_error("must be positive integer", *arg);
                 }
                 // Note that this must be set again for each test that uses a different
                 // number of cells per domain, e.g.
@@ -67,12 +67,12 @@ int main(int argc, char **argv) {
                 // TODO: fix when dry run mode reimplemented
                 //policy::set_sizes(*comm_size, 0);
             }
-            else if (auto o = to::parse_opt(arg, 'h', "help")) {
+            else if (auto o = to::parse(arg, 'h', "help")) {
                 to::usage(argv[0], usage_str);
                 return 0;
             }
             else {
-                throw to::parse_opt_error(*arg, "unrecognized option");
+                throw to::option_error("unrecognized option", *arg);
             }
         }
 
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
         //      1 : failure
         return_value = RUN_ALL_TESTS();
     }
-    catch (to::parse_opt_error& e) {
+    catch (to::option_error& e) {
         to::usage(argv[0], usage_str, e.what());
         return_value = 1;
     }

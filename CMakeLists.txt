@@ -153,8 +153,8 @@ install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 add_library(arbor-public-deps INTERFACE)
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
 
-# External libraries in `ext` sub-directory: json and tclap.
-# Creates interface libraries `ext-json` and `ext-tclap`.
+# External libraries in `ext` sub-directory: json, tinyopt and randon123.
+# Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
 add_subdirectory(ext)
 
