@@ -215,19 +215,30 @@ Locset Expressions
 
 .. label:: (proximal reg:region)
 
-    The location at the proximal ends of all topologically connected trees in the region ``reg``.
+    .. figure:: gen-images/morphlab.svg
+      :width: 800
+      :align: center
 
-    .. figure:: gen-images/prox_label.svg
+      The input morphology with branch numbers for reference.
+
+    The first example: apply proximal to the axon and dendrites. In this case the user could quite
+    reasonably expect the result to be two locations that correspond to the proximal ends of the axon
+    and dendritic tree.
+
+    .. figure:: gen-images/axdend_prox.svg
       :width: 600
       :align: center
 
-      A region (left) and the result of applying ``proximal`` to it (right).
+      ``(proximal (join (tag 2) (tag3)))``. The result on the right is two collocated locations:
+      ``(location 0 0)`` and ``(location 5 0)``.
+      Instead of ``(0 0)``, the user would be looking for ``(0 0.332)``, which corresponds to
+      the start of the dendrite.
 
 .. label:: (distal reg:region)
 
     The location at the distal ends of all topologically connected trees in the region ``reg``.
 
-    .. figure:: gen-images/dist_label.svg
+    .. figure:: gen-images/axdend_dist.svg
       :width: 600
       :align: center
 

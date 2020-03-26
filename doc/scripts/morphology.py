@@ -367,6 +367,11 @@ def label_image(morphology, labels, filename, sc=20):
                 right.reverse()
                 lines.add(dwg.polygon(points=left+right, fill=bcol, stroke=bcol))
 
+        # Draw the root
+        x = morph[0]['x'][0]
+        y = morph[0]['y'][0]
+        points.add(dwg.circle(center=(x,y), stroke='red', r=sc/2.5, fill='lightgray'))
+
         # Draw locset if requested
         if lab['type'] == 'locset':
             for loc in lab['value']:
@@ -478,12 +483,21 @@ def generate(path=''):
     radin3_5_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,0.793), ( 2,0.000,1.000), ( 3,0.000,0.667), ( 4,0.000,0.391), ( 5,0.656,1.000), ]}
     distloc_lab = {'type':'locset', 'value': [( 1,0.793), ( 3,0.667), ( 4,0.391), ( 5,1.000), ]}
     proxloc_lab = {'type':'locset', 'value': [( 0,1.000), ]}
+    proxloc_lab = {'type':'locset', 'value': [( 0,1.000), ( 5,0.656), ]}
     label_image(trees.morphlab, [radin3_5_lab, proxloc_lab], path+'/prox_label.svg')
     label_image(trees.morphlab, [radin3_5_lab, distloc_lab], path+'/dist_label.svg')
 
     uniform0_lab = {'type':'locset', 'value': [( 0,0.975), ( 1,0.200), ( 1,0.841), ( 2,0.924), ( 2,0.927), ( 2,0.991), ( 3,0.993), ( 4,0.364), ( 4,0.479), ( 4,0.514), ]}
     uniform1_lab = {'type':'locset', 'value': [( 0,0.455), ( 0,0.942), ( 1,0.201), ( 1,0.281), ( 1,0.496), ( 1,0.685), ( 2,0.224), ( 3,0.795), ( 4,0.013), ( 4,0.319), ]}
     label_image(trees.morphlab, [uniform0_lab, uniform1_lab], path+'/uniform_label.svg')
+
+    #######################
+
+    axdend_lab = {'type':'region', 'value': [( 0,0.000,0.000), ( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.000,1.000), ]}
+    prox_axdend_lab = {'type':'locset', 'value': [( 0,0.000), ( 5,0.000), ]}
+    dist_axdend_lab = {'type':'locset', 'value': [( 1,1.000), ( 3,1.000), ( 4,1.000), ( 5,1.000), ]}
+    label_image(trees.morphlab, [axdend_lab, prox_axdend_lab], path+'/axdend_prox.svg')
+    label_image(trees.morphlab, [axdend_lab, dist_axdend_lab], path+'/axdend_dist.svg')
 
 if __name__ == '__main__':
     generate('.')
