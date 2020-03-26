@@ -499,5 +499,9 @@ def generate(path=''):
     label_image(trees.morphlab, [axdend_lab, prox_axdend_lab], path+'/axdend_prox.svg')
     label_image(trees.morphlab, [axdend_lab, dist_axdend_lab], path+'/axdend_dist.svg')
 
+    b5dend_lab = {'type':'region', 'value': [( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.100,1.000), ]}
+    prox_b5dend_lab = {'type':'locset', 'value': [( 0,0.332), ( 5,0.100), ]}
+    label_image(trees.morphlab, [b5dend_lab, prox_b5dend_lab], path+'/b5dend_prox.svg')
+
 if __name__ == '__main__':
     generate('.')

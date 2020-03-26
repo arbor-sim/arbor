@@ -234,6 +234,17 @@ Locset Expressions
       Instead of ``(0 0)``, the user would be looking for ``(0 0.332)``, which corresponds to
       the start of the dendrite.
 
+    .. figure:: gen-images/b5dend_prox.svg
+      :width: 600
+      :align: center
+
+      ``(proximal (join (cable 5 0.1 1) (tag3)))``. The result 
+      ``(location 0 0.332)`` and ``(location 5 0.1)``, which seems reasonable.
+
+    The issue here is that things might line up from an abstract set theory point of view,
+    but they are not easy to reason about, and more importantly are not useful or consistent from
+    a user's perspective.
+
 .. label:: (distal reg:region)
 
     The location at the distal ends of all topologically connected trees in the region ``reg``.
