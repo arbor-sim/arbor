@@ -493,19 +493,21 @@ def generate(path=''):
 
     #######################
 
-    axdend_lab = {'type':'region', 'value': [( 0,0.000,0.000), ( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.000,1.000), ]}
-    prox_axdend_lab = {'type':'locset', 'value': [( 0,0.000), ( 5,0.000), ]}
-    dist_axdend_lab = {'type':'locset', 'value': [( 1,1.000), ( 3,1.000), ( 4,1.000), ( 5,1.000), ]}
-    label_image(trees.morphlab, [axdend_lab, prox_axdend_lab], path+'/axdend_prox.svg')
-    label_image(trees.morphlab, [axdend_lab, dist_axdend_lab], path+'/axdend_dist.svg')
+    reg_prox1_lab = {'type':'region', 'value': [( 1,0.500,1.000), ( 2,0.500,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ]}
+    reg_prox2_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
+    ls_prox1_lab = {'type':'locset', 'value': [( 1,0.500), ( 2,0.500), ]}
+    ls_prox2_lab = {'type':'locset', 'value': [( 0,1.000), ( 5,0.656), ]}
+    label_image(trees.morphlab, [reg_prox1_lab, ls_prox1_lab], path+'/prox1.svg')
+    label_image(trees.morphlab, [reg_prox2_lab, ls_prox2_lab], path+'/prox2.svg')
 
-    b5dend_lab = {'type':'region', 'value': [( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.100,1.000), ]}
-    prox_b5dend_lab = {'type':'locset', 'value': [( 0,0.332), ( 5,0.100), ]}
-    label_image(trees.morphlab, [b5dend_lab, prox_b5dend_lab], path+'/b5dend_prox.svg')
+    reg_dist1_lab = {'type':'region', 'value': [( 0,0.000,1.000), ( 1,0.000,1.000), ( 2,0.000,0.000), ( 5,0.000,0.000), ]}
+    ls_dist1_lab = {'type':'locset', 'value': [( 0,0.000), ( 1,1.000), ]}
+    ls_dist2_lab = {'type':'locset', 'value': [( 0,0.000), ( 5,1.000), ]}
+    ls_dist3_lab = {'type':'locset', 'value': [( 1,0.793), ( 3,0.667), ( 4,0.391), ( 5,1.000), ]}
 
-    prox_radle5_lab = {'type':'locset', 'value': [( 0,1.000), ( 5,0.656), ]}
-    label_image(trees.morphlab, [radle5_lab, prox_radle5_lab], path+'/radle5_prox.svg')
-
+    label_image(trees.morphlab, [reg_dist1_lab, ls_dist1_lab], path+'/dist1.svg')
+    label_image(trees.morphlab, [axon_lab, ls_dist2_lab], path+'/dist2.svg')
+    label_image(trees.morphlab, [radin3_5_lab, ls_dist3_lab], path+'/dist3.svg')
 
 if __name__ == '__main__':
     generate('.')

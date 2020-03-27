@@ -45,6 +45,7 @@ A *locset* is a set of locations.
 
   Examples of locsets on the example morphology. **Left**: The terminal samples.
   **Right**: 50 random locations on the dendritic tree.
+  **The root of the morphology is hilighted with a red circle for reference**.
 
 
 Regions
@@ -178,6 +179,13 @@ Definition of s expressions
 Locset Expressions
 ~~~~~~~~~~~~~~~~~~~~~
 
+.. figure:: gen-images/morphlab.svg
+  :width: 800
+  :align: center
+
+  The input morphology with branch numbers for reference in the examples below.
+
+
 .. label:: (root)
 
     The location of the root sample.
@@ -215,67 +223,55 @@ Locset Expressions
 
 .. label:: (proximal reg:region)
 
-    .. figure:: gen-images/morphlab.svg
-      :width: 800
-      :align: center
-
-      The input morphology with branch numbers for reference.
-
-    The first example: apply proximal to the axon and dendrites. In this case the user could quite
-    reasonably expect the result to be two locations that correspond to the proximal ends of the axon
-    and dendritic tree.
-
-    .. figure:: gen-images/axdend_prox.svg
+    .. figure:: gen-images/prox1.svg
       :width: 600
       :align: center
 
-      ``(proximal (join (tag 2) (tag3)))``. The result on the right is two collocated locations:
-      ``(location 0 0)`` and ``(location 5 0)``.
-      Instead of ``(0 0)``, the user would be looking for ``(0 0.332)``, which corresponds to
-      the start of the dendrite.
 
-    .. figure:: gen-images/b5dend_prox.svg
+    .. figure:: gen-images/prox2.svg
       :width: 600
       :align: center
-
-      ``(proximal (join (cable 5 0.1 1) (tag3)))``. The result 
-      ``(location 0 0.332)`` and ``(location 5 0.1)``, which seems reasonable.
-
-    The issue here is that things might line up from an abstract set theory point of view,
-    but they are not easy to reason about, and more importantly are not useful or consistent from
-    a user's perspective.
-
-    To illustrate this, consider the following user story we should be able to support:
-
-    * starting at the root of the morphology, I want to traverse every path from the root to a
-      terminal point, and record the first location on each traversal where the radius
-      is less than or equal to 0.5 μm.
-
-    How do we do this for our demo morphology?
-
-    The dendrite in branch 0 has radius 0.75. It has two children: branch 1 tapers from 0.75 to 0.2,
-    so one of the locations somewhere in the middle of branch 0.
-    branch 2 has constant radius 0.5 (by virtue of using a collocated point), so the second point
-    of interest is at (location 2 0).
-    The skinny part of the axon has radius 0.4, so the point where it is ≤ 0.5 is again somewhere in the middle.
-
-    With the proposed approach ``(distal (radius_le (all) 0.5))``
-
-    .. figure:: gen-images/radle5_prox.svg
-      :width: 600
-      :align: center
-
-   We get two locations ``(0 1)`` and ``(5 0.656)``, which isn't what the user wanted.
 
 .. label:: (distal reg:region)
 
-    The location at the distal ends of all topologically connected trees in the region ``reg``.
+    ``(location 0 0)`` in the distal set below is not prima facie logical: ``(0 0)`` is proximal to ``(1 1)``.
+    I can see how we arrived at this result:
+    a zero-length cable ``(5 0 0)`` is in the cover, so there is a distal point at ``(5 0)``,
+    which gets canonicalised to ``(0 0)``.
 
-    .. figure:: gen-images/axdend_dist.svg
+    .. figure:: gen-images/dist1.svg
       :width: 600
       :align: center
 
-      A region (left) and the result of applying ``distal`` to it (right).
+      (left) the region ``(join (branch 0) (branch 1))``. (right) The result of applying ``distal``: ``((location 0 0) (location 1 1))``.
+
+    That this is some mental gymnastics to justify having the root in the distal set of
+    the axon below. I believe that it is reasonable for
+    a user who wants to attach a probe at the end of the axon to expect ``(distal (tag 2))`` to give them what
+    they expect (I expected it to work that way).
+    More worryingly, I can't think of an expression that would give that point, besides an explicit reference ``(location 5 1)``.
+    Something like ``(intersect (terminal) (distal (tag 2)))`` would work if we added an ``intersect`` operation
+    for locsets, however:
+
+    * that only works because we have a convenient set that contains the point the user is looking for.
+    * what a mouthful!
+
+    To address this, I would like to propose adding some new operators that use the canonicalised cover.
+
+    .. figure:: gen-images/dist2.svg
+      :width: 600
+      :align: center
+
+      (left) the region ``(tag 2)``. (right) The result of applying ``distal``: ``((location 0 0) (location 5 1))``.
+
+   The results of this hold no surprises by virtue of not having a region end at the root.
+
+    .. figure:: gen-images/dist3.svg
+      :width: 600
+      :align: center
+
+      (left) the region ``((intersect (radius_le (all) 0.5) (radius_ge (all) 0.3)))``.
+      (right) The result of applying ``distal``: ``(1 0.793), (3 0.667)  (4 0.391), (5 1))``.
 
 .. label:: (uniform reg:region, first:int, last:int, seed:int)
 
