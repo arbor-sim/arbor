@@ -47,10 +47,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        using arb::reg::tagged;
-
         arb::sample_tree tree;
-        arb::label_dict d;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
@@ -63,12 +60,11 @@ public:
         tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
         tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
 
-        d.set("soma",      tagged(1));
-        d.set("dend", tagged(3));
-
+        arb::label_dict d;
+        d.set("soma", arb::reg::tagged(1));
         arb::cable_cell cell(arb::morphology(tree, true), d);
-
         cell.paint("soma", "pas");
+
         auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
         for(unsigned i = 0; i < num_synapse_; i++) {
             auto gen = std::mt19937(i);
@@ -102,10 +98,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        using arb::reg::tagged;
-
         arb::sample_tree tree;
-        arb::label_dict d;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
@@ -118,13 +111,8 @@ public:
         tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
         tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
 
-        d.set("soma",      tagged(1));
-        d.set("dend", tagged(3));
-
-        arb::cable_cell cell(arb::morphology(tree, true), d);
-
-        cell.paint("soma", "pas");
-        cell.paint("dend", "pas");
+        arb::cable_cell cell(arb::morphology(tree, true));
+        cell.paint(arb::reg::all(), "pas");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
         cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
@@ -153,10 +141,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        using arb::reg::tagged;
-
         arb::sample_tree tree;
-        arb::label_dict d;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
@@ -171,13 +156,8 @@ public:
         tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
         tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
 
-        d.set("soma",      tagged(1));
-        d.set("dend", tagged(3));
-
-        arb::cable_cell cell(arb::morphology(tree, true), d);
-
-        cell.paint("soma", "pas");
-        cell.paint("dend", "pas");
+        arb::cable_cell cell(arb::morphology(tree, true));
+        cell.paint(arb::reg::all(), "pas");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
         cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length*3/num_comp_);
@@ -206,10 +186,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        using arb::reg::tagged;
-
         arb::sample_tree tree;
-        arb::label_dict d;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
@@ -222,13 +199,8 @@ public:
         tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
         tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
 
-        d.set("soma",      tagged(1));
-        d.set("dend", tagged(3));
-
-        arb::cable_cell cell(arb::morphology(tree, true), d);
-
-        cell.paint("soma", "hh");
-        cell.paint("dend", "hh");
+        arb::cable_cell cell(arb::morphology(tree, true));
+        cell.paint(arb::reg::all(), "hh");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
         cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
@@ -257,10 +229,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        using arb::reg::tagged;
-
         arb::sample_tree tree;
-        arb::label_dict d;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
@@ -275,13 +244,8 @@ public:
         tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
         tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
 
-        d.set("soma",      tagged(1));
-        d.set("dend", tagged(3));
-
-        arb::cable_cell cell(arb::morphology(tree, true), d);
-
-        cell.paint("soma", "hh");
-        cell.paint("dend", "hh");
+        arb::cable_cell cell(arb::morphology(tree, true));
+        cell.paint(arb::reg::all(), "hh");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
         cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length*3/num_comp_);
