@@ -19,7 +19,7 @@ forest::forest(const std::vector<size_type>& p, const std::vector<size_type>& ce
             util::assign_from(
                 util::transform_view(
                     util::subrange_view(p, cell_cv_divs[c], cell_cv_divs[c+1]),
-                    [cell_start](unsigned i) {return i-cell_start;}));
+                    [cell_start](unsigned i) {return i == -1 ? i : i - cell_start;}));
 
         auto fine_tree = tree(cell_p);
 
