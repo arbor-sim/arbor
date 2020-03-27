@@ -1,0 +1,5 @@
+tasks:
+  - init: |
+      mkdir build && cd build && cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      ln -s $(pwd)/compile_commands.json /workspace/arbor
+      
