@@ -6,6 +6,10 @@
 #include "../gtest.h"
 #include "common.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
+
 using namespace arb::util;
 using testing::nocopy;
 using testing::nomove;

@@ -70,7 +70,7 @@ template <std::size_t I, typename X, typename... T>
 struct type_select<I, X, T...> { using type = typename type_select<I-1, T...>::type; };
 
 template <std::size_t I>
-struct type_select<I> {};
+struct type_select<I> { using type = void; };
 
 template <std::size_t I, typename... T>
 using type_select_t = typename type_select<I, T...>::type;
