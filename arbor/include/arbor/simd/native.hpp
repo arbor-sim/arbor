@@ -73,6 +73,13 @@ ARB_DEF_NATIVE_SIMD_(double, 2, neon)
 
 #endif
 
+#if defined(__VEC__) || defined(__ALTIVEC__) || defined(__VSX__)
+
+#include <arbor/simd/vsx.hpp>
+ARB_DEF_NATIVE_SIMD_(int, 4, vsx)
+ARB_DEF_NATIVE_SIMD_(double, 4, vsx)
+
+#endif
 
 namespace arb {
 namespace simd {
