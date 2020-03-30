@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <set>
 #include <stdexcept>
 #include <unordered_set>
@@ -19,6 +20,7 @@
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
+#include "util/unique.hpp"
 
 namespace arb {
 
@@ -124,43 +126,52 @@ pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt_value
 
 // Construct cv_geometry for cell from locset describing CV boundary points.
 cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
-    struct mloc_hash {
-        std::size_t operator()(const mlocation& loc) const { return loc.branch ^ std::hash<double>()(loc.pos); }
-    };
-    using mlocation_map = std::unordered_map<mlocation, fvm_size_type, mloc_hash>;
     auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
 
     cv_geometry geom;
     const auto& mp = cell.provider();
     const auto& m = mp.morphology();
 
-    if (mp.morphology().empty()) {
+    if (m.empty()) {
         geom.cell_cv_divs = {0, 0};
         return geom;
     }
 
-    auto canon =    [&m](mlocation loc)  { return canonical(m, loc); };
-    auto origin =   [&canon](mcable cab) { return canon(mlocation{cab.branch, cab.prox_pos}); };
-    auto terminus = [&canon](mcable cab) { return canon(mlocation{cab.branch, cab.dist_pos}); };
-
     mlocation_list locs = thingify(lset, mp);
 
-    std::vector<msize_t> n_cv_cables;
-    std::vector<mlocation> next_cv_head;
-    next_cv_head.push_back({mnpos, 0});
+    // Filter out root, terminal locations and repeated locations so as to
+    // avoid trivial CVs outside of fork points. (This is not necessary for
+    // correctness, but is for the convenience of specification by lset.)
 
-    mcable_list cables, all_cables;
+    auto neither_root_nor_terminal = [&m](mlocation x) {
+        return !(x.pos==0 && x.branch==(m.branch_children(mnpos).size()>1u? mnpos: 0)) // root?
+            && !(x.pos==1 && m.branch_children(x.branch).empty()); // terminal?
+    };
+    locs.erase(std::partition(locs.begin(), locs.end(), neither_root_nor_terminal), locs.end());
+    util::sort(locs);
+    util::unique_in_place(locs);
+
+    // Collect cables constituting each CV, maintaining a stack of CV
+    // proximal 'head' points, and recursing down branches in the morphology
+    // within each CV.
+
+    constexpr fvm_index_type no_parent = -1;
+    std::vector<std::pair<mlocation, fvm_index_type>> next_cv_head; // head loc, parent cv index
+    next_cv_head.emplace_back(mlocation{mnpos, 0}, no_parent);
+
+    mcable_list cables;
     std::vector<msize_t> branches;
-
-    mlocation_map head_count;
-    unsigned extra_cv_count = 0;
+    geom.cv_cables_divs.push_back(0);
+    fvm_index_type cv_index = 0;
 
     while (!next_cv_head.empty()) {
-        mlocation h = pop(next_cv_head);
+        auto next = pop(next_cv_head);
+        mlocation h = next.first;
 
         cables.clear();
         branches.clear();
         branches.push_back(h.branch);
+        geom.cv_parent.push_back(next.second);
 
         while (!branches.empty()) {
             msize_t b = pop(branches);
@@ -178,7 +189,7 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
             // Otherwise, recurse over child branches.
             if (it!=locs.end() && it->branch==b) {
                 cables.push_back({b, b==h.branch? h.pos: 0, it->pos});
-                next_cv_head.push_back(*it);
+                next_cv_head.emplace_back(*it, cv_index);
             }
             else {
                 if (b!=mnpos) {
@@ -190,69 +201,33 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
             }
         }
 
-        auto empty_cable = [](mcable c) { return c.prox_pos==c.dist_pos; };
-        cables.erase(std::remove_if(cables.begin(), cables.end(), empty_cable), cables.end());
-
-        if (!cables.empty()) {
-            if (++head_count[origin(cables.front())]==2) {
-                ++extra_cv_count;
-            }
-
-            n_cv_cables.push_back(cables.size());
-            sort(cables);
-            append(all_cables, std::move(cables));
-        }
+        sort(cables);
+        append(geom.cv_cables, std::move(cables));
+        geom.cv_cables_divs.push_back(geom.cv_cables.size());
+        ++cv_index;
     }
 
-    geom.cv_cables.reserve(all_cables.size()+extra_cv_count);
-    geom.cv_parent.reserve(n_cv_cables.size()+extra_cv_count);
-    geom.cv_cables_divs.reserve(n_cv_cables.size()+extra_cv_count+1);
-    geom.cv_cables_divs.push_back(0);
+    auto n_cv = cv_index;
+    arb_assert(n_cv>0);
+    arb_assert(geom.cv_parent.front()==-1);
+    arb_assert(util::all_of(util::subrange_view(geom.cv_parent, 1, n_cv),
+            [](auto v) { return v!=no_parent; }));
 
-    mlocation_map parent_map;
+    // Construct CV children mapping by sorting CV indices by parent.
+    util::assign(geom.cv_children, util::make_span(1, n_cv));
+    util::sort_by(geom.cv_children, [&geom](auto cv) { return geom.cv_parent[cv]; });
 
-    unsigned all_cables_index = 0;
-    unsigned cv_index = 0;
+    geom.cv_children_divs.reserve(n_cv+1);
+    geom.cv_children_divs.push_back(0);
 
-    // Multiple CVs meeting at (0,0)?
-    mlocation root{0, 0};
-    unsigned n_top_children = value_by_key(head_count, root).value_or(0);
-    if (n_top_children>1) {
-        // Add initial trical CV.
-        geom.cv_parent.push_back(mnpos);
-        geom.cv_cables.push_back(mcable{0, 0, 0});
-        geom.cv_cables_divs.push_back(geom.cv_cables.size());
-        parent_map[root] = cv_index++;
-    }
+    auto b = geom.cv_children.begin();
+    auto e = geom.cv_children.end();
+    auto from = b;
 
-    for (auto n_cables: n_cv_cables) {
-        mlocation head = origin(all_cables[all_cables_index]);
-        msize_t parent_cv = value_by_key(parent_map, head).value_or(mnpos);
-
-        auto cables = util::subrange_view(all_cables, all_cables_index, all_cables_index+n_cables);
-        std::copy(cables.begin(), cables.end(), std::back_inserter(geom.cv_cables));
-
-        geom.cv_parent.push_back(parent_cv);
-        geom.cv_cables_divs.push_back(geom.cv_cables.size());
-
-        auto this_cv = cv_index++;
-        for (auto cable: cables) {
-            mlocation term = terminus(cable);
-
-            unsigned n_children = value_by_key(head_count, term).value_or(0);
-            if (n_children>1) {
-                // Add trivial CV for lindep.
-                geom.cv_parent.push_back(this_cv);
-                geom.cv_cables.push_back(mcable{cable.branch, 1., 1.});
-                geom.cv_cables_divs.push_back((fvm_index_type)geom.cv_cables.size());
-                parent_map[term] = cv_index++;
-            }
-            else {
-                parent_map[term] = this_cv;
-            }
-        }
-
-        all_cables_index += n_cables;
+    for (fvm_index_type cv = 0; cv<n_cv; ++cv) {
+        from = std::partition_point(from, e,
+            [cv, &geom](auto i) { return geom.cv_parent[i]<=cv; });
+        geom.cv_children_divs.push_back(from-b);
     }
 
     // Fill cv/cell mapping for single cell (index 0).
@@ -263,17 +238,14 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
     geom.branch_cv_map.resize(1);
     std::vector<pw_elements<fvm_size_type>>& bmap = geom.branch_cv_map.back();
 
-    for (auto cv: util::make_span(geom.size())) {
+    for (auto cv: util::make_span(n_cv)) {
         for (auto cable: geom.cables(cv)) {
             if (cable.branch>=bmap.size()) {
                 bmap.resize(cable.branch+1);
             }
 
             // Ordering of CV ensures CV cables on any given branch are found sequentially.
-            // Omit empty cables.
-            if (cable.prox_pos<cable.dist_pos) {
-                bmap[cable.branch].push_back(cable.prox_pos, cable.dist_pos, cv);
-            }
+            bmap[cable.branch].push_back(cable.prox_pos, cable.dist_pos, cv);
         }
     }
 
@@ -327,6 +299,9 @@ cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
     append_divs(geom.cv_cables_divs, right.cv_cables_divs);
 
     append_offset(geom.cv_parent, geom_n_cv, right.cv_parent);
+    append_offset(geom.cv_children, geom_n_cv, right.cv_children);
+    append_divs(geom.cv_children_divs, right.cv_children_divs);
+
     append_offset(geom.cv_to_cell, geom_n_cell, right.cv_to_cell);
     append_divs(geom.cell_cv_divs, right.cell_cv_divs);
 
@@ -344,6 +319,8 @@ fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discreti
     append(dczn.init_membrane_potential, right.init_membrane_potential);
     append(dczn.temperature_K, right.temperature_K);
     append(dczn.diam_um, right.diam_um);
+
+    append(dczn.axial_resistivity, right.axial_resistivity);
 
     return dczn;
 }
@@ -372,13 +349,21 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
     double dflt_potential =   *(dflt.init_membrane_potential | global_dflt.init_membrane_potential);
     double dflt_temperature = *(dflt.temperature_K | global_dflt.temperature_K);
 
+    D.axial_resistivity.resize(1);
+    msize_t n_branch = D.geometry.n_branch(0);
+    D.axial_resistivity[0].reserve(n_branch);
+    for (msize_t i = 0; i<n_branch; ++i) {
+        D.axial_resistivity[0].push_back(pw_over_cable(cell.region_assignments().get<axial_resistivity>(),
+                    mcable{i, 0., 1.}, dflt_resistivity));
+    }
+
     const auto& embedding = cell.embedding();
     for (auto i: count_along(D.geometry.cv_parent)) {
         auto cv_cables = D.geometry.cables(i);
 
         // Computing face_conductance:
         //
-        // Flux between adjacemt CVs is computed as if there were no membrane currents, and with the CV voltage
+        // Flux between adjacent CVs is computed as if there were no membrane currents, and with the CV voltage
         // values taken to be exact at a reference point in each CV:
         //     * If the CV is unbranched, the reference point is taken to be the CV midpoint.
         //     * If the CV is branched, the reference point is taken to be closest branch point to
@@ -408,8 +393,7 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
             }
 
             mcable span{bid, parent_refpt, cv_refpt};
-            double resistance = embedding.integrate_ixa(bid,
-                pw_over_cable(cell.region_assignments().get<axial_resistivity>(), span, dflt_resistivity));
+            double resistance = embedding.integrate_ixa(span, D.axial_resistivity[0].at(bid));
             D.face_conductance[i] = 100/resistance; // 100 scales to µS.
         }
 
@@ -718,7 +702,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             std::sort(in.param_value.begin(), in.param_value.end());
 
             in.target_index = pm.lid;
-            in.cv = D.geometry.location_cv(cell_idx, pm.loc);
+            in.cv = D.geometry.location_cv(cell_idx, pm.loc, cv_prefer::cv_nonempty);
             sl.push_back(std::move(in));
         }
 
@@ -781,7 +765,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const auto& stimuli = cell.stimuli();
 
         std::vector<size_type> stimuli_cv;
-        assign_by(stimuli_cv, stimuli, [&D, cell_idx](auto& p) { return D.geometry.location_cv(cell_idx, p.loc); });
+        assign_by(stimuli_cv, stimuli, [&D, cell_idx](auto& p) {
+                return D.geometry.location_cv(cell_idx, p.loc, cv_prefer::cv_nonempty); });
 
         std::vector<size_type> cv_order;
         assign(cv_order, count_along(stimuli));

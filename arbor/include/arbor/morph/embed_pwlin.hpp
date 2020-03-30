@@ -36,15 +36,21 @@ struct embed_pwlin {
     // Computed length of mcable.
     double integrate_length(mcable c) const;
     double integrate_length(mlocation proxmal, mlocation distal) const;
+
+    double integrate_length(mcable c, const pw_constant_fn&) const;
     double integrate_length(msize_t bid, const pw_constant_fn&) const;
 
     // Membrane surface area of given mcable.
     double integrate_area(mcable c) const;
     double integrate_area(mlocation proxmal, mlocation distal) const;
+
+    double integrate_area(mcable c, const pw_constant_fn&) const;
     double integrate_area(msize_t bid, const pw_constant_fn&) const;
 
     // Integrated inverse cross-sectional area of given mcable.
     double integrate_ixa(mcable c) const;
+
+    double integrate_ixa(mcable c, const pw_constant_fn&) const;
     double integrate_ixa(msize_t bid, const pw_constant_fn&) const;
 
     // Length of whole branch.

@@ -146,13 +146,14 @@ TEST(cv_layout, zero_size_cv) {
     // With one CV per branch, expect reference points for face conductance
     // to be at (0, 0.5); (0, 1); (1, 0.5); (2, 1); (3, 0.5); (4, 0.5); (5, 0.5).
     // The first CV should be all of branch 0; the second CV should be the
-    // zero-size CV at the branch point (0, 1).
+    // zero-size CV covering the branch point (0, 1).
     params.discretization = cv_policy_fixed_per_branch(1);
     fvm_cv_discretization D = fvm_cv_discretize(cell, params);
 
     unsigned cv_a = 0, cv_x = 1;
     ASSERT_TRUE(util::equal(mcable_list{mcable{0, 0, 1}}, D.geometry.cables(cv_a)));
-    ASSERT_TRUE(util::equal(mcable_list{mcable{0, 1, 1}}, D.geometry.cables(cv_x)));
+    ASSERT_TRUE(util::equal(mcable_list{mcable{0, 1, 1}, mcable{1, 0, 0}, mcable{2, 0, 0}},
+                    D.geometry.cables(cv_x)));
 
     // Find the two CV children of CV x.
     unsigned cv_b = -1, cv_c = -1;

@@ -53,6 +53,32 @@ double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_consta
     return accum;
 }
 
+template <unsigned p, unsigned q>
+double integrate(const branch_pw_ratpoly<p, q>& f, mcable c, const pw_constant_fn& g) {
+    msize_t bid = c.branch;
+    double accum = 0;
+
+    for (msize_t i = 0; i<g.size(); ++i) {
+        std::pair<double, double> interval = g.interval(i);
+
+        if (interval.second<c.prox_pos) {
+            continue;
+        }
+        else if (interval.first>=c.dist_pos) {
+            break;
+        }
+        else {
+            interval.first = std::max(interval.first, c.prox_pos);
+            interval.second = std::min(interval.second, c.dist_pos);
+
+            if (interval.first<interval.second) {
+                accum += g.element(i)*(interpolate(f, bid, interval.second)-interpolate(f, bid, interval.first));
+            }
+        }
+    }
+    return accum;
+}
+
 template <typename operation>
 mcable_list data_cmp(const branch_pw_ratpoly<1, 0>& f, unsigned bid, double val, operation op) {
     mcable_list L;
@@ -109,19 +135,19 @@ double embed_pwlin::directed_projection(arb::mlocation loc) const {
     return interpolate(data_->directed_projection, loc.branch, loc.pos);
 }
 
-double embed_pwlin::integrate_length(msize_t bid, const pw_constant_fn& g) const {
-    return integrate(data_->length, bid, g);
+// Point to point integration:
+
+double embed_pwlin::integrate_length(mlocation proximal, mlocation distal) const {
+    return interpolate(data_->length, distal.branch, distal.pos) -
+           interpolate(data_->length, proximal.branch, proximal.pos);
 }
 
-double embed_pwlin::integrate_area(msize_t bid, const pw_constant_fn& g) const {
-    return integrate(data_->area, bid, g);
+double embed_pwlin::integrate_area(mlocation proximal, mlocation distal) const {
+    return interpolate(data_->area, distal.branch, distal.pos) -
+           interpolate(data_->area, proximal.branch, proximal.pos);
 }
 
-double embed_pwlin::integrate_ixa(msize_t bid, const pw_constant_fn& g) const {
-    return integrate(data_->ixa, bid, g);
-}
-
-// Cable versions of integration methods:
+// Integrate over cable:
 
 double embed_pwlin::integrate_length(mcable c) const {
     return integrate_length(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
@@ -135,16 +161,32 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-// Point to point integration:
+// Integrate piecewise function over a branch:
 
-double embed_pwlin::integrate_length(mlocation proximal, mlocation distal) const {
-    return interpolate(data_->length, distal.branch, distal.pos) -
-           interpolate(data_->length, proximal.branch, proximal.pos);
+double embed_pwlin::integrate_length(msize_t bid, const pw_constant_fn& g) const {
+    return integrate(data_->length, bid, g);
 }
 
-double embed_pwlin::integrate_area(mlocation proximal, mlocation distal) const {
-    return interpolate(data_->area, distal.branch, distal.pos) -
-           interpolate(data_->area, proximal.branch, proximal.pos);
+double embed_pwlin::integrate_area(msize_t bid, const pw_constant_fn& g) const {
+    return integrate(data_->area, bid, g);
+}
+
+double embed_pwlin::integrate_ixa(msize_t bid, const pw_constant_fn& g) const {
+    return integrate(data_->ixa, bid, g);
+}
+
+// Integrate piecewise function over a cable:
+
+double embed_pwlin::integrate_length(mcable c, const pw_constant_fn& g) const {
+    return integrate(data_->length, c, g);
+}
+
+double embed_pwlin::integrate_area(mcable c, const pw_constant_fn& g) const {
+    return integrate(data_->area, c, g);
+}
+
+double embed_pwlin::integrate_ixa(mcable c, const pw_constant_fn& g) const {
+    return integrate(data_->ixa, c, g);
 }
 
 // Subregions defined by geometric inequalities:

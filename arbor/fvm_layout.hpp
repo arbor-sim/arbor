@@ -4,12 +4,12 @@
 #include <utility>
 #include <vector>
 
-#include <arbor/fvm_types.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/util/optional.hpp>
 
 #include "execution_context.hpp"
 #include "util/piecewise.hpp"
@@ -19,14 +19,51 @@
 namespace arb {
 
 // CV geometry as determined by per-cell CV boundary points.
+//
+// Details of CV cable representation:
+//
+//   * The extent of the cables of a control volume corresponds to the
+//     closure of the control volume on the morphology tree.
+//
+//   * Every fork in the morphology tree 'belongs' to exactly
+//     one CV. A fork belongs to a CV if and only if there is
+//     a cable in the CV for each branch of the fork, that
+//     includes the fork point.
+//
+//   * If a CV has more than one cable covering a fork point, then
+//     that fork point must belong to that CV.
+//
+// These requirements are a consequence of the CV geometry being determined
+// by a collection of CV boundarary locations.
+
+namespace cv_prefer {
+    // Enum for resolving which CV to return on location look-up, if the
+    // location is on a CV boundary.
+
+    enum type {
+        // Prefer more proximal CV:
+        cv_proximal,
+        // Prefer more distal CV:
+        cv_distal,
+        // Prefer distal CV unless it has zero extent on location branch.
+        // This should be used for placing point processes on CVs.
+        cv_nonempty,
+        // Prefer distal CV unless the proximal CV has zero extent on location branch.
+        // This should be used for determing to which CV a fork point belongs.
+        cv_empty
+    };
+}
 
 struct cv_geometry {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
 
     std::vector<mcable> cv_cables;           // CV unbranched sections, partitioned by CV.
-    std::vector<index_type> cv_cables_divs;   // Partitions cv_cables by CV index.
+    std::vector<index_type> cv_cables_divs;  // Partitions cv_cables by CV index.
     std::vector<index_type> cv_parent;       // Index of CV parent or size_type(-1) for a cell root CV.
+
+    std::vector<index_type> cv_children;     // CV child indices, partitioned by CV.
+    std::vector<index_type> cv_children_divs;   // Paritions cv_children by CV index.
 
     std::vector<index_type> cv_to_cell;      // Maps CV index to cell index.
     std::vector<index_type> cell_cv_divs;    // Partitions CV indices by cell.
@@ -37,6 +74,11 @@ struct cv_geometry {
     auto cables(size_type cv_index) const {
         auto partn = util::partition_view(cv_cables_divs);
         return util::subrange_view(cv_cables, partn[cv_index]);
+    }
+
+    auto children(size_type cv_index) const {
+        auto partn = util::partition_view(cv_children_divs);
+        return util::subrange_view(cv_children, partn[cv_index]);
     }
 
     std::pair<index_type, index_type> cell_cv_interval(size_type cell_idx) const {
@@ -68,8 +110,43 @@ struct cv_geometry {
         return cell_cv_divs.empty()? 0: cell_cv_divs.size()-1;
     }
 
-    size_type location_cv(size_type cell_idx, mlocation loc) const {
-        return cell_cv_divs.at(cell_idx)+branch_cv_map.at(cell_idx).at(loc.branch)(loc.pos).second;
+    size_type n_branch(size_type cell_idx) const {
+        return branch_cv_map.at(cell_idx).size();
+    }
+
+    size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const {
+        auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
+        auto zero_extent = [&pw_cv_offset](auto j) {
+            return pw_cv_offset.interval(j).first==pw_cv_offset.interval(j).second;
+        };
+
+        auto i = pw_cv_offset.index_of(loc.pos);
+        auto i_max = pw_cv_offset.size()-1;
+        auto cv_prox = pw_cv_offset.interval(i).first;
+
+        // index_of() should have returned right-most matching interval.
+        arb_assert(i==i_max || loc.pos<pw_cv_offset.interval(i+1).first);
+
+        using namespace cv_prefer;
+        switch (prefer) {
+        case cv_distal:
+            break;
+        case cv_proximal:
+            if (loc.pos==cv_prox && i>0) --i;
+            break;
+        case cv_nonempty:
+            if (zero_extent(i)) {
+                if (i>0 && !zero_extent(i-1)) --i;
+                else if (i<i_max && !zero_extent(i+1)) ++i;
+            }
+            break;
+        case cv_empty:
+            if (loc.pos==cv_prox && i>0 && zero_extent(i-1)) --i;
+            break;
+        }
+
+        index_type cv_base = cell_cv_divs.at(cell_idx);
+        return cv_base+pw_cv_offset[i].second;
     }
 };
 
@@ -86,6 +163,14 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset);
 // diam_um is taken to be the diameter of a CV with constant diameter and same
 // extent which has the same surface area (i.e. cv_area/(πL) where L is the
 // total length of the cables comprising the CV.)
+//
+// The bulk conductivity over the morphology is recorded here as well, for
+// calculating voltage and axial current interpolating probes.
+//
+// For the computation of inter-CV conductances and voltage interpolation, it
+// is assumed that the CV voltage is exact at every fork point that belongs
+// to the CV, or in the absence of any internal forks, is exact at the
+// midpoint of an unbranched CV.
 
 struct fvm_cv_discretization {
     using size_type = fvm_size_type;
@@ -98,12 +183,16 @@ struct fvm_cv_discretization {
     size_type size() const { return geometry.size(); }
     size_type n_cell() const { return geometry.n_cell(); }
 
+    // Following members have one element per CV.
     std::vector<value_type> face_conductance; // [µS]
     std::vector<value_type> cv_area;          // [µm²]
     std::vector<value_type> cv_capacitance;   // [pF]
     std::vector<value_type> init_membrane_potential; // [mV]
     std::vector<value_type> temperature_K;    // [K]
     std::vector<value_type> diam_um;          // [µm]
+
+    // For each cell, one piece-wise constant value per branch.
+    std::vector<std::vector<pw_constant_fn>> axial_resistivity; // [Ω·cm]
 };
 
 // Combine two fvm_cv_geometry groups in-place.
@@ -111,7 +200,6 @@ struct fvm_cv_discretization {
 fvm_cv_discretization& append(fvm_cv_discretization&, const fvm_cv_discretization&);
 
 // Construct fvm_cv_discretization from one or more cells.
-
 fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt);
 fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells, const cable_cell_parameter_set& global_defaults, const arb::execution_context& ctx={});
 
