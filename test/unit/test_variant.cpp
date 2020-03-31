@@ -1,7 +1,7 @@
 #include <tuple>
 
+#include <arbor/util/variant.hpp>
 #include "util/meta.hpp"
-#include "util/variant.hpp"
 
 #include "../gtest.h"
 #include "common.hpp"

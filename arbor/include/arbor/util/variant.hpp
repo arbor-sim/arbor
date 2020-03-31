@@ -11,7 +11,8 @@
 //     are constexpr functions instead.
 //
 //   * Rather than overload `std::get` etc., uses `util::get` which wraps
-//     `std::get` but also dispatches to `variant<...>::get`.
+//     dispatches to `variant<...>::get` (`util::get` is also defined in
+//     private `util/meta.hpp` header for pairs and tuples.)
 //
 //   * Assignemnt from non-variant type relies upon default conversion to
 //     variant type.
