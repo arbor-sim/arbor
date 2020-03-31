@@ -136,6 +136,15 @@ private:
     void set_gpu() {
         if (context_.gpu->has_gpu()) context_.gpu->set_gpu();
     }
+
+    // Translate cell probe descriptions into probe handles etc.
+    fvm_probe_info resolve_probe_address(
+        std::size_t cell_idx,
+        const util::any& paddr,
+        const fvm_cv_discretization& D,
+        const fvm_mechanism_data& M,
+        const std::vector<target_handle>& handles,
+        const std::unordered_map<std::string, mechanism*>& mech_tbl);
 };
 
 template <typename Backend>
@@ -444,6 +453,9 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     target_handles.resize(mech_data.n_target);
 
+    // Keep track of mechanisms by name for probe lookup.
+    std::unordered_map<std::string, mechanism*> mechptr_by_name;
+
     unsigned mech_id = 0;
     for (auto& m: mech_data.mechanisms) {
         auto& name = m.first;
@@ -498,6 +510,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
         auto minst = mech_instance(name);
         minst.mech->instantiate(mech_id++, *state_, minst.overrides, layout);
+        mechptr_by_name[name] = minst.mech.get();
 
         for (auto& pv: config.param_values) {
             minst.mech->set_parameter(pv.first, pv.second);
@@ -526,25 +539,11 @@ void fvm_lowered_cell_impl<B>::initialize(
 
         for (cell_lid_type j: make_span(rec.num_probes(gid))) {
             probe_info pi = rec.get_probe({gid, j});
-            auto where = any_cast<cell_probe_address>(pi.address);
+            fvm_probe_info info = resolve_probe_address(cell_idx, pi.address, D, mech_data, target_handles, mechptr_by_name);
 
-            fvm_size_type cv;
-            probe_handle handle;
-
-            switch (where.kind) {
-            case cell_probe_address::membrane_voltage:
-                cv = D.geometry.location_cv(cell_idx, where.location, cv_prefer::cv_empty);
-                handle = state_->voltage.data()+cv;
-                break;
-            case cell_probe_address::membrane_current:
-                cv = D.geometry.location_cv(cell_idx, where.location, cv_prefer::cv_nonempty);
-                handle = state_->current_density.data()+cv;
-                break;
-            default:
-                throw arbor_internal_error("fvm_lowered_cell: unrecognized probeKind");
+            if (info.raw_handle) {
+                probe_map.insert({pi.id, {info.raw_handle, pi.tag}});
             }
-
-            probe_map.insert({pi.id, {handle, pi.tag}});
         }
     }
 
@@ -647,6 +646,113 @@ fvm_size_type fvm_lowered_cell_impl<B>::fvm_intdom(
     }
 
     return intdom_id;
+}
+
+template <typename B>
+fvm_probe_info fvm_lowered_cell_impl<B>::resolve_probe_address(
+    std::size_t cell_idx,
+    const util::any& paddr,
+    const fvm_cv_discretization& D,
+    const fvm_mechanism_data& M,
+    const std::vector<target_handle>& handles,
+    const std::unordered_map<std::string, mechanism*>& mech_tbl)
+{
+    using util::any_cast;
+    using util::value_by_key;
+    using util::binary_search_index;
+    using namespace cv_prefer;
+
+    // Probe address can be one of a number of cable cell-specific
+    // probe types; dispatch on type and compute probe info accordingly.
+    //
+    // Mechanisms or ions not being instantiated at a particular address
+    // is not treated as an error; a request for a state variable that
+    // does not exist on a mechanism is, however.
+
+    auto location_cv = [&](auto* p, cv_prefer::type prefer) -> fvm_index_type {
+        return D.geometry.location_cv(cell_idx, p->location, prefer);
+    };
+
+    struct mechanism_data {
+        const fvm_value_type* state_data = nullptr;
+        unsigned id;
+        explicit operator bool() const { return state_data; }
+    };
+
+    auto lookup_mechanism_data = [&](auto* p) -> mechanism_data {
+        if (mechanism* m = value_by_key(mech_tbl, p->mechanism).value_or(nullptr)) {
+            const fvm_value_type* data = B::mechanism_field_data(m, p->state);
+            if (!data) {
+                throw cable_cell_error("no state variable '"+p->state+"' in mechanism '"+p->mechanism+"'");
+            }
+            return {data, m->mechanism_id()};
+        }
+        return {};
+    };
+
+    auto ion_location_index = [&](auto* p) -> util::optional<fvm_index_type> {
+        if (state_->ion_data.count(p->ion)) {
+            auto cv = location_cv(p, cv_nonempty);
+            return util::binary_search_index(M.ions.at(p->ion).cv, cv);
+        }
+        return util::nullopt;
+    };
+
+    if (auto *p = any_cast<cell_probe_membrane_voltage>(&paddr)) {
+        const fvm_value_type* src = state_->voltage.data() + location_cv(p, cv_empty);
+        return fvm_probe_info{src};
+    }
+    else if (auto* p = any_cast<cell_probe_total_ionic_current_density>(&paddr)) {
+        const fvm_value_type* src = state_->current_density.data() + location_cv(p, cv_nonempty);
+        return fvm_probe_info{src};
+    }
+    else if (auto* p = any_cast<cell_probe_density_state>(&paddr)) {
+        if (auto data = lookup_mechanism_data(p)) {
+            auto cv = location_cv(p, cv_nonempty);
+            if (auto opt_i = binary_search_index(M.mechanisms.at(p->mechanism).cv, cv)) {
+                return fvm_probe_info{data.state_data+opt_i.value()};
+            }
+        }
+        return fvm_probe_info{};
+    }
+    else if (auto* p = any_cast<cell_probe_point_state>(&paddr)) {
+        if (p->target>=handles.size()) {
+            return fvm_probe_info{};
+        }
+
+        if (auto data = lookup_mechanism_data(p)) {
+            // Confirm mechanism is actually at this target.
+            const auto& th = handles[p->target];
+            if (th.mech_id == data.id) {
+                return fvm_probe_info{data.state_data+th.mech_index};
+            }
+        }
+        return fvm_probe_info{};
+    }
+    else if (auto* p = any_cast<cell_probe_ion_current_density>(&paddr)) {
+        if (auto opt_i = ion_location_index(p)) {
+            const fvm_value_type* data = state_->ion_data.at(p->ion).iX_.data();
+            return fvm_probe_info{data+opt_i.value()};
+        }
+        return fvm_probe_info{};
+    }
+    else if (auto* p = any_cast<cell_probe_ion_int_concentration>(&paddr)) {
+        if (auto opt_i = ion_location_index(p)) {
+            const fvm_value_type* data = state_->ion_data.at(p->ion).Xi_.data();
+            return fvm_probe_info{data+opt_i.value()};
+        }
+        return fvm_probe_info{};
+    }
+    else if (auto* p = any_cast<cell_probe_ion_ext_concentration>(&paddr)) {
+        if (auto opt_i = ion_location_index(p)) {
+            const fvm_value_type* data = state_->ion_data.at(p->ion).Xo_.data();
+            return fvm_probe_info{data+opt_i.value()};
+        }
+        return fvm_probe_info{};
+    }
+    else {
+        throw cable_cell_error("unrecognized probe address type");
+    }
 }
 
 } // namespace arb

@@ -21,6 +21,18 @@ struct fvm_integration_result {
     util::range<const fvm_value_type*> sample_value;
 };
 
+// A sample for a probe may be derived from multiple 'raw' sampled
+// values from the backend.
+//
+// While supported probes are at this point all simple scalar values,
+// fvm_probe_info will be the class that represents the mapping
+// between a single sample result and the back-end raw probe handles.
+
+struct fvm_probe_info {
+    // nullptr => nothing to probe
+    probe_handle raw_handle = nullptr;
+};
+
 // Common base class for FVM implementation on host or gpu back-end.
 
 struct fvm_lowered_cell {

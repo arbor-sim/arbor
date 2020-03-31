@@ -29,14 +29,49 @@ struct lid_range {
         begin(b), end(e) {}
 };
 
-// Probe type for cell descriptions.
-struct cell_probe_address {
-    enum probe_kind {
-        membrane_voltage, membrane_current
-    };
+// Each kind of probe has its own type for representing its address,
+// as below:
 
+// Voltage estimate [mV] at `location`, possibly interpolated.
+struct cell_probe_membrane_voltage {
     mlocation location;
-    probe_kind kind;
+};
+
+// Total current density [A/m²] across membrane excluding capacitive current at `location`.
+struct cell_probe_total_ionic_current_density {
+    mlocation location;
+};
+
+// Value of state variable `state` in density mechanism `mechanism` in CV at `location`.
+struct cell_probe_density_state {
+    mlocation location;
+    std::string mechanism;
+    std::string state;
+};
+
+// Value of state variable `key` in point mechanism `source` at target `target`.
+struct cell_probe_point_state {
+    cell_lid_type target;
+    std::string mechanism;
+    std::string state;
+};
+
+// Current density [A/m²] across membrane attributed to the ion `source` at `location`.
+struct cell_probe_ion_current_density {
+    mlocation location;
+    std::string ion;
+};
+
+// Ionic internal concentration [mmol/L] of ion `source` at `location`, possibly interpolated.
+struct cell_probe_ion_int_concentration {
+    mlocation location;
+    std::string ion;
+};
+
+// Ionic external concentration [mmol/L] of ion `source` at `location`, possibly interpolated.
+struct cell_probe_ion_ext_concentration {
+    mlocation location;
+    std::string ion;
 };
 
 // Forward declare the implementation, for PIMPL.

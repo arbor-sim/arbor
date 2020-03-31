@@ -65,6 +65,9 @@ public:
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
 
+    // Peek into mechanism state variable; implements arb::multicore::backend::mechanism_field_data.
+    fvm_value_type* field_data(const std::string& state_var);
+
 protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)
     size_type width_padded_ = 0; // Width rounded up to multiple of pad/alignment.

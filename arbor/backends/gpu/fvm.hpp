@@ -72,6 +72,8 @@ struct backend {
             thresholds,
             context);
     }
+
+    static value_type* mechanism_field_data(arb::mechanism* mptr, const std::string& field);
 };
 
 } // namespace gpu

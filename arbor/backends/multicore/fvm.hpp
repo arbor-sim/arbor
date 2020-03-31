@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <arbor/mechanism.hpp>
+
 #include "backends/event.hpp"
 #include "backends/multicore/matrix_state.hpp"
 #include "backends/multicore/multi_event_stream.hpp"
@@ -59,6 +61,8 @@ struct backend {
             thresholds,
             context);
     }
+
+    static fvm_value_type* mechanism_field_data(arb::mechanism* mptr, const std::string& field);
 };
 
 } // namespace multicore
