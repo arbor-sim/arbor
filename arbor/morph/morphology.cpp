@@ -280,25 +280,14 @@ mlocation canonical(const morphology& m, mlocation loc) {
     return loc;
 }
 
-// Constructing an mextent from an mcable_list consists of taking the union
-// of any intersecting cables, and adding any required zero-length cables
-// around fork-points.
-
-mcable_list build_mextent_cables(const morphology& m, const mcable_list& cables) {
+// Merge overlapping cables so that none of the cables in the output overlap.
+// Used by the mextent constructor.
+mcable_list build_mextent_cables(const mcable_list& cables) {
     arb_assert(arb::test_invariants(cables));
-
-    std::unordered_set<msize_t> branch_tails;
 
     mcable_list cs;
     for (auto& c: cables) {
         mcable* prev = cs.empty()? nullptr: &cs.back();
-
-        if (c.prox_pos==0) {
-            branch_tails.insert(m.branch_parent(c.branch));
-        }
-        if (c.dist_pos==1) {
-            branch_tails.insert(c.branch);
-        }
 
         if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
             prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
@@ -308,42 +297,16 @@ mcable_list build_mextent_cables(const morphology& m, const mcable_list& cables)
         }
     }
 
-    if (!branch_tails.empty()) {
-        std::vector<mcable> fork_covers;
-
-        for (auto b: branch_tails) {
-            if (b!=mnpos) fork_covers.push_back(mcable{b, 1., 1.});
-            for (auto b_child: m.branch_children(b)) {
-                fork_covers.push_back(mcable{b_child, 0., 0.});
-            }
-        }
-        util::sort(fork_covers);
-
-        // Merge cables in cs with 0-length cables corresponding to fork covers.
-        mcable_list a;
-        a.swap(cs);
-
-        for (auto c: util::merge_view(a, fork_covers)) {
-            mcable* prev = cs.empty()? nullptr: &cs.back();
-
-            if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
-                prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
-            }
-            else {
-                cs.push_back(c);
-            }
-        }
-    }
-
     return cs;
-
 }
 
-mextent::mextent(const morphology& m, const mcable_list& cables):
-    cables_(build_mextent_cables(m, cables)) {}
+mextent::mextent(const mcable_list& cables):
+    cables_(build_mextent_cables(cables)) {}
 
 bool mextent::test_invariants() const {
-    // Checks for sortedness:
+    // Checks for:
+    //   * validity of each cables.
+    //   * sortedness of cables in list.
     if (!arb::test_invariants(cables_)) return false;
 
     // Check for intersections:
@@ -364,35 +327,6 @@ bool mextent::test_invariants(const morphology& m) const {
 
     // Too many branches?
     if (!empty() && cables_.back().branch>=m.num_branches()) return false;
-
-    // Gather branches which are covered at the proximal or distal end:
-    std::unordered_set<msize_t> branch_heads, branch_tails;
-    for (auto& c: cables_) {
-        if (c.prox_pos==0) branch_heads.insert(c.branch);
-        if (c.dist_pos==1) branch_tails.insert(c.branch);
-    }
-
-    // There should be an entry in branch_tails for parent(j) for all j
-    // in branch_heads, and an entry j in branch_heads for every j
-    // with parent(j) in branch_tails.
-
-    for (auto b: branch_heads) {
-        msize_t parent = m.branch_parent(b);
-        if (parent==mnpos) {
-            branch_tails.insert(mnpos);
-        }
-        else if (!branch_tails.count(parent)) {
-            return false;
-        }
-    }
-
-    for (auto b: branch_tails) {
-        for (auto child: m.branch_children(b)) {
-            if (!branch_heads.count(child)) {
-                return false;
-            }
-        }
-    }
 
     return true;
 }
@@ -479,27 +413,6 @@ mextent join(const mextent& a, const mextent& b) {
         }
     }
     return m;
-}
-
-mcable_list canonical(const morphology& m, const mextent& a) {
-    // For zero-length cables representing isolated points, keep
-    // only the most proximal. All other zero-length cables should be
-    // elided.
-
-    mcable_list result;
-    std::unordered_set<msize_t> remove_set;
-
-    for (auto& c: a.cables()) {
-        if (c.prox_pos==0 && c.dist_pos>0) {
-            remove_set.insert(m.branch_parent(c.branch));
-        }
-    }
-    for (auto& c: a.cables()) {
-        if (c.prox_pos==1 && remove_set.count(c.branch)) continue;
-        if (c.dist_pos==0 && m.branch_parent(c.branch)!=mnpos) continue;
-        result.push_back(c);
-    }
-    return result;
 }
 
 } // namespace arb
