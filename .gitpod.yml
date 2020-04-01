@@ -14,9 +14,7 @@ tasks:
       -DARB_WITH_PYTHON:BOOL=ON
       ln -s /workspace/arbor/build/compile_commands.json /workspace/arbor
     prebuild: |
-      make -j$(nproc)
-      # make -j$(nproc) tests
-      # ./build/bin/unit
+      cmake --build /workspace/arbor/build/ --parallel $(nproc)
 
 github:
   prebuilds:
