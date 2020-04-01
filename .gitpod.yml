@@ -12,7 +12,7 @@ tasks:
       cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -H/workspace/arbor -B/workspace/arbor/build \
       -DCMAKE_INSTALL_PREFIX:STRING=/workspace/arbor/install -DCMAKE_BUILD_TYPE:STRING=Debug -G "Unix Makefiles" \
       -DARB_WITH_PYTHON:BOOL=ON
-      ln -s $(pwd)/compile_commands.json /workspace/arbor
+      ln -s /workspace/arbor/build/compile_commands.json /workspace/arbor
     prebuild: |
       make -j$(nproc)
       # make -j$(nproc) tests
