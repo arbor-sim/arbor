@@ -42,7 +42,6 @@ namespace arb {
                 using mask_impl   = vsx_bool2x2;
             };
 
-
             struct vsx_int4 : implbase<vsx_int4> {
                 using array = vector int;
 
@@ -204,7 +203,7 @@ namespace arb {
                     return result;
                 }
 
-                static array madd(const array& a, const array& b, const array& c) {
+                static array fma(const array& a, const array& b, const array& c) {
                     array result;
                     result[0] = vec_madd(a[0], b[0], c[0]);
                     result[1] = vec_madd(a[1], b[1], c[1]);
@@ -218,7 +217,7 @@ namespace arb {
                     return result;
                 }
 
-                static array msub(const array& a, const array& b, const array& c) {
+                static array fms(const array& a, const array& b, const array& c) {
                     array result;
                     result[0] = vec_msub(a[0], b[0], c[0]);
                     result[1] = vec_msub(a[1], b[1], c[1]);
@@ -311,9 +310,9 @@ namespace arb {
                     const auto is_not_nan = cmp_eq(x, x);
 
                     // Compute n and g.
-                    const auto n = floor(madd(broadcast(ln2inv), x, broadcast(0.5)));
-                    auto g = madd(n, broadcast(-ln2C1), x);
-                    g = madd(n, broadcast(-ln2C2), g);
+                    const auto n = floor(fma(broadcast(ln2inv), x, broadcast(0.5)));
+                    auto g = fma(n, broadcast(-ln2C1), x);
+                    g = fma(n, broadcast(-ln2C2), g);
                     const auto gg = mul(g, g);
 
                     // Compute the g*P(g^2) and Q(g^2).
@@ -321,7 +320,7 @@ namespace arb {
                     const auto even =        horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
                     // Compute R(g)/R(-g) = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
-                    const auto expg = madd(broadcast(2.0),
+                    const auto expg = fma(broadcast(2.0),
                                            div(odd, sub(even, odd)),
                                            broadcast(1.0));
                     
@@ -349,11 +348,11 @@ namespace arb {
                     const auto two  = add(one, one);
 
                     const auto smallx = cmp_leq(abs(x), half);
-                    auto n = floor(madd(broadcast(ln2inv), x, half));
+                    auto n = floor(fma(broadcast(ln2inv), x, half));
                     n = ifelse(smallx, zero, n);
 
-                    auto g = madd(n, broadcast(-ln2C1), x);
-                    g =      madd(n, broadcast(-ln2C2), g);
+                    auto g = fma(n, broadcast(-ln2C1), x);
+                    g =      fma(n, broadcast(-ln2C2), g);
 
                     const auto gg = mul(g, g);
 
@@ -404,10 +403,10 @@ namespace arb {
                     const auto z3 = mul(z2, z);
 
                     auto r = div(mul(z3, pz), qz);
-                    r = madd(g,  broadcast(ln2C4), r);
-                    r = msub(z2, half, r);
+                    r = fma(g,  broadcast(ln2C4), r);
+                    r = fms(z2, half, r);
                     r = sub(z, r);
-                    r = madd(g,  broadcast(ln2C3), r);
+                    r = fma(g,  broadcast(ln2C3), r);
 
                     // Return NaN if x is NaN or negative, +inf if x is +inf,
                     // or -inf if zero or (positive) denormal.
@@ -424,12 +423,12 @@ namespace arb {
                     static inline array horner(const array& x, const double a0) { return broadcast(a0); }
 
                     template <typename... T>
-                    static array horner(const array& x, const double a0, T... tail) { return madd(x, horner(x, tail...), broadcast(a0)); }
+                    static array horner(const array& x, const double a0, T... tail) { return fma(x, horner(x, tail...), broadcast(a0)); }
 
                     static inline array horner1(const array& x, const double a0) { return add(x, broadcast(a0)); }
 
                     template <typename... T>
-                    static array horner1(const array& x, const double a0, T... tail) { return madd(x, horner1(x, tail...), broadcast(a0)); }
+                    static array horner1(const array& x, const double a0, T... tail) { return fma(x, horner1(x, tail...), broadcast(a0)); }
 
                     // Compute 2^n·x
                     static array ldexp_positive(const array &x, const ints n) {
@@ -523,7 +522,6 @@ namespace arb {
                 using type = detail::vsx_int4;
             };
         }  // namespace simd_abi
-
     }  // namespace simd
 }  // namespace arb
 
