@@ -56,7 +56,7 @@ INITIAL {
 }
 
 DERIVATIVE states {
-    rates(v, celsius)
+    rates(v)
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
     n' = (ninf-n)/ntau
