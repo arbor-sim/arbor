@@ -64,7 +64,7 @@ DERIVATIVE states {
 
 PROCEDURE rates(v)
 {
-    LOCAL  alpha, beta, sum, q10
+    LOCAL  alpha, beta, sum
 
     :"m" sodium activation system
     alpha = .1 * vtrap(-(v+40),10)
