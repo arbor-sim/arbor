@@ -13,8 +13,9 @@ tasks:
       -DCMAKE_INSTALL_PREFIX:STRING=/workspace/arbor/install -DCMAKE_BUILD_TYPE:STRING=Debug -G "Unix Makefiles" \
       -DARB_WITH_PYTHON:BOOL=ON
       ln -s /workspace/arbor/build/compile_commands.json /workspace/arbor
+      export PYTHONPATH=/workspace/arbor/install/lib/python3.7/site-packages
     prebuild: |
-      cmake --build /workspace/arbor/build/ --parallel $(nproc)
+      cmake --build /workspace/arbor/build/ --parallel $(nproc) --target install
 
 github:
   prebuilds:
