@@ -32,6 +32,7 @@ using util::pw_elements;
 using util::pw_element;
 using util::sort;
 using util::sort_by;
+using util::stable_sort_by;
 using util::value_by_key;
 
 namespace {
@@ -214,8 +215,8 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
             [](auto v) { return v!=no_parent; }));
 
     // Construct CV children mapping by sorting CV indices by parent.
-    util::assign(geom.cv_children, util::make_span(1, n_cv));
-    util::sort_by(geom.cv_children, [&geom](auto cv) { return geom.cv_parent[cv]; });
+    assign(geom.cv_children, util::make_span(1, n_cv));
+    stable_sort_by(geom.cv_children, [&geom](auto cv) { return geom.cv_parent[cv]; });
 
     geom.cv_children_divs.reserve(n_cv+1);
     geom.cv_children_divs.push_back(0);

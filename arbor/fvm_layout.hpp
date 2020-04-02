@@ -62,7 +62,7 @@ struct cv_geometry {
     std::vector<index_type> cv_cables_divs;  // Partitions cv_cables by CV index.
     std::vector<index_type> cv_parent;       // Index of CV parent or size_type(-1) for a cell root CV.
 
-    std::vector<index_type> cv_children;     // CV child indices, partitioned by CV.
+    std::vector<index_type> cv_children;     // CV child indices, partitioned by CV, and then in order.
     std::vector<index_type> cv_children_divs;   // Paritions cv_children by CV index.
 
     std::vector<index_type> cv_to_cell;      // Maps CV index to cell index.

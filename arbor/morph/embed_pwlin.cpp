@@ -53,6 +53,10 @@ double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_consta
     return accum;
 }
 
+// Performance note: when integrating over a cable within a branch, the code effectively
+// performs a linear search for the starting interval. This can be replaced with a binary
+// search for a small increase in code complexity.
+
 template <unsigned p, unsigned q>
 double integrate(const branch_pw_ratpoly<p, q>& f, mcable c, const pw_constant_fn& g) {
     msize_t bid = c.branch;

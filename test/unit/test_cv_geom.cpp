@@ -20,6 +20,11 @@ using util::make_span;
 ::testing::AssertionResult verify_cv_children(const cv_geometry& g) {
     unsigned visited_children = 0;
     for (unsigned i = 0; i<g.size(); ++i) {
+        if (!util::is_sorted(g.children(i))) {
+            return ::testing::AssertionFailure() << "CV " << i
+                << " has unsorted sequence of child CVs";
+        }
+
         for (auto cv: g.children(i)) {
             if ((fvm_index_type)i != g.cv_parent.at(cv)) {
                 return ::testing::AssertionFailure() << "CV " << i
