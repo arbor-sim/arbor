@@ -34,7 +34,7 @@ if(ARB_WITH_MPI)
     # define ARB_MPI_ENABLED in version.hpp
     list(APPEND arb_features MPI)
 endif()
-if(ARB_WITH_CUDA)
+if(ARB_WITH_GPU)
     # define ARB_GPU_ENABLED in version.hpp
     list(APPEND arb_features GPU)
 endif()

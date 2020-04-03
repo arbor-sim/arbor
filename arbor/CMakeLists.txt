@@ -58,7 +58,7 @@ set(arbor_sources
     version.cpp
 )
 
-if(ARB_WITH_CUDA)
+if(ARB_WITH_GPU)
     list(APPEND arbor_sources
         backends/gpu/mechanism.cpp
         backends/gpu/mechanism.cu
@@ -99,8 +99,10 @@ add_library(arbor-private-headers INTERFACE)
 target_include_directories(arbor-private-headers INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
-if(ARB_WITH_GPU)
+if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
     target_include_directories(arbor-private-headers INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+elseif(ARB_WITH_HIP_CLANG)
+    target_include_directories(arbor-private-headers INTERFACE)
 endif()
 
 install(TARGETS arbor-private-headers EXPORT arbor-targets)
@@ -112,12 +114,27 @@ install(TARGETS arbor-private-headers EXPORT arbor-targets)
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
 set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE)
 
+if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set_source_files_properties(${arbor_sources} PROPERTIES LANGUAGE CXX)
+    set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
+endif()
+
 # Library target:
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)
-target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
-target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
+
+if(ARB_WITH_NVCC)
+    target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
+    target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
+elseif(ARB_WITH_CUDA_CLANG)
+    target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers ${CUDA_LIBRARIES})
+    target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers ${CUDA_LIBRARIES})
+elseif(ARB_WITH_HIP_CLANG)
+    target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers ${HIP_LIBRARIES})
+    target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers ${HIP_LIBRARIES})
+endif()
+
 set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

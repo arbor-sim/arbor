@@ -29,7 +29,7 @@ build_modules(
 
 set(catsrc ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
 set(default_catalogue_options -A arbor -I ${mech_dir} -o ${catsrc} -B multicore)
-if(ARB_WITH_CUDA)
+if(ARB_WITH_GPU)
     list(APPEND default_catalogue_options -B gpu)
 endif()
 
@@ -47,10 +47,14 @@ add_dependencies(build_all_mods default_catalogue_cpp_target)
 set(mech_sources ${catsrc})
 foreach(mech ${mechanisms})
     list(APPEND mech_sources ${mech_dir}/${mech}_cpu.cpp)
-    if(ARB_WITH_CUDA)
+    if(ARB_WITH_GPU)
         list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cpp)
         list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cu)
     endif()
 endforeach()
 
 set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)
+
+if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
+endif()
