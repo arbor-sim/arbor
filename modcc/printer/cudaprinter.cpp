@@ -404,7 +404,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
             auto it = std::find_if(indexed_vars.begin(), indexed_vars.end(),
                       [](auto& sym){return sym->external_variable()->is_write();});
             if (it!=indexed_vars.end()) {
-                out << "unsigned lane_mask_ = __ballot(tid_<n_);\n";
+                out << "unsigned lane_mask_ = arb::gpu::gpu_ballot(0xffffffff, tid_<n_);\n";
             }
         }
 
