@@ -88,19 +88,15 @@ class cmake_build(build_ext):
             '-DARB_WITH_GPU={}'.format( 'on' if cl_opt_gpu else 'off'),
             '-DARB_VECTORIZE={}'.format('on' if cl_opt_vec else 'off'),
             '-DARB_ARCH={}'.format(cl_opt_arch),
+            '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
         print('-'*5, 'cmake arguments: {}'.format(cmake_args))
 
-        cfg = 'Debug' if self.debug else 'Release'
-        build_args = ['--config', cfg]
-
-        cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
+        build_args = ['--config', 'Release']
 
         # Assuming Makefiles
-        build_args += ['--', '-j4']
-
-        self.build_args = build_args
+        build_args += ['--', '-j2']
 
         env = os.environ.copy()
         env['CXXFLAGS'] = '{}'.format(env.get('CXXFLAGS', ''))
@@ -114,7 +110,7 @@ class cmake_build(build_ext):
                               cwd=self.build_temp, env=env)
 
         print('-'*20, 'Build')
-        cmake_cmd = ['cmake', '--build', '.'] + self.build_args
+        cmake_cmd = ['cmake', '--build', '.'] + build_args
         subprocess.check_call(cmake_cmd,
                               cwd=self.build_temp)
 
