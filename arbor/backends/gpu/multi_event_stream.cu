@@ -1,3 +1,7 @@
+#ifdef __HIP_PLATFORM_HCC__
+#include <hip/hip_runtime.h>
+#endif
+
 #include <arbor/common_types.hpp>
 
 #include "backends/event.hpp"

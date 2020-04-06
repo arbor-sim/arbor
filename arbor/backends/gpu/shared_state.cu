@@ -1,4 +1,7 @@
-// CUDA kernels and wrappers for shared state methods.
+// GPU kernels and wrappers for shared state methods.
+#ifdef __HIP_PLATFORM_HCC__
+#include <hip/hip_runtime.h>
+#endif
 
 #include <cstdint>
 
@@ -29,7 +32,7 @@ __global__ void add_gj_current_impl(unsigned n, const T* gj_info, const I* volta
         auto gj = gj_info[i];
         auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
 
-        cuda_atomic_sub(current_density + gj.loc.first, curr);
+        gpu_atomic_sub(current_density + gj.loc.first, curr);
     }
 }
 

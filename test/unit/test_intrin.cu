@@ -12,13 +12,13 @@ namespace kernels {
     template <typename T>
     __global__
     void test_atomic_add(T* x) {
-        cuda_atomic_add(x, threadIdx.x+1);
+        gpu_atomic_add(x, threadIdx.x+1);
     }
 
     template <typename T>
     __global__
     void test_atomic_sub(T* x) {
-        cuda_atomic_sub(x, threadIdx.x+1);
+        gpu_atomic_sub(x, threadIdx.x+1);
     }
 
     __global__
@@ -42,7 +42,7 @@ namespace kernels {
 }
 
 // test atomic addition wrapper for single and double precision
-TEST(gpu_intrinsics, cuda_atomic_add) {
+TEST(gpu_intrinsics, gpu_atomic_add) {
     int expected = (128*129)/2;
 
     arb::memory::device_vector<float> f(1);
@@ -61,7 +61,7 @@ TEST(gpu_intrinsics, cuda_atomic_add) {
 }
 
 // test atomic subtraction wrapper for single and double precision
-TEST(gpu_intrinsics, cuda_atomic_sub) {
+TEST(gpu_intrinsics, gpu_atomic_sub) {
     int expected = -(128*129)/2;
 
     arb::memory::device_vector<float> f(1);
@@ -151,6 +151,6 @@ TEST(gpu_intrinsics, exprelr) {
         double expected = std::fabs(x)<deps? 1.0: x/std::expm1(x);
         double error = std::fabs(expected-double(result[i]));
         double relerr = expected==0.? error: error/std::fabs(expected);
-        EXPECT_TRUE(relerr<deps);
+        EXPECT_TRUE(relerr<=deps);
     }
 }

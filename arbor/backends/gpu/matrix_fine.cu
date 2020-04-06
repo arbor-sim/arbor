@@ -162,9 +162,9 @@ void solve_matrix_fine(
                 const unsigned parent_index = next_lvl_meta.matrix_data_index;
                 const unsigned p = parent_index + lvl_parents[tid];
                 //d[p]   -= factor * u[pos];
-                cuda_atomic_add(d  +p, -factor*u[pos]);
+                gpu_atomic_add(d  +p, -factor*u[pos]);
                 //rhs[p] -= factor * rhs[pos];
-                cuda_atomic_add(rhs+p, -factor*rhs[pos]);
+                gpu_atomic_add(rhs+p, -factor*rhs[pos]);
             }
         }
         __syncthreads();
@@ -323,7 +323,7 @@ void solve_matrix_fine(
     const level_metadata* level_meta,      // information pertaining to each level
     const fvm_index_type* level_lengths,   // lengths of branches of every level concatenated
     const fvm_index_type* level_parents,   // parents of branches of every level concatenated
-    const fvm_index_type* block_index,     // start index into levels for each cuda block
+    const fvm_index_type* block_index,     // start index into levels for each gpu block
     fvm_index_type* num_cells,             // the number of cells packed into this single matrix
     fvm_index_type* padded_size,           // length of rhs, d, u, including padding
     unsigned num_blocks,                   // number of blocks

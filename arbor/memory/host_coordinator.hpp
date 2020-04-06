@@ -134,7 +134,7 @@ public:
                   << util::print_pointer(to.data()) << std::endl;
         #endif
 
-        cuda_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
+        gpu_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy memory from host to device
@@ -153,7 +153,7 @@ public:
                   << util::print_pointer(to.data()) << std::endl;
         #endif
 
-        cuda_memcpy_h2d(to.data(), from.data(), from.size()*sizeof(value_type));
+        gpu_memcpy_h2d(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // set all values in a range to val

@@ -9,10 +9,9 @@
 #include <stdexcept>
 #include <vector>
 
-#include <cuda_runtime.h>
-
 #include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
+#include "gpu_api.hpp"
 
 
 // CUDA 10 allows GPU uuid to be queried via cudaGetDeviceProperties.
@@ -64,10 +63,10 @@ std::ostream& operator<<(std::ostream& o, const uuid& id) {
     return o;
 }
 
-std::runtime_error make_runtime_error(cudaError_t error_code) {
+std::runtime_error make_runtime_error(Error error_code) {
     return std::runtime_error(
-        std::string("cuda runtime error ")
-        + cudaGetErrorName(error_code) + ": " + cudaGetErrorString(error_code));
+        std::string("gpu runtime error ")
+        + device_error_name(error_code) + ": " + device_error_string(error_code));
 }
 
 #ifndef ARBENV_USE_NVML
@@ -76,13 +75,13 @@ std::runtime_error make_runtime_error(cudaError_t error_code) {
 // to obtain by querying cudaGetDeviceProperties for each visible device.
 std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
-    int ngpus = 0;
-    auto status = cudaGetDeviceCount(&ngpus);
-    if (status==cudaErrorNoDevice) {
+    /*int ngpus = 0;
+    auto status = get_device_count(&ngpus);
+    if (status==ErrorNoDevice) {
         // No GPUs detected: return an empty list.
         return {};
     }
-    else if (status!=cudaSuccess) {
+    else if (status!=Success) {
         throw make_runtime_error(status);
     }
 
@@ -91,9 +90,9 @@ std::vector<uuid> get_gpu_uuids() {
 
     // For each GPU query CUDA runtime API for uuid.
     for (int i=0; i<ngpus; ++i) {
-        cudaDeviceProp props;
-        status = cudaGetDeviceProperties(&props, i);
-        if (status!=cudaSuccess) {
+        DeviceProp props;
+        status = get_device_properities(&props, i);
+        if (status!=Success) {
             throw make_runtime_error(status);
         }
 
@@ -102,7 +101,8 @@ std::vector<uuid> get_gpu_uuids() {
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
     }
 
-    return uuids;
+    return uuids;*/
+    return {};
 }
 
 #else
@@ -182,9 +182,9 @@ uuid string_to_uuid(char* str) {
 std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
     int ngpus = 0;
-    auto cuda_status = cudaGetDeviceCount(&ngpus);
-    if (cuda_status==cudaErrorNoDevice) return {};
-    else if (cuda_status!=cudaSuccess) throw make_runtime_error(cuda_status);
+    auto status = get_device_count(&ngpus);
+    if (status==ErrorNoDevice) return {};
+    else if (status!=Success) throw make_runtime_error(status);
 
     // Attempt to initialize nvml
     auto nvml_status = nvmlInit();

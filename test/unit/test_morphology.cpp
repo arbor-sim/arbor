@@ -562,7 +562,7 @@ TEST(morphology, branches) {
 }
 
 TEST(morphology, swc) {
-    std::string datadir{DATADIR};
+    std::string datadir{#DATADIR};
     auto fname = datadir + "/example.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {

@@ -1,3 +1,7 @@
+#ifdef __HIP_PLATFORM_HCC__
+#include <hip/hip_runtime.h>
+#endif
+
 #include <arbor/fvm_types.hpp>
 
 #include "cuda_common.hpp"

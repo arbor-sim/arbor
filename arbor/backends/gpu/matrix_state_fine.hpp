@@ -161,10 +161,10 @@ public:
         forest trees(p, cell_cv_divs);
         trees.optimize();
 
-        // Now distribute the cells into cuda blocks.
+        // Now distribute the cells into gpu blocks.
         // While the total number of branches on each level of theses cells in a
         // block are less than `max_branches_per_level` we add more cells. If
-        // one block is full, we start a new cuda block.
+        // one block is full, we start a new gpu block.
 
         unsigned current_block = 0;
         std::vector<unsigned> block_num_branches_per_depth;
@@ -174,7 +174,7 @@ public:
         std::vector<size_type> temp_ncells_in_block;
         temp_ncells_in_block.resize(1, 0);
 
-        // branch_map = branch_maps[block] is a branch map for each cuda block
+        // branch_map = branch_maps[block] is a branch map for each gpu block
         // branch_map[depth] is list of branches is this level
         // each branch branch_map[depth][i] has
         // {id, parent_id, start_idx, parent_idx, length}
@@ -207,7 +207,7 @@ public:
             }
 
 
-            // check if we can fit the current cell into the last cuda block
+            // check if we can fit the current cell into the last gpu block
             bool fits_current_block = true;
             for (auto i: make_span(cell_num_levels)) {
                 unsigned new_branches_per_depth =
@@ -292,7 +292,7 @@ public:
 
         // Helper for recording location of a branch once packed.
         struct branch_loc {
-            unsigned block; // the cuda block containing the cell to which the branch blongs to
+            unsigned block; // the gpu block containing the cell to which the branch blongs to
             unsigned level; // the level containing the branch
             unsigned index; // the index of the branch on that level
         };
@@ -314,7 +314,7 @@ public:
 
         // Construct description for the set of branches on each level for each
         // block. This is later used to sort the branches in each block in each
-        // level into conineous chunks which are easier to read for the cuda
+        // level into conineous chunks which are easier to read for the gpu
         // kernel.
 
         // Accumulate metadata about the levels, level lengths, level parents,

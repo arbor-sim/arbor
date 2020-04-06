@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __HIP_PLATFORM_HCC__
+#include <hip/hip_runtime.h>
+#endif
+
 #include "stack_storage.hpp"
 
 namespace arb {

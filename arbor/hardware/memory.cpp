@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 #ifdef ARB_HAVE_GPU
-    #include <cuda_runtime.h>
+    #include <backends/gpu/gpu_api.hpp>
 #endif
 
 namespace arb {
@@ -28,9 +28,9 @@ memory_size_type allocated_memory() {
 memory_size_type gpu_allocated_memory() {
     std::size_t free;
     std::size_t total;
-    auto success = cudaMemGetInfo(&free, &total);
+    auto success = device_get_mem_info(&free, &total);
 
-    return success==cudaSuccess? total-free: -1;
+    return success==Success? total-free: -1;
 }
 #else
 memory_size_type gpu_allocated_memory() {

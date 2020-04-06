@@ -89,7 +89,7 @@ namespace impl {
         }
     };
 
-    namespace cuda {
+    namespace gpu {
         template <size_type Alignment>
         class pinned_policy {
         public:
@@ -102,8 +102,8 @@ namespace impl {
                     return nullptr;
                 }
 
-                // register the memory with CUDA
-                if (!cuda_host_register(ptr, size)) {
+                // register the memory
+                if (!gpu_host_register(ptr, size)) {
                     free(ptr);
                     ptr = nullptr;
                 }
@@ -115,7 +115,7 @@ namespace impl {
                 if (!ptr) {
                     return;
                 }
-                cuda_host_unregister(ptr);
+                gpu_host_unregister(ptr);
                 free(ptr);
             }
 
@@ -130,14 +130,14 @@ namespace impl {
         class device_policy {
         public:
             void *allocate_policy(size_type size) {
-                return cuda_malloc(size);
+                return gpu_malloc(size);
             }
 
             void free_policy(void *ptr) {
-                cuda_free(ptr);
+                gpu_free(ptr);
             }
 
-            // memory allocated using cudaMalloc has alignment of 256 bytes
+            // memory allocated using cudaMalloc/hipMalloc has alignment of 256 bytes
             static constexpr size_type alignment() {
                 return 256;
             }
@@ -145,7 +145,7 @@ namespace impl {
                 return true;
             }
         };
-    } // namespace cuda
+    } // namespace gpu
 } // namespace impl
 
 template<typename T, typename Policy >
@@ -224,7 +224,7 @@ namespace util {
     };
 
     template <size_t Alignment>
-    struct type_printer<impl::cuda::pinned_policy<Alignment>>{
+    struct type_printer<impl::gpu::pinned_policy<Alignment>>{
         static std::string print() {
             std::stringstream str;
             str << "pinned_policy<" << Alignment << ">";
@@ -233,7 +233,7 @@ namespace util {
     };
 
     template <>
-    struct type_printer<impl::cuda::device_policy>{
+    struct type_printer<impl::gpu::device_policy>{
         static std::string print() {
             return std::string("device_policy");
         }
@@ -259,11 +259,11 @@ using aligned_allocator = allocator<T, impl::aligned_policy<alignment>>;
 // page boundaries. It is allocated at page boundaries (typically 4k),
 // however in practice it will return pointers that are 1k aligned.
 template <class T, size_t alignment=1024>
-using pinned_allocator = allocator<T, impl::cuda::pinned_policy<alignment>>;
+using pinned_allocator = allocator<T, impl::gpu::pinned_policy<alignment>>;
 
 // use 256 as default alignment, because that is the default for cudaMalloc
 template <class T, size_t alignment=256>
-using cuda_allocator = allocator<T, impl::cuda::device_policy>;
+using gpu_allocator = allocator<T, impl::gpu::device_policy>;
 
 } // namespace memory
 } // namespace arb

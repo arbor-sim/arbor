@@ -37,11 +37,11 @@ using pinned_view = array_view<T, host_coordinator<T, pinned_allocator<T>>>;
 
 // specialization for device memory
 template <typename T>
-using device_vector = array<T, device_coordinator<T, cuda_allocator<T>>>;
+using device_vector = array<T, device_coordinator<T, gpu_allocator<T>>>;
 template <typename T>
-using device_view = array_view<T, device_coordinator<T, cuda_allocator<T>>>;
+using device_view = array_view<T, device_coordinator<T, gpu_allocator<T>>>;
 template <typename T>
-using const_device_view = const_array_view<T, device_coordinator<T, cuda_allocator<T>>>;
+using const_device_view = const_array_view<T, device_coordinator<T, gpu_allocator<T>>>;
 
 template <typename T>
 std::ostream& operator<<(std::ostream& o, device_view<T> v) {

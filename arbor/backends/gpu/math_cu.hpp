@@ -1,5 +1,11 @@
 #pragma once
+
+#ifdef __HIP_PLATFORM_HCC__
+#include <hip/hip_runtime.h>
+#endif
+
 #include <cfloat>
+#include <cmath>
 
 // Implementations of mathematical operations required
 // by generated CUDA mechanisms.

@@ -2,7 +2,11 @@
 #include <random>
 #include <vector>
 
+#ifdef __HIP_PLATFORM_HCC__
+#include <hip/hip_runtime.h>
+#else
 #include <cuda.h>
+#endif
 
 #include <arbor/math.hpp>
 
@@ -61,9 +65,6 @@ template <typename T, typename I, int BlockWidth, int LoadWidth>
 
     // forward will hold the result of the interleave operation on the GPU
     auto forward = memory::device_vector<T>(packed_size, npos<T>());
-
-    // find the reference interleaved values using host side implementation
-    auto baseline = gpu::flat_to_interleaved(values, sizes, starts, BlockWidth, num_mtx, padded_size);
 
     // find the interleaved values on gpu
     gpu::flat_to_interleaved<T, I, BlockWidth, LoadWidth>(in.data(), forward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
