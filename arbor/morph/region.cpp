@@ -552,9 +552,10 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
     return o << "(region \"" << x.name << "\")";
 }
 
-// Region with all segments with projection less than val
+// Adds all cover points to a region.
+// Ensures that all valid representations of all fork points in the region are included.
 struct super_ {
-    region reg; //um
+    region reg;
 };
 
 region super(region r) {
