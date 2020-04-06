@@ -84,7 +84,11 @@ void CExprEmitter::visit(AssignmentExpression* e) {
 }
 
 void CExprEmitter::visit(PowBinaryExpression* e) {
-    emit_as_call("pow", e->lhs(), e->rhs());
+    out_ << "pow" << '(';
+    e->lhs()->accept(this);
+    out_ << ", (double)";
+    e->rhs()->accept(this);
+    out_ << ')';
 }
 
 void CExprEmitter::visit(BinaryExpression* e) {

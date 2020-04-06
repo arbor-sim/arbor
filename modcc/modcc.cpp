@@ -242,8 +242,8 @@ int main(int argc, char **argv) {
             std::string outfile = prefix;
             switch (target) {
             case targetKind::gpu:
-                io::write_all(emit_cuda_cpp_source(m, popt), outfile+"_gpu.cpp");
-                io::write_all(emit_cuda_cu_source(m, popt), outfile+"_gpu.cu");
+                io::write_all(emit_gpu_cpp_source(m, popt), outfile+"_gpu.cpp");
+                io::write_all(emit_gpu_cu_source(m, popt), outfile+"_gpu.cu");
                 break;
             case targetKind::cpu:
                 io::write_all(emit_cpp_source(m, popt), outfile+"_cpu.cpp");

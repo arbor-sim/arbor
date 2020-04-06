@@ -27,7 +27,7 @@ struct cuprint {
     explicit cuprint(Expression* expr): expr_(expr) {}
 
     friend std::ostream& operator<<(std::ostream& out, const cuprint& w) {
-        CudaPrinter printer(out);
+        GpuPrinter printer(out);
         return w.expr_->accept(&printer), out;
     }
 };
@@ -48,7 +48,7 @@ static std::string ion_state_index(const std::string& ion_name) {
     return "ion_"+ion_name+"_index_";
 }
 
-std::string emit_cuda_cpp_source(const Module& module_, const printer_options& opt) {
+std::string emit_gpu_cpp_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
@@ -64,6 +64,9 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
     io::pfxstringstream out;
 
     net_receive && out <<
+        "#ifdef __HIP_PLATFORM_HCC__\n"
+        "#include <hip/hip_runtime.h>\n"
+        "#endif\n"
         "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
 
@@ -118,7 +121,7 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
     out << popindent <<
         "protected:\n" << indent <<
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n"
-        "::arb::gpu::mechanism_ppack_base* ppack_ptr() { return &pp_; }\n\n";
+        "::arb::gpu::mechanism_ppack_base* ppack_ptr() override { return &pp_; }\n\n";
 
     io::separator sep("\n", ",\n");
     if (!vars.scalars.empty()) {
@@ -207,7 +210,7 @@ std::string emit_cuda_cpp_source(const Module& module_, const printer_options& o
     return out.str();
 }
 
-std::string emit_cuda_cu_source(const Module& module_, const printer_options& opt) {
+std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
@@ -401,7 +404,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
             auto it = std::find_if(indexed_vars.begin(), indexed_vars.end(),
                       [](auto& sym){return sym->external_variable()->is_write();});
             if (it!=indexed_vars.end()) {
-                out << "unsigned lane_mask_ = __ballot_sync(0xffffffff, tid_<n_);\n";
+                out << "unsigned lane_mask_ = __ballot(tid_<n_);\n";
             }
         }
 
@@ -494,11 +497,11 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
 
 // CUDA Printer visitors
 
-void CudaPrinter::visit(VariableExpression *sym) {
+void GpuPrinter::visit(VariableExpression *sym) {
     out_ << "params_." << sym->name() << (sym->is_range()? "[tid_]": "");
 }
 
-void CudaPrinter::visit(CallExpression* e) {
+void GpuPrinter::visit(CallExpression* e) {
     out_ << e->name() << "(params_, tid_";
     for (auto& arg: e->args()) {
         out_ << ", ";

@@ -104,9 +104,9 @@ TEST(scalar_printer, statement) {
         }
 
         {
-            SCOPED_TRACE("CudaPrinter");
+            SCOPED_TRACE("GpuPrinter");
             std::stringstream out;
-            auto printer = std::make_unique<CudaPrinter>(out);
+            auto printer = std::make_unique<GpuPrinter>(out);
             e->accept(printer.get());
             std::string text = out.str();
 
