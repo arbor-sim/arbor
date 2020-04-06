@@ -1,0 +1,17 @@
+include VERSION
+include CMakeLists.txt
+
+graft arbor
+graft arborenv
+graft cmake
+graft doc
+graft example
+graft ext
+graft mechanisms
+graft modcc
+graft python
+graft sup
+graft test
+
+prune ext/sphinx_rtd_theme
+prune ext/google-benchmark
