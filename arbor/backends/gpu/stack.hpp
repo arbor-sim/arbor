@@ -7,7 +7,7 @@
 
 #include "gpu_context.hpp"
 #include "memory/allocator.hpp"
-#include "memory/cuda_wrappers.hpp"
+#include "memory/gpu_wrappers.hpp"
 #include "stack_storage.hpp"
 
 namespace arb {

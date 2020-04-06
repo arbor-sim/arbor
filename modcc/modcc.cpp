@@ -7,7 +7,7 @@
 #include <tinyopt/smolopt.h>
 
 #include "printer/cprinter.hpp"
-#include "printer/cudaprinter.hpp"
+#include "printer/gpuprinter.hpp"
 #include "printer/infoprinter.hpp"
 #include "printer/printeropt.hpp"
 #include "printer/simd.hpp"

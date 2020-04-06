@@ -2,7 +2,7 @@
 
 #include <limits>
 
-#include "cuda_wrappers.hpp"
+#include "gpu_wrappers.hpp"
 #include "definitions.hpp"
 #include "util.hpp"
 

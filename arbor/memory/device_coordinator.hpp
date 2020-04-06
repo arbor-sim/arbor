@@ -7,7 +7,7 @@
 
 #include "allocator.hpp"
 #include "array.hpp"
-#include "cuda_wrappers.hpp"
+#include "gpu_wrappers.hpp"
 #include "definitions.hpp"
 #include "fill.hpp"
 #include "util.hpp"

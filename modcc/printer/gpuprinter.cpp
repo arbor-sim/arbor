@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "cudaprinter.hpp"
+#include "gpuprinter.hpp"
 #include "expression.hpp"
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
@@ -233,7 +233,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         "#include <iostream>\n"
         "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "backends/gpu/cuda_common.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/gpu_common.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/math_cu.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
 

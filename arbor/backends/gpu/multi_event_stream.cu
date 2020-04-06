@@ -6,7 +6,7 @@
 
 #include "backends/event.hpp"
 #include "backends/gpu/multi_event_stream.hpp"
-#include "cuda_common.hpp"
+#include "gpu_common.hpp"
 
 namespace arb {
 namespace gpu {

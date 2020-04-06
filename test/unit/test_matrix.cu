@@ -15,7 +15,7 @@
 #include "memory/memory.hpp"
 #include "util/span.hpp"
 
-#include "backends/gpu/cuda_common.hpp"
+#include "backends/gpu/gpu_common.hpp"
 #include "backends/gpu/matrix_state_flat.hpp"
 #include "backends/gpu/matrix_state_interleaved.hpp"
 #include "backends/gpu/matrix_interleave.hpp"

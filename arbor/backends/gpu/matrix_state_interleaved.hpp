@@ -10,7 +10,7 @@
 #include "util/rangeutil.hpp"
 #include "util/indirect.hpp"
 
-#include "cuda_common.hpp"
+#include "gpu_common.hpp"
 #include "matrix_common.hpp"
 
 namespace arb {

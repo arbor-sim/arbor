@@ -8,12 +8,9 @@
 
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
-#include "printer/cudaprinter.hpp"
+#include "printer/gpuprinter.hpp"
 #include "expression.hpp"
 #include "symdiff.hpp"
-
-// Note: CUDA printer disabled until new implementation finished.
-//#include "printer/cudaprinter.hpp"
 
 struct testcase {
     const char* source;

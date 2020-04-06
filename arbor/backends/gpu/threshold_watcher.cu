@@ -3,7 +3,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "backends/threshold_crossing.hpp"
-#include "cuda_common.hpp"
+#include "gpu_common.hpp"
 #include "stack_cu.hpp"
 
 namespace arb {

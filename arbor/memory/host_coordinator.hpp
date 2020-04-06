@@ -6,7 +6,7 @@
 
 #include <arbor/assert.hpp>
 
-#include "cuda_wrappers.hpp"
+#include "gpu_wrappers.hpp"
 #include "definitions.hpp"
 #include "array.hpp"
 #include "allocator.hpp"

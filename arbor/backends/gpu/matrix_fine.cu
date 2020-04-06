@@ -1,7 +1,7 @@
 #include <arbor/fvm_types.hpp>
 
-#include "cuda_atomic.hpp"
-#include "cuda_common.hpp"
+#include "gpu_atomic.hpp"
+#include "gpu_common.hpp"
 #include "matrix_common.hpp"
 #include "matrix_fine.hpp"
 

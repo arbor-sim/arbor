@@ -7,7 +7,7 @@
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/fvm.hpp"
 #include "backends/gpu/mechanism.hpp"
-#include "memory/cuda_wrappers.hpp"
+#include "memory/gpu_wrappers.hpp"
 #endif
 
 #include "common.hpp"

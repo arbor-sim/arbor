@@ -2,7 +2,7 @@
 
 #include <limits>
 
-#include "backends/gpu/cuda_atomic.hpp"
+#include "backends/gpu/gpu_atomic.hpp"
 #include "backends/gpu/math_cu.hpp"
 #include "memory/memory.hpp"
 #include "util/rangeutil.hpp"
