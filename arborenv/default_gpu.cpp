@@ -1,6 +1,6 @@
 #ifdef ARB_HAVE_GPU
 
-#include <gpu_api.hpp>
+#include "gpu_api.hpp"
 
 namespace arbenv {
 

@@ -1,6 +1,6 @@
 #include <utility>
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifndef ARB_HAVE_HIP
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
@@ -18,7 +18,7 @@ inline auto get_device_count(ARGS&&... args) -> StatusType {
 }
 
 template <typename... ARGS>
-inline auto get_device_properities(ARGS&&... args) -> cudaError_t {
+inline auto get_device_properties(ARGS&&... args) -> cudaError_t {
     return cudaGetDeviceProperties(std::forward<ARGS>(args)...);
 }
 
@@ -49,7 +49,7 @@ inline auto get_device_count(ARGS&&... args) -> hipError_t {
 }
 
 template <typename... ARGS>
-inline auto get_device_properities(ARGS&&... args) -> hipError_t {
+inline auto get_device_properties(ARGS&&... args) -> hipError_t {
     return hipGetDeviceProperties(std::forward<ARGS>(args)...);
 }
 
@@ -62,3 +62,4 @@ template <typename... ARGS>
 inline auto device_error_name(ARGS&&... args) -> const char* {
     return hipGetErrorName(std::forward<ARGS>(args)...);
 }
+#endif

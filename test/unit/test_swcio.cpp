@@ -18,6 +18,8 @@
 #   define DATADIR "../data"
 #endif
 
+#define STRING(s) #s
+
 using namespace arb;
 
 // SWC tests
@@ -281,7 +283,7 @@ TEST(swc_parser, valid_input)
 
 TEST(swc_parser, from_allen_db)
 {
-    std::string datadir{#DATADIR};
+    std::string datadir{STRING(DATADIR)};
     auto fname = datadir + "/example.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {

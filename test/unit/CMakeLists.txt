@@ -190,7 +190,7 @@ if(ARB_WITH_CUDA_CLANG)
 endif()
 
 if(ARB_WITH_HIP_CLANG)
-    set(clang_options_ -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+    set(clang_options_ -DARB_HAVE_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 endif()
 

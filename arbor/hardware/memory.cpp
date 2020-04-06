@@ -28,7 +28,7 @@ memory_size_type allocated_memory() {
 memory_size_type gpu_allocated_memory() {
     std::size_t free;
     std::size_t total;
-    auto success = device_get_mem_info(&free, &total);
+    auto success = device_mem_get_info(&free, &total);
 
     return success==Success? total-free: -1;
 }

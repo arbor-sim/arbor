@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef ARB_WITH_HIP
 #include <hip/hip_runtime.h>
 #endif
 

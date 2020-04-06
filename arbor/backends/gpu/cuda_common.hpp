@@ -1,4 +1,7 @@
 #pragma once
+#ifdef ARB_HAVE_HIP 
+#include <hip/hip_runtime.h>
+#endif
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #   define HOST_DEVICE_IF_GPU __host__ __device__
@@ -14,10 +17,10 @@ namespace impl {
 // This has always been 32, however it may change in future NVIDIA gpus
 HOST_DEVICE_IF_GPU
 constexpr inline unsigned threads_per_warp() {
-#ifdef __HIP_PLATFORM_NVCC__
-    return 32u;
-#else
+#ifdef ARB_HAVE_HIP 
     return 64u;
+#else
+    return 32u;
 #endif
 }
 

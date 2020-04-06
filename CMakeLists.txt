@@ -306,7 +306,7 @@ if(ARB_WITH_GPU)
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     elseif(ARB_WITH_HIP_CLANG)
-        set(clang_options_ -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+        set(clang_options_ -DARB_HAVE_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
 
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)

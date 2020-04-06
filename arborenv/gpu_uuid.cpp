@@ -91,7 +91,7 @@ std::vector<uuid> get_gpu_uuids() {
     // For each GPU query CUDA runtime API for uuid.
     for (int i=0; i<ngpus; ++i) {
         DeviceProp props;
-        status = get_device_properities(&props, i);
+        status = get_device_properties(&props, i);
         if (status!=Success) {
             throw make_runtime_error(status);
         }

@@ -71,7 +71,7 @@ void gpu_context::set_gpu() const {
     auto status = set_device(id_);
     if (status != Success) {
         throw arbor_exception(
-            "Unable to select GPU id " + std::to_string(id_);
+            "Unable to select GPU id " + std::to_string(id_));
     }
 }
 

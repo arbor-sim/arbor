@@ -1,6 +1,6 @@
 #include <utility>
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifndef ARB_HAVE_HIP
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
@@ -15,7 +15,7 @@ constexpr auto gpuMemcpyDeviceToDevice = cudaMemcpyDeviceToDevice;
 constexpr auto gpuHostRegisterPortable = cudaHostRegisterPortable;
 
 template <typename... ARGS>
-inline auto get_device_properities(ARGS&&... args) -> cudaError_t {
+inline auto get_device_properties(ARGS&&... args) -> cudaError_t {
   return cudaGetDeviceProperties(std::forward<ARGS>(args)...);
 }
 
@@ -73,7 +73,7 @@ constexpr auto gpuMemcpyDeviceToDevice = hipMemcpyDeviceToDevice;
 constexpr auto gpuHostRegisterPortable = hipHostRegisterPortable;
 
 template <typename... ARGS>
-inline auto get_device_properities(ARGS&&... args) -> hipError_t {
+inline auto get_device_properties(ARGS&&... args) -> hipError_t {
     return hipGetDeviceProperties(std::forward<ARGS>(args)...);
 }
 
@@ -116,3 +116,4 @@ template <typename... ARGS>
 inline auto device_mem_get_info(ARGS&&... args) -> hipError_t {
     return hipMemGetInfo(std::forward<ARGS>(args)...);
 }
+#endif

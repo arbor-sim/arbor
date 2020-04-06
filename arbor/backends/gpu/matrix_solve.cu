@@ -1,4 +1,4 @@
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef ARB_HAVE_HIP
 #include <hip/hip_runtime.h>
 #endif
 

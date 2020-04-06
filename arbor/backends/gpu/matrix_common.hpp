@@ -3,6 +3,10 @@
 #include <cfloat>
 #include <climits>
 
+#ifdef ARB_HAVE_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #   define HOST_DEVICE_IF_GPU __host__ __device__
 #else

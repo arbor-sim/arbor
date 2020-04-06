@@ -21,34 +21,34 @@ __device__ __inline__ double shfl(double x, int lane)
 
 
 __device__ __inline__ double gpu_shfl_up(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-#ifdef __HIP_PLATFORM_NVCC__
-    return __shfl_up_sync(key_mask, idx, shift);
-#else
+#ifdef ARB_HAVE_HIP
     return shfl(idx, lane_id - shift);
+#else
+    return __shfl_up_sync(key_mask, idx, shift);
 #endif
 }
 
 __device__ __inline__ double gpu_shfl_down(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-#ifdef __HIP_PLATFORM_NVCC__
-    return __shfl_up_sync(key_mask, idx, shift);
-#else
+#ifdef ARB_HAVE_HIP 
     return shfl(idx, lane_id + shift);
+#else
+    return __shfl_up_sync(key_mask, idx, shift);
 #endif
     }
 
 __device__ __inline__ unsigned gpu_ballot(unsigned mask, unsigned is_root) {
-#ifdef __HIP_PLATFORM_NVCC__
-    return __ballot_sync(key_mask, is_root);
-#else
+#ifdef ARB_HAVE_HIP
     return __ballot(is_root);
+#else
+    return __ballot_sync(key_mask, is_root);
 #endif
 }
 
 __device__ __inline__ unsigned gpu_any(unsigned mask, unsigned width) {
-#ifdef __HIP_PLATFORM_NVCC__
-    return __any_sync(run.key_mask, width)
-#else
+#ifdef ARB_HAVE_HIP
     return __any(width);
+#else
+    return __any_sync(run.key_mask, width)
 #endif
 }
 

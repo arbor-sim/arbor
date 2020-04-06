@@ -15,6 +15,7 @@
 
 #include "morph_pred.hpp"
 
+#define STRING(s) #s
 // Test basic functions on properties of mpoint
 TEST(morphology, mpoint) {
     using mp = arb::mpoint;
@@ -562,7 +563,7 @@ TEST(morphology, branches) {
 }
 
 TEST(morphology, swc) {
-    std::string datadir{#DATADIR};
+    std::string datadir{STRING(DATADIR)};
     auto fname = datadir + "/example.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {
