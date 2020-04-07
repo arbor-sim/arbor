@@ -23,6 +23,7 @@
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
+
 namespace arb {
 
 class spike_double_buffer {

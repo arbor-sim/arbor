@@ -89,8 +89,7 @@ struct mextent {
 
     // Check that the cable segments are valid, and that cables are strictly disjoint.
     bool test_invariants() const;
-    // Checks the above, along with asserting that only cables in the morphology
-    // are present.
+    // Checks the above, along with asserting that only cables in the morphology are present.
     bool test_invariants(const morphology&) const;
 
     const mcable_list& cables() const {
