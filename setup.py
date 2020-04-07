@@ -104,7 +104,7 @@ class cmake_build(build_ext):
             '-DARB_WITH_MPI={}'.format( 'on' if opt['mpi'] else 'off'),
             '-DARB_WITH_GPU={}'.format( 'on' if opt['gpu'] else 'off'),
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
-            '-DARB_ARCH={}'.format(cl_opt_arch),
+            '-DARB_ARCH={}'.format(opt['arch']),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
