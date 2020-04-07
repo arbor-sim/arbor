@@ -137,9 +137,14 @@ namespace impl {
                 gpu_free(ptr);
             }
 
-            // memory allocated using cudaMalloc/hipMalloc has alignment of 256 bytes
+            // memory allocated using cudaMalloc has alignment of 256 bytes
+            // memory allocated using hipMalloc has alignment of 128 bytes
             static constexpr size_type alignment() {
+#ifdef ARB_HAVE_HIP
+                return 128;
+#else
                 return 256;
+#endif
             }
             static constexpr bool is_malloc_compatible() {
                 return true;
