@@ -7,15 +7,24 @@ from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
 import subprocess
 
-# Sometimes version 19 and earlier of pip skip the install step
-# when building the extension without command line arguments.
-# Assert that users are using a recent version of pip to work around
-# this potential issue.
-import pip; assert int(pip.__version__.split('.')[0])>=20, '\n'.join(['\n',
-    '------------------------------------------------------------------------------',
-    'Arbor requires a recent version of pip; run the following before installing:',
-    'pip install --upgrade pip',
-    '------------------------------------------------------------------------------\n'])
+# Singleton class that holds the settings configured using command line
+# options. This information has to be stored in a singleton so that it
+# can be passed between different stages of the build, and because pip
+# has strange behavior between different versions.
+class CL_opt:
+    instance = None
+    def __init__(self):
+        if not CL_opt.instance:
+            CL_opt.instance = {'mpi': False,
+                               'gpu': False,
+                               'vec': False,
+                               'arch': 'native'}
+
+    def settings(self):
+        return CL_opt.instance
+
+def cl_opt():
+    return CL_opt().settings()
 
 # VERSION is in the same path as setup.py
 here = os.path.abspath(os.path.dirname(__file__))
@@ -57,18 +66,15 @@ class install_command(install):
 
     def run(self):
         # The options are stored in global variables:
-        #   cl_opt_mpi  : build with MPI support (boolean).
-        #   cl_opt_gpu  : build with CUDA support (boolean).
-        #   cl_opt_vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
-        #   cl_opt_arch : target CPU micro-architecture (string).
-        global cl_opt_mpi
-        global cl_opt_gpu
-        global cl_opt_vec
-        global cl_opt_arch
-        cl_opt_mpi  = self.mpi is not None
-        cl_opt_gpu  = self.gpu is not None
-        cl_opt_vec  = self.vec is not None
-        cl_opt_arch = "native" if self.arch is None else self.arch
+        opt = cl_opt()
+        #   mpi  : build with MPI support (boolean).
+        opt['mpi']  = self.mpi is not None
+        #   gpu  : build with CUDA support (boolean).
+        opt['gpu']  = self.gpu is not None
+        #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
+        opt['vec']  = self.vec is not None
+        #   arch : target CPU micro-architecture (string).
+        opt['arch'] = "native" if self.arch is None else self.arch
 
         install.run(self)
 
@@ -91,16 +97,18 @@ class cmake_build(build_ext):
         # can copy it into the target 'prefix' path.
         dest_path = lib_directory + '/arbor'
 
+        opt = cl_opt()
         cmake_args = [
             '-DARB_WITH_PYTHON=on',
             '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DARB_WITH_MPI={}'.format( 'on' if cl_opt_mpi else 'off'),
-            '-DARB_WITH_GPU={}'.format( 'on' if cl_opt_gpu else 'off'),
-            '-DARB_VECTORIZE={}'.format('on' if cl_opt_vec else 'off'),
+            '-DARB_WITH_MPI={}'.format( 'on' if opt['mpi'] else 'off'),
+            '-DARB_WITH_GPU={}'.format( 'on' if opt['gpu'] else 'off'),
+            '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(cl_opt_arch),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
+        print('-'*5, 'command line arguments: {}'.format(opt))
         print('-'*5, 'cmake arguments: {}'.format(cmake_args))
 
         build_args = ['--config', 'Release']
@@ -151,7 +159,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=[
-        'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release of v0.3
+        'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release of v0.4
         'Intended Audience :: Science/Research',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
