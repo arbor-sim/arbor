@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <arbor/util/optional.hpp>
 #include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
 #include "gpu_api.hpp"
@@ -23,6 +24,28 @@
 #ifdef ARBENV_USE_NVML
     #include <nvml.h>
 #endif
+
+#ifdef __linux__
+extern "C" {
+    #include <unistd.h>
+}
+
+arb::util::optional<std::string> get_hostname() {
+    // Hostnames can be up to 256 characters in length, however on many systems
+    // it is limitted to 64.
+    char name[256];
+    auto result = gethostname(name, sizeof(name));
+    if (result) {
+        return arb::util::nullopt;
+    }
+    return std::string(name);
+}
+#else
+arb::util::optional<std::string> get_hostname() {
+    return arb::util::nullopt;
+}
+#endif
+
 
 using arb::util::on_scope_exit;
 
@@ -99,17 +122,18 @@ std::vector<uuid> get_gpu_uuids() {
         // Copy the bytes from props.uuid to uuids[i].
 
 #ifdef ARB_HAVE_HIP
-        std::string hostname = getenv("HOSTNAME");
-        std::size_t uid = std::hash<std::string>{}(hostname) ^ (std::size_t)(props.pciBusID) ^ (std::size_t)(props.pciDeviceID);
+        auto host = get_hostname();
+        if (!host) throw std::runtime_error("Can't uniquely identify GPUs on the system");
+        auto uid = std::hash<std::string>{} (*host + '-' + std::to_string(props.pciBusID) + '-' + std::to_string(props.pciDeviceID));
         auto b = reinterpret_cast<const unsigned char*>(&uid);
+        std::copy(b, b+sizeof(std::size_t), uuids[i].bytes.begin());
 #else
         auto b = reinterpret_cast<const unsigned char*>(&props.uuid);
-#endif
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
+#endif
     }
 
     return uuids;
-    return {};
 }
 
 #else
