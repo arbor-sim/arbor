@@ -12,6 +12,10 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
     version_ = version_file.read().strip()
 
+# Get the contents of the readme
+with open(os.path.join(here, 'python/readme.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 def check_cmake():
     try:
         out = subprocess.check_output(['cmake', '--version'])
@@ -42,18 +46,20 @@ class install_command(install):
         install.finalize_options(self)
 
     def run(self):
-        # The options are stored in a dictionary cl_opt, with the following keys:
-        #   'mpi'  : build with MPI support (boolean).
-        #   'gpu'  : build with CUDA support (boolean).
-        #   'vec'  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
-        #   'arch' : target CPU micro-architecture (string).
-        global cl_opt
-        cl_opt = {
-            'mpi' : self.mpi is not None,
-            'gpu' : self.gpu is not None,
-            'vec' : self.vec is not None,
-            'arch': "native" if self.arch is None else self.arch
-        }
+        # The options are stored in global variables:
+        #   cl_opt_mpi  : build with MPI support (boolean).
+        #   cl_opt_gpu  : build with CUDA support (boolean).
+        #   cl_opt_vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
+        #   cl_opt_arch : target CPU micro-architecture (string).
+        global cl_opt_mpi
+        global cl_opt_gpu
+        global cl_opt_vec
+        global cl_opt_arch
+        cl_opt_mpi  = self.mpi is not None
+        cl_opt_gpu  = self.gpu is not None
+        cl_opt_vec  = self.vec is not None
+        cl_opt_arch = "native" if self.arch is None else self.arch
+
         install.run(self)
 
 class cmake_extension(Extension):
@@ -64,22 +70,6 @@ class cmake_build(build_ext):
     def run(self):
         if not check_cmake():
             raise RuntimeError('CMake is not available. CMake 3.12 is required.')
-
-        # cl_opt contains the command line arguments passed to install, via
-        # --install-option if using pip.
-        # pip skips building wheels when --install-option flags are set.
-        # However, when no --install-options are passed, it runs build_ext
-        # without running install_command, required to create and set cl_opt.
-        # This hack works around this. I think that the upshot of this is
-        # that only wheels built with default configuration will be possible.
-
-        if 'cl_opt' not in globals():
-            cl_opt = {
-                    'mpi': False,
-                    'gpu': False,
-                    'vec': False,
-                    'arch': 'native'
-            }
 
         # The path where CMake will be configured and Arbor will be built.
         build_directory = os.path.abspath(self.build_temp)
@@ -94,24 +84,19 @@ class cmake_build(build_ext):
         cmake_args = [
             '-DARB_WITH_PYTHON=on',
             '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DARB_WITH_MPI={}'.format('on' if cl_opt['mpi'] else 'off'),
-            '-DARB_WITH_GPU={}'.format('on' if cl_opt['gpu'] else 'off'),
-            '-DARB_VECTORIZE={}'.format('on' if cl_opt['vec'] else 'off'),
-            '-DARB_ARCH={}'.format(cl_opt['arch']),
+            '-DARB_WITH_MPI={}'.format( 'on' if cl_opt_mpi else 'off'),
+            '-DARB_WITH_GPU={}'.format( 'on' if cl_opt_gpu else 'off'),
+            '-DARB_VECTORIZE={}'.format('on' if cl_opt_vec else 'off'),
+            '-DARB_ARCH={}'.format(cl_opt_arch),
+            '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
-        print('-'*5, 'command line options: {}'.format(cl_opt))
         print('-'*5, 'cmake arguments: {}'.format(cmake_args))
 
-        cfg = 'Debug' if self.debug else 'Release'
-        build_args = ['--config', cfg]
-
-        cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
+        build_args = ['--config', 'Release']
 
         # Assuming Makefiles
-        build_args += ['--', '-j4']
-
-        self.build_args = build_args
+        build_args += ['--', '-j2']
 
         env = os.environ.copy()
         env['CXXFLAGS'] = '{}'.format(env.get('CXXFLAGS', ''))
@@ -125,7 +110,7 @@ class cmake_build(build_ext):
                               cwd=self.build_temp, env=env)
 
         print('-'*20, 'Build')
-        cmake_cmd = ['cmake', '--build', '.'] + self.build_args
+        cmake_cmd = ['cmake', '--build', '.'] + build_args
         subprocess.check_call(cmake_cmd,
                               cwd=self.build_temp)
 
@@ -153,12 +138,11 @@ setuptools.setup(
     author='The lovely Arbor devs.',
     url='https://github.com/arbor-sim/arbor',
     description='High performance simulation of networks of multicompartment neurons.',
-    long_description='',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release of v0.3
         'Intended Audience :: Science/Research',
-        'Topic :: Scientific/Engineering :: Build Tools',
-        'License :: OSI Approved :: BSD License'
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',

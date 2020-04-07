@@ -1020,14 +1020,15 @@ TEST(fvm_lowered, gj_coords_complex) {
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
 
+    using namespace cv_prefer;
     int c0_gj_cv[2];
-    for (int i = 0; i<2; ++i) c0_gj_cv[i] = D.geometry.location_cv(0, c0_gj[i]);
+    for (int i = 0; i<2; ++i) c0_gj_cv[i] = D.geometry.location_cv(0, c0_gj[i], cv_nonempty);
 
     int c1_gj_cv[4];
-    for (int i = 0; i<4; ++i) c1_gj_cv[i] = D.geometry.location_cv(1, c1_gj[i]);
+    for (int i = 0; i<4; ++i) c1_gj_cv[i] = D.geometry.location_cv(1, c1_gj[i], cv_nonempty);
 
     int c2_gj_cv[3];
-    for (int i = 0; i<3; ++i) c2_gj_cv[i] = D.geometry.location_cv(2, c2_gj[i]);
+    for (int i = 0; i<3; ++i) c2_gj_cv[i] = D.geometry.location_cv(2, c2_gj[i], cv_nonempty);
 
     std::vector<fvm_gap_junction> GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
     EXPECT_EQ(10u, GJ.size());

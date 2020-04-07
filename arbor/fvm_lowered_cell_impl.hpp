@@ -520,7 +520,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         cell_gid_type gid = gids[cell_idx];
 
         for (auto entry: cells[cell_idx].detectors()) {
-            detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc));
+            detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
             detector_threshold.push_back(entry.item.threshold);
         }
 
@@ -528,14 +528,16 @@ void fvm_lowered_cell_impl<B>::initialize(
             probe_info pi = rec.get_probe({gid, j});
             auto where = any_cast<cell_probe_address>(pi.address);
 
-            auto cv = D.geometry.location_cv(cell_idx, where.location);
+            fvm_size_type cv;
             probe_handle handle;
 
             switch (where.kind) {
             case cell_probe_address::membrane_voltage:
+                cv = D.geometry.location_cv(cell_idx, where.location, cv_prefer::cv_empty);
                 handle = state_->voltage.data()+cv;
                 break;
             case cell_probe_address::membrane_current:
+                cv = D.geometry.location_cv(cell_idx, where.location, cv_prefer::cv_nonempty);
                 handle = state_->current_density.data()+cv;
                 break;
             default:
@@ -568,7 +570,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
         const auto& cell_gj = cells[cell_idx].gap_junction_sites();
 
         for (auto gj : cell_gj) {
-            auto cv = D.geometry.location_cv(cell_idx, gj.loc);
+            auto cv = D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty);
             gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }

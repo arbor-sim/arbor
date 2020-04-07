@@ -16,6 +16,7 @@
 #include "util/transform.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
+#include "util/unique.hpp"
 
 namespace arb {
 namespace ls {
@@ -203,21 +204,6 @@ locset most_distal(region reg) {
     return locset(most_distal_{std::move(reg)});
 }
 
-template <typename X>
-void unique_in_place(std::vector<X>& v) {
-    if (v.empty()) return;
-
-    auto write = v.begin();
-    auto read = write;
-
-    while (++read!=v.end()) {
-        if (*read==*write) continue;
-        if (++write!=read) *write = std::move(*read);
-    }
-
-    v.erase(++write, v.end());
-}
-
 mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     mlocation_list L;
 
@@ -244,7 +230,7 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     }
 
     util::sort(L);
-    unique_in_place(L);
+    util::unique_in_place(L);
     return L;
 }
 

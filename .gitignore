@@ -48,6 +48,10 @@
 CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
+/compile_commands.json
+
+# install path used in gitpod
+/install
 
 # mechanisms generated from .mod files
 mechanisms/multicore/*.hpp
@@ -64,3 +68,7 @@ commit.msg
 
 # Mac default files
 .DS_Store
+
+# by product of generating a source distribution for pip
+*.egg-info
+dist

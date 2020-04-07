@@ -1,0 +1,5 @@
+{
+    "cpp.clangTidy": true,
+    "cmake.configureOnOpen": true,
+    "C_Cpp.intelliSenseEngine": "Disabled"
+}
