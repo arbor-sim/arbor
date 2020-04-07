@@ -5,6 +5,7 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/morph/region.hpp>
 
 #include "fvm_layout.hpp"
 #include "util/rangeutil.hpp"
@@ -126,6 +127,10 @@ TEST(cv_geom, trivial) {
 TEST(cv_geom, one_cv_per_branch) {
     using namespace common_morphology;
 
+    auto super = [] (const arb::morphology& m, arb::mcable c) {
+        return thingify(arb::reg::super(arb::region(c)), arb::mprovider(m)).cables();
+    };
+
     for (auto& p: test_morphologies) {
         if (p.second.empty()) continue;
         SCOPED_TRACE(p.first);
@@ -133,7 +138,8 @@ TEST(cv_geom, one_cv_per_branch) {
         cable_cell cell{p.second};
         auto& m = cell.morphology();
 
-        cv_geometry geom = cv_geometry_from_ends(cell, sum(ls::on_branches(0), ls::on_branches(1)));
+        cv_geometry geom =
+            cv_geometry_from_ends(cell, sum(ls::on_branches(0), ls::on_branches(1)));
         EXPECT_TRUE(verify_cv_children(geom));
 
         // Expect trivial CVs at every fork point, and single-cable CVs for each branch.
@@ -154,7 +160,7 @@ TEST(cv_geom, one_cv_per_branch) {
                     EXPECT_TRUE(n_branch_child(c.branch)>1);
                 }
                 // Cables in trivial CV should be the same as those in the extent over the point.
-                EXPECT_TRUE(testing::seq_eq(mextent{m, mcable_list{c}}.cables(), cables));
+                EXPECT_TRUE(testing::seq_eq(super(m,c), cables));
             }
             else {
                 ASSERT_EQ(1u, cables.size());
@@ -165,9 +171,9 @@ TEST(cv_geom, one_cv_per_branch) {
 
                 // Confirm parent CV is fork CV:
                 if (i>0) {
-                    mextent fork_ext{m, mcable_list{{c.branch, 0}}};
+                    auto fork_ext = super(m, {c.branch, 0});
                     mcable_list pcables = util::assign_from(geom.cables(geom.cv_parent[i]));
-                    ASSERT_TRUE(testing::cablelist_eq(fork_ext.cables(), pcables));
+                    ASSERT_TRUE(testing::cablelist_eq(fork_ext, pcables));
                 }
             }
         }
@@ -299,10 +305,14 @@ TEST(cv_geom, location_cv) {
     cable_cell cell{m_reg_b6};
     auto& m = cell.morphology();
 
-    auto cv_extent = [&m](const cv_geometry& geom, auto cv) {
+    auto cv_extent = [](const cv_geometry& geom, auto cv) {
         mcable_list cl;
         util::assign(cl, geom.cables(cv));
-        return mextent{m, cl};
+        return mextent(cl);
+    };
+
+    auto super = [] (const arb::morphology& m, arb::mcable c) {
+        return thingify(arb::reg::super(arb::region(c)), arb::mprovider(m)).cables();
     };
 
     // Two CVs per branch, plus trivial CV at forks.
@@ -323,9 +333,8 @@ TEST(cv_geom, location_cv) {
             mcable cable0 = cables.front();
             ASSERT_TRUE(cable0.prox_pos==cable0.dist_pos);
 
-            mextent fork_ext{m, mcable_list{cable0}};
             mcable_list clist = util::assign_from(cables);
-            ASSERT_TRUE(testing::cablelist_eq(fork_ext.cables(), clist));
+            ASSERT_TRUE(testing::cablelist_eq(super(m, cable0), clist));
         }
     }
 
