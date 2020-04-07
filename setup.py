@@ -7,6 +7,16 @@ from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
 import subprocess
 
+# Sometimes version 19 and earlier of pip skip the install step
+# when building the extension without command line arguments.
+# Assert that users are using a recent version of pip to work around
+# this potential issue.
+import pip; assert int(pip.__version__.split('.')[0])>=20, '\n'.join(['\n',
+    '------------------------------------------------------------------------------',
+    'Arbor requires a recent version of pip; run the following before installing:',
+    'pip install --upgrade pip',
+    '------------------------------------------------------------------------------\n'])
+
 # VERSION is in the same path as setup.py
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
@@ -127,7 +137,7 @@ setuptools.setup(
     python_requires='>=3.6',
 
     install_requires=[],
-    setup_requires=['pip>20'],
+    setup_requires=[],
     zip_safe=False,
     ext_modules=[cmake_extension('arbor')],
     cmdclass={
