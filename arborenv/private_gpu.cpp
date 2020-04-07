@@ -14,7 +14,7 @@ namespace arbenv {
 
 template <>
 int find_private_gpu(MPI_Comm comm) {
-    /*int nranks;
+    int nranks;
     int rank;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &nranks);
@@ -88,7 +88,7 @@ int find_private_gpu(MPI_Comm comm) {
             " environment variable is likely incorrectly configured." );
     }
 
-    return gpu.id;*/
+    return gpu.id;
 }
 
 #else

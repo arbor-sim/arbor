@@ -13,7 +13,7 @@ constexpr auto ErrorInvalidDevice = cudaErrorInvalidDevice;
 constexpr auto ErrorNoDevice = cudaErrorNoDevice;
 
 template <typename... ARGS>
-inline auto get_device_count(ARGS&&... args) -> StatusType {
+inline auto get_device_count(ARGS&&... args) -> cudaError_t {
     return cudaGetDeviceCount(std::forward<ARGS>(args)...);
 }
 

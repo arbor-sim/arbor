@@ -75,7 +75,7 @@ std::runtime_error make_runtime_error(Error error_code) {
 // to obtain by querying cudaGetDeviceProperties for each visible device.
 std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
-    /*int ngpus = 0;
+    int ngpus = 0;
     auto status = get_device_count(&ngpus);
     if (status==ErrorNoDevice) {
         // No GPUs detected: return an empty list.
@@ -97,11 +97,18 @@ std::vector<uuid> get_gpu_uuids() {
         }
 
         // Copy the bytes from props.uuid to uuids[i].
+
+#ifdef ARB_HAVE_HIP
+        std::string hostname = getenv("HOSTNAME");
+        std::size_t uid = std::hash<std::string>{}(hostname) ^ (std::size_t)(props.pciBusID) ^ (std::size_t)(props.pciDeviceID);
+        auto b = reinterpret_cast<const unsigned char*>(&uid);
+#else
         auto b = reinterpret_cast<const unsigned char*>(&props.uuid);
+#endif
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
     }
 
-    return uuids;*/
+    return uuids;
     return {};
 }
 
