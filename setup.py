@@ -127,7 +127,7 @@ setuptools.setup(
     python_requires='>=3.6',
 
     install_requires=[],
-    setup_requires=[],
+    setup_requires=['pip>20'],
     zip_safe=False,
     ext_modules=[cmake_extension('arbor')],
     cmdclass={
