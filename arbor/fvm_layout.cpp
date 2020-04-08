@@ -592,7 +592,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         assign(param_names, util::keys(info.parameters));
         sort(param_names);
 
-        for (auto& p: param_names) {
+        std::size_t n_param = param_names.size();
+
+        for (std::size_t i = 0; i<n_param; ++i) {
+            const auto& p = param_names[i];
             config.param_values.emplace_back(p, std::vector<value_type>{});
             param_dflt.push_back(info.parameters.at(p).default_value);
         }
@@ -600,23 +603,21 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         mcable_map<double> support;
         std::vector<mcable_map<double>> param_maps;
 
-        {
-            std::unordered_map<std::string, mcable_map<double>> keyed_param_maps;
-            for (auto& on_cable: entry.second) {
-                verify_mechanism(info, on_cable.second);
-                mcable cable = on_cable.first;
+        param_maps.resize(param_names.size());
 
-                support.insert(cable, 1.);
-                for (auto param_assign: on_cable.second.values()) {
-                    keyed_param_maps[param_assign.first].insert(cable, param_assign.second);
-                }
-            }
-            for (auto& p: param_names) {
-                param_maps.push_back(std::move(keyed_param_maps[p]));
+        for (auto& on_cable: entry.second) {
+            verify_mechanism(info, on_cable.second);
+            mcable cable = on_cable.first;
+            const auto& set_params = on_cable.second.values();
+
+            support.insert(cable, 1.);
+            for (std::size_t i = 0; i<n_param; ++i) {
+                double value = value_by_key(set_params, param_names[i]).value_or(param_dflt[i]);
+                param_maps[i].insert(cable, value);
             }
         }
 
-        std::vector<double> param_on_cv(config.param_values.size());
+        std::vector<double> param_on_cv(n_param);
 
         for (auto cv: D.geometry.cell_cvs(cell_idx)) {
             double area = 0;
@@ -627,17 +628,18 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 if (!area_on_cable) continue;
 
                 area += area_on_cable;
-                for (auto i: count_along(param_on_cv)) {
-                    param_on_cv[i] += embedding.integrate_area(c.branch, pw_over_cable(param_maps[i], c, param_dflt[i]));
+                for (std::size_t i = 0; i<n_param; ++i) {
+                    param_on_cv[i] += embedding.integrate_area(c.branch, pw_over_cable(param_maps[i], c, 0.));
                 }
             }
 
             if (area>0) {
-                double oo_cv_area = 1./D.cv_area[cv];
                 config.cv.push_back(cv);
-                config.norm_area.push_back(area*oo_cv_area);
+                config.norm_area.push_back(area/D.cv_area[cv]);
+
+                double oo_area = 1./area;
                 for (auto i: count_along(param_on_cv)) {
-                    config.param_values[i].second.push_back(param_on_cv[i]*oo_cv_area);
+                    config.param_values[i].second.push_back(param_on_cv[i]*oo_area);
                 }
             }
         }
