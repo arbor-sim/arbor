@@ -1,6 +1,4 @@
-#ifdef ARB_HAVE_HIP
-#include <hip/hip_runtime.h>
-#endif
+#include "backends/gpu/gpu_common.hpp"
 
 #include <cstdint>
 

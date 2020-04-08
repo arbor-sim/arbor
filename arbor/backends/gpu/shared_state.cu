@@ -1,7 +1,4 @@
 // GPU kernels and wrappers for shared state methods.
-#ifdef ARB_HAVE_HIP
-#include <hip/hip_runtime.h>
-#endif
 
 #include <cstdint>
 

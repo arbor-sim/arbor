@@ -1,7 +1,3 @@
-#ifdef ARB_HAVE_HIP
-#include <hip/hip_runtime.h>
-#endif
-
 #include <arbor/common_types.hpp>
 
 #include "backends/event.hpp"

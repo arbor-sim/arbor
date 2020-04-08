@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef ARB_WITH_HIP
-#include <hip/hip_runtime.h>
-#endif
-
 #include "gpu_common.hpp"
 #include "matrix_common.hpp"
 

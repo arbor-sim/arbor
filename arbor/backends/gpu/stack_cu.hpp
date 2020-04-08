@@ -1,9 +1,6 @@
 #pragma once
 
-#ifdef ARB_HAVE_HIP
-#include <hip/hip_runtime.h>
-#endif
-
+#include "gpu_common.hpp"
 #include "stack_storage.hpp"
 
 namespace arb {
