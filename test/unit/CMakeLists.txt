@@ -184,13 +184,17 @@ add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
 add_dependencies(tests unit)
 
+if(ARB_WITH_CUDA_NVCC)
+    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-DARB_CUDA>)
+endif()
+
 if(ARB_WITH_CUDA_CLANG)
-    set(clang_options_ -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+    set(clang_options_ -DARR_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 endif()
 
 if(ARB_WITH_HIP_CLANG)
-    set(clang_options_ -DARB_HAVE_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 endif()
 

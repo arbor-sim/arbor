@@ -43,9 +43,9 @@ gpu_context::gpu_context(int) {
 #else
 
 gpu_context::gpu_context(int gpu_id) {
-        DeviceProp prop;
-    auto status = get_device_properties(&prop, gpu_id);
-    if (status==ErrorInvalidDevice) {
+    gpu::DeviceProp prop;
+    auto status = gpu::get_device_properties(&prop, gpu_id);
+    if (status==gpu::ErrorInvalidDevice) {
         throw arbor_exception("Invalid GPU id " + std::to_string(gpu_id));
     }
 
@@ -68,8 +68,8 @@ void gpu_context::set_gpu() const {
         throw arbor_exception(
             "Call to gpu_context::set_gpu() when there is no GPU selected.");
     }
-    auto status = set_device(id_);
-    if (status != Success) {
+    auto status = gpu::set_device(id_);
+    if (status != gpu::Success) {
         throw arbor_exception(
             "Unable to select GPU id " + std::to_string(id_));
     }

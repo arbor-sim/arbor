@@ -59,7 +59,7 @@ TEST(scalar_printer, constants) {
 TEST(scalar_printer, statement) {
     std::vector<testcase> testcases = {
         {"y=x+3",            "y=x+3"},
-        {"y=y^z",            "y=pow(y,(fvm_value_type)z)"},
+        {"y=y^z",            "y=pow(y,(arb::fvm_value_type)z)"},
         {"y=exp((x/2) + 3)", "y=exp(x/2+3)"},
         {"z=a/b/c",          "z=a/b/c"},
         {"z=a/(b/c)",        "z=a/(b/c)"},

@@ -12,13 +12,13 @@ namespace kernels {
     template <typename T>
     __global__
     void test_atomic_add(T* x) {
-        gpu_atomic_add(x, threadIdx.x+1);
+        arb::gpu::gpu_atomic_add(x, threadIdx.x+1);
     }
 
     template <typename T>
     __global__
     void test_atomic_sub(T* x) {
-        gpu_atomic_sub(x, threadIdx.x+1);
+        arb::gpu::gpu_atomic_sub(x, threadIdx.x+1);
     }
 
     __global__

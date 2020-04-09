@@ -16,7 +16,8 @@ namespace arb {
 namespace memory {
 
 using std::to_string;
-
+using namespace gpu;
+ 
 void gpu_memcpy_d2d(void* dest, const void* src, std::size_t n) {
     if (auto error = device_memcpy(dest, src, n, gpuMemcpyDeviceToDevice)) {
         HANDLE_GPU_ERROR(error, "n="+to_string(n));

@@ -127,7 +127,7 @@ std::vector<uuid> get_gpu_uuids() {
         auto uid = std::hash<std::string>{} (*host + '-' + std::to_string(props.pciBusID) + '-' + std::to_string(props.pciDeviceID));
         auto b = reinterpret_cast<const unsigned char*>(&uid);
         std::copy(b, b+sizeof(std::size_t), uuids[i].bytes.begin());
-#endif
+#else
         auto b = reinterpret_cast<const unsigned char*>(&props.uuid);
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
 #endif
