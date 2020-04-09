@@ -1,4 +1,4 @@
-#include "backends/gpu/gpu_common.hpp"
+#include "backends/gpu/gpu_api.hpp"
 
 #include <cstdint>
 

@@ -1,8 +1,6 @@
 #pragma once
 
-#ifdef ARB_HIP
-#include <hip/hip_runtime.h>
-#endif
+#include "gpu_api.hpp"
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #   define HOST_DEVICE_IF_GPU __host__ __device__

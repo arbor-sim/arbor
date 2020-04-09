@@ -64,9 +64,6 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     io::pfxstringstream out;
 
     net_receive && out <<
-        "#ifdef ARB_HIP\n"
-        "#include <hip/hip_runtime.h>\n"
-        "#endif\n"
         "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
 
