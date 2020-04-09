@@ -593,6 +593,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         sort(param_names);
 
         std::size_t n_param = param_names.size();
+        param_dflt.reserve(n_param);
+        config.param_values.reserve(n_param);
 
         for (std::size_t i = 0; i<n_param; ++i) {
             const auto& p = param_names[i];
@@ -603,7 +605,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         mcable_map<double> support;
         std::vector<mcable_map<double>> param_maps;
 
-        param_maps.resize(param_names.size());
+        param_maps.resize(n_param);
 
         for (auto& on_cable: entry.second) {
             verify_mechanism(info, on_cable.second);
