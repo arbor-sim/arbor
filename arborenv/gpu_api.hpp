@@ -1,6 +1,6 @@
 #include <utility>
 
-#ifndef ARB_HAVE_HIP
+#ifdef ARB_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
@@ -31,8 +31,9 @@ template <typename... ARGS>
 inline auto device_error_name(ARGS&&... args) -> const char* {
     return cudaGetErrorName(std::forward<ARGS>(args)...);
 }
-#else
+#endif
 
+#ifdef ARB_HIP
 #include<hip/hip_runtime.h>
 #include<hip/hip_runtime_api.h>
 

@@ -1,6 +1,6 @@
 #include <arbor/fvm_types.hpp>
 
-#include "gpu_atomic.hpp"
+#include "gpu_api.hpp"
 #include "gpu_common.hpp"
 #include "matrix_common.hpp"
 #include "matrix_fine.hpp"

@@ -1,57 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include "gpu_atomic.hpp"
+#include "gpu_api.hpp"
 #include "gpu_common.hpp"
 
 namespace arb {
 namespace gpu {
-
-// double shuffle for AMD devices
-#ifndef __NVCC__
-__device__ __inline__ double shfl(double x, int lane)
-{
-    auto tmp = static_cast<uint64_t>(x);
-    auto lo = static_cast<unsigned>(tmp);
-    auto hi = static_cast<unsigned>(tmp >> 32);
-    hi = __shfl(static_cast<int>(hi), lane, warpSize);
-    lo = __shfl(static_cast<int>(lo), lane, warpSize);
-    return static_cast<double>(static_cast<uint64_t>(hi) << 32 |
-                               static_cast<uint64_t>(lo));
-}
-#endif
-
-__device__ __inline__ double gpu_shfl_up(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-#ifndef __NVCC__
-    return shfl(idx, lane_id - shift);
-#else
-    return __shfl_up_sync(mask, idx, shift);
-#endif
-}
-
-__device__ __inline__ double gpu_shfl_down(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-#ifndef __NVCC__
-    return shfl(idx, lane_id + shift);
-#else
-    return __shfl_down_sync(mask, idx, shift);
-#endif
-}
-
-__device__ __inline__ unsigned gpu_ballot(unsigned mask, unsigned is_root) {
-#ifndef __NVCC__
-    return __ballot(is_root);
-#else
-    return __ballot_sync(mask, is_root);
-#endif
-}
-
-__device__ __inline__ unsigned gpu_any(unsigned mask, unsigned width) {
-#ifndef __NVCC__
-    return __any(width);
-#else
-    return __any_sync(mask, width);
-#endif
-}
 
 // key_set_pos stores information required by a thread to calculate its
 // contribution to a reduce by key operation.
@@ -82,12 +36,12 @@ struct key_set_pos {
         unsigned num_lanes = impl::threads_per_warp()-__clz(key_mask);
 
         // Determine if this thread is the root (i.e. first thread with this key).
-        int left_idx  = gpu_shfl_up(key_mask, idx, lane_id, lane_id? 1: 0);
+        int left_idx  = shfl_up(key_mask, idx, lane_id, lane_id? 1: 0);
 
         is_root = lane_id? left_idx!=idx: 1;
 
         // Determine the range this thread contributes to.
-        unsigned roots = gpu_ballot(key_mask, is_root);
+        unsigned roots = ballot(key_mask, is_root);
 
         // Find the distance to the lane id one past the end of the run.
         // Take care if this is the last run in the warp.
@@ -105,8 +59,8 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
 
     unsigned w = shift<width? shift: 0;
 
-    while (gpu_any(run.key_mask, w)) {
-        T source_value = gpu_shfl_down(run.key_mask, contribution, run.lane_id, w);
+    while (any(run.key_mask, w)) {
+        T source_value = shfl_down(run.key_mask, contribution, run.lane_id, w);
 
         if (w) contribution += source_value;
 

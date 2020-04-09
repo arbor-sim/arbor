@@ -14,7 +14,7 @@ __global__
 void reduce_kernel(const T* src, T* dst, const I* index, int n) {
     unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
 
-    unsigned mask = gpu::gpu_ballot(0xffffffff, tid<n);
+    unsigned mask = gpu::ballot(0xffffffff, tid<n);
     if (tid<n) {
         gpu::reduce_by_key(src[tid], dst, index[tid], mask);
     }

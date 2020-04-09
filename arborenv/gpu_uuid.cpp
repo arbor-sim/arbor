@@ -121,13 +121,13 @@ std::vector<uuid> get_gpu_uuids() {
 
         // Copy the bytes from props.uuid to uuids[i].
 
-#ifdef ARB_HAVE_HIP
+#ifdef ARB_HIP
         auto host = get_hostname();
         if (!host) throw std::runtime_error("Can't uniquely identify GPUs on the system");
         auto uid = std::hash<std::string>{} (*host + '-' + std::to_string(props.pciBusID) + '-' + std::to_string(props.pciDeviceID));
         auto b = reinterpret_cast<const unsigned char*>(&uid);
         std::copy(b, b+sizeof(std::size_t), uuids[i].bytes.begin());
-#else
+#endif
         auto b = reinterpret_cast<const unsigned char*>(&props.uuid);
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
 #endif

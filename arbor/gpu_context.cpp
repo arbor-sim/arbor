@@ -43,7 +43,7 @@ gpu_context::gpu_context(int) {
 #else
 
 gpu_context::gpu_context(int gpu_id) {
-    DeviceProp prop;
+        DeviceProp prop;
     auto status = get_device_properties(&prop, gpu_id);
     if (status==ErrorInvalidDevice) {
         throw arbor_exception("Invalid GPU id " + std::to_string(gpu_id));

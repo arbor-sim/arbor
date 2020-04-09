@@ -3,7 +3,7 @@
 #include <cfloat>
 #include <climits>
 
-#include "gpu_common.hpp"
+#include "gpu_api.hpp"
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #   define HOST_DEVICE_IF_GPU __host__ __device__
@@ -18,7 +18,6 @@ namespace impl {
 // Number of matrices per block in block-interleaved storage
 HOST_DEVICE_IF_GPU
 constexpr inline unsigned matrices_per_block() {
-
     return 32u;
 }
 

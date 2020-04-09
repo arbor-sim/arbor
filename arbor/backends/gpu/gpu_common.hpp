@@ -1,5 +1,6 @@
 #pragma once
-#ifdef ARB_HAVE_HIP 
+
+#ifdef ARB_HIP
 #include <hip/hip_runtime.h>
 #endif
 
@@ -17,7 +18,7 @@ namespace impl {
 // This has always been 32, however it may change in future NVIDIA gpus
 HOST_DEVICE_IF_GPU
 constexpr inline unsigned threads_per_warp() {
-#ifdef ARB_HAVE_HIP 
+#ifdef ARB_HIP
     return 64u;
 #else
     return 32u;

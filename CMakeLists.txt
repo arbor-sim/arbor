@@ -285,29 +285,26 @@ if(ARB_WITH_GPU)
         add_compile_options(
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
-
-    elseif(ARB_WTH_HIP_CLANG)
-        target_include_directories(arborenv-private-deps INTERFACE)
     endif()
 
 
     if(ARB_WITH_NVCC)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35> -DARB_CUDA)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37> -DARB_CUDA)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60> -DARB_CUDA)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
-    elseif(ARB_WITH_CUDA_CLANG)
-        set(clang_options_ -xcuda --cuda-gpu-arch=sm_35 --cuda-gpu-arch=sm_37 --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70> -DARB_CUDA)
 
+    elseif(ARB_WITH_CUDA_CLANG)
+        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_35 --cuda-gpu-arch=sm_37 --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-    elseif(ARB_WITH_HIP_CLANG)
-        set(clang_options_ -DARB_HAVE_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
 
+    elseif(ARB_WITH_HIP_CLANG)
+        set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     endif()

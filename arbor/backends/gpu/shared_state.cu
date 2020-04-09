@@ -5,7 +5,7 @@
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 
-#include "gpu_atomic.hpp"
+#include "gpu_api.hpp"
 #include "gpu_common.hpp"
 
 namespace arb {

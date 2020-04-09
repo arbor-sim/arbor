@@ -1,4 +1,4 @@
-#ifdef ARB_HAVE_HIP 
+#ifdef ARB_HIP
 #include <hip/hip_runtime.h>
 #endif
 

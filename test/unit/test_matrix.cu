@@ -2,9 +2,11 @@
 #include <random>
 #include <vector>
 
-#ifdef ARB_HAVE_HIP 
+#ifdef ARB_HIP
 #include <hip/hip_runtime.h>
-#else
+#endif
+
+#ifdef ARB_CUDA
 #include <cuda.h>
 #endif
 

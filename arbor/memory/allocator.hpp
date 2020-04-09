@@ -140,7 +140,7 @@ namespace impl {
             // memory allocated using cudaMalloc has alignment of 256 bytes
             // memory allocated using hipMalloc has alignment of 128 bytes
             static constexpr size_type alignment() {
-#ifdef ARB_HAVE_HIP
+#ifdef ARB_HIP
                 return 128;
 #else
                 return 256;
