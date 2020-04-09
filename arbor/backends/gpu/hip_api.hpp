@@ -1,4 +1,5 @@
 #include <utility>
+#include <string>
 
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
@@ -40,42 +41,42 @@ constexpr auto gpuMemcpyDeviceToDevice = hipMemcpyDeviceToDevice;
 constexpr auto gpuHostRegisterPortable = hipHostRegisterPortable;
 
 template <typename... ARGS>
-inline hipError_t get_device_properties(ARGS&&... args) {
+inline api_error_type get_device_properties(ARGS&&... args) {
     return hipGetDeviceProperties(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline hipError_t set_device(ARGS&&... args) {
+inline api_error_type set_device(ARGS&&... args) {
     return hipSetDevice(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline hipError_t device_memcpy(ARGS&&... args) {
+inline api_error_type device_memcpy(ARGS&&... args) {
     return hipMemcpy(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline hipError_t host_register(ARGS&&... args) {
+inline api_error_type host_register(ARGS&&... args) {
     return hipHostRegister(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline hipError_t host_unregister(ARGS&&... args) {
+inline api_error_type host_unregister(ARGS&&... args) {
     return hipHostUnregister(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline hipError_t device_malloc(ARGS&&... args) {
+inline api_error_type device_malloc(ARGS&&... args) {
     return hipMalloc(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline hipError_t device_free(ARGS&&... args) {
+inline api_error_type device_free(ARGS&&... args) {
     return hipFree(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline hipError_t device_mem_get_info(ARGS&&... args) {
+inline api_error_type device_mem_get_info(ARGS&&... args) {
     return hipMemGetInfo(std::forward<ARGS>(args)...);
 }
 

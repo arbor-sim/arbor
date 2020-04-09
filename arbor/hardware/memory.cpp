@@ -30,7 +30,7 @@ memory_size_type gpu_allocated_memory() {
     std::size_t total;
     auto success = gpu::device_mem_get_info(&free, &total);
 
-    return success==gpu::Success? total-free: -1;
+    return success? total-free: -1;
 }
 #else
 memory_size_type gpu_allocated_memory() {
