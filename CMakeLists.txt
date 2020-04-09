@@ -290,13 +290,16 @@ if(ARB_WITH_GPU)
 
     if(ARB_WITH_NVCC)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35> -DARB_CUDA)
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37> -DARB_CUDA)
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60> -DARB_CUDA)
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70> -DARB_CUDA)
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+
+        target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
+        target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
 
     elseif(ARB_WITH_CUDA_CLANG)
         set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_35 --cuda-gpu-arch=sm_37 --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})

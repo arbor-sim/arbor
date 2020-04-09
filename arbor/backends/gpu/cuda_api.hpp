@@ -71,6 +71,8 @@ inline cudaError_t device_mem_get_info(ARGS &&... args) {
 // Pascal GPUs (__CUDA_ARCH__ >= 600). These wrappers provide a portable
 // atomic addition interface that chooses the appropriate implementation.
 
+#ifdef __CUDACC__
+
 #if __CUDA_ARCH__ < 600 // Maxwell or older (no native double precision atomic addition)
 __device__
 inline double gpu_atomic_add(double* address, double val) {
@@ -144,6 +146,8 @@ __device__ __inline__ double shfl_down(unsigned mask, int idx, unsigned lane_id,
     return shfl(mask, idx, lane_id + shift);
 }
 #endif
-}
+
+#endif
+
 } // namespace gpu
 } // namespace arb
