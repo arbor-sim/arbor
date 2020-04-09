@@ -8,7 +8,7 @@ namespace arbenv {
 // indicates that no GPU is available.
 int default_gpu() {
     int n;
-    if (get_device_count(&n)==Success) {
+    if (get_device_count(&n)) {
         // if 1 or more GPUs, take the first one.
         // else return -1 -> no gpu.
         return n? 0: -1;

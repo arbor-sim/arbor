@@ -86,10 +86,10 @@ std::ostream& operator<<(std::ostream& o, const uuid& id) {
     return o;
 }
 
-std::runtime_error make_runtime_error(Error error_code) {
+std::runtime_error make_runtime_error(api_error_type error_code) {
     return std::runtime_error(
         std::string("gpu runtime error ")
-        + device_error_name(error_code) + ": " + device_error_string(error_code));
+        + error_code.name() + ": " + error_code.description());
 }
 
 #ifndef ARBENV_USE_NVML
@@ -100,11 +100,11 @@ std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
     int ngpus = 0;
     auto status = get_device_count(&ngpus);
-    if (status==ErrorNoDevice) {
+    if (status.no_device_found()) {
         // No GPUs detected: return an empty list.
         return {};
     }
-    else if (status!=Success) {
+    else if (!status) {
         throw make_runtime_error(status);
     }
 
@@ -115,7 +115,7 @@ std::vector<uuid> get_gpu_uuids() {
     for (int i=0; i<ngpus; ++i) {
         DeviceProp props;
         status = get_device_properties(&props, i);
-        if (status!=Success) {
+        if (!status) {
             throw make_runtime_error(status);
         }
 
@@ -214,8 +214,8 @@ std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
     int ngpus = 0;
     auto status = get_device_count(&ngpus);
-    if (status==ErrorNoDevice) return {};
-    else if (status!=Success) throw make_runtime_error(status);
+    if (status.no_device_found()) return {};
+    else if (!status) throw make_runtime_error(status);
 
     // Attempt to initialize nvml
     auto nvml_status = nvmlInit();

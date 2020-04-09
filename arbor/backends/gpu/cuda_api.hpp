@@ -11,67 +11,81 @@ namespace gpu {
 
 using DeviceProp = cudaDeviceProp;
 
-constexpr auto Success = cudaSuccess;
-constexpr auto ErrorInvalidDevice = cudaErrorInvalidDevice;
+struct api_error_type {
+    cudaError_t value;
+    api_error_type(cudaError_t e): value(e) {}
+
+    operator bool() const {
+        return value==cudaSuccess;
+    }
+
+    bool is_invalid_device() const {
+        return value == cudaErrorInvalidDevice;
+    }
+
+    std::string name() const {
+        std::string s = cudaGetErrorName(value);
+        return s;
+    }
+
+    std::string description() const {
+        std::string s = cudaGetErrorString(value);
+        return s;
+    }
+};
+
 constexpr auto gpuMemcpyDeviceToHost = cudaMemcpyDeviceToHost;
 constexpr auto gpuMemcpyHostToDevice = cudaMemcpyHostToDevice;
 constexpr auto gpuMemcpyDeviceToDevice = cudaMemcpyDeviceToDevice;
 constexpr auto gpuHostRegisterPortable = cudaHostRegisterPortable;
 
 template <typename... ARGS>
-inline cudaError_t get_device_properties(ARGS &&... args) {
+inline api_error_type get_device_properties(ARGS &&... args) {
     return cudaGetDeviceProperties(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline const char *device_error_string(ARGS &&... args) {
-    return cudaGetErrorString(std::forward<ARGS>(args)...);
-}
-
-template <typename... ARGS>
-inline cudaError_t set_device(ARGS &&... args) {
+inline api_error_type set_device(ARGS &&... args) {
     return cudaSetDevice(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline cudaError_t device_memcpy(ARGS &&... args) {
+inline api_error_type device_memcpy(ARGS &&... args) {
     return cudaMemcpy(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline cudaError_t host_register(ARGS &&... args) {
+inline api_error_type host_register(ARGS &&... args) {
     return cudaHostRegister(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline cudaError_t host_unregister(ARGS &&... args) {
+inline api_error_type host_unregister(ARGS &&... args) {
     return cudaHostUnregister(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline cudaError_t device_malloc(ARGS &&... args) {
+inline api_error_type device_malloc(ARGS &&... args) {
     return cudaMalloc(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline cudaError_t device_free(ARGS &&... args) {
+inline api_error_type device_free(ARGS &&... args) {
     return cudaFree(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline cudaError_t device_mem_get_info(ARGS &&... args) {
+inline api_error_type device_mem_get_info(ARGS &&... args) {
     return cudaMemGetInfo(std::forward<ARGS>(args)...);
 }
 
-
+#ifdef __CUDACC__
 /// Atomics
 
 // Wrappers around CUDA addition functions.
 // CUDA 8 introduced support for atomicAdd with double precision, but only for
 // Pascal GPUs (__CUDA_ARCH__ >= 600). These wrappers provide a portable
 // atomic addition interface that chooses the appropriate implementation.
-
-#ifdef __CUDACC__
 
 #if __CUDA_ARCH__ < 600 // Maxwell or older (no native double precision atomic addition)
 __device__
@@ -146,7 +160,6 @@ __device__ __inline__ double shfl_down(unsigned mask, int idx, unsigned lane_id,
     return shfl(mask, idx, lane_id + shift);
 }
 #endif
-
 #endif
 
 } // namespace gpu

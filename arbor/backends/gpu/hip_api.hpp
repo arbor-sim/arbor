@@ -11,8 +11,29 @@ namespace gpu {
 
 using DeviceProp = hipDeviceProp_t;
 
-constexpr auto Success = hipSuccess;
-constexpr auto ErrorInvalidDevice = hipErrorInvalidDevice;
+struct api_error_type {
+    hipError_t value;
+    api_error_type(hipError_t e): value(e) {}
+
+    operator bool() const {
+        return value==hipSuccess;
+    }
+
+    bool is_invalid_device() const {
+        return value == hipErrorInvalidDevice;
+    }
+
+    std::string name() const {
+        std::string s = hipGetErrorName(value);
+        return s;
+    }
+
+    std::string description() const {
+        std::string s = hipGetErrorString(value);
+        return s;
+    }
+};
+
 constexpr auto gpuMemcpyDeviceToHost = hipMemcpyDeviceToHost;
 constexpr auto gpuMemcpyHostToDevice = hipMemcpyHostToDevice;
 constexpr auto gpuMemcpyDeviceToDevice = hipMemcpyDeviceToDevice;
@@ -21,11 +42,6 @@ constexpr auto gpuHostRegisterPortable = hipHostRegisterPortable;
 template <typename... ARGS>
 inline hipError_t get_device_properties(ARGS&&... args) {
     return hipGetDeviceProperties(std::forward<ARGS>(args)...);
-}
-
-template <typename... ARGS>
-inline const char* device_error_string(ARGS&&... args) {
-    return hipGetErrorString(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>

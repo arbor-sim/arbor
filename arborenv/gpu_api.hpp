@@ -1,4 +1,5 @@
 #include <utility>
+#include <string>
 
 #ifdef ARB_CUDA
 #include <cuda.h>
@@ -6,30 +7,42 @@
 #include <cuda_runtime_api.h>
 
 using DeviceProp = cudaDeviceProp;
-using Error = cudaError_t;
 
-constexpr auto Success = cudaSuccess;
-constexpr auto ErrorInvalidDevice = cudaErrorInvalidDevice;
-constexpr auto ErrorNoDevice = cudaErrorNoDevice;
+struct api_error_type {
+    cudaError_t value;
+    api_error_type(cudaError_t e): value(e) {}
+
+    operator bool() const {
+        return value==cudaSuccess;
+    }
+
+    bool is_invalid_device() const {
+        return value == cudaErrorInvalidDevice;
+    }
+
+    bool no_device_found() const {
+        return value == cudaErrorNoDevice;
+    }
+
+    std::string name() const {
+        std::string s = cudaGetErrorName(value);
+        return s;
+    }
+
+    std::string description() const {
+        std::string s = cudaGetErrorString(value);
+        return s;
+    }
+};
 
 template <typename... ARGS>
-inline auto get_device_count(ARGS&&... args) -> cudaError_t {
+inline api_error_type get_device_count(ARGS&&... args) {
     return cudaGetDeviceCount(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline auto get_device_properties(ARGS&&... args) -> cudaError_t {
+inline api_error_type get_device_properties(ARGS&&... args) {
     return cudaGetDeviceProperties(std::forward<ARGS>(args)...);
-}
-
-template <typename... ARGS>
-inline auto device_error_string(ARGS&&... args) -> const char* {
-    return cudaGetErrorString(std::forward<ARGS>(args)...);
-}
-
-template <typename... ARGS>
-inline auto device_error_name(ARGS&&... args) -> const char* {
-    return cudaGetErrorName(std::forward<ARGS>(args)...);
 }
 #endif
 
@@ -38,29 +51,41 @@ inline auto device_error_name(ARGS&&... args) -> const char* {
 #include<hip/hip_runtime_api.h>
 
 using DeviceProp = hipDeviceProp_t;
-using Error = hipError_t;
 
-constexpr auto Success = hipSuccess;
-constexpr auto ErrorInvalidDevice = hipErrorInvalidDevice;
-constexpr auto ErrorNoDevice = hipErrorNoDevice;
+struct api_error_type {
+    hipError_t value;
+    api_error_type(hipError_t e): value(e) {}
+
+    operator bool() const {
+        return value==hipSuccess;
+    }
+
+    bool is_invalid_device() const {
+        return value == hipErrorInvalidDevice;
+    }
+
+    bool no_device_found() const {
+        return value == hipErrorNoDevice;
+    }
+
+    std::string name() const {
+        std::string s = hipGetErrorName(value);
+        return s;
+    }
+
+    std::string description() const {
+        std::string s = hipGetErrorString(value);
+        return s;
+    }
+};
 
 template <typename... ARGS>
-inline auto get_device_count(ARGS&&... args) -> hipError_t {
+inline api_error_type get_device_count(ARGS&&... args) {
     return hipGetDeviceCount(std::forward<ARGS>(args)...);
 }
 
 template <typename... ARGS>
-inline auto get_device_properties(ARGS&&... args) -> hipError_t {
+inline api_error_type get_device_properties(ARGS&&... args) {
     return hipGetDeviceProperties(std::forward<ARGS>(args)...);
-}
-
-template <typename... ARGS>
-inline auto device_error_string(ARGS&&... args) -> const char* {
-    return hipGetErrorString(std::forward<ARGS>(args)...);
-}
-
-template <typename... ARGS>
-inline auto device_error_name(ARGS&&... args) -> const char* {
-    return hipGetErrorName(std::forward<ARGS>(args)...);
 }
 #endif
