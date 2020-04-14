@@ -84,11 +84,7 @@ void CExprEmitter::visit(AssignmentExpression* e) {
 }
 
 void CExprEmitter::visit(PowBinaryExpression* e) {
-    out_ << "pow" << '(';
-    e->lhs()->accept(this);
-    out_ << ", (arb::fvm_value_type)";
-    e->rhs()->accept(this);
-    out_ << ')';
+    emit_as_call("pow", e->lhs(), e->rhs());
 }
 
 void CExprEmitter::visit(BinaryExpression* e) {

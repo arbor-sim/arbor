@@ -5,6 +5,11 @@
 #include <hip/hip_runtime_api.h>
 
 
+// hipcc compiler bug workaroubd :pow (double, int) not defined
+__device__ __inline__ double pow(double x, int y) {
+    return __ocml_pow_f64(x, (double)y);
+}
+
 namespace arb {
 namespace gpu {
 
@@ -132,4 +137,5 @@ __device__ __inline__ double shfl_down(unsigned mask, int idx, unsigned lane_id,
 }
 
 } // namespace gpu
-} // namespace arr
+} // namespace arb
+

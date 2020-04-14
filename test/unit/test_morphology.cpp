@@ -15,7 +15,6 @@
 
 #include "morph_pred.hpp"
 
-#define STRING(s) #s
 // Test basic functions on properties of mpoint
 TEST(morphology, mpoint) {
     using mp = arb::mpoint;
@@ -562,8 +561,10 @@ TEST(morphology, branches) {
     }
 }
 
+// hipcc bug in reading DATADIR
+#ifndef ARB_HIP
 TEST(morphology, swc) {
-    std::string datadir{STRING(DATADIR)};
+    std::string datadir{DATADIR};
     auto fname = datadir + "/example.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {
@@ -582,6 +583,7 @@ TEST(morphology, swc) {
     auto m = arb::morphology(sm);
     EXPECT_EQ(31u, m.num_branches());
 }
+#endif
 
 TEST(morphology, minset) {
     using pvec = std::vector<arb::msize_t>;

@@ -113,7 +113,7 @@ elseif(ARB_GPU MATCHES "hip-clang")
 endif()
 
 if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
-    set(ARB_WITH_GPU)
+    set(ARB_WITH_GPU TRUE)
 endif()
 
 # Build paths.
