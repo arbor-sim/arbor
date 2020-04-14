@@ -16,10 +16,9 @@ class CL_opt:
     def __init__(self):
         if not CL_opt.instance:
             CL_opt.instance = {'mpi': False,
-                               'gpu': False,
+                               'gpu': 'none',
                                'vec': False,
-                               'arch': 'native',
-                               'gpu-config': 'cuda-nvcc'}
+                               'arch': 'native'}
 
     def settings(self):
         return CL_opt.instance
@@ -50,10 +49,10 @@ def check_cmake():
 class install_command(install):
     user_options = install.user_options + [
         ('mpi',   None, 'enable mpi support (requires MPI library)'),
-        ('gpu',   None, 'enable nvidia cuda support (requires cudaruntime and nvcc)'),
+        ('gpu=',  None, 'enable nvidia cuda support (requires cudaruntime and nvcc) or amd hip support. Supported values: '
+                        'none, cuda-nvcc, cuda-clang, hip-clang'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a'),
-        ('gpu-config=', None, 'gpu compile type: cuda-nvcc, cuda-clang, or hip-clang'),
     ]
 
     def initialize_options(self):
@@ -62,7 +61,6 @@ class install_command(install):
         self.gpu  = None
         self.arch = None
         self.vec  = None
-        self.gpu_config  = None
 
     def finalize_options(self):
         install.finalize_options(self)
@@ -72,14 +70,12 @@ class install_command(install):
         opt = cl_opt()
         #   mpi  : build with MPI support (boolean).
         opt['mpi']  = self.mpi is not None
-        #   gpu  : build with CUDA support (boolean).
-        opt['gpu']  = self.gpu is not None
+        #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
+        opt['gpu']  = "" if self.gpu is None else self.gpu
         #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
         opt['arch'] = "native" if self.arch is None else self.arch
-        #   gpu-config : compile for AMD/NVIDIA GPUs and choose compiler
-        opt['gpu-config'] = "cuda-nvcc" if self.gpu_config is None else self.gpu_config
 
         install.run(self)
 
@@ -107,10 +103,9 @@ class cmake_build(build_ext):
             '-DARB_WITH_PYTHON=on',
             '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DARB_WITH_MPI={}'.format( 'on' if opt['mpi'] else 'off'),
-            '-DARB_WITH_GPU={}'.format( 'on' if opt['gpu'] else 'off'),
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(opt['arch']),
-            '-DARB_GPU_COMPILE_TYPE={}'.format(opt['gpu-config']),
+            '-DARB_GPU={}'.format(opt['gpu']),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 

@@ -35,14 +35,13 @@ option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
 
 # Specify GPU build type
 
-set(ARB_GPU_COMPILE_TYPE "cuda-nvcc" CACHE STRING "GPU compilation type")
-set_property(CACHE PROPERTY STRINGS "cuda-nvcc" "cuda-clang" "hip-clang")
+set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
+set_property(CACHE PROPERTY STRINGS "none" "cuda-nvcc" "cuda-clang" "hip-clang")
 
 #----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
 
-option(ARB_WITH_GPU "build with GPU support" OFF)
 option(ARB_WITH_GPU_FINE_MATRIX "use optimized fine matrix solver" ON)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
@@ -91,28 +90,30 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 # Add CUDA as a language if GPU support requested.
 # (This has to be set early so as to enable CUDA tests in generator
 # expressions.)
-if(ARB_WITH_GPU)
-    if(ARB_GPU_COMPILE_TYPE MATCHES "cuda-nvcc")
-        set(ARB_WITH_NVCC TRUE)
 
-        enable_language(CUDA)
+if(ARB_GPU MATCHES "cuda-nvcc")
+    set(ARB_WITH_NVCC TRUE)
 
-        # Despite native CUDA support, the CUDA package is still required to find
-        # the NVML library and to export the cuda library dependencies from the
-        # installed target.
-        find_package(CUDA REQUIRED)
+    enable_language(CUDA)
 
-    elseif(ARB_GPU_COMPILE_TYPE MATCHES "cuda-clang")
-        set(ARB_WITH_CUDA_CLANG TRUE)
+    # Despite native CUDA support, the CUDA package is still required to find
+    # the NVML library and to export the cuda library dependencies from the
+    # installed target.
+    find_package(CUDA REQUIRED)
 
-        # The CUDA package is needed for clang compilation for the same reasons as
-        # above.
-        # enable_langaue(CUDA) has a bug with clang
-        find_package(CUDA REQUIRED)
-    elseif(ARB_GPU_COMPILE_TYPE MATCHES "hip-clang")
-        set(ARB_WITH_HIP_CLANG TRUE)
-    endif()
+elseif(ARB_GPU MATCHES "cuda-clang")
+    set(ARB_WITH_CUDA_CLANG TRUE)
 
+    # The CUDA package is needed for clang compilation for the same reasons as
+    # above.
+    # enable_langaue(CUDA) has a bug with clang
+    find_package(CUDA REQUIRED)
+elseif(ARB_GPU MATCHES "hip-clang")
+    set(ARB_WITH_HIP_CLANG TRUE)
+endif()
+
+if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set(ARB_WITH_GPU)
 endif()
 
 # Build paths.
