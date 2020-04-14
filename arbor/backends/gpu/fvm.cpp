@@ -4,7 +4,7 @@
 #include "fvm.hpp"
 #include "mechanism.hpp"
 
-// Provides implementation of backend::mechanism_field_at.
+// Provides implementation of backend::mechanism_field_data.
 
 namespace arb {
 namespace gpu {

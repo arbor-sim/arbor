@@ -144,7 +144,7 @@ private:
         const fvm_cv_discretization& D,
         const fvm_mechanism_data& M,
         const std::vector<target_handle>& handles,
-        const std::unordered_map<std::string, mechanism*>& mech_tbl);
+        const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
 };
 
 template <typename Backend>
@@ -325,16 +325,16 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     };
 }
 
-template <typename B>
-void fvm_lowered_cell_impl<B>::update_ion_state() {
+template <typename Backend>
+void fvm_lowered_cell_impl<Backend>::update_ion_state() {
     state_->ions_init_concentration();
     for (auto& m: mechanisms_) {
         m->write_ions();
     }
 }
 
-template <typename B>
-void fvm_lowered_cell_impl<B>::assert_voltage_bounded(fvm_value_type bound) {
+template <typename Backend>
+void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(fvm_value_type bound) {
     auto v_minmax = state_->voltage_bounds();
     if (v_minmax.first>=-bound && v_minmax.second<=bound) {
         return;
@@ -346,8 +346,8 @@ void fvm_lowered_cell_impl<B>::assert_voltage_bounded(fvm_value_type bound) {
         v_minmax.first<-bound? v_minmax.first: v_minmax.second);
 }
 
-template <typename B>
-void fvm_lowered_cell_impl<B>::initialize(
+template <typename Backend>
+void fvm_lowered_cell_impl<Backend>::initialize(
     const std::vector<cell_gid_type>& gids,
     const recipe& rec,
     std::vector<fvm_index_type>& cell_to_intdom,
@@ -553,8 +553,8 @@ void fvm_lowered_cell_impl<B>::initialize(
 }
 
 // Get vector of gap_junctions
-template <typename B>
-std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
+template <typename Backend>
+std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
         const recipe& rec, const fvm_cv_discretization& D) {
@@ -598,8 +598,8 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<B>::fvm_gap_junctions(
     return v;
 }
 
-template <typename B>
-fvm_size_type fvm_lowered_cell_impl<B>::fvm_intdom(
+template <typename Backend>
+fvm_size_type fvm_lowered_cell_impl<Backend>::fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
         std::vector<fvm_index_type>& cell_to_intdom) {
@@ -648,14 +648,14 @@ fvm_size_type fvm_lowered_cell_impl<B>::fvm_intdom(
     return intdom_id;
 }
 
-template <typename B>
-fvm_probe_info fvm_lowered_cell_impl<B>::resolve_probe_address(
+template <typename Backend>
+fvm_probe_info fvm_lowered_cell_impl<Backend>::resolve_probe_address(
     std::size_t cell_idx,
     const util::any& paddr,
     const fvm_cv_discretization& D,
     const fvm_mechanism_data& M,
     const std::vector<target_handle>& handles,
-    const std::unordered_map<std::string, mechanism*>& mech_tbl)
+    const std::unordered_map<std::string, mechanism*>& mech_instance_by_name)
 {
     using util::any_cast;
     using util::value_by_key;
@@ -680,8 +680,8 @@ fvm_probe_info fvm_lowered_cell_impl<B>::resolve_probe_address(
     };
 
     auto lookup_mechanism_data = [&](auto* p) -> mechanism_data {
-        if (mechanism* m = value_by_key(mech_tbl, p->mechanism).value_or(nullptr)) {
-            const fvm_value_type* data = B::mechanism_field_data(m, p->state);
+        if (mechanism* m = value_by_key(mech_instance_by_name, p->mechanism).value_or(nullptr)) {
+            const fvm_value_type* data = Backend::mechanism_field_data(m, p->state);
             if (!data) {
                 throw cable_cell_error("no state variable '"+p->state+"' in mechanism '"+p->mechanism+"'");
             }
