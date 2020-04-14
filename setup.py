@@ -71,7 +71,7 @@ class install_command(install):
         #   mpi  : build with MPI support (boolean).
         opt['mpi']  = self.mpi is not None
         #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
-        opt['gpu']  = "" if self.gpu is None else self.gpu
+        opt['gpu']  = "none" if self.gpu is None else self.gpu
         #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
