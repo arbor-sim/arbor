@@ -21,7 +21,7 @@ RUN mkdir /arbor/build && cd /arbor/build && \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
-    /root/libtree/libtree \
+    /root/libtree/libtree --chrpath --strip \
       -d /root/arbor.bundle \
       /arbor/build/bin/modcc \
       /arbor/build/bin/unit \
