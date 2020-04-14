@@ -15,6 +15,7 @@
 #include "util/maputil.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/range.hpp"
+#include "util/rangeutil.hpp"
 
 #include "backends/multicore/mechanism.hpp"
 #include "backends/multicore/multicore_common.hpp"
@@ -211,6 +212,15 @@ void mechanism::initialize() {
         }
     }
 }
+
+fvm_value_type* mechanism::field_data(const std::string& field_var) {
+    if (auto opt_ptr = value_by_key(field_table(), field_var)) {
+        return *opt_ptr.value();
+    }
+
+    return nullptr;
+}
+
 
 } // namespace multicore
 } // namespace arb

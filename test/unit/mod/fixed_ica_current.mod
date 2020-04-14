@@ -2,23 +2,23 @@
 
 NEURON {
     SUFFIX fixed_ica_current
-    USEION ca WRITE ica VALENCE 2
-    RANGE ica_density
+    USEION ca WRITE ica
+    RANGE current_density
 }
 
 PARAMETER {
-    ica_density = 0
+    current_density = 0
 }
 
 ASSIGNED {}
 
 INITIAL {
-    ica = ica_density
+    ica = current_density
 }
 
 STATE {}
 
 BREAKPOINT  {
-    ica = ica_density
+    ica = current_density
 }
 
