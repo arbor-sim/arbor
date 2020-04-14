@@ -482,14 +482,14 @@ TEST(probe, gpu_expsyn_g) {
     }
 }
 
-TEST(probe, multicore_ion_conc) {
+TEST(probe, gpu_ion_conc) {
     context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
     if (has_gpu(ctx)) {
         run_ion_density_probe_test<gpu::backend>(ctx);
     }
 }
 
-TEST(probe, multicore_ion_currents) {
+TEST(probe, gpu_ion_currents) {
     context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
     if (has_gpu(ctx)) {
         run_ion_current_probe_test<gpu::backend>(ctx);
