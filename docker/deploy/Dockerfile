@@ -21,13 +21,13 @@ RUN mkdir /arbor/build && cd /arbor/build && \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
-    /root/bundler/bundler \
+    /root/libtree/libtree \
       -d /root/arbor.bundle \
-      -e /arbor/build/bin/modcc \
-      -e /arbor/build/bin/unit \
-      -e /arbor/build/bin/unit-local \
-      -e /arbor/build/bin/unit-modcc \
-      -e /arbor/build/bin/unit-mpi && \
+      /arbor/build/bin/modcc \
+      /arbor/build/bin/unit \
+      /arbor/build/bin/unit-local \
+      /arbor/build/bin/unit-modcc \
+      /arbor/build/bin/unit-mpi && \
     rm -rf /arbor
 
 FROM ubuntu:18.04
