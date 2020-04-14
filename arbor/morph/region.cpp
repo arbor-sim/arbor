@@ -9,6 +9,7 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/util/optional.hpp>
 
+#include "util/mergeview.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 #include "util/range.hpp"
@@ -65,7 +66,7 @@ mextent thingify_(const cable_& reg, const mprovider& p) {
     if (reg.cable.branch>=p.morphology().num_branches()) {
         throw no_such_branch(reg.cable.branch);
     }
-    return mextent(p.morphology(), mcable_list{{reg.cable}});
+    return mextent(mcable_list{{reg.cable}});
 }
 
 std::ostream& operator<<(std::ostream& o, const cable_& c) {
@@ -94,7 +95,7 @@ mextent thingify_(const cable_list_& reg, const mprovider& p) {
     if (last_branch>=p.morphology().num_branches()) {
         throw no_such_branch(last_branch);
     }
-    return mextent(p.morphology(), reg.cables);
+    return mextent(reg.cables);
 }
 
 std::ostream& operator<<(std::ostream& o, const cable_list_& x) {
@@ -182,7 +183,7 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
         }
     }
 
-    return mextent(m, L);
+    return mextent(L);
 }
 
 std::ostream& operator<<(std::ostream& o, const tagged_& t) {
@@ -204,7 +205,7 @@ mextent thingify_(const all_&, const mprovider& p) {
     for (auto i: util::make_span(nb)) {
         branches.push_back({i,0,1});
     }
-    return mextent(p.morphology(), branches);
+    return mextent(branches);
 }
 
 std::ostream& operator<<(std::ostream& o, const all_& t) {
@@ -276,7 +277,7 @@ mextent thingify_(const distal_interval_& reg, const mprovider& p) {
     }
 
     util::sort(L);
-    return mextent(m, L);
+    return mextent(L);
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
@@ -330,7 +331,7 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
     }
 
     util::sort(L);
-    return mextent(m, L);
+    return mextent(L);
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
@@ -351,7 +352,7 @@ mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {
         }
     }
 
-    return intersect(reg_extent, mextent(p.morphology(), cmp_cables));
+    return intersect(reg_extent, mextent(cmp_cables));
 }
 
 // Region with all segments with radius less than r
@@ -435,7 +436,7 @@ mextent projection_cmp(const mprovider& p, double v, comp_op op) {
     for (auto i: util::make_span(m.num_branches())) {
         util::append(L, e.projection_cmp(i, val, op));
     }
-    return mextent(p.morphology(), L);
+    return mextent(L);
 }
 
 // Region with all segments with projection less than val
@@ -549,6 +550,74 @@ mextent thingify_(const named_& n, const mprovider& p) {
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
     return o << "(region \"" << x.name << "\")";
+}
+
+// Adds all cover points to a region.
+// Ensures that all valid representations of all fork points in the region are included.
+struct super_ {
+    region reg;
+};
+
+region super(region r) {
+    return region(super_{std::move(r)});
+}
+
+mextent thingify_(const super_& r, const mprovider& p) {
+    const auto& m = p.morphology();
+    auto cables = thingify(r.reg, p).cables();
+    std::unordered_set<msize_t> branch_tails;
+
+    mcable_list cs;
+    for (auto& c: cables) {
+        mcable* prev = cs.empty()? nullptr: &cs.back();
+
+        if (c.prox_pos==0) {
+            branch_tails.insert(m.branch_parent(c.branch));
+        }
+        if (c.dist_pos==1) {
+            branch_tails.insert(c.branch);
+        }
+
+        if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
+            prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
+        }
+        else {
+            cs.push_back(c);
+        }
+    }
+
+    if (!branch_tails.empty()) {
+        std::vector<mcable> fork_covers;
+
+        for (auto b: branch_tails) {
+            if (b!=mnpos) fork_covers.push_back(mcable{b, 1., 1.});
+            for (auto b_child: m.branch_children(b)) {
+                fork_covers.push_back(mcable{b_child, 0., 0.});
+            }
+        }
+        util::sort(fork_covers);
+
+        // Merge cables in cs with 0-length cables corresponding to fork covers.
+        mcable_list a;
+        a.swap(cs);
+
+        for (auto c: util::merge_view(a, fork_covers)) {
+            mcable* prev = cs.empty()? nullptr: &cs.back();
+
+            if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
+                prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
+            }
+            else {
+                cs.push_back(c);
+            }
+        }
+    }
+
+    return {cs};
+}
+
+std::ostream& operator<<(std::ostream& o, const super_& r) {
+    return o << "(super " << r.reg << ")";
 }
 
 

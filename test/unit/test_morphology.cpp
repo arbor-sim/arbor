@@ -665,19 +665,31 @@ TEST(mextent, invariants) {
         {{  0,300,  0,  2}, 3},
     };
 
-    morphology m(sample_tree(samples, parents));
+    // Instantiate morphology with spherical_root=false.
+    morphology m(sample_tree(samples, parents), false);
 
-    mextent x1(m, cl{{1, 0.25, 0.75}});
+    mextent x1(cl{{1, 0.25, 0.75}});
     ASSERT_TRUE(x1.test_invariants(m));
     EXPECT_TRUE(cablelist_eq(cl{{1, 0.25, 0.75}}, x1.cables()));
 
-    mextent x2(m, cl{{1, 0., 0.75}});
+    mextent x2(cl{{1, 0., 0.75}});
     ASSERT_TRUE(x2.test_invariants(m));
-    EXPECT_TRUE(cablelist_eq(cl{{0, 0, 0}, {1, 0., 0.75}}, x2.cables()));
+    EXPECT_TRUE(cablelist_eq(cl{{1, 0., 0.75}}, x2.cables()));
 
-    mextent x3(m, cl{{2, 0., 1.}});
+    mextent x3(cl{{2, 0., 1.}});
     ASSERT_TRUE(x3.test_invariants(m));
-    EXPECT_TRUE(cablelist_eq(cl{{1, 1, 1}, {2, 0., 1.}, {3, 0., 0.}}, x3.cables()));
+    EXPECT_TRUE(cablelist_eq(cl{{2, 0., 1.}}, x3.cables()));
+
+    // Test that overlapping cables are merged on construction.
+    mextent x4(cl{{0, 0.0, 1.0}, {0, 0.5, 0.7},
+                  {1, 0.2, 0.8}, {1, 0.4, 0.6},
+                  {2, 0.2, 0.5}, {2, 0.5, 0.6},
+                  {3, 0.2, 0.5}, {3, 0.6, 0.7}});
+    ASSERT_TRUE(x4.test_invariants(m));
+    EXPECT_TRUE(cablelist_eq(cl{{0, 0.0, 1.0},
+                                {1, 0.2, 0.8},
+                                {2, 0.2, 0.6},
+                                {3, 0.2, 0.5}, {3, 0.6, 0.7}}, x4.cables()));
 }
 
 TEST(mextent, intersects) {
@@ -710,7 +722,7 @@ TEST(mextent, intersects) {
 
     morphology m(sample_tree(samples, parents));
 
-    mextent x1(m, cl{{1, 0.25, 0.75}});
+    mextent x1(cl{{1, 0.25, 0.75}});
     EXPECT_TRUE(x1.intersects(mlocation{1, 0.25}));
     EXPECT_TRUE(x1.intersects(mlocation{1, 0.5}));
     EXPECT_TRUE(x1.intersects(mlocation{1, 0.75}));
@@ -724,67 +736,14 @@ TEST(mextent, intersects) {
     EXPECT_TRUE(x1.intersects(mcable{1, 0.75, 1.0}));
     EXPECT_FALSE(x1.intersects(mcable{1, 0.8, 1.0}));
 
-    mextent x2(m, cl{{1, 0., 0.75}});
+    mextent x2(cl{{1, 0., 0.75}});
     EXPECT_TRUE(x2.intersects(mlocation{1, 0.}));
-    EXPECT_TRUE(x2.intersects(mlocation{0, 0.}));
+    EXPECT_FALSE(x2.intersects(mlocation{0, 0.}));
     EXPECT_FALSE(x2.intersects(mlocation{0, 1.}));
 
-    mextent x3(m, cl{{2, 0., 1.}});
+    mextent x3(cl{{2, 0., 1.}});
     EXPECT_FALSE(x3.intersects(mlocation{1, 0.}));
-    EXPECT_TRUE(x3.intersects(mlocation{1, 1.}));
-    EXPECT_TRUE(x3.intersects(mlocation{3, 0.}));
+    EXPECT_FALSE(x3.intersects(mlocation{1, 1.}));
+    EXPECT_FALSE(x3.intersects(mlocation{3, 0.}));
     EXPECT_FALSE(x3.intersects(mlocation{3, 1.}));
-}
-
-TEST(mextent, canonical) {
-    using namespace arb;
-    using testing::cablelist_eq;
-
-    using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
-    using cl = mcable_list;
-
-    // Eight samples
-    //                  no-sphere
-    //          sample   branch
-    //            0         0
-    //           1 3       0 1
-    //          2   4     0   1
-    //             5 6       2 3
-    //                7         3
-    pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 3},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 3},
-        {{  0,100,  0,  2}, 3},
-        {{100,100,  0,  2}, 3},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
-    };
-
-    morphology m(sample_tree(samples, parents));
-
-    mextent x1(m, cl{{0, 0.3, 0.7}, {1, 0.5, 0.7}, {3, 0.4, 1}});
-    EXPECT_TRUE(cablelist_eq(canonical(m, x1), x1.cables()));
-
-    mcable_list cl2{{1, 0.5, 1}, {2, 0, 0.5}}; // a reduced representation
-    mextent x2(m, cl2);
-    EXPECT_FALSE(cablelist_eq(cl2, x2.cables()));
-    EXPECT_TRUE(cablelist_eq(cl2, canonical(m, x2)));
-
-    mcable_list cl3{{3, 0, 0}}; // extent is cover of fork point
-    mextent x3(m, cl3);
-    EXPECT_TRUE(cablelist_eq(cl{{1, 1, 1}}, canonical(m, x3)));
-
-    mcable_list cl4{{1, 1, 1}, {3, 0, 0.5}}; // canonical repn excludes zero-length cable
-    mextent x4(m, cl4);
-    EXPECT_TRUE(cablelist_eq(cl{{3, 0, 0.5}}, canonical(m, x4)));
-
-    // Heads of top-level branches should be preserved.
-    mcable_list cl5{{1, 0, 0}};
-    mextent x5(m, cl5);
-    EXPECT_TRUE(cablelist_eq(cl{{0, 0, 0}, {1, 0, 0}}, x5.cables()));
-    EXPECT_TRUE(cablelist_eq(x5.cables(), canonical(m, x5)));
 }

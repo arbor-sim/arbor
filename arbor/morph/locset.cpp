@@ -171,7 +171,7 @@ mlocation_list thingify_(const on_branches_& ob, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const on_branches_& x) {
-    return o << "(on_branchs " << x.pos << ")";
+    return o << "(on_branches " << x.pos << ")";
 }
 
 // Named locset.
@@ -235,10 +235,10 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
-    return o << "(locset \"" << x.reg << "\")";
+    return o << "(distal \"" << x.reg << "\")";
 }
 
-// Most distal points of a region
+// Most proximal points of a region
 
 struct most_proximal_: locset_tag {
     explicit most_proximal_(region reg): reg(std::move(reg)) {}
@@ -251,15 +251,19 @@ locset most_proximal(region reg) {
 
 mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
     auto extent = thingify(n.reg, p);
-    if (extent.empty()) return {};
-
     arb_assert(extent.test_invariants(p.morphology()));
-    auto most_prox = extent.cables().front();
-    return {{most_prox.branch, most_prox.prox_pos}};
+
+    // Make a list of the proximal ends of each cable segment.
+    mlocation_list P;
+    for (const auto& c: extent.cables()) {
+        P.push_back({c.branch, c.prox_pos});
+    }
+
+    return minset(p.morphology(), P);
 }
 
 std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
-    return o << "(locset \"" << x.reg << "\")";
+    return o << "(proximal \"" << x.reg << "\")";
 }
 
 

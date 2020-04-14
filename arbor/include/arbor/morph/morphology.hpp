@@ -67,19 +67,16 @@ mlocation_list minset(const morphology&, const mlocation_list&);
 mlocation canonical(const morphology&, mlocation);
 
 // Represent a (possibly empty or disconnected) region on a morphology.
-// Wraps an mcable_list, and satisfies the additional constraints:
 //
-//    I.  Any two cables on the same branch are strictly disjoint, i.e.
-//        for cables p and q on the same branch, either p.prox_pos > q.dist_pos
-//        or p.dist_pos < q.prox_pos.
+// Wraps an mcable_list, and satisfies the additional constraint that
+// any two cables on the same branch are strictly disjoint, i.e.
+// for cables p and q on the same branch, either p.prox_pos > q.dist_pos
+// or p.dist_pos < q.prox_pos.
 //
-//    II. For any branch b on the morphology tree that intersects the subset
-//        described by the extent, there exists a cable in the extent defined
-//        on this branch b.
-//
-// While an mextent can only be built from an mcable_list in conjunction with
-// a morphology, union, intersection, and location membership operations can
-// be performed without one.
+// Union, intersection, and location membership operations can be performed
+// without a morphology.
+// A morphology is required to assert the invariant that an mextent does
+// not contain branches not in the morphology.
 struct mextent {
     mextent() = default;
     mextent(const mextent&) = default;
@@ -88,10 +85,13 @@ struct mextent {
     mextent& operator=(const mextent&) = default;
     mextent& operator=(mextent&&) = default;
 
-    mextent(const morphology&, const mcable_list&);
+    mextent(const mcable_list&);
 
-    bool test_invariants() const; // check invariant (I) above.
-    bool test_invariants(const morphology&) const; // check invariants (I) and (II) above.
+    // Check that the cable segments are valid, and that cables are strictly disjoint.
+    bool test_invariants() const;
+    // Checks the above, along with asserting that only cables in the morphology
+    // are present.
+    bool test_invariants(const morphology&) const;
 
     const mcable_list& cables() const {
         return cables_;
