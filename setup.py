@@ -18,7 +18,8 @@ class CL_opt:
             CL_opt.instance = {'mpi': False,
                                'gpu': False,
                                'vec': False,
-                               'arch': 'native'}
+                               'arch': 'native',
+                               'gpu-config': 'cuda-nvcc'}
 
     def settings(self):
         return CL_opt.instance
@@ -52,6 +53,7 @@ class install_command(install):
         ('gpu',   None, 'enable nvidia cuda support (requires cudaruntime and nvcc)'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a'),
+        ('gpu-config=', None, 'gpu compile type: cuda-nvcc, cuda-clang, or hip-clang'),
     ]
 
     def initialize_options(self):
@@ -60,6 +62,7 @@ class install_command(install):
         self.gpu  = None
         self.arch = None
         self.vec  = None
+        self.gpu_config  = None
 
     def finalize_options(self):
         install.finalize_options(self)
@@ -75,6 +78,8 @@ class install_command(install):
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
         opt['arch'] = "native" if self.arch is None else self.arch
+        #   gpu-config : compile for AMD/NVIDIA GPUs and choose compiler
+        opt['gpu-config'] = "cuda-nvcc" if self.gpu_config is None else self.gpu_config
 
         install.run(self)
 
@@ -105,6 +110,7 @@ class cmake_build(build_ext):
             '-DARB_WITH_GPU={}'.format( 'on' if opt['gpu'] else 'off'),
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(opt['arch']),
+            '-DARB_GPU_COMPILE_TYPE={}'.format(opt['gpu-config']),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
