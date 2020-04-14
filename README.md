@@ -1,4 +1,4 @@
-[![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/arbor-sim/arbor) 
+[![CI status](https://gitlab.com/cscs-ci/arbor-sim/arbor/badges/master/pipeline.svg)](https://gitlab.com/cscs-ci/arbor-sim/arbor/-/commits/master) [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/arbor-sim/arbor) 
 
 # Arbor Library
 
