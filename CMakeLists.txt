@@ -38,7 +38,6 @@ option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
 #----------------------------------------------------------
 
 option(ARB_WITH_GPU "build with GPU support" OFF)
-option(ARB_WITH_GPU_FINE_MATRIX "use optimized fine matrix solver" ON)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
@@ -234,9 +233,6 @@ endif()
 if(ARB_WITH_GPU)
     set(ARB_WITH_CUDA TRUE)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
-    if(ARB_WITH_GPU_FINE_MATRIX)
-        target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
-    endif()
 
     target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 

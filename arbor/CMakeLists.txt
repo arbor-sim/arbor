@@ -69,7 +69,6 @@ if(ARB_WITH_CUDA)
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
         backends/gpu/matrix_assemble.cu
-        backends/gpu/matrix_interleave.cu
         backends/gpu/matrix_fine.cu
         backends/gpu/matrix_solve.cu
         backends/gpu/multi_event_stream.cpp
