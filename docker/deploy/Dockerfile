@@ -17,7 +17,7 @@ RUN mkdir /arbor/build && cd /arbor/build && \
       -DARB_ARCH=broadwell \
       -DARB_WITH_PYTHON=OFF \
       -DARB_WITH_MPI=ON \
-      -DARB_WITH_GPU=ON \
+      -DARB_GPU=cuda-nvcc \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
