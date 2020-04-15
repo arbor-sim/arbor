@@ -48,6 +48,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     GCC         6.1.0
     Clang       4.0          Needs GCC 6 or later for standard library.
     Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
+    Hip Clang                Unofficial Release
     =========== ============ ============================================
 
 .. _note_CC:
@@ -106,6 +107,7 @@ GPU Support
 ~~~~~~~~~~~
 
 Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 9 is required.
+And experimental support for AMD GPUs when compiled with hip-clang (non-release compiler).
 
 Distributed
 ~~~~~~~~~~~
@@ -237,13 +239,22 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         cmake -DARB_VECTORIZE=ON -DARB_ARCH=haswell
 
-.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, targeting the `Broadwell architecture <install-vectorize_>`_, with support for `P100 GPUs <install-gpu_>`_, and building with `GCC 6 <install-compilers_>`_.
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, targeting the `Broadwell architecture <install-vectorize_>`_, with support for `Nvidia GPUs <install-gpu_>`_, and building with `GCC 6 <install-compilers_>`_.
 
     .. code-block:: bash
 
         export CC=gcc-6
         export CXX=g++-6
-        cmake -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_WITH_GPU=ON
+        cmake -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU=cuda
+
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, targeting the `Broadwell architecture <install-vectorize_>`_, with support for `AMD GPUs <install-gpu_>`_, and building with `hipcc <install-compilers_>`_.
+
+    .. code-block:: bash
+
+        export CC=clang
+        export CXX=hipcc
+        cmake -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU=hip
+
 
 .. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, optimized for the `local system architecture <install-architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
 
@@ -328,31 +339,59 @@ with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support 
 
 GPU Backend
 -----------
+Compiling for the GPU backend is controlled by the ``ARB_GPU`` CMake option which is used to select between NVIDIA and AMD GPUs
+as well as specify the chosen GPU compiler.
 
-Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting the
-CMake ``ARB_WITH_GPU`` option.
+* ``none``: The default option. Disables the GPU backend.
+* ``cuda``: Enables the GPU backend for NVIDIA GPUs and compiles Arbor with nvcc (CUDA files), and the default C++ compiler (C++ files).
+* ``cuda-clang``: Enables the GPU backend for NVIDIA GPUs and compiles Arbor with clang.
+* ``hip``: Enables the experimental GPU backend for AMD GPUs and compiles Arbor with hipcc.
+
+**NVIDIA GPUs**:
+
+Arbor supports NVIDIA GPUs using CUDA. Compiling Arbor for NVIDIA GPUs requires the CUDA Toolkit.
 
 .. code-block:: bash
 
-    cmake -DARB_WITH_GPU=ON
+    cmake -DARB_GPU=cuda
 
-By default ``ARB_WITH_GPU=OFF``. When the option is turned on, Arbor is built for all
-supported GPUs and the available GPU will be used at runtime.
+.. code-block:: bash
+
+    cmake -DARB_GPU=cuda-clang
+
+Arbor is built for all supported NVIDIA GPUs and the available GPU will be used at runtime.
 
 Depending on the configuration of the system where Arbor is being built, the
-C++ compiler may not be able to find the ``cuda.h`` header. The easiest workaround
-is to add the path to the include directory containing the header to the
+C++ compiler may not be able to find the ``cuda.h`` header when building for NIDIA GPUs.
+The easiest workaround is to add the path to the include directory containing the header to the
 ``CPATH`` environment variable before configuring and building Arbor, for
 example:
 
 .. code-block:: bash
 
     export CPATH="/opt/cuda/include:$CPATH"
-    cmake -DARB_WITH_GPU=ON
+    cmake -DARB_GPU=cuda
 
+
+**HIP GPUs**:
+
+Arbor has experimental support for AMD GPUs using HIP. The only compiler currently supported is the non-release hip-clang (``hipcc``) compiler.
+(For instructions on how to build hipcc, refer to the
+`HIP documentation <https://github.com/ROCm-Developer-Tools/HIP/blob/master/INSTALL.md#hip-clang>`_).
+
+*CMake configuration for compiling Arbor with hipcc (CUDA and C++ files):*
+
+.. code-block:: bash
+
+    export CC=clang
+    export CXX=hipcc
+    cmake -DARB_GPU=hip
+
+Arbor is built for all supported AMD GPUs and the available GPU will be used at runtime.
 
 .. Note::
     Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
+    as well as Vega10 and Vega20 GPUs
 
 
 .. _install-python:

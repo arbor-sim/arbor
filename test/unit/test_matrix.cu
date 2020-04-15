@@ -2,7 +2,13 @@
 #include <random>
 #include <vector>
 
+#ifdef ARB_HIP
+#include <hip/hip_runtime.h>
+#endif
+
+#ifdef ARB_CUDA
 #include <cuda.h>
+#endif
 
 #include <arbor/math.hpp>
 
@@ -11,7 +17,7 @@
 #include "memory/memory.hpp"
 #include "util/span.hpp"
 
-#include "backends/gpu/cuda_common.hpp"
+#include "backends/gpu/gpu_common.hpp"
 #include "backends/gpu/matrix_state_flat.hpp"
 #include "backends/gpu/matrix_state_fine.hpp"
 

@@ -51,12 +51,11 @@ build_modules(
 set(test_mech_sources)
 foreach(mech ${test_mechanisms})
     list(APPEND test_mech_sources ${test_mech_dir}/${mech}_cpu.cpp)
-    if(ARB_WITH_CUDA)
+    if(ARB_WITH_GPU)
         list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cpp)
         list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cu)
     endif()
 endforeach()
-
 
 # TODO: test_mechanism and mechanism prototype comparisons must
 # be re-jigged.
@@ -160,7 +159,7 @@ set(unit_sources
     unit_test_catalogue.cpp
 )
 
-if(ARB_WITH_CUDA)
+if(ARB_WITH_GPU)
     list(APPEND unit_sources
 
         test_intrin.cu
@@ -177,9 +176,28 @@ if(ARB_WITH_CUDA)
     )
 endif()
 
+if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set_source_files_properties(${unit_sources} PROPERTIES LANGUAGE CXX)
+    set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
+endif()
+
 add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
 add_dependencies(tests unit)
+
+if(ARB_WITH_NVCC)
+    target_compile_options(unit PRIVATE -DARB_CUDA)
+endif()
+
+if(ARB_WITH_CUDA_CLANG)
+    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+endif()
+
+if(ARB_WITH_HIP_CLANG)
+    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+endif()
 
 target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")

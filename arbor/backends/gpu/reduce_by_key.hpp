@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include "cuda_atomic.hpp"
-#include "cuda_common.hpp"
+#include "gpu_api.hpp"
+#include "gpu_common.hpp"
 
 namespace arb {
 namespace gpu {
@@ -36,12 +36,12 @@ struct key_set_pos {
         unsigned num_lanes = impl::threads_per_warp()-__clz(key_mask);
 
         // Determine if this thread is the root (i.e. first thread with this key).
-        int left_idx  = __shfl_up_sync(key_mask, idx, lane_id? 1: 0);
+        int left_idx  = shfl_up(key_mask, idx, lane_id, lane_id? 1: 0);
 
         is_root = lane_id? left_idx!=idx: 1;
 
         // Determine the range this thread contributes to.
-        unsigned roots = __ballot_sync(key_mask, is_root);
+        unsigned roots = ballot(key_mask, is_root);
 
         // Find the distance to the lane id one past the end of the run.
         // Take care if this is the last run in the warp.
@@ -59,8 +59,8 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
 
     unsigned w = shift<width? shift: 0;
 
-    while (__any_sync(run.key_mask, w)) {
-        T source_value = __shfl_down_sync(run.key_mask, contribution, w);
+    while (any(run.key_mask, w)) {
+        T source_value = shfl_down(run.key_mask, contribution, run.lane_id, w);
 
         if (w) contribution += source_value;
 
@@ -70,7 +70,7 @@ void reduce_by_key(T contribution, T* target, I i, unsigned mask) {
 
     if(run.is_root) {
         // The update must be atomic, because the run may span multiple warps.
-        cuda_atomic_add(target+i, contribution);
+        gpu_atomic_add(target+i, contribution);
     }
 }
 

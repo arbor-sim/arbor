@@ -15,7 +15,7 @@ public:
 
     bool has_atomic_double() const;
     bool has_gpu() const;
-    // Calls cudaSetDevice(id), so that GPU calls from the calling thread will
+    // Calls set_device(id), so that GPU calls from the calling thread will
     // be executed on the GPU.
     void set_gpu() const;
 };

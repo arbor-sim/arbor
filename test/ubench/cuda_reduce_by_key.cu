@@ -48,7 +48,7 @@ void reduce_by_atomic(const T* src, T* dst, const I* index, int n) {
     unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
 
     if (tid<n) {
-        cuda_atomic_add(dst + index[tid], src[tid]);
+        gpu_atomic_add(dst + index[tid], src[tid]);
     }
 }
 

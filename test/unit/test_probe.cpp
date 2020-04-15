@@ -13,7 +13,7 @@
 #include "backends/gpu/fvm.hpp"
 #endif
 #include "fvm_lowered_cell_impl.hpp"
-#include "memory/cuda_wrappers.hpp"
+#include "memory/gpu_wrappers.hpp"
 #include "util/rangeutil.hpp"
 
 #include "common.hpp"
@@ -55,7 +55,7 @@ struct backend_access<gpu::backend> {
 
     static fvm_value_type deref(const fvm_value_type* p) {
         fvm_value_type r;
-        memory::cuda_memcpy_d2h(&r, p, sizeof(r));
+        memory::gpu_memcpy_d2h(&r, p, sizeof(r));
         return r;
     }
 };

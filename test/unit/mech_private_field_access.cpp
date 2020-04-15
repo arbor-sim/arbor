@@ -7,7 +7,7 @@
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/fvm.hpp"
 #include "backends/gpu/mechanism.hpp"
-#include "memory/cuda_wrappers.hpp"
+#include "memory/gpu_wrappers.hpp"
 #endif
 
 #include "common.hpp"
@@ -40,7 +40,7 @@ std::vector<fvm_value_type> mechanism_field(gpu::mechanism* m, const std::string
     const fvm_value_type* field_data = *opt_ptr.value();
     std::vector<fvm_value_type> values(m->size());
 
-    memory::cuda_memcpy_d2h(values.data(), field_data, sizeof(fvm_value_type)*m->size());
+    memory::gpu_memcpy_d2h(values.data(), field_data, sizeof(fvm_value_type)*m->size());
     return values;
 }
 #endif

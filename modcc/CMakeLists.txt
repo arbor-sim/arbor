@@ -21,7 +21,7 @@ set(libmodcc_sources
     io/prefixbuf.cpp
     printer/cexpr_emit.cpp
     printer/cprinter.cpp
-    printer/cudaprinter.cpp
+    printer/gpuprinter.cpp
     printer/infoprinter.cpp
     printer/printerutil.cpp
 )

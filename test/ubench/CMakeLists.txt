@@ -12,7 +12,7 @@ set(bench_sources
     task_system.cpp
 )
 
-if(ARB_WITH_CUDA)
+if(ARB_WITH_GPU)
 list(APPEND bench_sources
     cuda_compare_and_reduce.cu
     cuda_reduce_by_key.cu

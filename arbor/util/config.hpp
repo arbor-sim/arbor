@@ -14,8 +14,8 @@ namespace config {
 //     * true:  calls to util::energy() will return valid results
 //     * false: calls to util::energy() will return -1
 //
-// has_cuda
-//     Has been compiled with CUDA back end support
+// has_gpu
+//     Has been compiled with CUDA/HIP back end support
 
 #ifdef __linux__
 constexpr bool has_memory_measurement = true;
@@ -30,9 +30,9 @@ constexpr bool has_power_measurement = false;
 #endif
 
 #ifdef ARB_HAVE_GPU
-constexpr bool has_cuda = true;
+constexpr bool has_gpu = true;
 #else
-constexpr bool has_cuda = false;
+constexpr bool has_gpu = false;
 #endif
 
 } // namespace config

@@ -561,6 +561,8 @@ TEST(morphology, branches) {
     }
 }
 
+// hipcc bug in reading DATADIR
+#ifndef ARB_HIP
 TEST(morphology, swc) {
     std::string datadir{DATADIR};
     auto fname = datadir + "/example.swc";
@@ -581,6 +583,7 @@ TEST(morphology, swc) {
     auto m = arb::morphology(sm);
     EXPECT_EQ(31u, m.num_branches());
 }
+#endif
 
 TEST(morphology, minset) {
     using pvec = std::vector<arb::msize_t>;

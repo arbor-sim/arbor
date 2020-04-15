@@ -279,6 +279,8 @@ TEST(swc_parser, valid_input)
     }
 }
 
+// hipcc bug in reading DATADIR
+#ifndef ARB_HIP
 TEST(swc_parser, from_allen_db)
 {
     std::string datadir{DATADIR};
@@ -295,6 +297,7 @@ TEST(swc_parser, from_allen_db)
     // verify that the correct number of nodes was read
     EXPECT_EQ(1058u, nodes.size());
 }
+#endif
 
 TEST(swc_parser, input_cleaning)
 {
