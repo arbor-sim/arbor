@@ -431,7 +431,9 @@ public:
 
             temp_u_shuffled[i] = -gij;
             invariant_d_tmp[i] += gij;
-            invariant_d_tmp[p[i]] += gij;
+            if (p[i]!=-1) {
+                invariant_d_tmp[p[i]] += gij;
+            }
         }
         u_shuffled = memory::make_const_view(temp_u_shuffled);
 

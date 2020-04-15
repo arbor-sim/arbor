@@ -61,7 +61,9 @@ public:
 
             u[i] = -gij;
             invariant_d[i] += gij;
-            invariant_d[p[i]] += gij;
+            if (p[i]!=-1) {
+                invariant_d[p[i]] += gij;
+            }
         }
     }
 
