@@ -55,6 +55,10 @@ public:
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
 
+    // Peek into mechanism state variable; implements arb::gpu::backend::mechanism_field_data.
+    // Returns pointer to GPU memory corresponding to state variable data.
+    fvm_value_type* field_data(const std::string& state_var);
+
     void initialize() override;
 
 protected:

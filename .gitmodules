@@ -7,3 +7,6 @@
 [submodule "python/pybind11"]
 	path = python/pybind11
 	url = https://github.com/pybind/pybind11.git
+[submodule "ci"]
+	path = ci
+	url = https://gitlab.com/cscs-ci/arbor-sim/arbor-ci.git

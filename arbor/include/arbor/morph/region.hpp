@@ -158,6 +158,9 @@ region z_dist_from_root_ge(double r);
 // Region with all segments in a cell.
 region all();
 
+// The extent of a region, i.e. including all fork cover points.
+region super(region);
+
 // Region associated with a name.
 region named(std::string);
 

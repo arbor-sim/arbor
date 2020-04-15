@@ -13,7 +13,7 @@ public:
     connection( cell_member_type src,
                 cell_member_type dest,
                 float w,
-                time_type d,
+                float d,
                 cell_gid_type didx=cell_gid_type(-1)):
         source_(src),
         destination_(dest),
@@ -36,8 +36,8 @@ public:
 private:
     cell_member_type source_;
     cell_member_type destination_;
-    float delay_;
     float weight_;
+    float delay_;
     cell_size_type index_on_domain_;
 };
 

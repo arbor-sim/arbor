@@ -1,0 +1,37 @@
+vscode:
+  extensions:
+    - twxs.cmake@0.0.17:9s7m9CWOr6i6NZ7CNNF4kw==
+    - ms-vscode.cmake-tools@1.3.1:Yde58UUl5J9XpLmXM+Bqiw==
+    - ms-vscode.cpptools@0.26.2:Pq/tmf2WN3SanVzB4xZc1g==
+    - eamodio.gitlens@10.2.1:ZI2Sl3DHdJu4aG2wW92CQQ==
+
+tasks:
+  - init: |
+      git submodule update --init --recursive
+      mkdir build
+      cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -H/workspace/arbor -B/workspace/arbor/build \
+      -DCMAKE_INSTALL_PREFIX:STRING=/workspace/arbor/install -DCMAKE_BUILD_TYPE:STRING=Debug -G "Unix Makefiles" \
+      -DARB_WITH_PYTHON:BOOL=ON
+      ln -s /workspace/arbor/build/compile_commands.json /workspace/arbor
+      export PYTHONPATH=/workspace/arbor/install/lib/python3.7/site-packages
+    prebuild: |
+      cmake --build /workspace/arbor/build/ --parallel $(nproc) --target install
+
+github:
+  prebuilds:
+    # enable for the master/default branch (defaults to true)
+    master: true
+    # enable for all branches in this repo (defaults to false)
+    branches: false
+    # enable for pull requests coming from this repo (defaults to true)
+    pullRequests: true
+    # enable for pull requests coming from forks (defaults to false)
+    pullRequestsFromForks: true
+    # add a check to pull requests (defaults to true)
+    addCheck: true
+    # add a "Review in Gitpod" button as a comment to pull requests (defaults to false)
+    addComment: false
+    # add a "Review in Gitpod" button to the pull request's description (defaults to false)
+    addBadge: false
+    # add a label once the prebuild is ready to pull requests (defaults to false)
+    addLabel: false

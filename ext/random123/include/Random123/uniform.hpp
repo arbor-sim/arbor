@@ -125,7 +125,7 @@ R123_MK_SIGNED_UNSIGNED(__int128_t, __uint128_t);
 #undef R123_MK_SIGNED_UNSIGNED
 #endif
 
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#if defined(_LIBCPP_HAS_NO_CONSTEXPR)
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.  
 //

@@ -1,12 +1,12 @@
-// CUDA kernels and wrappers for shared state methods.
+// GPU kernels and wrappers for shared state methods.
 
 #include <cstdint>
 
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 
-#include "cuda_atomic.hpp"
-#include "cuda_common.hpp"
+#include "gpu_api.hpp"
+#include "gpu_common.hpp"
 
 namespace arb {
 namespace gpu {
@@ -29,7 +29,7 @@ __global__ void add_gj_current_impl(unsigned n, const T* gj_info, const I* volta
         auto gj = gj_info[i];
         auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
 
-        cuda_atomic_sub(current_density + gj.loc.first, curr);
+        gpu_atomic_sub(current_density + gj.loc.first, curr);
     }
 }
 

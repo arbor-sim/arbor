@@ -33,12 +33,14 @@ option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
 
 option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
 
+# Specify GPU build type
+
+set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
+set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
+
 #----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
-
-option(ARB_WITH_GPU "build with GPU support" OFF)
-option(ARB_WITH_GPU_FINE_MATRIX "use optimized fine matrix solver" ON)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
@@ -86,13 +88,30 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 # Add CUDA as a language if GPU support requested.
 # (This has to be set early so as to enable CUDA tests in generator
 # expressions.)
-if(ARB_WITH_GPU)
+
+if(ARB_GPU STREQUAL "cuda")
+    set(ARB_WITH_NVCC TRUE)
+
     enable_language(CUDA)
 
     # Despite native CUDA support, the CUDA package is still required to find
     # the NVML library and to export the cuda library dependencies from the
     # installed target.
     find_package(CUDA REQUIRED)
+
+elseif(ARB_GPU STREQUAL "cuda-clang")
+    set(ARB_WITH_CUDA_CLANG TRUE)
+
+    # The CUDA package is needed for clang compilation for the same reasons as
+    # above.
+    # enable_langaue(CUDA) has a bug with clang
+    find_package(CUDA REQUIRED)
+elseif(ARB_GPU STREQUAL "hip")
+    set(ARB_WITH_HIP_CLANG TRUE)
+endif()
+
+if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set(ARB_WITH_GPU TRUE)
 endif()
 
 # Build paths.
@@ -112,10 +131,10 @@ include("CheckCompilerXLC")
 # Compiler options common to library, examples, tests, etc.
 
 include("CompilerOptions")
-add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_DEBUG}>"
-    "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 #----------------------------------------------------------
 # Set up flags and dependencies:
@@ -232,48 +251,62 @@ endif()
 #--------------
 
 if(ARB_WITH_GPU)
-    set(ARB_WITH_CUDA TRUE)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
-    if(ARB_WITH_GPU_FINE_MATRIX)
-        target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
-    endif()
 
-    target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+    if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
+        target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-    # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
+        # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
 
-    if (${CUDA_VERSION_MAJOR} LESS 10)
-        set(arborenv_requires_nvml TRUE)
-    endif()
-
-    if(arborenv_requires_nvml)
-        set(nvml_names nvidia-ml) # Note: platform dependent? e.g. nvml.lib on Windows.
-        find_library(CUDA_NVML
-                     NAMES ${nvml_names}
-                     NO_DEFAULT_PATH
-                     PATHS ${CMAKE_CUDA_IMPLICIT_DIRECTORIES} ${CUDA_TOOLKIT_ROOT_DIR}
-                     PATH_SUFFIXES lib64/stubs lib/stubs)
-
-        if (NOT CUDA_NVML)
-            message(FATAL_ERROR "Unable to find CUDA NVML library by: ${nvml_names}")
+        if (${CUDA_VERSION_MAJOR} LESS 10)
+            set(arborenv_requires_nvml TRUE)
         endif()
 
-        target_link_libraries(arborenv-private-deps INTERFACE ${CUDA_NVML})
-        target_compile_definitions(arborenv-private-deps INTERFACE ARBENV_USE_NVML)
+        if(arborenv_requires_nvml)
+            set(nvml_names nvidia-ml) # Note: platform dependent? e.g. nvml.lib on Windows.
+            find_library(CUDA_NVML
+                    NAMES ${nvml_names}
+                    NO_DEFAULT_PATH
+                    PATHS ${CMAKE_CUDA_IMPLICIT_DIRECTORIES} ${CUDA_TOOLKIT_ROOT_DIR}
+                    PATH_SUFFIXES lib64/stubs lib/stubs)
+
+            if (NOT CUDA_NVML)
+                message(FATAL_ERROR "Unable to find CUDA NVML library by: ${nvml_names}")
+            endif()
+
+            target_link_libraries(arborenv-private-deps INTERFACE ${CUDA_NVML})
+            target_compile_definitions(arborenv-private-deps INTERFACE ARBENV_USE_NVML)
+        endif()
+
+        add_compile_options(
+                "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
+                "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
     endif()
 
-    add_compile_options(
-        "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
-        "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
 
-    target_compile_options(arbor-private-deps INTERFACE
-        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
-    target_compile_options(arbor-private-deps INTERFACE
-        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
-    target_compile_options(arbor-private-deps INTERFACE
-        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
-    target_compile_options(arbor-private-deps INTERFACE
-        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+    if(ARB_WITH_NVCC)
+        target_compile_options(arbor-private-deps INTERFACE
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
+        target_compile_options(arbor-private-deps INTERFACE
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
+        target_compile_options(arbor-private-deps INTERFACE
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
+        target_compile_options(arbor-private-deps INTERFACE
+            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+
+        target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
+        target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
+
+    elseif(ARB_WITH_CUDA_CLANG)
+        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_35 --cuda-gpu-arch=sm_37 --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+        target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+        target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+
+    elseif(ARB_WITH_HIP_CLANG)
+        set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+        target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+        target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+    endif()
 endif()
 
 # Use libunwind if requested for pretty printing stack traces

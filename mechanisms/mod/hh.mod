@@ -35,6 +35,7 @@ ASSIGNED {
     mtau (ms)
     htau (ms)
     ntau (ms)
+    q10
 }
 
 BREAKPOINT {
@@ -47,24 +48,23 @@ BREAKPOINT {
 }
 
 INITIAL {
-    rates(v, celsius)
+    q10 = 3^((celsius - 6.3)/10)
+    rates(v)
     m = minf
     h = hinf
     n = ninf
 }
 
 DERIVATIVE states {
-    rates(v, celsius)
+    rates(v)
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
     n' = (ninf-n)/ntau
 }
 
-PROCEDURE rates(v, celsius)
+PROCEDURE rates(v)
 {
-    LOCAL  alpha, beta, sum, q10
-
-    q10 = 3^((celsius - 6.3)/10)
+    LOCAL  alpha, beta, sum
 
     :"m" sodium activation system
     alpha = .1 * vtrap(-(v+40),10)

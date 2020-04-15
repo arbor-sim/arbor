@@ -1,7 +1,7 @@
 #include <arbor/fvm_types.hpp>
 
-#include "cuda_atomic.hpp"
-#include "cuda_common.hpp"
+#include "gpu_api.hpp"
+#include "gpu_common.hpp"
 #include "stimulus.hpp"
 
 namespace arb {
@@ -16,7 +16,7 @@ namespace kernel {
             if (t>=pp.delay[i] && t<pp.delay[i]+pp.duration[i]) {
                 // use subtraction because the electrode currents are specified
                 // in terms of current into the compartment
-                cuda_atomic_add(pp.vec_i_+pp.node_index_[i], -pp.weight_[i]*pp.amplitude[i]);
+                gpu_atomic_add(pp.vec_i_+pp.node_index_[i], -pp.weight_[i]*pp.amplitude[i]);
             }
         }
     }

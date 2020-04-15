@@ -1,3 +1,5 @@
+#include "backends/gpu/gpu_api.hpp"
+
 #include <cstdint>
 
 namespace arb {

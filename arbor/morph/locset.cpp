@@ -16,6 +16,7 @@
 #include "util/transform.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
+#include "util/unique.hpp"
 
 namespace arb {
 namespace ls {
@@ -170,7 +171,7 @@ mlocation_list thingify_(const on_branches_& ob, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const on_branches_& x) {
-    return o << "(on_branchs " << x.pos << ")";
+    return o << "(on_branches " << x.pos << ")";
 }
 
 // Named locset.
@@ -203,21 +204,6 @@ locset most_distal(region reg) {
     return locset(most_distal_{std::move(reg)});
 }
 
-template <typename X>
-void unique_in_place(std::vector<X>& v) {
-    if (v.empty()) return;
-
-    auto write = v.begin();
-    auto read = write;
-
-    while (++read!=v.end()) {
-        if (*read==*write) continue;
-        if (++write!=read) *write = std::move(*read);
-    }
-
-    v.erase(++write, v.end());
-}
-
 mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     mlocation_list L;
 
@@ -244,12 +230,12 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     }
 
     util::sort(L);
-    unique_in_place(L);
+    util::unique_in_place(L);
     return L;
 }
 
 std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
-    return o << "(locset \"" << x.reg << "\")";
+    return o << "(distal \"" << x.reg << "\")";
 }
 
 // Most proximal points of a region
@@ -265,11 +251,15 @@ locset most_proximal(region reg) {
 
 mlocation_list thingify_old(const most_proximal_& n, const mprovider& p) {
     auto extent = thingify(n.reg, p);
-    if (extent.empty()) return {};
-
     arb_assert(extent.test_invariants(p.morphology()));
-    auto most_prox = extent.cables().front();
-    return {{most_prox.branch, most_prox.prox_pos}};
+
+    // Make a list of the proximal ends of each cable segment.
+    mlocation_list P;
+    for (const auto& c: extent.cables()) {
+        P.push_back({c.branch, c.prox_pos});
+    }
+
+    return minset(p.morphology(), P);
 }
 
 mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
@@ -286,7 +276,7 @@ mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
-    return o << "(locset \"" << x.reg << "\")";
+    return o << "(proximal \"" << x.reg << "\")";
 }
 
 

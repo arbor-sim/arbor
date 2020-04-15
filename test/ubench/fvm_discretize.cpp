@@ -15,8 +15,10 @@
 #define DATADIR "."
 #endif
 
+#define STRING(s) #s
+
 #undef SWCFILE
-#define SWCFILE DATADIR "/motoneuron.swc"
+#define SWCFILE STRING(DATADIR) "/motoneuron.swc"
 
 using namespace arb;
 

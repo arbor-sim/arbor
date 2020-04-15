@@ -1,6 +1,6 @@
 #ifdef ARB_HAVE_GPU
 
-#include <cuda_runtime.h>
+#include "gpu_api.hpp"
 
 namespace arbenv {
 
@@ -8,7 +8,7 @@ namespace arbenv {
 // indicates that no GPU is available.
 int default_gpu() {
     int n;
-    if (cudaGetDeviceCount(&n)==cudaSuccess) {
+    if (get_device_count(&n)) {
         // if 1 or more GPUs, take the first one.
         // else return -1 -> no gpu.
         return n? 0: -1;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu_common.hpp"
 #include "stack_storage.hpp"
 
 namespace arb {

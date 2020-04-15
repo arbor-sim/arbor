@@ -9,10 +9,10 @@
 #include <stdexcept>
 #include <vector>
 
-#include <cuda_runtime.h>
-
+#include <arbor/util/optional.hpp>
 #include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
+#include "gpu_api.hpp"
 
 
 // CUDA 10 allows GPU uuid to be queried via cudaGetDeviceProperties.
@@ -24,6 +24,28 @@
 #ifdef ARBENV_USE_NVML
     #include <nvml.h>
 #endif
+
+#ifdef __linux__
+extern "C" {
+    #include <unistd.h>
+}
+
+arb::util::optional<std::string> get_hostname() {
+    // Hostnames can be up to 256 characters in length, however on many systems
+    // it is limitted to 64.
+    char name[256];
+    auto result = gethostname(name, sizeof(name));
+    if (result) {
+        return arb::util::nullopt;
+    }
+    return std::string(name);
+}
+#else
+arb::util::optional<std::string> get_hostname() {
+    return arb::util::nullopt;
+}
+#endif
+
 
 using arb::util::on_scope_exit;
 
@@ -64,10 +86,10 @@ std::ostream& operator<<(std::ostream& o, const uuid& id) {
     return o;
 }
 
-std::runtime_error make_runtime_error(cudaError_t error_code) {
+std::runtime_error make_runtime_error(api_error_type error_code) {
     return std::runtime_error(
-        std::string("cuda runtime error ")
-        + cudaGetErrorName(error_code) + ": " + cudaGetErrorString(error_code));
+        std::string("gpu runtime error ")
+        + error_code.name() + ": " + error_code.description());
 }
 
 #ifndef ARBENV_USE_NVML
@@ -77,12 +99,12 @@ std::runtime_error make_runtime_error(cudaError_t error_code) {
 std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
     int ngpus = 0;
-    auto status = cudaGetDeviceCount(&ngpus);
-    if (status==cudaErrorNoDevice) {
+    auto status = get_device_count(&ngpus);
+    if (status.no_device_found()) {
         // No GPUs detected: return an empty list.
         return {};
     }
-    else if (status!=cudaSuccess) {
+    else if (!status) {
         throw make_runtime_error(status);
     }
 
@@ -91,15 +113,24 @@ std::vector<uuid> get_gpu_uuids() {
 
     // For each GPU query CUDA runtime API for uuid.
     for (int i=0; i<ngpus; ++i) {
-        cudaDeviceProp props;
-        status = cudaGetDeviceProperties(&props, i);
-        if (status!=cudaSuccess) {
+        DeviceProp props;
+        status = get_device_properties(&props, i);
+        if (!status) {
             throw make_runtime_error(status);
         }
 
         // Copy the bytes from props.uuid to uuids[i].
+
+#ifdef ARB_HIP
+        auto host = get_hostname();
+        if (!host) throw std::runtime_error("Can't uniquely identify GPUs on the system");
+        auto uid = std::hash<std::string>{} (*host + '-' + std::to_string(props.pciBusID) + '-' + std::to_string(props.pciDeviceID));
+        auto b = reinterpret_cast<const unsigned char*>(&uid);
+        std::copy(b, b+sizeof(std::size_t), uuids[i].bytes.begin());
+#else
         auto b = reinterpret_cast<const unsigned char*>(&props.uuid);
         std::copy(b, b+sizeof(uuid), uuids[i].bytes.begin());
+#endif
     }
 
     return uuids;
@@ -182,9 +213,9 @@ uuid string_to_uuid(char* str) {
 std::vector<uuid> get_gpu_uuids() {
     // Get number of devices.
     int ngpus = 0;
-    auto cuda_status = cudaGetDeviceCount(&ngpus);
-    if (cuda_status==cudaErrorNoDevice) return {};
-    else if (cuda_status!=cudaSuccess) throw make_runtime_error(cuda_status);
+    auto status = get_device_count(&ngpus);
+    if (status.no_device_found()) return {};
+    else if (!status) throw make_runtime_error(status);
 
     // Attempt to initialize nvml
     auto nvml_status = nvmlInit();

@@ -5,8 +5,7 @@
 #include "gpu_context.hpp"
 
 #ifdef ARB_HAVE_GPU
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include <backends/gpu/gpu_api.hpp>
 #endif
 
 namespace arb {
@@ -34,19 +33,19 @@ bool gpu_context::has_gpu() const {
 #ifndef ARB_HAVE_GPU
 
 void gpu_context::set_gpu() const {
-    throw arbor_exception("Arbor must be compiled with CUDA support to set a GPU.");
+    throw arbor_exception("Arbor must be compiled with CUDA/HIP support to set a GPU.");
 }
 
 gpu_context::gpu_context(int) {
-    throw arbor_exception("Arbor must be compiled with CUDA support to select a GPU.");
+    throw arbor_exception("Arbor must be compiled with CUDA/HIP support to select a GPU.");
 }
 
 #else
 
 gpu_context::gpu_context(int gpu_id) {
-    cudaDeviceProp prop;
-    auto status = cudaGetDeviceProperties(&prop, gpu_id);
-    if (status==cudaErrorInvalidDevice) {
+    gpu::DeviceProp prop;
+    auto status = gpu::get_device_properties(&prop, gpu_id);
+    if (status.is_invalid_device()) {
         throw arbor_exception("Invalid GPU id " + std::to_string(gpu_id));
     }
 
@@ -69,11 +68,10 @@ void gpu_context::set_gpu() const {
         throw arbor_exception(
             "Call to gpu_context::set_gpu() when there is no GPU selected.");
     }
-    auto status = cudaSetDevice(id_);
-    if (status != cudaSuccess) {
+    auto status = gpu::set_device(id_);
+    if (!status) {
         throw arbor_exception(
-            "Unable to select GPU id " + std::to_string(id_)
-            + ": " + cudaGetErrorName(status));
+            "Unable to select GPU id " + std::to_string(id_));
     }
 }
 

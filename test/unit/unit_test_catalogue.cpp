@@ -29,6 +29,7 @@
 #include "mechanisms/test_cl_valence.hpp"
 #include "mechanisms/test_ca_read_valence.hpp"
 #include "mechanisms/read_eX.hpp"
+#include "mechanisms/write_Xi_Xo.hpp"
 #include "mechanisms/write_multiple_eX.hpp"
 #include "mechanisms/write_eX.hpp"
 #include "mechanisms/read_cai_init.hpp"
@@ -74,6 +75,7 @@ mechanism_catalogue make_unit_test_catalogue() {
     ADD_MECH(cat, test_cl_valence)
     ADD_MECH(cat, test_ca_read_valence)
     ADD_MECH(cat, read_eX)
+    ADD_MECH(cat, write_Xi_Xo)
     ADD_MECH(cat, write_multiple_eX)
     ADD_MECH(cat, write_eX)
     ADD_MECH(cat, read_cai_init)

@@ -20,9 +20,9 @@ struct proc_allocation {
     unsigned num_threads;
 
     // The gpu id corresponds to the `int device` parameter used by
-    // CUDA API calls to identify gpu devices.
+    // CUDA/HIP API calls to identify gpu devices.
     // A gpud id of -1 indicates no GPU device is to be used.
-    // See CUDA documenation for cudaSetDevice and cudaDeviceGetAttribute.
+    // See documenation for cuda[/hip]SetDevice and cuda[/hip]DeviceGetAttribute.
     int gpu_id;
 
     proc_allocation(): proc_allocation(1, -1) {}

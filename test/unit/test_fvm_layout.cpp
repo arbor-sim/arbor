@@ -36,27 +36,27 @@ namespace {
         // Bulk resistivity: 90 Ω·cm
         // capacitance:
         //    soma:       0.01  F/m² [default]
-        //    segment 1:  0.017 F/m²
-        //    segment 2:  0.013 F/m²
-        //    segment 3:  0.018 F/m²
+        //    branch 1:  0.017 F/m²
+        //    branch 2:  0.013 F/m²
+        //    branch 3:  0.018 F/m²
         //
         // Soma diameter: 14 µm
         // Some mechanisms: HH (default params)
         //
-        // Segment 1 diameter: 1 µm
-        // Segment 1 length:   200 µm
+        // Branch 1 diameter: 1 µm
+        // Branch 1 length:   200 µm
         //
-        // Segment 2 diameter: 0.8 µm
-        // Segment 2 length:   300 µm
+        // Branch 2 diameter: 0.8 µm
+        // Branch 2 length:   300 µm
         //
-        // Segment 3 diameter: 0.7 µm
-        // Segment 3 length:   180 µm
+        // Branch 3 diameter: 0.7 µm
+        // Branch 3 length:   180 µm
         //
         // Dendrite mechanisms: passive (default params).
-        // Stimulus at end of segment 2, amplitude 0.45.
-        // Stimulus at end of segment 3, amplitude -0.2.
+        // Stimulus at end of branch 2, amplitude 0.45.
+        // Stimulus at end of branch 3, amplitude -0.2.
         //
-        // All dendrite segments with 4 compartments.
+        // All dendrite branches with 4 compartments.
 
         soma_cell_builder builder(7.);
         auto b1 = builder.add_branch(0, 200, 0.5,  0.5, 4,  "dend");
@@ -117,13 +117,13 @@ TEST(fvm_layout, mech_index) {
     EXPECT_EQ(mechanismKind::density, hh_config.kind);
     EXPECT_EQ(ivec({0,6}), hh_config.cv);
 
-    // Three expsyn synapses, two 0.4 along segment 1, and one 0.4 along segment 5.
+    // Three expsyn synapses, two 0.4 along branch 1, and one 0.4 along branch 5.
     // These two synapses can be coalesced into 1 synapse
-    // 0.4 along => second (non-parent) CV for segment.
+    // 0.4 along => second (non-parent) CV for branch.
 
     EXPECT_EQ(ivec({3, 17}), expsyn_config.cv);
 
-    // One exp2syn synapse, 0.4 along segment 4.
+    // One exp2syn synapse, 0.4 along branch 4.
 
     EXPECT_EQ(ivec({13}), exp2syn_config.cv);
 
@@ -459,28 +459,26 @@ namespace {
 TEST(fvm_layout, density_norm_area) {
     // Test area-weighted linear combination of density mechanism parameters.
 
-    // Create a cell with 4 segments:
+    // Create a cell with 4 branches:
     //   - Soma (branch 0) plus three dendrites (1, 2, 3) meeting at a branch point.
-    //   - HH mechanism on all segments.
+    //   - HH mechanism on all branches.
     //   - Discretize with 3 CVs per non-soma branch, centred on forks.
     //
     // The CV corresponding to the branch point should comprise the terminal
-    // 1/6 of segment 1 and the initial 1/6 of segments 2 and 3.
+    // 1/6 of branch 1 and the initial 1/6 of branches 2 and 3.
     //
     // The HH mechanism current density parameters ('gnabar', 'gkbar' and 'gl') are set
-    // differently for each segment:
+    // differently for each branch:
     //
     //   soma:      all default values (gnabar = 0.12, gkbar = .036, gl = .0003)
-    //   segment 1: gl = .0002
-    //   segment 2: gkbar = .05
-    //   segment 3: gkbar = .07, gl = .0004
+    //   branch 1: gl = .0002
+    //   branch 2: gkbar = .05
+    //   branch 3: gkbar = .07, gl = .0004
     //
     // Geometry:
-    //   segment 1: 100 µm long, 1 µm diameter cylinder.
-    //   segment 2: 200 µm long, diameter linear taper from 1 µm to 0.2 µm.
-    //   segment 3: 150 µm long, 0.8 µm diameter cylinder.
-    //
-    // Use divided compartment view on segments to compute area contributions.
+    //   branch 1: 100 µm long, 1 µm diameter cylinder.
+    //   branch 2: 200 µm long, diameter linear taper from 1 µm to 0.2 µm.
+    //   branch 3: 150 µm long, 0.8 µm diameter cylinder.
 
     soma_cell_builder builder(12.6157/2.0);
 
@@ -517,35 +515,35 @@ TEST(fvm_layout, density_norm_area) {
 
     std::vector<cable_cell> cells{std::move(cell)};
 
-    int ncv = 11; //ncomp + 1
+    int ncv = 11;
     std::vector<double> expected_gkbar(ncv, dflt_gkbar);
     std::vector<double> expected_gl(ncv, dflt_gl);
 
-    // Last 1/6 of segment 1
+    // Last 1/6 of branch 1
     double seg1_area_right = cells[0].embedding().integrate_area(mcable{1, 5./6., 1.});
-    // First 1/6 of segment 2
+    // First 1/6 of branch 2
     double seg2_area_left = cells[0].embedding().integrate_area(mcable{2, 0., 1./6.});
-    // First 1/6 of segment 3
+    // First 1/6 of branch 3
     double seg3_area_left = cells[0].embedding().integrate_area(mcable{3, 0., 1./6.});
 
     // CV 0: soma
-    // CV1: left of segment 1
+    // CV1: left of branch 1
     expected_gl[0] = dflt_gl;
     expected_gl[1] = seg1_gl;
 
     expected_gl[2] = seg1_gl;
     expected_gl[3] = seg1_gl;
 
-    // CV 4: mix of right of segment 1 and left of segments 2 and 3.
+    // CV 4: mix of right of branch 1 and left of branches 2 and 3.
     expected_gkbar[4] = wmean(seg1_area_right, dflt_gkbar, seg2_area_left, seg2_gkbar, seg3_area_left, seg3_gkbar);
     expected_gl[4] = wmean(seg1_area_right, seg1_gl, seg2_area_left, dflt_gl, seg3_area_left, seg3_gl);
 
-    // CV 5-7: just segment 2
+    // CV 5-7: just branch 2
     expected_gkbar[5] = seg2_gkbar;
     expected_gkbar[6] = seg2_gkbar;
     expected_gkbar[7] = seg2_gkbar;
 
-    // CV 8-10: just segment 3
+    // CV 8-10: just branch 3
     expected_gkbar[8] = seg3_gkbar;
     expected_gkbar[9] = seg3_gkbar;
     expected_gkbar[10] = seg3_gkbar;
@@ -570,6 +568,91 @@ TEST(fvm_layout, density_norm_area) {
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gkbar, gkbar));
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gl, gl));
+}
+
+TEST(fvm_layout, density_norm_area_partial) {
+    // Test area-weighted linear combination of density mechanism parameters,
+    // when mechanism covers only part of CV.
+
+    // Create a cell with 2 unbranched cables:
+    //   - Soma (branch 0) plus one constant-diameter dendrite.
+    //   - HH mechanism on part of the dendrite.
+    //   - Discretize with 1 CV per branch.
+    //
+    // The HH mechanism is applied to the first 30% and last 60% of the dendrite:
+    //
+    //   first 30%:  all default values (gnabar = 0.12, gkbar = .036, gl = .0003)
+    //   last 60%:   gl = .0002, gkbar = .05
+    //
+    // Geometry:
+    //   dendrite: 200 µm long, diameter linear taper from 1 µm to 0.2 µm.
+
+    soma_cell_builder builder(12.6157/2.0);
+
+    //                 p  len   r1   r2  ncomp tag
+    builder.add_branch(0, 200, 0.5, 0.1,     1, "dend");
+
+    double dflt_gnabar = .12;
+    double dflt_gkbar = .036;
+    double dflt_gl = 0.0003;
+
+    double end_gl = .0002;
+    double end_gkbar = .05;
+
+    auto hh_begin = mechanism_desc("hh");
+
+    auto hh_end = mechanism_desc("hh");
+    hh_end["gl"] = end_gl;
+    hh_end["gkbar"] = end_gkbar;
+
+    auto cell = builder.make_cell();
+    cell.default_parameters.discretization = cv_policy_fixed_per_branch(1);
+
+    cell.paint(mcable{1, 0., 0.3}, hh_begin);
+    cell.paint(mcable{1, 0.4, 1.}, hh_end);
+
+    std::vector<cable_cell> cells{std::move(cell)};
+
+    // First 30% of branch 1.
+    double b1_area_begin = cells[0].embedding().integrate_area(mcable{1, 0., 0.3});
+    // Last 60% of branch 1.
+    double b1_area_end = cells[0].embedding().integrate_area(mcable{1, 0.4, 1.});
+    // All of branch 1.
+    double b1_area = cells[0].embedding().integrate_area(mcable{1, 0., 1.});
+
+    double expected_norm_area = (b1_area_begin+b1_area_end)/b1_area;
+    double expected_gnabar = dflt_gnabar;
+    double expected_gkbar = (dflt_gkbar*b1_area_begin + end_gkbar*b1_area_end)/(b1_area_begin + b1_area_end);
+    double expected_gl = (dflt_gl*b1_area_begin + end_gl*b1_area_end)/(b1_area_begin + b1_area_end);
+
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+
+    // Grab the HH parameters from the mechanism.
+
+    EXPECT_EQ(1u, M.mechanisms.size());
+    ASSERT_EQ(1u, M.mechanisms.count("hh"));
+
+    auto& norm_area = M.mechanisms.at("hh").norm_area;
+    ASSERT_EQ(1u, norm_area.size());
+    EXPECT_DOUBLE_EQ(expected_norm_area, norm_area[0]);
+
+    auto& hh_params = M.mechanisms.at("hh").param_values;
+
+    auto& gkbar = value_by_key(hh_params, "gkbar"s).value();
+    auto& gnabar = value_by_key(hh_params, "gnabar"s).value();
+    auto& gl = value_by_key(hh_params, "gl"s).value();
+
+    ASSERT_EQ(1u, gkbar.size());
+    ASSERT_EQ(1u, gnabar.size());
+    ASSERT_EQ(1u, gl.size());
+
+    EXPECT_DOUBLE_EQ(expected_gkbar, gkbar[0]);
+    EXPECT_DOUBLE_EQ(expected_gnabar, gnabar[0]);
+    EXPECT_DOUBLE_EQ(expected_gl, gl[0]);
 }
 
 TEST(fvm_layout, valence_verify) {
@@ -599,9 +682,9 @@ TEST(fvm_layout, valence_verify) {
 }
 
 TEST(fvm_layout, ion_weights) {
-    // Create a cell with 4 segments:
-    //   - Soma (segment 0) plus three dendrites (1, 2, 3) meeting at a branch point.
-    //   - Dendritic segments are given 1 compartments each.
+    // Create a cell with 4 branches:
+    //   - Soma (branch 0) plus three dendrites (1, 2, 3) meeting at a branch point.
+    //   - Dendritic branches are given 1 compartments each.
     //
     //         /
     //        d2
@@ -611,7 +694,7 @@ TEST(fvm_layout, ion_weights) {
     //        d3
     //
     // The CV corresponding to the branch point should comprise the terminal
-    // 1/2 of segment 1 and the initial 1/2 of segments 2 and 3.
+    // 1/2 of branch 1 and the initial 1/2 of branches 2 and 3.
     //
     // Geometry:
     //   soma 0: radius 5 µm

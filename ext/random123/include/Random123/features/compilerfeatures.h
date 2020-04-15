@@ -202,8 +202,6 @@ added to each of the *features.h files, AND to examples/ut_features.cpp.
 #include "metalfeatures.h"
 #elif defined(__OPENCL_VERSION__) && __OPENCL_VERSION__ > 0
 #include "openclfeatures.h"
-#elif defined(__CUDACC__)
-#include "nvccfeatures.h"
 #elif defined(__ICC)
 #include "iccfeatures.h"
 #elif defined(__xlC__)

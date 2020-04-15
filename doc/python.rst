@@ -3,25 +3,137 @@
 Python
 ======
 
-Arbor provides access to all of the C++ library's functionality in Python,
-which is the only interface for many users.
-The getting started guides will introduce Arbor via the Python interface.
+Arbor's Python wrapper will be the most convenient interface for most users.
 
-To test that Arbor is available, try the following in a `Python 3 <python2_>`_ interpreter:
+Getting Arbor
+-------------
+
+The easiest way to get Arbor is with
+`pip <https://packaging.python.org/tutorials/installing-packages>`_:
+
+.. code-block:: bash
+
+    pip3 install arbor
+
+It is also possible to use Setuptools directly on a local copy of the source code:
+
+.. code-block:: bash
+
+    # use setuptools and python directly
+    git clone https://github.com/arbor-sim/arbor.git --recursive
+    python3 install ./arbor/setup.py
+
+.. note::
+    Arbor's Setuptools process simplifies installation for common configurations
+    on laptops and workstations by calling CMake under the hood.
+
+    To install Arbor on a HPC cluster, or to configure Arbor with system-specific
+    options, we recommend using the :ref:`CMake build process <installarbor>`.
+
+To test that Arbor is available in Python, try the following in a `Python 3 <python2_>`_ interpreter
+to see information about the version and enabled features:
 
 .. code-block:: python
 
     >>> import arbor
-    >>> print(arbor.__config__)
-    {'mpi': True, 'mpi4py': True, 'gpu': False, 'version': '0.2.3-dev'}
     >>> print(arbor.__version__)
-    0.2.3-dev
+    >>> print(arbor.__config__)
 
-The dictionary ``arbor.__config__`` contains information about the Arbor installation.
-This can be used to check that Arbor supports features that you require to run your model,
-or even to dynamically decide how to run a model.
-Single cell models like do not require parallelism like
-that provided by MPI or GPUs, so the ``'mpi'`` and ``'gpu'`` fields can be ``False``.
+Advanced Options
+^^^^^^^^^^^^^^^^^^
+
+By default Arbor is installed with multi-threading enabled.
+To enable more advanced forms of parallelism, the following optional flags can
+be used to configure the installation:
+
+* ``--mpi``: Enable MPI support (requires MPI library).
+* ``--gpu``: Enable GPU support for NVIDIA GPUs with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require cudaruntime).
+  Enable GPU support for AMD GPUs with hipcc using ``hip``. By default set to ``none``, which disables gpu support.
+* ``--vec``: Enable vectorization. This might require choosing an appropriate architecture using ``--arch``.
+* ``--arch``: CPU micro-architecture to target. By default this is set to ``native``.
+
+If calling ``setup.py`` the flags must come after ``install`` on the command line,
+and if being passed to pip they must be passed via ``--install-option``. The examples
+below demonstrate this for both pip and ``setup.py``.
+
+**Vanilla install** with no additional features enabled:
+
+.. code-block:: bash
+
+    pip3 install arbor
+    python3 ./arbor/setup.py install
+
+**With MPI support**. This might require loading an MPI module or setting the ``CC`` and ``CXX``
+:ref:`environment variables <install-mpi>`:
+
+.. code-block:: bash
+
+    pip3 install --install-option='--mpi' ./arbor
+    python3 ./arbor/setup.py install --mpi
+
+**Compile with** :ref:`vectorization <install-vectorize>` on a system with SkyLake:
+:ref:`architecture <install-architecture>`:
+
+.. code-block:: bash
+
+    pip3 install --install-option='--vec' --install-option='--arch=skylake' arbor
+    python3 ./arbor/setup.py install --vec --arch=skylake
+
+**Enable NVIDIA GPUs (compiled with nvcc)**. This requires the :ref:`CUDA toolkit <install-gpu>`:
+
+.. code-block:: bash
+
+    pip3 install --install-option='--gpu=cuda' ./arbor
+    python3 ./arbor/setup.py install  --gpu=cuda
+
+**Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
+
+.. code-block:: bash
+
+    pip3 install --install-option='--gpu=cuda-clang' ./arbor
+    python3 ./arbor/setup.py install --gpu=cuda-clang
+
+**Enable AMD GPUs (compiled with hipcc)**. This requires setting the ``CC`` and ``CXX``
+:ref:`environment variables <install-gpu>`
+
+.. code-block:: bash
+
+    pip3 install --install-option='--gpu=hip' ./arbor
+    python3 ./arbor/setup.py install --gpu=hip
+
+.. Note::
+    Setuptools compiles the Arbor C++ library and
+    wrapper, which can take a few minutes. Pass the ``--verbose`` flag to pip
+    to see the individual steps being performed if you are concerned that progress
+    is halting.
+
+.. Note::
+    Detailed instructions on how to install using CMake are in the
+    :ref:`Python configuration <install-python>` section of the
+    :ref:`installation guide <installarbor>`.
+    CMake is recommended for developers, integration with package managers such as
+    Spack and EasyBuild, and users who require fine grained control over compilation
+    and installation.
+
+.. Note::
+    To report problems installing with pip,
+    run pip with the ``--verbose`` flag, and attach the output (along with
+    the pip command itself) to a ticket on
+    `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
+
+Dependencies
+^^^^^^^^^^^^^
+
+If a downstream dependency requires Arbor be built with
+a specific feature enabled, use ``requirements.txt`` to
+`define the constraints <https://pip.pypa.io/en/stable/reference/pip_install/#per-requirement-overrides>`_.
+For example, a package that depends on `arbor` version 0.3 or later
+with MPI support would add the following to its requirements:
+
+.. code-block:: python
+
+    arbor >= 0.3 --install-option='--gpu=cuda' \
+                 --install-option='--mpi'
 
 Performance
 --------------
@@ -36,108 +148,13 @@ Python 2
 ----------
 
 Python 2 reached `end of life <https://pythonclock.org/>`_ in January 2020.
-Arbor only officially supports Python 3.6 and later, and all examples in the
-documentation are in Python 3. While it is possible to install and run Arbor
-using Python 2.7 by setting the ``PYTHON_EXECUTABLE`` variable when
-:ref:`configuring CMake <install-python>`, support is only provided for using
-Arbor with Python 3.6 and later.
+Arbor only provides support for Python 3.6 and later.
 
-Installing
--------------
+.. note::
+    It might be possible to install and run Arbor
+    using Python 2.7 by setting the ``PYTHON_EXECUTABLE`` variable when
+    :ref:`configuring CMake <install-python>`.
+    However, Arbor is not tested against Python 2.7, and we won't be able
+    to provide support.
 
-Before starting Arbor needs to be installed with the Python interface enabled.
-The easiest way to get started with the Python interface is to install Arbor using
-`pip <https://packaging.python.org/tutorials/installing-packages>`_.
-
-Installing with pip requires two steps:
-**(1)** Obtain Arbor source code from GitHub;
-**(2)** then use pip to compile and install the Arbor package in one shot.
-
-.. code-block:: bash
-
-    git clone https://github.com/arbor-sim/arbor.git --recursive
-    # use pip (recommended)
-    pip3 install ./arbor
-    # use setuptools and python directly
-    python3 install ./arbor/setup.py
-
-This will install Arbor as a site-wide package with only multi-threading enabled.
-
-To enable more advanced forms of parallelism, the following flags can optionally
-be passed to the pip install command:
-
-* ``--mpi``: enable mpi support (requires MPI library).
-* ``--gpu``: enable nvidia cuda support (requires cudaruntime and nvcc).
-* ``--vec``: enable vectorization. This might require carefully choosing the ``--arch`` flag.
-* ``--arch``: cpu micro-architecture to target. By default this is set to ``native``.
-
-If calling ``setup.py`` the flags must to come after ``install`` on the command line,
-and if being passed to pip they must be passed via ``--install-option``. The examples
-below demonstrate this for both pip and ``setup.py``, with pip being our recommend method.
-
-Vanilla install with no additional options/features enabled:
-
-.. code-block:: bash
-
-    pip3 install ./arbor
-    python3 ./arbor/setup.py install
-
-Enable MPI support. This might require loading an MPI module or setting the ``CC`` and ``CXX``
-:ref:`environment variables <install-mpi>`.
-
-.. code-block:: bash
-
-    pip3 install --install-option='--mpi' ./arbor
-    python3 ./arbor/setup.py install --mpi
-
-Compile with :ref:`vectorization <install-vectorize>` on a system with SkyLake
-:ref:`architecture <install-architecture>`:
-
-.. code-block:: bash
-
-    pip3 install --install-option='--vec' --install-option='--arch=skylake' ./arbor
-    python3 ./arbor/setup.py install --vec --arch=skylake
-
-Compile with support for NVIDIA GPUs. This requires that the :ref:`CUDA toolkit <install-gpu>`
-is installed and the CUDA compiler nvcc is available:
-
-.. code-block:: bash
-
-    pip3 install --install-option='--gpu' ./arbor
-    python3 ./arbor/setup.py install --gpu
-
-.. Note::
-    Installation takes a while because pip has to compile the Arbor C++ library and
-    wrapper, which takes a few minutes. Pass the ``--verbose`` flag to pip
-    to see the individual steps being preformed if concerned that progress
-    is halting.
-
-.. Note::
-    Detailed instructions on how to install using CMake are in the
-    :ref:`Python configuration <install-python>` section of the
-    :ref:`installation guide <installarbor>`.
-    CMake is recommended for developers, integration with package managers such as
-    Spack and EasyBuild, and users who require fine grained control over compilation
-    and installation.
-
-.. Note::
-    If there is an error installing with pip you want to report,
-    run pip with the ``--verbose`` flag, and attach the output (along with
-    the pip command itself) to a ticket on the
-    `Arbor GitHub <https://github.com/arbor-sim/arbor/issues>`_.
-    For example, ``pip3 install --install-option='--mpi' --verbose .``.
-
-Dependencies
-^^^^^^^^^^^^^
-
-If a downstream dependency of Arbor that requires Arbor be built with
-a specific feature enabled, use ``requirements.txt`` to
-`define the constraints <https://pip.pypa.io/en/stable/reference/pip_install/#per-requirement-overrides>`_.
-For example, a package that depends on `arbor` would version 0.3 or later
-with MPI support would add the following to its requirements.
-
-.. code-block:: python
-
-    arbor >= 0.3 --install-option='--gpu' \
-                 --install-option='--mpi'
 

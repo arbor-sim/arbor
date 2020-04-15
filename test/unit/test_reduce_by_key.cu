@@ -14,7 +14,7 @@ __global__
 void reduce_kernel(const T* src, T* dst, const I* index, int n) {
     unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
 
-    unsigned mask = __ballot_sync(0xffffffff, tid<n);
+    unsigned mask = gpu::ballot(0xffffffff, tid<n);
     if (tid<n) {
         gpu::reduce_by_key(src[tid], dst, index[tid], mask);
     }
@@ -91,8 +91,6 @@ TEST(reduce_by_key, scatter)
     std::vector<double> in(index.size(), 1);
     std::vector<double> expected = {3., 1., 4., 2., 0., 0., 0., 5., 0., 0., 0., 1.};
 
-    unsigned m = index.size();
-
     EXPECT_EQ(n, expected.size());
 
     auto out = reduce(in, n, index);
@@ -115,7 +113,7 @@ __global__
 void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
     unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
 
-    unsigned mask = __ballot_sync(0xffffffff, tid<n);
+    unsigned mask = gpu::ballot(0xffffffff, tid<n);
     if (tid<n) {
         gpu::reduce_by_key(src[tid], dst, index[tid], mask);
         gpu::reduce_by_key(src[tid], dst, index[tid], mask);
@@ -151,8 +149,6 @@ TEST(reduce_by_key, scatter_twice)
     unsigned n = util::max_value(index)+1;
     std::vector<double> in(index.size(), 1);
     std::vector<double> expected = {6., 2., 4., 2., 0., 0., 0., 6., 0., 0., 0., 2.};
-
-    unsigned m = index.size();
 
     EXPECT_EQ(n, expected.size());
 

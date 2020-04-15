@@ -1,3 +1,5 @@
+[![CI status](https://gitlab.com/cscs-ci/arbor-sim/arbor/badges/master/pipeline.svg)](https://gitlab.com/cscs-ci/arbor-sim/arbor/-/commits/master) [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/arbor-sim/arbor) 
+
 # Arbor Library
 
 [![Build Status](https://travis-ci.org/arbor-sim/arbor.svg?branch=master)](https://travis-ci.org/arbor-sim/arbor)
@@ -10,11 +12,13 @@ An installation guide and library documentation are available online at [Read th
 
 ### Citing Arbor
 
-It is possible to cite specific versions of Arbor used to run a simulation via Zenodo:
+The Arbor software can be cited via Zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg)](https://doi.org/10.5281/zenodo.1459678).
+
+Previous versions of Arbor can be cited specifically:
 * Version 0.2: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2583709.svg)](https://doi.org/10.5281/zenodo.2583709)
 * Version 0.1: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1459679.svg)](https://doi.org/10.5281/zenodo.1459679)
 
-The following BibTeX can be used to cite Arbor:
+The following BibTeX entry can be used to cite Arbor:
 
 ```
 @INPROCEEDINGS{

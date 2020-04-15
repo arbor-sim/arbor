@@ -7,10 +7,33 @@ from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
 import subprocess
 
+# Singleton class that holds the settings configured using command line
+# options. This information has to be stored in a singleton so that it
+# can be passed between different stages of the build, and because pip
+# has strange behavior between different versions.
+class CL_opt:
+    instance = None
+    def __init__(self):
+        if not CL_opt.instance:
+            CL_opt.instance = {'mpi': False,
+                               'gpu': 'none',
+                               'vec': False,
+                               'arch': 'native'}
+
+    def settings(self):
+        return CL_opt.instance
+
+def cl_opt():
+    return CL_opt().settings()
+
 # VERSION is in the same path as setup.py
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
     version_ = version_file.read().strip()
+
+# Get the contents of the readme
+with open(os.path.join(here, 'python/readme.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 def check_cmake():
     try:
@@ -26,7 +49,8 @@ def check_cmake():
 class install_command(install):
     user_options = install.user_options + [
         ('mpi',   None, 'enable mpi support (requires MPI library)'),
-        ('gpu',   None, 'enable nvidia cuda support (requires cudaruntime and nvcc)'),
+        ('gpu=',  None, 'enable nvidia cuda support (requires cudaruntime and nvcc) or amd hip support. Supported values: '
+                        'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a'),
     ]
@@ -42,18 +66,17 @@ class install_command(install):
         install.finalize_options(self)
 
     def run(self):
-        # The options are stored in a dictionary cl_opt, with the following keys:
-        #   'mpi'  : build with MPI support (boolean).
-        #   'gpu'  : build with CUDA support (boolean).
-        #   'vec'  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
-        #   'arch' : target CPU micro-architecture (string).
-        global cl_opt
-        cl_opt = {
-            'mpi' : self.mpi is not None,
-            'gpu' : self.gpu is not None,
-            'vec' : self.vec is not None,
-            'arch': "native" if self.arch is None else self.arch
-        }
+        # The options are stored in global variables:
+        opt = cl_opt()
+        #   mpi  : build with MPI support (boolean).
+        opt['mpi']  = self.mpi is not None
+        #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
+        opt['gpu']  = "none" if self.gpu is None else self.gpu
+        #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
+        opt['vec']  = self.vec is not None
+        #   arch : target CPU micro-architecture (string).
+        opt['arch'] = "native" if self.arch is None else self.arch
+
         install.run(self)
 
 class cmake_extension(Extension):
@@ -65,22 +88,6 @@ class cmake_build(build_ext):
         if not check_cmake():
             raise RuntimeError('CMake is not available. CMake 3.12 is required.')
 
-        # cl_opt contains the command line arguments passed to install, via
-        # --install-option if using pip.
-        # pip skips building wheels when --install-option flags are set.
-        # However, when no --install-options are passed, it runs build_ext
-        # without running install_command, required to create and set cl_opt.
-        # This hack works around this. I think that the upshot of this is
-        # that only wheels built with default configuration will be possible.
-
-        if 'cl_opt' not in globals():
-            cl_opt = {
-                    'mpi': False,
-                    'gpu': False,
-                    'vec': False,
-                    'arch': 'native'
-            }
-
         # The path where CMake will be configured and Arbor will be built.
         build_directory = os.path.abspath(self.build_temp)
         # The path where the package will be copied after building.
@@ -91,27 +98,24 @@ class cmake_build(build_ext):
         # can copy it into the target 'prefix' path.
         dest_path = lib_directory + '/arbor'
 
+        opt = cl_opt()
         cmake_args = [
             '-DARB_WITH_PYTHON=on',
             '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DARB_WITH_MPI={}'.format('on' if cl_opt['mpi'] else 'off'),
-            '-DARB_WITH_GPU={}'.format('on' if cl_opt['gpu'] else 'off'),
-            '-DARB_VECTORIZE={}'.format('on' if cl_opt['vec'] else 'off'),
-            '-DARB_ARCH={}'.format(cl_opt['arch']),
+            '-DARB_WITH_MPI={}'.format( 'on' if opt['mpi'] else 'off'),
+            '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
+            '-DARB_ARCH={}'.format(opt['arch']),
+            '-DARB_GPU={}'.format(opt['gpu']),
+            '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
-        print('-'*5, 'command line options: {}'.format(cl_opt))
+        print('-'*5, 'command line arguments: {}'.format(opt))
         print('-'*5, 'cmake arguments: {}'.format(cmake_args))
 
-        cfg = 'Debug' if self.debug else 'Release'
-        build_args = ['--config', cfg]
-
-        cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
+        build_args = ['--config', 'Release']
 
         # Assuming Makefiles
-        build_args += ['--', '-j4']
-
-        self.build_args = build_args
+        build_args += ['--', '-j2']
 
         env = os.environ.copy()
         env['CXXFLAGS'] = '{}'.format(env.get('CXXFLAGS', ''))
@@ -125,7 +129,7 @@ class cmake_build(build_ext):
                               cwd=self.build_temp, env=env)
 
         print('-'*20, 'Build')
-        cmake_cmd = ['cmake', '--build', '.'] + self.build_args
+        cmake_cmd = ['cmake', '--build', '.'] + build_args
         subprocess.check_call(cmake_cmd,
                               cwd=self.build_temp)
 
@@ -153,12 +157,11 @@ setuptools.setup(
     author='The lovely Arbor devs.',
     url='https://github.com/arbor-sim/arbor',
     description='High performance simulation of networks of multicompartment neurons.',
-    long_description='',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     classifiers=[
-        'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release of v0.3
+        'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release of v0.4
         'Intended Audience :: Science/Research',
-        'Topic :: Scientific/Engineering :: Build Tools',
-        'License :: OSI Approved :: BSD License'
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',

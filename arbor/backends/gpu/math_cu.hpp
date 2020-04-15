@@ -1,6 +1,7 @@
 #pragma once
 #include <cfloat>
 
+#include "gpu_api.hpp"
 // Implementations of mathematical operations required
 // by generated CUDA mechanisms.
 

@@ -8,11 +8,11 @@ set(bench_sources
     event_setup.cpp
     event_binning.cpp
     fvm_discretize.cpp
-    #    mech_vec.cpp --- requires rework for new API.
+    mech_vec.cpp
     task_system.cpp
 )
 
-if(ARB_WITH_CUDA)
+if(ARB_WITH_GPU)
 list(APPEND bench_sources
     cuda_compare_and_reduce.cu
     cuda_reduce_by_key.cu

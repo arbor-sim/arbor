@@ -29,20 +29,14 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
                 "Python error already thrown");
 }
 
-arb::cell_probe_address::probe_kind probe_kind_from_string(const std::string& name) {
-    if (name == "voltage") {
-        return arb::cell_probe_address::probe_kind::membrane_voltage;
-    }
-    else if (name == "current") {
-        return arb::cell_probe_address::probe_kind::membrane_current;
-    }
-    else throw pyarb_error(util::pprintf("invalid probe kind: {}, neither voltage nor current", name));
-}
-
 arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
-    auto pkind = probe_kind_from_string(kind);
-    arb::cell_probe_address probe{loc, pkind};
-    return arb::probe_info{id, pkind, probe};
+    if (kind == "voltage") {
+        return arb::probe_info{id, 0, arb::cell_probe_membrane_voltage{loc}};
+    }
+    else if (kind == "ionic current density") {
+        return arb::probe_info{id, 0, arb::cell_probe_total_ionic_current_density{loc}};
+    }
+    else throw pyarb_error(util::pprintf("unrecognized probe kind: {}", kind));
 };
 
 std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pygens, arb::cell_gid_type gid) {
@@ -97,7 +91,7 @@ void register_recipe(pybind11::module& m) {
         "Describes a connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
-        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, arb::time_type>(),
+        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
             "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection.\n"
@@ -180,7 +174,7 @@ void register_recipe(pybind11::module& m) {
     // Probes
     m.def("cable_probe", &cable_probe,
         "Description of a probe at a location on a cable cell with id available for monitoring data of kind "\
-        "where kind is one of 'voltage' or 'current'.",
+        "where kind is one of 'voltage' or 'ionic current density'.",
         "kind"_a, "id"_a, "location"_a);
 
     pybind11::class_<arb::probe_info> probe(m, "probe");
