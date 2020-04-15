@@ -36,7 +36,7 @@ option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
 # Specify GPU build type
 
 set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
-set_property(CACHE PROPERTY STRINGS "none" "cuda-nvcc" "cuda-clang" "hip-clang")
+set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
 
 #----------------------------------------------------------
 # Configure-time features for Arbor:
@@ -89,7 +89,7 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 # (This has to be set early so as to enable CUDA tests in generator
 # expressions.)
 
-if(ARB_GPU MATCHES "cuda-nvcc")
+if(ARB_GPU STREQUAL "cuda")
     set(ARB_WITH_NVCC TRUE)
 
     enable_language(CUDA)
@@ -99,14 +99,14 @@ if(ARB_GPU MATCHES "cuda-nvcc")
     # installed target.
     find_package(CUDA REQUIRED)
 
-elseif(ARB_GPU MATCHES "cuda-clang")
+elseif(ARB_GPU STREQUAL "cuda-clang")
     set(ARB_WITH_CUDA_CLANG TRUE)
 
     # The CUDA package is needed for clang compilation for the same reasons as
     # above.
     # enable_langaue(CUDA) has a bug with clang
     find_package(CUDA REQUIRED)
-elseif(ARB_GPU MATCHES "hip-clang")
+elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
 endif()
 

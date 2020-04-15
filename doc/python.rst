@@ -47,8 +47,8 @@ To enable more advanced forms of parallelism, the following optional flags can
 be used to configure the installation:
 
 * ``--mpi``: Enable MPI support (requires MPI library).
-* ``--gpu``: Enable GPU support for NVIDIA GPUs with nvcc using ``cuda-nvcc``, or with clang using ``cuda-clang`` (both require cudaruntime).
-  Enable GPU support for AMD GPUs with hipcc using ``hip-clang``. By default set to ``none``, which disables gpu support.
+* ``--gpu``: Enable GPU support for NVIDIA GPUs with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require cudaruntime).
+  Enable GPU support for AMD GPUs with hipcc using ``hip``. By default set to ``none``, which disables gpu support.
 * ``--vec``: Enable vectorization. This might require choosing an appropriate architecture using ``--arch``.
 * ``--arch``: CPU micro-architecture to target. By default this is set to ``native``.
 
@@ -83,8 +83,8 @@ below demonstrate this for both pip and ``setup.py``.
 
 .. code-block:: bash
 
-    pip3 install --install-option='--gpu=cuda-nvcc' ./arbor
-    python3 ./arbor/setup.py install  --gpu=cuda-nvcc
+    pip3 install --install-option='--gpu=cuda' ./arbor
+    python3 ./arbor/setup.py install  --gpu=cuda
 
 **Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
 
@@ -98,8 +98,8 @@ below demonstrate this for both pip and ``setup.py``.
 
 .. code-block:: bash
 
-    pip3 install --install-option='--gpu=hip-clang' ./arbor
-    python3 ./arbor/setup.py install --gpu=hip-clang
+    pip3 install --install-option='--gpu=hip' ./arbor
+    python3 ./arbor/setup.py install --gpu=hip
 
 .. Note::
     Setuptools compiles the Arbor C++ library and
@@ -132,7 +132,7 @@ with MPI support would add the following to its requirements:
 
 .. code-block:: python
 
-    arbor >= 0.3 --install-option='--gpu=cuda-nvcc' \
+    arbor >= 0.3 --install-option='--gpu=cuda' \
                  --install-option='--mpi'
 
 Performance

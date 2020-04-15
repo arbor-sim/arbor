@@ -50,7 +50,7 @@ class install_command(install):
     user_options = install.user_options + [
         ('mpi',   None, 'enable mpi support (requires MPI library)'),
         ('gpu=',  None, 'enable nvidia cuda support (requires cudaruntime and nvcc) or amd hip support. Supported values: '
-                        'none, cuda-nvcc, cuda-clang, hip-clang'),
+                        'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a'),
     ]
