@@ -449,7 +449,7 @@ TEST(fvm_lowered, derived_mechs) {
     cable1d_recipe rec(cells);
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
-    cell_probe_address where{{1, 0.3}, cell_probe_address::membrane_current};
+    cell_probe_total_ionic_current_density where{{1, 0.3}};
     rec.add_probe(0, 0, where);
     rec.add_probe(1, 0, where);
     rec.add_probe(2, 0, where);
@@ -662,7 +662,7 @@ TEST(fvm_lowered, ionic_currents) {
 
     const double jca = 1.5;
     mechanism_desc m1("fixed_ica_current");
-    m1["ica_density"] = jca;
+    m1["current_density"] = jca;
 
     // Mechanism models a well-mixed fixed-depth volume without replenishment,
     // giving a linear response to ica over time.

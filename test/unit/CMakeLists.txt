@@ -23,6 +23,7 @@ set(test_mechanisms
     test_cl_valence
     test_ca_read_valence
     read_eX
+    write_Xi_Xo
     write_multiple_eX
     write_eX
     read_cai_init

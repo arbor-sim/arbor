@@ -52,7 +52,6 @@ using arb::cell_size_type;
 using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
-using arb::cell_probe_address;
 
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
@@ -127,12 +126,10 @@ public:
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        // Get the appropriate kind for measuring voltage.
-        cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
         arb::mlocation loc{0, 0.0};
 
-        return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
+        return arb::probe_info{id, 0, arb::cell_probe_membrane_voltage{loc}};
     }
 
 private:

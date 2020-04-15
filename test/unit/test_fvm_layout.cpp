@@ -515,7 +515,7 @@ TEST(fvm_layout, density_norm_area) {
 
     std::vector<cable_cell> cells{std::move(cell)};
 
-    int ncv = 11; //ncomp + 1
+    int ncv = 11;
     std::vector<double> expected_gkbar(ncv, dflt_gkbar);
     std::vector<double> expected_gl(ncv, dflt_gl);
 

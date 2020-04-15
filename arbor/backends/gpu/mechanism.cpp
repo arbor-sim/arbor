@@ -195,6 +195,14 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
     }
 }
 
+fvm_value_type* mechanism::field_data(const std::string& field_var) {
+    if (auto opt_ptr = value_by_key(field_table(), field_var)) {
+        return *opt_ptr.value();
+    }
+
+    return nullptr;
+}
+
 void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 
 void mechanism::initialize() {

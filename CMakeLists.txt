@@ -42,8 +42,6 @@ set_property(CACHE PROPERTY STRINGS "none" "cuda-nvcc" "cuda-clang" "hip-clang")
 # Configure-time features for Arbor:
 #----------------------------------------------------------
 
-option(ARB_WITH_GPU_FINE_MATRIX "use optimized fine matrix solver" ON)
-
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
@@ -254,9 +252,6 @@ endif()
 
 if(ARB_WITH_GPU)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
-    if(ARB_WITH_GPU_FINE_MATRIX)
-        target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
-    endif()
 
     if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
         target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
