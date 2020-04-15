@@ -37,7 +37,7 @@ Locsets
 A *location* is used to place countable entities on the morphology.
 Examples of countable entities include synapses, gap junction
 sites, voltage recorders and current clamps.
-A *locset* is a set of locations.
+A *locset* is a multiset of locations, that is a collection of locations that can contain multiple instances of the same location.
 
 .. figure:: gen-images/locset_label_examples.svg
   :width: 800
@@ -221,58 +221,6 @@ Locset Expressions
 
     The location of sample with the id ``sample_id``.
 
-.. label:: (proximal reg:region)
-
-    .. figure:: gen-images/prox1.svg
-      :width: 600
-      :align: center
-
-
-    .. figure:: gen-images/prox2.svg
-      :width: 600
-      :align: center
-
-.. label:: (distal reg:region)
-
-    ``(location 0 0)`` in the distal set below is not prima facie logical: ``(0 0)`` is proximal to ``(1 1)``.
-    I can see how we arrived at this result:
-    a zero-length cable ``(5 0 0)`` is in the cover, so there is a distal point at ``(5 0)``,
-    which gets canonicalised to ``(0 0)``.
-
-    .. figure:: gen-images/dist1.svg
-      :width: 600
-      :align: center
-
-      (left) the region ``(join (branch 0) (branch 1))``. (right) The result of applying ``distal``: ``((location 0 0) (location 1 1))``.
-
-    That this is some mental gymnastics to justify having the root in the distal set of
-    the axon below. I believe that it is reasonable for
-    a user who wants to attach a probe at the end of the axon to expect ``(distal (tag 2))`` to give them what
-    they expect (I expected it to work that way).
-    More worryingly, I can't think of an expression that would give that point, besides an explicit reference ``(location 5 1)``.
-    Something like ``(intersect (terminal) (distal (tag 2)))`` would work if we added an ``intersect`` operation
-    for locsets, however:
-
-    * that only works because we have a convenient set that contains the point the user is looking for.
-    * what a mouthful!
-
-    To address this, I would like to propose adding some new operators that use the canonicalised cover.
-
-    .. figure:: gen-images/dist2.svg
-      :width: 600
-      :align: center
-
-      (left) the region ``(tag 2)``. (right) The result of applying ``distal``: ``((location 0 0) (location 5 1))``.
-
-   The results of this hold no surprises by virtue of not having a region end at the root.
-
-    .. figure:: gen-images/dist3.svg
-      :width: 600
-      :align: center
-
-      (left) the region ``((intersect (radius_le (all) 0.5) (radius_ge (all) 0.3)))``.
-      (right) The result of applying ``distal``: ``(1 0.793), (3 0.667)  (4 0.391), (5 1))``.
-
 .. label:: (uniform reg:region, first:int, last:int, seed:int)
 
     .. figure:: gen-images/uniform_label.svg
@@ -284,14 +232,98 @@ Locset Expressions
 
 .. label:: (on_branches pos:double)
 
+    The set of locations ``{(location b pos) | 0 ≤ b < nbranch-1}``.
+
+    .. figure:: gen-images/on_branches.svg
+      :width: 300
+      :align: center
+
+      The set of locations at the midpoint of every branch, expressed as ``(on_branches 0.5)``.
+
 .. label:: (locset name:string)
 
-.. label:: (join locset locset [...locset])
+    Refer to a locset by its label.
 
-.. label:: (sum locset locset [...locset])
+.. label:: (join lhs:locset rhs:locset [...locset])
 
+    Set intersection for two locsets, with duplicates removed and results sorted.
+
+    ``((1 0.5) (2 0.1) (1 0.2)) ∪ ((1 0.5) (4 0)) = ((1 0.2) (1 0.5) (2 0.1) (4 0))``
+
+
+.. label:: (sum lhs:locset rhs:locset [...locset])
+
+    multiset summation of two locsets, such that ``(sum lhs rhs) = A + B``, where A and B are multisets of locations.
+
+    ``((1 0.5) (2 0.1) (1 0.2)) + ((1 0.5) (4 0)) = ((1 0.5) (2 0.1) (1 0.2) (1 0.5) (4 0))``
 
 Region Expressions
 ~~~~~~~~~~~~~~~~~~~~~
+
+.. label:: (nil)
+
+    An empty region.
+
+.. label:: (all)
+
+    All branches in the morphology.
+
+    .. figure:: gen-images/nul_all_reg.svg
+      :width: 600
+      :align: center
+
+      The trivial region definitions ``(nul)`` (left) and ``(all)`` (right).
+
+.. label:: (tag tag_id:integer)
+
+    A region with all of the segments with tag ``tag_id``.
+    The tags of segments are discussed in the :ref:`morphology documentation <morph-tags>`.
+
+    .. figure:: gen-images/tag_reg.svg
+      :width: 900
+      :align: center
+
+
+.. label:: (branch branch_id:integer)
+
+    Refer to a specific numbered branch.
+
+    .. figure:: gen-images/branch_reg.svg
+      :width: 600
+      :align: center
+
+.. label:: (cable branch_id:integer prox:real dist:real)
+
+.. label:: (region name:string)
+
+    Refer to a region by its label.
+
+.. label:: (distal_interval start:locset extent:real)
+
+.. label:: (proximal_interval start:locset extent:real)
+
+.. label:: (radius_lt reg:region radius:real)
+
+    All parts of cable segments in the region ``reg`` with radius less than ``radius``.
+
+.. label:: (radius_le reg:region radius:real)
+
+    All parts of cable segments in the region ``reg`` with radius less than or equal to ``radius``.
+
+.. label:: (radius_gt reg:region radius:real)
+
+    All parts of cable segments in the region ``reg`` with radius greater than ``radius``.
+
+.. label:: (radius_ge reg:region radius:real)
+
+    All parts of cable segments in the region ``reg`` with radius greater than or equal to ``radius``.
+
+.. label:: (join lhs:region rhs:region [...region])
+
+    The union of two regions.
+
+.. label:: (intersect lhs:region rhs:region [...region])
+
+    The intersection of two regions: the region with cable segments in both ``lhs`` and ``rhs``.
 
 

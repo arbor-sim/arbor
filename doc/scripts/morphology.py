@@ -466,6 +466,7 @@ def generate(path=''):
 
     label_image(trees.morphlab, [term_lab, rand_dend_lab], path+'/locset_label_examples.svg')
 
+    soma_lab   = {'type':'region', 'value': [( 0,0.000,0.332), ( 5,0.000,0.000), ]}
     axon_lab   = {'type':'region', 'value': [( 0,0.000,0.000), ( 5,0.000,1.000), ]}
     dend_lab   = {'type':'region', 'value': [( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ]}
     radlt5_lab = {'type':'region', 'value': [( 1,0.439,1.000), ( 2,1.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
@@ -508,6 +509,20 @@ def generate(path=''):
     label_image(trees.morphlab, [reg_dist1_lab, ls_dist1_lab], path+'/dist1.svg')
     label_image(trees.morphlab, [axon_lab, ls_dist2_lab], path+'/dist2.svg')
     label_image(trees.morphlab, [radin3_5_lab, ls_dist3_lab], path+'/dist3.svg')
+
+    on_branches_loc_lab = {'type':'locset', 'value': [( 0,0.500), ( 1,0.500), ( 2,0.500), ( 3,0.500), ( 4,0.500), ( 5,0.500), ]}
+    label_image(trees.morphlab, [on_branches_loc_lab], path+'/on_branches.svg')
+
+    ####################### regions
+
+    reg_empty_lab = {'type':'region', 'value': []}
+    reg_all_lab = {'type':'region', 'value': [( 0,0.000,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.000,1.000), ]}
+
+    label_image(trees.morphlab, [reg_empty_lab, reg_all_lab], path+'/nul_all_reg.svg')
+
+    label_image(trees.morphlab, [soma_lab, axon_lab, dend_lab], path+'/tag_reg.svg')
+
+
 
 if __name__ == '__main__':
     generate('.')
