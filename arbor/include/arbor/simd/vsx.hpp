@@ -29,7 +29,7 @@ template <> struct simd_traits<vsx_int4> {
     static constexpr unsigned width = 4;
     using scalar_type = int;
     using vector_type = vector int;
-    using mask_impl = vsx_int4;
+    using mask_impl = vsx_bool4;
 };
 
 template <> struct simd_traits<vsx_bool2x2> {
