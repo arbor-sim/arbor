@@ -350,10 +350,31 @@ struct vsx_double4 : implbase<vsx_double4> {
         return result;
     }
 
+    static bools cmp_neq(const array& a, const array& b) {
+        bools result;
+        result[0] = vec_cmpne(a[0], b[0]);
+        result[1] = vec_cmpne(a[1], b[1]);
+        return result;
+    }
+
     static bools cmp_lt(const array& a, const array& b) {
         bools result;
         result[0] = vec_cmplt(a[0], b[0]);
         result[1] = vec_cmplt(a[1], b[1]);
+        return result;
+    }
+
+    static bools cmp_ge(const array& a, const array& b) {
+        bools result;
+        result[0] = vec_cmpge(a[0], b[0]);
+        result[1] = vec_cmpge(a[1], b[1]);
+        return result;
+    }
+
+    static bools cmp_le(const array& a, const array& b) {
+        bools result;
+        result[0] = vec_cmple(a[0], b[0]);
+        result[1] = vec_cmple(a[1], b[1]);
         return result;
     }
 
