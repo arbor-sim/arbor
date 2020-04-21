@@ -249,26 +249,13 @@ locset most_proximal(region reg) {
     return locset(most_proximal_{std::move(reg)});
 }
 
-mlocation_list thingify_old(const most_proximal_& n, const mprovider& p) {
+mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
     auto extent = thingify(n.reg, p);
     arb_assert(extent.test_invariants(p.morphology()));
 
     // Make a list of the proximal ends of each cable segment.
     mlocation_list P;
     for (const auto& c: extent.cables()) {
-        P.push_back({c.branch, c.prox_pos});
-    }
-
-    return minset(p.morphology(), P);
-}
-
-mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
-    auto extent = thingify(n.reg, p);
-    arb_assert(extent.test_invariants(p.morphology()));
-
-    mlocation_list P;
-    for (const auto& c: extent.cables()) {
-    //for (const auto& c: canonical(p.morphology(), extent)) {
         P.push_back({c.branch, c.prox_pos});
     }
 
