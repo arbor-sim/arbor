@@ -203,6 +203,24 @@ fvm_cv_discretization& append(fvm_cv_discretization&, const fvm_cv_discretizatio
 fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt);
 fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells, const cable_cell_parameter_set& global_defaults, const arb::execution_context& ctx={});
 
+
+// Interpolant data for voltage, axial current probes.
+//
+// The proximal CV will always be either the same as distal CV (trivial
+// interpolation) or the parent of the distal CV.
+
+struct fvm_voltage_interpolant {
+    fvm_index_type proximal_cv, distal_cv;
+    fvm_value_type proximal_coef, distal_coef;
+};
+
+// Interpolated membrane voltage.
+fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site);
+
+// Axial current as linear combiantion of voltages.
+fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site);
+
+
 // Post-discretization data for point and density mechanism instantiation.
 
 struct fvm_mechanism_config {

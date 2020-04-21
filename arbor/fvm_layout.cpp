@@ -82,8 +82,6 @@ std::vector<V> unique_union(const std::vector<V>& a, const std::vector<V>& b) {
     return u;
 }
 
-} // anonymous namespace
-
 // Convert mcable_map values to a piecewise function over an mcable.
 // The projection gives the map from the values in the mcable_map to the values in the piecewise function.
 template <typename T, typename U, typename Proj = get_value>
@@ -124,8 +122,14 @@ pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt_value
     }
     return pw;
 }
+} // anonymous namespace
+
+
+// Building CV geometry
+// --------------------
 
 // Construct cv_geometry for cell from locset describing CV boundary points.
+
 cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
     auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
 
@@ -271,6 +275,7 @@ namespace impl {
 }
 
 // Merge CV geometry lists in-place.
+
 cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
     using impl::tail;
     using impl::append_offset;
@@ -311,6 +316,7 @@ cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
 }
 
 // Combine two fvm_cv_geometry groups in-place.
+
 fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
     append(dczn.geometry, right.geometry);
 
@@ -325,6 +331,10 @@ fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discreti
 
     return dczn;
 }
+
+
+// FVM discretization
+// ------------------
 
 fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
     const auto& dflt = cell.default_parameters;
@@ -446,8 +456,234 @@ fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
     return combined;
 }
 
+// Voltage interpolation
+// ---------------------
+//
+// Interpolated voltages and axial current at a given site are determined
+// from 'voltage references'. A voltage reference is a CV from which the
+// membrane voltage is taken, and a location within that CV where the
+// voltage is deemed to be accurate.
+//
+// A CV that includes no fork points has one reference location which is
+// the centre of the CV (by branch length). Otherwise, every fork in a CV
+// is regarded as being a reference location.
+//
+// Voltage references should comprise adjacent CVs, however should the site
+// lie between fork points within the one CV, there is nothing to interpolate
+// and the voltage references will all come from the one CV containing the
+// site.
+
+struct voltage_reference {
+    fvm_index_type cv = -1;
+    mlocation loc;
+};
+
+struct voltage_reference_pair {
+    voltage_reference proximal;
+    voltage_reference distal;
+};
+
+// Collection of other locations that are coincident under projection.
+std::vector<mlocation> coincident_locations(const morphology& m, mlocation x) {
+    std::vector<mlocation> result;
+    if (x.pos==0) {
+        msize_t parent_bid = m.branch_parent(x.branch);
+        if (parent_bid!=mnpos) {
+            result.push_back({parent_bid, 1});
+        }
+        for (msize_t sibling_bid: m.branch_children(parent_bid)) {
+            if (sibling_bid!=x.branch) {
+                result.push_back({sibling_bid, 0});
+            }
+        }
+    }
+    else if (x.pos==1) {
+        for (msize_t child_bid: m.branch_children(x.branch)) {
+            result.push_back({child_bid, 0});
+        }
+    }
+    return result;
+}
+
+// Test if location intersects (sorted) sequence of cables.
+template <typename Seq>
+bool cables_intersect_location(Seq&& cables, mlocation x) {
+    struct cmp_branch {
+        bool operator()(const mcable& c, msize_t bid) const { return c.branch<bid; }
+        bool operator()(msize_t bid, const mcable& c) const { return bid<c.branch; }
+    };
+
+    using std::begin;
+    using std::end;
+    auto eqr = std::equal_range(begin(cables), end(cables), x.branch, cmp_branch{});
+
+    return util::any_of(util::make_range(eqr),
+        [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
+}
+
+voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, fvm_size_type cell_idx, mlocation site) {
+    voltage_reference site_ref, parent_ref, child_ref;
+    bool check_parent = true, check_child = true;
+    msize_t bid = site.branch;
+
+    // 'Simple' CVs contain no fork points, and are represented by a single cable.
+    auto cv_simple = [&geom](auto cv) { return geom.cables(cv).size()==1u; };
+
+    auto cv_midpoint = [&geom](auto cv) {
+        // Under assumption that CV is simple:
+        mcable c = geom.cables(cv).front();
+        return mlocation{c.branch, (c.prox_pos+c.dist_pos)/2};
+    };
+
+    auto cv_contains_fork = [&](auto cv, mlocation x) {
+        // CV contains fork if it intersects any location coincident with x
+        // other than x itselfv.
+
+        if (cv_simple(cv)) return false;
+        auto locs = coincident_locations(morph, x);
+
+        return util::any_of(locs, [&](mlocation y) { return cables_intersect_location(geom.cables(cv), y); });
+    };
+
+    site_ref.cv = geom.location_cv(cell_idx, site, cv_prefer::cv_empty);
+    if (cv_simple(site_ref.cv)) {
+        site_ref.loc = cv_midpoint(site_ref.cv);
+    }
+    else if (cv_contains_fork(site_ref.cv, mlocation{bid, 0})) {
+        site_ref.loc = mlocation{bid, 0};
+        check_parent = false;
+    }
+    else {
+        // CV not simple, and without head of branch as fork point, must contain
+        // tail of branch as a fork point.
+        arb_assert(cv_contains_fork(site_ref.cv, mlocation{bid, 1}));
+
+        site_ref.loc = mlocation{bid, 1};
+        check_child = false;
+    }
+
+    if (check_parent) {
+        parent_ref.cv = geom.cv_parent[site_ref.cv];
+    }
+    if (parent_ref.cv!=-1) {
+        parent_ref.loc = cv_simple(parent_ref.cv)? cv_midpoint(parent_ref.cv): mlocation{bid, 0};
+        arb_assert(parent_ref.loc.branch==bid);
+    }
+
+    if (check_child) {
+        for (auto child_cv: geom.children(site_ref.cv)) {
+            mcable child_prox_cable = geom.cables(child_cv).front();
+            if (child_prox_cable.branch==bid) {
+                child_ref.cv = child_cv;
+                break;
+            }
+        }
+    }
+    if (child_ref.cv!=-1) {
+        child_ref.loc = cv_simple(child_ref.cv)? cv_midpoint(child_ref.cv): mlocation{bid, 1};
+        arb_assert(child_ref.loc.branch==bid);
+    }
+
+    // If both child and parent references are possible, pick based on distallity with respect
+    // to the site_ref location.
+
+    if (child_ref.cv!=-1 && parent_ref.cv!=-1) {
+        if (site.pos<site_ref.loc.pos) child_ref.cv = -1; // i.e. use parent.
+        else parent_ref.cv = -1; // i.e. use child.
+    }
+
+    voltage_reference_pair result;
+    if (child_ref.cv!=-1) {
+        result.proximal = site_ref;
+        result.distal = child_ref;
+    }
+    else if (parent_ref.cv!=-1) {
+        result.proximal = parent_ref;
+        result.distal = site_ref;
+    }
+    else {
+        result.proximal = site_ref;
+        result.distal = site_ref;
+    }
+
+    return result;
+}
+
+// Interpolate membrane voltage from reference points in adjacent CVs.
+
+fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
+    auto& embedding = cell.embedding();
+    fvm_voltage_interpolant vi;
+
+    auto vrefs = fvm_voltage_reference_points(cell.morphology(), D.geometry, cell_idx, site);
+    vi.proximal_cv = vrefs.proximal.cv;
+    vi.distal_cv = vrefs.distal.cv;
+
+    arb_assert(vrefs.proximal.loc.branch==site.branch);
+    arb_assert(vrefs.distal.loc.branch==site.branch);
+
+    if (vrefs.proximal.cv==vrefs.distal.cv) { // (no interpolation)
+        vi.proximal_coef = 1.0;
+        vi.distal_coef = 0.0;
+    }
+    else {
+        msize_t bid = site.branch;
+
+        arb_assert(vrefs.proximal.loc.pos<vrefs.distal.loc.pos);
+        mcable rr_span  = mcable{bid, vrefs.proximal.loc.pos , vrefs.distal.loc.pos};
+        double rr_resistance = embedding.integrate_ixa(rr_span, D.axial_resistivity[0].at(bid));
+
+        // Note: site is not necessarily distal to the most proximal reference point.
+        bool flip_rs = vrefs.proximal.loc.pos>site.pos;
+        mcable rs_span = flip_rs? mcable{bid, site.pos, vrefs.proximal.loc.pos}
+                                : mcable{bid, vrefs.proximal.loc.pos, site.pos};
+
+        double rs_resistance = embedding.integrate_ixa(rs_span, D.axial_resistivity[0].at(bid));
+        if (flip_rs) {
+            rs_resistance = -rs_resistance;
+        }
+
+        double p = rs_resistance/rr_resistance;
+        vi.proximal_coef = 1-p;
+        vi.distal_coef = p;
+    }
+    return vi;
+}
+
+// Axial current as linear combination of membrane voltages at reference points in adjacent CVs.
+
+fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
+    auto& embedding = cell.embedding();
+    fvm_voltage_interpolant vi;
+
+    auto vrefs = fvm_voltage_reference_points(cell.morphology(), D.geometry, cell_idx, site);
+    vi.proximal_cv = vrefs.proximal.cv;
+    vi.distal_cv = vrefs.distal.cv;
+
+    if (vi.proximal_cv==vi.distal_cv) {
+        vi.proximal_coef = 0;
+        vi.distal_coef = 0;
+    }
+    else {
+        msize_t bid = site.branch;
+
+        arb_assert(vrefs.proximal.loc.pos<vrefs.distal.loc.pos);
+        mcable rr_span  = mcable{bid, vrefs.proximal.loc.pos , vrefs.distal.loc.pos};
+        double rr_conductance = 100/embedding.integrate_ixa(rr_span, D.axial_resistivity[cell_idx].at(bid)); // [µS]
+
+        vi.proximal_coef = -rr_conductance;
+        vi.distal_coef = rr_conductance;
+    }
+
+    return vi;
+}
+
+// FVM mechanism data
+// ------------------
+
 // CVs are absolute (taken from combined discretization) so do not need to be shifted.
 // Only target numbers need to be shifted.
+
 fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& right) {
     using impl::append_offset;
 
@@ -513,6 +749,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     }
     return combined;
 }
+
+// Construct FVM mechanism data for a single cell.
 
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
     const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx)
