@@ -84,11 +84,10 @@ void register_morphology(pybind11::module& m) {
             "If loaded from standard SWC file the following tags are used: soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary tags can be used.")
         .def("__str__",
             [](const arb::msample& s) {
-                return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}, tag {}>",
-                        s.loc.x, s.loc.y, s.loc.z, s.loc.radius, s.tag); })
+                return util::pprintf("{}", s);})
         .def("__repr__",
             [](const arb::msample& s) {
-                return util::pprintf("{}>", s);});
+                return util::pprintf("{}", s);});
 
     // arb::mcable
     pybind11::class_<arb::mcable> cable(m, "cable");
@@ -123,8 +122,23 @@ void register_morphology(pybind11::module& m) {
         .def(pybind11::init<>())
         // modifiers
         .def("reserve", &arb::sample_tree::reserve)
-        .def("append", [](arb::sample_tree& t, arb::msample s){return t.append(s);})
-        .def("append", [](arb::sample_tree& t, arb::msize_t p, arb::msample s){return t.append(p, s);})
+        .def("append", [](arb::sample_tree& t, arb::msample s){return t.append(s);},
+                "Append a sample whose parent is the last sample added to the tree.")
+        .def("append", [](arb::sample_tree& t, arb::msize_t p, arb::msample s){return t.append(p, s);},
+                "parent"_a, "sample"_a,
+                "Append a sample.")
+        .def("append",
+                [](arb::sample_tree& t, double x, double y, double z, double radius, int tag) {
+                    return t.append(arb::msample{{x,y,z,radius}, tag});
+                },
+                "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
+                "Append a sample whose parent is the last sample added to the tree.")
+        .def("append",
+                [](arb::sample_tree& t, arb::msize_t p, double x, double y, double z, double radius, int tag) {
+                    return t.append(p, arb::msample{{x,y,z,radius}, tag});
+                },
+                "parent"_a, "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
+                "Append a sample.")
         // properties
         .def_property_readonly("empty", [](const arb::sample_tree& st){return st.empty();},
                 "Indicates whether the sample tree is empty (i.e. whether it has size 0)")
@@ -132,6 +146,8 @@ void register_morphology(pybind11::module& m) {
                 "The number of samples in the sample tree.")
         .def_property_readonly("parents", [](const arb::sample_tree& st){return st.parents();},
                 "A list with the parent index of each sample.")
+        .def_property_readonly("samples", [](const arb::sample_tree& st){return st.samples();},
+                "A list of the samples.")
         .def("__str__", [](const arb::sample_tree& s) {
                 return util::pprintf("<arbor.sample_tree:\n{}>", s);});
 
