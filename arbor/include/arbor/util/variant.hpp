@@ -431,7 +431,7 @@ struct variant {
     auto get_if() noexcept { return get_if<I>(); }
 
     template <std::size_t I, typename = std::enable_if_t<(I<sizeof...(T))>, typename X = type_select_t<I, T...>>
-    const X* get_if() const noexcept { return which_==I? data_ptr<>(): nullptr; }
+    const X* get_if() const noexcept { return which_==I? data_ptr<X>(): nullptr; }
 
     template <typename X, std::size_t I = type_index<X, T...>::value>
     auto get_if() const noexcept { return get_if<I>(); }
@@ -502,9 +502,6 @@ struct variant_alternative<I, variant<T...>> { using type = type_select_t<I, T..
 template <std::size_t I, typename... T>
 struct variant_alternative<I, const variant<T...>> { using type = std::add_const_t<type_select_t<I, T...>>; };
 
-template <typename Visitor, typename... Variant>
-using visit_return_t = decltype(std::declval<Visitor>()(std::declval<typename variant_alternative<0, std::remove_volatile_t<std::remove_reference_t<Variant>>>::type>()...));
-
 } // namespace detail
 
 template <typename... T>
@@ -560,7 +557,7 @@ decltype(auto) get_if(const variant<T...>& v) noexcept { return v.template get_i
 
 template <typename Visitor, typename Variant>
 decltype(auto) visit(Visitor&& f, Variant&& v) {
-    using R = detail::visit_return_t<Visitor&&, Variant&&>;
+    using R = decltype(f(get<0>(std::forward<Variant>(v))));
 
     if (v.valueless_by_exception()) throw bad_variant_access{};
     std::size_t i = v.index();

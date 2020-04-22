@@ -116,11 +116,11 @@ mcable_list data_cmp(const branch_pw_ratpoly<1, 0>& f, unsigned bid, double val,
 }
 
 struct embed_pwlin_data {
-    branch_pw_ratpoly<1, 0> length;
-    branch_pw_ratpoly<1, 0> directed_projection;
-    branch_pw_ratpoly<1, 0> radius;
-    branch_pw_ratpoly<2, 0> area;
-    branch_pw_ratpoly<1, 1> ixa;
+    branch_pw_ratpoly<1, 0> length; // [µm]
+    branch_pw_ratpoly<1, 0> directed_projection; // [µm]
+    branch_pw_ratpoly<1, 0> radius; // [µm]
+    branch_pw_ratpoly<2, 0> area; // [µm²]
+    branch_pw_ratpoly<1, 1> ixa;  // [1/µm]
 
     explicit embed_pwlin_data(msize_t n_branch):
         length(n_branch),

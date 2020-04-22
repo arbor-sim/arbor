@@ -990,8 +990,8 @@ TEST(fvm_layout, iinterp) {
                     EXPECT_TRUE(I.proximal_cv>=D.geometry.cell_cv_interval(cell_idx).first);
 
                     double fc = D.face_conductance.at(I.distal_cv);
-                    EXPECT_DOUBLE_EQ(-fc, I.proximal_coef);
-                    EXPECT_DOUBLE_EQ(+fc, I.distal_coef);
+                    EXPECT_DOUBLE_EQ(+fc, I.proximal_coef);
+                    EXPECT_DOUBLE_EQ(-fc, I.distal_coef);
                 }
             }
         }
@@ -1039,8 +1039,8 @@ TEST(fvm_layout, iinterp) {
 
         EXPECT_EQ(0, I.proximal_cv);
         EXPECT_EQ(1, I.distal_cv);
-        EXPECT_EQ(-fc1, I.proximal_coef);
-        EXPECT_EQ(+fc1, I.distal_coef);
+        EXPECT_EQ(+fc1, I.proximal_coef);
+        EXPECT_EQ(-fc1, I.distal_coef);
     }
 
     // Branch 2:
@@ -1053,7 +1053,7 @@ TEST(fvm_layout, iinterp) {
 
         EXPECT_EQ(0, I.proximal_cv);
         EXPECT_EQ(2, I.distal_cv);
-        EXPECT_EQ(-fc2, I.proximal_coef);
-        EXPECT_EQ(+fc2, I.distal_coef);
+        EXPECT_EQ(+fc2, I.proximal_coef);
+        EXPECT_EQ(-fc2, I.distal_coef);
     }
 }

@@ -47,6 +47,7 @@ struct backend {
     using sample_event_stream = arb::gpu::sample_event_stream;
 
     using shared_state = arb::gpu::shared_state;
+    using ion_state = arb::gpu::ion_state;
 
     static threshold_watcher voltage_watcher(
         const shared_state& state,
