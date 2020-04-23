@@ -227,7 +227,7 @@ Locset Expressions
       :width: 600
       :align: center
 
-      The of drawing 9 random locations on the dendrites using different random seeds:
+      The of drawing 10 random locations on the dendrites using different random seeds:
       ``(uniform (tag 3) 0 9 0)`` (left) and ``(uniform (tag 3) 0 9 1)`` (right).
 
 .. label:: (on_branches pos:double)
@@ -268,11 +268,11 @@ Region Expressions
 
     All branches in the morphology.
 
-    .. figure:: gen-images/nul_all_reg.svg
+    .. figure:: gen-images/nil_all_reg.svg
       :width: 600
       :align: center
 
-      The trivial region definitions ``(nul)`` (left) and ``(all)`` (right).
+      The trivial region definitions ``(nil)`` (left) and ``(all)`` (right).
 
 .. label:: (tag tag_id:integer)
 
@@ -283,16 +283,26 @@ Region Expressions
       :width: 900
       :align: center
 
+      The soma, axon and dendritic tree, selected using ``(tag 1)``, ``(tag 2)``, and ``(tag 3)`` respectively.
+
 
 .. label:: (branch branch_id:integer)
 
-    Refer to a specific numbered branch.
+    Refer to a branch by its id.
 
     .. figure:: gen-images/branch_reg.svg
       :width: 600
       :align: center
 
+      Branches 0 and 3, selected using ``(branch 0)`` and ``(branch 3)`` respectively.
+
 .. label:: (cable branch_id:integer prox:real dist:real)
+
+    .. figure:: gen-images/cable_reg.svg
+      :width: 600
+      :align: center
+
+      Selecting parts of branch 1: ``(cable 1 0 1)`` to select the whole cable, ``(cable 1 0.3 1)`` and ``(cable 0 0.3 0.7)`` to select part of the branch.
 
 .. label:: (region name:string)
 

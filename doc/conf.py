@@ -5,7 +5,7 @@
 html_static_path = ['static']
 
 def setup(app):
-    app.add_stylesheet('custom.css')
+    app.add_css_file('custom.css')
     app.add_object_type('generic', 'gen', 'pair: %s; generic')
     app.add_object_type('label', 'lab', 'pair: %s; label')
 

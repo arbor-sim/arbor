@@ -529,7 +529,8 @@ void register_cells(pybind11::module& m) {
         .def("locations",
             [](arb::cable_cell& c, const char* label) {return c.concrete_locset(label);},
             "label"_a, "The locations of the cell morphology for a locset label.")
-        .def("region",
+        // Get cables associated with a region label.
+        .def("cables",
             [](arb::cable_cell& c, const char* label) {return c.concrete_region(label).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
         // Discretization control.

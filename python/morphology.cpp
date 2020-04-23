@@ -32,13 +32,13 @@ void register_morphology(pybind11::module& m) {
                 pyarb::assert_throw(arb::test_invariants(mloc), "invalid location");
                 return mloc;
             }),
-            "branch"_a, "position"_a,
+            "branch"_a, "pos"_a,
             "Construct a location specification holding:\n"
             "  branch:   The id of the branch.\n"
-            "  position: The relative position (from 0., proximal, to 1., distal) on the branch.\n")
+            "  pos:      The relative position (from 0., proximal, to 1., distal) on the branch.\n")
         .def_readonly("branch",  &arb::mlocation::branch,
             "The id of the branch.")
-        .def_readonly("position", &arb::mlocation::pos,
+        .def_readonly("pos", &arb::mlocation::pos,
             "The relative position on the branch (∈ [0.,1.], where 0. means proximal and 1. distal).")
         .def("__str__",
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); })
@@ -100,15 +100,14 @@ void register_morphology(pybind11::module& m) {
                         }
                         return c;
                     }),
-             "branch_id"_a, "prox"_a, "dist"_a)
-        .def_readonly("prox_pos", &arb::mcable::prox_pos,
-                "The relative position of the proximal end of the cable on its branch ∈ [0,1].")
-        .def_readonly("dist_pos", &arb::mcable::dist_pos,
-                "The relative position of the distal end of the cable on its branch ∈ [0,1].")
+             "branch"_a, "prox"_a, "dist"_a)
         .def_readonly("branch", &arb::mcable::branch,
                 "The id of the branch on which the cable lies.")
-        .def("__str__", [](const arb::mcable& c) {
-            return util::pprintf("<arbor.cable: branch {}, prox {}, dist {}", c.branch, c.prox_pos, c.dist_pos); })
+        .def_readonly("prox", &arb::mcable::prox_pos,
+                "The relative position of the proximal end of the cable on its branch ∈ [0,1].")
+        .def_readonly("dist", &arb::mcable::dist_pos,
+                "The relative position of the distal end of the cable on its branch ∈ [0,1].")
+        .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
 
     //

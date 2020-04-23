@@ -3,6 +3,8 @@ import svgwrite
 import math
 import tree_inputs as trees
 
+import regloc_input as rl
+
 tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 
 #
@@ -461,68 +463,27 @@ def generate(path=''):
 
     morph_image([trees.morphlab, trees.morphlab], ['segments','branches'], path+'/morphlab.svg')
 
-    term_lab  = {'type':'locset', 'value': [( 1,1.000), ( 3,1.000), ( 4,1.000), ( 5,1.000), ]}
-    rand_dend_lab = {'type':'locset', 'value': [( 0,0.457), ( 0,0.629), ( 0,0.636), ( 0,0.768), ( 0,0.901), ( 0,0.973), ( 1,0.001), ( 1,0.019), ( 1,0.082), ( 1,0.152), ( 1,0.191), ( 1,0.206), ( 1,0.309), ( 1,0.396), ( 1,0.428), ( 1,0.560), ( 1,0.646), ( 1,0.790), ( 1,0.794), ( 1,0.818), ( 1,0.825), ( 1,0.947), ( 2,0.101), ( 2,0.104), ( 2,0.470), ( 2,0.529), ( 2,0.560), ( 2,0.575), ( 2,0.681), ( 2,0.696), ( 2,0.771), ( 2,0.788), ( 2,0.819), ( 2,0.824), ( 2,0.868), ( 2,0.898), ( 2,0.923), ( 3,0.046), ( 3,0.046), ( 3,0.047), ( 3,0.151), ( 3,0.228), ( 3,0.249), ( 3,0.699), ( 4,0.005), ( 4,0.255), ( 4,0.345), ( 4,0.408), ( 4,0.845), ( 4,0.890), ]}
+    label_image(trees.morphlab, [rl.ls_term, rl.ls_rand_dend], path+'/locset_label_examples.svg')
 
-    label_image(trees.morphlab, [term_lab, rand_dend_lab], path+'/locset_label_examples.svg')
+    label_image(trees.morphlab, [rl.reg_dend, rl.reg_radlt5], path+'/region_label_examples.svg')
 
-    soma_lab   = {'type':'region', 'value': [( 0,0.000,0.332), ( 5,0.000,0.000), ]}
-    axon_lab   = {'type':'region', 'value': [( 0,0.000,0.000), ( 5,0.000,1.000), ]}
-    dend_lab   = {'type':'region', 'value': [( 0,0.332,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ]}
-    radlt5_lab = {'type':'region', 'value': [( 1,0.439,1.000), ( 2,1.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
-    radle5_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
+    label_image(trees.morphlab, [rl.ls_root], path+'/root_label.svg')
+    label_image(trees.morphlab, [rl.ls_term], path+'/term_label.svg')
 
-    label_image(trees.morphlab, [dend_lab, radlt5_lab], path+'/region_label_examples.svg')
+    label_image(trees.morphlab, [rl.ls_loc15], path+'/location_label.svg')
 
-    root_lab   = {'type':'locset', 'value': [( 0,0.000), ]}
-    label_image(trees.morphlab, [root_lab], path+'/root_label.svg')
-    label_image(trees.morphlab, [term_lab], path+'/term_label.svg')
-
-    location_lab   = {'type':'locset', 'value': [(1, 0.5)]}
-    label_image(trees.morphlab, [location_lab], path+'/location_label.svg')
-
-    radin3_5_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,0.793), ( 2,0.000,1.000), ( 3,0.000,0.667), ( 4,0.000,0.391), ( 5,0.656,1.000), ]}
-    distloc_lab = {'type':'locset', 'value': [( 1,0.793), ( 3,0.667), ( 4,0.391), ( 5,1.000), ]}
-    proxloc_lab = {'type':'locset', 'value': [( 0,1.000), ]}
-    proxloc_lab = {'type':'locset', 'value': [( 0,1.000), ( 5,0.656), ]}
-    label_image(trees.morphlab, [radin3_5_lab, proxloc_lab], path+'/prox_label.svg')
-    label_image(trees.morphlab, [radin3_5_lab, distloc_lab], path+'/dist_label.svg')
-
-    uniform0_lab = {'type':'locset', 'value': [( 0,0.975), ( 1,0.200), ( 1,0.841), ( 2,0.924), ( 2,0.927), ( 2,0.991), ( 3,0.993), ( 4,0.364), ( 4,0.479), ( 4,0.514), ]}
-    uniform1_lab = {'type':'locset', 'value': [( 0,0.455), ( 0,0.942), ( 1,0.201), ( 1,0.281), ( 1,0.496), ( 1,0.685), ( 2,0.224), ( 3,0.795), ( 4,0.013), ( 4,0.319), ]}
-    label_image(trees.morphlab, [uniform0_lab, uniform1_lab], path+'/uniform_label.svg')
-
-    #######################
-
-    reg_prox1_lab = {'type':'region', 'value': [( 1,0.500,1.000), ( 2,0.500,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ]}
-    reg_prox2_lab = {'type':'region', 'value': [( 0,1.000,1.000), ( 1,0.000,0.000), ( 1,0.439,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.656,1.000), ]}
-    ls_prox1_lab = {'type':'locset', 'value': [( 1,0.500), ( 2,0.500), ]}
-    ls_prox2_lab = {'type':'locset', 'value': [( 0,1.000), ( 5,0.656), ]}
-    label_image(trees.morphlab, [reg_prox1_lab, ls_prox1_lab], path+'/prox1.svg')
-    label_image(trees.morphlab, [reg_prox2_lab, ls_prox2_lab], path+'/prox2.svg')
-
-    reg_dist1_lab = {'type':'region', 'value': [( 0,0.000,1.000), ( 1,0.000,1.000), ( 2,0.000,0.000), ( 5,0.000,0.000), ]}
-    ls_dist1_lab = {'type':'locset', 'value': [( 0,0.000), ( 1,1.000), ]}
-    ls_dist2_lab = {'type':'locset', 'value': [( 0,0.000), ( 5,1.000), ]}
-    ls_dist3_lab = {'type':'locset', 'value': [( 1,0.793), ( 3,0.667), ( 4,0.391), ( 5,1.000), ]}
-
-    label_image(trees.morphlab, [reg_dist1_lab, ls_dist1_lab], path+'/dist1.svg')
-    label_image(trees.morphlab, [axon_lab, ls_dist2_lab], path+'/dist2.svg')
-    label_image(trees.morphlab, [radin3_5_lab, ls_dist3_lab], path+'/dist3.svg')
-
-    on_branches_loc_lab = {'type':'locset', 'value': [( 0,0.500), ( 1,0.500), ( 2,0.500), ( 3,0.500), ( 4,0.500), ( 5,0.500), ]}
-    label_image(trees.morphlab, [on_branches_loc_lab], path+'/on_branches.svg')
+    label_image(trees.morphlab, [rl.ls_uniform0, rl.ls_uniform1], path+'/uniform_label.svg')
+    label_image(trees.morphlab, [rl.ls_branchmid], path+'/on_branches.svg')
 
     ####################### regions
 
-    reg_empty_lab = {'type':'region', 'value': []}
-    reg_all_lab = {'type':'region', 'value': [( 0,0.000,1.000), ( 1,0.000,1.000), ( 2,0.000,1.000), ( 3,0.000,1.000), ( 4,0.000,1.000), ( 5,0.000,1.000), ]}
+    label_image(trees.morphlab, [rl.reg_empty, rl.reg_all], path+'/nil_all_reg.svg')
 
-    label_image(trees.morphlab, [reg_empty_lab, reg_all_lab], path+'/nul_all_reg.svg')
+    label_image(trees.morphlab, [rl.reg_tag1, rl.reg_tag2, rl.reg_tag3], path+'/tag_reg.svg')
 
-    label_image(trees.morphlab, [soma_lab, axon_lab, dend_lab], path+'/tag_reg.svg')
+    label_image(trees.morphlab, [rl.reg_branch0, rl.reg_branch3], path+'/branch_reg.svg')
 
-
+    label_image(trees.morphlab, [rl.reg_cable_1_01, rl.reg_cable_1_31, rl.reg_cable_1_37], path+'/cable_reg.svg')
 
 if __name__ == '__main__':
     generate('.')
