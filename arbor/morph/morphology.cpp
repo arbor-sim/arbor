@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stack>
+#include <unordered_map>
 #include <utility>
 
 #include <arbor/morph/morphexcept.hpp>
@@ -269,6 +270,37 @@ mlocation_list minset(const morphology& m, const mlocation_list& in) {
     }
 
     util::sort(L);
+    return L;
+}
+
+mlocation_list maxset(const morphology& m, const mlocation_list& in_) {
+    mlocation_list L;
+
+    // Sort the input in reverse order, so that more distal locations
+    // come first.
+    mlocation_list in = in_;
+    util::sort(in, [](const auto& l, const auto& r) {return r<l;});
+
+    // List of branches that have had a more distal location found.
+    std::unordered_set<msize_t> br;
+    for (auto loc: in) {
+        auto b = loc.branch;
+
+        // A child of this branch has already been visited: a more distal
+        // location has already been found, so we can skip.
+        if (br.count(b)) continue;
+
+        // Add the location to the maxset.
+        L.push_back(loc);
+
+        // Mark the branch and its parents.
+        while (b!=mnpos) {
+            br.insert(b);
+            b = m.branch_parent(b);
+        }
+    }
+
+    std::reverse(L.begin(), L.end());
     return L;
 }
 
