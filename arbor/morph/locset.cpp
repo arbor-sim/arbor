@@ -205,33 +205,12 @@ locset most_distal(region reg) {
 }
 
 mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
+    // Make a list of the distal ends of each cable segment.
     mlocation_list L;
-
-    auto cables = thingify(n.reg, p).cables();
-    util::sort(cables, [](const auto& l, const auto& r){return (l.branch < r.branch) && (l.dist_pos < r.dist_pos);});
-
-    std::unordered_set<msize_t> branches_visited;
-    for (auto it = cables.rbegin(); it!=cables.rend(); ++it) {
-        auto bid = it->branch;
-        auto pos = it->dist_pos;
-
-        // Exclude any initial branch points unless they are top-level.
-        if (pos==0 && p.morphology().branch_parent(bid)!=mnpos) {
-            continue;
-        }
-
-        // Check if any other points on the branch or any of its children has been added as a distal point
-        if (branches_visited.count(bid)) continue;
-        L.push_back(canonical(p.morphology(), mlocation{bid, pos}));
-        while (bid != mnpos) {
-            branches_visited.insert(bid);
-            bid = p.morphology().branch_parent(bid);
-        }
+    for (auto& c: thingify(n.reg, p)) {
+        L.push_back({c.branch, c.dist_pos});
     }
-
-    util::sort(L);
-    util::unique_in_place(L);
-    return L;
+    return maxset(p.morphology(), L);
 }
 
 std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
@@ -250,16 +229,13 @@ locset most_proximal(region reg) {
 }
 
 mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
-    auto extent = thingify(n.reg, p);
-    arb_assert(extent.test_invariants(p.morphology()));
-
     // Make a list of the proximal ends of each cable segment.
-    mlocation_list P;
-    for (const auto& c: extent.cables()) {
-        P.push_back({c.branch, c.prox_pos});
+    mlocation_list L;
+    for (auto& c: thingify(n.reg, p)) {
+        L.push_back({c.branch, c.prox_pos});
     }
 
-    return minset(p.morphology(), P);
+    return minset(p.morphology(), L);
 }
 
 std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {

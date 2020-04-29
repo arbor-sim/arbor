@@ -62,7 +62,14 @@ public:
 };
 
 // Morphology utility functions.
+
+// Find the set of locations in an mlocation_list for which there
+// are no other locations that are more proximal in that list.
 mlocation_list minset(const morphology&, const mlocation_list&);
+
+// Find the set of locations in an mlocation_list for which there
+// are no other locations that are more distal in the list.
+mlocation_list maxset(const morphology&, const mlocation_list&);
 
 mlocation canonical(const morphology&, mlocation);
 
