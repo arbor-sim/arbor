@@ -217,9 +217,17 @@ Locset Expressions
       :width: 300
       :align: center
 
+      The terminal points, generated with ``(terminal)``.
+
 .. label:: (sample sample_id:integer)
 
     The location of sample with the id ``sample_id``.
+
+    .. figure:: gen-images/sample1_label.svg
+      :width: 300
+      :align: center
+
+      Sample 1, which defines the distal end of the soma, generated with ``(sample 1)``.
 
 .. label:: (uniform reg:region, first:int, last:int, seed:int)
 
@@ -234,26 +242,55 @@ Locset Expressions
 
     The set of locations ``{(location b pos) | 0 ≤ b < nbranch-1}``.
 
-    .. figure:: gen-images/on_branches.svg
+    .. figure:: gen-images/on_branches_label.svg
       :width: 300
       :align: center
 
       The set of locations at the midpoint of every branch, expressed as ``(on_branches 0.5)``.
 
+.. label:: (distal reg:region)
+
+    The set of the most distal locations of a region.
+    These are defined as the locations for which there are no other locations more distal in the region.
+
+    .. figure:: gen-images/distal_label.svg
+      :width: 600
+      :align: center
+
+      On the left is the region with radius between 0.3 μm and 0.5 μm.
+      The right shows the distal set of this region.
+
+.. label:: (proximal reg:region)
+
+    The set of the most proximal locations of a region.
+    These are defined as the locations for which there are no other locations more proximal in the region.
+
+    .. figure:: gen-images/proximal_label.svg
+      :width: 600
+      :align: center
+
+      On the left is the region with radius between 0.3 μm and 0.5 μm.
+      The right shows the proximal set of this region.
+
 .. label:: (locset name:string)
 
-    Refer to a locset by its label.
+    Refer to a locset by its label. For example, ``(locset "synapse_sites")`` could be used in an expression to refer
+    to a locset with the name ``"synapse_sites"``.
 
 .. label:: (join lhs:locset rhs:locset [...locset])
 
     Set intersection for two locsets, with duplicates removed and results sorted.
+    For example:
 
     ``((1 0.5) (2 0.1) (1 0.2)) ∪ ((1 0.5) (4 0)) = ((1 0.2) (1 0.5) (2 0.1) (4 0))``
 
+    The location ``(1 0.5)`` occurs in both the sets, and occurs only once in the result.
 
 .. label:: (sum lhs:locset rhs:locset [...locset])
 
-    multiset summation of two locsets, such that ``(sum lhs rhs) = A + B``, where A and B are multisets of locations.
+    Multiset summation of two locsets, such that ``(sum lhs rhs) = A + B``, where A and B are multisets of locations.
+    This is equivalent to contactenating the two lists, and the length of the result is the sum of
+    the lenghts of the inputs. For example:
 
     ``((1 0.5) (2 0.1) (1 0.2)) + ((1 0.5) (4 0)) = ((1 0.5) (2 0.1) (1 0.2) (1 0.5) (4 0))``
 
@@ -268,7 +305,7 @@ Region Expressions
 
     All branches in the morphology.
 
-    .. figure:: gen-images/nil_all_reg.svg
+    .. figure:: gen-images/nil_all_label.svg
       :width: 600
       :align: center
 
@@ -276,10 +313,10 @@ Region Expressions
 
 .. label:: (tag tag_id:integer)
 
-    A region with all of the segments with tag ``tag_id``.
-    The tags of segments are discussed in the :ref:`morphology documentation <morph-tags>`.
+    All of the segments with tag ``tag_id``.
+    See the :ref:`morphology documentation <morph-tags>` for the definition of tags on segments.
 
-    .. figure:: gen-images/tag_reg.svg
+    .. figure:: gen-images/tag_label.svg
       :width: 900
       :align: center
 
@@ -290,7 +327,7 @@ Region Expressions
 
     Refer to a branch by its id.
 
-    .. figure:: gen-images/branch_reg.svg
+    .. figure:: gen-images/branch_label.svg
       :width: 600
       :align: center
 
@@ -298,7 +335,7 @@ Region Expressions
 
 .. label:: (cable branch_id:integer prox:real dist:real)
 
-    .. figure:: gen-images/cable_reg.svg
+    .. figure:: gen-images/cable_label.svg
       :width: 600
       :align: center
 
@@ -306,11 +343,73 @@ Region Expressions
 
 .. label:: (region name:string)
 
-    Refer to a region by its label.
+    Refer to a region by its label. For example, `(region "axon")` would refer to a region with the label ``"axon"``.
 
 .. label:: (distal_interval start:locset extent:real)
 
+    The distal interval of a location is the region that contains all points that are distal to the location,
+    and up to ``extent`` μm from the location, measured as the distance traversed along cables between two locations.
+    The distal interval of the locset ``start`` is the union of the distal interval of each location in ``start``.
+
+    .. figure:: gen-images/distint_label.svg
+      :width: 600
+      :align: center
+
+      On the left is a locset of 3 locations: 1 on the axon and 2 in the dendritic tree.
+      The right shows the locset's distal interval with extent 5 μm, formed with the following expression:
+
+      .. code-block:: lisp
+
+        (distal_interval (sum (location 1 0.5) (location 2 0.7) (location 5 0.1)) 5)
+
+.. label:: (distal_interval start:locset)
+
+    When no ``extent`` distance is provided, the distal intervals are extended to all terminal
+    locations that are distal to each location in ``start``.
+
+    .. figure:: gen-images/distintinf_label.svg
+      :width: 600
+      :align: center
+
+      On the left is a locset of 3 locations: 1 on the axon and 2 in the dendritic tree.
+      The right shows the locset's distal interval formed with the following expression:
+
+      .. code-block:: lisp
+
+        (distal_interval (sum (location 1 0.5) (location 2 0.7) (location 5 0.1)))
+
+
 .. label:: (proximal_interval start:locset extent:real)
+
+    The proximal interval of a location is the region that contains all points that are proximal to the location,
+    and up to ``extent`` μm from the location, measured as the distance traversed along cables between two locations.
+    The proximal interval of the locset ``start`` is the union of the proximal interval of each location in ``start``.
+
+    .. figure:: gen-images/proxint_label.svg
+      :width: 600
+      :align: center
+
+      On the left is a locset with two locations on separate sub-trees of the dendritic tree.
+      On the right is their proximal interval with an ``extent`` of 5 μm, formed as follows:
+
+      .. code-block:: lisp
+
+        (proximal_interval (sum (location 1 0.8) (location 2 0.3)) 5)
+
+.. label:: (proximal_interval start:locset)
+
+    When no ``extent`` distance is provided, the proximal intervals are extended to the root location.
+
+    .. figure:: gen-images/proxintinf_label.svg
+      :width: 600
+      :align: center
+
+      On the left is a locset with two locations on separate sub-trees of the dendritic tree.
+      On the right is their proximal interval formed as follows:
+
+      .. code-block:: lisp
+
+        (proximal_interval (sum (location 1 0.8) (location 2 0.3)))
 
 .. label:: (radius_lt reg:region radius:real)
 
@@ -330,10 +429,21 @@ Region Expressions
 
 .. label:: (join lhs:region rhs:region [...region])
 
-    The union of two regions.
+    The union of two or more regions.
+
+    .. figure:: gen-images/union_label.svg
+      :width: 900
+      :align: center
+
+      Two regions and their union.
 
 .. label:: (intersect lhs:region rhs:region [...region])
 
-    The intersection of two regions: the region with cable segments in both ``lhs`` and ``rhs``.
+    The intersection of two or more regions.
 
+    .. figure:: gen-images/intersect_label.svg
+      :width: 900
+      :align: center
+
+      Two regions and their intersection.
 

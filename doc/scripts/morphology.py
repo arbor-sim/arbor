@@ -78,6 +78,30 @@ def find_pos(lens, pos):
         if L>pos: return i-1
     return i
 
+# Return {loc, v} where loc is location, v is the orientation
+def sample_at_end(branch, L, pos):
+    X = branch['x']
+    Y = branch['y']
+
+    lens = [L[i+1]-L[i] for i in range(len(L)-1)]
+    rng = range(len(lens))
+    if pos==0:
+        loc = (X[0], Y[0])
+
+        # find first non-zero segment
+        i = next(i for i in rng if lens[i]>0)
+        v = (X[i+1]-X[i], Y[i+1]-Y[i])
+        v = scal_vec(-1,rot90_vec(unit_vec(v)))
+    else:
+        loc = (X[-1], Y[-1])
+
+        # find last non-zero segment
+        i = next(i for i in reversed(rng) if lens[i]>0)
+        v = (X[i+1]-X[i], Y[i+1]-Y[i])
+        v = rot90_vec(unit_vec(v))
+
+    return (loc, v)
+
 # Return {index, x, y, r} of the sample at pos ∈ [0,1] on branch.
 # If pos lies between two samples the x,y,r values are interpolated
 # and index is the index of the proximal end of the cable segment.
@@ -379,9 +403,19 @@ def label_image(morphology, labels, filename, sc=20):
             for loc in lab['value']:
                 bid = loc[0]
                 pos = loc[1]
-                idx, x, y, r = sample_by_pos(morph[bid], meta[bid], pos)
 
-                points.add(dwg.circle(center=(x,y), stroke='black', r=sc/3, fill='black'))
+                if pos>0 and pos<1:
+                    idx, x, y, r = sample_by_pos(morph[bid], meta[bid], pos)
+                    points.add(dwg.circle(center=(x,y), stroke='black', r=sc/3, fill='black'))
+
+                else:
+                    loc, orient = sample_at_end(morph[bid], meta[bid], pos)
+                    rad = sc/3
+
+                    m0 = rad*orient[0]
+                    n0 = rad*orient[1]
+                    points.add(dwg.path(d="M {0},{1} A {2},{2} 0 0,0 {3},{4} z".format(
+                        loc[0]+m0, loc[1]+n0, rad, loc[0]-m0, loc[1]-n0), fill="black", stroke="black"))
 
         if lab['type'] == 'region':
             for cab in lab['value']:
@@ -463,27 +497,41 @@ def generate(path=''):
 
     morph_image([trees.morphlab, trees.morphlab], ['segments','branches'], path+'/morphlab.svg')
 
+    ####################### locsets
+
     label_image(trees.morphlab, [rl.ls_term, rl.ls_rand_dend], path+'/locset_label_examples.svg')
 
     label_image(trees.morphlab, [rl.reg_dend, rl.reg_radlt5], path+'/region_label_examples.svg')
 
     label_image(trees.morphlab, [rl.ls_root], path+'/root_label.svg')
     label_image(trees.morphlab, [rl.ls_term], path+'/term_label.svg')
+    label_image(trees.morphlab, [rl.ls_sample1], path+'/sample1_label.svg')
 
     label_image(trees.morphlab, [rl.ls_loc15], path+'/location_label.svg')
 
+    label_image(trees.morphlab, [rl.reg_rad36, rl.ls_distal], path+'/distal_label.svg')
+    label_image(trees.morphlab, [rl.reg_rad36, rl.ls_proximal], path+'/proximal_label.svg')
     label_image(trees.morphlab, [rl.ls_uniform0, rl.ls_uniform1], path+'/uniform_label.svg')
-    label_image(trees.morphlab, [rl.ls_branchmid], path+'/on_branches.svg')
+    label_image(trees.morphlab, [rl.ls_branchmid], path+'/on_branches_label.svg')
 
     ####################### regions
 
-    label_image(trees.morphlab, [rl.reg_empty, rl.reg_all], path+'/nil_all_reg.svg')
+    label_image(trees.morphlab, [rl.reg_empty, rl.reg_all], path+'/nil_all_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_tag1, rl.reg_tag2, rl.reg_tag3], path+'/tag_reg.svg')
+    label_image(trees.morphlab, [rl.reg_tag1, rl.reg_tag2, rl.reg_tag3], path+'/tag_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_branch0, rl.reg_branch3], path+'/branch_reg.svg')
+    label_image(trees.morphlab, [rl.reg_branch0, rl.reg_branch3], path+'/branch_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_cable_1_01, rl.reg_cable_1_31, rl.reg_cable_1_37], path+'/cable_reg.svg')
+    label_image(trees.morphlab, [rl.reg_cable_1_01, rl.reg_cable_1_31, rl.reg_cable_1_37], path+'/cable_label.svg')
+
+    label_image(trees.morphlab, [rl.ls_proxint_in, rl.reg_proxint],    path+'/proxint_label.svg')
+    label_image(trees.morphlab, [rl.ls_proxint_in, rl.reg_proxintinf], path+'/proxintinf_label.svg')
+    label_image(trees.morphlab, [rl.ls_distint_in, rl.reg_distint],    path+'/distint_label.svg')
+    label_image(trees.morphlab, [rl.ls_distint_in, rl.reg_distintinf], path+'/distintinf_label.svg')
+
+    label_image(trees.morphlab, [rl.reg_lhs, rl.reg_rhs, rl.reg_or],  path+'/union_label.svg')
+    label_image(trees.morphlab, [rl.reg_lhs, rl.reg_rhs, rl.reg_and], path+'/intersect_label.svg')
+
 
 if __name__ == '__main__':
     generate('.')
