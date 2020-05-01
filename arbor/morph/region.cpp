@@ -335,7 +335,7 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
-    return o << "(distal_interval " << d.end << " " << d.distance << ")";
+    return o << "(proximal_interval " << d.end << " " << d.distance << ")";
 }
 
 mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {

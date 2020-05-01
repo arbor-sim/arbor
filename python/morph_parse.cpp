@@ -1,6 +1,7 @@
 #include <arbor/util/any.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <limits>
 
 #include "error.hpp"
 #include "s_expr.hpp"
@@ -187,8 +188,16 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'region' with 1 argument: (name:string)")},
     {"distal_interval",  make_call<arb::locset, double>(arb::reg::distal_interval,
                             "'distal_interval' with 2 arguments: (start:locset extent:real)")},
+    {"distal_interval", make_call<arb::locset>(
+                            [](arb::locset ls){return arb::reg::distal_interval(std::move(ls), std::numeric_limits<double>::max());},
+                            "'distal_interval' with 1 argument: (start:locset)")},
     {"proximal_interval",make_call<arb::locset, double>(arb::reg::proximal_interval,
                             "'proximal_interval' with 2 arguments: (start:locset extent:real)")},
+    {"proximal_interval", make_call<arb::locset>(
+                            [](arb::locset ls){return arb::reg::proximal_interval(std::move(ls), std::numeric_limits<double>::max());},
+                            "'proximal_interval' with 1 argument: (start:locset)")},
+    {"super",     make_call<arb::region>(arb::reg::super,
+                            "'super' with 1 argment: (reg:region)")},
     {"radius_lt",make_call<arb::region, double>(arb::reg::radius_lt,
                             "'radius_lt' with 2 arguments: (reg:region radius:real)")},
     {"radius_le",make_call<arb::region, double>(arb::reg::radius_le,
