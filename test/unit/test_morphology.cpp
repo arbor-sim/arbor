@@ -636,6 +636,57 @@ TEST(morphology, minset) {
     }
 }
 
+TEST(morphology, maxset) {
+    using pvec = std::vector<arb::msize_t>;
+    using svec = std::vector<arb::msample>;
+    using ll = arb::mlocation_list;
+    constexpr auto npos = arb::mnpos;
+
+    // Eight samples
+    //                  no-sphere  sphere
+    //          sample   branch    branch
+    //            0         0         0
+    //           1 3       0 1       1 2
+    //          2   4     0   1     1   2
+    //             5 6       2 3       3 4
+    //                7         3         4
+    pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
+    svec samples = {
+        {{  0,  0,  0,  2}, 3},
+        {{ 10,  0,  0,  2}, 3},
+        {{100,  0,  0,  2}, 3},
+        {{  0, 10,  0,  2}, 3},
+        {{  0,100,  0,  2}, 3},
+        {{100,100,  0,  2}, 3},
+        {{  0,200,  0,  2}, 3},
+        {{  0,300,  0,  2}, 3},
+    };
+    arb::sample_tree sm(samples, parents);
+    {
+        arb::morphology m(sm, false);
+
+        EXPECT_EQ((ll{}), maxset(m, ll{}));
+        EXPECT_EQ((ll{{2,0.1}}), maxset(m, ll{{2,0.1}}));
+        EXPECT_EQ((ll{{0,0.5}, {1,0.5}}), maxset(m, ll{{0,0.5}, {1,0.5}}));
+        EXPECT_EQ((ll{{0,0.5}}), maxset(m, ll{{0,0.5}}));
+        EXPECT_EQ((ll{{0,0.5}, {1,0.5}}), maxset(m, ll{{0,0}, {0,0.5}, {1,0}, {1,0.5}}));
+        EXPECT_EQ((ll{{0,0.5}, {2,0.5}}), maxset(m, ll{{0,0}, {0,0.5}, {1,0.5}, {2,0.5}}));
+        EXPECT_EQ((ll{{0,0.5}, {2,0.5}}), maxset(m, ll{{0,0}, {0,0.5}, {2,0.5}}));
+        EXPECT_EQ((ll{{0,0.5}, {2,0.5}, {3,1}}), maxset(m, ll{{0,0}, {0,0.5}, {2,0.5}, {3,0}, {3,1}}));
+        EXPECT_EQ((ll{{2,0.5}, {3,0.5}}), maxset(m, ll{{1,0.5}, {2,0.5}, {3,0}, {3,0.2}, {3,0.5}}));
+    }
+    {
+        arb::morphology m(sm, true);
+
+        EXPECT_EQ((ll{}), maxset(m, ll{}));
+        EXPECT_EQ((ll{{2,0.1}}), maxset(m, ll{{2,0.1}}));
+        EXPECT_EQ((ll{{1,0.5}}), maxset(m, ll{{0,0.5}, {1,0.5}}));
+        EXPECT_EQ((ll{{1,0}, {2,0}}), maxset(m, ll{{2,0}, {1,0}, {0,0}}));
+        EXPECT_EQ((ll{{1,0.5}}), maxset(m, ll{{0,0}, {0,0.5}, {1,0}, {1,0.5}}));
+        EXPECT_EQ((ll{{1,1}, {3,0.1}, {4,0.7}}), maxset(m, ll{{1,0.5}, {1,1}, {3,0.1}, {4,0.5}, {4,0.7}}));
+    }
+}
+
 // Testing mextent; intersection and join operations are
 // exercised by region/locset thingifies in test_morph_expr.cpp.
 
