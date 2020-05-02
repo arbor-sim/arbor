@@ -17,7 +17,10 @@ namespace kernels {
 // to[i] = from[p[i]]
 template <typename T, typename I>
 __global__
-void gather(const T* from, T* to, const I* p, unsigned n) {
+void gather(const T* __restrict__ const from,
+            T* __restrict__ const to,
+            const I* __restrict__ const p,
+            unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {
@@ -28,7 +31,10 @@ void gather(const T* from, T* to, const I* p, unsigned n) {
 // to[p[i]] = from[i]
 template <typename T, typename I>
 __global__
-void scatter(const T* from, T* to, const I* p, unsigned n) {
+void scatter(const T* __restrict__ const from,
+             T* __restrict__ const to,
+             const I* __restrict__ const p,
+             unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {
@@ -45,18 +51,18 @@ void scatter(const T* from, T* to, const I* p, unsigned n) {
 template <typename T, typename I>
 __global__
 void assemble_matrix_fine(
-        T* d,
-        T* rhs,
-        const T* invariant_d,
-        const T* voltage,
-        const T* current,
-        const T* conductivity,
-        const T* cv_capacitance,
-        const T* area,
-        const I* cv_to_cell,
-        const T* dt_intdom,
-        const I* cell_to_intdom,
-        const I* perm,
+        T* __restrict__ const d,
+        T* __restrict__ const rhs,
+        const T* __restrict__ const invariant_d,
+        const T* __restrict__ const voltage,
+        const T* __restrict__ const current,
+        const T* __restrict__ const conductivity,
+        const T* __restrict__ const cv_capacitance,
+        const T* __restrict__ const area,
+        const I* __restrict__ const cv_to_cell,
+        const T* __restrict__ const dt_intdom,
+        const I* __restrict__ const cell_to_intdom,
+        const I* __restrict__ const perm,
         unsigned n)
 {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
@@ -97,15 +103,15 @@ void assemble_matrix_fine(
 template <typename T>
 __global__
 void solve_matrix_fine(
-    T* rhs,
-    T* d,
-    const T* u,
-    const level_metadata* level_meta,
-    const fvm_index_type* level_lengths,
-    const fvm_index_type* level_parents,
-    const fvm_index_type* block_index,
-    fvm_index_type* num_matrix, // number of packed matrices = number of cells
-    fvm_index_type* padded_size)
+    T* __restrict__ const rhs,
+    T* __restrict__ const d,
+    const T* __restrict__ const u,
+    const level_metadata* __restrict__ const level_meta,
+    const fvm_index_type* __restrict__ const level_lengths,
+    const fvm_index_type* __restrict__ const level_parents,
+    const fvm_index_type* __restrict__ const block_index,
+    fvm_index_type* __restrict__ const num_matrix, // number of packed matrices = number of cells
+    fvm_index_type* __restrict__ const padded_size)
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
@@ -252,7 +258,7 @@ void solve_matrix_fine(
 
 void gather(
     const fvm_value_type* from,
-    fvm_value_type* to,
+    fvm_value_type*  to,
     const fvm_index_type* p,
     unsigned n)
 {
@@ -264,7 +270,7 @@ void gather(
 
 void scatter(
     const fvm_value_type* from,
-    fvm_value_type* to,
+    fvm_value_type*  to,
     const fvm_index_type* p,
     unsigned n)
 {
@@ -276,8 +282,8 @@ void scatter(
 
 
 void assemble_matrix_fine(
-    fvm_value_type* d,
-    fvm_value_type* rhs,
+    fvm_value_type*  d,
+    fvm_value_type*  rhs,
     const fvm_value_type* invariant_d,
     const fvm_value_type* voltage,
     const fvm_value_type* current,
