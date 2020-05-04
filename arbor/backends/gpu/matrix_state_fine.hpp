@@ -85,7 +85,8 @@ public:
 
     using metadata_array = memory::device_vector<level_metadata>;
 
-    iarray cv_to_cell;
+    // Maps control volume to integration domain
+    iarray cv_to_intdom;
 
     array d;     // [μS]
     array u;     // [μS]
@@ -100,9 +101,6 @@ public:
 
     // Solution in unpacked format
     array solution_;
-
-    // Maps cell to integration domain
-    iarray cell_to_intdom;
 
     // Maximum number of branches in each level per block
     unsigned max_branches_per_level;
@@ -454,16 +452,20 @@ public:
         // to be stored in flat format
         cv_capacitance = memory::make_const_view(cap);
         invariant_d = memory::make_const_view(invariant_d_tmp);
-        cell_to_intdom = memory::make_const_view(cell_intdom);
 
-        // calculte the cv -> cell mappings
+        // calculate the cv -> cell mappings
         std::vector<size_type> cv_to_cell_tmp(matrix_size);
         size_type ci = 0;
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
             util::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
             ++ci;
         }
-        cv_to_cell = memory::make_const_view(cv_to_cell_tmp);
+        std::vector<size_type> cv_to_intdom_tmp(matrix_size);
+        for (auto i = 0ul; i < cv_to_cell_tmp.size(); ++i) {
+            cv_to_intdom_tmp[i] = cell_intdom[cv_to_cell_tmp[i]];
+        }
+        cv_to_intdom = memory::make_const_view(cv_to_intdom_tmp);
+
     }
 
     // Assemble the matrix
@@ -482,9 +484,8 @@ public:
             conductivity.data(),
             cv_capacitance.data(),
             cv_area.data(),
-            cv_to_cell.data(),
+            cv_to_intdom.data(),
             dt_intdom.data(),
-            cell_to_intdom.data(),
             perm.data(),
             size());
     }
