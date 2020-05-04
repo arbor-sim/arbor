@@ -271,8 +271,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
         PL();
         PE(advance_integrate_matrix_solve);
-        matrix_.solve();
-        memory::copy(matrix_.solution(), state_->voltage);
+        matrix_.solve(state_->voltage);
         PL();
 
         // Integrate mechanism state.
@@ -291,7 +290,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         PE(advance_integrate_threshold);
         threshold_watcher_.test();
-        memory::copy(state_->time_to, state_->time);
+        std::swap(state_->time_to, state_->time);
         PL();
 
         // Check for non-physical solutions:

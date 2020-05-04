@@ -502,6 +502,17 @@ public:
         packed_to_flat(rhs, solution_);
     }
 
+   template<typename VTo>
+    void solve(VTo& to) {
+        solve_matrix_fine(rhs.data(), d.data(), u.data(), level_meta.data(),
+                          level_lengths.data(), level_parents.data(),
+                          block_index.data(), num_cells_in_block.data(),
+                          data_partition.data(), num_cells_in_block.size(),
+                          max_branches_per_level);
+        // unpermute the solution
+        packed_to_flat(rhs, to);
+    }
+
     const_view solution() const {
         return solution_;
     }
