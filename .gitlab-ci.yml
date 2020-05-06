@@ -1,0 +1,65 @@
+stages:
+  - build
+  - test
+
+.kubernetes:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: 1
+    BUILDKIT_PROGRESS: plain
+  image: docker:stable
+  only:
+    - master
+    - staging
+    - trying
+  tags:
+    - kubernetes
+  services:
+    - docker:19.03.1-dind # Important to keep the patch version here!
+
+# Builds a docker image on kubernetes
+build:
+  extends: .kubernetes
+  stage: build
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -f docker/build-env/Dockerfile --network=host --cache-from $CI_REGISTRY_IMAGE/build-env:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $CI_REGISTRY_IMAGE/build-env:latest .
+    - docker push $CI_REGISTRY_IMAGE/build-env:latest
+    - docker build -f docker/deploy/Dockerfile --network=host --build-arg BUILD_ENV=$CI_REGISTRY_IMAGE/build-env:latest -t $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA .
+    - docker push $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
+
+# Executes the docker image on Daint via Sarus
+.daint-common:
+  variables:
+    CRAY_CUDA_MPS: 1
+  only:
+    - master
+    - staging
+    - trying
+  tags:
+    - daint
+
+test:
+  stage: test
+  extends: .daint-common
+  before_script:
+    - export IMAGE=$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
+    - module load sarus daint-gpu
+    - sarus pull $IMAGE
+    - salloc --no-shell --job-name=arbor-ci-$CI_JOB_ID -N 2 -n 2 -C gpu -p normal
+    - export JOBID=$(squeue -h --name=arbor-ci-$CI_JOB_ID --format=%A)
+  script:
+    - srun --jobid=$JOBID -N 1 -n 1 -J arbor-ci-$CI_JOB_ID-unit sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit
+    - srun --jobid=$JOBID -N 2 -n 2 -J arbor-ci-$CI_JOB_ID-unit-mpi sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit-mpi
+    - srun --jobid=$JOBID -N 1 -n 1 -J arbor-ci-$CI_JOB_ID-unit-local sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit-local
+    - srun --jobid=$JOBID -N 1 -n 1 -J arbor-ci-$CI_JOB_ID-unit-modcc sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit-modcc
+  after_script:
+    - export IMAGE=$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
+    - export JOBID=$(squeue -h --name=arbor-ci-$CI_JOB_ID --format=%A)
+    - scancel $JOBID
+    - module load sarus
+    - sarus rmi $IMAGE
