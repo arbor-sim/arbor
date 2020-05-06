@@ -13,6 +13,7 @@ build:
   stage: build
   only: ['master', 'staging', 'trying']
   variables:
+    GIT_SUBMODULE_STRATEGY: recursive
     BUILD_DOCKERFILE: docker/build-env/Dockerfile
     BUILD_IMAGE: $CI_REGISTRY_IMAGE/build-env:latest
     DEPLOY_DOCKERFILE: docker/deploy/Dockerfile
