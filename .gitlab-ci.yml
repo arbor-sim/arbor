@@ -1,65 +1,76 @@
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.cscs.yml'
+
 stages:
   - build
+  - allocate
   - test
-
-.kubernetes:
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    DOCKER_DRIVER: overlay2
-    DOCKER_HOST: tcp://localhost:2375
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_BUILDKIT: 1
-    BUILDKIT_PROGRESS: plain
-  image: docker:stable
-  only:
-    - master
-    - staging
-    - trying
-  tags:
-    - kubernetes
-  services:
-    - docker:19.03.1-dind # Important to keep the patch version here!
+  - cleanup
 
 # Builds a docker image on kubernetes
 build:
-  extends: .kubernetes
+  extends: .dind
   stage: build
+  only: ['master', 'staging', 'trying']
+  variables:
+    BUILD_DOCKERFILE: docker/build-env/Dockerfile
+    BUILD_IMAGE: $CI_REGISTRY_IMAGE/build-env:latest
+    DEPLOY_DOCKERFILE: docker/deploy/Dockerfile
+    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker build -f docker/build-env/Dockerfile --network=host --cache-from $CI_REGISTRY_IMAGE/build-env:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $CI_REGISTRY_IMAGE/build-env:latest .
-    - docker push $CI_REGISTRY_IMAGE/build-env:latest
-    - docker build -f docker/deploy/Dockerfile --network=host --build-arg BUILD_ENV=$CI_REGISTRY_IMAGE/build-env:latest -t $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA .
-    - docker push $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
+    - docker build -f $BUILD_DOCKERFILE --network=host --cache-from $BUILD_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 -t $BUILD_IMAGE .
+    - docker push $BUILD_IMAGE
+    - docker build -f $DEPLOY_DOCKERFILE --network=host --build-arg BUILD_ENV=$BUILD_IMAGE -t $DEPLOY_IMAGE .
+    - docker push $DEPLOY_IMAGE
 
 # Executes the docker image on Daint via Sarus
-.daint-common:
-  variables:
-    CRAY_CUDA_MPS: 1
-  only:
-    - master
-    - staging
-    - trying
-  tags:
-    - daint
+image: $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
 
-test:
+# Some variables used for running on daint
+variables:
+  CRAY_CUDA_MPS: 1
+  USE_MPI: 'YES'
+  DISABLE_AFTER_SCRIPT: 'YES'
+  PULL_IMAGE: 'NO'
+  ALLOCATION_NAME: arbor-ci-$CI_PIPELINE_ID
+  SLURM_CONSTRAINT: gpu
+  SLURM_JOB_NUM_NODES: 2
+  SLURM_PARTITION: normal
+
+allocate:
+  stage: allocate
+  only: ['master', 'staging', 'trying']
+  extends: .daint_alloc
+  variables:
+    PULL_IMAGE: 'YES'
+
+single node:
+  extends: .daint
+  only: ['master', 'staging', 'trying']
   stage: test
-  extends: .daint-common
-  before_script:
-    - export IMAGE=$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
-    - module load sarus daint-gpu
-    - sarus pull $IMAGE
-    - salloc --no-shell --job-name=arbor-ci-$CI_JOB_ID -N 2 -n 2 -C gpu -p normal
-    - export JOBID=$(squeue -h --name=arbor-ci-$CI_JOB_ID --format=%A)
+  resource_group: daint-job
   script:
-    - srun --jobid=$JOBID -N 1 -n 1 -J arbor-ci-$CI_JOB_ID-unit sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit
-    - srun --jobid=$JOBID -N 2 -n 2 -J arbor-ci-$CI_JOB_ID-unit-mpi sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit-mpi
-    - srun --jobid=$JOBID -N 1 -n 1 -J arbor-ci-$CI_JOB_ID-unit-local sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit-local
-    - srun --jobid=$JOBID -N 1 -n 1 -J arbor-ci-$CI_JOB_ID-unit-modcc sarus run --mpi --mount=type=bind,source=$PWD,destination=/arbor $IMAGE unit-modcc
-  after_script:
-    - export IMAGE=$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
-    - export JOBID=$(squeue -h --name=arbor-ci-$CI_JOB_ID --format=%A)
-    - scancel $JOBID
-    - module load sarus
-    - sarus rmi $IMAGE
+    - unit
+    - unit-local
+    - unit-modcc
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+
+multi node:
+  extends: .daint
+  only: ['master', 'staging', 'trying']
+  stage: test
+  resource_group: daint-job
+  script:
+    - unit-mpi
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 2
+
+deallocate:
+  only: ['master', 'staging', 'trying']
+  stage: cleanup
+  extends: .daint_dealloc
