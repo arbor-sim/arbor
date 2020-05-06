@@ -984,6 +984,22 @@ namespace simd_abi {
 #endif
 } // namespace simd_abi
 
+namespace simd_abi {
+    template <typename T> struct reg_type;
+    template <> struct reg_type<int> { using type = __m128i;};
+    template <> struct reg_type<double> { using type = __m256d;};
+
+    template <typename T> struct mask_type;
+    template <> struct mask_type<int> { using type = __m128i;};
+    template <> struct mask_type<double> { using type = __m128i;};
+
+    template<typename Type> struct type_to_impl;
+    template<> struct type_to_impl<__m128i> { using type = detail::avx_int4;};
+    template<> struct type_to_impl<__m256d> { using type = detail::avx_double4;};
+};  // namespace simd_abi
+
+using namespace arb::simd::simd_abi;
+
 } // namespace simd
 } // namespace arb
 
