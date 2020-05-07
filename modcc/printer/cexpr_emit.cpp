@@ -22,7 +22,7 @@ std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
         return out << (neg? "-0.": "0.");
     default:
         return out <<
-            (std::stringstream{} << io::classic << std::setprecision(17) << wrap.value).rdbuf();
+            (std::stringstream{} << io::classic << std::showpoint << std::setprecision(17) << wrap.value).rdbuf();
     }
 }
 
@@ -169,6 +169,109 @@ void CExprEmitter::visit(IfExpression* e) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::unordered_set<std::string> SimdExprEmitter::mask_names_;
+
+void SimdExprEmitter::visit(NumberExpression* e) {
+    out_ << " simd_cast<simd_value>(" << as_c_double(e->value()) << ")";
+}
+
+void SimdExprEmitter::visit(BinaryExpression* e) {
+    static std::unordered_map<tok, const char *> func_tbl = {
+            {tok::minus,    "sub"},
+            {tok::plus,     "add"},
+            {tok::times,    "mul"},
+            {tok::divide,   "div"},
+            {tok::lt,       "cmp_lt"},
+            {tok::lte,      "cmp_leq"},
+            {tok::gt,       "cmp_gt"},
+            {tok::gte,      "cmp_geq"},
+            {tok::equality, "cmp_eq"},
+            {tok::land,     "logical_and"},
+            {tok::lor,      "logical_or"},
+            {tok::ne,       "cmp_neq"},
+            {tok::min,      "min"},
+            {tok::max,      "max"},
+    };
+
+    static std::unordered_map<tok, const char *> binop_tbl = {
+            {tok::minus,    "-"},
+            {tok::plus,     "+"},
+            {tok::times,    "*"},
+            {tok::divide,   "/"},
+            {tok::lt,       "<"},
+            {tok::lte,      "<="},
+            {tok::gt,       ">"},
+            {tok::gte,      ">="},
+            {tok::equality, "=="},
+            {tok::land,     "&&"},
+            {tok::lor,      "||"},
+            {tok::ne,       "!="},
+            {tok::min,      "min"},
+            {tok::max,      "max"},
+    };
+
+
+    if (!binop_tbl.count(e->op())) {
+        throw compiler_exception(
+                "CExprEmitter: unsupported binary operator " + token_string(e->op()), e->location());
+    }
+
+    std::string rhs_name, lhs_name;
+
+    auto rhs = e->rhs();
+    auto lhs = e->lhs();
+
+    const char *op_spelling = binop_tbl.at(e->op());
+    const char *func_spelling = func_tbl.at(e->op());
+
+    if (rhs->is_identifier()) {
+        rhs_name = rhs->is_identifier()->name();
+    }
+    if (lhs->is_identifier()) {
+        lhs_name = lhs->is_identifier()->name();
+    }
+
+    if (scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
+        if (e->is_infix()) {
+            associativityKind assoc = Lexer::operator_associativity(e->op());
+            int op_prec = Lexer::binop_precedence(e->op());
+
+            auto need_paren = [op_prec](Expression *subexpr, bool assoc_side) -> bool {
+                if (auto b = subexpr->is_binary()) {
+                    int sub_prec = Lexer::binop_precedence(b->op());
+                    return sub_prec < op_prec || (!assoc_side && sub_prec == op_prec);
+                }
+                return false;
+            };
+
+            if (need_paren(lhs, assoc == associativityKind::left)) {
+                emit_as_call("", lhs);
+            } else {
+                lhs->accept(this);
+            }
+
+            out_ << op_spelling;
+
+            if (need_paren(rhs, assoc == associativityKind::right)) {
+                emit_as_call("", rhs);
+            } else {
+                rhs->accept(this);
+            }
+        } else {
+            emit_as_call(op_spelling, lhs, rhs);
+        }
+    } else if (scalars_.count(rhs_name) && !scalars_.count(lhs_name)) {
+        out_ << func_spelling << '(';
+        lhs->accept(this);
+        out_ << ", simd_cast<simd_value>(" << rhs_name << ")";
+        out_ << ')';
+    } else if (!scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
+        out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_name << "), ";
+        rhs->accept(this);
+        out_ << ')';
+    } else {
+        emit_as_call(func_spelling, lhs, rhs);
+    }
+}
 
 void SimdExprEmitter::visit(BlockExpression* block) {
     for (auto& stmt: block->statements()) {

@@ -41,6 +41,13 @@ namespace detail {
     public:
         indirect_expression(V* p, unsigned width): p(p), width(width) {}
 
+        indirect_expression& operator=(V s) {
+            for (unsigned i = 0; i < width; i++) {
+                p[i] = s;
+            }
+            return *this;
+        }
+
         template <typename Other>
         indirect_expression& operator=(const Other& s) {
             indirect_copy_to(s, p, width);
@@ -88,6 +95,15 @@ namespace detail {
         indirect_indexed_expression(V* p, const ImplIndex& index_simd, unsigned width, index_constraint constraint):
             p(p), index(index_simd), width(width), constraint(constraint)
         {}
+
+        indirect_indexed_expression& operator=(V s) {
+            typename simd_traits<ImplIndex>::scalar_type idx[width];
+            ImplIndex::copy_to(index.value_, idx);
+            for (unsigned i = 0; i < width; i++) {
+                p[idx[i]] = s;
+            }
+            return *this;
+        }
 
         template <typename Other>
         indirect_indexed_expression& operator=(const Other& s) {
@@ -402,20 +418,20 @@ namespace detail {
             using IndexImpl = typename Index::simd_base;
             switch (pi.constraint) {
             case index_constraint::none:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
             case index_constraint::independent:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
             case index_constraint::contiguous:
                 {
-                    const scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
+                    const scalar_type* p = IndexImpl::element0(pi.index.value_) + pi.p;
                     value_ = Impl::copy_from(p);
                 }
                 break;
             case index_constraint::constant:
                 {
-                    const scalar_type *p = IndexImpl::element0(pi.index) + pi.p;
+                    const scalar_type *p = IndexImpl::element0(pi.index.value_) + pi.p;
                     scalar_type l = (*p);
                     value_ = Impl::broadcast(l);
                 }
