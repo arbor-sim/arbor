@@ -203,21 +203,22 @@ TYPED_TEST_P(simd_value, copy_to_from_masked) {
         }
 
         simd s(buf1);
-        where(m1, s).copy_from(buf2);
+        where(m1, s) = indirect(buf2, N);
         EXPECT_TRUE(testing::indexed_eq_n(N, expected, s));
 
         for (unsigned i = 0; i<N; ++i) {
             if (!mbuf2[i]) expected[i] = buf3[i];
         }
 
-        where(m2, s).copy_to(buf3);
+        indirect(buf3, N) = where(m2, s);
         EXPECT_TRUE(testing::indexed_eq_n(N, expected, buf3));
 
         for (unsigned i = 0; i<N; ++i) {
             expected[i] = mbuf2[i]? buf1[i]: buf4[i];
         }
 
-        where(m2, simd(buf1)).copy_to(buf4);
+        simd b(buf1);
+        indirect(buf4, N) = where(m2, b);
         EXPECT_TRUE(testing::indexed_eq_n(N, expected, buf4));
     }
 }
@@ -921,7 +922,7 @@ TYPED_TEST_P(simd_indirect, gather) {
         fill_random(array, rng);
         fill_random(offset, rng, 0, (int)(buflen-1));
 
-        simd s(indirect(array, simd_index(offset)));
+        simd s = simd_cast<simd>(indirect(array, simd_index(offset), N));
 
         scalar test[N];
         for (unsigned j = 0; j<N; ++j) {
@@ -961,7 +962,8 @@ TYPED_TEST_P(simd_indirect, masked_gather) {
 
         simd s(original);
         simd_mask m(mask);
-        where(m, s).copy_from(indirect(array, simd_index(offset)));
+
+        where(m, s) = indirect(array, simd_index(offset), N);
 
         EXPECT_TRUE(::testing::indexed_eq_n(N, test, s));
     }
@@ -995,7 +997,7 @@ TYPED_TEST_P(simd_indirect, scatter) {
         }
 
         simd s(values);
-        s.copy_to(indirect(array, simd_index(offset)));
+        indirect(array, simd_index(offset), N) = s;
 
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
@@ -1033,7 +1035,7 @@ TYPED_TEST_P(simd_indirect, masked_scatter) {
 
         simd s(values);
         simd_mask m(mask);
-        where(m, s).copy_to(indirect(array, simd_index(offset)));
+        indirect(array, simd_index(offset), N) = where(m, s);
 
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
@@ -1041,7 +1043,8 @@ TYPED_TEST_P(simd_indirect, masked_scatter) {
             array[j] = test[j];
         }
 
-        where(m, simd(values)).copy_to(indirect(array, simd_index(offset)));
+        simd v(values);
+        indirect(array, simd_index(offset), N) = where(m, v);
 
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
@@ -1074,7 +1077,7 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
             test[offset[j]] += values[j];
         }
 
-        indirect(array, simd_index(offset)) += simd(values);
+        indirect(array, simd_index(offset), N) += simd(values);
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         fill_random(offset, rng, 0, (int)(buflen-1));
@@ -1086,7 +1089,7 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
             test[offset[j]] -= values[j];
         }
 
-        indirect(array, simd_index(offset)) -= simd(values);
+        indirect(array, simd_index(offset), N) -= simd(values);
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
@@ -1137,7 +1140,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         } while (!unique_elements(offset));
 
         make_test_array();
-        indirect(array, simd_index(offset), index_constraint::independent) += simd(values);
+        indirect(array, simd_index(offset), N, index_constraint::independent) += simd(values);
 
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
@@ -1149,7 +1152,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         }
 
         make_test_array();
-        indirect(array, simd_index(offset), index_constraint::contiguous) += simd(values);
+        indirect(array, simd_index(offset), N, index_constraint::contiguous) += simd(values);
 
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
@@ -1168,7 +1171,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
         }
 
         make_test_array();
-        indirect(array, simd_index(offset), index_constraint::constant) += simd(values);
+        indirect(array, simd_index(offset), N, index_constraint::constant) += simd(values);
 
         EXPECT_TRUE(::testing::indexed_almost_eq_n(buflen, test, array));
 

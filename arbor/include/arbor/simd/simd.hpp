@@ -53,6 +53,12 @@ namespace detail {
             return *this;
         }
 
+        template <typename Impl, typename ImplMask>
+        indirect_expression& operator=(const where_expression<Impl, ImplMask>& s) {
+            indirect_copy_to(s.data_, s.mask_, p, width);
+            return *this;
+        }
+
         template <typename Impl> friend struct simd_impl;
         template <typename To>   friend struct simd_cast_impl;
         template <typename T, typename M> friend struct where_expression;
@@ -91,6 +97,12 @@ namespace detail {
 
         template <typename Impl, typename ImplMask>
         indirect_indexed_expression& operator=(const const_where_expression<Impl, ImplMask>& s) {
+            indirect_indexed_copy_to(s.data_, s.mask_, p, index, width);
+            return *this;
+        }
+
+        template <typename Impl, typename ImplMask>
+        indirect_indexed_expression& operator=(const where_expression<Impl, ImplMask>& s) {
             indirect_indexed_copy_to(s.data_, s.mask_, p, index, width);
             return *this;
         }
@@ -205,6 +217,11 @@ namespace detail {
             return *this;
         }
 
+        template <typename T>             friend struct simd_impl;
+        template <typename To>            friend struct simd_cast_impl;
+        template <typename V>             friend class indirect_expression;
+        template <typename I, typename V> friend class indirect_indexed_expression;
+
     private:
         const ImplMask& mask_;
         Impl& data_;
@@ -223,7 +240,7 @@ namespace detail {
     template <typename Impl, typename ImplIndex, typename ImplMask, typename V>
     static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f,  const V* p, const simd_impl<ImplIndex>& index, unsigned width) {
         simd_impl<Impl> temp;
-        temp.value_ = Impl::gather(tag<ImplMask>{}, temp.value_, p, index.value_, mask.value_);
+        temp.value_ = Impl::gather(tag<ImplIndex>{}, temp.value_, p, index.value_, mask.value_);
         f.value_ = Impl::ifelse(mask.value_, temp.value_, f.value_);
     }
 
@@ -412,6 +429,11 @@ namespace detail {
 
         template <typename T, typename M>
         void copy_from(const_where_expression<T, M> w) {
+            value_ = Impl::ifelse(w.mask_.value_, w.data_.value_, value_);
+        }
+
+        template <typename T, typename M>
+        void copy_from(where_expression<T, M> w) {
             value_ = Impl::ifelse(w.mask_.value_, w.data_.value_, value_);
         }
 
@@ -779,7 +801,7 @@ namespace detail {
 
     template <typename To>
     struct simd_cast_impl {
-        template <typename V>
+        /*template <typename V>
         static To cast(const V& a) {
             return type_to_impl<To>::type::broadcast(a);
         }
@@ -830,6 +852,14 @@ namespace detail {
             r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
             return r;
         }
+
+        template <typename T, typename V>
+        static To cast(const where_expression<T,V>& a) {
+            auto r = type_to_impl<To>::type::broadcast(0);
+            r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
+            return r;
+        }
+         */
     };
 
     template <typename ImplTo>
@@ -906,8 +936,8 @@ namespace simd_abi {
 template <typename Value, unsigned N, template <class, unsigned> class Abi = simd_abi::default_abi>
 struct simd_wrap { using type = detail::simd_impl<typename Abi<Value, N>::type>; };
 
-template <typename Value, template <class, unsigned> class Abi>
-struct simd_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::reg_type<Value>::type; };
+//template <typename Value, template <class, unsigned> class Abi>
+//struct simd_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::reg_type<Value>::type; };
 
 template <typename Value, unsigned N, template <class, unsigned> class Abi>
 using simd = typename simd_wrap<Value, N, Abi>::type;
@@ -916,8 +946,8 @@ using simd = typename simd_wrap<Value, N, Abi>::type;
 template <typename Value, unsigned N>
 struct simd_mask_wrap { using type = typename simd<Value, N, simd_abi::default_abi>::simd_mask; };
 
-template <typename Value>
-struct simd_mask_wrap<Value, 0> { using type = typename simd_abi::mask_type<Value>::type; };
+//template <typename Value>
+//struct simd_mask_wrap<Value, 0> { using type = typename simd_abi::mask_type<Value>::type; };
 
 template <typename Value, unsigned N>
 using simd_mask = typename simd_mask_wrap<Value, N>::type;
@@ -943,7 +973,7 @@ template <
     typename PtrLike,
     typename V = std::remove_reference_t<decltype(*std::declval<PtrLike>())>
 >
-detail::indirect_indexed_expression<IndexImpl, V> indirect_indexed(
+detail::indirect_indexed_expression<IndexImpl, V> indirect(
     PtrLike p,
     const IndexImpl& index,
     unsigned width,

@@ -27,8 +27,8 @@ namespace arb {
 namespace multicore {
 
 constexpr unsigned simd_width = simd::simd_abi::native_width<fvm_value_type>::value;
-using simd_value_type = simd::simd<fvm_value_type, simd_width>;
-using simd_index_type = simd::simd<fvm_index_type, simd_width>;
+using simd_value_type = simd::simd<fvm_value_type, simd_width, simd::simd_abi::default_abi>;
+using simd_index_type = simd::simd<fvm_index_type, simd_width, simd::simd_abi::default_abi>;
 
 // Pick alignment compatible with native SIMD width for explicitly
 // vectorized operations below.
@@ -187,7 +187,7 @@ void shared_state::set_dt() {
     for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
         simd_index_type intdom_idx(cv_to_intdom.data()+i);
 
-        simd_value_type dt(simd::indirect(dt_intdom.data(), intdom_idx));
+        simd_value_type dt = simd::simd_cast<simd_value_type>(simd::indirect(dt_intdom.data(), intdom_idx, simd_width));
         dt.copy_to(dt_cv.data()+i);
     }
 }
