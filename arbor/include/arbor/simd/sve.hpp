@@ -601,7 +601,6 @@ protected:
     }
 };
 
-
 }  // namespace detail
 
 namespace simd_abi {
@@ -624,6 +623,18 @@ template<> struct type_to_impl<svbool_t> { using type = detail::sve_mask8;};
 };  // namespace simd_abi
 
 using namespace arb::simd::simd_abi;
+
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
+struct simd_wrap;
+
+template <typename Value, template <class, unsigned> class Abi>
+struct simd_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::reg_type<Value>::type; };
+
+template <typename Value, unsigned N>
+struct simd_mask_wrap;
+
+template <typename Value>
+struct simd_mask_wrap<Value, 0> { using type = typename simd_abi::mask_type<Value>::type; };
 
 template <typename T>
 T neg(const T& a) {
@@ -841,6 +852,84 @@ void compound_indexed_add(
             break;
     }
 }
+
+namespace detail {
+
+template <typename I, typename V>
+class indirect_indexed_expression;
+
+template <typename V>
+class indirect_expression;
+
+template <typename T, typename M>
+class where_expression;
+
+template <typename T, typename M>
+class const_where_expression;
+
+template <typename To>
+struct simd_cast_impl {
+    template <typename V>
+    static To cast(const V& a) {
+        return type_to_impl<To>::type::broadcast(a);
+    }
+
+    template <typename V>
+    static To cast(const indirect_expression<V>& a) {
+        using Impl     = typename type_to_impl<To>::type;
+        using ImplMask = typename detail::simd_traits<Impl>::mask_impl;
+
+        return Impl::copy_from_masked(a.p, ImplMask::true_mask(a.width));
+    }
+
+    template <typename I, typename V>
+    static To cast(const indirect_indexed_expression<I,V>& a) {
+        using Impl      = typename type_to_impl<To>::type;
+        using IndexImpl = typename type_to_impl<I>::type;
+        using ImplMask  = typename detail::simd_traits<Impl>::mask_impl;
+
+        To r;
+        auto mask = ImplMask::true_mask(a.width);
+        switch (a.constraint) {
+            case index_constraint::none:
+                r = Impl::gather(tag<IndexImpl>{}, a.p, a.index, mask);
+                break;
+            case index_constraint::independent:
+                r = Impl::gather(tag<IndexImpl>{}, a.p, a.index, mask);
+                break;
+            case index_constraint::contiguous:
+            {
+                const auto* p = IndexImpl::element0(a.index) + a.p;
+                r = Impl::copy_from_masked(p, mask);
+            }
+                break;
+            case index_constraint::constant:
+            {
+                const auto *p = IndexImpl::element0(a.index) + a.p;
+                auto l = (*p);
+                r = Impl::broadcast(l);
+            }
+                break;
+        }
+        return r;
+    }
+
+    template <typename T, typename V>
+    static To cast(const const_where_expression<T,V>& a) {
+        auto r = type_to_impl<To>::type::broadcast(0);
+        r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
+        return r;
+    }
+
+    template <typename T, typename V>
+    static To cast(const where_expression<T,V>& a) {
+        auto r = type_to_impl<To>::type::broadcast(0);
+        r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
+        return r;
+    }
+};
+
+}//namespace detail
 
 }  // namespace simd
 }  // namespace arb

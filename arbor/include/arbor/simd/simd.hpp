@@ -800,67 +800,7 @@ namespace detail {
     };
 
     template <typename To>
-    struct simd_cast_impl {
-        /*template <typename V>
-        static To cast(const V& a) {
-            return type_to_impl<To>::type::broadcast(a);
-        }
-
-        template <typename V>
-        static To cast(const indirect_expression<V>& a) {
-            using Impl     = typename type_to_impl<To>::type;
-            using ImplMask = typename detail::simd_traits<Impl>::mask_impl;
-
-            return Impl::copy_from_masked(a.p, ImplMask::true_mask(a.width));
-        }
-
-        template <typename I, typename V>
-        static To cast(const indirect_indexed_expression<I,V>& a) {
-            using Impl      = typename type_to_impl<To>::type;
-            using IndexImpl = typename type_to_impl<I>::type;
-            using ImplMask  = typename detail::simd_traits<Impl>::mask_impl;
-
-            To r;
-            auto mask = ImplMask::true_mask(a.width);
-            switch (a.constraint) {
-                case index_constraint::none:
-                    r = Impl::gather(tag<IndexImpl>{}, a.p, a.index, mask);
-                    break;
-                case index_constraint::independent:
-                    r = Impl::gather(tag<IndexImpl>{}, a.p, a.index, mask);
-                    break;
-                case index_constraint::contiguous:
-                {
-                    const auto* p = IndexImpl::element0(a.index) + a.p;
-                    r = Impl::copy_from_masked(p, mask);
-                }
-                    break;
-                case index_constraint::constant:
-                {
-                    const auto *p = IndexImpl::element0(a.index) + a.p;
-                    auto l = (*p);
-                    r = Impl::broadcast(l);
-                }
-                    break;
-            }
-            return r;
-        }
-
-        template <typename T, typename V>
-        static To cast(const const_where_expression<T,V>& a) {
-            auto r = type_to_impl<To>::type::broadcast(0);
-            r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
-            return r;
-        }
-
-        template <typename T, typename V>
-        static To cast(const where_expression<T,V>& a) {
-            auto r = type_to_impl<To>::type::broadcast(0);
-            r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
-            return r;
-        }
-         */
-    };
+    struct simd_cast_impl;
 
     template <typename ImplTo>
     struct simd_cast_impl<simd_impl<ImplTo>> {
@@ -933,21 +873,14 @@ namespace simd_abi {
     };
 }
 
-template <typename Value, unsigned N, template <class, unsigned> class Abi = simd_abi::default_abi>
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
 struct simd_wrap { using type = detail::simd_impl<typename Abi<Value, N>::type>; };
-
-//template <typename Value, template <class, unsigned> class Abi>
-//struct simd_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::reg_type<Value>::type; };
 
 template <typename Value, unsigned N, template <class, unsigned> class Abi>
 using simd = typename simd_wrap<Value, N, Abi>::type;
 
-
 template <typename Value, unsigned N>
 struct simd_mask_wrap { using type = typename simd<Value, N, simd_abi::default_abi>::simd_mask; };
-
-//template <typename Value>
-//struct simd_mask_wrap<Value, 0> { using type = typename simd_abi::mask_type<Value>::type; };
 
 template <typename Value, unsigned N>
 using simd_mask = typename simd_mask_wrap<Value, N>::type;
