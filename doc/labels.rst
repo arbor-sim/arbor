@@ -5,14 +5,15 @@ Labels
 
 Arbor provides a domain specific language (DSL) for labeling regions and
 locations on morphologies.
-Labels are used to refer to the morphology when setting cell properties and attributes,
+These labels are used to set cell properties and attributes,
 for example, the membrane capacitance on a region of the cell membrane,
-or the location of synapse instances.
+or the location of synapse instances, when building single cell models.
 
 Example Cell
 ------------
 
-The following morphology will be used to demonstrate labeling.
+The following morphology will be used in this documentation to illustrate the different region and location
+descriptions.
 
 .. _labels-morph-fig:
 
@@ -21,12 +22,12 @@ The following morphology will be used to demonstrate labeling.
   :align: center
 
   **Left**: Segments of the sample morphology, colored according to tags: soma (tag 1, red), axon (tag 2, gray), dendrites (tag 3, blue).
-  **Right**: Branches of the sample morphology.
+  **Right**: The 6 branches of the morphology with their branch ids.
 
 Branch 0 contains the soma, which is modelled as a cylinder of length and diameter 4 μm, and the first branch of the dendritic tree which has a radius of 0.75 μm, and is attached to the distal end of the soma.
-The other branches in the dendritic tree have the following properties: branch 1 tapers from 0.4 to 0.2 μm; branch 2 has radius 0.5 μm;
+The other branches in the dendritic tree have the following properties: branch 1 tapers from 0.4 to 0.2 μm; branch 2 has a constant radius of 0.5 μm;
 and branches 3 and 4 taper from 0.5 to 0.2 μm.
-The axon is a single branch, composed of two cable segments: a tapering axon hillock attached to the proximal end of the soma, and the start of the axon proper with radius 0.4 μm.
+Branch 5 is the axon, composed of two cable segments: an axon hillock with a radius that tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the start of the axon proper with radius 0.4 μm.
 
 Label Types
 ------------
@@ -34,10 +35,10 @@ Label Types
 Locsets
 ~~~~~~~~~~~
 
-A *location* is used to place countable entities on the morphology.
-Examples of countable entities include synapses, gap junction
+A *locset* is a of locations on the morphology.
+Locsets are multisets: they may contain multiple instances of the same location.
+*Locations* are used to place countable entities on the morphology, such as synapses, gap junction
 sites, voltage recorders and current clamps.
-A *locset* is a multiset of locations, that is a collection of locations that can contain multiple instances of the same location.
 
 .. figure:: gen-images/locset_label_examples.svg
   :width: 800
@@ -62,7 +63,7 @@ Examples of regions include:
 * The axon hillock.
 * The dendrites with radius less than 1 μm.
 
-It is possible for a region to be empty, for example a region that defines the axon be empty on a morphology that has no axon.
+It is possible for a region to be empty, for example, a region that defines the axon will be empty on a morphology that has no axon.
 Regions do not need to be complete sub-trees of a morphology.
 
 .. figure:: gen-images/region_label_examples.svg
@@ -78,10 +79,9 @@ Label Dictionaries
 Expressions
 ~~~~~~~~~~~
 
-Regions and locsets are described using *expressions*, which are written
-in a simple s-expression based language.
+Regions and locsets are described using *expressions*, which are written as s-expressions.
 
-Examples of expressions that define regions include:
+Here are some examples of expressions that define regions:
 
 * ``(all)``: the complete cell morphology.
 * ``(tag 1)``: all segments with tag 1.
@@ -90,10 +90,10 @@ Examples of expressions that define regions include:
 
 And here are examples of expressions that define locsets:
 
-* ``(root)`` -> the root sample.
-* ``(terminal)`` -> the terminal samples.
-* ``(location 3 0.5)`` -> the mid point of branch 3.
-* ``(locset "synapse_sites")`` -> the locset named "synapse_sites".
+* ``(root)``: the root sample.
+* ``(terminal)``: the terminal samples.
+* ``(location 3 0.5)``: the mid point of branch 3.
+* ``(locset "synapse_sites")``: the locset labelled "synapse_sites".
 
 Detailed descriptions for all of the region and locset expression types is
 given :ref:`below <labels-expr-docs>`.
@@ -435,7 +435,7 @@ Region Expressions
       :width: 900
       :align: center
 
-      Two regions and their union.
+      Two regions (left and middle) and their union (right).
 
 .. label:: (intersect lhs:region rhs:region [...region])
 
@@ -445,5 +445,5 @@ Region Expressions
       :width: 900
       :align: center
 
-      Two regions and their intersection.
+      Two regions (left and middle) and their intersection (right).
 
