@@ -5,14 +5,22 @@
 
 ARG BUILD_ENV
 
+ARG SOURCE_DIR=/arbor
+ARG BUILD_DIR=/arbor-build
+ARG BUNDLE_DIR=/root/arbor.bundle
+
 FROM $BUILD_ENV as builder
+
+ARG SOURCE_DIR
+ARG BUILD_DIR
+ARG BUNDLE_DIR
 
 # Build arbor
 COPY . /arbor
 
 # Build and bundle binaries
-RUN mkdir /arbor/build && cd /arbor/build && \
-    CC=mpicc CXX=mpicxx cmake .. \
+RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
+    CC=mpicc CXX=mpicxx cmake ${SOURCE_DIR} \
       -DARB_VECTORIZE=ON \
       -DARB_ARCH=broadwell \
       -DARB_WITH_PYTHON=OFF \
@@ -21,28 +29,35 @@ RUN mkdir /arbor/build && cd /arbor/build && \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
-    /root/libtree/libtree --chrpath --strip \
-      -d /root/arbor.bundle \
-      /arbor/build/bin/modcc \
-      /arbor/build/bin/unit \
-      /arbor/build/bin/unit-local \
-      /arbor/build/bin/unit-modcc \
-      /arbor/build/bin/unit-mpi && \
-    rm -rf /arbor
+    libtree --chrpath --strip \
+      -d ${BUNDLE_DIR} \
+      ${BUILD_DIR}/bin/modcc \
+      ${BUILD_DIR}/bin/unit \
+      ${BUILD_DIR}/bin/unit-local \
+      ${BUILD_DIR}/bin/unit-modcc \
+      ${BUILD_DIR}/bin/unit-mpi && \
+    rm -rf ${BUILD_DIR}
+
+# Only keep the sources for tests, not the git history
+RUN rm -rf ${SOURCE_DIR}/.git
 
 FROM ubuntu:18.04
+
+ARG SOURCE_DIR
+ARG BUNDLE_DIR
 
 # This is the only thing necessary really from nvidia/cuda's ubuntu18.04 runtime image
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=10.1 brand=tesla,driver>=384,driver<385 brand=tesla,driver>=396,driver<397 brand=tesla,driver>=410,driver<411"
 
-COPY --from=builder /root/arbor.bundle /root/arbor.bundle
+COPY --from=builder ${BUNDLE_DIR} ${BUNDLE_DIR}
+COPY --from=builder ${SOURCE_DIR} ${SOURCE_DIR}
 
 # Make it easy to call our binaries.
-ENV PATH="/root/arbor.bundle/usr/bin:$PATH"
+ENV PATH="${BUNDLE_DIR}/usr/bin:$PATH"
 
-RUN echo "/root/arbor.bundle/usr/lib/" > /etc/ld.so.conf.d/arbor.conf && ldconfig
+RUN echo "${BUNDLE_DIR}/usr/lib/" > /etc/ld.so.conf.d/arbor.conf && ldconfig
 
-WORKDIR /root/arbor.bundle/usr/bin
+WORKDIR ${BUNDLE_DIR}/usr/bin
 
