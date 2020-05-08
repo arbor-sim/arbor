@@ -5,10 +5,15 @@
 #include <random>
 #include <unordered_set>
 
-#include <arbor/simd/simd.hpp>
 #include <arbor/simd/avx.hpp>
 #include <arbor/simd/neon.hpp>
+#include <arbor/simd/sve.hpp>
+#include <arbor/simd/simd.hpp>
 #include <arbor/util/compat.hpp>
+
+#ifdef __ARM_FEATURE_SVE
+#include <sys/prctl.h>
+#endif
 
 #include "common.hpp"
 
@@ -876,7 +881,7 @@ typedef ::testing::Types<
 #ifdef __AVX512F__
     simd<double, 8, simd_abi::avx512>,
 #endif
-#if defined(__ARM_NEON)
+#ifdef __ARM_NEON
     simd<double, 2, simd_abi::neon>,
 #endif
 
@@ -1205,7 +1210,7 @@ typedef ::testing::Types<
     simd_and_index<simd<int, 8, simd_abi::avx512>,
                    simd<int, 8, simd_abi::avx512>>,
 #endif
-#if defined(__ARM_NEON)
+#ifdef __ARM_NEON
     simd_and_index<simd<double, 2, simd_abi::neon>,
                    simd<int, 2, simd_abi::neon>>,
 
@@ -1291,7 +1296,7 @@ typedef ::testing::Types<
     simd_pair<simd<double, 8, simd_abi::avx512>,
               simd<int, 8, simd_abi::avx512>>,
 #endif
-#if defined(__ARM_NEON)
+#ifdef __ARM_NEON
     simd_pair<simd<double, 2, simd_abi::neon>,
               simd<int, 2, simd_abi::neon>>,
 #endif
@@ -1301,3 +1306,136 @@ typedef ::testing::Types<
 > simd_casting_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_casting, simd_casting_test_types);
+
+
+// Sizeless simd types API tests
+
+template <typename T, typename V, unsigned N>
+struct simd_t {
+    using simd_type = T;
+    using scalar_type = V;
+    static constexpr unsigned width = N;
+};
+
+template <typename T, typename I, typename M>
+struct simd_types_t {
+    using simd_value = T;
+    using simd_index = I;
+    using simd_value_mask =  M;
+
+    static void init() {
+#ifdef __ARM_FEATURE_SVE
+        prctl(PR_SVE_SET_VL, T::width*sizeof(scalar_type));
+#endif
+    }
+
+};
+
+template <typename SI>
+struct sizeless_api: public ::testing::Test {};
+
+TYPED_TEST_CASE_P(sizeless_api);
+
+TYPED_TEST_P(sizeless_api, construct) {
+    using simd_value   = typename TypeParam::simd_value::simd_type;
+    using scalar_value = typename TypeParam::simd_value::scalar_type;
+
+    using simd_index   = typename TypeParam::simd_index::simd_type;
+    using scalar_index = typename TypeParam::simd_index::scalar_type;
+
+    constexpr unsigned N = TypeParam::simd_value::width;
+    TypeParam::init();
+
+    std::minstd_rand rng(1001);
+
+    {
+        scalar_value a_in[N], a_out[N];
+        fill_random(a_in, rng);
+
+        simd_value av = simd_cast<simd_value>(indirect(a_in, N));
+
+        indirect(a_out, N) = av;
+
+        EXPECT_TRUE(testing::indexed_eq_n(N, a_in, a_out));
+    }
+    {
+        scalar_value a_in[2*N], a_out[N], a_exp[N];
+        fill_random(a_in, rng);
+
+        scalar_index idx[N];
+
+        // Independent
+        for (unsigned i = 0; i < N; ++i) {
+            idx[i] = i*2;
+        }
+
+        simd_index idxv = simd_cast<simd_index>(indirect(idx, N));
+        simd_value av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::independent));
+
+        indirect(a_out, N) = av;
+
+        for (unsigned i = 0; i < N; ++i) {
+            a_exp[i] = a_in[idx[i]];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+
+        // contiguous
+        for (unsigned i = 0; i < N; ++i) {
+            idx[i] = i;
+        }
+
+        idxv = simd_cast<simd_index>(indirect(idx, N));
+        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::contiguous));
+
+        indirect(a_out, N) = av;
+
+        for (unsigned i = 0; i < N; ++i) {
+            a_exp[i] = a_in[idx[i]];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+
+        // none
+        for (unsigned i = 0; i < N; ++i) {
+            idx[i] = i%2;
+        }
+
+        idxv = simd_cast<simd_index>(indirect(idx, N));
+        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::none));
+
+        indirect(a_out, N) = av;
+
+        for (unsigned i = 0; i < N; ++i) {
+            a_exp[i] = a_in[idx[i]];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+
+        // constant
+        for (unsigned i = 0; i < N; ++i) {
+            idx[i] = 0;
+        }
+
+        idxv = simd_cast<simd_index>(indirect(idx, N));
+        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::none));
+
+        indirect(a_out, N) = av;
+
+        for (unsigned i = 0; i < N; ++i) {
+            a_exp[i] = a_in[idx[i]];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+    }
+
+
+}
+
+REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct);
+
+
+typedef ::testing::Types<
+    simd_types_t< simd_t<simd<double, 4, simd_abi::avx>, double, 4>,
+                  simd_t<simd<int,    4, simd_abi::avx2>, int,   4>,
+                  simd_t<simd_mask<double, 4>, int, 4>>
+> sizeless_api_test_types;
+
+INSTANTIATE_TYPED_TEST_CASE_P(S, sizeless_api, sizeless_api_test_types);
+

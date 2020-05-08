@@ -68,7 +68,7 @@ namespace detail {
 
         template <typename Impl> friend struct simd_impl;
         template <typename To>   friend struct simd_cast_impl;
-        template <typename T, typename M> friend struct where_expression;
+        template <typename T, typename M> friend class where_expression;
 
         template <typename Impl, typename ImplMask, typename Other>
         friend void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const indirect_expression<Other>& t, unsigned width);
@@ -137,7 +137,7 @@ namespace detail {
 
         template <typename Impl> friend struct simd_impl;
         template <typename To>   friend struct simd_cast_impl;
-        template <typename T, typename M> friend struct where_expression;
+        template <typename T, typename M> friend class where_expression;
 
         template <typename Impl, typename OtherIndex, typename ImplMask, typename OtherV>
         static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f,  const OtherV* p, const simd_impl<ImplIndex>& index, unsigned width);
@@ -255,7 +255,7 @@ namespace detail {
 
     template <typename Impl, typename ImplIndex, typename ImplMask, typename V>
     static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f,  const V* p, const simd_impl<ImplIndex>& index, unsigned width) {
-        simd_impl<Impl> temp;
+        simd_impl<Impl> temp = Impl::broadcast(0);
         temp.value_ = Impl::gather(tag<ImplIndex>{}, temp.value_, p, index.value_, mask.value_);
         f.value_ = Impl::ifelse(mask.value_, temp.value_, f.value_);
     }
@@ -304,10 +304,10 @@ namespace detail {
         friend struct simd_impl;
 
         template <typename Other, typename V>
-        friend struct indirect_indexed_expression;
+        friend class indirect_indexed_expression;
 
         template <typename V>
-        friend struct indirect_expression;
+        friend class indirect_expression;
 
         simd_impl() = default;
 
