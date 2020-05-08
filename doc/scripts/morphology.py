@@ -532,6 +532,11 @@ def generate(path=''):
     label_image(trees.morphlab, [rl.reg_lhs, rl.reg_rhs, rl.reg_or],  path+'/union_label.svg')
     label_image(trees.morphlab, [rl.reg_lhs, rl.reg_rhs, rl.reg_and], path+'/intersect_label.svg')
 
+    label_image(trees.morphlab, [rl.reg_radlt5],  path+'/radiuslt_label.svg')
+    label_image(trees.morphlab, [rl.reg_radle5],  path+'/radiusle_label.svg')
+    label_image(trees.morphlab, [rl.reg_radgt5],  path+'/radiusgt_label.svg')
+    label_image(trees.morphlab, [rl.reg_radge5],  path+'/radiusge_label.svg')
+
 
 if __name__ == '__main__':
     generate('.')

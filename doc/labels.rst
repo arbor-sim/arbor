@@ -3,17 +3,23 @@
 Labels
 =========
 
-Arbor provides a domain specific language (DSL) for labeling regions and
+Arbor provides a domain specific language (DSL) for describing regions and
 locations on morphologies.
-These labels are used to set cell properties and attributes,
-for example, the membrane capacitance on a region of the cell membrane,
-or the location of synapse instances, when building single cell models.
+Regions and locations can be named with labels, for later reference.
+
+.. note::
+
+    The labels are used later in the cell building process to refer to regions
+    and locations when setting cell properties and attributes.
+    For example, the membrane capacitance on a region of the cell membrane, or
+    the location of synapse instances.
 
 Example Cell
 ------------
 
-The following morphology will be used in this documentation to illustrate the different region and location
-descriptions.
+The following morphology will be used in this documentation to illustrate
+region and location descriptions.
+It has a soma, dendritic tree and an axon with a hillock.
 
 .. _labels-morph-fig:
 
@@ -24,10 +30,20 @@ descriptions.
   **Left**: Segments of the sample morphology, colored according to tags: soma (tag 1, red), axon (tag 2, gray), dendrites (tag 3, blue).
   **Right**: The 6 branches of the morphology with their branch ids.
 
-Branch 0 contains the soma, which is modelled as a cylinder of length and diameter 4 μm, and the first branch of the dendritic tree which has a radius of 0.75 μm, and is attached to the distal end of the soma.
-The other branches in the dendritic tree have the following properties: branch 1 tapers from 0.4 to 0.2 μm; branch 2 has a constant radius of 0.5 μm;
-and branches 3 and 4 taper from 0.5 to 0.2 μm.
-Branch 5 is the axon, composed of two cable segments: an axon hillock with a radius that tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the start of the axon proper with radius 0.4 μm.
+*Branch 0* contains the soma, which is modelled as a cylinder of length and diameter 4 μm,
+and the proximal unbranched section of the dendritic tree which has a radius of 0.75 μm,
+and is attached to the distal end of the soma.
+
+The other branches in the dendritic tree have the following properties:
+
+* *branch 1* tapers from 0.4 to 0.2 μm;
+* *branch 2* has a constant radius of 0.5 μm;
+* *branch 3* tapers from 0.5 to 0.2 μm;
+* *branch 4* tapers from 0.5 to 0.2 μm.
+
+*Branch 5* is the axon, composed of two cable segments: an axon hillock with a radius that
+tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the start of the
+axon proper with radius 0.4 μm.
 
 Label Types
 ------------
@@ -35,10 +51,15 @@ Label Types
 Locsets
 ~~~~~~~~~~~
 
-A *locset* is a of locations on the morphology.
+A *locset* is a list of locations on a morphology.
 Locsets are multisets: they may contain multiple instances of the same location.
 *Locations* are used to place countable entities on the morphology, such as synapses, gap junction
 sites, voltage recorders and current clamps.
+Locsets are also used as building blocks for region and locset definitions.
+
+* The center of the soma.
+* The locations of inhibitory synapses.
+* The tips of the dendritic tree.
 
 .. figure:: gen-images/locset_label_examples.svg
   :width: 800
@@ -73,11 +94,8 @@ Regions do not need to be complete sub-trees of a morphology.
   Examples of regions on the example morphology. **Left**: The dendritic tree.
   **Right**: All cables with radius less than 0.5 μm.
 
-Label Dictionaries
-------------------
-
 Expressions
-~~~~~~~~~~~
+-----------
 
 Regions and locsets are described using *expressions*, which are written as s-expressions.
 
@@ -99,14 +117,17 @@ Detailed descriptions for all of the region and locset expression types is
 given :ref:`below <labels-expr-docs>`.
 
 Expressions are *composable*, so that more complex definitions can be constructed
-using simple expressions like the examples for regions and locsets above.
-For example, the expression
-``(radius_lt (join (tag 3) (tag 4)) 0.5)`` describes the region of all parts of a cell
-with either tag 3 or tag 4 and radius less than 0.5 μm.
+using simple expressions. For example, the expression
+
+.. code-block:: lisp
+
+    (radius_lt (join (tag 3) (tag 4)) 0.5)
+
+describes the region of all parts of a cell with either tag 3 or tag 4 and radius less than 0.5 μm.
 
 .. note:
 
-    In a typical NEURON workflow, a *prescriptive* hoc template calculates
+    In NEURON *prescriptive* hoc templates are typically used to calculate
     explicit lists of sections or segments using loops and logical constructs.
     The logic in a hoc template often makes it difficult to understand
     what the results describe, and is error prone.
@@ -120,15 +141,15 @@ with either tag 3 or tag 4 and radius less than 0.5 μm.
     expressions are applied to a morphology.
 
 
-Dictionaries
-~~~~~~~~~~~~
+Label Dictionaries
+------------------
 
 *Labels* can be assigned to expressions, and used to refer to the expression or the
 concrete region or locset generated when the expression is applied to a morphology.
 A label is a string with the following rules:
 
 * may contain alpha-numeric values, ``{a-z}[A-z][0-9]``, and underscore ``_`` and hyphen ``-``.
-* no leading underscore, hyphen or numeric values: for example `_myregion`, `-samples`, and ``2ndpoint`` are invalid labels.
+* no leading underscore, hyphen or numeric values: for example ``_myregion``, ``-samples``, and ``2ndpoint`` are invalid labels.
 * no leading numeric values
 
 labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
@@ -136,17 +157,23 @@ labels are stored with their associated expressions as key-value pairs in *label
 Representation
 ----------------
 
+Locations
+~~~~~~~~~
+
 A *location* on a cell is described using a tuple ``(branch, pos)`` where ``branch`` is a
 branch id, and ``0 ≤ pos ≤ 1`` is a relative distance along the branch, where 0 and 1 are the
 proximal and distal ends of the branch respectively.
+
+*TODO* introduce *locset* and *cable_list*
+
+Regions
+~~~~~~~~~
 
 Regions are composed of unbranched *cables*, which are tuples of the form ``(branch, prox, dist)``,
 where ``branch`` is the branch id, and ``0 ≤ prox ≤ dist ≤ 1`` define the relative position
 of the end points of the section on the branch.
 
 *TODO* some examples of cables and locations. (whole branch, subset of branch, root (0,0), mid point of a dendrite)
-
-*TODO* introduce *locset* and *cable_list*
 
 .. _labels-expr-docs:
 
@@ -415,17 +442,67 @@ Region Expressions
 
     All parts of cable segments in the region ``reg`` with radius less than ``radius``.
 
+    .. figure:: gen-images/radiuslt_label.svg
+      :width: 300
+      :align: center
+
+      All cable segments with radius **less than** 0.5 μm, found by applying ``radius_lt`` to all of
+      the cables in the morphology.
+      Note that branch 2, which has a constant radius of 0.5 μm, is not in the result because its radius
+      is not strictly less than 0.5 μm.
+
+      .. code-block:: lisp
+
+        (radius_lt (all) 0.5)
+
 .. label:: (radius_le reg:region radius:real)
 
     All parts of cable segments in the region ``reg`` with radius less than or equal to ``radius``.
+
+    .. figure:: gen-images/radiusle_label.svg
+      :width: 300
+      :align: center
+
+      All cable segments with radius **less than or equal to** 0.5 μm, found by applying ``radius_le`` to all of
+      the cables in the morphology.
+      Note that branch 2, which has a constant radius of 0.5 μm, is in the result.
+
+      .. code-block:: lisp
+
+        (radius_le (all) 0.5)
 
 .. label:: (radius_gt reg:region radius:real)
 
     All parts of cable segments in the region ``reg`` with radius greater than ``radius``.
 
+    .. figure:: gen-images/radiusgt_label.svg
+      :width: 300
+      :align: center
+
+      All cable segments with radius **greater than** 0.5 μm, found by applying ``radius_ge`` to all of
+      the cables in the morphology.
+      Note that branch 2, which has a constant radius of 0.5 μm, is not in the result because its radius
+      is not strictly greater than 0.5 μm.
+
+      .. code-block:: lisp
+
+        (radius_gt (all) 0.5)
+
 .. label:: (radius_ge reg:region radius:real)
 
     All parts of cable segments in the region ``reg`` with radius greater than or equal to ``radius``.
+
+    .. figure:: gen-images/radiusge_label.svg
+      :width: 300
+      :align: center
+
+      All cable segments with radius **greater than or equal to** 0.5 μm, found by applying ``radius_le`` to all of
+      the cables in the morphology.
+      Note that branch 2, which has a constant radius of 0.5 μm, is in the result.
+
+      .. code-block:: lisp
+
+        (radius_ge (all) 0.5)
 
 .. label:: (join lhs:region rhs:region [...region])
 

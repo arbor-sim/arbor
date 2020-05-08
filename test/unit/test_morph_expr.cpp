@@ -566,7 +566,7 @@ TEST(region, thingify_moderate_morphologies) {
         EXPECT_TRUE(region_eq(mp, radius_le(all(), 2), cl{{0,0,0.55}, {1,0,0.325}, {2,1,1}, {3,0.375,0.75}}));
         EXPECT_TRUE(region_eq(mp, radius_le(all(), 3), cl{{0,0,1}, {1,0,0.55}, {2,6.0/9.0,1}, {3,0.25,1}}));
         EXPECT_TRUE(region_eq(mp, radius_ge(all(), 2), cl{{0,0.55,1}, {1,0.325,1}, {2,0,1}, {3,0,0.375}, {3,0.75,1}}));
-        EXPECT_TRUE(region_eq(mp, radius_ge(all(), 3), cl{{1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}}));
+        EXPECT_TRUE(region_eq(mp, radius_ge(all(), 3), cl{{0,1,1}, {1,0.55,1}, {2,0,6.0/9.0}, {3,0,0.25}, {3,1,1}}));
 
         EXPECT_TRUE(region_eq(mp, radius_lt(reg_a_, 2), cl{{0,0.1,0.4},{3,0.375,0.4}}));
         EXPECT_TRUE(region_eq(mp, radius_gt(reg_a_, 2), cl{{2,0,1},{3,0.1,0.375}}));
