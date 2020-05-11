@@ -11,7 +11,6 @@
 #include <arbor/morph/region.hpp>
 
 #include "util/cbrng.hpp"
-#include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"

@@ -16,15 +16,21 @@ TEST(s_expr, identifier) {
     EXPECT_TRUE(test_identifier("f_1__"));
     EXPECT_TRUE(test_identifier("A_1__"));
 
+    EXPECT_TRUE(test_identifier("A-1"));
+    EXPECT_TRUE(test_identifier("hello-world"));
+    EXPECT_TRUE(test_identifier("hello--world"));
+    EXPECT_TRUE(test_identifier("hello--world_"));
+
     EXPECT_FALSE(test_identifier("_foobar"));
+    EXPECT_FALSE(test_identifier("-foobar"));
     EXPECT_FALSE(test_identifier("2dogs"));
     EXPECT_FALSE(test_identifier("1"));
     EXPECT_FALSE(test_identifier("_"));
+    EXPECT_FALSE(test_identifier("-"));
     EXPECT_FALSE(test_identifier(""));
     EXPECT_FALSE(test_identifier(" foo"));
     EXPECT_FALSE(test_identifier("foo "));
     EXPECT_FALSE(test_identifier("foo bar"));
-    EXPECT_FALSE(test_identifier("foo-bar"));
     EXPECT_FALSE(test_identifier(""));
 }
 
