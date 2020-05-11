@@ -1608,7 +1608,146 @@ TYPED_TEST_P(sizeless_api, where_exp) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct, where_exp);
+TYPED_TEST_P(sizeless_api, arithmetic) {
+    using simd_value   = typename TypeParam::simd_value::simd_type;
+    using scalar_value = typename TypeParam::simd_value::scalar_type;
+
+    constexpr unsigned N = TypeParam::simd_value::width;
+    TypeParam::init();
+
+    std::minstd_rand rng(201);
+
+    scalar_value a[N], b[N], c[N], expected[N];
+    fill_random(a, rng);
+    fill_random(b, rng);
+
+    bool m[N], expected_m[N];
+    fill_random(m, rng);
+
+    simd_value av = simd_cast<simd_value>(indirect(a, N));
+    simd_value bv = simd_cast<simd_value>(indirect(b, N));
+
+    // add
+    {
+        auto cv = add(av, bv);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = a[i] + b[i];
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // sub
+    {
+        auto cv = sub(av, bv);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = a[i] - b[i];
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // mul
+    {
+        auto cv = mul(av, bv);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = a[i] * b[i];
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // div
+    {
+        auto cv = div(av, bv);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = a[i] / b[i];
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // cmp_eq
+    {
+        auto mv = cmp_eq(av, bv);
+        indirect(m, N) = mv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected_m[i] = a[i] == b[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, m, expected_m));
+    }
+    // cmp_leq
+    {
+        auto mv = cmp_leq(av, bv);
+        indirect(m, N) = mv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected_m[i] = a[i] <= b[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, m, expected_m));
+    }
+    // cmp_geq
+    {
+        auto mv = cmp_geq(av, bv);
+        indirect(m, N) = mv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected_m[i] = a[i] >= b[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, m, expected_m));
+    }
+    // sum
+    {
+        auto s = sum(av);
+        scalar_value expected_sum = 0;
+
+        for (unsigned i = 0; i<N; ++i) {
+            expected_sum += a[i];
+        }
+        EXPECT_FLOAT_EQ(expected_sum, s);
+    }
+    // exp
+    {
+        auto cv = exp(av);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::exp(a[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // log
+    {
+        auto cv = log(av);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::log(a[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // pow
+    {
+        auto cv = pow(av, bv);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::pow(a[i], b[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // max
+    {
+        auto cv = min(av, bv);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::min(a[i], b[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // min
+    {
+        auto cv = max(av, bv);
+        indirect(c, N) = cv;
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::max(a[i], b[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct, where_exp, arithmetic);
 
 typedef ::testing::Types<
 //    simd_types_t< simd_t<simd<double, 0, simd_abi::sve>, double, 4>,
