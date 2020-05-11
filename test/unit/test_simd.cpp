@@ -1359,55 +1359,84 @@ TYPED_TEST_P(sizeless_api, construct) {
         EXPECT_TRUE(testing::indexed_eq_n(N, a_in, a_out));
     }
     {
-        scalar_value a_in[2*N], a_out[N], a_exp[N];
+        scalar_value a_in[2*N], b_in[N], a_out[N], exp_0[N], exp_1[2*N];
         fill_random(a_in, rng);
+        fill_random(b_in, rng);
 
         scalar_index idx[N];
+
+        auto make_test_indirect2simd = [&]() {
+            for (unsigned i = 0; i<N; ++i) {
+                exp_0[i] = a_in[idx[i]];
+            }
+        };
+
+        auto make_test_simd2indirect = [&]() {
+            for (unsigned i = 0; i<2*N; ++i) {
+                exp_1[i] = a_in[i];
+            }
+            for (unsigned i = 0; i<N; ++i) {
+                exp_1[idx[i]] = b_in[i];
+            }
+        };
 
         // Independent
         for (unsigned i = 0; i < N; ++i) {
             idx[i] = i*2;
         }
-
         simd_index idxv = simd_cast<simd_index>(indirect(idx, N));
-        simd_value av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::independent));
 
+        make_test_indirect2simd();
+
+        simd_value av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::independent));
         indirect(a_out, N) = av;
 
-        for (unsigned i = 0; i < N; ++i) {
-            a_exp[i] = a_in[idx[i]];
-        }
-        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+        EXPECT_TRUE(testing::indexed_eq_n(N, exp_0, a_out));
+
+        make_test_simd2indirect();
+
+        indirect(a_in, idxv, N, index_constraint::independent) = simd_cast<simd_value>(indirect(b_in, N));
+
+        EXPECT_TRUE(testing::indexed_eq_n(2*N, exp_1, a_in));
 
         // contiguous
         for (unsigned i = 0; i < N; ++i) {
             idx[i] = i;
         }
-
         idxv = simd_cast<simd_index>(indirect(idx, N));
-        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::contiguous));
 
+        make_test_indirect2simd();
+
+        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::contiguous));
         indirect(a_out, N) = av;
 
-        for (unsigned i = 0; i < N; ++i) {
-            a_exp[i] = a_in[idx[i]];
-        }
-        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+        EXPECT_TRUE(testing::indexed_eq_n(N, exp_0, a_out));
+
+        make_test_simd2indirect();
+
+        indirect(a_in, idxv, N, index_constraint::contiguous) = simd_cast<simd_value>(indirect(b_in, N));
+
+        EXPECT_TRUE(testing::indexed_eq_n(2*N, exp_1, a_in));
 
         // none
         for (unsigned i = 0; i < N; ++i) {
-            idx[i] = i%2;
+            idx[i] = i/2;
         }
 
         idxv = simd_cast<simd_index>(indirect(idx, N));
-        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::none));
 
+        make_test_indirect2simd();
+
+        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::none));
         indirect(a_out, N) = av;
 
-        for (unsigned i = 0; i < N; ++i) {
-            a_exp[i] = a_in[idx[i]];
-        }
-        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+        EXPECT_TRUE(testing::indexed_eq_n(N, exp_0, a_out));
+
+        make_test_simd2indirect();
+
+        indirect(a_in, idxv, N, index_constraint::none) = simd_cast<simd_value>(indirect(b_in, N));
+
+        EXPECT_TRUE(testing::indexed_eq_n(2*N, exp_1, a_in));
 
         // constant
         for (unsigned i = 0; i < N; ++i) {
@@ -1415,28 +1444,179 @@ TYPED_TEST_P(sizeless_api, construct) {
         }
 
         idxv = simd_cast<simd_index>(indirect(idx, N));
-        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::none));
 
+        make_test_indirect2simd();
+
+        av   = simd_cast<simd_value>(indirect(a_in, idxv, N, index_constraint::constant));
         indirect(a_out, N) = av;
 
-        for (unsigned i = 0; i < N; ++i) {
-            a_exp[i] = a_in[idx[i]];
-        }
-        EXPECT_TRUE(testing::indexed_eq_n(N, a_exp, a_out));
+        EXPECT_TRUE(testing::indexed_eq_n(N, exp_0, a_out));
+
+        make_test_simd2indirect();
+
+        indirect(a_in, idxv, N, index_constraint::constant) = simd_cast<simd_value>(indirect(b_in, N));
+
+        EXPECT_TRUE(testing::indexed_eq_n(2*N, exp_1, a_in));
     }
-
-
 }
 
-REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct);
+TYPED_TEST_P(sizeless_api, where_exp) {
+    using simd_value   = typename TypeParam::simd_value::simd_type;
+    using scalar_value = typename TypeParam::simd_value::scalar_type;
+
+    using simd_index   = typename TypeParam::simd_index::simd_type;
+    using scalar_index = typename TypeParam::simd_index::scalar_type;
+
+    using mask_simd    = typename TypeParam::simd_value_mask::simd_type;
+
+    constexpr unsigned N = TypeParam::simd_value::width;
+    TypeParam::init();
+
+    std::minstd_rand rng(201);
+
+    bool m[N];
+    fill_random(m, rng);
+    mask_simd mv = simd_cast<mask_simd>(indirect(m, N));
+
+    scalar_value a[N], b[N], exp[N];
+    fill_random(a, rng);
+    fill_random(b, rng);
+
+    {
+        bool c[N];
+        indirect(c, N) = mv;
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, m));
+    }
+
+    // where = simd
+    {
+        scalar_value c[N];
+
+        simd_value av = simd_cast<simd_value>(indirect(a, N));
+        simd_value bv = simd_cast<simd_value>(indirect(b, N));
+
+        where(mv, av) = bv;
+        indirect(c, N) = av;
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[i] = m[i]? b[i] : a[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+    }
+
+    // simd = where
+    {
+        scalar_value c[N];
+
+        simd_value av = simd_cast<simd_value>(indirect(a, N));
+        simd_value bv = simd_cast<simd_value>(indirect(b, N));
+
+        simd_value cv = simd_cast<simd_value>(where(mv, add(av, bv)));
+        indirect(c, N) = cv;
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[i] = m[i]? (a[i] + b[i]) : 0;
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+    }
+
+    // where = indirect
+    {
+        scalar_value c[N];
+
+        simd_value av = simd_cast<simd_value>(indirect(a, N));
+
+        where(mv, av) = indirect(b, N);
+        indirect(c, N) = av;
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[i] = m[i]? b[i] : a[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+    }
+
+    // indirect = where
+    {
+        scalar_value c[N];
+        fill_random(c, rng);
+
+        simd_value av = simd_cast<simd_value>(indirect(a, N));
+
+        indirect(c, N)  = where(mv, av);
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[i] = m[i]? a[i] : c[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+
+        indirect(c, N)  = where(mv, neg(av));
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[i] = m[i]? -a[i] : c[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+    }
+
+    // where = indirect indexed
+    {
+        scalar_value c[N];
+
+        simd_value av = simd_cast<simd_value>(indirect(a, N));
+
+        scalar_index idx[N];
+        for (unsigned i =0; i<N; ++i) {
+            idx[i] = i/2;
+        }
+        simd_index idxv = simd_cast<simd_index>(indirect(idx, N));
+
+        where(mv, av) = indirect(b, idxv, N, index_constraint::none);
+        indirect(c, N) = av;
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[i] = m[i]? b[idx[i]] : a[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+    }
+
+    // indirect indexed = where
+    {
+        scalar_value c[N];
+        fill_random(c, rng);
+
+        simd_value av = simd_cast<simd_value>(indirect(a, N));
+        simd_value bv = simd_cast<simd_value>(indirect(b, N));
+
+        scalar_index idx[N];
+        for (unsigned i =0; i<N; ++i) {
+            idx[i] = i;
+        }
+        simd_index idxv = simd_cast<simd_index>(indirect(idx, N));
+
+        indirect(c, idxv, N, index_constraint::contiguous)  = where(mv, av);
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[idx[i]] = m[i]? a[i] : c[idx[i]];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+
+        indirect(c, idxv, N, index_constraint::contiguous)  = where(mv, sub(av, bv));
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[idx[i]] = m[i]? a[i] - b[i] : c[idx[i]];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct, where_exp);
 
 typedef ::testing::Types<
-    simd_types_t< simd_t<simd<double, 0, simd_abi::sve>, double, 4>,
-                  simd_t<simd<int,    0, simd_abi::sve>, int,   4>,
-                  simd_t<simd_mask<double, 0>, int, 4>>
-//    simd_types_t< simd_t<simd<double, 4, simd_abi::avx>, double, 4>,
-//                  simd_t<simd<int,    4, simd_abi::avx2>, int,   4>,
-//                  simd_t<simd_mask<double, 4>, int, 4>>
+//    simd_types_t< simd_t<simd<double, 0, simd_abi::sve>, double, 4>,
+//                  simd_t<simd<int,    0, simd_abi::sve>, int,   4>,
+//                  simd_t<simd_mask<double, 0>, bool, 4>>
+    simd_types_t< simd_t<simd<double, 4, simd_abi::avx>, double, 4>,
+                  simd_t<simd<int,    4, simd_abi::avx2>, int,   4>,
+                  simd_t<simd_mask<double, 4>, int, 4>>
 > sizeless_api_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, sizeless_api, sizeless_api_test_types);

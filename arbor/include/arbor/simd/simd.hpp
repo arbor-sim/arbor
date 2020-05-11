@@ -67,6 +67,7 @@ namespace detail {
         }
 
         template <typename Impl> friend struct simd_impl;
+        template <typename Impl> friend struct simd_mask_impl;
         template <typename To>   friend struct simd_cast_impl;
         template <typename T, typename M> friend class where_expression;
 
@@ -77,6 +78,11 @@ namespace detail {
         V* p;
         unsigned width;
     };
+
+    template <typename Impl, typename V>
+    static void indirect_copy_to(const simd_mask_impl<Impl>& s, V* p, unsigned width) {
+        Impl::mask_copy_to(s.value_, p);
+    }
 
     template <typename Impl, typename V>
     static void indirect_copy_to(const simd_impl<Impl>& s, V* p, unsigned width) {
@@ -567,8 +573,8 @@ namespace detail {
         // Arithmetic and lane-wise relational operatioons are also implemented as
         // top-level functions to match the `sizeless` simd vectors interface
 
-        simd_impl neg(const simd_impl& a) const {
-            return wrap(Impl::negate(a.value_));
+        friend simd_impl neg(const simd_impl& a) {
+            return simd_impl::wrap(Impl::negate(a.value_));
         }
 
         friend simd_impl add(const simd_impl& a, simd_impl b) {
@@ -752,6 +758,10 @@ namespace detail {
             value_ = Impl::mask_copy_from(y);
         }
 
+        void copy_from(indirect_expression<bool> pi) {
+            value_ = Impl::mask_copy_from(pi.p);
+        }
+
         // Array subscript operations.
 
         struct reference {
@@ -817,6 +827,32 @@ namespace detail {
 
     template <typename To>
     struct simd_cast_impl;
+
+    template <typename ImplTo>
+    struct simd_cast_impl<simd_mask_impl<ImplTo>> {
+        static constexpr unsigned N = simd_traits<ImplTo>::width;
+        using scalar_type = typename simd_traits<ImplTo>::scalar_type;
+
+        template <typename ImplFrom, typename = std::enable_if_t<N==simd_traits<ImplFrom>::width>>
+        static simd_mask_impl<ImplTo> cast(const simd_mask_impl<ImplFrom>& v) {
+            return simd_mask_impl<ImplTo>(v);
+        }
+
+        static simd_mask_impl<ImplTo> cast(const std::array<scalar_type, N>& a) {
+            return simd_mask_impl<ImplTo>(a.data());
+        }
+
+        static simd_mask_impl<ImplTo> cast(scalar_type a) {
+            simd_mask_impl<ImplTo> r = a;
+            return r;
+        }
+
+        static simd_mask_impl<ImplTo> cast(const indirect_expression<bool>& a) {
+            simd_mask_impl<ImplTo> r;
+            r.copy_from(a);
+            return r;
+        }
+    };
 
     template <typename ImplTo>
     struct simd_cast_impl<simd_impl<ImplTo>> {
