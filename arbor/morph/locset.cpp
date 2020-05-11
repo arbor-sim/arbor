@@ -11,6 +11,7 @@
 #include <arbor/morph/region.hpp>
 
 #include "util/cbrng.hpp"
+#include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
@@ -346,6 +347,40 @@ mlocation_list thingify_(const lsum& P, const mprovider& p) {
 
 std::ostream& operator<<(std::ostream& o, const lsum& x) {
     return o << "(sum " << x.lhs << " " << x.rhs << ")";
+}
+
+// Restrict a locset on to a region: returns all locations in the locset that
+// are also in the region.
+
+struct lrestrict_ {
+    locset ls;
+    region reg;
+};
+
+mlocation_list thingify_(const lrestrict_& P, const mprovider& p) {
+    mlocation_list L;
+
+    auto cables = thingify(P.reg, p).cables();
+    auto ends = util::transform_view(cables, [](const auto& c){return mlocation{c.branch, c.dist_pos};});
+
+    for (auto l: thingify(P.ls, p)) {
+        auto it = std::lower_bound(ends.begin(), ends.end(), l);
+        if (it==ends.end()) continue;
+        const auto& c = cables[std::distance(ends.begin(), it)];
+        if (c.branch==l.branch && c.prox_pos<=l.pos) {
+            L.push_back(l);
+        }
+    }
+
+    return L;
+}
+
+locset restrict(locset ls, region reg) {
+    return locset{lrestrict_{std::move(ls), std::move(reg)}};
+}
+
+std::ostream& operator<<(std::ostream& o, const lrestrict_& x) {
+    return o << "(restrict " << x.ls << " " << x.reg << ")";
 }
 
 } // namespace ls
