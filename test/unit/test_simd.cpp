@@ -1325,7 +1325,7 @@ struct simd_types_t {
 
     static void init() {
 #ifdef __ARM_FEATURE_SVE
-        prctl(PR_SVE_SET_VL, T::width*sizeof(scalar_type));
+        prctl(PR_SVE_SET_VL, T::width*sizeof(typename T::scalar_type));
 #endif
     }
 
@@ -1430,11 +1430,13 @@ TYPED_TEST_P(sizeless_api, construct) {
 
 REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct);
 
-
 typedef ::testing::Types<
-    simd_types_t< simd_t<simd<double, 4, simd_abi::avx>, double, 4>,
-                  simd_t<simd<int,    4, simd_abi::avx2>, int,   4>,
-                  simd_t<simd_mask<double, 4>, int, 4>>
+    simd_types_t< simd_t<simd<double, 0, simd_abi::sve>, double, 4>,
+                  simd_t<simd<int,    0, simd_abi::sve>, int,   4>,
+                  simd_t<simd_mask<double, 0>, int, 4>>
+//    simd_types_t< simd_t<simd<double, 4, simd_abi::avx>, double, 4>,
+//                  simd_t<simd<int,    4, simd_abi::avx2>, int,   4>,
+//                  simd_t<simd_mask<double, 4>, int, 4>>
 > sizeless_api_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, sizeless_api, sizeless_api_test_types);

@@ -176,7 +176,16 @@ struct sve_mask8 {
     }
 
     static svbool_t true_mask(unsigned width) {
-        return svwhilelt_b64_s64(0, width);
+        //return svwhilelt_b64_u64(0, (uint64_t)width);
+        unsigned len = svcntd();
+        if (len == width) {
+            return svptrue_b64();
+        }
+        bool n[len];
+        for (unsigned i = 0; i< len; ++i){
+            n[i] = i < width;
+        }
+        return copy_from(n);
     }
 };
 
