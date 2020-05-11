@@ -1325,7 +1325,7 @@ struct simd_types_t {
 
     static void init() {
 #ifdef __ARM_FEATURE_SVE
-        prctl(PR_SVE_SET_VL, T::width*sizeof(typename T::scalar_type));
+       // prctl(PR_SVE_SET_VL, T::width*sizeof(typename T::scalar_type));
 #endif
     }
 
@@ -1705,16 +1705,36 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
         auto cv = exp(av);
         indirect(c, N) = cv;
         for (unsigned i = 0; i<N; ++i) {
-            expected[i] = std::exp(a[i]);
+            EXPECT_NEAR(std::exp(a[i]), c[i], 1e-6);
         }
-        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
     }
     // log
     {
-        auto cv = log(av);
+        scalar_value l[N];
+        int max_exponent = std::numeric_limits<scalar_value>::max_exponent;
+        fill_random(l, rng, -max_exponent*std::log(2.), max_exponent*std::log(2.));
+        for (auto& x: l) {
+            x = std::exp(x);
+            // SIMD log implementation may treat subnormal as zero
+            if (std::fpclassify(x)==FP_SUBNORMAL) x = 0;
+        }
+        simd_value lv = simd_cast<simd_value>(indirect(l, N));
+
+        auto cv = log(lv);
         indirect(c, N) = cv;
+
+        for (unsigned i = 0; i<N; ++i){
+            std::cout << l[i] <<" ";
+        }
+        std::cout << std::endl  << std::endl;
+
+        for (unsigned i = 0; i<N; ++i){
+            std::cout << c[i] <<" ";
+        }
+        std::cout << std::endl  << std::endl;
+ 
         for (unsigned i = 0; i<N; ++i) {
-            expected[i] = std::log(a[i]);
+            expected[i] = std::log(l[i]);
         }
         EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
     }
@@ -1750,12 +1770,12 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
 REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct, where_exp, arithmetic);
 
 typedef ::testing::Types<
-//    simd_types_t< simd_t<simd<double, 0, simd_abi::sve>, double, 4>,
-//                  simd_t<simd<int,    0, simd_abi::sve>, int,   4>,
-//                  simd_t<simd_mask<double, 0>, bool, 4>>
-    simd_types_t< simd_t<simd<double, 4, simd_abi::avx>, double, 4>,
-                  simd_t<simd<int,    4, simd_abi::avx2>, int,   4>,
-                  simd_t<simd_mask<double, 4>, int, 4>>
+    simd_types_t< simd_t<simd<double, 0, simd_abi::sve>, double, 8>,
+                  simd_t<simd<int,    0, simd_abi::sve>, int,   8>,
+                  simd_t<simd_mask<double, 0>, bool, 8>>
+//    simd_types_t< simd_t<simd<double, 4, simd_abi::avx>, double, 4>,
+//                  simd_t<simd<int,    4, simd_abi::avx2>, int,   4>,
+//                  simd_t<simd_mask<double, 4>, int, 4>>
 > sizeless_api_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, sizeless_api, sizeless_api_test_types);

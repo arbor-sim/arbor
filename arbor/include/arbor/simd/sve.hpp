@@ -521,9 +521,12 @@ struct sve_double8 {
 
         auto is_large = cmp_geq(x, broadcast(HUGE_VAL));
         auto is_small = cmp_lt(x, broadcast(log_minarg));
-        is_small = sve_mask8::logical_and(is_small, cmp_geq(x, broadcast(0)));
+        auto is_domainerr = cmp_lt(x, broadcast(0));
 
-        svfloat64_t g = svcvt_f64_s64_z(svptrue_b64(), logb_normal(x));
+        auto is_nan = svnot_b_z(svptrue_b64(), cmp_eq(x, x));
+        is_domainerr = svorr_b_z(svptrue_b64(), is_nan, is_domainerr);
+
+        svfloat64_t g = svcvt_f64_s32_z(svptrue_b64(), logb_normal(x));
         svfloat64_t u = fraction_normal(x);
 
         svfloat64_t one = broadcast(1.);
@@ -540,18 +543,17 @@ struct sve_double8 {
         auto z3 = mul(z2, z);
 
         auto r = div(mul(z3, pz), qz);
-        r = fma(g,  broadcast(ln2C4), r);
-        r = fms(z2, half, r);
-        r = sub(z, r);
-        r = fma(g,  broadcast(ln2C3), r);
+        r = add(r, mul(g,  broadcast(ln2C4)));
+        r = sub(r, mul(z2, half));
+        r = add(r, z);
+        r = add(r, mul(g,  broadcast(ln2C3)));
 
         // r is alrady NaN if x is NaN or negative, otherwise
         // return  +inf if x is +inf, or -inf if zero or (positive) denormal.
 
-        return
-            ifelse(is_large, broadcast(HUGE_VAL),
-            ifelse(is_small, broadcast(-HUGE_VAL),
-                r));
+        return ifelse(is_domainerr, broadcast(NAN),
+                      ifelse(is_large, broadcast(HUGE_VAL),
+                             ifelse(is_small, broadcast(-HUGE_VAL), r)));
     }
 
     static svfloat64_t pow(const svfloat64_t& x, const svfloat64_t& y) {
@@ -572,16 +574,19 @@ struct sve_double8 {
 
 protected:
     // Compute n and f such that x = 2^n·f, with |f| ∈ [1,2), given x is finite and normal.
-    static svint64_t logb_normal(const svfloat64_t& x) {
-        svuint64_t xw    = svunpkhi_u64(svreinterpret_u32_f64(x));
-        svuint64_t emask = svunpkhi_u64(svdup_n_u32(0x7ff00000));
-        svuint64_t ebiased = svlsr_n_u64_z(svptrue_b64(), svand_u64_z(svptrue_b64(), xw, emask), 20);
+    static svint32_t logb_normal(const svfloat64_t& x) {
+        svuint32_t xw    = svtrn2_u32(svreinterpret_u32_f64(x), svreinterpret_u32_f64(x));
+        svuint64_t lmask = svdup_n_u64(0x00000000ffffffff);
+        svuint64_t xt = svand_u64_z(svptrue_b64(), svreinterpret_u64_u32(xw), lmask);
+        svuint32_t xhi = svreinterpret_u32_u64(xt);
+        auto emask = svdup_n_u32(0x7ff00000);
+        auto ebiased = svlsr_n_u32_z(svptrue_b64(), svand_u32_z(svptrue_b64(), xhi, emask), 20);
 
-        return svsub_s64_z(svptrue_b64(), svreinterpret_s64_u64(ebiased), svunpkhi_s64(svdup_n_s32(1023)));
+        return svsub_s32_z(svptrue_b64(), svreinterpret_s32_u32(ebiased), svdup_n_s32(1023));
     }
 
     static svfloat64_t fraction_normal(const svfloat64_t& x) {
-        svuint64_t emask = svdup_n_u64(0x800fffffffffffff);
+        svuint64_t emask = svdup_n_u64(-0x7ff0000000000001);
         svuint64_t bias =  svdup_n_u64(0x3ff0000000000000);
         return svreinterpret_f64_u64(
             svorr_u64_z(svptrue_b64(), bias, svand_u64_z(svptrue_b64(), emask, svreinterpret_u64_f64(x))));
