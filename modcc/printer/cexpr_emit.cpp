@@ -176,20 +176,20 @@ void SimdExprEmitter::visit(NumberExpression* e) {
 
 void SimdExprEmitter::visit(BinaryExpression* e) {
     static std::unordered_map<tok, const char *> func_tbl = {
-            {tok::minus,    "sub"},
-            {tok::plus,     "add"},
-            {tok::times,    "mul"},
-            {tok::divide,   "div"},
-            {tok::lt,       "cmp_lt"},
-            {tok::lte,      "cmp_leq"},
-            {tok::gt,       "cmp_gt"},
-            {tok::gte,      "cmp_geq"},
-            {tok::equality, "cmp_eq"},
-            {tok::land,     "logical_and"},
-            {tok::lor,      "logical_or"},
-            {tok::ne,       "cmp_neq"},
-            {tok::min,      "min"},
-            {tok::max,      "max"},
+            {tok::minus,    "S::sub"},
+            {tok::plus,     "S::add"},
+            {tok::times,    "S::mul"},
+            {tok::divide,   "S::div"},
+            {tok::lt,       "S::cmp_lt"},
+            {tok::lte,      "S::cmp_leq"},
+            {tok::gt,       "S::cmp_gt"},
+            {tok::gte,      "S::cmp_geq"},
+            {tok::equality, "S::cmp_eq"},
+            {tok::land,     "S::logical_and"},
+            {tok::lor,      "S::logical_or"},
+            {tok::ne,       "S::cmp_neq"},
+            {tok::min,      "S::min"},
+            {tok::max,      "S::max"},
     };
 
     static std::unordered_map<tok, const char *> binop_tbl = {

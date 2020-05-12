@@ -180,6 +180,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "namespace S = ::arb::simd;\n"
             "using S::index_constraint;\n"
             "using S::simd_cast;\n"
+            "using S::indirect;\n"
             "static constexpr unsigned simd_width_ = ";
 
         if (!opt.simd.width) {
@@ -205,8 +206,10 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "using simd_index = S::simd<::arb::fvm_index_type, simd_width_, " << abi << ">;\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
-            "    S::where(x+1==1, x) = simd_cast<simd_value>(DBL_EPSILON);\n"
-            "    return 1/x;\n"
+            "    simd_value ones = simd_cast<simd_value>(1.0);\n"
+            "    auto mask = S::cmp_eq(S::add(x,ones), ones);\n"
+            "    S::where(mask, x) = simd_cast<simd_value>(DBL_EPSILON);\n"
+            "    return S::div(ones, x);\n"
             "}\n"
             "\n";
     }
@@ -655,16 +658,16 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());
         if (d.scalar()) {
-            out << "(" << d.data_var
+            out << " = simd_cast<simd_value>(" << d.data_var
                 << "[0]);\n";
         }
         else if (constraint == simd_expr_constraint::contiguous) {
-            out << "(" <<  d.data_var
+            out << " = simd_cast<simd_value>(indirect(" <<  d.data_var
                 << " + " << d.index_var
-                << "[index_]);\n";
+                << "[index_], simd_width_));\n";
         }
         else if (constraint == simd_expr_constraint::constant) {
-            out << "(" << d.data_var
+            out << " = simd_cast<simd_value>(" << d.data_var
                 << "[" << d.index_var
                 << "element0]);\n";
         }
@@ -677,7 +680,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
         }
     }
     else {
-        out << " = 0;\n";
+        out << " = simd_cast<simd_value>(0);\n";
     }
 }
 
@@ -695,10 +698,10 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
         std::string tempvar = "t_"+external->name();
 
         if (constraint == simd_expr_constraint::contiguous) {
-            out << "simd_value "<< tempvar <<"(" << d.data_var << " + " << d.index_var << "[index_]);\n"
-                << tempvar << " += w_*";
+            out << "simd_value "<< tempvar <<" = simd_cast<simd_value>(indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n"
+                << tempvar << " += w_*simd_cast<simd_value>(";
 
-            if (coeff!=1) out << as_c_double(coeff) << "*";
+            if (coeff!=1) out << as_c_double(coeff) << ")*";
 
             out << from->name() << ";\n"
                 << tempvar << ".copy_to(" << d.data_var << " + " << d.index_var << "[index_]);\n";
@@ -746,7 +749,7 @@ void emit_index_initialize(std::ostream& out, const std::unordered_set<std::stri
         break;
     case simd_expr_constraint::other:
         for (auto& index: indices) {
-            out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
+            out << index_i_name(index) << " = simd_cast<simd_index>(indirect(" << index << ".data() + index_, simd_width_));\n";
         }
         break;
     }
@@ -792,7 +795,7 @@ void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
 
     out << "index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
     if (requires_weight) {
-        out << "simd_value w_(weight_+index_);\n";
+        out << "simd_value w_ = simd_cast<simd_value>(indirect((weight_+index_), simd_width_));\n";
     }
 
     emit_body_for_loop(out, body, indexed_vars, scalars, indices, read_constraint, write_constraint);

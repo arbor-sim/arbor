@@ -26,9 +26,15 @@
 namespace arb {
 namespace multicore {
 
+#ifdef __ARM_FEATURE_SVE
+unsigned simd_width = svcntd(); 
+using simd_value_type = simd::simd<fvm_value_type, 0, simd::simd_abi::default_abi>;
+using simd_index_type = simd::simd<fvm_index_type, 0, simd::simd_abi::default_abi>;
+#elif
 constexpr unsigned simd_width = simd::simd_abi::native_width<fvm_value_type>::value;
 using simd_value_type = simd::simd<fvm_value_type, simd_width, simd::simd_abi::default_abi>;
 using simd_index_type = simd::simd<fvm_index_type, simd_width, simd::simd_abi::default_abi>;
+#endif
 
 // Pick alignment compatible with native SIMD width for explicitly
 // vectorized operations below.
@@ -168,27 +174,34 @@ void shared_state::ions_init_concentration() {
 }
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
+    using simd::simd_cast;
+    using simd::indirect;
+    using simd::add;
+    using simd::min;
     for (fvm_size_type i = 0; i<n_intdom; i+=simd_width) {
-        simd_value_type t(time.data()+i);
-        t = min(t+dt_step, simd_value_type(tmax));
-        t.copy_to(time_to.data()+i);
+        simd_value_type t = simd_cast<simd_value_type>(indirect(time.data()+i, simd_width));
+        t = min(add(t,simd_cast<simd_value_type>(dt_step)), simd_cast<simd_value_type>(tmax));
+        indirect(time_to.data()+i, simd_width) = t;
     }
 }
 
 void shared_state::set_dt() {
+    using simd::simd_cast;
+    using simd::indirect;
+    using simd::sub;
     for (fvm_size_type j = 0; j<n_intdom; j+=simd_width) {
-        simd_value_type t(time.data()+j);
-        simd_value_type t_to(time_to.data()+j);
+        simd_value_type t    = simd_cast<simd_value_type>(indirect(time.data()+j, simd_width));
+        simd_value_type t_to = simd_cast<simd_value_type>(indirect(time_to.data()+j, simd_width));
 
-        auto dt = t_to-t;
-        dt.copy_to(dt_intdom.data()+j);
+        auto dt = sub(t_to,t);
+        indirect(dt_intdom.data()+j, simd_width) = dt;
     }
 
     for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_index_type intdom_idx(cv_to_intdom.data()+i);
+        simd_index_type intdom_idx = simd_cast<simd_index_type>(indirect(cv_to_intdom.data()+i, simd_width));
 
         simd_value_type dt = simd::simd_cast<simd_value_type>(simd::indirect(dt_intdom.data(), intdom_idx, simd_width));
-        dt.copy_to(dt_cv.data()+i);
+        indirect(dt_cv.data()+i, simd_width) = dt;
     }
 }
 
