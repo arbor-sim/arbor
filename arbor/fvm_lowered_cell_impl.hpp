@@ -684,7 +684,7 @@ struct probe_resolution_data {
 
     // Extent of density mechanism on cell.
     mextent mechanism_support(const std::string& name) const {
-        auto& mech_map = cell.region_assignments().get<mechanism_desc>();
+        auto& mech_map = cell.region_assignments().template get<mechanism_desc>();
         auto opt_mm = util::value_by_key(mech_map, name);
 
         return opt_mm? opt_mm->support(): mextent{};
