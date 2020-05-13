@@ -231,6 +231,7 @@ TEST(fvm_lowered, matrix_init)
     fvcell.initialize({0}, cable1d_recipe(cell), cell_to_intdom, targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
+    auto& S = fvcell.*private_state_ptr;
     EXPECT_EQ(J.size(), 12u);
 
     // Test that the matrix is initialized with sensible values
@@ -242,7 +243,7 @@ TEST(fvm_lowered, matrix_init)
 
     EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan));
     EXPECT_FALSE(util::any_of(mat.d, isnan));
-    EXPECT_FALSE(util::any_of(J.solution(), isnan));
+    EXPECT_FALSE(util::any_of(S->voltage, isnan));
 
     EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), ispos));
     EXPECT_FALSE(util::any_of(mat.d, isneg));

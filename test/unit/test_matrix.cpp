@@ -14,9 +14,11 @@
 
 using namespace arb;
 
-using matrix_type = matrix<arb::multicore::backend>;
-using index_type = matrix_type::index_type;
-using value_type = matrix_type::value_type;
+using backend     = multicore::backend;
+using array       = backend::array;
+using matrix_type = matrix<backend>;
+using index_type  = matrix_type::index_type;
+using value_type  = matrix_type::value_type;
 
 using vvec = std::vector<value_type>;
 
@@ -47,9 +49,10 @@ TEST(matrix, solve_host)
         fill(state.u, -1);
         fill(state.rhs,1);
 
-        m.solve();
+        auto x = array({0});
+        m.solve(x);
 
-        EXPECT_EQ(m.solution()[0], 0.5);
+        EXPECT_EQ(x[0], 0.5);
     }
 
     // matrices in the range of 2x2 to 1000x1000
@@ -68,9 +71,11 @@ TEST(matrix, solve_host)
             fill(A.u, -1);
             fill(A.rhs,1);
 
-            m.solve();
 
-            auto x = m.solution();
+            auto x = array();
+            x.resize(n);
+            m.solve(x);
+
             auto err = math::square(std::fabs(2.*x[0] - x[1] - 1.));
             for(auto i : make_span(1,n-1)) {
                 err += math::square(std::fabs(2.*x[i] - x[i-1] - x[i+1] - 1.));
@@ -108,8 +113,8 @@ TEST(matrix, zero_diagonal)
     // Expected solution:
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
-    m.solve();
-    auto x = m.solution();
+    auto x = array({0, 0, 0, 0, 0, 0, 0});
+    m.solve(x);
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
 }
@@ -159,12 +164,11 @@ TEST(matrix, zero_diagonal_assembled)
 
     matrix_type m(p, c, Cm, g, area, s);
     m.assemble(dt, v, i, mg);
-    m.solve();
 
-    vvec x;
-    assign(x, m.solution());
+    auto x = array({0, 0, 0, 0, 0, 0, 0});
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
+    m.solve(x);
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
 
     // Set dt of 2nd (middle) submatrix to zero. Solution
@@ -174,9 +178,8 @@ TEST(matrix, zero_diagonal_assembled)
     v[3] = -20;
     v[4] = -30;
     m.assemble(dt, v, i, mg);
-    m.solve();
+    m.solve(x);
 
-    assign(x, m.solution());
     expected = {4, 5, 6, -20, -30, 9, 10};
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
