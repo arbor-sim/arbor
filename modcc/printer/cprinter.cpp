@@ -677,7 +677,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
         }
 
         if (d.scale != 1) {
-            out << local->name() << " = S::mul(" << local->name() << ", " << d.scale << ");\n";
+            out << local->name() << " = S::mul(" << local->name() << ", simd_cast<simd_value>(" << d.scale << "));\n";
         }
     }
     else {

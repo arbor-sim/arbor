@@ -171,7 +171,60 @@ void CExprEmitter::visit(IfExpression* e) {
 std::unordered_set<std::string> SimdExprEmitter::mask_names_;
 
 void SimdExprEmitter::visit(PowBinaryExpression* e) {
-    emit_as_call("S::pow", e->lhs(), e->rhs());
+    auto rhs = e->rhs();
+    auto lhs = e->lhs();
+
+    bool cast_rhs = false;
+    bool cast_lhs = false;
+    if (auto bin = rhs->is_binary()) {
+        auto brhs = bin->rhs()->is_identifier();
+        auto blhs = bin->lhs()->is_identifier();
+        if (brhs && blhs) {
+            if (scalars_.count(brhs->name()) && scalars_.count(blhs->name())) {
+                 cast_rhs = true;
+            }
+        }
+    }
+    if (auto un = rhs->is_unary()) {
+        auto exp = un->expression()->is_identifier();
+        if (exp && scalars_.count(exp->name())) {
+             cast_rhs = true;
+        }
+    }
+    if (auto id = rhs->is_identifier()) {
+        if (scalars_.count(id->name())) {
+             cast_rhs = true;
+        }
+    }
+    if (auto bin = lhs->is_binary()) {
+        auto brhs = bin->rhs()->is_identifier();
+        auto blhs = bin->lhs()->is_identifier();
+        if (brhs && blhs) {
+            if (scalars_.count(brhs->name()) && scalars_.count(blhs->name())) {
+                 cast_lhs = true;
+            }
+        }
+    }
+    if (auto un = lhs->is_unary()) {
+        auto exp = un->expression()->is_identifier();
+        if (exp && scalars_.count(exp->name())) {
+             cast_lhs = true;
+        }
+    }
+    if (auto id = lhs->is_identifier()) {
+        if (scalars_.count(id->name())) {
+             cast_lhs = true;
+        }
+    }
+    out_ << "S::pow(";
+    if (cast_lhs) out_ << "simd_cast<simd_value>(";
+    lhs->accept(this);
+    if (cast_lhs) out_ << ")";
+    out_ << ", ";
+    if (cast_rhs) out_ << "simd_cast<simd_value>(";
+    rhs->accept(this);
+    if (cast_rhs) out_ << ")";
+     out_ << ')';
 }
 
 void SimdExprEmitter::visit(NumberExpression* e) {
@@ -300,16 +353,112 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
             emit_as_call(op_spelling, lhs, rhs);
         }
     } else if (scalars_.count(rhs_name) && !scalars_.count(lhs_name)) {
+        bool cast = false;
+        if (auto bin = lhs->is_binary()) {
+            auto brhs = bin->rhs()->is_identifier();
+            auto blhs = bin->lhs()->is_identifier();
+            if (brhs && blhs) {
+                if (scalars_.count(brhs->name()) && scalars_.count(blhs->name())) {
+                     cast = true;
+                }
+            }
+        }
+        if (auto un = lhs->is_unary()) {
+            auto exp = un->expression()->is_identifier();
+            if (exp && scalars_.count(exp->name())) {
+                 cast = true;
+            }
+        }
+        if (auto id = lhs->is_identifier()) {
+            if (scalars_.count(id->name())) {
+                 cast = true;
+            }
+        }
         out_ << func_spelling << '(';
+        if (cast) out_ << "simd_cast<simd_value>(";
         lhs->accept(this);
+        if (cast) out_ << ")";
         out_ << ", simd_cast<simd_value>(" << rhs_name << ")";
         out_ << ')';
     } else if (!scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
+        bool cast = false;
+        if (auto bin = rhs->is_binary()) {
+            auto brhs = bin->rhs()->is_identifier();
+            auto blhs = bin->lhs()->is_identifier();
+            if (brhs && blhs) {
+                if (scalars_.count(brhs->name()) && scalars_.count(blhs->name())) {
+                     cast = true;
+                }
+            }
+        }
+        if (auto un = rhs->is_unary()) {
+            auto exp = un->expression()->is_identifier();
+            if (exp && scalars_.count(exp->name())) {
+                 cast = true;
+            }
+        }
+        if (auto id = rhs->is_identifier()) {
+            if (scalars_.count(id->name())) {
+                 cast = true;
+            }
+        }
         out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_name << "), ";
+        if (cast) out_ << "simd_cast<simd_value>(";
         rhs->accept(this);
-        out_ << ')';
+        if (cast) out_ << ")";
+        out_ << ")";
     } else {
-        emit_as_call(func_spelling, lhs, rhs);
+        bool cast_rhs = false;
+        bool cast_lhs = false;
+        if (auto bin = rhs->is_binary()) {
+            auto brhs = bin->rhs()->is_identifier();
+            auto blhs = bin->lhs()->is_identifier();
+            if (brhs && blhs) {
+                if (scalars_.count(brhs->name()) && scalars_.count(blhs->name())) {
+                     cast_rhs = true;
+                }
+            }
+        }
+        if (auto un = rhs->is_unary()) {
+            auto exp = un->expression()->is_identifier();
+            if (exp && scalars_.count(exp->name())) {
+                 cast_rhs = true;
+            }
+        }
+        if (auto id = rhs->is_identifier()) {
+            if (scalars_.count(id->name())) {
+                 cast_rhs = true;
+            }
+        }
+        if (auto bin = lhs->is_binary()) {
+            auto brhs = bin->rhs()->is_identifier();
+            auto blhs = bin->lhs()->is_identifier();
+            if (brhs && blhs) {
+                if (scalars_.count(brhs->name()) && scalars_.count(blhs->name())) {
+                     cast_lhs = true;
+                }
+            }
+        }
+        if (auto un = lhs->is_unary()) {
+            auto exp = un->expression()->is_identifier();
+            if (exp && scalars_.count(exp->name())) {
+                 cast_lhs = true;
+            }
+        }
+        if (auto id = lhs->is_identifier()) {
+            if (scalars_.count(id->name())) {
+                 cast_lhs = true;
+            }
+        }
+        out_ << func_spelling << '(';
+        if (cast_lhs) out_ << "simd_cast<simd_value>(";
+        lhs->accept(this);
+        if (cast_lhs) out_ << ")";
+        out_ << ", ";
+        if (cast_rhs) out_ << "simd_cast<simd_value>(";
+        rhs->accept(this);
+        if (cast_rhs) out_ << ")";
+        out_ << ')';
     }
 }
 
@@ -354,13 +503,14 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
         if (!input_mask_.empty()) {
             mask = mask + " && " + input_mask_;
         }
-        out_ << "S::where(" << mask << ", " << "simd_value(";
+        if(is_indirect_)
+            out_ << "indirect(" << lhs->name() << "+index_, simd_width_) = ";
+        else
+            out_ << "indirect(" << lhs->name() << "+i_, simd_width_) = ";
+
+        out_ << "S::where(" << mask << ", " << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
         out_ << "))";
-        if(is_indirect_)
-            out_ << ".copy_to(" << lhs->name() << "+index_)";
-        else
-            out_ << ".copy_to(" << lhs->name() << "+i_)";
     } else {
         out_ << "S::where(" << mask << ", ";
         e->lhs()->accept(this);
