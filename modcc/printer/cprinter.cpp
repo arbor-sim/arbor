@@ -204,6 +204,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out <<
             "using simd_value = S::simd<::arb::fvm_value_type, simd_width_, " << abi << ">;\n"
             "using simd_index = S::simd<::arb::fvm_index_type, simd_width_, " << abi << ">;\n"
+            "using simd_mask  = S::simd_mask<::arb::fvm_value_type, simd_width_>;\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
             "    simd_value ones = simd_cast<simd_value>(1.0);\n"
@@ -563,9 +564,9 @@ void SimdPrinter::visit(LocalVariable* sym) {
 void SimdPrinter::visit(VariableExpression *sym) {
     if (sym->is_range()) {
         if(is_indirect_)
-            out_ << "simd_cast<simd_value>(S::indirect(" << sym->name() << "+index_, simd_width_))";
+            out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+index_, simd_width_))";
         else
-            out_ << "simd_cast<simd_value>(S::indirect(" << sym->name() << "+i_, simd_width_))";
+            out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+i_, simd_width_))";
     }
     else {
         out_ << sym->name();
@@ -581,9 +582,9 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         if(is_indirect_)
-            out_ << "S::indirect(" << lhs->name() << "+index_, simd_width_) = ";
+            out_ << "indirect(" << lhs->name() << "+index_, simd_width_) = ";
         else
-            out_ << "S::indirect(" << lhs->name() << "+i_, simd_width_) = ";
+            out_ << "indirect(" << lhs->name() << "+i_, simd_width_) = ";
 
         if (!input_mask_.empty())
             out_ << "S::where(" << input_mask_ << ", ";
@@ -645,7 +646,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
-    << "(index_type i_, simd_value::simd_mask mask_input_";
+    << "(index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -672,11 +673,11 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
                 << "element0]);\n";
         }
         else {
-            out << " = simd_cast<simd_value>(S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_));\n";
+            out << " = simd_cast<simd_value>(indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_));\n";
         }
 
         if (d.scale != 1) {
-            out << local->name() << " *= " << d.scale << ";\n";
+            out << local->name() << " = S::mul(" << local->name() << ", " << d.scale << ");\n";
         }
     }
     else {
@@ -711,7 +712,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
             out  << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = " << tempvar <<  ";\n";
         }
         else {
-            out << "S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)";
+            out << "indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)";
 
             if (coeff!=1) {
                 out << " += S::mul(w_, S::mul(simd_cast<simd_value>("
@@ -724,21 +725,24 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
     }
     else {
         if (constraint == simd_expr_constraint::contiguous) {
+            out << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = ";
             if (coeff!=1) {
-                out << "(" << as_c_double(coeff) << "*" << from->name() << ")";
+                out << "(S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << ")," << from->name() << "));\n";
             }
             else {
-                out << from->name();
+                out << from->name() << ";\n";
             }
-            out << ".copy_to(" << d.data_var << " + " << d.index_var << "[index_]);\n";
         }
         else {
-            out << "S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)"
+            out << "indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)"
                 << " = ";
 
-            if (coeff!=1) out << as_c_double(coeff) << "*";
-
-            out << from->name() << ";\n";
+            if (coeff!=1) {
+                out << "(S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << ")," << from->name() << "));\n";
+            }
+            else {
+                out << from->name() << ";\n";
+            }
         }
     }
 }
