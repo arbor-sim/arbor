@@ -698,21 +698,28 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
         std::string tempvar = "t_"+external->name();
 
         if (constraint == simd_expr_constraint::contiguous) {
-            out << "simd_value "<< tempvar <<" = simd_cast<simd_value>(indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n"
-                << tempvar << " += w_*simd_cast<simd_value>(";
+            out << "simd_value "<< tempvar <<" = simd_cast<simd_value>(indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n";
 
-            if (coeff!=1) out << as_c_double(coeff) << ")*";
+            if (coeff!=1) {
+                out << tempvar << " = S::add(" << tempvar << ", S::mul(w_, S::mul(simd_cast<simd_value>("
+                    << as_c_double(coeff) << "),"
+                    << from->name() << ")));\n";
+            } else {
+                out << tempvar << " = S::add(" << tempvar << ", S::mul(w_, " << from->name() << "));\n";
+            }
 
-            out << from->name() << ";\n"
-                << tempvar << ".copy_to(" << d.data_var << " + " << d.index_var << "[index_]);\n";
+            out  << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = " << tempvar <<  ";\n";
         }
         else {
-            out << "S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)"
-                << " += w_*";
+            out << "S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)";
 
-            if (coeff!=1) out << as_c_double(coeff) << "*";
-
-            out << from->name() << ";\n";
+            if (coeff!=1) {
+                out << " += S::mul(w_, S::mul(simd_cast<simd_value>("
+                    << as_c_double(coeff) << "), "
+                    << from->name() << "));\n";
+            } else {
+                out << " += S::mul(w_, " << from->name() << ");\n";
+            }
         }
     }
     else {
@@ -743,8 +750,8 @@ void emit_index_initialize(std::ostream& out, const std::unordered_set<std::stri
         break;
     case simd_expr_constraint::constant:
         for (auto& index: indices) {
-            out << "simd_index::scalar_type " << index << "element0 = " << index << "[index_];\n";
-            out << index_i_name(index) << " = " << index << "element0;\n";
+            out << "arb::fvm_index_type " << index << "element0 = " << index << "[index_];\n";
+            out << index_i_name(index) << " = simd_cast<simd_index>(" << index << "element0);\n";
         }
         break;
     case simd_expr_constraint::other:

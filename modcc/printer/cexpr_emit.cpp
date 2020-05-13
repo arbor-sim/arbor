@@ -22,7 +22,7 @@ std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
         return out << (neg? "-0.": "0.");
     default:
         return out <<
-            (std::stringstream{} << io::classic << std::showpoint << std::setprecision(17) << wrap.value).rdbuf();
+            (std::stringstream{} << io::classic << std::setprecision(17) << wrap.value).rdbuf();
     }
 }
 
@@ -170,8 +170,48 @@ void CExprEmitter::visit(IfExpression* e) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::unordered_set<std::string> SimdExprEmitter::mask_names_;
 
+void SimdExprEmitter::visit(PowBinaryExpression* e) {
+    emit_as_call("S::pow", e->lhs(), e->rhs());
+}
+
 void SimdExprEmitter::visit(NumberExpression* e) {
     out_ << " simd_cast<simd_value>(" << as_c_double(e->value()) << ")";
+} 
+
+void SimdExprEmitter::visit(UnaryExpression* e) {
+    // Place a space in front of minus sign to avoid invalid
+    // expressions of the form: (v[i]--67)
+    static std::unordered_map<tok, const char*> unaryop_tbl = {
+        {tok::minus,   "S::neg"},
+        {tok::exp,     "S::exp"},
+        {tok::cos,     "S::cos"},
+        {tok::sin,     "S::sin"},
+        {tok::log,     "S::log"},
+        {tok::abs,     "S::abs"},
+        {tok::exprelr, "S::exprelr"},
+        {tok::safeinv, "safeinv"}
+    };
+
+    if (!unaryop_tbl.count(e->op())) {
+        throw compiler_exception(
+            "CExprEmitter: unsupported unary operator "+token_string(e->op()), e->location());
+    }
+
+    const char* op_spelling = unaryop_tbl.at(e->op());
+    Expression* inner = e->expression();
+
+    // No need to use parenthesis for unary minus if inner expression is
+    // not binary.
+
+    auto iden = inner->is_identifier();
+    bool is_scalar = iden && scalars_.count(iden->name()); 
+    if (e->op()==tok::minus && is_scalar) {
+        out_ << "-";
+        inner->accept(this);
+    }
+    else {
+        emit_as_call(op_spelling, inner);
+    }
 }
 
 void SimdExprEmitter::visit(BinaryExpression* e) {

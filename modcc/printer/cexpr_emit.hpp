@@ -50,8 +50,10 @@ public:
 
     void visit(BlockExpression *e) override;
     void visit(CallExpression *e) override;
+    void visit(UnaryExpression *e) override;
     void visit(BinaryExpression *e) override;
     void visit(AssignmentExpression *e) override;
+    void visit(PowBinaryExpression *e) override;
     void visit(NumberExpression *e) override;
     void visit(IfExpression *e) override;
 
