@@ -34,6 +34,249 @@ namespace detail {
     class const_where_expression;
 }
 
+// Top level functions for second API
+using detail::simd_impl;
+
+template <typename Impl>
+simd_impl<Impl> neg(const simd_impl<Impl>& a) {
+    return simd_impl<Impl>(-a);
+};
+
+template <typename Impl>
+simd_impl<Impl> add(const simd_impl<Impl>& a, simd_impl<Impl> b) {
+    return a+b;
+};
+
+template <typename Impl>
+simd_impl<Impl> add(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a+simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> add(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)+b;
+};
+
+template <typename Impl>
+simd_impl<Impl> sub(const simd_impl<Impl>& a, simd_impl<Impl> b) {
+    return a-b;
+};
+
+template <typename Impl>
+simd_impl<Impl> sub(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a-simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> sub(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)-b;
+};
+
+template <typename Impl>
+simd_impl<Impl> mul(const simd_impl<Impl>& a, simd_impl<Impl> b) {
+    return a*b;
+};
+
+template <typename Impl>
+simd_impl<Impl> mul(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a*simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> mul(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)*b;
+};
+
+template <typename Impl>
+simd_impl<Impl> div(const simd_impl<Impl>& a, simd_impl<Impl> b) {
+    return a/b;
+};
+
+template <typename Impl>
+simd_impl<Impl> div(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a/simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> div(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)/b;
+};
+
+template <typename Impl>
+typename simd_impl<Impl>::simd_mask cmp_eq(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return a==b;
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_eq(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a==simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_eq(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)==b;
+};
+
+template <typename Impl>
+typename simd_impl<Impl>::simd_mask cmp_neq(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return a!=b;
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_neq(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a!=simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_neq(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)!=b;
+};
+
+template <typename Impl>
+typename simd_impl<Impl>::simd_mask cmp_leq(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return a<=b;
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_leq(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a<=simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_leq(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)<=b;
+};
+
+template <typename Impl>
+typename simd_impl<Impl>::simd_mask cmp_lt(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return a<b;
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_lt(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a<simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_lt(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)< b;
+};
+
+template <typename Impl>
+typename simd_impl<Impl>::simd_mask cmp_geq(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return a>=b;
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_geq(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a>=simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_geq(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)>=b;
+};
+
+template <typename Impl>
+typename simd_impl<Impl>::simd_mask cmp_gt(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return a>b;
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_gt(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return a >simd_impl<Impl>(b);
+};
+
+template <typename Impl>
+simd_impl<Impl> cmp_gt(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return simd_impl<Impl>(a)> b;
+};
+
+template <typename Impl>
+typename simd_impl<Impl>::scalar_type sum(const simd_impl<Impl>& a) {
+    return a.sum();
+};
+
+template <typename Impl>
+simd_impl<Impl> abs(const simd_impl<Impl>& s) {
+    return simd_impl<Impl>::wrap(Impl::abs(s.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> sin(const simd_impl<Impl>& s) {
+    return simd_impl<Impl>::wrap(Impl::sin(s.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> cos(const simd_impl<Impl>& s) {
+    return simd_impl<Impl>::wrap(Impl::cos(s.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> exp(const simd_impl<Impl>& s) {
+    return simd_impl<Impl>::wrap(Impl::exp(s.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> log(const simd_impl<Impl>& s) {
+    return simd_impl<Impl>::wrap(Impl::log(s.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> expm1(const simd_impl<Impl>& s) {
+    return simd_impl<Impl>::wrap(Impl::expm1(s.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> exprelr(const simd_impl<Impl>& s) {
+    return simd_impl<Impl>::wrap(Impl::exprelr(s.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> pow(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return simd_impl<Impl>::wrap(Impl::pow(a.value_, b.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> pow(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return pow(a, simd_impl<Impl>(b));
+};
+
+template <typename Impl>
+simd_impl<Impl> pow(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return pow(simd_impl<Impl>(a), b);
+};
+
+template <typename Impl>
+simd_impl<Impl> min(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return simd_impl<Impl>::wrap(Impl::min(a.value_, b.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> min(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return min(a, simd_impl<Impl>(b));
+};
+
+template <typename Impl>
+simd_impl<Impl> min(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return min(simd_impl<Impl>(a), b);
+};
+
+template <typename Impl>
+simd_impl<Impl> max(const simd_impl<Impl>& a, const simd_impl<Impl>& b) {
+    return simd_impl<Impl>::wrap(Impl::max(a.value_, b.value_));
+};
+
+template <typename Impl>
+simd_impl<Impl> max(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {
+    return max(a, simd_impl<Impl>(b));
+};
+
+template <typename Impl>
+simd_impl<Impl> max(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {
+    return max(simd_impl<Impl>(a), b);
+};
+
 namespace detail {
     /// Indirect Expressions
     template <typename V>
@@ -449,6 +692,10 @@ namespace detail {
             value_ = Impl::copy_from(pi.p);
         }
 
+        void copy_from(indirect_expression<const scalar_type> pi) {
+            value_ = Impl::copy_from(pi.p);
+        }
+
         template <typename T, typename M>
         void copy_from(const_where_expression<T, M> w) {
             value_ = Impl::ifelse(w.mask_.value_, w.data_.value_, value_);
@@ -570,102 +817,39 @@ namespace detail {
             return Impl::reduce_add(value_);
         }
 
-        // Arithmetic and lane-wise relational operatioons are also implemented as
-        // top-level functions to match the `sizeless` simd vectors interface
-
-        friend simd_impl neg(const simd_impl& a) {
-            return simd_impl::wrap(Impl::negate(a.value_));
-        }
-
-        friend simd_impl add(const simd_impl& a, simd_impl b) {
-            return simd_impl::wrap(Impl::add(a.value_, b.value_));
-        }
-
-        friend simd_impl sub(const simd_impl& a, simd_impl b) {
-            return simd_impl::wrap(Impl::sub(a.value_, b.value_));
-        }
-
-        friend simd_impl mul(const simd_impl& a, simd_impl b) {
-            return simd_impl::wrap(Impl::mul(a.value_, b.value_));
-        }
-
-        friend simd_impl div(const simd_impl& a, simd_impl b) {
-            return simd_impl::wrap(Impl::div(a.value_, b.value_));
-        }
-
-        // Lane-wise relational operations.
-
-        friend simd_mask cmp_eq(const simd_impl& a, const simd_impl& b) {
-            return simd_impl::mask(Impl::cmp_eq(a.value_, b.value_));
-        }
-
-        friend simd_mask cmp_neq(const simd_impl& a, const simd_impl& b) {
-            return simd_impl::mask(Impl::cmp_neq(a.value_, b.value_));
-        }
-
-        friend simd_mask cmp_leq(const simd_impl& a, const simd_impl& b) {
-            return simd_impl::mask(Impl::cmp_leq(a.value_, b.value_));
-        }
-
-        friend simd_mask cmp_lt(const simd_impl& a, const simd_impl& b) {
-            return simd_impl::mask(Impl::cmp_lt(a.value_, b.value_));
-        }
-
-        friend simd_mask cmp_geq(const simd_impl& a, const simd_impl& b) {
-            return simd_impl::mask(Impl::cmp_geq(a.value_, b.value_));
-        }
-
-        friend simd_mask cmp_gt(const simd_impl& a, const simd_impl& b) {
-            return simd_impl::mask(Impl::cmp_gt(a.value_, b.value_));
-        }
-
-        friend scalar_type sum(const simd_impl& a) {
-            return Impl::reduce_add(a.value_);
-        }
-
         // Maths functions are implemented as top-level functions; declare as friends
         // for access to `wrap` and to enjoy ADL, allowing implicit conversion from
         // scalar_type in binary operation arguments.
 
-        friend simd_impl abs(const simd_impl& s) {
-            return simd_impl::wrap(Impl::abs(s.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::abs(const simd_impl<T>& s);
 
-        friend simd_impl sin(const simd_impl& s) {
-            return simd_impl::wrap(Impl::sin(s.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::sin(const simd_impl<T>& s);
 
-        friend simd_impl cos(const simd_impl& s) {
-            return simd_impl::wrap(Impl::cos(s.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::cos(const simd_impl<T>& s);
 
-        friend simd_impl exp(const simd_impl& s) {
-            return simd_impl::wrap(Impl::exp(s.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::exp(const simd_impl<T>& s);
 
-        friend simd_impl log(const simd_impl& s) {
-            return simd_impl::wrap(Impl::log(s.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::log(const simd_impl<T>& s);
 
-        friend simd_impl expm1(const simd_impl& s) {
-            return simd_impl::wrap(Impl::expm1(s.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::expm1(const simd_impl<T>& s);
 
-        friend simd_impl exprelr(const simd_impl& s) {
-            return simd_impl::wrap(Impl::exprelr(s.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::exprelr(const simd_impl<T>& s);
 
-        friend simd_impl pow(const simd_impl& s, const simd_impl& t) {
-            return simd_impl::wrap(Impl::pow(s.value_, t.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::pow(const simd_impl<T>& s, const simd_impl<T>& t);
 
-        friend simd_impl min(const simd_impl& s, const simd_impl& t) {
-            return simd_impl::wrap(Impl::min(s.value_, t.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::min(const simd_impl<T>& s, const simd_impl<T>& t);
 
-        friend simd_impl max(const simd_impl& s, const simd_impl& t) {
-            return simd_impl::wrap(Impl::max(s.value_, t.value_));
-        }
+        template<typename T>
+        friend simd_impl<T> arb::simd::max(const simd_impl<T>& s, const simd_impl<T>& t);
 
         template <typename T, typename I, typename V>
         friend void compound_indexed_add(const simd_impl<I>& s, V* p, const simd_impl<T>& index, unsigned width, index_constraint constraint);

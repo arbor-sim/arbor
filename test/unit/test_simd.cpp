@@ -1784,8 +1784,11 @@ typedef ::testing::Types<
 #ifdef __ARM_FEATURE_SVE
     simd_types_t< simd_t<     simd<double, 0, simd_abi::sve>, double, 8>,
                   simd_t<     simd<int,    0, simd_abi::sve>, int,    8>,
-                  simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   8>>
+                  simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   8>>,
 #endif
+    simd_types_t< simd_t<     simd<double, 8, simd_abi::default_abi>, double, 8>,
+                  simd_t<     simd<int,    8, simd_abi::default_abi>, int,    8>,
+                  simd_t<simd_mask<double, 8, simd_abi::default_abi>, bool,   8>>
 > sizeless_api_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, sizeless_api, sizeless_api_test_types);
