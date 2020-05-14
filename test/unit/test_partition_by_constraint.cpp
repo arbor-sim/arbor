@@ -13,7 +13,7 @@
 
 using namespace arb;
 using iarray = multicore::iarray;
-static constexpr unsigned simd_width_ = arb::simd::simd_abi::native_width<fvm_value_type>::value;
+static constexpr unsigned simd_width_ = 8;//arb::simd::simd_abi::native_width<fvm_value_type>::value;
 
 const int input_size_ = 1024;
 

@@ -28,7 +28,7 @@ namespace multicore {
 using util::make_range;
 using util::value_by_key;
 
-constexpr unsigned simd_width = S::simd_abi::native_width<fvm_value_type>::value;
+constexpr unsigned simd_width = 8;//S::simd_abi::native_width<fvm_value_type>::value;
 
 
 // Copy elements from source sequence into destination sequence,

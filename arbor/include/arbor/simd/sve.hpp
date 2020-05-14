@@ -477,7 +477,6 @@ struct sve_double8 {
         auto one = broadcast(1.);
 
         auto nnz = cmp_gt(abs(x), half);
-        svfloat64_t svrinta_f64_z(svbool_t pg, svfloat64_t op);
         auto n = svrinta_f64_z(nnz, mul(broadcast(ln2inv), x));
 
         auto g = fma(n, broadcast(-ln2C1), x);

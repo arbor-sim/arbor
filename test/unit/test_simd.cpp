@@ -1776,11 +1776,11 @@ typedef ::testing::Types<
                   simd_t<simd<int,    8, simd_abi::avx512>, int,   8>,
                   simd_t<simd_mask<double, 8>, int, 8>>,
 #endif
-#ifdef __ARM_NEON
+/*#ifdef __ARM_NEON
     simd_types_t< simd_t<simd<double, 2, simd_abi::neon>, double, 2>,
                   simd_t<simd<int,    2, simd_abi::neon>, int,   2>,
-                  simd_t<simd_mask<double, 2>, int, 2>>,
-#endif
+                  simd_t<simd_mask<double, 2>, double, 2>>,
+#endif*/
 #ifdef __ARM_FEATURE_SVE
     simd_types_t< simd_t<simd<double, 0, simd_abi::sve>, double, 8>,
                   simd_t<simd<int,    0, simd_abi::sve>, int,   8>,
