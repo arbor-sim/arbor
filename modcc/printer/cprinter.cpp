@@ -580,6 +580,13 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     }
 
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
+ 
+    bool cast = false;
+    if (auto id = e->rhs()->is_identifier()) {
+        if (scalars_.count(id->name())) cast = true;
+    }
+    if (e->rhs()->is_number()) cast = true;
+    if (scalars_.count(e->lhs()->is_identifier()->name()))  cast = false;
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         if(is_indirect_)
@@ -590,14 +597,18 @@ void SimdPrinter::visit(AssignmentExpression* e) {
         if (!input_mask_.empty())
             out_ << "S::where(" << input_mask_ << ", ";
 
+        if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
+        if (cast) out_ << ")";
 
         if (!input_mask_.empty())
             out_ << ")";
     }
     else {
         out_ << lhs->name() << " = ";
+        if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
+        if (cast) out_ << ")";
     }
 }
 

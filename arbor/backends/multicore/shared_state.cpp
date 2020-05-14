@@ -30,7 +30,7 @@ namespace multicore {
 unsigned simd_width = 8;//svcntd(); 
 using simd_value_type = simd::simd<fvm_value_type, 0, simd::simd_abi::default_abi>;
 using simd_index_type = simd::simd<fvm_index_type, 0, simd::simd_abi::default_abi>;
-#elif
+#else
 constexpr unsigned simd_width = simd::simd_abi::native_width<fvm_value_type>::value;
 using simd_value_type = simd::simd<fvm_value_type, simd_width, simd::simd_abi::default_abi>;
 using simd_index_type = simd::simd<fvm_index_type, simd_width, simd::simd_abi::default_abi>;
