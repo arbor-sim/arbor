@@ -644,11 +644,11 @@ struct simd_wrap;
 template <typename Value, template <class, unsigned> class Abi>
 struct simd_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::reg_type<Value>::type; };
 
-template <typename Value, unsigned N>
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
 struct simd_mask_wrap;
 
-template <typename Value>
-struct simd_mask_wrap<Value, 0> { using type = typename simd_abi::mask_type<Value>::type; };
+template <typename Value, template <class, unsigned> class Abi>
+struct simd_mask_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::mask_type<Value>::type; };
 
 template <typename T>
 T neg(const T& a) {

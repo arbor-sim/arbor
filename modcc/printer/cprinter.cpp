@@ -205,7 +205,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out <<
             "using simd_value = S::simd<::arb::fvm_value_type, simd_size_, " << abi << ">;\n"
             "using simd_index = S::simd<::arb::fvm_index_type, simd_size_, " << abi << ">;\n"
-            "using simd_mask  = S::simd_mask<::arb::fvm_value_type, simd_size_>;\n"
+            "using simd_mask  = S::simd_mask<::arb::fvm_value_type, simd_size_, "<< abi << ">;\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
             "    simd_value ones = simd_cast<simd_value>(1.0);\n"

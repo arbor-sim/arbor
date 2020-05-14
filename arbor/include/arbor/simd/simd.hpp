@@ -931,11 +931,11 @@ struct simd_wrap { using type = detail::simd_impl<typename Abi<Value, N>::type>;
 template <typename Value, unsigned N, template <class, unsigned> class Abi>
 using simd = typename simd_wrap<Value, N, Abi>::type;
 
-template <typename Value, unsigned N>
-struct simd_mask_wrap { using type = typename simd<Value, N, simd_abi::default_abi>::simd_mask; };
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
+struct simd_mask_wrap { using type = typename simd<Value, N, Abi>::simd_mask; };
 
-template <typename Value, unsigned N>
-using simd_mask = typename simd_mask_wrap<Value, N>::type;
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
+using simd_mask = typename simd_mask_wrap<Value, N, Abi>::type;
 
 template <typename>
 struct is_simd: std::false_type {};
