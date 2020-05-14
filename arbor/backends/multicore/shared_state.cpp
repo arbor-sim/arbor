@@ -27,7 +27,7 @@ namespace arb {
 namespace multicore {
 
 #ifdef __ARM_FEATURE_SVE
-unsigned simd_width = 8;//svcntd(); 
+unsigned simd_width = svcntd(); 
 using simd_value_type = simd::simd<fvm_value_type, 0, simd::simd_abi::default_abi>;
 using simd_index_type = simd::simd<fvm_index_type, 0, simd::simd_abi::default_abi>;
 #else
