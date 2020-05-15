@@ -765,6 +765,7 @@ std::pair<Token, Token> Parser::range_description() {
     get_token();
     lb = token_;
 
+    get_token();
     if(token_.type != tok::comma) {
         error(pprintf("range description must separate lower and upper bound with a comma '%'", token_));
         return {};
@@ -773,6 +774,7 @@ std::pair<Token, Token> Parser::range_description() {
     get_token();
     ub = token_;
 
+    get_token();
     if(token_.type != tok::gt) {
         error(pprintf("range description must end with a right angle bracket '%'", token_));
         return {};
