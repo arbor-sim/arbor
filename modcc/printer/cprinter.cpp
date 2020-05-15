@@ -180,16 +180,21 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "namespace S = ::arb::simd;\n"
             "using S::index_constraint;\n"
             "using S::simd_cast;\n"
-            "using S::indirect;\n"
-            "static constexpr unsigned simd_size_ = ";
+            "using S::indirect;\n";
 
-        if (!opt.simd.width) {
+        out << "static constexpr unsigned vector_length_ = ";
+        if (opt.simd.size == no_size) {
             out << "S::simd_abi::native_width<::arb::fvm_value_type>::value;\n";
+        } else {
+            out << opt.simd.size << ";\n";
         }
-        else {
+
+        out << "static constexpr unsigned simd_width_ = ";
+        if (opt.simd.width == no_size) {
+            out << " vector_length_ ? vector_length_ : " << opt.simd.default_width << ";\n";
+        } else {
             out << opt.simd.width << ";\n";
         }
-        out << "static constexpr unsigned simd_width_ = 8\n;";
 
         std::string abi = "S::simd_abi::";
         switch (opt.simd.abi) {
@@ -197,15 +202,16 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         case simd_spec::avx2:   abi += "avx2";   break;
         case simd_spec::avx512: abi += "avx512"; break;
         case simd_spec::neon:   abi += "neon";   break;
+        case simd_spec::sve:    abi += "sve";    break;
         case simd_spec::native: abi += "native"; break;
         default:
             abi += "default_abi"; break;
         }
 
         out <<
-            "using simd_value = S::simd<::arb::fvm_value_type, simd_size_, " << abi << ">;\n"
-            "using simd_index = S::simd<::arb::fvm_index_type, simd_size_, " << abi << ">;\n"
-            "using simd_mask  = S::simd_mask<::arb::fvm_value_type, simd_size_, "<< abi << ">;\n"
+            "using simd_value = S::simd<::arb::fvm_value_type, vector_length_, " << abi << ">;\n"
+            "using simd_index = S::simd<::arb::fvm_index_type, vector_length_, " << abi << ">;\n"
+            "using simd_mask  = S::simd_mask<::arb::fvm_value_type, vector_length_, "<< abi << ">;\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
             "    simd_value ones = simd_cast<simd_value>(1.0);\n"
@@ -235,6 +241,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     net_receive && out <<
         "void deliver_events(deliverable_event_stream::state events) override;\n"
         "void net_receive(int i_, value_type weight);\n";
+
+    with_simd && out << "unsigned simd_width() const override { return simd_width_; }\n";
 
     out <<
         "\n" << popindent <<
