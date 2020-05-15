@@ -63,30 +63,30 @@ INITIAL {
 }
 
 DERIVATIVE states {
-    LOCAL alpha, beta, sum, minf, ninf, hinf, mtau, ntau, htau
+    LOCAL alpha, beta, sum, minf, ninf, hinf, mrate, nrate, hrate
 
     :"m" sodium activation system
     alpha = exprelr(-(v+40)*0.1)
     beta =  4 * exp(-(v+65)*0.05555555555555555)
     sum = alpha + beta
-    mtau = q10*sum
+    mrate = q10*sum
     minf = alpha/sum
 
     :"h" sodium inactivation system
     alpha = .07 * exp(-(v+65)*0.05)
     beta = 1 / (exp(-(v+35)*0.1) + 1)
     sum = alpha + beta
-    htau = q10*sum
+    hrate = q10*sum
     hinf = alpha/sum
 
     :"n" potassium activation system
     alpha = .1*exprelr(-(v+55)*0.1)
     beta = .125*exp(-(v+65)*0.0125)
     sum = alpha + beta
-    ntau = q10*sum
+    nrate = q10*sum
     ninf = alpha/sum
 
-    m' = (minf-m)*mtau
-    h' = (hinf-h)*htau
-    n' = (ninf-n)*ntau
+    m' = (minf-m)*mrate
+    h' = (hinf-h)*hrate
+    n' = (ninf-n)*nrate
 }
