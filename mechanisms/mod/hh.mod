@@ -3,8 +3,7 @@ NEURON {
     USEION na READ ena WRITE ina
     USEION k READ ek WRITE ik
     NONSPECIFIC_CURRENT il
-    RANGE gnabar, gkbar, gl, el, gna, gk
-    GLOBAL minf, hinf, ninf, mtau, htau, ntau
+    RANGE gnabar, gkbar, gl, el
 }
 
 UNITS {
@@ -26,70 +25,68 @@ STATE {
 
 ASSIGNED {
     v (mV)
-
-    gna (S/cm2)
-    gk (S/cm2)
-    minf
-    hinf
-    ninf
-    mtau (ms)
-    htau (ms)
-    ntau (ms)
     q10
 }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    gna = gnabar*m*m*m*h
+    LOCAL gna, gk, n2, n_, m_
+    n_ = n
+    n2 = n_*n_
+    m_ = m
+    gna = gnabar*m_*m_*m_*h
     ina = gna*(v - ena)
-    gk = gkbar*n*n*n*n
+    gk = gkbar*n2*n2
     ik = gk*(v - ek)
     il = gl*(v - el)
 }
 
 INITIAL {
-    q10 = 3^((celsius - 6.3)/10)
-    rates(v)
-    m = minf
-    h = hinf
-    n = ninf
+    q10 = 3^((celsius - 6.3)*0.1)
+
+    LOCAL alpha, beta
+
+    :"m" sodium activation system
+    alpha = exprelr(-(v+40)*0.1)
+    beta =  4 * exp(-(v+65)*0.05555555555555555)
+    m = alpha/(alpha + beta)
+
+    :"h" sodium inactivation system
+    alpha = .07 * exp(-(v+65)*0.05)
+    beta = 1 / (exp(-(v+35)*0.1) + 1)
+    h = alpha/(alpha + beta)
+
+    :"n" potassium activation system
+    alpha = .1*exprelr(-(v+55)*0.1)
+    beta = .125*exp(-(v+65)*0.0125)
+    n = alpha/(alpha + beta)
 }
 
 DERIVATIVE states {
-    rates(v)
-    m' = (minf-m)/mtau
-    h' = (hinf-h)/htau
-    n' = (ninf-n)/ntau
-}
-
-PROCEDURE rates(v)
-{
-    LOCAL  alpha, beta, sum
+    LOCAL alpha, beta, sum, minf, ninf, hinf, mtau, ntau, htau
 
     :"m" sodium activation system
-    alpha = .1 * vtrap(-(v+40),10)
-    beta =  4 * exp(-(v+65)/18)
+    alpha = exprelr(-(v+40)*0.1)
+    beta =  4 * exp(-(v+65)*0.05555555555555555)
     sum = alpha + beta
-    mtau = 1/(q10*sum)
+    mtau = q10*sum
     minf = alpha/sum
 
     :"h" sodium inactivation system
-    alpha = .07 * exp(-(v+65)/20)
-    beta = 1 / (exp(-(v+35)/10) + 1)
+    alpha = .07 * exp(-(v+65)*0.05)
+    beta = 1 / (exp(-(v+35)*0.1) + 1)
     sum = alpha + beta
-    htau = 1/(q10*sum)
+    htau = q10*sum
     hinf = alpha/sum
 
     :"n" potassium activation system
-    alpha = .01*vtrap(-(v+55),10)
-    beta = .125*exp(-(v+65)/80)
+    alpha = .1*exprelr(-(v+55)*0.1)
+    beta = .125*exp(-(v+65)*0.0125)
     sum = alpha + beta
-    ntau = 1/(q10*sum)
+    ntau = q10*sum
     ninf = alpha/sum
-}
 
-FUNCTION vtrap(x,y) {
-    : use built in exprelr(z) = z/(exp(z)-1), which handles the z=0 case correctly
-    vtrap = y*exprelr(x/y)
+    m' = (minf-m)*mtau
+    h' = (hinf-h)*htau
+    n' = (ninf-n)*ntau
 }
-
