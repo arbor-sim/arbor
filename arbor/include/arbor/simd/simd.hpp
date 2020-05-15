@@ -314,9 +314,6 @@ namespace detail {
         template <typename To>   friend struct simd_cast_impl;
         template <typename T, typename M> friend class where_expression;
 
-        template <typename Impl, typename ImplMask, typename Other>
-        friend void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const indirect_expression<Other>& t, unsigned width);
-
     private:
         V* p;
         unsigned width;
@@ -387,9 +384,6 @@ namespace detail {
         template <typename Impl> friend struct simd_impl;
         template <typename To>   friend struct simd_cast_impl;
         template <typename T, typename M> friend class where_expression;
-
-        template <typename Impl, typename OtherIndex, typename ImplMask, typename OtherV>
-        static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f,  const OtherV* p, const simd_impl<ImplIndex>& index, unsigned width);
 
     private:
         V* p;
@@ -491,6 +485,11 @@ namespace detail {
         const ImplMask& mask_;
         Impl& data_;
     };
+
+    template <typename Impl, typename ImplMask, typename V>
+    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const V& t) {
+        f.value_ = Impl::ifelse(mask.value_, Impl::broadcast(t), f.value_);
+    }
 
     template <typename Impl, typename ImplMask>
     static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const simd_impl<Impl>& t) {
@@ -865,6 +864,9 @@ namespace detail {
 
         template <typename T, typename I, typename M, typename V>
         friend void indirect_indexed_copy_to(const simd_impl<T>& data, const simd_mask_impl<M>& mask, V* p, const simd_impl<I>& index, unsigned width);
+
+        template <typename T, typename M, typename V>
+        friend void where_copy_to(const simd_mask_impl<M>& mask, simd_impl<T>& f, const V& t);
 
         template <typename T, typename M>
         friend void where_copy_to(const simd_mask_impl<M>& mask, simd_impl<T>& f, const simd_impl<T>& t);

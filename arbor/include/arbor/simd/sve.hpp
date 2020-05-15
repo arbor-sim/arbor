@@ -928,6 +928,12 @@ static void indirect_indexed_copy_to(const T& data, const M& mask, V* p, const I
     Impl::scatter(detail::tag<ImplIndex>{}, data, p, index, ImplMask::logical_and(mask, ImplMask::true_mask(width)));
 }
 
+template <typename T, typename M, typename V>
+static void where_copy_to(const M& mask, T& f, const V& t) {
+    using Impl = typename type_to_impl<T>::type;
+    f = Impl::ifelse(mask, Impl::broadcast(t), f);
+}
+
 template <typename T, typename M>
 static void where_copy_to(const M& mask, T& f, const T& t) {
     f = type_to_impl<T>::type::ifelse(mask, t, f);

@@ -390,7 +390,7 @@ void SimdExprEmitter::visit(IfExpression* e) {
     auto new_mask = make_unique_var(e->scope(), "mask_");
 
     // Set new masks
-    out_ << "simd_value::simd_mask " << new_mask << " = ";
+    out_ << "simd_mask " << new_mask << " = ";
     e->condition()->accept(this);
     out_ << ";\n";
 

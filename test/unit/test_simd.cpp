@@ -1488,6 +1488,21 @@ TYPED_TEST_P(sizeless_api, where_exp) {
         EXPECT_TRUE(testing::indexed_eq_n(N, c, m));
     }
 
+    // where = constant
+    {
+        scalar_value c[N];
+
+        simd_value av = simd_cast<simd_value>(indirect(a, N));
+
+        where(mv, av) = 42.3;
+        indirect(c, N) = av;
+
+        for (unsigned i = 0; i<N; ++i) {
+            exp[i] = m[i]? 42.3 : a[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, c, exp));
+    }
+
     // where = simd
     {
         scalar_value c[N];

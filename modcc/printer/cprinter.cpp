@@ -841,6 +841,21 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
 
     std::vector<LocalVariable*> scalar_indexed_vars;
     std::unordered_set<std::string> indices;
+
+    for (auto& s: body->is_block()->statements()) {
+        if (s->is_assignment()) {
+            for (auto& v: indexed_vars) {
+                if (s->is_assignment()->lhs()->is_identifier()->name() == v->external_variable()->name()) {
+                    auto info = decode_indexed_variable(v->external_variable());
+                    if (info.accumulate) {
+                        requires_weight = true;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     for (auto& sym: indexed_vars) {
         auto info = decode_indexed_variable(sym->external_variable());
         if (!info.scalar()) {
@@ -848,9 +863,6 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
         }
         else {
             scalar_indexed_vars.push_back(sym);
-        }
-        if (info.accumulate) {
-            requires_weight = true;
         }
     }
 
