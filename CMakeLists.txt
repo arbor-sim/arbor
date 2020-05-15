@@ -193,7 +193,6 @@ if(ARB_ARCH)
     set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
     target_compile_options(arbor-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
     target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
-    target_compile_definitions(arbor-config-defs INTERFACE ARB_ARCH="${ARB_ARCH}")
 endif()
 
 # Profiling and test features
