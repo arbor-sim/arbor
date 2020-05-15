@@ -29,9 +29,6 @@ public:
     // Name as given in mechanism source.
     virtual std::string internal_name() const { return ""; }
 
-    // Simd width used in mechanism.
-    virtual unsigned simd_width() const { return 1; }
-
     // Density or point mechanism?
     virtual mechanismKind kind() const = 0;
 

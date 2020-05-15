@@ -43,6 +43,10 @@ protected:
     };
 
 public:
+    bool check_width() {
+        return simd_width() <= arb::simd::simd_abi::true_width<value_type>();
+    }
+
     std::size_t size() const override {
         return width_;
     }
@@ -136,6 +140,10 @@ protected:
     virtual mechanism_state_table state_table() { return {}; }
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
+
+    // Simd width used in mechanism.
+
+    virtual unsigned simd_width() const { return 1; }
 
     // Report raw size in bytes of mechanism object.
 

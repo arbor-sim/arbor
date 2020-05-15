@@ -16,7 +16,7 @@ using iarray = multicore::iarray;
 #ifdef __ARM_FEATURE_SVE
 static unsigned simd_width_ = svcntd();
 #else
-static constexpr unsigned simd_width_ = arb::simd::simd_abi::native_width<fvm_value_type>::value;
+static constexpr unsigned simd_width_ = arb::simd::simd_abi::true_width<fvm_value_type>();
 #endif
 
 const int input_size_ = 1024;
