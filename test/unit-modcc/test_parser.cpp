@@ -281,6 +281,19 @@ TEST(Parser, parse_if) {
     }
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_if,
+        "   IF(a<b) {      \n"
+        "       a = 2+b    \n"
+        "   } ELSE {       \n"
+        "       a = 2+b    \n"
+        "   }                "
+    ));
+    if (s) {
+        EXPECT_NE(s->condition()->is_binary(), nullptr);
+        EXPECT_NE(s->true_branch()->is_block(), nullptr);
+        EXPECT_NE(s->false_branch(), nullptr);
+    }
+
+    EXPECT_TRUE(check_parse(s, &Parser::parse_if,
         "   if(fabs(a-b)) {      \n"
         "       a = 2+b    \n"
         "   } else if(b>a){\n"
