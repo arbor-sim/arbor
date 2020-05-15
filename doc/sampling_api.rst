@@ -183,8 +183,11 @@ Two helper functions are provided for making ``cell_member_predicate`` objects:
 The ``sampling_policy`` policy is used to modify sampling behaviour: by
 default, the ``lax`` policy is to perform a best-effort sampling that
 minimizes sampling overhead and which will not change the numerical
-behaviour of the simulation. Other policies may be implemented in the
-future, e.g. ``interpolated`` or ``exact``.
+behaviour of the simulation. The ``exact`` policy requests that samples
+are provided for the exact time specified in the schedule, even if this
+means disrupting the course of the simulation. Other policies may be
+implemented in the future, but cell groups are in general not required
+to support any policy other than ``lax``.
 
 The simulation object will pass on the sampler setting request to the cell
 group that owns the given probe id. The ``cell_group`` interface will be
@@ -277,11 +280,12 @@ The ``schedule`` class and its implementations are found in ``schedule.hpp``.
 Helper classes for probe/sampler management
 -------------------------------------------
 
-The ``simulation`` and ``mc_cell_group`` classes use classes defined in ``scheduler_map.hpp`` to simplify
-the management of sampler--probe associations and probe metdata.
+The ``simulation`` and ``mc_cell_group`` classes use classes defined in
+``scheduler_map.hpp`` to simplify the management of sampler--probe associations
+and probe metdata.
 
 ``sampler_association_map`` wraps an ``unordered_map`` between sampler association
-handles and tuples (*schedule*, *sampler*, *probe set*), with thread-safe
+handles and tuples (*schedule*, *sampler*, *probe set*, *policy*), with thread-safe
 accessors.
 
 ``probe_association_map<Handle>`` is a type alias for an unordered map between
@@ -305,6 +309,14 @@ after any postsynaptic spike events have been delivered.
 It is the responsibility of the ``mc_cell_group::advance()`` method to create the sample
 events from the entries of its ``sampler_association_map``, and to dispatch the
 sampled values to the sampler callbacks after the integration is complete.
-Given an association tuple (*schedule*, *sampler*, *probe set*) where the *schedule*
+Given an association tuple (*schedule*, *sampler*, *probe set*, *policy*) where the *schedule*
 has (non-zero) *n* sample times in the current integration interval, the ``mc_cell_group`` will
 call the *sampler* callback once for probe in *probe set*, with *n* sample values.
+
+In addition to the ``lax`` sampling polocy, ``mc_cell_group`` supports the ``exact``
+policy. Integration steps will be shortened such that any sample times associated
+with an ``exact`` policy can be satisfied precisely.
+
+
+
+

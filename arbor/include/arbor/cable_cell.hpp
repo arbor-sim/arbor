@@ -228,16 +228,18 @@ public:
 
     cable_cell_parameter_set default_parameters;
 
-    /// Default constructor
+    // Default constructor.
     cable_cell();
 
-    /// Copy constructor
+    // Copy and move constructors.
     cable_cell(const cable_cell& other);
-
-    /// Move constructor
     cable_cell(cable_cell&& other) = default;
 
+    // Copy and move assignment operators..
     cable_cell& operator=(cable_cell&&) = default;
+    cable_cell& operator=(const cable_cell& other) {
+        return *this = cable_cell(other);
+    }
 
     /// construct from morphology
     cable_cell(const class morphology& m, const label_dict& dictionary={});
