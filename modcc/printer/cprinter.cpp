@@ -153,6 +153,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
+        out << "#undef NDEBUG\n";
+        out << "#include <cassert>\n";
     }
 
     out <<
@@ -865,8 +867,8 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             scalar_indexed_vars.push_back(sym);
         }
     }
-
     if (!body->statements().empty()) {
+        out << "assert(simd_width_ <= (unsigned)S::width(simd_cast<simd_value>(0)));\n";
         if (!indices.empty()) {
             for (auto& index: indices) {
                 out << "simd_index " << index_i_name(index) << ";\n";

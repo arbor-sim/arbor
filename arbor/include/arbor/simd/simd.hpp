@@ -38,6 +38,11 @@ namespace detail {
 using detail::simd_impl;
 
 template <typename Impl>
+inline constexpr int width(const simd_impl<Impl>& a) {
+    return simd_impl<Impl>::width;
+};
+
+template <typename Impl>
 simd_impl<Impl> neg(const simd_impl<Impl>& a) {
     return simd_impl<Impl>(-a);
 };

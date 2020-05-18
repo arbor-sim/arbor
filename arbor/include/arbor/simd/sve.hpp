@@ -1013,6 +1013,14 @@ void compound_indexed_add(
     }
 }
 
+int width(const svfloat64_t& v) {
+    return svlen_f64(v);
+};
+
+int width(const svint64_t& v) {
+    return svlen_s64(v);
+};
+
 namespace detail {
 
 template <typename I, typename V>
@@ -1089,8 +1097,7 @@ struct simd_cast_impl {
     }
 };
 
-}//namespace detail
-
+}  //namespace detail
 }  // namespace simd
 }  // namespace arb
 

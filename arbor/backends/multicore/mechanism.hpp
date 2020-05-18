@@ -43,10 +43,6 @@ protected:
     };
 
 public:
-    bool check_width() {
-        return simd_width() <= arb::simd::simd_abi::true_width<value_type>();
-    }
-
     std::size_t size() const override {
         return width_;
     }

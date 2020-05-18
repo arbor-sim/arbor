@@ -26,15 +26,10 @@
 namespace arb {
 namespace multicore {
 
-#ifdef __ARM_FEATURE_SVE
-unsigned simd_width = svcntd(); 
-using simd_value_type = simd::simd<fvm_value_type, 0, simd::simd_abi::default_abi>;
-using simd_index_type = simd::simd<fvm_index_type, 0, simd::simd_abi::default_abi>;
-#else
-constexpr unsigned simd_width = simd::simd_abi::native_width<fvm_value_type>::value;
-using simd_value_type = simd::simd<fvm_value_type, simd_width, simd::simd_abi::default_abi>;
-using simd_index_type = simd::simd<fvm_index_type, simd_width, simd::simd_abi::default_abi>;
-#endif
+constexpr unsigned vector_length = (unsigned) simd::simd_abi::native_width<fvm_value_type>::value;
+using simd_value_type = simd::simd<fvm_value_type, vector_length, simd::simd_abi::default_abi>;
+using simd_index_type = simd::simd<fvm_index_type, vector_length, simd::simd_abi::default_abi>;
+int simd_width = simd::width(simd::simd_cast<simd_value_type>(0));
 
 // Pick alignment compatible with native SIMD width for explicitly
 // vectorized operations below.

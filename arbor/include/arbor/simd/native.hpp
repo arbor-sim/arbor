@@ -103,17 +103,6 @@ struct native_width<Value, 1> {
     static constexpr int value = 0;
 };
 
-template<typename Value>
-int true_width() {
-    int sve_width = -1;
-#ifdef __ARM_FEATURE_SVE
-    sve_width = svcntd();
-#endif
-    auto width = native_width<Value>::value;
-    return width ? width : sve_width;
-}
-#endif
-
 } // namespace simd_abi
 } // namespace simd
 } // namespace arb
