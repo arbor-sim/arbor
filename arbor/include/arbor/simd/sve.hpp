@@ -1013,11 +1013,11 @@ void compound_indexed_add(
     }
 }
 
-int width(const svfloat64_t& v) {
+static int width(const svfloat64_t& v) {
     return svlen_f64(v);
 };
 
-int width(const svint64_t& v) {
+static int width(const svint64_t& v) {
     return svlen_s64(v);
 };
 
