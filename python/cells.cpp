@@ -142,10 +142,10 @@ struct label_dict_proxy {
         std::string s;
         s += "(label_dict";
         for (auto& x: dict.regions()) {
-            s += util::pprintf(" (region  '{}' {})", x.first, x.second);
+            s += util::pprintf(" (region  \"{}\" {})", x.first, x.second);
         }
         for (auto& x: dict.locsets()) {
-            s += util::pprintf(" (locset '{}' {})", x.first, x.second);
+            s += util::pprintf(" (locset \"{}\" {})", x.first, x.second);
         }
         s += ")";
         return s;
