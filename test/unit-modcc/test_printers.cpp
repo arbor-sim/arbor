@@ -200,7 +200,7 @@ TEST(CPrinter, proc_body_const) {
 
 TEST(CPrinter, proc_body_inlined) {
     const char* expected =
-        "r_9_=s2[i_]/3;\n"
+        "r_9_=s2[i_]*0.33333333333333331;\n"
         "r_8_=s1[i_]+2;\n"
         "if(s1[i_]==3){\n"
         "   r_7_=2*r_8_;\n"
