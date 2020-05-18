@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <iostream>
 
+#include <arbor/util/pp_util.hpp>
+
 #include "approx.hpp"
 
 namespace arb {
@@ -93,7 +95,7 @@ struct sve_mask8 {
     //     max(a, b)                  a | b
     //     min(a, b)                  a & b
 
-    static svbool_t negate(const svbool_t& a) {
+    static svbool_t neg(const svbool_t& a) {
         return a;
     }
 
@@ -223,7 +225,7 @@ struct sve_int8 {
         return svlasta_s64(svptrue_b64(), a);
     }
 
-    static svint64_t negate(const svint64_t& a, const svbool_t& mask = svptrue_b64()) {
+    static svint64_t neg(const svint64_t& a, const svbool_t& mask = svptrue_b64()) {
         return svneg_s64_z(mask, a);
     }
 
@@ -353,7 +355,7 @@ struct sve_double8 {
         return svlasta_f64(svptrue_b64(), a);
     }
 
-    static svfloat64_t negate(const svfloat64_t& a, const svbool_t& mask = svptrue_b64()) {
+    static svfloat64_t neg(const svfloat64_t& a, const svbool_t& mask = svptrue_b64()) {
         return svneg_f64_z(mask, a);
     }
 
@@ -650,70 +652,30 @@ struct simd_mask_wrap;
 template <typename Value, template <class, unsigned> class Abi>
 struct simd_mask_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::mask_type<Value>::type; };
 
-template <typename T>
-T neg(const T& a) {
-    return type_to_impl<T>::type::negate(a);
-}
+#define SVE_UNARY_ARITHMETIC(name)\
+template <typename T>\
+T name(const T& a) {\
+    return type_to_impl<T>::type::name(a);\
+};
 
-template <typename T>
-T add(const T& a, const T& b) {
-    return type_to_impl<T>::type::add(a, b);
-}
+#define SVE_BINARY_ARITHMETIC(name)\
+template <typename T>\
+auto name(const T& a, const T& b) {\
+    return type_to_impl<T>::type::name(a, b);\
+};\
+template <typename T>\
+auto name(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {\
+    return name(a, type_to_impl<T>::type::broadcast(b));\
+};\
+template <typename T>\
+auto name(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {\
+    return name(type_to_impl<T>::type::broadcast(a), b);\
+};
 
-template <typename T>
-T add(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return add(a, type_to_impl<T>::type::broadcast(b));
-}
 
-template <typename T>
-T add(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return add(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-T sub(const T& a, const T& b) {
-    return type_to_impl<T>::type::sub(a, b);
-}
-
-template <typename T>
-T sub(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return sub(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T sub(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return sub(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-T mul(const T& a, const T& b) {
-    return type_to_impl<T>::type::mul(a, b);
-}
-
-template <typename T>
-T mul(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return mul(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T mul(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return mul(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-T div(const T& a, const T& b) {
-    return type_to_impl<T>::type::div(a, b);
-}
-
-template <typename T>
-T div(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return div(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T div(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return div(type_to_impl<T>::type::broadcast(a), b);
-}
+ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, add, sub, mul, div, pow, max, min)
+ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt)
+ARB_PP_FOREACH(SVE_UNARY_ARITHMETIC,  neg, abs, sin, cos, exp, log, expm1, exprelr)
 
 template <typename T>
 T fma(const T& a, T b, T c) {
@@ -731,168 +693,8 @@ T fma(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a
 }
 
 template <typename T>
-auto cmp_eq(const T& a, const T& b) {
-    return type_to_impl<T>::type::cmp_eq(a, b);
-}
-
-template <typename T>
-T cmp_eq(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return cmp_eq(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T cmp_eq(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return cmp_eq(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-auto cmp_neq(const T& a, const T& b) {
-    return type_to_impl<T>::type::cmp_neq(a, b);
-}
-
-template <typename T>
-T cmp_neq(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return cmp_neq(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T cmp_neq(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return cmp_neq(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-auto cmp_leq(const T& a, const T& b) {
-    return type_to_impl<T>::type::cmp_leq(a, b);
-}
-
-template <typename T>
-T cmp_leq(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return cmp_leq(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T cmp_leq(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return cmp_leq(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-auto cmp_lt(const T& a, const T& b) {
-    return type_to_impl<T>::type::cmp_lt(a, b);
-}
-
-template <typename T>
-T cmp_lt(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return cmp_lt(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T cmp_lt(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return cmp_lt(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-auto cmp_geq(const T& a, const T& b) {
-    return type_to_impl<T>::type::cmp_geq(a, b);
-}
-
-template <typename T>
-T cmp_geq(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return cmp_geq(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T cmp_geq(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return cmp_geq(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-auto cmp_gt(const T& a, const T& b) {
-    return type_to_impl<T>::type::cmp_gt(a, b);
-}
-
-template <typename T>
-T cmp_gt(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return cmp_gt(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T cmp_gt(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return cmp_gt(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
 auto sum(const T& a) {
     return type_to_impl<T>::type::reduce_add(a);
-}
-
-template <typename T>
-T abs(const T& s) {
-    return type_to_impl<T>::type::abs(s);
-}
-
-template <typename T>
-T exp(const T& s) {
-    return type_to_impl<T>::type::exp(s);
-}
-
-template <typename T>
-T log(const T& s) {
-    return type_to_impl<T>::type::log(s);
-}
-
-template <typename T>
-T expm1(const T& s) {
-    return type_to_impl<T>::type::expm1(s);
-}
-
-template <typename T>
-T min(const T& a, const T& b) {
-    return type_to_impl<T>::type::min(a, b);
-}
-
-template <typename T>
-T min(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return min(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T min(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return min(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-T max(const T& a, const T& b) {
-    return type_to_impl<T>::type::max(a, b);
-}
-
-template <typename T>
-T max(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return max(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T max(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return max(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
-T exprelr(const T& a) {
-    return type_to_impl<T>::type::exprelr(a);
-}
-
-template <typename T>
-T pow(const T& a, const T& b) {
-    return type_to_impl<T>::type::pow(a, b);
-}
-
-template <typename T>
-T pow(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return pow(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T pow(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return pow(type_to_impl<T>::type::broadcast(a), b);
 }
 
 template <typename T, typename V>
