@@ -28,8 +28,10 @@ regions  = {
             'soma': '(region "tag1")',
             'axon': '(region "tag2")',
             'dend': '(join (region "tag3") (region "tag4"))',
-            'radlt5':  '(radius_lt (all) 0.5)',
-            'radlte5': '(radius_le (all) 0.5)',
+            'radlt5': '(radius_lt (all) 0.5)',
+            'radle5': '(radius_le (all) 0.5)',
+            'radgt5': '(radius_gt (all) 0.5)',
+            'radge5': '(radius_ge (all) 0.5)',
             'rad36':  '(intersect (radius_gt (all) 0.3) (radius_lt (all) 0.6))',
             'branch0': '(branch 0)',
             'branch3': '(branch 3)',
@@ -59,6 +61,7 @@ locsets = {
             'distint_in': '(sum (location 1 0.5) (location 2 0.7) (location 5 0.1))',
             'proxint_in': '(sum (location 1 0.8) (location 2 0.3))',
             'loctest' : '(distal (super (join (branch 1) (branch 0))))',
+            'restrict': '(restrict  (terminal) (tag 3))',
           }
 
 labels = {**regions, **locsets}

@@ -3,7 +3,8 @@
 # arguments: version-string [feature...]
 
 version="$1"
-shift
+arch="$2"
+shift 2
 
 if gitlog=$(git log -1 --pretty=format:'%ci %H' 2>/dev/null); then
     git diff --quiet HEAD 2>/dev/null || gitlog="${gitlog} modified"
@@ -16,10 +17,12 @@ cat << __end__
 
 #define ARB_VERSION "${version}"
 #define ARB_SOURCE_ID "${gitlog}"
+#define ARB_ARCH "${arch}"
 
 namespace arb {
 extern const char version[];
 extern const char source_id[];
+extern const char arch[];
 }
 __end__
 

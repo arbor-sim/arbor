@@ -142,6 +142,9 @@ locset most_distal(region reg);
 // Most proximal point of a region.
 locset most_proximal(region reg);
 
+// Returns all locations in a locset that are also in the region.
+locset restrict(locset ls, region reg);
+
 // A range `left` to `right` of randomly selected locations with a
 // uniform distribution from region `reg` generated using `seed`
 locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);

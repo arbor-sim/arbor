@@ -93,14 +93,14 @@ void register_morphology(pybind11::module& m) {
     pybind11::class_<arb::mcable> cable(m, "cable");
     cable
         .def(pybind11::init(
-                    [](arb::msize_t bid, double prox, double dist) {
-                        arb::mcable c{bid, prox, dist};
-                        if (!test_invariants(c)) {
-                            throw pyarb_error("Invalid cable description. Cable segments must have proximal and distal end points in the range [0,1].");
-                        }
-                        return c;
-                    }),
-             "branch"_a, "prox"_a, "dist"_a)
+            [](arb::msize_t bid, double prox, double dist) {
+                arb::mcable c{bid, prox, dist};
+                if (!test_invariants(c)) {
+                    throw pyarb_error("Invalid cable description. Cable segments must have proximal and distal end points in the range [0,1].");
+                }
+                return c;
+            }),
+            "branch"_a, "prox"_a, "dist"_a)
         .def_readonly("branch", &arb::mcable::branch,
                 "The id of the branch on which the cable lies.")
         .def_readonly("prox", &arb::mcable::prox_pos,

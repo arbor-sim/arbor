@@ -13,6 +13,7 @@ ls_proximal  = {'type': 'locset', 'value': [(1, 0.2960259763299439), (2, 0.0), (
 ls_distint_in  = {'type': 'locset', 'value': [(1, 0.5), (2, 0.7), (5, 0.1)]}
 ls_proxint_in  = {'type': 'locset', 'value': [(1, 0.8), (2, 0.3)]}
 ls_loctest  = {'type': 'locset', 'value': [(1, 1.0), (2, 0.0), (5, 0.0)]}
+ls_restrict  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0)]}
 
 ############# regions
 reg_empty = {'type': 'region', 'value': []}

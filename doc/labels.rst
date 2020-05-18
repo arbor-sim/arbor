@@ -17,22 +17,21 @@ Regions and locations can be named with labels, for later reference.
 Example Cell
 ------------
 
-The following morphology will be used in this documentation to illustrate
-region and location descriptions.
-It has a soma, dendritic tree and an axon with a hillock.
+The following morphology is used here to illustrate region and location descriptions.
+It has a soma, dendritic tree and an axon with a hillock:
 
 .. _labels-morph-fig:
 
 .. figure:: gen-images/morphlab.svg
   :width: 800
-  :align: center
+  :align: left
 
   **Left**: Segments of the sample morphology, colored according to tags: soma (tag 1, red), axon (tag 2, gray), dendrites (tag 3, blue).
   **Right**: The 6 branches of the morphology with their branch ids.
 
 *Branch 0* contains the soma, which is modelled as a cylinder of length and diameter 4 μm,
 and the proximal unbranched section of the dendritic tree which has a radius of 0.75 μm,
-and is attached to the distal end of the soma.
+attached to the distal end of the soma.
 
 The other branches in the dendritic tree have the following properties:
 
@@ -43,7 +42,7 @@ The other branches in the dendritic tree have the following properties:
 
 *Branch 5* is the axon, composed of two cable segments: an axon hillock with a radius that
 tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the start of the
-axon proper with radius 0.4 μm.
+axon proper with constant radius 0.4 μm.
 
 Label Types
 ------------
@@ -303,6 +302,21 @@ Locset Expressions
 
     Refer to a locset by its label. For example, ``(locset "synapse_sites")`` could be used in an expression to refer
     to a locset with the name ``"synapse_sites"``.
+
+.. label:: (restrict locations:locset reg:region)
+
+    The set of locations in the locset ``loc`` that are in the region ``reg``.
+
+    .. figure:: gen-images/restrict_label.svg
+      :width: 600
+      :align: center
+
+      The result of restricting the terminal locations (left) onto the dendritic tree (middle) is the tips of the dendritic tree (right).
+
+      .. code-block:: lisp
+
+        (restrict (terminal) (tag 3))
+
 
 .. label:: (join lhs:locset rhs:locset [...locset])
 

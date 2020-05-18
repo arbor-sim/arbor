@@ -514,6 +514,8 @@ def generate(path=''):
     label_image(trees.morphlab, [rl.ls_uniform0, rl.ls_uniform1], path+'/uniform_label.svg')
     label_image(trees.morphlab, [rl.ls_branchmid], path+'/on_branches_label.svg')
 
+    label_image(trees.morphlab, [rl.ls_term, rl.reg_tag3, rl.ls_restrict], path+'/restrict_label.svg')
+
     ####################### regions
 
     label_image(trees.morphlab, [rl.reg_empty, rl.reg_all], path+'/nil_all_label.svg')
