@@ -676,8 +676,8 @@ auto name(const typename simd_traits<typename type_to_impl<T>::type>::scalar_typ
 
 
 ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, add, sub, mul, div, pow, max, min)
-ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt)
-ARB_PP_FOREACH(SVE_UNARY_ARITHMETIC,  neg, abs, exp, log, expm1, exprelr)
+ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt, logical_and, logical_or)
+ARB_PP_FOREACH(SVE_UNARY_ARITHMETIC, logical_not, neg, abs, exp, log, expm1, exprelr)
 
 template <typename T>
 T fma(const T& a, T b, T c) {

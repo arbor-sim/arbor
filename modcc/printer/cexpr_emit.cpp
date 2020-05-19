@@ -360,16 +360,22 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         if (!input_mask_.empty()) {
-            mask = mask + " && " + input_mask_;
+            mask = "S::logical_and(" + mask + ", " + input_mask_ + ")";
         }
         if(is_indirect_)
             out_ << "indirect(" << lhs->name() << "+index_, simd_width_) = ";
         else
             out_ << "indirect(" << lhs->name() << "+i_, simd_width_) = ";
 
-        out_ << "S::where(" << mask << ", " << "simd_cast<simd_value>(";
+        out_ << "S::where(" << mask << ", ";
+
+        bool cast = e->rhs()->is_number();
+        if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
-        out_ << "))";
+
+        out_ << ")";
+
+        if (cast) out_ << ")";
     } else {
         out_ << "S::where(" << mask << ", ";
         e->lhs()->accept(this);
@@ -395,11 +401,11 @@ void SimdExprEmitter::visit(IfExpression* e) {
 
     if (!current_mask_.empty()) {
         auto base_mask = processing_true_ ? current_mask_ : current_mask_bar_;
-        current_mask_bar_ = base_mask + " && !" + new_mask;
-        current_mask_     = base_mask + " && " + new_mask;
+        current_mask_bar_ = "S::logical_and(" + base_mask + ", S::logical_not(" + new_mask + "))";
+        current_mask_     = "S::logical_and(" + base_mask + ", " + new_mask + ")";
 
     } else {
-        current_mask_bar_ = "!" + new_mask;
+        current_mask_bar_ = "S::logical_not(" + new_mask + ")";
         current_mask_ = new_mask;
     }
 

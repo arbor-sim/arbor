@@ -11,10 +11,6 @@
 #include <arbor/simd/simd.hpp>
 #include <arbor/util/compat.hpp>
 
-#ifdef __ARM_FEATURE_SVE
-#include <sys/prctl.h>
-#endif
-
 #include "common.hpp"
 
 using namespace arb::simd;
@@ -1322,13 +1318,6 @@ struct simd_types_t {
     using simd_value = T;
     using simd_index = I;
     using simd_value_mask =  M;
-
-    static void init() {
-#ifdef __ARM_FEATURE_SVE
-        //prctl(PR_SVE_SET_VL, T::width*sizeof(typename T::scalar_type));
-#endif
-    }
-
 };
 
 template <typename SI>
@@ -1344,7 +1333,6 @@ TYPED_TEST_P(sizeless_api, construct) {
     using scalar_index = typename TypeParam::simd_index::scalar_type;
 
     constexpr unsigned N = TypeParam::simd_value::width;
-    TypeParam::init();
 
     std::minstd_rand rng(1001);
 
@@ -1470,7 +1458,6 @@ TYPED_TEST_P(sizeless_api, where_exp) {
     using mask_simd    = typename TypeParam::simd_value_mask::simd_type;
 
     constexpr unsigned N = TypeParam::simd_value::width;
-    TypeParam::init();
 
     std::minstd_rand rng(201);
 
@@ -1628,7 +1615,6 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
     using scalar_value = typename TypeParam::simd_value::scalar_type;
 
     constexpr unsigned N = TypeParam::simd_value::width;
-    TypeParam::init();
 
     std::minstd_rand rng(201);
 
@@ -1824,6 +1810,10 @@ typedef ::testing::Types<
                   simd_t<simd_mask<double, 2, simd_abi::neon>, double, 2>>,
 #endif
 #ifdef __ARM_FEATURE_SVE
+    simd_types_t< simd_t<     simd<double, 0, simd_abi::sve>, double, 4>,
+                  simd_t<     simd<int,    0, simd_abi::sve>, int,    4>,
+                  simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   4>>,
+
     simd_types_t< simd_t<     simd<double, 0, simd_abi::sve>, double, 8>,
                   simd_t<     simd<int,    0, simd_abi::sve>, int,    8>,
                   simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   8>>,

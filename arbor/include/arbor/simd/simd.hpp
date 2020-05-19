@@ -37,6 +37,7 @@ namespace detail {
 
 // Top level functions for second API
 using detail::simd_impl;
+using detail::simd_mask_impl;
 
 template <typename Impl>
 inline constexpr int width(const simd_impl<Impl>& a) {
@@ -85,6 +86,21 @@ typename simd_impl<Impl>::simd_mask name(const typename simd_impl<Impl>::scalar_
 ARB_PP_FOREACH(BINARY_ARITHMETIC, add, sub, mul, div, pow, max, min)
 ARB_PP_FOREACH(BINARY_COMPARISON, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt)
 ARB_PP_FOREACH(UNARY_ARITHMETIC,  neg, abs, sin, cos, exp, log, expm1, exprelr)
+
+template <typename T>
+simd_mask_impl<T> logical_and(const simd_mask_impl<T>& a, simd_mask_impl<T> b) {
+    return a && b;
+}
+
+template <typename T>
+simd_mask_impl<T> logical_or(const simd_mask_impl<T>& a, simd_mask_impl<T> b) {
+    return a || b;
+}
+
+template <typename T>
+simd_mask_impl<T> logical_not(const simd_mask_impl<T>& a) {
+    return !a;
+}
 
 namespace detail {
     /// Indirect Expressions
