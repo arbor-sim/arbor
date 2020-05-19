@@ -1081,6 +1081,11 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
             std::cout << array[offset[i]] << " ";
         }
         std::cout << std::endl;
+        std::cout << "data in" << std::endl;
+        for (unsigned i = 0; i < N; i++) {
+            std::cout << values[i] << " ";
+        }
+        std::cout << std::endl;
 
         for (unsigned j = 0; j<buflen; ++j) {
             test[j] = array[j];
