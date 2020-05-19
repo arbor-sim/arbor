@@ -1071,6 +1071,11 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         fill_random(values, rng);
         fill_random(offset, rng, 0, (int)(buflen-1));
 
+        for (unsigned i = 0; i < N; i++) {
+            std::cout << offset[i] << " ";
+        }
+        std::cout << std::endl;
+
         for (unsigned j = 0; j<buflen; ++j) {
             test[j] = array[j];
         }
