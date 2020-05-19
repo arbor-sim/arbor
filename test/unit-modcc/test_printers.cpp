@@ -269,24 +269,24 @@ TEST(SimdPrinter, simd_if_else) {
             "simd_value u;\n"
             "simd_mask mask_0_ = S::cmp_gt(i, (double)2);\n"
             "S::where(mask_0_,u) = (double)7;\n"
-            "S::where(!mask_0_,u) = (double)5;\n"
-            "indirect(s+i_, simd_width_) = S::where(!mask_0_,simd_cast<simd_value>((double)42));\n"
+            "S::where(S::logical_not(mask_0_),u) = (double)5;\n"
+            "indirect(s+i_, simd_width_) = S::where(S::logical_not(mask_0_),simd_cast<simd_value>((double)42));\n"
             "indirect(s+i_, simd_width_) = u;"
             ,
             "simd_value u;\n"
             "simd_mask mask_1_ = S::cmp_gt(i, (double)2);\n"
             "S::where(mask_1_,u) = (double)7;\n"
-            "S::where(!mask_1_,u) = (double)5;\n"
-            "indirect(s+i_, simd_width_) = S::where(!mask_1_ && mask_input_,simd_cast<simd_value>((double)42));\n"
+            "S::where(S::logical_not(mask_1_),u) = (double)5;\n"
+            "indirect(s+i_, simd_width_) = S::where(S::logical_and(S::logical_not(mask_1_), mask_input_),simd_cast<simd_value>((double)42));\n"
             "indirect(s+i_, simd_width_) = S::where(mask_input_, u);"
             ,
             "simd_mask mask_2_ = S::cmp_gt(simd_cast<simd_value>(indirect(g+i_, simd_width_)), (double)2);\n"
             "simd_mask mask_3_ = S::cmp_gt(simd_cast<simd_value>(indirect(g+i_, simd_width_)), (double)3);\n"
-            "S::where(mask_2_&&mask_3_,i) = (double)0.;\n"
-            "S::where(mask_2_&&!mask_3_,i) = (double)1;\n"
+            "S::where(S::logical_and(mask_2_,mask_3_),i) = (double)0.;\n"
+            "S::where(S::logical_and(mask_2_,S::logical_not(mask_3_)),i) = (double)1;\n"
             "simd_mask mask_4_ = S::cmp_lt(simd_cast<simd_value>(indirect(g+i_, simd_width_)), (double)1);\n"
-            "indirect(s+i_, simd_width_) = S::where(!mask_2_&& mask_4_,simd_cast<simd_value>((double)2));\n"
-            "rates(i_, !mask_2_&&!mask_4_, i);"
+            "indirect(s+i_, simd_width_) = S::where(S::logical_and(S::logical_not(mask_2_),mask_4_),simd_cast<simd_value>((double)2));\n"
+            "rates(i_, S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)), i);"
     };
 
     Module m(io::read_all(DATADIR "/mod_files/test7.mod"), "test7.mod");
