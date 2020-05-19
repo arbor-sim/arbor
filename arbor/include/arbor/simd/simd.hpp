@@ -625,9 +625,7 @@ namespace detail {
             return Impl::reduce_add(value_);
         }
 
-        // Maths functions are implemented as top-level functions; declare as friends
-        // for access to `wrap` and to enjoy ADL, allowing implicit conversion from
-        // scalar_type in binary operation arguments.
+        // Maths functions are implemented as top-level functions; declare as friends for access to `wrap`
 
         #define DECLARE_UNARY_ARITHMETIC(name)\
         template <typename T>\
@@ -652,6 +650,8 @@ namespace detail {
         ARB_PP_FOREACH(DECLARE_BINARY_ARITHMETIC, add, sub, mul, div, pow, max, min, cmp_eq)
         ARB_PP_FOREACH(DECLARE_BINARY_COMPARISON, cmp_eq, cmp_neq, cmp_lt, cmp_leq, cmp_gt, cmp_geq)
         ARB_PP_FOREACH(DECLARE_UNARY_ARITHMETIC,  neg, abs, sin, cos, exp, log, expm1, exprelr)
+
+        // Declare Indirect/Indirect indexed/Where Expression copy function as friends
 
         template <typename T, typename I, typename V>
         friend void compound_indexed_add(const simd_impl<I>& s, V* p, const simd_impl<T>& index, unsigned width, index_constraint constraint);

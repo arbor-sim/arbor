@@ -41,7 +41,7 @@ void CExprEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2)
 }
 
 void CExprEmitter::visit(NumberExpression* e) {
-    out_ << " "<< as_c_double(e->value());
+    out_ << " " << as_c_double(e->value());
 }
 
 void CExprEmitter::visit(UnaryExpression* e) {
@@ -183,8 +183,6 @@ void SimdExprEmitter::visit(NumberExpression* e) {
 } 
 
 void SimdExprEmitter::visit(UnaryExpression* e) {
-    // Place a space in front of minus sign to avoid invalid
-    // expressions of the form: (v[i]--67)
     static std::unordered_map<tok, const char*> unaryop_tbl = {
         {tok::minus,   "S::neg"},
         {tok::exp,     "S::exp"},
@@ -203,9 +201,6 @@ void SimdExprEmitter::visit(UnaryExpression* e) {
 
     const char* op_spelling = unaryop_tbl.at(e->op());
     Expression* inner = e->expression();
-
-    // No need to use parenthesis for unary minus if inner expression is
-    // not binary.
 
     auto iden = inner->is_identifier();
     bool is_scalar = iden && scalars_.count(iden->name()); 

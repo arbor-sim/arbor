@@ -17,35 +17,35 @@ namespace arb {
 namespace simd {
 namespace detail {
 
-struct sve_double8;
-struct sve_int8;
-struct sve_mask8;
+struct sve_double;
+struct sve_int;
+struct sve_mask;
 
 template <>
-struct simd_traits<sve_mask8> {
+struct simd_traits<sve_mask> {
     static constexpr unsigned width = 8;
     using scalar_type = bool;
     using vector_type = svbool_t;
-    using mask_impl = sve_mask8;
+    using mask_impl = sve_mask;
 };
 
 template <>
-struct simd_traits<sve_double8> {
+struct simd_traits<sve_double> {
     static constexpr unsigned width = 8;
     using scalar_type = double;
     using vector_type = svfloat64_t;
-    using mask_impl = sve_mask8;
+    using mask_impl = sve_mask;
 };
 
 template <>
-struct simd_traits<sve_int8> {
+struct simd_traits<sve_int> {
     static constexpr unsigned width = 8;
     using scalar_type = int32_t;
     using vector_type = svint64_t;
-    using mask_impl = sve_mask8;
+    using mask_impl = sve_mask;
 };
 
-struct sve_mask8 {
+struct sve_mask {
     static svbool_t broadcast(bool b) {
         return svdup_b64(-b);
     }
@@ -191,7 +191,7 @@ struct sve_mask8 {
     }
 };
 
-struct sve_int8 {
+struct sve_int {
     // Use default implementations for:
     //     element, set_element.
 
@@ -306,15 +306,15 @@ struct sve_int8 {
         return copy_from_masked(r, mask);
     }
 
-    static svint64_t gather(tag<sve_int8>, const int32* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
+    static svint64_t gather(tag<sve_int>, const int32* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
         return svld1sw_gather_s64index_s64(mask, p, index);
     }
 
-    static svint64_t gather(tag<sve_int8>, svint64_t a, const int32* p, const svint64_t& index, const svbool_t& mask) {
+    static svint64_t gather(tag<sve_int>, svint64_t a, const int32* p, const svint64_t& index, const svbool_t& mask) {
         return svsel_s64(mask, svld1sw_gather_s64index_s64(mask, p, index), a);
     }
 
-    static void scatter(tag<sve_int8>, const svint64_t& s, int32* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
+    static void scatter(tag<sve_int>, const svint64_t& s, int32* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
         svst1w_scatter_s64index_s64(mask, p, index, s);
     }
 
@@ -323,7 +323,7 @@ struct sve_int8 {
     }
 };
 
-struct sve_double8 {
+struct sve_double {
     // Use default implementations for:
     //     element, set_element.
 
@@ -423,15 +423,15 @@ struct sve_double8 {
         return svaddv_f64(mask, a);
     }
 
-    static svfloat64_t gather(tag<sve_int8>, const double* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
+    static svfloat64_t gather(tag<sve_int>, const double* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
         return svld1_gather_s64index_f64(mask, p, index);
     }
 
-    static svfloat64_t gather(tag<sve_int8>, svfloat64_t a, const double* p, const svint64_t& index, const svbool_t& mask) {
+    static svfloat64_t gather(tag<sve_int>, svfloat64_t a, const double* p, const svint64_t& index, const svbool_t& mask) {
         return svsel_f64(mask, svld1_gather_s64index_f64(mask, p, index), a);
     }
 
-    static void scatter(tag<sve_int8>, const svfloat64_t& s, double* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
+    static void scatter(tag<sve_int>, const svfloat64_t& s, double* p, const svint64_t& index, const svbool_t& mask = svptrue_b64()) {
         svst1_scatter_s64index_f64(mask, p, index, s);
     }
 
@@ -620,8 +620,8 @@ protected:
 
 namespace simd_abi {
 template <typename T, unsigned N> struct sve;
-template <> struct sve<double, 0> {using type = detail::sve_double8;};
-template <> struct sve<int, 0> {using type = detail::sve_int8;};
+template <> struct sve<double, 0> {using type = detail::sve_double;};
+template <> struct sve<int, 0> {using type = detail::sve_int;};
 
 template <typename T> struct reg_type;
 template <> struct reg_type<int> { using type = svint64_t;};
@@ -632,9 +632,9 @@ template <> struct mask_type<int> { using type = svbool_t;};
 template <> struct mask_type<double> { using type = svbool_t;};
 
 template<typename Type> struct type_to_impl;
-template<> struct type_to_impl<svint64_t> { using type = detail::sve_int8;};
-template<> struct type_to_impl<svfloat64_t> { using type = detail::sve_double8;};
-template<> struct type_to_impl<svbool_t> { using type = detail::sve_mask8;};
+template<> struct type_to_impl<svint64_t> { using type = detail::sve_int;};
+template<> struct type_to_impl<svfloat64_t> { using type = detail::sve_double;};
+template<> struct type_to_impl<svbool_t> { using type = detail::sve_mask;};
 };  // namespace simd_abi
 
 using namespace arb::simd::simd_abi;
