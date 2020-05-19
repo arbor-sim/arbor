@@ -1094,7 +1094,8 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
             test[offset[j]] += values[j];
         }
 
-        indirect(array, simd_index(offset), N) += simd(values);
+        auto value_vec = simd_cast<simd>(indirect(values, N));
+        indirect(array, simd_index(offset), N) += value_vec;
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
         fill_random(offset, rng, 0, (int)(buflen-1));
