@@ -46,7 +46,7 @@ public:
         std::string input_mask,
         const std::unordered_set<std::string>& scalars,
         Visitor* fallback):
-            CExprEmitter(out, fallback), is_indirect_(is_indirect), input_mask_(input_mask), scalars_(scalars) {}
+            CExprEmitter(out, fallback), is_indirect_(is_indirect), input_mask_(input_mask), scalars_(scalars), fallback_(fallback) {}
 
     void visit(BlockExpression *e) override;
     void visit(CallExpression *e) override;
@@ -63,6 +63,7 @@ protected:
     bool is_indirect_;
     std::string current_mask_, current_mask_bar_, input_mask_;
     std::unordered_set<std::string> scalars_;
+    Visitor* fallback_;
 
 private:
     std::string make_unique_var(scope_ptr scope, std::string prefix) {
