@@ -283,6 +283,7 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
                 return false;
             };
 
+            out_ << "simd_cast<simd_value>(";
             if (need_paren(lhs, assoc == associativityKind::left)) {
                 emit_as_call("", lhs);
             } else {
@@ -296,8 +297,11 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
             } else {
                 rhs->accept(this);
             }
+            out_ << ")";
         } else {
+            out_ << "simd_cast<simd_value>(";
             emit_as_call(op_spelling, lhs, rhs);
+            out_ << ")";
         }
     } else if (scalars_.count(rhs_name) && !scalars_.count(lhs_name)) {
         out_ << func_spelling << '(';
