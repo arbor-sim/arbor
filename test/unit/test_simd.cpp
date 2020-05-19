@@ -1644,8 +1644,7 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
 
     // add
     {
-        auto cv = add(av, bv);
-        indirect(c, N) = cv;
+        indirect(c, N) = add(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected[i] = a[i] + b[i];
         }
@@ -1653,8 +1652,7 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
     }
     // sub
     {
-        auto cv = sub(av, bv);
-        indirect(c, N) = cv;
+        indirect(c, N) = sub(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected[i] = a[i] - b[i];
         }
@@ -1662,8 +1660,7 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
     }
     // mul
     {
-        auto cv = mul(av, bv);
-        indirect(c, N) = cv;
+        indirect(c, N) = mul(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected[i] = a[i] * b[i];
         }
@@ -1671,26 +1668,55 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
     }
     // div
     {
-        auto cv = div(av, bv);
-        indirect(c, N) = cv;
+        indirect(c, N) = div(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected[i] = a[i] / b[i];
         }
         EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
     }
+    // pow
+    {
+        indirect(c, N) = pow(av, bv);
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::pow(a[i], b[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // min
+    {
+        indirect(c, N) = min(av, bv);
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::min(a[i], b[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // max
+    {
+        indirect(c, N) = max(av, bv);
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::max(a[i], b[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
     // cmp_eq
     {
-        auto mv = cmp_eq(av, bv);
-        indirect(m, N) = mv;
+        indirect(m, N) = cmp_eq(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected_m[i] = a[i] == b[i];
         }
         EXPECT_TRUE(testing::indexed_eq_n(N, m, expected_m));
     }
+    // cmp_neq
+    {
+        indirect(m, N) = cmp_neq(av, bv);
+        for (unsigned i = 0; i<N; ++i) {
+            expected_m[i] = a[i] != b[i];
+        }
+        EXPECT_TRUE(testing::indexed_eq_n(N, m, expected_m));
+    }
     // cmp_leq
     {
-        auto mv = cmp_leq(av, bv);
-        indirect(m, N) = mv;
+        indirect(m, N) = cmp_leq(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected_m[i] = a[i] <= b[i];
         }
@@ -1698,8 +1724,7 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
     }
     // cmp_geq
     {
-        auto mv = cmp_geq(av, bv);
-        indirect(m, N) = mv;
+        indirect(m, N) = cmp_geq(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected_m[i] = a[i] >= b[i];
         }
@@ -1715,12 +1740,41 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
         }
         EXPECT_FLOAT_EQ(expected_sum, s);
     }
+    // neg
+    {
+        indirect(c, N) = neg(av);
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = -a[i];
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
+    // abs
+    {
+        indirect(c, N) = abs(av);
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = std::abs(a[i]);
+        }
+        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
+    }
     // exp
     {
-        auto cv = exp(av);
-        indirect(c, N) = cv;
+        indirect(c, N) = exp(av);
         for (unsigned i = 0; i<N; ++i) {
             EXPECT_NEAR(std::exp(a[i]), c[i], 1e-6);
+        }
+    }
+    // expm1
+    {
+        indirect(c, N) = expm1(av);
+        for (unsigned i = 0; i<N; ++i) {
+            EXPECT_NEAR(std::expm1(a[i]), c[i], 1e-6);
+        }
+    }
+    // exprelr
+    {
+        indirect(c, N) = exprelr(av);
+        for (unsigned i = 0; i<N; ++i) {
+            EXPECT_NEAR(a[i]/(std::expm1(a[i])), c[i], 1e-6);
         }
     }
     // log
@@ -1735,41 +1789,14 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
         }
         simd_value lv = simd_cast<simd_value>(indirect(l, N));
 
-        auto cv = log(lv);
-        indirect(c, N) = cv;
+        indirect(c, N) = log(lv);
 
         for (unsigned i = 0; i<N; ++i) {
             expected[i] = std::log(l[i]);
         }
         EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
     }
-    // pow
-    {
-        auto cv = pow(av, bv);
-        indirect(c, N) = cv;
-        for (unsigned i = 0; i<N; ++i) {
-            expected[i] = std::pow(a[i], b[i]);
-        }
-        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
-    }
-    // max
-    {
-        auto cv = min(av, bv);
-        indirect(c, N) = cv;
-        for (unsigned i = 0; i<N; ++i) {
-            expected[i] = std::min(a[i], b[i]);
-        }
-        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
-    }
-    // min
-    {
-        auto cv = max(av, bv);
-        indirect(c, N) = cv;
-        for (unsigned i = 0; i<N; ++i) {
-            expected[i] = std::max(a[i], b[i]);
-        }
-        EXPECT_TRUE(testing::indexed_almost_eq_n(N, c, expected));
-    }
+
 }
 
 REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct, where_exp, arithmetic);

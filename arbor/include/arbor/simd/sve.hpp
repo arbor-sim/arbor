@@ -652,6 +652,8 @@ struct simd_mask_wrap;
 template <typename Value, template <class, unsigned> class Abi>
 struct simd_mask_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::mask_type<Value>::type; };
 
+// Math functions exposed for SVE types
+
 #define SVE_UNARY_ARITHMETIC(name)\
 template <typename T>\
 T name(const T& a) {\
@@ -675,7 +677,7 @@ auto name(const typename simd_traits<typename type_to_impl<T>::type>::scalar_typ
 
 ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, add, sub, mul, div, pow, max, min)
 ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt)
-ARB_PP_FOREACH(SVE_UNARY_ARITHMETIC,  neg, abs, sin, cos, exp, log, expm1, exprelr)
+ARB_PP_FOREACH(SVE_UNARY_ARITHMETIC,  neg, abs, exp, log, expm1, exprelr)
 
 template <typename T>
 T fma(const T& a, T b, T c) {
@@ -683,19 +685,11 @@ T fma(const T& a, T b, T c) {
 }
 
 template <typename T>
-T fma(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {
-    return fma(a, type_to_impl<T>::type::broadcast(b));
-}
-
-template <typename T>
-T fma(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {
-    return fma(type_to_impl<T>::type::broadcast(a), b);
-}
-
-template <typename T>
 auto sum(const T& a) {
     return type_to_impl<T>::type::reduce_add(a);
 }
+
+// Indirect/Indirect indexed/Where Expression copy methods
 
 template <typename T, typename V>
 static void indirect_copy_to(const T& s, V* p, unsigned width) {

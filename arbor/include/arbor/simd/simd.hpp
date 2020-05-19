@@ -94,7 +94,7 @@ namespace detail {
         indirect_expression(V* p, unsigned width): p(p), width(width) {}
 
         indirect_expression& operator=(V s) {
-            for (unsigned i = 0; i < width; i++) {
+            for (unsigned i = 0; i < width; ++i) {
                 p[i] = s;
             }
             return *this;
@@ -154,7 +154,7 @@ namespace detail {
         indirect_indexed_expression& operator=(V s) {
             typename simd_traits<ImplIndex>::scalar_type idx[width];
             ImplIndex::copy_to(index.value_, idx);
-            for (unsigned i = 0; i < width; i++) {
+            for (unsigned i = 0; i < width; ++i) {
                 p[idx[i]] = s;
             }
             return *this;
