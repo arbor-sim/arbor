@@ -1071,17 +1071,6 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         fill_random(values, rng);
         fill_random(offset, rng, 0, (int)(buflen-1));
 
-        std::cout << "index in" << std::endl;
-        for (unsigned i = 0; i < N; i++) {
-            std::cout << offset[i] << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "memory in" << std::endl;
-        for (unsigned i = 0; i < N; i++) {
-            std::cout << array[offset[i]] << " ";
-        }
-        std::cout << std::endl;
-
         for (unsigned j = 0; j<buflen; ++j) {
             test[j] = array[j];
         }
@@ -1096,16 +1085,6 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         std::cout << std::endl;
 
         auto value_vec = simd_cast<simd>(indirect(values, N));
-
-        scalar temp[N];
-        indirect(temp, N) = value_vec;
-
-        std::cout << "mini_test" << std::endl;
-        for (unsigned i = 0; i < N; i++) {
-            std::cout << temp[i] << " ";
-        }
-        std::cout << std::endl;
-
         indirect(array, simd_index(offset), N) += value_vec;
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 

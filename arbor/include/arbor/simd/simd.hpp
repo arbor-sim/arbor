@@ -195,8 +195,8 @@ namespace detail {
             return *this;
         }
 
-        template <typename Other>
-        indirect_indexed_expression& operator+=(const Other& s) {
+        template <typename Impl>
+        indirect_indexed_expression& operator+=(const simd_impl<Impl>& s) {
             compound_indexed_add(s, p, index, width, constraint);
             return *this;
         }
@@ -239,25 +239,11 @@ namespace detail {
         switch (constraint) {
             case index_constraint::none:
             {
-                std::cout << "None:" << std::endl;
                 typename ImplIndex::scalar_type o[width];
-
-                std::cout << "index:" << std::endl;
                 ImplIndex::copy_to(index.value_, o);
-                for (unsigned i = 0; i < width; ++i) {
-                    std::cout << o[i] << " ";
-                }
-                std::cout << std::endl;
-
-                std::cout << "memory:" << std::endl;
-                for (unsigned i = 0; i < width; ++i) {
-                    std::cout << p[o[i]] << " ";
-                }
-                std::cout << std::endl;
 
                 typename Impl::scalar_type a[width];
                 s.copy_to(a);
-
 
                 std::cout << "data:" << std::endl;
                 for (unsigned i = 0; i < width; ++i) {
@@ -276,12 +262,6 @@ namespace detail {
                 temp += a[width-1];
                 p[o[width-1]] += temp;
 
-                std::cout << "result:" << std::endl;
-                for (unsigned i = 0; i < width; ++i) {
-                    std::cout << p[o[i]] << " ";
-                }
-                std::cout << std::endl;
-                std::cout << std::endl;
             }
                 break;
             case index_constraint::independent:
