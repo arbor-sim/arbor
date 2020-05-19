@@ -1097,7 +1097,6 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         indirect(array, simd_index(offset), N) += simd(values);
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
-        std::cout << std::endl;
         fill_random(offset, rng, 0, (int)(buflen-1));
 
         for (unsigned j = 0; j<buflen; ++j) {
