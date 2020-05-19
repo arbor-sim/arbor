@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <type_traits>
+#include <iostream>
 
 #include <arbor/simd/implbase.hpp>
 #include <arbor/simd/generic.hpp>
@@ -238,11 +239,31 @@ namespace detail {
         switch (constraint) {
             case index_constraint::none:
             {
+                std::cout << "None:" << std::endl;
                 typename ImplIndex::scalar_type o[width];
+
+                std::cout << "index:" << std::endl;
                 ImplIndex::copy_to(index.value_, o);
+                for (unsigned i = 0; i < width; ++i) {
+                    std::cout << o[i] << " ";
+                }
+                std::cout << std::endl;
+
+                std::cout << "memory:" << std::endl;
+                for (unsigned i = 0; i < width; ++i) {
+                    std::cout << p[o[i]] << " ";
+                }
+                std::cout << std::endl;
 
                 V a[width];
                 Impl::copy_to(s.value_, a);
+
+
+                std::cout << "data:" << std::endl;
+                for (unsigned i = 0; i < width; ++i) {
+                    std::cout << a[i] << " ";
+                }
+                std::cout << std::endl;
 
                 V temp = 0;
                 for (unsigned i = 0; i<width-1; ++i) {
@@ -254,6 +275,13 @@ namespace detail {
                 }
                 temp += a[width-1];
                 p[o[width-1]] += temp;
+
+                std::cout << "result:" << std::endl;
+                for (unsigned i = 0; i < width; ++i) {
+                    std::cout << p[o[i]] << " ";
+                }
+                std::cout << std::endl;
+                std::cout << std::endl;
             }
                 break;
             case index_constraint::independent:

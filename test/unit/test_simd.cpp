@@ -1071,8 +1071,14 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
         fill_random(values, rng);
         fill_random(offset, rng, 0, (int)(buflen-1));
 
+        std::cout << "index in" << std::endl;
         for (unsigned i = 0; i < N; i++) {
             std::cout << offset[i] << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "memory in" << std::endl;
+        for (unsigned i = 0; i < N; i++) {
+            std::cout << array[offset[i]] << " ";
         }
         std::cout << std::endl;
 
