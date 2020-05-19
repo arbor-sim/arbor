@@ -55,7 +55,7 @@ matrix:
     compiler: clang
 
 ######################### LINUX #########################
-## test gcc6 - single node/rank with threading backend ##
+## test gcc7 - single node/rank with threading backend ##
   - name: "linux, gcc, serial, py"
     os: linux
     dist: bionic
@@ -63,16 +63,16 @@ matrix:
       apt:
         sources:
         packages:
-          - g++-6
+          - g++-7
           - openmpi-bin
           - libopenmpi-dev
     env:
-      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
       - BUILD_NAME=cthread-linux-gcc-py
       - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
-    compiler: gcc-6
+    compiler: gcc-7
 
-## test gcc6 - mpi with threading backend ##
+## test gcc7 - mpi with threading backend ##
   - name: "linux, gcc, mpi, py"
     os: linux
     dist: bionic
@@ -80,14 +80,14 @@ matrix:
       apt:
         sources:
         packages:
-          - g++-6
+          - g++-7
           - openmpi-bin
           - libopenmpi-dev
     env:
-      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
       - BUILD_NAME=mpi-linux-gcc-py
       - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
-    compiler: gcc-6
+    compiler: gcc-7
 
 ## test clang4 - single node/rank with threading backend ##
   - name: "linux, clang, serial, py"
