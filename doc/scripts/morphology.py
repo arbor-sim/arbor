@@ -221,7 +221,7 @@ def morph_image(morphs, methods, filename, sc=20):
                     #   - works on Chrome/Chromium
                     #   - doesn't work on Firefox
                     numbers.add(dwg.text(str(i), insert=(X[0], Y[0]+sc/3), stroke='white', fill='white'))
-                    numbers.add(dwg.text(str(i), insert=(X[0], Y[0]+sc/3), stroke='white', fill='white', alignment_baseline='middle'))
+                    #numbers.add(dwg.text(str(i), insert=(X[0], Y[0]+sc/3), stroke='white', fill='white', alignment_baseline='middle'))
 
             else:
                 if method=='segments':

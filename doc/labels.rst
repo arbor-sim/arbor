@@ -4,21 +4,19 @@ Labels
 =========
 
 Arbor provides a domain specific language (DSL) for describing regions and
-locations on morphologies.
-Regions and locations can be named with labels, for later reference.
+locations on morphologies, and a dictionary for assiciating these descriptions
+with a string label.
 
-.. note::
-
-    The labels are used later in the cell building process to refer to regions
-    and locations when setting cell properties and attributes.
-    For example, the membrane capacitance on a region of the cell membrane, or
-    the location of synapse instances.
+The labels are used later in the cell building process to refer to regions
+and locations when setting cell properties and attributes.
+For example, the membrane capacitance on a region of the cell membrane, or
+the location of synapse instances.
 
 Example Cell
 ------------
 
-The following morphology is used here to illustrate region and location descriptions.
-It has a soma, dendritic tree and an axon with a hillock:
+The following morphology is used on this page to illustrate region and location
+descriptions. It has a soma, dendritic tree and an axon with a hillock:
 
 .. _labels-morph-fig:
 
@@ -26,7 +24,8 @@ It has a soma, dendritic tree and an axon with a hillock:
   :width: 800
   :align: left
 
-  **Left**: Segments of the sample morphology, colored according to tags: soma (tag 1, red), axon (tag 2, gray), dendrites (tag 3, blue).
+  **Left**: Segments of the sample morphology, colored according to tags:
+  soma (tag 1, red), axon (tag 2, grey), dendrites (tag 3, blue).
   **Right**: The 6 branches of the morphology with their branch ids.
 
 *Branch 0* contains the soma, which is modelled as a cylinder of length and diameter 4 μm,
@@ -50,11 +49,8 @@ Label Types
 Locsets
 ~~~~~~~~~~~
 
-A *locset* is a list of locations on a morphology.
-Locsets are multisets: they may contain multiple instances of the same location.
-*Locations* are used to place countable entities on the morphology, such as synapses, gap junction
-sites, voltage recorders and current clamps.
-Locsets are also used as building blocks for region and locset definitions.
+A *locset* is a set of locations on a morphology, specifically a *multiset*,
+which may contain multiple instances of the same location, for example:
 
 * The center of the soma.
 * The locations of inhibitory synapses.
@@ -66,25 +62,29 @@ Locsets are also used as building blocks for region and locset definitions.
 
   Examples of locsets on the example morphology. **Left**: The terminal samples.
   **Right**: 50 random locations on the dendritic tree.
-  **The root of the morphology is hilighted with a red circle for reference**.
+  The :ref:`root <morph-sample-definitions>` of the morphology is hilighted with a red circle
+  for reference.
 
 
 Regions
 ~~~~~~~~~~~~
 
-A *region* is a subset of a morphology.
-Regions are used to define membrane properties, for example the distribution and properties
-of ion channels, membrane capacitance, and initial reversal potential.
-Examples of regions include:
+A *region* is a subset of a morphology's cable segments, for example:
 
 * The soma.
-* The dendrites.
+* The dendritic tree.
 * An explicit reference to a specific unbranched cable, e.g. "branch 3" or "the distal half of branch 1".
 * The axon hillock.
 * The dendrites with radius less than 1 μm.
 
-It is possible for a region to be empty, for example, a region that defines the axon will be empty on a morphology that has no axon.
-Regions do not need to be complete sub-trees of a morphology.
+It is possible for a region to be empty, for example, a region that defines
+the axon will be empty on a morphology that has no axon.
+
+Regions do not need to be complete sub-trees of a morphology, for example,
+the region of cables that have radius less than 0.5 μm
+:ref:`below <labels-region-examples>` is composed of three disjoint sub-trees.
+
+.. _labels-region-examples:
 
 .. figure:: gen-images/region_label_examples.svg
   :width: 800
@@ -96,27 +96,32 @@ Regions do not need to be complete sub-trees of a morphology.
 Expressions
 -----------
 
-Regions and locsets are described using *expressions*, which are written as s-expressions.
+Regions and locsets are described using *expressions* written with the DSL.
 
-Here are some examples of expressions that define regions:
+Examples of expressions that define regions include:
 
 * ``(all)``: the complete cell morphology.
 * ``(tag 1)``: all segments with tag 1.
 * ``(branch 2)``: branch 2.
 * ``(region "soma")``: the region with the label "soma".
 
-And here are examples of expressions that define locsets:
+Examples of expressions that define locsets include:
 
-* ``(root)``: the root sample.
-* ``(terminal)``: the terminal samples.
+* ``(root)``: the location of the :ref:`root sample <morph-sample-definitions>`.
+* ``(terminal)``: the locations of the :ref:`terminal samples <morph-sample-definitions>`.
 * ``(location 3 0.5)``: the mid point of branch 3.
-* ``(locset "synapse_sites")``: the locset labelled "synapse_sites".
+* ``(locset "synapse-sites")``: the locset labelled "synapse-sites".
 
 Detailed descriptions for all of the region and locset expression types is
 given :ref:`below <labels-expr-docs>`.
 
-Expressions are *composable*, so that more complex definitions can be constructed
-using simple expressions. For example, the expression
+.. note::
+    The example expressions above will look familiar to readers who have
+    use the Lisp programming language. This is because both the DSL and Lisp use
+    *s-expressions*, which are a simple way to represent a nested list of data.
+
+Expressions are *composable*, so that expressions can be constructed
+from simple expressions. For example, the expression:
 
 .. code-block:: lisp
 
@@ -139,47 +144,12 @@ describes the region of all parts of a cell with either tag 3 or tag 4 and radiu
     Arbor handles generation of conrete cable sections and locations when
     expressions are applied to a morphology.
 
-
-Label Dictionaries
-------------------
-
-*Labels* can be assigned to expressions, and used to refer to the expression or the
-concrete region or locset generated when the expression is applied to a morphology.
-A label is a string with the following rules:
-
-* may contain alpha-numeric values, ``{a-z}[A-z][0-9]``, and underscore ``_`` and hyphen ``-``.
-* no leading underscore, hyphen or numeric values: for example ``_myregion``, ``-samples``, and ``2ndpoint`` are invalid labels.
-* no leading numeric values
-
-labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
-
-Representation
-----------------
-
-Locations
-~~~~~~~~~
-
-A *location* on a cell is described using a tuple ``(branch, pos)`` where ``branch`` is a
-branch id, and ``0 ≤ pos ≤ 1`` is a relative distance along the branch, where 0 and 1 are the
-proximal and distal ends of the branch respectively.
-
-*TODO* introduce *locset* and *cable_list*
-
-Regions
-~~~~~~~~~
-
-Regions are composed of unbranched *cables*, which are tuples of the form ``(branch, prox, dist)``,
-where ``branch`` is the branch id, and ``0 ≤ prox ≤ dist ≤ 1`` define the relative position
-of the end points of the section on the branch.
-
-*TODO* some examples of cables and locations. (whole branch, subset of branch, root (0,0), mid point of a dendrite)
-
 .. _labels-expr-docs:
 
-Expressions Definititions
+Expression Syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Definition of s expressions
+The DSL uses `s-expressions <https://en.wikipedia.org/wiki/S-expression>`_, which are composed of the following basic types:
 
 .. generic:: string
 
@@ -201,6 +171,24 @@ Definition of s expressions
 
     An expression that evaluates to a locset. e.g. ``(root)``, ``(location 3 0.2)``, ``(proximal (tag 2))``.
 
+Expressions can be written over multiple lines, and comments are marked with semi-colon.
+This can be used to make more complex expression easier to read, for example the
+following region that finds all the sub-trees that start at the locations on the
+dendritic tree where the radius first is less than or equal to 0.2 μm.
+
+.. code:: lisp
+
+    (distal_interval                   ; take subtrees that start at
+        (proximal                      ; locations closest to the soma
+            (radius_lte                ; with radius <= 0.2 um
+                (join (tag 3) (tag 4)) ; on basal and apical dendrites
+                0.2)))
+
+.. note::
+    If the expression above at first seems a little complex, consider how the same
+    thing could be achieved using hoc in NEURON, and whether it would be free of bugs
+    and applicable to arbitrary morphologies.
+
 
 Locset Expressions
 ~~~~~~~~~~~~~~~~~~~~~
@@ -221,6 +209,8 @@ Locset Expressions
     .. figure:: gen-images/root_label.svg
       :width: 300
       :align: center
+
+.. _labels-location-def:
 
 .. label:: (location branch:integer pos:real)
 
@@ -255,14 +245,15 @@ Locset Expressions
 
       Sample 1, which defines the distal end of the soma, generated with ``(sample 1)``.
 
-.. label:: (uniform reg:region, first:int, last:int, seed:int)
+.. label:: (uniform reg:region first:int last:int seed:int)
 
     .. figure:: gen-images/uniform_label.svg
       :width: 600
       :align: center
 
-      The of drawing 10 random locations on the dendrites using different random seeds:
-      ``(uniform (tag 3) 0 9 0)`` (left) and ``(uniform (tag 3) 0 9 1)`` (right).
+      Ten random locations on the dendrites drawn using different random seeds.
+      On the left with  a seed of 0: ``(uniform (tag 3) 0 9 0)``,
+      and on the right with  a seed of 1: ``(uniform (tag 3) 0 9 1)``.
 
 .. label:: (on_branches pos:double)
 
@@ -300,8 +291,8 @@ Locset Expressions
 
 .. label:: (locset name:string)
 
-    Refer to a locset by its label. For example, ``(locset "synapse_sites")`` could be used in an expression to refer
-    to a locset with the name ``"synapse_sites"``.
+    Refer to a locset by its label. For example, ``(locset "synapse-sites")`` could be used in an expression to refer
+    to a locset with the name ``"synapse-sites"``.
 
 .. label:: (restrict locations:locset reg:region)
 
@@ -374,17 +365,19 @@ Region Expressions
 
       Branches 0 and 3, selected using ``(branch 0)`` and ``(branch 3)`` respectively.
 
+.. _labels-cable-def:
+
 .. label:: (cable branch_id:integer prox:real dist:real)
 
     .. figure:: gen-images/cable_label.svg
       :width: 600
       :align: center
 
-      Selecting parts of branch 1: ``(cable 1 0 1)`` to select the whole cable, ``(cable 1 0.3 1)`` and ``(cable 0 0.3 0.7)`` to select part of the branch.
+      Selecting parts of branch 1: ``(cable 1 0 1)`` to select the whole branch, ``(cable 1 0.3 1)`` and ``(cable 0 0.3 0.7)`` to select part of the branch.
 
 .. label:: (region name:string)
 
-    Refer to a region by its label. For example, `(region "axon")` would refer to a region with the label ``"axon"``.
+    Refer to a region by its label. For example, ``(region "axon")`` would refer to a region with the label ``"axon"``.
 
 .. label:: (distal_interval start:locset extent:real)
 
@@ -538,13 +531,77 @@ Region Expressions
 
       Two regions (left and middle) and their intersection (right).
 
+Concretization
+----------------
+
+When a region or locset expression is applied to a cell morphology it is
+*concretized*. Concretizing a locset will return a set of *locations* on the
+morphology, and concretising a region will return a list of unbranched *cables*
+on the morphology.
+
+.. note::
+    Applying an expression to different morphologies may give different
+    concretized results.
+
+Locations
+~~~~~~~~~
+
+A *location* on a cell is described using a tuple ``(branch, pos)``, where
+``branch`` is a branch id, and ``0 ≤ pos ≤ 1`` is the relative distance along
+the branch, given that 0 and 1 are the proximal and distal ends of the branch
+respectively.
+
+Examples of locations, :ref:`expressed using the DSL <labels-location-def>`, include:
+
+* The root ``(location 0 0)``.
+* The start of branch 5 ``(location 5 0)``.
+* The end of branch 5 ``(location 5 1)``.
+* One quarter of the way along branch 5 ``(location 5 0.25)``.
+
+Cables
+~~~~~~~~~
+
+An unbranched *cable* is a tuple of the form ``(branch, prox, dist)``,
+where ``branch`` is the branch id, and ``0 ≤ prox ≤ dist ≤ 1`` define the relative position
+of the end points of the section on the branch.
+
+Examples of cables, :ref:`expressed using the DSL <labels-cable-def>`, include:
+
+* All of branch 2 ``(cable 2 0 1)``.
+* The middle third of branch 2 ``(cable 2 0.333 0.667)``.
+* A zero length cable in the middle of branch 2 ``(cable 2 0.5 0.5)``.
+
+.. note::
+    Zero length cables are permitted.
+    They are not useful for defining membrane properties, which are applied to
+    the surface of a region.
+    However, they can occur as the result of sub-expressions in larger
+    expressions that define non-trivial regions and locsets.
+
+
+Label Dictionaries
+------------------
+
+*Labels* can be assigned to expressions, and used to refer to the expression or the
+concrete region or locset generated when the expression is applied to a morphology.
+A label is a string with the following rules:
+
+* may contain alpha-numeric values, ``{a-z}[A-z][0-9]``, and underscore
+  ``_`` and hyphen ``-``.
+* no leading underscore, hyphen or numeric values: for example ``_myregion``,
+  ``-samples``, and ``2ndpoint`` are invalid labels.
+
+labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
+
 Python API
 ----------
 
-The ``arbor.label_dict`` type is used for creating and manipluating label dictionaries,
-which can be initialised with a dictionary that defines label -- expression
-pairs. For example, a dictionary that creates regions according to the tags used in SWC
-files for soma, axon, dendrite and apical dendrite is:
+The ``arbor.label_dict`` type is used for creating and manipulating label dictionaries,
+which can be initialised with a dictionary that defines (label, expression)
+pairs. For example, a dictionary that uses tags that correspond to SWC
+`structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
+to label soma, axon, dendrite and apical dendrites is:
+
 
 .. code-block:: python
 
@@ -557,8 +614,8 @@ files for soma, axon, dendrite and apical dendrite is:
 
     d = arbor.label_dict(labels)
 
-Alternatively, it is possible to start with an empty label dictionary and add
-the labels and their definitions one by one:
+Alternatively, start with an empty label dictionary and add the labels and
+their definitions one by one:
 
 .. code-block:: python
 
@@ -571,9 +628,9 @@ the labels and their definitions one by one:
     d['dend'] = '(tag 3)'
     d['apic'] = '(tag 4)'
 
-Above the square bracket operator is used to add label definitions. It can
-be used to both add new definitions, or modify existing definitions, so long
-as the new new definition has the same type (region or locset):
+The square bracket operator is used above to add label definitions. It can
+be used to modify existing definitions, so long as the new new definition has the
+same type (region or locset):
 
 .. code-block:: python
 
@@ -592,9 +649,8 @@ as the new new definition has the same type (region or locset):
     # New labels can be added to the dictionary.
     d['soma'] = '(tag 1)'
     d['axon'] = '(tag 2)'
-    d['dend'] = '(tag 3)'
 
-    # Square brackets can also be used to look up a label's definition.
+    # Square brackets can also be used to get a label's definition.
     assert(d['soma'] == '(tag 1)')
 
 Expressions can refer to other regions and locsets in a label dictionary.
@@ -637,7 +693,7 @@ label that has not yet been defined:
     # Which is the subtrees that start at the proximal locations of
     # the region '(tag 3)'
 
-However cyclic dependencies are not permitted, as in the following example where
+Cyclic dependencies are not permitted, as in the following example where
 two labels refer to one another:
 
 .. code-block:: python
@@ -658,9 +714,9 @@ two labels refer to one another:
     in the locsets and the cable segments in the regions.
 
 
-The type of an expression, locset or region, is inferred automatically when they
-are input into a label dictionary.
-The labels of regions and locsets can be accessed as attributes of a label dictionary:
+The type of an expression, locset or region, is inferred automatically when it is
+input into a label dictionary.
+Lists of the labels for regions and locsets are available as attributes:
 
 .. code-block:: python
 
