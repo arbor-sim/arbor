@@ -201,11 +201,11 @@ namespace detail {
             return *this;
         }
 
-        template <typename Other>
-        indirect_indexed_expression& operator-=(const Other& s) {
-            compound_indexed_add(-s, p, index, width, constraint);
-            return *this;
-        }
+//        template <typename Other>
+//        indirect_indexed_expression& operator-=(const Other& s) {
+//            compound_indexed_add(-s, p, index, width, constraint);
+//            return *this;
+//        }
 
         template <typename Impl> friend struct simd_impl;
         template <typename To>   friend struct simd_cast_impl;
