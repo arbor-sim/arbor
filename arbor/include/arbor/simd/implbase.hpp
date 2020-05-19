@@ -126,9 +126,7 @@ struct implbase {
 
     static vector_type broadcast(scalar_type x) {
         store a;
-        for (unsigned i = 0; i < width; ++i) {
-            a[i] = x;
-        }
+        std::fill(std::begin(a), std::end(a), x);
         return I::copy_from(a);
     }
 

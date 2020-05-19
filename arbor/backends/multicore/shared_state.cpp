@@ -175,7 +175,7 @@ void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
     using simd::min;
     for (fvm_size_type i = 0; i<n_intdom; i+=simd_width) {
         simd_value_type t = simd_cast<simd_value_type>(indirect(time.data()+i, simd_width));
-        t = min(add(t,simd_cast<simd_value_type>(dt_step)), simd_cast<simd_value_type>(tmax));
+        t = min(add(t, dt_step), tmax);
         indirect(time_to.data()+i, simd_width) = t;
     }
 }
