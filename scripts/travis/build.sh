@@ -84,7 +84,7 @@ export ARB_NUM_THREADS=2
 
 progress "C++ unit tests"
 make unit -j4                || error "building unit tests"
-./bin/unit --gtest_color=no  || error "running unit tests"
+./bin/unit  --gtest_filter=*add_and_subtract* --gtest_color=no  || error "running unit tests"
 
 progress "C++ modcc unit testss"
 make unit-modcc -j4                || error "building modcc unit tests"

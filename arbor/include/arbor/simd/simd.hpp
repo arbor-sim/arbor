@@ -195,8 +195,8 @@ namespace detail {
             return *this;
         }
 
-        template <typename Impl>
-        indirect_indexed_expression& operator+=(const simd_impl<Impl>& s) {
+        template <typename Other>
+        indirect_indexed_expression& operator+=(const Other& s) {
             compound_indexed_add(s, p, index, width, constraint);
             return *this;
         }
@@ -243,7 +243,7 @@ namespace detail {
                 ImplIndex::copy_to(index.value_, o);
 
                 typename Impl::scalar_type a[width];
-                s.copy_to(a);
+                Impl::copy_to(s.value_, a);
 
                 std::cout << "data:" << std::endl;
                 for (unsigned i = 0; i < width; ++i) {

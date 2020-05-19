@@ -218,7 +218,14 @@ struct avx_double4: implbase<avx_double4> {
     }
 
     static void copy_to(const __m256d& v, double* p) {
+        std::cout << "HERE!" << std::endl;
+        std::cout << "before" << std::endl;
+        for (unsigned i = 0; i < 4; ++i) std::cout << p[i] << " ";
+        std::cout << std::endl;
         _mm256_storeu_pd(p, v);
+        std::cout << "after" << std::endl;
+        for (unsigned i = 0; i < 4; ++i) std::cout << p[i] << " ";
+        std::cout << std::endl;
     }
 
     static void copy_to_masked(const __m256d& v, double* p, const __m256d& mask) {
