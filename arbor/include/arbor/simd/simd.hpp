@@ -255,8 +255,8 @@ namespace detail {
                 }
                 std::cout << std::endl;
 
-                V a[width];
-                Impl::copy_to(s.value_, a);
+                typename Impl::scalar_type a[width];
+                s.copy_to(a);
 
 
                 std::cout << "data:" << std::endl;
