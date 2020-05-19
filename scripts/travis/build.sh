@@ -92,6 +92,7 @@ make unit-modcc -j4                || error "building modcc unit tests"
 
 progress "C++ distributed unit tests (local)"
 make unit-local -j4          || error "building local distributed unit tests"
+lscpu
 ./bin/unit-local             || error "running local distributed unit tests"
 
 if [[ "${WITH_DISTRIBUTED}" == "mpi" ]]; then
