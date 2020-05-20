@@ -312,11 +312,21 @@ Locset Expressions
 .. label:: (join lhs:locset rhs:locset [...locset])
 
     Set intersection for two locsets, with duplicates removed and results sorted.
-    For example:
+    For example, the following:
 
-    ``((1 0.5) (2 0.1) (1 0.2)) ∪ ((1 0.5) (4 0)) = ((1 0.2) (1 0.5) (2 0.1) (4 0))``
+    .. code-block:: lisp
 
-    The location ``(1 0.5)`` occurs in both the sets, and occurs only once in the result.
+        (join
+            (join (location 1 0.5) (location 2 0.1) (location 1 0.2))
+            (join (location 1 0.5) (location 4 0)))
+
+    Gives the following:
+
+    .. code-block:: lisp
+
+        (join (location 1 0.2) (location 1 0.5) (location 2 0.1) (location 4 0))
+
+    Note that ``(location 1 0.5)`` occurs in both the sets, and occurs only once in the result.
 
 .. label:: (sum lhs:locset rhs:locset [...locset])
 
@@ -324,7 +334,17 @@ Locset Expressions
     This is equivalent to contactenating the two lists, and the length of the result is the sum of
     the lenghts of the inputs. For example:
 
-    ``((1 0.5) (2 0.1) (1 0.2)) + ((1 0.5) (4 0)) = ((1 0.5) (2 0.1) (1 0.2) (1 0.5) (4 0))``
+    .. code-block:: lisp
+
+        (sum
+            (join (location 1 0.5) (location 2 0.1) (location 1 0.2))
+            (join (location 1 0.5) (location 4 0)))
+
+    Gives the following:
+
+    .. code-block:: lisp
+
+        (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
 
 Region Expressions
 ~~~~~~~~~~~~~~~~~~~~~
@@ -369,11 +389,19 @@ Region Expressions
 
 .. label:: (cable branch_id:integer prox:real dist:real)
 
+    An unbranched cable that is a subset of ``branch``.
+    The values of ``0 ≤ prox ≤ dist ≤ 1`` are the relative position
+    of the ends of the branch. The positions are in terms
+    of branch length, so for example, on a branch of length 100 μm ``prox=0.2, dist=0.8``
+    would give a cable that starts and ends 20 μm and 80 μm along the branch
+    respectively.
+
     .. figure:: gen-images/cable_label.svg
       :width: 600
       :align: center
 
-      Selecting parts of branch 1: ``(cable 1 0 1)`` to select the whole branch, ``(cable 1 0.3 1)`` and ``(cable 0 0.3 0.7)`` to select part of the branch.
+      Selecting parts of branch 1, from left to right: ``(cable 1 0 1)`` to select the
+      whole branch, ``(cable 1 0.3 1)`` and ``(cable 0 0.3 0.7)`` to select part of the branch.
 
 .. label:: (region name:string)
 
@@ -730,5 +758,3 @@ Lists of the labels for regions and locsets are available as attributes:
             'site': '(location 2 0.5)',
             'term': '(terminal)'})
 
-    print('regions: ' + ' '.join(d.regions)) # regions: apic axon dend soma
-    print('locsets: ' + ' '.join(d.locsets)) # locsets: site term

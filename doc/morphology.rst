@@ -628,3 +628,266 @@ either it's proximal or distal end.
 
   **Right**: Branch 0 is the soma, the dendrites are branches 1 and 2, and the axon
   hillock is branch 3.
+
+Python API
+----------
+
+.. currentmodule:: arbor
+
+.. data:: mnpos
+    :type: int
+
+    Value used to indicate "no parent" in :class:`sample_tree` and :class:`morphology`
+    trees of samples and branches respectively.
+
+
+    .. code-block:: python
+
+        import arbor
+
+        tree = arbor.sample_tree()
+
+        # mnpos can be used to explicitly specify that the first sample
+        # in the tree has no parent, though if the parent argument is not.
+        # provided, it will default to mnpos.
+        tree.append(parent=arbor.mnpos, x=0, y=0, z=10, radius=0.5, tag=1)
+        tree.append(parent=0, x=0, y=10, z=10, radius=0.5, tag=1)
+        tree.append(parent=0, x=0, y=20, z=10, radius=0.5, tag=1)
+
+        # mnpos can also be used when querying a sample_tree or morphology,
+        # for example the following snippet that finds all branches in the
+        # morphology that are attached to the root of the morphology.
+        m = arbor.morphology(tree)
+        base_branches = [i for i in range(m.num_branches) if m.branch_parent(i) == arbor.mnpos]
+
+        print(base_branches)
+
+
+.. class:: location
+
+    A location on :attr:`branch`, where :attr:`pos`, in the range ``0 ≤ pos ≤ 1``,
+    gives the relative position
+    between the proximal and distal ends of the branch. The position is in terms
+    of branch length, so for example, on a branch of length 100 μm ``pos=0.2``
+    corresponds to 20 μm and 80 μm from the proximal and distal ends of the
+    branch respectively.
+
+    .. function:: location(branch, pos)
+
+        Constructor.
+
+    .. attribute:: branch
+        :type: int
+
+        The branch id of the location.
+
+    .. attribute:: pos
+        :type: float
+
+        The relative position of the location on the branch.
+
+.. class:: cable
+
+    An unbranched cable that is a subset of a branch.
+    The values of ``0 ≤ prox ≤ dist ≤ 1`` are the relative position
+    of the ends of the branch. The positions are in terms
+    of branch length, so for example, on a branch of length 100 μm where
+    :attr:`prox` =0.2, :attr:`dist` =0.8 would give a cable that starts and
+    ends 20 μm and 80 μm along the branch respectively.
+
+    .. function:: cable(branch, prox, dist)
+
+        Constructor.
+
+    .. attribute:: branch
+        :type: int
+
+        The branch id of the cable.
+
+    .. attribute:: prox
+        :type: float
+
+        The relative position of the proximal end of the cable on the branch.
+
+    .. attribute:: dist
+        :type: float
+
+        The relative position of the distal end of the cable on the branch.
+
+.. class:: sample
+
+    A sample of a cell morphology at a fixed location in space. Describes the location
+    of the sample as three-dimensional coordinates (:attr:`x`, :attr:`y`, :attr:`z`),
+    the :attr:`radius` of the cable, and :attr:`tag` meta-data.
+
+    .. attribute:: x
+        :type: real
+
+        X coordinate (μm)
+
+    .. attribute:: y
+        :type: real
+
+        Y coordinate (μm)
+
+    .. attribute:: z
+        :type: real
+
+        x coordinate (μm)
+
+    .. attribute:: radius
+        :type: real
+
+        Radius of the cable (μm)
+
+    .. attribute:: tag
+        :type: int
+
+        Integer tag meta-data associated with the sample.
+        Typically the tag would correspond to the SWC structure identifier:
+        soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary
+        tags, including zero and negative values, can be used.
+
+.. class:: sample_tree
+
+    A sample tree is a sample-based description of a cell's morphology
+    Sample trees comprise a sequence of samples starting from a *root* sample,
+    together with a parent-child adjacency relationship where a child sample is
+    distal to its parent.
+    Branches in the tree occur where a sample has more than one child.
+    Furthermore, a sample can not have more than one parent.
+
+    .. function:: sample_tree()
+
+    Construct an empty sample tree.
+
+    .. function:: append(parent, x, y, z, radius, tag)
+
+            Append a sample to the sample tree with parent sample with index ``parent``.
+
+            :return: index of the new sample.
+
+    .. function:: append(x, y, z, radius, tag)
+            :noindex:
+
+            Append a sample whose parent is the last sample added to the tree.
+
+            :return: index of the new sample.
+
+    .. function:: append(sample)
+            :noindex:
+
+            Append a sample whose parent is the last sample added to the tree.
+
+            :return: index of the new sample.
+
+    .. function:: append(parent, sample)
+            :noindex:
+
+            Append a sample to the sample tree with parent sample with index ``parent``.
+
+            :return: index of the new sample.
+
+    .. attribute:: empty
+            :type: bool
+
+            If the sample tree is empty (i.e. whether it has size 0)
+
+    .. attribute:: size
+            :type: int
+
+            The number of samples.
+
+    .. attribute:: parents
+            :type: list
+
+            The parent indexes.
+
+    .. attribute:: samples
+            :type: list
+
+            The samples.
+
+
+.. py:class:: morphology
+
+    A *morphology* describes the geometry of a cell as unbranched cables with variable radius,
+    an optional spherical segment at the root of the tree, and their associated tree structure.
+
+    .. note::
+        A morphology takes a sample tree and a flag that indicates whether the
+        morphology has a spherical root, to construct the cable segments and branches,
+        which are unique for any sample tree.
+        Meta data about branches and their properties that may be expensive to calculate
+        is stored for fast look up during later stages of model building, and
+        querying by users.
+
+        For this reason, morpholgies are read only. To change a morphology, a new
+        morphology should be created using a new sample tree.
+
+    There are two *constructors* for a morphology:
+
+    .. function:: morphology(sample_tree, spherical_root)
+
+        Construct from a sample tree where the ``spherical_root`` argument
+        is a bool that indicates whether the root sample is to be used as
+        the centre and radius of a spherical segment/branch.
+
+    .. function:: morphology(sample_tree)
+        :noindex:
+
+        Construct a morphology from a sample tree where it is
+        infered whether the root is spherical or not: if the root
+        sample has a different tag to all of its children the
+        root is assumed to be spherical.
+
+    The morphology provides an interface for querying morphology properties:
+
+    .. attribute:: empty
+            :type: bool
+
+            Indicates if the morphology is empty.
+
+    .. attribute:: spherical_root
+            :type: bool
+
+            Indicates if the root of the morphology is spherical.
+
+    .. attribute:: num_branches
+            :type: int
+
+            The number of branches in the morphology.
+
+    .. attribute:: num_samples
+            :type: int
+
+            The number of samples in the morphology.
+
+    .. attribute:: samples
+            :type: list
+
+            The samples in the morphology.
+
+    .. attribute:: sample_parents
+            :type: list
+
+            The parent indexes of each sample.
+
+    .. function:: branch_parent(i)
+
+            The parent branch of branch ``i``
+
+            :rtype: int
+
+    .. function:: branch_children(i)
+
+            The child branches of branch ``i``
+
+            :rtype: list
+
+    .. function:: branch_indexes(i)
+
+            Range of indexes into the sample points in branch ``i``.
+
+            :rtype: list
+

@@ -45,28 +45,8 @@ void register_morphology(pybind11::module& m) {
         .def("__repr__",
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); });
 
-    // arb::mpoint
-    pybind11::class_<arb::mpoint> mpoint(m, "mpoint");
-    mpoint
-        .def(pybind11::init(
-                [](double x, double y, double z, double r) {
-                    return arb::mpoint{x,y,z,r};
-                }),
-                "x"_a, "y"_a, "z"_a, "radius"_a, "All values in μm.")
-        .def_readonly("x", &arb::mpoint::x, "X coordinate [μm].")
-        .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
-        .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
-        .def_readonly("radius", &arb::mpoint::radius,
-            "Radius of cable at sample location centered at coordinates [μm].")
-        .def("__str__",
-            [](const arb::mpoint& p) {
-                return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}>", p.x, p.y, p.z, p.radius);
-            })
-        .def("__repr__",
-            [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
-
     // arb::msample
-    pybind11::class_<arb::msample> msample(m, "msample");
+    pybind11::class_<arb::msample> msample(m, "sample");
     msample
         .def(pybind11::init(
             [](arb::mpoint loc, int tag){
@@ -77,8 +57,16 @@ void register_morphology(pybind11::module& m) {
                 return arb::msample{{x,y,z,r}, tag};}),
             "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
             "spatial values {x, y, z, radius} are in μm.")
-        .def_readonly("loc", &arb::msample::loc,
-            "Location of sample.")
+        .def_readonly("x", &arb::msample::loc)
+        .def_property_readonly("x",
+                [](const arb::msample& s) {return s.loc.x;},
+                "X coordinate [μm].")
+        .def_property_readonly("y",
+                [](const arb::msample& s) {return s.loc.y;},
+                "Y coordinate [μm].")
+        .def_property_readonly("z",
+                [](const arb::msample& s) {return s.loc.z;},
+                "Z coordinate [μm].")
         .def_readonly("tag", &arb::msample::tag,
             "Property tag of sample. "
             "If loaded from standard SWC file the following tags are used: soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary tags can be used.")
@@ -189,7 +177,7 @@ void register_morphology(pybind11::module& m) {
         // be implemented as read-only properties.
         .def_property_readonly("empty",
                 [](const arb::morphology& m){return m.empty();},
-                "A list with the parent index of each sample.")
+                "Whether the morphology is empty.")
         .def_property_readonly("spherical_root",
                 [](const arb::morphology& m){return m.spherical_root();},
                 "Whether the root of the morphology is spherical.")
