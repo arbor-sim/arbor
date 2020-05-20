@@ -116,7 +116,7 @@ public:
     arb::probe_info get_probe(cell_member_type id) const override {
         // Measure at the soma.
         arb::mlocation loc{0, 0.0};
-        return arb::probe_info{id, 0, arb::cell_probe_membrane_voltage{loc}};
+        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
     }
 
     arb::util::any get_global_properties(arb::cell_kind) const override {

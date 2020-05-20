@@ -93,7 +93,7 @@ struct sampler_call_info {
 };
 
 // Working space for computing and collating data for samplers.
-using fvm_probe_scratch = std::tuple<std::vector<double>, std::vector<cell_sample_range>>;
+using fvm_probe_scratch = std::tuple<std::vector<double>, std::vector<cable_sample_range>>;
 
 template <typename VoidFn, typename... A>
 void tuple_foreach(VoidFn&& f, std::tuple<A...>& t) {
@@ -181,7 +181,7 @@ void run_samples(
     sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
 
-    auto& sample_ranges = std::get<std::vector<cell_sample_range>>(scratch);
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
     sample_records.clear();
 
@@ -215,7 +215,7 @@ void run_samples(
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
     arb_assert((unsigned)n_raw_per_sample==p.weight.size());
 
-    auto& sample_ranges = std::get<std::vector<cell_sample_range>>(scratch);
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
     sample_records.clear();
 
@@ -261,7 +261,7 @@ void run_samples(
     const auto n_cv = p.cv_parent_cond.size();
     const auto cables_by_cv = util::partition_view(p.cv_cables_divs);
 
-    auto& sample_ranges = std::get<std::vector<cell_sample_range>>(scratch);
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
 
     auto& tmp = std::get<std::vector<double>>(scratch);

@@ -449,7 +449,7 @@ TEST(fvm_lowered, derived_mechs) {
     cable1d_recipe rec(cells);
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
-    cell_probe_total_ion_current_density where{{1, 0.3}};
+    cable_probe_total_ion_current_density where{{1, 0.3}};
     rec.add_probe(0, 0, where);
     rec.add_probe(1, 0, where);
     rec.add_probe(2, 0, where);

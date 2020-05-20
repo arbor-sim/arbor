@@ -29,10 +29,10 @@ struct lid_range {
         begin(b), end(e) {}
 };
 
-// `cell_sample_range` is simply a pair of `const double*` pointers describing the sequence
+// `cable_sample_range` is simply a pair of `const double*` pointers describing the sequence
 // of double values associated with the cell-wide sample.
 
-using cell_sample_range = std::pair<const double*, const double*>;
+using cable_sample_range = std::pair<const double*, const double*>;
 
 
 // Each kind of probe has its own type for representing its address, as below.
@@ -44,17 +44,17 @@ using cell_sample_range = std::pair<const double*, const double*>;
 // Sampler functions receive an `any_ptr` to sampled data. The underlying pointer
 // type is a const pointer to:
 //     * `double` for scalar data;
-//     * `cell_sample_rang*` for vector data (see definition above).
+//     * `cable_sample_rang*` for vector data (see definition above).
 //
 // The metadata associated with a probe is also passed to a sampler via an `any_ptr`;
 // the underlying pointer will be a const pointer to one of the following metadata types:
 //     * `mlocation` for most scalar queries;
-//     * `cell_probe_point_info` for point mechanism state queries;
+//     * `cable_probe_point_info` for point mechanism state queries;
 //     * `mcable_list` for most vector queries;
-//     * `std::vector<cell_probe_point_info>` for cell-wide point mechanism state queries.
+//     * `std::vector<cable_probe_point_info>` for cell-wide point mechanism state queries.
 
 // Metadata for point process probes.
-struct cell_probe_point_info {
+struct cable_probe_point_info {
     cell_lid_type target;   // Target number of point process instance on cell.
     unsigned multiplicity;  // Number of combined instances at this site.
     mlocation loc;          // Point on cell morphology where instance is placed.
@@ -63,70 +63,70 @@ struct cell_probe_point_info {
 // Voltage estimate [mV] at `location`, interpolated.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cell_probe_membrane_voltage {
+struct cable_probe_membrane_voltage {
     mlocation location;
 };
 
 // Voltage estimate [mV], reported against each cable in each control volume. Not interpolated.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cell_probe_membrane_voltage_cell {};
+struct cable_probe_membrane_voltage_cell {};
 
 // Axial current estimate [nA] at `location`, interpolated.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cell_probe_axial_current {
+struct cable_probe_axial_current {
     mlocation location;
 };
 
 // Total current density [A/m²] across membrane _excluding_ capacitive current at `location`.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mlocation`
-struct cell_probe_total_ion_current_density {
+struct cable_probe_total_ion_current_density {
     mlocation location;
 };
 
 // Total ionic current [nA] across membrance _excluding_ capacitive current across components of the cell.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cell_probe_total_ion_current_cell {};
+struct cable_probe_total_ion_current_cell {};
 
 // Total membrance current [nA] across components of the cell.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cell_probe_total_current_cell {};
+struct cable_probe_total_current_cell {};
 
 // Value of state variable `state` in density mechanism `mechanism` in CV at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cell_probe_density_state {
+struct cable_probe_density_state {
     mlocation location;
     std::string mechanism;
     std::string state;
 };
 
 // Value of state variable `state` in density mechanism `mechanism` across components of the cell.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cell_probe_density_state_cell {
+struct cable_probe_density_state_cell {
     std::string mechanism;
     std::string state;
 };
 
 // Value of state variable `key` in point mechanism `source` at target `target`.
 // Sample value type: `double`
-// Sample metadata type: `cell_probe_point_info`
-struct cell_probe_point_state {
+// Sample metadata type: `cable_probe_point_info`
+struct cable_probe_point_state {
     cell_lid_type target;
     std::string mechanism;
     std::string state;
 };
 
 // Value of state variable `key` in point mechanism `source` at every target with this mechanism.
-// Metadata has one entry of type cell_point_info for each matched (possibly coalesced) instance.
-// Sample value type: `cell_sample_range`
-// Sample metadata type: `std::vector<cell_point_info>`
-struct cell_probe_point_state_cell {
+// Metadata has one entry of type cable_probe_point_info for each matched (possibly coalesced) instance.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `std::vector<cable_probe_point_info>`
+struct cable_probe_point_state_cell {
     std::string mechanism;
     std::string state;
 };
@@ -134,45 +134,45 @@ struct cell_probe_point_state_cell {
 // Current density [A/m²] across membrane attributed to the ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cell_probe_ion_current_density {
+struct cable_probe_ion_current_density {
     mlocation location;
     std::string ion;
 };
 
 // Total ionic current [nA] attributed to the ion `source` across components of the cell.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cell_probe_ion_current_cell {
+struct cable_probe_ion_current_cell {
     std::string ion;
 };
 
 // Ionic internal concentration [mmol/L] of ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cell_probe_ion_int_concentration {
+struct cable_probe_ion_int_concentration {
     mlocation location;
     std::string ion;
 };
 
 // Ionic internal concentration [mmol/L] of ion `source` across components of the cell.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cell_probe_ion_int_concentration_cell {
+struct cable_probe_ion_int_concentration_cell {
     std::string ion;
 };
 
 // Ionic external concentration [mmol/L] of ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cell_probe_ion_ext_concentration {
+struct cable_probe_ion_ext_concentration {
     mlocation location;
     std::string ion;
 };
 
 // Ionic external concentration [mmol/L] of ion `source` across components of the cell.
-// Sample value type: `cell_sample_range`
+// Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cell_probe_ion_ext_concentration_cell {
+struct cable_probe_ion_ext_concentration_cell {
     std::string ion;
 };
 

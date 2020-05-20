@@ -435,9 +435,19 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
         if (D.cv_area[i]>0) {
             D.init_membrane_potential[i] /= D.cv_area[i];
             D.temperature_K[i] /= D.cv_area[i];
+
+            // If parent is trivial, and there is no grandparent, then we can use values from this CV
+            // to get initial values for the parent. (The other case, when there is a grandparent, is
+            // caught below.)
+
+            if (p!=-1 && D.geometry.cv_parent[p]==-1 && D.cv_area[p]==0) {
+                D.init_membrane_potential[p] = D.init_membrane_potential[i];
+                D.temperature_K[p] = D.temperature_K[i];
+            }
         }
         else if (p!=-1) {
             // Use parent CV to get a sensible initial value for voltage and temp on zero-size CVs.
+
             D.init_membrane_potential[i] = D.init_membrane_potential[p];
             D.temperature_K[i] = D.temperature_K[p];
         }

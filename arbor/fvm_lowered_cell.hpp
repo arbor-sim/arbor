@@ -35,7 +35,7 @@ struct fvm_integration_result {
 
 struct fvm_probe_scalar {
     probe_handle raw_handles[1] = {nullptr};
-    util::variant<mlocation, cell_probe_point_info> metadata;
+    util::variant<mlocation, cable_probe_point_info> metadata;
 };
 
 struct fvm_probe_interpolated {
@@ -46,7 +46,7 @@ struct fvm_probe_interpolated {
 
 struct fvm_probe_multi {
     std::vector<probe_handle> raw_handles;
-    util::variant<mcable_list, std::vector<cell_probe_point_info>> metadata;
+    util::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
 
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();

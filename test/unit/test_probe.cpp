@@ -105,9 +105,9 @@ void run_v_i_probe_test(const context& ctx) {
     mlocation loc1{1, 1};
     mlocation loc2{1, 0.3};
 
-    rec.add_probe(0, 10, cell_probe_membrane_voltage{loc0});
-    rec.add_probe(0, 20, cell_probe_membrane_voltage{loc1});
-    rec.add_probe(0, 30, cell_probe_total_ion_current_density{loc2});
+    rec.add_probe(0, 10, cable_probe_membrane_voltage{loc0});
+    rec.add_probe(0, 20, cable_probe_membrane_voltage{loc1});
+    rec.add_probe(0, 30, cable_probe_total_ion_current_density{loc2});
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -183,7 +183,7 @@ void run_v_i_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_v_cell_probe_test(const context& ctx) {
+void run_v_cable_probe_test(const context& ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
 
     // Take the per-cable voltage over a Y-shaped cell with and without
@@ -203,7 +203,7 @@ void run_v_cell_probe_test(const context& ctx) {
         cell.default_parameters.discretization = testcase.second;
 
         cable1d_recipe rec(cell, false);
-        rec.add_probe(0, 0, cell_probe_membrane_voltage_cell{});
+        rec.add_probe(0, 0, cable_probe_membrane_voltage_cell{});
 
         std::vector<target_handle> targets;
         std::vector<fvm_index_type> cell_to_intdom;
@@ -263,8 +263,8 @@ void run_expsyn_g_probe_test(const context& ctx, bool coalesce_synapses = false)
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(2);
 
     cable1d_recipe rec(bs, coalesce_synapses);
-    rec.add_probe(0, 10, cell_probe_point_state{0u, "expsyn", "g"});
-    rec.add_probe(0, 20, cell_probe_point_state{1u, "expsyn", "g"});
+    rec.add_probe(0, 10, cable_probe_point_state{0u, "expsyn", "g"});
+    rec.add_probe(0, 20, cable_probe_point_state{1u, "expsyn", "g"});
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -328,7 +328,7 @@ void run_expsyn_g_probe_test(const context& ctx, bool coalesce_synapses = false)
 }
 
 template <typename Backend>
-void run_expsyn_g_cell_probe_test(const context& ctx, bool coalesce_synapses = false) {
+void run_expsyn_g_cable_probe_test(const context& ctx, bool coalesce_synapses = false) {
     SCOPED_TRACE(coalesce_synapses? "coalesced": "uncoalesced");
 
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
@@ -364,8 +364,8 @@ void run_expsyn_g_cell_probe_test(const context& ctx, bool coalesce_synapses = f
     std::vector<cable_cell> cells(2, cell);
     cable1d_recipe rec(cells, coalesce_synapses);
 
-    rec.add_probe(0, 0, cell_probe_point_state_cell{"expsyn", "g"});
-    rec.add_probe(1, 0, cell_probe_point_state_cell{"expsyn", "g"});
+    rec.add_probe(0, 0, cable_probe_point_state_cell{"expsyn", "g"});
+    rec.add_probe(1, 0, cable_probe_point_state_cell{"expsyn", "g"});
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -399,11 +399,11 @@ void run_expsyn_g_cell_probe_test(const context& ctx, bool coalesce_synapses = f
         const auto* h_ptr = util::get_if<fvm_probe_multi>(probe_map.at({i, 0}).handle.info);
         ASSERT_TRUE(h_ptr);
 
-        const auto* m_ptr = util::get_if<std::vector<cell_probe_point_info>>(h_ptr->metadata);
+        const auto* m_ptr = util::get_if<std::vector<cable_probe_point_info>>(h_ptr->metadata);
         ASSERT_TRUE(m_ptr);
 
         const fvm_probe_multi& h = *h_ptr;
-        const std::vector<cell_probe_point_info> m = *m_ptr;
+        const std::vector<cable_probe_point_info> m = *m_ptr;
 
         ASSERT_EQ(h.raw_handles.size(), m.size());
         ASSERT_EQ(n_expsyn, m.size());
@@ -483,35 +483,35 @@ void run_ion_density_probe_test(const context& ctx) {
     rec.catalogue() = cat;
 
     // Probe (0, 0): ca internal on CV 0.
-    rec.add_probe(0, 0, cell_probe_ion_int_concentration{loc0, "ca"});
+    rec.add_probe(0, 0, cable_probe_ion_int_concentration{loc0, "ca"});
     // Probe (0, 1): ca internal on CV 1.
-    rec.add_probe(0, 0, cell_probe_ion_int_concentration{loc1, "ca"});
+    rec.add_probe(0, 0, cable_probe_ion_int_concentration{loc1, "ca"});
     // Probe (0, 2): ca internal on CV 2.
-    rec.add_probe(0, 0, cell_probe_ion_int_concentration{loc2, "ca"});
+    rec.add_probe(0, 0, cable_probe_ion_int_concentration{loc2, "ca"});
 
     // Probe (0, 3): ca external on CV 0.
-    rec.add_probe(0, 0, cell_probe_ion_ext_concentration{loc0, "ca"});
+    rec.add_probe(0, 0, cable_probe_ion_ext_concentration{loc0, "ca"});
     // Probe (0, 4): ca external on CV 1.
-    rec.add_probe(0, 0, cell_probe_ion_ext_concentration{loc1, "ca"});
+    rec.add_probe(0, 0, cable_probe_ion_ext_concentration{loc1, "ca"});
     // Probe (0, 5): ca external on CV 2.
-    rec.add_probe(0, 0, cell_probe_ion_ext_concentration{loc2, "ca"});
+    rec.add_probe(0, 0, cable_probe_ion_ext_concentration{loc2, "ca"});
 
     // Probe (0, 6): na internal on CV 0.
-    rec.add_probe(0, 0, cell_probe_ion_int_concentration{loc0, "na"});
+    rec.add_probe(0, 0, cable_probe_ion_int_concentration{loc0, "na"});
     // Probe (0, 7): na internal on CV 2.
-    rec.add_probe(0, 0, cell_probe_ion_int_concentration{loc2, "na"});
+    rec.add_probe(0, 0, cable_probe_ion_int_concentration{loc2, "na"});
 
     // Probe (0, 8): write_ca2 state 's' in CV 0.
-    rec.add_probe(0, 0, cell_probe_density_state{loc0, "write_ca2", "s"});
+    rec.add_probe(0, 0, cable_probe_density_state{loc0, "write_ca2", "s"});
     // Probe (0, 9): write_ca2 state 's' in CV 1.
-    rec.add_probe(0, 0, cell_probe_density_state{loc1, "write_ca2", "s"});
+    rec.add_probe(0, 0, cable_probe_density_state{loc1, "write_ca2", "s"});
     // Probe (0, 10): write_ca2 state 's' in CV 2.
-    rec.add_probe(0, 0, cell_probe_density_state{loc2, "write_ca2", "s"});
+    rec.add_probe(0, 0, cable_probe_density_state{loc2, "write_ca2", "s"});
 
     // Probe (0, 11): na internal on whole cell.
-    rec.add_probe(0, 0, cell_probe_ion_int_concentration_cell{"na"});
+    rec.add_probe(0, 0, cable_probe_ion_int_concentration_cell{"na"});
     // Probe (0, 12): ca external on whole cell.
-    rec.add_probe(0, 0, cell_probe_ion_ext_concentration_cell{"ca"});
+    rec.add_probe(0, 0, cable_probe_ion_ext_concentration_cell{"ca"});
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -685,8 +685,8 @@ void run_partial_density_probe_test(const context& ctx) {
     rec.catalogue() = cat;
 
     for (auto tp: test_probes) {
-        rec.add_probe(0, 0, cell_probe_density_state{mlocation{0, tp.pos}, "param_as_state", "s"});
-        rec.add_probe(1, 0, cell_probe_density_state{mlocation{0, tp.pos}, "param_as_state", "s"});
+        rec.add_probe(0, 0, cable_probe_density_state{mlocation{0, tp.pos}, "param_as_state", "s"});
+        rec.add_probe(1, 0, cable_probe_density_state{mlocation{0, tp.pos}, "param_as_state", "s"});
     }
 
     std::vector<target_handle> targets;
@@ -771,11 +771,11 @@ void run_axial_and_ion_current_probe_sampled_test(const context& ctx) {
 
     for (mlocation loc: cv_boundaries) {
         // Probe ids will be be (0, 0), (0, 1), etc.
-        rec.add_probe(0, 0, cell_probe_axial_current{loc});
+        rec.add_probe(0, 0, cable_probe_axial_current{loc});
     }
 
     // Use tag 1 to indicate it's a whole-cell probe.
-    rec.add_probe(0, 1, cell_probe_total_ion_current_cell{});
+    rec.add_probe(0, 1, cable_probe_total_ion_current_cell{});
 
     partition_hint_map phints = {
        {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
@@ -800,7 +800,7 @@ void run_axial_and_ion_current_probe_sampled_test(const context& ctx) {
                 // Metadata should comprise one cable per CV.
                 ASSERT_EQ(n_cv, m->size());
 
-                const cell_sample_range* s = util::any_cast<const cell_sample_range*>(samples[0].data);
+                const cable_sample_range* s = util::any_cast<const cable_sample_range*>(samples[0].data);
                 ASSERT_NE(nullptr, s);
                 ASSERT_EQ(s->first+n_cv, s->second);
 
@@ -908,11 +908,11 @@ void run_v_sampled_test(const context& ctx) {
     const double t_end = 1.; // [ms]
     std::vector<double> when = {0.3, 0.6}; // Sample at 0.3 and 0.6 ms.
 
-    auto trace0 = run_simple_sampler<double, mlocation>(ctx, t_end, cells, 0, cell_probe_membrane_voltage{probe_loc}, when);
+    auto trace0 = run_simple_sampler<double, mlocation>(ctx, t_end, cells, 0, cable_probe_membrane_voltage{probe_loc}, when);
     EXPECT_EQ(2u, trace0.size());
     EXPECT_EQ(probe_loc, trace0.metadata.value());
 
-    auto trace1 = run_simple_sampler<double, mlocation>(ctx, t_end, cells, 1, cell_probe_membrane_voltage{probe_loc}, when);
+    auto trace1 = run_simple_sampler<double, mlocation>(ctx, t_end, cells, 1, cable_probe_membrane_voltage{probe_loc}, when);
     EXPECT_EQ(2u, trace1.size());
     EXPECT_EQ(probe_loc, trace1.metadata.value());
 
@@ -975,10 +975,10 @@ void run_total_current_test(const context& ctx) {
             const double t_end = 21*tau; // [ms]
 
             traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells, i,
-                    cell_probe_total_current_cell{}, {tau, 20*tau});
+                    cable_probe_total_current_cell{}, {tau, 20*tau});
 
             ion_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells, i,
-                    cell_probe_total_ion_current_cell{}, {tau, 20*tau});
+                    cable_probe_total_ion_current_cell{}, {tau, 20*tau});
 
             ASSERT_EQ(2u, traces[i].size());
             ASSERT_EQ(2u, ion_traces[i].size());
@@ -1051,7 +1051,7 @@ TEST(probe, multicore_v_i) {
 
 TEST(probe, multicore_v_cell) {
     context ctx = make_context();
-    run_v_cell_probe_test<multicore::backend>(ctx);
+    run_v_cable_probe_test<multicore::backend>(ctx);
 }
 
 TEST(probe, multicore_v_sampled) {
@@ -1067,8 +1067,8 @@ TEST(probe, multicore_expsyn_g) {
 
 TEST(probe, multicore_expsyn_g_cell) {
     context ctx = make_context();
-    run_expsyn_g_cell_probe_test<multicore::backend>(ctx, false);
-    run_expsyn_g_cell_probe_test<multicore::backend>(ctx, true);
+    run_expsyn_g_cable_probe_test<multicore::backend>(ctx, false);
+    run_expsyn_g_cable_probe_test<multicore::backend>(ctx, true);
 }
 
 TEST(probe, multicore_ion_conc) {
@@ -1102,7 +1102,7 @@ TEST(probe, gpu_v_i) {
 TEST(probe, gpu_v_cell) {
     context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
     if (has_gpu(ctx)) {
-        run_v_cell_probe_test<gpu::backend>(ctx);
+        run_v_cable_probe_test<gpu::backend>(ctx);
     }
 }
 
@@ -1122,8 +1122,8 @@ TEST(probe, gpu_expsyn_g) {
 TEST(probe, gpu_expsyn_g_cell) {
     context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
     if (has_gpu(ctx)) {
-        run_expsyn_g_cell_probe_test<gpu::backend>(ctx, false);
-        run_expsyn_g_cell_probe_test<gpu::backend>(ctx, true);
+        run_expsyn_g_cable_probe_test<gpu::backend>(ctx, false);
+        run_expsyn_g_cable_probe_test<gpu::backend>(ctx, true);
     }
 }
 
