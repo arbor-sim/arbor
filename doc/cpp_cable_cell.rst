@@ -256,3 +256,306 @@ constants.
    gprop.catalogue = &mycat;
    gprop.default_parameters.reversal_potential_method["ca"] = "nernst1998/ca";
 
+
+Cable cell probes
+-----------------
+
+Various properties of a a cable cell can be sampled via one of the cable cell
+specific probe address described below. They fall into two classes: scalar
+probes are associated with a single real value, such as a membrane voltage
+or mechanism state value at a particular location; vector probes return
+multiple values corresponding to a quantity sampled over a whole cell.
+
+The sample data associated with a cable cell probe will either be a ``double``
+for scalar probes, or a ``cable_sample_range`` describing a half-open range
+of ``double`` values:
+
+.. code::
+
+   using cable_sample_range = std::pair<const double*, const double*>
+
+The probe metadata passed to the sampler will be a const pointer to:
+
+*   ``mlocation`` for most scalar probes;
+
+*   ``cable_probe_point_info`` for point mechanism state queries;
+
+*   ``mcable_list`` for most vector queries;
+
+*   ``std::vector<cable_probe_point_info>`` for cell-wide point mechanism state queries.
+
+The type ``cable_probe_point_info`` holds metadata for a single target on a cell:
+
+.. code::
+    
+    struct cable_probe_point_info {
+        // Target number of point process instance on cell.
+        cell_lid_type target;
+
+        // Number of combined instances at this site.
+        unsigned multiplicity;
+
+        // Point on cell morphology where instance is placed.
+        mlocation loc;
+    };
+
+Note that the ``multiplicity`` will always be 1 if synapse coalescing is
+disabled.
+
+Cable cell probes that contingently do not correspond to a valid measurable
+quantity are ignored: samplers attached to them will receive no values.
+Mechanism state queries however will throw a ``cable_cell_error`` exception
+at simulation initialization if the requested state variable does not exist
+on the mechanism.
+
+Membrane voltage
+^^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_membrane_voltage {
+        mlocation location;
+    };
+
+Queries cell membrane potential at the specified location.
+
+*  Sample value: ``double``. Membrane potential in millivolts.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+.. code::
+
+    struct cable_probe_membrane_voltage_cell {};
+
+Queries cell membrane potential across whole cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the
+   average membrane potential in millivolts across an unbranched
+   component of the cell, as determined by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+Axial current
+^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_axial_current {
+        mlocation location;
+    };
+
+Estimate intracellular current at given location in the distal direction.
+
+*  Sample value: ``double``. Current in nanoamperes.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+Transmembrane current
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_ion_current_density {
+        mlocation location;
+        std::string ion;
+    };
+
+Membrance current density attributed to a particular ion at a given location.
+
+*  Sample value: ``double``. Current density in amperes per square metre.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+.. code::
+
+    struct cable_probe_ion_current_cell {
+        std::string ion;
+    };
+
+Membrane current attributed to a particular ion across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the current in
+   nanoamperes across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_total_ion_current_density {
+        mlocation location;
+    };
+
+Membrane current density at gvien location _excluding_ capacitive currents.
+
+*  Sample value: ``double``. Current density in amperes per square metre.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+.. code::
+
+    struct cable_probe_total_ion_current_cell {};
+
+Membrane current _excluding_ capacitive currents across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the current in
+   nanoamperes across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_total_current_cell {};
+
+Total membrance current across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the current in
+   nanoamperes across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+Ion concentration
+^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_ion_int_concentration {
+        mlocation location;
+        std::string ion;
+    };
+
+Ionic internal concentration of ion at given location.
+
+*  Sample value: ``double``. Ion concentration in millimoles per litre.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+.. code::
+
+    struct cable_probe_ion_int_concentration_cell {
+        std::string ion;
+    };
+
+Ionic external concentration of ion across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the concentration in
+   millimoles per lire across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_ion_ext_concentration {
+        mlocation location;
+        std::string ion;
+    };
+
+Ionic internal concentration of ion at given location.
+
+*  Sample value: ``double``. Ion concentration in millimoles per litre.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+.. code::
+
+    struct cable_probe_ion_ext_concentration_cell {
+        std::string ion;
+    };
+
+Ionic external concentration of ion across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the concentration in
+   millimoles per lire across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+
+Mechanism state
+^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_density_state {
+        mlocation location;
+        std::string mechanism;
+        std::string state;
+    };
+
+
+Value of state variable in a density mechanism in at given location.
+If the mechanism is not defined at the location, the probe is ignored.
+
+*  Sample value: ``double``. State variable value.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+.. code::
+
+    struct cable_probe_density_state_cell {
+        std::string mechanism;
+        std::string state;
+    };
+
+Value of state variable in adensity mechanism across components of the cell.
+
+*  Sample value: ``cable_sample_range``. State variable values from the
+   mechanism across unbranched components of the cell, as determined
+   by the discretization and mechanism extent.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_point_state {
+        cell_lid_type target;
+        std::string mechanism;
+        std::string state;
+    };
+
+Value of state variable in a point mechanism associated with the given target.
+If the mechanism is not associated with this target, the probe is ignored.
+
+*  Sample value: ``double``. State variable value.
+
+*  Metadata: ``cable_probe_point_info``. Target number, multiplicity and location.
+
+
+.. code::
+
+    struct cable_probe_point_state_cell {
+        std::string mechanism;
+        std::string state;
+    };
+
+Value of state variable in a point mechanism for each of the targets in the cell
+with which it is associated.
+
+*  Sample value: ``cable_sample_range``. State variable values at each associated
+   target.
+
+*  Metadata: ``std::vector<cable_probe_point_info>``. Target metadata for each
+   associated target.
