@@ -666,7 +666,7 @@ struct probe_resolution_data {
     typename Backend::shared_state* state;
     const cable_cell& cell;
     const std::size_t cell_idx;
-    const fvm_cv_discretization D;
+    const fvm_cv_discretization& D;
     const fvm_mechanism_data& M;
     const std::vector<target_handle>& handles;
     const std::unordered_map<std::string, mechanism*>& mech_instance_by_name;
