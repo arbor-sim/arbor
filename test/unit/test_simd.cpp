@@ -1078,27 +1078,20 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
             test[offset[j]] += values[j];
         }
 
-        std::cout << "data in" << std::endl;
-        for (unsigned i = 0; i < N; i++) {
-            std::cout << values[i] << " ";
-        }
-        std::cout << std::endl;
-
-        auto value_vec = simd_cast<simd>(indirect(values, N));
-        indirect(array, simd_index(offset), N) += value_vec;
+        indirect(array, simd_index(offset), N) += simd(values);
         EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
 
-//        fill_random(offset, rng, 0, (int)(buflen-1));
-//
-//        for (unsigned j = 0; j<buflen; ++j) {
-//            test[j] = array[j];
-//        }
-//        for (unsigned j = 0; j<N; ++j) {
-//            test[offset[j]] -= values[j];
-//        }
-//
-//        indirect(array, simd_index(offset), N) -= simd(values);
-//        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
+        fill_random(offset, rng, 0, (int)(buflen-1));
+
+        for (unsigned j = 0; j<buflen; ++j) {
+            test[j] = array[j];
+        }
+        for (unsigned j = 0; j<N; ++j) {
+            test[offset[j]] -= values[j];
+        }
+
+        indirect(array, simd_index(offset), N) -= simd(values);
+        EXPECT_TRUE(::testing::indexed_eq_n(buflen, test, array));
     }
 }
 

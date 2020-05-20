@@ -3,7 +3,6 @@
 #include <array>
 #include <cstddef>
 #include <type_traits>
-#include <iostream>
 
 #include <arbor/simd/implbase.hpp>
 #include <arbor/simd/generic.hpp>
@@ -201,11 +200,11 @@ namespace detail {
             return *this;
         }
 
-//        template <typename Other>
-//        indirect_indexed_expression& operator-=(const Other& s) {
-//            compound_indexed_add(-s, p, index, width, constraint);
-//            return *this;
-//        }
+        template <typename Other>
+        indirect_indexed_expression& operator-=(const Other& s) {
+            compound_indexed_add(-s, p, index, width, constraint);
+            return *this;
+        }
 
         template <typename Impl> friend struct simd_impl;
         template <typename To>   friend struct simd_cast_impl;
@@ -242,14 +241,8 @@ namespace detail {
                 typename ImplIndex::scalar_type o[width];
                 ImplIndex::copy_to(index.value_, o);
 
-                typename Impl::scalar_type a[width];
+                V a[width];
                 Impl::copy_to(s.value_, a);
-
-                std::cout << "data:" << std::endl;
-                for (unsigned i = 0; i < width; ++i) {
-                    std::cout << a[i] << " ";
-                }
-                std::cout << std::endl;
 
                 V temp = 0;
                 for (unsigned i = 0; i<width-1; ++i) {
@@ -261,7 +254,6 @@ namespace detail {
                 }
                 temp += a[width-1];
                 p[o[width-1]] += temp;
-
             }
                 break;
             case index_constraint::independent:
