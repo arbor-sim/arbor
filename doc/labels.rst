@@ -46,6 +46,8 @@ axon proper with constant radius 0.4 μm.
 Label Types
 ------------
 
+.. _labels-locset:
+
 Locsets
 ~~~~~~~~~~~
 
@@ -65,6 +67,8 @@ which may contain multiple instances of the same location, for example:
   The :ref:`root <morph-sample-definitions>` of the morphology is hilighted with a red circle
   for reference.
 
+
+.. _labels-region:
 
 Regions
 ~~~~~~~~~~~~
@@ -606,6 +610,7 @@ Examples of cables, :ref:`expressed using the DSL <labels-cable-def>`, include:
     However, they can occur as the result of sub-expressions in larger
     expressions that define non-trivial regions and locsets.
 
+.. _labels-dictionary:
 
 Label Dictionaries
 ------------------

@@ -808,6 +808,11 @@ Python API
 
             The samples.
 
+.. py:function:: load_swc(filename)
+
+    Loads an SWC file as a :class:`sample_tree`.
+
+    :rtype: sample_tree
 
 .. py:class:: morphology
 
