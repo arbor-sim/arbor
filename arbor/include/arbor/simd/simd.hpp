@@ -202,7 +202,7 @@ namespace detail {
 
         template <typename Other>
         indirect_indexed_expression& operator-=(const Other& s) {
-            compound_indexed_add(-s, p, index, width, constraint);
+            compound_indexed_add(neg(s), p, index, width, constraint);
             return *this;
         }
 
