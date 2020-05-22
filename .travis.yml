@@ -147,7 +147,7 @@ install:
 before_script:
   - eval "${MATRIX_EVAL}"
 
-script: source ./scripts/travis/build.sh $ARCH
+script: source ./scripts/travis/build.sh
 
 notifications:
   email:
