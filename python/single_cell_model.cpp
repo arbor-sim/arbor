@@ -117,7 +117,7 @@ struct single_cell_recipe: arb::recipe {
 
         // For now only voltage can be selected for measurement.
         const auto& loc = probes_[probe_id.index].site;
-        return arb::probe_info{probe_id, 0, arb::cell_probe_membrane_voltage{loc}};
+        return arb::probe_info{probe_id, 0, arb::cable_probe_membrane_voltage{loc}};
     }
 
     // gap junctions
