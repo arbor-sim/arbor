@@ -18,7 +18,7 @@ matrix:
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-osx-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test gcc6 - mpi with threading backend ##
@@ -29,7 +29,7 @@ matrix:
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-osx-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: gcc-6
 
 ## test clang9 - single node/rank with threading backend ##
@@ -40,7 +40,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=cthread-osx-clang-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: clang
 
 ## test clang9 - mpi with threading backend ##
@@ -51,7 +51,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=mpi-osx-clang
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: clang
 
 ######################### LINUX #########################
@@ -69,7 +69,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
       - BUILD_NAME=cthread-linux-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=haswell
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: gcc-7
 
 ## test gcc7 - mpi with threading backend ##
@@ -86,7 +86,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
       - BUILD_NAME=mpi-linux-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=haswell
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: gcc-7
 
 ## test clang4 - single node/rank with threading backend ##
@@ -102,7 +102,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=cthread-linux-clang-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
     compiler: clang-4.0
 
 ## test clang4 - mpi with threading backend ##
@@ -118,7 +118,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=mpi-linux-clang-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
     compiler: clang-4.0
 
 before_install:
@@ -147,7 +147,7 @@ install:
 before_script:
   - eval "${MATRIX_EVAL}"
 
-script: source ./scripts/travis/build.sh $ARCH
+script: source ./scripts/travis/build.sh
 
 notifications:
   email:
