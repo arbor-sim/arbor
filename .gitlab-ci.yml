@@ -1,0 +1,77 @@
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.cscs.yml'
+
+stages:
+  - build
+  - allocate
+  - test
+  - cleanup
+
+# Builds a docker image on kubernetes
+build:
+  extends: .dind
+  stage: build
+  only: ['master', 'staging', 'trying']
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    BUILD_DOCKERFILE: docker/build-env/Dockerfile
+    BUILD_IMAGE: $CI_REGISTRY_IMAGE/build-env:latest
+    DEPLOY_DOCKERFILE: docker/deploy/Dockerfile
+    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -f $BUILD_DOCKERFILE --network=host --cache-from $BUILD_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 -t $BUILD_IMAGE .
+    - docker push $BUILD_IMAGE
+    - docker build -f $DEPLOY_DOCKERFILE --network=host --build-arg BUILD_ENV=$BUILD_IMAGE -t $DEPLOY_IMAGE .
+    - docker push $DEPLOY_IMAGE
+
+# Executes the docker image on Daint via Sarus
+image: $CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_SHA
+
+# Some variables used for running on daint
+variables:
+  CRAY_CUDA_MPS: 1
+  USE_MPI: 'YES'
+  DISABLE_AFTER_SCRIPT: 'YES'
+  PULL_IMAGE: 'NO'
+  ALLOCATION_NAME: arbor-ci-$CI_PIPELINE_ID
+  SLURM_CONSTRAINT: gpu
+  SLURM_JOB_NUM_NODES: 2
+  SLURM_PARTITION: normal
+
+allocate:
+  stage: allocate
+  only: ['master', 'staging', 'trying']
+  extends: .daint_alloc
+  variables:
+    PULL_IMAGE: 'YES'
+
+single node:
+  extends: .daint
+  only: ['master', 'staging', 'trying']
+  stage: test
+  resource_group: daint-job
+  script:
+    - unit
+    - unit-local
+    - unit-modcc
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+
+multi node:
+  extends: .daint
+  only: ['master', 'staging', 'trying']
+  stage: test
+  resource_group: daint-job
+  script:
+    - unit-mpi
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 2
+
+deallocate:
+  only: ['master', 'staging', 'trying']
+  stage: cleanup
+  extends: .daint_dealloc

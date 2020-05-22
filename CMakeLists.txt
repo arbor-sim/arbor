@@ -14,7 +14,7 @@ enable_language(CXX)
 
 # Specify target archiecture.
 
-set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
+set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 
 # Perform explicit vectorization?
 
