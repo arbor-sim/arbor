@@ -41,7 +41,7 @@ struct trace_callback {
 
     trace_callback(trace& t): trace_(t) {}
 
-    void operator()(arb::cell_member_type probe_id, arb::probe_tag tag, std::size_t n, const arb::sample_record* recs) {
+    void operator()(arb::cell_member_type probe_id, arb::probe_tag tag, arb::util::any_ptr meta, std::size_t n, const arb::sample_record* recs) {
         // Push each (time, value) pair from the last epoch into trace_.
         for (std::size_t i=0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
@@ -117,7 +117,7 @@ struct single_cell_recipe: arb::recipe {
 
         // For now only voltage can be selected for measurement.
         const auto& loc = probes_[probe_id.index].site;
-        return arb::probe_info{probe_id, 0, arb::cell_probe_membrane_voltage{loc}};
+        return arb::probe_info{probe_id, 0, arb::cable_probe_membrane_voltage{loc}};
     }
 
     // gap junctions

@@ -4,6 +4,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
@@ -79,6 +80,245 @@ void mc_cell_group::set_binning_policy(binning_kind policy, time_type bin_interv
     binners_.resize(gids_.size(), event_binner(policy, bin_interval));
 }
 
+// Probe-type specific sample data marshalling.
+
+struct sampler_call_info {
+    sampler_function sampler;
+    cell_member_type probe_id;
+    probe_tag tag;
+
+    // Offsets are into lowered cell sample time and event arrays.
+    sample_size_type begin_offset;
+    sample_size_type end_offset;
+};
+
+// Working space for computing and collating data for samplers.
+using fvm_probe_scratch = std::tuple<std::vector<double>, std::vector<cable_sample_range>>;
+
+template <typename VoidFn, typename... A>
+void tuple_foreach(VoidFn&& f, std::tuple<A...>& t) {
+    (void)(int []){(f(std::get<A>(t)), 0)...};
+}
+
+void reserve_scratch(fvm_probe_scratch& scratch, std::size_t n) {
+    tuple_foreach([n](auto& v) { v.reserve(n); }, scratch);
+}
+
+void run_samples(
+    const missing_probe_info&,
+    const sampler_call_info&,
+    const fvm_value_type*,
+    const fvm_value_type*,
+    std::vector<sample_record>&,
+    fvm_probe_scratch&)
+{
+    throw arbor_internal_error("invalid fvm_probe_info in sampler map");
+}
+
+void run_samples(
+    const fvm_probe_scalar& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch&)
+{
+    // Scalar probes do not need scratch space — provided that the user-presented
+    // sample type (double) matches the raw type (fvm_value_type).
+    static_assert(std::is_same<double, fvm_value_type>::value, "require sample value translation");
+
+    sample_size_type n_sample = sc.end_offset-sc.begin_offset;
+    sample_records.clear();
+    for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
+       sample_records.push_back(sample_record{time_type(raw_times[i]), &raw_samples[i]});
+    }
+
+    // Metadata may be an mlocation or cell_lid_type (for point mechanism state probes).
+    util::visit(
+        [&](auto& metadata) { sc.sampler(sc.probe_id, sc.tag, &metadata, n_sample, sample_records.data()); },
+        p.metadata);
+}
+
+void run_samples(
+    const fvm_probe_interpolated& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch& scratch)
+{
+    constexpr sample_size_type n_raw_per_sample = 2;
+    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
+
+    auto& tmp = std::get<std::vector<double>>(scratch);
+    tmp.clear();
+    sample_records.clear();
+
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        tmp.push_back(p.coef[0]*raw_samples[offset] + p.coef[1]*raw_samples[offset+1]);
+    }
+
+    const auto& ctmp = tmp;
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        sample_records.push_back(sample_record{time_type(raw_times[offset]), &ctmp[j]});
+    }
+
+    sc.sampler(sc.probe_id, sc.tag, &p.metadata, n_sample, sample_records.data());
+}
+
+void run_samples(
+    const fvm_probe_multi& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch& scratch)
+{
+    const sample_size_type n_raw_per_sample = p.raw_handles.size();
+    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
+
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    sample_ranges.clear();
+    sample_records.clear();
+
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        sample_ranges.push_back({raw_samples+offset, raw_samples+offset+n_raw_per_sample});
+    }
+
+    const auto& csample_ranges = sample_ranges;
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+    }
+
+    // Metadata may be an mlocation_list or mcable_list.
+    util::visit(
+        [&](auto& metadata) { sc.sampler(sc.probe_id, sc.tag, &metadata, n_sample, sample_records.data()); },
+        p.metadata);
+}
+
+void run_samples(
+    const fvm_probe_weighted_multi& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch& scratch)
+{
+    const sample_size_type n_raw_per_sample = p.raw_handles.size();
+    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
+    arb_assert((unsigned)n_raw_per_sample==p.weight.size());
+
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    sample_ranges.clear();
+    sample_records.clear();
+
+    auto& tmp = std::get<std::vector<double>>(scratch);
+    tmp.clear();
+    tmp.reserve(n_raw_per_sample*n_sample);
+
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        for (sample_size_type i = 0; i<n_raw_per_sample; ++i) {
+            tmp.push_back(raw_samples[offset+i]*p.weight[i]);
+        }
+    }
+
+    const double* tmp_ptr = tmp.data();
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        sample_ranges.push_back({tmp_ptr, tmp_ptr+n_raw_per_sample});
+        tmp_ptr += n_raw_per_sample;
+    }
+
+    const auto& csample_ranges = sample_ranges;
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+    }
+
+    // (Unlike fvm_probe_multi, we only have mcable_list metadata.)
+    sc.sampler(sc.probe_id, sc.tag, &p.metadata, n_sample, sample_records.data());
+}
+void run_samples(
+    const fvm_probe_membrane_currents& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch& scratch)
+{
+    const sample_size_type n_raw_per_sample = p.raw_handles.size();
+    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
+
+    const auto n_cable = p.metadata.size();
+    const auto n_cv = p.cv_parent_cond.size();
+    const auto cables_by_cv = util::partition_view(p.cv_cables_divs);
+
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    sample_ranges.clear();
+
+    auto& tmp = std::get<std::vector<double>>(scratch);
+    tmp.assign(n_cable*n_sample, 0.);
+
+    sample_records.clear();
+
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        auto tmp_base = tmp.data()+j*n_cable;
+
+        // Each CV voltage contributes to the current sum of its parent's cables
+        // and its own cables.
+
+        const double* v = raw_samples+offset;
+        for (auto cv: util::make_span(n_cv)) {
+            fvm_index_type parent_cv = p.cv_parent[cv];
+            if (parent_cv+1==0) continue;
+
+            double cond = p.cv_parent_cond[cv];
+
+            double cv_I = v[cv]*cond;
+            double parent_cv_I = v[parent_cv]*cond;
+
+            for (auto cable_i: util::make_span(cables_by_cv[cv])) {
+                tmp_base[cable_i] -= (cv_I-parent_cv_I)*p.weight[cable_i];
+            }
+
+            for (auto cable_i: util::make_span(cables_by_cv[parent_cv])) {
+                tmp_base[cable_i] += (cv_I-parent_cv_I)*p.weight[cable_i];
+            }
+        }
+
+        sample_ranges.push_back({tmp_base, tmp_base+n_cable});
+    }
+
+    const auto& csample_ranges = sample_ranges;
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+    }
+
+    sc.sampler(sc.probe_id, sc.tag, &p.metadata, n_sample, sample_records.data());
+}
+
+// Generic run_samples dispatches on probe info variant type.
+void run_samples(
+    const fvm_probe_info& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch& scratch)
+{
+    util::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, p.info);
+}
+
 void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     time_type tstart = lowered_->time();
 
@@ -133,24 +373,14 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     //
     // For each (schedule, sampler, probe set) in the sampler association
     // map that will be triggered in this integration interval, create
-    // sample events for the lowered cell, one for each scheduled sample
-    // time and probe in the probe set.
+    // sample events for the lowered cell, one or more for each scheduled
+    // sample time and probe in the probe set.
     //
     // Each event is associated with an offset into the sample data and
     // time buffers; these are assigned contiguously such that one call to
     // a sampler callback can be represented by a `sampler_call_info`
     // value as defined below, grouping together all the samples of the
     // same probe for this callback in this association.
-
-    struct sampler_call_info {
-        sampler_function sampler;
-        cell_member_type probe_id;
-        probe_tag tag;
-
-        // Offsets are into lowered cell sample time and event arrays.
-        sample_size_type begin_offset;
-        sample_size_type end_offset;
-    };
 
     PE(advance_samplesetup);
     std::vector<sampler_call_info> call_info;
@@ -171,14 +401,18 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         for (cell_member_type pid: sa.probe_ids) {
             auto cell_index = gid_index_map_.at(pid.gid);
             auto p = probe_map_[pid];
+            sample_size_type n_raw = p.handle.n_raw();
 
-            call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times});
+            call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times*n_raw});
 
             for (auto t: sample_times) {
-                sample_event ev{t, (cell_gid_type)cell_to_intdom_[cell_index], {p.handle, n_samples++}};
-                sample_events.push_back(ev);
+                for (probe_handle h: p.handle.raw_handle_range()) {
+                    sample_event ev{t, (cell_gid_type)cell_to_intdom_[cell_index], {h, n_samples++}};
+                    sample_events.push_back(ev);
+                }
             }
         }
+        arb_assert(n_samples==call_info.back().end_offset);
     }
 
     // Sample events must be ordered by time for the lowered cell.
@@ -197,13 +431,12 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     std::vector<sample_record> sample_records;
     sample_records.reserve(max_samples_per_call);
 
-    for (auto& sc: call_info) {
-        sample_records.clear();
-        for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
-           sample_records.push_back(sample_record{time_type(result.sample_time[i]), &result.sample_value[i]});
-        }
+    fvm_probe_scratch scratch;
+    reserve_scratch(scratch, max_samples_per_call);
 
-        sc.sampler(sc.probe_id, sc.tag, sc.end_offset-sc.begin_offset, sample_records.data());
+    for (auto& sc: call_info) {
+        run_samples(probe_map_[sc.probe_id].handle, sc, result.sample_time.data(), result.sample_value.data(),
+            sample_records, scratch);
     }
     PL();
 

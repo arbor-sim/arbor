@@ -31,10 +31,10 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
 
 arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
     if (kind == "voltage") {
-        return arb::probe_info{id, 0, arb::cell_probe_membrane_voltage{loc}};
+        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
     }
     else if (kind == "ionic current density") {
-        return arb::probe_info{id, 0, arb::cell_probe_total_ionic_current_density{loc}};
+        return arb::probe_info{id, 0, arb::cable_probe_total_ion_current_density{loc}};
     }
     else throw pyarb_error(util::pprintf("unrecognized probe kind: {}", kind));
 };

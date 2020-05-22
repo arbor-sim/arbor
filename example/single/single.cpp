@@ -39,7 +39,7 @@ struct single_recipe: public arb::recipe {
 
     arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
         arb::mlocation mid_soma = {0, 0.5};
-        arb::cell_probe_membrane_voltage probe = {mid_soma};
+        arb::cable_probe_membrane_voltage probe = {mid_soma};
 
         // Probe info consists of: the probe id, a tag value to distinguish this probe
         // from others for any attached sampler (unused), and the cell probe address.

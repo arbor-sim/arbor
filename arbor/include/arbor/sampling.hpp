@@ -21,7 +21,13 @@ struct sample_record {
     util::any_ptr data;
 };
 
-using sampler_function = std::function<void (cell_member_type, probe_tag, std::size_t, const sample_record*)>;
+using sampler_function = std::function<
+    void (cell_member_type,     // probe id
+          probe_tag,            // probe tag associated with probe id
+          util::any_ptr,        // pointer to constant metadata
+          std::size_t,          // number of sample records
+          const sample_record*  // pointer to first sample record
+         )>;
 
 using sampler_association_handle = std::size_t;
 
