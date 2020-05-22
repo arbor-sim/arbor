@@ -272,6 +272,17 @@ namespace impl {
             ctr.push_back(x+1==0? x: offset+x);
         }
     }
+
+    template <typename Container>
+    void append_divs(Container& left, const Container& right) {
+        if (left.empty()) {
+            left = right;
+        }
+        else if (!right.empty()) {
+            append_offset(left, left.back(), tail(right));
+        }
+    };
+
 }
 
 // Merge CV geometry lists in-place.
@@ -279,6 +290,7 @@ namespace impl {
 cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
     using impl::tail;
     using impl::append_offset;
+    using impl::append_divs;
 
     if (!right.n_cell()) {
         return geom;
@@ -288,15 +300,6 @@ cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
         geom = right;
         return geom;
     }
-
-    auto append_divs = [](auto& left, const auto& right) {
-        if (left.empty()) {
-            left = right;
-        }
-        else if (!right.empty()) {
-            append_offset(left, left.back(), tail(right));
-        }
-    };
 
     auto geom_n_cv = geom.size();
     auto geom_n_cell = geom.n_cell();
@@ -432,7 +435,23 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
         if (D.cv_area[i]>0) {
             D.init_membrane_potential[i] /= D.cv_area[i];
             D.temperature_K[i] /= D.cv_area[i];
+
+            // If parent is trivial, and there is no grandparent, then we can use values from this CV
+            // to get initial values for the parent. (The other case, when there is a grandparent, is
+            // caught below.)
+
+            if (p!=-1 && D.geometry.cv_parent[p]==-1 && D.cv_area[p]==0) {
+                D.init_membrane_potential[p] = D.init_membrane_potential[i];
+                D.temperature_K[p] = D.temperature_K[i];
+            }
         }
+        else if (p!=-1) {
+            // Use parent CV to get a sensible initial value for voltage and temp on zero-size CVs.
+
+            D.init_membrane_potential[i] = D.init_membrane_potential[p];
+            D.temperature_K[i] = D.temperature_K[p];
+        }
+
         if (cv_length>0) {
             D.diam_um[i] = D.cv_area[i]/(cv_length*math::pi<double>);
         }
@@ -671,8 +690,8 @@ fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_d
         mcable rr_span  = mcable{bid, vrefs.proximal.loc.pos , vrefs.distal.loc.pos};
         double rr_conductance = 100/embedding.integrate_ixa(rr_span, D.axial_resistivity[cell_idx].at(bid)); // [µS]
 
-        vi.proximal_coef = -rr_conductance;
-        vi.distal_coef = rr_conductance;
+        vi.proximal_coef = rr_conductance;
+        vi.distal_coef = -rr_conductance;
     }
 
     return vi;
@@ -686,6 +705,7 @@ fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_d
 
 fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& right) {
     using impl::append_offset;
+    using impl::append_divs;
 
     fvm_size_type target_offset = left.n_target;
 
@@ -728,7 +748,10 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             }
         }
     }
+
     left.n_target += right.n_target;
+    append_divs(left.target_divs, right.target_divs);
+    arb_assert(left.n_target==left.target_divs.back());
 
     return left;
 }
@@ -1166,6 +1189,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
     }
 
+    M.target_divs = {0u, M.n_target};
     return M;
 }
 

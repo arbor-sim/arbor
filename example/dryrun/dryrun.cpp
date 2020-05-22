@@ -3,13 +3,13 @@
  *
  */
 
+#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 
 #include <nlohmann/json.hpp>
 
-#include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/cable_cell.hpp>
@@ -129,7 +129,7 @@ public:
         // Measure at the soma.
         arb::mlocation loc{0, 0.0};
 
-        return arb::probe_info{id, 0, arb::cell_probe_membrane_voltage{loc}};
+        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
     }
 
 private:
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
             }
         }
 #endif
-        arb_assert(arb::num_ranks(ctx)==params.num_ranks);
+        assert(arb::num_ranks(ctx)==params.num_ranks);
 
 
 #ifdef ARB_PROFILE_ENABLED

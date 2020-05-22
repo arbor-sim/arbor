@@ -6,6 +6,7 @@
  * event generators, one inhibitory, and one excitatory, are attached.
  */
 
+#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -65,7 +66,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        arb_assert(gid==0); // There is only one cell in the model
+        assert(gid==0); // There is only one cell in the model
         return cell_kind::cable;
     }
 
@@ -77,13 +78,13 @@ public:
 
     // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
     cell_size_type num_targets(cell_gid_type gid) const override {
-        arb_assert(gid==0); // There is only one cell in the model
+        assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     // Return two generators attached to the one cell.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        arb_assert(gid==0); // There is only one cell in the model
+        assert(gid==0); // There is only one cell in the model
 
         using RNG = std::mt19937_64;
 
@@ -116,17 +117,17 @@ public:
 
     // There is one probe (for measuring voltage at the soma) on the cell
     cell_size_type num_probes(cell_gid_type gid)  const override {
-        arb_assert(gid==0); // There is only one cell in the model
+        assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        arb_assert(id.gid==0);     // There is one cell,
-        arb_assert(id.index==0);   // with one probe.
+        assert(id.gid==0);     // There is one cell,
+        assert(id.index==0);   // with one probe.
 
         // Measure at the soma
         arb::mlocation loc{0, 0.0};
-        return arb::probe_info{id, 0, arb::cell_probe_membrane_voltage{loc}};
+        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
     }
 };
 

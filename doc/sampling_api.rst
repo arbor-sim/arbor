@@ -77,13 +77,18 @@ will be passed to a sampler function or function object:
     .. code-block:: cpp
 
             using sampler_function =
-                std::function<void (cell_member_type, probe_tag, size_t, const sample_record*)>;
+                std::function<void (cell_member_type, probe_tag, any_ptr, size_t, const sample_record*)>;
 
-where the parameters are respectively the probe id, the tag, the number
-of samples and a pointer to the sequence of sample records.
+where the parameters are respectively the probe id, the tag, a typed
+pointer to probe metadata, the number of samples, and finally a pointer
+to the sequence of sample records.
 
 The ``probe_tag`` is the key given in the ``probe_info`` returned by
 the recipe.
+
+The ``any_ptr`` value points to const probe-specific metadata; the type
+of the metadata will depend upon the probe address specified in the
+``probe_info`` provided by the recipe.
 
 One ``sample_record`` struct contains one sample of the probe data at a
 given simulation time point:
@@ -117,7 +122,7 @@ function. A simple sampler implementation for ``double`` data might be:
 
                 explicit scalar_sample(sample_data& samples): samples(samples) {}
 
-                void operator()(cell_member_type id, probe_tag, size_t n, const sample_record* records) {
+                void operator()(cell_member_type id, probe_tag, any_ptr, size_t n, const sample_record* records) {
                     for (size_t i=0; i<n; ++i) {
                         const auto& rec = records[i];
 
