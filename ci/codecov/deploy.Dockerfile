@@ -16,7 +16,7 @@ ARG BUILD_DIR
 ARG BUNDLE_DIR
 
 # Build arbor
-COPY . /arbor
+COPY . ${SOURCE_DIR}
 
 # Build and bundle binaries
 RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
@@ -32,7 +32,7 @@ RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
-    libtree --chrpath --strip \
+    libtree --chrpath \
       -d ${BUNDLE_DIR} \
       ${BUILD_DIR}/bin/modcc \
       ${BUILD_DIR}/bin/unit \
@@ -42,7 +42,7 @@ RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
 
 # Install some code cov related executables
 RUN libtree -d ${BUNDLE_DIR} $(which gcov) && \
-    cp -L ${SOURCE_DIR}/ci/{codecov_run,upload_codecov} ${BUNDLE_DIR}/usr/bin && \
+    cp -L ${SOURCE_DIR}/ci/codecov_run ${SOURCE_DIR}/ci/upload_codecov ${BUNDLE_DIR}/usr/bin && \
     cp -L $(which lcov geninfo) ${BUNDLE_DIR}/usr/bin
 
 # In the build dir, remove everything except for gcno coverage files
