@@ -5,7 +5,7 @@
 
 ARG BUILD_ENV
 
-ARG SOURCE_DIR=/arbor
+ARG SOURCE_DIR=/arbor-source
 ARG BUILD_DIR=/arbor-build
 ARG BUNDLE_DIR=/root/arbor.bundle
 
@@ -60,6 +60,10 @@ FROM ubuntu:18.04
 ARG SOURCE_DIR
 ARG BUILD_DIR
 ARG BUNDLE_DIR
+
+ENV SOURCE_DIR=$SOURCE_DIR
+ENV BUILD_DIR=$BUILD_DIR
+ENV BUNDLE_DIR=$BUNDLE_DIR
 
 # This is the only thing necessary really from nvidia/cuda's ubuntu18.04 runtime image
 ENV NVIDIA_VISIBLE_DEVICES all

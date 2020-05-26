@@ -16,7 +16,7 @@ ARG BUILD_DIR
 ARG BUNDLE_DIR
 
 # Build arbor
-COPY . /arbor
+COPY . $SOURCE_DIR
 
 # Build and bundle binaries
 RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
