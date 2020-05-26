@@ -30,13 +30,13 @@ build release:
     DEPLOY_DOCKERFILE: ci/release/deploy.Dockerfile
     DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
 
-build coverage:
+build codecov:
   extends: .build_docker_images
   variables:
-    BUILD_DOCKERFILE: ci/coverage/build.Dockerfile
-    BUILD_IMAGE: $CI_REGISTRY_IMAGE/coverage/build:latest
-    DEPLOY_DOCKERFILE: ci/coverage/deploy.Dockerfile
-    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
+    BUILD_DOCKERFILE: ci/codecov/build.Dockerfile
+    BUILD_IMAGE: $CI_REGISTRY_IMAGE/codecov/build:latest
+    DEPLOY_DOCKERFILE: ci/codecov/deploy.Dockerfile
+    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
 
 
 # Some variables used for running on daint
@@ -100,7 +100,7 @@ deallocate release:
 allocate codecov:
   stage: allocate
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   extends: .daint_alloc
   variables:
     PULL_IMAGE: 'YES'
@@ -109,7 +109,7 @@ allocate codecov:
 single node codecov:
   extends: .daint
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
   resource_group: daint-job
   script:
@@ -127,7 +127,7 @@ single node codecov:
 multi node codecov:
   extends: .daint
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
   resource_group: daint-job
   script:
@@ -143,7 +143,7 @@ multi node codecov:
 upload codecov reports:
   extends: .daint
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: upload_reports
   variables:
     SLURM_JOB_NUM_NODES: 1
@@ -154,7 +154,7 @@ upload codecov reports:
 
 deallocate codecov:
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: cleanup
   extends: .daint_dealloc
   variables:
