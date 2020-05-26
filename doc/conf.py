@@ -4,7 +4,7 @@
 html_static_path = ['static']
 
 def setup(app):
-    app.add_stylesheet('custom.css')
+    app.add_css_file('custom.css')
     app.add_object_type('generic', 'gen', 'pair: %s; generic')
 
 extensions = ['sphinx.ext.todo', 'sphinx.ext.mathjax']
