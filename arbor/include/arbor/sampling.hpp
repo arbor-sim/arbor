@@ -33,8 +33,7 @@ using sampler_association_handle = std::size_t;
 
 enum class sampling_policy {
     lax,
-    // interpolated, // placeholder: unsupported
-    // exact         // placeholder: unsupported
+    exact
 };
 
 } // namespace arb

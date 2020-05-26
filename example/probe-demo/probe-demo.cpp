@@ -32,6 +32,7 @@ const char* help_msg =
     " -n, --n-cv=N        discretize with N CVs\n"
     " -t, --sample=TIME   take a sample every TIME [ms]\n"
     " -x, --at=X          take sample at relative position X along cable\n"
+    " --exact             use exact time sampling\n"
     " -h, --help          print extended usage information and exit\n"
     "\n"
     "Simulate a simple 1 mm cable with HH dynamics, taking samples according\n"
@@ -74,6 +75,7 @@ struct options {
     double sample_dt = 1.0;   // [ms]
     unsigned n_cv = 10;
 
+    bool exact = false;
     bool scalar_probe = true;
     any probe_addr;
     std::string value_name;
@@ -138,8 +140,10 @@ int main(int argc, char** argv) {
         auto context = arb::make_context();
         arb::simulation sim(R, arb::partition_load_balance(R, context), context);
 
-        sim.add_sampler(arb::all_probes, arb::regular_schedule(opt.sample_dt),
-                opt.scalar_probe? scalar_sampler: vector_sampler);
+        sim.add_sampler(arb::all_probes,
+                arb::regular_schedule(opt.sample_dt),
+                opt.scalar_probe? scalar_sampler: vector_sampler,
+                opt.exact? arb::sampling_policy::exact: arb::sampling_policy::lax);
 
         // CSV header for sample output:
         std::cout << "t, " << (opt.scalar_probe? "x, ": "x0, x1, ") << opt.value_name << '\n';
@@ -232,7 +236,8 @@ bool parse_options(options& opt, int& argc, char** argv) {
         { opt.sim_end,   "--until" },
         { opt.sample_dt, "-t", "--sample" },
         { probe_pos,     "-x", "--at" },
-        { opt.n_cv,      "-n", "--n-cv" }
+        { opt.n_cv,      "-n", "--n-cv" },
+        { to::set(opt.exact), to::flag, "--exact" }
     };
 
     if (!to::run(cli_opts, argc, argv+1)) return false;

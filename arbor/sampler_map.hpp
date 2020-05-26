@@ -24,6 +24,7 @@ struct sampler_association {
     schedule sched;
     sampler_function sampler;
     std::vector<cell_member_type> probe_ids;
+    sampling_policy policy;
 };
 
 // Maintain a set of associations paired with handles used for deletion.
