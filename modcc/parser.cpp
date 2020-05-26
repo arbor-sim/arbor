@@ -399,8 +399,12 @@ void Parser::parse_state_block() {
         }
 
         parm.token = token_;
-        //state_block.state_variables.push_back(token_.spelling);
         get_token();
+
+        if(token_.type == tok::from) {
+            // silently skip
+            from_to_description();
+        }
 
         // get unit parameters
         if (line == location_.line && token_.type == tok::lparen) {
@@ -781,6 +785,31 @@ std::pair<Token, Token> Parser::range_description() {
     get_token();
     return {lb, ub};
 }
+
+std::pair<Token, Token> Parser::from_to_description() {
+    Token lb, ub;
+
+    if(token_.type != tok::from) {
+        error(pprintf("range description must start with a FROM '%'", token_));
+        return {};
+    }
+
+    get_token();
+    lb = token_;
+
+    get_token();
+    if(token_.type != tok::to) {
+        error(pprintf("range description must separate lower and upper bound with a TO '%'", token_));
+        return {};
+    }
+
+    get_token();
+    ub = token_;
+
+    get_token();
+    return {lb, ub};
+}
+
 
 // Returns a prototype expression for a function or procedure call
 // Takes an optional argument that allows the user to specify the

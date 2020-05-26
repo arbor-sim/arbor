@@ -64,6 +64,7 @@ enum class tok {
     solve, method, steadystate,
     threadsafe, global,
     point_process,
+    from, to,
 
     // prefix binary operators
     min, max,
