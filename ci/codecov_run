@@ -18,8 +18,8 @@ $@
 # Create coverage reports for code run
 echo "Combining reports"
 lcov --no-external --capture --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/run.info" &> /dev/null
-
 lcov --add-tracefile "$LOCAL_REPORTS/baseline-codecov.info" --add-tracefile "$LOCAL_REPORTS/run.info" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+lcov --remove "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/test/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
 
 # Only keep our own source
 lcov --extract "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
