@@ -58,6 +58,7 @@ RUN rm -rf ${SOURCE_DIR}/.git
 FROM ubuntu:18.04
 
 ARG SOURCE_DIR
+ARG BUILD_DIR
 ARG BUNDLE_DIR
 
 # This is the only thing necessary really from nvidia/cuda's ubuntu18.04 runtime image
@@ -72,6 +73,7 @@ RUN apt-get update -qq && \
 
 COPY --from=builder ${BUNDLE_DIR} ${BUNDLE_DIR}
 COPY --from=builder ${SOURCE_DIR} ${SOURCE_DIR}
+COPY --from=builder ${BUILD_DIR} ${BUILD_DIR}
 
 # Make it easy to call our binaries.
 ENV PATH="${BUNDLE_DIR}/usr/bin:$PATH"
