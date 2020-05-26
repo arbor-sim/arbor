@@ -9,8 +9,11 @@ REPORT_NAME=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1`
 
 mkdir -p "$LOCAL_REPORTS"
 mkdir -p "$SHARED_REPORTS"
-echo "Generating baseline codecov report"
-lcov --no-external --capture --initial --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/baseline-codecov.info" &> /dev/null
+
+if [ ! -f "$LOCAL_REPORTS/baseline-codecov.info" ]; then
+    echo "Generating baseline codecov report"
+    lcov --no-external --capture --initial --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/baseline-codecov.info" &> /dev/null
+fi
 
 # Run the tests
 $@
@@ -20,6 +23,8 @@ echo "Combining reports"
 lcov --no-external --capture --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/run.info" &> /dev/null
 lcov --add-tracefile "$LOCAL_REPORTS/baseline-codecov.info" --add-tracefile "$LOCAL_REPORTS/run.info" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
 lcov --remove "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/test/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+lcov --remove /shared/combined.info "$SOURCE_DIR/CMakeCXXCompilerId.cpp" --output-file /shared/combined.info
+lcov --remove /shared/combined.info "$SOURCE_DIR/ext/*" --output-file /shared/combined.info
 
 # Only keep our own source
 lcov --extract "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
