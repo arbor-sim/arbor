@@ -113,9 +113,11 @@ single node codecov:
   stage: test
   resource_group: daint-job
   script:
-    - codecov_run unit
-    - codecov_run unit-local
-    - codecov_run unit-modcc
+    - codecov_pre
+    - unit
+    - unit-local
+    - unit-modcc
+    - codecov_post
   variables:
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
@@ -130,7 +132,10 @@ multi node codecov:
   image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
   resource_group: daint-job
-  script: codecov_run unit-mpi
+  script:
+    - codecov_pre
+    - unit-mpi
+    - codecov_post
   variables:
     SLURM_JOB_NUM_NODES: 2
     SLURM_NTASKS: 2

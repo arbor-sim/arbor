@@ -6,17 +6,7 @@
 LOCAL_REPORTS="/codecov-reports"
 SHARED_REPORTS="$CI_PROJECT_DIR/codecov-reports"
 REPORT_NAME=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1`
-
-mkdir -p "$LOCAL_REPORTS"
 mkdir -p "$SHARED_REPORTS"
-
-if [ ! -f "$LOCAL_REPORTS/baseline-codecov.info" ]; then
-    echo "Generating baseline codecov report"
-    lcov --no-external --capture --initial --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/baseline-codecov.info" &> /dev/null
-fi
-
-# Run the tests
-$@
 
 # Create coverage reports for code run
 echo "Combining reports"
