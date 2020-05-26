@@ -26,6 +26,9 @@ RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
       -DARB_WITH_PYTHON=OFF \
       -DARB_WITH_MPI=ON \
       -DARB_GPU=cuda \
+      -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_CXX_FLAGS="-g -O0 -fprofile-arcs -ftest-coverage" \
+      -DCMAKE_EXE_LINKER_FLAGS="-fprofile-arcs -ftest-coverage" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
