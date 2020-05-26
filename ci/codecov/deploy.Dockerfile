@@ -35,8 +35,19 @@ RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
       ${BUILD_DIR}/bin/unit \
       ${BUILD_DIR}/bin/unit-local \
       ${BUILD_DIR}/bin/unit-modcc \
-      ${BUILD_DIR}/bin/unit-mpi && \
-    rm -rf ${BUILD_DIR}
+      ${BUILD_DIR}/bin/unit-mpi
+
+# Install some code cov related executables
+RUN libtree -d ${BUNDLE_DIR} $(which gcov) && \
+    cp -L ${SOURCE}/ci/{codecov_run,upload_codecov} ${BUNDLE_DIR}/usr/bin && \
+    cp -L $(which lcov geninfo) ${BUNDLE_DIR}/usr/bin
+
+# In the build dir, remove everything except for gcno coverage files
+RUN mv ${BUILD_DIR} ${BUILD_DIR}-tmp && \
+  mkdir ${BUILD_DIR} && \
+  cd ${BUILD_DIR}-tmp && \
+  find -iname "*.gcno" -exec cp --parent \{\} ${BUILD_DIR} \; && \
+  rm -rf ${BUILD_DIR}-tmp
 
 # Only keep the sources for tests, not the git history
 RUN rm -rf ${SOURCE_DIR}/.git
@@ -51,11 +62,19 @@ ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=10.1 brand=tesla,driver>=384,driver<385 brand=tesla,driver>=396,driver<397 brand=tesla,driver>=410,driver<411"
 
+# Install perl to make lcov happy
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -qq perl curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder ${BUNDLE_DIR} ${BUNDLE_DIR}
 COPY --from=builder ${SOURCE_DIR} ${SOURCE_DIR}
 
 # Make it easy to call our binaries.
 ENV PATH="${BUNDLE_DIR}/usr/bin:$PATH"
+
+# Automatically print stacktraces on segfault
+ENV LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
 
 RUN echo "${BUNDLE_DIR}/usr/lib/" > /etc/ld.so.conf.d/arbor.conf && ldconfig
 

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# In case of MPI tests running on a shared file system, we run into race conditions writing files
+# so here we generate some unique names for the codecov files.
+
+LOCAL_REPORTS="/codecov-reports"
+SHARED_REPORTS="$CI_PROJECT_DIR/codecov-reports"
+REPORT_NAME=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1`
+
+mkdir -p "$LOCAL_REPORTS"
+mkdir -p "$SHARED_REPORTS"
+lcov --no-external --capture --initial --base-directory /arbor --directory /arbor-build --output-file "$LOCAL_REPORTS/baseline-codecov.info" &> /dev/null
+
+# Run the tests
+pushd /arbor-build
+$@
+popd
+
+# Create coverage reports for code run
+lcov --no-external --capture --base-directory /arbor --directory /arbor-build --output-file "$LOCAL_REPORTS/run.info" &> /dev/null
+
+lcov --add-tracefile "$LOCAL_REPORTS/baseline-codecov.info" --add-tracefile "$LOCAL_REPORTS/run.info" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+
+# Only keep our own source
+lcov --extract "$LOCAL_REPORTS/combined.info" "/arbor/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+
+cp "$LOCAL_REPORTS/combined.info" "$SHARED_REPORTS/codecov-$REPORT_NAME.info"
