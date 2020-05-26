@@ -97,7 +97,7 @@ deallocate release:
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
 ### Codecov tests ###
-allocate:
+allocate codecov:
   stage: allocate
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
@@ -106,7 +106,7 @@ allocate:
     PULL_IMAGE: 'YES'
     ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
 
-codecov single node:
+single node codecov:
   extends: .daint
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
@@ -124,7 +124,7 @@ codecov single node:
     paths:
       - codecov-reports/
 
-codecov multi node:
+multi node codecov:
   extends: .daint
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
@@ -140,7 +140,7 @@ codecov multi node:
     paths:
       - codecov-reports/
 
-codecov upload reports:
+upload codecov reports:
   extends: .daint
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
@@ -152,7 +152,7 @@ codecov upload reports:
   script: upload_codecov
   resource_group: daint-job
 
-codecov deallocate:
+deallocate codecov:
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/coverage/deploy:$CI_COMMIT_SHA
   stage: cleanup
