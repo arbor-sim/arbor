@@ -402,8 +402,13 @@ void Parser::parse_state_block() {
         get_token();
 
         if(token_.type == tok::from) {
-            // silently skip
+            // silently skips from/to
             from_to_description();
+            if (status_ == lexerStatus::error) {
+                error(pprintf("range description must be of form FROM <int> TO <int>: '%'", token_));
+                return;
+            }
+
         }
 
         // get unit parameters
@@ -767,6 +772,10 @@ std::pair<Token, Token> Parser::range_description() {
     }
 
     get_token();
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be <int, int>, found '%'", token_));
+        return {};
+    }
     lb = token_;
 
     get_token();
@@ -776,6 +785,10 @@ std::pair<Token, Token> Parser::range_description() {
     }
 
     get_token();
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be <int, int>, found '%'", token_));
+        return {};
+    }
     ub = token_;
 
     get_token();
@@ -792,21 +805,29 @@ std::pair<Token, Token> Parser::from_to_description() {
     Token lb, ub;
 
     if(token_.type != tok::from) {
-        error(pprintf("range description must start with a FROM '%'", token_));
-        return {};
-    }
-
-    get_token();
-    lb = token_;
-
-    get_token();
-    if(token_.type != tok::to) {
         error(pprintf("range description must separate lower and upper bound with a TO '%'", token_));
         return {};
     }
 
     get_token();
+    lb = token_;
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
+
+    get_token();
+    if(token_.type != tok::to) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
+
+    get_token();
     ub = token_;
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
 
     get_token();
     return {lb, ub};
