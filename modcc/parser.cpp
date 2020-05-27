@@ -803,7 +803,7 @@ std::pair<Token, Token> Parser::from_to_description() {
     Token lb, ub;
 
     if(token_.type != tok::from) {
-        error(pprintf("range description must separate lower and upper bound with a TO '%'", token_));
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
         return {};
     }
 
