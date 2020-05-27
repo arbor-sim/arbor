@@ -81,6 +81,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    morphology
    labels
    cable_cell
+   cable_cell2
 
 .. toctree::
    :caption: Arbor Models:

@@ -563,17 +563,19 @@ Region Expressions
 
       Two regions (left and middle) and their intersection (right).
 
-Concretization
+.. _labels-concretise:
+
+Concretisation
 ----------------
 
 When a region or locset expression is applied to a cell morphology it is
-*concretized*. Concretizing a locset will return a set of *locations* on the
+*concretised*. Concretising a locset will return a set of *locations* on the
 morphology, and concretising a region will return a list of unbranched *cables*
 on the morphology.
 
 .. note::
     Applying an expression to different morphologies may give different
-    concretized results.
+    concretised results.
 
 Locations
 ~~~~~~~~~

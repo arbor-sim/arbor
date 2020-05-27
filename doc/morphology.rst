@@ -759,54 +759,120 @@ Python API
 
     .. function:: sample_tree()
 
-    Construct an empty sample tree.
+        Construct an empty sample tree.
+
+    A morphology tree is constructed by *appending* samples to the tree.
+    Samples are numbered starting at 0 in the order that they are added,
+    with the first sample getting id 0, the second sample id 1, and so forth.
+
+    A sample can not be added before its parent, hence the root of the sample
+    tree is always the first to be added. In this manner, a sample tree is
+    always guarenteed to be in a correct state, with consistent parent-child
+    indexing, and with *n* samples numbered from *0* to *n-1*.
+
+    If a *parent* index is not provided, the sample's parent is assumed to be
+    the last sample added to the tree. Calls to append return the id that
+    was given to the sample, which makes it.
+
+    For example, to create a cell with a radius of 2 at the root and
+    two branches attached to the root.
+
+    .. code-block:: Python
+
+        import arbor
+
+        # Create an empty sample tree
+        t = arbor.sample_tree()
+
+        # Add a root sample with radius 2 (our soma)
+        r = t.append(x=0, y=1, z=1, radius=2, tag=1)
+
+        # Add a first sequence of 3 samples branching off the root:
+        p = t.append(parent=r, x=2, y=0, z=0, radius=1, tag=1)
+        p = t.append(parent=p, x=3, y=0, z=0, radius=1, tag=3)
+        p = t.append(parent=p, x=4, y=0, z=0, radius=1, tag=3)
+
+        # Create a second branch attached to the root with
+        p = t.append(parent=r, x=0, y=2, z=0, radius=1, tag=1)
+        p = t.append(parent=p, x=0, y=3, z=0, radius=1, tag=3)
+        p = t.append(parent=p, x=0, y=4, z=0, radius=1, tag=3)
+
+    Only the first sample in a contiguous sequence of samples that will
+    form a branch need to explicitly provide a parent.
+    In the following example we construct a y-shaped cell.
+
+    .. code-block:: Python
+
+        import arbor
+
+        # Create an empty sample tree
+        t = arbor.sample_tree()
+
+        # Create a first branch with 3 samples.
+        p = t.append(x=0, y=0, z=0, radius=1, tag=3)
+        p = t.append(x=1, y=0, z=0, radius=1, tag=3)
+        # Keep the index of the last sample in the branch to which
+        # the child branches will be attached.
+        b = t.append(x=2, y=0, z=0, radius=1, tag=3)
+
+        # Create a second branch, branching off the first.
+        p = t.append(parent=b, x=2, y=1, z=0, radius=1, tag=3)
+        p = t.append(          x=2, y=2, z=0, radius=1, tag=3)
+        p = t.append(          x=2, y=3, z=0, radius=1, tag=3)
+
+        # Create a third branch, also attached to the first.
+        # create the branch by explicitly using the last sample in the first
+        # branch as the parent of the first sample in the branch.
+        p = t.append(parent=b, x=2, y=0, z=1, radius=1, tag=3)
+        p = t.append(          x=2, y=0, z=2, radius=1, tag=3)
+        p = t.append(          x=2, y=0, z=3, radius=1, tag=3)
 
     .. function:: append(parent, x, y, z, radius, tag)
 
-            Append a sample to the sample tree with parent sample with index ``parent``.
+        Append a sample to the sample tree with parent sample with index ``parent``.
 
-            :return: index of the new sample.
+        :return: index of the new sample.
 
     .. function:: append(x, y, z, radius, tag)
-            :noindex:
+        :noindex:
 
-            Append a sample whose parent is the last sample added to the tree.
+        Append a sample whose parent is the last sample added to the tree.
 
-            :return: index of the new sample.
+        :return: index of the new sample.
 
     .. function:: append(sample)
-            :noindex:
+        :noindex:
 
-            Append a sample whose parent is the last sample added to the tree.
+        Append a sample whose parent is the last sample added to the tree.
 
-            :return: index of the new sample.
+        :return: index of the new sample.
 
     .. function:: append(parent, sample)
-            :noindex:
+        :noindex:
 
-            Append a sample to the sample tree with parent sample with index ``parent``.
+        Append a sample to the sample tree with parent sample with index ``parent``.
 
-            :return: index of the new sample.
+        :return: index of the new sample.
 
     .. attribute:: empty
-            :type: bool
+        :type: bool
 
-            If the sample tree is empty (i.e. whether it has size 0)
+        If the sample tree is empty (i.e. whether it has size 0)
 
     .. attribute:: size
-            :type: int
+        :type: int
 
-            The number of samples.
+        The number of samples.
 
     .. attribute:: parents
-            :type: list
+        :type: list
 
-            The parent indexes.
+        The parent indexes.
 
     .. attribute:: samples
-            :type: list
+        :type: list
 
-            The samples.
+        The samples.
 
 .. py:function:: load_swc(filename)
 
