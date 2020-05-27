@@ -646,6 +646,10 @@ TEST(Parser, parse_state_block) {
         "STATE {\n"
         "    h (nA)\n"
         "    m (nA) r (uA)\n"
+        "}",
+        "STATE {\n"
+        "    h FROM 0 TO 1\n"
+        "    m r (uA)\n"
         "}"
     };
 
