@@ -814,6 +814,10 @@ std::pair<Token, Token> Parser::from_to_description() {
         return {};
     }
     lb = token_;
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
 
     get_token();
     if(token_.type != tok::to) {
@@ -827,6 +831,10 @@ std::pair<Token, Token> Parser::from_to_description() {
         return {};
     }
     ub = token_;
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
 
     get_token();
     return {lb, ub};
