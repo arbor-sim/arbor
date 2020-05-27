@@ -405,7 +405,6 @@ void Parser::parse_state_block() {
             // silently skips from/to
             from_to_description();
             if (status_ == lexerStatus::error) {
-                error(pprintf("range description must be of form FROM <int> TO <int>: '%'", token_));
                 return;
             }
         }
@@ -874,7 +873,7 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
         if(token_.type == tok::lparen) {
             unit_description();
             if(status_ == lexerStatus::error) {
-                error("Malformed unit in argument '" + yellow(arg_tokens.back().spelling) + "'");
+                return {};
             }
         }
 
