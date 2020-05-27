@@ -408,7 +408,6 @@ void Parser::parse_state_block() {
                 error(pprintf("range description must be of form FROM <int> TO <int>: '%'", token_));
                 return;
             }
-
         }
 
         // get unit parameters
@@ -853,7 +852,6 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
     // check for an argument list enclosed in parenthesis (...)
     // return a prototype with an empty argument list if not found
     if( token_.type != tok::lparen ) {
-        //return make_expression<PrototypeExpression>(identifier.location, identifier.spelling, {});
         return expression_ptr{new PrototypeExpression(identifier.location, identifier.spelling, {})};
     }
 
@@ -870,6 +868,14 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
         arg_tokens.push_back(token_);
 
         get_token(); // consume the identifier
+
+        // args may have a unit attached
+        if(token_.type == tok::lparen) {
+            unit_description();
+            if(status_ == lexerStatus::error) {
+                error("Malformed unit in argument '" + yellow(arg_tokens.back().spelling) + "'");
+            }
+        }
 
         // look for a comma
         if(!(token_.type == tok::comma || token_.type==tok::rparen)) {

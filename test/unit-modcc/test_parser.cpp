@@ -100,6 +100,14 @@ TEST(Parser, procedure) {
         "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
         "    mtau = 0.6\n"
         "    htau = 1500\n"
+        "}",
+        "PROCEDURE trates(v (V)) {\n"
+        "    LOCAL qt\n"
+        "    qt=q10^((celsius-22)/10)\n"
+        "    minf=1-1/(1+exp((v-vhalfm)/km))\n"
+        "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
+        "    mtau = 0.6\n"
+        "    htau = 1500\n"
         "}"
     };
 
