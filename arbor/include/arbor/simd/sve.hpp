@@ -21,6 +21,16 @@ struct sve_double;
 struct sve_int;
 struct sve_mask;
 
+template<typename Type> struct sve_type_to_impl;
+template<> struct sve_type_to_impl<svint64_t> { using type = detail::sve_int;};
+template<> struct sve_type_to_impl<svfloat64_t> { using type = detail::sve_double;};
+template<> struct sve_type_to_impl<svbool_t> { using type = detail::sve_mask;};
+
+template<typename> struct is_sve : std::false_type {};
+template<> struct is_sve<svint64_t>   : std::true_type {};
+template<> struct is_sve<svfloat64_t> : std::true_type {};
+template<> struct is_sve<svbool_t>    : std::true_type {};
+
 template <>
 struct simd_traits<sve_mask> {
     static constexpr unsigned width = 8;
@@ -622,61 +632,43 @@ namespace simd_abi {
 template <typename T, unsigned N> struct sve;
 template <> struct sve<double, 0> {using type = detail::sve_double;};
 template <> struct sve<int, 0> {using type = detail::sve_int;};
-
-template <typename T> struct reg_type;
-template <> struct reg_type<int> { using type = svint64_t;};
-template <> struct reg_type<double> { using type = svfloat64_t;};
-
-template <typename T> struct mask_type;
-template <> struct mask_type<int> { using type = svbool_t;};
-template <> struct mask_type<double> { using type = svbool_t;};
-
-template<typename Type> struct type_to_impl;
-template<> struct type_to_impl<svint64_t> { using type = detail::sve_int;};
-template<> struct type_to_impl<svfloat64_t> { using type = detail::sve_double;};
-template<> struct type_to_impl<svbool_t> { using type = detail::sve_mask;};
-
-template<typename> struct is_sve : std::false_type {};
-template<> struct is_sve<svint64_t>   : std::true_type {};
-template<> struct is_sve<svfloat64_t> : std::true_type {};
-template<> struct is_sve<svbool_t>    : std::true_type {};
 };  // namespace simd_abi
-
-using namespace arb::simd::simd_abi;
-using arb::simd::detail::simd_traits;
 
 template <typename Value, unsigned N, template <class, unsigned> class Abi>
 struct simd_wrap;
 
 template <typename Value, template <class, unsigned> class Abi>
-struct simd_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::reg_type<Value>::type; };
+struct simd_wrap<Value, (unsigned)0, Abi> { using type = typename detail::simd_traits<typename simd_abi::sve<Value, 0u>::type>::vector_type; }; 
 
 template <typename Value, unsigned N, template <class, unsigned> class Abi>
 struct simd_mask_wrap;
 
 template <typename Value, template <class, unsigned> class Abi>
-struct simd_mask_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi::mask_type<Value>::type; };
+struct simd_mask_wrap<Value, (unsigned)0, Abi> { 
+    using type = typename detail::simd_traits<
+                     typename detail::simd_traits<typename simd_abi::sve<Value, 0u>::type>::mask_impl 
+                 >::vector_type; }; 
 
 // Math functions exposed for SVE types
 
 #define ARB_SVE_UNARY_ARITHMETIC_(name)\
 template <typename T>\
 T name(const T& a) {\
-    return type_to_impl<T>::type::name(a);\
+    return detail::sve_type_to_impl<T>::type::name(a);\
 };
 
 #define ARB_SVE_BINARY_ARITHMETIC_(name)\
 template <typename T>\
 auto name(const T& a, const T& b) {\
-    return type_to_impl<T>::type::name(a, b);\
+    return detail::sve_type_to_impl<T>::type::name(a, b);\
 };\
 template <typename T>\
-auto name(const T& a, const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& b) {\
-    return name(a, type_to_impl<T>::type::broadcast(b));\
+auto name(const T& a, const typename detail::simd_traits<typename detail::sve_type_to_impl<T>::type>::scalar_type& b) {\
+    return name(a, detail::sve_type_to_impl<T>::type::broadcast(b));\
 };\
 template <typename T>\
-auto name(const typename simd_traits<typename type_to_impl<T>::type>::scalar_type& a, const T& b) {\
-    return name(type_to_impl<T>::type::broadcast(a), b);\
+auto name(const typename detail::simd_traits<typename detail::sve_type_to_impl<T>::type>::scalar_type& a, const T& b) {\
+    return name(detail::sve_type_to_impl<T>::type::broadcast(a), b);\
 };
 
 
@@ -689,35 +681,35 @@ ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1
 
 template <typename T>
 T fma(const T& a, T b, T c) {
-    return type_to_impl<T>::type::fma(a, b, c);
+    return detail::sve_type_to_impl<T>::type::fma(a, b, c);
 }
 
 template <typename T>
 auto sum(const T& a) {
-    return type_to_impl<T>::type::reduce_add(a);
+    return detail::sve_type_to_impl<T>::type::reduce_add(a);
 }
 
 // Indirect/Indirect indexed/Where Expression copy methods
 
 template <typename T, typename V>
 static void indirect_copy_to(const T& s, V* p, unsigned width) {
-    using Impl     = typename type_to_impl<T>::type;
+    using Impl     = typename detail::sve_type_to_impl<T>::type;
     using ImplMask = typename detail::simd_traits<Impl>::mask_impl;
     Impl::copy_to_masked(s, p, ImplMask::true_mask(width));
 }
 
 template <typename T, typename M, typename V>
 static void indirect_copy_to(const T& data, const M& mask, V* p, unsigned width) {
-    using Impl     = typename type_to_impl<T>::type;
-    using ImplMask = typename type_to_impl<M>::type;
+    using Impl     = typename detail::sve_type_to_impl<T>::type;
+    using ImplMask = typename detail::sve_type_to_impl<M>::type;
 
     Impl::copy_to_masked(data, p, ImplMask::logical_and(mask, ImplMask::true_mask(width)));
 }
 
 template <typename T, typename I, typename V>
 static void indirect_indexed_copy_to(const T& s, V* p, const I& index, unsigned width) {
-    using Impl      = typename type_to_impl<T>::type;
-    using ImplIndex = typename type_to_impl<I>::type;
+    using Impl      = typename detail::sve_type_to_impl<T>::type;
+    using ImplIndex = typename detail::sve_type_to_impl<I>::type;
     using ImplMask  = typename detail::simd_traits<Impl>::mask_impl;
 
     Impl::scatter(detail::tag<ImplIndex>{}, s, p, index, ImplMask::true_mask(width));
@@ -725,28 +717,28 @@ static void indirect_indexed_copy_to(const T& s, V* p, const I& index, unsigned 
 
 template <typename T, typename I, typename M, typename V>
 static void indirect_indexed_copy_to(const T& data, const M& mask, V* p, const I& index, unsigned width) {
-    using Impl      = typename type_to_impl<T>::type;
-    using ImplIndex = typename type_to_impl<I>::type;
-    using ImplMask = typename type_to_impl<M>::type;
+    using Impl      = typename detail::sve_type_to_impl<T>::type;
+    using ImplIndex = typename detail::sve_type_to_impl<I>::type;
+    using ImplMask = typename detail::sve_type_to_impl<M>::type;
 
     Impl::scatter(detail::tag<ImplIndex>{}, data, p, index, ImplMask::logical_and(mask, ImplMask::true_mask(width)));
 }
 
 template <typename T, typename M, typename V>
 static void where_copy_to(const M& mask, T& f, const V& t) {
-    using Impl = typename type_to_impl<T>::type;
+    using Impl = typename detail::sve_type_to_impl<T>::type;
     f = Impl::ifelse(mask, Impl::broadcast(t), f);
 }
 
 template <typename T, typename M>
 static void where_copy_to(const M& mask, T& f, const T& t) {
-    f = type_to_impl<T>::type::ifelse(mask, t, f);
+    f = detail::sve_type_to_impl<T>::type::ifelse(mask, t, f);
 }
 
 template <typename T, typename M, typename V>
 static void where_copy_to(const M& mask, T& f, const V* p, unsigned width) {
-    using Impl     = typename type_to_impl<T>::type;
-    using ImplMask = typename type_to_impl<M>::type;
+    using Impl     = typename detail::sve_type_to_impl<T>::type;
+    using ImplMask = typename detail::sve_type_to_impl<M>::type;
 
     auto m = ImplMask::logical_and(mask, ImplMask::true_mask(width));
     f = Impl::ifelse(mask, Impl::copy_from_masked(p, m), f);
@@ -754,9 +746,9 @@ static void where_copy_to(const M& mask, T& f, const V* p, unsigned width) {
 
 template <typename T, typename I, typename M, typename V>
 static void where_copy_to(const M& mask, T& f, const V* p, const I& index, unsigned width) {
-    using Impl      = typename type_to_impl<T>::type;
-    using IndexImpl = typename type_to_impl<I>::type;
-    using ImplMask  = typename type_to_impl<M>::type;
+    using Impl      = typename detail::sve_type_to_impl<T>::type;
+    using IndexImpl = typename detail::sve_type_to_impl<I>::type;
+    using ImplMask  = typename detail::sve_type_to_impl<M>::type;
  
     auto m = ImplMask::logical_and(mask, ImplMask::true_mask(width));
     T temp = Impl::gather(detail::tag<IndexImpl>{}, p, index, m);
@@ -771,8 +763,8 @@ void compound_indexed_add(
     unsigned width,
     index_constraint constraint)
 {
-    using Impl      = typename type_to_impl<T>::type;
-    using ImplIndex = typename type_to_impl<I>::type;
+    using Impl      = typename detail::sve_type_to_impl<T>::type;
+    using ImplIndex = typename detail::sve_type_to_impl<I>::type;
     using ImplMask  = typename detail::simd_traits<Impl>::mask_impl;
 
     auto mask = ImplMask::true_mask(width);
@@ -825,7 +817,7 @@ static int width(const svint64_t& v) {
     return svlen_s64(v);
 };
 
-template <typename S, typename std::enable_if_t<is_sve<S>::value, int> = 0> 
+template <typename S, typename std::enable_if_t<detail::is_sve<S>::value, int> = 0> 
 static int width() { S v; return width(v); }
 
 namespace detail {
@@ -846,12 +838,12 @@ template <typename To>
 struct simd_cast_impl {
     template <typename V>
     static To cast(const V& a) {
-        return type_to_impl<To>::type::broadcast(a);
+        return detail::sve_type_to_impl<To>::type::broadcast(a);
     }
 
     template <typename V>
     static To cast(const indirect_expression<V>& a) {
-        using Impl     = typename type_to_impl<To>::type;
+        using Impl     = typename detail::sve_type_to_impl<To>::type;
         using ImplMask = typename detail::simd_traits<Impl>::mask_impl;
 
         return Impl::copy_from_masked(a.p, ImplMask::true_mask(a.width));
@@ -859,8 +851,8 @@ struct simd_cast_impl {
 
     template <typename I, typename V>
     static To cast(const indirect_indexed_expression<I,V>& a) {
-        using Impl      = typename type_to_impl<To>::type;
-        using IndexImpl = typename type_to_impl<I>::type;
+        using Impl      = typename detail::sve_type_to_impl<To>::type;
+        using IndexImpl = typename detail::sve_type_to_impl<I>::type;
         using ImplMask  = typename detail::simd_traits<Impl>::mask_impl;
 
         To r;
@@ -891,15 +883,15 @@ struct simd_cast_impl {
 
     template <typename T, typename V>
     static To cast(const const_where_expression<T,V>& a) {
-        auto r = type_to_impl<To>::type::broadcast(0);
-        r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
+        auto r = detail::sve_type_to_impl<To>::type::broadcast(0);
+        r = detail::sve_type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
         return r;
     }
 
     template <typename T, typename V>
     static To cast(const where_expression<T,V>& a) {
-        auto r = type_to_impl<To>::type::broadcast(0);
-        r = type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
+        auto r = detail::sve_type_to_impl<To>::type::broadcast(0);
+        r = detail::sve_type_to_impl<To>::type::ifelse(a.mask_, a.data_, r);
         return r;
     }
 };
