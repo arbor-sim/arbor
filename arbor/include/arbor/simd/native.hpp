@@ -92,19 +92,15 @@ struct native_width;
 
 template <typename Value, int k>
 struct native_width {
-#ifdef __ARM_FEATURE_SVE
-    static constexpr int value = 0;
-#else
     static constexpr int value =
             std::is_same<void, typename native<Value, k>::type>::value?
             native_width<Value, k/2>::value:
             k;
-#endif
 };
 
 template <typename Value>
 struct native_width<Value, 1> {
-    static constexpr int value = 1;
+    static constexpr int value = std::is_same<void, typename native<Value, 0>::type>::value;
 };
 
 } // namespace simd_abi

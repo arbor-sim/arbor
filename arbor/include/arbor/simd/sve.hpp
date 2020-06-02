@@ -635,6 +635,11 @@ template<typename Type> struct type_to_impl;
 template<> struct type_to_impl<svint64_t> { using type = detail::sve_int;};
 template<> struct type_to_impl<svfloat64_t> { using type = detail::sve_double;};
 template<> struct type_to_impl<svbool_t> { using type = detail::sve_mask;};
+
+template<typename> struct is_sve : std::false_type {};
+template<> struct is_sve<svint64_t>   : std::true_type {};
+template<> struct is_sve<svfloat64_t> : std::true_type {};
+template<> struct is_sve<svbool_t>    : std::true_type {};
 };  // namespace simd_abi
 
 using namespace arb::simd::simd_abi;
@@ -654,13 +659,13 @@ struct simd_mask_wrap<Value, (unsigned)0, Abi> { using type = typename simd_abi:
 
 // Math functions exposed for SVE types
 
-#define SVE_UNARY_ARITHMETIC(name)\
+#define ARB_SVE_UNARY_ARITHMETIC_(name)\
 template <typename T>\
 T name(const T& a) {\
     return type_to_impl<T>::type::name(a);\
 };
 
-#define SVE_BINARY_ARITHMETIC(name)\
+#define ARB_SVE_BINARY_ARITHMETIC_(name)\
 template <typename T>\
 auto name(const T& a, const T& b) {\
     return type_to_impl<T>::type::name(a, b);\
@@ -675,9 +680,12 @@ auto name(const typename simd_traits<typename type_to_impl<T>::type>::scalar_typ
 };
 
 
-ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, add, sub, mul, div, pow, max, min)
-ARB_PP_FOREACH(SVE_BINARY_ARITHMETIC, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt, logical_and, logical_or)
-ARB_PP_FOREACH(SVE_UNARY_ARITHMETIC, logical_not, neg, abs, exp, log, expm1, exprelr)
+ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min)
+ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt, logical_and, logical_or)
+ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1, exprelr)
+
+#undef ARB_SVE_UNARY_ARITHMETIC_
+#undef ARB_SVE_BINARY_ARITHMETIC_
 
 template <typename T>
 T fma(const T& a, T b, T c) {
@@ -817,6 +825,9 @@ static int width(const svint64_t& v) {
     return svlen_s64(v);
 };
 
+template <typename S, typename std::enable_if_t<is_sve<S>::value, int> = 0> 
+static int width() { S v; return width(v); }
+
 namespace detail {
 
 template <typename I, typename V>
@@ -893,7 +904,7 @@ struct simd_cast_impl {
     }
 };
 
-}  //namespace detail
+}  // namespace detail
 }  // namespace simd
 }  // namespace arb
 
