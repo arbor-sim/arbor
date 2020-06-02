@@ -39,6 +39,16 @@ namespace detail {
 using detail::simd_impl;
 using detail::simd_mask_impl;
 
+template <typename Impl, typename V>
+void assign(simd_impl<Impl>& a, const detail::indirect_expression<V> b) {
+    a.copy_from(b);
+}
+
+template <typename Impl, typename ImplIndex, typename V>
+void assign(simd_impl<Impl>& a, const detail::indirect_indexed_expression<ImplIndex, V> b) {
+    a.copy_from(b);
+}
+
 template <typename Impl>
 typename simd_impl<Impl>::scalar_type sum(const simd_impl<Impl>& a) {
     return a.sum();

@@ -169,33 +169,37 @@ void shared_state::ions_init_concentration() {
 }
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
-    using simd::simd_cast;
+    using simd::assign;
     using simd::indirect;
     using simd::add;
     using simd::min;
     for (fvm_size_type i = 0; i<n_intdom; i+=simd_width) {
-        simd_value_type t = simd_cast<simd_value_type>(indirect(time.data()+i, simd_width));
+        simd_value_type t;
+        assign(t, indirect(time.data()+i, simd_width));
         t = min(add(t, dt_step), tmax);
         indirect(time_to.data()+i, simd_width) = t;
     }
 }
 
 void shared_state::set_dt() {
-    using simd::simd_cast;
+    using simd::assign;
     using simd::indirect;
     using simd::sub;
     for (fvm_size_type j = 0; j<n_intdom; j+=simd_width) {
-        simd_value_type t    = simd_cast<simd_value_type>(indirect(time.data()+j, simd_width));
-        simd_value_type t_to = simd_cast<simd_value_type>(indirect(time_to.data()+j, simd_width));
+        simd_value_type t, t_to;
+        assign(t, indirect(time.data()+j, simd_width));
+        assign(t_to, indirect(time_to.data()+j, simd_width));
 
         auto dt = sub(t_to,t);
         indirect(dt_intdom.data()+j, simd_width) = dt;
     }
 
     for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_index_type intdom_idx = simd_cast<simd_index_type>(indirect(cv_to_intdom.data()+i, simd_width));
+        simd_index_type intdom_idx;
+        assign(intdom_idx, indirect(cv_to_intdom.data()+i, simd_width));
 
-        simd_value_type dt = simd::simd_cast<simd_value_type>(simd::indirect(dt_intdom.data(), intdom_idx, simd_width));
+        simd_value_type dt;
+        assign(dt, indirect(dt_intdom.data(), intdom_idx, simd_width));
         indirect(dt_cv.data()+i, simd_width) = dt;
     }
 }

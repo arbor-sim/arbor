@@ -896,6 +896,16 @@ struct simd_cast_impl {
     }
 };
 
+template <typename T, typename V>
+void assign(T& a, const detail::indirect_expression<V> b) {
+    a = detail::simd_cast_impl<T>(b);
+}
+
+template <typename T, typename I, typename V>
+void assign(T& a, const detail::indirect_indexed_expression<I, V> b) {
+    a = detail::simd_cast_impl<T>(b);
+}
+
 }  // namespace detail
 }  // namespace simd
 }  // namespace arb
