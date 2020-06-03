@@ -164,7 +164,7 @@ std::string lif_str(const arb::lif_cell& c){
 
 
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
-    return util::pprintf("<arbor.mechanism: name '{}', parameters {}",
+    return util::pprintf("mechanism('{}', {})",
             md.name(), util::dictionary_csv(md.values()));
 }
 
@@ -480,10 +480,10 @@ void register_cells(pybind11::module& m) {
             },
             "region"_a, "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
             "Set cable properties on a region.\n"
-            " region: initial membrane voltage [mV].\n"
-            " cm:     membrane capacitance [F/m²].\n"
-            " rL:     axial resistivity [Ω·cm].\n"
-            " tempK:  temperature [Kelvin].")
+            " Vm:    initial membrane voltage [mV].\n"
+            " cm:    membrane capacitance [F/m²].\n"
+            " rL:    axial resistivity [Ω·cm].\n"
+            " tempK: temperature [Kelvin].")
 
         // Paint ion species initial conditions on a region.
         .def("paint",

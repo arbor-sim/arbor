@@ -5,6 +5,7 @@
 
 #include <morph_parse.hpp>
 #include <s_expr.hpp>
+#include <strprintf.hpp>
 
 using namespace pyarb;
 using namespace std::string_literals;

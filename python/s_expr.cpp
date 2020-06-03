@@ -38,6 +38,9 @@ std::ostream& operator<<(std::ostream& o, const tok& t) {
 }
 
 std::ostream& operator<<(std::ostream& o, const token& t) {
+    if (t.kind==tok::string) {
+        return o << util::pprintf("\"{}\"", t.spelling);
+    }
     return o << util::pprintf("{}", t.spelling);
 }
 

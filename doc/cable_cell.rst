@@ -17,35 +17,76 @@ and provide a rich interface for specifying the cell's dynamics.
     :ref:`label dictionary <labels-dictionary>` that are used to describe
     :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell.
 
-Decoration
-------------
+A cell is *decorated* by specifying the distribution and placement of dynamics
+on the cell, to produce a *cable cell*: a full description
+of a cell morphology and its dynamics with all information required to build
+a a standalone single-cell model, or as part of a larger network.
 
-To define the dynamic behavior of a cell, the electrical properties, ion
-channels, synapses, stimulii and gap junctions are associated with regions and
-locations on the cell. In Arbor, this *decoration* is performed through three
-broad classes of action:
+Decoration uses region and locset descriptions to specify the dynamics, and
+their respective use for this purpose are reflected in the two broad classes
+of *dynamics* in Arbor:
 
-* Setting default properties that apply to an *entire cell*.
-* *Painting* properties and dynamics on *regions* of a cell.
-* *Placing* discrete items such as synapses, stimulii and spike detectors on
-  *locsets* of a cell.
+* *Painted dynamics* are applied to regions of a cell, and are associated with
+  an area of the membrane or volume of the cable.
 
-Cable properties and ions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * :ref:`Cable properties <cable-properties>`.
+  * :ref:`Density mechanisms <cable-density-mechs>`.
+  * :ref:`Ion species <cable-ions>`.
 
-Every cable cell model has ion species and physical properties that must be defined
-on all cables to form a consistent model.
-These properties include ion species valence, the method used to calculate
-ion species reversal potential, and cable properties like capacitance, resistivity
-and temperature.
+* *Placed dynamics* are applied to locations on the cell, and are associated
+  with entities that can be counted. Examples include synapses, stimulii,
+  spike detectors, and gap junction sites.
 
-Parameters can be set at three different levels:
+  * :ref:`Synapses <cable-synapses>`.
+  * :ref:`Gap junction sites <cable-gj-sites>`.
+  * :ref:`Threshold detectors <cable-threshold-detectors>` (spike detectors).
+  * :ref:`Stimulii <cable-stimulii>`.
+  * :ref:`Probes <cable-probes>`.
 
-* *globally*: set default global values for all cells in a model.
-* *per-cell*: overide the global defaults for a single cell.
+Painted Dynamics
+----------------
+
+Painted dynamics are applied to surface and volume of cells, that can be specified at
+three different levels:
+
+* *globally*: a global default for all cells in a model.
+* *per-cell*: overide the global defaults for a specific cell.
 * *per-region*: specialize values on specific cell regions.
 
-Cable Properties
+This hierarchical approach for resolving parameters and properties allows
+us to, for example, define a global default value for calcium concentration,
+then provide a different values on specific cell regions.
+
+Some dynamics, such as membrane capacitance and the initial concentration of ion species
+must be defined for all compartments. Others need only be applied where they are
+present, for example ion channels.
+The types of dynamics, and where they can be defined, are
+:ref:`tabulated <cable-painted-resolution>` below.
+
+.. _cable-painted-resolution:
+
+.. csv-table:: Painted property resolution options
+   :widths: 20, 10, 10, 10
+
+                  ,       **region**, **cell**, **global**
+   cable properties,       ✓, ✓, ✓
+   ion initial conditions, ✓, ✓, ✓
+   density mechnism,       ✓, --, --
+   ion rev pot mechanism,  --, ✓, ✓
+   ion valence,            --, --, ✓
+
+If a property is defined at multiple levels, the most local definition will be chosen:
+a cell-local definition will override a global definition, and a definition on a region
+will override any cell-local or global definition on that region.
+
+.. warning::
+    If a property is defined on two regions that overlap, it is not possible to
+    deterministically choose the correct definition, and an error will be
+    raised during model instantiation.
+
+.. _cable-properties:
+
+Cable properties
 ~~~~~~~~~~~~~~~~
 
 There are four cable properties that are defined everywhere on all cables:
@@ -77,43 +118,61 @@ for setting cell-wide defaults for properties, and the
     cell.paint('soma', Vm=-50, cm=0.01, rL=35)
     cell.paint('axon', Vm=-60, rL=40)
 
-.. warning::
-    It is not possible to deterministicly find which value should be chosen for a
-    parameter when it is specified separately on two overlapping regions on a cell
-    using the paint interface.
-    If this occurs, an *exception is thrown*.
+.. _cable-density-mechs:
 
-.. note::
-    No global default values are used for cable properties, which must be expliclty
-    must be set by the user. It is an error when a model is constructed and any
-    region of any cell has no value set at global, cell-local or region-local level.
+Density mechanisms
+~~~~~~~~~~~~~~~~~~~~~~
 
-    It was a deliberate choice to not use the same default values as NEURON; while
-    some values have historic significance, for example the default
-    temperature of 6.3 Celcius from early work on squid axons, they are not broadly
-    applicable. Also, by explicitly setting parameters, there are less surprises
-    caused by behavior that depends on hidden values.
+Regions can have density mechanisms defined over their extents.
+Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
+which describe biophysical processes. These are processes
+that are distributed in space, but whose behaviour is defined purely
+by the state of the cell and the process at any given point.
 
-    .. csv-table:: Default property values from NEURON
-       :widths: 15, 10, 10
+The most common use for density mecahnisms is to describe ion channel dynamics,
+for example the ``hh`` and ``pas`` mechanisms provided by NEURON and Arbor,
+which model classic Hodgkin-Huxley and passive leaky currents respectively.
 
-       **Property**, **Value**, **Units**
-       *Vm*,         -65,       mV
-       *cm*,         0.01,      F/m²
-       *rL*,         35.4,      Ω·cm
-       *tempK*,      279.45,    Kelvin
+Mechanisms have two types of parameters that can be set by users
+
+* *Global* parameters that are a single scalar value that is the
+  same everywhere a mechanism is defined.
+* *Range* parameters can vary spatially.
+
+Every mechanism is described by a string with its name, and
+an optional list of key-value pairs that define its range parameters.
+
+Because a global parameter is fixed over the entire spatial extent
+of a density mechanism, if the value of the parameter varies,
+a new mechanism must be created.
+
+This is reflected in howo
+
+Take for example a mechanism passive`
+* name: ``"passive"``
+* global variable: ``"E"``
+* range variable: ``"g"``
+
+
+.. code-block:: Python
+
+
+.. _cable-ions:
 
 Ion species
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
 
-Arbor defines calcium, pottasium and sodium ion species by default.
+Arbor allows arbitrary ion species to be defined, to extend the default
+calcium, potassium and sodium ion species.
+A ion species is defined globally by its name and valence, which
+can't be overriden at cell or region level.
 
 .. csv-table:: Default ion species in Arbor
    :widths: 15, 10, 10
 
    **Ion**,     **name**, **Valence**
    *Calcium*,   ca,       1
-   *Pottasium*,  k,       1
+   *Potassium*,  k,       1
    *Sodium*,    na,       2
 
 Each ion species has the following properties:
@@ -121,19 +180,22 @@ Each ion species has the following properties:
 1. *internal concentration*: concentration on interior of the membrane [mM].
 2. *external concentration*: concentration on exterior of the membrane [mM].
 3. *reversal potential*: reversal potential [mV].
-4. *method*:  method for calculating reversal potential.
+4. *reversal potential mechanism*:  method for calculating reversal potential.
 
-The first three  properties must be set, and the values provided will be initial
-values for each quantity at the start of the simulation.
+Properties 1, 2 and 3 must be defined, and are used as the initial values for
+each quantity at the start of the simulation. They are specified globally,
+then specialised at cell and region level.
 
+The reversal potential of an ion species is calculated by an
+optional *reversal potential mechanism*.
 If no reversal potential mechanism is specified for an ion species, the initial
 reversal potential values are maintained for the course of a simulation. Otherwise,
-a provided mechanism does the work, but it is subject to some strict restrictions.
-A reversal potential mechanism described in NMODL:
+the mechanism does the work, but it is subject to some strict restrictions.
+Specifically, a reversal potential mechanism described in NMODL:
 
 * May not maintain any STATE variables.
 * Can only write to the "eX" value associated with an ion.
-* Can not given as a POINT mechanism.
+* Can not be a POINT mechanism.
 
 Essentially, reversal potential mechanisms must be pure functions of cellular
 and ionic state.
@@ -145,14 +207,16 @@ and ionic state.
     mechanism only, that calculates reversal potentials according to concentrations
     that the other mechanisms use and modify.
 
-If a reversal potential mechanism that writes to multiple ions
-is the *method* for one of the ions in the global or per-cell parameters,
-it must be given for each of the ions.
+If a reversal potential mechanism that writes to multiple ions,
+it must be given for either no ions, or all of the ions it writes.
 
 Arbor's default catalogue includes a *nernst* reversal potential, which is
-parameterized over a single ion, and so can be assigned to e.g. calcium:
+parameterized over a single ion. For example, to bind it to the calcium
+ion at the cell level using the Python interface:
 
 .. code-block:: Python
+
+    cell = arbor.cable_cell(morph, labels)
 
     # method 1: create the mechanism explicitly.
     ca = arbor.mechanism('nernst/x=ca')
@@ -181,65 +245,44 @@ using the *paint* interface:
     # Alternatively, one can selectively overwrite the global defaults.
     cell.paint('axon', arbor.ion('ca', rev_pot=126)
 
+Placed Dynamices
+----------------
 
-Density mechanisms
-~~~~~~~~~~~~~~~~~~~
+Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
+and are asigned to specific locations.
 
-Based on NEURON mechanisms.
-
-Placing
---------
+.. _cable-synapses:
 
 Synapses
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+
+Synapses are instances of NMODL POINT mechanisms.
+
+.. _cable-gj-sites:
 
 Gap junction sites
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+
+.. _cable-threshold-detectors:
+
+Threshold detectors (spike detectors).
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _cable-stimulii:
 
 Stimulii
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
 
-Threshold detectors
-~~~~~~~~~~~~~~~~~~~
+.. _cable-probes:
 
-*TODO*
-
-* mechanisms
-
-    * ``arbor.mechanism`` interface
-
-* ions
-
-    * cell and global defaults
-    * concentrations, reversal potentials
-    * setting locally on a region
-
-* electrical properties
-
-    * voltage, capacitance, etc
-    * cell and global defaults
-
-* painting
-
-    * electrical properties
-    * mechanisms
-    * ion data
-
-* placing
-
-    * synapses
-    * gap junctions sites
-    * stimulii
-    * threshold detectors
-
-* probes
-
+Probes
+~~~~~~
 
 Python API
 ----------
 
 Creating a cable cell
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 .. py:class:: cable_cell
 
@@ -341,9 +384,8 @@ Creating a cable cell
     * range parameters: the value of range parameters is defined for each instance
       of the mechanism on a cell. For density mechanisms, this means one value for
       each compartment on which it is present.
-      value per instance.
 
-    The method for setting a paremeter varies depending on its type.
+    The method for setting a parameter depends on its type.
     If global parameters change, we are effectively defining a new type
     of mechanism, so global parameter information is encoded in the
     name.
