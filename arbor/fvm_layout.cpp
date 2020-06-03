@@ -934,24 +934,36 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     struct synapse_instance {
         size_type cv;
-        std::vector<std::pair<unsigned, double>> param_value; // sorted vector of <param_id,value> pairs
+        std::vector<double> param_value;
         size_type target_index;
     };
+
+    // Working vectors.
+    std::vector<double> default_param_value;
+    std::vector<synapse_instance> inst_list;
+    std::vector<size_type> cv_order;
 
     for (const auto& entry: cell.synapses()) {
         const std::string& name = entry.first;
         mechanism_info info = catalogue[name];
-        std::vector<synapse_instance> sl;
 
-        // Map from a param string identifier to a unique unsigned int identifier
-        std::map<std::string, unsigned> param_map;
+        // Vectors of parameter values are stored in the order of
+        // parameters given by info.parameters.
 
-        // Map from a param unsigned int identifier to a default value
-        std::map<unsigned, double> default_param_value;
+        // Map from a parameter name to index in ordering.
+        std::unordered_map<std::string, unsigned> param_index;
+
+        // Default values indexed by param_map index.
+        default_param_value.clear();
+        default_param_value.resize(info.parameters.size());
+
+        // Reset working synapse instance list.
+        inst_list.clear();
+        inst_list.reserve(entry.second.size());
 
         unsigned id=0;
         for (const auto& kv: info.parameters) {
-            param_map[kv.first] = id;
+            param_index[kv.first] = id;
             default_param_value[id++] = kv.second.default_value;
         }
 
@@ -960,16 +972,14 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
             synapse_instance in;
 
-            auto param_value_map = default_param_value;
+            in.param_value = default_param_value;
             for (const auto& kv: pm.item.values()) {
-                param_value_map.at(param_map.at(kv.first)) = kv.second;
+                in.param_value.at(param_index.at(kv.first)) = kv.second;
             }
-            std::copy(param_value_map.begin(), param_value_map.end(), std::back_inserter(in.param_value));
-            std::sort(in.param_value.begin(), in.param_value.end());
 
             in.target_index = pm.lid;
             in.cv = D.geometry.location_cv(cell_idx, pm.loc, cv_prefer::cv_nonempty);
-            sl.push_back(std::move(in));
+            inst_list.push_back(std::move(in));
         }
 
         // Permute synapse instances so that they are in increasing order
@@ -977,23 +987,22 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         // instances in the same CV with the same parameter values are adjacent.
         // cv_order[i] is the index of the ith instance by this ordering.
 
-        std::vector<size_type> cv_order;
-        assign(cv_order, count_along(sl));
+        assign(cv_order, count_along(inst_list));
         sort_by(cv_order, [&](size_type i) {
-            return std::tie(sl[i].cv, sl[i].param_value, sl[i].target_index);
+            return std::tie(inst_list[i].cv, inst_list[i].param_value, inst_list[i].target_index);
         });
 
         bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
         config.kind = mechanismKind::point;
-        for (auto& pentry: param_map) {
-            config.param_values.emplace_back(pentry.first, std::vector<value_type>{});
+        for (auto& kv: info.parameters) {
+            config.param_values.emplace_back(kv.first, std::vector<value_type>{});
         }
 
         const synapse_instance* prev = nullptr;
         for (auto i: cv_order) {
-            const auto& in = sl[i];
+            const auto& in = inst_list[i];
 
             if (coalesce && prev && prev->cv==in.cv && prev->param_value==in.param_value) {
                 ++config.multiplicity.back();
@@ -1004,13 +1013,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                     config.multiplicity.push_back(1);
                 }
 
-                unsigned j = 0;
-                for (auto& pentry: param_map) {
-                    arb_assert(config.param_values[j].first==pentry.first);
-                    auto it = std::lower_bound(in.param_value.begin(), in.param_value.end(), pentry.second, [](auto el, unsigned val) {return el.first < val;});
-
-                    arb_assert(it!= in.param_value.end());
-                    config.param_values[j++].second.push_back((*it).second);
+                for (auto j: count_along(in.param_value)) {
+                    config.param_values[j].second.push_back(in.param_value[j]);
                 }
             }
             config.target.push_back(in.target_index);
