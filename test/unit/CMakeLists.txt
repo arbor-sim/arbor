@@ -128,6 +128,7 @@ set(unit_sources
     test_path.cpp
     test_piecewise.cpp
     test_point.cpp
+    test_pp_util.cpp
     test_probe.cpp
     test_range.cpp
     test_ratelem.cpp

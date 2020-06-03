@@ -322,18 +322,19 @@ void run_samples(
 void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     time_type tstart = lowered_->time();
 
+    // Bin and collate deliverable events from event lanes.
+
     PE(advance_eventsetup);
     staged_events_.clear();
 
-    fvm_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
-    // skip event binning if empty lanes are passed
+    // Skip event handling if nothing to deliver.
     if (event_lanes.size()) {
-
         std::vector<cell_size_type> idx_sorted_by_intdom(cell_to_intdom_.size());
         std::iota(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), 0);
         util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return cell_to_intdom_[i]; });
 
         /// Event merging on integration domain could benefit from the use of the logic from `tree_merge_events`
+        fvm_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
         fvm_index_type prev_intdom = -1;
         for (auto i: util::count_along(gids_)) {
             unsigned count_staged = 0;
@@ -368,7 +369,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     }
     PL();
 
-
     // Create sample events and delivery information.
     //
     // For each (schedule, sampler, probe set) in the sampler association
@@ -389,6 +389,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
 
+    std::vector<deliverable_event> exact_sampling_events;
+
     for (auto& sa: sampler_map_) {
         auto sample_times = util::make_range(sa.sched.events(tstart, ep.tfinal));
         if (sample_times.empty()) {
@@ -406,13 +408,38 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times*n_raw});
 
             for (auto t: sample_times) {
+                auto intdom = cell_to_intdom_[cell_index];
                 for (probe_handle h: p.handle.raw_handle_range()) {
-                    sample_event ev{t, (cell_gid_type)cell_to_intdom_[cell_index], {h, n_samples++}};
+                    sample_event ev{t, (cell_gid_type)intdom, {h, n_samples++}};
                     sample_events.push_back(ev);
+                }
+                if (sa.policy==sampling_policy::exact) {
+                    target_handle h(-1, 0, intdom);
+                    exact_sampling_events.push_back({t, h, 0.f});
                 }
             }
         }
         arb_assert(n_samples==call_info.back().end_offset);
+    }
+
+    // Sort exact sampling events into staged events for delivery.
+    if (exact_sampling_events.size()) {
+        auto event_less =
+            [](const auto& a, const auto& b) {
+                 auto ai = event_index(a);
+                 auto bi = event_index(b);
+                 return ai<bi || (ai==bi && event_time(a)<event_time(b));
+            };
+
+        util::sort(exact_sampling_events, event_less);
+
+        std::vector<deliverable_event> merged;
+        merged.reserve(staged_events_.size()+exact_sampling_events.size());
+
+        std::merge(staged_events_.begin(), staged_events_.end(),
+                   exact_sampling_events.begin(), exact_sampling_events.end(),
+                   std::back_inserter(merged), event_less);
+        std::swap(merged, staged_events_);
     }
 
     // Sample events must be ordered by time for the lowered cell.
@@ -457,7 +484,7 @@ void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predic
         util::assign_from(util::filter(util::keys(probe_map_), probe_ids));
 
     if (!probeset.empty()) {
-        sampler_map_.add(h, sampler_association{std::move(sched), std::move(fn), std::move(probeset)});
+        sampler_map_.add(h, sampler_association{std::move(sched), std::move(fn), std::move(probeset), policy});
     }
 }
 

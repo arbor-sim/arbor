@@ -13,6 +13,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/util/pp_util.hpp>
 #include <arbor/version.hpp>
 #include <arborenv/gpu_env.hpp>
 
@@ -183,7 +184,7 @@ void run_v_i_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_v_cable_probe_test(const context& ctx) {
+void run_v_cell_probe_test(const context& ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
 
     // Take the per-cable voltage over a Y-shaped cell with and without
@@ -244,9 +245,7 @@ void run_v_cable_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_expsyn_g_probe_test(const context& ctx, bool coalesce_synapses = false) {
-    SCOPED_TRACE(coalesce_synapses? "coalesced": "uncoalesced");
-
+void run_expsyn_g_probe_test(const context& ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
     auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
 
@@ -262,75 +261,85 @@ void run_expsyn_g_probe_test(const context& ctx, bool coalesce_synapses = false)
     bs.place(loc1, "expsyn");
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(2);
 
-    cable1d_recipe rec(bs, coalesce_synapses);
-    rec.add_probe(0, 10, cable_probe_point_state{0u, "expsyn", "g"});
-    rec.add_probe(0, 20, cable_probe_point_state{1u, "expsyn", "g"});
+    auto run_test = [&](bool coalesce_synapses) {
+        cable1d_recipe rec(bs, coalesce_synapses);
+        rec.add_probe(0, 10, cable_probe_point_state{0u, "expsyn", "g"});
+        rec.add_probe(0, 20, cable_probe_point_state{1u, "expsyn", "g"});
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<fvm_probe_info> probe_map;
+        std::vector<target_handle> targets;
+        std::vector<fvm_index_type> cell_to_intdom;
+        probe_association_map<fvm_probe_info> probe_map;
 
-    fvm_cell lcell(*ctx);
-    lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+        fvm_cell lcell(*ctx);
+        lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
 
-    EXPECT_EQ(2u, rec.num_probes(0));
-    EXPECT_EQ(2u, probe_map.size());
-    ASSERT_EQ(1u, probe_map.count({0, 0}));
-    ASSERT_EQ(1u, probe_map.count({0, 1}));
+        EXPECT_EQ(2u, rec.num_probes(0));
+        EXPECT_EQ(2u, probe_map.size());
+        ASSERT_EQ(1u, probe_map.count({0, 0}));
+        ASSERT_EQ(1u, probe_map.count({0, 1}));
 
-    EXPECT_EQ(10, probe_map.at({0, 0}).tag);
-    EXPECT_EQ(20, probe_map.at({0, 1}).tag);
+        EXPECT_EQ(10, probe_map.at({0, 0}).tag);
+        EXPECT_EQ(20, probe_map.at({0, 1}).tag);
 
-    auto probe_scalar_handle = [&](cell_member_type x) {
-        return probe_map.at(x).handle.raw_handle_range()[0];
+        auto probe_scalar_handle = [&](cell_member_type x) {
+            return probe_map.at(x).handle.raw_handle_range()[0];
+        };
+
+        probe_handle p0 = probe_scalar_handle({0, 0});
+        probe_handle p1 = probe_scalar_handle({0, 1});
+
+        // Expect initial probe values to be intial synapse g == 0.
+
+        EXPECT_EQ(0.0, deref(p0));
+        EXPECT_EQ(0.0, deref(p1));
+
+        if (coalesce_synapses) {
+            // Should be the same raw pointer!
+            EXPECT_EQ(p0, p1);
+        }
+
+        // Integrate to 3 ms, with one event at 1ms to first expsyn weight 0.5,
+        // and another at 2ms to second, weight 1.
+
+        std::vector<deliverable_event> evs = {
+            {1.0, targets[0], 0.5},
+            {2.0, targets[1], 1.0}
+        };
+        const double tfinal = 3.;
+        const double dt = 0.001;
+        lcell.integrate(tfinal, dt, evs, {});
+
+        fvm_value_type g0 = deref(p0);
+        fvm_value_type g1 = deref(p1);
+
+        // Expected value: weight*exp(-(t_final-t_event)/tau).
+        double expected_g0 = 0.5*std::exp(-(tfinal-1.0)/tau);
+        double expected_g1 = 1.0*std::exp(-(tfinal-2.0)/tau);
+
+        const double rtol = 1e-6;
+        if (coalesce_synapses) {
+            EXPECT_TRUE(testing::near_relative(expected_g0+expected_g1, g0, rtol));
+            EXPECT_TRUE(testing::near_relative(expected_g0+expected_g1, g1, rtol));
+        }
+        else {
+            EXPECT_TRUE(testing::near_relative(expected_g0, g0, rtol));
+            EXPECT_TRUE(testing::near_relative(expected_g1, g1, rtol));
+        }
     };
 
-    probe_handle p0 = probe_scalar_handle({0, 0});
-    probe_handle p1 = probe_scalar_handle({0, 1});
-
-    // Expect initial probe values to be intial synapse g == 0.
-
-    EXPECT_EQ(0.0, deref(p0));
-    EXPECT_EQ(0.0, deref(p1));
-
-    if (coalesce_synapses) {
-        // Should be the same raw pointer!
-        EXPECT_EQ(p0, p1);
+    {
+        SCOPED_TRACE("uncoalesced synapses");
+        run_test(false);
     }
 
-    // Integrate to 3 ms, with one event at 1ms to first expsyn weight 0.5,
-    // and another at 2ms to second, weight 1.
-
-    std::vector<deliverable_event> evs = {
-        {1.0, targets[0], 0.5},
-        {2.0, targets[1], 1.0}
-    };
-    const double tfinal = 3.;
-    const double dt = 0.001;
-    lcell.integrate(tfinal, dt, evs, {});
-
-    fvm_value_type g0 = deref(p0);
-    fvm_value_type g1 = deref(p1);
-
-    // Expected value: weight*exp(-(t_final-t_event)/tau).
-    double expected_g0 = 0.5*std::exp(-(tfinal-1.0)/tau);
-    double expected_g1 = 1.0*std::exp(-(tfinal-2.0)/tau);
-
-    const double rtol = 1e-6;
-    if (coalesce_synapses) {
-        EXPECT_TRUE(testing::near_relative(expected_g0+expected_g1, g0, rtol));
-        EXPECT_TRUE(testing::near_relative(expected_g0+expected_g1, g1, rtol));
-    }
-    else {
-        EXPECT_TRUE(testing::near_relative(expected_g0, g0, rtol));
-        EXPECT_TRUE(testing::near_relative(expected_g1, g1, rtol));
+    {
+        SCOPED_TRACE("coalesced synapses");
+        run_test(true);
     }
 }
 
 template <typename Backend>
-void run_expsyn_g_cable_probe_test(const context& ctx, bool coalesce_synapses = false) {
-    SCOPED_TRACE(coalesce_synapses? "coalesced": "uncoalesced");
-
+void run_expsyn_g_cell_probe_test(const context& ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
     auto deref = [](const auto* p) { return backend_access<Backend>::deref(p); };
 
@@ -362,89 +371,102 @@ void run_expsyn_g_cable_probe_test(const context& ctx, bool coalesce_synapses = 
     const unsigned n_expsyn = 30;
 
     std::vector<cable_cell> cells(2, cell);
-    cable1d_recipe rec(cells, coalesce_synapses);
 
-    rec.add_probe(0, 0, cable_probe_point_state_cell{"expsyn", "g"});
-    rec.add_probe(1, 0, cable_probe_point_state_cell{"expsyn", "g"});
+    auto run_test = [&](bool coalesce_synapses) {
+        cable1d_recipe rec(cells, coalesce_synapses);
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<fvm_probe_info> probe_map;
+        rec.add_probe(0, 0, cable_probe_point_state_cell{"expsyn", "g"});
+        rec.add_probe(1, 0, cable_probe_point_state_cell{"expsyn", "g"});
 
-    fvm_cell lcell(*ctx);
-    lcell.initialize({0, 1}, rec, cell_to_intdom, targets, probe_map);
+        std::vector<target_handle> targets;
+        std::vector<fvm_index_type> cell_to_intdom;
+        probe_association_map<fvm_probe_info> probe_map;
 
-    // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
-    // integrate for a tiny time step.
+        fvm_cell lcell(*ctx);
+        lcell.initialize({0, 1}, rec, cell_to_intdom, targets, probe_map);
 
-    std::vector<deliverable_event> events;
-    for (unsigned i: {0u, 1u}) {
-        // Cells have the same number of targets, so the offset for cell 1 is exactly...
-        cell_local_size_type cell_offset = i==0? 0: targets.size()/2;
+        // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
+        // integrate for a tiny time step.
 
-        for (auto target_id: util::keys(expsyn_target_loc_map)) {
-            deliverable_event ev{0., targets.at(target_id+cell_offset), float(target_id+100*i)};
-            events.push_back(ev);
+        std::vector<deliverable_event> events;
+        for (unsigned i: {0u, 1u}) {
+            // Cells have the same number of targets, so the offset for cell 1 is exactly...
+            cell_local_size_type cell_offset = i==0? 0: targets.size()/2;
+
+            for (auto target_id: util::keys(expsyn_target_loc_map)) {
+                deliverable_event ev{0., targets.at(target_id+cell_offset), float(target_id+100*i)};
+                events.push_back(ev);
+            }
         }
+        (void)lcell.integrate(1e-5, 1e-5, events, {});
+
+        // Independently get cv geometry to compute CV indices.
+
+        cv_geometry geom = cv_geometry_from_ends(cells[0], policy.cv_boundary_points(cells[0]));
+        append(geom, cv_geometry_from_ends(cells[1], policy.cv_boundary_points(cells[1])));
+
+        ASSERT_EQ(2u, probe_map.size());
+        for (unsigned i: {0u, 1u}) {
+            const auto* h_ptr = util::get_if<fvm_probe_multi>(probe_map.at({i, 0}).handle.info);
+            ASSERT_TRUE(h_ptr);
+
+            const auto* m_ptr = util::get_if<std::vector<cable_probe_point_info>>(h_ptr->metadata);
+            ASSERT_TRUE(m_ptr);
+
+            const fvm_probe_multi& h = *h_ptr;
+            const std::vector<cable_probe_point_info> m = *m_ptr;
+
+            ASSERT_EQ(h.raw_handles.size(), m.size());
+            ASSERT_EQ(n_expsyn, m.size());
+
+            std::vector<double> expected_coalesced_cv_value(geom.size());
+            std::vector<double> expected_uncoalesced_value(targets.size());
+
+            std::vector<double> target_cv(targets.size(), (unsigned)-1);
+            std::unordered_map<fvm_size_type, unsigned> cv_expsyn_count;
+
+            for (unsigned j = 0; j<n_expsyn; ++j) {
+                ASSERT_EQ(1u, expsyn_target_loc_map.count(m[j].target));
+                EXPECT_EQ(expsyn_target_loc_map.at(m[j].target), m[j].loc);
+
+                auto cv = geom.location_cv(i, m[j].loc, cv_prefer::cv_nonempty);
+                target_cv[j] = cv;
+                ++cv_expsyn_count[cv];
+
+                double event_weight = m[j].target+100*i;
+                expected_uncoalesced_value[j] = event_weight;
+                expected_coalesced_cv_value[cv] += event_weight;
+            }
+
+            for (unsigned j = 0; j<n_expsyn; ++j) {
+                if (coalesce_synapses) {
+                    EXPECT_EQ(cv_expsyn_count.at(target_cv[j]), m[j].multiplicity);
+                }
+                else {
+                    EXPECT_EQ(1u, m[j].multiplicity);
+                }
+            }
+
+            for (unsigned j = 0; j<n_expsyn; ++j) {
+                double expected_value = coalesce_synapses?
+                    expected_coalesced_cv_value[target_cv[j]]:
+                    expected_uncoalesced_value[j];
+
+                double value = deref(h.raw_handles[j]);
+
+                EXPECT_NEAR(expected_value, value, 0.01); // g values will have decayed a little.
+            }
+        }
+    };
+
+    {
+        SCOPED_TRACE("uncoalesced synapses");
+        run_test(false);
     }
-    (void)lcell.integrate(1e-5, 1e-5, events, {});
 
-    // Independently get cv geometry to compute CV indices.
-
-    cv_geometry geom = cv_geometry_from_ends(cells[0], policy.cv_boundary_points(cells[0]));
-    append(geom, cv_geometry_from_ends(cells[1], policy.cv_boundary_points(cells[1])));
-
-    ASSERT_EQ(2u, probe_map.size());
-    for (unsigned i: {0u, 1u}) {
-        const auto* h_ptr = util::get_if<fvm_probe_multi>(probe_map.at({i, 0}).handle.info);
-        ASSERT_TRUE(h_ptr);
-
-        const auto* m_ptr = util::get_if<std::vector<cable_probe_point_info>>(h_ptr->metadata);
-        ASSERT_TRUE(m_ptr);
-
-        const fvm_probe_multi& h = *h_ptr;
-        const std::vector<cable_probe_point_info> m = *m_ptr;
-
-        ASSERT_EQ(h.raw_handles.size(), m.size());
-        ASSERT_EQ(n_expsyn, m.size());
-
-        std::vector<double> expected_coalesced_cv_value(geom.size());
-        std::vector<double> expected_uncoalesced_value(targets.size());
-
-        std::vector<double> target_cv(targets.size(), (unsigned)-1);
-        std::unordered_map<fvm_size_type, unsigned> cv_expsyn_count;
-
-        for (unsigned j = 0; j<n_expsyn; ++j) {
-            ASSERT_EQ(1u, expsyn_target_loc_map.count(m[j].target));
-            EXPECT_EQ(expsyn_target_loc_map.at(m[j].target), m[j].loc);
-
-            auto cv = geom.location_cv(i, m[j].loc, cv_prefer::cv_nonempty);
-            target_cv[j] = cv;
-            ++cv_expsyn_count[cv];
-
-            double event_weight = m[j].target+100*i;
-            expected_uncoalesced_value[j] = event_weight;
-            expected_coalesced_cv_value[cv] += event_weight;
-        }
-
-        for (unsigned j = 0; j<n_expsyn; ++j) {
-            if (coalesce_synapses) {
-                EXPECT_EQ(cv_expsyn_count.at(target_cv[j]), m[j].multiplicity);
-            }
-            else {
-                EXPECT_EQ(1u, m[j].multiplicity);
-            }
-        }
-
-        for (unsigned j = 0; j<n_expsyn; ++j) {
-            double expected_value = coalesce_synapses?
-                expected_coalesced_cv_value[target_cv[j]]:
-                expected_uncoalesced_value[j];
-
-            double value = deref(h.raw_handles[j]);
-
-            EXPECT_NEAR(expected_value, value, 0.01); // g values will have decayed a little.
-        }
+    {
+        SCOPED_TRACE("coalesced synapses");
+        run_test(true);
     }
 }
 
@@ -726,7 +748,7 @@ void run_partial_density_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_axial_and_ion_current_probe_sampled_test(const context& ctx) {
+void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // On a passive cable in steady-state, the capacitive membrane current will be zero,
     // and the axial currents should balance the ionic membrane currents in any CV.
     //
@@ -891,7 +913,7 @@ auto run_simple_sampler(
 }
 
 template <typename Backend>
-void run_v_sampled_test(const context& ctx) {
+void run_v_sampled_probe_test(const context& ctx) {
     cable_cell bs = make_cell_ball_and_stick(false);
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(1);
 
@@ -924,7 +946,7 @@ void run_v_sampled_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_total_current_test(const context& ctx) {
+void run_total_current_probe_test(const context& ctx) {
     // Model two passive Y-shaped cells with a similar but not identical
     // time constant τ.
     //
@@ -1044,114 +1066,149 @@ void run_total_current_test(const context& ctx) {
     }
 }
 
-TEST(probe, multicore_v_i) {
-    context ctx = make_context();
-    run_v_i_probe_test<multicore::backend>(ctx);
+template <typename Backend>
+void run_exact_sampling_probe_test(const context& ctx) {
+    // As the exact sampling implementation interacts with the event delivery
+    // implementation within in cable cell groups, construct a somewhat
+    // elaborate model with 4 cells and a gap junction between cell 1 and 3.
+
+    struct adhoc_recipe: recipe {
+        std::vector<cable_cell> cells_;
+        cable_cell_global_properties gprop_;
+
+        adhoc_recipe() {
+            gprop_.default_parameters = neuron_parameter_defaults;
+
+            cells_.assign(4, make_cell_ball_and_stick(false));
+            cells_[0].place(mlocation{1, 0.1}, "expsyn");
+            cells_[1].place(mlocation{1, 0.1}, "exp2syn");
+            cells_[2].place(mlocation{1, 0.9}, "expsyn");
+            cells_[3].place(mlocation{1, 0.9}, "exp2syn");
+
+            cells_[1].place(mlocation{1, 0.2}, gap_junction_site{});
+            cells_[3].place(mlocation{1, 0.2}, gap_junction_site{});
+
+        }
+
+        cell_size_type num_cells() const override { return cells_.size(); }
+
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_.at(gid);
+        }
+
+        cell_kind get_cell_kind(cell_gid_type) const override {
+            return cell_kind::cable;
+        }
+
+        cell_size_type num_probes(cell_gid_type) const override { return 1; }
+
+        probe_info get_probe(cell_member_type pid) const override {
+            return {pid, 0, cable_probe_membrane_voltage{mlocation{1, 0.5}}};
+        }
+
+        cell_size_type num_targets(cell_gid_type) const override { return 1; }
+
+        cell_size_type num_gap_junction_sites(cell_gid_type gid) const override {
+            return gid==1 || gid==3;
+        }
+
+        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            switch (gid) {
+            case 1:
+                return {gap_junction_connection({gid, 0}, {3, 0}, 1.)};
+            case 3:
+                return {gap_junction_connection({gid, 0}, {1, 0}, 1.)};
+            default:
+                return {};
+            }
+        }
+
+        std::vector<event_generator> event_generators(cell_gid_type gid) const override {
+            // Send a single event to cell i at 0.1*i milliseconds.
+            pse_vector spikes = {spike_event{{gid, 0}, 0.1*gid, 1.f}};
+            return {explicit_generator(spikes)};
+        }
+
+        util::any get_global_properties(cell_kind k) const override {
+            return k==cell_kind::cable? gprop_: util::any{};
+        }
+    };
+
+    // Check two things:
+    // 1. Membrane voltage is similar with and without exact sampling.
+    // 2. Sample times are in fact exact with exact sampling.
+
+    std::vector<trace_data<double>> lax_traces(4), exact_traces(4);
+
+    const double max_dt = 0.001;
+    const double t_end = 1.;
+    std::vector<time_type> sched_times{1./7., 3./7., 4./7., 6./7.};
+    schedule sample_sched = explicit_schedule(sched_times);
+
+    adhoc_recipe rec;
+    unsigned n_cell = rec.num_cells();
+    unsigned n_sample_time = sched_times.size();
+
+    partition_hint_map phints = {
+       {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
+    };
+    domain_decomposition one_cell_group = partition_load_balance(rec, ctx, phints);
+
+    simulation lax_sim(rec, one_cell_group, ctx);
+    for (unsigned i = 0; i<n_cell; ++i) {
+        lax_sim.add_sampler(one_probe({i, 0}), sample_sched, make_simple_sampler(lax_traces.at(i)), sampling_policy::lax);
+    }
+    lax_sim.run(t_end, max_dt);
+
+    simulation exact_sim(rec, one_cell_group, ctx);
+    for (unsigned i = 0; i<n_cell; ++i) {
+        exact_sim.add_sampler(one_probe({i, 0}), sample_sched, make_simple_sampler(exact_traces.at(i)), sampling_policy::exact);
+    }
+    exact_sim.run(t_end, max_dt);
+
+    for (unsigned i = 0; i<n_cell; ++i) {
+        ASSERT_EQ(n_sample_time, lax_traces.at(i).size());
+        ASSERT_EQ(n_sample_time, exact_traces.at(i).size());
+    }
+
+    for (unsigned i = 0; i<n_cell; ++i) {
+        for (unsigned j = 0; j<n_sample_time; ++j) {
+            EXPECT_NE(sched_times.at(j), lax_traces.at(i).at(j).t);
+            EXPECT_EQ(sched_times.at(j), exact_traces.at(i).at(j).t);
+
+            EXPECT_TRUE(testing::near_relative(lax_traces.at(i).at(j).v, exact_traces.at(i).at(j).v, 0.01));
+        }
+    }
 }
 
-TEST(probe, multicore_v_cell) {
-    context ctx = make_context();
-    run_v_cable_probe_test<multicore::backend>(ctx);
+// Generate unit tests multicore_X and gpu_X for each entry X in PROBE_TESTS,
+// which establish the appropriate arbor context and then call run_X_probe_test.
+
+#undef PROBE_TESTS
+#define PROBE_TESTS \
+    v_i, v_cell, v_sampled, expsyn_g, expsyn_g_cell, \
+    ion_density, axial_and_ion_current_sampled, partial_density, total_current, exact_sampling
+
+#undef RUN_MULTICORE
+#define RUN_MULTICORE(x) \
+TEST(probe, multicore_##x) { \
+    context ctx = make_context(); \
+    run_##x##_probe_test<multicore::backend>(ctx); \
 }
 
-TEST(probe, multicore_v_sampled) {
-    context ctx = make_context();
-    run_v_sampled_test<multicore::backend>(ctx);
-}
-
-TEST(probe, multicore_expsyn_g) {
-    context ctx = make_context();
-    run_expsyn_g_probe_test<multicore::backend>(ctx, false);
-    run_expsyn_g_probe_test<multicore::backend>(ctx, true);
-}
-
-TEST(probe, multicore_expsyn_g_cell) {
-    context ctx = make_context();
-    run_expsyn_g_cable_probe_test<multicore::backend>(ctx, false);
-    run_expsyn_g_cable_probe_test<multicore::backend>(ctx, true);
-}
-
-TEST(probe, multicore_ion_conc) {
-    context ctx = make_context();
-    run_ion_density_probe_test<multicore::backend>(ctx);
-}
-
-TEST(probe, multicore_axial_and_ion_current) {
-    context ctx = make_context();
-    run_axial_and_ion_current_probe_sampled_test<multicore::backend>(ctx);
-}
-
-TEST(probe, multicore_partial_density) {
-    context ctx = make_context();
-    run_partial_density_probe_test<multicore::backend>(ctx);
-}
-
-TEST(probe, multicore_total_current) {
-    context ctx = make_context();
-    run_total_current_test<multicore::backend>(ctx);
-}
+ARB_PP_FOREACH(RUN_MULTICORE, PROBE_TESTS)
 
 #ifdef ARB_GPU_ENABLED
-TEST(probe, gpu_v_i) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_v_i_probe_test<gpu::backend>(ctx);
-    }
+
+#undef RUN_GPU
+#define RUN_GPU(x) \
+TEST(probe, gpu_##x) { \
+    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()}); \
+    if (has_gpu(ctx)) { \
+        run_##x##_probe_test<gpu::backend>(ctx); \
+    } \
 }
 
-TEST(probe, gpu_v_cell) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_v_cable_probe_test<gpu::backend>(ctx);
-    }
-}
+ARB_PP_FOREACH(RUN_GPU, PROBE_TESTS)
 
-TEST(probe, gpu_v_sampled) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    run_v_sampled_test<multicore::backend>(ctx);
-}
-
-TEST(probe, gpu_expsyn_g) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_expsyn_g_probe_test<gpu::backend>(ctx, false);
-        run_expsyn_g_probe_test<gpu::backend>(ctx, true);
-    }
-}
-
-TEST(probe, gpu_expsyn_g_cell) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_expsyn_g_cable_probe_test<gpu::backend>(ctx, false);
-        run_expsyn_g_cable_probe_test<gpu::backend>(ctx, true);
-    }
-}
-
-TEST(probe, gpu_ion_conc) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_ion_density_probe_test<gpu::backend>(ctx);
-    }
-}
-
-TEST(probe, gpu_axial_and_ion_current) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_axial_and_ion_current_probe_sampled_test<gpu::backend>(ctx);
-    }
-}
-
-TEST(probe, gpu_partial_density) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_partial_density_probe_test<multicore::backend>(ctx);
-    }
-}
-
-TEST(probe, gpu_total_current) {
-    context ctx = make_context(proc_allocation{1, arbenv::default_gpu()});
-    if (has_gpu(ctx)) {
-        run_total_current_test<gpu::backend>(ctx);
-    }
-}
-#endif
+#endif // def ARB_GPU_ENABLED
