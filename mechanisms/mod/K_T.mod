@@ -17,13 +17,12 @@ PARAMETER	{
 	gbar = 0.00001 (S/cm2)
 	vshift = 0 (mV)
 	mTauF = 1.0
-	hTauF = 1.0
+        hTauF = 1.0
+	celsius (degC)				      
 }
 
 ASSIGNED	{
-	v	(mV)
 	g	(S/cm2)
-	celsius (degC)
 	mInf
 	mTau
 	hInf
@@ -42,18 +41,18 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	rates(v)
+	rates(v, celsius)
 	m' = (mInf-m)/mTau
 	h' = (hInf-h)/hTau
 }
 
 INITIAL{
-	rates(v)
+	rates(v, celsius)
 	m = mInf
 	h = hInf
 }
 
-PROCEDURE rates(v){
+PROCEDURE rates(v, celsius){
         LOCAL qt
         qt = 2.3^((celsius-21)/10)
 

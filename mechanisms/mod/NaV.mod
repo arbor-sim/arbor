@@ -15,8 +15,9 @@ UNITS {
 
 PARAMETER {
     gbar = .015           (S/cm2)
+    celsius               (degC)
 
-    : kinetic parameters
+   : kinetic parameters
     Con = 0.01            (/ms)                    : closed -> inactivated transitions
     Coff = 40             (/ms)                    : inactivated -> closed transitions
     Oon = 8               (/ms)                    : open -> Ineg transition
@@ -72,7 +73,6 @@ ASSIGNED {
     
     v           (mV)
     g           (S/cm2)
-    celsius     (degC)
 }
 
 STATE {
@@ -97,12 +97,12 @@ BREAKPOINT {
 }
 
 INITIAL {
- rates(v)
+ rates(v, celsius)
  SOLVE seqinitial
 }
 
 KINETIC activation {
-    rates(v)
+    rates(v, celsius)
     ~ C1 <-> C2    (f01, b01)
     ~ C2 <-> C3    (f02, b02)
     ~ C3 <-> C4    (f03, b03)
@@ -141,7 +141,7 @@ LINEAR seqinitial {
     ~ C1 + C2 + C3 + C4 + C5 + O + I1 + I2 + I3 + I4 + I5 + I6 = 1
 }
 
-PROCEDURE rates(v) {
+PROCEDURE rates(v, celsius) {
   LOCAL qt
   qt = 2.3^((celsius-37)/10)
 
@@ -179,4 +179,3 @@ PROCEDURE rates(v) {
   bi5 = qt * Coff / (btfac^4)
   bin = qt * Ooff
 }
-

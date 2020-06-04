@@ -1,24 +1,24 @@
 : Reference:        Reuveni, Friedman, Amitai, and Gutnick, J.Neurosci. 1993
 
-NEURON  {
+NEURON {
     SUFFIX Ca_HVA
     USEION ca READ eca WRITE ica
-    RANGE gbar, g, ica
+    RANGE gbar, g
 }
 
-UNITS   {
+UNITS {
     (S) = (siemens)
     (mV) = (millivolt)
     (mA) = (milliamp)
 }
 
-PARAMETER   {
+PARAMETER {
     gbar = 0.00001 (S/cm2)
 }
 
-ASSIGNED    {
-    v   (mV)
-    g   (S/cm2)
+ASSIGNED {
+    v (mV)
+    g (S/cm2)
     mInf
     mTau
     mAlpha
@@ -29,32 +29,31 @@ ASSIGNED    {
     hBeta
 }
 
-STATE   {
+STATE {
     m
     h
 }
 
-BREAKPOINT  {
+BREAKPOINT {
     SOLVE states METHOD cnexp
     g = gbar*m*m*h
     ica = g*(v-eca)
 }
 
-DERIVATIVE states   {
+DERIVATIVE states {
     rates(v)
     m' = (mInf-m)/mTau
     h' = (hInf-h)/hTau
 }
 
-INITIAL{
+INITIAL {
     rates(v)
     m = mInf
     h = hInf
 }
 
-PROCEDURE rates(v){
+PROCEDURE rates(v) {
     UNITSOFF
-
     mAlpha = 0.055 * vtrap(-27 - v, 3.8)
     mBeta  =  (0.94*exp((-75-v)/17))
     mInf = mAlpha/(mAlpha + mBeta)
@@ -63,13 +62,15 @@ PROCEDURE rates(v){
     hBeta  =  (0.0065/(exp((-v-15)/28)+1))
     hInf = hAlpha/(hAlpha + hBeta)
     hTau = 1/(hAlpha + hBeta)
-
     UNITSON
 }
 
-FUNCTION vtrap(x, y) {
-    :vtrap = x / (exp(x / y) - 1)
-
-    : use exprelr builtin
-    vtrap = y*exprelr(x/y)
+FUNCTION vtrap(x, y) { : Traps for 0 in denominator of rate equations
+	UNITSOFF
+	if (fabs(x / y) < 1e-6) {
+		vtrap = y * (1 - x / y / 2)
+	} else {
+		vtrap = x / (exp(x / y) - 1)
+	}
+	UNITSON
 }

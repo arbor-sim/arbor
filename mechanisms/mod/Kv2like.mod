@@ -6,7 +6,7 @@
 NEURON	{
 	SUFFIX Kv2like
 	USEION k READ ek WRITE ik
-	RANGE gbar, g, ik
+	RANGE gbar, g
 }
 
 UNITS	{
@@ -16,13 +16,12 @@ UNITS	{
 }
 
 PARAMETER	{
+	celsius (degC)     
 	gbar = 0.00001 (S/cm2)
 }
 
 ASSIGNED	{
-	v	(mV)
 	g	(S/cm2)
-	celsius (degC)
 	mInf
 	mAlpha
 	mBeta
@@ -45,20 +44,20 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	rates(v)
+	rates(v, celsius)
 	m' = (mInf - m) / mTau
 	h1' = (hInf - h1) / h1Tau
 	h2' = (hInf - h2) / h2Tau
 }
 
 INITIAL{
-	rates(v)
+	rates(v, celsius)
 	m = mInf
 	h1 = hInf
 	h2 = hInf
 }
 
-PROCEDURE rates(v) {
+PROCEDURE rates(v, celsius) {
   LOCAL qt
   qt = 2.3^((celsius-21)/10)
 	UNITSOFF
@@ -70,6 +69,9 @@ PROCEDURE rates(v) {
 		hInf =  1/(1 + exp((v + 58) / 11))
 		h1Tau = (360 + (1010 + 23.7 * (v + 54)) * exp(-((v + 75) / 48)^2)) / qt
 		h2Tau = (2350 + 1380 * exp(-0.011 * v) - 210 * exp(-0.03 * v)) / qt
+		if (h2Tau < 0) {
+			h2Tau = 1e-3
+		}
 	UNITSON
 }
 

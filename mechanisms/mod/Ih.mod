@@ -53,9 +53,12 @@ PROCEDURE rates(v){
     mTau = 1/(mAlpha + mBeta)
 }
 
-FUNCTION vtrap(x, y) {
-    :vtrap = x / (exp(x / y) - 1)
-
-    : use exprelr builtin
-    vtrap = y*exprelr(x/y)
+FUNCTION vtrap(x, y) { : Traps for 0 in denominator of rate equations
+	UNITSOFF
+	if (fabs(x / y) < 1e-6) {
+		vtrap = y * (1 - x / y / 2)
+	} else {
+		vtrap = x / (exp(x / y) - 1)
+	}
+	UNITSON
 }
