@@ -68,12 +68,12 @@ struct trace_data<V, void>: private std::vector<trace_entry<V>> {
 // the ith element will correspond to the sample data obtained
 // from the probe with index i.
 //
-// The overriden method `at(i)` returns a const reference to the ith
+// The method `get(i)` returns a const reference to the ith
 // element if it exists, or else to an empty trace_data value.
 
 template <typename V, typename Meta = void>
 struct trace_vector: private std::vector<trace_data<V, Meta>> {
-    const trace_data<V, Meta>& at(std::size_t i) const {
+    const trace_data<V, Meta>& get(std::size_t i) const {
         return i<this->size()? (*this)[i]: empty_trace;
     }
 
