@@ -152,15 +152,6 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
 
     for (msize_t i: util::make_span(nb)) {
         auto ids = util::make_range(m.branch_indexes(i)); // range of sample ids in branch.
-        size_t ns = util::size(ids);        // number of samples in branch.
-
-        if (ns==1) {
-            // The branch is a spherical soma
-            if (samples[0].tag==reg.tag) {
-                L.push_back({0,0,1});
-            }
-            continue;
-        }
 
         // The branch has at least 2 samples.
         // Start at begin+1 because a segment gets its tag from its distal sample.

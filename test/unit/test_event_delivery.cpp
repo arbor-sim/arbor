@@ -28,7 +28,8 @@ struct test_recipe: public n_cable_cell_recipe {
 
     static cable_cell test_cell() {
         sample_tree st;
-        st.append({0,0,0,10,1});
+        st.append({{0,0, 0,10},1});
+        st.append({{0,0,20,10},1});
 
         label_dict d;
         d.set("soma", arb::reg::tagged(1));

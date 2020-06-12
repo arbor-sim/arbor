@@ -10,13 +10,17 @@ namespace arb {
 
 using arb::util::pprintf;
 
+static std::string msize_string(msize_t x) {
+    return x==mnpos? "mnpos": pprintf("{}", x);
+}
+
 invalid_mlocation::invalid_mlocation(mlocation loc):
     morphology_error(pprintf("invalid mlocation {}", loc)),
     loc(loc)
 {}
 
 no_such_branch::no_such_branch(msize_t bid):
-    morphology_error(pprintf("no such branch id {}", bid)),
+    morphology_error(pprintf("no such branch id {}", msize_string(bid))),
     bid(bid)
 {}
 
@@ -30,10 +34,11 @@ invalid_mcable_list::invalid_mcable_list():
 {}
 
 invalid_sample_parent::invalid_sample_parent(msize_t parent, msize_t tree_size):
-    morphology_error(pprintf("invalid sample parent {} for a sample tree of size {}", parent, tree_size)),
+    morphology_error(pprintf("invalid sample parent {} for a sample tree of size {}", msize_string(parent), tree_size)),
     parent(parent),
     tree_size(tree_size)
-{}
+{
+}
 
 label_type_mismatch::label_type_mismatch(const std::string& label):
     morphology_error(pprintf("label \"{}\" is already bound to a different type of object", label)),
@@ -41,7 +46,7 @@ label_type_mismatch::label_type_mismatch(const std::string& label):
 {}
 
 incomplete_branch::incomplete_branch(msize_t bid):
-    morphology_error(pprintf("insufficent samples to define branch id {}", bid)),
+    morphology_error(pprintf("insufficent samples to define branch id {}", msize_string(bid))),
     bid(bid)
 {}
 

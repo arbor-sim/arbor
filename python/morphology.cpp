@@ -182,18 +182,11 @@ void register_morphology(pybind11::module& m) {
                 [](arb::sample_tree t){
                     return arb::morphology(std::move(t));
                 }))
-        .def(pybind11::init(
-                [](arb::sample_tree t, bool spherical_root) {
-                    return arb::morphology(std::move(t), spherical_root);
-                }), "sample_tree"_a, "spherical_root"_a)
         // morphology's interface is read-only by design, so most of it can
         // be implemented as read-only properties.
         .def_property_readonly("empty",
                 [](const arb::morphology& m){return m.empty();},
                 "A list with the parent index of each sample.")
-        .def_property_readonly("spherical_root",
-                [](const arb::morphology& m){return m.spherical_root();},
-                "Whether the root of the morphology is spherical.")
         .def_property_readonly("num_branches",
                 [](const arb::morphology& m){return m.num_branches();},
                 "The number of branches in the morphology.")

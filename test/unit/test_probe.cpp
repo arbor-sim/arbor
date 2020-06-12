@@ -94,7 +94,11 @@ void run_v_i_probe_test(const context& ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
     auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
 
-    cable_cell bs = make_cell_ball_and_stick(false);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    cable_cell bs = builder.make_cell();
+
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(1);
 
     i_clamp stim(0, 100, 0.3);
@@ -256,7 +260,10 @@ void run_expsyn_g_probe_test(const context& ctx) {
     mlocation loc0{1, 0.8};
     mlocation loc1{1, 1.0};
 
-    cable_cell bs = make_cell_ball_and_stick(false);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    cable_cell bs = builder.make_cell();
     bs.place(loc0, "expsyn");
     bs.place(loc1, "expsyn");
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(2);
@@ -914,7 +921,12 @@ auto run_simple_sampler(
 
 template <typename Backend>
 void run_v_sampled_probe_test(const context& ctx) {
-    cable_cell bs = make_cell_ball_and_stick(false);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+
+    cable_cell bs = builder.make_cell();
+
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(1);
 
     std::vector<cable_cell> cells = {bs, bs};
@@ -1079,7 +1091,11 @@ void run_exact_sampling_probe_test(const context& ctx) {
         adhoc_recipe() {
             gprop_.default_parameters = neuron_parameter_defaults;
 
-            cells_.assign(4, make_cell_ball_and_stick(false));
+            soma_cell_builder builder(12.6157/2.0);
+            builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+            builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+
+            cells_.assign(4, builder.make_cell());
             cells_[0].place(mlocation{1, 0.1}, "expsyn");
             cells_[1].place(mlocation{1, 0.1}, "exp2syn");
             cells_[2].place(mlocation{1, 0.9}, "expsyn");

@@ -79,6 +79,7 @@ endforeach()
 # Unit test sources
 
 set(unit_sources
+    ../common_cells.cpp
     test_algorithms.cpp
     test_any.cpp
     test_any_visitor.cpp

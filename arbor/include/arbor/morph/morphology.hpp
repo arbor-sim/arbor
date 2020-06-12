@@ -19,15 +19,11 @@ class morphology {
     std::shared_ptr<const morphology_impl> impl_;
 
 public:
-    morphology(sample_tree m, bool use_spherical_root);
     morphology(sample_tree m);
     morphology();
 
     // Empty/default-constructed morphology?
     bool empty() const;
-
-    // Whether the root of the morphology is spherical.
-    bool spherical_root() const;
 
     // The number of branches in the morphology.
     msize_t num_branches() const;

@@ -265,12 +265,12 @@ TEST(fvm_lowered, target_handles) {
         make_cell_ball_and_3stick()
     };
 
-    EXPECT_EQ(cells[0].morphology().num_branches(), 2u);
-    EXPECT_EQ(cells[1].morphology().num_branches(), 4u);
+    EXPECT_EQ(cells[0].morphology().num_branches(), 1u);
+    EXPECT_EQ(cells[1].morphology().num_branches(), 3u);
 
     // (in increasing target order)
-    cells[0].place(mlocation{1, 0.4}, "expsyn");
-    cells[0].place(mlocation{0, 0.5}, "expsyn");
+    cells[0].place(mlocation{0, 0.7}, "expsyn");
+    cells[0].place(mlocation{0, 0.3}, "expsyn");
     cells[1].place(mlocation{2, 0.2}, "exp2syn");
     cells[1].place(mlocation{2, 0.8}, "expsyn");
 
@@ -281,9 +281,9 @@ TEST(fvm_lowered, target_handles) {
     probe_association_map<fvm_probe_info> probe_map;
 
     auto test_target_handles = [&](fvm_cell& cell) {
-        mechanism *expsyn = find_mechanism(cell, "expsyn");
+        mechanism* expsyn = find_mechanism(cell, "expsyn");
         ASSERT_TRUE(expsyn);
-        mechanism *exp2syn = find_mechanism(cell, "exp2syn");
+        mechanism* exp2syn = find_mechanism(cell, "exp2syn");
         ASSERT_TRUE(exp2syn);
 
         unsigned expsyn_id = expsyn->mechanism_id();
@@ -340,8 +340,10 @@ TEST(fvm_lowered, stimulus) {
     std::vector<cable_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
 
-    cells[0].place(mlocation{1,1},   i_clamp{5., 80., 0.3});
-    cells[0].place(mlocation{0,0.5}, i_clamp{1., 2.,  0.1});
+    // At end of stick
+    cells[0].place(mlocation{0,1},   i_clamp{5., 80., 0.3});
+    // On the soma CV, which is over the approximate interval: (cable 0 0 0.1)
+    cells[0].place(mlocation{0,0.05}, i_clamp{1., 2.,  0.1});
 
     const fvm_size_type soma_cv = 0u;
     const fvm_size_type tip_cv = 5u;
@@ -426,9 +428,9 @@ TEST(fvm_lowered, derived_mechs) {
 
     std::vector<cable_cell> cells;
     cells.reserve(3);
+    soma_cell_builder builder(6);
+    builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
     for (int i = 0; i<3; ++i) {
-        soma_cell_builder builder(6);
-        builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
         auto cell = builder.make_cell();
 
         switch (i) {
@@ -449,7 +451,7 @@ TEST(fvm_lowered, derived_mechs) {
     cable1d_recipe rec(cells);
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
-    cable_probe_total_ion_current_density where{{1, 0.3}};
+    cable_probe_total_ion_current_density where{builder.location({1, 0.3})};
     rec.add_probe(0, 0, where);
     rec.add_probe(1, 0, where);
     rec.add_probe(2, 0, where);
@@ -771,10 +773,10 @@ TEST(fvm_lowered, weighted_write_ion) {
     // 1/2 of branch 1 and the initial 1/2 of branches 2 and 3.
     //
     // Geometry:
-    //   soma 0: radius 5 µm
-    //   dend 1: 100 µm long, 1 µm diameter cylinder
-    //   dend 2: 200 µm long, 1 µm diameter cylinder
-    //   dend 3: 100 µm long, 1 µm diameter cylinder
+    //   soma 0:  10 µm long, 10 µm diameter cylinder: area = 100 πμm²
+    //   dend 1: 100 µm long,  1 µm diameter cylinder: area = 100 πμm²
+    //   dend 2: 200 µm long,  1 µm diameter cylinder: area = 200 πμm²
+    //   dend 3: 100 µm long,  1 µm diameter cylinder: area = 100 πμm²
     //
     // The radius of the soma is chosen such that the surface area of soma is
     // the same as a 100 µm dendrite, which makes it easier to describe the
@@ -800,10 +802,12 @@ TEST(fvm_lowered, weighted_write_ion) {
     const double con_ext = 120;
 
     // Ca ion reader test_kinlva on CV 2 and 3 via branch 2:
-    c.paint(reg::branch(2), "test_kinlva");
+    //c.paint(reg::branch(2), "test_kinlva");
+    c.paint(reg::branch(1), "test_kinlva");
 
     // Ca ion writer test_ca on CV 2 and 4 via branch 3:
-    c.paint(reg::branch(3), "test_ca");
+    //c.paint(reg::branch(3), "test_ca");
+    c.paint(reg::branch(2), "test_ca");
 
     cable1d_recipe rec(c);
     rec.add_ion("ca", 2, con_int, con_ext, 0.0);
@@ -894,7 +898,7 @@ TEST(fvm_lowered, gj_coords_simple) {
         soma_cell_builder b(2.1);
         b.add_branch(0, 10, 0.3, 0.2, 5, "dend");
         auto c = b.make_cell();
-        c.place(mlocation{1, 0.8}, gap_junction_site{});
+        c.place(b.location({1, 0.8}), gap_junction_site{});
         cells.push_back(std::move(c));
     }
 
@@ -902,7 +906,7 @@ TEST(fvm_lowered, gj_coords_simple) {
         soma_cell_builder b(2.4);
         b.add_branch(0, 10, 0.3, 0.2, 2, "dend");
         auto c = b.make_cell();
-        c.place(mlocation{1, 1}, gap_junction_site{});
+        c.place(b.location({1, 1}), gap_junction_site{});
         cells.push_back(std::move(c));
     }
 
@@ -977,7 +981,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     b0.add_branch(0, 8, 0.3, 0.2, 4, "dend");
 
     auto c0 = b0.make_cell();
-    mlocation c0_gj[2] = {{1, 1}, {1, 0.5}};
+    mlocation c0_gj[2] = {b0.location({1, 1}), b0.location({1, 0.5})};
 
     c0.place(c0_gj[0], gap_junction_site{});
     c0.place(c0_gj[1], gap_junction_site{});
@@ -988,7 +992,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     b1.add_branch(1,  5, 0.2, 0.2, 5, "dend");
 
     auto c1 = b1.make_cell();
-    mlocation c1_gj[4] = {{2, 1}, {1, 1}, {1, 0.45}, {1, 0.1}};
+    mlocation c1_gj[4] = {b1.location({2, 1}), b1.location({1, 1}), b1.location({1, 0.45}), b1.location({1, 0.1})};
 
     c1.place(c1_gj[0], gap_junction_site{});
     c1.place(c1_gj[1], gap_junction_site{});
@@ -1004,7 +1008,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
 
     auto c2 = b2.make_cell();
-    mlocation c2_gj[3] = {{1, 0.5}, {4, 1}, {2, 1}};
+    mlocation c2_gj[3] = {b2.location({1, 0.5}), b2.location({4, 1}), b2.location({2, 1})};
 
     c2.place(c2_gj[0], gap_junction_site{});
     c2.place(c2_gj[1], gap_junction_site{});

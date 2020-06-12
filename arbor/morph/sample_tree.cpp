@@ -28,8 +28,22 @@ void sample_tree::reserve(msize_t n) {
 }
 
 msize_t sample_tree::append(msize_t p, const msample& s) {
-    if ((empty() && p!=mnpos) || p>=size()) {
-        if (p!=mnpos) throw invalid_sample_parent(p, size());
+    std::cout << "+++++ " << (empty()? "empty": "initl") << " " << p << " " << size() << " " << s << std::endl;
+    //if ((empty() && p!=mnpos) || p>=size()) {
+    //   if (p!=mnpos) throw invalid_sample_parent(p, size());
+    //}
+
+    if (empty() && p!=mnpos) {
+        throw invalid_sample_parent(p, size());
+    }
+    else if (!empty()) {
+        if (p==mnpos) {
+            // the p>=size() test would catch this case for unsigned msize_t
+            throw invalid_sample_parent(p, size());
+        }
+        else if (p>=size()) {
+            throw invalid_sample_parent(p, size());
+        }
     }
 
     auto id = size();

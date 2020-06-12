@@ -232,90 +232,71 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
     for (msize_t bid = 0; bid<n_branch; ++bid) {
         unsigned parent = m.branch_parent(bid);
         auto sample_indices = util::make_range(m.branch_indexes(bid));
-        if (bid==0 && m.spherical_root()) {
-            arb_assert(sample_indices.size()==1);
 
-            // Treat spherical root as area-equivalent cylinder.
-            double r = samples[0].loc.radius;
+        arb_assert(sample_indices.size()>1);
 
-            data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(-r, r));
-            data_->length[bid].push_back(0., 1., rat_element<1, 0>(0, r*2));
+        std::vector<double> sample_distance;
+        sample_distance.reserve(samples.size());
+        sample_distance.push_back(0.);
+
+        for (auto i: util::count_along(sample_indices)) {
+            if (!i) continue;
+
+            double d = distance(samples[sample_indices[i-1]], samples[sample_indices[i]]);
+            sample_distance.push_back(sample_distance.back()+d);
+        }
+
+        double branch_length = sample_distance.back();
+        double length_scale = branch_length>0? 1./branch_length: 0;
+
+        for (auto i: util::count_along(sample_indices)) {
+            sample_locations_[sample_indices[i]] = mlocation{bid, length_scale*sample_distance[i]};
+        }
+        sample_locations_[sample_indices.back()].pos = 1.; // Circumvent any rounding infelicities.
+
+        double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
+        data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
+
+        double area_0 = parent==mnpos? 0: data_->area[parent].back().second[2];
+        double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[2];
+
+        if (length_scale==0) {
+            // Zero-length branch? Weird, but make best show of it.
+            double r = samples[sample_indices[0]].loc.radius;
+            double z = samples[sample_indices[0]].loc.z;
             data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
-
-            double cyl_area = 4*pi*r*r;
-            data_->area[bid].push_back(0., 1., rat_element<2, 0>(0., cyl_area*0.5, cyl_area));
-
-            double cyl_ixa = 2.0/(pi*r);
-            data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(0., cyl_ixa*0.5, cyl_ixa));
-
-            sample_locations_[0] = mlocation{0, 0.5};
+            data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z-proj_shift, z-proj_shift));
+            data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
+            data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
         }
         else {
-            arb_assert(sample_indices.size()>1);
-
-            std::vector<double> sample_distance;
-            sample_distance.reserve(samples.size());
-            sample_distance.push_back(0.);
-
             for (auto i: util::count_along(sample_indices)) {
                 if (!i) continue;
 
-                double d = distance(samples[sample_indices[i-1]], samples[sample_indices[i]]);
-                sample_distance.push_back(sample_distance.back()+d);
-            }
+                double p0 = i>1? sample_locations_[sample_indices[i-1]].pos: 0;
+                double p1 = sample_locations_[sample_indices[i]].pos;
+                if (p0==p1) continue;
 
-            double branch_length = sample_distance.back();
-            double length_scale = branch_length>0? 1./branch_length: 0;
+                double z0 = samples[sample_indices[i-1]].loc.z - proj_shift;
+                double z1 = samples[sample_indices[i]].loc.z - proj_shift;
+                data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
 
-            for (auto i: util::count_along(sample_indices)) {
-                sample_locations_[sample_indices[i]] = mlocation{bid, length_scale*sample_distance[i]};
-            }
-            sample_locations_[sample_indices.back()].pos = 1.; // Circumvent any rounding infelicities.
+                double r0 = samples[sample_indices[i-1]].loc.radius;
+                double r1 = samples[sample_indices[i]].loc.radius;
+                data_->radius[bid].push_back(p0, p1, rat_element<1, 0>(r0, r1));
 
-            double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
-            data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
+                double dx = (p1-p0)*branch_length;
+                double dr = r1-r0;
+                double c = pi*std::sqrt(dr*dr+dx*dx);
+                double area_half = area_0 + (0.75*r0+0.25*r1)*c;
+                double area_1 = area_0 + (r0+r1)*c;
+                data_->area[bid].push_back(p0, p1, rat_element<2, 0>(area_0, area_half, area_1));
+                area_0 = area_1;
 
-            double area_0 = parent==mnpos? 0: data_->area[parent].back().second[2];
-            double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[2];
-
-            if (length_scale==0) {
-                // Zero-length branch? Weird, but make best show of it.
-                double r = samples[sample_indices[0]].loc.radius;
-                double z = samples[sample_indices[0]].loc.z;
-                data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
-                data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z-proj_shift, z-proj_shift));
-                data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
-                data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
-            }
-            else {
-                for (auto i: util::count_along(sample_indices)) {
-                    if (!i) continue;
-
-                    double p0 = i>1? sample_locations_[sample_indices[i-1]].pos: 0;
-                    double p1 = sample_locations_[sample_indices[i]].pos;
-                    if (p0==p1) continue;
-
-                    double z0 = samples[sample_indices[i-1]].loc.z - proj_shift;
-                    double z1 = samples[sample_indices[i]].loc.z - proj_shift;
-                    data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
-
-                    double r0 = samples[sample_indices[i-1]].loc.radius;
-                    double r1 = samples[sample_indices[i]].loc.radius;
-                    data_->radius[bid].push_back(p0, p1, rat_element<1, 0>(r0, r1));
-
-                    double dx = (p1-p0)*branch_length;
-                    double dr = r1-r0;
-                    double c = pi*std::sqrt(dr*dr+dx*dx);
-                    double area_half = area_0 + (0.75*r0+0.25*r1)*c;
-                    double area_1 = area_0 + (r0+r1)*c;
-                    data_->area[bid].push_back(p0, p1, rat_element<2, 0>(area_0, area_half, area_1));
-                    area_0 = area_1;
-
-                    double ixa_half = ixa_0 + dx/(pi*r0*(r0+r1));
-                    double ixa_1 = ixa_0 + dx/(pi*r0*r1);
-                    data_->ixa[bid].push_back(p0, p1, rat_element<1, 1>(ixa_0, ixa_half, ixa_1));
-                    ixa_0 = ixa_1;
-                }
+                double ixa_half = ixa_0 + dx/(pi*r0*(r0+r1));
+                double ixa_1 = ixa_0 + dx/(pi*r0*r1);
+                data_->ixa[bid].push_back(p0, p1, rat_element<1, 1>(ixa_0, ixa_half, ixa_1));
+                ixa_0 = ixa_1;
             }
 
             arb_assert((data_->radius[bid].size()>0));

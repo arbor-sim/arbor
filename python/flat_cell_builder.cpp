@@ -35,24 +35,9 @@ class flat_cell_builder {
     mutable arb::morphology morpho_;
     mutable std::mutex mutex_;
 
-    // Set on construction and unchanged thereafter.
-    // Indicates whether 
-    bool spherical_ = false;
-
 public:
 
     flat_cell_builder() = default;
-
-    arb::msize_t add_sphere(double radius, const char* name) {
-        cached_morpho_ = false;
-        spherical_ = true;
-        if (size()) {
-            throw pyarb_error("Add soma to non-empty cell.");
-        }
-        tree_.append({{0,0,0,radius}, get_tag(name)});
-        cable_distal_id_.push_back(0);
-        return 0;
-    }
 
     // Add a new branch that is attached to parent.
     // Returns the id of the new cable.
@@ -71,10 +56,6 @@ public:
         int tag = get_tag(region);
         const bool at_root = parent==mnpos;
 
-        // Can't attach a cable to the root on a cell with spherical soma.
-        if (at_root && spherical_) {
-            throw pyarb_error("Invalid parent id.");
-        }
         // Parent id must be in the range [0, size())
         if (!at_root && parent>=size()) {
             throw pyarb_error("Invalid parent id.");
@@ -85,14 +66,12 @@ public:
         // to the root.
         arb::msize_t p = at_root? (size()? 0: mnpos): cable_distal_id_[parent];
 
-        double z = at_root? 0:                      // attach to root of non-spherical cell
-                   spherical_&&!parent? soma_rad(): // attach to spherical root
+        double z = at_root? 0:                      // attach to root
                    tree_.samples()[p].loc.z;        // attach to end of a cable
 
         // Only add a first point at the very beginning of the cable if
         // the cable is not attached to another
         const bool add_first_point = p==arb::mnpos      // attached to the "root"
-                                  || (!p && spherical_) // attached to a spherical root
                                   || (r1!=tree_.samples()[p].loc.radius);
                                                         // proximal radius does not match r1
         if (add_first_point) {
@@ -170,7 +149,7 @@ public:
     const arb::morphology& morphology() const {
         const std::lock_guard<std::mutex> guard(mutex_);
         if (!cached_morpho_) {
-            morpho_ = arb::morphology(tree_, spherical_);
+            morpho_ = arb::morphology(tree_);
             cached_morpho_ = true;
         }
         return morpho_;
@@ -234,8 +213,6 @@ void register_flat_builder(pybind11::module& m) {
     pybind11::class_<flat_cell_builder> builder(m, "flat_cell_builder");
     builder
         .def(pybind11::init<>())
-        .def("add_sphere", &flat_cell_builder::add_sphere,
-            "radius"_a, "name"_a)
         .def("add_cable",
                 [](flat_cell_builder& b, arb::msize_t p, double len, pybind11::object rad, const char* name, int ncomp) {
                     using pybind11::isinstance;

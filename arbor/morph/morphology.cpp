@@ -19,19 +19,17 @@ namespace arb {
 namespace impl {
 
 std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents,
-                                                const std::vector<point_prop>& props,
-                                                bool spherical_root)
+                                                const std::vector<point_prop>& props)
 {
     auto nsamp = parents.size();
     if (!nsamp) return {};
 
-    // Enforce that a morphology with one sample has a spherical root.
-    if (!spherical_root && nsamp==1u) {
+    if (nsamp==1u) {
         throw incomplete_branch(0);
     }
 
     std::vector<int> bids(nsamp);
-    int nbranches = spherical_root? 1: 0;
+    int nbranches = 0;
     for (auto i: make_span(1, nsamp)) {
         auto p = parents[i];
         bool first = is_root(props[p]) || is_fork(props[p]);
@@ -43,27 +41,16 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& pare
         auto p = parents[i];
         auto& branch = branches[bids[i]];
         if (!branch.size()) {
-            bool null_root = spherical_root? p==mnpos: p==mnpos||p==0;
+            bool null_root = p==mnpos||p==0;
             branch.parent_id = null_root? mnpos: bids[p];
 
-            // Add the distal sample from the parent branch if the parent is not
-            // a spherical root or mnpos.
-            if (p!=mnpos && !(p==0 && spherical_root)) {
+            // Add the distal sample from the parent branch if the parent is not mnpos
+            if (p!=mnpos) {
                 branch.index.push_back(p);
             }
         }
 
         branch.index.push_back(i);
-    }
-
-    // Enforce that all cable branches that are potentially connected to a spherical
-    // root contain at least two samples.
-    if (spherical_root) {
-        for (auto i: make_span(1, nbranches)) { // skip the root.
-            if (branches[i].size()<2u) {
-                throw incomplete_branch(i);
-            }
-        }
     }
 
     return branches;
@@ -93,9 +80,6 @@ struct morphology_impl {
     // The sample tree of sample points and their parent-child relationships.
     sample_tree samples_;
 
-    // Indicates whether the soma is a sphere.
-    bool spherical_root_ = false;
-
     // Branch state.
     std::vector<impl::mbranch> branches_;
     std::vector<msize_t> branch_parents_;
@@ -103,7 +87,6 @@ struct morphology_impl {
     std::vector<msize_t> terminal_branches_;
     std::vector<std::vector<msize_t>> branch_children_;
 
-    morphology_impl(sample_tree m, bool use_spherical_root);
     morphology_impl(sample_tree m);
 
     void init();
@@ -111,16 +94,8 @@ struct morphology_impl {
     friend std::ostream& operator<<(std::ostream&, const morphology_impl&);
 };
 
-morphology_impl::morphology_impl(sample_tree m, bool use_spherical_root):
-    samples_(std::move(m)),
-    spherical_root_(use_spherical_root)
-{
-    init();
-}
-
 morphology_impl::morphology_impl(sample_tree m):
-    samples_(std::move(m)),
-    spherical_root_(impl::root_sample_tag_differs_from_children(samples_))
+    samples_(std::move(m))
 {
     init();
 }
@@ -130,7 +105,7 @@ void morphology_impl::init() {
     if (!nsamp) return;
 
     // Generate branches.
-    branches_ = impl::branches_from_parent_index(samples_.parents(), samples_.properties(), spherical_root_);
+    branches_ = impl::branches_from_parent_index(samples_.parents(), samples_.properties());
     auto nbranch = branches_.size();
 
     // Generate branch tree.
@@ -171,10 +146,6 @@ std::ostream& operator<<(std::ostream& o, const morphology_impl& m) {
 // morphology implementation
 //
 
-morphology::morphology(sample_tree m, bool use_spherical_root):
-    impl_(std::make_shared<const morphology_impl>(std::move(m), use_spherical_root))
-{}
-
 morphology::morphology(sample_tree m):
     impl_(std::make_shared<const morphology_impl>(std::move(m)))
 {}
@@ -204,11 +175,6 @@ const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
 
 const std::vector<msize_t>& morphology::terminal_branches() const {
     return impl_->terminal_branches_;
-}
-
-// Whether the root of the morphology is spherical.
-bool morphology::spherical_root() const {
-    return impl_->spherical_root_;
 }
 
 mindex_range morphology::branch_indexes(msize_t b) const {

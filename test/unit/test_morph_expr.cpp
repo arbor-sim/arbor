@@ -99,7 +99,7 @@ TEST(locset, thingify_named) {
         dict.set("banana", banana);
         dict.set("cake", cake);
 
-        mprovider mp(morphology(sm, false), dict);
+        mprovider mp(morphology(sm), dict);
         EXPECT_EQ(thingify(locset("cake"), mp), thingify(cake, mp));
         EXPECT_EQ(thingify(locset("banana"), mp), thingify(banana, mp));
 
@@ -112,7 +112,7 @@ TEST(locset, thingify_named) {
         dict.set("topping", locset("fruit"));
         dict.set("fruit", locset("strawberry"));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), unbound_name);
+        EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
     {
         label_dict dict;
@@ -121,7 +121,7 @@ TEST(locset, thingify_named) {
         dict.set("topping", locset("fruit"));
         dict.set("fruit", sum(locset("banana"), locset("topping")));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), circular_definition);
+        EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }
 }
 
@@ -140,7 +140,7 @@ TEST(region, thingify_named) {
         dict.set("banana", banana);
         dict.set("cake", cake);
 
-        mprovider mp(morphology(sm, false), dict);
+        mprovider mp(morphology(sm), dict);
         EXPECT_EQ(thingify(region("cake"), mp), thingify(cake, mp));
         EXPECT_EQ(thingify(region("banana"), mp), thingify(banana, mp));
 
@@ -153,7 +153,7 @@ TEST(region, thingify_named) {
         dict.set("topping", region("fruit"));
         dict.set("fruit", region("strawberry"));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), unbound_name);
+        EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
     {
         label_dict dict;
@@ -162,7 +162,7 @@ TEST(region, thingify_named) {
         dict.set("topping", region("fruit"));
         dict.set("fruit", join(region("cake"), region("topping")));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), circular_definition);
+        EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }
 }
 
@@ -205,26 +205,7 @@ TEST(locset, thingify) {
     sample_tree sm(samples, parents);
 
     {
-        mprovider mp(morphology(sm, true));
-
-        EXPECT_EQ(thingify(root, mp),  (ll{{0,0}}));
-        EXPECT_EQ(thingify(term, mp),  (ll{{1,1},{3,1},{4,1}}));
-        EXPECT_EQ(thingify(samp, mp),  (ll{{2,1}}));
-        EXPECT_EQ(thingify(midb2, mp), (ll{{2,0.5}}));
-        EXPECT_EQ(thingify(midb1, mp), (ll{{1,0.5}}));
-        EXPECT_EQ(thingify(begb0, mp), (ll{{0,0}}));
-        EXPECT_EQ(thingify(begb1, mp), (ll{{1,0}}));
-        EXPECT_EQ(thingify(begb2, mp), (ll{{2,0}}));
-        EXPECT_EQ(thingify(begb3, mp), (ll{{3,0}}));
-        EXPECT_EQ(thingify(begb4, mp), (ll{{4,0}}));
-
-        // Check round-trip of implicit locset conversions.
-        // (Use a locset which is non-trivially a multiset in order to
-        // test the fold in the constructor.)
-        EXPECT_EQ(thingify(multi, mp), thingify(locset(thingify(multi, mp)), mp));
-    }
-    {
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         EXPECT_EQ(thingify(root, mp),  (ll{{0,0}}));
         EXPECT_EQ(thingify(term, mp),  (ll{{0,1},{2,1},{3,1}}));
@@ -240,7 +221,7 @@ TEST(locset, thingify) {
         EXPECT_THROW(thingify(begb4, mp), no_such_branch);
     }
     {
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         auto all = reg::all();
         auto ls0 = thingify(ls::uniform(all,  0,  9, 12), mp);
@@ -295,7 +276,7 @@ TEST(locset, thingify) {
         EXPECT_TRUE(found == 2);
     }
     {
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
         auto sub_reg = join(reg::cable(0, 0.2, 0.7), reg::cable(1, 0.1, 1), reg::cable(3, 0.5, 0.6));
 
         auto ls0 = thingify(ls::uniform(sub_reg, 0, 10000, 72), mp);
@@ -341,7 +322,7 @@ TEST(region, thingify_simple_morphologies) {
             {{ 10,  0,  0,  2}, 2},
         };
         sample_tree sm(samples, parents);
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         auto h1  = reg::cable(0, 0, 0.5);
         auto h2  = reg::cable(0, 0.5, 1);
@@ -383,25 +364,28 @@ TEST(region, thingify_simple_morphologies) {
     //
     //  sample ids:
     //              0           |
-    //            1   3         |
-    //          2       4       |
+    //              1           |
+    //            2   4         |
+    //          3       5       |
     //  tags:
+    //              1           |
     //              1           |
     //            3   2         |
     //          3       2       |
     {
-        pvec parents = {mnpos, 0, 1, 0, 3};
+        pvec parents = {mnpos, 0, 1, 2, 1, 4};
         svec samples = {
-            {{  0,  0,  0,  2}, 1},
+            {{  0,  0,  0,  5}, 1},
+            {{ 10,  0,  0,  5}, 1},
             {{ 10,  0,  0,  2}, 3},
             {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 2},
-            {{  0,100,  0,  2}, 2},
+            {{ 10,  0,  0,  2}, 2},
+            {{100,  0,  0,  2}, 2},
         };
 
         // Build morphology with a spherical root
         sample_tree sm(samples, parents);
-        mprovider mp(morphology(sm, true));
+        auto mp = mprovider(morphology(sm));
 
         using ls::location;
         using reg::tagged;
@@ -416,9 +400,9 @@ TEST(region, thingify_simple_morphologies) {
         locset end1_   = location(1,1);
 
         auto reg0_ = distal_interval(start1_, 45);
-        auto reg1_ = distal_interval(mid0_,   74);
+        auto reg1_ = distal_interval(mid0_,   50);
         auto reg2_ = proximal_interval(end1_, 45);
-        auto reg3_ = proximal_interval(end1_, 91);
+        auto reg3_ = proximal_interval(end1_, 95);
         auto reg4_ = distal_interval(end1_, 100);
         auto reg5_ = distal_interval(start1_, 0);
         auto reg6_ = proximal_interval(start1_, 0);
@@ -429,9 +413,9 @@ TEST(region, thingify_simple_morphologies) {
         EXPECT_TRUE(region_eq(mp, join(tagged(1), tagged(2), tagged(3)), mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
         EXPECT_TRUE(region_eq(mp, join(tagged(1), tagged(2), tagged(3)), all()));
         EXPECT_TRUE(region_eq(mp, reg0_, mcable_list{{1,0,0.5}}));
-        EXPECT_TRUE(region_eq(mp, reg1_, mcable_list{{0,0.5,1}, {1,0,0.8}, {2,0,0.8}}));
+        EXPECT_TRUE(region_eq(mp, reg1_, mcable_list{{0,0.5,1}, {1,0,0.5}, {2,0,0.5}}));
         EXPECT_TRUE(region_eq(mp, reg2_, mcable_list{{1,0.5,1}}));
-        EXPECT_TRUE(region_eq(mp, reg3_, mcable_list{{0, 0.75, 1}, {1,0,1}}));
+        EXPECT_TRUE(region_eq(mp, reg3_, mcable_list{{0, 0.5, 1}, {1,0,1}}));
         EXPECT_TRUE(region_eq(mp, reg4_, mcable_list{{1,1,1}}));
         EXPECT_TRUE(region_eq(mp, reg5_, mcable_list{{1,0,0}}));
         EXPECT_TRUE(region_eq(mp, reg6_, mcable_list{{1,0,0}}));
@@ -474,7 +458,7 @@ TEST(region, thingify_moderate_morphologies) {
         sample_tree sm(samples, parents);
 
         // Without spherical root
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         using ls::location;
         using reg::tagged;
@@ -767,7 +751,7 @@ TEST(region, thingify_complex_morphologies) {
                 {{  0,300,  0,  2}, 3}, //11
         };
         sample_tree sm(samples, parents);
-        auto m = morphology(sm, false);
+        auto m = morphology(sm);
         {
             mprovider mp(m);
             using reg::cable;
@@ -819,7 +803,7 @@ TEST(region, thingify_complex_morphologies) {
         sample_tree sm(samples, parents);
 
         // Without spherical root
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         using reg::all;
         using reg::nil;

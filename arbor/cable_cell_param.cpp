@@ -81,11 +81,6 @@ locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
     std::vector<mlocation> points;
 
     unsigned bidx = 0;
-    if (flags_&cv_policy_flag::single_root_cv) {
-        points.push_back({0, 0.});
-        points.push_back({0, 1.});
-        bidx = 1;
-    }
 
     const double oomax_extent = 1./max_extent_;
     while (bidx<nbranch) {
@@ -117,11 +112,6 @@ locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) co
     std::vector<mlocation> points;
 
     unsigned bidx = 0;
-    if (flags_&cv_policy_flag::single_root_cv) {
-        points.push_back({0, 0.});
-        points.push_back({0, 1.});
-        bidx = 1;
-    }
 
     double ooncv = 1./cv_per_branch_;
     while (bidx<nbranch) {
@@ -147,33 +137,14 @@ locset cv_policy_every_sample::cv_boundary_points(const cable_cell& cell) const 
     const unsigned nbranch = cell.morphology().num_branches();
     if (!nbranch) return ls::nil();
 
-    bool single_root = cell.morphology().spherical_root() || (flags_&cv_policy_flag::single_root_cv);
-
-    // Ignore interior_forks flag, but if single_root_cv is set, take sample indices only from branches 1+.
+    // Ignore interior_forks flag.
     // Always include branch proximal points, so that forks are trivial.
 
-
-    if (single_root) {
-        std::vector<msize_t> samples;
-        for (unsigned i = 1; i<nbranch; ++i) {
-            util::append(samples, util::make_range(cell.morphology().branch_indexes(i)));
-        }
-        util::sort(samples);
-        samples.erase(std::unique(samples.begin(), samples.end()), samples.end());
-
-        return join(
-            ls::on_branches(0.),
-            ls::location(0, 1.),
-            std::accumulate(samples.begin(), samples.end(), ls::nil(),
-                            [](auto&& l, auto&& r) { return sum(std::move(l), ls::sample(r)); }));
-    }
-    else {
-        auto samples = util::make_span(cell.morphology().num_samples());
-        return join(
-            ls::on_branches(0.),
-            std::accumulate(samples.begin(), samples.end(), ls::nil(),
-                            [](auto&& l, auto&& r) { return sum(std::move(l), ls::sample(r)); }));
-    }
+    auto samples = util::make_span(cell.morphology().num_samples());
+    return join(
+        ls::on_branches(0.),
+        std::accumulate(samples.begin(), samples.end(), ls::nil(),
+                        [](auto&& l, auto&& r) { return sum(std::move(l), ls::sample(r)); }));
 }
 
 } // namespace arb

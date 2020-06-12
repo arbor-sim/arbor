@@ -52,7 +52,7 @@ TEST(embedding, samples_and_branch_length) {
             {{ 10,  0,  0,  2}, 1},
         };
         sample_tree sm(samples, parents);
-        morphology m(sm, false);
+        morphology m(sm);
 
         embedding em(m);
 
@@ -73,73 +73,37 @@ TEST(embedding, samples_and_branch_length) {
     //          2   4
     //             5 6
     //                7
-    {   // Spherical root.
-        pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
+    pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
 
-        svec samples = {
-            {{  0,  0,  0, 10}, 1},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 3},
-            {{  0,100,  0,  2}, 3},
-            {{100,100,  0,  2}, 3},
-            {{  0,200,  0,  2}, 3},
-            {{  0,300,  0,  2}, 3},
-        };
-        sample_tree sm(samples, parents);
-        morphology m(sm, true);
-        ASSERT_EQ(5u, m.num_branches());
+    svec samples = {
+        {{  0,  0,  0,  2}, 1},
+        {{ 10,  0,  0,  2}, 3},
+        {{100,  0,  0,  2}, 3},
+        {{  0, 10,  0,  2}, 3},
+        {{  0,100,  0,  2}, 3},
+        {{100,100,  0,  2}, 3},
+        {{  0,130,  0,  2}, 3},
+        {{  0,300,  0,  2}, 3},
+    };
+    sample_tree sm(samples, parents);
+    morphology m(sm);
+    ASSERT_EQ(4u, m.num_branches());
 
-        embedding em(m);
+    embedding em(m);
 
-        EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0.5})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{1,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{1,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{2,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{2,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(5), (loc{3,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(6), (loc{4,0.5})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(7), (loc{4,1})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{0,0.1})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{0,1})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{1,0.1})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{1,1})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(5), (loc{2,1})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(6), (loc{3,0.15})));
+    EXPECT_TRUE(location_eq(m, em.sample_location(7), (loc{3,1})));
 
-        EXPECT_EQ(20.,  em.branch_length(0));
-        EXPECT_EQ(90.,  em.branch_length(1));
-        EXPECT_EQ(90.,  em.branch_length(2));
-        EXPECT_EQ(100., em.branch_length(3));
-        EXPECT_EQ(200., em.branch_length(4));
-    }
-    {   // No Spherical root
-        pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-
-        svec samples = {
-            {{  0,  0,  0,  2}, 1},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 3},
-            {{  0,100,  0,  2}, 3},
-            {{100,100,  0,  2}, 3},
-            {{  0,130,  0,  2}, 3},
-            {{  0,300,  0,  2}, 3},
-        };
-        sample_tree sm(samples, parents);
-        morphology m(sm, false);
-        ASSERT_EQ(4u, m.num_branches());
-
-        embedding em(m);
-
-        EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{0,0.1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{0,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{1,0.1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{1,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(5), (loc{2,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(6), (loc{3,0.15})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(7), (loc{3,1})));
-
-        EXPECT_EQ(100., em.branch_length(0));
-        EXPECT_EQ(100., em.branch_length(1));
-        EXPECT_EQ(100., em.branch_length(2));
-        EXPECT_EQ(200., em.branch_length(3));
-    }
+    EXPECT_EQ(100., em.branch_length(0));
+    EXPECT_EQ(100., em.branch_length(1));
+    EXPECT_EQ(100., em.branch_length(2));
+    EXPECT_EQ(200., em.branch_length(3));
 }
 
 // TODO: integrator tests
@@ -159,7 +123,7 @@ TEST(embedding, partial_branch_length) {
         {{ 30,  0, 50, 5},  2}
     };
 
-    morphology m(sample_tree(samples, parents), false);
+    morphology m(sample_tree(samples, parents));
     embedding em(m);
 
     EXPECT_DOUBLE_EQ(30., em.branch_length(0));
@@ -196,7 +160,7 @@ TEST(embedding, partial_area) {
         {{ 30,  0, 50, 5},  2}
     };
 
-    morphology m(sample_tree(samples, parents), false);
+    morphology m(sample_tree(samples, parents));
     embedding em(m);
 
     // Cable 1: single truncated cone, length L = 10,

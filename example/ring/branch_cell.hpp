@@ -8,6 +8,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
 
+#include <string>
 #include <sup/json_params.hpp>
 
 // Parameters used to generate the random cell morphologies.
@@ -53,7 +54,8 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     // Add soma.
     double soma_radius = 12.6157/2.0;
-    tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1}); // For area of 500 μm².
+    tree.append(arb::mnpos, {{0, 0,-soma_radius, soma_radius}, 1}); // For area of 500 μm².
+    tree.append(         0, {{0, 0, soma_radius, soma_radius}, 1}); // For area of 500 μm².
 
     std::vector<std::vector<unsigned>> levels;
     levels.push_back({0});
@@ -103,7 +105,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     d.set("soma",      tagged(1));
     d.set("dendrites", join(tagged(3), tagged(4)));
 
-    arb::cable_cell cell(arb::morphology(tree, true), d);
+    arb::cable_cell cell(arb::morphology(tree), d);
 
     cell.paint("soma", "hh");
     cell.paint("dendrites", "pas");
@@ -113,7 +115,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.place(arb::mlocation{1, 0.5}, "expsyn");
+    cell.place(arb::mlocation{0, 0.5}, "expsyn");
 
     // Add additional synapses that will not be connected to anything.
     for (unsigned i=1u; i<params.synapses; ++i) {

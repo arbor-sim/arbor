@@ -178,9 +178,6 @@ struct ion_reversal_potential_method {
 //       Position CVs so as to include fork points, as opposed
 //       to positioning them so that fork points are at the
 //       boundaries of CVs.
-//
-//   cv_policy_flag::single_root_cv:
-//       Always treat the root branch as a single CV regardless.
 
 class cable_cell;
 
@@ -221,8 +218,7 @@ namespace cv_policy_flag {
     using value = unsigned;
     enum : unsigned {
         none = 0,
-        interior_forks = 1<<0,
-        single_root_cv = 1<<1
+        interior_forks = 1<<0
     };
 }
 

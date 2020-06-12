@@ -22,7 +22,6 @@ struct mbranch {
     mbranch(std::vector<msize_t> idx, msize_t parent):
         index(std::move(idx)), parent_id(parent) {}
 
-    bool is_sphere()  const { return size()==1u; }
     msize_t size()    const { return index.size(); }
     bool has_parent() const { return parent_id!=mnpos;}
 
@@ -31,8 +30,7 @@ struct mbranch {
 };
 
 std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents,
-                                                const std::vector<point_prop>& props,
-                                                bool spherical_root);
+                                                const std::vector<point_prop>& props);
 
 } // namespace impl
 } // namespace arb
