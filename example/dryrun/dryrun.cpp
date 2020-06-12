@@ -17,7 +17,6 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
-#include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/symmetric_recipe.hpp>
 #include <arbor/recipe.hpp>
@@ -120,16 +119,9 @@ public:
         return gens;
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell.
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        return 1;
-    }
-
-    arb::probe_info get_probe(cell_member_type id) const override {
-        // Measure at the soma.
-        arb::mlocation loc{0, 0.0};
-
-        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        // One probe per cell, sampling membrane voltage at end of soma.
+        return {arb::cable_probe_membrane_voltage{arb::mlocation{0, 0.0}}};
     }
 
 private:

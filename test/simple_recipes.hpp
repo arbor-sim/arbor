@@ -24,19 +24,13 @@ public:
         cell_gprop_.default_parameters = neuron_parameter_defaults;
     }
 
-    cell_size_type num_probes(cell_gid_type i) const override {
-        return probes_.count(i)? probes_.at(i).size(): 0;
-    }
-
-    virtual probe_info get_probe(cell_member_type probe_id) const override {
-        return probes_.at(probe_id.gid).at(probe_id.index);
+    std::vector<probe_info> get_probes(cell_gid_type i) const override {
+        if (!probes_.count(i)) return {};
+        return probes_.at(i);
     }
 
     virtual void add_probe(cell_gid_type gid, probe_tag tag, util::any address) {
-        auto& pvec_ = probes_[gid];
-
-        cell_member_type probe_id{gid, cell_lid_type(pvec_.size())};
-        pvec_.push_back({probe_id, tag, std::move(address)});
+        probes_[gid].emplace_back(std::move(address), tag);
     }
 
     util::any get_global_properties(cell_kind k) const override {

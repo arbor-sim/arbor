@@ -55,7 +55,7 @@ using arb::cell_kind;
 using arb::time_type;
 
 // Writes voltage trace as a json file.
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank);
+void write_trace_json(const std::vector<arb::trace_vector<double>>& trace, unsigned rank);
 
 // Generate a cell.
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncells, double stim_duration);
@@ -93,15 +93,10 @@ public:
         return {arb::cell_connection({gid - 1, 0}, {gid, 0}, params_.event_weight, params_.event_min_delay)};
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell.
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        return 1;
-    }
-
-    arb::probe_info get_probe(cell_member_type id) const override {
-        // Measure at the soma.
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        // Measure membrane voltage at end of soma.
         arb::mlocation loc{0, 1.};
-        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
+        return {arb::cable_probe_membrane_voltage{loc}};
     }
 
     arb::util::any get_global_properties(cell_kind k) const override {
@@ -193,14 +188,13 @@ int main(int argc, char** argv) {
 
         auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
-        std::vector<arb::trace_data<double>> voltage(decomp.num_local_cells);
+        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells);
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         unsigned j=0;
         for (auto g : decomp.groups) {
             for (auto i : g.gids) {
-                auto t = recipe.get_probe({i, 0});
-                sim.add_sampler(arb::one_probe(t.id), sched, arb::make_simple_sampler(voltage[j++]));
+                sim.add_sampler(arb::one_probe({i, 0}), sched, arb::make_simple_sampler(voltage_traces[j++]));
             }
         }
 
@@ -244,7 +238,7 @@ int main(int argc, char** argv) {
 
         // Write the samples to a json file.
         if (params.print_all) {
-            write_trace_json(voltage, arb::rank(context));
+            write_trace_json(voltage_traces, arb::rank(context));
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
@@ -258,8 +252,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank) {
-    for (unsigned i = 0; i < trace.size(); i++) {
+void write_trace_json(const std::vector<arb::trace_vector<double>>& traces, unsigned rank) {
+    for (unsigned i = 0; i < traces.size(); i++) {
         std::string path = "./voltages_" + std::to_string(rank) +
                            "_" + std::to_string(i) + ".json";
 
@@ -273,7 +267,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
         auto &jt = json["data"]["time"];
         auto &jy = json["data"]["voltage"];
 
-        for (const auto &sample: trace[i]) {
+        for (const auto &sample: traces[i].at(0)) {
             jt.push_back(sample.t);
             jy.push_back(sample.v);
         }

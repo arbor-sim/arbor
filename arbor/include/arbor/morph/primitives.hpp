@@ -5,6 +5,7 @@
 #include <ostream>
 #include <vector>
 
+#include <arbor/util/hash_def.hpp>
 #include <arbor/util/lexcmp_def.hpp>
 
 //
@@ -139,3 +140,6 @@ ARB_PROP(terminal)
 ARB_PROP(collocated)
 
 } // namespace arb
+
+ARB_DEFINE_HASH(arb::mcable, a.branch, a.prox_pos, a.dist_pos);
+ARB_DEFINE_HASH(arb::mlocation, a.branch, a.pos);
