@@ -22,6 +22,12 @@ struct mpoint {
     double radius;   // [μm]
 
     friend std::ostream& operator<<(std::ostream&, const mpoint&);
+    friend bool operator==(const mpoint& a, const mpoint& b) {
+        return a.x==b.x && a.y==b.y && a.z==b.z && a.radius==b.radius;
+    }
+    friend bool operator!=(const mpoint& a, const mpoint& b) {
+        return !(a==b);
+    }
 };
 
 mpoint lerp(const mpoint& a, const mpoint& b, double u);

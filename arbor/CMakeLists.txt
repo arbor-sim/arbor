@@ -36,6 +36,7 @@ set(arbor_sources
     morph/morphexcept.cpp
     morph/morphology.cpp
     morph/mprovider.cpp
+    morph/place_pwlin.cpp
     morph/primitives.cpp
     morph/region.cpp
     morph/sample_tree.cpp
