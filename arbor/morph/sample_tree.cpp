@@ -28,20 +28,13 @@ void sample_tree::reserve(msize_t n) {
 }
 
 msize_t sample_tree::append(msize_t p, const msample& s) {
-    std::cout << "+++++ " << (empty()? "empty": "initl") << " " << p << " " << size() << " " << s << std::endl;
-    //if ((empty() && p!=mnpos) || p>=size()) {
-    //   if (p!=mnpos) throw invalid_sample_parent(p, size());
-    //}
-
+    // Assert that the root (first) sample in a tree has mnpos as its parent.
     if (empty() && p!=mnpos) {
         throw invalid_sample_parent(p, size());
     }
     else if (!empty()) {
-        if (p==mnpos) {
-            // the p>=size() test would catch this case for unsigned msize_t
-            throw invalid_sample_parent(p, size());
-        }
-        else if (p>=size()) {
+        // Parent must (a) already be in the sample_tree (b) not be mnpos.
+        if (p>=size() || p==mnpos) {
             throw invalid_sample_parent(p, size());
         }
     }

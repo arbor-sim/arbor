@@ -130,7 +130,7 @@ options parse_options(int argc, char** argv) {
             opt.swc_file = swc.value();
         }
         else if (auto nseg = parse<unsigned>(arg, 'n', "cv-per-branch")) {
-            opt.policy = arb::cv_policy_fixed_per_branch(nseg.value(), arb::cv_policy_flag::single_root_cv);
+            opt.policy = arb::cv_policy_fixed_per_branch(nseg.value());
         }
         else {
             usage(argv[0], "[-m|--morphology SWCFILE] [-d|--dt TIME] [-t|--t-end TIME] [-w|--weight WEIGHT] [-n|--cv-per-branch N]");
@@ -148,9 +148,10 @@ options parse_options(int argc, char** argv) {
 arb::morphology default_morphology() {
     arb::sample_tree samples;
 
-    auto p = samples.append(arb::msample{{  0.0, 0.0, 0.0, 6.3}, 1});
-    p = samples.append(p, arb::msample{{  6.3, 0.0, 0.0, 0.5}, 3});
-    p = samples.append(p, arb::msample{{206.3, 0.0, 0.0, 0.2}, 3});
+    auto p = samples.append(arb::msample{{ -6.3, 0.0, 0.0, 6.3}, 1});
+    p = samples.append(p,   arb::msample{{  6.3, 0.0, 0.0, 6.3}, 1});
+    p = samples.append(p,   arb::msample{{  6.3, 0.0, 0.0, 0.5}, 3});
+    p = samples.append(p,   arb::msample{{206.3, 0.0, 0.0, 0.2}, 3});
 
     return arb::morphology(std::move(samples));
 }
