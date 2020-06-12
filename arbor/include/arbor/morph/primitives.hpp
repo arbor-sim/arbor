@@ -88,6 +88,7 @@ bool test_invariants(const mlocation_list&);
 mlocation_list sum(const mlocation_list&, const mlocation_list&);
 mlocation_list join(const mlocation_list&, const mlocation_list&);
 mlocation_list intersection(const mlocation_list&, const mlocation_list&);
+mlocation_list support(mlocation_list);
 
 // Describe an unbranched cable in the morphology.
 //
@@ -104,8 +105,12 @@ struct mcable {
     double prox_pos; // ∈ [0,1]
     double dist_pos; // ∈ [0,1]
 
-    friend mlocation prox_loc(const mcable&);
-    friend mlocation dist_loc(const mcable&);
+    friend mlocation prox_loc(const mcable& c) {
+        return {c.branch, c.prox_pos};
+    }
+    friend mlocation dist_loc(const mcable& c) {
+        return {c.branch, c.dist_pos};
+    }
 
     // branch ≠ npos, and 0 ≤ prox_pos ≤ dist_pos ≤ 1
     friend bool test_invariants(const mcable&);

@@ -558,7 +558,7 @@ struct super_ {
     region reg;
 };
 
-region super(region r) {
+region complete(region r) {
     return region(super_{std::move(r)});
 }
 
@@ -617,7 +617,7 @@ mextent thingify_(const super_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const super_& r) {
-    return o << "(super " << r.reg << ")";
+    return o << "(complete " << r.reg << ")";
 }
 
 
@@ -654,11 +654,69 @@ std::ostream& operator<<(std::ostream& o, const reg_or& x) {
     return o << "(join " << x.lhs << " " << x.rhs << ")";
 }
 
+
+// Complement of a region.
+
+struct reg_not: region_tag {
+    region r;
+    explicit reg_not(region r): r(std::move(r)) {}
+};
+
+mextent thingify_(const reg_not& P, const mprovider& p) {
+    auto nb = p.morphology().num_branches();
+    mcable_list result;
+
+    mextent rex = thingify(P.r, p);
+    auto rex_i = rex.begin();
+
+    for (auto i: util::make_span(nb)) {
+        while (rex_i!=rex.end() && rex_i->branch<i) ++rex_i;
+
+        double x = 0;
+        while (rex_i!=rex.end() && rex_i->branch==i) {
+            double y = rex_i->prox_pos;
+            if (y>x) {
+                result.push_back(mcable{i, x, y});
+            }
+
+            x = rex_i->dist_pos;
+            ++rex_i;
+        }
+
+        if (x<1) {
+            result.push_back(mcable{i, x, 1});
+        }
+    }
+
+    return mextent(result);
+}
+
+std::ostream& operator<<(std::ostream& o, const reg_not& x) {
+    return o << "(complement " << x.r << ")";
+}
+
+
+// Closed set difference of two regions.
+
+struct reg_minus: region_tag {
+    region lhs;
+    region rhs;
+    reg_minus(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+};
+
+mextent thingify_(const reg_minus& P, const mprovider& p) {
+    return thingify(intersect(std::move(P.lhs), complement(std::move(P.rhs))), p);
+}
+
+std::ostream& operator<<(std::ostream& o, const reg_minus& x) {
+    return o << "(difference " << x.lhs << " " << x.rhs << ")";
+}
+
 } // namespace reg
 
-// The intersect and join operations in the arb:: namespace with region so that
-// ADL allows for construction of expressions with regions without having
-// to namespace qualify the intersect/join.
+// The intersect, join, and complement operations in the arb:: namespace with
+// region so that ADL allows for construction of expressions with regions
+// without having to namespace qualify the intersect/join/complement.
 
 region intersect(region l, region r) {
     return region{reg::reg_and(std::move(l), std::move(r))};
@@ -666,6 +724,14 @@ region intersect(region l, region r) {
 
 region join(region l, region r) {
     return region{reg::reg_or(std::move(l), std::move(r))};
+}
+
+region complement(region r) {
+    return region{reg::reg_not(std::move(r))};
+}
+
+region difference(region l, region r) {
+    return region{reg::reg_minus(std::move(l), std::move(r))};
 }
 
 region::region() {

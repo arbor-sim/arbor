@@ -120,6 +120,7 @@ set(unit_sources
     test_merge_events.cpp
     test_merge_view.cpp
     test_morphology.cpp
+    test_morph_components.cpp
     test_morph_embedding.cpp
     test_morph_expr.cpp
     test_morph_place.cpp
