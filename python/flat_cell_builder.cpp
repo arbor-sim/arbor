@@ -39,7 +39,16 @@ public:
 
     flat_cell_builder() = default;
 
-    // Add a new branch that is attached to parent.
+
+    // Add a new cable that is attached to the last cable added to the cell.
+    // Returns the id of the new cable.
+    arb::msize_t add_cable(double len,
+                           double r1, double r2, const char* region, int ncomp)
+    {
+        return add_cable(size()? size()-1: arb::mnpos, len, r1, r2, region, ncomp);
+    }
+
+    // Add a new cable that is attached to the parent cable.
     // Returns the id of the new cable.
     arb::msize_t add_cable(arb::msize_t parent, double len,
                            double r1, double r2, const char* region, int ncomp)
@@ -213,6 +222,24 @@ void register_flat_builder(pybind11::module& m) {
     pybind11::class_<flat_cell_builder> builder(m, "flat_cell_builder");
     builder
         .def(pybind11::init<>())
+        .def("add_cable",
+                [](flat_cell_builder& b, double len, pybind11::object rad, const char* name, int ncomp) {
+                    using pybind11::isinstance;
+                    using pybind11::cast;
+                    if (auto radius = try_cast<double>(rad) ) {
+                        return b.add_cable(len, *radius, *radius, name, ncomp);
+                    }
+
+                    if (auto radii = try_cast<std::pair<double, double>>(rad)) {
+                        return b.add_cable(len, radii->first, radii->second, name, ncomp);
+                    }
+                    else {
+                        throw pyarb_error(
+                            "Radius parameter is not a scalar (constant branch radius) or "
+                            "a tuple (radius at proximal and distal ends respectively).");
+                    }
+                },
+            "length"_a, "radius"_a, "name"_a, "ncomp"_a=1)
         .def("add_cable",
                 [](flat_cell_builder& b, arb::msize_t p, double len, pybind11::object rad, const char* name, int ncomp) {
                     using pybind11::isinstance;
