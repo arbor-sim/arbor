@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 def make_cable_cell(gid):
     b = arbor.flat_cell_builder()
 
-    # Soma with radius 6 μm.
-    s  = b.add_sphere(6, "soma")
+    # Soma with radius 6 μm, modelled as cylinder of length 2*radius
+    s  = b.add_cable(length=12, radius=6, name="soma", ncomp=1)
     # Single dendrite of length 100 μm and radius 2 μm attached to soma.
     b1 = b.add_cable(parent=s, length=100, radius=2, name="dend", ncomp=1)
     # Attach two dendrites of length 50 μm to the end of the first dendrite.

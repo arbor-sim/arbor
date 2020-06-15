@@ -1,3 +1,13 @@
+# NOTE: deprecating spherical roots changes the behavior of this model.
+# There is no soma, because only the root sample has tag 1, which will be
+# ignored as it is always the proximal end of any cable segment.
+# The fix is to:
+#   - Write an swc interpreter that inserts a cylinder with the
+#     appropriate properties.
+#   - Extend the cable-only descriptions to handle detached cables, to
+#     preserve surface area and correct starting locations of cables
+#     attached to the soma.
+
 import arbor
 from arbor import mechanism as mech
 from arbor import location as loc
@@ -5,7 +15,8 @@ import matplotlib.pyplot as plt
 
 # Load a cell morphology from an swc file.
 # The model has 31 branches, including soma, dendrites and axon.
-tree = arbor.load_swc('../../test/unit/swc/example.swc')
+#tree = arbor.load_swc('../../test/unit/swc/example.swc')
+tree = arbor.load_swc('example.swc')
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -34,6 +45,7 @@ cell.paint('dend', 'pas')
 cell.paint('dend', rL=500)
 # Attach stimuli that inject 0.8 nA currents for 1 ms, starting at 3 and 8 ms.
 cell.place('stim_site', arbor.iclamp(3, 1, current=0.5))
+cell.place('stim_site', arbor.iclamp(8, 1, current=1))
 # Detect spikes at the soma with a voltage threshold of -10 mV.
 cell.place('root', arbor.spike_detector(-10))
 

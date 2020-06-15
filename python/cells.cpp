@@ -405,8 +405,7 @@ void register_cells(pybind11::module& m) {
                 return arb::cable_cell(arb::morphology(t), labels.dict);
             }),
             "morphology"_a, "labels"_a,
-            "Construct with a morphology derived from a sample_tree, with automatic detection of whether\n"
-            "the morphology has a spherical root/soma.")
+            "Construct with a morphology derived from a sample_tree.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")

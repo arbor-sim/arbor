@@ -15,8 +15,8 @@
 namespace pyarb {
 
 class flat_cell_builder {
-    // The sample tree describing the morphology: constructed on the fly as
-    // the cables/spheres are added with add_cable/add_sphere.
+    // The sample tree describing the morphology, constructed additatively with
+    // cables that are attached to existing cables using add_cable.
     arb::sample_tree tree_;
 
     // The distal sample id of each cable.
