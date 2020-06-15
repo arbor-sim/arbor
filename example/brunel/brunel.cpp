@@ -168,14 +168,6 @@ public:
         return 1;
     }
 
-    cell_size_type num_probes(cell_gid_type) const override {
-        return 0;
-    }
-
-    probe_info get_probe(cell_member_type probe_id) const override {
-        return {};
-    }
-
 private:
     // Number of excitatory cells.
     cell_size_type ncells_exc_;

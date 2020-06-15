@@ -34,17 +34,16 @@ struct single_recipe: public arb::recipe {
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
-    arb::cell_size_type num_probes(arb::cell_gid_type) const override { return 1; }
     arb::cell_size_type num_targets(arb::cell_gid_type) const override { return 1; }
 
-    arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
         arb::mlocation mid_soma = {0, 0.5};
-        arb::cell_probe_membrane_voltage probe = {mid_soma};
+        arb::cable_probe_membrane_voltage probe = {mid_soma};
 
-        // Probe info consists of: the probe id, a tag value to distinguish this probe
-        // from others for any attached sampler (unused), and the cell probe address.
+        // Probe info consists of a probe address and an optional tag, for use
+        // by the sampler callback.
 
-        return {probe_id, 0, probe};
+        return {arb::probe_info{probe, 0}};
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
@@ -89,8 +88,8 @@ int main(int argc, char** argv) {
 
         // Attach a sampler to the probe described in the recipe, sampling every 0.1 ms.
 
-        arb::trace_data<double> trace;
-        sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), arb::make_simple_sampler(trace));
+        arb::trace_vector<double> traces;
+        sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), arb::make_simple_sampler(traces));
 
         // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms with
         // the given weight.
@@ -100,8 +99,7 @@ int main(int argc, char** argv) {
 
         sim.run(opt.t_end, opt.dt);
 
-        std::cout << std::fixed << std::setprecision(4);
-        for (auto entry: trace) {
+        for (auto entry: traces.at(0)) {
             std::cout << entry.t << ", " << entry.v << "\n";
         }
     }

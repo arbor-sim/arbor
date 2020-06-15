@@ -16,7 +16,7 @@ ARG BUILD_DIR
 ARG BUNDLE_DIR
 
 # Build arbor
-COPY . /arbor
+COPY . $SOURCE_DIR
 
 # Build and bundle binaries
 RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
@@ -56,6 +56,9 @@ COPY --from=builder ${SOURCE_DIR} ${SOURCE_DIR}
 
 # Make it easy to call our binaries.
 ENV PATH="${BUNDLE_DIR}/usr/bin:$PATH"
+
+# Automatically print stacktraces on segfault
+ENV LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
 
 RUN echo "${BUNDLE_DIR}/usr/lib/" > /etc/ld.so.conf.d/arbor.conf && ldconfig
 

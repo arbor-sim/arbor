@@ -7,8 +7,10 @@
 #include "backends/multicore/fvm.hpp"
 
 #include "unit_test_catalogue.hpp"
+#include "mechanisms/ca_linear.hpp"
 #include "mechanisms/celsius_test.hpp"
 #include "mechanisms/diam_test.hpp"
+#include "mechanisms/param_as_state.hpp"
 #include "mechanisms/test0_kin_diff.hpp"
 #include "mechanisms/test_linear_state.hpp"
 #include "mechanisms/test_linear_init.hpp"
@@ -50,11 +52,13 @@ c.register_implementation(#x, testing::make_mechanism_##x<gpu::backend>());
 
 using namespace arb;
 
-mechanism_catalogue make_unit_test_catalogue() {
-    mechanism_catalogue cat;
+mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
+    mechanism_catalogue cat(from);
 
+    ADD_MECH(cat, ca_linear)
     ADD_MECH(cat, celsius_test)
     ADD_MECH(cat, diam_test)
+    ADD_MECH(cat, param_as_state)
     ADD_MECH(cat, test_linear_state)
     ADD_MECH(cat, test_linear_init)
     ADD_MECH(cat, test_linear_init_shuffle)

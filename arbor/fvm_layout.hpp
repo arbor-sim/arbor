@@ -240,6 +240,7 @@ struct fvm_mechanism_config {
     std::vector<value_type> norm_area;
 
     // Synapse target number (point mechanisms only).
+    // For each instance index i, there are multiplicity[i] consecutive entries.
     std::vector<index_type> target;
 
     // (Non-global) parameters and parameter values across the mechanism instance.
@@ -275,8 +276,11 @@ struct fvm_mechanism_data {
     // Ion config, indexed by ion name.
     std::unordered_map<std::string, fvm_ion_config> ions;
 
-    // Total number of targets (point-mechanism points)
+    // Total number of targets (point-mechanism points).
     std::size_t n_target = 0;
+
+    // Partitions target numbers by cell.
+    std::vector<std::size_t> target_divs;
 };
 
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const arb::execution_context& ctx={});

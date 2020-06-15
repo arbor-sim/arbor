@@ -54,6 +54,8 @@ static Keyword keywords[] = {
     {"COMPARTMENT", tok::compartment},
     {"METHOD",      tok::method},
     {"STEADYSTATE", tok::steadystate},
+    {"FROM",        tok::from},
+    {"TO",          tok::to},
     {"if",          tok::if_stmt},
     {"IF",          tok::if_stmt},
     {"else",        tok::else_stmt},

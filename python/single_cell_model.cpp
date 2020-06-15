@@ -41,7 +41,7 @@ struct trace_callback {
 
     trace_callback(trace& t): trace_(t) {}
 
-    void operator()(arb::cell_member_type probe_id, arb::probe_tag tag, std::size_t n, const arb::sample_record* recs) {
+    void operator()(arb::probe_metadata, std::size_t n, const arb::sample_record* recs) {
         // Push each (time, value) pair from the last epoch into trace_.
         for (std::size_t i=0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
@@ -49,7 +49,7 @@ struct trace_callback {
                 trace_.v.push_back(*p);
             }
             else {
-                throw std::runtime_error("unexpected sample type in simple_sampler");
+                throw std::runtime_error("unexpected sample type");
             }
         }
     }
@@ -105,19 +105,13 @@ struct single_cell_recipe: arb::recipe {
 
     // probes
 
-    virtual arb::cell_size_type num_probes(arb::cell_gid_type)  const override {
-        return probes_.size();
-    }
-
-    virtual arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
-        // Test that a valid probe site is requested.
-        if (probe_id.gid || probe_id.index>=probes_.size()) {
-            throw arb::bad_probe_id(probe_id);
-        }
-
+    virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
         // For now only voltage can be selected for measurement.
-        const auto& loc = probes_[probe_id.index].site;
-        return arb::probe_info{probe_id, 0, arb::cell_probe_membrane_voltage{loc}};
+        std::vector<arb::probe_info> pinfo;
+        for (auto& p: probes_) {
+            pinfo.push_back(arb::cable_probe_membrane_voltage{p.site});
+        }
+        return pinfo;
     }
 
     // gap junctions

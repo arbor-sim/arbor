@@ -203,7 +203,6 @@ namespace {
 
         cell_size_type num_sources(cell_gid_type) const override { return 1; }
         cell_size_type num_targets(cell_gid_type) const override { return 1; }
-        cell_size_type num_probes(cell_gid_type) const override { return 0; }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             // a single connection from the preceding cell, i.e. a ring
@@ -266,7 +265,6 @@ namespace {
 
         cell_size_type num_sources(cell_gid_type) const override { return 1; }
         cell_size_type num_targets(cell_gid_type) const override { return size_; }
-        cell_size_type num_probes(cell_gid_type) const override { return 0; }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             std::vector<cell_connection> cons;

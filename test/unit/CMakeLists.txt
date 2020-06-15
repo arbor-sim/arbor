@@ -1,8 +1,10 @@
 # Build mechanisms used solely in unit tests.
 
 set(test_mechanisms
+    ca_linear
     celsius_test
     diam_test
+    param_as_state
     test_linear_state
     test_linear_init
     test_linear_init_shuffle
@@ -79,6 +81,7 @@ endforeach()
 set(unit_sources
     test_algorithms.cpp
     test_any.cpp
+    test_any_visitor.cpp
     test_backend.cpp
     test_counter.cpp
     test_cv_geom.cpp
@@ -125,6 +128,7 @@ set(unit_sources
     test_path.cpp
     test_piecewise.cpp
     test_point.cpp
+    test_pp_util.cpp
     test_probe.cpp
     test_range.cpp
     test_ratelem.cpp
