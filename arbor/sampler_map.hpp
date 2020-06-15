@@ -61,16 +61,4 @@ public:
     auto end()   { return assoc_view().end(); }
 };
 
-// Manage associations between probe ids, probe tags, and (lowered cell) probe handles.
-
-template <typename Handle>
-struct probe_association {
-    using probe_handle_type = Handle;
-    probe_handle_type handle;
-    probe_tag tag;
-};
-
-template <typename Handle>
-using probe_association_map = std::unordered_map<cell_member_type, probe_association<Handle>>;
-
 } // namespace arb

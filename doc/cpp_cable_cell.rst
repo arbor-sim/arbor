@@ -308,20 +308,26 @@ Mechanism state queries however will throw a ``cable_cell_error`` exception
 at simulation initialization if the requested state variable does not exist
 on the mechanism.
 
+Cable cell probe addresses that are described by a ``locset`` may generate more
+than one concrete probe: there will be one per location in the locset that is
+satisfiable. Sampler callback functions can distinguish between different
+probes with the same address and id by examining their index and/or
+probe-sepcific metadata found in the ``probe_metadata`` parameter.
+
 Membrane voltage
 ^^^^^^^^^^^^^^^^
 
 .. code::
 
     struct cable_probe_membrane_voltage {
-        mlocation location;
+        locset locations;
     };
 
-Queries cell membrane potential at the specified location.
+Queries cell membrane potential at each site in ``locations``.
 
 *  Sample value: ``double``. Membrane potential in millivolts.
 
-*  Metadata: ``mlocation``. Location as given in the probe address.
+*  Metadata: ``mlocation``. Location of probe.
 
 
 .. code::
@@ -343,14 +349,15 @@ Axial current
 .. code::
 
     struct cable_probe_axial_current {
-        mlocation location;
+        locset locations;
     };
 
-Estimate intracellular current at given location in the distal direction.
+Estimate intracellular current at each site in ``locations``,
+in the distal direction.
 
 *  Sample value: ``double``. Current in nanoamperes.
 
-*  Metadata: ``mlocation``. Location as given in the probe address.
+*  Metadata: ``mlocation``. Location as of probe.
 
 
 Transmembrane current
@@ -359,15 +366,16 @@ Transmembrane current
 .. code::
 
     struct cable_probe_ion_current_density {
-        mlocation location;
+        locset locations;
         std::string ion;
     };
 
-Membrance current density attributed to a particular ion at a given location.
+Membrance current density attributed to a particular ion at
+each site in ``locations``.
 
 *  Sample value: ``double``. Current density in amperes per square metre.
 
-*  Metadata: ``mlocation``. Location as given in the probe address.
+*  Metadata: ``mlocation``. Location of probe.
 
 
 .. code::
@@ -389,14 +397,14 @@ Membrane current attributed to a particular ion across components of the cell.
 .. code::
 
     struct cable_probe_total_ion_current_density {
-        mlocation location;
+        locset locations;
     };
 
-Membrane current density at gvien location _excluding_ capacitive currents.
+Membrane current density at given locations _excluding_ capacitive currents.
 
 *  Sample value: ``double``. Current density in amperes per square metre.
 
-*  Metadata: ``mlocation``. Location as given in the probe address.
+*  Metadata: ``mlocation``. Location of probe.
 
 
 .. code::
@@ -433,15 +441,15 @@ Ion concentration
 .. code::
 
     struct cable_probe_ion_int_concentration {
-        mlocation location;
+        locset locations;
         std::string ion;
     };
 
-Ionic internal concentration of ion at given location.
+Ionic internal concentration of ion at each site in ``locations``.
 
 *  Sample value: ``double``. Ion concentration in millimoles per litre.
 
-*  Metadata: ``mlocation``. Location as given in the probe address.
+*  Metadata: ``mlocation``. Location of probe.
 
 
 .. code::
@@ -467,11 +475,11 @@ Ionic external concentration of ion across components of the cell.
         std::string ion;
     };
 
-Ionic internal concentration of ion at given location.
+Ionic external concentration of ion at each site in ``locations``.
 
 *  Sample value: ``double``. Ion concentration in millimoles per litre.
 
-*  Metadata: ``mlocation``. Location as given in the probe address.
+*  Metadata: ``mlocation``. Location of probe.
 
 
 .. code::
@@ -497,14 +505,14 @@ Mechanism state
 .. code::
 
     struct cable_probe_density_state {
-        mlocation location;
+        locset locations;
         std::string mechanism;
         std::string state;
     };
 
 
-Value of state variable in a density mechanism in at given location.
-If the mechanism is not defined at the location, the probe is ignored.
+Value of state variable in a density mechanism in each site in ``locations``.
+If the mechanism is not defined at a particular site, that site is ignored.
 
 *  Sample value: ``double``. State variable value.
 

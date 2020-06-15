@@ -49,7 +49,7 @@ inline deliverable_event_data event_data(const deliverable_event& ev) {
 }
 
 
-// Sample events (scalar values)
+// Sample events (raw values from back-end state).
 
 using probe_handle = const fvm_value_type*;
 

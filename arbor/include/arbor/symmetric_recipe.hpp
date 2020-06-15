@@ -47,10 +47,6 @@ public:
         return tiled_recipe_->num_targets(i % tiled_recipe_->num_cells());
     }
 
-    cell_size_type num_probes(cell_gid_type i) const override {
-        return tiled_recipe_->num_probes(i % tiled_recipe_->num_cells());
-    }
-
     // Only function that calls the underlying tile's function on the same gid.
     // This is because applying transformations to event generators is not straightforward.
     std::vector<event_generator> event_generators(cell_gid_type i) const override {
@@ -73,9 +69,9 @@ public:
         return conns;
     }
 
-    probe_info get_probe(cell_member_type probe_id) const override {
-        probe_id.gid %= tiled_recipe_->num_cells();
-        return tiled_recipe_->get_probe(probe_id);
+    std::vector<probe_info> get_probes(cell_gid_type i) const override {
+        i %= tiled_recipe_->num_cells();
+        return tiled_recipe_->get_probes(i);
     }
 
     util::any get_global_properties(cell_kind ck) const override {

@@ -60,8 +60,8 @@ struct sample_callback {
         sample_store(state)
     {}
 
-    void operator() (arb::cell_member_type probe_id, arb::probe_tag tag, arb::util::any_ptr meta, std::size_t n, const arb::sample_record* recs) {
-        auto& v = sample_store->probe_buffer(probe_id);
+    void operator() (arb::probe_metadata pm, std::size_t n, const arb::sample_record* recs) {
+        auto& v = sample_store->probe_buffer(pm.id);
         for (std::size_t i = 0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
                 v.push_back({recs[i].time, *p});
