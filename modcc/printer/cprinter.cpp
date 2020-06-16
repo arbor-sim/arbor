@@ -724,11 +724,11 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
             out << "simd_value "<< tempvar <<" = simd_cast<simd_value>(indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n";
 
             if (coeff!=1) {
-                out << tempvar << " = S::add(" << tempvar << ", S::mul(w_, S::mul(simd_cast<simd_value>("
-                    << as_c_double(coeff) << "),"
-                    << from->name() << ")));\n";
+                out << tempvar << " = S::fma(S::mul(w_, simd_cast<simd_value>("
+                    << as_c_double(coeff) << ")),"
+                    << from->name() << ", " << tempvar << ");\n";
             } else {
-                out << tempvar << " = S::add(" << tempvar << ", S::mul(w_, " << from->name() << "));\n";
+                out << tempvar << " = S::fma(w_, " << from->name() << ", " << tempvar << ");\n";
             }
 
             out  << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = " << tempvar <<  ";\n";

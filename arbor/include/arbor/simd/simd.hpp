@@ -111,6 +111,11 @@ simd_mask_impl<T> logical_not(const simd_mask_impl<T>& a) {
     return !a;
 }
 
+template <typename T>
+simd_impl<T> fma(const simd_impl<T> a, simd_impl<T> b, simd_impl<T> c) {
+    return simd_impl<T>::wrap(T::fma(a.value_, b.value_, c.value_));
+}
+
 namespace detail {
     /// Indirect Expressions
     template <typename V>
@@ -679,6 +684,9 @@ namespace detail {
         #undef ARB_DECLARE_UNARY_ARITHMETIC_
         #undef ARB_DECLARE_BINARY_ARITHMETIC_
         #undef ARB_DECLARE_BINARY_COMPARISON_
+
+        template <typename T>
+        friend simd_impl<T> arb::simd::fma(const simd_impl<T> a, simd_impl<T> b, simd_impl<T> c);
 
         // Declare Indirect/Indirect indexed/Where Expression copy function as friends
 

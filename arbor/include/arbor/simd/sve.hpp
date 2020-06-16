@@ -188,16 +188,7 @@ struct sve_mask {
     }
 
     static svbool_t true_mask(unsigned width) {
-        //return svwhilelt_b64_u64(0, (uint64_t)width);
-        unsigned len = svcntd();
-        if (len == width) {
-            return svptrue_b64();
-        }
-        bool n[len];
-        for (unsigned i = 0; i< len; ++i){
-            n[i] = i < width;
-        }
-        return copy_from(n);
+        return svwhilelt_b64_u64(0, (uint64_t)width);
     }
 };
 
@@ -374,7 +365,7 @@ struct sve_double {
     }
 
     static svfloat64_t sub(const svfloat64_t& a, const svfloat64_t& b, const svbool_t& mask = svptrue_b64()) {
-        return svsub_f64_m(mask, a, b);
+        return svsub_f64_z(mask, a, b);
     }
 
     static svfloat64_t mul(const svfloat64_t& a, const svfloat64_t& b, const svbool_t& mask = svptrue_b64()) {
