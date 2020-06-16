@@ -177,7 +177,7 @@ public:
         gprop_.add_ion(ion, valence, int_con, ext_con, rev_pot);
     }
 
-    void run(double tfinal) {
+    void run(double tfinal, double dt) {
         single_cell_recipe rec(cell_, probes_, gprop_);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
@@ -207,7 +207,7 @@ public:
                 }
             });
 
-        sim_->run(tfinal, 0.025);
+        sim_->run(tfinal, dt);
 
         run_ = true;
     }
@@ -239,7 +239,11 @@ void register_single_cell(pybind11::module& m) {
     model
         .def(pybind11::init<arb::cable_cell>(),
             "cell"_a, "Initialise a single cell model for a cable cell.")
-        .def("run", &single_cell_model::run, "tfinal"_a, "Run model from t=0 to t=tfinal ms.")
+        .def("run",
+             &single_cell_model::run,
+             "tfinal"_a,
+             "dt"_a = 0.025,
+             "Run model from t=0 to t=tfinal ms.")
         .def("probe",
             [](single_cell_model& m, const char* what, const char* where, double frequency) {
                 m.probe(what, where, frequency);},
