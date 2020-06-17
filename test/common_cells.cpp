@@ -13,7 +13,7 @@ int soma_cell_builder::get_tag(const std::string& name) {
     return it->second;
 }
 
-soma_cell_builder::soma_cell_builder(double r): soma_rad(r) {
+soma_cell_builder::soma_cell_builder(double r) {
     auto tag = get_tag("soma");
     tree.append({{0,0,0,r}, tag});
     tree.append({{0,0,2*r,r}, tag});
@@ -65,9 +65,12 @@ msize_t soma_cell_builder::add_branch(
     int tag = get_tag(region);
 
     msize_t p = branch_distal_id[parent_branch];
-    double z = tree.samples()[p].loc.z;
+    auto& ploc =  tree.samples()[p].loc;
 
-    p = tree.append(p, {{0,0,z,r1}, tag});
+    double z = ploc.z;
+    if (ploc.radius!=r1) {
+        p = tree.append(p, {{0,0,z,r1}, tag});
+    }
     if (ncomp>1) {
         double dz = len/ncomp;
         double dr = (r2-r1)/ncomp;

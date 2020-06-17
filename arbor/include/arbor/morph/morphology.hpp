@@ -12,8 +12,6 @@ namespace arb {
 
 struct morphology_impl;
 
-using mindex_range = std::pair<const msize_t*, const msize_t*>;
-
 class morphology {
     // Hold an immutable copy of the morphology implementation.
     std::shared_ptr<const morphology_impl> impl_;
@@ -28,9 +26,6 @@ public:
     // The number of branches in the morphology.
     msize_t num_branches() const;
 
-    // The number of samples in the morphology.
-    msize_t num_samples() const;
-
     // The parent branch of branch b.
     // Return mnpos if branch has no parent.
     msize_t branch_parent(msize_t b) const;
@@ -42,17 +37,8 @@ public:
     // Branches with no children.
     const std::vector<msize_t>& terminal_branches() const;
 
-    // Range of indexes into the sample points in branch b.
-    mindex_range branch_indexes(msize_t b) const;
-
-    // All of the samples in the morphology.
-    const std::vector<msample>& samples() const;
-
-    // The parent sample of sample i.
-    const std::vector<msize_t>& sample_parents() const;
-
-    // Point properties of samples in the morphology.
-    const std::vector<point_prop>& sample_props() const;
+    // Range of segments in a branch.
+    const std::vector<msegment>& branch_segments(msize_t b) const;
 
     friend std::ostream& operator<<(std::ostream&, const morphology&);
 };

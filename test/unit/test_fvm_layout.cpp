@@ -729,10 +729,10 @@ TEST(fvm_layout, ion_weights) {
     // 1/2 of branch 1 and the initial 1/2 of branches 2 and 3.
     //
     // Geometry:
-    //   soma 0: radius 5 µm
-    //   dend 1: 100 µm long, 1 µm diameter cylinder, tag 2
-    //   dend 2: 200 µm long, 1 µm diameter cylinder, tag 3
-    //   dend 3: 100 µm long, 1 µm diameter cylinder, tag 4
+    //   soma 0: radius 5 µm, area 100π μm²
+    //   dend 1: 100 µm long, 1 µm diameter cylinder, area 100π μm²
+    //   dend 2: 200 µm long, 1 µm diameter cylinder, area 200π μm²
+    //   dend 3: 100 µm long, 1 µm diameter cylinder, area 100π μm²
     //
     // The radius of the soma is chosen such that the surface area of soma is
     // the same as a 100µm dendrite, which makes it easier to describe the
@@ -747,8 +747,11 @@ TEST(fvm_layout, ion_weights) {
     using ivec = std::vector<fvm_index_type>;
     using fvec = std::vector<fvm_value_type>;
 
+    //uvec mech_branches[] = {
+        //{0}, {0,2}, {2, 3}, {0, 1, 2, 3}, {3}
+    //};
     uvec mech_branches[] = {
-        {0}, {0,2}, {2, 3}, {0, 1, 2, 3}, {3}
+        {0}, {0,2}
     };
 
     ivec expected_ion_cv[] = {

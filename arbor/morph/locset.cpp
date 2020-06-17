@@ -96,25 +96,6 @@ std::ostream& operator<<(std::ostream& o, const location_list_& x) {
     return o << ')';
 }
 
-// Location corresponding to a sample id.
-
-struct sample_: locset_tag {
-    explicit sample_(msize_t index): index(index) {}
-    msize_t index;
-};
-
-locset sample(msize_t index) {
-    return locset{sample_{index}};
-}
-
-mlocation_list thingify_(const sample_& x, const mprovider& p) {
-    return {canonical(p.morphology(), p.embedding().sample_location(x.index))};
-}
-
-std::ostream& operator<<(std::ostream& o, const sample_& x) {
-    return o << "(sample " << x.index << ")";
-}
-
 // Set of terminal points (most distal points).
 
 struct terminal_: locset_tag {};
@@ -150,6 +131,23 @@ mlocation_list thingify_(const root_&, const mprovider& p) {
 std::ostream& operator<<(std::ostream& o, const root_& x) {
     return o << "(root)";
 }
+
+// Locations that mark interface between segments.
+
+struct segments_: locset_tag {};
+
+locset segment_boundaries() {
+    return locset{segments_{}};
+}
+
+mlocation_list thingify_(const segments_&, const mprovider& p) {
+    return p.embedding().segment_locations();
+}
+
+std::ostream& operator<<(std::ostream& o, const segments_& x) {
+    return o << "(segment_boundaries)";
+}
+
 
 // Proportional location on every branch.
 

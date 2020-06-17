@@ -189,7 +189,7 @@ TEST(cv_policy, max_extent) {
     }
 }
 
-TEST(cv_policy, every_sample) {
+TEST(cv_policy, every_segment) {
     using namespace cv_policy_flag;
 
     // Cell with root branch and two child branches, with multiple samples per branch.
@@ -208,7 +208,7 @@ TEST(cv_policy, every_sample) {
     // Including all samples:
     {
         cable_cell cell(m);
-        cv_policy pol = cv_policy_every_sample();
+        cv_policy pol = cv_policy_every_segment();
         mlocation_list points = thingify(pol.cv_boundary_points(cell), cell.provider());
         util::sort(points);
 

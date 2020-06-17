@@ -121,9 +121,6 @@ namespace ls {
 // Explicit location on morphology.
 locset location(msize_t branch, double pos);
 
-// Location of a sample.
-locset sample(msize_t);
-
 // Set of terminal nodes on a morphology.
 locset terminal();
 
@@ -144,6 +141,9 @@ locset most_proximal(region reg);
 
 // Returns all locations in a locset that are also in the region.
 locset restrict(locset ls, region reg);
+
+// Returns locations that mark the segments.
+locset segment_boundaries();
 
 // A range `left` to `right` of randomly selected locations with a
 // uniform distribution from region `reg` generated using `seed`

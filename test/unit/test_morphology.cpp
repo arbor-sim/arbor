@@ -10,6 +10,7 @@
 #include <arbor/morph/sample_tree.hpp>
 #include <arbor/cable_cell.hpp>
 
+#include "arbor/morph/primitives.hpp"
 #include "morph/mbranch.hpp"
 #include "util/span.hpp"
 
@@ -111,7 +112,7 @@ TEST(sample_tree, properties) {
     // make a sample tree from a parent vector with collocated points.
     auto make_colloc_tree = [] (const pvec& parents) {
         sample_tree st;
-        for (auto p: parents) st.append(p, {{0.,0.,0.,1.}, 1});
+        for (auto p: parents) st.append(p, {{0.,0.,0.,double(st.size()+1)}, 1});
         return st;
     };
 
@@ -141,24 +142,39 @@ TEST(sample_tree, properties) {
     }
 }
 
+namespace arb { namespace impl {
+std::vector<mbranch> branches_from_sample_tree(const arb::sample_tree&);
+}}
+
 TEST(morphology, branches_from_parent_index) {
     const auto npos = arb::mnpos;
     using pvec = std::vector<arb::msize_t>;
     using mb = arb::impl::mbranch;
 
+    auto s = [](int i) {return arb::msample{{0,0,double(i),1}, 1};};
     // make a sample tree from a parent vector with non-collocated points.
-    auto make_tree = [] (const pvec& parents) {
+    auto make_tree = [s] (const pvec& parents) {
         arb::sample_tree st;
-        for (auto p: parents) st.append(p, {{0.,0.,double(st.size()),1.}, 1});
+        for (auto p: parents) st.append(p, s(st.size()));
         return st;
+    };
+
+    auto are_equal = [](mb l, mb r) {
+        if (l.parent_id!=r.parent_id || l.size()!=r.size())
+            return false;
+        for (unsigned i=0; i<l.segments.size(); ++i) {
+            if (!(l.segments[i]==r.segments[i]))
+                return false;
+        }
+        return true;
     };
 
     {
         pvec parents = {npos, 0};
         auto tree = make_tree(parents);
-        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties());
+        auto bc = arb::impl::branches_from_sample_tree(tree);
         EXPECT_EQ(1u, bc.size());
-        EXPECT_EQ(mb({0,1}, npos), bc[0]);
+        EXPECT_TRUE(are_equal(mb({{s(0), s(1), 1}}, npos), bc[0]));
     }
 
     {
@@ -166,9 +182,9 @@ TEST(morphology, branches_from_parent_index) {
 
         // One cable with 3 samples.
         auto tree = make_tree(parents);
-        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties());
+        auto bc = arb::impl::branches_from_sample_tree(tree);
         EXPECT_EQ(1u, bc.size());
-        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
+        EXPECT_TRUE(are_equal(mb({{s(0), s(1), 1}, {s(1), s(2), 1}}, npos), bc[0]));
     }
 
     {
@@ -176,10 +192,10 @@ TEST(morphology, branches_from_parent_index) {
         auto tree = make_tree(parents);
 
         // Two cables, with two samples each, with the first sample in each being the root
-        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties());
+        auto bc = arb::impl::branches_from_sample_tree(tree);
         EXPECT_EQ(2u, bc.size());
-        EXPECT_EQ(mb({0,1},npos), bc[0]);
-        EXPECT_EQ(mb({0,2},npos), bc[1]);
+        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}}, npos), bc[0]));
+        EXPECT_TRUE(are_equal(mb({{s(0),s(2),1}}, npos), bc[1]));
     }
 
     {
@@ -187,9 +203,9 @@ TEST(morphology, branches_from_parent_index) {
         auto tree = make_tree(parents);
 
         // One cable with 4 samples.
-        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties());
+        auto bc = arb::impl::branches_from_sample_tree(tree);
         EXPECT_EQ(1u, bc.size());
-        EXPECT_EQ(mb({0,1,2,3},npos), bc[0]);
+        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}, {s(2),s(3),1}}, npos), bc[0]));
     }
 
     {
@@ -197,10 +213,10 @@ TEST(morphology, branches_from_parent_index) {
         auto tree = make_tree(parents);
 
         // Two cables attached to root, with 3 and 2 samples respectively.
-        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties());
+        auto bc = arb::impl::branches_from_sample_tree(tree);
         EXPECT_EQ(2u, bc.size());
-        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
-        EXPECT_EQ(mb({0,3},npos), bc[1]);
+        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}}, npos), bc[0]));
+        EXPECT_TRUE(are_equal(mb({{s(0),s(3),1}}, npos), bc[1]));
     }
 
     {
@@ -208,10 +224,10 @@ TEST(morphology, branches_from_parent_index) {
         auto tree = make_tree(parents);
 
         // Two cables attached to root, with 3 samples each [0,1,2] and [0,3,4]
-        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties());
+        auto bc = arb::impl::branches_from_sample_tree(tree);
         EXPECT_EQ(2u, bc.size());
-        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
-        EXPECT_EQ(mb({0,3,4},npos), bc[1]);
+        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}}, npos), bc[0]));
+        EXPECT_TRUE(are_equal(mb({{s(0),s(3),1}, {s(3),s(4),1}}, npos), bc[1]));
     }
 
     {
@@ -219,12 +235,12 @@ TEST(morphology, branches_from_parent_index) {
         auto tree = make_tree(parents);
 
         // 4 cables: [0,1,2] [0,3,4] [4,5] [4,6,7]
-        auto bc = arb::impl::branches_from_parent_index(parents, tree.properties());
+        auto bc = arb::impl::branches_from_sample_tree(tree);
         EXPECT_EQ(4u, bc.size());
-        EXPECT_EQ(mb({0,1,2},npos), bc[0]);
-        EXPECT_EQ(mb({0,3,4},npos), bc[1]);
-        EXPECT_EQ(mb({4,5},  1),    bc[2]);
-        EXPECT_EQ(mb({4,6,7},1),    bc[3]);
+        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}}, npos), bc[0]));
+        EXPECT_TRUE(are_equal(mb({{s(0),s(3),1}, {s(3),s(4),1}}, npos), bc[1]));
+        EXPECT_TRUE(are_equal(mb({{s(4),s(5),1}}, 1), bc[2]));
+        EXPECT_TRUE(are_equal(mb({{s(4),s(6),1}, {s(6),s(7),1}}, 1), bc[3]));
     }
 }
 

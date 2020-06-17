@@ -57,7 +57,12 @@ msize_t sample_tree::append(msize_t p, const msample& s) {
 
         // Mark if the new sample is collocated with its parent.
         if (is_collocated(s, samples_[p])) {
-            set_collocated(prop);
+            if (s.loc.radius==samples_[p].loc.radius) {
+                set_skip(prop);
+            }
+            else {
+                set_collocated(prop);
+            }
         }
 
         // Set parent to be a fork if it was not a terminal point before the

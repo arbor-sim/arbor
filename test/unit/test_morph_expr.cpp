@@ -62,15 +62,12 @@ TEST(locset, expr_repn) {
 
     auto root = ls::root();
     auto term = ls::terminal();
-    auto samp = ls::sample(42);
     auto loc = ls::location(2, 0.5);
 
     EXPECT_EQ(to_string(root), "(root)");
     EXPECT_EQ(to_string(term), "(terminal)");
     EXPECT_EQ(to_string(sum(root, term)), "(sum (root) (terminal))");
-    EXPECT_EQ(to_string(sum(root, term, samp)), "(sum (sum (root) (terminal)) (sample 42))");
-    EXPECT_EQ(to_string(sum(root, term, samp, loc)), "(sum (sum (sum (root) (terminal)) (sample 42)) (location 2 0.5))");
-    EXPECT_EQ(to_string(samp), "(sample 42)");
+    EXPECT_EQ(to_string(sum(root, term, loc)), "(sum (sum (root) (terminal)) (location 2 0.5))");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
 }
 
@@ -174,7 +171,6 @@ TEST(locset, thingify) {
     using ll = mlocation_list;
     auto root = ls::root();
     auto term = ls::terminal();
-    auto samp = ls::sample(4);
     auto midb2 = ls::location(2, 0.5);
     auto midb1 = ls::location(1, 0.5);
     auto begb0 = ls::location(0, 0);
@@ -209,7 +205,6 @@ TEST(locset, thingify) {
 
         EXPECT_EQ(thingify(root, mp),  (ll{{0,0}}));
         EXPECT_EQ(thingify(term, mp),  (ll{{0,1},{2,1},{3,1}}));
-        EXPECT_EQ(thingify(samp, mp),  (ll{{1,1}}));
         EXPECT_EQ(thingify(midb2, mp), (ll{{2,0.5}}));
         EXPECT_EQ(thingify(midb1, mp), (ll{{1,0.5}}));
         EXPECT_EQ(thingify(begb0, mp), (ll{{0,0}}));

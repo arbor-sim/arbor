@@ -6,6 +6,7 @@
  */
 
 #include <cmath>
+#include <utility>
 #include <vector>
 
 #include <arbor/morph/primitives.hpp>
@@ -15,22 +16,19 @@ namespace impl{
 
 // An unbranched cable segment that has root, terminal or fork point at each end.
 struct mbranch {
-    std::vector<msize_t> index;  // sample index
-    msize_t parent_id = mnpos;   // branch index
+    std::vector<msegment> segments;  // explicit segments.
+    msize_t parent_id = mnpos;       // branch index.
 
     mbranch() = default;
-    mbranch(std::vector<msize_t> idx, msize_t parent):
-        index(std::move(idx)), parent_id(parent) {}
+    mbranch(std::vector<msegment> segs, msize_t parent):
+        segments(std::move(segs)), parent_id(parent) {}
 
-    msize_t size()    const { return index.size(); }
+    msize_t size()    const { return segments.size()+1; }
     bool has_parent() const { return parent_id!=mnpos;}
 
-    friend bool operator==(const mbranch& l, const mbranch& r);
+    //friend bool operator==(const mbranch& l, const mbranch& r);
     friend std::ostream& operator<<(std::ostream& o, const mbranch& b);
 };
-
-std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents,
-                                                const std::vector<point_prop>& props);
 
 } // namespace impl
 } // namespace arb

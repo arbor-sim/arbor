@@ -142,12 +142,25 @@ bool test_invariants(const mcable_list& l) {
         && l.end()==std::find_if(l.begin(), l.end(), [](const mcable& c) {return !test_invariants(c);});
 }
 
+bool operator==(const msample& l, const msample& r) {
+    return l.loc.x==r.loc.x && l.loc.y==r.loc.y && l.loc.z==r.loc.z
+           && l.loc.radius==r.loc.radius && l.tag==r.tag;
+}
+
+bool operator==(const msegment& l, const msegment& r) {
+    return l.prox==r.prox && l.dist==r.dist && l.tag==r.tag;
+}
+
 std::ostream& operator<<(std::ostream& o, const mpoint& p) {
     return o << "(point " << p.x << " " << p.y << " " << p.z << " " << p.radius << ")";
 }
 
 std::ostream& operator<<(std::ostream& o, const msample& s) {
-    return o << "(sample " << s.loc << " " << s.tag << ")";
+    return o << "(sample " << s.loc.x << " " << s.loc.y << " " << s.loc.z << " " << s.loc.radius << " " << s.tag << ")";
+}
+
+std::ostream& operator<<(std::ostream& o, const msegment& s) {
+    return o << "(segment " << s.prox << " " << s.dist << " " << s.tag << ")";
 }
 
 std::ostream& operator<<(std::ostream& o, const mlocation& l) {

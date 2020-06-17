@@ -190,25 +190,18 @@ void register_morphology(pybind11::module& m) {
         .def_property_readonly("num_branches",
                 [](const arb::morphology& m){return m.num_branches();},
                 "The number of branches in the morphology.")
-        .def_property_readonly("num_samples",
-                [](const arb::morphology& m){return m.num_samples();},
-                "The number of samples in the morphology.")
-        .def_property_readonly("samples",
-                [](const arb::morphology& m){return m.samples();},
-                "All of the samples in the morphology.")
-        .def_property_readonly("sample_parents",
-                [](const arb::morphology& m){return m.sample_parents();},
-                "The parent indexes of each sample.")
         .def("branch_parent", &arb::morphology::branch_parent,
                 "i"_a, "The parent branch of branch i.")
         .def("branch_children", &arb::morphology::branch_children,
                 "i"_a, "The child branches of branch i.")
+        /* TODO replace with morphology::branch_segments()
         .def("branch_indexes",
                 [](const arb::morphology& m, arb::msize_t i) {
                     auto p = m.branch_indexes(i);
                     return std::vector<arb::msize_t>(p.first, p.second);
                 },
                 "i"_a, "Range of indexes into the sample points in branch i.")
+        */
         .def("__str__",
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);

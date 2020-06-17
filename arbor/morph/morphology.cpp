@@ -18,9 +18,22 @@ using arb::util::make_span;
 namespace arb {
 namespace impl {
 
-std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& parents,
-                                                const std::vector<point_prop>& props)
-{
+std::string print_prop(point_prop p) {
+    std::string s;
+
+    s += p&point_prop_mask_root       ? 'r': '-';
+    s += p&point_prop_mask_fork       ? 'f': '-';
+    s += p&point_prop_mask_terminal   ? 't': '-';
+    s += p&point_prop_mask_collocated ? 'c': '-';
+    s += p&point_prop_mask_skip       ? 's': '-';
+    return s;
+}
+
+std::vector<mbranch> branches_from_sample_tree(const sample_tree& tree) {
+    auto& parents = tree.parents();
+    auto& props = tree.properties();
+    auto& samps = tree.samples();
+
     auto nsamp = parents.size();
     if (!nsamp) return {};
 
@@ -28,7 +41,9 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& pare
         throw incomplete_branch(0);
     }
 
-    std::vector<int> bids(nsamp);
+    // Determine which branch each sample belongs to while counting the number
+    // of branches in the morphology.
+    std::vector<msize_t> bids(nsamp);
     int nbranches = 0;
     for (auto i: make_span(1, nsamp)) {
         auto p = parents[i];
@@ -36,21 +51,33 @@ std::vector<mbranch> branches_from_parent_index(const std::vector<msize_t>& pare
         bids[i] = first? nbranches++: bids[p];
     }
 
+    // A working vector used to track whether the first sample in a branch has been visited.
+    std::vector<char> visited(nbranches);
+
     std::vector<mbranch> branches(nbranches);
+    // Construct all of the cable segments for all of the branches.
     for (auto i: make_span(nsamp)) {
         auto p = parents[i];
-        auto& branch = branches[bids[i]];
-        if (!branch.size()) {
-            bool null_root = p==mnpos||p==0;
-            branch.parent_id = null_root? mnpos: bids[p];
-
-            // Add the distal sample from the parent branch if the parent is not mnpos
-            if (p!=mnpos) {
-                branch.index.push_back(p);
+        auto b = bids[i];
+        auto& branch = branches[b];
+        // If this is the first sample in the branch, set the branch's parent branch.
+        if (!visited[b]) {
+            while (p!=mnpos && bids[p]==i) {
+                p = parents[p];
             }
+            branch.parent_id = (p==mnpos||p==0) ? mnpos: bids[p];
+            visited[b] = 1;
         }
+        if (p!=mnpos && !is_skip(props[p])) {
+            branch.segments.push_back({samps[p], samps[i], samps[i].tag});
+        }
+    }
 
-        branch.index.push_back(i);
+    // Ensure that all branches have at least one segment
+    for (auto i: make_span(nbranches)) {
+        if (!branches[i].segments.size()) {
+            throw incomplete_branch(i);
+        }
     }
 
     return branches;
@@ -78,7 +105,7 @@ bool root_sample_tag_differs_from_children(const sample_tree& st) {
 
 struct morphology_impl {
     // The sample tree of sample points and their parent-child relationships.
-    sample_tree samples_;
+    //sample_tree samples_;
 
     // Branch state.
     std::vector<impl::mbranch> branches_;
@@ -87,25 +114,19 @@ struct morphology_impl {
     std::vector<msize_t> terminal_branches_;
     std::vector<std::vector<msize_t>> branch_children_;
 
-    morphology_impl(sample_tree m);
+    morphology_impl(const sample_tree& m);
 
     void init();
 
     friend std::ostream& operator<<(std::ostream&, const morphology_impl&);
 };
 
-morphology_impl::morphology_impl(sample_tree m):
-    samples_(std::move(m))
-{
-    init();
-}
-
-void morphology_impl::init() {
-    auto nsamp = samples_.size();
+morphology_impl::morphology_impl(const sample_tree& tree) {
+    auto nsamp = tree.size();
     if (!nsamp) return;
 
     // Generate branches.
-    branches_ = impl::branches_from_parent_index(samples_.parents(), samples_.properties());
+    branches_ = impl::branches_from_sample_tree(tree);
     auto nbranch = branches_.size();
 
     // Generate branch tree.
@@ -134,7 +155,7 @@ void morphology_impl::init() {
 
 std::ostream& operator<<(std::ostream& o, const morphology_impl& m) {
     o << "morphology: "
-      << m.samples_.size() << " samples, "
+      //<< m.samples_.size() << " samples, "
       << m.branches_.size() << " branches.";
     for (auto i: util::make_span(m.branches_.size()))
         o << "\n  branch " << i << ": " << m.branches_[i];
@@ -164,9 +185,9 @@ msize_t morphology::branch_parent(msize_t b) const {
 }
 
 // The parent sample of sample i.
-const std::vector<msize_t>& morphology::sample_parents() const {
-    return impl_->samples_.parents();
-}
+//const std::vector<msize_t>& morphology::sample_parents() const {
+    //return impl_->samples_.parents();
+//}
 
 // The child branches of branch b.
 const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
@@ -177,23 +198,22 @@ const std::vector<msize_t>& morphology::terminal_branches() const {
     return impl_->terminal_branches_;
 }
 
-mindex_range morphology::branch_indexes(msize_t b) const {
-    const auto& idx = impl_->branches_[b].index;
-    return std::make_pair(idx.data(), idx.data()+idx.size());
+const std::vector<msegment>& morphology::branch_segments(msize_t b) const {
+    return impl_->branches_[b].segments;
 }
 
-const std::vector<msample>& morphology::samples() const {
-    return impl_->samples_.samples();
-}
+//const std::vector<msample>& morphology::samples() const {
+    //return impl_->samples_.samples();
+//}
 
 // Point properties of samples in the morphology.
-const std::vector<point_prop>& morphology::sample_props() const {
-    return impl_->samples_.properties();
-}
+//const std::vector<point_prop>& morphology::sample_props() const {
+    //return impl_->samples_.properties();
+//}
 
-msize_t morphology::num_samples() const {
-    return impl_->samples_.size();
-}
+//msize_t morphology::num_samples() const {
+    //return impl_->samples_.size();
+//}
 
 msize_t morphology::num_branches() const {
     return impl_->branches_.size();

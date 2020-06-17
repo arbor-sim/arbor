@@ -34,7 +34,7 @@ using embedding = embed_pwlin;
     }
 }
 
-TEST(embedding, samples_and_branch_length) {
+TEST(embedding, segments_and_branch_length) {
     using pvec = std::vector<msize_t>;
     using svec = std::vector<msample>;
     using loc = mlocation;
@@ -48,7 +48,7 @@ TEST(embedding, samples_and_branch_length) {
             {{  0,  0,  0,  2}, 1},
             {{  1,  0,  0,  2}, 1},
             {{  3,  0,  0,  2}, 1},
-            {{  7,  0,  0,  2}, 1},
+            {{  7,  0,  0,  2}, 2},
             {{ 10,  0,  0,  2}, 1},
         };
         sample_tree sm(samples, parents);
@@ -56,11 +56,15 @@ TEST(embedding, samples_and_branch_length) {
 
         embedding em(m);
 
-        EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{0,0.1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{0,0.3})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{0,0.7})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{0,1})));
+        auto nloc = 5u;
+        EXPECT_EQ(nloc, em.segment_locations().size());
+        auto locs = em.branch_segment_locations(0);
+        EXPECT_EQ(nloc, locs.size());
+        EXPECT_TRUE(location_eq(m, locs[0], (loc{0,0})));
+        EXPECT_TRUE(location_eq(m, locs[1], (loc{0,0.1})));
+        EXPECT_TRUE(location_eq(m, locs[2], (loc{0,0.3})));
+        EXPECT_TRUE(location_eq(m, locs[3], (loc{0,0.7})));
+        EXPECT_TRUE(location_eq(m, locs[4], (loc{0,1})));
 
         EXPECT_EQ(10., em.branch_length(0));
     }
@@ -91,14 +95,24 @@ TEST(embedding, samples_and_branch_length) {
 
     embedding em(m);
 
-    EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0})));
-    EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{0,0.1})));
-    EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{0,1})));
-    EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{1,0.1})));
-    EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{1,1})));
-    EXPECT_TRUE(location_eq(m, em.sample_location(5), (loc{2,1})));
-    EXPECT_TRUE(location_eq(m, em.sample_location(6), (loc{3,0.15})));
-    EXPECT_TRUE(location_eq(m, em.sample_location(7), (loc{3,1})));
+    auto locs = em.branch_segment_locations(0);
+    EXPECT_TRUE(location_eq(m, locs[0], (loc{0,0})));
+    EXPECT_TRUE(location_eq(m, locs[1], (loc{0,0.1})));
+    EXPECT_TRUE(location_eq(m, locs[2], (loc{0,1})));
+
+    locs = em.branch_segment_locations(1);
+    EXPECT_TRUE(location_eq(m, locs[0], (loc{1,0})));
+    EXPECT_TRUE(location_eq(m, locs[1], (loc{1,0.1})));
+    EXPECT_TRUE(location_eq(m, locs[2], (loc{1,1})));
+
+    locs = em.branch_segment_locations(2);
+    EXPECT_TRUE(location_eq(m, locs[0], (loc{2,0})));
+    EXPECT_TRUE(location_eq(m, locs[1], (loc{2,1})));
+
+    locs = em.branch_segment_locations(3);
+    EXPECT_TRUE(location_eq(m, locs[0], (loc{3,0})));
+    EXPECT_TRUE(location_eq(m, locs[1], (loc{3,0.15})));
+    EXPECT_TRUE(location_eq(m, locs[2], (loc{3,1})));
 
     EXPECT_EQ(100., em.branch_length(0));
     EXPECT_EQ(100., em.branch_length(1));

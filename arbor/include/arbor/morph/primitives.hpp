@@ -51,11 +51,23 @@ struct msample {
     mpoint loc;
     int tag;
 
+    friend bool operator==(const msample& l, const msample& r);
     friend std::ostream& operator<<(std::ostream&, const msample&);
 };
 
 bool is_collocated(const msample& a, const msample& b);
 double distance(const msample& a, const msample& b);
+
+// Describe a cable segment between two adjacent samples.
+struct msegment {
+    msample prox;
+    msample dist;
+    int tag;
+
+    friend bool operator==(const msegment&, const msegment&);
+    friend std::ostream& operator<<(std::ostream&, const msegment&);
+};
+
 
 // Describe a specific location on a morpholology.
 struct mlocation {
@@ -120,7 +132,8 @@ enum point_prop_mask: point_prop {
     point_prop_mask_root = 1,
     point_prop_mask_fork = 2,
     point_prop_mask_terminal = 4,
-    point_prop_mask_collocated = 8
+    point_prop_mask_collocated = 8,
+    point_prop_mask_skip = 16
 };
 
 #define ARB_PROP(prop) \
@@ -138,6 +151,7 @@ ARB_PROP(root)
 ARB_PROP(fork)
 ARB_PROP(terminal)
 ARB_PROP(collocated)
+ARB_PROP(skip)
 
 } // namespace arb
 

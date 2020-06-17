@@ -4,6 +4,8 @@
 
 #include "io/sepval.hpp"
 #include "morph/mbranch.hpp"
+#include "util/strprintf.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
 namespace impl{
@@ -12,13 +14,9 @@ namespace impl{
 //  mbranch implementation
 //
 
-bool operator==(const mbranch& l, const mbranch& r) {
-    return l.parent_id==r.parent_id && l.index==r.index;
-}
-
 std::ostream& operator<<(std::ostream& o, const mbranch& b) {
-    o <<"mbranch([" << io::csv(b.index) << "], ";
-    if (b.parent_id==mnpos) o << "none)";
+    o << "(mbranch (" << io::csv(b.segments) << ") ";
+    if (b.parent_id==mnpos) o << "mnpos)";
     else  o << b.parent_id << ")";
     return o;
 }

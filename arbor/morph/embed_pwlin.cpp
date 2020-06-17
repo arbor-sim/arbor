@@ -6,6 +6,8 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
+#include "io/sepval.hpp"
+
 #include "util/piecewise.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -221,38 +223,39 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
     constexpr double pi = math::pi<double>;
     msize_t n_branch = m.num_branches();
     data_ = std::make_shared<embed_pwlin_data>(n_branch);
+    branch_segment_part_.reserve(n_branch+1);
 
     if (!n_branch) return;
 
-    const auto& samples = m.samples();
-    sample_locations_.resize(m.num_samples());
+    branch_segment_part_.push_back(0);
 
-    double proj_shift = samples.front().loc.z;
+    double proj_shift = m.branch_segments(0).front().prox.loc.z;
 
     for (msize_t bid = 0; bid<n_branch; ++bid) {
         unsigned parent = m.branch_parent(bid);
-        auto sample_indices = util::make_range(m.branch_indexes(bid));
+        auto& segments = m.branch_segments(bid);
+        arb_assert(segments.size());
 
-        arb_assert(sample_indices.size()>1);
+        branch_segment_part_.push_back(branch_segment_part_.back()+segments.size()+1);
 
-        std::vector<double> sample_distance;
-        sample_distance.reserve(samples.size());
-        sample_distance.push_back(0.);
+        std::vector<double> seg_pos;
+        seg_pos.reserve(segments.size()+1);
+        seg_pos.push_back(0.);
 
-        for (auto i: util::count_along(sample_indices)) {
-            if (!i) continue;
-
-            double d = distance(samples[sample_indices[i-1]], samples[sample_indices[i]]);
-            sample_distance.push_back(sample_distance.back()+d);
+        for (auto &seg: segments) {
+            double d = distance(seg.prox, seg.dist);
+            seg_pos.push_back(seg_pos.back()+d);
         }
-
-        double branch_length = sample_distance.back();
+        double branch_length = seg_pos.back();
         double length_scale = branch_length>0? 1./branch_length: 0;
-
-        for (auto i: util::count_along(sample_indices)) {
-            sample_locations_[sample_indices[i]] = mlocation{bid, length_scale*sample_distance[i]};
+        for (auto& d: seg_pos) {
+            d *= length_scale;
         }
-        sample_locations_[sample_indices.back()].pos = 1.; // Circumvent any rounding infelicities.
+        seg_pos.back() = 1; // Circumvent any rounding infelicities.
+
+        for (auto d: seg_pos) {
+            segment_locations_.push_back({bid, d});
+        }
 
         double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
         data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
@@ -262,27 +265,29 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
 
         if (length_scale==0) {
             // Zero-length branch? Weird, but make best show of it.
-            double r = samples[sample_indices[0]].loc.radius;
-            double z = samples[sample_indices[0]].loc.z;
+            auto& s = segments.front().prox;
+            double r = s.loc.radius;
+            double z = s.loc.z;
             data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
             data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z-proj_shift, z-proj_shift));
             data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
             data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
         }
         else {
-            for (auto i: util::count_along(sample_indices)) {
-                if (!i) continue;
+            for (auto i: util::count_along(segments)) {
+                auto prox = segments[i].prox;
+                auto dist = segments[i].dist;
 
-                double p0 = i>1? sample_locations_[sample_indices[i-1]].pos: 0;
-                double p1 = sample_locations_[sample_indices[i]].pos;
+                double p0 = seg_pos[i];
+                double p1 = seg_pos[i+1];
                 if (p0==p1) continue;
 
-                double z0 = samples[sample_indices[i-1]].loc.z - proj_shift;
-                double z1 = samples[sample_indices[i]].loc.z - proj_shift;
+                double z0 = prox.loc.z - proj_shift;
+                double z1 = dist.loc.z - proj_shift;
                 data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
 
-                double r0 = samples[sample_indices[i-1]].loc.radius;
-                double r1 = samples[sample_indices[i]].loc.radius;
+                double r0 = prox.loc.radius;
+                double r1 = dist.loc.radius;
                 data_->radius[bid].push_back(p0, p1, rat_element<1, 0>(r0, r1));
 
                 double dx = (p1-p0)*branch_length;
@@ -303,7 +308,6 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             arb_assert((data_->radius[bid].bounds()==std::pair<double, double>(0., 1.)));
             arb_assert((data_->area[bid].bounds()==std::pair<double, double>(0., 1.)));
             arb_assert((data_->ixa[bid].bounds()==std::pair<double, double>(0., 1.)));
-            arb_assert(sample_locations_.size()==m.samples().size());
         }
     }
 };

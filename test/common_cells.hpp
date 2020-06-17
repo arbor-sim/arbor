@@ -8,7 +8,6 @@
 namespace arb {
 
 class soma_cell_builder {
-    double soma_rad;
     sample_tree tree;
     std::vector<msize_t> branch_distal_id;
     std::unordered_map<std::string, int> tag_map;

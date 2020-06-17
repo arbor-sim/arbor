@@ -167,7 +167,7 @@ public:
     arb::cable_cell build() const {
         // Make cable_cell from sample tree and dictionary.
         auto c = arb::cable_cell(morphology(), dict_);
-        c.default_parameters.discretization = arb::cv_policy_every_sample{};
+        c.default_parameters.discretization = arb::cv_policy_every_segment{};
         return c;
     }
 

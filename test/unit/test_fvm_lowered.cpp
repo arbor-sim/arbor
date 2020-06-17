@@ -758,8 +758,8 @@ TEST(fvm_lowered, point_ionic_current) {
 // Test area-weighted linear combination of ion species concentrations
 
 TEST(fvm_lowered, weighted_write_ion) {
-    // Create a cell with 4 branches (same morphopology as in fvm_layout.ion_weights test):
-    //   - Soma (branch 0) plus three dendrites (1, 2, 3) meeting at a branch point.
+    // Create a cell with 3 branches (same morphopology as in fvm_layout.ion_weights test):
+    //   - Soma (part of branch 0) plus three dendrites (d1, d2, d3) meeting at a branch point.
     //   - Dendritic segments are given 1 compartments each.
     //
     //          /
@@ -773,10 +773,10 @@ TEST(fvm_lowered, weighted_write_ion) {
     // 1/2 of branch 1 and the initial 1/2 of branches 2 and 3.
     //
     // Geometry:
-    //   soma 0:  10 µm long, 10 µm diameter cylinder: area = 100 πμm²
-    //   dend 1: 100 µm long,  1 µm diameter cylinder: area = 100 πμm²
-    //   dend 2: 200 µm long,  1 µm diameter cylinder: area = 200 πμm²
-    //   dend 3: 100 µm long,  1 µm diameter cylinder: area = 100 πμm²
+    //   soma 0:  10 µm long, 10 µm diameter cylinder: area = 100π μm²
+    //   dend 1: 100 µm long,  1 µm diameter cylinder: area = 100π μm²
+    //   dend 2: 200 µm long,  1 µm diameter cylinder: area = 200π μm²
+    //   dend 3: 100 µm long,  1 µm diameter cylinder: area = 100π μm²
     //
     // The radius of the soma is chosen such that the surface area of soma is
     // the same as a 100 µm dendrite, which makes it easier to describe the
@@ -802,11 +802,9 @@ TEST(fvm_lowered, weighted_write_ion) {
     const double con_ext = 120;
 
     // Ca ion reader test_kinlva on CV 2 and 3 via branch 2:
-    //c.paint(reg::branch(2), "test_kinlva");
     c.paint(reg::branch(1), "test_kinlva");
 
     // Ca ion writer test_ca on CV 2 and 4 via branch 3:
-    //c.paint(reg::branch(3), "test_ca");
     c.paint(reg::branch(2), "test_ca");
 
     cable1d_recipe rec(c);

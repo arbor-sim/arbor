@@ -267,12 +267,12 @@ private:
     cv_policy_flag::value flags_;
 };
 
-struct cv_policy_every_sample: cv_policy_base {
-    explicit cv_policy_every_sample(cv_policy_flag::value flags = cv_policy_flag::none):
+struct cv_policy_every_segment: cv_policy_base {
+    explicit cv_policy_every_segment(cv_policy_flag::value flags = cv_policy_flag::none):
          flags_(flags) {}
 
     cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_every_sample(*this));
+        return cv_policy_base_ptr(new cv_policy_every_segment(*this));
     }
 
     locset cv_boundary_points(const cable_cell&) const override;

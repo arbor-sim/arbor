@@ -532,9 +532,9 @@ void register_cells(pybind11::module& m) {
             [](arb::cable_cell& c, const char* label) {return c.concrete_region(label).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
         // Discretization control.
-        .def("compartments_on_samples",
-            [](arb::cable_cell& c) {c.default_parameters.discretization = arb::cv_policy_every_sample{};},
-            "Decompose each branch into compartments defined by sample locations.")
+        .def("compartments_on_segments",
+            [](arb::cable_cell& c) {c.default_parameters.discretization = arb::cv_policy_every_segment{};},
+            "Decompose each branch into compartments defined by segments.")
         .def("compartments_length",
             [](arb::cable_cell& c, double len) {
                 c.default_parameters.discretization = arb::cv_policy_max_extent{len};

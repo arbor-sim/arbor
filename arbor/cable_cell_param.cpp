@@ -133,18 +133,13 @@ locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) co
     return points;
 }
 
-locset cv_policy_every_sample::cv_boundary_points(const cable_cell& cell) const {
+// Ignores interior_forks flag.
+// Always include branch proximal points, so that forks are trivial.
+locset cv_policy_every_segment::cv_boundary_points(const cable_cell& cell) const {
     const unsigned nbranch = cell.morphology().num_branches();
     if (!nbranch) return ls::nil();
 
-    // Ignore interior_forks flag.
-    // Always include branch proximal points, so that forks are trivial.
-
-    auto samples = util::make_span(cell.morphology().num_samples());
-    return join(
-        ls::on_branches(0.),
-        std::accumulate(samples.begin(), samples.end(), ls::nil(),
-                        [](auto&& l, auto&& r) { return sum(std::move(l), ls::sample(r)); }));
+    return ls::segment_boundaries();
 }
 
 } // namespace arb
