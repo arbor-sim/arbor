@@ -6,7 +6,7 @@
 NEURON {
     SUFFIX Ca_LVA
     USEION ca READ eca WRITE ica
-    RANGE gbar, g
+    RANGE gbar
 }
 
 UNITS {
@@ -21,11 +21,7 @@ PARAMETER {
 }
 
 ASSIGNED {
-    g (S/cm2)
-    mInf
-    mTau
-    hInf
-    hTau
+    qt
 }
 
 STATE {
@@ -35,32 +31,24 @@ STATE {
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    g = gbar*m*m*h
-    ica = g*(v-eca)
+    ica = gbar*m*m*h*(v - eca)
 }
 
 DERIVATIVE states {
-    rates(v, celsius)
-    m' = (mInf-m)/mTau
-    h' = (hInf-h)/hTau
+    LOCAL mInf, mRat, hInf, hRat
+				  
+    mInf = 1/(1 + exp((v + 40)/-6))
+    hInf = 1/(1 + exp((v + 90)/6.4))
+    mRat = qt/(5  + 20/(1 + exp((v + 35)/5)))				
+    hRat = qt/(20 + 50/(1 + exp((v + 50)/7)))
+     
+    m' = (mInf - m)*mRat
+    h' = (hInf - h)*hRat
 }
 
 INITIAL {
-    rates(v, celsius)
-    m = mInf
-    h = hInf
-}
-
-PROCEDURE rates(v, celsius) {
-  LOCAL qt
-  qt = 2.3^((celsius-21)/10)
-
-	UNITSOFF
-		v = v + 10
-		mInf = 1.0000/(1+ exp((v - -30.000)/-6))
-		mTau = (5.0000 + 20.0000/(1+exp((v - -25.000)/5)))/qt
-		hInf = 1.0000/(1+ exp((v - -80.000)/6.4))
-		hTau = (20.0000 + 50.0000/(1+exp((v - -40.000)/7)))/qt
-		v = v - 10
-	UNITSON
+    qt = 2.3^((celsius-21)/10)
+		   
+    m = 1/(1 + exp((v + 40)/-6))
+    h = 1/(1 + exp((v + 90)/6.4))
 }

@@ -608,6 +608,7 @@ void ProcedureExpression::semantic(scope_type::symbol_map &global_symbols) {
     error_ = false;
     switch (kind_) {
     case procedureKind::derivative:
+    case procedureKind::linear:
     case procedureKind::kinetic:
     case procedureKind::initial:
     case procedureKind::breakpoint:

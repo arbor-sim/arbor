@@ -2,85 +2,68 @@
 : Adapted from model implemented in Keren et al. 2005
 : Adjusted parameters to be similar to guangxitoxin-sensitive current in mouse CA1 pyramids from Liu and Bean 2014
 
-
-NEURON	{
-	SUFFIX Kv2like
-	USEION k READ ek WRITE ik
-	RANGE gbar, g
+NEURON {
+   SUFFIX Kv2like
+   USEION k READ ek WRITE ik
+   RANGE gbar
 }
 
-UNITS	{
-	(S) = (siemens)
-	(mV) = (millivolt)
-	(mA) = (milliamp)
+UNITS {
+   (S)  = (siemens)
+   (mV) = (millivolt)
+   (mA) = (milliamp)
 }
 
-PARAMETER	{
-	celsius (degC)     
-	gbar = 0.00001 (S/cm2)
+PARAMETER {
+   celsius            (degC)
+   gbar    = 0.00001 (S/cm2)
 }
 
-ASSIGNED	{
-	g	(S/cm2)
-	mInf
-	mAlpha
-	mBeta
-	mTau
-	hInf
-	h1Tau
-	h2Tau
+STATE {
+   m
+   h1
+   h2
 }
 
-STATE	{
-	m
-	h1
-	h2
+BREAKPOINT {
+   SOLVE states METHOD cnexp
+   ik = 0.5*gbar*m*m*(h1 + h2)*(v - ek)
 }
 
-BREAKPOINT	{
-	SOLVE states METHOD cnexp
-	g = gbar * m * m * (0.5 * h1 + 0.5 * h2)
-	ik = g * (v - ek)
+DERIVATIVE states {
+   LOCAL qt, mAlpha, mBeta, hInf, h1Rat, h2Rat, mRat
+   qt = 2.3^((celsius-21)/10)
+   
+   mAlpha = 0.12*vtrap(43 - v, 11)
+   mBeta  = 0.02*exp(-(v + 1.27) / 120)
+   mRat   = 0.4*qt*(mAlpha + mBeta)
+   
+   hInf  =  1/(1 + exp((v + 58) / 11))
+   h1Rat = qt/( 360 + (1010 + 23.7*(v + 54))*exp(-((v + 75) / 48)^2))
+   h2Rat = qt/(2350 + 1380*exp(-0.011*v) - 210*exp(-0.03*v))
+   
+   if (h2Rat < 0) {
+      h2Rat = 1e-3
+   }
+   
+   m'  = 0.4*qt*mAlpha - m*mRat
+   h1' = (hInf - h1)*h1Rat
+   h2' = (hInf - h2)*h2Rat
 }
 
-DERIVATIVE states	{
-	rates(v, celsius)
-	m' = (mInf - m) / mTau
-	h1' = (hInf - h1) / h1Tau
-	h2' = (hInf - h2) / h2Tau
-}
+INITIAL {
+   LOCAL hInf, mAlpha, mBeta
 
-INITIAL{
-	rates(v, celsius)
-	m = mInf
-	h1 = hInf
-	h2 = hInf
-}
-
-PROCEDURE rates(v, celsius) {
-  LOCAL qt
-  qt = 2.3^((celsius-21)/10)
-	UNITSOFF
-		mAlpha = 0.12 * vtrap( -(v - 43), 11.0)
-		mBeta = 0.02 * exp(-(v + 1.27) / 120)
-		mInf = mAlpha / (mAlpha + mBeta)
-		mTau = 2.5 * (1 / (qt * (mAlpha + mBeta)))
-
-		hInf =  1/(1 + exp((v + 58) / 11))
-		h1Tau = (360 + (1010 + 23.7 * (v + 54)) * exp(-((v + 75) / 48)^2)) / qt
-		h2Tau = (2350 + 1380 * exp(-0.011 * v) - 210 * exp(-0.03 * v)) / qt
-		if (h2Tau < 0) {
-			h2Tau = 1e-3
-		}
-	UNITSON
+   mAlpha = 0.12*vtrap(43 - v, 11)
+   mBeta  = 0.02*exp(-(v + 1.27) / 120)
+   
+   hInf = 1/(1 + exp((v + 58) / 11))
+   
+   m  = mAlpha/(mAlpha + mBeta)
+   h1 = hInf
+   h2 = hInf
 }
 
 FUNCTION vtrap(x, y) { : Traps for 0 in denominator of rate equations
-	UNITSOFF
-	if (fabs(x / y) < 1e-6) {
-		vtrap = y * (1 - x / y / 2)
-	} else {
-		vtrap = x / (exp(x / y) - 1)
-	}
-	UNITSON
+    vtrap = y*exprelr(x/y)
 }
