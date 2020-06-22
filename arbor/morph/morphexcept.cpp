@@ -40,6 +40,13 @@ invalid_sample_parent::invalid_sample_parent(msize_t parent, msize_t tree_size):
 {
 }
 
+invalid_segment_parent::invalid_segment_parent(msize_t parent, msize_t tree_size):
+    morphology_error(pprintf("invalid segment parent {} for a segment tree of size {}", msize_string(parent), tree_size)),
+    parent(parent),
+    tree_size(tree_size)
+{
+}
+
 label_type_mismatch::label_type_mismatch(const std::string& label):
     morphology_error(pprintf("label \"{}\" is already bound to a different type of object", label)),
     label(label)

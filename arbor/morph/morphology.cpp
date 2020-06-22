@@ -5,58 +5,66 @@
 
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/morph/sample_tree.hpp>
+#include <arbor/morph/segment_tree.hpp>
 #include <arbor/morph/primitives.hpp>
 
+#include "io/sepval.hpp"
 #include "morph/mbranch.hpp"
 #include "util/mergeview.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "util/transform.hpp"
 
 using arb::util::make_span;
 
 namespace arb {
 namespace impl {
 
-std::string print_prop(point_prop p) {
+std::string print_prop(seg_prop p) {
     std::string s;
 
-    s += p&point_prop_mask_root       ? 'r': '-';
-    s += p&point_prop_mask_fork       ? 'f': '-';
-    s += p&point_prop_mask_terminal   ? 't': '-';
-    s += p&point_prop_mask_collocated ? 'c': '-';
-    s += p&point_prop_mask_skip       ? 's': '-';
+    s += p&seg_prop_mask_root       ? 'r': '-';
+    s += p&seg_prop_mask_fork       ? 'f': '-';
+    s += p&seg_prop_mask_terminal   ? 't': '-';
+    s += p&seg_prop_mask_collocated ? 'c': '-';
+    s += p&seg_prop_mask_skip       ? 's': '-';
     return s;
 }
 
-std::vector<mbranch> branches_from_sample_tree(const sample_tree& tree) {
+std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
     auto& parents = tree.parents();
     auto& props = tree.properties();
-    auto& samps = tree.samples();
+    auto& segs = tree.segments();
 
-    auto nsamp = parents.size();
-    if (!nsamp) return {};
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
-    if (nsamp==1u) {
-        throw incomplete_branch(0);
-    }
+    auto nsegs = parents.size();
+    if (!nsegs) return {};
 
-    // Determine which branch each sample belongs to while counting the number
+    // Determine which branch each segment belongs to while counting the number
     // of branches in the morphology.
-    std::vector<msize_t> bids(nsamp);
+    std::vector<msize_t> bids(nsegs);
     int nbranches = 0;
-    for (auto i: make_span(1, nsamp)) {
-        auto p = parents[i];
-        bool first = is_root(props[p]) || is_fork(props[p]);
-        bids[i] = first? nbranches++: bids[p];
+    bids[0] = 0;
+    for (auto i: make_span(0, nsegs)) {
+        if (is_seg_root(props[i])) {
+            bids[i] = nbranches++;
+        }
+        else {
+            auto p = parents[i];
+            bool first = is_seg_root(props[p]) || is_seg_fork(props[p]);
+            bids[i] = first? nbranches++: bids[p];
+        }
     }
+    std::cout << "bids: (" << io::sepval(util::transform_view(props, [](seg_prop p){return print_prop(p);}), ' ') << ")\n";
+    std::cout << "bids: (" << io::sepval(bids, ' ') << ")\n";
 
-    // A working vector used to track whether the first sample in a branch has been visited.
+    // A working vector used to track whether the first segment in a branch has been visited.
     std::vector<char> visited(nbranches);
 
     std::vector<mbranch> branches(nbranches);
     // Construct all of the cable segments for all of the branches.
-    for (auto i: make_span(nsamp)) {
+    for (auto i: make_span(nsegs)) {
         auto p = parents[i];
         auto b = bids[i];
         auto& branch = branches[b];
@@ -68,33 +76,11 @@ std::vector<mbranch> branches_from_sample_tree(const sample_tree& tree) {
             branch.parent_id = (p==mnpos||p==0) ? mnpos: bids[p];
             visited[b] = 1;
         }
-        if (p!=mnpos && !is_skip(props[p])) {
-            branch.segments.push_back({samps[p], samps[i], samps[i].tag});
-        }
+        branch.segments.push_back(segs[i]);
     }
 
-    // Ensure that all branches have at least one segment
-    for (auto i: make_span(nbranches)) {
-        if (!branches[i].segments.size()) {
-            throw incomplete_branch(i);
-        }
-    }
-
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
     return branches;
-}
-
-// Returns false if one of the root's children has the same tag as the root.
-bool root_sample_tag_differs_from_children(const sample_tree& st) {
-    if (st.empty()) return false;
-    auto& P = st.parents();
-    auto& S = st.samples();
-    auto root_tag = S.front().tag;
-    for (auto i: util::make_span(1, st.size())) {
-        if (0u==P[i] && S[i].tag==root_tag) {
-            return false;
-        }
-    }
-    return true;
 }
 
 } // namespace impl
@@ -104,9 +90,6 @@ bool root_sample_tag_differs_from_children(const sample_tree& st) {
 //
 
 struct morphology_impl {
-    // The sample tree of sample points and their parent-child relationships.
-    //sample_tree samples_;
-
     // Branch state.
     std::vector<impl::mbranch> branches_;
     std::vector<msize_t> branch_parents_;
@@ -114,19 +97,19 @@ struct morphology_impl {
     std::vector<msize_t> terminal_branches_;
     std::vector<std::vector<msize_t>> branch_children_;
 
-    morphology_impl(const sample_tree& m);
+    morphology_impl(const segment_tree& m);
 
     void init();
 
     friend std::ostream& operator<<(std::ostream&, const morphology_impl&);
 };
 
-morphology_impl::morphology_impl(const sample_tree& tree) {
+morphology_impl::morphology_impl(const segment_tree& tree) {
     auto nsamp = tree.size();
     if (!nsamp) return;
 
     // Generate branches.
-    branches_ = impl::branches_from_sample_tree(tree);
+    branches_ = impl::branches_from_segment_tree(tree);
     auto nbranch = branches_.size();
 
     // Generate branch tree.
@@ -154,25 +137,20 @@ morphology_impl::morphology_impl(const sample_tree& tree) {
 }
 
 std::ostream& operator<<(std::ostream& o, const morphology_impl& m) {
-    o << "morphology: "
-      //<< m.samples_.size() << " samples, "
-      << m.branches_.size() << " branches.";
-    for (auto i: util::make_span(m.branches_.size()))
-        o << "\n  branch " << i << ": " << m.branches_[i];
-
-    return o;
+    bool single_line = m.branches_.empty();
+    return o << "(morphology" << (single_line? " (": " (\n  ") << io::sepval(m.branches_, "\n  ") << "))";
 }
 
 //
 // morphology implementation
 //
 
-morphology::morphology(sample_tree m):
+morphology::morphology(segment_tree m):
     impl_(std::make_shared<const morphology_impl>(std::move(m)))
 {}
 
 morphology::morphology():
-    morphology(sample_tree())
+    morphology(segment_tree())
 {}
 
 bool morphology::empty() const {
@@ -183,11 +161,6 @@ bool morphology::empty() const {
 msize_t morphology::branch_parent(msize_t b) const {
     return impl_->branch_parents_[b];
 }
-
-// The parent sample of sample i.
-//const std::vector<msize_t>& morphology::sample_parents() const {
-    //return impl_->samples_.parents();
-//}
 
 // The child branches of branch b.
 const std::vector<msize_t>& morphology::branch_children(msize_t b) const {
@@ -201,19 +174,6 @@ const std::vector<msize_t>& morphology::terminal_branches() const {
 const std::vector<msegment>& morphology::branch_segments(msize_t b) const {
     return impl_->branches_[b].segments;
 }
-
-//const std::vector<msample>& morphology::samples() const {
-    //return impl_->samples_.samples();
-//}
-
-// Point properties of samples in the morphology.
-//const std::vector<point_prop>& morphology::sample_props() const {
-    //return impl_->samples_.properties();
-//}
-
-//msize_t morphology::num_samples() const {
-    //return impl_->samples_.size();
-//}
 
 msize_t morphology::num_branches() const {
     return impl_->branches_.size();

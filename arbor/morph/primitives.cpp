@@ -142,6 +142,10 @@ bool test_invariants(const mcable_list& l) {
         && l.end()==std::find_if(l.begin(), l.end(), [](const mcable& c) {return !test_invariants(c);});
 }
 
+bool operator==(const mpoint& l, const mpoint& r) {
+    return l.x==r.x && l.y==r.y && l.z==r.z && l.radius==r.radius;
+}
+
 bool operator==(const msample& l, const msample& r) {
     return l.loc.x==r.loc.x && l.loc.y==r.loc.y && l.loc.z==r.loc.z
            && l.loc.radius==r.loc.radius && l.tag==r.tag;

@@ -94,6 +94,7 @@ TEST(cv_geom, trivial) {
         if (p.second.empty()) continue;
 
         SCOPED_TRACE(p.first);
+        std::cout << p.second << "\n---------" << std::endl;
         cable_cell cell{p.second};
         auto& m = cell.morphology();
 
@@ -283,6 +284,7 @@ TEST(cv_geom, weird) {
     using C = mcable;
     using testing::seq_eq;
 
+    std::cout << common_morphology::m_reg_b1 << "\n";
     cable_cell cell{common_morphology::m_reg_b6};
     cv_geometry geom = cv_geometry_from_ends(cell, mlocation_list{{1, 0}, {4,0}});
 

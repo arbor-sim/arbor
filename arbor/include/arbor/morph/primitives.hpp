@@ -22,6 +22,7 @@ struct mpoint {
     double x, y, z;  // [µm]
     double radius;   // [μm]
 
+    friend bool operator==(const mpoint& l, const mpoint& r);
     friend std::ostream& operator<<(std::ostream&, const mpoint&);
 };
 
@@ -60,8 +61,8 @@ double distance(const msample& a, const msample& b);
 
 // Describe a cable segment between two adjacent samples.
 struct msegment {
-    msample prox;
-    msample dist;
+    mpoint prox;
+    mpoint dist;
     int tag;
 
     friend bool operator==(const msegment&, const msegment&);
@@ -136,7 +137,7 @@ enum point_prop_mask: point_prop {
     point_prop_mask_skip = 16
 };
 
-#define ARB_PROP(prop) \
+#define ARB_POINT_PROP(prop) \
 constexpr bool is_##prop(point_prop p) {\
     return p&point_prop_mask_##prop;\
 } \
@@ -147,11 +148,36 @@ inline void unset_##prop(point_prop& p) {\
     p &= ~point_prop_mask_##prop;\
 }
 
-ARB_PROP(root)
-ARB_PROP(fork)
-ARB_PROP(terminal)
-ARB_PROP(collocated)
-ARB_PROP(skip)
+ARB_POINT_PROP(root)
+ARB_POINT_PROP(fork)
+ARB_POINT_PROP(terminal)
+ARB_POINT_PROP(collocated)
+ARB_POINT_PROP(skip)
+
+using seg_prop = std::uint8_t;
+enum seg_prop_mask: seg_prop {
+    seg_prop_mask_none = 0,
+    seg_prop_mask_root = 1,
+    seg_prop_mask_fork = 2,
+    seg_prop_mask_terminal = 4,
+    seg_prop_mask_collocated = 8,
+    seg_prop_mask_skip = 16
+};
+
+#define ARB_SEG_PROP(prop) \
+constexpr bool is_seg_##prop(seg_prop p) {\
+    return p&seg_prop_mask_##prop;\
+} \
+inline void set_seg_##prop(seg_prop& p) {\
+    p |= seg_prop_mask_##prop;\
+} \
+inline void unset_seg_##prop(seg_prop& p) {\
+    p &= ~seg_prop_mask_##prop;\
+}
+
+ARB_SEG_PROP(root)
+ARB_SEG_PROP(fork)
+ARB_SEG_PROP(terminal)
 
 } // namespace arb
 

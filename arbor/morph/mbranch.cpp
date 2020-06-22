@@ -15,7 +15,7 @@ namespace impl{
 //
 
 std::ostream& operator<<(std::ostream& o, const mbranch& b) {
-    o << "(mbranch (" << io::csv(b.segments) << ") ";
+    o << "(branch (" << io::sepval(b.segments, ' ') << ") ";
     if (b.parent_id==mnpos) o << "mnpos)";
     else  o << b.parent_id << ")";
     return o;

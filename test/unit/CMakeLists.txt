@@ -87,18 +87,18 @@ set(unit_sources
     test_counter.cpp
     test_cv_geom.cpp
     test_cv_layout.cpp
-    test_cv_policy.cpp
+    #test_cv_policy.cpp
     test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
     test_double_buffer.cpp
     test_either.cpp
     test_event_binner.cpp
-    test_event_delivery.cpp
+    #test_event_delivery.cpp
     test_event_generators.cpp
     test_event_queue.cpp
     test_filter.cpp
-    test_fvm_layout.cpp
+    #test_fvm_layout.cpp
     test_fvm_lowered.cpp
     test_glob_basic.cpp
     test_kinetic_linear.cpp
@@ -117,9 +117,9 @@ set(unit_sources
     test_mechinfo.cpp
     test_merge_events.cpp
     test_merge_view.cpp
-    test_morphology.cpp
-    test_morph_embedding.cpp
-    test_morph_expr.cpp
+    #test_morphology.cpp
+    #test_morph_embedding.cpp
+    #test_morph_expr.cpp
     test_morph_primitives.cpp
     test_multi_event_stream.cpp
     test_optional.cpp
@@ -130,14 +130,15 @@ set(unit_sources
     test_piecewise.cpp
     test_point.cpp
     test_pp_util.cpp
-    test_probe.cpp
+    #test_probe.cpp
     test_range.cpp
     test_ratelem.cpp
     test_schedule.cpp
-    test_spike_source.cpp
     test_scope_exit.cpp
+    test_segment_tree.cpp
     test_simd.cpp
     test_span.cpp
+    test_spike_source.cpp
     test_spikes.cpp
     test_spike_store.cpp
     test_stats.cpp

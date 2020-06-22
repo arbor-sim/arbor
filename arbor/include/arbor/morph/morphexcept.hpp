@@ -36,6 +36,12 @@ struct invalid_sample_parent: morphology_error {
     msize_t tree_size;
 };
 
+struct invalid_segment_parent: morphology_error {
+    invalid_segment_parent(msize_t parent, msize_t tree_size);
+    msize_t parent;
+    msize_t tree_size;
+};
+
 struct label_type_mismatch: morphology_error {
     label_type_mismatch(const std::string& label);
     std::string label;

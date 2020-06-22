@@ -6,8 +6,6 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
-#include "io/sepval.hpp"
-
 #include "util/piecewise.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -229,7 +227,7 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
 
     branch_segment_part_.push_back(0);
 
-    double proj_shift = m.branch_segments(0).front().prox.loc.z;
+    double proj_shift = m.branch_segments(0).front().prox.z;
 
     for (msize_t bid = 0; bid<n_branch; ++bid) {
         unsigned parent = m.branch_parent(bid);
@@ -266,8 +264,8 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
         if (length_scale==0) {
             // Zero-length branch? Weird, but make best show of it.
             auto& s = segments.front().prox;
-            double r = s.loc.radius;
-            double z = s.loc.z;
+            double r = s.radius;
+            double z = s.z;
             data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
             data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z-proj_shift, z-proj_shift));
             data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
@@ -282,12 +280,12 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
                 double p1 = seg_pos[i+1];
                 if (p0==p1) continue;
 
-                double z0 = prox.loc.z - proj_shift;
-                double z1 = dist.loc.z - proj_shift;
+                double z0 = prox.z - proj_shift;
+                double z1 = dist.z - proj_shift;
                 data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
 
-                double r0 = prox.loc.radius;
-                double r1 = dist.loc.radius;
+                double r0 = prox.radius;
+                double r1 = dist.radius;
                 data_->radius[bid].push_back(p0, p1, rat_element<1, 0>(r0, r1));
 
                 double dx = (p1-p0)*branch_length;

@@ -15,10 +15,9 @@ int soma_cell_builder::get_tag(const std::string& name) {
 
 soma_cell_builder::soma_cell_builder(double r) {
     auto tag = get_tag("soma");
-    tree.append({{0,0,0,r}, tag});
-    tree.append({{0,0,2*r,r}, tag});
+    tree.append(arb::mnpos, {0,0,0,r}, {0,0,2*r,r}, tag);
     cv_boundaries.push_back({0, 1.});
-    branch_distal_id.push_back(1);
+    branch_distal_id.push_back(0);
     n_soma_children = 0;
 }
 
@@ -31,8 +30,8 @@ mlocation soma_cell_builder::location(mlocation loc) const {
     }
     if (n_soma_children==1) {
         if (loc.branch<2) {
-            double soma_len  = tree.samples()[branch_distal_id[0]].loc.z;
-            double total_len = tree.samples()[branch_distal_id[1]].loc.z;
+            double soma_len  = tree.segments()[branch_distal_id[0]].dist.z;
+            double total_len = tree.segments()[branch_distal_id[1]].dist.z;
             // relative position of the end of the soma on the first branch
             double split = soma_len/total_len;
             double pos = loc.branch==0?
@@ -65,20 +64,20 @@ msize_t soma_cell_builder::add_branch(
     int tag = get_tag(region);
 
     msize_t p = branch_distal_id[parent_branch];
-    auto& ploc =  tree.samples()[p].loc;
+    auto& ploc =  tree.segments()[p].dist;
 
     double z = ploc.z;
     if (ploc.radius!=r1) {
-        p = tree.append(p, {{0,0,z,r1}, tag});
+        p = tree.append(p, {0,0,z,r1}, tag);
     }
     if (ncomp>1) {
         double dz = len/ncomp;
         double dr = (r2-r1)/ncomp;
         for (auto i=1; i<ncomp; ++i) {
-            p = tree.append(p, {{0,0,z+i*dz, r1+i*dr}, tag});
+            p = tree.append(p, {0,0,z+i*dz, r1+i*dr}, tag);
         }
     }
-    p = tree.append(p, {{0,0,z+len,r2}, tag});
+    p = tree.append(p, {0,0,z+len,r2}, tag);
     branch_distal_id.push_back(p);
 
     msize_t bid = branch_distal_id.size()-1;

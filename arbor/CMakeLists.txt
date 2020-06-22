@@ -39,6 +39,7 @@ set(arbor_sources
     morph/primitives.cpp
     morph/region.cpp
     morph/sample_tree.cpp
+    morph/segment_tree.cpp
     merge_events.cpp
     simulation.cpp
     partition_load_balance.cpp

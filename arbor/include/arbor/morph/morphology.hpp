@@ -6,7 +6,7 @@
 
 #include <arbor/util/lexcmp_def.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/morph/sample_tree.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 namespace arb {
 
@@ -17,7 +17,7 @@ class morphology {
     std::shared_ptr<const morphology_impl> impl_;
 
 public:
-    morphology(sample_tree m);
+    morphology(segment_tree m);
     morphology();
 
     // Empty/default-constructed morphology?

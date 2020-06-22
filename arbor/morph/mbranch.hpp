@@ -26,7 +26,6 @@ struct mbranch {
     msize_t size()    const { return segments.size()+1; }
     bool has_parent() const { return parent_id!=mnpos;}
 
-    //friend bool operator==(const mbranch& l, const mbranch& r);
     friend std::ostream& operator<<(std::ostream& o, const mbranch& b);
 };
 
