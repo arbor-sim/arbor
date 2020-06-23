@@ -17,14 +17,19 @@ and provide a rich interface for specifying the cell's dynamics.
     :ref:`label dictionary <labels-dictionary>` that are used to describe
     :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell.
 
-A cell is *decorated* by specifying the distribution and placement of dynamics
-on the cell, to produce a *cable cell*: a full description
-of a cell morphology and its dynamics with all information required to build
-a a standalone single-cell model, or as part of a larger network.
+.. _cablecell-decoration:
 
-Decoration uses region and locset descriptions to specify the dynamics, and
-their respective use for this purpose are reflected in the two broad classes
-of *dynamics* in Arbor:
+Decoration
+----------------
+
+A cable cell is *decorated* by specifying the distribution and placement of dynamics
+on the cell to produce a full description
+of a cell morphology and its dynamics with all information required to build
+a standalone single-cell model, or as part of a larger network.
+
+Decoration uses region and locset descriptions, with
+their respective use for this purpose reflected in the two broad classes
+of dynamics in Arbor:
 
 * *Painted dynamics* are applied to regions of a cell, and are associated with
   an area of the membrane or volume of the cable.
@@ -34,8 +39,7 @@ of *dynamics* in Arbor:
   * :ref:`Ion species <cable-ions>`.
 
 * *Placed dynamics* are applied to locations on the cell, and are associated
-  with entities that can be counted. Examples include synapses, stimulii,
-  spike detectors, and gap junction sites.
+  with entities that can be counted.
 
   * :ref:`Synapses <cable-synapses>`.
   * :ref:`Gap junction sites <cable-gj-sites>`.
@@ -43,15 +47,17 @@ of *dynamics* in Arbor:
   * :ref:`Stimulii <cable-stimulii>`.
   * :ref:`Probes <cable-probes>`.
 
-Painted Dynamics
-----------------
+.. _cablecell-paint:
 
-Painted dynamics are applied to surface and volume of cells, that can be specified at
-three different levels:
+Painted Dynamics
+''''''''''''''''
+
+Painted dynamics are applied to a subset of the surface and/or volume of cells.
+They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
 * *per-cell*: overide the global defaults for a specific cell.
-* *per-region*: specialize values on specific cell regions.
+* *per-region*: specialize on specific cell regions.
 
 This hierarchical approach for resolving parameters and properties allows
 us to, for example, define a global default value for calcium concentration,
@@ -65,7 +71,7 @@ The types of dynamics, and where they can be defined, are
 
 .. _cable-painted-resolution:
 
-.. csv-table:: Painted property resolution options
+.. csv-table:: Painted property resolution options.
    :widths: 20, 10, 10, 10
 
                   ,       **region**, **cell**, **global**
@@ -109,6 +115,7 @@ for setting cell-wide defaults for properties, and the
     morph = arbor.morphology(tree, spherical_root=True)
     labels = arbor.label_dict({'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)'})
 
+    # Create a cable cell.
     cell = arbor.cable_cell(morph, labels)
 
     # Set cell-wide properties that will be applied by default to # the entire cell.
@@ -135,7 +142,7 @@ which model classic Hodgkin-Huxley and passive leaky currents respectively.
 
 Mechanisms have two types of parameters that can be set by users
 
-* *Global* parameters that are a single scalar value that is the
+* *Global* parameters are a single scalar value that is the
   same everywhere a mechanism is defined.
 * *Range* parameters can vary spatially.
 
@@ -143,19 +150,32 @@ Every mechanism is described by a string with its name, and
 an optional list of key-value pairs that define its range parameters.
 
 Because a global parameter is fixed over the entire spatial extent
-of a density mechanism, if the value of the parameter varies,
-a new mechanism must be created.
+of a density mechanism, a new mechanism has to created for every
+combination of global parameter values.
 
-This is reflected in howo
+Take for example a mechanism passive leaky dynamics:
 
-Take for example a mechanism passive`
-* name: ``"passive"``
-* global variable: ``"E"``
-* range variable: ``"g"``
-
+* Name: ``"passive"``.
+* Global variable: reversal potential ``"el"``.
+* Range variable: conductance ``"g"``.
 
 .. code-block:: Python
 
+    # Create pas mechanism with default parameter values (set in NOMDL file).
+    m1 = arbor.mechanism('passive')
+
+    # Create default mechainsm with custom conductance (range)
+    m2 = arbor.mechanism('passive', {'g', 0.1})
+
+    # Create a new pas mechanism with that changes reversal potential (global)
+    m3 = arbor.mechanism('passive/el=-45')
+
+    # Create an instance of the same mechanism, that also sets conductance (range)
+    m4 = arbor.mechanism('passive/el=-45', {'g', 0.1})
+
+    cell.paint('soma', m1)
+    cell.paint('soma', m2) # error: can't place the same mechanism on overlapping regions
+    cell.paint('soma', m3) # error: technically a different mechanism?
 
 .. _cable-ions:
 
@@ -189,8 +209,10 @@ then specialised at cell and region level.
 The reversal potential of an ion species is calculated by an
 optional *reversal potential mechanism*.
 If no reversal potential mechanism is specified for an ion species, the initial
-reversal potential values are maintained for the course of a simulation. Otherwise,
-the mechanism does the work, but it is subject to some strict restrictions.
+reversal potential values are maintained for the course of a simulation.
+Otherwise, the mechanism does the work.
+
+but it is subject to some strict restrictions.
 Specifically, a reversal potential mechanism described in NMODL:
 
 * May not maintain any STATE variables.
@@ -245,8 +267,10 @@ using the *paint* interface:
     # Alternatively, one can selectively overwrite the global defaults.
     cell.paint('axon', arbor.ion('ca', rev_pot=126)
 
+.. _cablecell-place:
+
 Placed Dynamices
-----------------
+''''''''''''''''
 
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
 and are asigned to specific locations.
