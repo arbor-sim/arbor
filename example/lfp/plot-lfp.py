@@ -32,7 +32,6 @@ def subplot_morphology(fig, index, jdict, key, xlim, ylim):
     sub = fig.add_subplot(index, xlabel='x ('+unit+')', ylabel='y ('+unit+')', title=key, xlim=xlim, ylim=ylim)
 
     for samples in data['samples']:
-        spairs = zip(samples, samples[1:])
         polys = [([x0-s0*dy, x0+s0*dy, x1+s1*dy, x1-s1*dy], [y0+s0*dx, y0-s0*dx, y1-s1*dx, y1+s1*dx])
                 for ((x0, y0, r0), (x1, y1, r1)) in zip(samples, samples[1:])
                 for dx, dy in [(x1-x0, y1-y0)]

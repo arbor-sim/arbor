@@ -201,8 +201,6 @@ struct {
     }
 } as_json_array;
 
-auto compose = [](const auto& f, const auto& g) { return [f, g](const auto& x) { return f(g(x)); }; };
-
 // Run simulation.
 
 int main(int argc, char** argv) {
