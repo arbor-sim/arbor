@@ -1,12 +1,5 @@
 include(BuildModules.cmake)
 
-# The list of library-provided mechanisms used to populate the default catalogue:
-set(mechanisms pas hh expsyn exp2syn nernst test_kin1 test_kinlva test_ca nax kdrmt kamt)
-
-set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
-
-# Generate mechanism implementations.
-
 set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${mech_dir}")
 
@@ -15,37 +8,41 @@ if(ARB_WITH_EXTERNAL_MODCC)
     set(external_modcc MODCC ${modcc})
 endif()
 
+add_custom_target(build_all_mods)
+
+set(mech_sources "")
+
+# ALLEN
+set(allen_mechanisms CaDynamics Ca_HVA Ca_LVA Ih Im Im_v2 K_P K_T Kd Kv2like Kv3_1 NaTa NaTs NaV Nap SK)
+set(allen_mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/allen")
+
 build_modules(
-    ${mechanisms}
-    SOURCE_DIR "${mod_srcdir}"
+    ${allen_mechanisms}
+    SOURCE_DIR "${allen_mod_srcdir}"
     DEST_DIR "${mech_dir}"
     ${external_modcc}
     MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
-    TARGET build_all_mods
-)
+    TARGET build_catalogue_allen_mods)
 
-# Generate source for default mechanism catalogue.
-
-set(catsrc ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
-set(default_catalogue_options -A arbor -I ${mech_dir} -o ${catsrc} -B multicore)
+set(allen_catalogue_source ${CMAKE_CURRENT_BINARY_DIR}/allen_catalogue.cpp)
+set(allen_catalogue_options -A arbor -I ${mech_dir} -o ${allen_catalogue_source} -B multicore -C allen)
 if(ARB_WITH_GPU)
-    list(APPEND default_catalogue_options -B gpu)
+    list(APPEND allen_catalogue_options -B gpu)
 endif()
 
 add_custom_command(
-    OUTPUT ${catsrc}
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_default_catalogue ${default_catalogue_options} ${mechanisms}
-    DEPENDS generate_default_catalogue
+    OUTPUT ${allen_catalogue_source}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_catalogue ${allen_catalogue_options} ${allen_mechanisms}
+    DEPENDS generate_catalogue
 )
 
-add_custom_target(default_catalogue_cpp_target DEPENDS ${catsrc})
-add_dependencies(build_all_mods default_catalogue_cpp_target)
+add_custom_target(allen_catalogue_cpp_target DEPENDS ${allen_catalogue_source})
+add_dependencies(build_catalogue_allen_mods allen_catalogue_cpp_target)
+add_dependencies(build_all_mods build_catalogue_allen_mods)
 
-# Make libraries with the implementations of the mechanism kernels.
-
-set(mech_sources ${catsrc})
-foreach(mech ${mechanisms})
+list(APPEND mech_sources ${allen_catalogue_source})
+foreach(mech ${allen_mechanisms})
     list(APPEND mech_sources ${mech_dir}/${mech}_cpu.cpp)
     if(ARB_WITH_GPU)
         list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cpp)
@@ -53,8 +50,45 @@ foreach(mech ${mechanisms})
     endif()
 endforeach()
 
-set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)
+# DEFAULT
+set(default_mechanisms exp2syn expsyn hh kamt kdrmt nax nernst pas)
+set(default_mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/default")
 
+build_modules(
+    ${default_mechanisms}
+    SOURCE_DIR "${default_mod_srcdir}"
+    DEST_DIR "${mech_dir}"
+    ${external_modcc}
+    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
+    GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
+    TARGET build_catalogue_default_mods)
+
+set(default_catalogue_source ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
+set(default_catalogue_options -A arbor -I ${mech_dir} -o ${default_catalogue_source} -B multicore -C default)
+if(ARB_WITH_GPU)
+    list(APPEND default_catalogue_options -B gpu)
+endif()
+
+add_custom_command(
+    OUTPUT ${default_catalogue_source}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_catalogue ${default_catalogue_options} ${default_mechanisms}
+    DEPENDS generate_catalogue)
+
+add_custom_target(default_catalogue_cpp_target DEPENDS ${default_catalogue_source})
+add_dependencies(build_catalogue_default_mods default_catalogue_cpp_target)
+add_dependencies(build_all_mods build_catalogue_default_mods)
+
+list(APPEND mech_sources ${default_catalogue_source})
+foreach(mech ${default_mechanisms})
+    list(APPEND mech_sources ${mech_dir}/${mech}_cpu.cpp)
+    if(ARB_WITH_GPU)
+        list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cpp)
+        list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cu)
+    endif()
+endforeach()
+
+# 
+set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
 endif()

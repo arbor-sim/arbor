@@ -220,9 +220,13 @@ std::string dictionary_csv(const std::unordered_map<Key, T>& dict) {
 
 } // namespace util
 
-template <typename T>
-std::ostream& operator<<(std::ostream& o, const arb::util::optional<T>& x) {
-    return o << (x? util::to_string(*x): "None");
 }
 
+namespace arb {
+namespace util {
+template <typename T>
+std::ostream& operator<<(std::ostream& o, const arb::util::optional<T>& x) {
+    return o << (x? pyarb::util::to_string(*x): "None");
+}
+}
 }

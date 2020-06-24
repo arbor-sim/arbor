@@ -30,6 +30,9 @@ set(test_mechanisms
     write_eX
     read_cai_init
     write_cai_breakpoint
+    test_ca
+    test_kin1
+    test_kinlva
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
