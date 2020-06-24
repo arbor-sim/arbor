@@ -32,10 +32,10 @@ void register_morphology(pybind11::module& m) {
                 pyarb::assert_throw(arb::test_invariants(mloc), "invalid location");
                 return mloc;
             }),
-            "branch"_a, "position"_a,
+            "branch"_a, "pos"_a,
             "Construct a location specification holding:\n"
             "  branch:   The id of the branch.\n"
-            "  position: The relative position (from 0., proximal, to 1., distal) on the branch.\n")
+            "  pos:      The relative position (from 0., proximal, to 1., distal) on the branch.\n")
         .def_readonly("branch",  &arb::mlocation::branch,
             "The id of the branch.")
         .def_readonly("pos", &arb::mlocation::pos,
@@ -45,28 +45,8 @@ void register_morphology(pybind11::module& m) {
         .def("__repr__",
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); });
 
-    // arb::mpoint
-    pybind11::class_<arb::mpoint> mpoint(m, "mpoint");
-    mpoint
-        .def(pybind11::init(
-                [](double x, double y, double z, double r) {
-                    return arb::mpoint{x,y,z,r};
-                }),
-                "x"_a, "y"_a, "z"_a, "radius"_a, "All values in μm.")
-        .def_readonly("x", &arb::mpoint::x, "X coordinate [μm].")
-        .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
-        .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
-        .def_readonly("radius", &arb::mpoint::radius,
-            "Radius of cable at sample location centered at coordinates [μm].")
-        .def("__str__",
-            [](const arb::mpoint& p) {
-                return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}>", p.x, p.y, p.z, p.radius);
-            })
-        .def("__repr__",
-            [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
-
     // arb::msample
-    pybind11::class_<arb::msample> msample(m, "msample");
+    pybind11::class_<arb::msample> msample(m, "sample");
     msample
         .def(pybind11::init(
             [](arb::mpoint loc, int tag){
@@ -77,8 +57,16 @@ void register_morphology(pybind11::module& m) {
                 return arb::msample{{x,y,z,r}, tag};}),
             "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
             "spatial values {x, y, z, radius} are in μm.")
-        .def_readonly("loc", &arb::msample::loc,
-            "Location of sample.")
+        .def_readonly("x", &arb::msample::loc)
+        .def_property_readonly("x",
+                [](const arb::msample& s) {return s.loc.x;},
+                "X coordinate [μm].")
+        .def_property_readonly("y",
+                [](const arb::msample& s) {return s.loc.y;},
+                "Y coordinate [μm].")
+        .def_property_readonly("z",
+                [](const arb::msample& s) {return s.loc.z;},
+                "Z coordinate [μm].")
         .def_readonly("tag", &arb::msample::tag,
             "Property tag of sample. "
             "If loaded from standard SWC file the following tags are used: soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary tags can be used.")
@@ -93,22 +81,21 @@ void register_morphology(pybind11::module& m) {
     pybind11::class_<arb::mcable> cable(m, "cable");
     cable
         .def(pybind11::init(
-                    [](arb::msize_t bid, double prox, double dist) {
-                        arb::mcable c{bid, prox, dist};
-                        if (!test_invariants(c)) {
-                            throw pyarb_error("Invalid cable description. Cable segments must have proximal and distal end points in the range [0,1].");
-                        }
-                        return c;
-                    }),
-             "branch_id"_a, "prox"_a, "dist"_a)
+            [](arb::msize_t bid, double prox, double dist) {
+                arb::mcable c{bid, prox, dist};
+                if (!test_invariants(c)) {
+                    throw pyarb_error("Invalid cable description. Cable segments must have proximal and distal end points in the range [0,1].");
+                }
+                return c;
+            }),
+            "branch"_a, "prox"_a, "dist"_a)
+        .def_readonly("branch", &arb::mcable::branch,
+                "The id of the branch on which the cable lies.")
         .def_readonly("prox", &arb::mcable::prox_pos,
                 "The relative position of the proximal end of the cable on its branch ∈ [0,1].")
         .def_readonly("dist", &arb::mcable::dist_pos,
                 "The relative position of the distal end of the cable on its branch ∈ [0,1].")
-        .def_readonly("branch", &arb::mcable::branch,
-                "The id of the branch on which the cable lies.")
-        .def("__str__", [](const arb::mcable& c) {
-            return util::pprintf("<arbor.cable: branch {}, prox {}, dist {}", c.branch, c.prox_pos, c.dist_pos); })
+        .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
 
     //
@@ -190,7 +177,7 @@ void register_morphology(pybind11::module& m) {
         // be implemented as read-only properties.
         .def_property_readonly("empty",
                 [](const arb::morphology& m){return m.empty();},
-                "A list with the parent index of each sample.")
+                "Whether the morphology is empty.")
         .def_property_readonly("spherical_root",
                 [](const arb::morphology& m){return m.spherical_root();},
                 "Whether the root of the morphology is spherical.")

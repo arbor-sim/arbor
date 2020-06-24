@@ -2,7 +2,7 @@ import arbor
 
 # Create a sample tree with a single sample of radius 3 μm
 tree = arbor.sample_tree()
-tree.append(arbor.msample(x=0, y=0, z=0, radius=3, tag=2))
+tree.append(arbor.sample(x=0, y=0, z=0, radius=3, tag=2))
 
 labels = arbor.label_dict({'soma': '(tag 2)', 'center': '(location 0 0.5)'})
 
@@ -13,7 +13,7 @@ cell.set_properties(Vm=-40)
 # Put hh dynamics on soma, and passive properties on the dendrites.
 cell.paint('soma', 'hh')
 # Attach stimuli with duration of 2 ms and current of 0.8 nA.
-cell.place('center', arbor.iclamp( 10, 2, 0.8))
+cell.place('center', arbor.iclamp( 10, 1, 0.8))
 # Add a spike detector with threshold of -10 mV.
 cell.place('center', arbor.spike_detector(-10))
 
@@ -21,7 +21,7 @@ cell.place('center', arbor.spike_detector(-10))
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes, sampling at 10 kHz.
-m.probe('voltage', 'center',  10000)
+m.probe('voltage', 'center',  100000)
 
 # Run simulation for 100 ms of simulated activity.
 tfinal=30
@@ -45,7 +45,7 @@ legend_labels = ['{}: {}'.format(s.variable, s.location) for s in m.traces]
 ax.legend(legend_labels)
 ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='cell builder demo')
 plt.xlim(0,tfinal)
-plt.ylim(-80,50)
+plt.ylim(-80,80)
 ax.grid()
 
 # Set to True to save the image to file instead of opening a plot window.

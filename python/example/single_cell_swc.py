@@ -1,4 +1,4 @@
-import arbor
+mport arbor
 from arbor import mechanism as mech
 from arbor import location as loc
 import matplotlib.pyplot as plt

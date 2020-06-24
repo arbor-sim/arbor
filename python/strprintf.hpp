@@ -13,6 +13,8 @@
 
 #include <arbor/util/optional.hpp>
 
+#include "s_expr.hpp"
+
 namespace pyarb {
 namespace util {
 
@@ -202,13 +204,15 @@ impl::sepval_lim<Seq> csv(const Seq& seq, unsigned n) {
 // Print dictionary: this could be done easily with range adaptors in C++17
 template <typename Key, typename T>
 std::string dictionary_csv(const std::unordered_map<Key, T>& dict) {
-    constexpr bool string_key = std::is_same<std::string, std::decay_t<Key>>::value;
+    constexpr bool string_key   = std::is_same<std::string, std::decay_t<Key>>::value;
+    constexpr bool string_value = std::is_same<std::string, std::decay_t<T>>::value;
+    std::string format = pprintf("{}: {}", string_key? "\"{}\"": "{}", string_value? "\"{}\"": "{}");
     std::string s = "{";
     bool first = true;
     for (auto& p: dict) {
         if (!first) s += ", ";
         first = false;
-        s += pprintf(string_key? "'{}': {}": "{}: {}", p.first, p.second);
+        s += pprintf(format.c_str(), p.first, p.second);
     }
     s += "}";
     return s;
@@ -221,5 +225,4 @@ std::ostream& operator<<(std::ostream& o, const arb::util::optional<T>& x) {
     return o << (x? util::to_string(*x): "None");
 }
 
-} // namespace pyarb
-
+}
