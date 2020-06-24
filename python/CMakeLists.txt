@@ -23,6 +23,7 @@ set(pyarb_source
     event_generator.cpp
     flat_cell_builder.cpp
     identifiers.cpp
+    mechanism.cpp
     morphology.cpp
     morph_parse.cpp
     mpi.cpp

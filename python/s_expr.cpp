@@ -38,6 +38,9 @@ std::ostream& operator<<(std::ostream& o, const tok& t) {
 }
 
 std::ostream& operator<<(std::ostream& o, const token& t) {
+    if (t.kind==tok::string) {
+        return o << util::pprintf("\"{}\"", t.spelling);
+    }
     return o << util::pprintf("{}", t.spelling);
 }
 
@@ -111,6 +114,9 @@ private:
                     character();
                     continue;   // skip to next character
 
+                case ';':
+                    eat_comment();
+                    continue;
                 case '(':
                     token_ = {loc_, tok::lparen, {character()}};
                     return;
@@ -152,6 +158,14 @@ private:
         }
         token_ = {loc_, tok::eof, "eof"s};
         return;
+    }
+
+    // Consumes characters in the stream until end of stream or a new line.
+    // Assumes that the current_ location is the `;` that starts the comment.
+    void eat_comment() {
+        while (*current_ && *current_!='\n') {
+            character();
+        }
     }
 
     // Parse alphanumeric sequence that starts with an alphabet character,
