@@ -42,7 +42,7 @@ struct trace_callback {
 
     trace_callback(trace& t): trace_(t) {}
 
-    void operator()(arb::cell_member_type probe_id, arb::probe_tag tag, arb::util::any_ptr meta, std::size_t n, const arb::sample_record* recs) {
+    void operator()(arb::probe_metadata, std::size_t n, const arb::sample_record* recs) {
         // Push each (time, value) pair from the last epoch into trace_.
         for (std::size_t i=0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
@@ -50,7 +50,7 @@ struct trace_callback {
                 trace_.v.push_back(*p);
             }
             else {
-                throw std::runtime_error("unexpected sample type in simple_sampler");
+                throw std::runtime_error("unexpected sample type");
             }
         }
     }
@@ -106,19 +106,13 @@ struct single_cell_recipe: arb::recipe {
 
     // probes
 
-    virtual arb::cell_size_type num_probes(arb::cell_gid_type)  const override {
-        return probes_.size();
-    }
-
-    virtual arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
-        // Test that a valid probe site is requested.
-        if (probe_id.gid || probe_id.index>=probes_.size()) {
-            throw arb::bad_probe_id(probe_id);
-        }
-
+    virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
         // For now only voltage can be selected for measurement.
-        const auto& loc = probes_[probe_id.index].site;
-        return arb::probe_info{probe_id, 0, arb::cable_probe_membrane_voltage{loc}};
+        std::vector<arb::probe_info> pinfo;
+        for (auto& p: probes_) {
+            pinfo.push_back(arb::cable_probe_membrane_voltage{p.site});
+        }
+        return pinfo;
     }
 
     // gap junctions
@@ -178,7 +172,7 @@ public:
         }
     }
 
-    void run(double tfinal) {
+    void run(double tfinal, double dt) {
         single_cell_recipe rec(cell_, probes_, gprop.props);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
@@ -208,7 +202,7 @@ public:
                 }
             });
 
-        sim_->run(tfinal, 0.025);
+        sim_->run(tfinal, dt);
 
         run_ = true;
     }
@@ -240,7 +234,11 @@ void register_single_cell(pybind11::module& m) {
     model
         .def(pybind11::init<arb::cable_cell>(),
             "cell"_a, "Initialise a single cell model for a cable cell.")
-        .def("run", &single_cell_model::run, "tfinal"_a, "Run model from t=0 to t=tfinal ms.")
+        .def("run",
+             &single_cell_model::run,
+             "tfinal"_a,
+             "dt"_a = 0.025,
+             "Run model from t=0 to t=tfinal ms.")
         .def("probe",
             [](single_cell_model& m, const char* what, const char* where, double frequency) {
                 m.probe(what, where, frequency);},

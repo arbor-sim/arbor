@@ -115,19 +115,12 @@ public:
         return gens;
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        assert(gid==0); // There is only one cell in the model
-        return 1;
-    }
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        assert(gid==0);     // There is only one cell,
 
-    arb::probe_info get_probe(cell_member_type id) const override {
-        assert(id.gid==0);     // There is one cell,
-        assert(id.index==0);   // with one probe.
-
-        // Measure at the soma
+        // Measure membrane voltage at end of soma.
         arb::mlocation loc{0, 0.0};
-        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
+        return {arb::cable_probe_membrane_voltage{loc}};
     }
 };
 
@@ -153,7 +146,7 @@ int main() {
     // The schedule for sampling is 10 samples every 1 ms.
     auto sched = arb::regular_schedule(0.1);
     // This is where the voltage samples will be stored as (time, value) pairs
-    arb::trace_data<double> voltage;
+    arb::trace_vector<double> voltage;
     // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
     sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
@@ -161,7 +154,7 @@ int main() {
     sim.run(100, 0.01);
 
     // Write the samples to a json file.
-    write_trace_json(voltage);
+    write_trace_json(voltage.at(0));
 }
 
 void write_trace_json(const arb::trace_data<double>& trace) {

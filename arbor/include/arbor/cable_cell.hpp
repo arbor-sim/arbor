@@ -15,6 +15,7 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/util/hash_def.hpp>
 #include <arbor/util/typed_map.hpp>
 
 namespace arb {
@@ -52,7 +53,10 @@ using cable_sample_range = std::pair<const double*, const double*>;
 //     * `cable_probe_point_info` for point mechanism state queries;
 //     * `mcable_list` for most vector queries;
 //     * `std::vector<cable_probe_point_info>` for cell-wide point mechanism state queries.
-
+//
+// Scalar probes which are described by a locset expression will generate multiple
+// calls to an attached sampler, one per valid location matched by the expression.
+//
 // Metadata for point process probes.
 struct cable_probe_point_info {
     cell_lid_type target;   // Target number of point process instance on cell.
@@ -64,7 +68,7 @@ struct cable_probe_point_info {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_membrane_voltage {
-    mlocation location;
+    locset locations;
 };
 
 // Voltage estimate [mV], reported against each cable in each control volume. Not interpolated.
@@ -76,14 +80,14 @@ struct cable_probe_membrane_voltage_cell {};
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_axial_current {
-    mlocation location;
+    locset locations;
 };
 
 // Total current density [A/m²] across membrane _excluding_ capacitive current at `location`.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mlocation`
 struct cable_probe_total_ion_current_density {
-    mlocation location;
+    locset locations;
 };
 
 // Total ionic current [nA] across membrance _excluding_ capacitive current across components of the cell.
@@ -100,7 +104,7 @@ struct cable_probe_total_current_cell {};
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_density_state {
-    mlocation location;
+    locset locations;
     std::string mechanism;
     std::string state;
 };
@@ -135,7 +139,7 @@ struct cable_probe_point_state_cell {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_ion_current_density {
-    mlocation location;
+    locset locations;
     std::string ion;
 };
 
@@ -150,7 +154,7 @@ struct cable_probe_ion_current_cell {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_ion_int_concentration {
-    mlocation location;
+    locset locations;
     std::string ion;
 };
 
@@ -165,7 +169,7 @@ struct cable_probe_ion_int_concentration_cell {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_ion_ext_concentration {
-    mlocation location;
+    locset locations;
     std::string ion;
 };
 
@@ -335,3 +339,5 @@ private:
 };
 
 } // namespace arb
+
+ARB_DEFINE_HASH(arb::cable_probe_point_info, a.target, a.multiplicity, a.loc);

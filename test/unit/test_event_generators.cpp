@@ -1,5 +1,7 @@
 #include "../gtest.h"
 
+#include <utility>
+
 #include <arbor/event_generator.hpp>
 #include <arbor/spike_event.hpp>
 
@@ -15,8 +17,40 @@ namespace{
     }
 }
 
+TEST(event_generators, assign_and_copy) {
+    event_generator gen = regular_generator({1, 2}, 5., 0.5, 0.75);
+    spike_event expected{{1, 2}, 0.75, 5.};
+
+    auto first = [](const event_seq& seq) {
+        if (seq.first==seq.second) throw std::runtime_error("no events");
+        return *seq.first;
+    };
+
+    ASSERT_EQ(expected, first(gen.events(0., 1.)));
+    gen.reset();
+
+    event_generator g1(gen);
+    EXPECT_EQ(expected, first(g1.events(0., 1.)));
+
+    event_generator g2;
+    g2 = gen;
+    EXPECT_EQ(expected, first(g2.events(0., 1.)));
+
+    const auto& const_gen = gen;
+
+    event_generator g3(const_gen);
+    EXPECT_EQ(expected, first(g3.events(0., 1.)));
+
+    event_generator g4;
+    g4 = gen;
+    EXPECT_EQ(expected, first(g4.events(0., 1.)));
+
+    event_generator g5(std::move(gen));
+    EXPECT_EQ(expected, first(g5.events(0., 1.)));
+}
+
 TEST(event_generators, regular) {
-    // make a regular generator that generates its first event at t=2ms and subsequent
+    // Make a regular generator that generates its first event at t=2ms and subsequent
     // events regularly spaced 0.5 ms apart.
     time_type t0 = 2.0;
     time_type dt = 0.5;
@@ -25,7 +59,7 @@ TEST(event_generators, regular) {
 
     event_generator gen = regular_generator(target, weight, t0, dt);
 
-    // helper for building a set of 
+    // Helper for building a set of expected events.
     auto expected = [&] (std::vector<time_type> times) {
         pse_vector events;
         for (auto t: times) {

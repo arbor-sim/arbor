@@ -5,6 +5,7 @@
 #include <ostream>
 #include <vector>
 
+#include <arbor/util/hash_def.hpp>
 #include <arbor/util/lexcmp_def.hpp>
 
 //
@@ -22,6 +23,12 @@ struct mpoint {
     double radius;   // [μm]
 
     friend std::ostream& operator<<(std::ostream&, const mpoint&);
+    friend bool operator==(const mpoint& a, const mpoint& b) {
+        return a.x==b.x && a.y==b.y && a.z==b.z && a.radius==b.radius;
+    }
+    friend bool operator!=(const mpoint& a, const mpoint& b) {
+        return !(a==b);
+    }
 };
 
 mpoint lerp(const mpoint& a, const mpoint& b, double u);
@@ -139,3 +146,6 @@ ARB_PROP(terminal)
 ARB_PROP(collocated)
 
 } // namespace arb
+
+ARB_DEFINE_HASH(arb::mcable, a.branch, a.prox_pos, a.dist_pos);
+ARB_DEFINE_HASH(arb::mlocation, a.branch, a.pos);

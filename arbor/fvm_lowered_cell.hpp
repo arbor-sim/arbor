@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
+#include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/fvm_types.hpp>
@@ -16,6 +19,7 @@
 #include "sampler_map.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
 
@@ -28,7 +32,7 @@ struct fvm_integration_result {
 // A sample for a probe may be derived from multiple 'raw' sampled
 // values from the backend.
 
-// An `fvm_probe_info` object represents the mapping between
+// An `fvm_probe_data` object represents the mapping between
 // a sample value (possibly non-scalar) presented to a sampler
 // function, and one or more probe handles that reference data
 // in the FVM back-end.
@@ -91,13 +95,13 @@ struct missing_probe_info {
     std::array<probe_handle, 0> raw_handles;
 };
 
-struct fvm_probe_info {
-    fvm_probe_info() = default;
-    fvm_probe_info(fvm_probe_scalar p): info(std::move(p)) {}
-    fvm_probe_info(fvm_probe_interpolated p): info(std::move(p)) {}
-    fvm_probe_info(fvm_probe_multi p): info(std::move(p)) {}
-    fvm_probe_info(fvm_probe_weighted_multi p): info(std::move(p)) {}
-    fvm_probe_info(fvm_probe_membrane_currents p): info(std::move(p)) {}
+struct fvm_probe_data {
+    fvm_probe_data() = default;
+    fvm_probe_data(fvm_probe_scalar p): info(std::move(p)) {}
+    fvm_probe_data(fvm_probe_interpolated p): info(std::move(p)) {}
+    fvm_probe_data(fvm_probe_multi p): info(std::move(p)) {}
+    fvm_probe_data(fvm_probe_weighted_multi p): info(std::move(p)) {}
+    fvm_probe_data(fvm_probe_membrane_currents p): info(std::move(p)) {}
 
     util::variant<
         missing_probe_info,
@@ -124,6 +128,26 @@ struct fvm_probe_info {
     explicit operator bool() const { return !util::get_if<missing_probe_info>(info); }
 };
 
+// Samplers are tied to probe ids, but one probe id may
+// map to multiple probe representations within the mc_cell_group.
+
+struct probe_association_map {
+    // Keys are probe id.
+
+    std::unordered_map<cell_member_type, probe_tag> tag;
+    std::unordered_multimap<cell_member_type, fvm_probe_data> data;
+
+    std::size_t size() const {
+        arb_assert(tag.size()==data.size());
+        return data.size();
+    }
+
+    // Return range of fvm_probe_data values associated with probe_id.
+    auto data_on(cell_member_type probe_id) const {
+        return util::transform_view(util::make_range(data.equal_range(probe_id)), util::second);
+    }
+};
+
 // Common base class for FVM implementation on host or gpu back-end.
 
 struct fvm_lowered_cell {
@@ -134,7 +158,7 @@ struct fvm_lowered_cell {
         const recipe& rec,
         std::vector<fvm_index_type>& cell_to_intdom,
         std::vector<target_handle>& target_handles,
-        probe_association_map<fvm_probe_info>& probe_map) = 0;
+        probe_association_map& probe_map) = 0;
 
     virtual fvm_integration_result integrate(
         fvm_value_type tfinal,

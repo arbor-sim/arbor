@@ -4,6 +4,9 @@
 # Apple Clang  1100.0.33.16
 #######################################################
 
+# Ignore bors testing branches.
+if: NOT branch =~ \.tmp$
+
 language: cpp
 sudo: false
 
