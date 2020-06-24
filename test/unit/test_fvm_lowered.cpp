@@ -447,6 +447,7 @@ TEST(fvm_lowered, derived_mechs) {
     }
 
     cable1d_recipe rec(cells);
+    rec.catalogue() = make_unit_test_catalogue();
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     cable_probe_total_ion_current_density where{mlocation{1, 0.3}};
@@ -806,6 +807,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     c.paint(reg::branch(3), "test_ca");
 
     cable1d_recipe rec(c);
+    rec.catalogue() = make_unit_test_catalogue();
     rec.add_ion("ca", 2, con_int, con_ext, 0.0);
 
     std::vector<target_handle> targets;
