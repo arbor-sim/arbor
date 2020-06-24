@@ -10,6 +10,7 @@
 #include <arbor/simulation.hpp>
 
 #include "error.hpp"
+#include "cells.hpp"
 
 namespace pyarb {
 
@@ -139,7 +140,6 @@ class single_cell_model {
     arb::cable_cell cell_;
     arb::context ctx_;
     bool run_ = false;
-    arb::cable_cell_global_properties gprop_;
 
     std::vector<probe_site> probes_;
     std::unique_ptr<arb::simulation> sim_;
@@ -148,10 +148,15 @@ class single_cell_model {
     std::vector<trace> traces_;
 
 public:
+    // Make gprop public to make it possible to expose it as a field in Python:
+    //      model.properties.catalogue = my_custom_cat
+    //arb::cable_cell_global_properties gprop;
+    global_props_shim gprop;
+
     single_cell_model(arb::cable_cell c):
         cell_(std::move(c)), ctx_(arb::make_context())
     {
-        gprop_.default_parameters = arb::neuron_parameter_defaults;
+        gprop.props.default_parameters = arb::neuron_parameter_defaults;
     }
 
     // example use:
@@ -173,12 +178,8 @@ public:
         }
     }
 
-    void add_ion(const std::string& ion, double valence, double int_con, double ext_con, double rev_pot) {
-        gprop_.add_ion(ion, valence, int_con, ext_con, rev_pot);
-    }
-
     void run(double tfinal) {
-        single_cell_recipe rec(cell_, probes_, gprop_);
+        single_cell_recipe rec(cell_, probes_, gprop.props);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 
@@ -256,20 +257,14 @@ void register_single_cell(pybind11::module& m) {
             " what:      Name of the variable to record (currently only 'voltage').\n"
             " where:     Location on cell morphology at which to sample the variable.\n"
             " frequency: The target frequency at which to sample [Hz].")
-        .def("add_ion", &single_cell_model::add_ion,
-            "ion"_a, "valence"_a, "int_con"_a, "ext_con"_a, "rev_pot"_a,
-            "Add a new ion species to the model.\n"
-            " ion: name of the ion species.\n"
-            " valence: valence of the ion species.\n"
-            " int_con: initial internal concentration [mM].\n"
-            " ext_con: initial external concentration [mM].\n"
-            " rev_pot: reversal potential [mV].")
         .def_property_readonly("spikes",
             [](const single_cell_model& m) {
                 return m.spike_times();}, "Holds spike times [ms] after a call to run().")
         .def_property_readonly("traces",
             [](const single_cell_model& m) {
-                return m.traces();}, "Holds sample traces after a call to run().")
+                return m.traces();},
+            "Holds sample traces after a call to run().")
+        .def_readwrite("properties", &single_cell_model::gprop, "Global properties.")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }

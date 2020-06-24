@@ -12,6 +12,7 @@
 #include <arbor/util/any.hpp>
 #include <arbor/util/unique_any.hpp>
 
+#include "cells.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "morph_parse.hpp"
@@ -152,22 +153,18 @@ struct label_dict_proxy {
     }
 };
 
-struct global_props_shim {
-    arb::mechanism_catalogue cat;
-    arb::cable_cell_global_properties props;
-    global_props_shim():
-        cat(arb::global_default_catalogue())
-    {
-        props.catalogue = &cat;
-    }
-};
+global_props_shim::global_props_shim():
+    cat(arb::global_default_catalogue())
+{
+    props.catalogue = &cat;
+}
 
 // This isn't pretty. Partly because the information in the global parameters
 // is all over the place.
 std::string to_string(const global_props_shim& G) {
     std::string s = "{arbor.cable_global_properties";
 
-    auto nanone = [](double x) {return x==x? std::to_string(x): "None";};
+    auto nan_is_none = [](double x) {return x==x? std::to_string(x): "None";};
     const auto& P = G.props;
     const auto& D = P.default_parameters;
     const auto& I = D.ion_data;
@@ -184,9 +181,9 @@ std::string to_string(const global_props_shim& G) {
                 "'"+D.reversal_potential_method.at(ion.first).name()+"'": "None";
             s += util::pprintf("\n    {name: '{}', valence: {}, int_con: {}, ext_con: {}, rev_pot: {}, rev_pot_method: {}}",
                     ion.first, ion.second,
-                    nanone(props.init_int_concentration),
-                    nanone(props.init_ext_concentration),
-                    nanone(props.init_reversal_potential),
+                    nan_is_none(props.init_int_concentration),
+                    nan_is_none(props.init_ext_concentration),
+                    nan_is_none(props.init_reversal_potential),
                     method);
         }
     }
@@ -373,7 +370,8 @@ void register_cells(pybind11::module& m) {
     ion_data
         .def(pybind11::init(
                 [](const char* name,
-                   optional<double> int_con, optional<double> ext_con,
+                   optional<double> int_con,
+                   optional<double> ext_con,
                    optional<double> rev_pot)
                 {
                     arb::initial_ion_data x;
