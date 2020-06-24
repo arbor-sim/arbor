@@ -18,7 +18,7 @@ using arb::util::any_cast;
 using arb::util::any_ptr;
 using arb::cell_gid_type;
 
-// Recipe represents one cable cell with one synapse, togethwer with probes for total trans-membrane current, membrane voltage,
+// Recipe represents one cable cell with one synapse, together with probes for total trans-membrane current, membrane voltage,
 // ionic current density, and synaptic conductance. A sequence of spikes are presented to the one synapse on the cell.
 
 struct lfp_demo_recipe: public arb::recipe {
