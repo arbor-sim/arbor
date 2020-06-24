@@ -3,6 +3,8 @@
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
+#include <memory/memory.hpp>
+
 #include "multicore_common.hpp"
 
 namespace arb {
@@ -131,6 +133,12 @@ public:
                 }
             }
         }
+    }
+
+    template<typename VTo>
+    void solve(VTo& to) {
+        solve();
+        memory::copy(rhs, to);
     }
 
 private:
