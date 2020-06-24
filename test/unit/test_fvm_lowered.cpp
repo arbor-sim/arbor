@@ -447,6 +447,7 @@ TEST(fvm_lowered, derived_mechs) {
     }
 
     cable1d_recipe rec(cells);
+    rec.catalogue() = make_unit_test_catalogue();
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     cell_probe_total_ionic_current_density where{{1, 0.3}};
@@ -562,7 +563,6 @@ TEST(fvm_lowered, read_valence) {
         auto cell = builder.make_cell();
         cell.paint("soma", "cr_read_valence");
         cable1d_recipe rec({std::move(cell)});
-        rec.catalogue() = make_unit_test_catalogue();
         rec.catalogue() = make_unit_test_catalogue();
 
         rec.catalogue().derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
@@ -805,6 +805,8 @@ TEST(fvm_lowered, weighted_write_ion) {
     c.paint(reg::branch(3), "test_ca");
 
     cable1d_recipe rec(c);
+    rec.catalogue() = make_unit_test_catalogue();
+
     rec.add_ion("ca", 2, con_int, con_ext, 0.0);
 
     std::vector<target_handle> targets;

@@ -34,6 +34,9 @@
 #include "mechanisms/write_eX.hpp"
 #include "mechanisms/read_cai_init.hpp"
 #include "mechanisms/write_cai_breakpoint.hpp"
+#include "mechanisms/test_ca.hpp"
+#include "mechanisms/test_kin1.hpp"
+#include "mechanisms/test_kinlva.hpp"
 
 #include "../gtest.h"
 
@@ -53,6 +56,9 @@ using namespace arb;
 mechanism_catalogue make_unit_test_catalogue() {
     mechanism_catalogue cat;
 
+    ADD_MECH(cat, test_ca)
+    ADD_MECH(cat, test_kin1)
+    ADD_MECH(cat, test_kinlva)
     ADD_MECH(cat, celsius_test)
     ADD_MECH(cat, diam_test)
     ADD_MECH(cat, test_linear_state)
@@ -83,4 +89,3 @@ mechanism_catalogue make_unit_test_catalogue() {
 
     return cat;
 }
-

@@ -60,12 +60,14 @@ BREAKPOINT {
 }
 
 INITIAL {
-  qt = 2.3^((celsius-37)/10)     
+  qt = 2.3^((celsius-37)/10)
   SOLVE seqinitial
 }
 
 KINETIC activation {
-  LOCAL f01, f02, f03, f04, f0O, f11, f12, f13, f14, f1n, fi1, fi2, fi3, fi4, fi5, fin, b01, b02, b03, b04, b0O, b11, b12, b13, b14, b1n, bi1, bi2, bi3, bi4, bi5, bin
+  LOCAL f01, f02, f03, f04, f0O, f11, f12, f13, f14, fi1, fi2, fi3, fi4, fi5, fin, b01, b02, b03, b04, b0O, b11, b12, b13, b14, bi1, bi2, bi3, bi4, bi5, bin, ibtf
+
+  ibtf = 1/btfac 
 
   f04 = qt*alpha*exp(v/x1)
   f03 = 2*f04
@@ -73,11 +75,10 @@ KINETIC activation {
   f01 = 4*f04
   f0O = qt*gamma
 
-  f14 = qt*alpha*alfac*exp(v/x1)
+  f14 = alfac*f04
   f13 = 2*f14
   f12 = 3*f14
   f11 = 4*f14
-  f1n = qt*gamma
 
   fi1 = qt*Con
   fi2 = fi1*alfac
@@ -92,17 +93,16 @@ KINETIC activation {
   b04 = 4*b01
   b0O = qt*delta
 
-  b11 = qt*beta*exp(v/x2)/btfac
+  b11 = b01*ibtf
   b12 = 2*b11
   b13 = 3*b11
   b14 = 4*b11
-  b1n = qt * delta
-			       
+
   bi1 = qt*Coff
-  bi2 = bi1/btfac
-  bi3 = bi2/btfac
-  bi4 = bi3/btfac
-  bi5 = bi4/btfac
+  bi2 = bi1*ibtf
+  bi3 = bi2*ibtf
+  bi4 = bi3*ibtf
+  bi5 = bi4*ibtf
   bin = qt*Ooff
 
   ~ C1 <-> C2    (f01, b01)
@@ -115,7 +115,7 @@ KINETIC activation {
   ~ I2 <-> I3    (f12, b12)
   ~ I3 <-> I4    (f13, b13)
   ~ I4 <-> I5    (f14, b14)
-  ~ I5 <-> I6    (f1n, b1n)
+  ~ I5 <-> I6    (f0O, b0O)
   ~ C1 <-> I1    (fi1, bi1)
   ~ C2 <-> I2    (fi2, bi2)
   ~ C3 <-> I3    (fi3, bi3)
@@ -127,20 +127,19 @@ KINETIC activation {
 
 : sets initial equilibrium
 LINEAR seqinitial {
-  LOCAL f01, f02, f03, f04, f0O, f11, f12, f13, f14, f1n, fi1, fi2, fi3, fi4, fi5, fin, b01, b02, b03, b04, b0O, b11, b12, b13, b14, b1n, bi1, bi2, bi3, bi4, bi5, bin
+   LOCAL f01, f02, f03, f04, f11, f12, f13, f14, f0O, fi1, fi2, fi3, fi4, fi5, fin, b01, b02, b03, b04, b11, b12, b13, b14, b0O, bi1, bi2, bi3, bi4, bi5, bin, ibtf
 
-
+  ibtf = 1/btfac
   f04 = qt*alpha*exp(v/x1)
   f03 = 2*f04
   f02 = 3*f04
   f01 = 4*f04
   f0O = qt*gamma
 
-  f14 = qt*alpha*alfac*exp(v/x1)
+  f14 = alfac*f04
   f13 = 2*f14
   f12 = 3*f14
   f11 = 4*f14
-  f1n = qt*gamma
 
   fi1 = qt*Con
   fi2 = fi1*alfac
@@ -153,31 +152,31 @@ LINEAR seqinitial {
   b02 = 2*b01
   b03 = 3*b01
   b04 = 4*b01
-
   b0O = qt*delta
-  b11 = qt*beta*exp(v/x2)/btfac
+
+  b11 = b01*ibtf
   b12 = 2*b11
   b13 = 3*b11
   b14 = 4*b11
-  b1n = qt * delta
+
   bi1 = qt*Coff
-  bi2 = bi1/btfac
-  bi3 = bi2/btfac
-  bi4 = bi3/btfac
-  bi5 = bi4/btfac
+  bi2 = bi1*ibtf
+  bi3 = bi2*ibtf
+  bi4 = bi3*ibtf
+  bi5 = bi4*ibtf
   bin = qt*Ooff
 
   ~          I1*bi1 + C2*b01 - C1*(      fi1 + f01) = 0
   ~ C1*f01 + I2*bi2 + C3*b02 - C2*(b01 + fi2 + f02) = 0
   ~ C2*f02 + I3*bi3 + C4*b03 - C3*(b02 + fi3 + f03) = 0
   ~ C3*f03 + I4*bi4 + C5*b04 - C4*(b03 + fi4 + f04) = 0
-  ~ C4*f04 + I5*bi5 + O*b0O  - C5*(b04 + fi5 + f0O) = 0
-  ~ C5*f0O + I6*bin          - O *(b0O + fin)       = 0
+  ~ C4*f04 + I5*bi5 +  O*b0O - C5*(b04 + fi5 + f0O) = 0
+  ~ C5*f0O + I6*bin          -  O*(b0O + fin)       = 0
   ~          C1*fi1 + I2*b11 - I1*(      bi1 + f11) = 0
   ~ I1*f11 + C2*fi2 + I3*b12 - I2*(b11 + bi2 + f12) = 0
   ~ I2*f12 + C3*fi3 + I4*bi3 - I3*(b12 + bi3 + f13) = 0
   ~ I3*f13 + C4*fi4 + I5*b14 - I4*(b13 + bi4 + f14) = 0
-  ~ I4*f14 + C5*fi5 + I6*b1n - I5*(b14 + bi5 + f1n) = 0
+  ~ I4*f14 + C5*fi5 + I6*b0O - I5*(b14 + bi5 + f0O) = 0
 
   ~ C1 + C2 + C3 + C4 + C5 + O + I1 + I2 + I3 + I4 + I5 + I6 = 1
 }

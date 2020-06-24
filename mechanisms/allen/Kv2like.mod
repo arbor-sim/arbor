@@ -56,7 +56,7 @@ INITIAL {
 
    mAlpha = 0.12*vtrap(43 - v, 11)
    mBeta  = 0.02*exp(-(v + 1.27) / 120)
-   
+
    hInf = 1/(1 + exp((v + 58) / 11))
    
    m  = mAlpha/(mAlpha + mBeta)
