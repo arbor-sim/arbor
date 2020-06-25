@@ -118,6 +118,10 @@ void register_mechanisms(pybind11::module& m) {
                     throw std::runtime_error(util::pprintf("\nKeyError: '{}'", name));
                 }
             })
+        .def("insert", &arb::mechanism_catalogue::insert,
+             "other"_a, "Catalogue to insert into self",
+             "prefix"_a="", "Prefix for names in other",
+             "Insert another catalogue, possibly with a prefix. Will overwrite in case of name collisions.")
         .def("derive", &apply_derive,
                 "name"_a, "parent"_a,
                 "globals"_a=std::unordered_map<std::string, double>{},

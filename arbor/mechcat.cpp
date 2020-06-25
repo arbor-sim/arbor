@@ -124,24 +124,31 @@ struct catalogue_state {
 
     catalogue_state(const catalogue_state& other) {
         info_map_.clear();
-        for (const auto& kv: other.info_map_) {
-            info_map_[kv.first] = make_unique<mechanism_info>(*kv.second);
-        }
-
         derived_map_.clear();
-        for (const auto& kv: other.derived_map_) {
-            const derivation& v = kv.second;
-            derived_map_[kv.first] = {v.parent, v.globals, v.ion_remap, make_unique<mechanism_info>(*v.derived_info)};
+        impl_map_.clear();
+
+        insert(other, "");
+    }
+
+    void insert(const catalogue_state& other, const std::string& prefix) {
+        for (const auto& kv: other.info_map_) {
+            auto key = prefix + kv.first;
+            info_map_[key] = make_unique<mechanism_info>(*kv.second);
         }
 
-        impl_map_.clear();
+        for (const auto& kv: other.derived_map_) {
+            auto key = prefix + kv.first;
+            const derivation& v = kv.second;
+            derived_map_[key] = {prefix + v.parent, v.globals, v.ion_remap, make_unique<mechanism_info>(*v.derived_info)};
+        }
+
         for (const auto& name_impls: other.impl_map_) {
             std::unordered_map<std::type_index, std::unique_ptr<mechanism>> impls;
             for (const auto& tidx_mptr: name_impls.second) {
                 impls[tidx_mptr.first] = tidx_mptr.second->clone();
             }
-
-            impl_map_[name_impls.first] = std::move(impls);
+            auto key = prefix + name_impls.first;
+            impl_map_[key] = std::move(impls);
         }
     }
 
@@ -538,6 +545,10 @@ void mechanism_catalogue::derive(const std::string& name, const std::string& par
 
 void mechanism_catalogue::derive(const std::string& name, const std::string& parent) {
     state_->bind(name, value(state_->derive(parent)));
+}
+
+void mechanism_catalogue::insert(const mechanism_catalogue& other, const std::string& prefix) {
+    state_->insert(*other.state_, prefix);
 }
 
 void mechanism_catalogue::remove(const std::string& name) {
