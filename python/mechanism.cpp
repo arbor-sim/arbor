@@ -134,6 +134,7 @@ void register_mechanisms(pybind11::module& m) {
                     return util::pprintf("<arbor.mechanism_catalogue>"); });
 
     m.def("default_catalogue", [](){return arb::global_default_catalogue();});
+    m.def("allen_catalogue", [](){return arb::global_allen_catalogue();});
 
     // arb::mechanism_desc
     // For specifying a mechanism in the cable_cell interface.
