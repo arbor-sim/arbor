@@ -90,7 +90,7 @@ struct s_expr {
     // with a std::shared_ptr.
 
     using pair_type = s_pair<value_wrapper<s_expr>>;
-    arb::util::either<token, pair_type> state;
+    arb::util::either<token, pair_type> state = token{-1, tok::nil, "nil"};
 
     s_expr(const s_expr& s): state(s.state) {}
     s_expr() = default;

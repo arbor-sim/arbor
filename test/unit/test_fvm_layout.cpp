@@ -732,7 +732,9 @@ TEST(fvm_layout, ion_weights) {
         {0.}, {0., 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0., 0.}, {3./4, 0.}
     };
 
+    mechanism_catalogue testcat = make_unit_test_catalogue();
     cable_cell_global_properties gprop;
+    gprop.catalogue = &testcat;
     gprop.default_parameters = neuron_parameter_defaults;
 
     fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration;

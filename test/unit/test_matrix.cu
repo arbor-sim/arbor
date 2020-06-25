@@ -134,19 +134,22 @@ TEST(matrix, backends)
     auto gpu_i = on_gpu(i);
     auto gpu_mg = on_gpu(mg);
 
+    auto x_flat_d = gpu_array(group_size);
+    auto x_fine_d = gpu_array(group_size);
+
     flat.assemble(gpu_dt, gpu_v, gpu_i, gpu_mg);
     fine.assemble(gpu_dt, gpu_v, gpu_i, gpu_mg);
 
-    flat.solve();
-    fine.solve();
+    flat.solve(x_flat_d);
+    fine.solve(x_fine_d);
 
     // Compare the results.
     // We expect exact equality for the two gpu matrix implementations because both
     // perform the same operations in the same order on the same inputs.
-    std::vector<double> x_flat = assign_from(on_host(flat.solution()));
+    auto x_flat = on_host(x_flat_d);
     // as the fine algorithm contains atomics the solution might be slightly
     // different from flat and interleaved
-    std::vector<double> x_fine = assign_from(on_host(fine.solution()));
+    auto x_fine = on_host(x_fine_d);
 
     auto max_diff_fine =
         util::max_value(

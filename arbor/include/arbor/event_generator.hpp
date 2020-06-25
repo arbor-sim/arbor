@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <random>
+#include <type_traits>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -61,18 +62,15 @@ using event_seq = std::pair<const spike_event*, const spike_event*>;
 struct empty_generator {
     void reset() {}
     event_seq events(time_type, time_type) {
-        return {&no_event, &no_event};
+        return {nullptr, nullptr};
     }
-
-private:
-    static spike_event no_event;
 };
 
 class event_generator {
 public:
     event_generator(): event_generator(empty_generator()) {}
 
-    template <typename Impl>
+    template <typename Impl, std::enable_if_t<!std::is_same<std::decay_t<Impl>, event_generator>::value, int> = 0>
     event_generator(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
@@ -128,6 +126,7 @@ private:
     };
 };
 
+// Convenience routines for making schedule_generator:
 
 // Generate events with a fixed target and weight according to
 // a provided time schedule.
@@ -161,7 +160,7 @@ private:
     schedule sched_;
 };
 
-// Convenience routines for making schedule_generator:
+// Generate events at integer multiples of dt that lie between tstart and tstop.
 
 inline event_generator regular_generator(
     cell_member_type target,

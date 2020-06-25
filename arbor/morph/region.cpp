@@ -416,7 +416,7 @@ struct radius_ge_ {
 };
 
 region radius_ge(region reg, double val) {
-    return region(radius_gt_{reg, val});
+    return region(radius_ge_{reg, val});
 }
 
 mextent thingify_(const radius_ge_& r, const mprovider& p) {
