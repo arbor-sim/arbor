@@ -576,9 +576,9 @@ void SimdPrinter::visit(LocalVariable* sym) {
 void SimdPrinter::visit(VariableExpression *sym) {
     if (sym->is_range()) {
         if(is_indirect_)
-            out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+index_, simd_width_))";
+            out_ << "indirect(" << sym->name() << "+index_, simd_width_)";
         else
-            out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+i_, simd_width_))";
+            out_ << "indirect(" << sym->name() << "+i_, simd_width_)";
     }
     else {
         out_ << sym->name();
@@ -595,8 +595,14 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     bool cast = false;
     if (auto id = e->rhs()->is_identifier()) {
         if (scalars_.count(id->name())) cast = true;
+        if (auto sym = id->symbol()) {
+            if (sym->is_variable() && sym->is_variable()->is_range()) {
+                cast = true;
+            }
+        }
     }
     if (e->rhs()->is_number()) cast = true;
+
     if (scalars_.count(e->lhs()->is_identifier()->name()))  cast = false;
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {

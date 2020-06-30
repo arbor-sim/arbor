@@ -72,6 +72,30 @@ simd_impl<Impl> name(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_
 template <typename Impl>\
 simd_impl<Impl> name(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {\
     return simd_impl<Impl>::wrap(Impl::name(Impl::broadcast(a), b.value_));\
+};\
+template <typename Impl>\
+simd_impl<Impl> name(const simd_impl<Impl>& a, typename detail::indirect_expression<typename simd_impl<Impl>::scalar_type> b) {\
+    simd_impl<Impl> t;\
+    t.copy_from(b);\
+    return simd_impl<Impl>::wrap(Impl::name(a.value_, t.value_));\
+};\
+template <typename Impl>\
+simd_impl<Impl> name(const typename detail::indirect_expression<typename simd_impl<Impl>::scalar_type> a, simd_impl<Impl> b) {\
+    simd_impl<Impl> t;\
+    t.copy_from(a);\
+    return simd_impl<Impl>::wrap(Impl::name(t.value_, b.value_));\
+};\
+template <typename Impl>\
+simd_impl<Impl> name(const typename simd_impl<Impl>::scalar_type& a, typename detail::indirect_expression<typename simd_impl<Impl>::scalar_type> b) {\
+    simd_impl<Impl> t;\
+    t.copy_from(b);\
+    return simd_impl<Impl>::wrap(Impl::name(Impl::broadcast(a), t.value_));\
+};\
+template <typename Impl>\
+simd_impl<Impl> name(const typename detail::indirect_expression<typename simd_impl<Impl>::scalar_type> a, typename simd_impl<Impl>::scalar_type& b) {\
+    simd_impl<Impl> t;\
+    t.copy_from(a);\
+    return simd_impl<Impl>::wrap(Impl::name(t.value_, Impl::broadcast(b)));\
 };
 
 #define ARB_BINARY_COMPARISON_(name)\
@@ -667,7 +691,16 @@ namespace detail {
         template <typename T>\
         friend simd_impl<T> arb::simd::name(const simd_impl<T>& a, typename simd_impl<T>::scalar_type b);\
         template <typename T>\
-        friend simd_impl<T> arb::simd::name(const typename simd_impl<T>::scalar_type a, simd_impl<T> b);
+        friend simd_impl<T> arb::simd::name(const typename simd_impl<T>::scalar_type a, simd_impl<T> b);\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const simd_impl<T> a, typename detail::indirect_expression<typename simd_impl<T>::scalar_type> b);\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const typename detail::indirect_expression<typename simd_impl<T>::scalar_type> a, simd_impl<T> b);\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const typename simd_impl<T>::scalar_type a, typename detail::indirect_expression<typename simd_impl<T>::scalar_type> b);\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const typename detail::indirect_expression<typename simd_impl<T>::scalar_type> a, typename simd_impl<T>::scalar_type b);
+
 
         #define ARB_DECLARE_BINARY_COMPARISON_(name)\
         template <typename T>\
