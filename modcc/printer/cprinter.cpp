@@ -182,7 +182,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "namespace S = ::arb::simd;\n"
             "using S::index_constraint;\n"
             "using S::simd_cast;\n"
-            "using S::indirect;\n";
+            "using S::indirect;\n"
+            "using S::assign;\n";
 
         out << "static constexpr unsigned vector_length_ = ";
         if (opt.simd.size == no_size) {
@@ -685,7 +686,8 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
                 << "[0]);\n";
         }
         else if (constraint == simd_expr_constraint::contiguous) {
-            out << " = simd_cast<simd_value>(indirect(" <<  d.data_var
+            out << ";\n"
+                << "assign(" << local->name() << ",indirect(" <<  d.data_var
                 << " + " << d.index_var
                 << "[index_], simd_width_));\n";
         }
@@ -695,7 +697,8 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
                 << "element0]);\n";
         }
         else {
-            out << " = simd_cast<simd_value>(indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_));\n";
+            out << ";\n"
+                << "assign(" << local->name() << ", indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_));\n";
         }
 
         if (d.scale != 1) {
@@ -721,7 +724,8 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
         std::string tempvar = "t_"+external->name();
 
         if (constraint == simd_expr_constraint::contiguous) {
-            out << "simd_value "<< tempvar <<" = simd_cast<simd_value>(indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n";
+            out << "simd_value "<< tempvar <<";\n"
+                << "assign(" << tempvar << ", indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n";
 
             if (coeff!=1) {
                 out << tempvar << " = S::fma(S::mul(w_, simd_cast<simd_value>("
@@ -828,7 +832,8 @@ void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
 
     out << "index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
     if (requires_weight) {
-        out << "simd_value w_ = simd_cast<simd_value>(indirect((weight_+index_), simd_width_));\n";
+        out << "simd_value w_;\n"
+            << "assign(w_, indirect((weight_+index_), simd_width_));\n";
     }
 
     emit_body_for_loop(out, body, indexed_vars, scalars, indices, read_constraint, write_constraint);
