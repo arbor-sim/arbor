@@ -36,28 +36,25 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
     auto& props = tree.properties();
     auto& segs = tree.segments();
 
-    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
-
     auto nsegs = parents.size();
     if (!nsegs) return {};
 
     // Determine which branch each segment belongs to while counting the number
     // of branches in the morphology.
     std::vector<msize_t> bids(nsegs);
-    int nbranches = 0;
+    int nbranches = 1;
     bids[0] = 0;
-    for (auto i: make_span(0, nsegs)) {
+    for (auto i: make_span(1, nsegs)) {
         if (is_seg_root(props[i])) {
             bids[i] = nbranches++;
         }
         else {
             auto p = parents[i];
-            bool first = is_seg_root(props[p]) || is_seg_fork(props[p]);
-            bids[i] = first? nbranches++: bids[p];
+            bids[i] = is_seg_fork(props[p])? nbranches++: bids[p];
         }
     }
-    std::cout << "bids: (" << io::sepval(util::transform_view(props, [](seg_prop p){return print_prop(p);}), ' ') << ")\n";
-    std::cout << "bids: (" << io::sepval(bids, ' ') << ")\n";
+    //std::cout << "bids: (" << io::sepval(util::transform_view(props, [](seg_prop p){return print_prop(p);}), ' ') << ")\n";
+    //std::cout << "bids: (" << io::sepval(bids, ' ') << ")\n";
 
     // A working vector used to track whether the first segment in a branch has been visited.
     std::vector<char> visited(nbranches);
@@ -79,7 +76,6 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
         branch.segments.push_back(segs[i]);
     }
 
-    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
     return branches;
 }
 

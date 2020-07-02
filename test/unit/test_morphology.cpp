@@ -7,10 +7,10 @@
 
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/morph/sample_tree.hpp>
 #include <arbor/cable_cell.hpp>
 
 #include "arbor/morph/primitives.hpp"
+#include "arbor/morph/segment_tree.hpp"
 #include "morph/mbranch.hpp"
 #include "util/span.hpp"
 
@@ -84,195 +84,42 @@ TEST(morphology, point_props) {
     EXPECT_FALSE(arb::is_collocated(p));
 }
 
-// TODO: test sample_tree marks properties correctly
-
-// Test internal function that parses a parent list, and marks
-// each node as either root, sequential, fork or terminal.
-TEST(sample_tree, properties) {
-    const auto npos = arb::mnpos;
-    using arb::sample_tree;
-    using pp = arb::point_prop;
-    using pvec = std::vector<arb::msize_t>;
-
-    pp c = arb::point_prop_mask_collocated;
-    pp r = arb::point_prop_mask_root;
-    pp t = arb::point_prop_mask_terminal;
-    pp s = arb::point_prop_mask_none;
-    pp f = arb::point_prop_mask_fork;
-    pp tc = t+c;
-    pp sc = s+c;
-    pp fc = f+c;
-
-    // make a sample tree from a parent vector with non-collocated points.
-    auto make_tree = [] (const pvec& parents) {
-        sample_tree st;
-        for (auto p: parents) st.append(p, {{0.,0.,double(st.size()),1.}, 1});
-        return st;
-    };
-    // make a sample tree from a parent vector with collocated points.
-    auto make_colloc_tree = [] (const pvec& parents) {
-        sample_tree st;
-        for (auto p: parents) st.append(p, {{0.,0.,0.,double(st.size()+1)}, 1});
-        return st;
-    };
-
-    {
-        EXPECT_EQ(make_tree({npos}).properties(), std::vector<pp>{r});
-        EXPECT_EQ(make_colloc_tree({npos}).properties(), std::vector<pp>{r});
-    }
-
-    {
-        EXPECT_EQ(make_tree({npos,0}).properties(), (std::vector<pp>{r,t}));
-        EXPECT_EQ(make_colloc_tree({npos,0}).properties(), (std::vector<pp>{r,tc}));
-    }
-
-    {
-        EXPECT_EQ(make_tree({npos,0,1,2}).properties(), (std::vector<pp>{r,s,s,t}));
-        EXPECT_EQ(make_colloc_tree({npos,0,1,2}).properties(), (std::vector<pp>{r,sc,sc,tc}));
-    }
-
-    {
-        EXPECT_EQ(make_tree({npos,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,s,s,t,s,s,t}));
-        EXPECT_EQ(make_colloc_tree({npos,0,1,2,0,4,5}).properties(), (std::vector<pp>{r,sc,sc,tc,sc,sc,tc}));
-    }
-
-    {
-        EXPECT_EQ(make_tree({npos,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,s,f,s,f,t,t,s,t}));
-        EXPECT_EQ(make_colloc_tree({npos,0,1,2,3,2,4,4,7}).properties(), (std::vector<pp>{r,sc,fc,sc,fc,tc,tc,sc,tc}));
-    }
-}
-
-namespace arb { namespace impl {
-std::vector<mbranch> branches_from_sample_tree(const arb::sample_tree&);
-}}
-
-TEST(morphology, branches_from_parent_index) {
-    const auto npos = arb::mnpos;
-    using pvec = std::vector<arb::msize_t>;
-    using mb = arb::impl::mbranch;
-
-    auto s = [](int i) {return arb::msample{{0,0,double(i),1}, 1};};
-    // make a sample tree from a parent vector with non-collocated points.
-    auto make_tree = [s] (const pvec& parents) {
-        arb::sample_tree st;
-        for (auto p: parents) st.append(p, s(st.size()));
-        return st;
-    };
-
-    auto are_equal = [](mb l, mb r) {
-        if (l.parent_id!=r.parent_id || l.size()!=r.size())
-            return false;
-        for (unsigned i=0; i<l.segments.size(); ++i) {
-            if (!(l.segments[i]==r.segments[i]))
-                return false;
-        }
-        return true;
-    };
-
-    {
-        pvec parents = {npos, 0};
-        auto tree = make_tree(parents);
-        auto bc = arb::impl::branches_from_sample_tree(tree);
-        EXPECT_EQ(1u, bc.size());
-        EXPECT_TRUE(are_equal(mb({{s(0), s(1), 1}}, npos), bc[0]));
-    }
-
-    {
-        pvec parents{npos, 0, 1};
-
-        // One cable with 3 samples.
-        auto tree = make_tree(parents);
-        auto bc = arb::impl::branches_from_sample_tree(tree);
-        EXPECT_EQ(1u, bc.size());
-        EXPECT_TRUE(are_equal(mb({{s(0), s(1), 1}, {s(1), s(2), 1}}, npos), bc[0]));
-    }
-
-    {
-        pvec parents{npos, 0, 0};
-        auto tree = make_tree(parents);
-
-        // Two cables, with two samples each, with the first sample in each being the root
-        auto bc = arb::impl::branches_from_sample_tree(tree);
-        EXPECT_EQ(2u, bc.size());
-        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}}, npos), bc[0]));
-        EXPECT_TRUE(are_equal(mb({{s(0),s(2),1}}, npos), bc[1]));
-    }
-
-    {
-        pvec parents{npos, 0, 1, 2};
-        auto tree = make_tree(parents);
-
-        // One cable with 4 samples.
-        auto bc = arb::impl::branches_from_sample_tree(tree);
-        EXPECT_EQ(1u, bc.size());
-        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}, {s(2),s(3),1}}, npos), bc[0]));
-    }
-
-    {
-        pvec parents{npos, 0, 1, 0};
-        auto tree = make_tree(parents);
-
-        // Two cables attached to root, with 3 and 2 samples respectively.
-        auto bc = arb::impl::branches_from_sample_tree(tree);
-        EXPECT_EQ(2u, bc.size());
-        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}}, npos), bc[0]));
-        EXPECT_TRUE(are_equal(mb({{s(0),s(3),1}}, npos), bc[1]));
-    }
-
-    {
-        pvec parents{npos, 0, 1, 0, 3};
-        auto tree = make_tree(parents);
-
-        // Two cables attached to root, with 3 samples each [0,1,2] and [0,3,4]
-        auto bc = arb::impl::branches_from_sample_tree(tree);
-        EXPECT_EQ(2u, bc.size());
-        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}}, npos), bc[0]));
-        EXPECT_TRUE(are_equal(mb({{s(0),s(3),1}, {s(3),s(4),1}}, npos), bc[1]));
-    }
-
-    {
-        pvec parents{npos, 0, 1, 0, 3, 4, 4, 6};
-        auto tree = make_tree(parents);
-
-        // 4 cables: [0,1,2] [0,3,4] [4,5] [4,6,7]
-        auto bc = arb::impl::branches_from_sample_tree(tree);
-        EXPECT_EQ(4u, bc.size());
-        EXPECT_TRUE(are_equal(mb({{s(0),s(1),1}, {s(1),s(2),1}}, npos), bc[0]));
-        EXPECT_TRUE(are_equal(mb({{s(0),s(3),1}, {s(3),s(4),1}}, npos), bc[1]));
-        EXPECT_TRUE(are_equal(mb({{s(4),s(5),1}}, 1), bc[2]));
-        EXPECT_TRUE(are_equal(mb({{s(4),s(6),1}, {s(6),s(7),1}}, 1), bc[3]));
-    }
-}
 
 // For different parent index vectors, attempt multiple valid and invalid sample sets.
 TEST(morphology, construction) {
     constexpr auto npos = arb::mnpos;
     using arb::util::make_span;
-    using ms = arb::msample;
+    using mp = arb::mpoint;
     using pvec = std::vector<arb::msize_t>;
     {
         pvec p = {npos, 0};
-        std::vector<ms> s = {
-            {{0.0, 0.0, 0.0, 1.0}, 1},
-            {{0.0, 0.0, 1.0, 1.0}, 1} };
+        std::vector<mp> s = {
+            {0.0, 0.0, 0.0, 1.0},
+            {0.0, 0.0, 1.0, 1.0}};
 
-        arb::sample_tree sm(s, p);
-        auto m = arb::morphology(sm);
+        arb::segment_tree tree;
+        tree.append(npos, s[0], s[1], 1);
+        auto m = arb::morphology(tree);
 
         EXPECT_EQ(1u, m.num_branches());
     }
     {
         pvec p = {npos, 0, 1};
         // 2-segment cable
-        std::vector<ms> s = {
-            {{0.0, 0.0, 0.0, 5.0}, 1},
-            {{0.0, 0.0, 1.0, 1.0}, 2},
-            {{0.0, 0.0, 8.0, 1.0}, 2} };
+        std::vector<mp> s = {
+            {0.0, 0.0, 0.0, 5.0},
+            {0.0, 0.0, 1.0, 1.0},
+            {0.0, 0.0, 8.0, 1.0} };
 
-        arb::sample_tree sm(s, p);
+        arb::segment_tree sm;
+        sm.append(npos, s[0], s[1], 2);
+        sm.append(   0, s[1], s[2], 2);
         auto m = arb::morphology(sm);
 
         EXPECT_EQ(1u, m.num_branches());
+        //std::cout << m.num_branches() << " branches yall\n";
+        //std::cout << sm << "\n";
+        //std::cout << m << "\n";
     }
     {
         //              0       |
@@ -280,14 +127,17 @@ TEST(morphology, construction) {
         //          2           |
         pvec p = {npos, 0, 1, 0};
         // two cables: 1x2 segments, 1x1 segment.
-        std::vector<ms> s = {
-            {{0.0, 0.0, 0.0, 5.0}, 1},
-            {{0.0, 0.0, 5.0, 1.0}, 1},
-            {{0.0, 0.0, 6.0, 1.0}, 2},
-            {{0.0, 4.0, 0.0, 1.0}, 1}};
+        std::vector<mp> s = {
+            {0.0, 0.0, 0.0, 5.0},
+            {0.0, 0.0, 5.0, 1.0},
+            {0.0, 0.0, 6.0, 1.0},
+            {0.0, 4.0, 0.0, 1.0}};
 
-        arb::sample_tree sm(s, p);
-        auto m = arb::morphology(sm);
+        arb::segment_tree tree;
+        tree.append(npos, s[0], s[1], 1);
+        tree.append(   0, s[1], s[2], 2);
+        tree.append(npos, s[0], s[3], 1);
+        auto m = arb::morphology(tree);
 
         EXPECT_EQ(2u, m.num_branches());
     }
@@ -295,27 +145,54 @@ TEST(morphology, construction) {
         //              0       |
         //            1   3     |
         //          2       4    |
-        pvec p = {npos, 0, 1, 0, 3};
 
         // two cables: 2 segments each
-        std::vector<ms> s = {
-            {{0.0, 0.0, 0.0, 5.0}, 1},
-            {{0.0, 0.0, 5.0, 1.0}, 2},
-            {{0.0, 0.0, 8.0, 1.0}, 2},
-            {{0.0, 5.0, 0.0, 1.0}, 2},
-            {{0.0, 8.0, 0.0, 1.0}, 2}};
+        std::vector<mp> s = {
+            {0.0, 0.0, 0.0, 5.0},
+            {0.0, 0.0, 5.0, 1.0},
+            {0.0, 0.0, 8.0, 1.0},
+            {0.0, 5.0, 0.0, 1.0},
+            {0.0, 8.0, 0.0, 1.0}};
 
-        arb::sample_tree sm(s, p);
-        auto m = arb::morphology(sm);
+        arb::segment_tree tree;
+        tree.append(npos, s[0], s[1], 1);
+        tree.append(   0, s[1], s[2], 1);
+        tree.append(npos, s[0], s[3], 1);
+        tree.append(   2, s[3], s[4], 1);
+        auto m = arb::morphology(tree);
 
         EXPECT_EQ(2u, m.num_branches());
+    }
+    {
+        //              0       |
+        //            1   3     |
+        //          2    4  5   |
+        pvec p = {npos, 0, 1, 0};
+        // 4 cables
+        std::vector<mp> s = {
+            {0.0, 0.0, 0.0, 5.0},
+            {0.0, 0.0, 5.0, 1.0},
+            {0.0, 0.0, 6.0, 1.0},
+            {0.0, 4.0, 0.0, 1.0},
+            {0.0, 4.0, 1.0, 1.0},
+            {0.0, 4.0, 2.0, 1.0}};
+
+        arb::segment_tree tree;
+        tree.append(npos, s[0], s[1], 1);
+        tree.append(   0, s[1], s[2], 2);
+        tree.append(npos, s[0], s[3], 1);
+        tree.append(   2, s[3], s[4], 1);
+        tree.append(   2, s[4], s[5], 1);
+        auto m = arb::morphology(tree);
+
+        EXPECT_EQ(4u, m.num_branches());
     }
 }
 
 // test that morphology generates branch child-parent structure correctly.
 TEST(morphology, branches) {
     using pvec = std::vector<arb::msize_t>;
-    using svec = std::vector<arb::msample>;
+    using svec = std::vector<arb::mpoint>;
     auto npos = arb::mnpos;
 
     auto check_terminal_branches = [](const arb::morphology& m) {
@@ -330,13 +207,13 @@ TEST(morphology, branches) {
 
     {
         // 0 - 1
-        pvec parents = {npos, 0};
-        svec samples = {
-            {{ 0,0,0,3}, 1},
-            {{ 10,0,0,3}, 1},
+        svec p = {
+            {0.,0.,0.,3.},
+            {10.,0.,0.,3.},
         };
-        arb::sample_tree sm(samples, parents);
-        arb::morphology m(sm);
+        arb::segment_tree tree;
+        tree.append(npos, p[0], p[1], 1);
+        arb::morphology m(tree);
 
         EXPECT_EQ(1u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
@@ -346,46 +223,51 @@ TEST(morphology, branches) {
     }
     {
         // 0 - 1 - 2
-        pvec parents = {npos, 0, 1};
-        {
-            // the morphology is a single unbranched cable.
-            svec samples = {
-                {{ 0,0,0,3}, 1},
-                {{10,0,0,3}, 1},
-                {{100,0,0,3}, 1},
-            };
-            arb::sample_tree sm(samples, parents);
-            arb::morphology m(sm);
 
-            EXPECT_EQ(1u, m.num_branches());
-            EXPECT_EQ(npos, m.branch_parent(0));
-            EXPECT_EQ(pvec{}, m.branch_children(0));
+        // the morphology is a single unbranched cable.
+        svec p = {
+            {0.,0.,0.,3.},
+            {10.,0.,0.,3.},
+            {100,0,0,3},
+        };
+        arb::segment_tree tree;
+        tree.append(npos, p[0], p[1], 1);
+        tree.append(   0, p[1], p[2], 1);
+        arb::morphology m(tree);
 
-            check_terminal_branches(m);
-        }
+        EXPECT_EQ(1u, m.num_branches());
+        EXPECT_EQ(npos, m.branch_parent(0));
+        EXPECT_EQ(pvec{}, m.branch_children(0));
+        EXPECT_EQ(pvec{0}, m.terminal_branches());
+
+        check_terminal_branches(m);
     }
     {
-        // 2 - 0 - 1
-        pvec parents = {npos, 0, 0};
+        //     0      |
+        //    / \     |
+        //   1   2    |
 
-        svec samples = {
-            {{  0, 0,0, 5}, 3},
-            {{ 10, 0,0, 5}, 3},
-            {{  0,10,0, 5}, 3},
+        svec p = {
+            { 0, 0,0, 5},
+            {10, 0,0, 5},
+            { 0,10,0, 5},
         };
-        arb::sample_tree sm(samples, parents);
-        arb::morphology m(sm);
+        arb::segment_tree tree;
+        tree.append(npos, p[0], p[1], 3);
+        tree.append(npos, p[0], p[2], 3);
+        arb::morphology m(tree);
 
         EXPECT_EQ(2u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
         EXPECT_EQ(npos,   m.branch_parent(1));
         EXPECT_EQ(pvec{}, m.branch_children(0));
         EXPECT_EQ(pvec{},  m.branch_children(1));
+        EXPECT_EQ((pvec{0,1}), m.terminal_branches());
 
         check_terminal_branches(m);
     }
     {
-        // Eight samples
+        // 7 segments, 4 branches
         //
         //              0           |
         //             / \          |
@@ -396,19 +278,25 @@ TEST(morphology, branches) {
         //                5   6     |
         //                     \    |
         //                      7   |
-        pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
-        svec samples = {
-            {{  0,  0,  0, 10}, 3},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 3},
-            {{  0,100,  0,  2}, 3},
-            {{100,100,  0,  2}, 3},
-            {{  0,200,  0,  2}, 3},
-            {{  0,300,  0,  2}, 3},
+        svec p = {
+            {  0,  0,  0, 10},
+            { 10,  0,  0,  2},
+            {100,  0,  0,  2},
+            {  0, 10,  0,  2},
+            {  0,100,  0,  2},
+            {100,100,  0,  2},
+            {  0,200,  0,  2},
+            {  0,300,  0,  2},
         };
-        arb::sample_tree sm(samples, parents);
-        arb::morphology m(sm);
+        arb::segment_tree tree;
+        tree.append(npos, p[0], p[1], 1);
+        tree.append(   0, p[1], p[2], 1);
+        tree.append(npos, p[0], p[3], 1);
+        tree.append(   2, p[3], p[4], 1);
+        tree.append(   3, p[4], p[5], 1);
+        tree.append(   3, p[4], p[6], 1);
+        tree.append(   5, p[6], p[7], 1);
+        arb::morphology m(tree);
 
         EXPECT_EQ(4u, m.num_branches());
         EXPECT_EQ(npos, m.branch_parent(0));
@@ -424,6 +312,7 @@ TEST(morphology, branches) {
     }
 }
 
+/*
 // hipcc bug in reading DATADIR
 #ifndef ARB_HIP
 TEST(morphology, swc) {
@@ -636,3 +525,4 @@ TEST(mextent, intersects) {
     EXPECT_FALSE(x3.intersects(mlocation{3, 0.}));
     EXPECT_FALSE(x3.intersects(mlocation{3, 1.}));
 }
+*/

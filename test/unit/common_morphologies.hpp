@@ -50,14 +50,14 @@ static const arb::morphology m_reg_b1 = make_morph({arb::mnpos});
 
 // regular root, six branches
 // branch 0 has child branches 1 and 2; branch 2 has child branches 3, 4 and 5.
-//static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 0u, 1u, 1u, 1u}, "m_reg_b6");
-static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 0u, 2u, 2u, 2u}, "m_reg_b6");
+static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 0u, 1u, 1u, 1u});
+//static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 0u, 2u, 2u, 2u}, "m_reg_b6");
 //static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 1u, 1u, 2u, 2u, 2u}, true);
 
 // regular root, six branches, mutiple top level branches.
 // branch 0 has child branches 1 and 2; branch 3 has child branches 4 and 5.
 //static const arb::morphology m_mlt_b6 = make_morph({arb::mnpos, 0u, 1u, 1u, 0u, 4u, 4u});
-static const arb::morphology m_mlt_b6 = make_morph({arb::mnpos, 0u, 0u, arb::mnpos, 3u, 3u}, "m_mlt_b6");
+static const arb::morphology m_mlt_b6 = make_morph({arb::mnpos, 0u, 0u, arb::mnpos, 3u, 3u});
 
 static std::pair<const char*, arb::morphology> test_morphologies[] = {
     {"m_empty",  m_empty},
