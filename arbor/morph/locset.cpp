@@ -242,6 +242,80 @@ std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
     return o << "(proximal \"" << x.reg << "\")";
 }
 
+// Boundary points of a region.
+//
+// The boundary points of a region R are defined as the most proximal
+// and most distal locations in the components of R.
+
+struct boundary_: locset_tag {
+    explicit boundary_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset boundary(region reg) {
+    return locset(boundary_(std::move(reg)));
+};
+
+mlocation_list thingify_(const boundary_& n, const mprovider& p) {
+    std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
+
+    mlocation_list L;
+
+    for (const mextent& comp: comps) {
+        mlocation_list proximal_set, distal_set;
+
+        for (const mcable& c: comp) {
+            proximal_set.push_back({c.branch, c.prox_pos});
+            distal_set.push_back({c.branch, c.dist_pos});
+        }
+
+        L = sum(L, minset(p.morphology(), proximal_set));
+        L = sum(L, maxset(p.morphology(), distal_set));
+    }
+    return support(std::move(L));
+}
+
+std::ostream& operator<<(std::ostream& o, const boundary_& x) {
+    return o << "(boundary " << x.reg << ")";
+}
+
+// Completed boundary points of a region.
+//
+// The completed boundary is the boundary of the completion of
+// each component.
+
+struct cboundary_: locset_tag {
+    explicit cboundary_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset cboundary(region reg) {
+    return locset(cboundary_(std::move(reg)));
+};
+
+mlocation_list thingify_(const cboundary_& n, const mprovider& p) {
+    std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
+
+    mlocation_list L;
+
+    for (const mextent& comp: comps) {
+        mlocation_list proximal_set, distal_set;
+
+        mextent ccomp = thingify(reg::complete(comp), p);
+        for (const mcable& c: ccomp.cables()) {
+            proximal_set.push_back({c.branch, c.prox_pos});
+            distal_set.push_back({c.branch, c.dist_pos});
+        }
+
+        L = sum(L, minset(p.morphology(), proximal_set));
+        L = sum(L, maxset(p.morphology(), distal_set));
+    }
+    return support(std::move(L));
+}
+
+std::ostream& operator<<(std::ostream& o, const cboundary_& x) {
+    return o << "(cboundary " << x.reg << ")";
+}
 
 // Uniform locset.
 
@@ -346,6 +420,25 @@ mlocation_list thingify_(const lsum& P, const mprovider& p) {
 
 std::ostream& operator<<(std::ostream& o, const lsum& x) {
     return o << "(sum " << x.lhs << " " << x.rhs << ")";
+}
+
+// Support of point set.
+
+struct lsup_: locset_tag {
+    locset arg;
+    lsup_(locset arg): arg(std::move(arg)) {}
+};
+
+locset support(locset arg) {
+    return locset{lsup_{std::move(arg)}};
+}
+
+mlocation_list thingify_(const lsup_& P, const mprovider& p) {
+    return support(thingify(P.arg, p));
+};
+
+std::ostream& operator<<(std::ostream& o, const lsup_& x) {
+    return o << "(support " << x.arg << ")";
 }
 
 // Restrict a locset on to a region: returns all locations in the locset that

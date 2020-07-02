@@ -7,6 +7,7 @@
 #include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
+#include "util/unique.hpp"
 
 namespace arb {
 
@@ -125,16 +126,13 @@ mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs
     return L;
 }
 
+mlocation_list support(mlocation_list L) {
+    util::unique_in_place(L);
+    return L;
+}
+
 bool test_invariants(const mcable& c) {
     return (0.<=c.prox_pos && c.prox_pos<=c.dist_pos && c.dist_pos<=1.) && c.branch!=mnpos;
-}
-
-mlocation prox_loc(const mcable& c) {
-    return {c.branch, c.prox_pos};
-}
-
-mlocation dist_loc(const mcable& c) {
-    return {c.branch, c.dist_pos};
 }
 
 bool test_invariants(const mcable_list& l) {

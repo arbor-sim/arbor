@@ -735,3 +735,33 @@ TEST(range, reverse) {
 
     EXPECT_EQ("olleh"s, rev);
 }
+
+TEST(range, foldl) {
+    // Check invocation order:
+    int xs[] = {1, 2, 3, 4};
+    int result = util::foldl(
+        [](int l, int r) { return 10*l+r; },
+        0,
+        xs);
+
+    EXPECT_EQ(1234, result);
+
+    // Check mutability permission:
+    result = util::foldl(
+        [](int l, int& r) { return ++r, 10*l+r; },
+        0,
+        xs);
+    EXPECT_EQ(2345, result);
+    EXPECT_EQ(5,xs[3]);
+
+    // Check works with move-only values:
+    nocopy<int> ns[] = {1, 2, 3, 4};
+    auto plus = [](nocopy<int> a, nocopy<int> b) { return nocopy<int>(10*a.value + b.value); };
+    auto nc_result = util::foldl(
+        [&plus](auto a, auto& b) { return plus(std::move(a), std::move(b)); },
+        nocopy<int>(0),
+        ns);
+
+    EXPECT_EQ(1234, nc_result.value);
+    EXPECT_EQ(0, ns[3].value);
+}

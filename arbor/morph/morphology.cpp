@@ -447,5 +447,32 @@ mextent join(const mextent& a, const mextent& b) {
     return m;
 }
 
+std::vector<mextent> components(const morphology& m, const mextent& ex) {
+    std::unordered_map<mlocation, unsigned> component_index;
+    std::vector<mcable_list> component_cables;
+
+    for (mcable c: ex) {
+        mlocation head = canonical(m, prox_loc(c));
+
+        unsigned index;
+        if (component_index.count(head)) {
+            index = component_index.at(head);
+        }
+        else {
+            index = component_cables.size();
+            component_cables.push_back({});
+        }
+
+        component_cables[index].push_back(c);
+        component_index[dist_loc(c)] = index;
+    }
+
+    std::vector<mextent> components;
+    for (auto& cl: component_cables) {
+        components.emplace_back(std::move(cl));
+    }
+    return components;
+}
+
 } // namespace arb
 

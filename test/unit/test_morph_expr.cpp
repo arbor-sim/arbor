@@ -34,8 +34,10 @@ TEST(region, expr_repn) {
     auto t1 = reg::tagged(1);
     auto t2 = reg::tagged(2);
     auto t3 = reg::tagged(3);
-    auto s =  reg::super(t3);
+    auto s =  reg::complete(t3);
     auto all = reg::all();
+    auto df = difference(t2, t1);
+    auto cm = complement(t3);
 
     EXPECT_EQ(to_string(c1), "(cable 1 0 1)");
     EXPECT_EQ(to_string(c2), "(cable 4 0.125 0.5)");
@@ -43,12 +45,14 @@ TEST(region, expr_repn) {
     EXPECT_EQ(to_string(b1), "(cable 1 0 1)");
     EXPECT_EQ(to_string(t1), "(tag 1)");
     EXPECT_EQ(to_string(t2), "(tag 2)");
-    EXPECT_EQ(to_string(s),  "(super (tag 3))");
+    EXPECT_EQ(to_string(s),  "(complete (tag 3))");
     EXPECT_EQ(to_string(intersect(c1, t2)), "(intersect (cable 1 0 1) (tag 2))");
     EXPECT_EQ(to_string(join(c1, t2)),  "(join (cable 1 0 1) (tag 2))");
     EXPECT_EQ(to_string(join(t1, t2, t3)), "(join (join (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(intersect(t1, t2, t3)), "(intersect (intersect (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(all), "(all)");
+    EXPECT_EQ(to_string(df), "(difference (tag 2) (tag 1))");
+    EXPECT_EQ(to_string(cm), "(complement (tag 3))");
 }
 
 TEST(region, invalid_mcable) {
@@ -64,6 +68,7 @@ TEST(locset, expr_repn) {
     auto term = ls::terminal();
     auto samp = ls::sample(42);
     auto loc = ls::location(2, 0.5);
+    auto bdy = ls::boundary(reg::tagged(1));
 
     EXPECT_EQ(to_string(root), "(root)");
     EXPECT_EQ(to_string(term), "(terminal)");
@@ -72,6 +77,7 @@ TEST(locset, expr_repn) {
     EXPECT_EQ(to_string(sum(root, term, samp, loc)), "(sum (sum (sum (root) (terminal)) (sample 42)) (location 2 0.5))");
     EXPECT_EQ(to_string(samp), "(sample 42)");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
+    EXPECT_EQ(to_string(bdy), "(boundary (tag 1))");
 }
 
 TEST(locset, invalid_mlocation) {
@@ -348,6 +354,10 @@ TEST(region, thingify_simple_morphologies) {
         auto t1  = reg::tagged(1);
         auto t2  = reg::tagged(2);
         auto all = reg::all();
+        auto q1  = reg::cable(0, 0.0,  0.25);
+        auto q2  = reg::cable(0, 0.25, 0.5);
+        auto q3  = reg::cable(0, 0.5,  0.75);
+        auto q4  = reg::cable(0, 0.75, 1);
 
         // Concrete cable lists
         cl h1_{{0, 0.0, 0.5}};
@@ -371,6 +381,11 @@ TEST(region, thingify_simple_morphologies) {
         EXPECT_TRUE(region_eq(mp, join(h1, t1), cl{{0, 0, 0.7}}));
         EXPECT_TRUE(region_eq(mp, join(h1, t2), cl{{0, 0, 0.5}, {0, 0.7, 1}}));
         EXPECT_TRUE(region_eq(mp, intersect(h2, t1), cl{{0, 0.5, 0.7}}));
+
+        EXPECT_TRUE(region_eq(mp, complement(join(q1, q3)), join(q2, q4)));
+        EXPECT_TRUE(region_eq(mp, complement(q2), join(q1, q3, q4)));
+        EXPECT_TRUE(region_eq(mp, difference(h1, q1), q2));
+        EXPECT_TRUE(region_eq(mp, difference(h1, q3), h1));
 
         // Check round-trip of implicit region conversions.
         // (No fork points in cables, so extent should not including anyhing extra).
@@ -487,7 +502,7 @@ TEST(region, thingify_moderate_morphologies) {
         using reg::branch;
         using reg::all;
         using reg::cable;
-        using reg::super;
+        using reg::complete;
 
         auto soma = tagged(1);
         auto axon = tagged(2);
@@ -517,12 +532,12 @@ TEST(region, thingify_moderate_morphologies) {
         // Test that intersection correctly generates zero-length cables at
         // parent-child interfaces.
         EXPECT_TRUE(region_eq(mp, intersect(apic, dend), cl{}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(apic), super(dend)), cl{{1,1,1}, {2,0,0}, {3,0,0}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(apic), complete(dend)), cl{{1,1,1}, {2,0,0}, {3,0,0}}));
         EXPECT_TRUE(region_eq(mp, intersect(apic, axon), cl{}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(apic), axon), cl{{1,1,1}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(apic), axon), cl{{1,1,1}}));
         EXPECT_TRUE(region_eq(mp, intersect(axon, dend), cl{}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(axon), dend), cl{{0,0,0}, {3,0,0}}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(dend), axon), cl{{1,0,0}, {1,1,1}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(axon), dend), cl{{0,0,0}, {3,0,0}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(dend), axon), cl{{1,0,0}, {1,1,1}}));
 
         // Test distal and proximal interavls
         auto start0_         = location(0, 0   );
@@ -771,7 +786,7 @@ TEST(region, thingify_complex_morphologies) {
         {
             mprovider mp(m);
             using reg::cable;
-            using reg::super;
+            using reg::complete;
             using ls::most_distal;
             using ls::most_proximal;
 
@@ -797,8 +812,8 @@ TEST(region, thingify_complex_morphologies) {
             EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_e_), mp), mlocation_list{{2,0}}));
             EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_f_), mp), mlocation_list{{2,0}, {7,0}}));
             EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_g_), mp), mlocation_list{{5,0}, {6,0}}));
-            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(super(reg_f_)), mp), mlocation_list{{1,1}}));
-            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(super(reg_g_)), mp), mlocation_list{{4,1}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(complete(reg_f_)), mp), mlocation_list{{1,1}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(complete(reg_g_)), mp), mlocation_list{{4,1}}));
         }
     }
     {

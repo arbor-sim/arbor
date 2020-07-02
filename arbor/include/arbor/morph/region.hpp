@@ -158,8 +158,9 @@ region z_dist_from_root_ge(double r);
 // Region with all segments in a cell.
 region all();
 
-// The extent of a region, i.e. including all fork cover points.
-region super(region);
+// Region including all covers of included fork points.
+// (Pre-image of projection onto the topological tree.)
+region complete(region);
 
 // Region associated with a name.
 region named(std::string);
@@ -171,5 +172,11 @@ region join(region, region);
 
 // Intersection of two regions.
 region intersect(region, region);
+
+// Closed complement of a region.
+region complement(region);
+
+// (Closure of) set difference of two regions.
+region difference(region a, region b);
 
 } // namespace arb

@@ -20,29 +20,20 @@ inline std::vector<arb::msample> make_morph_samples(unsigned n) {
 
 static const arb::morphology m_empty;
 
-// spherical root, one branch
-static const arb::morphology m_sph_b1{arb::sample_tree(make_morph_samples(1), {arb::mnpos}), true};
-
-// regular root, one branch
+// One branch.
 static const arb::morphology m_reg_b1{arb::sample_tree(make_morph_samples(2), {arb::mnpos, 0u}), false};
 
-// spherical root, six branches:
-// branch 0 (spherical root) has child branches 1 and 2; branch 2 has child branches 3, 4 and 5.
-static const arb::morphology m_sph_b6{arb::sample_tree(make_morph_samples(8), {arb::mnpos, 0u, 1u, 0u, 3u, 4u, 4u, 4u}), true};
-
-// regular root, six branches
+// Six branches:
 // branch 0 has child branches 1 and 2; branch 2 has child branches 3, 4 and 5.
 static const arb::morphology m_reg_b6{arb::sample_tree(make_morph_samples(7), {arb::mnpos, 0u, 1u, 1u, 2u, 2u, 2u}), false};
 
-// regular root, six branches, mutiple top level branches.
+// Six branches, mutiple top level branches:
 // branch 0 has child branches 1 and 2; branch 3 has child branches 4 and 5.
 static const arb::morphology m_mlt_b6{arb::sample_tree(make_morph_samples(7), {arb::mnpos, 0u, 1u, 1u, 0u, 4u, 4u}), false};
 
 static std::pair<const char*, arb::morphology> test_morphologies[] = {
     {"m_empty",  m_empty},
-    {"m_sph_b1", m_sph_b1},
     {"m_reg_b1", m_reg_b1},
-    {"m_sph_b6", m_sph_b6},
     {"m_reg_b6", m_reg_b6},
     {"m_mlt_b6", m_mlt_b6}
 };
