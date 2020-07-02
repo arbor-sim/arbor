@@ -66,8 +66,6 @@ cv_policy operator|(const cv_policy& lhs, const cv_policy& rhs) {
 // Public policy implementations:
 
 locset cv_policy_explicit::cv_boundary_points(const cable_cell& cell) const {
-    auto comps = components(cell.morphology(), thingify(domain_, cell.provider()));
-
     return
         ls::support(
             util::foldl(

@@ -714,9 +714,9 @@ std::ostream& operator<<(std::ostream& o, const reg_minus& x) {
 
 } // namespace reg
 
-// The intersect, join, and complement operations in the arb:: namespace with
-// region so that ADL allows for construction of expressions with regions
-// without having to namespace qualify the intersect/join/complement.
+// The intersect, join, complement and difference operations are in the arb::
+// namespace with region so that ADL allows for construction of expressions
+// with regions without having to namespace qualify these operations.
 
 region intersect(region l, region r) {
     return region{reg::reg_and(std::move(l), std::move(r))};
