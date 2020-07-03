@@ -620,14 +620,14 @@ void SimdPrinter::visit(AssignmentExpression* e) {
             if (auto sym = rhs->symbol()) {
                 if (sym->is_variable() && sym->is_variable()->is_range()) {
                     out_ << "assign(" << lhs->name() << ", indirect(" << rhs->name() << ", simd_width_))";
+                    return;
                 }
             }
-        } else {
-            out_ << lhs->name() << " = ";
-            if (cast) out_ << "simd_cast<simd_value>(";
-            e->rhs()->accept(this);
-            if (cast) out_ << ")";
         }
+        out_ << lhs->name() << " = ";
+        if (cast) out_ << "simd_cast<simd_value>(";
+        e->rhs()->accept(this);
+        if (cast) out_ << ")";
     }
 }
 
