@@ -4,7 +4,7 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/morph/sample_tree.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"
@@ -15,18 +15,17 @@
 namespace pyarb {
 
 class flat_cell_builder {
-    // The sample tree describing the morphology, constructed additatively with
-    // cables that are attached to existing cables using add_cable.
-    arb::sample_tree tree_;
-
-    // The distal sample id of each cable.
-    std::vector<arb::msize_t> cable_distal_id_;
+    // The segment tree describing the morphology, constructed additatively with
+    // segments that are attached to existing segments using add_cable.
+    arb::segment_tree tree_;
 
     // The number of unique region names used to label cables as they
     // are added to the cell.
     int tag_count_ = 0;
     // Map from region names to the tag used to identify them.
     std::unordered_map<std::string, int> tag_map_;
+
+    std::vector<arb::msize_t> cable_distal_segs_;
 
     arb::label_dict dict_;
 
@@ -70,31 +69,18 @@ public:
             throw pyarb_error("Invalid parent id.");
         }
 
-        // Calculating the sample that is the parent of this branch is
-        // neccesarily complicated to handle cable segments that are attached
-        // to the root.
-        arb::msize_t p = at_root? (size()? 0: mnpos): cable_distal_id_[parent];
+        arb::msize_t p = at_root? mnpos: cable_distal_segs_[parent];
 
         double z = at_root? 0:                      // attach to root
-                   tree_.samples()[p].loc.z;        // attach to end of a cable
+                   tree_.segments()[p].dist.z;      // attach to end of a cable
 
-        // Only add a first point at the very beginning of the cable if
-        // the cable is not attached to another
-        const bool add_first_point = p==arb::mnpos      // attached to the "root"
-                                  || (r1!=tree_.samples()[p].loc.radius);
-                                                        // proximal radius does not match r1
-        if (add_first_point) {
-            p = tree_.append(p, {{0,0,z,r1}, tag});
+        double dz = len/ncomp;
+        double dr = (r2-r1)/ncomp;
+        for (auto i=0; i<ncomp; ++i) {
+            p = tree_.append(p, {0,0,z+i*dz, r1+i*dr}, {0,0,z+(i+1)*dz, r1+(i+1)*dr}, tag);
         }
-        if (ncomp>1) {
-            double dz = len/ncomp;
-            double dr = (r2-r1)/ncomp;
-            for (auto i=1; i<ncomp; ++i) {
-                p = tree_.append(p, {{0,0,z+i*dz, r1+i*dr}, tag});
-            }
-        }
-        p = tree_.append(p, {{0,0,z+len,r2}, tag});
-        cable_distal_id_.push_back(p);
+
+        cable_distal_segs_.push_back(p);
 
         return size()-1;
     }
@@ -139,7 +125,7 @@ public:
         }
     }
 
-    const arb::sample_tree& samples() const {
+    const arb::segment_tree& segments() const {
         return tree_;
     }
 
@@ -165,7 +151,6 @@ public:
     }
 
     arb::cable_cell build() const {
-        // Make cable_cell from sample tree and dictionary.
         auto c = arb::cable_cell(morphology(), dict_);
         c.default_parameters.discretization = arb::cv_policy_every_segment{};
         return c;
@@ -205,14 +190,9 @@ public:
         }
     }
 
-    // Only valid if called on a non-empty tree with spherical soma.
-    double soma_rad() const {
-        return tree_.samples()[0].loc.radius;
-    }
-
-    // The number of cable segements (plus one optional soma) used to construct the cell.
+    // The number of cable segements used in the cell.
     std::size_t size() const {
-        return cable_distal_id_.size();
+        return tree_.size();
     }
 };
 
@@ -260,8 +240,8 @@ void register_flat_builder(pybind11::module& m) {
             "parent"_a, "length"_a, "radius"_a, "name"_a, "ncomp"_a=1)
         .def("add_label", &flat_cell_builder::add_label,
             "name"_a, "description"_a)
-        .def_property_readonly("samples",
-            [](const flat_cell_builder& b) { return b.samples(); })
+        .def_property_readonly("segments",
+            [](const flat_cell_builder& b) { return b.segments(); })
         .def_property_readonly("labels",
             [](const flat_cell_builder& b) { return b.labels(); })
         .def_property_readonly("morphology",

@@ -354,7 +354,6 @@ TEST(morphology, branches) {
     }
 }
 
-/*
 // hipcc bug in reading DATADIR
 #ifndef ARB_HIP
 TEST(morphology, swc) {
@@ -369,16 +368,15 @@ TEST(morphology, swc) {
     // Load swc samples from file.
     auto swc_samples = arb::parse_swc_file(fid);
 
-    // Build a sample_tree from swc samples.
-    auto sm = arb::swc_as_sample_tree(swc_samples);
-    EXPECT_EQ(1058u, sm.size()); // file contains 195 samples
+    // Build a segmewnt_tree from swc samples.
+    auto sm = arb::swc_as_segment_tree(swc_samples);
+    EXPECT_EQ(1057u, sm.size()); // file contains 195 samples
 
     // Test that the morphology contains the expected number of branches.
     auto m = arb::morphology(sm);
     EXPECT_EQ(30u, m.num_branches());
 }
 #endif
-*/
 
 arb::morphology make_4_branch_morph() {
     using svec = std::vector<arb::mpoint>;

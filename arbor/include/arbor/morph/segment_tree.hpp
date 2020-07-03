@@ -45,7 +45,7 @@ public:
 };
 
 /// Build a sample tree from a sequence of swc records.
-segment_tree swc_as_segment_tree(const std::vector<swc_record>& swc_records, bool first_sample_sphere);
+segment_tree swc_as_segment_tree(const std::vector<swc_record>& swc_records);
 
 } // namesapce arb
 

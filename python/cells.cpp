@@ -7,6 +7,7 @@
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
+#include <arbor/morph/segment_tree.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/util/any.hpp>
@@ -401,11 +402,11 @@ void register_cells(pybind11::module& m) {
                 return arb::cable_cell(m, labels.dict);
             }), "morphology"_a, "labels"_a)
         .def(pybind11::init(
-            [](const arb::sample_tree& t, const label_dict_proxy& labels) {
+            [](const arb::segment_tree& t, const label_dict_proxy& labels) {
                 return arb::cable_cell(arb::morphology(t), labels.dict);
             }),
-            "morphology"_a, "labels"_a,
-            "Construct with a morphology derived from a sample_tree.")
+            "segment_tree"_a, "labels"_a,
+            "Construct with a morphology derived from a segment tree.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")

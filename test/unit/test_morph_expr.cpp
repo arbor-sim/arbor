@@ -736,7 +736,6 @@ TEST(region, thingify_moderate_morphologies) {
 TEST(region, thingify_complex_morphologies) {
     using pvec = std::vector<msize_t>;
     using svec = std::vector<mpoint>;
-    using tvec = std::vector<int>;
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 5, 5, 7, 7, 4, 10};
         svec points = {

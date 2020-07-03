@@ -38,7 +38,6 @@ set(arbor_sources
     morph/mprovider.cpp
     morph/primitives.cpp
     morph/region.cpp
-    morph/sample_tree.cpp
     morph/segment_tree.cpp
     merge_events.cpp
     simulation.cpp
