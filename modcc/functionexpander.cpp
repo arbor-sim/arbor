@@ -12,9 +12,9 @@ expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression*
     stmts.push_front(std::move(exprs.assignment));
     stmts.push_front(std::move(exprs.local_decl));
 
-    auto ass =  make_expression<AssignmentExpression>(e->location(), exprs.id->clone(),  e->clone());
-    ass->semantic(e->scope());
-    stmts.push_back(std::move(ass));
+    auto assign =  make_expression<AssignmentExpression>(e->location(), exprs.id->clone(),  e->clone());
+    assign->semantic(e->scope());
+    stmts.push_back(std::move(assign));
 
     return std::move(exprs.id);
 }
