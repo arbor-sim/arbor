@@ -30,11 +30,6 @@ inline arb::morphology make_morph(std::vector<arb::msize_t> parents, const char*
         tree.append(parents[i], point(p), point(i), tag);
     }
 
-    if (strlen(name)) {
-        std::cout << name << " (" << arb::io::sepval(parents, ' ') << ")\n" << tree << "\n";
-        std::cout << arb::morphology(tree) << "\n----------------------------------------------------\n";
-    }
-
     return arb::morphology(tree);
 }
 
@@ -45,18 +40,14 @@ inline arb::morphology make_morph(std::vector<arb::msize_t> parents, const char*
 static const arb::morphology m_empty = make_morph({});
 
 // regular root, one branch
-//static const arb::morphology m_reg_b1{arb::segment_tree(make_morph_samples(2), {arb::mnpos, 0u})};
 static const arb::morphology m_reg_b1 = make_morph({arb::mnpos});
 
 // regular root, six branches
 // branch 0 has child branches 1 and 2; branch 2 has child branches 3, 4 and 5.
 static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 0u, 1u, 1u, 1u});
-//static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 0u, 2u, 2u, 2u}, "m_reg_b6");
-//static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 1u, 1u, 2u, 2u, 2u}, true);
 
 // regular root, six branches, mutiple top level branches.
 // branch 0 has child branches 1 and 2; branch 3 has child branches 4 and 5.
-//static const arb::morphology m_mlt_b6 = make_morph({arb::mnpos, 0u, 1u, 1u, 0u, 4u, 4u});
 static const arb::morphology m_mlt_b6 = make_morph({arb::mnpos, 0u, 0u, arb::mnpos, 3u, 3u});
 
 static std::pair<const char*, arb::morphology> test_morphologies[] = {

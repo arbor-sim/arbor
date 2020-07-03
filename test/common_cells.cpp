@@ -2,6 +2,46 @@
 
 namespace arb {
 
+// Generate a segment tree from a sequence of points and parent index.
+arb::segment_tree segments_from_points(
+        std::vector<arb::mpoint> points,
+        std::vector<arb::msize_t> parents,
+        std::vector<int> tags)
+{
+    using arb::mnpos;
+    using arb::msize_t;
+
+    const auto np = points.size();
+
+    // Sanity check the input.
+    if (parents.size()!=np || np<2) {
+        throw std::runtime_error("segments_from_points: every point must have a parent.");
+    }
+    if (tags.size() && tags.size()!=np) {
+        throw std::runtime_error("segments_from_points: every point must have a tag.");
+    }
+    auto tag = [&tags](msize_t i) {return tags.size()? tags[i]: 1;};
+    arb::segment_tree tree;
+    std::unordered_map<msize_t, msize_t> segmap;
+
+    tree.append(mnpos, points[0], points[1], tag(1));
+    segmap[0] = mnpos;
+    segmap[1] = 0;
+    for (unsigned i=2; i<np; ++i) {
+        auto p = segmap[parents[i]];
+        if (p==mnpos) {
+            tree.append(p, points[0], points[i], tag(i));
+        }
+        else {
+            tree.append(p, points[i], tag(i));
+        }
+        segmap[i] = i-1;
+    }
+
+    return tree;
+}
+
+
 int soma_cell_builder::get_tag(const std::string& name) {
     auto it = tag_map.find(name);
     // If the name is not in the map, make a unique tag.

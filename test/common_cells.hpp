@@ -7,6 +7,11 @@
 
 namespace arb {
 
+// Generate a segment tree from a sequence of points and parent index.
+arb::segment_tree segments_from_points(std::vector<arb::mpoint> points,
+                                       std::vector<arb::msize_t> parents,
+                                       std::vector<int> tags={});
+
 class soma_cell_builder {
     segment_tree tree;
     std::vector<msize_t> branch_distal_id;

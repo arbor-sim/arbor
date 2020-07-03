@@ -81,12 +81,17 @@ struct backend_access<gpu::backend> {
 // linearly tapered branches.
 
 static morphology make_y_morphology() {
-    return morphology(sample_tree(
-        {msample{{0., 0., 0., 1.}, 0},
-         msample{{100., 0., 0., 0.8}, 0},
-         msample{{100., 100., 0., 0.5}, 0},
-         msample{{100., 0, 100., 0.4}, 0}},
-        {mnpos, 0u, 1u, 1u}));
+    segment_tree tree;
+    tree.append(mnpos, {0., 0., 0., 1.}, {100., 0., 0., 0.8}, 1);
+    tree.append(0, {100., 100., 0., 0.5}, 0);
+    tree.append(0, {100., 0,  100., 0.4}, 0);
+    return {tree};
+}
+
+static morphology make_stick_morphology() {
+    segment_tree tree;
+    tree.append(mnpos, {0., 0., 0., 1.}, {100., 0., 0., 1.0}, 1);
+    return {tree};
 }
 
 template <typename Backend>
@@ -492,7 +497,7 @@ void run_ion_density_probe_test(const context& ctx) {
 
     // Simple constant diameter cable, 3 CVs.
 
-    cable_cell cable(sample_tree({msample{{0., 0., 0., 1.}, 0}, msample{{100., 0., 0., 1.}, 0}}, {mnpos, 0u}));
+    cable_cell cable(make_stick_morphology());
     cable.default_parameters.discretization = cv_policy_fixed_per_branch(3);
 
     // Calcium ions everywhere, half written by write_ca1, half by write_ca2.
@@ -654,7 +659,8 @@ void run_partial_density_probe_test(const context& ctx) {
 
     // Each cell is a simple constant diameter cable, with 3 CVs each.
 
-    morphology m(sample_tree({msample{{0., 0., 0., 1.}, 0}, msample{{100., 0., 0., 1.}, 0}}, {mnpos, 0u}));
+    auto m = make_stick_morphology();
+
     cells[0] = cable_cell(m);
     cells[0].default_parameters.discretization = cv_policy_fixed_per_branch(3);
 
@@ -767,7 +773,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
 
     // Cell is a tapered cable with 3 CVs.
 
-    morphology m(sample_tree({msample{{0., 0., 0., 1.}, 0}, msample{{100., 0., 0., 0.8}, 0}}, {mnpos, 0u}));
+    auto m = make_stick_morphology();
     cable_cell cell(m);
 
     const unsigned n_cv = 3;

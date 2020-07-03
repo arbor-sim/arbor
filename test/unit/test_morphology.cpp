@@ -117,9 +117,6 @@ TEST(morphology, construction) {
         auto m = arb::morphology(sm);
 
         EXPECT_EQ(1u, m.num_branches());
-        //std::cout << m.num_branches() << " branches yall\n";
-        //std::cout << sm << "\n";
-        //std::cout << m << "\n";
     }
     {
         //              0       |
@@ -243,6 +240,51 @@ TEST(morphology, branches) {
         check_terminal_branches(m);
     }
     {
+        // 6 segemnts and six branches.
+        // A single branch at the root that bifurcates, and a further 3 branches
+        // attached to the first bifurcation.
+        //       0      |
+        //      / \     |
+        //     1   2    |
+        //   / | \      |
+        //  3  4  5     |
+
+        svec p = {
+            {0., 0.,0.,3.},
+            {1., 0.,0.,3.},
+            {2., 1.,0.,3.},
+            {2.,-1.,0.,3.},
+            {3., 2.,0.,3.},
+            {3., 1.,0.,3.},
+            {3., 0.,0.,3.},
+        };
+        arb::segment_tree tree;
+        tree.append(npos, p[0], p[1], 1);
+        tree.append(   0, p[1], p[2], 1);
+        tree.append(   0, p[1], p[3], 1);
+        tree.append(   1, p[2], p[4], 1);
+        tree.append(   1, p[2], p[5], 1);
+        tree.append(   1, p[2], p[6], 1);
+        arb::morphology m(tree);
+
+        EXPECT_EQ(6u, m.num_branches());
+        EXPECT_EQ(npos, m.branch_parent(0));
+        EXPECT_EQ(  0u, m.branch_parent(1));
+        EXPECT_EQ(  0u, m.branch_parent(2));
+        EXPECT_EQ(  1u, m.branch_parent(3));
+        EXPECT_EQ(  1u, m.branch_parent(4));
+        EXPECT_EQ(  1u, m.branch_parent(5));
+        EXPECT_EQ((pvec{1,2}), m.branch_children(0));
+        EXPECT_EQ((pvec{3,4,5}), m.branch_children(1));
+        EXPECT_EQ((pvec{}), m.branch_children(2));
+        EXPECT_EQ((pvec{}), m.branch_children(3));
+        EXPECT_EQ((pvec{}), m.branch_children(4));
+        EXPECT_EQ((pvec{}), m.branch_children(5));
+        EXPECT_EQ((pvec{2,3,4,5}), m.terminal_branches());
+
+        check_terminal_branches(m);
+    }
+    {
         //     0      |
         //    / \     |
         //   1   2    |
@@ -336,34 +378,45 @@ TEST(morphology, swc) {
     EXPECT_EQ(30u, m.num_branches());
 }
 #endif
+*/
 
-TEST(morphology, minset) {
-    using pvec = std::vector<arb::msize_t>;
-    using svec = std::vector<arb::msample>;
-    using ll = arb::mlocation_list;
+arb::morphology make_4_branch_morph() {
+    using svec = std::vector<arb::mpoint>;
     constexpr auto npos = arb::mnpos;
 
-    // Eight samples
+    // Eight points, 7 segments, 3 branches.
     //          sample   branch
     //            0         0
     //           1 3       0 1
     //          2   4     0   1
     //             5 6       2 3
     //                7         3
-    pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 3},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 3},
-        {{  0,100,  0,  2}, 3},
-        {{100,100,  0,  2}, 3},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
+    svec p = {
+        {  0,  0,  0,  2},
+        { 10,  0,  0,  2},
+        {100,  0,  0,  2},
+        {  0, 10,  0,  2},
+        {  0,100,  0,  2},
+        {100,100,  0,  2},
+        {  0,200,  0,  2},
+        {  0,300,  0,  2},
     };
-    arb::sample_tree sm(samples, parents);
+    arb::segment_tree tree;
+    tree.append(npos, p[0], p[1], 1);
+    tree.append(   0, p[1], p[2], 1);
+    tree.append(npos, p[0], p[3], 1);
+    tree.append(   2, p[3], p[4], 1);
+    tree.append(   3, p[4], p[5], 1);
+    tree.append(   3, p[4], p[6], 1);
+    tree.append(   4, p[6], p[7], 1);
 
-    arb::morphology m(sm);
+    return arb::morphology(tree);
+}
+
+TEST(morphology, minset) {
+    auto m = make_4_branch_morph();
+
+    using ll = arb::mlocation_list;
 
     EXPECT_EQ((ll{}), minset(m, ll{}));
     EXPECT_EQ((ll{{2,0.1}}), minset(m, ll{{2,0.1}}));
@@ -377,31 +430,9 @@ TEST(morphology, minset) {
 }
 
 TEST(morphology, maxset) {
-    using pvec = std::vector<arb::msize_t>;
-    using svec = std::vector<arb::msample>;
-    using ll = arb::mlocation_list;
-    constexpr auto npos = arb::mnpos;
+    auto m = make_4_branch_morph();
 
-    // Eight samples
-    //          sample   branch
-    //            0         0
-    //           1 3       0 1
-    //          2   4     0   1
-    //             5 6       2 3
-    //                7         3
-    pvec parents = {npos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 3},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 3},
-        {{  0,100,  0,  2}, 3},
-        {{100,100,  0,  2}, 3},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
-    };
-    arb::sample_tree sm(samples, parents);
-    arb::morphology m(sm);
+    using ll = arb::mlocation_list;
 
     EXPECT_EQ((ll{}), maxset(m, ll{}));
     EXPECT_EQ((ll{{2,0.1}}), maxset(m, ll{{2,0.1}}));
@@ -421,31 +452,9 @@ TEST(mextent, invariants) {
     using namespace arb;
     using testing::cablelist_eq;
 
-    using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    auto m = make_4_branch_morph();
+
     using cl = mcable_list;
-
-    // Eight samples
-    //          sample   branch
-    //            0         0
-    //           1 3       0 1
-    //          2   4     0   1
-    //             5 6       2 3
-    //                7         3
-    pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 3},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 3},
-        {{  0,100,  0,  2}, 3},
-        {{100,100,  0,  2}, 3},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
-    };
-
-    // Instantiate morphology
-    morphology m(sample_tree(samples, parents));
 
     mextent x1(cl{{1, 0.25, 0.75}});
     ASSERT_TRUE(x1.test_invariants(m));
@@ -475,30 +484,9 @@ TEST(mextent, intersects) {
     using namespace arb;
     using testing::cablelist_eq;
 
-    using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    auto m = make_4_branch_morph();
+
     using cl = mcable_list;
-
-    // Eight samples
-    //          sample   branch
-    //            0         0
-    //           1 3       0 1
-    //          2   4     0   1
-    //             5 6       2 3
-    //                7         3
-    pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 3},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 3},
-        {{  0,100,  0,  2}, 3},
-        {{100,100,  0,  2}, 3},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
-    };
-
-    morphology m(sample_tree(samples, parents));
 
     mextent x1(cl{{1, 0.25, 0.75}});
     EXPECT_TRUE(x1.intersects(mlocation{1, 0.25}));
@@ -525,4 +513,3 @@ TEST(mextent, intersects) {
     EXPECT_FALSE(x3.intersects(mlocation{3, 0.}));
     EXPECT_FALSE(x3.intersects(mlocation{3, 1.}));
 }
-*/

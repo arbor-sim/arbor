@@ -14,6 +14,8 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
+#include "common.hpp"
+#include "common_cells.hpp"
 #include "morph_pred.hpp"
 
 using namespace arb;
@@ -85,12 +87,12 @@ TEST(locset, invalid_mlocation) {
 
 TEST(locset, thingify_named) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
 
     locset banana = ls::root();
     locset cake = ls::terminal();
 
-    sample_tree sm(svec{ {{0,0,0,1},1}, {{10,0,0,1},1} }, pvec{mnpos, 0});
+    auto sm = segments_from_points(svec{ {0,0,0,1}, {10,0,0,1} }, pvec{mnpos, 0});
     {
         label_dict dict;
         dict.set("banana", banana);
@@ -124,14 +126,14 @@ TEST(locset, thingify_named) {
 
 TEST(region, thingify_named) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
 
     region banana = reg::branch(0);
     region cake = reg::cable(0, 0.2, 0.3);
 
     // copy-paste ftw
 
-    sample_tree sm(svec{ {{0,0,0,1},1}, {{10,0,0,1},1} }, pvec{mnpos, 0});
+    auto sm = segments_from_points(svec{ {0,0,0,1}, {10,0,0,1} }, pvec{mnpos, 0});
     {
         label_dict dict;
         dict.set("banana", banana);
@@ -167,7 +169,7 @@ TEST(region, thingify_named) {
 
 TEST(locset, thingify) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
     using ll = mlocation_list;
     auto root = ls::root();
     auto term = ls::terminal();
@@ -188,17 +190,17 @@ TEST(locset, thingify) {
     //             5 6
     //                7
     pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 3},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 3},
-        {{  0,100,  0,  2}, 3},
-        {{100,100,  0,  2}, 3},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
+    svec points = {
+        {  0,  0,  0,  2},
+        { 10,  0,  0,  2},
+        {100,  0,  0,  2},
+        {  0, 10,  0,  2},
+        {  0,100,  0,  2},
+        {100,100,  0,  2},
+        {  0,200,  0,  2},
+        {  0,300,  0,  2},
     };
-    sample_tree sm(samples, parents);
+    auto sm = segments_from_points(points, parents);
 
     {
         auto mp = mprovider(morphology(sm));
@@ -301,7 +303,8 @@ TEST(locset, thingify) {
 
 TEST(region, thingify_simple_morphologies) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
+    using tvec = std::vector<int>;
     using cl = mcable_list;
 
     // A single unbranched cable with 5 sample points.
@@ -309,14 +312,16 @@ TEST(region, thingify_simple_morphologies) {
     // 0 μm, 1 μm, 3 μm, 7 μm and 10 μm.
     {
         pvec parents = {mnpos, 0, 1, 2, 3};
-        svec samples = {
-            {{  0,  0,  0,  2}, 1},
-            {{  1,  0,  0,  2}, 1},
-            {{  3,  0,  0,  2}, 2},
-            {{  7,  0,  0,  2}, 1},
-            {{ 10,  0,  0,  2}, 2},
+        svec points = {
+            { 0,  0,  0,  2},
+            { 1,  0,  0,  2},
+            { 3,  0,  0,  2},
+            { 7,  0,  0,  2},
+            {10,  0,  0,  2},
         };
-        sample_tree sm(samples, parents);
+        tvec tags = {1, 1, 2, 1, 2};
+
+        auto sm = segments_from_points(points, parents, tags);
         auto mp = mprovider(morphology(sm));
 
         auto h1  = reg::cable(0, 0, 0.5);
@@ -369,17 +374,17 @@ TEST(region, thingify_simple_morphologies) {
     //          3       2       |
     {
         pvec parents = {mnpos, 0, 1, 2, 1, 4};
-        svec samples = {
-            {{  0,  0,  0,  5}, 1},
-            {{ 10,  0,  0,  5}, 1},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{ 10,  0,  0,  2}, 2},
-            {{100,  0,  0,  2}, 2},
+        svec points = {
+            {  0,  0,  0,  5},
+            { 10,  0,  0,  5},
+            { 10,  0,  0,  2},
+            {100,  0,  0,  2},
+            { 10,  0,  0,  2},
+            {100,  0,  0,  2},
         };
+        tvec tags = {1, 1, 3, 3, 2, 2};
 
-        // Build morphology with a spherical root
-        sample_tree sm(samples, parents);
+        auto sm = segments_from_points(points, parents, tags);
         auto mp = mprovider(morphology(sm));
 
         using ls::location;
@@ -419,7 +424,8 @@ TEST(region, thingify_simple_morphologies) {
 
 TEST(region, thingify_moderate_morphologies) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
+    using tvec = std::vector<int>;
     using cl = mcable_list;
 
     // Test multi-level morphologies.
@@ -440,17 +446,18 @@ TEST(region, thingify_moderate_morphologies) {
     //                3
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-        svec samples = {
-            {{  0,  0,  0,  1}, 1},
-            {{ 10,  0,  0,  1}, 3},
-            {{100,  0,  0,  3}, 3},
-            {{  0, 10,  0,  1}, 2},
-            {{  0,100,  0,  5}, 2},
-            {{100,100,  0,  2}, 4},
-            {{  0,200,  0,  1}, 3},
-            {{  0,300,  0,  3}, 3},
+        svec points = {
+            {  0,  0,  0,  1},
+            { 10,  0,  0,  1},
+            {100,  0,  0,  3},
+            {  0, 10,  0,  1},
+            {  0,100,  0,  5},
+            {100,100,  0,  2},
+            {  0,200,  0,  1},
+            {  0,300,  0,  3},
         };
-        sample_tree sm(samples, parents);
+        tvec tags = {1, 3, 3, 2, 2, 4, 3, 3};
+        auto sm = segments_from_points(points, parents, tags);
 
         // Without spherical root
         auto mp = mprovider(morphology(sm));
@@ -728,24 +735,26 @@ TEST(region, thingify_moderate_morphologies) {
 
 TEST(region, thingify_complex_morphologies) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
+    using tvec = std::vector<int>;
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 5, 5, 7, 7, 4, 10};
-        svec samples = {
-                {{  0,  0,  0,  2}, 3}, //0
-                {{ 10,  0,  0,  2}, 3}, //1
-                {{100,  0,  0,  2}, 3}, //2
-                {{  0, 10,  0,  2}, 3}, //3
-                {{  0,100,  0,  2}, 3}, //4
-                {{100,100,  0,  2}, 3}, //5
-                {{200,100,  0,  2}, 3}, //6
-                {{100,200,  0,  2}, 3}, //7
-                {{200,200,  0,  2}, 3}, //8
-                {{100,300,  0,  2}, 3}, //9
-                {{  0,200,  0,  2}, 3}, //10
-                {{  0,300,  0,  2}, 3}, //11
+        svec points = {
+                {  0,  0,  0,  2}, //0
+                { 10,  0,  0,  2}, //1
+                {100,  0,  0,  2}, //2
+                {  0, 10,  0,  2}, //3
+                {  0,100,  0,  2}, //4
+                {100,100,  0,  2}, //5
+                {200,100,  0,  2}, //6
+                {100,200,  0,  2}, //7
+                {200,200,  0,  2}, //8
+                {100,300,  0,  2}, //9
+                {  0,200,  0,  2}, //10
+                {  0,300,  0,  2}, //11
         };
-        sample_tree sm(samples, parents);
+
+        auto sm = segments_from_points(points, parents);
         auto m = morphology(sm);
         {
             mprovider mp(m);
@@ -782,20 +791,20 @@ TEST(region, thingify_complex_morphologies) {
     }
     {
         pvec parents = {mnpos, 0, 1, 1, 2, 3, 0, 6, 7, 8, 7};
-        svec samples = {
-                {{  0, 10, 10,  1}, 1},
-                {{  0, 30, 30,  1}, 2},
-                {{  0, 60,-20,  1}, 2},
-                {{  0, 90, 70,  1}, 2},
-                {{  0, 80,-10,  1}, 2},
-                {{  0,100,-40,  1}, 2},
-                {{  0,-50,-50,  1}, 2},
-                {{  0, 20,-30,  2}, 2},
-                {{  0, 40,-80,  2}, 2},
-                {{  0,-30,-80,  3}, 2},
-                {{  0, 90,-70,  5}, 2}
+        svec points = {
+                {0, 10, 10, 1},
+                {0, 30, 30, 1},
+                {0, 60,-20, 1},
+                {0, 90, 70, 1},
+                {0, 80,-10, 1},
+                {0,100,-40, 1},
+                {0,-50,-50, 1},
+                {0, 20,-30, 2},
+                {0, 40,-80, 2},
+                {0,-30,-80, 3},
+                {0, 90,-70, 5},
         };
-        sample_tree sm(samples, parents);
+        auto sm = segments_from_points(points, parents);
 
         // Without spherical root
         auto mp = mprovider(morphology(sm));

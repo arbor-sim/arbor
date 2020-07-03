@@ -47,10 +47,9 @@ msize_t segment_tree::append(msize_t p, const mpoint& prox, const mpoint& dist, 
     return id;
 }
 
-//msize_t segment_tree::append(msize_t p, const mpoint& dist, int tag);
 msize_t segment_tree::append(msize_t p, const mpoint& dist, int tag) {
+    // If attaching to the root both prox and dist ends must be specified.
     if (p==mnpos) {
-        // TODO specialise for case of appending a single point to empty tree
         throw invalid_segment_parent(p, size());
     }
     if (p>=size()) {

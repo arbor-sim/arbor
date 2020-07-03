@@ -151,15 +151,6 @@ TEST(cv_layout, zero_size_cv) {
     fvm_cv_discretization D = fvm_cv_discretize(cell, params);
 
     unsigned cv_a = 0, cv_x = 1;
-    std::cout << " +++ " << D.geometry.cv_cables.size() << "\n";
-    auto x = D.geometry.cv_cables;
-    std::sort(x.begin(), x.end());
-    std::cout << " +++ (" << io::sepval(D.geometry.cv_cables, ' ') << ")\n";
-    std::cout << " +++ (" << io::sepval(x, ' ') << ")\n";
-    for (auto i=0u; i<D.geometry.cv_cables.size(); ++i) {
-        //std::cout << "------ (" << io::sepval(D.geometry.cables(i).size(), ' ') << ")\n";
-        std::cout << "------ " << D.geometry.cables(i).size() << ")\n";
-    }
     ASSERT_TRUE(util::equal(mcable_list{mcable{0, 0, 1}}, D.geometry.cables(cv_a)));
     ASSERT_TRUE(util::equal(mcable_list{mcable{0, 1, 1}, mcable{1, 0, 0}, mcable{2, 0, 0}},
                     D.geometry.cables(cv_x)));

@@ -7,6 +7,8 @@
 #include <arbor/mechcat.hpp>
 #include <arbor/util/optional.hpp>
 
+#include "arbor/morph/morphology.hpp"
+#include "arbor/morph/segment_tree.hpp"
 #include "fvm_layout.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
@@ -876,8 +878,10 @@ TEST(fvm_layout, vinterp_cable) {
     // should interpolate between that and the parent.
 
     // Cable cell with just one branch, non-spherical root.
-    morphology morph(sample_tree({msample{0., 0., 0., 1.}, msample{10., 0., 0., 1.}}, {mnpos, 0u}));
-    cable_cell cell(morph);
+    arb::segment_tree tree;
+    tree.append(mnpos, { 0,0,0,1}, {10,0,0,1}, 1);
+    arb::morphology m(tree);
+    cable_cell cell(m);
 
     // CV midpoints at branch pos 0.1, 0.3, 0.5, 0.7, 0.9.
     // Expect voltage reference locations to be CV modpoints.
@@ -930,10 +934,12 @@ TEST(fvm_layout, vinterp_forked) {
     // interpolation.
 
     // Cable cell with three branchses; branches 0 has child branches 1 and 2.
-    morphology morph(sample_tree(
-            {{0., 0., 0., 1.}, {10., 0., 0., 1}, {10., 20., 0., 1}, {10., -20., 0., 1}},
-            {mnpos, 0u, 1u, 1u}));
-    cable_cell cell(morph);
+    segment_tree tree;
+    tree.append(mnpos, {0., 0., 0., 1.}, {10., 0., 0., 1}, 1);
+    tree.append(    0, {10., 20., 0., 1}, 1);
+    tree.append(    0, {10.,-20., 0., 1}, 1);
+    morphology m(tree);
+    cable_cell cell(m);
 
     // CV 0 contains branch 0 and the fork point; CV 1 and CV 2 have CV 0 as parent,
     // and contain branches 1 and 2 respectively, excluding the fork point.
@@ -1032,10 +1038,12 @@ TEST(fvm_layout, iinterp) {
     // Use the same cell/discretiazation as in vinterp_forked test:
 
     // Cable cell with three branchses; branches 0 has child branches 1 and 2.
-    morphology morph(sample_tree(
-            {{0., 0., 0., 1.}, {10., 0., 0., 1}, {10., 20., 0., 1}, {10., -20., 0., 1}},
-            {mnpos, 0u, 1u, 1u}));
-    cable_cell cell(morph);
+    segment_tree tree;
+    tree.append(mnpos, {0., 0., 0., 1.}, {10., 0., 0., 1}, 1);
+    tree.append(    0, {10., 20., 0., 1}, 1);
+    tree.append(    0, {10.,-20., 0., 1}, 1);
+    morphology m(tree);
+    cable_cell cell(m);
 
     // CV 0 contains branch 0 and the fork point; CV 1 and CV 2 have CV 0 as parent,
     // and contain branches 1 and 2 respectively, excluding the fork point.

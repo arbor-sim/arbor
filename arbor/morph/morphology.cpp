@@ -53,8 +53,6 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
             bids[i] = is_seg_fork(props[p])? nbranches++: bids[p];
         }
     }
-    //std::cout << "bids: (" << io::sepval(util::transform_view(props, [](seg_prop p){return print_prop(p);}), ' ') << ")\n";
-    //std::cout << "bids: (" << io::sepval(bids, ' ') << ")\n";
 
     // A working vector used to track whether the first segment in a branch has been visited.
     std::vector<char> visited(nbranches);
@@ -67,10 +65,7 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
         auto& branch = branches[b];
         // If this is the first sample in the branch, set the branch's parent branch.
         if (!visited[b]) {
-            while (p!=mnpos && bids[p]==i) {
-                p = parents[p];
-            }
-            branch.parent_id = (p==mnpos||p==0) ? mnpos: bids[p];
+            branch.parent_id = p==mnpos? mnpos: bids[p];
             visited[b] = 1;
         }
         branch.segments.push_back(segs[i]);

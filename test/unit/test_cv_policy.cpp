@@ -16,33 +16,13 @@
 
 #include "common.hpp"
 #include "unit_test_catalogue.hpp"
-#include "../common_cells.hpp"
+//#include "../common_cells.hpp"
+#include "common_morphologies.hpp"
 
 using namespace arb;
 using util::make_span;
 
 namespace {
-    std::vector<msample> make_samples(unsigned n) {
-        std::vector<msample> ms;
-        for (auto i: make_span(n)) ms.push_back({{0., 0., (double)i, 0.5}, 5});
-        return ms;
-    }
-
-    // Test morphologies for CV determination:
-    // Samples points have radius 0.5, giving an initial branch length of 1.0
-    // for morphologies with spherical roots.
-
-    const morphology m_empty;
-
-    // regular root, one branch
-    const morphology m_reg_b1{sample_tree(make_samples(2), {mnpos, 0u})};
-
-    // regular root, six branches
-    const morphology m_reg_b6{sample_tree(make_samples(7), {mnpos, 0u, 1u, 1u, 2u, 2u, 2u})};
-
-    // regular root, six branches, mutiple top level branches.
-    const morphology m_mlt_b6{sample_tree(make_samples(7), {mnpos, 0u, 1u, 1u, 0u, 4u, 4u})};
-
     template <typename... A>
     locset as_locset(mlocation head, A... tail) {
         return join(locset(head), locset(tail)...);
@@ -50,6 +30,7 @@ namespace {
 }
 
 TEST(cv_policy, explicit_policy) {
+    using namespace common_morphology;
     using L = mlocation;
     locset lset = as_locset(L{0, 0},  L{0, 0.5},  L{0, 1.},  L{1,  0.5},  L{4, 0.2});
 
@@ -66,6 +47,7 @@ TEST(cv_policy, empty_morphology) {
     // Any policy applied to an empty morphology should give an empty locset,
     // with the exception of cv_policy_explicit (this is still being debated).
 
+    using namespace common_morphology;
     using namespace cv_policy_flag;
 
     cv_policy policies[] = {
@@ -84,6 +66,7 @@ TEST(cv_policy, empty_morphology) {
 }
 
 TEST(cv_policy, fixed_per_branch) {
+    using namespace common_morphology;
     using namespace cv_policy_flag;
     using L = mlocation;
 
@@ -135,6 +118,7 @@ TEST(cv_policy, fixed_per_branch) {
 }
 
 TEST(cv_policy, max_extent) {
+    using namespace common_morphology;
     using namespace cv_policy_flag;
     using L = mlocation;
 
@@ -195,15 +179,26 @@ TEST(cv_policy, every_segment) {
     // Cell with root branch and two child branches, with multiple samples per branch.
     // Fork is at (0., 0., 4.0).
 
-    std::vector<msample> ms;
+    std::vector<mpoint> mp;
+    mp.push_back({  0.,   0., 0., 0.5});
 
-    ms.push_back({{  0.,   0., 0., 0.5}, 5});
-    for (auto i: make_span(4)) ms.push_back({{  0.,   0., i+1., 0.5}, 5});
-    for (auto i: make_span(4)) ms.push_back({{  0., i+1.,  4.0, 0.5}, 5});
-    for (auto i: make_span(4)) ms.push_back({{i+1.,    0,  4.0, 0.5}, 5});
+    arb::segment_tree tree;
+    tree.append(mnpos, {0, 0, 0, 0.5}, {0, 0, 1, 0.5}, 1);
+    tree.append(    0, {0, 0, 2, 0.5}, 1);
+    tree.append(    1, {0, 0, 3, 0.5}, 1);
+    tree.append(    2, {0, 0, 4, 0.5}, 1);
 
-    std::vector<msize_t> parents = {mnpos, 0, 1, 2, 3, 4, 5, 6, 7, 4, 9, 10, 11 };
-    morphology m{sample_tree(ms, parents)};
+    tree.append(    3, {0, 1, 4, 0.5}, 1);
+    tree.append(    4, {0, 2, 4, 0.5}, 1);
+    tree.append(    5, {0, 3, 4, 0.5}, 1);
+    tree.append(    6, {0, 4, 4, 0.5}, 1);
+
+    tree.append(    3, {1, 0, 4, 0.5}, 1);
+    tree.append(    8, {2, 0, 4, 0.5}, 1);
+    tree.append(    9, {3, 0, 4, 0.5}, 1);
+    tree.append(   10, {4, 0, 4, 0.5}, 1);
+
+    morphology m(tree);
 
     // Including all samples:
     {
