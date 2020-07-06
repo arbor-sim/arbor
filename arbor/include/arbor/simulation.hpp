@@ -39,6 +39,10 @@ public:
 
     void remove_all_samplers();
 
+    // Return probe metadata, one entry per probe associated with supplied probe id,
+    // or an empty vector if no local match for probe id.
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const;
+
     std::size_t num_spikes() const;
 
     // Set event binning policy on all our groups.
