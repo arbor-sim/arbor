@@ -20,17 +20,6 @@ using arb::util::make_span;
 namespace arb {
 namespace impl {
 
-std::string print_prop(seg_prop p) {
-    std::string s;
-
-    s += p&seg_prop_mask_root       ? 'r': '-';
-    s += p&seg_prop_mask_fork       ? 'f': '-';
-    s += p&seg_prop_mask_terminal   ? 't': '-';
-    s += p&seg_prop_mask_collocated ? 'c': '-';
-    s += p&seg_prop_mask_skip       ? 's': '-';
-    return s;
-}
-
 std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
     auto& parents = tree.parents();
     auto& props = tree.properties();

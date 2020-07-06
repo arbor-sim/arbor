@@ -139,23 +139,6 @@ locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) co
     return unique_sum(locset(std::move(points)), ls::cboundary(domain_));
 }
 
-/*
-locset cv_policy_every_sample::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology().num_branches();
-    if (!nbranch) return ls::nil();
-
-    // Always include branch proximal points, so that forks are trivial.
-
-    return
-        unique_sum(ls::cboundary(domain_),
-            ls::restrict(
-                util::foldl(
-                    [](locset l, msize_t sidx) { return sum(std::move(l), ls::sample(sidx)); },
-                    ls::on_branches(0),
-                    util::make_span(cell.morphology().num_samples())),
-                domain_));
-}
-*/
 locset cv_policy_every_segment::cv_boundary_points(const cable_cell& cell) const {
     const unsigned nbranch = cell.morphology().num_branches();
     if (!nbranch) return ls::nil();
