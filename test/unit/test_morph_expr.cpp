@@ -218,9 +218,22 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(begb1, mp), (ll{{1,0}}));
         EXPECT_EQ(thingify(begb2, mp), (ll{{2,0}}));
         EXPECT_EQ(thingify(begb3, mp), (ll{{3,0}}));
-
-        // In the absence of a spherical root, there is no branch 4.
         EXPECT_THROW(thingify(begb4, mp), no_such_branch);
+
+        auto oc_beg_b0 = ls::on_components(0, reg::branch(0));
+        auto oc_mid_b1 = ls::on_components(0.5, reg::branch(1));
+        auto oc_mid_b123 = ls::on_components(0.5, join(reg::branch(1), reg::branch(2), reg::branch(3)));
+        auto oc_end_b123 = ls::on_components(1, join(reg::branch(1), reg::branch(2), reg::branch(3)));
+        auto oc_mid_b02 = ls::on_components(0.5, join(reg::branch(0), reg::branch(2)));
+        auto oc_end_b02 = ls::on_components(1, join(reg::branch(0), reg::branch(2)));
+
+        EXPECT_EQ(thingify(oc_beg_b0, mp),  (ll{{0, 0}}));
+        EXPECT_EQ(thingify(oc_mid_b1, mp),  (ll{{1, 0.5}}));
+        EXPECT_EQ(thingify(oc_mid_b123, mp),  (ll{{2, 0.5}, {3, 0.25}}));
+        EXPECT_EQ(thingify(oc_end_b123, mp),  (ll{{3, 1}}));
+        EXPECT_EQ(thingify(oc_mid_b02, mp),  (ll{{0, 0.5}, {2, 0.5}}));
+        EXPECT_EQ(thingify(oc_end_b02, mp),  (ll{{0, 1}, {2, 1}}));
+        EXPECT_EQ(thingify(ls::on_components(0.25, reg::cable(1, 0.5, 1)), mp),  (ll{{1, 0.625}}));
     }
     {
         auto mp = mprovider(morphology(sm));

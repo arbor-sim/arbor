@@ -13,6 +13,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/util/any_ptr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/version.hpp>
 #include <arborenv/gpu_env.hpp>
@@ -1275,3 +1276,57 @@ TEST(probe, gpu_##x) { \
 ARB_PP_FOREACH(RUN_GPU, PROBE_TESTS)
 
 #endif // def ARB_GPU_ENABLED
+
+// Test simulator `get_probe_metadata` interface.
+// (No need to run this on GPU back-end as well.)
+
+TEST(probe, get_probe_metadata) {
+    // Reuse multiprobe test set-up to confirm simulator::get_probe_metadata returns
+    // correct vector of metadata.
+
+    cable_cell cell(common_morphology::m_mlt_b6);
+
+    // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
+    cell.paint(reg::branch(1), mechanism_desc("param_as_state").set("p", 10.));
+    cell.paint(reg::branch(2), mechanism_desc("param_as_state").set("p", 20.));
+    cell.paint(reg::branch(5), mechanism_desc("param_as_state").set("p", 50.));
+
+    cable1d_recipe rec({cell}, false);
+    rec.catalogue() = make_unit_test_catalogue(global_default_catalogue());
+    rec.add_probe(0, 7, cable_probe_density_state{ls::terminal(), "param_as_state", "s"});
+
+    context ctx = make_context();
+    partition_hint_map phints = {
+       {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
+    };
+    simulation sim(rec, partition_load_balance(rec, ctx, phints), ctx);
+
+    std::vector<probe_metadata> mm = sim.get_probe_metadata({0, 0});
+    ASSERT_EQ(3u, mm.size());
+
+    EXPECT_EQ((cell_member_type{0, 0}), mm[0].id);
+    EXPECT_EQ((cell_member_type{0, 0}), mm[1].id);
+    EXPECT_EQ((cell_member_type{0, 0}), mm[2].id);
+
+    EXPECT_EQ(0u, mm[0].index);
+    EXPECT_EQ(1u, mm[1].index);
+    EXPECT_EQ(2u, mm[2].index);
+
+    EXPECT_EQ(7, mm[0].tag);
+    EXPECT_EQ(7, mm[1].tag);
+    EXPECT_EQ(7, mm[2].tag);
+
+    const mlocation* l0 = util::any_cast<const mlocation*>(mm[0].meta);
+    const mlocation* l1 = util::any_cast<const mlocation*>(mm[1].meta);
+    const mlocation* l2 = util::any_cast<const mlocation*>(mm[2].meta);
+
+    ASSERT_TRUE(l0);
+    ASSERT_TRUE(l1);
+    ASSERT_TRUE(l2);
+
+    std::vector<mlocation> locs = {*l0, *l1, *l2};
+    util::sort(locs);
+    EXPECT_EQ((mlocation{1, 1.}), locs[0]);
+    EXPECT_EQ((mlocation{2, 1.}), locs[1]);
+    EXPECT_EQ((mlocation{5, 1.}), locs[2]);
+}
