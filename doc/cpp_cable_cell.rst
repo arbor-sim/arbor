@@ -141,6 +141,10 @@ value should be taken from the cell or global parameter set.
 
    Local areal capacitance of the cell membrane, in Farads per square metre.
 
+   .. cpp:member:: util::optional<cv_policy> discretization
+
+   Method by which CV boundaries are determined when the cell is discretized.
+   See :ref:`cv-policies`.
 
 Default parameters for a cell are given by the :cpp:expr:`default_parameters`
 field in the :cpp:type:`cable_cell` object. This is a value of type :cpp:type:`cable_cell_parameter_set`,
@@ -567,3 +571,117 @@ with which it is associated.
 
 *  Metadata: ``std::vector<cable_probe_point_info>``. Target metadata for each
    associated target.
+
+
+.. _cv-policies:
+
+Discretization and CV policies
+------------------------------
+
+For the purpose of simulation, cable cells are decomposed into discrete
+subcomponents called *control volumes* (CVs), following the finite volume method
+terminology. Each control volume comprises a connected subset of the
+morphology. Each fork point in the morphology will be the responsibility of
+a single CV, and as a special case a zero-volume CV can be used to represent
+a single fork point in isolation.
+
+The CVs are uniquely determined by a set of *B* of ``mlocation`` boundary points.
+For each non-terminal point *h* in *B*, there is a CV comprising the points
+{*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
+geometrical partial order of locations on the morphology. A fork point is
+owned by a CV if and only if all of its corresponding representative locations
+are in the CV.
+
+The set of boundary points used by the simulator is determined by a *CV policy*.
+These are objects of type ``cv_policy``, which has the following
+public methods:
+
+.. cpp:class:: cv_policy
+
+   .. cpp:function:: locset cv_boundary_points(const cable_cell&) const
+
+   Return a locset describing the boundary points for CVs on the given cell.
+
+   .. cpp:function:: region domain() const
+
+   Give the subset of a cell morphology on which this policy has been declared,
+   as a morphological ``region`` expression.
+
+Specific CV policy objects are created by functions described below (strictly
+speaking, these are class constructors for classes are implicit converted to
+``cv_policy`` objects). These all take a ``region`` parameter that restrict the
+domain of applicability of that policy; this facility is useful for specifying
+differing discretizations on different parts of a cell morphology. When a CV
+policy is constrained in this manner, the boundary of the domain will always
+constitute part of the CV boundary point set.
+
+CV policies can be combined with ``+`` and ``|`` operators. For two policies
+*A* and *B*, *A* + *B* is a policy which gives boundary points from both *A*
+and *B*, while *A* | *B* is a policy which gives all the boundary points from
+*B* together with those from *A* which do not within the domain of *B*.
+The domain of *A* + *B* and *A* | *B* is the union of the domains of *A* and
+*B*.
+
+``cv_policy_single``
+^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    cv_policy_single(region domain = reg::all())
+
+Use one CV for the whole cell, or one for each connected component of the
+supplied domain.
+
+``cv_policy_explicit``
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+   cv_policy_explicit(locset locs, region domain = reg::all())
+
+Use the points given by ``locs`` for CV boundaries, optionally restricted to the
+supplied domain.
+
+``cv_policy_every_sample``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+   cv_policy_every_sample(region domain = reg::all())
+
+Use every sample point in the morpholgy definition as a CV boundary, optionally
+restricted to the supplied domain. Each fork point in the domain is
+represented by a trivial CV.
+
+``cv_policy_fixed_per_branch``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    cv_policy_fixed_per_branch(unsigned cv_per_branch, region domain, cv_policy_flag::value flags = cv_policy_flag::none);
+
+    cv_policy_fixed_per_branch(unsigned cv_per_branch, cv_policy_flag::value flags = cv_policy_flag::none):
+
+For each branch in each connected component of the domain (or the whole cell,
+if no domain is given), evenly distribute boundary points along the branch so
+as to produce exactly ``cv_per_branch`` CVs.
+
+By default, CVs will terminate at branch ends. If the flag
+``cv_policy_flag::interior_forks`` is given, fork points will be included in
+non-trivial, branched CVs and CVs covering terminal points in the morphology
+will be half-sized.
+
+
+``cv_policy_max_extent``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    cv_policy_max_extent(double max_extent, region domain, cv_policy_flag::value flags = cv_policy_flag::none);
+
+    cv_policy_max_extent(double max_extent, cv_policy_flag::value flags = cv_policy_flag::none):
+
+As for ``cv_policy_fixed_per_branch``, save that the number of CVs on any
+given branch will be chosen to be the smallest number that ensures no
+CV will have an extent on the branch longer than ``max_extent`` micrometres.
+

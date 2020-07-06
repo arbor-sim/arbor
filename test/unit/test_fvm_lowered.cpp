@@ -231,6 +231,7 @@ TEST(fvm_lowered, matrix_init)
     fvcell.initialize({0}, cable1d_recipe(cell), cell_to_intdom, targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
+    auto& S = fvcell.*private_state_ptr;
     EXPECT_EQ(J.size(), 12u);
 
     // Test that the matrix is initialized with sensible values
@@ -242,7 +243,7 @@ TEST(fvm_lowered, matrix_init)
 
     EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan));
     EXPECT_FALSE(util::any_of(mat.d, isnan));
-    EXPECT_FALSE(util::any_of(J.solution(), isnan));
+    EXPECT_FALSE(util::any_of(S->voltage, isnan));
 
     EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), ispos));
     EXPECT_FALSE(util::any_of(mat.d, isneg));
@@ -449,6 +450,7 @@ TEST(fvm_lowered, derived_mechs) {
     }
 
     cable1d_recipe rec(cells);
+    rec.catalogue() = make_unit_test_catalogue();
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     cable_probe_total_ion_current_density where{builder.location({1, 0.3})};
@@ -808,6 +810,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     c.paint(reg::branch(2), "test_ca");
 
     cable1d_recipe rec(c);
+    rec.catalogue() = make_unit_test_catalogue();
     rec.add_ion("ca", 2, con_int, con_ext, 0.0);
 
     std::vector<target_handle> targets;

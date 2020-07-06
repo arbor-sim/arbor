@@ -28,9 +28,6 @@ namespace multicore {
 using util::make_range;
 using util::value_by_key;
 
-constexpr unsigned simd_width = S::simd_abi::native_width<fvm_value_type>::value;
-
-
 // Copy elements from source sequence into destination sequence,
 // and fill the remaining elements of the destination sequence
 // with the given fill value.
@@ -154,7 +151,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
-    index_constraints_ = make_constraint_partition(node_index_, width_, simd_width);
+    index_constraints_ = make_constraint_partition(node_index_, width_, simd_width());
 
     if (mult_in_place_) {
         multiplicity_ = iarray(width_padded_, pad);
@@ -176,7 +173,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         ion_index = iarray(width_padded_, pad);
         copy_extend(indices, ion_index, util::back(indices));
 
-        arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width));
+        arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width()));
     }
 }
 

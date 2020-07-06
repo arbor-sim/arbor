@@ -6,6 +6,7 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
+#include "morph/pwlin_common.hpp"
 #include "util/piecewise.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -15,27 +16,6 @@
 namespace arb {
 
 using util::rat_element;
-
-template <unsigned p, unsigned q>
-using pw_ratpoly = util::pw_elements<rat_element<p, q>>;
-
-template <unsigned p, unsigned q>
-using branch_pw_ratpoly = std::vector<pw_ratpoly<p, q>>;
-
-template <unsigned p, unsigned q>
-double interpolate(const branch_pw_ratpoly<p, q>& f, unsigned bid, double pos) {
-    const auto& pw = f.at(bid);
-    unsigned index = pw.index_of(pos);
-
-    const auto& element = pw.element(index);
-    std::pair<double, double> bounds = pw.interval(index);
-
-    if (bounds.first==bounds.second) return element[0];
-    else {
-        double x = (pos-bounds.first)/(bounds.second-bounds.first);
-        return element(x);
-    }
-}
 
 // Length, area, and ixa are polynomial or rational polynomial functions of branch position,
 // continuos and monotonically increasing with respect to distance from root.

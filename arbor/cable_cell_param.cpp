@@ -5,11 +5,8 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
-#include <arbor/morph/locset.hpp>
 
 #include "util/maputil.hpp"
-#include "util/rangeutil.hpp"
-#include "util/span.hpp"
 
 namespace arb {
 
@@ -70,76 +67,5 @@ cable_cell_parameter_set neuron_parameter_defaults = {
         {"ca", {5e-5,    2.0,  12.5*std::log(2.0/5e-5)}}
     },
 };
-
-// Discretization policy implementations:
-
-locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology().num_branches();
-    const auto& embed = cell.embedding();
-    if (!nbranch || max_extent_<=0) return ls::nil();
-
-    std::vector<mlocation> points;
-
-    unsigned bidx = 0;
-
-    const double oomax_extent = 1./max_extent_;
-    while (bidx<nbranch) {
-        unsigned ncv = std::ceil(embed.branch_length(bidx)*oomax_extent);
-        double ooncv = 1./ncv;
-
-        if (flags_&cv_policy_flag::interior_forks) {
-            for (unsigned i = 0; i<ncv; ++i) {
-                points.push_back({bidx, (1+2*i)*ooncv/2});
-            }
-        }
-        else {
-            for (unsigned i = 0; i<ncv; ++i) {
-                points.push_back({bidx, i*ooncv});
-            }
-            points.push_back({bidx, 1.});
-        }
-        ++bidx;
-    }
-
-    util::sort(points);
-    return points;
-}
-
-locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology().num_branches();
-    if (!nbranch) return ls::nil();
-
-    std::vector<mlocation> points;
-
-    unsigned bidx = 0;
-
-    double ooncv = 1./cv_per_branch_;
-    while (bidx<nbranch) {
-        if (flags_&cv_policy_flag::interior_forks) {
-            for (unsigned i = 0; i<cv_per_branch_; ++i) {
-                points.push_back({bidx, (1+2*i)*ooncv/2});
-            }
-        }
-        else {
-            for (unsigned i = 0; i<cv_per_branch_; ++i) {
-                points.push_back({bidx, i*ooncv});
-            }
-            points.push_back({bidx, 1.});
-        }
-        ++bidx;
-    }
-
-    util::sort(points);
-    return points;
-}
-
-// Ignores interior_forks flag.
-// Always include branch proximal points, so that forks are trivial.
-locset cv_policy_every_segment::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology().num_branches();
-    if (!nbranch) return ls::nil();
-
-    return ls::segment_boundaries();
-}
 
 } // namespace arb

@@ -32,10 +32,10 @@ void register_morphology(pybind11::module& m) {
                 pyarb::assert_throw(arb::test_invariants(mloc), "invalid location");
                 return mloc;
             }),
-            "branch"_a, "position"_a,
+            "branch"_a, "pos"_a,
             "Construct a location specification holding:\n"
             "  branch:   The id of the branch.\n"
-            "  position: The relative position (from 0., proximal, to 1., distal) on the branch.\n")
+            "  pos:      The relative position (from 0., proximal, to 1., distal) on the branch.\n")
         .def_readonly("branch",  &arb::mlocation::branch,
             "The id of the branch.")
         .def_readonly("pos", &arb::mlocation::pos,
@@ -65,26 +65,32 @@ void register_morphology(pybind11::module& m) {
         .def("__repr__",
             [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
 
+    // arb::msegment
+    pybind11::class_<arb::msegment> msegment(m, "msegment");
+    msegment
+        .def_readonly("prox", &arb::msegment::prox, "the location and radius of the proximal end.")
+        .def_readonly("dist", &arb::msegment::dist, "the location and radius of the distal end.")
+        .def_readonly("tag", &arb::msegment::tag, "tag meta-data.");
+
     // arb::mcable
     pybind11::class_<arb::mcable> cable(m, "cable");
     cable
         .def(pybind11::init(
-                    [](arb::msize_t bid, double prox, double dist) {
-                        arb::mcable c{bid, prox, dist};
-                        if (!test_invariants(c)) {
-                            throw pyarb_error("Invalid cable description. Cable segments must have proximal and distal end points in the range [0,1].");
-                        }
-                        return c;
-                    }),
-             "branch_id"_a, "prox"_a, "dist"_a)
+            [](arb::msize_t bid, double prox, double dist) {
+                arb::mcable c{bid, prox, dist};
+                if (!test_invariants(c)) {
+                    throw pyarb_error("Invalid cable description. Cable segments must have proximal and distal end points in the range [0,1].");
+                }
+                return c;
+            }),
+            "branch"_a, "prox"_a, "dist"_a)
+        .def_readonly("branch", &arb::mcable::branch,
+                "The id of the branch on which the cable lies.")
         .def_readonly("prox", &arb::mcable::prox_pos,
                 "The relative position of the proximal end of the cable on its branch ∈ [0,1].")
         .def_readonly("dist", &arb::mcable::dist_pos,
                 "The relative position of the distal end of the cable on its branch ∈ [0,1].")
-        .def_readonly("branch", &arb::mcable::branch,
-                "The id of the branch on which the cable lies.")
-        .def("__str__", [](const arb::mcable& c) {
-            return util::pprintf("<arbor.cable: branch {}, prox {}, dist {}", c.branch, c.prox_pos, c.dist_pos); })
+        .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
 
     //
@@ -126,8 +132,8 @@ void register_morphology(pybind11::module& m) {
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
-    // Function that creates a sample_tree from an swc file.
-    // Wraps calls to C++ functions arb::parse_swc_file() and arb::swc_as_sample_tree().
+    // Function that creates a segment_tree from an swc file.
+    // Wraps calls to C++ functions arb::parse_swc_file() and arb::swc_as_segment_tree().
     m.def("load_swc",
         [](std::string fname) {
             std::ifstream fid{fname};
@@ -161,7 +167,7 @@ void register_morphology(pybind11::module& m) {
         // be implemented as read-only properties.
         .def_property_readonly("empty",
                 [](const arb::morphology& m){return m.empty();},
-                "A list with the parent index of each sample.")
+                "Whether the morphology is empty.")
         .def_property_readonly("num_branches",
                 [](const arb::morphology& m){return m.num_branches();},
                 "The number of branches in the morphology.")
@@ -169,14 +175,11 @@ void register_morphology(pybind11::module& m) {
                 "i"_a, "The parent branch of branch i.")
         .def("branch_children", &arb::morphology::branch_children,
                 "i"_a, "The child branches of branch i.")
-        /* TODO replace with morphology::branch_segments()
-        .def("branch_indexes",
+        .def("branch_segments",
                 [](const arb::morphology& m, arb::msize_t i) {
-                    auto p = m.branch_indexes(i);
-                    return std::vector<arb::msize_t>(p.first, p.second);
+                    return m.branch_segments(i);
                 },
-                "i"_a, "Range of indexes into the sample points in branch i.")
-        */
+                "i"_a, "A list of the segments in branch i, ordered from proximal to distal ends of the branch.")
         .def("__str__",
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);

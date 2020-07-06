@@ -24,6 +24,12 @@ struct mpoint {
 
     friend bool operator==(const mpoint& l, const mpoint& r);
     friend std::ostream& operator<<(std::ostream&, const mpoint&);
+    friend bool operator==(const mpoint& a, const mpoint& b) {
+        return a.x==b.x && a.y==b.y && a.z==b.z && a.radius==b.radius;
+    }
+    friend bool operator!=(const mpoint& a, const mpoint& b) {
+        return !(a==b);
+    }
 };
 
 mpoint lerp(const mpoint& a, const mpoint& b, double u);
@@ -37,27 +43,6 @@ enum class comp_op {
     gt,
     ge
 };
-
-// A morphology sample consists of a location and an integer tag.
-// When loaded from an SWC file, the tag will correspond to the SWC label,
-// which are standardised as follows:
-//  1 - soma
-//  2 - axon
-//  3 - (basal) dendrite
-//  4 - apical dendrite
-// http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html
-// However, any positive integer tag can be provided and labelled dynamically.
-
-struct msample {
-    mpoint loc;
-    int tag;
-
-    friend bool operator==(const msample& l, const msample& r);
-    friend std::ostream& operator<<(std::ostream&, const msample&);
-};
-
-bool is_collocated(const msample& a, const msample& b);
-double distance(const msample& a, const msample& b);
 
 // Describe a cable segment between two adjacent samples.
 struct msegment {
@@ -95,6 +80,7 @@ bool test_invariants(const mlocation_list&);
 mlocation_list sum(const mlocation_list&, const mlocation_list&);
 mlocation_list join(const mlocation_list&, const mlocation_list&);
 mlocation_list intersection(const mlocation_list&, const mlocation_list&);
+mlocation_list support(mlocation_list);
 
 // Describe an unbranched cable in the morphology.
 //
@@ -111,8 +97,12 @@ struct mcable {
     double prox_pos; // ∈ [0,1]
     double dist_pos; // ∈ [0,1]
 
-    friend mlocation prox_loc(const mcable&);
-    friend mlocation dist_loc(const mcable&);
+    friend mlocation prox_loc(const mcable& c) {
+        return {c.branch, c.prox_pos};
+    }
+    friend mlocation dist_loc(const mcable& c) {
+        return {c.branch, c.dist_pos};
+    }
 
     // branch ≠ npos, and 0 ≤ prox_pos ≤ dist_pos ≤ 1
     friend bool test_invariants(const mcable&);

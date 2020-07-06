@@ -30,6 +30,9 @@ set(test_mechanisms
     write_eX
     read_cai_init
     write_cai_breakpoint
+    test_ca
+    test_kin1
+    test_kinlva
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
@@ -118,8 +121,10 @@ set(unit_sources
     test_merge_events.cpp
     test_merge_view.cpp
     test_morphology.cpp
+    test_morph_components.cpp
     test_morph_embedding.cpp
     test_morph_expr.cpp
+    test_morph_place.cpp
     test_morph_primitives.cpp
     test_multi_event_stream.cpp
     test_optional.cpp

@@ -536,6 +536,10 @@ void mechanism_catalogue::derive(const std::string& name, const std::string& par
     state_->bind(name, value(state_->derive(name, parent, global_params, ion_remap_vec)));
 }
 
+void mechanism_catalogue::derive(const std::string& name, const std::string& parent) {
+    state_->bind(name, value(state_->derive(parent)));
+}
+
 void mechanism_catalogue::remove(const std::string& name) {
     if (!has(name)) {
         throw no_such_mechanism(name);

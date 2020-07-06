@@ -7,6 +7,7 @@
 #include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
+#include "util/unique.hpp"
 
 namespace arb {
 
@@ -54,14 +55,6 @@ double distance(const mpoint& a, const mpoint& b) {
     double dz = a.z - b.z;
 
     return std::sqrt(dx*dx + dy*dy + dz*dz);
-}
-
-bool is_collocated(const msample& a, const msample& b) {
-    return is_collocated(a.loc, b.loc);
-}
-
-double distance(const msample& a, const msample& b) {
-    return distance(a.loc, b.loc);
 }
 
 bool test_invariants(const mlocation& l) {
@@ -125,30 +118,18 @@ mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs
     return L;
 }
 
+mlocation_list support(mlocation_list L) {
+    util::unique_in_place(L);
+    return L;
+}
+
 bool test_invariants(const mcable& c) {
     return (0.<=c.prox_pos && c.prox_pos<=c.dist_pos && c.dist_pos<=1.) && c.branch!=mnpos;
-}
-
-mlocation prox_loc(const mcable& c) {
-    return {c.branch, c.prox_pos};
-}
-
-mlocation dist_loc(const mcable& c) {
-    return {c.branch, c.dist_pos};
 }
 
 bool test_invariants(const mcable_list& l) {
     return std::is_sorted(l.begin(), l.end())
         && l.end()==std::find_if(l.begin(), l.end(), [](const mcable& c) {return !test_invariants(c);});
-}
-
-bool operator==(const mpoint& l, const mpoint& r) {
-    return l.x==r.x && l.y==r.y && l.z==r.z && l.radius==r.radius;
-}
-
-bool operator==(const msample& l, const msample& r) {
-    return l.loc.x==r.loc.x && l.loc.y==r.loc.y && l.loc.z==r.loc.z
-           && l.loc.radius==r.loc.radius && l.tag==r.tag;
 }
 
 bool operator==(const msegment& l, const msegment& r) {
@@ -157,10 +138,6 @@ bool operator==(const msegment& l, const msegment& r) {
 
 std::ostream& operator<<(std::ostream& o, const mpoint& p) {
     return o << "(point " << p.x << " " << p.y << " " << p.z << " " << p.radius << ")";
-}
-
-std::ostream& operator<<(std::ostream& o, const msample& s) {
-    return o << "(sample " << s.loc.x << " " << s.loc.y << " " << s.loc.z << " " << s.loc.radius << " " << s.tag << ")";
 }
 
 std::ostream& operator<<(std::ostream& o, const msegment& s) {

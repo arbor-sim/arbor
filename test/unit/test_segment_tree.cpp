@@ -8,7 +8,6 @@
 #include "../test/gtest.h"
 
 #include <arbor/morph/morphexcept.hpp>
-#include <arbor/morph/sample_tree.hpp>
 
 #include "arbor/morph/primitives.hpp"
 #include "morph/mbranch.hpp"

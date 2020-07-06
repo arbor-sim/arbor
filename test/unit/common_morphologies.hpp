@@ -37,16 +37,16 @@ inline arb::morphology make_morph(std::vector<arb::msize_t> parents, const char*
 // Sample points have radius 0.5, giving an initial branch length of 1.0
 // for morphologies with spherical roots.
 
-static const arb::morphology m_empty = make_morph({});
+static const arb::morphology m_empty;
 
 // regular root, one branch
 static const arb::morphology m_reg_b1 = make_morph({arb::mnpos});
 
-// regular root, six branches
+// Six branches:
 // branch 0 has child branches 1 and 2; branch 2 has child branches 3, 4 and 5.
 static const arb::morphology m_reg_b6 = make_morph({arb::mnpos, 0u, 0u, 1u, 1u, 1u});
 
-// regular root, six branches, mutiple top level branches.
+// Six branches, mutiple top level branches:
 // branch 0 has child branches 1 and 2; branch 3 has child branches 4 and 5.
 static const arb::morphology m_mlt_b6 = make_morph({arb::mnpos, 0u, 0u, arb::mnpos, 3u, 3u});
 
