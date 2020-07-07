@@ -555,8 +555,8 @@ void mechanism_catalogue::derive(const std::string& name, const std::string& par
     state_->bind(name, value(state_->derive(parent)));
 }
 
-void mechanism_catalogue::insert(const mechanism_catalogue& other, const std::string& prefix) {
-    state_->insert(*other.state_, prefix);
+void mechanism_catalogue::import(const mechanism_catalogue& other, const std::string& prefix) {
+    state_->import(*other.state_, prefix);
 }
 
 void mechanism_catalogue::remove(const std::string& name) {

@@ -443,10 +443,10 @@ TEST(mechcat, copy) {
     EXPECT_EQ(typeid(*fleeb2_inst.mech.get()), typeid(*fleeb2_inst2.mech.get()));
 }
 
-TEST(mechcat, insert) {
+TEST(mechcat, import) {
     auto cat = build_fake_catalogue();
     mechanism_catalogue cat2;
-    cat2.insert(cat, "fake_");
+    cat2.import(cat, "fake_");
 
     EXPECT_TRUE(cat.has("fleeb2"));
     EXPECT_FALSE(cat.has("fake_fleeb2"));
