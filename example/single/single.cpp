@@ -8,7 +8,7 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/morph/sample_tree.hpp>
+#include <arbor/morph/segment_tree.hpp>
 #include <arbor/swcio.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -144,19 +144,17 @@ options parse_options(int argc, char** argv) {
 // to 0.2 µm.
 
 arb::morphology default_morphology() {
-    arb::sample_tree samples;
+    arb::segment_tree tree;
 
-    auto p = samples.append(arb::msample{{ -6.3, 0.0, 0.0, 6.3}, 1});
-    p = samples.append(p,   arb::msample{{  6.3, 0.0, 0.0, 6.3}, 1});
-    p = samples.append(p,   arb::msample{{  6.3, 0.0, 0.0, 0.5}, 3});
-    p = samples.append(p,   arb::msample{{206.3, 0.0, 0.0, 0.2}, 3});
+    tree.append(arb::mnpos, { -6.3, 0.0, 0.0, 6.3}, {  6.3, 0.0, 0.0, 6.3}, 1);
+    tree.append(         0, {  6.3, 0.0, 0.0, 0.5}, {206.3, 0.0, 0.0, 0.2}, 3);
 
-    return arb::morphology(std::move(samples));
+    return arb::morphology(tree);
 }
 
 arb::morphology read_swc(const std::string& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("unable to open SWC file: "+path);
 
-    return arb::morphology(arb::swc_as_sample_tree(arb::parse_swc_file(f)));
+    return arb::morphology(arb::swc_as_segment_tree(arb::parse_swc_file(f)));
 }

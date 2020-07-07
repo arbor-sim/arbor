@@ -117,8 +117,9 @@ struct cable_recipe: public arb::recipe {
         const double length = 1000; // [µm]
         const double diam = 1; // [µm]
 
-        sample_tree samples({msample{0, 0, 0, 0.5*diam}, msample{length, 0, 0, 0.5*diam}}, {mnpos, 0u});
-        cable_cell c(samples);
+        segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0, 0.5*diam}, {length, 0, 0, 0.5*diam}, 1);
+        cable_cell c(tree);
 
         c.paint(reg::all(), "hh"); // HH mechanism over whole cell.
         c.place(mlocation{0, 0.}, i_clamp{0., INFINITY, 1.}); // Inject a 1 nA current indefinitely.
