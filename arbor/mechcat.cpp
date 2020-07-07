@@ -127,10 +127,18 @@ struct catalogue_state {
         derived_map_.clear();
         impl_map_.clear();
 
-        insert(other, "");
+        import(other, "");
     }
 
-    void insert(const catalogue_state& other, const std::string& prefix) {
+    void import(const catalogue_state& other, const std::string& prefix) {
+        // do all checks before adding anything, otherwise we might get inconsistent state
+        for (const auto& kv: other.info_map_) {
+            auto key = prefix + kv.first;
+            if (defined(key)) {
+                throw duplicate_mechanism(key);
+            }
+        }
+
         for (const auto& kv: other.info_map_) {
             auto key = prefix + kv.first;
             info_map_[key] = make_unique<mechanism_info>(*kv.second);

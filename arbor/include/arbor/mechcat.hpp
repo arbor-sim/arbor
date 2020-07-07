@@ -107,7 +107,7 @@ public:
     }
 
    // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
-   void insert(const mechanism_catalogue& other, const std::string& prefix);
+   void import(const mechanism_catalogue& other, const std::string& prefix);
 
    ~mechanism_catalogue();
 
