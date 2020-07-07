@@ -49,6 +49,7 @@ variables:
   SLURM_JOB_NUM_NODES: 2
   SLURM_PARTITION: normal
   SLURM_TIMELIMIT: '15:00'
+  SLURM_EXCLUSIVE: '' # make sure resources are not shared
 
 ### Release tests ###
 allocate release:
@@ -65,7 +66,6 @@ single node release:
   image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
   stage: test
-  resource_group: daint-job
   script:
     - unit
     - unit-local
@@ -80,7 +80,6 @@ multi node release:
   image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
   stage: test
-  resource_group: daint-job
   script:
     - unit-mpi
   variables:
@@ -111,7 +110,6 @@ single node codecov:
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
-  resource_group: daint-job
   script:
     - codecov_pre
     - unit
@@ -131,7 +129,6 @@ multi node codecov:
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
-  resource_group: daint-job
   script:
     - codecov_pre
     - unit-mpi
@@ -154,7 +151,6 @@ upload codecov reports:
     SLURM_NTASKS: 1
     ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
   script: upload_codecov
-  resource_group: daint-job
 
 deallocate codecov:
   only: ['master', 'staging', 'trying']
