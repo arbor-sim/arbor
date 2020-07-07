@@ -200,6 +200,10 @@ TEST(CPrinter, proc_body_const) {
 
 TEST(CPrinter, proc_body_inlined) {
     const char* expected =
+        "ll0_ = 0.;\n"
+        "r_6_ = 0.;\n"
+        "r_7_ = 0.;\n"
+        "r_8_ = 0.;\n"
         "r_9_=s2[i_]*0.33333333333333331;\n"
         "r_8_=s1[i_]+2;\n"
         "if(s1[i_]==3){\n"
@@ -207,6 +211,8 @@ TEST(CPrinter, proc_body_inlined) {
         "}\n"
         "else{\n"
         "   if(s1[i_]==4){\n"
+        "       r_11_ = 0.;\n"
+        "       r_12_ = 0.;\n"
         "       r_12_=6+s1[i_];\n"
         "       r_11_=r_12_;\n"
         "       r_7_=r_8_*r_11_;\n"
@@ -216,6 +222,8 @@ TEST(CPrinter, proc_body_inlined) {
         "       r_7_=r_10_*s1[i_];\n"
         "   }\n"
         "}\n"
+        "r_13_=0.;\n"
+        "r_14_=0.;\n"
         "r_14_=r_9_/s2[i_];\n"
         "r_15_=log(r_14_);\n"
         "r_13_=42*r_15_;\n"
@@ -228,6 +236,8 @@ TEST(CPrinter, proc_body_inlined) {
         "}\n"
         "else{\n"
         "   if(ll0_==4){\n"
+        "       r_17_=0.;\n"
+        "       r_18_=0.;\n"
         "       r_18_=6+ll0_;\n"
         "       r_17_=r_18_;\n"
         "       t2=5*r_17_;\n"
