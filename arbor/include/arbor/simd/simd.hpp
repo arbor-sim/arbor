@@ -36,51 +36,48 @@ namespace detail {
 }
 
 // Top level functions for second API
-using detail::simd_impl;
-using detail::simd_mask_impl;
-
 template <typename Impl, typename Other>
-void assign(simd_impl<Impl>& a, const Other& b) {
+void assign(detail::simd_impl<Impl>& a, const Other& b) {
     a.copy_from(b);
 }
 
 template <typename Impl>
-typename simd_impl<Impl>::scalar_type sum(const simd_impl<Impl>& a) {
+typename detail::simd_impl<Impl>::scalar_type sum(const detail::simd_impl<Impl>& a) {
     return a.sum();
 };
 
 #define ARB_UNARY_ARITHMETIC_(name)\
 template <typename Impl>\
-simd_impl<Impl> name(const simd_impl<Impl>& a) {\
-    return simd_impl<Impl>::wrap(Impl::name(a.value_));\
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_));\
 };
 
 #define ARB_BINARY_ARITHMETIC_(name)\
 template <typename Impl>\
-simd_impl<Impl> name(const simd_impl<Impl>& a, simd_impl<Impl> b) {\
-    return simd_impl<Impl>::wrap(Impl::name(a.value_, b.value_));\
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, b.value_));\
 };\
 template <typename Impl>\
-simd_impl<Impl> name(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {\
-    return simd_impl<Impl>::wrap(Impl::name(a.value_, Impl::broadcast(b)));\
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, typename detail::simd_impl<Impl>::scalar_type b) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, Impl::broadcast(b)));\
 };\
 template <typename Impl>\
-simd_impl<Impl> name(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {\
-    return simd_impl<Impl>::wrap(Impl::name(Impl::broadcast(a), b.value_));\
+detail::simd_impl<Impl> name(const typename detail::simd_impl<Impl>::scalar_type a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(Impl::broadcast(a), b.value_));\
 };
 
 #define ARB_BINARY_COMPARISON_(name)\
 template <typename Impl>\
-typename simd_impl<Impl>::simd_mask name(const simd_impl<Impl>& a, simd_impl<Impl> b) {\
-    return simd_impl<Impl>::mask(Impl::name(a.value_, b.value_));\
+typename detail::simd_impl<Impl>::simd_mask name(const detail::simd_impl<Impl>& a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::mask(Impl::name(a.value_, b.value_));\
 };\
 template <typename Impl>\
-typename simd_impl<Impl>::simd_mask name(const simd_impl<Impl>& a, typename simd_impl<Impl>::scalar_type b) {\
-    return simd_impl<Impl>::mask(Impl::name(a.value_, Impl::broadcast(b)));\
+typename detail::simd_impl<Impl>::simd_mask name(const detail::simd_impl<Impl>& a, typename detail::simd_impl<Impl>::scalar_type b) {\
+    return detail::simd_impl<Impl>::mask(Impl::name(a.value_, Impl::broadcast(b)));\
 };\
 template <typename Impl>\
-typename simd_impl<Impl>::simd_mask name(const typename simd_impl<Impl>::scalar_type a, simd_impl<Impl> b) {\
-    return simd_impl<Impl>::mask(Impl::name(Impl::broadcast(a), b.value_));\
+typename detail::simd_impl<Impl>::simd_mask name(const typename detail::simd_impl<Impl>::scalar_type a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::mask(Impl::name(Impl::broadcast(a), b.value_));\
 };
 
 ARB_PP_FOREACH(ARB_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min)
@@ -92,23 +89,23 @@ ARB_PP_FOREACH(ARB_UNARY_ARITHMETIC_,  neg, abs, sin, cos, exp, log, expm1, expr
 #undef ARB_UNARY_ARITHMETIC_
 
 template <typename T>
-simd_mask_impl<T> logical_and(const simd_mask_impl<T>& a, simd_mask_impl<T> b) {
+detail::simd_mask_impl<T> logical_and(const detail::simd_mask_impl<T>& a, detail::simd_mask_impl<T> b) {
     return a && b;
 }
 
 template <typename T>
-simd_mask_impl<T> logical_or(const simd_mask_impl<T>& a, simd_mask_impl<T> b) {
+detail::simd_mask_impl<T> logical_or(const detail::simd_mask_impl<T>& a, detail::simd_mask_impl<T> b) {
     return a || b;
 }
 
 template <typename T>
-simd_mask_impl<T> logical_not(const simd_mask_impl<T>& a) {
+detail::simd_mask_impl<T> logical_not(const detail::simd_mask_impl<T>& a) {
     return !a;
 }
 
 template <typename T>
-simd_impl<T> fma(const simd_impl<T> a, simd_impl<T> b, simd_impl<T> c) {
-    return simd_impl<T>::wrap(T::fma(a.value_, b.value_, c.value_));
+detail::simd_impl<T> fma(const detail::simd_impl<T> a, detail::simd_impl<T> b, detail::simd_impl<T> c) {
+    return detail::simd_impl<T>::wrap(T::fma(a.value_, b.value_, c.value_));
 }
 
 namespace detail {
