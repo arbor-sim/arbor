@@ -827,6 +827,10 @@ class const_where_expression;
 
 template <typename To>
 struct simd_cast_impl {
+    static To cast(const To& a) {
+        return a;
+    }
+
     template <typename V>
     static To cast(const V& a) {
         return detail::sve_type_to_impl<To>::type::broadcast(a);
@@ -887,13 +891,8 @@ struct simd_cast_impl {
     }
 };
 
-template <typename T, typename V>
-void assign(T& a, const detail::indirect_expression<V>& b) {
-    a = detail::simd_cast_impl<T>::cast(b);
-}
-
-template <typename T, typename I, typename V>
-void assign(T& a, const detail::indirect_indexed_expression<I, V>& b) {
+template <typename T, typename Other>
+void assign(T& a, const Other& b) {
     a = detail::simd_cast_impl<T>::cast(b);
 }
 

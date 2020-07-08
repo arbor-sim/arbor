@@ -575,10 +575,8 @@ void SimdPrinter::visit(LocalVariable* sym) {
 
 void SimdPrinter::visit(VariableExpression *sym) {
     if (sym->is_range()) {
-        if(is_indirect_)
-            out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+index_, simd_width_))";
-        else
-            out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+i_, simd_width_))";
+        auto index = is_indirect_? "index_": "i_";
+        out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+" << index << ", simd_width_))";
     }
     else {
         out_ << sym->name();
@@ -616,18 +614,19 @@ void SimdPrinter::visit(AssignmentExpression* e) {
             out_ << ")";
     }
     else {
+        out_ << "assign(" << lhs->name() << ", ";
         if (auto rhs = e->rhs()->is_identifier()) {
             if (auto sym = rhs->symbol()) {
+                // We shouldn't call the rhs visitor in this case because it automatically casts indirect expressions
                 if (sym->is_variable() && sym->is_variable()->is_range()) {
-                    out_ << "assign(" << lhs->name() << ", indirect(" << rhs->name() << ", simd_width_))";
+                    auto index = is_indirect_ ? "index_" : "i_";
+                    out_ << "indirect(" << rhs->name() << "+" << index << ", simd_width_))";
                     return;
                 }
             }
         }
-        out_ << lhs->name() << " = ";
-        if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
-        if (cast) out_ << ")";
+        out_ << ")";
     }
 }
 
@@ -695,7 +694,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
         }
         else if (constraint == simd_expr_constraint::contiguous) {
             out << ";\n"
-                << "assign(" << local->name() << ",indirect(" <<  d.data_var
+                << "assign(" << local->name() << ", indirect(" <<  d.data_var
                 << " + " << d.index_var
                 << "[index_], simd_width_));\n";
         }

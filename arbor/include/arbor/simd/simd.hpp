@@ -39,13 +39,8 @@ namespace detail {
 using detail::simd_impl;
 using detail::simd_mask_impl;
 
-template <typename Impl, typename V>
-void assign(simd_impl<Impl>& a, const detail::indirect_expression<V>& b) {
-    a.copy_from(b);
-}
-
-template <typename Impl, typename ImplIndex, typename V>
-void assign(simd_impl<Impl>& a, const detail::indirect_indexed_expression<ImplIndex, V>& b) {
+template <typename Impl, typename Other>
+void assign(simd_impl<Impl>& a, const Other& b) {
     a.copy_from(b);
 }
 
@@ -467,6 +462,15 @@ namespace detail {
         void copy_to(indirect_indexed_expression<Index, scalar_type> pi) const {
             using IndexImpl = typename Index::simd_base;
             Impl::scatter(tag<IndexImpl>{}, value_, pi.p, pi.index);
+        }
+
+        template <typename Other, typename = std::enable_if_t<width==simd_traits<Other>::width>>
+        void copy_from(const simd_impl<Other>& x) {
+            value_ = Impl::cast_from(tag<Other>{}, x.value_);
+        }
+
+        void copy_from(const scalar_type p) {
+            value_ = Impl::broadcast(p);
         }
 
         void copy_from(const scalar_type* p) {
