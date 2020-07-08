@@ -123,20 +123,24 @@ struct catalogue_state {
     catalogue_state() = default;
 
     catalogue_state(const catalogue_state& other) {
-        info_map_.clear();
-        derived_map_.clear();
-        impl_map_.clear();
-
         import(other, "");
     }
 
     void import(const catalogue_state& other, const std::string& prefix) {
-        // do all checks before adding anything, otherwise we might get inconsistent state
-        for (const auto& kv: other.info_map_) {
-            auto key = prefix + kv.first;
-            if (defined(key)) {
-                throw duplicate_mechanism(key);
+        // Do all checks before adding anything, otherwise we might get inconsistent state.
+        auto assert_undefined = [&](const std::string& key) {
+            auto pkey = prefix+key;
+            if (defined(pkey)) {
+                throw duplicate_mechanism(pkey);
             }
+        };
+
+        for (const auto& kv: other.info_map_) {
+            assert_undefined(kv.first);
+        }
+
+        for (const auto& kv: other.derived_map_) {
+            assert_undefined(kv.first);
         }
 
         for (const auto& kv: other.info_map_) {
