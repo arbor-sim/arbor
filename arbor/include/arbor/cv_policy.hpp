@@ -196,7 +196,6 @@ struct cv_policy_every_segment: cv_policy_base {
 
 private:
     region domain_;
-    cv_policy_flag::value flags_;
 };
 
 inline cv_policy default_cv_policy() {
