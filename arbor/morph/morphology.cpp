@@ -22,7 +22,6 @@ namespace impl {
 
 std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
     auto& parents = tree.parents();
-    auto& props = tree.properties();
     auto& segs = tree.segments();
 
     auto nsegs = parents.size();
@@ -34,12 +33,12 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
     int nbranches = 1;
     bids[0] = 0;
     for (auto i: make_span(1, nsegs)) {
-        if (is_seg_root(props[i])) {
+        if (tree.is_root(i)) {
             bids[i] = nbranches++;
         }
         else {
             auto p = parents[i];
-            bids[i] = is_seg_fork(props[p])? nbranches++: bids[p];
+            bids[i] = tree.is_fork(p)? nbranches++: bids[p];
         }
     }
 

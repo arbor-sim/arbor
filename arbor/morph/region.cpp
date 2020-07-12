@@ -153,8 +153,6 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
         auto& segs = m.branch_segments(i); // Range of segments in the branch.
         auto locs = util::make_range(e.branch_segment_locations(i));
 
-        // The branch has at least 2 samples.
-        // Start at begin+1 because a segment gets its tag from its distal sample.
         auto beg = std::cbegin(segs);
         auto end = std::cend(segs);
 

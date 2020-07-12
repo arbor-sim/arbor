@@ -49,6 +49,11 @@ no_such_mechanism::no_such_mechanism(const std::string& mech_name):
     mech_name(mech_name)
 {}
 
+no_such_segment::no_such_segment(msize_t id):
+    arbor_exception(pprintf("segment {} out of bounds", id)),
+    index(id)
+{}
+
 duplicate_mechanism::duplicate_mechanism(const std::string& mech_name):
     arbor_exception(pprintf("mechanism {} already exists", mech_name)),
     mech_name(mech_name)

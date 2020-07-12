@@ -12,9 +12,16 @@ namespace arb {
 
 /// Morphology composed of segments.
 class segment_tree {
+    struct child_prop {
+        int count;
+        bool is_fork() const { return count>1; }
+        bool is_terminal() const { return count==0; }
+        int increment() { return ++count;}
+    };
+
     std::vector<msegment> segments_;
     std::vector<msize_t> parents_;
-    std::vector<seg_prop> props_;
+    std::vector<child_prop> seg_children_;
 
 public:
     segment_tree() = default;
@@ -38,8 +45,11 @@ public:
     // The parent index of the segments.
     const std::vector<msize_t>& parents() const;
 
-    // The properties of the segments.
-    const std::vector<seg_prop>& properties() const;
+    // Interfaces for querying the properties of the segments by index.
+
+    bool is_fork(msize_t i) const;
+    bool is_terminal(msize_t i) const;
+    bool is_root(msize_t i) const;
 
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
 };

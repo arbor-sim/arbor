@@ -4,6 +4,7 @@
 #include <string>
 
 #include <arbor/common_types.hpp>
+#include <arbor/morph/primitives.hpp>
 
 // Arbor-specific exception hierarchy.
 
@@ -63,6 +64,13 @@ struct bad_event_time: arbor_exception {
     explicit bad_event_time(time_type event_time, time_type sim_time);
     time_type event_time;
     time_type sim_time;
+};
+
+// Morphology errors:
+
+struct no_such_segment: arbor_exception {
+    explicit no_such_segment(msize_t i);
+    msize_t index;
 };
 
 // Mechanism catalogue errors:

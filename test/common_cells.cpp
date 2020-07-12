@@ -136,8 +136,7 @@ cable_cell soma_cell_builder::make_cell() const {
     for (auto i: branch_distal_id) {
         // skip soma
         if (i<2) continue;
-        auto prop = tree.properties()[i];
-        if (!is_fork(prop) && !is_terminal(prop)) {
+        if (!tree.is_fork(i) && !tree.is_terminal(i)) {
             throw cable_cell_error(
                 "attempt to construct a cable_cell from a soma_cell_builder "
                 "where a non soma branch has only one child branch.");

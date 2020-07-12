@@ -117,58 +117,6 @@ std::ostream& operator<<(std::ostream& o, const mcable_list& c);
 // and that the cables in the vector are ordered.
 bool test_invariants(const mcable_list&);
 
-using point_prop = std::uint8_t;
-enum point_prop_mask: point_prop {
-    point_prop_mask_none = 0,
-    point_prop_mask_root = 1,
-    point_prop_mask_fork = 2,
-    point_prop_mask_terminal = 4,
-    point_prop_mask_collocated = 8,
-    point_prop_mask_skip = 16
-};
-
-#define ARB_POINT_PROP(prop) \
-constexpr bool is_##prop(point_prop p) {\
-    return p&point_prop_mask_##prop;\
-} \
-inline void set_##prop(point_prop& p) {\
-    p |= point_prop_mask_##prop;\
-} \
-inline void unset_##prop(point_prop& p) {\
-    p &= ~point_prop_mask_##prop;\
-}
-
-ARB_POINT_PROP(root)
-ARB_POINT_PROP(fork)
-ARB_POINT_PROP(terminal)
-ARB_POINT_PROP(collocated)
-ARB_POINT_PROP(skip)
-
-using seg_prop = std::uint8_t;
-enum seg_prop_mask: seg_prop {
-    seg_prop_mask_none = 0,
-    seg_prop_mask_root = 1,
-    seg_prop_mask_fork = 2,
-    seg_prop_mask_terminal = 4,
-    seg_prop_mask_collocated = 8,
-    seg_prop_mask_skip = 16
-};
-
-#define ARB_SEG_PROP(prop) \
-constexpr bool is_seg_##prop(seg_prop p) {\
-    return p&seg_prop_mask_##prop;\
-} \
-inline void set_seg_##prop(seg_prop& p) {\
-    p |= seg_prop_mask_##prop;\
-} \
-inline void unset_seg_##prop(seg_prop& p) {\
-    p &= ~seg_prop_mask_##prop;\
-}
-
-ARB_SEG_PROP(root)
-ARB_SEG_PROP(fork)
-ARB_SEG_PROP(terminal)
-
 } // namespace arb
 
 ARB_DEFINE_HASH(arb::mcable, a.branch, a.prox_pos, a.dist_pos);

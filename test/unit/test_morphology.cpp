@@ -37,54 +37,6 @@ TEST(morphology, mpoint) {
     EXPECT_FALSE(arb::is_collocated(mp{2,0,1}, mp{2,0,3}));
 }
 
-TEST(morphology, point_props) {
-    arb::point_prop p = arb::point_prop_mask_none;
-
-    EXPECT_FALSE(arb::is_terminal(p));
-    EXPECT_FALSE(arb::is_fork(p));
-    EXPECT_FALSE(arb::is_root(p));
-    EXPECT_FALSE(arb::is_collocated(p));
-
-    arb::set_root(p);
-    EXPECT_FALSE(arb::is_terminal(p));
-    EXPECT_FALSE(arb::is_fork(p));
-    EXPECT_TRUE(arb::is_root(p));
-    EXPECT_FALSE(arb::is_collocated(p));
-
-    arb::set_terminal(p);
-    EXPECT_TRUE(arb::is_terminal(p));
-    EXPECT_FALSE(arb::is_fork(p));
-    EXPECT_TRUE(arb::is_root(p));
-    EXPECT_FALSE(arb::is_collocated(p));
-
-    arb::unset_root(p);
-    EXPECT_TRUE(arb::is_terminal(p));
-    EXPECT_FALSE(arb::is_fork(p));
-    EXPECT_FALSE(arb::is_root(p));
-    EXPECT_FALSE(arb::is_collocated(p));
-
-    arb::set_collocated(p);
-    EXPECT_TRUE(arb::is_terminal(p));
-    EXPECT_FALSE(arb::is_fork(p));
-    EXPECT_FALSE(arb::is_root(p));
-    EXPECT_TRUE(arb::is_collocated(p));
-
-    arb::set_fork(p);
-    EXPECT_TRUE(arb::is_terminal(p));
-    EXPECT_TRUE(arb::is_fork(p));
-    EXPECT_FALSE(arb::is_root(p));
-    EXPECT_TRUE(arb::is_collocated(p));
-
-    arb::unset_fork(p);
-    arb::unset_terminal(p);
-    arb::unset_collocated(p);
-    EXPECT_FALSE(arb::is_terminal(p));
-    EXPECT_FALSE(arb::is_fork(p));
-    EXPECT_FALSE(arb::is_root(p));
-    EXPECT_FALSE(arb::is_collocated(p));
-}
-
-
 // For different parent index vectors, attempt multiple valid and invalid sample sets.
 TEST(morphology, construction) {
     constexpr auto npos = arb::mnpos;

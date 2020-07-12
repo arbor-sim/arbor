@@ -73,9 +73,9 @@ private:
         // Set up morphology as two branches:
         segment_tree tree;
         // * soma, length 20 μm radius 10 μm, with SWC tag 1.
-        tree.append(arb::mnpos, {0, 0,-10, 10}, {0, 0,  10, 10}, 1);
+        tree.append(arb::mnpos, {0, 0, 10, 10}, {0, 0, -10, 10}, 1);
         // * apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
-        tree.append(         0, {0, 0, 10, 10}, {0, 0, 500, 10}, 4);
+        tree.append(arb::mnpos, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
         cell_ = cable_cell(tree);
 
@@ -259,12 +259,9 @@ int main(int argc, char** argv) {
     std::vector<std::vector<std::array<double, 3>>> samples;
     for (unsigned branch = 0; branch<cell_morphology.num_branches(); ++branch) {
         samples.push_back({});
-        auto& segments = cell_morphology.branch_segments(branch);
-        auto loc = segments[0].prox;
-        samples.back().push_back(std::array<double, 3>{loc.x, loc.z, loc.radius});
-        for (auto& seg: segments) {
-            auto loc = seg.dist;
-            samples.back().push_back(std::array<double, 3>{loc.x, loc.z, loc.radius});
+        for (auto& seg: cell_morphology.branch_segments(branch)) {
+            samples.back().push_back(std::array<double, 3>{seg.prox.x, seg.prox.z, seg.prox.radius});
+            samples.back().push_back(std::array<double, 3>{seg.dist.x, seg.dist.z, seg.dist.radius});
         }
     }
 

@@ -15,10 +15,9 @@ namespace arb {
 void segment_tree::reserve(msize_t n) {
     segments_.reserve(n);
     parents_.reserve(n);
-    props_.reserve(n);
+    seg_children_.reserve(n);
 }
 
-//msize_t segment_tree::append(msize_t p, const mpoint& prox, const mpoint& dist, int tag);
 msize_t segment_tree::append(msize_t p, const mpoint& prox, const mpoint& dist, int tag) {
     if (p>=size() && p!=mnpos) {
         throw invalid_segment_parent(p, size());
@@ -28,22 +27,11 @@ msize_t segment_tree::append(msize_t p, const mpoint& prox, const mpoint& dist, 
     segments_.push_back(msegment{prox, dist, tag});
     parents_.push_back(p);
 
-    // Set the point properties for the new point, and update those of its parent as needed.
-    seg_prop prop = seg_prop_mask_none;
-    if (p==mnpos) {
-        // If attaching a segment to the root, mark it as root.
-        set_seg_root(prop);
+    // Set the point properties for the new point, and update those of the parent.
+    seg_children_.push_back({});
+    if (p!=mnpos) {
+        seg_children_[p].increment();
     }
-    else {
-        if (!is_seg_terminal(props_[p])) {
-            set_seg_fork(props_[p]);
-        }
-        // Unset the terminal tag on the parent.
-        unset_seg_terminal(props_[p]);
-    }
-    // Mark the new segment as terminal.
-    set_seg_terminal(prop);
-    props_.push_back(prop);
 
     return id;
 }
@@ -75,8 +63,17 @@ const std::vector<msize_t>& segment_tree::parents() const {
     return parents_;
 }
 
-const std::vector<point_prop>& segment_tree::properties() const {
-    return props_;
+bool segment_tree::is_fork(msize_t i) const {
+    if (i>=size()) throw no_such_segment(i);
+    return seg_children_[i].is_fork();
+}
+bool segment_tree::is_terminal(msize_t i) const {
+    if (i>=size()) throw no_such_segment(i);
+    return seg_children_[i].is_terminal();
+}
+bool segment_tree::is_root(msize_t i) const {
+    if (i>=size()) throw no_such_segment(i);
+    return parents_[i]==mnpos;
 }
 
 std::ostream& operator<<(std::ostream& o, const segment_tree& m) {
