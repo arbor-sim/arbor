@@ -9,7 +9,6 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "io/sepval.hpp"
-#include "morph/mbranch.hpp"
 #include "util/mergeview.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -20,12 +19,17 @@ using arb::util::make_span;
 namespace arb {
 namespace impl {
 
-std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
-    auto& parents = tree.parents();
+auto branches_from_segment_tree(const segment_tree& tree) {
+    using rtype = std::pair<std::vector<msize_t>,
+                            std::vector<std::vector<msegment>>>;
+    rtype branches;
+    auto& branch_parents = branches.first;
+    auto& branch_segs = branches.second;
+    auto& seg_parents = tree.parents();
     auto& segs = tree.segments();
 
-    auto nsegs = parents.size();
-    if (!nsegs) return {};
+    auto nsegs = seg_parents.size();
+    if (!nsegs) return branches;
 
     // Determine which branch each segment belongs to while counting the number
     // of branches in the morphology.
@@ -37,7 +41,7 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
             bids[i] = nbranches++;
         }
         else {
-            auto p = parents[i];
+            auto p = seg_parents[i];
             bids[i] = tree.is_fork(p)? nbranches++: bids[p];
         }
     }
@@ -45,18 +49,18 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
     // A working vector used to track whether the first segment in a branch has been visited.
     std::vector<char> visited(nbranches);
 
-    std::vector<mbranch> branches(nbranches);
+    branch_segs.resize(nbranches);
+    branch_parents.resize(nbranches);
     // Construct all of the cable segments for all of the branches.
     for (auto i: make_span(nsegs)) {
-        auto p = parents[i];
+        auto p = seg_parents[i];
         auto b = bids[i];
-        auto& branch = branches[b];
         // If this is the first sample in the branch, set the branch's parent branch.
         if (!visited[b]) {
-            branch.parent_id = p==mnpos? mnpos: bids[p];
+            branch_parents[b] = p==mnpos? mnpos: bids[p];
             visited[b] = 1;
         }
-        branch.segments.push_back(segs[i]);
+        branch_segs[b].push_back(segs[i]);
     }
 
     return branches;
@@ -70,7 +74,7 @@ std::vector<mbranch> branches_from_segment_tree(const segment_tree& tree) {
 
 struct morphology_impl {
     // Branch state.
-    std::vector<impl::mbranch> branches_;
+    std::vector<std::vector<msegment>> branches_;
     std::vector<msize_t> branch_parents_;
     std::vector<msize_t> root_children_;
     std::vector<msize_t> terminal_branches_;
@@ -88,15 +92,16 @@ morphology_impl::morphology_impl(const segment_tree& tree) {
     if (!nsamp) return;
 
     // Generate branches.
-    branches_ = impl::branches_from_segment_tree(tree);
+    auto B = impl::branches_from_segment_tree(tree);
+    branches_ = std::move(B.second);
+    branch_parents_ = std::move(B.first);
     auto nbranch = branches_.size();
 
     // Generate branch tree.
     branch_children_.resize(nbranch);
     branch_parents_.reserve(nbranch);
     for (auto i: make_span(nbranch)) {
-        auto id = branches_[i].parent_id;
-        branch_parents_.push_back(id);
+        auto id = branch_parents_[i];
         if (id!=mnpos) {
             branch_children_[id].push_back(i);
         }
@@ -116,8 +121,17 @@ morphology_impl::morphology_impl(const segment_tree& tree) {
 }
 
 std::ostream& operator<<(std::ostream& o, const morphology_impl& m) {
-    bool single_line = m.branches_.empty();
-    return o << "(morphology" << (single_line? " (": " (\n  ") << io::sepval(m.branches_, "\n  ") << "))";
+    if (m.branches_.empty()) {
+        return o << "(morphology ())";
+    }
+    bool first = true;
+    o << "(morphology\n  (";
+    for (auto i: util::make_span(m.branches_.size())) {
+        if (!first) o << "\n  ";
+        o << "(" << m.branch_parents_[i] << " (" << io::sepval(m.branches_[i], " ") << "))";
+        first = false;
+    }
+    return o << "))";
 }
 
 //
@@ -151,7 +165,7 @@ const std::vector<msize_t>& morphology::terminal_branches() const {
 }
 
 const std::vector<msegment>& morphology::branch_segments(msize_t b) const {
-    return impl_->branches_[b].segments;
+    return impl_->branches_[b];
 }
 
 msize_t morphology::num_branches() const {

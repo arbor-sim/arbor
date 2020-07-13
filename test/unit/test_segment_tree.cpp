@@ -10,7 +10,6 @@
 #include <arbor/morph/morphexcept.hpp>
 
 #include "arbor/morph/primitives.hpp"
-#include "morph/mbranch.hpp"
 #include "util/span.hpp"
 
 #include "morph_pred.hpp"

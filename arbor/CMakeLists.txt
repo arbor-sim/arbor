@@ -33,7 +33,6 @@ set(arbor_sources
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
     morph/locset.cpp
-    morph/mbranch.cpp
     morph/morphexcept.cpp
     morph/morphology.cpp
     morph/mprovider.cpp

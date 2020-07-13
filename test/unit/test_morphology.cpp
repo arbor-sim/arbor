@@ -11,7 +11,6 @@
 
 #include "arbor/morph/primitives.hpp"
 #include "arbor/morph/segment_tree.hpp"
-#include "morph/mbranch.hpp"
 #include "util/span.hpp"
 
 #include "morph_pred.hpp"
