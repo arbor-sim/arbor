@@ -33,14 +33,13 @@ set(arbor_sources
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
     morph/locset.cpp
-    morph/mbranch.cpp
     morph/morphexcept.cpp
     morph/morphology.cpp
     morph/mprovider.cpp
     morph/place_pwlin.cpp
     morph/primitives.cpp
     morph/region.cpp
-    morph/sample_tree.cpp
+    morph/segment_tree.cpp
     merge_events.cpp
     simulation.cpp
     partition_load_balance.cpp

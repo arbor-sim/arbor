@@ -146,36 +146,24 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
 
     std::vector<mcable> L;
     L.reserve(nb);
-    auto& samples = m.samples();
-    auto matches     = [reg, &samples](msize_t i) {return samples[i].tag==reg.tag;};
-    auto not_matches = [&matches](msize_t i) {return !matches(i);};
+    auto matches     = [reg](auto& seg){return seg.tag==reg.tag;};
+    auto not_matches = [&matches](auto& seg) {return !matches(seg);};
 
     for (msize_t i: util::make_span(nb)) {
-        auto ids = util::make_range(m.branch_indexes(i)); // range of sample ids in branch.
-        size_t ns = util::size(ids);        // number of samples in branch.
+        auto& segs = m.branch_segments(i); // Range of segments in the branch.
+        auto locs = util::make_range(e.branch_segment_locations(i));
 
-        if (ns==1) {
-            // The branch is a spherical soma
-            if (samples[0].tag==reg.tag) {
-                L.push_back({0,0,1});
-            }
-            continue;
-        }
+        auto beg = std::cbegin(segs);
+        auto end = std::cend(segs);
 
-        // The branch has at least 2 samples.
-        // Start at begin+1 because a segment gets its tag from its distal sample.
-        auto beg = std::cbegin(ids);
-        auto end = std::cend(ids);
-
-        // Find the next sample that matches reg.tag.
-        auto start = std::find_if(beg+1, end, matches);
+        // Find the next section that matches reg.tag.
+        auto start = std::find_if(beg, end, [reg](auto& seg){return seg.tag==reg.tag;});
         while (start!=end) {
             // find the next sample that does not match reg.tag
-            auto first = start-1;
             auto last = std::find_if(start, end, not_matches);
 
-            auto l = first==beg? 0.: e.sample_location(*first).pos;
-            auto r = last==end?  1.: e.sample_location(*(last-1)).pos;
+            auto l = locs[start-beg].pos;
+            auto r = last==end? 1: locs[last-beg].pos;
             L.push_back({i, l, r});
 
             // Find the next sample in the branch that matches reg.tag.

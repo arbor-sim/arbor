@@ -5,12 +5,12 @@
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/morph/sample_tree.hpp>
 
 #include "util/piecewise.hpp"
 
 #include "../test/gtest.h"
 #include "common.hpp"
+#include "common_cells.hpp"
 
 using namespace arb;
 
@@ -183,21 +183,21 @@ TEST(isometry, compose) {
 
 TEST(place_pwlin, cable) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
 
     // L-shaped simple cable.
     // 0.25 of the length in the z-direction,
     // 0.75 of the length in the x-direction.
 
     pvec parents = {mnpos, 0, 1};
-    svec samples = {
-        {{  0,  0,  0,  2}, 1},
-        {{  0,  0,  1,  2}, 1},
-        {{  3,  0,  1,  2}, 1}
+    svec points = {
+        {0,  0,  0,  2},
+        {0,  0,  1,  2},
+        {3,  0,  1,  2}
     };
 
-    sample_tree sm(samples, parents);
-    morphology m(sm, false);
+    auto sm = segments_from_points(points, parents);
+    morphology m(sm);
 
     {
         // With no transformation:
@@ -251,28 +251,28 @@ TEST(place_pwlin, cable) {
 
 TEST(place_pwlin, branched) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
 
     // Y-shaped branched morphology.
     // Second branch (branch 1) tapers radius.
 
     pvec parents = {mnpos, 0, 1, 2, 3, 4, 2, 6};
-    svec samples = {
+    svec points = {
         // branch 0
-        {{  0,  0,  0,  2}, 1},
-        {{  0,  0,  1,  2}, 1},
-        {{  3,  0,  1,  2}, 1},
+        { 0,  0,  0,  2},
+        { 0,  0,  1,  2},
+        { 3,  0,  1,  2},
         // branch 1
-        {{  3,  0,  1,  1.0}, 1},
-        {{  3,  1,  1,  1.0}, 1},
-        {{  3,  2,  1,  0.0}, 1},
+        { 3,  0,  1,  1.0},
+        { 3,  1,  1,  1.0},
+        { 3,  2,  1,  0.0},
         // branch 2
-        {{  3,  0,  1,  2} , 1},
-        {{  3,  -1, 1,  2} , 1}
+        { 3,  0,  1,  2},
+        { 3,  -1, 1,  2}
     };
 
-    sample_tree sm(samples, parents);
-    morphology m(sm, false);
+    auto sm = segments_from_points(points, parents);
+    morphology m(sm);
 
     isometry iso = isometry::translate(2, 3, 4);
     place_pwlin pl(m, iso);

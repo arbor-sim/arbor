@@ -7,9 +7,10 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/region.hpp>
+#include <arbor/morph/segment_tree.hpp>
+#include <arbor/sampling.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/sampling.hpp>
 #include <arbor/util/any.hpp>
 #include <arbor/util/any_ptr.hpp>
 
@@ -51,11 +52,11 @@ struct lfp_demo_recipe: public arb::recipe {
         return cell_;
     }
 
-    virtual std::vector<arb::event_generator> event_generators(cell_gid_type) const {
+    virtual std::vector<arb::event_generator> event_generators(cell_gid_type) const override {
         return {events_};
     }
 
-    any get_global_properties(arb::cell_kind) const {
+    any get_global_properties(arb::cell_kind) const override {
         arb::cable_cell_global_properties gprop;
         gprop.default_parameters = arb::neuron_parameter_defaults;
         return gprop;
@@ -70,13 +71,11 @@ private:
         using namespace arb;
 
         // Set up morphology as two branches:
+        segment_tree tree;
         // * soma, length 20 μm radius 10 μm, with SWC tag 1.
+        tree.append(arb::mnpos, {0, 0, 10, 10}, {0, 0, -10, 10}, 1);
         // * apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
-        sample_tree tree;
-        tree.append({{0, 0, +10, 10}, 1}); // (root point)
-        tree.append({{0, 0, -10, 10}, 1});
-        tree.append(0, {{0, 0,   10, 1}, 4}); // attach to root point.
-        tree.append({{0, 0, 500, 1}, 4});
+        tree.append(arb::mnpos, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
         cell_ = cable_cell(tree);
 
@@ -84,8 +83,8 @@ private:
         cell_.default_parameters.axial_resistivity = 100;     // [Ω·cm]
         cell_.default_parameters.membrane_capacitance = 0.01; // [F/m²]
 
-        // Twenty CVs per branch, except for the soma.
-        cell_.default_parameters.discretization = cv_policy_fixed_per_branch(20, cv_policy_flag::single_root_cv);
+        // Twenty CVs per branch on the dendrites (tag 4).
+        cell_.default_parameters.discretization = cv_policy_fixed_per_branch(20, arb::reg::tagged(4));
 
         // Add pas and hh mechanisms:
         cell_.paint(reg::tagged(1), "hh"); // (default parameters)
@@ -260,10 +259,9 @@ int main(int argc, char** argv) {
     std::vector<std::vector<std::array<double, 3>>> samples;
     for (unsigned branch = 0; branch<cell_morphology.num_branches(); ++branch) {
         samples.push_back({});
-        auto branch_range = cell_morphology.branch_indexes(branch);
-        for (auto i_ptr = branch_range.first; i_ptr!=branch_range.second; ++i_ptr) {
-            arb::msample s = cell_morphology.samples()[*i_ptr];
-            samples.back().push_back(std::array<double, 3>{s.loc.x, s.loc.z, s.loc.radius});
+        for (auto& seg: cell_morphology.branch_segments(branch)) {
+            samples.back().push_back(std::array<double, 3>{seg.prox.x, seg.prox.z, seg.prox.radius});
+            samples.back().push_back(std::array<double, 3>{seg.dist.x, seg.dist.z, seg.dist.radius});
         }
     }
 

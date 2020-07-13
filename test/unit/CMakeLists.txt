@@ -68,7 +68,7 @@ endforeach()
 # set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
 # set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
 # file(MAKE_DIRECTORY "${mech_proto_dir}")
-# 
+#
 # build_modules(
 #     ${proto_mechanisms}
 #     SOURCE_DIR "${PROJECT_SOURCE_DIR}/mechanisms/mod"
@@ -82,6 +82,7 @@ endforeach()
 # Unit test sources
 
 set(unit_sources
+    ../common_cells.cpp
     test_algorithms.cpp
     test_any.cpp
     test_any_visitor.cpp
@@ -138,10 +139,11 @@ set(unit_sources
     test_range.cpp
     test_ratelem.cpp
     test_schedule.cpp
-    test_spike_source.cpp
     test_scope_exit.cpp
+    test_segment_tree.cpp
     test_simd.cpp
     test_span.cpp
+    test_spike_source.cpp
     test_spikes.cpp
     test_spike_store.cpp
     test_stats.cpp

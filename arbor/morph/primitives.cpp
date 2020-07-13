@@ -57,14 +57,6 @@ double distance(const mpoint& a, const mpoint& b) {
     return std::sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-bool is_collocated(const msample& a, const msample& b) {
-    return is_collocated(a.loc, b.loc);
-}
-
-double distance(const msample& a, const msample& b) {
-    return distance(a.loc, b.loc);
-}
-
 bool test_invariants(const mlocation& l) {
     return (0.<=l.pos && l.pos<=1.) && l.branch!=mnpos;
 }
@@ -140,12 +132,16 @@ bool test_invariants(const mcable_list& l) {
         && l.end()==std::find_if(l.begin(), l.end(), [](const mcable& c) {return !test_invariants(c);});
 }
 
+bool operator==(const msegment& l, const msegment& r) {
+    return l.prox==r.prox && l.dist==r.dist && l.tag==r.tag;
+}
+
 std::ostream& operator<<(std::ostream& o, const mpoint& p) {
     return o << "(point " << p.x << " " << p.y << " " << p.z << " " << p.radius << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const msample& s) {
-    return o << "(sample " << s.loc << " " << s.tag << ")";
+std::ostream& operator<<(std::ostream& o, const msegment& s) {
+    return o << "(segment " << s.prox << " " << s.dist << " " << s.tag << ")";
 }
 
 std::ostream& operator<<(std::ostream& o, const mlocation& l) {

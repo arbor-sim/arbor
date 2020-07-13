@@ -15,6 +15,7 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
+#include "common_cells.hpp"
 #include "common_morphologies.hpp"
 #include "morph_pred.hpp"
 
@@ -266,26 +267,27 @@ TEST(cv_policy, max_extent) {
     }
 }
 
-TEST(cv_policy, every_sample) {
+TEST(cv_policy, every_segment) {
     using namespace cv_policy_flag;
 
     // Cell with root branch and two child branches, with multiple samples per branch.
     // Fork is at (0., 0., 4.0).
 
-    std::vector<msample> ms;
+    std::vector<mpoint> points;
 
-    ms.push_back({{  0.,   0., 0., 0.5}, 5});
-    for (auto i: make_span(4)) ms.push_back({{  0.,   0., i+1., 0.5}, 5});
-    for (auto i: make_span(4)) ms.push_back({{  0., i+1.,  4.0, 0.5}, 5});
-    for (auto i: make_span(4)) ms.push_back({{i+1.,    0,  4.0, 0.5}, 5});
+    points.push_back({  0.,   0., 0., 0.5});
+    for (auto i: make_span(4)) points.push_back({  0.,   0., i+1., 0.5});
+    for (auto i: make_span(4)) points.push_back({  0., i+1.,  4.0, 0.5});
+    for (auto i: make_span(4)) points.push_back({i+1.,    0,  4.0, 0.5});
 
     std::vector<msize_t> parents = {mnpos, 0, 1, 2, 3, 4, 5, 6, 7, 4, 9, 10, 11 };
-    morphology m{sample_tree(ms, parents), false};
+    auto tree = segments_from_points(points, parents);
+    morphology m{tree};
 
     // Including all samples:
     {
         cable_cell cell(m);
-        cv_policy pol = cv_policy_every_sample();
+        cv_policy pol = cv_policy_every_segment();
 
         mlocation_list expected = {
             {0, 0}, {0, 0.25}, {0, 0.5}, {0, 0.75}, {0, 1},
@@ -299,7 +301,7 @@ TEST(cv_policy, every_sample) {
     {
         cable_cell cell(m);
         region reg = join(reg::branch(1), reg::branch(2));
-        cv_policy pol = cv_policy_every_sample(reg);
+        cv_policy pol = cv_policy_every_segment(reg);
 
         // Get samples from branches 1 and 2, plus boundary points from completions of each
         // branch, viz. (0, 1), (2, 0), (1, 1) from branch 1 and (0, 1), (1, 0), (2, 1) from
@@ -327,7 +329,7 @@ TEST(cv_policy, domain) {
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_fixed_per_branch(3, reg1, interior_forks).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3, reg1).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3, reg1, interior_forks).domain()));
-    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_every_sample(reg1).domain()));
+    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_every_segment(reg1).domain()));
 
     EXPECT_TRUE(region_eq(cell.provider(), join(reg1, reg2), (cv_policy_single(reg1)+cv_policy_single(reg2)).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), join(reg1, reg2), (cv_policy_single(reg1)|cv_policy_single(reg2)).domain()));

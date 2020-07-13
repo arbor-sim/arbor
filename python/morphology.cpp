@@ -5,7 +5,7 @@
 
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/morph/sample_tree.hpp>
+#include <arbor/morph/segment_tree.hpp>
 #include <arbor/swcio.hpp>
 
 #include "error.hpp"
@@ -17,7 +17,7 @@ void register_morphology(pybind11::module& m) {
     using namespace pybind11::literals;
 
     //
-    //  primitives: points, samples, locations, cables... etc.
+    //  primitives: points, segments, locations, cables... etc.
     //
 
     m.attr("mnpos") = arb::mnpos;
@@ -45,37 +45,32 @@ void register_morphology(pybind11::module& m) {
         .def("__repr__",
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); });
 
-    // arb::msample
-    pybind11::class_<arb::msample> msample(m, "sample");
-    msample
+    // arb::mpoint
+    pybind11::class_<arb::mpoint> mpoint(m, "mpoint");
+    mpoint
         .def(pybind11::init(
-            [](arb::mpoint loc, int tag){
-                return arb::msample{loc, tag};}),
-            "location"_a, "tag"_a)
-        .def(pybind11::init(
-            [](double x, double y, double z, double r, int tag){
-                return arb::msample{{x,y,z,r}, tag};}),
-            "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
-            "spatial values {x, y, z, radius} are in μm.")
-        .def_readonly("x", &arb::msample::loc)
-        .def_property_readonly("x",
-                [](const arb::msample& s) {return s.loc.x;},
-                "X coordinate [μm].")
-        .def_property_readonly("y",
-                [](const arb::msample& s) {return s.loc.y;},
-                "Y coordinate [μm].")
-        .def_property_readonly("z",
-                [](const arb::msample& s) {return s.loc.z;},
-                "Z coordinate [μm].")
-        .def_readonly("tag", &arb::msample::tag,
-            "Property tag of sample. "
-            "If loaded from standard SWC file the following tags are used: soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary tags can be used.")
+                [](double x, double y, double z, double r) {
+                    return arb::mpoint{x,y,z,r};
+                }),
+                "x"_a, "y"_a, "z"_a, "radius"_a, "All values in μm.")
+        .def_readonly("x", &arb::mpoint::x, "X coordinate [μm].")
+        .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
+        .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
+        .def_readonly("radius", &arb::mpoint::radius,
+            "Radius of cable at sample location centered at coordinates [μm].")
         .def("__str__",
-            [](const arb::msample& s) {
-                return util::pprintf("{}", s);})
+            [](const arb::mpoint& p) {
+                return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}>", p.x, p.y, p.z, p.radius);
+            })
         .def("__repr__",
-            [](const arb::msample& s) {
-                return util::pprintf("{}", s);});
+            [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
+
+    // arb::msegment
+    pybind11::class_<arb::msegment> msegment(m, "msegment");
+    msegment
+        .def_readonly("prox", &arb::msegment::prox, "the location and radius of the proximal end.")
+        .def_readonly("dist", &arb::msegment::dist, "the location and radius of the distal end.")
+        .def_readonly("tag", &arb::msegment::tag, "tag meta-data.");
 
     // arb::mcable
     pybind11::class_<arb::mcable> cable(m, "cable");
@@ -99,47 +94,46 @@ void register_morphology(pybind11::module& m) {
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
 
     //
-    // Higher-level data structures (sample_tree, morphology)
+    // Higher-level data structures (segment_tree, morphology)
     //
 
-    // arb::sample_tree
-    pybind11::class_<arb::sample_tree> sample_tree(m, "sample_tree");
-    sample_tree
+    // arb::segment_tree
+    pybind11::class_<arb::segment_tree> segment_tree(m, "segment_tree");
+    segment_tree
         // constructors
         .def(pybind11::init<>())
         // modifiers
-        .def("reserve", &arb::sample_tree::reserve)
-        .def("append", [](arb::sample_tree& t, arb::msample s){return t.append(s);},
-                "Append a sample whose parent is the last sample added to the tree.")
-        .def("append", [](arb::sample_tree& t, arb::msize_t p, arb::msample s){return t.append(p, s);},
-                "parent"_a, "sample"_a,
-                "Append a sample.")
+        .def("reserve", &arb::segment_tree::reserve)
+        .def("append", [](arb::segment_tree& t, arb::msize_t parent, arb::mpoint prox, arb::mpoint dist, int tag) {
+                            return t.append(parent, prox, dist, tag);
+                          },
+                "parent"_a, "prox"_a, "dist"_a, "tag"_a,
+                "Append a segment to the tree.")
+        .def("append", [](arb::segment_tree& t, arb::msize_t parent, arb::mpoint dist, int tag) {
+                            return t.append(parent, dist, tag);
+                          },
+                "parent"_a, "dist"_a, "tag"_a,
+                "Append a segment to the tree.")
         .def("append",
-                [](arb::sample_tree& t, double x, double y, double z, double radius, int tag) {
-                    return t.append(arb::msample{{x,y,z,radius}, tag});
-                },
-                "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
-                "Append a sample whose parent is the last sample added to the tree.")
-        .def("append",
-                [](arb::sample_tree& t, arb::msize_t p, double x, double y, double z, double radius, int tag) {
-                    return t.append(p, arb::msample{{x,y,z,radius}, tag});
+                [](arb::segment_tree& t, arb::msize_t p, double x, double y, double z, double radius, int tag) {
+                    return t.append(p, arb::mpoint{x,y,z,radius}, tag);
                 },
                 "parent"_a, "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
-                "Append a sample.")
+                "Append a segment to the tree, using the distal location of the parent segment as the proximal end.")
         // properties
-        .def_property_readonly("empty", [](const arb::sample_tree& st){return st.empty();},
+        .def_property_readonly("empty", [](const arb::segment_tree& st){return st.empty();},
                 "Indicates whether the sample tree is empty (i.e. whether it has size 0)")
-        .def_property_readonly("size", [](const arb::sample_tree& st){return st.size();},
+        .def_property_readonly("size", [](const arb::segment_tree& st){return st.size();},
                 "The number of samples in the sample tree.")
-        .def_property_readonly("parents", [](const arb::sample_tree& st){return st.parents();},
+        .def_property_readonly("parents", [](const arb::segment_tree& st){return st.parents();},
                 "A list with the parent index of each sample.")
-        .def_property_readonly("samples", [](const arb::sample_tree& st){return st.samples();},
+        .def_property_readonly("segments", [](const arb::segment_tree& st){return st.segments();},
                 "A list of the samples.")
-        .def("__str__", [](const arb::sample_tree& s) {
-                return util::pprintf("<arbor.sample_tree:\n{}>", s);});
+        .def("__str__", [](const arb::segment_tree& s) {
+                return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
-    // Function that creates a sample_tree from an swc file.
-    // Wraps calls to C++ functions arb::parse_swc_file() and arb::swc_as_sample_tree().
+    // Function that creates a segment_tree from an swc file.
+    // Wraps calls to C++ functions arb::parse_swc_file() and arb::swc_as_segment_tree().
     m.def("load_swc",
         [](std::string fname) {
             std::ifstream fid{fname};
@@ -149,7 +143,7 @@ void register_morphology(pybind11::module& m) {
             try {
                 auto records = arb::parse_swc_file(fid);
                 arb::swc_canonicalize(records);
-                return arb::swc_as_sample_tree(records);
+                return arb::swc_as_segment_tree(records);
             }
             catch (arb::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -158,7 +152,7 @@ void register_morphology(pybind11::module& m) {
                                   e.line_number, fname, e.what()));
             }
         },
-        "Load an swc file and convert to a sample_tree.");
+        "Load an swc file and convert to a segment_tree.");
 
     // arb::morphology
 
@@ -166,43 +160,26 @@ void register_morphology(pybind11::module& m) {
     morph
         // constructors
         .def(pybind11::init(
-                [](arb::sample_tree t){
+                [](arb::segment_tree t){
                     return arb::morphology(std::move(t));
                 }))
-        .def(pybind11::init(
-                [](arb::sample_tree t, bool spherical_root) {
-                    return arb::morphology(std::move(t), spherical_root);
-                }), "sample_tree"_a, "spherical_root"_a)
         // morphology's interface is read-only by design, so most of it can
         // be implemented as read-only properties.
         .def_property_readonly("empty",
                 [](const arb::morphology& m){return m.empty();},
                 "Whether the morphology is empty.")
-        .def_property_readonly("spherical_root",
-                [](const arb::morphology& m){return m.spherical_root();},
-                "Whether the root of the morphology is spherical.")
         .def_property_readonly("num_branches",
                 [](const arb::morphology& m){return m.num_branches();},
                 "The number of branches in the morphology.")
-        .def_property_readonly("num_samples",
-                [](const arb::morphology& m){return m.num_samples();},
-                "The number of samples in the morphology.")
-        .def_property_readonly("samples",
-                [](const arb::morphology& m){return m.samples();},
-                "All of the samples in the morphology.")
-        .def_property_readonly("sample_parents",
-                [](const arb::morphology& m){return m.sample_parents();},
-                "The parent indexes of each sample.")
         .def("branch_parent", &arb::morphology::branch_parent,
                 "i"_a, "The parent branch of branch i.")
         .def("branch_children", &arb::morphology::branch_children,
                 "i"_a, "The child branches of branch i.")
-        .def("branch_indexes",
+        .def("branch_segments",
                 [](const arb::morphology& m, arb::msize_t i) {
-                    auto p = m.branch_indexes(i);
-                    return std::vector<arb::msize_t>(p.first, p.second);
+                    return m.branch_segments(i);
                 },
-                "i"_a, "Range of indexes into the sample points in branch i.")
+                "i"_a, "A list of the segments in branch i, ordered from proximal to distal ends of the branch.")
         .def("__str__",
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);

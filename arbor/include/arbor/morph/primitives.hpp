@@ -22,6 +22,7 @@ struct mpoint {
     double x, y, z;  // [µm]
     double radius;   // [μm]
 
+    friend bool operator==(const mpoint& l, const mpoint& r);
     friend std::ostream& operator<<(std::ostream&, const mpoint&);
     friend bool operator==(const mpoint& a, const mpoint& b) {
         return a.x==b.x && a.y==b.y && a.z==b.z && a.radius==b.radius;
@@ -43,25 +44,16 @@ enum class comp_op {
     ge
 };
 
-// A morphology sample consists of a location and an integer tag.
-// When loaded from an SWC file, the tag will correspond to the SWC label,
-// which are standardised as follows:
-//  1 - soma
-//  2 - axon
-//  3 - (basal) dendrite
-//  4 - apical dendrite
-// http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html
-// However, any positive integer tag can be provided and labelled dynamically.
-
-struct msample {
-    mpoint loc;
+// Describe a cable segment between two adjacent samples.
+struct msegment {
+    mpoint prox;
+    mpoint dist;
     int tag;
 
-    friend std::ostream& operator<<(std::ostream&, const msample&);
+    friend bool operator==(const msegment&, const msegment&);
+    friend std::ostream& operator<<(std::ostream&, const msegment&);
 };
 
-bool is_collocated(const msample& a, const msample& b);
-double distance(const msample& a, const msample& b);
 
 // Describe a specific location on a morpholology.
 struct mlocation {
@@ -124,31 +116,6 @@ std::ostream& operator<<(std::ostream& o, const mcable_list& c);
 // Tests whether each cable in the list satisfies the invariants for a cable,
 // and that the cables in the vector are ordered.
 bool test_invariants(const mcable_list&);
-
-using point_prop = std::uint8_t;
-enum point_prop_mask: point_prop {
-    point_prop_mask_none = 0,
-    point_prop_mask_root = 1,
-    point_prop_mask_fork = 2,
-    point_prop_mask_terminal = 4,
-    point_prop_mask_collocated = 8
-};
-
-#define ARB_PROP(prop) \
-constexpr bool is_##prop(point_prop p) {\
-    return p&point_prop_mask_##prop;\
-} \
-inline void set_##prop(point_prop& p) {\
-    p |= point_prop_mask_##prop;\
-} \
-inline void unset_##prop(point_prop& p) {\
-    p &= ~point_prop_mask_##prop;\
-}
-
-ARB_PROP(root)
-ARB_PROP(fork)
-ARB_PROP(terminal)
-ARB_PROP(collocated)
 
 } // namespace arb
 

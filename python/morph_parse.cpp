@@ -227,8 +227,6 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'location' with 2 arguments: (branch_id:integer position:real)")},
     {"terminal", make_call<>(arb::ls::terminal,
                             "'terminal' with 0 arguments")},
-    {"sample",  make_call<int>(arb::ls::sample,
-                            "'sample' with 1 argument: (sample_id:integer)")},
     {"distal",  make_call<arb::region>(arb::ls::most_distal,
                             "'distal' with 1 argument: (reg:region)")},
     {"proximal",make_call<arb::region>(arb::ls::most_proximal,

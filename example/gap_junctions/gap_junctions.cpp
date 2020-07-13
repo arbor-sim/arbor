@@ -279,12 +279,11 @@ void write_trace_json(const std::vector<arb::trace_vector<double>>& traces, unsi
 
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
     // Create the sample tree that defines the morphology.
-    arb::sample_tree tree;
+    arb::segment_tree tree;
     double soma_rad = 22.360679775/2.0; // convert diameter to radius in μm
-    tree.append({{0,0,0,soma_rad}, 1}); // soma is a single sample point
-    double dend_rad = 3./2;
-    tree.append(0, {{0,0,soma_rad,     dend_rad}, 3});  // proximal point of the dendrite
-    tree.append(1, {{0,0,soma_rad+300, dend_rad}, 3});  // distal end of the dendrite
+    tree.append(arb::mnpos, {0,0,0,soma_rad}, {0,0,2*soma_rad,soma_rad}, 1); // soma
+    double dend_rad = 3./2; // μm
+    tree.append(0, {0,0,2*soma_rad, dend_rad}, {0,0,2*soma_rad+300, dend_rad}, 3);  // dendrite
 
     // Create a label dictionary that creates a single region that covers the whole cell.
     arb::label_dict d;

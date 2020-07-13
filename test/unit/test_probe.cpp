@@ -81,12 +81,17 @@ struct backend_access<gpu::backend> {
 // linearly tapered branches.
 
 static morphology make_y_morphology() {
-    return morphology(sample_tree(
-        {msample{{0., 0., 0., 1.}, 0},
-         msample{{100., 0., 0., 0.8}, 0},
-         msample{{100., 100., 0., 0.5}, 0},
-         msample{{100., 0, 100., 0.4}, 0}},
-        {mnpos, 0u, 1u, 1u}));
+    segment_tree tree;
+    tree.append(mnpos, {0., 0., 0., 1.}, {100., 0., 0., 0.8}, 1);
+    tree.append(0, {100., 100., 0., 0.5}, 0);
+    tree.append(0, {100., 0,  100., 0.4}, 0);
+    return {tree};
+}
+
+static morphology make_stick_morphology() {
+    segment_tree tree;
+    tree.append(mnpos, {0., 0., 0., 1.}, {100., 0., 0., 1.0}, 1);
+    return {tree};
 }
 
 template <typename Backend>
@@ -94,7 +99,11 @@ void run_v_i_probe_test(const context& ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
     auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
 
-    cable_cell bs = make_cell_ball_and_stick(false);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    cable_cell bs = builder.make_cell();
+
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(1);
 
     i_clamp stim(0, 100, 0.3);
@@ -256,7 +265,10 @@ void run_expsyn_g_probe_test(const context& ctx) {
     mlocation loc0{1, 0.8};
     mlocation loc1{1, 1.0};
 
-    cable_cell bs = make_cell_ball_and_stick(false);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    cable_cell bs = builder.make_cell();
     bs.place(loc0, "expsyn");
     bs.place(loc1, "expsyn");
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(2);
@@ -485,7 +497,7 @@ void run_ion_density_probe_test(const context& ctx) {
 
     // Simple constant diameter cable, 3 CVs.
 
-    cable_cell cable(sample_tree({msample{{0., 0., 0., 1.}, 0}, msample{{100., 0., 0., 1.}, 0}}, {mnpos, 0u}));
+    cable_cell cable(make_stick_morphology());
     cable.default_parameters.discretization = cv_policy_fixed_per_branch(3);
 
     // Calcium ions everywhere, half written by write_ca1, half by write_ca2.
@@ -647,7 +659,8 @@ void run_partial_density_probe_test(const context& ctx) {
 
     // Each cell is a simple constant diameter cable, with 3 CVs each.
 
-    morphology m(sample_tree({msample{{0., 0., 0., 1.}, 0}, msample{{100., 0., 0., 1.}, 0}}, {mnpos, 0u}));
+    auto m = make_stick_morphology();
+
     cells[0] = cable_cell(m);
     cells[0].default_parameters.discretization = cv_policy_fixed_per_branch(3);
 
@@ -760,7 +773,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
 
     // Cell is a tapered cable with 3 CVs.
 
-    morphology m(sample_tree({msample{{0., 0., 0., 1.}, 0}, msample{{100., 0., 0., 0.8}, 0}}, {mnpos, 0u}));
+    auto m = make_stick_morphology();
     cable_cell cell(m);
 
     const unsigned n_cv = 3;
@@ -947,7 +960,12 @@ void run_multi_probe_test(const context& ctx) {
 
 template <typename Backend>
 void run_v_sampled_probe_test(const context& ctx) {
-    cable_cell bs = make_cell_ball_and_stick(false);
+    soma_cell_builder builder(12.6157/2.0);
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+    builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+
+    cable_cell bs = builder.make_cell();
+
     bs.default_parameters.discretization = cv_policy_fixed_per_branch(1);
 
     std::vector<cable_cell> cells = {bs, bs};
@@ -1116,7 +1134,11 @@ void run_exact_sampling_probe_test(const context& ctx) {
         adhoc_recipe() {
             gprop_.default_parameters = neuron_parameter_defaults;
 
-            cells_.assign(4, make_cell_ball_and_stick(false));
+            soma_cell_builder builder(12.6157/2.0);
+            builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+            builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
+
+            cells_.assign(4, builder.make_cell());
             cells_[0].place(mlocation{1, 0.1}, "expsyn");
             cells_[1].place(mlocation{1, 0.1}, "exp2syn");
             cells_[2].place(mlocation{1, 0.9}, "expsyn");

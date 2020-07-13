@@ -183,12 +183,12 @@ private:
     cv_policy_flag::value flags_;
 };
 
-struct cv_policy_every_sample: cv_policy_base {
-    explicit cv_policy_every_sample(region domain = reg::all()):
+struct cv_policy_every_segment: cv_policy_base {
+    explicit cv_policy_every_segment(region domain = reg::all()):
          domain_(std::move(domain)) {}
 
     cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_every_sample(*this));
+        return cv_policy_base_ptr(new cv_policy_every_segment(*this));
     }
 
     locset cv_boundary_points(const cable_cell&) const override;
@@ -196,7 +196,6 @@ struct cv_policy_every_sample: cv_policy_base {
 
 private:
     region domain_;
-    cv_policy_flag::value flags_;
 };
 
 inline cv_policy default_cv_policy() {
