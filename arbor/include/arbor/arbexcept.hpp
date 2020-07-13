@@ -66,13 +66,6 @@ struct bad_event_time: arbor_exception {
     time_type sim_time;
 };
 
-// Morphology errors:
-
-struct no_such_segment: arbor_exception {
-    explicit no_such_segment(msize_t i);
-    msize_t index;
-};
-
 // Mechanism catalogue errors:
 
 struct no_such_mechanism: arbor_exception {

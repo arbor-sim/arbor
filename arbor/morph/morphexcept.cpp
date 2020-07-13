@@ -24,6 +24,12 @@ no_such_branch::no_such_branch(msize_t bid):
     bid(bid)
 {}
 
+no_such_segment::no_such_segment(msize_t id):
+    arbor_exception(pprintf("segment {} out of bounds", id)),
+    sid(id)
+{}
+
+
 invalid_mcable::invalid_mcable(mcable cable):
     morphology_error(pprintf("invalid mcable {}", cable)),
     cable(cable)
@@ -32,20 +38,6 @@ invalid_mcable::invalid_mcable(mcable cable):
 invalid_mcable_list::invalid_mcable_list():
     morphology_error("bad mcable_list")
 {}
-
-invalid_sample_parent::invalid_sample_parent(msize_t parent, msize_t tree_size):
-    morphology_error(pprintf("invalid sample parent {} for a sample tree of size {}", msize_string(parent), tree_size)),
-    parent(parent),
-    tree_size(tree_size)
-{
-}
-
-invalid_segment_parent::invalid_segment_parent(msize_t parent, msize_t tree_size):
-    morphology_error(pprintf("invalid segment parent {} for a segment tree of size {}", msize_string(parent), tree_size)),
-    parent(parent),
-    tree_size(tree_size)
-{
-}
 
 label_type_mismatch::label_type_mismatch(const std::string& label):
     morphology_error(pprintf("label \"{}\" is already bound to a different type of object", label)),
@@ -65,6 +57,12 @@ unbound_name::unbound_name(const std::string& name):
 circular_definition::circular_definition(const std::string& name):
     morphology_error(pprintf("definition of '{}' requires a definition for '{}'", name, name)),
     name(name)
+{}
+
+invalid_segment_parent::invalid_segment_parent(msize_t parent, msize_t tree_size):
+    morphology_error(pprintf("invalid segment parent {} for a segment tree of size {}", msize_string(parent), tree_size)),
+    parent(parent),
+    tree_size(tree_size)
 {}
 
 } // namespace arb
