@@ -4,7 +4,6 @@
 #include <string>
 
 #include <arbor/common_types.hpp>
-#include <arbor/morph/primitives.hpp>
 
 // Arbor-specific exception hierarchy.
 
