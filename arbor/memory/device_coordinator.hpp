@@ -81,7 +81,14 @@ public:
     }
 
     device_reference& operator=(const device_reference& ref) {
-        gpu_memcpy_d2d(pointer_, ref.pointer_, sizeof(T));
+        if (this != &ref) {
+            gpu_memcpy_d2d(pointer_, ref.pointer_, sizeof(T));
+        }
+        return *this;
+    }
+        
+    device_reference(const device_reference& ref) {
+        *this = ref;
     }
 
     operator T() const {
@@ -115,9 +122,10 @@ public:
     using rebind = device_coordinator<Tother, Allocator>;
 
     view_type allocate(size_type n) {
-        Allocator allocator;
-
-        pointer ptr = n>0 ? allocator.allocate(n) : nullptr;
+        pointer ptr = nullptr;
+        if (n > 0) {
+            ptr = Allocator{}.allocate(n);
+        }
 
         #ifdef VERBOSE
         std::cerr << util::type_printer<device_coordinator>::print()
