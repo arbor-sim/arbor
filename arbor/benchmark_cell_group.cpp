@@ -22,17 +22,21 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
         cells_.push_back(util::any_cast<benchmark_cell>(rec.get_cell_description(gid)));
     }
 
-    reset();
+    reset_();
 }
 
-void benchmark_cell_group::reset() {
+void benchmark_cell_group::reset_(){
     t_ = 0;
 
     for (auto& c: cells_) {
         c.time_sequence.reset();
     }
 
-    clear_spikes();
+    spikes_.clear();
+}
+
+void benchmark_cell_group::reset() {
+        reset_();
 }
 
 cell_kind benchmark_cell_group::get_cell_kind() const {

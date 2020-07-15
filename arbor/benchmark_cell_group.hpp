@@ -34,6 +34,8 @@ public:
     void remove_all_samplers() override {}
 
 private:
+    void reset_();
+
     time_type t_;
 
     std::vector<benchmark_cell> cells_;
