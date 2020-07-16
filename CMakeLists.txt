@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.9)
 
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
