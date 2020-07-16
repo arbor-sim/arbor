@@ -13,6 +13,97 @@
 
 namespace pyarb {
 
+arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
+        std::ifstream fid{fname};
+        if (!fid.good()) {
+            throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+        }
+        try {
+            using namespace arb;
+            auto records = parse_swc_file(fid);
+            swc_canonicalize(records);
+
+            // Assert that the file contains at least one sample.
+            if (records.empty()) {
+                throw pyarb_error("SWC file is empty");
+            }
+
+            // assert that root sample has tag 1.
+            if (records[0].tag!=1) {
+                throw pyarb_error("SONATA requires that the first swc recrod has tag 1 for soma");
+            }
+
+            // Handle the case of a single-sample swc file.
+            const auto nrec = records.size();
+            if (nrec==1) {
+                segment_tree tree;
+                // Model the spherical soma as a cylinder with length=2*radius.
+                // The cylinder is centred on the sample location, and extended along the z axis.
+                const auto r = records[0].r; // The radius of the soma.
+                tree.append(mnpos, {0, 0, -r, r}, {0, 0, r, r}, 1);
+                return tree;
+            }
+
+            // Assert that all non-root samples have a tag of 2, 3, or 4.
+            auto it = std::find_if(
+                        records.begin()+1, records.end(),
+                        [](auto& r){return r.tag<2 || r.tag>4;});
+            if (it!=records.end()) {
+                throw pyarb_error(
+                        "Every SWC record must have a tag of 2, 3 or 4, except for the first which must have tag 1.");
+            }
+
+            // Translate the morphology so that the soma is centered at the origin (0,0,0)
+            mpoint sloc{records[0].x, records[0].y, records[0].z, records[0].r};
+            for (auto& r: records) {
+                r.x -= sloc.x;
+                r.y -= sloc.y;
+                r.z -= sloc.z;
+            }
+
+            segment_tree tree;
+
+            // Model the spherical soma as a cylinder with length=2*radius.
+            // The cylinder is centred on the origin, and extended along the z axis.
+            tree.append(mnpos, {0, 0, -sloc.radius, sloc.radius}, {0, 0, sloc.radius, sloc.radius}, 1);
+
+            std::unordered_map<msize_t, msize_t> pmap;
+
+            double soma_rad = sloc.radius;
+
+            // Build branches off soma.
+            for (unsigned i=1; i<nrec; ++i) {
+                const auto& r = records[i];
+                // If sample i has the root as its parent don't create a segment.
+                if (r.parent_id==0) {
+                    if (no_gaps) {
+                        // Assert that this branch starts on the "surface" of the spherical soma.
+                        auto d = std::fabs(soma_rad - std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z));
+                        if (d<1e-6) {
+                            throw pyarb_error("No gaps are allowed between the soma and any axons, dendrites or apical dendrites");
+                        }
+                    }
+                    pmap[i] = r.tag==3? 0: mnpos;
+                    continue;
+                }
+
+                const auto p = r.parent_id;
+                const auto& prox = records[p];
+                const auto& dist = records[i];
+                tree.append(pmap.at(p), {prox.x, prox.y, prox.z, prox.r}, {dist.x, dist.y, dist.z, dist.r}, r.tag);
+                pmap[i] = tree.size() - 1;
+            }
+
+            return tree;
+        }
+        catch (arb::swc_error& e) {
+            // Try to produce helpful error messages for SWC parsing errors.
+            throw pyarb_error(
+                util::pprintf("error parsing line {} of '{}': {}.",
+                              e.line_number, fname, e.what()));
+        }
+}
+
 void register_morphology(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -153,6 +244,25 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "Load an swc file and convert to a segment_tree.");
+
+    m.def("load_swc_allen", &load_swc_allen,
+            "filename"_a, "no_gaps"_a=false,
+            "Generate a segment tree from an SWC file following the rules prescribed by\n"
+            "AllenDB and Sonata. Specifically:\n"
+            "* The first sample (the root) is treated as the center of the soma.\n"
+            "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
+            "* The first sample has tag 1 (soma).\n"
+            "* All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)\n"
+            "SONATA prescribes that there should be no gaps, however the models in AllenDB\n"
+            "have gaps between the start of sections and the soma. The flag no_gaps can be\n"
+            "used to enforce this requirement.\n"
+            "\n"
+            "Arbor does not support modelling the soma as a sphere, so a cylinder with length\n"
+            "equal to the soma diameter is used. The cylinder is centered on the origin, and\n"
+            "aligned along the z axis.\n"
+            "Axons and apical dendrites are attached to the proximal end of the cylinder, and\n"
+            "dendrites to the distal end, with a gap between the start of each branch and the\n"
+            "end of the soma cylinder to which it is attached.");
 
     // arb::morphology
 
