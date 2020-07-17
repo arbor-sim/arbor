@@ -65,13 +65,11 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
 
             // Model the spherical soma as a cylinder with length=2*radius.
             // The cylinder is centred on the origin, and extended along the z axis.
-            tree.append(mnpos, {0, 0, -sloc.radius, sloc.radius}, {0, 0, sloc.radius, sloc.radius}, 1);
-
-            std::unordered_map<msize_t, msize_t> pmap;
-
             double soma_rad = sloc.radius;
+            tree.append(mnpos, {0, 0, -soma_rad, soma_rad}, {0, 0, soma_rad, soma_rad}, 1);
 
             // Build branches off soma.
+            std::unordered_map<msize_t, msize_t> pmap;
             for (unsigned i=1; i<nrec; ++i) {
                 const auto& r = records[i];
                 // If sample i has the root as its parent don't create a segment.
@@ -79,7 +77,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                     if (no_gaps) {
                         // Assert that this branch starts on the "surface" of the spherical soma.
                         auto d = std::fabs(soma_rad - std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z));
-                        if (d<1e-6) {
+                        if (d>1e-3) { // 1 nm tolerance
                             throw pyarb_error("No gaps are allowed between the soma and any axons, dendrites or apical dendrites");
                         }
                     }
