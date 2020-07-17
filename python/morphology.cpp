@@ -21,16 +21,15 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
         try {
             using namespace arb;
             auto records = parse_swc_file(fid);
-            swc_canonicalize(records);
 
             // Assert that the file contains at least one sample.
             if (records.empty()) {
-                throw pyarb_error("SWC file is empty");
+                throw pyarb_error("Allen SWC: empty file");
             }
 
             // assert that root sample has tag 1.
             if (records[0].tag!=1) {
-                throw pyarb_error("SONATA requires that the first swc recrod has tag 1 for soma");
+                throw pyarb_error("Allen SWC: the soma record does not have tag 1");
             }
 
             // Handle the case of a single-sample swc file.
@@ -50,7 +49,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                         [](auto& r){return r.tag<2 || r.tag>4;});
             if (it!=records.end()) {
                 throw pyarb_error(
-                        "Every SWC record must have a tag of 2, 3 or 4, except for the first which must have tag 1.");
+                        "Allen SWC: every record must have a tag of 2, 3 or 4, except for the first which must have tag 1");
             }
 
             // Translate the morphology so that the soma is centered at the origin (0,0,0)
@@ -70,6 +69,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
 
             // Build branches off soma.
             std::unordered_map<msize_t, msize_t> pmap;
+            std::set<msize_t> unused_samples;
             for (unsigned i=1; i<nrec; ++i) {
                 const auto& r = records[i];
                 // If sample i has the root as its parent don't create a segment.
@@ -78,10 +78,11 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                         // Assert that this branch starts on the "surface" of the spherical soma.
                         auto d = std::fabs(soma_rad - std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z));
                         if (d>1e-3) { // 1 nm tolerance
-                            throw pyarb_error("No gaps are allowed between the soma and any axons, dendrites or apical dendrites");
+                            throw pyarb_error("Allen SWC: no gaps are allowed between the soma and any axons, dendrites or apical dendrites");
                         }
                     }
                     pmap[i] = r.tag==3? 0: mnpos;
+                    unused_samples.insert(i);
                     continue;
                 }
 
@@ -90,6 +91,11 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                 const auto& dist = records[i];
                 tree.append(pmap.at(p), {prox.x, prox.y, prox.z, prox.r}, {dist.x, dist.y, dist.z, dist.r}, r.tag);
                 pmap[i] = tree.size() - 1;
+                unused_samples.erase(p);
+            }
+
+            if (!unused_samples.empty()) {
+                throw pyarb_error("Allen SWC: Every branch must contain at least one segment");
             }
 
             return tree;
@@ -97,7 +103,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
         catch (arb::swc_error& e) {
             // Try to produce helpful error messages for SWC parsing errors.
             throw pyarb_error(
-                util::pprintf("error parsing line {} of '{}': {}.",
+                util::pprintf("Allen SWC: error parsing line {} of '{}': {}",
                               e.line_number, fname, e.what()));
         }
 }
@@ -231,7 +237,6 @@ void register_morphology(pybind11::module& m) {
             }
             try {
                 auto records = arb::parse_swc_file(fid);
-                arb::swc_canonicalize(records);
                 return arb::swc_as_segment_tree(records);
             }
             catch (arb::swc_error& e) {
