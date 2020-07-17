@@ -32,17 +32,6 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                 throw pyarb_error("Allen SWC: the soma record does not have tag 1");
             }
 
-            // Handle the case of a single-sample swc file.
-            const auto nrec = records.size();
-            if (nrec==1) {
-                segment_tree tree;
-                // Model the spherical soma as a cylinder with length=2*radius.
-                // The cylinder is centred on the sample location, and extended along the z axis.
-                const auto r = records[0].r; // The radius of the soma.
-                tree.append(mnpos, {0, 0, -r, r}, {0, 0, r, r}, 1);
-                return tree;
-            }
-
             // Assert that all non-root samples have a tag of 2, 3, or 4.
             auto it = std::find_if(
                         records.begin()+1, records.end(),
@@ -50,6 +39,16 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
             if (it!=records.end()) {
                 throw pyarb_error(
                         "Allen SWC: every record must have a tag of 2, 3 or 4, except for the first which must have tag 1");
+            }
+
+            // Assert that all samples have the same tag as their parent, except
+            // those attached to the soma.
+            it = std::find_if(
+                        records.begin()+1, records.end(),
+                        [&records](auto& r){auto p = r.parent_id; return p && r.tag!=records[p].tag;});
+            if (it!=records.end()) {
+                throw pyarb_error(
+                        "Allen SWC: every record not attached to the soma must have the same tag as its parent");
             }
 
             // Translate the morphology so that the soma is centered at the origin (0,0,0)
@@ -63,13 +62,14 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
             segment_tree tree;
 
             // Model the spherical soma as a cylinder with length=2*radius.
-            // The cylinder is centred on the origin, and extended along the z axis.
+            // The cylinder is centred on the origin, and extended along the y axis.
             double soma_rad = sloc.radius;
-            tree.append(mnpos, {0, 0, -soma_rad, soma_rad}, {0, 0, soma_rad, soma_rad}, 1);
+            tree.append(mnpos, {0, -soma_rad, 0, soma_rad}, {0, soma_rad, 0, soma_rad}, 1);
 
             // Build branches off soma.
             std::unordered_map<msize_t, msize_t> pmap;
             std::set<msize_t> unused_samples;
+            const auto nrec = records.size();
             for (unsigned i=1; i<nrec; ++i) {
                 const auto& r = records[i];
                 // If sample i has the root as its parent don't create a segment.
@@ -81,6 +81,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                             throw pyarb_error("Allen SWC: no gaps are allowed between the soma and any axons, dendrites or apical dendrites");
                         }
                     }
+                    // This maps axons and apical dendrites to soma.prox, and dendrites to soma.dist.
                     pmap[i] = r.tag==3? 0: mnpos;
                     unused_samples.insert(i);
                     continue;
