@@ -78,10 +78,11 @@ public:
         double dr = (r2-r1)/ncomp;
         for (auto i=0; i<ncomp; ++i) {
             p = tree_.append(p, {0,0,z+i*dz, r1+i*dr}, {0,0,z+(i+1)*dz, r1+(i+1)*dr}, tag);
-            cable_distal_segs_.push_back(p);
         }
 
-        return size()-1;
+        cable_distal_segs_.push_back(p);
+
+        return cable_distal_segs_.size()-1;
     }
 
     void add_label(const char* name, const char* description) {
