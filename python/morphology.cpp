@@ -13,6 +13,102 @@
 
 namespace pyarb {
 
+arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
+        std::ifstream fid{fname};
+        if (!fid.good()) {
+            throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+        }
+        try {
+            using namespace arb;
+            auto records = parse_swc_file(fid);
+
+            // Assert that the file contains at least one sample.
+            if (records.empty()) {
+                throw pyarb_error("Allen SWC: empty file");
+            }
+
+            // assert that root sample has tag 1.
+            if (records[0].tag!=1) {
+                throw pyarb_error("Allen SWC: the soma record does not have tag 1");
+            }
+
+            // Assert that all non-root samples have a tag of 2, 3, or 4.
+            auto it = std::find_if(
+                        records.begin()+1, records.end(),
+                        [](auto& r){return r.tag<2 || r.tag>4;});
+            if (it!=records.end()) {
+                throw pyarb_error(
+                        "Allen SWC: every record must have a tag of 2, 3 or 4, except for the first which must have tag 1");
+            }
+
+            // Assert that all samples have the same tag as their parent, except
+            // those attached to the soma.
+            it = std::find_if(
+                        records.begin()+1, records.end(),
+                        [&records](auto& r){auto p = r.parent_id; return p && r.tag!=records[p].tag;});
+            if (it!=records.end()) {
+                throw pyarb_error(
+                        "Allen SWC: every record not attached to the soma must have the same tag as its parent");
+            }
+
+            // Translate the morphology so that the soma is centered at the origin (0,0,0)
+            mpoint sloc{records[0].x, records[0].y, records[0].z, records[0].r};
+            for (auto& r: records) {
+                r.x -= sloc.x;
+                r.y -= sloc.y;
+                r.z -= sloc.z;
+            }
+
+            segment_tree tree;
+
+            // Model the spherical soma as a cylinder with length=2*radius.
+            // The cylinder is centred on the origin, and extended along the y axis.
+            double soma_rad = sloc.radius;
+            tree.append(mnpos, {0, -soma_rad, 0, soma_rad}, {0, soma_rad, 0, soma_rad}, 1);
+
+            // Build branches off soma.
+            std::unordered_map<msize_t, msize_t> pmap;
+            std::set<msize_t> unused_samples;
+            const auto nrec = records.size();
+            for (unsigned i=1; i<nrec; ++i) {
+                const auto& r = records[i];
+                // If sample i has the root as its parent don't create a segment.
+                if (r.parent_id==0) {
+                    if (no_gaps) {
+                        // Assert that this branch starts on the "surface" of the spherical soma.
+                        auto d = std::fabs(soma_rad - std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z));
+                        if (d>1e-3) { // 1 nm tolerance
+                            throw pyarb_error("Allen SWC: no gaps are allowed between the soma and any axons, dendrites or apical dendrites");
+                        }
+                    }
+                    // This maps axons and apical dendrites to soma.prox, and dendrites to soma.dist.
+                    pmap[i] = r.tag==3? 0: mnpos;
+                    unused_samples.insert(i);
+                    continue;
+                }
+
+                const auto p = r.parent_id;
+                const auto& prox = records[p];
+                const auto& dist = records[i];
+                tree.append(pmap.at(p), {prox.x, prox.y, prox.z, prox.r}, {dist.x, dist.y, dist.z, dist.r}, r.tag);
+                pmap[i] = tree.size() - 1;
+                unused_samples.erase(p);
+            }
+
+            if (!unused_samples.empty()) {
+                throw pyarb_error("Allen SWC: Every branch must contain at least one segment");
+            }
+
+            return tree;
+        }
+        catch (arb::swc_error& e) {
+            // Try to produce helpful error messages for SWC parsing errors.
+            throw pyarb_error(
+                util::pprintf("Allen SWC: error parsing line {} of '{}': {}",
+                              e.line_number, fname, e.what()));
+        }
+}
+
 void register_morphology(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -142,7 +238,6 @@ void register_morphology(pybind11::module& m) {
             }
             try {
                 auto records = arb::parse_swc_file(fid);
-                arb::swc_canonicalize(records);
                 return arb::swc_as_segment_tree(records);
             }
             catch (arb::swc_error& e) {
@@ -153,6 +248,25 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "Load an swc file and convert to a segment_tree.");
+
+    m.def("load_swc_allen", &load_swc_allen,
+            "filename"_a, "no_gaps"_a=false,
+            "Generate a segment tree from an SWC file following the rules prescribed by\n"
+            "AllenDB and Sonata. Specifically:\n"
+            "* The first sample (the root) is treated as the center of the soma.\n"
+            "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
+            "* The first sample has tag 1 (soma).\n"
+            "* All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)\n"
+            "SONATA prescribes that there should be no gaps, however the models in AllenDB\n"
+            "have gaps between the start of sections and the soma. The flag no_gaps can be\n"
+            "used to enforce this requirement.\n"
+            "\n"
+            "Arbor does not support modelling the soma as a sphere, so a cylinder with length\n"
+            "equal to the soma diameter is used. The cylinder is centered on the origin, and\n"
+            "aligned along the z axis.\n"
+            "Axons and apical dendrites are attached to the proximal end of the cylinder, and\n"
+            "dendrites to the distal end, with a gap between the start of each branch and the\n"
+            "end of the soma cylinder to which it is attached.");
 
     // arb::morphology
 
