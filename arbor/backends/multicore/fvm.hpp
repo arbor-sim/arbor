@@ -45,6 +45,7 @@ struct backend {
     using sample_event_stream = arb::multicore::sample_event_stream;
 
     using shared_state = arb::multicore::shared_state;
+    using ion_state = arb::multicore::ion_state;
 
     static threshold_watcher voltage_watcher(
         const shared_state& state,

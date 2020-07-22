@@ -14,7 +14,7 @@ namespace pyarb {
 
 // TODO: trace entry of different types/container (e.g. vector of doubles to get all samples of a cell)
 
-struct trace_entry {
+struct trace_sample {
     arb::time_type t;
     double v;
 };
@@ -22,9 +22,9 @@ struct trace_entry {
 // A helper struct (state) ensuring that only one thread can write to the probe_buffers holding the trace entries (mapped by probe id)
 struct sampler_state {
     std::mutex mutex;
-    std::unordered_map<arb::cell_member_type, std::vector<trace_entry>> probe_buffers;
+    std::unordered_map<arb::cell_member_type, std::vector<trace_sample>> probe_buffers;
 
-    std::vector<trace_entry>& probe_buffer(arb::cell_member_type pid) {
+    std::vector<trace_sample>& probe_buffer(arb::cell_member_type pid) {
         // lock the mutex, s.t. other threads cannot write
         std::lock_guard<std::mutex> lock(mutex);
         // return or create entry
@@ -37,20 +37,20 @@ struct sampler_state {
     }
 
     // helper function to push back to locked vector
-    void push_back(arb::cell_member_type pid, trace_entry value) {
+    void push_back(arb::cell_member_type pid, trace_sample value) {
         auto& v = probe_buffer(pid);
         v.push_back(std::move(value));
     }
 
     // Access the probe buffers
-    const std::unordered_map<arb::cell_member_type, std::vector<trace_entry>>& samples() const {
+    const std::unordered_map<arb::cell_member_type, std::vector<trace_sample>>& samples() const {
         return probe_buffers;
     }
 };
 
 // A functor that models arb::sampler_function.
-// Holds a shared pointer to the trace_entry used to store the samples, so that if
-// the trace_entry in sampler is garbage collected in Python, stores will
+// Holds a shared pointer to the trace_sample used to store the samples, so that if
+// the trace_sample in sampler is garbage collected in Python, stores will
 // not seg fault.
 
 struct sample_callback {
@@ -60,8 +60,8 @@ struct sample_callback {
         sample_store(state)
     {}
 
-    void operator() (arb::cell_member_type probe_id, arb::probe_tag tag, std::size_t n, const arb::sample_record* recs) {
-        auto& v = sample_store->probe_buffer(probe_id);
+    void operator() (arb::probe_metadata pm, std::size_t n, const arb::sample_record* recs) {
+        auto& v = sample_store->probe_buffer(pm.id);
         for (std::size_t i = 0; i<n; ++i) {
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
                 v.push_back({recs[i].time, *p});
@@ -89,7 +89,7 @@ struct sampler {
         return sample_callback(sample_store);
     }
 
-    const std::vector<trace_entry>& samples(arb::cell_member_type pid) const {
+    const std::vector<trace_sample>& samples(arb::cell_member_type pid) const {
         if (!sample_store->has_pid(pid)) {
             throw std::runtime_error(util::pprintf("probe id {} does not exist", pid));
         }
@@ -117,7 +117,7 @@ std::shared_ptr<sampler> attach_sampler(arb::simulation& sim, arb::time_type int
     return r;
 }
 
-std::string sample_str(const trace_entry& s) {
+std::string sample_str(const trace_sample& s) {
         return util::pprintf("<arbor.sample: time {} ms, \tvalue {}>", s.t, s.v);
 }
 
@@ -125,10 +125,10 @@ void register_sampling(pybind11::module& m) {
     using namespace pybind11::literals;
 
     // Sample
-    pybind11::class_<trace_entry> sample(m, "sample");
-    sample
-        .def_readonly("time", &trace_entry::t, "The sample time [ms] at a specific probe.")
-        .def_readonly("value", &trace_entry::v, "The sample record at a specific probe.")
+    pybind11::class_<trace_sample> trace_sample(m, "trace_sample");
+    trace_sample
+        .def_readonly("time", &trace_sample::t, "The sample time [ms] at a specific probe.")
+        .def_readonly("value", &trace_sample::v, "The sample record at a specific probe.")
         .def("__str__",  &sample_str)
         .def("__repr__", &sample_str);
 

@@ -4,6 +4,9 @@
 # Apple Clang  1100.0.33.16
 #######################################################
 
+# Ignore bors testing branches.
+if: NOT branch =~ \.tmp$
+
 language: cpp
 sudo: false
 
@@ -18,7 +21,7 @@ matrix:
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=cthread-osx-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
     compiler: gcc-6
 
 ## test gcc6 - mpi with threading backend ##
@@ -29,7 +32,7 @@ matrix:
     env:
       - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
       - BUILD_NAME=mpi-osx-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
     compiler: gcc-6
 
 ## test clang9 - single node/rank with threading backend ##
@@ -40,7 +43,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=cthread-osx-clang-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
     compiler: clang
 
 ## test clang9 - mpi with threading backend ##
@@ -51,11 +54,11 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=mpi-osx-clang
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
     compiler: clang
 
 ######################### LINUX #########################
-## test gcc6 - single node/rank with threading backend ##
+## test gcc7 - single node/rank with threading backend ##
   - name: "linux, gcc, serial, py"
     os: linux
     dist: bionic
@@ -63,16 +66,16 @@ matrix:
       apt:
         sources:
         packages:
-          - g++-6
+          - g++-7
           - openmpi-bin
           - libopenmpi-dev
     env:
-      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
       - BUILD_NAME=cthread-linux-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
-    compiler: gcc-6
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=haswell
+    compiler: gcc-7
 
-## test gcc6 - mpi with threading backend ##
+## test gcc7 - mpi with threading backend ##
   - name: "linux, gcc, mpi, py"
     os: linux
     dist: bionic
@@ -84,10 +87,10 @@ matrix:
           - openmpi-bin
           - libopenmpi-dev
     env:
-      - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
       - BUILD_NAME=mpi-linux-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
-    compiler: gcc-6
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=haswell
+    compiler: gcc-7
 
 ## test clang4 - single node/rank with threading backend ##
   - name: "linux, clang, serial, py"
@@ -102,7 +105,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=cthread-linux-clang-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
     compiler: clang-4.0
 
 ## test clang4 - mpi with threading backend ##
@@ -118,7 +121,7 @@ matrix:
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=mpi-linux-clang-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
     compiler: clang-4.0
 
 before_install:

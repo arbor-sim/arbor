@@ -8,7 +8,9 @@
 #include <cmath>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "../gtest.h"
 
@@ -16,7 +18,7 @@
 
 namespace std {
     template <typename A, typename B>
-    std::ostream& operator<<(std::ostream& out, const std::pair<A, B>& p) {
+    ::std::ostream& operator<<(::std::ostream& out, const ::std::pair<A, B>& p) {
         return out << '(' << p.first << ',' << p.second << ')';
     }
 }

@@ -24,6 +24,7 @@ struct sampler_association {
     schedule sched;
     sampler_function sampler;
     std::vector<cell_member_type> probe_ids;
+    sampling_policy policy;
 };
 
 // Maintain a set of associations paired with handles used for deletion.
@@ -59,17 +60,5 @@ public:
     auto begin() { return assoc_view().begin(); }
     auto end()   { return assoc_view().end(); }
 };
-
-// Manage associations between probe ids, probe tags, and (lowered cell) probe handles.
-
-template <typename Handle>
-struct probe_association {
-    using probe_handle_type = Handle;
-    probe_handle_type handle;
-    probe_tag tag;
-};
-
-template <typename Handle>
-using probe_association_map = std::unordered_map<cell_member_type, probe_association<Handle>>;
 
 } // namespace arb

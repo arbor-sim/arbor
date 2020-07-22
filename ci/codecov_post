@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# In case of MPI tests running on a shared file system, we run into race conditions writing files
+# so here we generate some unique names for the codecov files.
+
+LOCAL_REPORTS="/codecov-reports"
+SHARED_REPORTS="$CI_PROJECT_DIR/codecov-reports"
+REPORT_NAME=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1`
+mkdir -p "$SHARED_REPORTS"
+
+# Create coverage reports for code run
+echo "Combining reports"
+lcov --no-external --capture --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/run.info" &> /dev/null
+lcov --add-tracefile "$LOCAL_REPORTS/baseline-codecov.info" --add-tracefile "$LOCAL_REPORTS/run.info" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+lcov --remove "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/test/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+lcov --remove "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/CMakeCXXCompilerId.cpp" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+lcov --remove "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/ext/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+
+# Only keep our own source
+lcov --extract "$LOCAL_REPORTS/combined.info" "$SOURCE_DIR/*" --output-file "$LOCAL_REPORTS/combined.info" &> /dev/null
+
+cp "$LOCAL_REPORTS/combined.info" "$SHARED_REPORTS/codecov-$REPORT_NAME.info"

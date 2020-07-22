@@ -39,31 +39,35 @@ probe will be specific to a particular cell type.
            using probe_tag = int;
 
            struct probe_info {
-               cell_member_type id;   // cell gid, index of probe
                probe_tag tag;         // opaque key, returned in sample record
                any address;           // cell-type specific location info
+
+               template <typename X>
+               probe_info(X&& a, probe_tag tag = 0):
+                  tag(tag), address(std::forward<X>(x)) {}
            };
 
-           probe_info recipe::get_probe(cell_member_type probe_id);
+           std::vector<probe_info> recipe::get_probes(cell_gid_type gid);
 
-
-The ``id`` field in the ``probe_info`` struct will be the same value as
-the ``probe_id`` used in the ``get_probe`` call.
-
-The ``get_probe()`` method is intended for use by cell group
-implementations to set up sampling data structures ahead of time and for
-putting in place any structures or information in the concrete cell
-implementations to allow monitoring.
 
 The ``tag`` field has no semantics for the engine. It is provided merely
 as a way of passing additional metadata about a probe to any sampler
 that polls it, with a view to samplers that handle multiple probes,
 possibly with different value types.
 
-Probe addresses are now decoupled from the cell descriptions themselves —
+Probe addresses are decoupled from the cell descriptions themselves —
 this allows a recipe implementation to construct probes independently
 of the cells themselves. It is the responsibility of a cell group implementation
 to parse the probe address objects wrapped in the ``any address`` field.
+
+The _k_th element of the vector returned by ``get_probes(gid)`` is
+identified with a probe-id: ``cell_member_type{gid, k}``.
+
+One probe address may describe more than one concrete probe, depending
+upon the interpretation of the probe address by the cell group. In this
+instance, each of the concerete probes will be associated with the
+same probe-id. Samplers can distinguish between different probes with
+the same id by their probe index (see below).
 
 
 Samplers and sample records
@@ -76,14 +80,30 @@ will be passed to a sampler function or function object:
 
     .. code-block:: cpp
 
+            struct probe_metadata {
+                cell_member_type id; // probe id
+                probe_tag tag;       // probe tag associated with id
+                unsigned index;      // index of probe source within those supplied by probe id
+                util::any_ptr meta;  // probe-specific metadata
+            };
+
             using sampler_function =
-                std::function<void (cell_member_type, probe_tag, size_t, const sample_record*)>;
+                std::function<void (probe_metadta, size_t, const sample_record*)>;
 
-where the parameters are respectively the probe id, the tag, the number
-of samples and a pointer to the sequence of sample records.
+where the parameters are respectively the probe metadata, the number of
+samples, and finally a pointer to the sequence of sample records.
 
-The ``probe_tag`` is the key given in the ``probe_info`` returned by
-the recipe.
+The ``probe_id``, identifies the probe by its probe-id (see above).
+
+The ``probe_tag`` in the metadata is the key given in the ``probe_info``
+returned by the recipe.
+
+The ``index`` identifies which of the possibly multiple probes associated
+with the probe-id is the source of the samples.
+
+The ``any_ptr`` value iin the metadata points to const probe-specific metadata;
+the type of the metadata will depend upon the probe address specified in the
+``probe_info`` provided by the recipe.
 
 One ``sample_record`` struct contains one sample of the probe data at a
 given simulation time point:
@@ -104,7 +124,8 @@ probe address.
 
 The data pointed to by ``data``, and the sample records themselves, are
 only guaranteed to be valid for the duration of the call to the sampler
-function. A simple sampler implementation for ``double`` data might be:
+function. A simple sampler implementation for ``double`` data, assuming
+one probe per probe id, might be as follows:
 
 .. container:: example-code
 
@@ -117,13 +138,13 @@ function. A simple sampler implementation for ``double`` data might be:
 
                 explicit scalar_sample(sample_data& samples): samples(samples) {}
 
-                void operator()(cell_member_type id, probe_tag, size_t n, const sample_record* records) {
+                void operator()(probe_metadata pm, size_t n, const sample_record* records) {
                     for (size_t i=0; i<n; ++i) {
                         const auto& rec = records[i];
 
                         const double* data = any_cast<const double*>(rec.data);
                         assert(data);
-                        samples[id].emplace_back(rec.time, *data);
+                        samples[pm.id].emplace_back(rec.time, *data);
                     }
                 }
             };
@@ -178,8 +199,11 @@ Two helper functions are provided for making ``cell_member_predicate`` objects:
 The ``sampling_policy`` policy is used to modify sampling behaviour: by
 default, the ``lax`` policy is to perform a best-effort sampling that
 minimizes sampling overhead and which will not change the numerical
-behaviour of the simulation. Other policies may be implemented in the
-future, e.g. ``interpolated`` or ``exact``.
+behaviour of the simulation. The ``exact`` policy requests that samples
+are provided for the exact time specified in the schedule, even if this
+means disrupting the course of the simulation. Other policies may be
+implemented in the future, but cell groups are in general not required
+to support any policy other than ``lax``.
 
 The simulation object will pass on the sampler setting request to the cell
 group that owns the given probe id. The ``cell_group`` interface will be
@@ -272,16 +296,13 @@ The ``schedule`` class and its implementations are found in ``schedule.hpp``.
 Helper classes for probe/sampler management
 -------------------------------------------
 
-The ``simulation`` and ``mc_cell_group`` classes use classes defined in ``scheduler_map.hpp`` to simplify
-the management of sampler--probe associations and probe metdata.
+The ``simulation`` and ``mc_cell_group`` classes use classes defined in
+``scheduler_map.hpp`` to simplify the management of sampler--probe associations
+and probe metdata.
 
 ``sampler_association_map`` wraps an ``unordered_map`` between sampler association
-handles and tuples (*schedule*, *sampler*, *probe set*), with thread-safe
+handles and tuples (*schedule*, *sampler*, *probe set*, *policy*), with thread-safe
 accessors.
-
-``probe_association_map<Handle>`` is a type alias for an unordered map between
-probe ids and tuples (*probe handle*, *probe tag*), where the *probe handle*
-is a cell-group specific accessor that allows efficient polling.
 
 
 Batched sampling in ``mc_cell_group``
@@ -300,6 +321,14 @@ after any postsynaptic spike events have been delivered.
 It is the responsibility of the ``mc_cell_group::advance()`` method to create the sample
 events from the entries of its ``sampler_association_map``, and to dispatch the
 sampled values to the sampler callbacks after the integration is complete.
-Given an association tuple (*schedule*, *sampler*, *probe set*) where the *schedule*
+Given an association tuple (*schedule*, *sampler*, *probe set*, *policy*) where the *schedule*
 has (non-zero) *n* sample times in the current integration interval, the ``mc_cell_group`` will
 call the *sampler* callback once for probe in *probe set*, with *n* sample values.
+
+In addition to the ``lax`` sampling policy, ``mc_cell_group`` supports the ``exact``
+policy. Integration steps will be shortened such that any sample times associated
+with an ``exact`` policy can be satisfied precisely.
+
+
+
+

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# In case of MPI tests running on a shared file system, we run into race conditions writing files
+# so here we generate some unique names for the codecov files.
+
+LOCAL_REPORTS="/codecov-reports"
+mkdir -p "$LOCAL_REPORTS"
+
+echo "Generating baseline codecov report"
+lcov --no-external --capture --initial --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/baseline-codecov.info" &> /dev/null
