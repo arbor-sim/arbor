@@ -258,7 +258,7 @@ void solve_matrix_fine(
 
 void gather(
     const fvm_value_type* from,
-    fvm_value_type*  to,
+    fvm_value_type* to,
     const fvm_index_type* p,
     unsigned n)
 {
@@ -270,7 +270,7 @@ void gather(
 
 void scatter(
     const fvm_value_type* from,
-    fvm_value_type*  to,
+    fvm_value_type* to,
     const fvm_index_type* p,
     unsigned n)
 {
@@ -282,8 +282,8 @@ void scatter(
 
 
 void assemble_matrix_fine(
-    fvm_value_type*  d,
-    fvm_value_type*  rhs,
+    fvm_value_type* d,
+    fvm_value_type* rhs,
     const fvm_value_type* invariant_d,
     const fvm_value_type* voltage,
     const fvm_value_type* current,

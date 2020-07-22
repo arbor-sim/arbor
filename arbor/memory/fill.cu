@@ -9,7 +9,7 @@ template <typename T, typename I>
 __global__
 void fill_kernel(T* __restrict__ const v, T value, I n) {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
-    
+
     if(tid < n) {
         v[tid] = value;
     }
