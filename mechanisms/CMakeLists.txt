@@ -1,8 +1,5 @@
 include(BuildModules.cmake)
 
-set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
-file(MAKE_DIRECTORY "${mech_dir}")
-
 set(external_modcc)
 if(ARB_WITH_EXTERNAL_MODCC)
     set(external_modcc MODCC ${modcc})
@@ -15,6 +12,8 @@ set(mech_sources "")
 # ALLEN
 set(allen_mechanisms CaDynamics Ca_HVA Ca_LVA Ih Im Im_v2 K_P K_T Kd Kv2like Kv3_1 NaTa NaTs NaV Nap SK)
 set(allen_mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/allen")
+set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/allen")
+file(MAKE_DIRECTORY "${mech_dir}")
 
 build_modules(
     ${allen_mechanisms}
@@ -53,6 +52,8 @@ endforeach()
 # DEFAULT
 set(default_mechanisms exp2syn expsyn hh kamt kdrmt nax nernst pas)
 set(default_mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/default")
+set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/default")
+file(MAKE_DIRECTORY "${mech_dir}")
 
 build_modules(
     ${default_mechanisms}

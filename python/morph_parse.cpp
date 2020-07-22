@@ -196,7 +196,7 @@ std::unordered_multimap<std::string, evaluator> eval_map {
     {"proximal_interval", make_call<arb::locset>(
                             [](arb::locset ls){return arb::reg::proximal_interval(std::move(ls), std::numeric_limits<double>::max());},
                             "'proximal_interval' with 1 argument: (start:locset)")},
-    {"super",     make_call<arb::region>(arb::reg::super,
+    {"complete", make_call<arb::region>(arb::reg::complete,
                             "'super' with 1 argment: (reg:region)")},
     {"radius_lt",make_call<arb::region, double>(arb::reg::radius_lt,
                             "'radius_lt' with 2 arguments: (reg:region radius:real)")},
@@ -227,8 +227,6 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'location' with 2 arguments: (branch_id:integer position:real)")},
     {"terminal", make_call<>(arb::ls::terminal,
                             "'terminal' with 0 arguments")},
-    {"sample",  make_call<int>(arb::ls::sample,
-                            "'sample' with 1 argument: (sample_id:integer)")},
     {"distal",  make_call<arb::region>(arb::ls::most_distal,
                             "'distal' with 1 argument: (reg:region)")},
     {"proximal",make_call<arb::region>(arb::ls::most_proximal,

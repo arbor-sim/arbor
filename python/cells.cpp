@@ -7,6 +7,7 @@
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
+#include <arbor/morph/segment_tree.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/util/any.hpp>
@@ -470,12 +471,11 @@ void register_cells(pybind11::module& m) {
                 return arb::cable_cell(m, labels.dict);
             }), "morphology"_a, "labels"_a)
         .def(pybind11::init(
-            [](const arb::sample_tree& t, const label_dict_proxy& labels) {
+            [](const arb::segment_tree& t, const label_dict_proxy& labels) {
                 return arb::cable_cell(arb::morphology(t), labels.dict);
             }),
-            "morphology"_a, "labels"_a,
-            "Construct with a morphology derived from a sample_tree, with automatic detection of whether\n"
-            "the morphology has a spherical root/soma.")
+            "segment_tree"_a, "labels"_a,
+            "Construct with a morphology derived from a segment tree.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
@@ -603,9 +603,9 @@ void register_cells(pybind11::module& m) {
             [](arb::cable_cell& c, const char* label) {return c.concrete_region(label).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
         // Discretization control.
-        .def("compartments_on_samples",
-            [](arb::cable_cell& c) {c.default_parameters.discretization = arb::cv_policy_every_sample{};},
-            "Decompose each branch into compartments defined by sample locations.")
+        .def("compartments_on_segments",
+            [](arb::cable_cell& c) {c.default_parameters.discretization = arb::cv_policy_every_segment{};},
+            "Decompose each branch into compartments defined by segments.")
         .def("compartments_length",
             [](arb::cable_cell& c, double len) {
                 c.default_parameters.discretization = arb::cv_policy_max_extent{len};

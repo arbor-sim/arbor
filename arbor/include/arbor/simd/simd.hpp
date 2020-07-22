@@ -7,6 +7,7 @@
 #include <arbor/simd/implbase.hpp>
 #include <arbor/simd/generic.hpp>
 #include <arbor/simd/native.hpp>
+#include <arbor/util/pp_util.hpp>
 
 namespace arb {
 namespace simd {
@@ -17,41 +18,342 @@ namespace detail {
 
     template <typename Impl>
     struct simd_mask_impl;
+
+    template <typename To>
+    struct simd_cast_impl;
+
+    template <typename I, typename V>
+    class indirect_indexed_expression;
+
+    template <typename V>
+    class indirect_expression;
+
+    template <typename T, typename M>
+    class where_expression;
+
+    template <typename T, typename M>
+    class const_where_expression;
+}
+
+// Top level functions for second API
+template <typename Impl, typename Other>
+void assign(detail::simd_impl<Impl>& a, const Other& b) {
+    a.copy_from(b);
+}
+
+template <typename Impl>
+typename detail::simd_impl<Impl>::scalar_type sum(const detail::simd_impl<Impl>& a) {
+    return a.sum();
+};
+
+#define ARB_UNARY_ARITHMETIC_(name)\
+template <typename Impl>\
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_));\
+};
+
+#define ARB_BINARY_ARITHMETIC_(name)\
+template <typename Impl>\
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, b.value_));\
+};\
+template <typename Impl>\
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, typename detail::simd_impl<Impl>::scalar_type b) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, Impl::broadcast(b)));\
+};\
+template <typename Impl>\
+detail::simd_impl<Impl> name(const typename detail::simd_impl<Impl>::scalar_type a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::wrap(Impl::name(Impl::broadcast(a), b.value_));\
+};
+
+#define ARB_BINARY_COMPARISON_(name)\
+template <typename Impl>\
+typename detail::simd_impl<Impl>::simd_mask name(const detail::simd_impl<Impl>& a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::mask(Impl::name(a.value_, b.value_));\
+};\
+template <typename Impl>\
+typename detail::simd_impl<Impl>::simd_mask name(const detail::simd_impl<Impl>& a, typename detail::simd_impl<Impl>::scalar_type b) {\
+    return detail::simd_impl<Impl>::mask(Impl::name(a.value_, Impl::broadcast(b)));\
+};\
+template <typename Impl>\
+typename detail::simd_impl<Impl>::simd_mask name(const typename detail::simd_impl<Impl>::scalar_type a, detail::simd_impl<Impl> b) {\
+    return detail::simd_impl<Impl>::mask(Impl::name(Impl::broadcast(a), b.value_));\
+};
+
+ARB_PP_FOREACH(ARB_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min)
+ARB_PP_FOREACH(ARB_BINARY_COMPARISON_, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt)
+ARB_PP_FOREACH(ARB_UNARY_ARITHMETIC_,  neg, abs, sin, cos, exp, log, expm1, exprelr)
+
+#undef ARB_BINARY_ARITHMETIC_
+#undef ARB_BINARY_COMPARISON__
+#undef ARB_UNARY_ARITHMETIC_
+
+template <typename T>
+detail::simd_mask_impl<T> logical_and(const detail::simd_mask_impl<T>& a, detail::simd_mask_impl<T> b) {
+    return a && b;
+}
+
+template <typename T>
+detail::simd_mask_impl<T> logical_or(const detail::simd_mask_impl<T>& a, detail::simd_mask_impl<T> b) {
+    return a || b;
+}
+
+template <typename T>
+detail::simd_mask_impl<T> logical_not(const detail::simd_mask_impl<T>& a) {
+    return !a;
+}
+
+template <typename T>
+detail::simd_impl<T> fma(const detail::simd_impl<T> a, detail::simd_impl<T> b, detail::simd_impl<T> c) {
+    return detail::simd_impl<T>::wrap(T::fma(a.value_, b.value_, c.value_));
 }
 
 namespace detail {
-    template <typename Impl, typename V>
-    struct indirect_expression {
-        V* p;
-        typename simd_traits<Impl>::vector_type index;
-        index_constraint constraint;
+    /// Indirect Expressions
+    template <typename V>
+    class indirect_expression {
+    public:
+        indirect_expression(V* p, unsigned width): p(p), width(width) {}
 
-        indirect_expression() = default;
-        indirect_expression(V* p, const simd_impl<Impl>& index_simd, index_constraint constraint):
-            p(p), index(index_simd.value_), constraint(constraint)
+        indirect_expression& operator=(V s) {
+            for (unsigned i = 0; i < width; ++i) {
+                p[i] = s;
+            }
+            return *this;
+        }
+
+        template <typename Other>
+        indirect_expression& operator=(const Other& s) {
+            indirect_copy_to(s, p, width);
+            return *this;
+        }
+
+        template <typename Impl, typename ImplMask>
+        indirect_expression& operator=(const const_where_expression<Impl, ImplMask>& s) {
+            indirect_copy_to(s.data_, s.mask_, p, width);
+            return *this;
+        }
+
+        template <typename Impl, typename ImplMask>
+        indirect_expression& operator=(const where_expression<Impl, ImplMask>& s) {
+            indirect_copy_to(s.data_, s.mask_, p, width);
+            return *this;
+        }
+
+        template <typename Impl> friend struct simd_impl;
+        template <typename Impl> friend struct simd_mask_impl;
+        template <typename To>   friend struct simd_cast_impl;
+        template <typename T, typename M> friend class where_expression;
+
+    private:
+        V* p;
+        unsigned width;
+    };
+
+    template <typename Impl, typename V>
+    static void indirect_copy_to(const simd_mask_impl<Impl>& s, V* p, unsigned width) {
+        Impl::mask_copy_to(s.value_, p);
+    }
+
+    template <typename Impl, typename V>
+    static void indirect_copy_to(const simd_impl<Impl>& s, V* p, unsigned width) {
+        Impl::copy_to(s.value_, p);
+    }
+
+    template <typename Impl, typename ImplMask, typename V>
+    static void indirect_copy_to(const simd_impl<Impl>& data, const simd_mask_impl<ImplMask>& mask, V* p, unsigned width) {
+        Impl::copy_to_masked(data.value_, p, mask.value_);
+    }
+
+    /// Indirect Indexed Expressions
+    template <typename ImplIndex, typename V>
+    class indirect_indexed_expression {
+    public:
+        indirect_indexed_expression(V* p, const ImplIndex& index_simd, unsigned width, index_constraint constraint):
+            p(p), index(index_simd), width(width), constraint(constraint)
         {}
 
-        // Simple assignment included for consistency with compound assignment interface.
-
-        template <typename Other>
-        indirect_expression& operator=(const simd_impl<Other>& s) {
-            s.copy_to(*this);
-            return *this;
-        }
-
-        // Compound assignment (currently only addition and subtraction!):
-
-        template <typename Other>
-        indirect_expression& operator+=(const simd_impl<Other>& s) {
-            simd_impl<Other>::compound_indexed_add(tag<Impl>{}, s.value_, p, index, constraint);
+        indirect_indexed_expression& operator=(V s) {
+            typename simd_traits<ImplIndex>::scalar_type idx[width];
+            ImplIndex::copy_to(index.value_, idx);
+            for (unsigned i = 0; i < width; ++i) {
+                p[idx[i]] = s;
+            }
             return *this;
         }
 
         template <typename Other>
-        indirect_expression& operator-=(const simd_impl<Other>& s) {
-            simd_impl<Other>::compound_indexed_add(tag<Impl>{}, (-s).value_, p, index, constraint);
+        indirect_indexed_expression& operator=(const Other& s) {
+            indirect_indexed_copy_to(s, p, index, width);
             return *this;
         }
+
+        template <typename Impl, typename ImplMask>
+        indirect_indexed_expression& operator=(const const_where_expression<Impl, ImplMask>& s) {
+            indirect_indexed_copy_to(s.data_, s.mask_, p, index, width);
+            return *this;
+        }
+
+        template <typename Impl, typename ImplMask>
+        indirect_indexed_expression& operator=(const where_expression<Impl, ImplMask>& s) {
+            indirect_indexed_copy_to(s.data_, s.mask_, p, index, width);
+            return *this;
+        }
+
+        template <typename Other>
+        indirect_indexed_expression& operator+=(const Other& s) {
+            compound_indexed_add(s, p, index, width, constraint);
+            return *this;
+        }
+
+        template <typename Other>
+        indirect_indexed_expression& operator-=(const Other& s) {
+            compound_indexed_add(neg(s), p, index, width, constraint);
+            return *this;
+        }
+
+        template <typename Impl> friend struct simd_impl;
+        template <typename To>   friend struct simd_cast_impl;
+        template <typename T, typename M> friend class where_expression;
+
+    private:
+        V* p;
+        const ImplIndex& index;
+        unsigned width;
+        index_constraint constraint;
+    };
+
+    template <typename Impl, typename ImplIndex, typename V>
+    static void indirect_indexed_copy_to(const simd_impl<Impl>& s, V* p, const simd_impl<ImplIndex>& index, unsigned width) {
+        Impl::scatter(tag<ImplIndex>{}, s.value_, p, index.value_);
+    }
+
+    template <typename Impl, typename ImplIndex, typename ImplMask, typename V>
+    static void indirect_indexed_copy_to(const simd_impl<Impl>& data, const simd_mask_impl<ImplMask>& mask, V* p, const simd_impl<ImplIndex>& index, unsigned width) {
+        Impl::scatter(tag<ImplIndex>{}, data.value_, p, index.value_, mask.value_);
+    }
+
+    template <typename ImplIndex, typename Impl, typename V>
+    static void compound_indexed_add(
+        const simd_impl<Impl>& s,
+        V* p,
+        const simd_impl<ImplIndex>& index,
+        unsigned width,
+        index_constraint constraint)
+    {
+        switch (constraint) {
+            case index_constraint::none:
+            {
+                typename ImplIndex::scalar_type o[width];
+                ImplIndex::copy_to(index.value_, o);
+
+                V a[width];
+                Impl::copy_to(s.value_, a);
+
+                V temp = 0;
+                for (unsigned i = 0; i<width-1; ++i) {
+                    temp += a[i];
+                    if (o[i] != o[i+1]) {
+                        p[o[i]] += temp;
+                        temp = 0;
+                    }
+                }
+                temp += a[width-1];
+                p[o[width-1]] += temp;
+            }
+                break;
+            case index_constraint::independent:
+            {
+                auto v = Impl::add(Impl::gather(tag<ImplIndex>{}, p, index.value_), s.value_);
+                Impl::scatter(tag<ImplIndex>{}, v, p, index.value_);
+            }
+                break;
+            case index_constraint::contiguous:
+            {
+                p += ImplIndex::element0(index.value_);
+                auto v = Impl::add(Impl::copy_from(p), s.value_);
+                Impl::copy_to(v, p);
+            }
+                break;
+            case index_constraint::constant:
+                p += ImplIndex::element0(index.value_);
+                *p += Impl::reduce_add(s.value_);
+                break;
+        }
+    }
+
+    /// Where Expressions
+    template <typename Impl, typename ImplMask>
+    class where_expression {
+    public:
+        where_expression(const ImplMask& m, Impl& s):
+                mask_(m), data_(s) {}
+
+        template <typename Other>
+        where_expression& operator=(const Other& v) {
+            where_copy_to(mask_, data_, v);
+            return *this;
+        }
+
+        template <typename V>
+        where_expression& operator=(const indirect_expression<V>& v) {
+            where_copy_to(mask_, data_, v.p, v.width);
+            return *this;
+        }
+
+        template <typename ImplIndex, typename V>
+        where_expression& operator=(const indirect_indexed_expression<ImplIndex, V>& v) {
+            where_copy_to(mask_, data_, v.p, v.index, v.width);
+            return *this;
+        }
+
+        template <typename T>             friend struct simd_impl;
+        template <typename To>            friend struct simd_cast_impl;
+        template <typename V>             friend class indirect_expression;
+        template <typename I, typename V> friend class indirect_indexed_expression;
+
+    private:
+        const ImplMask& mask_;
+        Impl& data_;
+    };
+
+    template <typename Impl, typename ImplMask, typename V>
+    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const V& t) {
+        f.value_ = Impl::ifelse(mask.value_, Impl::broadcast(t), f.value_);
+    }
+
+    template <typename Impl, typename ImplMask>
+    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const simd_impl<Impl>& t) {
+        f.value_ = Impl::ifelse(mask.value_, t.value_, f.value_);
+    }
+
+    template <typename Impl, typename ImplMask, typename V>
+    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const V* t, unsigned width) {
+        f.value_ = Impl::ifelse(mask.value_, Impl::copy_from_masked(t, mask.value_), f.value_);
+    }
+
+    template <typename Impl, typename ImplIndex, typename ImplMask, typename V>
+    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f,  const V* p, const simd_impl<ImplIndex>& index, unsigned width) {
+        simd_impl<Impl> temp = Impl::broadcast(0);
+        temp.value_ = Impl::gather(tag<ImplIndex>{}, temp.value_, p, index.value_, mask.value_);
+        f.value_ = Impl::ifelse(mask.value_, temp.value_, f.value_);
+    }
+
+    /// Const Where Expressions
+    template <typename Impl, typename ImplMask>
+    class const_where_expression {
+    public:
+        const_where_expression(const ImplMask& m, const Impl& s):
+                mask_(m), data_(s) {}
+
+        template <typename T>             friend struct simd_impl;
+        template <typename To>            friend struct simd_cast_impl;
+        template <typename V>             friend class indirect_expression;
+        template <typename I, typename V> friend class indirect_indexed_expression;
+
+    private:
+        const ImplMask& mask_;
+        const Impl& data_;
     };
 
     template <typename Impl>
@@ -68,6 +370,7 @@ namespace detail {
 
         using scalar_type = typename simd_traits<Impl>::scalar_type;
         using simd_mask   = simd_mask_impl<typename simd_traits<Impl>::mask_impl>;
+        using simd_base = Impl;
 
     protected:
         using vector_type = typename simd_traits<Impl>::vector_type;
@@ -80,7 +383,10 @@ namespace detail {
         friend struct simd_impl;
 
         template <typename Other, typename V>
-        friend struct indirect_expression;
+        friend class indirect_indexed_expression;
+
+        template <typename V>
+        friend class indirect_expression;
 
         simd_impl() = default;
 
@@ -117,12 +423,12 @@ namespace detail {
 
         // Construct from indirect expression (gather).
         template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-        explicit simd_impl(indirect_expression<IndexImpl, scalar_type> pi) {
+        explicit simd_impl(indirect_indexed_expression<IndexImpl, scalar_type> pi) {
             copy_from(pi);
         }
 
         template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-        explicit simd_impl(indirect_expression<IndexImpl, const scalar_type> pi) {
+        explicit simd_impl(indirect_indexed_expression<IndexImpl, const scalar_type> pi) {
             copy_from(pi);
         }
 
@@ -149,33 +455,45 @@ namespace detail {
             Impl::copy_to(value_, p);
         }
 
-        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-        void copy_to(indirect_expression<IndexImpl, scalar_type> pi) const {
+        template <typename Index, typename = std::enable_if_t<width==simd_traits<typename Index::simd_base>::width>>
+        void copy_to(indirect_indexed_expression<Index, scalar_type> pi) const {
+            using IndexImpl = typename Index::simd_base;
             Impl::scatter(tag<IndexImpl>{}, value_, pi.p, pi.index);
+        }
+
+        template <typename Other, typename = std::enable_if_t<width==simd_traits<Other>::width>>
+        void copy_from(const simd_impl<Other>& x) {
+            value_ = Impl::cast_from(tag<Other>{}, x.value_);
+        }
+
+        void copy_from(const scalar_type p) {
+            value_ = Impl::broadcast(p);
         }
 
         void copy_from(const scalar_type* p) {
             value_ = Impl::copy_from(p);
         }
 
-        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-        void copy_from(indirect_expression<IndexImpl, scalar_type> pi) {
+
+        template <typename Index, typename = std::enable_if_t<width==simd_traits<typename Index::simd_base>::width>>
+        void copy_from(indirect_indexed_expression<Index, scalar_type> pi) {
+            using IndexImpl = typename Index::simd_base;
             switch (pi.constraint) {
             case index_constraint::none:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
             case index_constraint::independent:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
             case index_constraint::contiguous:
                 {
-                    scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
+                    scalar_type* p = IndexImpl::element0(pi.index.value_) + pi.p;
                     value_ = Impl::copy_from(p);
                 }
                 break;
             case index_constraint::constant:
                 {
-                    scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
+                    scalar_type* p = IndexImpl::element0(pi.index.value_) + pi.p;
                     scalar_type l = (*p);
                     value_ = Impl::broadcast(l);
                 }
@@ -183,80 +501,54 @@ namespace detail {
             }
         }
 
-        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-        void copy_from(indirect_expression<IndexImpl, const scalar_type> pi) {
+        template <typename Index, typename = std::enable_if_t<width==simd_traits<typename Index::simd_base>::width>>
+        void copy_from(indirect_indexed_expression<Index, const scalar_type> pi) {
+            using IndexImpl = typename Index::simd_base;
             switch (pi.constraint) {
             case index_constraint::none:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
             case index_constraint::independent:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
             case index_constraint::contiguous:
                 {
-                    const scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
+                    const scalar_type* p = IndexImpl::element0(pi.index.value_) + pi.p;
                     value_ = Impl::copy_from(p);
                 }
                 break;
             case index_constraint::constant:
                 {
-                    const scalar_type *p = IndexImpl::element0(pi.index) + pi.p;
+                    const scalar_type *p = IndexImpl::element0(pi.index.value_) + pi.p;
                     scalar_type l = (*p);
                     value_ = Impl::broadcast(l);
                 }
                 break;
             }
-
         }
 
-        template <typename ImplIndex>
-        static void compound_indexed_add(tag<ImplIndex> tag, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, index_constraint constraint) {
-            switch (constraint) {
-            case index_constraint::none:
-                {
-                    typename ImplIndex::scalar_type o[width];
-                    ImplIndex::copy_to(index, o);
-
-                    scalar_type a[width];
-                    Impl::copy_to(s, a);
-
-                    scalar_type temp = 0;
-                    for (unsigned i = 0; i<width-1; ++i) {
-                        temp += a[i];
-                        if (o[i] != o[i+1]) {
-                            p[o[i]] += temp;
-                            temp = 0;
-                        }
-                    }
-                    temp += a[width-1];
-                    p[o[width-1]] += temp;
-                }
-                break;
-            case index_constraint::independent:
-                {
-                    vector_type v = Impl::add(Impl::gather(tag, p, index), s);
-                    Impl::scatter(tag, v, p, index);
-                }
-                break;
-            case index_constraint::contiguous:
-                {
-                    p += ImplIndex::element0(index);
-                    vector_type v = Impl::add(Impl::copy_from(p), s);
-                    Impl::copy_to(v, p);
-                }
-                break;
-            case index_constraint::constant:
-                p += ImplIndex::element0(index);
-                *p += Impl::reduce_add(s);
-                break;
-            }
+        void copy_from(indirect_expression<scalar_type> pi) {
+            value_ = Impl::copy_from(pi.p);
         }
 
+        void copy_from(indirect_expression<const scalar_type> pi) {
+            value_ = Impl::copy_from(pi.p);
+        }
+
+        template <typename T, typename M>
+        void copy_from(const_where_expression<T, M> w) {
+            value_ = Impl::ifelse(w.mask_.value_, w.data_.value_, value_);
+        }
+
+        template <typename T, typename M>
+        void copy_from(where_expression<T, M> w) {
+            value_ = Impl::ifelse(w.mask_.value_, w.data_.value_, value_);
+        }
 
         // Arithmetic operations: +, -, *, /, fma.
 
         simd_impl operator-() const {
-            return wrap(Impl::negate(value_));
+            return simd_impl::wrap(Impl::neg(value_));
         }
 
         friend simd_impl operator+(const simd_impl& a, simd_impl b) {
@@ -364,115 +656,67 @@ namespace detail {
             return Impl::reduce_add(value_);
         }
 
-        // Masked assignment (via where expressions).
+        // Maths functions are implemented as top-level functions; declare as friends for access to `wrap`
 
-        struct where_expression {
-            where_expression(const where_expression&) = default;
-            where_expression& operator=(const where_expression&) = delete;
+        #define ARB_DECLARE_UNARY_ARITHMETIC_(name)\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const simd_impl<T>& a);
 
-            where_expression(const simd_mask& m, simd_impl& s):
-                mask_(m), data_(s) {}
+        #define ARB_DECLARE_BINARY_ARITHMETIC_(name)\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const simd_impl<T>& a, simd_impl<T> b);\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const simd_impl<T>& a, typename simd_impl<T>::scalar_type b);\
+        template <typename T>\
+        friend simd_impl<T> arb::simd::name(const typename simd_impl<T>::scalar_type a, simd_impl<T> b);
 
-            where_expression& operator=(scalar_type v) {
-                data_.value_ = Impl::ifelse(mask_.value_, simd_impl(v).value_, data_.value_);
-                return *this;
-            }
+        #define ARB_DECLARE_BINARY_COMPARISON_(name)\
+        template <typename T>\
+        friend typename simd_impl<T>::simd_mask arb::simd::name(const simd_impl<T>& a, simd_impl<T> b);\
+        template <typename T>\
+        friend typename simd_impl<T>::simd_mask arb::simd::name(const simd_impl<T>& a, typename simd_impl<T>::scalar_type b);\
+        template <typename T>\
+        friend typename simd_impl<T>::simd_mask arb::simd::name(const typename simd_impl<T>::scalar_type a, simd_impl<T> b);
 
-            where_expression& operator=(const simd_impl& v) {
-                data_.value_ = Impl::ifelse(mask_.value_, v.value_, data_.value_);
-                return *this;
-            }
+        ARB_PP_FOREACH(ARB_DECLARE_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min, cmp_eq)
+        ARB_PP_FOREACH(ARB_DECLARE_BINARY_COMPARISON_, cmp_eq, cmp_neq, cmp_lt, cmp_leq, cmp_gt, cmp_geq)
+        ARB_PP_FOREACH(ARB_DECLARE_UNARY_ARITHMETIC_,  neg, abs, sin, cos, exp, log, expm1, exprelr)
 
-            void copy_to(scalar_type* p) const {
-                Impl::copy_to_masked(data_.value_, p, mask_.value_);
-            }
+        #undef ARB_DECLARE_UNARY_ARITHMETIC_
+        #undef ARB_DECLARE_BINARY_ARITHMETIC_
+        #undef ARB_DECLARE_BINARY_COMPARISON_
 
-            void copy_from(const scalar_type* p) {
-                data_.value_ = Impl::copy_from_masked(data_.value_, p, mask_.value_);
-            }
+        template <typename T>
+        friend simd_impl<T> arb::simd::fma(const simd_impl<T> a, simd_impl<T> b, simd_impl<T> c);
 
-            // Gather and scatter.
+        // Declare Indirect/Indirect indexed/Where Expression copy function as friends
 
-            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-            void copy_from(indirect_expression<IndexImpl, scalar_type> pi) {
-                data_.value_ = Impl::gather(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
-            }
+        template <typename T, typename I, typename V>
+        friend void compound_indexed_add(const simd_impl<I>& s, V* p, const simd_impl<T>& index, unsigned width, index_constraint constraint);
 
-            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-            void copy_to(indirect_expression<IndexImpl, scalar_type> pi) const {
-                Impl::scatter(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
-            }
+        template <typename I, typename V>
+        friend void indirect_copy_to(const simd_impl<I>& s, V* p, unsigned width);
 
-        private:
-            const simd_mask& mask_;
-            simd_impl& data_;
-        };
+        template <typename T, typename M, typename V>
+        friend void indirect_copy_to(const simd_impl<T>& data, const simd_mask_impl<M>& mask, V* p, unsigned width);
 
-        struct const_where_expression {
-            const_where_expression(const const_where_expression&) = default;
-            const_where_expression& operator=(const const_where_expression&) = delete;
+        template <typename T, typename I, typename V>
+        friend void indirect_indexed_copy_to(const simd_impl<T>& s, V* p, const simd_impl<I>& index, unsigned width);
 
-            const_where_expression(const simd_mask& m, const simd_impl& s):
-                    mask_(m), data_(s) {}
+        template <typename T, typename I, typename M, typename V>
+        friend void indirect_indexed_copy_to(const simd_impl<T>& data, const simd_mask_impl<M>& mask, V* p, const simd_impl<I>& index, unsigned width);
 
-            void copy_to(scalar_type* p) const {
-                Impl::copy_to_masked(data_.value_, p, mask_.value_);
-            }
+        template <typename T, typename M, typename V>
+        friend void where_copy_to(const simd_mask_impl<M>& mask, simd_impl<T>& f, const V& t);
 
-            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
-            void copy_to(indirect_expression<IndexImpl, scalar_type> pi) const {
-                Impl::scatter(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
-            }
+        template <typename T, typename M>
+        friend void where_copy_to(const simd_mask_impl<M>& mask, simd_impl<T>& f, const simd_impl<T>& t);
 
-        private:
-            const simd_mask& mask_;
-            const simd_impl& data_;
-        };
+        template <typename T, typename M, typename V>
+        friend void where_copy_to(const simd_mask_impl<M>& mask, simd_impl<T>& f, const V* p, unsigned width);
 
-
-        // Maths functions are implemented as top-level functions; declare as friends
-        // for access to `wrap` and to enjoy ADL, allowing implicit conversion from
-        // scalar_type in binary operation arguments.
-
-        friend simd_impl abs(const simd_impl& s) {
-            return simd_impl::wrap(Impl::abs(s.value_));
-        }
-
-        friend simd_impl sin(const simd_impl& s) {
-            return simd_impl::wrap(Impl::sin(s.value_));
-        }
-
-        friend simd_impl cos(const simd_impl& s) {
-            return simd_impl::wrap(Impl::cos(s.value_));
-        }
-
-        friend simd_impl exp(const simd_impl& s) {
-            return simd_impl::wrap(Impl::exp(s.value_));
-        }
-
-        friend simd_impl log(const simd_impl& s) {
-            return simd_impl::wrap(Impl::log(s.value_));
-        }
-
-        friend simd_impl expm1(const simd_impl& s) {
-            return simd_impl::wrap(Impl::expm1(s.value_));
-        }
-
-        friend simd_impl exprelr(const simd_impl& s) {
-            return simd_impl::wrap(Impl::exprelr(s.value_));
-        }
-
-        friend simd_impl pow(const simd_impl& s, const simd_impl& t) {
-            return simd_impl::wrap(Impl::pow(s.value_, t.value_));
-        }
-
-        friend simd_impl min(const simd_impl& s, const simd_impl& t) {
-            return simd_impl::wrap(Impl::min(s.value_, t.value_));
-        }
-
-        friend simd_impl max(const simd_impl& s, const simd_impl& t) {
-            return simd_impl::wrap(Impl::max(s.value_, t.value_));
-        }
+        template <typename T, typename I, typename M, typename V>
+        friend void where_copy_to(const simd_mask_impl<M>& mask, simd_impl<T>& f, const V* p, const simd_impl<I>& index, unsigned width);
 
     protected:
         vector_type value_;
@@ -541,6 +785,10 @@ namespace detail {
             value_ = Impl::mask_copy_from(y);
         }
 
+        void copy_from(indirect_expression<bool> pi) {
+            value_ = Impl::mask_copy_from(pi.p);
+        }
+
         // Array subscript operations.
 
         struct reference {
@@ -605,7 +853,33 @@ namespace detail {
     };
 
     template <typename To>
-    struct simd_cast_impl {};
+    struct simd_cast_impl;
+
+    template <typename ImplTo>
+    struct simd_cast_impl<simd_mask_impl<ImplTo>> {
+        static constexpr unsigned N = simd_traits<ImplTo>::width;
+        using scalar_type = typename simd_traits<ImplTo>::scalar_type;
+
+        template <typename ImplFrom, typename = std::enable_if_t<N==simd_traits<ImplFrom>::width>>
+        static simd_mask_impl<ImplTo> cast(const simd_mask_impl<ImplFrom>& v) {
+            return simd_mask_impl<ImplTo>(v);
+        }
+
+        static simd_mask_impl<ImplTo> cast(const std::array<scalar_type, N>& a) {
+            return simd_mask_impl<ImplTo>(a.data());
+        }
+
+        static simd_mask_impl<ImplTo> cast(scalar_type a) {
+            simd_mask_impl<ImplTo> r = a;
+            return r;
+        }
+
+        static simd_mask_impl<ImplTo> cast(const indirect_expression<bool>& a) {
+            simd_mask_impl<ImplTo> r;
+            r.copy_from(a);
+            return r;
+        }
+    };
 
     template <typename ImplTo>
     struct simd_cast_impl<simd_impl<ImplTo>> {
@@ -619,6 +893,32 @@ namespace detail {
 
         static simd_impl<ImplTo> cast(const std::array<scalar_type, N>& a) {
             return simd_impl<ImplTo>(a.data());
+        }
+
+        static simd_impl<ImplTo> cast(scalar_type a) {
+            simd_impl<ImplTo> r = a;
+            return r;
+        }
+
+        template <typename V>
+        static simd_impl<ImplTo> cast(const indirect_expression<V>& a) {
+            simd_impl<ImplTo> r;
+            r.copy_from(a);
+            return r;
+        }
+
+        template <typename Impl, typename V>
+        static simd_impl<ImplTo> cast(const indirect_indexed_expression<Impl,V>& a) {
+            simd_impl<ImplTo> r;
+            r.copy_from(a);
+            return r;
+        }
+
+        template <typename Impl, typename V>
+        static simd_impl<ImplTo> cast(const const_where_expression<Impl,V>& a) {
+            simd_impl<ImplTo> r = 0;
+            r.copy_from(a);
+            return r;
         }
     };
 
@@ -652,27 +952,17 @@ namespace simd_abi {
     };
 }
 
-template <typename Value, unsigned N, template <class, unsigned> class Abi = simd_abi::default_abi>
-using simd = detail::simd_impl<typename Abi<Value, N>::type>;
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
+struct simd_wrap { using type = detail::simd_impl<typename Abi<Value, N>::type>; };
 
-template <typename Value, unsigned N>
-using simd_mask = typename simd<Value, N>::simd_mask;
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
+using simd = typename simd_wrap<Value, N, Abi>::type;
 
-template <typename Simd>
-using where_expression = typename Simd::where_expression;
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
+struct simd_mask_wrap { using type = typename simd<Value, N, Abi>::simd_mask; };
 
-template <typename Simd>
-using const_where_expression = typename Simd::const_where_expression;
-
-template <typename Simd>
-where_expression<Simd> where(const typename Simd::simd_mask& m, Simd& v) {
-    return where_expression<Simd>(m, v);
-}
-
-template <typename Simd>
-const_where_expression<Simd> where(const typename Simd::simd_mask& m, const Simd& v)  {
-    return const_where_expression<Simd>(m, v);
-}
+template <typename Value, unsigned N, template <class, unsigned> class Abi>
+using simd_mask = typename simd_mask_wrap<Value, N, Abi>::type;
 
 template <typename>
 struct is_simd: std::false_type {};
@@ -688,6 +978,11 @@ To simd_cast(const From& s) {
     return detail::simd_cast_impl<To>::cast(s);
 }
 
+template <typename S, std::enable_if_t<is_simd<S>::value, int> = 0>
+inline constexpr int width(const S a = S{}) {
+    return S::width;
+};
+
 // Gather/scatter indexed memory specification.
 
 template <
@@ -695,14 +990,35 @@ template <
     typename PtrLike,
     typename V = std::remove_reference_t<decltype(*std::declval<PtrLike>())>
 >
-detail::indirect_expression<IndexImpl, V> indirect(
+detail::indirect_indexed_expression<IndexImpl, V> indirect(
     PtrLike p,
-    const detail::simd_impl<IndexImpl>& index,
+    const IndexImpl& index,
+    unsigned width,
     index_constraint constraint = index_constraint::none)
 {
-    return detail::indirect_expression<IndexImpl, V>(p, index, constraint);
+    return detail::indirect_indexed_expression<IndexImpl, V>(p, index, width, constraint);
 }
 
+template <
+        typename PtrLike,
+        typename V = std::remove_reference_t<decltype(*std::declval<PtrLike>())>
+>
+detail::indirect_expression<V> indirect(
+        PtrLike p,
+        unsigned width)
+{
+    return detail::indirect_expression<V>(p, width);
+}
+
+template <typename Impl, typename ImplMask>
+detail::where_expression<Impl, ImplMask> where(const ImplMask& m, Impl& v) {
+    return detail::where_expression<Impl, ImplMask>(m, v);
+}
+
+template <typename Impl, typename ImplMask>
+detail::const_where_expression<Impl, ImplMask> where(const ImplMask& m, const Impl& v) {
+    return detail::const_where_expression<Impl, ImplMask>(m, v);
+}
 
 } // namespace simd
 } // namespace arb

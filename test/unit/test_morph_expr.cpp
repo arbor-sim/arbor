@@ -9,11 +9,12 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/morph/sample_tree.hpp>
 
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
+#include "common.hpp"
+#include "common_cells.hpp"
 #include "morph_pred.hpp"
 
 using namespace arb;
@@ -34,8 +35,10 @@ TEST(region, expr_repn) {
     auto t1 = reg::tagged(1);
     auto t2 = reg::tagged(2);
     auto t3 = reg::tagged(3);
-    auto s =  reg::super(t3);
+    auto s =  reg::complete(t3);
     auto all = reg::all();
+    auto df = difference(t2, t1);
+    auto cm = complement(t3);
 
     EXPECT_EQ(to_string(c1), "(cable 1 0 1)");
     EXPECT_EQ(to_string(c2), "(cable 4 0.125 0.5)");
@@ -43,12 +46,14 @@ TEST(region, expr_repn) {
     EXPECT_EQ(to_string(b1), "(cable 1 0 1)");
     EXPECT_EQ(to_string(t1), "(tag 1)");
     EXPECT_EQ(to_string(t2), "(tag 2)");
-    EXPECT_EQ(to_string(s),  "(super (tag 3))");
+    EXPECT_EQ(to_string(s),  "(complete (tag 3))");
     EXPECT_EQ(to_string(intersect(c1, t2)), "(intersect (cable 1 0 1) (tag 2))");
     EXPECT_EQ(to_string(join(c1, t2)),  "(join (cable 1 0 1) (tag 2))");
     EXPECT_EQ(to_string(join(t1, t2, t3)), "(join (join (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(intersect(t1, t2, t3)), "(intersect (intersect (tag 1) (tag 2)) (tag 3))");
     EXPECT_EQ(to_string(all), "(all)");
+    EXPECT_EQ(to_string(df), "(difference (tag 2) (tag 1))");
+    EXPECT_EQ(to_string(cm), "(complement (tag 3))");
 }
 
 TEST(region, invalid_mcable) {
@@ -62,16 +67,15 @@ TEST(locset, expr_repn) {
 
     auto root = ls::root();
     auto term = ls::terminal();
-    auto samp = ls::sample(42);
     auto loc = ls::location(2, 0.5);
+    auto bdy = ls::boundary(reg::tagged(1));
 
     EXPECT_EQ(to_string(root), "(root)");
     EXPECT_EQ(to_string(term), "(terminal)");
     EXPECT_EQ(to_string(sum(root, term)), "(sum (root) (terminal))");
-    EXPECT_EQ(to_string(sum(root, term, samp)), "(sum (sum (root) (terminal)) (sample 42))");
-    EXPECT_EQ(to_string(sum(root, term, samp, loc)), "(sum (sum (sum (root) (terminal)) (sample 42)) (location 2 0.5))");
-    EXPECT_EQ(to_string(samp), "(sample 42)");
+    EXPECT_EQ(to_string(sum(root, term, loc)), "(sum (sum (root) (terminal)) (location 2 0.5))");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
+    EXPECT_EQ(to_string(bdy), "(boundary (tag 1))");
 }
 
 TEST(locset, invalid_mlocation) {
@@ -88,18 +92,18 @@ TEST(locset, invalid_mlocation) {
 
 TEST(locset, thingify_named) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
 
     locset banana = ls::root();
     locset cake = ls::terminal();
 
-    sample_tree sm(svec{ {{0,0,0,1},1}, {{10,0,0,1},1} }, pvec{mnpos, 0});
+    auto sm = segments_from_points(svec{ {0,0,0,1}, {10,0,0,1} }, pvec{mnpos, 0});
     {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
 
-        mprovider mp(morphology(sm, false), dict);
+        mprovider mp(morphology(sm), dict);
         EXPECT_EQ(thingify(locset("cake"), mp), thingify(cake, mp));
         EXPECT_EQ(thingify(locset("banana"), mp), thingify(banana, mp));
 
@@ -112,7 +116,7 @@ TEST(locset, thingify_named) {
         dict.set("topping", locset("fruit"));
         dict.set("fruit", locset("strawberry"));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), unbound_name);
+        EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
     {
         label_dict dict;
@@ -121,26 +125,26 @@ TEST(locset, thingify_named) {
         dict.set("topping", locset("fruit"));
         dict.set("fruit", sum(locset("banana"), locset("topping")));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), circular_definition);
+        EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }
 }
 
 TEST(region, thingify_named) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
 
     region banana = reg::branch(0);
     region cake = reg::cable(0, 0.2, 0.3);
 
     // copy-paste ftw
 
-    sample_tree sm(svec{ {{0,0,0,1},1}, {{10,0,0,1},1} }, pvec{mnpos, 0});
+    auto sm = segments_from_points(svec{ {0,0,0,1}, {10,0,0,1} }, pvec{mnpos, 0});
     {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
 
-        mprovider mp(morphology(sm, false), dict);
+        mprovider mp(morphology(sm), dict);
         EXPECT_EQ(thingify(region("cake"), mp), thingify(cake, mp));
         EXPECT_EQ(thingify(region("banana"), mp), thingify(banana, mp));
 
@@ -153,7 +157,7 @@ TEST(region, thingify_named) {
         dict.set("topping", region("fruit"));
         dict.set("fruit", region("strawberry"));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), unbound_name);
+        EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
     {
         label_dict dict;
@@ -162,7 +166,7 @@ TEST(region, thingify_named) {
         dict.set("topping", region("fruit"));
         dict.set("fruit", join(region("cake"), region("topping")));
 
-        EXPECT_THROW(mprovider(morphology(sm, false), dict), circular_definition);
+        EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }
 }
 
@@ -170,11 +174,10 @@ TEST(region, thingify_named) {
 
 TEST(locset, thingify) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
     using ll = mlocation_list;
     auto root = ls::root();
     auto term = ls::terminal();
-    auto samp = ls::sample(4);
     auto midb2 = ls::location(2, 0.5);
     auto midb1 = ls::location(1, 0.5);
     auto begb0 = ls::location(0, 0);
@@ -192,43 +195,23 @@ TEST(locset, thingify) {
     //             5 6
     //                7
     pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-    svec samples = {
-        {{  0,  0,  0,  2}, 3},
-        {{ 10,  0,  0,  2}, 3},
-        {{100,  0,  0,  2}, 3},
-        {{  0, 10,  0,  2}, 3},
-        {{  0,100,  0,  2}, 3},
-        {{100,100,  0,  2}, 3},
-        {{  0,200,  0,  2}, 3},
-        {{  0,300,  0,  2}, 3},
+    svec points = {
+        {  0,  0,  0,  2},
+        { 10,  0,  0,  2},
+        {100,  0,  0,  2},
+        {  0, 10,  0,  2},
+        {  0,100,  0,  2},
+        {100,100,  0,  2},
+        {  0,200,  0,  2},
+        {  0,300,  0,  2},
     };
-    sample_tree sm(samples, parents);
+    auto sm = segments_from_points(points, parents);
 
     {
-        mprovider mp(morphology(sm, true));
-
-        EXPECT_EQ(thingify(root, mp),  (ll{{0,0}}));
-        EXPECT_EQ(thingify(term, mp),  (ll{{1,1},{3,1},{4,1}}));
-        EXPECT_EQ(thingify(samp, mp),  (ll{{2,1}}));
-        EXPECT_EQ(thingify(midb2, mp), (ll{{2,0.5}}));
-        EXPECT_EQ(thingify(midb1, mp), (ll{{1,0.5}}));
-        EXPECT_EQ(thingify(begb0, mp), (ll{{0,0}}));
-        EXPECT_EQ(thingify(begb1, mp), (ll{{1,0}}));
-        EXPECT_EQ(thingify(begb2, mp), (ll{{2,0}}));
-        EXPECT_EQ(thingify(begb3, mp), (ll{{3,0}}));
-        EXPECT_EQ(thingify(begb4, mp), (ll{{4,0}}));
-
-        // Check round-trip of implicit locset conversions.
-        // (Use a locset which is non-trivially a multiset in order to
-        // test the fold in the constructor.)
-        EXPECT_EQ(thingify(multi, mp), thingify(locset(thingify(multi, mp)), mp));
-    }
-    {
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         EXPECT_EQ(thingify(root, mp),  (ll{{0,0}}));
         EXPECT_EQ(thingify(term, mp),  (ll{{0,1},{2,1},{3,1}}));
-        EXPECT_EQ(thingify(samp, mp),  (ll{{1,1}}));
         EXPECT_EQ(thingify(midb2, mp), (ll{{2,0.5}}));
         EXPECT_EQ(thingify(midb1, mp), (ll{{1,0.5}}));
         EXPECT_EQ(thingify(begb0, mp), (ll{{0,0}}));
@@ -240,7 +223,7 @@ TEST(locset, thingify) {
         EXPECT_THROW(thingify(begb4, mp), no_such_branch);
     }
     {
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         auto all = reg::all();
         auto ls0 = thingify(ls::uniform(all,  0,  9, 12), mp);
@@ -295,7 +278,7 @@ TEST(locset, thingify) {
         EXPECT_TRUE(found == 2);
     }
     {
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
         auto sub_reg = join(reg::cable(0, 0.2, 0.7), reg::cable(1, 0.1, 1), reg::cable(3, 0.5, 0.6));
 
         auto ls0 = thingify(ls::uniform(sub_reg, 0, 10000, 72), mp);
@@ -325,7 +308,8 @@ TEST(locset, thingify) {
 
 TEST(region, thingify_simple_morphologies) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
+    using tvec = std::vector<int>;
     using cl = mcable_list;
 
     // A single unbranched cable with 5 sample points.
@@ -333,21 +317,27 @@ TEST(region, thingify_simple_morphologies) {
     // 0 μm, 1 μm, 3 μm, 7 μm and 10 μm.
     {
         pvec parents = {mnpos, 0, 1, 2, 3};
-        svec samples = {
-            {{  0,  0,  0,  2}, 1},
-            {{  1,  0,  0,  2}, 1},
-            {{  3,  0,  0,  2}, 2},
-            {{  7,  0,  0,  2}, 1},
-            {{ 10,  0,  0,  2}, 2},
+        svec points = {
+            { 0,  0,  0,  2},
+            { 1,  0,  0,  2},
+            { 3,  0,  0,  2},
+            { 7,  0,  0,  2},
+            {10,  0,  0,  2},
         };
-        sample_tree sm(samples, parents);
-        mprovider mp(morphology(sm, false));
+        tvec tags = {1, 1, 2, 1, 2};
+
+        auto sm = segments_from_points(points, parents, tags);
+        auto mp = mprovider(morphology(sm));
 
         auto h1  = reg::cable(0, 0, 0.5);
         auto h2  = reg::cable(0, 0.5, 1);
         auto t1  = reg::tagged(1);
         auto t2  = reg::tagged(2);
         auto all = reg::all();
+        auto q1  = reg::cable(0, 0.0,  0.25);
+        auto q2  = reg::cable(0, 0.25, 0.5);
+        auto q3  = reg::cable(0, 0.5,  0.75);
+        auto q4  = reg::cable(0, 0.75, 1);
 
         // Concrete cable lists
         cl h1_{{0, 0.0, 0.5}};
@@ -372,6 +362,11 @@ TEST(region, thingify_simple_morphologies) {
         EXPECT_TRUE(region_eq(mp, join(h1, t2), cl{{0, 0, 0.5}, {0, 0.7, 1}}));
         EXPECT_TRUE(region_eq(mp, intersect(h2, t1), cl{{0, 0.5, 0.7}}));
 
+        EXPECT_TRUE(region_eq(mp, complement(join(q1, q3)), join(q2, q4)));
+        EXPECT_TRUE(region_eq(mp, complement(q2), join(q1, q3, q4)));
+        EXPECT_TRUE(region_eq(mp, difference(h1, q1), q2));
+        EXPECT_TRUE(region_eq(mp, difference(h1, q3), h1));
+
         // Check round-trip of implicit region conversions.
         // (No fork points in cables, so extent should not including anyhing extra).
         EXPECT_EQ((mcable_list{{0, 0.3, 0.6}}), thingify(region(mcable{0, 0.3, 0.6}), mp).cables());
@@ -383,25 +378,28 @@ TEST(region, thingify_simple_morphologies) {
     //
     //  sample ids:
     //              0           |
-    //            1   3         |
-    //          2       4       |
+    //              1           |
+    //            2   4         |
+    //          3       5       |
     //  tags:
+    //              1           |
     //              1           |
     //            3   2         |
     //          3       2       |
     {
-        pvec parents = {mnpos, 0, 1, 0, 3};
-        svec samples = {
-            {{  0,  0,  0,  2}, 1},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 2},
-            {{  0,100,  0,  2}, 2},
+        pvec parents = {mnpos, 0, 1, 2, 1, 4};
+        svec points = {
+            {  0,  0,  0,  5},
+            { 10,  0,  0,  5},
+            { 10,  0,  0,  2},
+            {100,  0,  0,  2},
+            { 10,  0,  0,  2},
+            {100,  0,  0,  2},
         };
+        tvec tags = {1, 1, 3, 3, 2, 2};
 
-        // Build morphology with a spherical root
-        sample_tree sm(samples, parents);
-        mprovider mp(morphology(sm, true));
+        auto sm = segments_from_points(points, parents, tags);
+        auto mp = mprovider(morphology(sm));
 
         using ls::location;
         using reg::tagged;
@@ -416,9 +414,9 @@ TEST(region, thingify_simple_morphologies) {
         locset end1_   = location(1,1);
 
         auto reg0_ = distal_interval(start1_, 45);
-        auto reg1_ = distal_interval(mid0_,   74);
+        auto reg1_ = distal_interval(mid0_,   50);
         auto reg2_ = proximal_interval(end1_, 45);
-        auto reg3_ = proximal_interval(end1_, 91);
+        auto reg3_ = proximal_interval(end1_, 95);
         auto reg4_ = distal_interval(end1_, 100);
         auto reg5_ = distal_interval(start1_, 0);
         auto reg6_ = proximal_interval(start1_, 0);
@@ -429,9 +427,9 @@ TEST(region, thingify_simple_morphologies) {
         EXPECT_TRUE(region_eq(mp, join(tagged(1), tagged(2), tagged(3)), mcable_list{{0,0,1}, {1,0,1}, {2,0,1}}));
         EXPECT_TRUE(region_eq(mp, join(tagged(1), tagged(2), tagged(3)), all()));
         EXPECT_TRUE(region_eq(mp, reg0_, mcable_list{{1,0,0.5}}));
-        EXPECT_TRUE(region_eq(mp, reg1_, mcable_list{{0,0.5,1}, {1,0,0.8}, {2,0,0.8}}));
+        EXPECT_TRUE(region_eq(mp, reg1_, mcable_list{{0,0.5,1}, {1,0,0.5}, {2,0,0.5}}));
         EXPECT_TRUE(region_eq(mp, reg2_, mcable_list{{1,0.5,1}}));
-        EXPECT_TRUE(region_eq(mp, reg3_, mcable_list{{0, 0.75, 1}, {1,0,1}}));
+        EXPECT_TRUE(region_eq(mp, reg3_, mcable_list{{0, 0.5, 1}, {1,0,1}}));
         EXPECT_TRUE(region_eq(mp, reg4_, mcable_list{{1,1,1}}));
         EXPECT_TRUE(region_eq(mp, reg5_, mcable_list{{1,0,0}}));
         EXPECT_TRUE(region_eq(mp, reg6_, mcable_list{{1,0,0}}));
@@ -440,7 +438,8 @@ TEST(region, thingify_simple_morphologies) {
 
 TEST(region, thingify_moderate_morphologies) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
+    using tvec = std::vector<int>;
     using cl = mcable_list;
 
     // Test multi-level morphologies.
@@ -461,20 +460,21 @@ TEST(region, thingify_moderate_morphologies) {
     //                3
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
-        svec samples = {
-            {{  0,  0,  0,  1}, 1},
-            {{ 10,  0,  0,  1}, 3},
-            {{100,  0,  0,  3}, 3},
-            {{  0, 10,  0,  1}, 2},
-            {{  0,100,  0,  5}, 2},
-            {{100,100,  0,  2}, 4},
-            {{  0,200,  0,  1}, 3},
-            {{  0,300,  0,  3}, 3},
+        svec points = {
+            {  0,  0,  0,  1},
+            { 10,  0,  0,  1},
+            {100,  0,  0,  3},
+            {  0, 10,  0,  1},
+            {  0,100,  0,  5},
+            {100,100,  0,  2},
+            {  0,200,  0,  1},
+            {  0,300,  0,  3},
         };
-        sample_tree sm(samples, parents);
+        tvec tags = {1, 3, 3, 2, 2, 4, 3, 3};
+        auto sm = segments_from_points(points, parents, tags);
 
         // Without spherical root
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         using ls::location;
         using reg::tagged;
@@ -487,7 +487,7 @@ TEST(region, thingify_moderate_morphologies) {
         using reg::branch;
         using reg::all;
         using reg::cable;
-        using reg::super;
+        using reg::complete;
 
         auto soma = tagged(1);
         auto axon = tagged(2);
@@ -517,12 +517,12 @@ TEST(region, thingify_moderate_morphologies) {
         // Test that intersection correctly generates zero-length cables at
         // parent-child interfaces.
         EXPECT_TRUE(region_eq(mp, intersect(apic, dend), cl{}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(apic), super(dend)), cl{{1,1,1}, {2,0,0}, {3,0,0}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(apic), complete(dend)), cl{{1,1,1}, {2,0,0}, {3,0,0}}));
         EXPECT_TRUE(region_eq(mp, intersect(apic, axon), cl{}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(apic), axon), cl{{1,1,1}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(apic), axon), cl{{1,1,1}}));
         EXPECT_TRUE(region_eq(mp, intersect(axon, dend), cl{}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(axon), dend), cl{{0,0,0}, {3,0,0}}));
-        EXPECT_TRUE(region_eq(mp, intersect(super(dend), axon), cl{{1,0,0}, {1,1,1}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(axon), dend), cl{{0,0,0}, {3,0,0}}));
+        EXPECT_TRUE(region_eq(mp, intersect(complete(dend), axon), cl{{1,0,0}, {1,1,1}}));
 
         // Test distal and proximal interavls
         auto start0_         = location(0, 0   );
@@ -749,29 +749,30 @@ TEST(region, thingify_moderate_morphologies) {
 
 TEST(region, thingify_complex_morphologies) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 5, 5, 7, 7, 4, 10};
-        svec samples = {
-                {{  0,  0,  0,  2}, 3}, //0
-                {{ 10,  0,  0,  2}, 3}, //1
-                {{100,  0,  0,  2}, 3}, //2
-                {{  0, 10,  0,  2}, 3}, //3
-                {{  0,100,  0,  2}, 3}, //4
-                {{100,100,  0,  2}, 3}, //5
-                {{200,100,  0,  2}, 3}, //6
-                {{100,200,  0,  2}, 3}, //7
-                {{200,200,  0,  2}, 3}, //8
-                {{100,300,  0,  2}, 3}, //9
-                {{  0,200,  0,  2}, 3}, //10
-                {{  0,300,  0,  2}, 3}, //11
+        svec points = {
+                {  0,  0,  0,  2}, //0
+                { 10,  0,  0,  2}, //1
+                {100,  0,  0,  2}, //2
+                {  0, 10,  0,  2}, //3
+                {  0,100,  0,  2}, //4
+                {100,100,  0,  2}, //5
+                {200,100,  0,  2}, //6
+                {100,200,  0,  2}, //7
+                {200,200,  0,  2}, //8
+                {100,300,  0,  2}, //9
+                {  0,200,  0,  2}, //10
+                {  0,300,  0,  2}, //11
         };
-        sample_tree sm(samples, parents);
-        auto m = morphology(sm, false);
+
+        auto sm = segments_from_points(points, parents);
+        auto m = morphology(sm);
         {
             mprovider mp(m);
             using reg::cable;
-            using reg::super;
+            using reg::complete;
             using ls::most_distal;
             using ls::most_proximal;
 
@@ -797,29 +798,29 @@ TEST(region, thingify_complex_morphologies) {
             EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_e_), mp), mlocation_list{{2,0}}));
             EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_f_), mp), mlocation_list{{2,0}, {7,0}}));
             EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(reg_g_), mp), mlocation_list{{5,0}, {6,0}}));
-            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(super(reg_f_)), mp), mlocation_list{{1,1}}));
-            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(super(reg_g_)), mp), mlocation_list{{4,1}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(complete(reg_f_)), mp), mlocation_list{{1,1}}));
+            EXPECT_TRUE(mlocationlist_eq(thingify(most_proximal(complete(reg_g_)), mp), mlocation_list{{4,1}}));
         }
     }
     {
         pvec parents = {mnpos, 0, 1, 1, 2, 3, 0, 6, 7, 8, 7};
-        svec samples = {
-                {{  0, 10, 10,  1}, 1},
-                {{  0, 30, 30,  1}, 2},
-                {{  0, 60,-20,  1}, 2},
-                {{  0, 90, 70,  1}, 2},
-                {{  0, 80,-10,  1}, 2},
-                {{  0,100,-40,  1}, 2},
-                {{  0,-50,-50,  1}, 2},
-                {{  0, 20,-30,  2}, 2},
-                {{  0, 40,-80,  2}, 2},
-                {{  0,-30,-80,  3}, 2},
-                {{  0, 90,-70,  5}, 2}
+        svec points = {
+                {0, 10, 10, 1},
+                {0, 30, 30, 1},
+                {0, 60,-20, 1},
+                {0, 90, 70, 1},
+                {0, 80,-10, 1},
+                {0,100,-40, 1},
+                {0,-50,-50, 1},
+                {0, 20,-30, 2},
+                {0, 40,-80, 2},
+                {0,-30,-80, 3},
+                {0, 90,-70, 5},
         };
-        sample_tree sm(samples, parents);
+        auto sm = segments_from_points(points, parents);
 
         // Without spherical root
-        mprovider mp(morphology(sm, false));
+        auto mp = mprovider(morphology(sm));
 
         using reg::all;
         using reg::nil;
