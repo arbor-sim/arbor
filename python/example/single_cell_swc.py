@@ -50,7 +50,7 @@ cell.place('stim_site', arbor.iclamp(8, 1, current=1))
 cell.place('root', arbor.spike_detector(-10))
 
 # Have one compartment between each sample point.
-cell.compartments_on_samples()
+cell.compartments_on_segments()
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)

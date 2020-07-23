@@ -38,6 +38,14 @@ build codecov:
     DEPLOY_DOCKERFILE: ci/codecov/deploy.Dockerfile
     DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
 
+notify_github_start:
+  stage: build
+  allow_failure: true
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh pending
+
 
 # Some variables used for running on daint
 variables:
@@ -159,3 +167,19 @@ deallocate codecov:
   extends: .daint_dealloc
   variables:
     ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
+
+notify_github_success:
+  stage: cleanup
+  when: on_success
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh success
+
+notify_github_failure:
+  stage: cleanup
+  when: on_failure
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh failure
