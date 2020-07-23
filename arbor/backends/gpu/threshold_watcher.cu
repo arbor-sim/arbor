@@ -30,10 +30,15 @@ inline T lerp(T a, T b, T u) {
 __global__
 void test_thresholds_impl(
     int size,
-    const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
+    const fvm_index_type* __restrict__ const cv_to_intdom,
+    const fvm_value_type* __restrict__ const t_after,
+    const fvm_value_type* __restrict__ const t_before,
     stack_storage<threshold_crossing>& stack,
-    fvm_index_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+    fvm_index_type* __restrict__ const is_crossed,
+    fvm_value_type* __restrict__ const prev_values,
+    const fvm_index_type* __restrict__ const cv_index,
+    const fvm_value_type* __restrict__ const values,
+    const fvm_value_type* __restrict__ const thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -73,8 +78,11 @@ void test_thresholds_impl(
 
 __global__
 extern void reset_crossed_impl(
-    int size, fvm_index_type* is_crossed,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+    int size,
+    fvm_index_type* __restrict__ const is_crossed,
+    const fvm_index_type* __restrict__ const cv_index,
+    const fvm_value_type* __restrict__ const values,
+    const fvm_value_type* __restrict__ const thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
     if (i<size) {
