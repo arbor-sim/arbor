@@ -118,7 +118,7 @@ void register_mechanisms(pybind11::module& m) {
                     throw std::runtime_error(util::pprintf("\nKeyError: '{}'", name));
                 }
             })
-        .def("import", &arb::mechanism_catalogue::import,
+        .def("extend", &arb::mechanism_catalogue::import,
              "other"_a, "Catalogue to import into self",
              "prefix"_a, "Prefix for names in other",
              "Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.")
