@@ -46,11 +46,11 @@ enum class comp_op {
 
 // Describe a cable segment between two adjacent samples.
 struct msegment {
+    msize_t id;
     mpoint prox;
     mpoint dist;
     int tag;
 
-    friend bool operator==(const msegment&, const msegment&);
     friend std::ostream& operator<<(std::ostream&, const msegment&);
 };
 

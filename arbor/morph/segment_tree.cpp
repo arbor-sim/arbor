@@ -24,7 +24,7 @@ msize_t segment_tree::append(msize_t p, const mpoint& prox, const mpoint& dist, 
     }
 
     auto id = size();
-    segments_.push_back(msegment{prox, dist, tag});
+    segments_.push_back(msegment{id, prox, dist, tag});
     parents_.push_back(p);
 
     // Set the point properties for the new point, and update those of the parent.

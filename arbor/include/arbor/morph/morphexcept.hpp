@@ -41,6 +41,27 @@ struct invalid_segment_parent: morphology_error {
     msize_t tree_size;
 };
 
+struct duplicate_stitch_id: morphology_error {
+    duplicate_stitch_id(const std::string& id);
+    std::string id;
+};
+
+struct no_such_stitch: morphology_error {
+    no_such_stitch(const std::string& id);
+    std::string id;
+};
+
+struct missing_stitch_start: morphology_error {
+    missing_stitch_start(const std::string& id);
+    std::string id;
+};
+
+struct invalid_stitch_position: morphology_error {
+    invalid_stitch_position(const std::string& id, double along);
+    std::string id;
+    double along;
+};
+
 struct label_type_mismatch: morphology_error {
     label_type_mismatch(const std::string& label);
     std::string label;
