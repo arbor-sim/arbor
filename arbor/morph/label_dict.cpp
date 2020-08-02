@@ -25,6 +25,15 @@ void label_dict::set(const std::string& name, arb::region reg) {
     regions_[name] = std::move(reg);
 }
 
+void label_dict::import(const label_dict& other) {
+    for (const auto& entry: other.locsets()) {
+        set(entry.first, entry.second);
+    }
+    for (const auto& entry: other.regions()) {
+        set(entry.first, entry.second);
+    }
+}
+
 util::optional<const region&> label_dict::region(const std::string& name) const {
     auto it = regions_.find(name);
     if (it==regions_.end()) return {};

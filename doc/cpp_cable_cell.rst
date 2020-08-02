@@ -5,8 +5,8 @@ Cable cells
 
 .. Warning::
    The interface for building and modifying cable cell objects
-   will be thoroughly revised in the near future. The documentation
-   here is primarily a place holder.
+   has changed significantly; some of the documentation below is
+   out of date.
 
 Cable cells, which use the :cpp:enum:`cell_kind` :cpp:expr:`cable`,
 represent morphologically-detailed neurons as 1-d trees, with
@@ -21,38 +21,140 @@ object of type :cpp:type:`cable_cell_global_properties`.
 The :cpp:type:`cable_cell` object
 ---------------------------------
 
-Cable cells are built up from a series of :cpp:type:`segment`
-objects, which themselves describe an unbranched component of the
-cell morphology. These segments are added via the methods:
+Cable cells are constructed from a :cpp:type:`morphology` and, optionally, a
+:cpp:type:`label_dict` that associates names with particular points
+(:cpp:type:`locset` objects) or subsets (:cpp:type:`region` objects) of the
+morphology.
 
-.. cpp:function:: soma_segment* cable_cell::add_soma(double radius)
+Morphologies are constructed from a :cpp:type:`segment_tree`, but can also
+be generated via the :cpp:type:`stitch_builder`, which offers a slightly
+higher level interface. Details are described in :ref:`morphology-construction`.
 
-   Add the soma to the cable cell with the given radius. There
-   can be only one per cell.
+Each cell has particular values for its electrical and ionic properties. These
+are determined first by the set of global defaults, then the defaults
+associated with the cell, and finally by any values specified explicitly for a
+given subsection of the morphology via the ``paint`` method
+(see :ref:`electrical-properties` and :ref:`paint-properties`).
 
-   The soma segment has index 0, and must be added before any
-   cable segments.
+Ion channels and other distributed dynamical processes are also specified
+on the cell via the ``paint`` method; while synapses, current clamps,
+gap junction locations, and the site for testing the threshold potential
+are specified via the ``place`` method. See :ref:`cable-cell-dynamics`, below.
 
-.. cpp:function:: cable_segment* cable_cell::add_cable(cell_lid_type index, Args&&... args)
+.. _morphology-construction:
 
-   Add a unbranched section of the cell morphology, with its proximal
-   end attached to the segment given by :cpp:expr:`index`. The
-   following arguments are forwarded to the :cpp:type:`cable_segment`
-   constructor.
-
-Segment indices are exactly the order in which they have been added
-to a cell, counting from zero (for the soma). Both :cpp:type:`soma_segment`
-and :cpp:type:`cable_segment` are derived from the abstract base
-class :cpp:type:`segment`.
+Constucting cell morphologies
+-----------------------------
 
 .. todo::
 
-   Describe cable_segment constructor arguments, unless we get to the
-   replace cell building/morphology implementation first.
+   TODO: Description of segment trees is in the works.
 
-Each segment will inherit the electrical properties of the cell, unless
-otherwise overriden (see below).
 
+The stitch-builder interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Like the segment tree, the :cpp:type:`stich_builder` class constructs morphologies
+through attaching simple components described by a pair of :cpp:type:`mpoint` values,
+proximal and distal. These components are :cpp:type:`mstitch` objects, and
+they differ from segments in two regards:
+
+1. Stitches are identified by a unique string identifier, in addition to an optional tag value.
+
+2. Stitches can be attached to a parent stitch at either end, or anywhere in the middle.
+
+The ability to attach a stitch some way along another stitch dictates that one
+stitch may correspond to more than one morphological segment once the morphology
+is fully specified. When these attachment points are internal to a stitch, the
+corresponding geometrical point is determined by linearly interpolating between
+the proximal and distal points.
+
+The required header file is ``arbor/morph/stitch.hpp``.
+
+:cpp:type:`mstitch` has two constructors:
+
+.. code::
+
+   mstitch::mstitch(std::string id, mpoint prox, mpoint dist, int tag = 0)
+   mstitch::mstitch(std::string id, mpoint dist, int tag = 0)
+
+If the proximal point is omitted, it will be inferred from the point at which
+the stitch is attached to its parent.
+
+The :cpp:type:`stitch_builder` class collects the stitches with the ``add`` method:
+
+.. code::
+
+   stitch_builder::add(mstitch, const std::string& parent_id, double along = 1.)
+   stitch_builder::add(mstitch, double along = 1.)
+
+The first stitch will have no parent. If no parent id is specified for a subsequent
+stitch, the last stitch added will be used as parent. The ``along`` parameter
+must lie between zero and one inclusive, and determines the point of attachment
+as a relative position between the parent's proximal and distal points.
+
+A :cpp:type:`stitched_morphology` is constructed from a :cpp:type:`stitch_builder`,
+and provides both the :cpp:type:`morphology` built from the stitches, and methods
+for querying the extent of individual stitches.
+
+.. cpp:class:: stitched_morphology
+
+   .. cpp:function:: stitched_morphology(const stitch_builder&)
+   .. cpp:function:: stitched_morphology(stitch_builder&&)
+
+   Construct from a ``stitch_builder``. Note that constructing from an
+   rvalue is more efficient, as it avoids making a copy of the underlying
+   tree structure.
+
+   .. cpp:function:: arb::morphology morphology() const
+
+   Return the constructed morphology object.
+
+   .. cpp:function:: region stitch(const std::string& id) const
+
+   Return the region expression corresponding to the specified stitch.
+
+   .. cpp:function:: std::vector<msize_t> segments(const std::string& id) const
+
+   Return the collection of segments by index comprising the specified stitch.
+
+   .. cpp:function:: label_dict labels(const std::string& prefix="") const
+
+   Provide a :cpp:type:`label_dict` with a region entry for each stitch; if
+   a prefix is provided, this prefix is applied to each segment id to determine
+   the region labels.
+
+Example code, constructing a cable cell from a T-shaped morphology specified
+by two stitches:
+
+.. code::
+
+   using namespace arb;
+
+   mpoint soma0{0, 0, 0, 10};
+   mpoint soma1{20, 0, 0, 10};
+   mpoint dend_end{10, 100, 0, 1};
+
+   stitch_builder builder;
+   builder.add({"soma", soma0, soma1, 1});
+   builder.add({"dend", dend_end, 4}, "soma", 0.5);
+
+   stitched_morphology stitched(std::move(builder));
+   cable_cell cell(stitched.morphology(), stitched.labels());
+
+   cell.paint("soma", "hh");
+
+
+.. _locsets-and-regions:
+
+Identifying sites and subsets of the morphology
+-----------------------------------------------
+
+.. todo::
+
+   TODO: Region and locset documentation is under development.
+
+.. _cable-cell-dynamics:
 
 Cell dynamics
 -------------
@@ -62,8 +164,8 @@ which describe biophysical processes. These are processes
 that are distributed in space, but whose behaviour is defined purely
 by the state of the cell and the process at any given point.
 
-Cells may also have *point* mechanisms, which are added directly to the
-:cpp:type:`cable_cell` object.
+Cells may also have *point* mechanisms, describing the dynamics
+at post-synaptic sites.
 
 A third type of mechanism, which describes ionic reversal potential
 behaviour, can be specified for cells or the whole model via cell parameter
@@ -92,16 +194,19 @@ mechanism name, and mechanism parameter values then set with the
 
 Density mechanisms are associated with a cable cell object with:
 
-.. cpp:function:: void segment::add_mechanism(mechanism_desc mech)
+.. cpp:function:: void cable_cell::paint(const region&, mechanism_desc)
 
 Point mechanisms, which are associated with connection end points on a
 cable cell, are attached to a cell with:
 
-.. cpp:function:: void cable_cell::add_synapse(mlocation loc, mechanism_desc mech)
+.. cpp:function:: void cable_cell::place(const locset&, mechanism_desc)
 
-where :cpp:type:`mlocation` is a simple struct holding a segment index
-and a relative position (from 0, proximal, to 1, distal) along that segment:
+.. todo::
 
+   TODO: describe other ``place``-able things: current clamps, gap junction
+   sites, threshold potential measurement point.
+
+.. _electrical-properties:
 
 Electrical properities and ion values
 -------------------------------------
@@ -169,39 +274,39 @@ Global properties
 
    .. cpp:member:: const mechanism_catalogue* catalogue
 
-   All mechanism names refer to mechanism instances in this mechanism catalogue.
-   By default, this is set to point to `global_default_catalogue()`, the catalogue
-   that contains all mechanisms bundled with Arbor.
+   all mechanism names refer to mechanism instances in this mechanism catalogue.
+   by default, this is set to point to `global_default_catalogue()`, the catalogue
+   that contains all mechanisms bundled with arbor.
 
-   .. cpp:member:: double membrane_voltage_limit_mV
+   .. cpp:member:: double membrane_voltage_limit_mv
 
-   If non-zero, check to see if the membrane voltage ever exceeds this value
-   in magnitude during the course of a simulation. If so, throw an exception
+   if non-zero, check to see if the membrane voltage ever exceeds this value
+   in magnitude during the course of a simulation. if so, throw an exception
    and abort the simulation.
 
    .. cpp:member:: bool coalesce_synapses
 
-   When synapse dynamics are sufficiently simple, the states of synapses within
-   the same discretized element can be combined for better performance. This
+   when synapse dynamics are sufficiently simple, the states of synapses within
+   the same discretized element can be combined for better performance. this
    is true by default.
 
    .. cpp:member:: std::unordered_map<std::string, int> ion_species
 
-   Every ion species used by cable cells in the simulation must have an entry in
+   every ion species used by cable cells in the simulation must have an entry in
    this map, which takes an ion name to its charge, expressed as a multiple of
-   the elementary charge. By default, it is set to include sodium "na" with
+   the elementary charge. by default, it is set to include sodium "na" with
    charge 1, calcium "ca" with charge 2, and potassium "k" with charge 1.
 
    .. cpp:member:: cable_cell_parameter_set default_parameters
 
-   The default electrical and physical properties associated with each cable
-   cell, unless overridden locally. In the global properties, *every
+   the default electrical and physical properties associated with each cable
+   cell, unless overridden locally. in the global properties, *every
    optional field must be given a value*, and every ion must have its default
    values set in :cpp:expr:`default_parameters.ion_data`.
 
    .. cpp:function:: add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot)
 
-   Convenience function for adding a new ion to the global :cpp:expr:`ion_species`
+   convenience function for adding a new ion to the global :cpp:expr:`ion_species`
    table, and setting up its default values in the `ion_data` table.
 
    .. cpp:function:: add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, mechanism_desc revpot_mechanism)
@@ -261,6 +366,17 @@ constants.
    gprop.default_parameters.reversal_potential_method["ca"] = "nernst1998/ca";
 
 
+.. _paint-properties:
+
+Overriding properties locally
+-----------------------------
+
+.. todo::
+
+   TODO: using ``paint`` to specify electrical properties on subsections of
+   the morphology.
+
+
 Cable cell probes
 -----------------
 
@@ -291,7 +407,7 @@ The probe metadata passed to the sampler will be a const pointer to:
 The type ``cable_probe_point_info`` holds metadata for a single target on a cell:
 
 .. code::
-    
+
     struct cable_probe_point_info {
         // Target number of point process instance on cell.
         cell_lid_type target;

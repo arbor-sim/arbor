@@ -4,9 +4,9 @@
 #include <ostream>
 #include <vector>
 
-#include <arbor/util/lexcmp_def.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
+#include <arbor/util/lexcmp_def.hpp>
 
 namespace arb {
 

@@ -201,11 +201,8 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
     constexpr double pi = math::pi<double>;
     msize_t n_branch = m.num_branches();
     data_ = std::make_shared<embed_pwlin_data>(n_branch);
-    branch_segment_part_.reserve(n_branch+1);
 
     if (!n_branch) return;
-
-    branch_segment_part_.push_back(0);
 
     double proj_shift = m.branch_segments(0).front().prox.z;
 
@@ -214,16 +211,15 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
         auto& segments = m.branch_segments(bid);
         arb_assert(segments.size());
 
-        branch_segment_part_.push_back(branch_segment_part_.back()+segments.size()+1);
-
         std::vector<double> seg_pos;
         seg_pos.reserve(segments.size()+1);
         seg_pos.push_back(0.);
 
-        for (auto &seg: segments) {
+        for (const auto &seg: segments) {
             double d = distance(seg.prox, seg.dist);
             seg_pos.push_back(seg_pos.back()+d);
         }
+
         double branch_length = seg_pos.back();
         double length_scale = branch_length>0? 1./branch_length: 0;
         for (auto& d: seg_pos) {
@@ -232,8 +228,21 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
         seg_pos.back() = 1; // Circumvent any rounding infelicities.
 
         for (auto d: seg_pos) {
-            segment_locations_.push_back({bid, d});
+            all_segment_ends_.push_back({bid, d});
         }
+
+        // Second pass over segments to store associated cables.
+        auto pos_iter = seg_pos.begin();
+        for (const auto &seg: segments) {
+            double pos0 = *pos_iter++;
+            double pos1 = *pos_iter;
+
+            if (seg.id>=segment_cables_.size()) {
+                segment_cables_.resize(seg.id+1);
+            }
+            segment_cables_[seg.id] = mcable{bid, pos0, pos1};
+        }
+
 
         double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
         data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
