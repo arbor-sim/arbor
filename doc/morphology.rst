@@ -5,21 +5,21 @@ Morphology
 
 A cell's *morphology* describes both its geometry and branching structure.
 Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius,
-joined together to form a tree. The geometry is given by a series of sample points,
-which comprise a three-dimensional location and a cross-sectional radius of the cell at that point.
+joined together to form a tree. The geometry is given by a series of segments,
+which are truncated conic frustums that represent an unbranched section of the cell.
 
-Sample Trees
-------------
+Segment Trees
+--------------
 
-A *sample tree* is a sample-based description of a cell's morphology
+A *segment tree* is a segment-based description of a cell's morphology
 that is designed to support both the diverse descriptions
 of cell morphologies (e.g. SWC, NeuroLicida, NeuroML), and tools that
 iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
 
-The building block of sample trees is a *sample*, which
+The building block of segment trees is a *segment*, which
 is a three-dimensionsal *location*, with a *radius* and *tag* meta-data.
 
-.. csv-table:: Fields that define a sample.
+.. csv-table:: Fields that define a point.
    :widths: 10, 10, 30
 
    **Field**,   **Type**, **Description**
@@ -27,47 +27,47 @@ is a three-dimensionsal *location*, with a *radius* and *tag* meta-data.
    ``y``,       real, y coordinate of centre of cable.
    ``z``,       real, z coordinate of centre of cable.
    ``radius``,  real, cross sectional radius of cable.
-   ``tag``,     integer, label used to mark regions on the morphology.
 
 
 .. note::
 
-    A *tag* is an integer label on every sample, which can be used later to define
+    A *tag* is an integer label on every segment, which can be used later to define
     regions on cell models. For example, tags could store the *structure identifier* field in the
     `SWC format <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
-    which identifies whether samples lie in the soma, axons, dendrites, etc. In Arbor tag definitions
-    are not fixed, and users can customise them for their requirements.
+    which identifies whether individual SWC records lie in the soma, axons, dendrites, etc.
+    Arbor tag definitions are not fixed, and users can customise them for their requirements.
 
 
-Sample trees comprise a sequence of samples starting from a *root* sample, together with a parent-child
-adjacency relationship where a child sample is distal to its parent.
-Branches in the tree occur where a sample has more than one child.
-Furthermore, a sample can not have more than one parent.
-In this manner, neuron morphologies are modelled as a *tree*, where cables that represent dendrites and axons can branch, but branches can not rejoin.
+Segment trees comprise a sequence of segments starting from a *root* segment, together with a parent-child
+adjacency relationship where a child segment is distal to its parent.
+Branches in the tree occur where a segment has more than one child.
+Furthermore, a segment can not have more than one parent.
+In this manner, neuron morphologies are modelled as a *tree*, where cables that represent dendrites and
+axons can branch, but branches can not rejoin.
 
 .. _morph-sample-definitions:
 
 Definitions
 ~~~~~~~~~~~
 
-When refering to samples in a sample tree, the following definitions are used:
+When refering to segments in a segment tree, the following definitions are used:
 
-* *root*: The first sample in the sample tree, assigned id 0.
+* *root*: segments at the root or start of the tree. A non-empty tree must have at least one root segment,
+  and the first segment will always be a root.
 
-* *parent*: Each sample has one parent, except the root sample.
+* *parent*: Each segment has one parent, which is either 
 
-  * A sample's id is always greater than the id of its parent.
-  * The ids of samples on the same unbranched section of cable do not need to be contiguous.
+  * A segments's id is always greater than the id of its parent.
+  * The ids of segments on the same unbranched sequence of segments do not need to be contiguous.
 
-* *child*: The children of sample *s* are samples whose parent is *s*.
-* *terminal*: A sample with no children. Terminals lie at the end of dendritic trees or axons.
-* *fork*: A sample with more than one child. Fork points are where a cable splits into two or more branches.
-* *collocated*: A sample is collocated with its parent if they have the same location.
+* *child*: The children of segment *s* are segments whose parent is *s*.
+* *terminal*: A segment with no children. Terminals lie at the end of dendritic trees or axons.
+* *fork*: A segment with more than one child. The distal end of a for segment are fork points,
+  where a cable splits into two or more branches.
 
-  * collocation is used to indicate a discontinuity in the radius of a cable, or the start of a
-    child branch with a different radius than its parent.
+  * Arbor allows more than two branches at a fork point.
 
-Some of these definitions are illustrated in the following sample tree:
+Some of these definitions are illustrated in the following segment tree:
 
 .. _morph-stree-fig:
 
@@ -76,7 +76,7 @@ Some of these definitions are illustrated in the following sample tree:
   :align: center
   :alt: A sample tree with 7 points, with root, fork and terminal samples marked.
 
-  A sample tree with 7 samples defined as follows:
+  *TODO* replace with two segment trees, that demonstrate with and without gaps.
 
   .. csv-table::
        :widths: 10, 10, 10, 10, 10, 10, 10
@@ -104,43 +104,33 @@ Some of these definitions are illustrated in the following sample tree:
 Morphology
 ----------
 
-A *morphology* describes the geometry of a cell as unbranched cables with variable radius,
-an optional spherical segment at the root of the tree, and their associated tree structure.
+A *morphology* describes the geometry of a cell as unbranched cables with variable radius
+, and their associated tree structure.
 
-A morphology is constructed from a sample tree in two steps: segmentation and branch definition.
+A morphology is constructed from a segment tree by defining the branches, which are uniquely
+derived from the cable segments.
 
-Segmentation
-~~~~~~~~~~~~
-
-Segmentation generates *segments* from a sample tree, of which there are two kinds:
+Segmentation generates *cable segments* from a sample tree, of which there are two kinds:
 
 * *Cable segment*: a frustum (cylinder or truncated cone) between two adjacent samples,
   with the centre and radius of each end defined by the location and radius of the samples.
-* *Spherical segment*: a sphere with centre and radius specified by the location and radius
-  of the root sample. Only the root sample can be interpreted as a spherical segment.
 
 The segmentation below, based on the model of a soma with a branching dendrite :ref:`above <morph-stree-fig>`,
 illustrates the segments generated from a sample tree:
 
 .. _morph-segment-fig:
 
-.. figure:: gen-images/tree5a.svg
-  :width: 400
-  :align: center
-
-  Sample tree with 7 samples.
-
 .. figure:: gen-images/morph-segments.svg
   :width: 800
   :align: center
 
-  **Left**: The segments generated without a spherical root, colored acoording to their :ref:`tag<morph-tags>`.
+  **Left**: stuff
 
   **Right**: Segments with a spherical root segment.
 
 
 .. note::
-    The surface of  the spherical root segment above does not coincide with
+    The surface of the spherical root segment above does not coincide with
     the first sample of the dendritic tree, forming a gap between the
     sphere and the start of the dendrite.
     Segments attached to a spherical root branch are modeled as though they
@@ -157,6 +147,7 @@ illustrates the segments generated from a sample tree:
 
 .. warning::
 
+    *TODO: update with an observation about how spheres are not appropriate in cable models, full stop.*
     Spheres are not suitable for representing the soma when it is important to model the location
     of cables attached to the soma. For example, when differentiating between apical and distal
     dendrites, or the location of the axon relative to that of the dendritic tree.
@@ -168,6 +159,7 @@ illustrates the segments generated from a sample tree:
 Tags
 """"
 
+*TODO: move to segment tree*
 Each segment is given a tag, determined by sample tag meta-data:
 
 * Cable segments take the tag of their distal sample.
@@ -261,16 +253,7 @@ with a radius of 2 μm, centered at the origin.
 
     tree = arbor.sample_tree()
     tree.append(x= 0.0, y= 0.0, z= 0.0, radius=2.0, tag= 1)
-
-.. figure:: gen-images/tree1.svg
-  :width: 100
-  :align: center
-
-  The sample tree is a single sample with radius 2 μm and id 0.
-
-.. code:: Python
-
-    morph = arbor.morphology(tree, spherical_root=True)
+    morph = arbor.morphology(tree)
 
 .. figure:: gen-images/morph1.svg
   :width: 100
@@ -292,16 +275,7 @@ It is constructed from a sample tree of two points that define the end points of
     tree = arbor.sample_tree()
     tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
     tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
-
-.. figure:: gen-images/tree2a.svg
-  :width: 300
-  :align: center
-
-  The sample tree has a root and terminal point, marked in blue and green respectively.
-
-.. code:: Python
-
-    morph = arbor.morphology(tree, spherical_root=False)
+    morph = arbor.morphology(tree)
 
 .. figure:: gen-images/morph2a.svg
   :width: 600
@@ -324,15 +298,7 @@ distinct cable segments:
    tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.6, tag= 2)
    tree.append(parent= 3, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
 
-.. figure:: gen-images/tree2b.svg
-  :width: 300
-  :align: center
-
-  The sample tree has 5 samples.
-
-.. code:: Python
-
-    morph = arbor.morphology(tree, spherical_root=False)
+   morph = arbor.morphology(tree)
 
 .. figure:: gen-images/morph2b.svg
   :width: 600
@@ -358,15 +324,7 @@ radius changes from 0.5 μm to 0.3 μm:
    tree.append(parent= 3, x= 8.0, y= 0.0, z= 0.0, radius= 0.3, tag= 3)
    tree.append(parent= 4, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
 
-.. figure:: gen-images/tree2c.svg
-  :width: 300
-  :align: center
-
-  Samples 3 and 4 are collocated with different radii.
-
-.. code:: Python
-
-    morph = arbor.morphology(tree, spherical_root=False)
+   morph = arbor.morphology(tree)
 
 .. figure:: gen-images/morph2c.svg
   :width: 600
@@ -394,73 +352,12 @@ to 0.2 μm.
    tree.append(parent= 1, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 3)
    tree.append(parent= 1, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 3)
 
-.. figure:: gen-images/tree3a.svg
-  :width: 400
-  :align: center
-
-.. code:: Python
-
    morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph3a.svg
   :width: 800
   :align: center
 
-
-The child branches start with the same 0.5 μm radius as the distal end of their parent branch.
-For the children to have a constant radius of 0.2 μm, instead of tapering from 0.5 μm to 0.2 μm,
-use samples of radius 0.2 μm collocated with the end of the parent branch.
-Two methods that use the same approach are illustrated below:
-
-1. Insert collocated points at the start of each child branch;
-2. Insert a single collocated point at the end of the parent branch.
-
-.. code:: Python
-
-   tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
-   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 3)
-   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 3)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 3)
-   tree.append(parent= 4, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 3)
-
-.. figure:: gen-images/tree3b.svg
-  :width: 400
-  :align: center
-
-  The first approach has 3 collocated points at the fork: sample 1 is at the end
-  of the parent branch, and samples 2 and 4 are attached to sample 1 and are at
-  the start of the children branches.
-
-.. code:: Python
-
-   tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
-   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 0.2, tag= 3)
-   tree.append(parent= 2, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 3)
-   tree.append(parent= 2, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 3)
-
-.. figure:: gen-images/tree3c.svg
-  :width: 400
-  :align: center
-
-  The second approach has 2 collocated points at the fork.
-  The first collocated sample with radius 0.5 μm is the end of the parent branch, and
-  both child branches connect to the second sample with radius to 0.2 μm.
-
-.. code:: Python
-
-   morph = arbor.morphology(tree, spherical_root=False)
-
-.. figure:: gen-images/morph3b.svg
-  :width: 800
-  :align: center
-
-  The resulting morphology is the same for both approaches.
-
-.. _morph-tree5:
 
 Example 4: Ball and stick
 """"""""""""""""""""""""""""""
@@ -476,21 +373,13 @@ The next example is a spherical soma of radius 2 μm with a single branch of len
    tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
    morph = arbor.morphology(tree, spherical_root=True)
 
-.. figure:: gen-images/tree4.svg
-  :width: 300
-  :align: center
-
-This sample tree has three points that are connected together in a line, and could
-be interpreted as a single unbranched cable.
-
-.. code:: Python
-
    morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph4a.svg
   :width: 600
   :align: center
 
+*TODO: discuss spherical soma approximation with a cylinder here.*
 To achieve the desired model of a spherical soma with a single cable segment attached,
 generate the morphology with ``spherical_root=True``:
 
@@ -520,19 +409,12 @@ This example models a cell with a simple dendritic tree attached to a soma.
    tree.append(parent= 4, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 2)
    tree.append(parent= 3, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 3)
 
+   morph = arbor.morphology(tree)
+
 The root sample with id 0 has a large radius to represent the soma, and the dendritic
 tree is represented by samples 1-6.
 
-.. figure:: gen-images/tree5a.svg
-  :width: 400
-  :align: center
-
-If the morphology is generated with ``spherical_root=False``,
 the soma is treated as a truncated cone whose end points are defined by between samples 0 and 1.
-
-.. code:: Python
-
-   morph = arbor.morphology(tree, spherical_root=False)
 
 .. figure:: gen-images/morph5a_cable.svg
   :width: 800
@@ -544,14 +426,6 @@ the soma is treated as a truncated cone whose end points are defined by between 
 If the first sample is treated as a spherical soma by setting ``spherical_root=True``, the
 morphology has 4 branches, with the soma having its own spherical branch, and the dendritic tree
 composed of 3 branches.
-
-.. code:: Python
-
-   morph = arbor.morphology(tree, spherical_root=True)
-
-.. figure:: gen-images/morph5a_sphere.svg
-  :width: 800
-  :align: center
 
 If the intention is to model a spherical soma with a cable segment attached to its surface,
 an additional sample can be added at the edge of the soma to bridge the gap.
