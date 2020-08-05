@@ -82,7 +82,7 @@ public:
 
         cable_distal_segs_.push_back(p);
 
-        return size()-1;
+        return cable_distal_segs_.size()-1;
     }
 
     void add_label(const char* name, const char* description) {
