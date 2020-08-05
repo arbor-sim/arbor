@@ -41,7 +41,7 @@ class Segment:
         e = self.location(dist)
         rb = b[2]
         re = e[2]
-        d = sub_vec(e,b)
+        d = sub_vec(self.dist, self.prox)
         o = rot90_vec(unit_vec(d))
         p1 = add_vec(b, scal_vec(rb, o))
         p2 = add_vec(e, scal_vec(re, o))
@@ -55,6 +55,14 @@ class Segment:
     def __repr__(self):
         return 'seg({}, {})'.format(self.prox, self.dist)
 
+
+# Represent and query a cable cell branch for rendering.
+# The branch is composed of segments, which are grouped into "sections".
+# A section is a fully connected sequence of segments, and a branch
+# will have more than one section if there are jumps/gaps between
+# segments.
+# The section representation makes things a bit messy, but it is required
+# to be able to draw morphologies with gaps.
 
 class Branch:
     def __init__(self, tree, indexes):
@@ -94,54 +102,87 @@ class Branch:
 
         return (minx, maxx, miny, maxy)
 
-    # Return outline points of all sections in the branch
-    def outline(self):
-        outlines = []
-        for sec in self.sections:
-            left = []
-            right = []
-            for seg in sec:
-                p1, p2, p3, p4 = seg.corners()
-                left += [p1, p2]
-                right += [p4, p3]
-            right.reverse()
-            outlines.append(left+right)
-
-        return outlines
-
-    def location(self, pos):
+    # Return the segment location that contains the location
+    # that is 0 ≤ pos ≤ 1 along the branch
+    #
+    # return tuple: (sec, seg, pos)
+    #       sec: id of the section containing the segment
+    #       seg: index of the segment in the section
+    #       pos: relative position of the location inside the segment
+    def segment_id(self, pos):
         assert(pos>=0 and pos<=1)
+        if pos==0:
+            return (0, 0, 0.0)
+        if pos==1:
+            return (len(self.sections)-1, len(self.sections[-1])-1, 1.0)
         l = pos * self.length
 
-        if pos==0:
-            return self.sections[0][0].location(0)
-        if pos==1:
-            return self.sections[-1][-1].location(1)
-
         part = 0
-        for sec in self.sections:
-            for seg in sec:
+        for secid in range(len(self.sections)):
+            sec = self.sections[secid]
+            for segid in range(len(sec)):
+                seg = sec[segid]
                 if part+seg.length >= l:
                     segpos = (l-part)/seg.length
-                    return seg.location(segpos)
+                    return (secid, segid, segpos)
 
                 part += seg.length
 
-    # Return outline of cable sub-region of the branch, whose extent
-    # is defined such that: 0 ≤ prox ≤ dist ≤ 1
-    #def outline(self, prox, dist):
-    #    outlines = []
-    #    for sec in self.sections:
-    #        left = []
-    #        right = []
-    #        for seg in sec:
-    #            p1, p2, p3, p4 = seg.corners()
-    #            left += [p1, p2]
-    #            right += [p4, p3]
-    #        right.reverse()
-    #    outlines.append(left+right)
-    #
-    #    return outlines
+    def location(self, pos):
+        assert(pos>=0 and pos<=1)
+
+        secid, segid, segpos = self.segment_id(pos)
+        return self.sections[secid][segid].location(segpos)
+
+    def sec_outline(self, secid, pseg, ppos, dseg, dpos):
+        sec = self.sections[secid]
+
+        # Handle the case where the cable is in one segment
+        if pseg==dseg:
+            assert(ppos<=dpos)
+            return sec[pseg].corners(ppos, dpos)
+
+        left = []
+        right = []
+
+        # Handle the partial partial proximal segment
+        p1, p2, p3, p4 = sec[pseg].corners(ppos, 1)
+        left += [p1, p2]
+        right += [p4, p3]
+
+        # Handle the full segments in the middle
+        for segid in range(pseg+1, dseg):
+            p1, p2, p3, p4 = sec[segid].corners()
+            left += [p1, p2]
+            right += [p4, p3]
+
+        # Handle the partial distal segment
+        p1, p2, p3, p4 = sec[dseg].corners(0, dpos)
+        left += [p1, p2]
+        right += [p4, p3]
+
+        right.reverse()
+        return left + right
+
+
+
+    # Return outline of all (sub)sections in the branch between the relative
+    # locations: 0 ≤ prox ≤ dist ≤ 1
+    def outline(self, prox=0, dist=1):
+        psec, pseg, ppos = self.segment_id(prox)
+        dsec, dseg, dpos = self.segment_id(dist)
+
+        if psec==dsec and pseg==dseg:
+            return [self.sections[psec][pseg].corners(ppos, dpos)]
+        if psec==dsec:
+            return [self.sec_outline(psec, pseg, ppos, dseg, dpos)]
+
+        outlines = [self.sec_outline(psec, pseg, ppos, len(self.sections[psec])-1, 1)]
+        for secid in range(psec+1,dsec):
+            outlines.append(self.sec_outline(secid, 0, 0, len(self.sections[secid])-1, 1))
+        outlines.append(self.sec_outline(dsec, 0, 0, dseg, dpos))
+
+        return outlines
 
 # A morphology for rendering is a flat list of branches, with no
 # parent-child information for the branches.

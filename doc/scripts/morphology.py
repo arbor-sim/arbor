@@ -8,136 +8,14 @@ import regloc_input as rl
 tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 
 #
-# Helpers for working with 2D vectors
-#
-
-def norm_vec(v):
-    return math.sqrt(v[0]*v[0] + v[1]*v[1])
-
-def unit_vec(v):
-    L = norm_vec(v)
-    return (v[0]/L, v[1]/L)
-
-def rot90_vec(v):
-    return (v[1], -v[0])
-
-def add_vec(u, v):
-    return (u[0]+v[0], u[1]+v[1])
-
-def sub_vec(u, v):
-    return (u[0]-v[0], u[1]-v[1])
-
-def scal_vec(alpha, v):
-    return (alpha*v[0], alpha*v[1])
-
-def is_colloc(X,Y,i,j):
-    return X[i]==X[j] and Y[i]==Y[j]
-
-def is_collocated(x, y):
-    return x[0]==y[0] and x[1]==y[1]
-
-#
 # ############################################
 #
 
-def branch_meta(morph):
-    stats = []
+def translate(x, f, xshift):
+    return (f*x[0]+xshift, -f*x[1])
 
-    for branch in morph:
-        # Extract sample locations and radii
-        X = branch['x']
-        Y = branch['y']
-        R = branch['r']
-        T = branch['t']
-        nsamp = len(X)
-
-        L = 0
-        lens = [0]
-
-        for i in range(nsamp-1):
-            l = norm_vec((X[i+1]-X[i], Y[i+1]-Y[i]))
-            L += l
-            lens.append(L)
-
-        if L>0:
-            for i in range(len(lens)):
-                lens[i] /= L
-
-        # handle zero length branches... heaven forbid actually trying.
-        lens[-1] = 1
-
-        stats.append(lens)
-
-    return stats
-
-# 0 ≤ pos ≤ 1
-# 0 ≤ lens[i] ≤ 1; lens[i] ≤ lens[i+1]
-# return largest i that satisfies lens[i]<pos
-def find_pos(lens, pos):
-    for i,L in enumerate(lens):
-        if L>pos: return i-1
-    return i
-
-# Return {loc, v} where loc is location, v is the orientation
-def sample_at_end(branch, L, pos):
-    X = branch['x']
-    Y = branch['y']
-
-    lens = [L[i+1]-L[i] for i in range(len(L)-1)]
-    rng = range(len(lens))
-    if pos==0:
-        loc = (X[0], Y[0])
-
-        # find first non-zero segment
-        i = next(i for i in rng if lens[i]>0)
-        v = (X[i+1]-X[i], Y[i+1]-Y[i])
-        v = scal_vec(-1,rot90_vec(unit_vec(v)))
-    else:
-        loc = (X[-1], Y[-1])
-
-        # find last non-zero segment
-        i = next(i for i in reversed(rng) if lens[i]>0)
-        v = (X[i+1]-X[i], Y[i+1]-Y[i])
-        v = rot90_vec(unit_vec(v))
-
-    return (loc, v)
-
-# Return {index, x, y, r} of the sample at pos ∈ [0,1] on branch.
-# If pos lies between two samples the x,y,r values are interpolated
-# and index is the index of the proximal end of the cable segment.
-def sample_by_pos(branch, lens, pos):
-    X = branch['x']
-    Y = branch['y']
-    R = branch['r']
-
-    # find segment in branch that contains pos
-    i = find_pos(lens, pos)
-
-    if pos==lens[i]:
-        return (i, X[i], Y[i], R[i])
-
-    rel = (pos-lens[i])/(lens[i+1]-lens[i])
-    r = R[i] + rel*(R[i+1]-R[i])
-    x = X[i] + rel*(X[i+1]-X[i])
-    y = Y[i] + rel*(Y[i+1]-Y[i])
-
-    return (i, x, y, r)
-
-# todo: handle zero-length cable
-def cable_corners(b, e, rb, re, left, right):
-    if is_collocated(e,b):
-        return
-
-    o = rot90_vec(unit_vec(sub_vec(e,b)))
-    p1 = add_vec(b, scal_vec(rb, o))
-    p2 = add_vec(e, scal_vec(re, o))
-    p3 = sub_vec(e, scal_vec(re, o))
-    p4 = sub_vec(b, scal_vec(rb, o))
-    left += [p1, p2]
-    right += [p4, p3]
-#
-# ############################################
-#
+def translate_all(points, f, xshift):
+    return [translate(x, f, xshift) for x in points]
 
 # Draw one or more morphologies, side by side.
 # Each morphology can be drawn as segments or branches.
@@ -187,84 +65,39 @@ def morph_image(morphs, methods, filename, sc=20):
 
         for i in range(nbranches):
             branch = morph[i]
-            if branch['kind'] == 'sphere':
-                print('skipping sphere')
-                return
 
-            # Extract sample locations and radii
-            X = branch['x']
-            Y = branch['y']
-            R = branch['r']
-            T = branch['t']
-            nsamp = len(X)
-
-            # Scale locations and radii for drawing
-            X = [ sc*x + offset for x in X]
-            Y = [-sc*x for x in Y]
-            R = [ sc*x for x in R]
-
-            minx = min([minx]+[X[i]-R[i] for i in range(nsamp)])
-            miny = min([miny]+[Y[i]-R[i] for i in range(nsamp)])
-            maxx = max([maxx]+[X[i]+R[i] for i in range(nsamp)])
-            maxy = max([maxy]+[Y[i]+R[i] for i in range(nsamp)])
+            lx, ux, ly, uy = branch.minmax()
+            minx = min(minx,  sc*lx+offset)
+            miny = min(miny,  sc*ly)
+            maxx = max(maxx,  sc*ux+offset)
+            maxy = max(maxy,  sc*uy)
 
             if method=='segments':
-                for j in range(1, nsamp):
-                    b = (X[j-1], Y[j-1])
-                    e = (X[j],   Y[j])
-                    d = sub_vec(e,b)
-                    if norm_vec(d)>0.00001: # only draw nonzero length segments
-                        o = rot90_vec(unit_vec(d))
-                        rb = R[j-1]
-                        re = R[j]
-                        p1 = add_vec(b, scal_vec(rb, o))
-                        p2 = add_vec(e, scal_vec(re, o))
-                        p3 = sub_vec(e, scal_vec(re, o))
-                        p4 = sub_vec(b, scal_vec(rb, o))
-                        lines.add(dwg.polygon(points=[p1,p2,p3,p4], fill=tag_colors[T[j]]))
+                for sec in branch.sections:
+                    for seg in sec:
+                        if seg.length>0.00001: # only draw nonzero length segments
+                            line = translate_all(seg.corners(), sc, offset)
+                            lines.add(dwg.polygon(points=line, fill=tag_colors[seg.tag]))
 
             elif method=='branches':
-                index = []
-                for j in range(nsamp-1):
-                    if not is_colloc(X,Y,j,j+1):
-                        index.append([j, j+1])
-                nseg = len(index)
-                left = []
-                right = []
-                for k in range(nseg):
-                    bi = index[k][0]
-                    ei = index[k][1]
-                    b = (X[bi], Y[bi])
-                    e = (X[ei], Y[ei])
-                    d = sub_vec(e,b)
-                    o = rot90_vec(unit_vec(d))
-                    rb = R[bi]
-                    re = R[ei]
-                    p1 = add_vec(b, scal_vec(rb, o))
-                    p2 = add_vec(e, scal_vec(re, o))
-                    p3 = sub_vec(e, scal_vec(re, o))
-                    p4 = sub_vec(b, scal_vec(rb, o))
-                    left += [p1, p2]
-                    right += [p4, p3]
-                right.reverse()
-                lines.add(dwg.polygon(points=left+right,fill=branchfillcolor))
-                # Place the number in the "middle" of the branch
-                if not nseg%2:
-                    # Even number of segments: location lies at interface between segments
-                    k = index[int(nseg/2)][0]
-                    pos = (X[k], Y[k])
-                else:
-                    # odd number of segments: location lies in center of middle segment
-                    k1, k2 = index[int((nseg-1)/2)]
-                    pos = ((X[k1]+X[k2])/2, (Y[k1]+Y[k2])/2)
-                label_pos = (pos[0], pos[1]+sc/3)
-                points.add(dwg.circle(center=pos, stroke=bcolor, r=sc*0.55, fill=bcolor))
-                # alignment_baseline
+                for line in branch.outline():
+                    lines.add(dwg.polygon(points=translate_all(line, sc, offset),
+                                          fill=branchfillcolor))
+
+                pos = translate(branch.location(0.5), sc, offset)
+                points.add(dwg.circle(center=pos,
+                                      stroke=bcolor,
+                                      r=sc*0.55,
+                                      fill=bcolor))
+                # The svg alignment_baseline attribute:
                 #   - works on Chrome/Chromium
                 #   - doesn't work on Firefox
-                numbers.add(dwg.text(str(i), insert=label_pos, stroke='white', fill='white'))
-                #numbers.add(dwg.text(str(i), insert=label_pos, stroke='white', fill='white', alignment_baseline='middle'))
-
+                # so for now we just shift the relative position by sc/3
+                label_pos = (pos[0], pos[1]+sc/3)
+                numbers.add(dwg.text(str(i),
+                                      insert=label_pos,
+                                      stroke='white',
+                                      fill='white'))
         offset = maxx - minx + sc
 
 
@@ -287,12 +120,12 @@ def morph_image(morphs, methods, filename, sc=20):
 # Handling this case would make rendering regions more complex, but would
 # not bee too hard to support.
 def label_image(morphology, labels, filename, sc=20):
+    morph = morphology
     print('image:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
-    morph = copy.deepcopy(morphology)
 
     # Width of lines and circle strokes.
-    line_width=0.1*sc
+    line_width=0.2*sc
 
     # Padding around image.
     fudge=1.5*sc
@@ -313,17 +146,9 @@ def label_image(morphology, labels, filename, sc=20):
     maxx = -math.inf
     maxy = -math.inf
 
-    offset = None
+    offset = 0
 
     branchfillcolor = 'lightgray'
-    bcol = branchfillcolor
-
-    # Scale sample locations and radius for drawing
-    for branch in morph:
-        branch['x'] = [ sc*x for x in branch['x']]
-        branch['y'] = [-sc*x for x in branch['y']]
-        branch['r'] = [ sc*x for x in branch['r']]
-    meta = branch_meta(morph)
 
     nimage = len(labels)
     for l in range(nimage):
@@ -334,111 +159,47 @@ def label_image(morphology, labels, filename, sc=20):
         # Draw the outline of the cell
         for i in range(nbranches):
             branch = morph[i]
-            if branch['kind'] == 'sphere':
-                print('skipping sphere')
-                return
 
-            # Extract sample locations and radii
-            X = branch['x']
-            Y = branch['y']
-            R = branch['r']
-            T = branch['t']
-            nsamp = len(X)
+            lx, ux, ly, uy = branch.minmax()
+            minx = min(minx,  sc*lx+offset)
+            miny = min(miny,  sc*ly)
+            maxx = max(maxx,  sc*ux+offset)
+            maxy = max(maxy,  sc*uy)
 
-            minx = min([minx]+[X[i]-R[i] for i in range(nsamp)])
-            miny = min([miny]+[Y[i]-R[i] for i in range(nsamp)])
-            maxx = max([maxx]+[X[i]+R[i] for i in range(nsamp)])
-            maxy = max([maxy]+[Y[i]+R[i] for i in range(nsamp)])
-
-
-            index = []
-            for j in range(nsamp-1):
-                if not is_colloc(X,Y,j,j+1):
-                    index.append([j, j+1])
-            nseg = len(index)
-            left = []
-            right = []
-            for k in range(nseg):
-                bi = index[k][0]
-                ei = index[k][1]
-                b = (X[bi], Y[bi])
-                e = (X[ei], Y[ei])
-                d = sub_vec(e,b)
-                o = rot90_vec(unit_vec(d))
-                rb = R[bi]
-                re = R[ei]
-                p1 = add_vec(b, scal_vec(rb, o))
-                p2 = add_vec(e, scal_vec(re, o))
-                p3 = sub_vec(e, scal_vec(re, o))
-                p4 = sub_vec(b, scal_vec(rb, o))
-                left += [p1, p2]
-                right += [p4, p3]
-            right.reverse()
-            lines.add(dwg.polygon(points=left+right, fill=bcol, stroke=bcol))
+            for line in branch.outline():
+                lines.add(dwg.polygon(points=translate_all(line, sc, offset),
+                                      fill=branchfillcolor,
+                                      stroke=branchfillcolor))
 
         # Draw the root
-        x = morph[0]['x'][0]
-        y = morph[0]['y'][0]
-        points.add(dwg.circle(center=(x,y), stroke='red', r=sc/2.5, fill='lightgray'))
+        root = translate(morph[0].location(0), sc, offset)
+        points.add(dwg.circle(center=root, stroke='red', r=sc/2.5, fill='white'))
 
-        # Draw locset if requested
         if lab['type'] == 'locset':
             for loc in lab['value']:
                 bid = loc[0]
                 pos = loc[1]
 
-                # Draw locations that are not at the end of a branch with full circles.
-                if pos>0 and pos<1:
-                    idx, x, y, r = sample_by_pos(morph[bid], meta[bid], pos)
-                    points.add(dwg.circle(center=(x,y), stroke='black', r=sc/3, fill='black'))
-
-                # Draw locations on either end of a branch with semi circles.
-                else:
-                    loc, orient = sample_at_end(morph[bid], meta[bid], pos)
-                    rad = sc/3
-
-                    m0 = rad*orient[0]
-                    n0 = rad*orient[1]
-                    points.add(dwg.path(d="M {0},{1} A {2},{2} 0 0,0 {3},{4} z".format(
-                        loc[0]+m0, loc[1]+n0, rad, loc[0]-m0, loc[1]-n0), fill="black", stroke="black"))
+                loc = translate(morph[bid].location(pos), sc, offset)
+                points.add(dwg.circle(center=loc, stroke='black', r=sc/3, fill='white'))
 
         if lab['type'] == 'region':
             for cab in lab['value']:
                 # skip zero length cables
-                if cab[1]==cab[2]: continue
-
                 bid  = cab[0]
-                branch = morph[bid]
-                lens   = meta[bid]
-                prox = sample_by_pos(branch, lens, cab[1])
-                dist = sample_by_pos(branch, lens, cab[2])
+                ppos = cab[1]
+                dpos = cab[2]
 
-                X = branch['x']
-                Y = branch['y']
-                R = branch['r']
+                # Don't draw zero-length cables
+                # How should these be drawn: with a line or a circle?
+                if ppos==dpos: continue
 
-                pointl  = [(prox[1], prox[2])]
-                radl    = [prox[3]]
-                for k in range(prox[0]+1, dist[0]+1):
-                    pointl += [(X[k], Y[k])]
-                    radl   += [R[k]]
-                pointl += [(dist[1], dist[2])]
-                radl   += [dist[3]]
-                left = []
-                right = []
-                np = len(pointl)
-                for k in range(np-1):
-                    cable_corners(pointl[k], pointl[k+1], radl[k], radl[k+1], left, right)
+                for line in morph[bid].outline(ppos, dpos):
+                    lines.add(dwg.polygon(points=translate_all(line, sc, offset),
+                                          fill='black',
+                                          stroke=branchfillcolor))
 
-                right.reverse()
-                lines.add(dwg.polygon(points=left+right, fill='black', stroke='lightgray'))
-
-        if offset==None:
-            offset = maxx - minx + sc
-
-        for branch in morph:
-            branch['x'] = [ x+offset for x in branch['x']]
-
+        offset = maxx - minx + sc
 
     # Find extent of image.
     minx -= fudge
@@ -455,7 +216,8 @@ def label_image(morphology, labels, filename, sc=20):
 def generate(path=''):
 
     # spherical morpho: no need for two images
-    #morph_image([trees.morph1], ['branchs'],  path+'/morph1.svg')
+    # TODO: make this a cylinder
+    #morph_image([trees.morph1], ['branches'],  path+'/morph1.svg')
 
     # single cable segment
     #morph_image([trees.morph2a, trees.morph2a], ['segments','branches'], path+'/morph2a.svg')
@@ -475,6 +237,7 @@ def generate(path=''):
     #morph_image([trees.morph6, trees.morph6], ['segments','branches'], path+'/morph6.svg')
 
     #morph_image([trees.morphlab, trees.morphlab], ['segments','branches'], path+'/morphlab.svg')
+    morph_image([trees.morphlab, trees.morphlab], ['segments', 'branches'], path+'/morphlab.svg')
 
     ####################### locsets
 

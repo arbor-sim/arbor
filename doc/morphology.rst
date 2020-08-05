@@ -11,51 +11,71 @@ which are truncated conic frustums that represent an unbranched section of the c
 Segment Trees
 --------------
 
-A *segment tree* is a segment-based description of a cell's morphology
+A *segment tree* is a description of a cell's morphology
 that is designed to support both the diverse descriptions
 of cell morphologies (e.g. SWC, NeuroLicida, NeuroML), and tools that
 iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
 
-The building block of segment trees is a *segment*, which
-is a three-dimensionsal *location*, with a *radius* and *tag* meta-data.
+The building blocks of segment trees is are *points* and *segments*:
+
+* *point*: a three-dimensional location and a radius, used to indicate the radius
+  of of a cable.
+* *segment*: a frustum (cylinder or truncated cone), with the centre and radius at each
+  end defined by a pair of points.
 
 .. csv-table:: Fields that define a point.
    :widths: 10, 10, 30
 
    **Field**,   **Type**, **Description**
-   ``x``,       real, x coordinate of centre of cable.
-   ``y``,       real, y coordinate of centre of cable.
-   ``z``,       real, z coordinate of centre of cable.
-   ``radius``,  real, cross sectional radius of cable.
+   ``x``,       real, x coordinate of centre of cable (μm).
+   ``y``,       real, y coordinate of centre of cable (μm).
+   ``z``,       real, z coordinate of centre of cable (μm).
+   ``radius``,  real, cross sectional radius of cable (μm).
 
+.. csv-table:: Fields that define a segment.
+   :widths: 10, 10, 30
+
+   **Field**,   **Type**, **Description**
+   ``prox``,       point,   the center and radius of the proximal end.
+   ``dist``,       point,   the center and radius of the distal end.
+   ``tag``,        integer, tag meta-data.
 
 .. note::
 
     A *tag* is an integer label on every segment, which can be used later to define
-    regions on cell models. For example, tags could store the *structure identifier* field in the
+    regions on cell models. For example, tags could store the *structure identifier*
+    field for a morphology loaded from a file in the
     `SWC format <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
     which identifies whether individual SWC records lie in the soma, axons, dendrites, etc.
     Arbor tag definitions are not fixed, and users can customise them for their requirements.
 
+.. _morph-tags:
 
-Segment trees comprise a sequence of segments starting from a *root* segment, together with a parent-child
-adjacency relationship where a child segment is distal to its parent.
-Branches in the tree occur where a segment has more than one child.
-Furthermore, a segment can not have more than one parent.
-In this manner, neuron morphologies are modelled as a *tree*, where cables that represent dendrites and
-axons can branch, but branches can not rejoin.
+Tags
+~~~~~~~~~~~~~~~~~~
+
+The segments :ref:`above <morph-segment-fig>` are colored according to the tags in
+the :ref:`sample tree  <morph-stree-fig>`: tag 1 pink; tag 2 grey; and tag 3 blue.
 
 .. _morph-sample-definitions:
 
-Definitions
-~~~~~~~~~~~
+Segment Tree Construction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When refering to segments in a segment tree, the following definitions are used:
+Segment trees comprise a sequence of segments starting from a *root* segment,
+together with a parent-child adjacency relationship where a child segment is
+distal to its parent.
+Branches in the tree occur where a segment has more than one child.
+Furthermore, a segment can not have more than one parent.
+In this manner, neuron morphologies are modelled as a *tree*, where cables that
+represent dendrites and axons can branch, but branches can not rejoin.
+
+The following definitions are used to refer to segments in a segment tree:
 
 * *root*: segments at the root or start of the tree. A non-empty tree must have at least one root segment,
   and the first segment will always be a root.
 
-* *parent*: Each segment has one parent, which is either 
+* *parent*: Each segment has one parent, except for root segments which have ``mnpos`` as their parent.
 
   * A segments's id is always greater than the id of its parent.
   * The ids of segments on the same unbranched sequence of segments do not need to be contiguous.
@@ -110,13 +130,10 @@ A *morphology* describes the geometry of a cell as unbranched cables with variab
 A morphology is constructed from a segment tree by defining the branches, which are uniquely
 derived from the cable segments.
 
-Segmentation generates *cable segments* from a sample tree, of which there are two kinds:
-
-* *Cable segment*: a frustum (cylinder or truncated cone) between two adjacent samples,
-  with the centre and radius of each end defined by the location and radius of the samples.
-
 The segmentation below, based on the model of a soma with a branching dendrite :ref:`above <morph-stree-fig>`,
 illustrates the segments generated from a sample tree:
+
+*TODO: we can fix this* This part simply discusses adding the definition of branches, and how they are derived reproducably from segments.
 
 .. _morph-segment-fig:
 
@@ -126,7 +143,6 @@ illustrates the segments generated from a sample tree:
 
   **Left**: stuff
 
-  **Right**: Segments with a spherical root segment.
 
 
 .. note::
@@ -153,26 +169,6 @@ illustrates the segments generated from a sample tree:
     dendrites, or the location of the axon relative to that of the dendritic tree.
     In these cases, construct the soma from one or more frustums, and attach the cables to
     the appropriate end of the frustums.
-
-.. _morph-tags:
-
-Tags
-""""
-
-*TODO: move to segment tree*
-Each segment is given a tag, determined by sample tag meta-data:
-
-* Cable segments take the tag of their distal sample.
-* Spherical segments take the tag of the root sample.
-
-The segments :ref:`above <morph-segment-fig>` are colored according to the tags in
-the :ref:`sample tree  <morph-stree-fig>`: tag 1 pink; tag 2 grey; and tag 3 blue.
-
-.. note::
-
-    The tag of the root sample is ignored when not using a spherical root,
-    because it can only be used as the proximal end of cable segments.
-
 
 Branches
 ~~~~~~~~
