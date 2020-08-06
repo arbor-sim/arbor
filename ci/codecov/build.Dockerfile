@@ -11,7 +11,7 @@ ENV MPICH_VERSION ${MPICH_VERSION}
 # Install basic tools
 RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
     build-essential lcov \
-    python \
+    python3 \
     git tar wget curl && \
     rm -rf /var/lib/apt/lists/*
 
