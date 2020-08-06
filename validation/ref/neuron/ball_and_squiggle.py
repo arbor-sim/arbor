@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #coding: utf-8
 
 import json
@@ -8,7 +8,7 @@ import nrn_validation as V
 try:
     from builtins import range
 except ImportError:
-    from __builtin__ import range
+    from builtins import range
 
 V.override_defaults_from_args()
 
@@ -28,7 +28,7 @@ model.add_iclamp(5, 80, 0.3, to='dend')
 simdur = 100.0
 
 data = V.run_nrn_sim(simdur, report_dt=10, model='ball_and_squiggle')
-print(json.dumps(data))
+print((json.dumps(data)))
 
 V.nrn_stop()
 

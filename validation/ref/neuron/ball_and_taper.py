@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #coding: utf-8
 
 import json
@@ -15,6 +15,6 @@ model.add_dendrite('taper', geom)
 model.add_iclamp(5, 80, 0.3, to='taper')
 
 data = V.run_nrn_sim(100, report_dt=10, model='ball_and_taper')
-print(json.dumps(data))
+print((json.dumps(data)))
 V.nrn_stop()
 
