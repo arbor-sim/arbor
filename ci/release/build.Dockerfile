@@ -27,7 +27,7 @@ RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPIC
     rm -rf mpich-${MPICH_VERSION}.tar.gz mpich-${MPICH_VERSION}
 
 # Install bundle tooling for creating small Docker images
-RUN wget -q https://github.com/haampie/libtree/releases/download/v1.1.3/libtree_x86_64.tar.gz && \
+RUN wget -q https://github.com/haampie/libtree/releases/download/v1.2.0/libtree_x86_64.tar.gz && \
     tar -xzf libtree_x86_64.tar.gz && \
     rm libtree_x86_64.tar.gz && \
     ln -s /root/libtree/libtree /usr/local/bin/libtree
