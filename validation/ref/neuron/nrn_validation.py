@@ -1,18 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #coding: utf-8
 
-import json
 import sys
 import os
 import re
 import numpy as np
 import neuron
 from neuron import h
-
-try:
-    from builtins import range
-except ImportError:
-    from __builtin__ import range
 
 # This is super annoying: without neuron.gui, need
 # to explicit load 'standard' hoc routines like 'run',
@@ -55,7 +49,7 @@ default_model_parameters = {
 
 def override_defaults_from_args(args=sys.argv):
     global default_model_parameters
-    keys = default_model_parameters.keys()
+    keys = list(default_model_parameters.keys())
     r = re.compile('('+'|'.join(keys)+')=(.*)')
     for m in [r.match(a) for a in args]:
         if m:
@@ -77,7 +71,7 @@ class VModel:
         self.netcons = []
 
     def set_ncomp(self, n):
-        for s in self.sections.values():
+        for s in list(self.sections.values()):
             s.nseg = int(n)
 
     def add_iclamp(self, t0, dt, i, to=None, pos=1):
