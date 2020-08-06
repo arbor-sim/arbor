@@ -5,7 +5,7 @@ import collections
 from itertools import zip_longest
 
 def usage(default_delta):
-    print(("""
+    print("""
     compare two input spike time files on equality with a delta of max_delta
     order of the spikes is not important. GID should always be equal
     Display the first 50 differences encountered.
@@ -16,7 +16,7 @@ def usage(default_delta):
     ; seperated format, a single difference per line
 
 
-    """.format(default_delta)))
+    """.format(default_delta))
 
 def parse_file(path):
     """

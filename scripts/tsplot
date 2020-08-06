@@ -82,7 +82,7 @@ def parse_clargs():
     return P.parse_args(argsbis)
 
 def isstring(s):
-    return isinstance(s,str) or isinstance(s,str)
+    return isinstance(s,str)
 
 def take(n, s):
     return islice((i for i in s), 0, n)

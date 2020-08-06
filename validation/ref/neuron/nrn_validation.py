@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 #coding: utf-8
 
-import json
 import sys
 import os
 import re
 import numpy as np
 import neuron
 from neuron import h
-
-try:
-    from builtins import range
-except ImportError:
-    from builtins import range
 
 # This is super annoying: without neuron.gui, need
 # to explicit load 'standard' hoc routines like 'run',
