@@ -97,18 +97,18 @@ d = arbor.label_dict(labels)
 
 cell = arbor.cable_cell(label_morph, d)
 
-f = open('regloc_inputs.py', 'w')
-f.write('\n############# locsets\n')
+f = open('inputs.py', 'w')
+f.write('import representation\n')
+f.write('from representation import Segment\n')
+f.write('\n############# locsets\n\n')
 for label in locsets:
     locs = [(l.branch, l.pos) for l in cell.locations(label)]
     f.write('ls_{}  = {{\'type\': \'locset\', \'value\': {}}}\n'.format(label, locs))
 
-f.write('\n############# regions\n')
+f.write('\n############# regions\n\n')
 for label in regions:
     comps = [(c.branch, c.prox, c.dist) for c in cell.cables(label)]
     f.write('reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
-
-f.close()
 
 # The label morphology with some gaps (at start of dendritic tree and remove the axon hillock)
 label_tree = arbor.segment_tree()
@@ -135,9 +135,7 @@ stacked_tree.append(3,    mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), ta
 
 stacked_morph = arbor.morphology(stacked_tree)
 
-f = open('morph_inputs.py', 'w')
-f.write('import representation\n')
-f.write('from representation import Segment\n')
+f.write('\n############# morphologies\n\n')
 f.write(write_morphology('label_morph', label_morph))
 f.write(write_morphology('label_morph_detached', label_morph_detached))
 f.write(write_morphology('stacked_morph', label_morph_detached))
