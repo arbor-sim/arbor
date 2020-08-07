@@ -1,9 +1,9 @@
 import copy
 import svgwrite
 import math
-import tree_inputs as trees
+import morph_inputs as trees
 
-import regloc_input as rl
+import regloc_inputs as rl
 
 tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 
@@ -236,50 +236,49 @@ def generate(path=''):
 
     #morph_image([trees.morph6, trees.morph6], ['segments','branches'], path+'/morph6.svg')
 
-    #morph_image([trees.morphlab, trees.morphlab], ['segments','branches'], path+'/morphlab.svg')
-    morph_image([trees.morphlab, trees.morphlab], ['segments', 'branches'], path+'/morphlab.svg')
+    #morph_image([trees.label_morph, trees.label_morph], ['segments','branches'], path+'/label_morph.svg')
+    morph_image([trees.label_morph, trees.label_morph], ['segments', 'branches'], path+'/label_morph.svg')
 
     ####################### locsets
 
-    label_image(trees.morphlab, [rl.ls_term, rl.ls_rand_dend], path+'/locset_label_examples.svg')
+    label_image(trees.label_morph, [rl.ls_term, rl.ls_rand_dend], path+'/locset_label_examples.svg')
 
-    label_image(trees.morphlab, [rl.reg_dend, rl.reg_radlt5], path+'/region_label_examples.svg')
+    label_image(trees.label_morph, [rl.reg_dend, rl.reg_radlt5], path+'/region_label_examples.svg')
 
-    label_image(trees.morphlab, [rl.ls_root], path+'/root_label.svg')
-    label_image(trees.morphlab, [rl.ls_term], path+'/term_label.svg')
-    label_image(trees.morphlab, [rl.ls_sample1], path+'/sample1_label.svg')
+    label_image(trees.label_morph, [rl.ls_root], path+'/root_label.svg')
+    label_image(trees.label_morph, [rl.ls_term], path+'/term_label.svg')
 
-    label_image(trees.morphlab, [rl.ls_loc15], path+'/location_label.svg')
+    label_image(trees.label_morph, [rl.ls_loc15], path+'/location_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_rad36, rl.ls_distal], path+'/distal_label.svg')
-    label_image(trees.morphlab, [rl.reg_rad36, rl.ls_proximal], path+'/proximal_label.svg')
-    label_image(trees.morphlab, [rl.ls_uniform0, rl.ls_uniform1], path+'/uniform_label.svg')
-    label_image(trees.morphlab, [rl.ls_branchmid], path+'/on_branches_label.svg')
+    label_image(trees.label_morph, [rl.reg_rad36, rl.ls_distal], path+'/distal_label.svg')
+    label_image(trees.label_morph, [rl.reg_rad36, rl.ls_proximal], path+'/proximal_label.svg')
+    label_image(trees.label_morph, [rl.ls_uniform0, rl.ls_uniform1], path+'/uniform_label.svg')
+    label_image(trees.label_morph, [rl.ls_branchmid], path+'/on_branches_label.svg')
 
-    label_image(trees.morphlab, [rl.ls_term, rl.reg_tag3, rl.ls_restrict], path+'/restrict_label.svg')
+    label_image(trees.label_morph, [rl.ls_term, rl.reg_tag3, rl.ls_restrict], path+'/restrict_label.svg')
 
     ####################### regions
 
-    label_image(trees.morphlab, [rl.reg_empty, rl.reg_all], path+'/nil_all_label.svg')
+    label_image(trees.label_morph, [rl.reg_empty, rl.reg_all], path+'/nil_all_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_tag1, rl.reg_tag2, rl.reg_tag3], path+'/tag_label.svg')
+    label_image(trees.label_morph, [rl.reg_tag1, rl.reg_tag2, rl.reg_tag3], path+'/tag_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_branch0, rl.reg_branch3], path+'/branch_label.svg')
+    label_image(trees.label_morph, [rl.reg_branch0, rl.reg_branch3], path+'/branch_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_cable_1_01, rl.reg_cable_1_31, rl.reg_cable_1_37], path+'/cable_label.svg')
+    label_image(trees.label_morph, [rl.reg_cable_1_01, rl.reg_cable_1_31, rl.reg_cable_1_37], path+'/cable_label.svg')
 
-    label_image(trees.morphlab, [rl.ls_proxint_in, rl.reg_proxint],    path+'/proxint_label.svg')
-    label_image(trees.morphlab, [rl.ls_proxint_in, rl.reg_proxintinf], path+'/proxintinf_label.svg')
-    label_image(trees.morphlab, [rl.ls_distint_in, rl.reg_distint],    path+'/distint_label.svg')
-    label_image(trees.morphlab, [rl.ls_distint_in, rl.reg_distintinf], path+'/distintinf_label.svg')
+    label_image(trees.label_morph, [rl.ls_proxint_in, rl.reg_proxint],    path+'/proxint_label.svg')
+    label_image(trees.label_morph, [rl.ls_proxint_in, rl.reg_proxintinf], path+'/proxintinf_label.svg')
+    label_image(trees.label_morph, [rl.ls_distint_in, rl.reg_distint],    path+'/distint_label.svg')
+    label_image(trees.label_morph, [rl.ls_distint_in, rl.reg_distintinf], path+'/distintinf_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_lhs, rl.reg_rhs, rl.reg_or],  path+'/union_label.svg')
-    label_image(trees.morphlab, [rl.reg_lhs, rl.reg_rhs, rl.reg_and], path+'/intersect_label.svg')
+    label_image(trees.label_morph, [rl.reg_lhs, rl.reg_rhs, rl.reg_or],  path+'/union_label.svg')
+    label_image(trees.label_morph, [rl.reg_lhs, rl.reg_rhs, rl.reg_and], path+'/intersect_label.svg')
 
-    label_image(trees.morphlab, [rl.reg_radlt5],  path+'/radiuslt_label.svg')
-    label_image(trees.morphlab, [rl.reg_radle5],  path+'/radiusle_label.svg')
-    label_image(trees.morphlab, [rl.reg_radgt5],  path+'/radiusgt_label.svg')
-    label_image(trees.morphlab, [rl.reg_radge5],  path+'/radiusge_label.svg')
+    label_image(trees.label_morph, [rl.reg_radlt5],  path+'/radiuslt_label.svg')
+    label_image(trees.label_morph, [rl.reg_radle5],  path+'/radiusle_label.svg')
+    label_image(trees.label_morph, [rl.reg_radgt5],  path+'/radiusgt_label.svg')
+    label_image(trees.label_morph, [rl.reg_radge5],  path+'/radiusge_label.svg')
 
 
 if __name__ == '__main__':

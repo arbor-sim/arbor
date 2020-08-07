@@ -1,22 +1,50 @@
 import arbor
+from arbor import mpoint
 
-tree = arbor.sample_tree()
-tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
-tree.append(parent= 0, x= 4.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
-tree.append(parent= 1, x= 4.0, y= 0.0, z= 0.0, radius= 0.8, tag= 3)
-tree.append(parent= 2, x= 8.0, y= 0.0, z= 0.0, radius= 0.8, tag= 3)
-tree.append(parent= 3, x=12.0, y=-0.5, z= 0.0, radius= 0.8, tag= 3)
-tree.append(parent= 4, x=20.0, y= 4.0, z= 0.0, radius= 0.4, tag= 3)
-tree.append(parent= 5, x=26.0, y= 6.0, z= 0.0, radius= 0.2, tag= 3)
-tree.append(parent= 4, x=12.0, y=-0.5, z= 0.0, radius= 0.5, tag= 3)
-tree.append(parent= 7, x=19.0, y=-3.0, z= 0.0, radius= 0.5, tag= 3)
-tree.append(parent= 8, x=24.0, y=-7.0, z= 0.0, radius= 0.2, tag= 3)
-tree.append(parent= 8, x=23.0, y=-1.0, z= 0.0, radius= 0.2, tag= 3)
-tree.append(parent=10, x=26.0, y=-2.0, z= 0.0, radius= 0.2, tag= 3)
-tree.append(parent= 0, x=-7.0, y= 0.0, z= 0.0, radius= 0.4, tag= 2)
-tree.append(parent=12, x=-10.0, y= 0.0, z= 0.0, radius= 0.4, tag= 2)
+def is_collocated(l, r):
+    return l[0]==r[0] and l[1]==r[1]
 
-m = arbor.morphology(tree, spherical_root=False)
+def write_morphology(name, morph):
+    string = 'tmp = ['.format(name)
+    for i in range(morph.num_branches):
+        first = True
+        sections = '['
+        for seg in morph.branch_segments(i):
+            if not first:
+                if is_collocated((seg.prox.x, seg.prox.y), (last_dist.x, last_dist.y)):
+                    sections += ', '
+                else:
+                    sections += '], ['
+
+            first = False
+            p = seg.prox
+            d = seg.dist
+            sections += 'Segment(({}, {}, {}), ({}, {}, {}), {})'.format(p.x, p.y, p.radius, d.x, d.y, d.radius, seg.tag)
+            last_dist = seg.dist
+        sections += ']'
+
+        string += '\n    [{}],'.format(sections)
+    string += ']\n'
+    string += '{} = representation.make_morph(tmp)\n\n'.format(name)
+    return string
+
+
+npos = arbor.mnpos
+
+label_tree = arbor.segment_tree()
+label_tree.append(npos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0),   tag=1)
+label_tree.append(0,    mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
+label_tree.append(1,    mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
+label_tree.append(2,    mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
+label_tree.append(3,    mpoint(20,  4.0, 0, 0.4), mpoint(26,  6.0, 0, 0.2), tag=3)
+label_tree.append(2,    mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=3)
+label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=3)
+label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=3)
+label_tree.append(7,    mpoint(23, -1.0, 0, 0.2), mpoint(26, -2.0, 0, 0.2), tag=3)
+label_tree.append(npos, mpoint(0,   0.0, 0, 2.0), mpoint(-7,  0.0, 0, 0.4), tag=2)
+label_tree.append(9,    mpoint(-7,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
+
+label_morph = arbor.morphology(label_tree)
 
 regions  = {
             'empty': '(nil)',
@@ -55,12 +83,11 @@ locsets = {
             'uniform0': '(uniform (tag 3) 0 9 0)',
             'uniform1': '(uniform (tag 3) 0 9 1)',
             'branchmid': '(on_branches 0.5)',
-            'sample1': '(sample 1)',
             'distal':  '(distal   (region "rad36"))',
             'proximal':'(proximal (region "rad36"))',
             'distint_in': '(sum (location 1 0.5) (location 2 0.7) (location 5 0.1))',
             'proxint_in': '(sum (location 1 0.8) (location 2 0.3))',
-            'loctest' : '(distal (super (join (branch 1) (branch 0))))',
+            'loctest' : '(distal (complete (join (branch 1) (branch 0))))',
             'restrict': '(restrict  (terminal) (tag 3))',
           }
 
@@ -68,9 +95,9 @@ labels = {**regions, **locsets}
 
 d = arbor.label_dict(labels)
 
-cell = arbor.cable_cell(m, d)
+cell = arbor.cable_cell(label_morph, d)
 
-f = open('regloc_input.py', 'w')
+f = open('regloc_inputs.py', 'w')
 f.write('\n############# locsets\n')
 for label in locsets:
     locs = [(l.branch, l.pos) for l in cell.locations(label)]
@@ -82,3 +109,37 @@ for label in regions:
     f.write('reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
 
 f.close()
+
+# The label morphology with some gaps (at start of dendritic tree and remove the axon hillock)
+label_tree = arbor.segment_tree()
+label_tree.append(npos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0),   tag=1)
+label_tree.append(0,    mpoint(5,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
+label_tree.append(1,    mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
+label_tree.append(2,    mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
+label_tree.append(3,    mpoint(20,  4.0, 0, 0.4), mpoint(26,  6.0, 0, 0.2), tag=3)
+label_tree.append(2,    mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=3)
+label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=3)
+label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=3)
+label_tree.append(7,    mpoint(23, -1.0, 0, 0.2), mpoint(26, -2.0, 0, 0.2), tag=3)
+label_tree.append(npos, mpoint(-2,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
+
+label_morph_detached = arbor.morphology(label_tree)
+
+# soma with "stacked cylinders"
+stacked_tree = arbor.segment_tree()
+stacked_tree.append(npos, mpoint(0,   0.0, 0, 0.5), mpoint( 1,  0.0, 0, 1.0), tag=1)
+stacked_tree.append(0,    mpoint(1,   0.0, 0, 1.0), mpoint( 2,  0.0, 0, 1.5), tag=1)
+stacked_tree.append(1,    mpoint(2,   0.0, 0, 1.5), mpoint( 3,  0.0, 0, 2.0), tag=1)
+stacked_tree.append(2,    mpoint(3,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 0.8), tag=1)
+stacked_tree.append(3,    mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
+
+stacked_morph = arbor.morphology(stacked_tree)
+
+f = open('morph_inputs.py', 'w')
+f.write('import representation\n')
+f.write('from representation import Segment\n')
+f.write(write_morphology('label_morph', label_morph))
+f.write(write_morphology('label_morph_detached', label_morph_detached))
+f.write(write_morphology('stacked_morph', label_morph_detached))
+f.close()
+

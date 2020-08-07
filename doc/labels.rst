@@ -24,7 +24,7 @@ descriptions. It has a soma, dendritic tree and an axon with a hillock:
   :width: 800
   :align: left
 
-  **Left**: Segments of the sample morphology, colored according to tags:
+  **Left**: Segments of the morphology, colored according to tags:
   soma (tag 1, red), axon (tag 2, grey), dendrites (tag 3, blue).
   **Right**: The 6 branches of the morphology with their branch ids.
 
@@ -208,7 +208,7 @@ Locset Expressions
 
     The location of the root sample.
 
-    Equivalent to ``(location 0 0)`` and ``(sample 0)``.
+    Equivalent to ``(location 0 0)``.
 
     .. figure:: gen-images/root_label.svg
       :width: 300
@@ -238,16 +238,6 @@ Locset Expressions
       :align: center
 
       The terminal points, generated with ``(terminal)``.
-
-.. label:: (sample sample_id:integer)
-
-    The location of sample with the id ``sample_id``.
-
-    .. figure:: gen-images/sample1_label.svg
-      :width: 300
-      :align: center
-
-      Sample 1, which defines the distal end of the soma, generated with ``(sample 1)``.
 
 .. label:: (uniform reg:region first:int last:int seed:int)
 
