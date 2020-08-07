@@ -20,7 +20,7 @@ def translate_all(points, f, xshift):
 def morph_image(morphs, methods, filename, sc=20):
     assert(len(morphs)==len(methods))
 
-    print('image:', filename)
+    print('generating:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
 
     # Width of lines and circle strokes.
@@ -119,7 +119,7 @@ def morph_image(morphs, methods, filename, sc=20):
 # not bee too hard to support.
 def label_image(morphology, labels, filename, sc=20):
     morph = morphology
-    print('image:', filename)
+    print('generating:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
 
     # Width of lines and circle strokes.
@@ -234,44 +234,45 @@ def generate(path=''):
 
     #morph_image([trees.morph6, trees.morph6], ['segments','branches'], path+'/morph6.svg')
 
-    morph_image([inputs.label_morph, inputs.label_morph], ['segments', 'branches'], path+'/label_morph.svg')
+    morph_image([inputs.label_morph],    ['branches'], path+'/label_branch.svg')
+
+    morph_image([inputs.label_morph],    ['segments'], path+'/label_seg.svg')
+    morph_image([inputs.detached_morph], ['segments'], path+'/detached_seg.svg')
+    morph_image([inputs.stacked_morph],  ['segments'], path+'/stacked_seg.svg')
+
+    morph_image([inputs.label_morph, inputs.label_morph], ['segments', 'branches'],
+                path+'/label_morph.svg')
+    morph_image([inputs.detached_morph, inputs.detached_morph], ['segments', 'branches'],
+                path+'/detached_morph.svg')
+    morph_image([inputs.stacked_morph, inputs.stacked_morph], ['segments', 'branches'],
+                path+'/stacked_morph.svg')
 
     ####################### locsets
 
     label_image(inputs.label_morph, [inputs.ls_term, inputs.ls_rand_dend], path+'/locset_label_examples.svg')
-
     label_image(inputs.label_morph, [inputs.reg_dend, inputs.reg_radlt5], path+'/region_label_examples.svg')
-
     label_image(inputs.label_morph, [inputs.ls_root], path+'/root_label.svg')
     label_image(inputs.label_morph, [inputs.ls_term], path+'/term_label.svg')
-
     label_image(inputs.label_morph, [inputs.ls_loc15], path+'/location_label.svg')
-
     label_image(inputs.label_morph, [inputs.reg_rad36, inputs.ls_distal], path+'/distal_label.svg')
     label_image(inputs.label_morph, [inputs.reg_rad36, inputs.ls_proximal], path+'/proximal_label.svg')
     label_image(inputs.label_morph, [inputs.ls_uniform0, inputs.ls_uniform1], path+'/uniform_label.svg')
     label_image(inputs.label_morph, [inputs.ls_branchmid], path+'/on_branches_label.svg')
-
     label_image(inputs.label_morph, [inputs.ls_term, inputs.reg_tag3, inputs.ls_restrict], path+'/restrict_label.svg')
 
     ####################### regions
 
     label_image(inputs.label_morph, [inputs.reg_empty, inputs.reg_all], path+'/nil_all_label.svg')
-
     label_image(inputs.label_morph, [inputs.reg_tag1, inputs.reg_tag2, inputs.reg_tag3], path+'/tag_label.svg')
-
+    label_image(inputs.label_morph, [inputs.reg_tag1, inputs.reg_tag3], path+'/tag_label.svg')
     label_image(inputs.label_morph, [inputs.reg_branch0, inputs.reg_branch3], path+'/branch_label.svg')
-
     label_image(inputs.label_morph, [inputs.reg_cable_1_01, inputs.reg_cable_1_31, inputs.reg_cable_1_37], path+'/cable_label.svg')
-
     label_image(inputs.label_morph, [inputs.ls_proxint_in, inputs.reg_proxint],    path+'/proxint_label.svg')
     label_image(inputs.label_morph, [inputs.ls_proxint_in, inputs.reg_proxintinf], path+'/proxintinf_label.svg')
     label_image(inputs.label_morph, [inputs.ls_distint_in, inputs.reg_distint],    path+'/distint_label.svg')
     label_image(inputs.label_morph, [inputs.ls_distint_in, inputs.reg_distintinf], path+'/distintinf_label.svg')
-
     label_image(inputs.label_morph, [inputs.reg_lhs, inputs.reg_rhs, inputs.reg_or],  path+'/union_label.svg')
     label_image(inputs.label_morph, [inputs.reg_lhs, inputs.reg_rhs, inputs.reg_and], path+'/intersect_label.svg')
-
     label_image(inputs.label_morph, [inputs.reg_radlt5],  path+'/radiuslt_label.svg')
     label_image(inputs.label_morph, [inputs.reg_radle5],  path+'/radiusle_label.svg')
     label_image(inputs.label_morph, [inputs.reg_radgt5],  path+'/radiusgt_label.svg')

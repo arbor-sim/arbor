@@ -20,7 +20,7 @@ descriptions. It has a soma, dendritic tree and an axon with a hillock:
 
 .. _labels-morph-fig:
 
-.. figure:: gen-images/morphlab.svg
+.. figure:: gen-images/label_morph.svg
   :width: 800
   :align: left
 
@@ -197,7 +197,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
 Locset Expressions
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. figure:: gen-images/morphlab.svg
+.. figure:: gen-images/label_branch.svg
   :width: 800
   :align: center
 

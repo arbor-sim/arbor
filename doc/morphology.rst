@@ -40,15 +40,6 @@ The building blocks of segment trees is are *points* and *segments*:
    ``dist``,       point,   the center and radius of the distal end.
    ``tag``,        integer, tag meta-data.
 
-.. note::
-
-    A *tag* is an integer label on every segment, which can be used later to define
-    regions on cell models. For example, tags could store the *structure identifier*
-    field for a morphology loaded from a file in the
-    `SWC format <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
-    which identifies whether individual SWC records lie in the soma, axons, dendrites, etc.
-    Arbor tag definitions are not fixed, and users can customise them for their requirements.
-
 .. _morph-tags:
 
 Tags
@@ -56,6 +47,16 @@ Tags
 
 The segments :ref:`above <morph-segment-fig>` are colored according to the tags in
 the :ref:`sample tree  <morph-stree-fig>`: tag 1 pink; tag 2 grey; and tag 3 blue.
+
+A *tag* is an integer label on every segment, which can be used later to define
+regions on cell models.
+
+.. note::
+    Tags could store the *structure identifier* field for a morphology loaded from a file in the
+    `SWC format <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
+    which identifies whether individual SWC records lie in the soma, axons, dendrites, etc.
+    Arbor tag definitions are not fixed, and users can customise them for their requirements.
+
 
 .. _morph-sample-definitions:
 
@@ -134,16 +135,6 @@ The segmentation below, based on the model of a soma with a branching dendrite :
 illustrates the segments generated from a sample tree:
 
 *TODO: we can fix this* This part simply discusses adding the definition of branches, and how they are derived reproducably from segments.
-
-.. _morph-segment-fig:
-
-.. figure:: gen-images/morph-segments.svg
-  :width: 800
-  :align: center
-
-  **Left**: stuff
-
-
 
 .. note::
     The surface of the spherical root segment above does not coincide with
