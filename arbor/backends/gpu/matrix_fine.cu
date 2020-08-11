@@ -45,8 +45,8 @@ void scatter(const T* from, T* to, const I* p, unsigned n) {
 template <typename T, typename I>
 __global__
 void assemble_matrix_fine(
-        T* __restrict__ d,
-        T* __restrict__ rhs,
+        T* __restrict__ const d,
+        T* __restrict__ const rhs,
         const T* __restrict__ const invariant_d,
         const T* __restrict__ const voltage,
         const T* __restrict__ const current,
@@ -89,14 +89,14 @@ void assemble_matrix_fine(
 template <typename T>
 __global__
 void solve_matrix_fine(
-    T* __restrict__ rhs,
-    T* __restrict__ d,
+    T* __restrict__ const rhs,
+    T* __restrict__ const d,
     const T* __restrict__ u,
-    const level_metadata* __restrict__ level_meta,
-    const fvm_index_type* __restrict__ level_lengths,
-    const fvm_index_type* __restrict__ level_parents,
-    const fvm_index_type* __restrict__ block_index,
-    const fvm_index_type* __restrict__ num_matrix) // number of packed matrices = number of cells
+    const level_metadata* __restrict__ const level_meta,
+    const fvm_index_type* __restrict__ const level_lengths,
+    const fvm_index_type* __restrict__ const level_parents,
+    const fvm_index_type* __restrict__ const block_index,
+    const fvm_index_type* __restrict__ const num_matrix) // number of packed matrices = number of cells
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
