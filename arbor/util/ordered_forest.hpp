@@ -176,7 +176,7 @@ public:
 
     // Insertion and emplace operations:
     //
-    // * All return an iterator to the last inserted node, or the an iterator to the referenced
+    // * All return an iterator to the last inserted node, or an iterator to the referenced
     //   node (or first tree, for push_front) if the collection of inserted items is empty.
     //
     // * The iterator argument may not be an end iterator.
