@@ -1,4 +1,5 @@
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -6,7 +7,6 @@
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "util/ordered_forest.hpp"
 #include "util/maputil.hpp"

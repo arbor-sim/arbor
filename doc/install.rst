@@ -126,6 +126,14 @@ In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
 Python package is recommended. See :ref:`install-python` for more information.
 
+NeuroML
+~~~~~~~
+
+Arbor supports reading cell morphologies defined in NeuroML version 2 through
+an additional NeuroML support library ``arbornml``. This library requires
+``libxml2`` for the parsing of NeuroML2 XML. See :ref:`install-neuroml` for
+more information.
+
 
 Documentation
 ~~~~~~~~~~~~~~
@@ -334,6 +342,7 @@ with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support 
 
 GPU Backend
 -----------
+
 Compiling for the GPU backend is controlled by the ``ARB_GPU`` CMake option which is used to select between NVIDIA and AMD GPUs
 as well as specify the chosen GPU compiler.
 
@@ -455,6 +464,35 @@ variable before configuring and building Arbor:
     export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
 
     cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
+
+.. _install-neuroml:
+
+NeuroML support
+---------------
+
+Arbor has limited support for NeuroML version 2 through an additional library
+``arbornml``. This library will be built if the option ``-DARB_WITH_NEUROML=ON``
+is passed to CMake at configuration time. ``arbornml`` depends upon the
+the ``libxml2`` library for XML parsing.
+
+With NeuroML support enabled, Arbor will aditionally install the static library
+``libarbornml.a``. Applications using this functionality will need to link
+against this library in addition to the main Arbor library and ``libxml2``.
+For example:
+
+.. code-block:: bash
+
+    g++ -std=c++17 -pthread mycode.cpp -larbornml -larbor -lxml2
+
+For projects using CMake, Arbor NeuroML support can be required with the
+component ``neuroml``. The corresponding CMake library target is ``arbor::arbornml``.
+
+.. code-block:: cmake
+
+   find_package(arbor COMPONENTS neuroml)
+   # ...
+   target_link_libraries(myapp arbor::arbornml)
+
 
 .. _install:
 

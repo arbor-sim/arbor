@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -8,7 +9,6 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/util/optional.hpp>
 
 namespace arb {
 
@@ -25,7 +25,7 @@ namespace arb {
 
 struct mstitch {
     std::string id;
-    util::optional<mpoint> prox;
+    std::optional<mpoint> prox;
     mpoint dist;
     int tag;
 

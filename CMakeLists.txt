@@ -53,6 +53,12 @@ option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
 #----------------------------------------------------------
+# NeuroML support library:
+#----------------------------------------------------------
+
+option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
+
+#----------------------------------------------------------
 # Python front end for Arbor:
 #----------------------------------------------------------
 
@@ -153,8 +159,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # in the same CMakeLists.txt in which the target is defined.
 
 # Interface library `arbor-config-defs` collects configure-time defines
-# for arbor and arborenv, of the form ARB_HAVE_XXX. These defines should
-# _not_ be used in any installed public headers.
+# for arbor, arborenv and arbornml, of the form ARB_HAVE_XXX. These
+# defines should _not_ be used in any installed public headers.
 
 add_library(arbor-config-defs INTERFACE)
 install(TARGETS arbor-config-defs EXPORT arbor-targets)
@@ -173,12 +179,26 @@ add_library(arborenv-private-deps INTERFACE)
 target_link_libraries(arborenv-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 
+# Interface library `arbornml-private-deps` collects dependencies, options etc.
+# for the arbornml library.
+
+add_library(arbornml-private-deps INTERFACE)
+target_link_libraries(arbornml-private-deps INTERFACE arbor-config-defs)
+install(TARGETS arbornml-private-deps EXPORT arbor-targets)
+
 # Interface library `arbor-public-deps` collects requirements for the
 # users of the arbor library (e.g. mpi) that will become part
 # of arbor's PUBLIC interface.
 
 add_library(arbor-public-deps INTERFACE)
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
+
+# Interface library `arbornml-public-deps` collects requirements for the
+# users of the arbornml library (e.g. xml libs) that will become part
+# of arbornml's PUBLIC interface.
+
+add_library(arbornml-public-deps INTERFACE)
+install(TARGETS arbornml-public-deps EXPORT arbornml-targets)
 
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
@@ -191,7 +211,8 @@ add_subdirectory(ext)
 set(arbor_export_dependencies)
 
 # Keep track of which 'components' of arbor are included (this is
-# currently just captures MPI support)
+# currently just 'MPI' support and 'NeuroML' for NeuroML support in
+# libarbornml.)
 
 set(arbor_supported_components)
 
@@ -388,6 +409,11 @@ add_subdirectory(arbor)
 # arborenv, arborenv-public-headers:
 add_subdirectory(arborenv)
 
+# arbornml, arbornml-public-headers:
+if(ARB_WITH_NEUROML)
+    add_subdirectory(arbornml)
+endif()
+
 # unit, unit-mpi, unit-local, unit-modcc
 add_subdirectory(test)
 
@@ -398,9 +424,9 @@ add_subdirectory(example)
 add_subdirectory(doc)
 
 # python interface:
-if (ARB_WITH_PYTHON)
+if(ARB_WITH_PYTHON)
     add_subdirectory(python)
-endif ()
+endif()
 
 #----------------------------------------------------------
 # Generate CMake config/version files for install.
@@ -437,6 +463,7 @@ endif()
 set(arbor_override_import_lang)
 set(arbor_add_import_libs)
 set(arborenv_add_import_libs)
+set(arbornml_add_import_libs)
 
 if(ARB_WITH_GPU)
     set(arbor_override_import_lang CXX)
@@ -444,8 +471,10 @@ if(ARB_WITH_GPU)
     set(arborenv_add_import_libs ${CUDA_LIBRARIES})
 endif()
 
+# (We remove old generated one so that the generation happens every time we run cmake.)
+file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake")
 configure_file(
-    cmake/arbor-config.cmake.in
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/arbor-config.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
     @ONLY)
 

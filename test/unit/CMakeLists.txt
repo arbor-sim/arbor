@@ -189,6 +189,13 @@ if(ARB_WITH_GPU)
     )
 endif()
 
+if(ARB_WITH_NEUROML)
+    list(APPEND unit_sources
+
+        test_nml_morphology.cpp
+    )
+endif()
+
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${unit_sources} PROPERTIES LANGUAGE CXX)
     set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
@@ -216,3 +223,7 @@ target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(unit PRIVATE gtest arbor arborenv arbor-private-headers arbor-sup)
+
+if(ARB_WITH_NEUROML)
+    target_link_libraries(unit PRIVATE arbornml)
+endif()
