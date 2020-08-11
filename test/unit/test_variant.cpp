@@ -270,6 +270,57 @@ TEST(variant, valueless) {
     EXPECT_EQ(std::size_t(-1), vi.index());
 }
 
+TEST(variant, equality) {
+    struct X {
+        int i;
+        X(int i): i(i) {}
+        X& operator=(const X&) { throw "nope"; }
+        bool operator==(X x) const { return i==x.i; }
+        // Crazy != semantics on purpose:
+        bool operator!=(X x) const { return i==x.i+1; }
+    };
+
+    ASSERT_TRUE(X{1} == X{1});
+    ASSERT_FALSE(X{1} == X{0});
+    ASSERT_FALSE(X{1} == X{2});
+
+    ASSERT_TRUE(X{1} != X{0});
+    ASSERT_FALSE(X{1} != X{1});
+    ASSERT_FALSE(X{1} != X{2});
+
+    using vidX = variant<int, double, X>;
+    auto valueless = []() {
+        vidX v{X{0}};
+        try { v = v; } catch (...) {};
+        return v;
+    };
+
+    EXPECT_TRUE(valueless() == valueless());
+    EXPECT_FALSE(valueless() != valueless());
+
+    EXPECT_TRUE(vidX{3} == vidX{3});
+    EXPECT_FALSE(vidX{3.0} == vidX{3});
+    EXPECT_FALSE(vidX{X{3}} == vidX{3});
+    EXPECT_FALSE(valueless() == vidX{3});
+
+    EXPECT_TRUE(vidX{X{2}} == vidX{X{2}});
+    EXPECT_FALSE(vidX{X{2}} == vidX{2});
+    EXPECT_FALSE(vidX{X{2}} == vidX{2.0});
+    EXPECT_FALSE(vidX{X{2}} == valueless());
+
+    EXPECT_FALSE(vidX{3} != vidX{3});
+    EXPECT_TRUE(vidX{3.0} != vidX{3});
+    EXPECT_TRUE(vidX{X{3}} != vidX{3});
+    EXPECT_TRUE(valueless() != vidX{3});
+
+    EXPECT_TRUE(vidX{X{2}} != vidX{X{1}});  // note custom !=
+    EXPECT_FALSE(vidX{X{2}} != vidX{X{2}}); // note custom !=
+    EXPECT_FALSE(vidX{X{2}} != vidX{X{3}}); // note custom !=
+    EXPECT_TRUE(vidX{X{2}} != vidX{2});
+    EXPECT_TRUE(vidX{X{2}} != vidX{2.0});
+    EXPECT_TRUE(vidX{X{2}} != valueless());
+}
+
 TEST(variant, hash) {
     // Just ensure we find std::hash specializations.
 
@@ -277,6 +328,7 @@ TEST(variant, hash) {
     EXPECT_TRUE((std::is_same<std::size_t, decltype(h0(std::declval<variant<>>()))>::value));
 
     std::hash<variant<int, double>> h2;
+    (void)h2(variant<int, double>(3.1));
     EXPECT_TRUE((std::is_same<std::size_t, decltype(h2(std::declval<variant<int, double>>()))>::value));
 }
 

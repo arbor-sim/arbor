@@ -1,8 +1,10 @@
 # Build mechanisms used solely in unit tests.
 
 set(test_mechanisms
+    ca_linear
     celsius_test
     diam_test
+    param_as_state
     test_linear_state
     test_linear_init
     test_linear_init_shuffle
@@ -28,6 +30,9 @@ set(test_mechanisms
     write_eX
     read_cai_init
     write_cai_breakpoint
+    test_ca
+    test_kin1
+    test_kinlva
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
@@ -63,7 +68,7 @@ endforeach()
 # set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
 # set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
 # file(MAKE_DIRECTORY "${mech_proto_dir}")
-# 
+#
 # build_modules(
 #     ${proto_mechanisms}
 #     SOURCE_DIR "${PROJECT_SOURCE_DIR}/mechanisms/mod"
@@ -77,8 +82,10 @@ endforeach()
 # Unit test sources
 
 set(unit_sources
+    ../common_cells.cpp
     test_algorithms.cpp
     test_any.cpp
+    test_any_visitor.cpp
     test_backend.cpp
     test_counter.cpp
     test_cv_geom.cpp
@@ -114,8 +121,10 @@ set(unit_sources
     test_merge_events.cpp
     test_merge_view.cpp
     test_morphology.cpp
+    test_morph_components.cpp
     test_morph_embedding.cpp
     test_morph_expr.cpp
+    test_morph_place.cpp
     test_morph_primitives.cpp
     test_multi_event_stream.cpp
     test_optional.cpp
@@ -125,14 +134,16 @@ set(unit_sources
     test_path.cpp
     test_piecewise.cpp
     test_point.cpp
+    test_pp_util.cpp
     test_probe.cpp
     test_range.cpp
     test_ratelem.cpp
     test_schedule.cpp
-    test_spike_source.cpp
     test_scope_exit.cpp
+    test_segment_tree.cpp
     test_simd.cpp
     test_span.cpp
+    test_spike_source.cpp
     test_spikes.cpp
     test_spike_store.cpp
     test_stats.cpp

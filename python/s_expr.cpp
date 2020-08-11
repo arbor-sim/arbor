@@ -38,6 +38,9 @@ std::ostream& operator<<(std::ostream& o, const tok& t) {
 }
 
 std::ostream& operator<<(std::ostream& o, const token& t) {
+    if (t.kind==tok::string) {
+        return o << util::pprintf("\"{}\"", t.spelling);
+    }
     return o << util::pprintf("{}", t.spelling);
 }
 
@@ -111,6 +114,9 @@ private:
                     character();
                     continue;   // skip to next character
 
+                case ';':
+                    eat_comment();
+                    continue;
                 case '(':
                     token_ = {loc_, tok::lparen, {character()}};
                     return;
@@ -154,16 +160,26 @@ private:
         return;
     }
 
+    // Consumes characters in the stream until end of stream or a new line.
+    // Assumes that the current_ location is the `;` that starts the comment.
+    void eat_comment() {
+        while (*current_ && *current_!='\n') {
+            character();
+        }
+    }
+
     // Parse alphanumeric sequence that starts with an alphabet character,
-    // and my contain alphabet, numeric or underscor '_' characters.
+    // and my contain alphabet, numeric or underscore '_' characters.
     //
     // Valid names:
     //    sub_dendrite
+    //    sub-dendrite
     //    temp_
     //    branch3
     //    A
     // Invalid names:
     //    _cat          ; can't start with underscore
+    //    -cat          ; can't start with hyphen
     //    2ndvar        ; can't start with numeric character
     //
     // Returns the appropriate token kind if name is a keyword.
@@ -182,7 +198,7 @@ private:
         while(1) {
             c = *current_;
 
-            if(is_alphanumeric(c) || c=='_') {
+            if(is_alphanumeric(c) || c=='_' || c=='-') {
                 name += character();
             }
             else {

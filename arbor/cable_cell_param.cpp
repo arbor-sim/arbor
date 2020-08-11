@@ -5,11 +5,8 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
-#include <arbor/morph/locset.hpp>
 
 #include "util/maputil.hpp"
-#include "util/rangeutil.hpp"
-#include "util/span.hpp"
 
 namespace arb {
 
@@ -70,110 +67,5 @@ cable_cell_parameter_set neuron_parameter_defaults = {
         {"ca", {5e-5,    2.0,  12.5*std::log(2.0/5e-5)}}
     },
 };
-
-// Discretization policy implementations:
-
-locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology().num_branches();
-    const auto& embed = cell.embedding();
-    if (!nbranch || max_extent_<=0) return ls::nil();
-
-    std::vector<mlocation> points;
-
-    unsigned bidx = 0;
-    if (flags_&cv_policy_flag::single_root_cv) {
-        points.push_back({0, 0.});
-        points.push_back({0, 1.});
-        bidx = 1;
-    }
-
-    const double oomax_extent = 1./max_extent_;
-    while (bidx<nbranch) {
-        unsigned ncv = std::ceil(embed.branch_length(bidx)*oomax_extent);
-        double ooncv = 1./ncv;
-
-        if (flags_&cv_policy_flag::interior_forks) {
-            for (unsigned i = 0; i<ncv; ++i) {
-                points.push_back({bidx, (1+2*i)*ooncv/2});
-            }
-        }
-        else {
-            for (unsigned i = 0; i<ncv; ++i) {
-                points.push_back({bidx, i*ooncv});
-            }
-            points.push_back({bidx, 1.});
-        }
-        ++bidx;
-    }
-
-    util::sort(points);
-    return points;
-}
-
-locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology().num_branches();
-    if (!nbranch) return ls::nil();
-
-    std::vector<mlocation> points;
-
-    unsigned bidx = 0;
-    if (flags_&cv_policy_flag::single_root_cv) {
-        points.push_back({0, 0.});
-        points.push_back({0, 1.});
-        bidx = 1;
-    }
-
-    double ooncv = 1./cv_per_branch_;
-    while (bidx<nbranch) {
-        if (flags_&cv_policy_flag::interior_forks) {
-            for (unsigned i = 0; i<cv_per_branch_; ++i) {
-                points.push_back({bidx, (1+2*i)*ooncv/2});
-            }
-        }
-        else {
-            for (unsigned i = 0; i<cv_per_branch_; ++i) {
-                points.push_back({bidx, i*ooncv});
-            }
-            points.push_back({bidx, 1.});
-        }
-        ++bidx;
-    }
-
-    util::sort(points);
-    return points;
-}
-
-locset cv_policy_every_sample::cv_boundary_points(const cable_cell& cell) const {
-    const unsigned nbranch = cell.morphology().num_branches();
-    if (!nbranch) return ls::nil();
-
-    bool single_root = cell.morphology().spherical_root() || (flags_&cv_policy_flag::single_root_cv);
-
-    // Ignore interior_forks flag, but if single_root_cv is set, take sample indices only from branches 1+.
-    // Always include branch proximal points, so that forks are trivial.
-
-
-    if (single_root) {
-        std::vector<msize_t> samples;
-        for (unsigned i = 1; i<nbranch; ++i) {
-            util::append(samples, util::make_range(cell.morphology().branch_indexes(i)));
-        }
-        util::sort(samples);
-        samples.erase(std::unique(samples.begin(), samples.end()), samples.end());
-
-        return join(
-            ls::on_branches(0.),
-            ls::location(0, 1.),
-            std::accumulate(samples.begin(), samples.end(), ls::nil(),
-                            [](auto&& l, auto&& r) { return sum(std::move(l), ls::sample(r)); }));
-    }
-    else {
-        auto samples = util::make_span(cell.morphology().num_samples());
-        return join(
-            ls::on_branches(0.),
-            std::accumulate(samples.begin(), samples.end(), ls::nil(),
-                            [](auto&& l, auto&& r) { return sum(std::move(l), ls::sample(r)); }));
-    }
-}
 
 } // namespace arb

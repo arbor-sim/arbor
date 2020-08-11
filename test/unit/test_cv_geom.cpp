@@ -127,8 +127,8 @@ TEST(cv_geom, trivial) {
 TEST(cv_geom, one_cv_per_branch) {
     using namespace common_morphology;
 
-    auto super = [] (const arb::morphology& m, arb::mcable c) {
-        return thingify(arb::reg::super(arb::region(c)), arb::mprovider(m)).cables();
+    auto complete = [] (const arb::morphology& m, arb::mcable c) {
+        return thingify(arb::reg::complete(arb::region(c)), arb::mprovider(m)).cables();
     };
 
     for (auto& p: test_morphologies) {
@@ -160,7 +160,7 @@ TEST(cv_geom, one_cv_per_branch) {
                     EXPECT_TRUE(n_branch_child(c.branch)>1);
                 }
                 // Cables in trivial CV should be the same as those in the extent over the point.
-                EXPECT_TRUE(testing::seq_eq(super(m,c), cables));
+                EXPECT_TRUE(testing::seq_eq(complete(m,c), cables));
             }
             else {
                 ASSERT_EQ(1u, cables.size());
@@ -171,7 +171,7 @@ TEST(cv_geom, one_cv_per_branch) {
 
                 // Confirm parent CV is fork CV:
                 if (i>0) {
-                    auto fork_ext = super(m, {c.branch, 0});
+                    auto fork_ext = complete(m, {c.branch, 0});
                     mcable_list pcables = util::assign_from(geom.cables(geom.cv_parent[i]));
                     ASSERT_TRUE(testing::cablelist_eq(fork_ext, pcables));
                 }
@@ -311,8 +311,8 @@ TEST(cv_geom, location_cv) {
         return mextent(cl);
     };
 
-    auto super = [] (const arb::morphology& m, arb::mcable c) {
-        return thingify(arb::reg::super(arb::region(c)), arb::mprovider(m)).cables();
+    auto complete = [] (const arb::morphology& m, arb::mcable c) {
+        return thingify(arb::reg::complete(arb::region(c)), arb::mprovider(m)).cables();
     };
 
     // Two CVs per branch, plus trivial CV at forks.
@@ -334,7 +334,7 @@ TEST(cv_geom, location_cv) {
             ASSERT_TRUE(cable0.prox_pos==cable0.dist_pos);
 
             mcable_list clist = util::assign_from(cables);
-            ASSERT_TRUE(testing::cablelist_eq(super(m, cable0), clist));
+            ASSERT_TRUE(testing::cablelist_eq(complete(m, cable0), clist));
         }
     }
 

@@ -10,29 +10,30 @@ b = arbor.flat_cell_builder()
 # The soma (at the root of the tree) is marked 's', and
 # the end of each branch i is marked 'bi'.
 #
-#               b5
+#               b4
 #              /
 #             /
-#            b2---b4
+#            b1---b3
 #           /
 #          /
-# s-------b1
+# s-------b0
 #          \
 #           \
-#            b3
+#            b2
 
-# Add a spherical soma with radius 6 um
-s  = b.add_sphere(6, "soma")
+# Start with a spherical soma with radius 6 μm,
+# approximated with a cylinder of: length = diameter = 12 μm.
+s  = b.add_cable(length=12, radius=6, name="soma", ncomp=1)
 
 # Add the dendrite cables, labelling those closest to the soma "dendn",
 # and those furthest with "dendx" because we will set different electrical
 # properties for the two regions.
-b1 = b.add_cable(parent=s,  length=100, radius=2, name="dendn", ncomp=100)
+b0 = b.add_cable(parent=s,  length=100, radius=2, name="dendn", ncomp=100)
 # Radius tapers from 2 to 0.5 over the length of the branch.
-b2 = b.add_cable(parent=b1, length= 50, radius=(2,0.5), name="dendn", ncomp=50)
-b3 = b.add_cable(parent=b1, length= 50, radius=1, name="dendn", ncomp=50)
-b4 = b.add_cable(parent=b2, length= 50, radius=1, name="dendx", ncomp=50)
-b5 = b.add_cable(parent=b2, length= 50, radius=1, name="dendx", ncomp=50)
+b1 = b.add_cable(parent=b0, length= 50, radius=(2,0.5), name="dendn", ncomp=50)
+b2 = b.add_cable(parent=b0, length= 50, radius=1, name="dendn", ncomp=50)
+b3 = b.add_cable(parent=b1, length= 50, radius=1, name="dendx", ncomp=50)
+b4 = b.add_cable(parent=b1, length= 50, radius=1, name="dendx", ncomp=50)
 
 # Combine the "dendn" and "dendx" regions into a single "dend" region.
 # The dendrites were labelled as such so that we can set different
@@ -40,7 +41,7 @@ b5 = b.add_cable(parent=b2, length= 50, radius=1, name="dendx", ncomp=50)
 # set other properties on the whole dendrites.
 b.add_label('dend', '(join (region "dendn") (region "dendx"))')
 # Location of stimuli, in the middle of branch 2.
-b.add_label('stim_site', '(location 2 0.5)')
+b.add_label('stim_site', '(location 1 0.5)')
 # The root of the tree (equivalent to '(location 0 0)')
 b.add_label('root', '(root)')
 # The tips of the dendrites (3 locations at b4, b3, b5).

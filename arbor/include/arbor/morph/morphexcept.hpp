@@ -21,6 +21,11 @@ struct no_such_branch: morphology_error {
     msize_t bid;
 };
 
+struct no_such_segment: arbor_exception {
+    explicit no_such_segment(msize_t sid);
+    msize_t sid;
+};
+
 struct invalid_mcable: morphology_error {
     invalid_mcable(mcable cable);
     mcable cable;
@@ -30,8 +35,8 @@ struct invalid_mcable_list: morphology_error {
     invalid_mcable_list();
 };
 
-struct invalid_sample_parent: morphology_error {
-    invalid_sample_parent(msize_t parent, msize_t tree_size);
+struct invalid_segment_parent: morphology_error {
+    invalid_segment_parent(msize_t parent, msize_t tree_size);
     msize_t parent;
     msize_t tree_size;
 };

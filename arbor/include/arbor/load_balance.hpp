@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <unordered_map>
+
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>

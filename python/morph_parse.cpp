@@ -1,6 +1,7 @@
 #include <arbor/util/any.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <limits>
 
 #include "error.hpp"
 #include "s_expr.hpp"
@@ -187,8 +188,16 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'region' with 1 argument: (name:string)")},
     {"distal_interval",  make_call<arb::locset, double>(arb::reg::distal_interval,
                             "'distal_interval' with 2 arguments: (start:locset extent:real)")},
+    {"distal_interval", make_call<arb::locset>(
+                            [](arb::locset ls){return arb::reg::distal_interval(std::move(ls), std::numeric_limits<double>::max());},
+                            "'distal_interval' with 1 argument: (start:locset)")},
     {"proximal_interval",make_call<arb::locset, double>(arb::reg::proximal_interval,
                             "'proximal_interval' with 2 arguments: (start:locset extent:real)")},
+    {"proximal_interval", make_call<arb::locset>(
+                            [](arb::locset ls){return arb::reg::proximal_interval(std::move(ls), std::numeric_limits<double>::max());},
+                            "'proximal_interval' with 1 argument: (start:locset)")},
+    {"complete", make_call<arb::region>(arb::reg::complete,
+                            "'super' with 1 argment: (reg:region)")},
     {"radius_lt",make_call<arb::region, double>(arb::reg::radius_lt,
                             "'radius_lt' with 2 arguments: (reg:region radius:real)")},
     {"radius_le",make_call<arb::region, double>(arb::reg::radius_le,
@@ -218,8 +227,6 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'location' with 2 arguments: (branch_id:integer position:real)")},
     {"terminal", make_call<>(arb::ls::terminal,
                             "'terminal' with 0 arguments")},
-    {"sample",  make_call<int>(arb::ls::sample,
-                            "'sample' with 1 argument: (sample_id:integer)")},
     {"distal",  make_call<arb::region>(arb::ls::most_distal,
                             "'distal' with 1 argument: (reg:region)")},
     {"proximal",make_call<arb::region>(arb::ls::most_proximal,
@@ -230,6 +237,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'on_branches' with 1 argument: (pos:double)")},
     {"locset",  make_call<std::string>(arb::ls::named,
                             "'locset' with 1 argument: (name:string)")},
+    {"restrict",  make_call<arb::locset, arb::region>(arb::ls::restrict,
+                            "'restrict' with 2 arguments: (ls:locset, reg:region)")},
     {"join",    make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::join),
                             "'join' with at least 2 arguments: (locset locset [...locset])")},
     {"sum",     make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::sum),

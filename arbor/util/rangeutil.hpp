@@ -399,6 +399,39 @@ range<Rev, Rev> reverse_view(Seq&& seq) {
     return range<Rev, Rev>(Rev(strict.right), Rev(strict.left));
 }
 
+// Left fold (accumulate) over sequence.
+//
+// Note that the order of arguments follows the application order;
+// schematically:
+//
+//     foldl f a [] = a
+//     foldl f a (b:bs) = foldl f (f a b) bs
+//
+// The binary operator f will be invoked once per element in the
+// sequence in turn, with the running accumulator as the first
+// argument. If the iterators for the sequence deference to a
+// mutable lvalue, then mutation of the value in the input sequence
+// is explicitly permitted.
+//
+// std::accumulate(begin, end, init, f) is equivalent to
+// util::foldl(f, init, util::make_range(begin, end)).
+
+template <typename Seq, typename Acc, typename BinOp>
+auto foldl(BinOp f, Acc a, Seq&& seq) {
+    using std::begin;
+    using std::end;
+
+    auto b = begin(seq);
+    auto e = end(seq);
+
+    while (b!=e) {
+        a = f(std::move(a), *b);
+        ++b;
+    }
+    return a;
+}
+
+
 } // namespace util
 } // namespace arb
 

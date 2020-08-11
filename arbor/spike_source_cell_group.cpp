@@ -1,5 +1,6 @@
 #include <exception>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/schedule.hpp>

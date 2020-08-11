@@ -5,6 +5,7 @@
 
 #include <morph_parse.hpp>
 #include <s_expr.hpp>
+#include <strprintf.hpp>
 
 using namespace pyarb;
 using namespace std::string_literals;
@@ -16,15 +17,21 @@ TEST(s_expr, identifier) {
     EXPECT_TRUE(test_identifier("f_1__"));
     EXPECT_TRUE(test_identifier("A_1__"));
 
+    EXPECT_TRUE(test_identifier("A-1"));
+    EXPECT_TRUE(test_identifier("hello-world"));
+    EXPECT_TRUE(test_identifier("hello--world"));
+    EXPECT_TRUE(test_identifier("hello--world_"));
+
     EXPECT_FALSE(test_identifier("_foobar"));
+    EXPECT_FALSE(test_identifier("-foobar"));
     EXPECT_FALSE(test_identifier("2dogs"));
     EXPECT_FALSE(test_identifier("1"));
     EXPECT_FALSE(test_identifier("_"));
+    EXPECT_FALSE(test_identifier("-"));
     EXPECT_FALSE(test_identifier(""));
     EXPECT_FALSE(test_identifier(" foo"));
     EXPECT_FALSE(test_identifier("foo "));
     EXPECT_FALSE(test_identifier("foo bar"));
-    EXPECT_FALSE(test_identifier("foo-bar"));
     EXPECT_FALSE(test_identifier(""));
 }
 
@@ -83,4 +90,23 @@ TEST(s_expr, parse) {
     auto rhs = arb::util::any_cast<arb::region>(*eval(parse("(all)")));
 
     EXPECT_EQ(util::pprintf("{}", join(lhs,rhs)), "(join (region \"dend\") (all))");
+}
+
+TEST(s_expr, comments) {
+    auto round_trip_reg = [](const char* in) {
+        auto x = eval(parse(in));
+        return util::pprintf("{}", arb::util::any_cast<arb::region>(*x));
+    };
+
+    EXPECT_EQ("(all)",  round_trip_reg("(all) ; a comment"));
+    const char *multi_line = 
+        "; comment at start\n"
+        "(radius_lt\n"
+        "    (join\n"
+        "        (tag 3) ; end of line\n"
+        " ;comment on whole line\n"
+        "        (tag 4))\n"
+        "    0.5) ; end of string";
+    EXPECT_EQ("(radius_lt (join (tag 3) (tag 4)) 0.5)",
+              round_trip_reg(multi_line));
 }

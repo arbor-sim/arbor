@@ -186,7 +186,7 @@ struct skew_adaptor {
 
     explicit skew_adaptor(double power): power_(power) {}
     result_type operator()() {
-        constexpr double scale = max()-min();
+        constexpr double scale = (double)(max()-min());
         constexpr double ooscale = 1./scale;
 
         double x = ooscale*(G_()-min());

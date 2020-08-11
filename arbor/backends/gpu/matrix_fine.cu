@@ -17,7 +17,10 @@ namespace kernels {
 // to[i] = from[p[i]]
 template <typename T, typename I>
 __global__
-void gather(const T* from, T* to, const I* p, unsigned n) {
+void gather(const T* __restrict__ const from,
+            T* __restrict__ const to,
+            const I* __restrict__ const p,
+            unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {
@@ -28,7 +31,10 @@ void gather(const T* from, T* to, const I* p, unsigned n) {
 // to[p[i]] = from[i]
 template <typename T, typename I>
 __global__
-void scatter(const T* from, T* to, const I* p, unsigned n) {
+void scatter(const T* __restrict__ const from,
+             T* __restrict__ const to,
+             const I* __restrict__ const p,
+             unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {
@@ -91,7 +97,7 @@ __global__
 void solve_matrix_fine(
     T* __restrict__ const rhs,
     T* __restrict__ const d,
-    const T* __restrict__ u,
+    const T* __restrict__ const u,
     const level_metadata* __restrict__ const level_meta,
     const fvm_index_type* __restrict__ const level_lengths,
     const fvm_index_type* __restrict__ const level_parents,
