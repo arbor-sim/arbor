@@ -34,12 +34,6 @@ TEST(morph_primitives, is_collocated) {
     EXPECT_FALSE(is_collocated(mpoint{1., 2., 2.5, 4.}, mpoint{1., 2., 3., 4}));
     EXPECT_FALSE(is_collocated(mpoint{1., 2.5, 3., 4.}, mpoint{1., 2., 3., 4}));
     EXPECT_FALSE(is_collocated(mpoint{2.5, 2, 3., 4.}, mpoint{1., 2., 3., 4}));
-
-    EXPECT_TRUE(is_collocated(msample{{1., 2., 3., 4.},3}, msample{{1., 2., 3., 4.},3}));
-    EXPECT_TRUE(is_collocated(msample{{1., 2., 3., 4.},3}, msample{{1., 2., 3., 4.5},1}));
-    EXPECT_FALSE(is_collocated(msample{{1., 2., 2.5, 4.},3}, msample{{1., 2., 3., 4},3}));
-    EXPECT_FALSE(is_collocated(msample{{1., 2.5, 3., 4.},3}, msample{{1., 2., 3., 4},3}));
-    EXPECT_FALSE(is_collocated(msample{{2.5, 2, 3., 4.},3}, msample{{1., 2., 3., 4},3}));
 }
 
 TEST(morph_primitives, distance) {

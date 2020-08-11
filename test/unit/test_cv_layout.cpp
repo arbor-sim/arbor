@@ -47,6 +47,10 @@ TEST(cv_layout, trivial) {
     std::vector<cable_cell> cells;
     unsigned n_cv = 0;
     for (auto& p: test_morphologies) {
+        // Skip morpohologies with more than one root branch, becaue
+        // they are not 'connected', and will generate multiple CVs.
+        if (p.second.branch_children(mnpos).size()>1u) continue;
+
         cells.emplace_back(p.second);
         n_cv += !p.second.empty(); // one cv per non-empty cell
     }
@@ -174,12 +178,12 @@ TEST(cv_layout, zero_size_cv) {
     ASSERT_TRUE(util::equal(mcable_list{mcable{1, 0, 1}}, D.geometry.cables(cv_b)));
     ASSERT_TRUE(util::equal(mcable_list{mcable{2, 0, 1}}, D.geometry.cables(cv_c)));
 
-    // All non-conductance values for zero-size cv_x should be zero.
+    // All non-conductance values for zero-size cv_x should be zero, or value of parent.
     EXPECT_EQ(0., D.cv_area[cv_x]);
     EXPECT_EQ(0., D.cv_capacitance[cv_x]);
-    EXPECT_EQ(0., D.init_membrane_potential[cv_x]);
-    EXPECT_EQ(0., D.temperature_K[cv_x]);
     EXPECT_EQ(0., D.diam_um[cv_x]);
+    EXPECT_EQ(D.init_membrane_potential[cv_a], D.init_membrane_potential[cv_x]);
+    EXPECT_EQ(D.temperature_K[cv_a], D.temperature_K[cv_x]);
 
     // Face conductance for zero-size cv_x:
     double l_x = cell.embedding().branch_length(0);

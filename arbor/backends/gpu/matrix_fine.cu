@@ -17,7 +17,10 @@ namespace kernels {
 // to[i] = from[p[i]]
 template <typename T, typename I>
 __global__
-void gather(const T* from, T* to, const I* p, unsigned n) {
+void gather(const T* __restrict__ const from,
+            T* __restrict__ const to,
+            const I* __restrict__ const p,
+            unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {
@@ -28,7 +31,10 @@ void gather(const T* from, T* to, const I* p, unsigned n) {
 // to[p[i]] = from[i]
 template <typename T, typename I>
 __global__
-void scatter(const T* from, T* to, const I* p, unsigned n) {
+void scatter(const T* __restrict__ const from,
+             T* __restrict__ const to,
+             const I* __restrict__ const p,
+             unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {

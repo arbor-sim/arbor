@@ -11,10 +11,10 @@ namespace kernels {
     template <typename T, typename I>
     __global__ void mark_until_after(
         unsigned n,
-        I* mark,
-        const I* span_end,
-        const T* ev_time,
-        const T* t_until)
+        I* __restrict__ const mark,
+        const I* __restrict__ const span_end,
+        const T* __restrict__ const ev_time,
+        const T* __restrict__ const t_until)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -31,10 +31,10 @@ namespace kernels {
     template <typename T, typename I>
     __global__ void mark_until(
         unsigned n,
-        I* mark,
-        const I* span_end,
-        const T* ev_time,
-        const T* t_until)
+        I* __restrict__ const mark,
+        const I* __restrict__ const span_end,
+        const T* __restrict__ const ev_time,
+        const T* __restrict__ const t_until)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -51,10 +51,10 @@ namespace kernels {
     template <typename I>
     __global__ void drop_marked_events(
         unsigned n,
-        I* n_nonempty,
-        I* span_begin,
-        const I* span_end,
-        const I* mark)
+        I* __restrict__ const n_nonempty,
+        I* __restrict__ const span_begin,
+        const I* __restrict__ const span_end,
+        const I* __restrict__ const mark)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -69,10 +69,10 @@ namespace kernels {
     template <typename T, typename I>
     __global__ void event_time_if_before(
         unsigned n,
-        const I* span_begin,
-        const I* span_end,
-        const T* ev_time,
-        T* t_until)
+        const I* __restrict__ const span_begin,
+        const I* __restrict__ const span_end,
+        const T* __restrict__ const ev_time,
+        T* __restrict__ const t_until)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {

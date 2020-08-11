@@ -76,7 +76,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} ${CXX_FLAGS} ${PY_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} -DARB_ARCH=${ARCH} ${CXX_FLAGS} ${PY_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 

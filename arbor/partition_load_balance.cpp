@@ -1,7 +1,9 @@
 #include <queue>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>

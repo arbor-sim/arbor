@@ -78,6 +78,8 @@ arb::util::optional<T> py2optional(pybind11::object o, const char* msg) {
 // to cast is not an error.
 template <typename T>
 arb::util::optional<T> try_cast(pybind11::object o) {
+    if (o.is_none()) return arb::util::nullopt;
+
     try {
         return o.cast<T>();
     }

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Combine all reports into a single one
+SHARED_REPORTS="$CI_PROJECT_DIR/codecov-reports"
+TRACE_FILES_ARGS=`find "$SHARED_REPORTS" -type f -iname '*.info' -exec sh -c "echo --add-tracefile {}" \;`
+lcov ${TRACE_FILES_ARGS} --output-file "$SHARED_REPORTS/combined.info"
+
+pushd $SOURCE_DIR
+bash <(curl -s https://codecov.io/bash) -f "$SHARED_REPORTS/combined.info" -t $CODECOV_TOKEN_GITHUB
+bash <(curl -s https://codecov.io/bash) -f "$SHARED_REPORTS/combined.info" -t $CODECOV_TOKEN_GITLAB
+popd

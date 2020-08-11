@@ -416,7 +416,6 @@ public:
         // d, u, rhs        : packed
         // cv_capacitance   : flat
         // invariant_d      : flat
-        // solution_        : flat
         // cv_to_cell       : flat
         // area             : flat
 
@@ -444,8 +443,7 @@ public:
         // transform u_shuffled values into packed u vector.
         flat_to_packed(u_shuffled, u);
 
-        // the invariant part of d, cv_area and the solution are in flat form
-        solution_ = array(matrix_size, 0);
+        // the invariant part of d and cv_area are in flat form
         cv_area = memory::make_const_view(area);
 
         // the cv_capacitance can be copied directly because it is
@@ -490,42 +488,39 @@ public:
             size());
     }
 
-    void solve() {
-        solve_matrix_fine(
-            rhs.data(), d.data(), u.data(),
-            level_meta.data(), level_lengths.data(), level_parents.data(),
-            block_index.data(),
-            num_cells_in_block.data(),
-            data_partition.data(),
-            num_cells_in_block.size(), max_branches_per_level);
-
+    void solve(array& to) {
+        solve_matrix_fine(rhs.data(),
+                          d.data(),
+                          u.data(),
+                          level_meta.data(),
+                          level_lengths.data(),
+                          level_parents.data(),
+                          block_index.data(),
+                          num_cells_in_block.data(),
+                          data_partition.data(),
+                          num_cells_in_block.size(),
+                          max_branches_per_level);
         // unpermute the solution
-        packed_to_flat(rhs, solution_);
+        packed_to_flat(rhs, to);
     }
 
-    const_view solution() const {
-        return solution_;
+private:
+    std::size_t size() const {
+        return matrix_size;
     }
 
-    template <typename VFrom, typename VTo>
-    void flat_to_packed(const VFrom& from, VTo& to ) {
+    void flat_to_packed(const array& from, array& to ) {
         arb_assert(from.size()==matrix_size);
         arb_assert(to.size()==data_size);
 
         scatter(from.data(), to.data(), perm.data(), perm.size());
     }
 
-    template <typename VFrom, typename VTo>
-    void packed_to_flat(const VFrom& from, VTo& to ) {
+    void packed_to_flat(const array& from, array& to ) {
         arb_assert(from.size()==data_size);
         arb_assert(to.size()==matrix_size);
 
         gather(from.data(), to.data(), perm.data(), perm.size());
-    }
-
-private:
-    std::size_t size() const {
-        return matrix_size;
     }
 };
 

@@ -181,6 +181,14 @@ struct variant_dynamic_impl<> {
     }
 
     static void destroy(std::size_t i, char* data) {}
+
+    static bool cmp_eq(std::size_t i, const char* left, const char* right) {
+        return i==std::size_t(-1)? true: throw bad_variant_access{};
+    }
+
+    static bool cmp_ne(std::size_t i, const char* left, const char* right) {
+        return i==std::size_t(-1)? false: throw bad_variant_access{};
+    }
 };
 
 template <typename H, typename... T>
@@ -239,6 +247,18 @@ struct variant_dynamic_impl<H, T...> {
         else {
             variant_dynamic_impl<T...>::destroy(i-1, data);
         }
+    }
+
+    static bool cmp_eq(std::size_t i, const char* left, const char* right) {
+        return i==0?
+               *reinterpret_cast<const H*>(left)==*reinterpret_cast<const H*>(right):
+               variant_dynamic_impl<T...>::cmp_eq(i-1, left, right);
+    }
+
+    static bool cmp_ne(std::size_t i, const char* left, const char* right) {
+        return i==0?
+               *reinterpret_cast<const H*>(left)!=*reinterpret_cast<const H*>(right):
+               variant_dynamic_impl<T...>::cmp_ne(i-1, left, right);
     }
 };
 
@@ -431,7 +451,7 @@ struct variant {
     auto get_if() noexcept { return get_if<I>(); }
 
     template <std::size_t I, typename = std::enable_if_t<(I<sizeof...(T))>, typename X = type_select_t<I, T...>>
-    const X* get_if() const noexcept { return which_==I? data_ptr<>(): nullptr; }
+    const X* get_if() const noexcept { return which_==I? data_ptr<X>(): nullptr; }
 
     template <typename X, std::size_t I = type_index<X, T...>::value>
     auto get_if() const noexcept { return get_if<I>(); }
@@ -467,6 +487,16 @@ struct variant {
 
     template <typename X, std::size_t I = type_index<X, T...>::value>
     decltype(auto) get() const { return get<I>(); }
+
+    // Comparisons.
+
+    bool operator==(const variant& x) const {
+        return which_==x.which_ && (valueless_by_exception() || variant_dynamic_impl<T...>::cmp_eq(which_, data, x.data));
+    }
+
+    bool operator!=(const variant& x) const {
+        return which_!=x.which_ || (!valueless_by_exception() && variant_dynamic_impl<T...>::cmp_ne(which_, data, x.data));
+    }
 };
 
 template <std::size_t I, std::size_t N>
@@ -501,9 +531,6 @@ struct variant_alternative<I, variant<T...>> { using type = type_select_t<I, T..
 
 template <std::size_t I, typename... T>
 struct variant_alternative<I, const variant<T...>> { using type = std::add_const_t<type_select_t<I, T...>>; };
-
-template <typename Visitor, typename... Variant>
-using visit_return_t = decltype(std::declval<Visitor>()(std::declval<typename variant_alternative<0, std::remove_volatile_t<std::remove_reference_t<Variant>>>::type>()...));
 
 } // namespace detail
 
@@ -560,7 +587,7 @@ decltype(auto) get_if(const variant<T...>& v) noexcept { return v.template get_i
 
 template <typename Visitor, typename Variant>
 decltype(auto) visit(Visitor&& f, Variant&& v) {
-    using R = detail::visit_return_t<Visitor&&, Variant&&>;
+    using R = decltype(f(get<0>(std::forward<Variant>(v))));
 
     if (v.valueless_by_exception()) throw bad_variant_access{};
     std::size_t i = v.index();
@@ -587,16 +614,16 @@ namespace std {
 // Unambitious hash:
 template <typename... T>
 struct hash<::arb::util::variant<T...>> {
-    std::size_t operator()(const ::arb::util::variant<T...>& v) {
+    std::size_t operator()(const ::arb::util::variant<T...>& v) const {
         return v.index() ^
-            visit([](const auto& a) { return std::hash<std::remove_cv_t<decltype(a)>>{}(a); }, v);
+            ::arb::util::visit([](const auto& a) { return std::hash<std::remove_cv_t<std::remove_reference_t<decltype(a)>>>{}(a); }, v);
     }
 };
 
 // Still haven't really determined if it is okay to have a variant<>, but if we do allow it...
 template <>
 struct hash<::arb::util::variant<>> {
-    std::size_t operator()(const ::arb::util::variant<>& v) { return 0u; };
+    std::size_t operator()(const ::arb::util::variant<>& v) const { return 0u; };
 };
 
 // std::swap specialization.

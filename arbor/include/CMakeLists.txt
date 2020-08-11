@@ -42,11 +42,14 @@ if(ARB_WITH_PROFILING)
     # define ARB_PROFILE_ENABLED in version.hpp
     list(APPEND arb_features PROFILE)
 endif()
+if(ARB_VECTORIZE)
+    list(APPEND arb_features VECTORIZE)
+endif()
 
 add_custom_command(
     OUTPUT version.hpp-test
     DEPENDS _always_rebuild
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${arb_features} > version.hpp-test
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${ARB_ARCH} ${arb_features} > version.hpp-test
 )
 
 set(version_hpp_path arbor/version.hpp)

@@ -399,8 +399,15 @@ void Parser::parse_state_block() {
         }
 
         parm.token = token_;
-        //state_block.state_variables.push_back(token_.spelling);
         get_token();
+
+        if(token_.type == tok::from) {
+            // silently skips from/to
+            from_to_description();
+            if (status_ == lexerStatus::error) {
+                return;
+            }
+        }
 
         // get unit parameters
         if (line == location_.line && token_.type == tok::lparen) {
@@ -763,16 +770,26 @@ std::pair<Token, Token> Parser::range_description() {
     }
 
     get_token();
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be <int, int>, found '%'", token_));
+        return {};
+    }
     lb = token_;
 
+    get_token();
     if(token_.type != tok::comma) {
         error(pprintf("range description must separate lower and upper bound with a comma '%'", token_));
         return {};
     }
 
     get_token();
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be <int, int>, found '%'", token_));
+        return {};
+    }
     ub = token_;
 
+    get_token();
     if(token_.type != tok::gt) {
         error(pprintf("range description must end with a right angle bracket '%'", token_));
         return {};
@@ -781,6 +798,39 @@ std::pair<Token, Token> Parser::range_description() {
     get_token();
     return {lb, ub};
 }
+
+std::pair<Token, Token> Parser::from_to_description() {
+    Token lb, ub;
+
+    if(token_.type != tok::from) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
+
+    get_token();
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
+    lb = token_;
+
+    get_token();
+    if(token_.type != tok::to) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
+
+    get_token();
+    if(token_.type != tok::integer) {
+        error(pprintf("range description must be of form FROM <int> TO <int>, found '%'", token_));
+        return {};
+    }
+    ub = token_;
+
+    get_token();
+    return {lb, ub};
+}
+
 
 // Returns a prototype expression for a function or procedure call
 // Takes an optional argument that allows the user to specify the
@@ -802,7 +852,6 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
     // check for an argument list enclosed in parenthesis (...)
     // return a prototype with an empty argument list if not found
     if( token_.type != tok::lparen ) {
-        //return make_expression<PrototypeExpression>(identifier.location, identifier.spelling, {});
         return expression_ptr{new PrototypeExpression(identifier.location, identifier.spelling, {})};
     }
 
@@ -819,6 +868,14 @@ expression_ptr Parser::parse_prototype(std::string name=std::string()) {
         arg_tokens.push_back(token_);
 
         get_token(); // consume the identifier
+
+        // args may have a unit attached
+        if(token_.type == tok::lparen) {
+            unit_description();
+            if(status_ == lexerStatus::error) {
+                return {};
+            }
+        }
 
         // look for a comma
         if(!(token_.type == tok::comma || token_.type==tok::rparen)) {

@@ -29,7 +29,7 @@ void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::s
 void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
 
 void emit_api_body(std::ostream&, APIMethod*);
-void emit_simd_api_body(std::ostream&, APIMethod*, moduleKind);
+void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
 
 void emit_index_initialize(std::ostream& out, const std::unordered_set<std::string>& indices,
                            simd_expr_constraint constraint);
@@ -59,8 +59,13 @@ struct simdprint {
     Expression* expr_;
     bool is_indirect_ = false;
     bool is_masked_ = false;
+    std::unordered_set<std::string> scalars_;
 
-    explicit simdprint(Expression* expr): expr_(expr) {}
+    explicit simdprint(Expression* expr, const std::vector<VariableExpression*>& scalars): expr_(expr) {
+        for (const auto& s: scalars) {
+            scalars_.insert(s->name());
+        }
+    }
 
     void set_indirect_index() {
         is_indirect_ = true;
@@ -75,6 +80,7 @@ struct simdprint {
             printer.set_input_mask("mask_input_");
         }
         printer.set_var_indexed(w.is_indirect_);
+        printer.save_scalar_names(w.scalars_);
         return w.expr_->accept(&printer), out;
     }
 };
@@ -147,6 +153,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
+        out << "#undef NDEBUG\n";
+        out << "#include <cassert>\n";
     }
 
     out <<
@@ -173,12 +181,21 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out <<
             "namespace S = ::arb::simd;\n"
             "using S::index_constraint;\n"
-            "static constexpr unsigned simd_width_ = ";
+            "using S::simd_cast;\n"
+            "using S::indirect;\n"
+            "using S::assign;\n";
 
-        if (!opt.simd.width) {
+        out << "static constexpr unsigned vector_length_ = ";
+        if (opt.simd.size == no_size) {
             out << "S::simd_abi::native_width<::arb::fvm_value_type>::value;\n";
+        } else {
+            out << opt.simd.size << ";\n";
         }
-        else {
+
+        out << "static constexpr unsigned simd_width_ = ";
+        if (opt.simd.width == no_size) {
+            out << " vector_length_ ? vector_length_ : " << opt.simd.default_width << ";\n";
+        } else {
             out << opt.simd.width << ";\n";
         }
 
@@ -188,18 +205,22 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         case simd_spec::avx2:   abi += "avx2";   break;
         case simd_spec::avx512: abi += "avx512"; break;
         case simd_spec::neon:   abi += "neon";   break;
+        case simd_spec::sve:    abi += "sve";    break;
         case simd_spec::native: abi += "native"; break;
         default:
             abi += "default_abi"; break;
         }
 
         out <<
-            "using simd_value = S::simd<::arb::fvm_value_type, simd_width_, " << abi << ">;\n"
-            "using simd_index = S::simd<::arb::fvm_index_type, simd_width_, " << abi << ">;\n"
+            "using simd_value = S::simd<::arb::fvm_value_type, vector_length_, " << abi << ">;\n"
+            "using simd_index = S::simd<::arb::fvm_index_type, vector_length_, " << abi << ">;\n"
+            "using simd_mask  = S::simd_mask<::arb::fvm_value_type, vector_length_, "<< abi << ">;\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
-            "    S::where(x+1==1, x) = DBL_EPSILON;\n"
-            "    return 1/x;\n"
+            "    simd_value ones = simd_cast<simd_value>(1.0);\n"
+            "    auto mask = S::cmp_eq(S::add(x,ones), ones);\n"
+            "    S::where(mask, x) = simd_cast<simd_value>(DBL_EPSILON);\n"
+            "    return S::div(ones, x);\n"
             "}\n"
             "\n";
     }
@@ -223,6 +244,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     net_receive && out <<
         "void deliver_events(deliverable_event_stream::state events) override;\n"
         "void net_receive(int i_, value_type weight);\n";
+
+    with_simd && out << "unsigned simd_width() const override { return simd_width_; }\n";
 
     out <<
         "\n" << popindent <<
@@ -355,7 +378,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     auto emit_body = [&](APIMethod *p) {
         if (with_simd) {
-            emit_simd_api_body(out, p, module_.kind());
+            emit_simd_api_body(out, p, vars.scalars);
         }
         else {
             emit_api_body(out, p);
@@ -387,11 +410,11 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     for (auto proc: normal_procedures(module_)) {
         if (with_simd) {
             emit_simd_procedure_proto(out, proc, class_name);
-            auto simd_print = simdprint(proc->body());
+            auto simd_print = simdprint(proc->body(), vars.scalars);
             out << " {\n" << indent << simd_print << popindent <<  "}\n\n";
 
             emit_masked_simd_procedure_proto(out, proc, class_name);
-            auto masked_print = simdprint(proc->body());
+            auto masked_print = simdprint(proc->body(), vars.scalars);
             masked_print.set_masked();
             out << " {\n" << indent << masked_print << popindent << "}\n\n";
         } else {
@@ -552,10 +575,8 @@ void SimdPrinter::visit(LocalVariable* sym) {
 
 void SimdPrinter::visit(VariableExpression *sym) {
     if (sym->is_range()) {
-        if(is_indirect_)
-            out_ << "simd_value(" << sym->name() << "+index_)";
-        else
-            out_ << "simd_value(" << sym->name() << "+i_)";
+        auto index = is_indirect_? "index_": "i_";
+        out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+" << index << ", simd_width_))";
     }
     else {
         out_ << sym->name();
@@ -568,26 +589,44 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     }
 
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
+ 
+    bool cast = false;
+    if (auto id = e->rhs()->is_identifier()) {
+        if (scalars_.count(id->name())) cast = true;
+    }
+    if (e->rhs()->is_number()) cast = true;
+    if (scalars_.count(e->lhs()->is_identifier()->name()))  cast = false;
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        if (!input_mask_.empty())
-            out_ << "S::where(" << input_mask_ << ", simd_value(";
+        if(is_indirect_)
+            out_ << "indirect(" << lhs->name() << "+index_, simd_width_) = ";
         else
-            out_ << "simd_value(";
+            out_ << "indirect(" << lhs->name() << "+i_, simd_width_) = ";
 
+        if (!input_mask_.empty())
+            out_ << "S::where(" << input_mask_ << ", ";
+
+        if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
+        if (cast) out_ << ")";
 
         if (!input_mask_.empty())
             out_ << ")";
-
-        if(is_indirect_)
-            out_ << ").copy_to(" << lhs->name() << "+index_)";
-        else
-            out_ << ").copy_to(" << lhs->name() << "+i_)";
     }
     else {
-        out_ << lhs->name() << " = ";
+        out_ << "assign(" << lhs->name() << ", ";
+        if (auto rhs = e->rhs()->is_identifier()) {
+            if (auto sym = rhs->symbol()) {
+                // We shouldn't call the rhs visitor in this case because it automatically casts indirect expressions
+                if (sym->is_variable() && sym->is_variable()->is_range()) {
+                    auto index = is_indirect_ ? "index_" : "i_";
+                    out_ << "indirect(" << rhs->name() << "+" << index << ", simd_width_))";
+                    return;
+                }
+            }
+        }
         e->rhs()->accept(this);
+        out_ << ")";
     }
 }
 
@@ -637,7 +676,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
-    << "(index_type i_, simd_value::simd_mask mask_input_";
+    << "(index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -650,29 +689,31 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());
         if (d.scalar()) {
-            out << "(" << d.data_var
+            out << " = simd_cast<simd_value>(" << d.data_var
                 << "[0]);\n";
         }
         else if (constraint == simd_expr_constraint::contiguous) {
-            out << "(" <<  d.data_var
+            out << ";\n"
+                << "assign(" << local->name() << ", indirect(" <<  d.data_var
                 << " + " << d.index_var
-                << "[index_]);\n";
+                << "[index_], simd_width_));\n";
         }
         else if (constraint == simd_expr_constraint::constant) {
-            out << "(" << d.data_var
+            out << " = simd_cast<simd_value>(" << d.data_var
                 << "[" << d.index_var
                 << "element0]);\n";
         }
         else {
-            out << "(S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", constraint_category_));\n";
+            out << ";\n"
+                << "assign(" << local->name() << ", indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_));\n";
         }
 
         if (d.scale != 1) {
-            out << local->name() << " *= " << d.scale << ";\n";
+            out << local->name() << " = S::mul(" << local->name() << ", simd_cast<simd_value>(" << d.scale << "));\n";
         }
     }
     else {
-        out << " = 0;\n";
+        out << " = simd_cast<simd_value>(0);\n";
     }
 }
 
@@ -690,40 +731,51 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
         std::string tempvar = "t_"+external->name();
 
         if (constraint == simd_expr_constraint::contiguous) {
-            out << "simd_value "<< tempvar <<"(" << d.data_var << " + " << d.index_var << "[index_]);\n"
-                << tempvar << " += w_*";
+            out << "simd_value "<< tempvar <<";\n"
+                << "assign(" << tempvar << ", indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n";
 
-            if (coeff!=1) out << as_c_double(coeff) << "*";
+            if (coeff!=1) {
+                out << tempvar << " = S::fma(S::mul(w_, simd_cast<simd_value>("
+                    << as_c_double(coeff) << ")),"
+                    << from->name() << ", " << tempvar << ");\n";
+            } else {
+                out << tempvar << " = S::fma(w_, " << from->name() << ", " << tempvar << ");\n";
+            }
 
-            out << from->name() << ";\n"
-                << tempvar << ".copy_to(" << d.data_var << " + " << d.index_var << "[index_]);\n";
+            out  << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = " << tempvar <<  ";\n";
         }
         else {
-            out << "S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", constraint_category_)"
-                << " += w_*";
+            out << "indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)";
 
-            if (coeff!=1) out << as_c_double(coeff) << "*";
-
-            out << from->name() << ";\n";
+            if (coeff!=1) {
+                out << " += S::mul(w_, S::mul(simd_cast<simd_value>("
+                    << as_c_double(coeff) << "), "
+                    << from->name() << "));\n";
+            } else {
+                out << " += S::mul(w_, " << from->name() << ");\n";
+            }
         }
     }
     else {
         if (constraint == simd_expr_constraint::contiguous) {
+            out << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = ";
             if (coeff!=1) {
-                out << "(" << as_c_double(coeff) << "*" << from->name() << ")";
+                out << "(S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << ")," << from->name() << "));\n";
             }
             else {
-                out << from->name();
+                out << from->name() << ";\n";
             }
-            out << ".copy_to(" << d.data_var << " + " << d.index_var << "[index_]);\n";
         }
         else {
-            out << "S::indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", constraint_category_)"
+            out << "indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)"
                 << " = ";
 
-            if (coeff!=1) out << as_c_double(coeff) << "*";
-
-            out << from->name() << ";\n";
+            if (coeff!=1) {
+                out << "(S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << ")," << from->name() << "));\n";
+            }
+            else {
+                out << from->name() << ";\n";
+            }
         }
     }
 }
@@ -735,28 +787,33 @@ void emit_index_initialize(std::ostream& out, const std::unordered_set<std::stri
         break;
     case simd_expr_constraint::constant:
         for (auto& index: indices) {
-            out << "simd_index::scalar_type " << index << "element0 = " << index << "[index_];\n";
-            out << index_i_name(index) << " = " << index << "element0;\n";
+            out << "arb::fvm_index_type " << index << "element0 = " << index << "[index_];\n";
+            out << index_i_name(index) << " = simd_cast<simd_index>(" << index << "element0);\n";
         }
         break;
     case simd_expr_constraint::other:
         for (auto& index: indices) {
-            out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
+            out << index_i_name(index) << " = simd_cast<simd_index>(indirect(" << index << ".data() + index_, simd_width_));\n";
         }
         break;
     }
 }
 
-void emit_body_for_loop(std::ostream& out, BlockExpression* body, const std::vector<LocalVariable*>& indexed_vars,
-                        const std::unordered_set<std::string>& indices, const simd_expr_constraint& read_constraint,
-                        const simd_expr_constraint& write_constraint) {
+void emit_body_for_loop(
+        std::ostream& out,
+        BlockExpression* body,
+        const std::vector<LocalVariable*>& indexed_vars,
+        const std::vector<VariableExpression*>& scalars,
+        const std::unordered_set<std::string>& indices,
+        const simd_expr_constraint& read_constraint,
+        const simd_expr_constraint& write_constraint) {
     emit_index_initialize(out, indices, read_constraint);
 
     for (auto& sym: indexed_vars) {
         emit_simd_state_read(out, sym, read_constraint);
     }
 
-    simdprint printer(body);
+    simdprint printer(body, scalars);
     printer.set_indirect_index();
 
     out << printer;
@@ -768,6 +825,7 @@ void emit_body_for_loop(std::ostream& out, BlockExpression* body, const std::vec
 
 void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   const std::vector<LocalVariable*>& indexed_vars,
+                                  const std::vector<VariableExpression*>& scalars,
                                   bool requires_weight,
                                   const std::unordered_set<std::string>& indices,
                                   const simd_expr_constraint& read_constraint,
@@ -781,21 +839,37 @@ void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
 
     out << "index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
     if (requires_weight) {
-        out << "simd_value w_(weight_+index_);\n";
+        out << "simd_value w_;\n"
+            << "assign(w_, indirect((weight_+index_), simd_width_));\n";
     }
 
-    emit_body_for_loop(out, body, indexed_vars, indices, read_constraint, write_constraint);
+    emit_body_for_loop(out, body, indexed_vars, scalars, indices, read_constraint, write_constraint);
 
     out << popindent << "}\n";
 }
 
-void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_kind) {
+void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<VariableExpression*>& scalars) {
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
     bool requires_weight = false;
 
     std::vector<LocalVariable*> scalar_indexed_vars;
     std::unordered_set<std::string> indices;
+
+    for (auto& s: body->is_block()->statements()) {
+        if (s->is_assignment()) {
+            for (auto& v: indexed_vars) {
+                if (s->is_assignment()->lhs()->is_identifier()->name() == v->external_variable()->name()) {
+                    auto info = decode_indexed_variable(v->external_variable());
+                    if (info.accumulate) {
+                        requires_weight = true;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     for (auto& sym: indexed_vars) {
         auto info = decode_indexed_variable(sym->external_variable());
         if (!info.scalar()) {
@@ -804,12 +878,9 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
         else {
             scalar_indexed_vars.push_back(sym);
         }
-        if (info.accumulate) {
-            requires_weight = true;
-        }
     }
-
     if (!body->statements().empty()) {
+        out << "assert(simd_width_ <= (unsigned)S::width(simd_cast<simd_value>(0)));\n";
         if (!indices.empty()) {
             for (auto& index: indices) {
                 out << "simd_index " << index_i_name(index) << ";\n";
@@ -821,21 +892,21 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
             simd_expr_constraint constraint = simd_expr_constraint::contiguous;
             std::string underlying_constraint = "contiguous";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, requires_weight, indices, constraint,
+            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint,
                                          constraint, underlying_constraint);
 
             //Generate for loop for all independent simd_vectors
             constraint = simd_expr_constraint::other;
             underlying_constraint = "independent";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, requires_weight, indices, constraint,
+            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint,
                                          constraint, underlying_constraint);
 
             //Generate for loop for all simd_vectors that have no optimizing constraints
             constraint = simd_expr_constraint::other;
             underlying_constraint = "none";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, requires_weight, indices, constraint,
+            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint,
                                          constraint, underlying_constraint);
 
             //Generate for loop for all constant simd_vectors
@@ -843,7 +914,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
             simd_expr_constraint write_constraint = simd_expr_constraint::other;
             underlying_constraint = "constant";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, requires_weight, indices, read_constraint,
+            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, read_constraint,
                                          write_constraint, underlying_constraint);
 
         }
@@ -856,7 +927,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
             out <<
                 "unsigned n_ = width_;\n\n"
                 "for (unsigned i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent <<
-                simdprint(body) << popindent <<
+                simdprint(body, scalars) << popindent <<
                 "}\n";
         }
     }

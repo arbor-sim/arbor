@@ -1,0 +1,185 @@
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.cscs.yml'
+
+stages:
+  - build
+  - allocate
+  - test
+  - upload_reports
+  - cleanup
+
+# Builds a docker image on kubernetes
+.build_docker_images:
+  extends: .dind
+  stage: build
+  only: ['master', 'staging', 'trying']
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -f $BUILD_DOCKERFILE --network=host --cache-from $BUILD_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 -t $BUILD_IMAGE .
+    - docker push $BUILD_IMAGE
+    - docker build -f $DEPLOY_DOCKERFILE --network=host --build-arg BUILD_ENV=$BUILD_IMAGE -t $DEPLOY_IMAGE .
+    - docker push $DEPLOY_IMAGE
+
+build release:
+  extends: .build_docker_images
+  variables:
+    BUILD_DOCKERFILE: ci/release/build.Dockerfile
+    BUILD_IMAGE: $CI_REGISTRY_IMAGE/release/build:latest
+    DEPLOY_DOCKERFILE: ci/release/deploy.Dockerfile
+    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+
+build codecov:
+  extends: .build_docker_images
+  variables:
+    BUILD_DOCKERFILE: ci/codecov/build.Dockerfile
+    BUILD_IMAGE: $CI_REGISTRY_IMAGE/codecov/build:latest
+    DEPLOY_DOCKERFILE: ci/codecov/deploy.Dockerfile
+    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+
+notify_github_start:
+  stage: build
+  allow_failure: true
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh pending
+
+
+# Some variables used for running on daint
+variables:
+  CRAY_CUDA_MPS: 1
+  USE_MPI: 'YES'
+  DISABLE_AFTER_SCRIPT: 'YES'
+  PULL_IMAGE: 'NO'
+  SLURM_CONSTRAINT: gpu
+  SLURM_JOB_NUM_NODES: 2
+  SLURM_PARTITION: normal
+  SLURM_TIMELIMIT: '15:00'
+  SLURM_EXCLUSIVE: '' # make sure resources are not shared
+
+### Release tests ###
+allocate release:
+  stage: allocate
+  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  only: ['master', 'staging', 'trying']
+  extends: .daint_alloc
+  variables:
+    PULL_IMAGE: 'YES'
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+single node release:
+  extends: .daint
+  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  only: ['master', 'staging', 'trying']
+  stage: test
+  script:
+    - unit
+    - unit-local
+    - unit-modcc
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+multi node release:
+  extends: .daint
+  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  only: ['master', 'staging', 'trying']
+  stage: test
+  script:
+    - unit-mpi
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 2
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+deallocate release:
+  only: ['master', 'staging', 'trying']
+  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  stage: cleanup
+  extends: .daint_dealloc
+  variables:
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+### Codecov tests ###
+allocate codecov:
+  stage: allocate
+  only: ['master', 'staging', 'trying']
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  extends: .daint_alloc
+  variables:
+    PULL_IMAGE: 'YES'
+    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
+
+single node codecov:
+  extends: .daint
+  only: ['master', 'staging', 'trying']
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  stage: test
+  script:
+    - codecov_pre
+    - unit
+    - unit-local
+    - unit-modcc
+    - codecov_post
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
+  artifacts:
+    paths:
+      - codecov-reports/
+
+multi node codecov:
+  extends: .daint
+  only: ['master', 'staging', 'trying']
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  stage: test
+  script:
+    - codecov_pre
+    - unit-mpi
+    - codecov_post
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 2
+    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
+  artifacts:
+    paths:
+      - codecov-reports/
+
+upload codecov reports:
+  extends: .daint
+  only: ['master', 'staging', 'trying']
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  stage: upload_reports
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
+  script: upload_codecov
+
+deallocate codecov:
+  only: ['master', 'staging', 'trying']
+  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  stage: cleanup
+  extends: .daint_dealloc
+  variables:
+    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
+
+notify_github_success:
+  stage: cleanup
+  when: on_success
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh success
+
+notify_github_failure:
+  stage: cleanup
+  when: on_failure
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh failure

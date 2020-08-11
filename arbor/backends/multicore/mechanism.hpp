@@ -137,6 +137,10 @@ protected:
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
 
+    // Simd width used in mechanism.
+
+    virtual unsigned simd_width() const { return 1; }
+
     // Report raw size in bytes of mechanism object.
 
     virtual std::size_t object_sizeof() const = 0;

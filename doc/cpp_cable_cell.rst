@@ -141,6 +141,10 @@ value should be taken from the cell or global parameter set.
 
    Local areal capacitance of the cell membrane, in Farads per square metre.
 
+   .. cpp:member:: util::optional<cv_policy> discretization
+
+   Method by which CV boundaries are determined when the cell is discretized.
+   See :ref:`cv-policies`.
 
 Default parameters for a cell are given by the :cpp:expr:`default_parameters`
 field in the :cpp:type:`cable_cell` object. This is a value of type :cpp:type:`cable_cell_parameter_set`,
@@ -255,4 +259,429 @@ constants.
 
    gprop.catalogue = &mycat;
    gprop.default_parameters.reversal_potential_method["ca"] = "nernst1998/ca";
+
+
+Cable cell probes
+-----------------
+
+Various properties of a a cable cell can be sampled via one of the cable cell
+specific probe address described below. They fall into two classes: scalar
+probes are associated with a single real value, such as a membrane voltage
+or mechanism state value at a particular location; vector probes return
+multiple values corresponding to a quantity sampled over a whole cell.
+
+The sample data associated with a cable cell probe will either be a ``double``
+for scalar probes, or a ``cable_sample_range`` describing a half-open range
+of ``double`` values:
+
+.. code::
+
+   using cable_sample_range = std::pair<const double*, const double*>
+
+The probe metadata passed to the sampler will be a const pointer to:
+
+*   ``mlocation`` for most scalar probes;
+
+*   ``cable_probe_point_info`` for point mechanism state queries;
+
+*   ``mcable_list`` for most vector queries;
+
+*   ``std::vector<cable_probe_point_info>`` for cell-wide point mechanism state queries.
+
+The type ``cable_probe_point_info`` holds metadata for a single target on a cell:
+
+.. code::
+    
+    struct cable_probe_point_info {
+        // Target number of point process instance on cell.
+        cell_lid_type target;
+
+        // Number of combined instances at this site.
+        unsigned multiplicity;
+
+        // Point on cell morphology where instance is placed.
+        mlocation loc;
+    };
+
+Note that the ``multiplicity`` will always be 1 if synapse coalescing is
+disabled.
+
+Cable cell probes that contingently do not correspond to a valid measurable
+quantity are ignored: samplers attached to them will receive no values.
+Mechanism state queries however will throw a ``cable_cell_error`` exception
+at simulation initialization if the requested state variable does not exist
+on the mechanism.
+
+Cable cell probe addresses that are described by a ``locset`` may generate more
+than one concrete probe: there will be one per location in the locset that is
+satisfiable. Sampler callback functions can distinguish between different
+probes with the same address and id by examining their index and/or
+probe-sepcific metadata found in the ``probe_metadata`` parameter.
+
+Membrane voltage
+^^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_membrane_voltage {
+        locset locations;
+    };
+
+Queries cell membrane potential at each site in ``locations``.
+
+*  Sample value: ``double``. Membrane potential in millivolts.
+
+*  Metadata: ``mlocation``. Location of probe.
+
+
+.. code::
+
+    struct cable_probe_membrane_voltage_cell {};
+
+Queries cell membrane potential across whole cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the
+   average membrane potential in millivolts across an unbranched
+   component of the cell, as determined by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+Axial current
+^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_axial_current {
+        locset locations;
+    };
+
+Estimate intracellular current at each site in ``locations``,
+in the distal direction.
+
+*  Sample value: ``double``. Current in nanoamperes.
+
+*  Metadata: ``mlocation``. Location as of probe.
+
+
+Transmembrane current
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_ion_current_density {
+        locset locations;
+        std::string ion;
+    };
+
+Membrance current density attributed to a particular ion at
+each site in ``locations``.
+
+*  Sample value: ``double``. Current density in amperes per square metre.
+
+*  Metadata: ``mlocation``. Location of probe.
+
+
+.. code::
+
+    struct cable_probe_ion_current_cell {
+        std::string ion;
+    };
+
+Membrane current attributed to a particular ion across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the current in
+   nanoamperes across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_total_ion_current_density {
+        locset locations;
+    };
+
+Membrane current density at given locations _excluding_ capacitive currents.
+
+*  Sample value: ``double``. Current density in amperes per square metre.
+
+*  Metadata: ``mlocation``. Location of probe.
+
+
+.. code::
+
+    struct cable_probe_total_ion_current_cell {};
+
+Membrane current _excluding_ capacitive currents across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the current in
+   nanoamperes across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_total_current_cell {};
+
+Total membrance current across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the current in
+   nanoamperes across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+Ion concentration
+^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_ion_int_concentration {
+        locset locations;
+        std::string ion;
+    };
+
+Ionic internal concentration of ion at each site in ``locations``.
+
+*  Sample value: ``double``. Ion concentration in millimoles per litre.
+
+*  Metadata: ``mlocation``. Location of probe.
+
+
+.. code::
+
+    struct cable_probe_ion_int_concentration_cell {
+        std::string ion;
+    };
+
+Ionic external concentration of ion across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the concentration in
+   millimoles per lire across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_ion_ext_concentration {
+        mlocation location;
+        std::string ion;
+    };
+
+Ionic external concentration of ion at each site in ``locations``.
+
+*  Sample value: ``double``. Ion concentration in millimoles per litre.
+
+*  Metadata: ``mlocation``. Location of probe.
+
+
+.. code::
+
+    struct cable_probe_ion_ext_concentration_cell {
+        std::string ion;
+    };
+
+Ionic external concentration of ion across components of the cell.
+
+*  Sample value: ``cable_sample_range``. Each value is the concentration in
+   millimoles per lire across an unbranched component of the cell, as determined
+   by the discretization.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+
+Mechanism state
+^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct cable_probe_density_state {
+        locset locations;
+        std::string mechanism;
+        std::string state;
+    };
+
+
+Value of state variable in a density mechanism in each site in ``locations``.
+If the mechanism is not defined at a particular site, that site is ignored.
+
+*  Sample value: ``double``. State variable value.
+
+*  Metadata: ``mlocation``. Location as given in the probe address.
+
+
+.. code::
+
+    struct cable_probe_density_state_cell {
+        std::string mechanism;
+        std::string state;
+    };
+
+Value of state variable in adensity mechanism across components of the cell.
+
+*  Sample value: ``cable_sample_range``. State variable values from the
+   mechanism across unbranched components of the cell, as determined
+   by the discretization and mechanism extent.
+
+*  Metadata: ``mcable_list``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
+
+
+.. code::
+
+    struct cable_probe_point_state {
+        cell_lid_type target;
+        std::string mechanism;
+        std::string state;
+    };
+
+Value of state variable in a point mechanism associated with the given target.
+If the mechanism is not associated with this target, the probe is ignored.
+
+*  Sample value: ``double``. State variable value.
+
+*  Metadata: ``cable_probe_point_info``. Target number, multiplicity and location.
+
+
+.. code::
+
+    struct cable_probe_point_state_cell {
+        std::string mechanism;
+        std::string state;
+    };
+
+Value of state variable in a point mechanism for each of the targets in the cell
+with which it is associated.
+
+*  Sample value: ``cable_sample_range``. State variable values at each associated
+   target.
+
+*  Metadata: ``std::vector<cable_probe_point_info>``. Target metadata for each
+   associated target.
+
+
+.. _cv-policies:
+
+Discretization and CV policies
+------------------------------
+
+For the purpose of simulation, cable cells are decomposed into discrete
+subcomponents called *control volumes* (CVs), following the finite volume method
+terminology. Each control volume comprises a connected subset of the
+morphology. Each fork point in the morphology will be the responsibility of
+a single CV, and as a special case a zero-volume CV can be used to represent
+a single fork point in isolation.
+
+The CVs are uniquely determined by a set of *B* of ``mlocation`` boundary points.
+For each non-terminal point *h* in *B*, there is a CV comprising the points
+{*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
+geometrical partial order of locations on the morphology. A fork point is
+owned by a CV if and only if all of its corresponding representative locations
+are in the CV.
+
+The set of boundary points used by the simulator is determined by a *CV policy*.
+These are objects of type ``cv_policy``, which has the following
+public methods:
+
+.. cpp:class:: cv_policy
+
+   .. cpp:function:: locset cv_boundary_points(const cable_cell&) const
+
+   Return a locset describing the boundary points for CVs on the given cell.
+
+   .. cpp:function:: region domain() const
+
+   Give the subset of a cell morphology on which this policy has been declared,
+   as a morphological ``region`` expression.
+
+Specific CV policy objects are created by functions described below (strictly
+speaking, these are class constructors for classes are implicit converted to
+``cv_policy`` objects). These all take a ``region`` parameter that restrict the
+domain of applicability of that policy; this facility is useful for specifying
+differing discretizations on different parts of a cell morphology. When a CV
+policy is constrained in this manner, the boundary of the domain will always
+constitute part of the CV boundary point set.
+
+CV policies can be combined with ``+`` and ``|`` operators. For two policies
+*A* and *B*, *A* + *B* is a policy which gives boundary points from both *A*
+and *B*, while *A* | *B* is a policy which gives all the boundary points from
+*B* together with those from *A* which do not within the domain of *B*.
+The domain of *A* + *B* and *A* | *B* is the union of the domains of *A* and
+*B*.
+
+``cv_policy_single``
+^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    cv_policy_single(region domain = reg::all())
+
+Use one CV for the whole cell, or one for each connected component of the
+supplied domain.
+
+``cv_policy_explicit``
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+   cv_policy_explicit(locset locs, region domain = reg::all())
+
+Use the points given by ``locs`` for CV boundaries, optionally restricted to the
+supplied domain.
+
+``cv_policy_every_sample``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+   cv_policy_every_sample(region domain = reg::all())
+
+Use every sample point in the morpholgy definition as a CV boundary, optionally
+restricted to the supplied domain. Each fork point in the domain is
+represented by a trivial CV.
+
+``cv_policy_fixed_per_branch``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    cv_policy_fixed_per_branch(unsigned cv_per_branch, region domain, cv_policy_flag::value flags = cv_policy_flag::none);
+
+    cv_policy_fixed_per_branch(unsigned cv_per_branch, cv_policy_flag::value flags = cv_policy_flag::none):
+
+For each branch in each connected component of the domain (or the whole cell,
+if no domain is given), evenly distribute boundary points along the branch so
+as to produce exactly ``cv_per_branch`` CVs.
+
+By default, CVs will terminate at branch ends. If the flag
+``cv_policy_flag::interior_forks`` is given, fork points will be included in
+non-trivial, branched CVs and CVs covering terminal points in the morphology
+will be half-sized.
+
+
+``cv_policy_max_extent``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    cv_policy_max_extent(double max_extent, region domain, cv_policy_flag::value flags = cv_policy_flag::none);
+
+    cv_policy_max_extent(double max_extent, cv_policy_flag::value flags = cv_policy_flag::none):
+
+As for ``cv_policy_fixed_per_branch``, save that the number of CVs on any
+given branch will be chosen to be the smallest number that ensures no
+CV will have an extent on the branch longer than ``max_extent`` micrometres.
 

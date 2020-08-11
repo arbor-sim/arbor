@@ -61,12 +61,12 @@ DERIVATIVE states {
 
 PROCEDURE trates(v,celsius) {
     LOCAL qt
-    LOCAL alpm, betm
+    LOCAL alpm_t, betm_t
     LOCAL tmp
     qt=q10^((celsius-24)/10)
     minf = 1/(1 + exp(-(v-21)/10))
     tmp = zetam*(v-vhalfm)
-    alpm = exp(tmp)
-    betm = exp(gmm*tmp)
-    mtau = betm/(qt*a0m*(1+alpm))
+    alpm_t = exp(tmp)
+    betm_t = exp(gmm*tmp)
+    mtau = betm_t/(qt*a0m*(1+alpm_t))
 }

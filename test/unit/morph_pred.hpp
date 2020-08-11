@@ -4,6 +4,7 @@
 
 #include "../gtest.h"
 
+#include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
@@ -69,7 +70,7 @@ inline ::testing::AssertionResult region_eq(const arb::mprovider& p, arb::region
 inline ::testing::AssertionResult mlocationlist_eq(const arb::mlocation_list& as, const arb::mlocation_list& bs) {
     if (as.size()!=bs.size()) {
         return ::testing::AssertionFailure()
-                << "cablelists " << as << " and " << bs << " differ";
+                << "mlocation lists " << as << " and " << bs << " differ";
     }
 
     for (auto i: arb::util::count_along(as)) {
@@ -79,6 +80,11 @@ inline ::testing::AssertionResult mlocationlist_eq(const arb::mlocation_list& as
     }
     return ::testing::AssertionSuccess();
 }
+
+inline ::testing::AssertionResult locset_eq(const arb::mprovider& p, arb::locset a, arb::locset b) {
+    return mlocationlist_eq(thingify(a, p), thingify(b, p));
+}
+
 
 } // namespace testing
 
