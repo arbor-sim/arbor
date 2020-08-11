@@ -91,7 +91,7 @@ __global__
 void solve_matrix_fine(
     T* __restrict__ const rhs,
     T* __restrict__ const d,
-    const T* __restrict__ u,
+    const T* __restrict__ const u,
     const level_metadata* __restrict__ const level_meta,
     const fvm_index_type* __restrict__ const level_lengths,
     const fvm_index_type* __restrict__ const level_parents,
