@@ -162,7 +162,7 @@ void solve_matrix_fine(
                 const auto u_ = u[lvl_data_end];
                 const auto d_ = d[lvl_data_end];
                 const auto rhs_ = rhs[lvl_data_end];
-                const T factor = -u_[lvl_data_end] / d_[lvl_data_end];
+                const T factor = -u_ / d_;
                 gpu_atomic_add(d + p,  factor*u_);
                 gpu_atomic_add(rhs + p, factor*rhs_);
             }
