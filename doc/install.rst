@@ -3,8 +3,9 @@
 Installing Arbor
 ################
 
-Arbor is installed by obtaining the source code and compiling it on
-the target system.
+If you want to get started quickly experimenting with Arbor via its Python wrapper, see the Python installation guide at :doc:`/python`.
+
+This guide covers installing Arbor using CMake, which is the recommended method for configuring Arbor for HPC applications and developers.
 
 This guide starts with an overview of the building process, and the various options
 available to customize the build.
