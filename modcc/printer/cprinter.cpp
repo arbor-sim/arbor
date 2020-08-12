@@ -492,7 +492,7 @@ namespace {
 
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
             return o << wrap.d.data_var << '['
-                     << (wrap.d.scalar()? "0": wrap.d.index_var+"[i_]") << ']';
+                     << (wrap.d.scalar()? "0": wrap.d.node_index_var+"[i_]") << ']';
         }
     };
 }
@@ -695,17 +695,17 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
         else if (constraint == simd_expr_constraint::contiguous) {
             out << ";\n"
                 << "assign(" << local->name() << ", indirect(" <<  d.data_var
-                << " + " << d.index_var
+                << " + " << d.node_index_var
                 << "[index_], simd_width_));\n";
         }
         else if (constraint == simd_expr_constraint::constant) {
             out << " = simd_cast<simd_value>(" << d.data_var
-                << "[" << d.index_var
+                << "[" << d.node_index_var
                 << "element0]);\n";
         }
         else {
             out << ";\n"
-                << "assign(" << local->name() << ", indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_));\n";
+                << "assign(" << local->name() << ", indirect(" << d.data_var << ", " << index_i_name(d.node_index_var) << ", simd_width_, constraint_category_));\n";
         }
 
         if (d.scale != 1) {
@@ -732,7 +732,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
 
         if (constraint == simd_expr_constraint::contiguous) {
             out << "simd_value "<< tempvar <<";\n"
-                << "assign(" << tempvar << ", indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_));\n";
+                << "assign(" << tempvar << ", indirect(" << d.data_var << " + " << d.node_index_var << "[index_], simd_width_));\n";
 
             if (coeff!=1) {
                 out << tempvar << " = S::fma(S::mul(w_, simd_cast<simd_value>("
@@ -742,10 +742,10 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                 out << tempvar << " = S::fma(w_, " << from->name() << ", " << tempvar << ");\n";
             }
 
-            out  << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = " << tempvar <<  ";\n";
+            out  << "indirect(" << d.data_var << " + " << d.node_index_var << "[index_], simd_width_) = " << tempvar <<  ";\n";
         }
         else {
-            out << "indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)";
+            out << "indirect(" << d.data_var << ", " << index_i_name(d.node_index_var) << ", simd_width_, constraint_category_)";
 
             if (coeff!=1) {
                 out << " += S::mul(w_, S::mul(simd_cast<simd_value>("
@@ -758,7 +758,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
     }
     else {
         if (constraint == simd_expr_constraint::contiguous) {
-            out << "indirect(" << d.data_var << " + " << d.index_var << "[index_], simd_width_) = ";
+            out << "indirect(" << d.data_var << " + " << d.node_index_var << "[index_], simd_width_) = ";
             if (coeff!=1) {
                 out << "(S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << ")," << from->name() << "));\n";
             }
@@ -767,7 +767,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
             }
         }
         else {
-            out << "indirect(" << d.data_var << ", " << index_i_name(d.index_var) << ", simd_width_, constraint_category_)"
+            out << "indirect(" << d.data_var << ", " << index_i_name(d.node_index_var) << ", simd_width_, constraint_category_)"
                 << " = ";
 
             if (coeff!=1) {
@@ -873,7 +873,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
     for (auto& sym: indexed_vars) {
         auto info = decode_indexed_variable(sym->external_variable());
         if (!info.scalar()) {
-            indices.insert(info.index_var);
+            indices.insert(info.node_index_var);
         }
         else {
             scalar_indexed_vars.push_back(sym);
