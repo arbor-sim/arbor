@@ -42,13 +42,13 @@ void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const
 void emit_api_body(std::ostream&, APIMethod*);
 void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
 
-void emit_index_initialize(std::ostream& out, const std::set<index_prop>& indices,
+void emit_simd_index_initialize(std::ostream& out, const std::set<index_prop>& indices,
                            simd_expr_constraint constraint);
 
-void emit_body_for_loop(std::ostream& out, BlockExpression* body, const std::vector<LocalVariable*>& indexed_vars,
+void emit_simd_body_for_loop(std::ostream& out, BlockExpression* body, const std::vector<LocalVariable*>& indexed_vars,
                    const std::set<index_prop>& indices, const simd_expr_constraint& constraint);
 
-void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
+void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   const std::vector<LocalVariable*>& indexed_vars,
                                   const std::set<index_prop>& indices,
                                   const simd_expr_constraint& constraint,
@@ -484,6 +484,10 @@ void CPrinter::visit(BlockExpression* block) {
     }
 }
 
+static std::string index_i_name(const std::string& index_var) {
+    return index_var+"i_";
+}
+
 void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(int i_";
     for (auto& arg: e->args()) {
@@ -500,8 +504,9 @@ namespace {
         deref(indexed_variable_info d): d(d) {}
 
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
+            auto index_var = wrap.d.cell_index_var.empty() ? wrap.d.node_index_var : wrap.d.cell_index_var;
             return o << wrap.d.data_var << '['
-                     << (wrap.d.scalar()? "0": wrap.d.node_index_var+"[i_]") << ']';
+                     << (wrap.d.scalar()? "0": index_i_name(index_var)) << ']';
         }
     };
 }
@@ -551,10 +556,28 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
+    std::set<index_prop> indices;
+    for (auto& sym: indexed_vars) {
+        auto d = decode_indexed_variable(sym->external_variable());
+        if (!d.scalar()) {
+            index_prop node_idx = {d.node_index_var, "i_", true};
+            indices.insert(node_idx);
+
+            if (!d.cell_index_var.empty()) {
+                index_prop cell_idx = {d.cell_index_var, index_i_name(d.node_index_var), false};
+                indices.insert(cell_idx);
+            }
+        }
+    }
+
     if (!body->statements().empty()) {
         out <<
             "int n_ = width_;\n"
             "for (int i_ = 0; i_ < n_; ++i_) {\n" << indent;
+
+        for (auto index: indices) {
+            out << "auto " << index_i_name(index.source_var) << " = " << index.source_var << "[" << index.index_name << "];\n";
+        }
 
         for (auto& sym: indexed_vars) {
             emit_state_read(out, sym);
@@ -569,10 +592,6 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
 }
 
 // SIMD printing:
-
-static std::string index_i_name(const std::string& index_var) {
-    return index_var+"i_";
-}
 
 void SimdPrinter::visit(IdentifierExpression *e) {
     e->symbol()->accept(this);
@@ -866,7 +885,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
     }
 }
 
-void emit_index_initialize(std::ostream& out, const std::set<index_prop>& indices,
+void emit_simd_index_initialize(std::ostream& out, const std::set<index_prop>& indices,
                            simd_expr_constraint constraint) {
     for (auto& index: indices) {
         if (index.node_index) {
@@ -899,14 +918,14 @@ void emit_index_initialize(std::ostream& out, const std::set<index_prop>& indice
     }
 }
 
-void emit_body_for_loop(
+void emit_simd_body_for_loop(
         std::ostream& out,
         BlockExpression* body,
         const std::vector<LocalVariable*>& indexed_vars,
         const std::vector<VariableExpression*>& scalars,
         const std::set<index_prop>& indices,
         const simd_expr_constraint& constraint) {
-    emit_index_initialize(out, indices, constraint);
+    emit_simd_index_initialize(out, indices, constraint);
 
     for (auto& sym: indexed_vars) {
         emit_simd_state_read(out, sym, constraint);
@@ -922,7 +941,7 @@ void emit_body_for_loop(
     }
 }
 
-void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
+void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   const std::vector<LocalVariable*>& indexed_vars,
                                   const std::vector<VariableExpression*>& scalars,
                                   bool requires_weight,
@@ -941,7 +960,7 @@ void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
             << "assign(w_, indirect((weight_+index_), simd_width_));\n";
     }
 
-    emit_body_for_loop(out, body, indexed_vars, scalars, indices, constraint);
+    emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint);
 
     out << popindent << "}\n";
 }
@@ -992,25 +1011,25 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             simd_expr_constraint constraint = simd_expr_constraint::contiguous;
             std::string underlying_constraint = "contiguous";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
 
             //Generate for loop for all independent simd_vectors
             constraint = simd_expr_constraint::other;
             underlying_constraint = "independent";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
 
             //Generate for loop for all simd_vectors that have no optimizing constraints
             constraint = simd_expr_constraint::other;
             underlying_constraint = "none";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
 
             //Generate for loop for all constant simd_vectors
             constraint = simd_expr_constraint::constant;
             underlying_constraint = "constant";
 
-            emit_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
 
         }
         else {
