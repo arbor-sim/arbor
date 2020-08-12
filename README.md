@@ -6,7 +6,7 @@ Arbor is a library for implementing performance portable network simulations of 
 
 An installation guide and library documentation are available online at [Read the Docs](http://arbor.readthedocs.io/en/latest/).
 
-[Submit a ticket](https://github.com/arbor-sim/arbor) if you have any questions or want help.
+[Submit a ticket or start a discussion](https://github.com/arbor-sim/arbor) if you have any questions or want help.
 
 ### Citing Arbor
 
