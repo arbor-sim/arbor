@@ -3,7 +3,8 @@
 Installing Arbor
 ################
 
-If you want to get started quickly experimenting with Arbor via its Python wrapper, see the Python installation guide at :doc:`/python`.
+.. Note::
+    If you want to get started quickly experimenting with Arbor via its Python wrapper, see the Python installation guide at :doc:`/python`.
 
 This guide covers installing Arbor using CMake, which is the recommended method for configuring Arbor for HPC applications and developers.
 
