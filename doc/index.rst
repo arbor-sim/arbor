@@ -4,53 +4,14 @@ Arbor
 .. image:: https://travis-ci.org/arbor-sim/arbor.svg?branch=master
     :target: https://travis-ci.org/arbor-sim/arbor
 
-What is Arbor?
---------------
-Arbor is a high-performance library for computational neuroscience simulations, being developed in work package 7.5.4 of the `Human Brain Project <//www.humanbrainproject.eu>`_.
+Arbor is a high-performance library for computational neuroscience simulations
+with morphologically-detailed cells, from single cell models to very large networks.
 
-The development team is based in:
-
-* `Swiss National Supercomputing Center <//www.cscs.ch>`_ (CSCS)
-* `Jülich Supercomputing Centre <//www.fz-juelich.de/ias/jsc/EN/>`_ (JSC)
-
-Arbor is designed from the ground up for **many core**  architectures:
-
-    * Written in C++14 and CUDA;
-    * Distributed parallelism using MPI;
-    * **Open source** and **open development**;
-    * Sound development practices: **unit testing**, **continuous Integration**,
-      and **validation**.
-
-Features
---------
-
-We are actively developing `Arbor <https://github.com/arbor-sim/arbor>`_, improving performance and adding features.
-Some key features include:
-
-    * Optimized back end for CUDA
-    * Optimized vector back ends for Intel (KNL, AVX, AVX2) and Arm (ARMv8-A NEON) intrinsics.
-    * Asynchronous spike exchange that overlaps compute and communication.
-    * Efficient sampling of voltage and current on all back ends.
-    * Efficient implementation of all features on GPU.
-    * Reporting of memory and energy consumption (when available on platform).
-    * An API for addition of new cell types, e.g. LIF and Poisson spike generators.
-    * Validation tests against numeric/analytic models and NEURON.
+The development team is from HPC centers, aiming to help neuroscientists
+effectively use contemporary and future HPC systems to meet their simulation needs.
 
 Citing Arbor
 ------------
-
-.. |DOI-v0.1| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459679.svg
-     :target: https://doi.org/10.5281/zenodo.1459679
-
-.. |DOI-v0.2| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2583709.svg
-    :target: https://doi.org/10.5281/zenodo.2583709
-
-Specific versions of Arbor can be cited via Zenodo:
-
-   * v0.2:  |DOI-v0.2|
-   * v0.1:  |DOI-v0.1|
-
-The following BibTeX can be used to cite Arbor:
 
 .. code-block:: latex
 
