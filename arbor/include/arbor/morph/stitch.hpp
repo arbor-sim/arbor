@@ -45,10 +45,10 @@ struct stitch_builder {
     stitch_builder();
 
     stitch_builder(const stitch_builder&) = delete;
-    stitch_builder(stitch_builder&&) = default;
+    stitch_builder(stitch_builder&&);
 
     stitch_builder& operator=(const stitch_builder&) = delete;
-    stitch_builder& operator=(stitch_builder&&) = default;
+    stitch_builder& operator=(stitch_builder&&);
 
     // Make a new stitch in the morphology, return reference to self.
     //
@@ -75,6 +75,9 @@ struct stitched_morphology {
     stitched_morphology(const stitch_builder&); // implicit
     stitched_morphology(stitch_builder&&); // implicit
 
+    stitched_morphology(const stitched_morphology&) = delete;
+    stitched_morphology(stitched_morphology&&);
+
     arb::morphology morphology() const;
     region stitch(const std::string& id) const;
     std::vector<msize_t> segments(const std::string& id) const;
@@ -88,5 +91,3 @@ private:
 };
 
 } // namesapce arb
-
-

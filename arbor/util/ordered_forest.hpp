@@ -510,7 +510,7 @@ private:
 
     template <typename U, typename OtherAllocator>
     void copy_impl(const ordered_forest<U, OtherAllocator>& other) {
-        auto copy_children = [&](auto& self, const auto& from, auto& to) -> void {
+        auto copy_children = [&, this](auto& self, const auto& from, auto& to) -> void {
             sibling_iterator j;
             for (auto i = other.child_begin(from); i!=other.child_end(from); ++i) {
                 j = j? insert_after(j, *i): sibling_iterator(push_child(to, *i));
