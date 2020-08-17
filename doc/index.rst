@@ -15,9 +15,8 @@ The development team is based in:
 
 Arbor is designed from the ground up for **many core**  architectures:
 
-    * Written in C++11 and CUDA;
+    * Written in C++14 and CUDA;
     * Distributed parallelism using MPI;
-    * Multithreading with TBB and C++11 threads;
     * **Open source** and **open development**;
     * Sound development practices: **unit testing**, **continuous Integration**,
       and **validation**.
