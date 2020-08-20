@@ -387,19 +387,22 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
     struct index_prop {
         std::string source_var; // array holding the indices
         std::string index_name; // index into the array
-
-        bool operator<(const index_prop& other) const {
-            return source_var < other.source_var;
+        bool operator==(const index_prop& other) const {
+            return (source_var == other.source_var) && (index_name==other.index_name);
         }
     };
 
-    std::set<index_prop> indices;
+    std::list<index_prop> indices;
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            indices.insert({d.node_index_var, "tid_"});
+            index_prop node_idx = {d.node_index_var, "tid_"};
+            auto it = std::find(indices.begin(), indices.end(), node_idx);
+            if (it == indices.end()) indices.push_front(node_idx);
             if (!d.cell_index_var.empty()) {
-                indices.insert({d.cell_index_var, index_i_name(d.node_index_var)});
+                index_prop cell_idx = {d.cell_index_var, index_i_name(d.node_index_var)};
+                auto it = std::find(indices.begin(), indices.end(), cell_idx);
+                if (it == indices.end()) indices.push_back(cell_idx);
             }
         }
     }

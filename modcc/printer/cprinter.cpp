@@ -2,7 +2,6 @@
 #include <iostream>
 #include <regex>
 #include <string>
-#include <set>
 #include <unordered_set>
 
 #include "expression.hpp"
@@ -29,9 +28,8 @@ struct index_prop {
     std::string source_var; // array holding the indices
     std::string index_name; // index into the array
     bool        node_index; // node index (cv) or cell index
-
-    bool operator<(const index_prop& other) const {
-        return source_var < other.source_var;
+    bool operator==(const index_prop& other) const {
+        return (source_var == other.source_var) && (index_name == other.index_name);
     }
 };
 
@@ -42,17 +40,17 @@ void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const
 void emit_api_body(std::ostream&, APIMethod*);
 void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
 
-void emit_simd_index_initialize(std::ostream& out, const std::set<index_prop>& indices, simd_expr_constraint constraint);
+void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices, simd_expr_constraint constraint);
 
 void emit_simd_body_for_loop(std::ostream& out,
                              BlockExpression* body,
                              const std::vector<LocalVariable*>& indexed_vars,
-                             const std::set<index_prop>& indices,
+                             const std::list<index_prop>& indices,
                              const simd_expr_constraint& constraint);
 
 void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const std::vector<LocalVariable*>& indexed_vars,
-                                       const std::set<index_prop>& indices,
+                                       const std::list<index_prop>& indices,
                                        const simd_expr_constraint& constraint,
                                        std::string constraint_name);
 
@@ -558,13 +556,17 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
-    std::set<index_prop> indices;
+    std::list<index_prop> indices;
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            indices.insert({d.node_index_var, "i_", true});
+            index_prop node_idx = {d.node_index_var, "i_", true};
+            auto it = std::find(indices.begin(), indices.end(), node_idx);
+            if (it == indices.end()) indices.push_front(node_idx);
             if (!d.cell_index_var.empty()) {
-                indices.insert({d.cell_index_var, index_i_name(d.node_index_var), false});
+                index_prop cell_idx = {d.cell_index_var, index_i_name(d.node_index_var), false};
+                auto it = std::find(indices.begin(), indices.end(), cell_idx);
+                if (it == indices.end()) indices.push_back(cell_idx);
             }
         }
     }
@@ -832,7 +834,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
     }
 }
 
-void emit_simd_index_initialize(std::ostream& out, const std::set<index_prop>& indices,
+void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices,
                            simd_expr_constraint constraint) {
     for (auto& index: indices) {
         if (index.node_index) {
@@ -870,7 +872,7 @@ void emit_simd_body_for_loop(
         BlockExpression* body,
         const std::vector<LocalVariable*>& indexed_vars,
         const std::vector<VariableExpression*>& scalars,
-        const std::set<index_prop>& indices,
+        const std::list<index_prop>& indices,
         const simd_expr_constraint& constraint) {
     emit_simd_index_initialize(out, indices, constraint);
 
@@ -892,7 +894,7 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   const std::vector<LocalVariable*>& indexed_vars,
                                   const std::vector<VariableExpression*>& scalars,
                                   bool requires_weight,
-                                  const std::set<index_prop>& indices,
+                                  const std::list<index_prop>& indices,
                                   const simd_expr_constraint& constraint,
                                   std::string underlying_constraint_name) {
 
@@ -918,7 +920,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
     bool requires_weight = false;
 
     std::vector<LocalVariable*> scalar_indexed_vars;
-    std::set<index_prop> indices;
+    std::list<index_prop> indices;
 
     for (auto& s: body->is_block()->statements()) {
         if (s->is_assignment()) {
@@ -938,11 +940,13 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
         auto info = decode_indexed_variable(sym->external_variable());
         if (!info.scalar()) {
             index_prop node_idx = {info.node_index_var, "index_", true};
-            indices.insert(node_idx);
+            auto it = std::find(indices.begin(), indices.end(), node_idx);
+            if (it == indices.end()) indices.push_front(node_idx);
 
             if (!info.cell_index_var.empty()) {
                 index_prop cell_idx = {info.cell_index_var, index_i_name(info.node_index_var), false};
-                indices.insert(cell_idx);
+                it = std::find(indices.begin(), indices.end(), cell_idx);
+                if (it == indices.end()) indices.push_front(cell_idx);
             }
         }
         else {
