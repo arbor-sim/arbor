@@ -6,7 +6,6 @@
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 
-#include "morph/pwlin_common.hpp"
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/ratelem.hpp"
@@ -17,18 +16,111 @@ namespace arb {
 using util::rat_element;
 
 struct place_pwlin_data {
-    branch_pw_ratpoly<1, 0> x, y, z, r; // [µm]
+    // Piecewise-constant indices into segment data, by branch.
+    std::vector<util::pw_elements<std::size_t>> segment_index;
+
+    // Segments from segment tree, after isometry is applied.
+    std::vector<msegment> segments;
 
     explicit place_pwlin_data(msize_t n_branch):
-        x(n_branch), y(n_branch), z(n_branch), r(n_branch)
+        segment_index(n_branch)
     {}
 };
 
+static mpoint interpolate_segment(const std::pair<double, double>& bounds, const msegment& seg, double pos) {
+    if (bounds.first==bounds.second) {
+        return seg.prox;
+    }
+    else {
+        double u = (pos-bounds.first)/(bounds.second-bounds.first);
+
+        util::rat_element<1, 0> x{seg.prox.x, seg.dist.x};
+        util::rat_element<1, 0> y{seg.prox.y, seg.dist.y};
+        util::rat_element<1, 0> z{seg.prox.z, seg.dist.z};
+        util::rat_element<1, 0> r{seg.prox.radius, seg.dist.radius};
+
+        return {x(u), y(u), z(u), r(u)};
+    }
+}
+
+template <typename Elem>
+static bool is_degenerate(const util::pw_elements<Elem>& pw) {
+    return  pw.bounds().second==0;
+}
+
 mpoint place_pwlin::at(mlocation loc) const {
-    return { interpolate(data_->x, loc.branch, loc.pos),
-             interpolate(data_->y, loc.branch, loc.pos),
-             interpolate(data_->z, loc.branch, loc.pos),
-             interpolate(data_->r, loc.branch, loc.pos) };
+    const auto& index = data_->segment_index.at(loc.branch);
+    double pos = is_degenerate(index)? 0: loc.pos;
+
+    auto piece = index(pos); // Here and below, TODO: C++17 structured bindings for piece.first and second.
+    return interpolate_segment(piece.first, data_->segments.at(piece.second), pos);
+}
+
+std::vector<mpoint> place_pwlin::all_at(mlocation loc) const {
+    std::vector<mpoint> result;
+    const auto& index = data_->segment_index.at(loc.branch);
+    double pos = is_degenerate(index)? 0: loc.pos;
+
+    for (auto piece: util::make_range(index.equal_range(pos))) {
+        result.push_back(interpolate_segment(piece.first, data_->segments.at(piece.second), pos));
+    }
+    return result;
+}
+
+template <bool exclude_trivial>
+static std::vector<msegment> extent_segments_impl(const place_pwlin_data& data, const mextent& extent) {
+    std::vector<msegment> result;
+
+    for (mcable c: extent) {
+        const auto& index = data.segment_index.at(c.branch);
+        if (is_degenerate(index)) {
+            c.prox_pos = c.dist_pos = 0;
+        }
+
+        auto b = index.equal_range(c.prox_pos).first;
+        auto e = index.equal_range(c.dist_pos).second;
+
+        for (auto piece: util::make_range(b, e)) {
+            const auto& bounds = piece.first;
+            const msegment& seg = data.segments.at(piece.second);
+
+            auto partial_bounds = bounds;
+            msegment partial = seg;
+
+            if (c.prox_pos>bounds.first) {
+                arb_assert(c.prox_pos<=bounds.second);
+                partial.prox = interpolate_segment(bounds, seg, c.prox_pos);
+                partial_bounds.first = c.prox_pos;
+            }
+            if (c.dist_pos<bounds.second) {
+                arb_assert(c.dist_pos>=bounds.first);
+                partial.dist = interpolate_segment(bounds, seg, c.dist_pos);
+                partial_bounds.second = c.dist_pos;
+            }
+
+            // With exclude_trivial set, skip zero-length segments if cable is non-trivial.
+            if (exclude_trivial && partial_bounds.first==partial_bounds.second && c.prox_pos!=c.dist_pos) {
+                continue;
+            }
+
+            result.push_back(partial);
+
+            // With exclude_trivial set, keep only one zero-length (partial) segment if cable is trivial.
+            if (exclude_trivial && c.prox_pos==c.dist_pos) {
+                break;
+            }
+        }
+    }
+
+    return result;
+}
+
+std::vector<msegment> place_pwlin::all_segments(const mextent& extent) const {
+    return extent_segments_impl<false>(*data_, extent);
+}
+
+std::vector<msegment> place_pwlin::segments(const mextent& extent) const {
+    return extent_segments_impl<true>(*data_, extent);
 }
 
 place_pwlin::place_pwlin(const arb::morphology& m, const isometry& iso) {
@@ -51,35 +143,22 @@ place_pwlin::place_pwlin(const arb::morphology& m, const isometry& iso) {
         }
 
         double branch_length = seg_pos.back();
-        double length_scale = branch_length>0? 1./branch_length: 0;
-        for (auto& x: seg_pos) {
-            x *= length_scale;
-        }
-
-        if (length_scale==0) {
-            // Zero-length branch case?
-            mpoint p = iso.apply(segments[0].prox);
-
-            data_->x[bid].push_back(0., 1., rat_element<1, 0>(p.x, p.x));
-            data_->y[bid].push_back(0., 1., rat_element<1, 0>(p.y, p.y));
-            data_->z[bid].push_back(0., 1., rat_element<1, 0>(p.z, p.z));
-            data_->r[bid].push_back(0., 1., rat_element<1, 0>(p.radius, p.radius));
-        }
-        else {
-            for (auto i: util::count_along(segments)) {
-                auto& seg = segments[i];
-                double p0 = seg_pos[i];
-                double p1 = seg_pos[i+1];
-                if (p0==p1) continue;
-
-                mpoint u0 = iso.apply(seg.prox);
-                mpoint u1 = iso.apply(seg.dist);
-
-                data_->x[bid].push_back(p0, p1, rat_element<1, 0>(u0.x, u1.x));
-                data_->y[bid].push_back(p0, p1, rat_element<1, 0>(u0.y, u1.y));
-                data_->z[bid].push_back(p0, p1, rat_element<1, 0>(u0.z, u1.z));
-                data_->r[bid].push_back(p0, p1, rat_element<1, 0>(u0.radius, u1.radius));
+        if (branch_length!=0) {
+            for (auto& x: seg_pos) {
+                x /= branch_length;
             }
+        }
+
+        for (auto i: util::count_along(segments)) {
+            msegment seg = segments[i];
+            double p0 = seg_pos[i];
+            double p1 = seg_pos[i+1];
+
+            seg.prox = iso.apply(seg.prox);
+            seg.dist = iso.apply(seg.dist);
+
+            data_->segment_index[bid].push_back(p0, p1, data_->segments.size());
+            data_->segments.push_back(seg);
         }
     }
 };

@@ -6,7 +6,6 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
-#include "morph/pwlin_common.hpp"
 #include "util/piecewise.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -16,6 +15,34 @@
 namespace arb {
 
 using util::rat_element;
+
+template <unsigned p, unsigned q>
+using pw_ratpoly = util::pw_elements<rat_element<p, q>>;
+
+template <unsigned p, unsigned q>
+using branch_pw_ratpoly = std::vector<pw_ratpoly<p, q>>;
+
+// Special case handling required for degenerate branches of length zero:
+template <typename Elem>
+static bool is_degenerate(const util::pw_elements<Elem>& pw) {
+    return  pw.bounds().second==0;
+}
+
+template <unsigned p, unsigned q>
+double interpolate(const branch_pw_ratpoly<p, q>& f, unsigned bid, double pos) {
+    const auto& pw = f.at(bid);
+    if (is_degenerate(pw)) pos = 0;
+
+    auto piece = pw(pos);
+    auto& bounds = piece.first;   // TODO: C++17 structured binding.
+    auto& element = piece.second;
+
+    if (bounds.first==bounds.second) return element[0];
+    else {
+        double x = (pos-bounds.first)/(bounds.second-bounds.first);
+        return element(x);
+    }
+}
 
 // Length, area, and ixa are polynomial or rational polynomial functions of branch position,
 // continuos and monotonically increasing with respect to distance from root.
@@ -221,11 +248,11 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
         }
 
         double branch_length = seg_pos.back();
-        double length_scale = branch_length>0? 1./branch_length: 0;
-        for (auto& d: seg_pos) {
-            d *= length_scale;
+        if (branch_length!=0) {
+            for (auto& d: seg_pos) {
+                d /= branch_length;
+            }
         }
-        seg_pos.back() = 1; // Circumvent any rounding infelicities.
 
         for (auto d: seg_pos) {
             all_segment_ends_.push_back({bid, d});
@@ -243,55 +270,44 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             segment_cables_[seg.id] = mcable{bid, pos0, pos1};
         }
 
-
         double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
         data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
 
         double area_0 = parent==mnpos? 0: data_->area[parent].back().second[2];
         double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[2];
 
-        if (length_scale==0) {
-            // Zero-length branch? Weird, but make best show of it.
-            auto& s = segments.front().prox;
-            double r = s.radius;
-            double z = s.z;
-            data_->radius[bid].push_back(0., 1., rat_element<1, 0>(r, r));
-            data_->directed_projection[bid].push_back(0., 1., rat_element<1, 0>(z-proj_shift, z-proj_shift));
-            data_->area[bid].push_back(0., 1., rat_element<2, 0>(area_0, area_0, area_0));
-            data_->ixa[bid].push_back(0., 1., rat_element<1, 1>(ixa_0, ixa_0, ixa_0));
+        for (auto i: util::count_along(segments)) {
+            auto prox = segments[i].prox;
+            auto dist = segments[i].dist;
+
+            double p0 = seg_pos[i];
+            double p1 = seg_pos[i+1];
+
+            double z0 = prox.z - proj_shift;
+            double z1 = dist.z - proj_shift;
+            data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
+
+            double r0 = prox.radius;
+            double r1 = dist.radius;
+            data_->radius[bid].push_back(p0, p1, rat_element<1, 0>(r0, r1));
+
+            double dx = (p1-p0)*branch_length;
+            double dr = r1-r0;
+            double c = pi*std::sqrt(dr*dr+dx*dx);
+            double area_half = area_0 + (0.75*r0+0.25*r1)*c;
+            double area_1 = area_0 + (r0+r1)*c;
+            data_->area[bid].push_back(p0, p1, rat_element<2, 0>(area_0, area_half, area_1));
+            area_0 = area_1;
+
+            // (Test for positive dx explicitly in case r0 is zero.)
+            double ixa_half = ixa_0 + (dx>0? dx/(pi*r0*(r0+r1)): 0);
+            double ixa_1 = ixa_0 + (dx>0? dx/(pi*r0*r1): 0);
+            data_->ixa[bid].push_back(p0, p1, rat_element<1, 1>(ixa_0, ixa_half, ixa_1));
+            ixa_0 = ixa_1;
         }
-        else {
-            for (auto i: util::count_along(segments)) {
-                auto prox = segments[i].prox;
-                auto dist = segments[i].dist;
 
-                double p0 = seg_pos[i];
-                double p1 = seg_pos[i+1];
-                if (p0==p1) continue;
-
-                double z0 = prox.z - proj_shift;
-                double z1 = dist.z - proj_shift;
-                data_->directed_projection[bid].push_back(p0, p1, rat_element<1, 0>(z0, z1));
-
-                double r0 = prox.radius;
-                double r1 = dist.radius;
-                data_->radius[bid].push_back(p0, p1, rat_element<1, 0>(r0, r1));
-
-                double dx = (p1-p0)*branch_length;
-                double dr = r1-r0;
-                double c = pi*std::sqrt(dr*dr+dx*dx);
-                double area_half = area_0 + (0.75*r0+0.25*r1)*c;
-                double area_1 = area_0 + (r0+r1)*c;
-                data_->area[bid].push_back(p0, p1, rat_element<2, 0>(area_0, area_half, area_1));
-                area_0 = area_1;
-
-                double ixa_half = ixa_0 + dx/(pi*r0*(r0+r1));
-                double ixa_1 = ixa_0 + dx/(pi*r0*r1);
-                data_->ixa[bid].push_back(p0, p1, rat_element<1, 1>(ixa_0, ixa_half, ixa_1));
-                ixa_0 = ixa_1;
-            }
-
-            arb_assert((data_->radius[bid].size()>0));
+        arb_assert((data_->radius[bid].size()>0));
+        if (branch_length!=0) {
             arb_assert((data_->radius[bid].bounds()==std::pair<double, double>(0., 1.)));
             arb_assert((data_->area[bid].bounds()==std::pair<double, double>(0., 1.)));
             arb_assert((data_->ixa[bid].bounds()==std::pair<double, double>(0., 1.)));
