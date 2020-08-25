@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 import collections
+from itertools import zip_longest
 
 def usage(default_delta):
-    print ("""
+    print("""
     compare two input spike time files on equality with a delta of max_delta
     order of the spikes is not important. GID should always be equal
     Display the first 50 differences encountered.
@@ -36,9 +37,9 @@ def parse_file(path):
             gid = int(split_items[0].strip())
             time = float(split_items[1].strip())
         except:
-            print "Could not parse a line in the file!!!! \n"
-            print " line: " , line_idx, ": ", stripped_line
-            print path
+            print("Could not parse a line in the file!!!! \n")
+            print(" line: " , line_idx, ": ", stripped_line)
+            print(path)
             
             exit(1) #failure
 
@@ -59,20 +60,20 @@ def compare(path1, data1, path2, data2, delta):
     """
     combined_data = collections.defaultdict(lambda : [[],[]])
     
-    for gid, spike_data in data1.items():
+    for gid, spike_data in list(data1.items()):
         combined_data[gid][0].extend(spike_data)
 
 
-    for gid, spike_data in data2.items():
+    for gid, spike_data in list(data2.items()):
         combined_data[gid][1].extend(spike_data)
 
     different_spikes = []
-    for gid, (data_1, data_2)in combined_data.items():
+    for gid, (data_1, data_2)in list(combined_data.items()):
         gid_list1 = data_1
         gid_list2 = data_2
 
         if len(gid_list1) != len(gid_list2):
-            for idx, (time1, time2) in enumerate(map(None, gid_list1, gid_list2)):
+            for idx, (time1, time2) in enumerate(zip_longest(gid_list1, gid_list2)):
                 # We have to loop all spikes, check here if we have missing spikes 
                 # and treat those different
                 if time1 == None or time2 == None:
@@ -93,18 +94,18 @@ def compare(path1, data1, path2, data2, delta):
                 different_spikes.append((gid, time1, time2))
 
     if len(different_spikes) != 0:
-        print "Found difference in spike times, displaying first 50 \n"
-        print "key == (line_nr, spike_time, content line parsed)\n"
-        print "difference #, gid :  target output !=  simulation output"
+        print("Found difference in spike times, displaying first 50 \n")
+        print("key == (line_nr, spike_time, content line parsed)\n")
+        print("difference #, gid :  target output !=  simulation output")
 
         for idx, (gid, time1, time2) in enumerate(different_spikes):
             if idx == 50:
                 break
 
             dif_str = "difference #{0}, {3}: {1} !=  {2}".format(idx, time1, time2, gid)
-            print dif_str
+            print(dif_str)
 
-        print "\n\n"
+        print("\n\n")
 
 
         # Also output to file (could be done in previous loop, but seperation

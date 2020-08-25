@@ -6,13 +6,12 @@ Arbor
 
 What is Arbor?
 --------------
+Arbor is a high-performance library for computational neuroscience simulations, being developed in work package 7.5.4 of the `Human Brain Project <//www.humanbrainproject.eu>`_.
 
-Arbor is a high-performance library for computational neuroscience simulations.
+The development team is based in:
 
-The development team is from from high-performance computing (HPC) centers:
-
-    * Swiss National Supercomputing Center (CSCS), Jülich and BSC in work package 7.5.4 of the HBP.
-    * Aim to prepare neuroscience users for new HPC architectures;
+* `Swiss National Supercomputing Center <//www.cscs.ch>`_ (CSCS)
+* `Jülich Supercomputing Centre <//www.fz-juelich.de/ias/jsc/EN/>`_ (JSC)
 
 Arbor is designed from the ground up for **many core**  architectures:
 
@@ -87,7 +86,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
 .. toctree::
    :caption: Python:
-   
+
    py_intro
    py_common
    py_recipe
