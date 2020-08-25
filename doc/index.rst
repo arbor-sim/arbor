@@ -10,6 +10,15 @@ with morphologically-detailed cells, from single cell models to very large netwo
 The development team is from HPC centers, aiming to help neuroscientists
 effectively use contemporary and future HPC systems to meet their simulation needs.
 
+Arbor is designed from the ground up for **many core**  architectures:
+
+    * Written in modern C++ and CUDA;
+    * Distributed parallelism using MPI;
+    * Multithreading with TBB and C++11 threads;
+    * **Open source** and **open development**;
+    * Sound development practices: **unit testing**, **continuous Integration**,
+      and **validation**.
+
 Citing Arbor
 ------------
 
