@@ -61,6 +61,7 @@ def morph_image(morphs, methods, filename, sc=20):
 
         nbranches = len(morph)
 
+        segid = 0
         for i in range(nbranches):
             branch = morph[i]
 
@@ -76,6 +77,22 @@ def morph_image(morphs, methods, filename, sc=20):
                         if seg.length>0.00001: # only draw nonzero length segments
                             line = translate_all(seg.corners(), sc, offset)
                             lines.add(dwg.polygon(points=line, fill=tag_colors[seg.tag]))
+
+                            pos = translate(seg.location(0.5), sc, offset)
+                            points.add(dwg.circle(center=pos,
+                                                  stroke='black',
+                                                  r=sc*0.55,
+                                                  fill='white'))
+                            # The svg alignment_baseline attribute:
+                            #   - works on Chrome/Chromium
+                            #   - doesn't work on Firefox
+                            # so for now we just shift the relative position by sc/3
+                            label_pos = (pos[0], pos[1]+sc/3)
+                            numbers.add(dwg.text(str(segid),
+                                                  insert=label_pos,
+                                                  stroke='black',
+                                                  fill='black'))
+                        segid += 1
 
             elif method=='branches':
                 for line in branch.outline():
@@ -240,12 +257,14 @@ def generate(path=''):
     morph_image([inputs.detached_morph], ['segments'], path+'/detached_seg.svg')
     morph_image([inputs.stacked_morph],  ['segments'], path+'/stacked_seg.svg')
 
-    morph_image([inputs.label_morph, inputs.label_morph], ['segments', 'branches'],
-                path+'/label_morph.svg')
-    morph_image([inputs.detached_morph, inputs.detached_morph], ['segments', 'branches'],
-                path+'/detached_morph.svg')
-    morph_image([inputs.stacked_morph, inputs.stacked_morph], ['segments', 'branches'],
-                path+'/stacked_morph.svg')
+    morph_image([inputs.label_morph, inputs.label_morph], ['segments', 'branches'], path+'/label_morph.svg')
+    morph_image([inputs.detached_morph, inputs.detached_morph], ['segments', 'branches'], path+'/detached_morph.svg')
+    morph_image([inputs.stacked_morph, inputs.stacked_morph], ['segments', 'branches'], path+'/stacked_morph.svg')
+    morph_image([inputs.sphere_morph, inputs.sphere_morph], ['segments', 'branches'], path+'/sphere_morph.svg')
+    morph_image([inputs.branch_morph1, inputs.branch_morph1], ['segments', 'branches'], path+'/branch_morph1.svg')
+    morph_image([inputs.branch_morph2, inputs.branch_morph2], ['segments', 'branches'], path+'/branch_morph2.svg')
+    morph_image([inputs.branch_morph3, inputs.branch_morph3], ['segments', 'branches'], path+'/branch_morph3.svg')
+    morph_image([inputs.branch_morph4, inputs.branch_morph4], ['segments', 'branches'], path+'/branch_morph4.svg')
 
     ####################### locsets
 

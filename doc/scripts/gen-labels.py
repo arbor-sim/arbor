@@ -30,11 +30,11 @@ def write_morphology(name, morph):
 
 # Describe the morphologies
 
-npos = arbor.mnpos
+mnpos = arbor.mnpos
 
 # The morphology used for all of the region/locset illustrations
 label_tree = arbor.segment_tree()
-label_tree.append(npos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0),   tag=1)
+label_tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0), tag=1)
 label_tree.append(0,    mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
 label_tree.append(1,    mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
 label_tree.append(2,    mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
@@ -43,14 +43,14 @@ label_tree.append(2,    mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=
 label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=3)
 label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=3)
 label_tree.append(7,    mpoint(23, -1.0, 0, 0.2), mpoint(26, -2.0, 0, 0.2), tag=3)
-label_tree.append(npos, mpoint(0,   0.0, 0, 2.0), mpoint(-7,  0.0, 0, 0.4), tag=2)
+label_tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint(-7,  0.0, 0, 0.4), tag=2)
 label_tree.append(9,    mpoint(-7,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
 
 label_morph = arbor.morphology(label_tree)
 
 # The label morphology with some gaps (at start of dendritic tree and remove the axon hillock)
 label_tree = arbor.segment_tree()
-label_tree.append(npos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0),   tag=1)
+label_tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0), tag=1)
 label_tree.append(0,    mpoint(5,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
 label_tree.append(1,    mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
 label_tree.append(2,    mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
@@ -59,29 +59,62 @@ label_tree.append(2,    mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=
 label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=3)
 label_tree.append(5,    mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=3)
 label_tree.append(7,    mpoint(23, -1.0, 0, 0.2), mpoint(26, -2.0, 0, 0.2), tag=3)
-label_tree.append(npos, mpoint(-2,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
+label_tree.append(mnpos, mpoint(-2,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
 
 detached_morph = arbor.morphology(label_tree)
 
 # soma with "stacked cylinders"
 stacked_tree = arbor.segment_tree()
-stacked_tree.append(npos, mpoint(0,   0.0, 0, 0.5), mpoint( 1,  0.0, 0, 1.5), tag=1)
+stacked_tree.append(mnpos, mpoint(0,   0.0, 0, 0.5), mpoint( 1,  0.0, 0, 1.5), tag=1)
 stacked_tree.append(0,    mpoint(1,   0.0, 0, 1.5), mpoint( 2,  0.0, 0, 2.5), tag=1)
 stacked_tree.append(1,    mpoint(2,   0.0, 0, 2.5), mpoint( 3,  0.0, 0, 2.5), tag=1)
 stacked_tree.append(2,    mpoint(3,   0.0, 0, 2.5), mpoint( 4,  0.0, 0, 1.2), tag=1)
 stacked_tree.append(3,    mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
-stacked_tree.append(4,    mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
-stacked_tree.append(5,    mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
-stacked_tree.append(6,    mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
-stacked_tree.append(7,    mpoint(20,  4.0, 0, 0.4), mpoint(26,  6.0, 0, 0.2), tag=3)
-stacked_tree.append(6,    mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=3)
-stacked_tree.append(9,    mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=3)
-stacked_tree.append(9,    mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=3)
-stacked_tree.append(11,   mpoint(23, -1.0, 0, 0.2), mpoint(26, -2.0, 0, 0.2), tag=3)
-stacked_tree.append(npos, mpoint(0,   0.0, 0, 0.4), mpoint(-7,  0.0, 0, 0.4), tag=2)
-stacked_tree.append(13,   mpoint(-7,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
+stacked_tree.append(4,    mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
+stacked_tree.append(5,    mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
+stacked_tree.append(6,    mpoint(20,  4.0, 0, 0.4), mpoint(26,  6.0, 0, 0.2), tag=3)
+stacked_tree.append(5,    mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=3)
+stacked_tree.append(8,    mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=3)
+stacked_tree.append(8,    mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=3)
+stacked_tree.append(10,   mpoint(23, -1.0, 0, 0.2), mpoint(26, -2.0, 0, 0.2), tag=3)
+stacked_tree.append(mnpos, mpoint(0,   0.0, 0, 0.4), mpoint(-7,  0.0, 0, 0.4), tag=2)
+stacked_tree.append(12,   mpoint(-7,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
 
 stacked_morph = arbor.morphology(stacked_tree)
+
+# spherical cell with radius 2 μm
+tree = arbor.segment_tree()
+tree.append(mnpos, mpoint(-2, 0, 0, 2), mpoint(2, 0, 0, 2), tag=1)
+sphere_morph = arbor.morphology(tree)
+
+# single branch: one tapered segment
+tree = arbor.segment_tree()
+tree.append(mnpos, mpoint(0, 0, 0, 1), mpoint(10, 0, 0, 0.5), tag=3)
+branch_morph1 = arbor.morphology(tree)
+
+# single branch: multiple segments, continuous radius
+tree = arbor.segment_tree()
+tree.append(mnpos, mpoint( 0.0,  0.0,  0.0, 1.0), mpoint( 3.0,  0.2,  0.0, 0.8), tag=1)
+tree.append(0,    mpoint( 3.0,  0.2,  0.0, 0.8), mpoint( 5.0, -0.1,  0.0, 0.7), tag=2)
+tree.append(1,    mpoint( 5.0, -0.1,  0.0, 0.7), mpoint( 8.0,  0.0,  0.0, 0.6), tag=2)
+tree.append(2,    mpoint( 8.0,  0.0,  0.0, 0.6), mpoint(10.0,  0.0,  0.0, 0.5), tag=3)
+branch_morph2 = arbor.morphology(tree)
+
+# single branch: multiple segments, gaps
+tree = arbor.segment_tree()
+tree.append(mnpos, mpoint( 0.0,  0.0,  0.0, 1.0), mpoint(3.0,  0.2,  0.0, 0.8), tag=1)
+tree.append(0,     mpoint( 3.0,  0.2,  0.0, 0.8), mpoint(5.0, -0.1,  0.0, 0.7), tag=2)
+tree.append(1,     mpoint( 6.0, -0.1,  0.0, 0.7), mpoint(9.0, 0.0,  0.0, 0.6), tag=2)
+tree.append(2,     mpoint( 9.0,  0.0,  0.0, 0.6), mpoint(11.0, 0.0,  0.0, 0.5), tag=3)
+branch_morph3 = arbor.morphology(tree)
+
+# single branch: multiple segments, discontinuous radius
+tree = arbor.segment_tree()
+tree.append(mnpos, mpoint( 0.0,  0.0,  0.0, 1.0), mpoint( 3.0,  0.2,  0.0, 0.8), tag=1)
+tree.append(0,    mpoint( 3.0,  0.2,  0.0, 0.8), mpoint( 5.0, -0.1,  0.0, 0.7), tag=2)
+tree.append(1,    mpoint( 5.0, -0.1,  0.0, 0.7), mpoint( 8.0,  0.0,  0.0, 0.5), tag=2)
+tree.append(2,    mpoint( 8.0,  0.0,  0.0, 0.3), mpoint(10.0,  0.0,  0.0, 0.5), tag=3)
+branch_morph4 = arbor.morphology(tree)
 
 regions  = {
             'empty': '(nil)',
@@ -134,6 +167,10 @@ d = arbor.label_dict(labels)
 # Create a cell to concretise the region and locset definitions
 cell = arbor.cable_cell(label_morph, d)
 
+################################################################################
+# Output all of the morphologies and reion/locset definitions to a Python script
+# that can be run during the documentation build to generate images.
+################################################################################
 f = open('inputs.py', 'w')
 f.write('import representation\n')
 f.write('from representation import Segment\n')
@@ -142,6 +179,11 @@ f.write('\n############# morphologies\n\n')
 f.write(write_morphology('label_morph',    label_morph))
 f.write(write_morphology('detached_morph', detached_morph))
 f.write(write_morphology('stacked_morph',  stacked_morph))
+f.write(write_morphology('sphere_morph',   sphere_morph))
+f.write(write_morphology('branch_morph1',  branch_morph1))
+f.write(write_morphology('branch_morph2',  branch_morph2))
+f.write(write_morphology('branch_morph3',  branch_morph3))
+f.write(write_morphology('branch_morph4',  branch_morph4))
 
 f.write('\n############# locsets\n\n')
 for label in locsets:

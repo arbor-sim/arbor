@@ -47,7 +47,7 @@ img_path=this_path+'/gen-images'
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
-import morphology
-morphology.generate(img_path)
+import make_images
+make_images.generate(img_path)
 
 print("-------------------------")

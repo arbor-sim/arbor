@@ -97,6 +97,8 @@ the region of cables that have radius less than 0.5 μm
   Examples of regions on the example morphology. **Left**: The dendritic tree.
   **Right**: All cables with radius less than 0.5 μm.
 
+.. _labels-expressions:
+
 Expressions
 -----------
 
@@ -123,6 +125,9 @@ given :ref:`below <labels-expr-docs>`.
     The example expressions above will look familiar to readers who have
     use the Lisp programming language. This is because both the DSL and Lisp use
     *s-expressions*, which are a simple way to represent a nested list of data.
+
+    However, the DSL is not a dialect of Lisp, and has very simple semantics
+    that are only limited to describing morphology features.
 
 Expressions are *composable*, so that expressions can be constructed
 from simple expressions. For example, the expression:
