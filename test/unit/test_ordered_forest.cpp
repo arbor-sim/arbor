@@ -249,12 +249,19 @@ TEST(ordered_forest, iteration) {
     using ivector = std::vector<int>;
 
     ordered_forest<int> f = {{1, {2, 3}}, {4, {5, {6, {7}}, 8}}, 9};
+    const ordered_forest<int>& cf = f;
 
     ivector pre{f.preorder_begin(), f.preorder_end()};
     EXPECT_EQ((ivector{1, 2, 3, 4, 5, 6, 7, 8, 9}), pre);
 
+    ivector cpre{cf.preorder_begin(), cf.preorder_end()};
+    EXPECT_EQ((ivector{1, 2, 3, 4, 5, 6, 7, 8, 9}), cpre);
+
     ivector pre_default{f.begin(), f.end()};
     EXPECT_EQ((ivector{1, 2, 3, 4, 5, 6, 7, 8, 9}), pre_default);
+
+    ivector cpre_default{cf.begin(), cf.end()};
+    EXPECT_EQ((ivector{1, 2, 3, 4, 5, 6, 7, 8, 9}), cpre_default);
 
     ivector pre_cdefault{f.cbegin(), f.cend()};
     EXPECT_EQ((ivector{1, 2, 3, 4, 5, 6, 7, 8, 9}), pre_cdefault);
@@ -262,12 +269,21 @@ TEST(ordered_forest, iteration) {
     ivector root{f.root_begin(), f.root_end()};
     EXPECT_EQ((ivector{1, 4, 9}), root);
 
+    ivector croot{cf.root_begin(), cf.root_end()};
+    EXPECT_EQ((ivector{1, 4, 9}), croot);
+
     ivector post{f.postorder_begin(), f.postorder_end()};
     EXPECT_EQ((ivector{2, 3, 1, 5, 7, 6, 8, 4, 9}), post);
+
+    ivector cpost{cf.postorder_begin(), cf.postorder_end()};
+    EXPECT_EQ((ivector{2, 3, 1, 5, 7, 6, 8, 4, 9}), cpost);
 
     auto four = std::find(f.begin(), f.end(), 4);
     ivector child_four{f.child_begin(four), f.child_end(four)};
     EXPECT_EQ((ivector{5, 6, 8}), child_four);
+
+    ivector cchild_four{cf.child_begin(four), cf.child_end(four)};
+    EXPECT_EQ((ivector{5, 6, 8}), cchild_four);
 
     using preorder_iterator = ordered_forest<int>::preorder_iterator;
     using postorder_iterator = ordered_forest<int>::postorder_iterator;

@@ -1,5 +1,66 @@
 #pragma once
 
+// The ordered forest data structure represents zero or more trees with an
+// arbitrary number of children per node, where the trees and children have a
+// well-defined ordering.
+//
+// This implementation presents a 'forward' interface, along the lines of
+// `std::forward_list`. Given an iterator pointing to a particular node in the
+// forest, one can directly obtain an iterator to its parent, its first child,
+// or its next sibling, but not its previous sibling.
+//
+// Common iterator methods:
+//
+//     `parent()`: return an iterator to the node's parent.
+//     `next()`: return an iterator to the node's next sibling.
+//     `child()`: return an iterator to the node's first child.
+//     `preorder_next()`: return an iterator to the next node in pre-order.
+//     `postorder_next()`: return an iterator to the next node in post-order.
+//
+// Note that these methods are not covariant: they return 'base' iterators
+// that can be implicitly converted to any of the derived iterators described
+// below.
+//
+// A default-constructed iterator points to no node, and plays the role of
+// an `end` iterator.
+//
+// The derived iterators differ only in the semantics of `operator++`:
+//
+//     `sibling_iterator`: proceed to next sibling.
+//     `preorder_iterator`: proceed to next node in pre-order.
+//     `postorder_iterator`: proceed to next node in post-order.
+//
+// Any of the iterators can be converted implicitly to any const iterator, and
+// any of the non-const iterators can be converted implicitly to any non-const
+// iterator.
+//
+// The iterators provided by `begin()` and `end()` are pre-order iterators.
+// The other ordered forest iterator methods are:
+//
+//     `child_begin`: return a sibling iterator starting at the child of the given node.
+//     `root_begin`: return a sibling iterator to the first tree.
+//     `postorder_begin`: return a post-order iterator to the first node in post-order.
+//     `preorder_begin`: return a post-order iterator to the first node in pre-order.
+//
+// Note that all ordered forest iterators are forward iterators.
+//
+// Ordered forests can be constructed from an intializer list with the aid of
+// the `ordered_forest_builder` helper class. Each item in the initalizer list
+// is either a value (corresponding to a node without children), or a pair
+// { value, IL } where value denotes the value at the node, and IL is an
+// initializer list with the same semantics, defining the node's children.
+//
+// Mutation operations are of the following types:
+//
+// * Insertions: add a new node as next sibling, first child, or first tree.
+// * Grafts: splice a forest between a node and its next sibling, or before its first child.
+// * Erasures: remove a node, replacing it with its children.
+// * Cuts: remove a sub-tree, presenting it as a new forest.
+//
+// These methods are described in more detail within the class definition below.
+//
+// The ordered forest implementation is allocator aware.
+
 #include <type_traits>
 #include <iterator>
 #include <memory>
@@ -149,7 +210,7 @@ public:
     const_sibling_iterator root_end() const { return const_sibling_iterator{}; }
 
     postorder_iterator postorder_begin() { return postorder_iterator{first_leaf()}; }
-    const_postorder_iterator postorder_begin() const { return const_postorder_iterator{first_else_end()}; }
+    const_postorder_iterator postorder_begin() const { return const_postorder_iterator{first_leaf()}; }
 
     postorder_iterator postorder_end() { return {}; }
     const_postorder_iterator postorder_end() const { return {}; }
