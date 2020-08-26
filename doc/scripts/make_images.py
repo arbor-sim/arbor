@@ -116,6 +116,7 @@ def morph_image(morphs, methods, filename, sc=20):
         offset = maxx - minx + sc
 
 
+    print('y minmax; {}:{}'.format(miny, maxy))
     # Find extent of image.
     minx -= fudge
     miny -= fudge
@@ -123,7 +124,7 @@ def morph_image(morphs, methods, filename, sc=20):
     maxy += fudge
     width = maxx-minx
     height = maxy-miny
-    dwg.viewbox(minx, miny, width, height)
+    dwg.viewbox(minx, -maxy, width, height)
 
     # Write the image to file.
     dwg.save()
@@ -223,33 +224,12 @@ def label_image(morphology, labels, filename, sc=20):
     maxy += fudge
     width = maxx-minx
     height = maxy-miny
-    dwg.viewbox(minx, miny, width, height)
+    dwg.viewbox(minx, -maxy, width, height)
 
     # Write the image to file.
     dwg.save()
 
 def generate(path=''):
-
-    # spherical morpho: no need for two images
-    # TODO: make this a cylinder
-    #morph_image([trees.morph1], ['branches'],  path+'/morph1.svg')
-
-    # single cable segment
-    #morph_image([trees.morph2a, trees.morph2a], ['segments','branches'], path+'/morph2a.svg')
-    # cables with multipe segments
-    #morph_image([trees.morph2b, trees.morph2b], ['segments','branches'], path+'/morph2b.svg')
-    #morph_image([trees.morph2c, trees.morph2c], ['segments','branches'], path+'/morph2c.svg')
-
-    # the y-shaped cells have one segment per branch
-    #morph_image([trees.morph3a,  trees.morph3a],['segments','branches'], path+'/morph3a.svg')
-    #morph_image([trees.morph3b, trees.morph3b], ['segments','branches'], path+'/morph3b.svg')
-
-    #morph_image([trees.morph4a, trees.morph4a], ['segments','branches'], path+'/morph4a.svg')
-
-    #morph_image([trees.morph5a_cable,  trees.morph5a_cable],  ['segments','branches'], path+'/morph5a_cable.svg')
-    #morph_image([trees.morph5b_cable,  trees.morph5b_cable],  ['segments','branches'], path+'/morph5b_cable.svg')
-
-    #morph_image([trees.morph6, trees.morph6], ['segments','branches'], path+'/morph6.svg')
 
     morph_image([inputs.label_morph],    ['branches'], path+'/label_branch.svg')
 
@@ -265,6 +245,10 @@ def generate(path=''):
     morph_image([inputs.branch_morph2, inputs.branch_morph2], ['segments', 'branches'], path+'/branch_morph2.svg')
     morph_image([inputs.branch_morph3, inputs.branch_morph3], ['segments', 'branches'], path+'/branch_morph3.svg')
     morph_image([inputs.branch_morph4, inputs.branch_morph4], ['segments', 'branches'], path+'/branch_morph4.svg')
+    morph_image([inputs.yshaped_morph, inputs.yshaped_morph], ['segments', 'branches'], path+'/yshaped_morph.svg')
+    morph_image([inputs.ysoma_morph1,  inputs.ysoma_morph1],  ['segments', 'branches'], path+'/ysoma_morph1.svg')
+    morph_image([inputs.ysoma_morph2,  inputs.ysoma_morph2],  ['segments', 'branches'], path+'/ysoma_morph2.svg')
+    morph_image([inputs.ysoma_morph3,  inputs.ysoma_morph3],  ['segments', 'branches'], path+'/ysoma_morph3.svg')
 
     ####################### locsets
 

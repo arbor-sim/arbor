@@ -7,7 +7,7 @@ Arbor provides a domain specific language (DSL) for describing regions and
 locations on morphologies, and a dictionary for assiciating these descriptions
 with a string label.
 
-The labels are used later in the cell building process to refer to regions
+The labels are used to refer to regions
 and locations when setting cell properties and attributes.
 For example, the membrane capacitance on a region of the cell membrane, or
 the location of synapse instances.
@@ -24,9 +24,9 @@ descriptions. It has a soma, dendritic tree and an axon with a hillock:
   :width: 800
   :align: left
 
-  **Left**: Segments of the morphology, colored according to tags:
-  soma (tag 1, red), axon (tag 2, grey), dendrites (tag 3, blue).
-  **Right**: The 6 branches of the morphology with their branch ids.
+  Segments of the morphology are colored according to tags:
+  soma (tag 1, red), axon (tag 2, grey), dendrites (tag 3, blue) (left).
+  The 6 branches of the morphology with their branch ids (right).
 
 *Branch 0* contains the soma, which is modelled as a cylinder of length and diameter 4 μm,
 and the proximal unbranched section of the dendritic tree which has a radius of 0.75 μm,
@@ -62,9 +62,10 @@ which may contain multiple instances of the same location, for example:
   :width: 800
   :align: center
 
-  Examples of locsets on the example morphology. **Left**: The terminal samples.
-  **Right**: 50 random locations on the dendritic tree.
-  The :ref:`root <morph-sample-definitions>` of the morphology is hilighted with a red circle
+  Examples of locsets on the example morphology.
+  The terminal points (right).
+  Fifty random locations on the dendritic tree (left).
+  The :ref:`root <morph-segment-definitions>` of the morphology is shown with a red circle
   for reference.
 
 
@@ -113,8 +114,8 @@ Examples of expressions that define regions include:
 
 Examples of expressions that define locsets include:
 
-* ``(root)``: the location of the :ref:`root sample <morph-sample-definitions>`.
-* ``(terminal)``: the locations of the :ref:`terminal samples <morph-sample-definitions>`.
+* ``(root)``: the location of the :ref:`root points <morph-segment-definitions>`.
+* ``(terminal)``: the locations of the :ref:`terminal points <morph-segment-definitions>`.
 * ``(location 3 0.5)``: the mid point of branch 3.
 * ``(locset "synapse-sites")``: the locset labelled "synapse-sites".
 
@@ -211,7 +212,7 @@ Locset Expressions
 
 .. label:: (root)
 
-    The location of the root sample.
+    The location of the root.
 
     Equivalent to ``(location 0 0)``.
 
@@ -236,7 +237,8 @@ Locset Expressions
 
 .. label:: (terminal}
 
-    The location of terminal samples, which are the tips, or end points, of dendrites and axons.
+    The location of terminal points, which are the most distal locations on the morphology.
+    These will typicall correspond to the tips, or end points, of dendrites and axons.
 
     .. figure:: gen-images/term_label.svg
       :width: 300
@@ -616,8 +618,7 @@ Label Dictionaries
 concrete region or locset generated when the expression is applied to a morphology.
 A label is a string with the following rules:
 
-* may contain alpha-numeric values, ``{a-z}[A-z][0-9]``, and underscore
-  ``_`` and hyphen ``-``.
+* may contain alpha-numeric values, ``{a-z}[A-z][0-9]``, underscore ``_`` and hyphen ``-``.
 * no leading underscore, hyphen or numeric values: for example ``_myregion``,
   ``-samples``, and ``2ndpoint`` are invalid labels.
 

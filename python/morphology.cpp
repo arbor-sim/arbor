@@ -218,13 +218,13 @@ void register_morphology(pybind11::module& m) {
                 "Append a segment to the tree, using the distal location of the parent segment as the proximal end.")
         // properties
         .def_property_readonly("empty", [](const arb::segment_tree& st){return st.empty();},
-                "Indicates whether the sample tree is empty (i.e. whether it has size 0)")
+                "Indicates whether the tree is empty (i.e. whether it has size 0)")
         .def_property_readonly("size", [](const arb::segment_tree& st){return st.size();},
-                "The number of samples in the sample tree.")
+                "The number of segments in the tree.")
         .def_property_readonly("parents", [](const arb::segment_tree& st){return st.parents();},
-                "A list with the parent index of each sample.")
+                "A list with the parent index of each segment.")
         .def_property_readonly("segments", [](const arb::segment_tree& st){return st.segments();},
-                "A list of the samples.")
+                "A list of the segments.")
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
@@ -247,7 +247,7 @@ void register_morphology(pybind11::module& m) {
                                   e.line_number, fname, e.what()));
             }
         },
-        "Load an swc file and convert to a segment_tree.");
+        "Load an swc file and as a segment_tree.");
 
     m.def("load_swc_allen", &load_swc_allen,
             "filename"_a, "no_gaps"_a=false,

@@ -57,7 +57,7 @@ whether individual SWC records lie in the soma, axons, dendrites, etc.
 However, the meaning of tag values are not fixed in Arbor, and they can be used to
 define model-specific regions.
 
-.. _morph-sample-definitions:
+.. _morph-segment-definitions:
 
 Segment Tree Construction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,9 +75,9 @@ The following definitions are used to refer to segments in a segment tree:
 * *root*: segments at the root or start of the tree. A non-empty tree must have at least one root segment,
   and the first segment will always be a root.
 
-* *parent*: Each segment has one parent, except for root segments which have ``mnpos`` as their parent.
+* *parent*: Each segment has one parent, except for root segments which have :data:`mnpos <arbor.mnpos>` as their parent.
 
-  * A segments's id is always greater than the id of its parent.
+  * The id of a segmentis always greater than the id of its parent.
   * The ids of segments on the same unbranched sequence of segments do not need to be contiguous.
 
 * *child*: The children of segment *s* are segments whose parent is *s*.
@@ -87,7 +87,7 @@ The following definitions are used to refer to segments in a segment tree:
 
   * Arbor allows more than two branches at a fork point.
 
-The folowing segment tree models a soma with a cylinder, a branching dendritic tree and
+The following segment tree models a soma with a cylinder, a branching dendritic tree and
 an axon with an axonal hillock. The segments are colored according to their tag, which
 in this case are SWC structure identifiers: tag 1 colored pink for soma;
 tag 2 colored grey for axon; tag 3 colored blue for basal dendrites.
@@ -110,7 +110,7 @@ We can apply the following labels to the segments:
 In the example above there are no gaps between segments, however
 it is possible for segments to be detached, where the proximal end of a segment is not coincident
 with the distal end of its parent. The following morphology has gaps between the start of the
-axon and dendrititic tree and the soma segment to which they attach.
+axon and dendritic tree and the soma segment to which they attach.
 
 .. _morph-detached-seg-fig:
 
@@ -122,7 +122,7 @@ axon and dendrititic tree and the soma segment to which they attach.
     In Arbor, segments are always treated as though they are connected directly
     to their parents, regardless of whether ends where they attached are collocated.
 
-    Gaps are frequently the result of simplifying the the soma,
+    Gaps are frequently the result of simplifying the soma,
     whereby the complex geometry of a soma is represented using a cylinder or sphere
     (spheres are represented by a cylinder with length and diameter equal to that of
     the sphere in simulation tools like Arbor and NEURON).
@@ -145,6 +145,9 @@ uses 4 segments to model the soma.
 .. figure:: gen-images/stacked_seg.svg
   :width: 600
   :align: center
+
+  The code used to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
+  documentation :ref:`below <morph-label-seg-code>`.
 
 .. _morph-morphology:
 
@@ -188,13 +191,16 @@ their enumeration:
     which will always have segment id 0.
 
 To illustrate branch generation, consider the first segment tree example on this page,
-which is illustrated along with its branches below:
+which is illustrated along with its branches below.
 
 .. _morph-label-morph-fig:
 
 .. figure:: gen-images/label_morph.svg
   :width: 800
   :align: center
+
+  The code used to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
+  documentation :ref:`below <morph-label-seg-code>`.
 
 The first branch contains the soma and the first two segments of the dendritic tree.
 There are four more branches in the dendritic tree, and one representing the two
@@ -207,7 +213,7 @@ root of the tree.
 
 Similarly to segments, the branches in a morphology have a parent child relationship.
 Every branch has one parent, with branches at the root of the tree having the placeholder
-parent index ``mnpos``. Segments can have any non-negative number of children,
+parent index :data:`mnpos <arbor.mnpos>`. Segments can have any non-negative number of children,
 however by nature of their construction, no branch can have only one child: a branch has
 either no children, or two or more children.
 The parent-child information and segments for the morphology are summarised:
@@ -351,6 +357,8 @@ distinct cable segments:
     tree.append(2,     mpoint( 8.0,  0.0,  0.0, 0.6), mpoint(10.0,  0.0,  0.0, 0.5), tag=3)
     morph = arbor.morphology(tree)
 
+    morph = arbor.morphology(tree)
+
 .. figure:: gen-images/branch_morph2.svg
   :width: 600
   :align: center
@@ -359,10 +367,9 @@ distinct cable segments:
   colored according to their tags: tag 1 red; tag 2 gree; tag 3 blue (left).
   The four segments form one branch (right).
 
-*TODO: gap jump description*
 Gaps are possible between two segments. The example below inserts a 1 μm gap between the second
 and third segments of the previous morphology. Note that Arbor will ignore the gap, effectively
-joining the segments together, such that the the morphology with the gap is the same as that without.
+joining the segments together, such that the morphology with the gap is the same as that without.
 
 .. code:: Python
 
@@ -411,168 +418,89 @@ a radius that tapers from 1 μm to 0.5 μm.
 The two child branches are attached to the end of the first branch, and taper from from 0.5 μ m
 to 0.2 μm.
 
-*TODO* code below needs updating. The example itself is solid.
+Note that only the distal point is required to describe the child segments,
+because the proximal end of each child segment has the same location and
+radius as the distal end of the parent.
 
 .. code:: Python
 
-   tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
-   tree.append(parent= 0, x=10.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 1, x=15.0, y= 3.0, z= 0.0, radius= 0.2, tag= 3)
-   tree.append(parent= 1, x=15.0, y=-3.0, z= 0.0, radius= 0.2, tag= 3)
+    tree = arbor.segment_tree()
+    tree.append(mnpos, mpoint( 0.0, 0.0, 0.0, 1.0), mpoint(10.0, 0.0, 0.0, 0.5), tag= 3)
+    tree.append(0,     mpoint(15.0, 3.0, 0.0, 0.2), tag= 3)
+    tree.append(0,     mpoint(15.0,-3.0, 0.0, 0.2), tag= 3)
+    morph = arbor.morphology(tree)
 
-   morph = arbor.morphology(tree, spherical_root=False)
-
-.. figure:: gen-images/morph3a.svg
+.. figure:: gen-images/yshaped_morph.svg
   :width: 800
   :align: center
 
-
-Example 4: Ball and stick
+Example 4: Soma with branches
 """"""""""""""""""""""""""""""
 
-*TODO: (a) model soma as a cylinder attached to the stick (b) add a gap between ball and stick.*
-
-The next example is a spherical soma of radius 2 μm with a single branch of length
-8 μm and constant radius of 1 μm attached.
-
-.. code:: Python
-
-   tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
-   tree.append(parent= 0, x= 2.0, y= 0.0, z= 0.0, radius= 1.0, tag= 1)
-   tree.append(parent= 1, x=10.0, y= 0.0, z= 0.0, radius= 1.0, tag= 3)
-   morph = arbor.morphology(tree, spherical_root=True)
-
-   morph = arbor.morphology(tree, spherical_root=False)
-
-.. figure:: gen-images/morph4a.svg
-  :width: 600
-  :align: center
-
-*TODO: discuss spherical soma approximation with a cylinder here.*
-To achieve the desired model of a spherical soma with a single cable segment attached,
-generate the morphology with ``spherical_root=True``:
+Now let's look at cell with a simple dendritic tree attached to a spherical soma.
+The spherical soma of radius 3 μm is modelled with a cylinder with length and
+diameter equal to 6 μm, which has the same surface area as the sphere.
 
 .. code:: Python
 
-   morph = arbor.morphology(tree, spherical_root=True)
+    tree = arbor.segment_tree()
+    tree.append(mnpos, mpoint(-3.0, 0.0, 0.0, 3.0), mpoint( 3.0, 0.0, 0.0, 3.0), tag=1)
+    tree.append(0, mpoint( 4.0, -1.0,  0.0, 0.6), mpoint(10.0,  -2.0,  0.0, 0.5), tag=3)
+    tree.append(1, mpoint(15.0, -1.0,  0.0, 0.5), tag=3)
+    tree.append(2, mpoint(18.0, -5.0,  0.0, 0.3), tag=3)
+    tree.append(2, mpoint(20.0,  2.0,  0.0, 0.3), tag=3)
+    morph = arbor.morphology(tree)
 
-.. figure:: gen-images/morph4b.svg
-  :width: 600
+
+.. figure:: gen-images/ysoma_morph1.svg
+  :width: 900
   :align: center
 
-  The spherical root is a special branch with id 0, and the dendrite is a second branch numbered 1.
+  Note that branch 0 (right) is composed of segments 0, 1, and 2 (left).
 
-Example 5: Soma with y-shaped dendrites
-"""""""""""""""""""""""""""""""""""""""
+The soma is the first segment, labeled with tag 1. The dendritic tree is a simple
+y-shaped tree composed of 4 segments, each labeled with tag 3.
+The first branch is composed of 3 segments: the soma segment and the first two segments
+in the dendritic tree because the segments have parent child ordering and no fork points.
 
-This example models a cell with a simple dendritic tree attached to a soma.
+.. note::
 
-.. code:: Python
+    The first branch is derived directly from the topological relationship between the segments,
+    and no special treatment is given to the soma.
+    There is no need to treat segments with different tags (e.g. tags that we might associate
+    with soma, axon, basal dendrite and apical dendrite) when defining geometric primitives like
+    segments and branches, because they can later be referenced later using
+    :ref:`region expressions <labels-expressions>`.
 
-   tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 3.0, tag= 1)
-   tree.append(parent= 0, x= 5.0, y=-1.0, z= 0.0, radius= 0.8, tag= 1)
-   tree.append(parent= 1, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 2, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 3, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 2)
-   tree.append(parent= 4, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 2)
-   tree.append(parent= 3, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 3)
+Now we can attach another dendrite and an axon to the soma, to make a total of three cables
+attached to the soma (two dendrites and an axon).
+The dendrites are attached to the distal end of the soma (segment 0), so they have the
+0 as their parent.
+The axon is attached to the proximal end of the soma, which is at the root of the tree,
+so it has :data:`mnpos` as its parent.
+There are 7 branches generated from 10 segments, and soma segment is its own branch,
+because it has two children: the dendrites attached to its distal end.
 
-   morph = arbor.morphology(tree)
-
-The root sample with id 0 has a large radius to represent the soma, and the dendritic
-tree is represented by samples 1-6.
-
-the soma is treated as a truncated cone whose end points are defined by between samples 0 and 1.
-
-.. figure:: gen-images/morph5a_cable.svg
-  :width: 800
+.. figure:: gen-images/ysoma_morph2.svg
+  :width: 900
   :align: center
 
-  **Left**: The entire cell is composed of frustums.
-  **Right**: There are three branches, with branch 0 containing both the soma and the first dendrite.
 
-If the first sample is treated as a spherical soma by setting ``spherical_root=True``, the
-morphology has 4 branches, with the soma having its own spherical branch, and the dendritic tree
-composed of 3 branches.
+.. note::
+    The discretization process, which converts segments and branches into compartments,
+    will ignore gaps between segments in the input. The cell below, in which the dendrites
+    and axon have been translated to remove any gaps, is equivalent to the previous example
+    for the back end simulator.
 
-If the intention is to model a spherical soma with a cable segment attached to its surface,
-an additional sample can be added at the edge of the soma to bridge the gap.
+    Note that the dendrites are children of the soma segment, so they are coincident with
+    the distal end of the soma, and the axon is translated to the proximal end of the
+    soma segment because both it and the soma have :py:data:`mnpos <arbor.mnpos>` as a parent.
+    More generally, segments at the root of the tree are connected electrically at their
+    proximal ends.
 
-.. code:: Python
-
-   tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 3.0, tag= 1)
-   tree.append(parent= 0, x= 3.0, y=-0.8, z= 0.0, radius= 0.8, tag= 1)
-   tree.append(parent= 1, x= 5.0, y=-1.0, z= 0.0, radius= 0.8, tag= 3)
-   tree.append(parent= 2, x=10.0, y= 0.5, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 3, x=15.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 4, x=18.0, y= 5.0, z= 0.0, radius= 0.3, tag= 2)
-   tree.append(parent= 5, x=23.0, y= 8.0, z= 0.0, radius= 0.3, tag= 2)
-   tree.append(parent= 4, x=20.0, y=-4.0, z= 0.0, radius= 0.3, tag= 3)
-
-.. figure:: gen-images/tree5b.svg
-  :width: 400
-  :align: center
-
-  Sample tree with an additional sample added to the surface, at a distance of 3
-  μm of the spherical root.
-
-.. code:: Python
-
-   morph = arbor.morphology(tree, spherical_root=True)
-
-.. figure:: gen-images/morph5b_sphere.svg
-  :width: 800
-  :align: center
-
-  The morphology has no gap between the soma and the start of the dendritic tree.
-
-Example 6: Connecting branches to a soma
-""""""""""""""""""""""""""""""""""""""""""
-
-This example shows how to attach multiple branches to a soma when the location
-where the branches are attached is important. Specifically, a cylindrical soma
-with two dendrites branching from one end, and an axon hillock on the other end.
-A cable segment is used to model the soma so that branches can be attached to
-either it's proximal or distal end.
-
-.. code:: Python
-
-   tree = arbor.sample_tree()
-   tree.append(           x= 0.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
-   tree.append(parent= 0, x= 6.0, y= 0.0, z= 0.0, radius= 2.0, tag= 1)
-   tree.append(parent= 1, x= 6.0, y= 0.0, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 2, x=15.0, y= 5.0, z= 0.0, radius= 0.5, tag= 3)
-   tree.append(parent= 3, x=20.0, y= 7.0, z= 0.0, radius= 0.3, tag= 3)
-   tree.append(parent= 2, x=21.0, y=-3.0, z= 0.0, radius= 0.3, tag= 3)
-   tree.append(parent= 0, x=-5.0, y= 0.0, z= 0.0, radius= 0.5, tag= 2)
-
-
-.. figure:: gen-images/tree6.svg
-  :width: 400
-  :align: center
-
-  Samples 0 and 1 have the same radius, and define the extent of the soma. Sample 2
-  is collocated with sample 1, as the starting start of the two dendrites with radius
-  0.5 μm. Sample 6 defines the narrow end of the axonal hillock, with the root as parent.
-
-.. code:: Python
-
-   morph = arbor.morphology(tree, spherical_root=False)
-
-.. figure:: gen-images/morph6.svg
-  :width: 800
-  :align: center
-
-  **Left**: The segmentation. The soma (red) is a cylinder, with the blue dendrite
-  segments attached on its distal end. The axon hillock is modeled by the single
-  grey tapered cable segment.
-
-  **Right**: Branch 0 is the soma, the dendrites are branches 1 and 2, and the axon
-  hillock is branch 3.
+    .. figure:: gen-images/ysoma_morph3.svg
+      :width: 900
+      :align: center
 
 Python API
 ----------
@@ -585,29 +513,34 @@ Python API
     Value used to indicate "no parent" in :class:`segment_tree` and :class:`morphology`
     trees of segments and branches respectively.
 
-    `TODO: update this example to work with segment trees.`
-
-
     .. code-block:: python
 
         import arbor
 
-        tree = arbor.sample_tree()
+        tree = arbor.segment_tree()
 
-        # mnpos can be used to explicitly specify that the first sample
-        # in the tree has no parent, though if the parent argument is not.
-        # provided, it will default to mnpos.
-        tree.append(parent=arbor.mnpos, x=0, y=0, z=10, radius=0.5, tag=1)
-        tree.append(parent=0, x=0, y=10, z=10, radius=0.5, tag=1)
-        tree.append(parent=0, x=0, y=20, z=10, radius=0.5, tag=1)
+        # mnpos can be used to explicitly specify that a segment
+        # is at the root of the tree. More than one segment can
+        # be at the root, and they will all be joined electrically
+        # at their proximal ends.
+        tree.append(parent=arbor.mnpos, # attach segment to root.
+                    prox=arbor.mpoint(0, 0,-5, 5),
+                    dist=arbor.mpoint(0, 0, 5, 5),
+                    tag=1)
+        tree.append(parent=0,
+                    prox=arbor.mpoint(0, 0, 5, 0.5),
+                    dist=arbor.mpoint(0, 0,50, 0.2),
+                    tag=3)
 
         # mnpos can also be used when querying a sample_tree or morphology,
         # for example the following snippet that finds all branches in the
         # morphology that are attached to the root of the morphology.
         m = arbor.morphology(tree)
-        base_branches = [i for i in range(m.num_branches) if m.branch_parent(i) == arbor.mnpos]
+        base_branches = [i for i in range(m.num_branches)
+                            if m.branch_parent(i) == arbor.mnpos]
 
         print(base_branches)
+
 
 
 .. class:: location
@@ -615,7 +548,7 @@ Python API
     A location on :attr:`branch`, where :attr:`pos`, in the range ``0 ≤ pos ≤ 1``,
     gives the relative position
     between the proximal and distal ends of the branch. The position is in terms
-    of branch length, so for example, on a branch of length 100 μm ``pos=0.2``
+    of branch path length, so for example, on a branch of path length 100 μm ``pos=0.2``
     corresponds to 20 μm and 80 μm from the proximal and distal ends of the
     branch respectively.
 
@@ -638,7 +571,7 @@ Python API
     An unbranched cable that is a subset of a branch.
     The values of ``0 ≤ prox ≤ dist ≤ 1`` are the relative position
     of the cable's end points on the branch, in terms
-    of branch length. For example, on a branch of length 100 μm, the values
+    of branch path length. For example, on a branch of path length 100 μm, the values
     :attr:`prox` =0.2, :attr:`dist` =0.8 describe a cable that starts and
     ends 20 μm and 80 μm along the branch respectively.
 
@@ -661,15 +594,11 @@ Python API
 
         The relative position of the distal end of the cable on the branch.
 
-.. class:: sample
+.. class:: mpoint
 
-    `TODO: replace with point description`
-
-    `TODO: add segment description`
-
-    A sample of a cell morphology at a fixed location in space. Describes the location
-    of the sample as three-dimensional coordinates (:attr:`x`, :attr:`y`, :attr:`z`),
-    the :attr:`radius` of the cable, and :attr:`tag` meta-data.
+    A location of a cell morphology at a fixed location in space. Describes the location
+    of the as three-dimensional coordinates (:attr:`x`, :attr:`y`, :attr:`z`) and
+    the :attr:`radius` of the cable.
 
     .. attribute:: x
         :type: real
@@ -691,156 +620,169 @@ Python API
 
         Radius of the cable (μm)
 
+.. class:: segment
+
+    .. attribute:: prox
+        :type: mpoint
+
+        The location and radius at the proximal end of the segment.
+
+    .. attribute:: dist
+        :type: mpoint
+
+        The location and radius at the distal end of the segment.
+
     .. attribute:: tag
         :type: int
 
-        Integer tag meta-data associated with the sample.
+        Integer tag meta-data associated with the segment.
         Typically the tag would correspond to the SWC structure identifier:
         soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary
         tags, including zero and negative values, can be used.
 
-.. class:: sample_tree
+.. class:: segment_tree
 
-    `TODO: rewrite for segment_tree`
-
-    A sample tree is a sample-based description of a cell's morphology
-    Sample trees comprise a sequence of samples starting from a *root* sample,
-    together with a parent-child adjacency relationship where a child sample is
+    A segment tree is a description of a the segments and their connections
+    Segment trees comprise a sequence of segments starting from at lease one *root* segment,
+    together with a parent-child adjacency relationship where a child segment is
     distal to its parent.
-    Branches in the tree occur where a sample has more than one child.
-    Furthermore, a sample can not have more than one parent.
+    Branches in the tree occur where a segment has more than one child.
+    Furthermore, a segment can not have more than one parent.
+    In this manner, neuron morphologies are modeled as a *tree*, where cables that
+    represent dendrites and axons can branch, but branches can not rejoin.
+    A segment tree is a segment-based description of a cell's morphology.
 
-    .. function:: sample_tree()
+    .. function:: segment_tree()
 
-        Construct an empty sample tree.
+        Construct an empty segment tree.
 
-    A morphology tree is constructed by *appending* samples to the tree.
-    Samples are numbered starting at 0 in the order that they are added,
-    with the first sample getting id 0, the second sample id 1, and so forth.
+    The tree is constructed by *appending* segments to the tree.
+    Segments are numbered starting at 0 in the order that they are added,
+    with the first segment getting id 0, the second segment id 1, and so forth.
 
-    A sample can not be added before its parent, hence the root of the sample
-    tree is always the first to be added. In this manner, a sample tree is
+    A segment can not be added before its parent, hence the first segment
+    is always at the root. In this manner, a segment tree is
     always guarenteed to be in a correct state, with consistent parent-child
-    indexing, and with *n* samples numbered from *0* to *n-1*.
+    indexing, and with *n* segments numbered from *0* to *n-1*.
 
-    If a *parent* index is not provided, the sample's parent is assumed to be
-    the last sample added to the tree. Calls to append return the id that
-    was given to the sample, which makes it.
+    To illustrate how a segment tree is constructed by appending segments,
+    take the segment tree used in the :ref:`documentation above <morph-label-seg-fig>`.
 
-    For example, to create a cell with a radius of 2 at the root and
-    two branches attached to the root.
 
-    .. code-block:: Python
+    .. figure:: gen-images/label_seg.svg
 
-        import arbor
 
-        # Create an empty sample tree
-        t = arbor.sample_tree()
+    Which is constructed as follows.
 
-        # Add a root sample with radius 2 (our soma)
-        r = t.append(x=0, y=1, z=1, radius=2, tag=1)
-
-        # Add a first sequence of 3 samples branching off the root:
-        p = t.append(parent=r, x=2, y=0, z=0, radius=1, tag=1)
-        p = t.append(parent=p, x=3, y=0, z=0, radius=1, tag=3)
-        p = t.append(parent=p, x=4, y=0, z=0, radius=1, tag=3)
-
-        # Create a second branch attached to the root with
-        p = t.append(parent=r, x=0, y=2, z=0, radius=1, tag=1)
-        p = t.append(parent=p, x=0, y=3, z=0, radius=1, tag=3)
-        p = t.append(parent=p, x=0, y=4, z=0, radius=1, tag=3)
-
-    Only the first sample in a contiguous sequence of samples that will
-    form a branch need to explicitly provide a parent.
-    In the following example we construct a y-shaped cell.
+    .. _morph-label-seg-code:
 
     .. code-block:: Python
 
         import arbor
+        from arbor import mpoint
+        from arbor import mpos
 
-        # Create an empty sample tree
-        t = arbor.sample_tree()
+        tree = arbor.segment_tree()
+        # Start with a cylinder segment for the soma (with tag 1)
+        tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0), tag=1)
+        # Construct the first section of the dendritic tree,
+        # comprised of segments 1 and 2, attached to soma segment 0.
+        tree.append(0,     mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
+        tree.append(1,     mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
+        # Construct the rest of the dendritic tree.
+        tree.append(2,     mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
+        tree.append(3,     mpoint(20,  4.0, 0, 0.4), mpoint(26,  6.0, 0, 0.2), tag=3)
+        tree.append(2,     mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=3)
+        tree.append(5,     mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=3)
+        tree.append(5,     mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=3)
+        tree.append(7,     mpoint(23, -1.0, 0, 0.2), mpoint(26, -2.0, 0, 0.2), tag=3)
+        # Two segments that define the axon, with the first at the root, where its proximal
+        # end will be connected with the proximal end of the soma segment.
+        tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint(-7,  0.0, 0, 0.4), tag=2)
+        tree.append(9,     mpoint(-7,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
 
-        # Create a first branch with 3 samples.
-        p = t.append(x=0, y=0, z=0, radius=1, tag=3)
-        p = t.append(x=1, y=0, z=0, radius=1, tag=3)
-        # Keep the index of the last sample in the branch to which
-        # the child branches will be attached.
-        b = t.append(x=2, y=0, z=0, radius=1, tag=3)
+    .. method:: append(parent, prox, dist, tag)
 
-        # Create a second branch, branching off the first.
-        p = t.append(parent=b, x=2, y=1, z=0, radius=1, tag=3)
-        p = t.append(          x=2, y=2, z=0, radius=1, tag=3)
-        p = t.append(          x=2, y=3, z=0, radius=1, tag=3)
+        Append a segment to the tree.
 
-        # Create a third branch, also attached to the first.
-        # create the branch by explicitly using the last sample in the first
-        # branch as the parent of the first sample in the branch.
-        p = t.append(parent=b, x=2, y=0, z=1, radius=1, tag=3)
-        p = t.append(          x=2, y=0, z=2, radius=1, tag=3)
-        p = t.append(          x=2, y=0, z=3, radius=1, tag=3)
+        :return: index of the new segment
+        :param int parent: index of segment
+        :param mpoint prox: proximal end of the segment
+        :param mpoint dist: distal end of the segment
+        :param int tag: tag meta data of segment
 
-    .. function:: append(parent, x, y, z, radius, tag)
-
-        Append a sample to the sample tree with parent sample with index ``parent``.
-
-        :return: index of the new sample.
-
-    .. function:: append(x, y, z, radius, tag)
+    .. method:: append(parent, dist, tag)
         :noindex:
 
-        Append a sample whose parent is the last sample added to the tree.
+        Append a segment to the tree whose proximal end has the location and
+        radius of the distal end of the parent segment.
 
-        :return: index of the new sample.
+        This version of append can't be used for a segment at the root of the
+        tree, that is, when ``parent`` is :data:`mnpos`, in which case both proximal
+        and distal ends of the segment must be specified.
 
-    .. function:: append(sample)
+        :return: index of the new segment
+        :param int parent: index of segment
+        :param mpoint dist: distal end of the segment
+        :param int tag: tag meta data of segment
+
+    .. method:: append(parent, x, y, z, radius, tag)
         :noindex:
 
-        Append a sample whose parent is the last sample added to the tree.
+        Append a segment to the tree whose proximal end has the location and
+        radius of the distal end of the parent segment.
 
-        :return: index of the new sample.
+        This version of append can't be used for a segment at the root of the
+        tree, that is, when ``parent`` is :data:`mnpos`, in which case both proximal
+        and distal ends of the segment must be specified.
 
-    .. function:: append(parent, sample)
-        :noindex:
-
-        Append a sample to the sample tree with parent sample with index ``parent``.
-
-        :return: index of the new sample.
+        :return: index of the new segment
+        :param int parent: index of segment
+        :param float x: distal x coordinate (μm)
+        :param float y: distal y coordinate (μm)
+        :param float z: distal z coordinate (μm)
+        :param float radius: distal radius (μm)
+        :param int tag: tag meta data of segment
 
     .. attribute:: empty
         :type: bool
 
-        If the sample tree is empty (i.e. whether it has size 0)
+        If the tree is empty (i.e. whether it has size 0)
 
     .. attribute:: size
         :type: int
 
-        The number of samples.
+        The number of segments.
 
     .. attribute:: parents
         :type: list
 
-        The parent indexes.
+        A list of parent indexes of the segments.
 
-    .. attribute:: samples
+    .. attribute:: segments
         :type: list
 
-        The samples.
+        A list of the segments.
 
 .. py:function:: load_swc(filename)
 
-    `TODO: add description of "how" the swc samples are interpreted.`
+    Loads the morphology in an SWC file as a :class:`segment_tree`.
 
-    `TODO: Allen version.`
+    The samples in the SWC files are treated as the end points of segments, where a
+    sample and its parent form a segment.
+    The :py:attr:`tag <segment.tag>` of each segment is the
+    `structure identifier <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
+    of the distal sample.
+    The structure identifier of the first (root) sample is ignored, as it can only be the
+    proximal end of any segment.
 
-    Loads an SWC file as a :class:`segment_tree`.
-
+    :param str filename: the name of the SWC file.
     :rtype: segment_tree
 
 .. py:class:: morphology
 
-    A *morphology* describes the geometry of a cell as unbranched cables with variable radius,
-    an optional spherical segment at the root of the tree, and their associated tree structure.
+    A *morphology* describes the geometry of a cell as unbranched cables
+    with variable radius and their associated tree structure.
 
     .. note::
         A morphology takes a segment tree and construct the cable branches.
@@ -851,7 +793,7 @@ Python API
         For this reason, morpholgies are read only. To change a morphology, a new
         morphology should be created using a new segment tree.
 
-    There are two *constructors* for a morphology:
+    There is one *constructor* for a morphology:
 
     .. function:: morphology(segment_tree)
 
@@ -869,21 +811,24 @@ Python API
 
             The number of branches in the morphology.
 
-    .. function:: branch_parent(i)
+    .. method:: branch_parent(i)
 
-            The parent branch of branch ``i``
+            The parent branch of a branch.
 
+            :param int i: branch index
             :rtype: int
 
-    .. function:: branch_children(i)
+    .. method:: branch_children(i)
 
-            The child branches of branch ``i``
+            The child branches of a branch.
 
+            :param int i: branch index
             :rtype: list
 
-    .. function:: branch_segments(i)
+    .. method:: branch_segments(i)
 
-            A list of the segments in branch ``i``, ordered from proximal to distal.
+            A list of the segments in a branch, ordered from proximal to distal.
 
+            :param int i: branch index
             :rtype: list
 
