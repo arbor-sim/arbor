@@ -51,7 +51,7 @@ struct stitch_builder_impl {
         return *this = stitch_builder_impl(other);
     }
 
-    void add(mstitch f, const std::string& parent, double along, bool infer_prox = false) {
+    void add(mstitch f, const std::string& parent, double along) {
         if (id_to_node.count(f.id)) throw duplicate_stitch_id(f.id);
 
         forest_type::iterator p;

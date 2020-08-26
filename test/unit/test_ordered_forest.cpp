@@ -76,7 +76,7 @@ template <typename T, typename A>
 
         for (auto j = cb; j!=ce; ++j) {
             if (j.parent() != i) {
-                auto failure = ::testing::AssertionFailure() << "child node " << *j << " of " << *i << " is node ";
+                auto failure = ::testing::AssertionFailure() << "child node " << *j << " of " << *i << " has parent ";
                 return j.parent()? (failure << *j.parent()): (failure << "(null)");
             }
         }
