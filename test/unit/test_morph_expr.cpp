@@ -224,6 +224,7 @@ TEST(locset, thingify) {
         auto oc_mid_b1 = ls::on_components(0.5, reg::branch(1));
         auto oc_mid_b123 = ls::on_components(0.5, join(reg::branch(1), reg::branch(2), reg::branch(3)));
         auto oc_end_b123 = ls::on_components(1, join(reg::branch(1), reg::branch(2), reg::branch(3)));
+        auto oc_end_b123h = ls::on_components(1, join(reg::branch(1), reg::branch(2), reg::cable(3, 0, 0.5)));
         auto oc_mid_b02 = ls::on_components(0.5, join(reg::branch(0), reg::branch(2)));
         auto oc_end_b02 = ls::on_components(1, join(reg::branch(0), reg::branch(2)));
 
@@ -231,6 +232,7 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(oc_mid_b1, mp),  (ll{{1, 0.5}}));
         EXPECT_EQ(thingify(oc_mid_b123, mp),  (ll{{2, 0.5}, {3, 0.25}}));
         EXPECT_EQ(thingify(oc_end_b123, mp),  (ll{{3, 1}}));
+        EXPECT_EQ(thingify(oc_end_b123h, mp),  (ll{{2, 1}, {3, 0.5}}));
         EXPECT_EQ(thingify(oc_mid_b02, mp),  (ll{{0, 0.5}, {2, 0.5}}));
         EXPECT_EQ(thingify(oc_end_b02, mp),  (ll{{0, 1}, {2, 1}}));
         EXPECT_EQ(thingify(ls::on_components(0.25, reg::cable(1, 0.5, 1)), mp),  (ll{{1, 0.625}}));

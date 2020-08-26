@@ -358,6 +358,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
 
                 if (d>diameter) {
                     most_distal = {x};
+                    diameter = d;
                 }
                 else if (d==diameter) {
                     most_distal.push_back(x);
