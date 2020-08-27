@@ -1,7 +1,5 @@
 .. _mechanisms:
 
-.. py:module:: arbor
-
 Mechanisms
 ===========
 
@@ -370,48 +368,87 @@ Mechanism Catalogues
 
 The :py:class:`mechanism_info` type above presents read-only information about a mechanism that is available in a catalogue.
 
-When :ref:`decorating <cable-cell-decoration>` a cable cell, we use a :py:class:`mechanism` type to describe a
+When :ref:`decorating <cablecell-decoration>` a cable cell, we use a :py:class:`mechanism` type to describe a
 mechanism that is to be painted or placed on the cable cell.
 
 .. py:class:: mechanism
 
+    Mechanisms describe physical processes, distributed over the membrane of the cell.
+    *Density mechanisms* are associated with regions of the cell, whose dynamics are
+    a function of the cell state and their own state where they are present.
+    *Point mechanisms* are defined at discrete locations on the cell, which receive
+    events from the network.
+    A third, specific type of density mechanism, which describes ionic reversal potential
+    behaviour, can be specified for cells or the whole model.
 
-        .. method:: mechanism(name)
+    The :class:`mechanism` type is a simple wrapper around a mechanism
+    :attr:`mechanism.name` and a dictionary of named parameters.
 
-            constructor for mechanism with *name*.
-            The *name* can be either the name of a mechanism in the catalogue,
-            e.g.  ``arbor.mechanism('pas')``, or an implicitly derived mechanism,
-            e.g. ``arbor.mechanism('nernst/k').
+    Mechanisms have two types of parameters:
 
-        .. method:: mechanism(name, params)
+    * global parameters: a scalar value that is the same for all instances
+      of a mechanism.
+    * range parameters: the value of range parameters is defined for each instance
+      of the mechanism on a cell. For density mechanisms, this means one value for
+      each compartment on which it is present.
 
-            constructor for mechanism with *name* and range parameter overrides *params*,
-            for example: ``arbor.mechanism(name='pas', params={'g': 0.01})``.
+    The method for setting a parameter depends on its type.
+    If global parameters change, we are effectively defining a new type
+    of mechanism, so global parameter information is encoded in the
+    name.
+    Range parameters are set using a dictionary of name-value pairs.
 
-            :param name: name of mechanism.
-            :type name: str
-            :param params: A dictionary of parameter values, with parameter name as key.
-            :type params: dict[str, double]
+    .. code-block:: Python
 
+        import arbor
 
-        .. method:: set(name, value)
+        # hh dynamics with default parameters.
+        hh = arbor.mechanism('hh')
 
-            Set new value for a parameter.
+        # A passive leaky channel with custom parameters
+        pas = arbor.mechanism('pas', {'e': -55, 'gl': 0.02})
 
-            :param name: name of the parameter.
-            :type name: str
-            :param value: value of the parameter.
-            :type value: float
+        # Reversal potential using Nernst equation with GLOBAL parameter values
+        # for Faraday's constant and the target ion species, set with a '/' followed
+        # by comma-separated list of parameter after the base mechanism name.
+        rev = arbor.mechanism('nernst/F=96485,x=ca')
 
-        .def_property_readonly("name",
-            [](const arb::mechanism_desc& md) {
-                return md.name();
-            },
-            "The name of the mechanism.")
-        .def_property_readonly("values",
-            [](const arb::mechanism_desc& md) {
-                return md.values();
-            }, "A dictionary of parameter values with parameter name as key.")
+    .. method:: mechanism(name, params)
+
+        constructor for mechanism with *name* and range parameter overrides *params*,
+        for example: ``arbor.mechanism(name='pas', params={'g': 0.01})``.
+
+        :param name: name of mechanism.
+        :type name: str
+        :param params: A dictionary of parameter values, with parameter name as key.
+        :type params: dict[str, double]
+
+    .. method:: mechanism(name)
+        :noindex:
+
+        constructor for mechanism.
+        The *name* can be either the name of a mechanism in the catalogue,
+        e.g.  ``arbor.mechanism('pas')``, or an implicitly derived mechanism,
+        e.g. ``arbor.mechanism('nernst/k')``.
+
+    .. method:: set(name, value)
+
+        Set new value for a parameter.
+
+        :param name: name of the parameter.
+        :type name: str
+        :param value: value of the parameter.
+        :type value: float
+
+    .. py:attribute:: name
+        :type: str
+
+        The name of the mechanism.
+
+    .. py:attribute:: values
+        :type: dict
+
+        A dictionary of key-value pairs for the parameters.
 
     .. code-block:: Python
 

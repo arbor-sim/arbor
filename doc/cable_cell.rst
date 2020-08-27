@@ -1,7 +1,5 @@
 .. _cablecell:
 
-.. py:module:: arbor
-
 Cable Cells
 ===========
 
@@ -306,7 +304,7 @@ Python API
 ----------
 
 Creating a cable cell
-~~~~~~~~~~~~~~~~~~~~~
+'''''''''''''''''''''
 
 .. py:class:: cable_cell
 
@@ -388,62 +386,3 @@ Creating a cable cell
 
     properties of an ionic species.
 
-.. py:class:: mechanism
-
-    Mechanisms describe physical processes, distributed over the membrane of the cell.
-    *Density mechanisms* are associated with regions of the cell, whose dynamics are
-    a function of the cell state and their own state where they are present.
-    *Point mechanisms* are defined at discrete locations on the cell, which receive
-    events from the network.
-    A third, specific type of density mechanism, which describes ionic reversal potential
-    behaviour, can be specified for cells or the whole model.
-
-    The :class:`mechanism` type is a simple wrapper around a mechanism
-    :attr:`mechanism.name` and a dictionary of named parameters.
-
-    Mechanisms have two types of parameters:
-
-    * global parameters: a scalar value that is the same for all instances
-      of a mechanism.
-    * range parameters: the value of range parameters is defined for each instance
-      of the mechanism on a cell. For density mechanisms, this means one value for
-      each compartment on which it is present.
-
-    The method for setting a parameter depends on its type.
-    If global parameters change, we are effectively defining a new type
-    of mechanism, so global parameter information is encoded in the
-    name.
-    Range parameters are set using a dictionary of name-value pairs.
-
-    .. code-block:: Python
-
-        import arbor
-
-        # hh dynamics with default parameters.
-        hh = arbor.mechanism('hh')
-
-        # A passive leaky channel with custom parameters
-        pas = arbor.mechanism('pas', {'e': -55, 'gl': 0.02})
-
-        # Reversal potential using Nernst equation with GLOBAL parameter values
-        # for Faraday's constant and the target ion species, set with a '/' followed
-        # by comma-separated list of parameter after the base mechanism name.
-        rev = arbor.mechanism('nernst/F=96485,x=ca')
-
-    .. py:method:: set(name, value)
-
-        Set a parameter. Adds a new parameter if a parameter of the same
-        name does not exist, or overwrites the existing value if one does.
-
-        :param str name: name of the parameter.
-        :param float value: value of the parameter.
-
-    .. py:attribute:: name
-        :type: str
-
-        The name of the mechanism.
-
-    .. py:attribute:: values
-        :type: dict
-
-        A dictionary of key-value pairs for the parameters.

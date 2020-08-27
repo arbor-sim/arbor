@@ -34,12 +34,12 @@ create the ``cable_cell`` that represents it are quite straightforward:
 
     import arbor
 
-    # (1) Define the morphology: a single sample with radius 3 μm.
-    tree = arbor.sample_tree()
-    tree.append(x=0, y=0, z=0, radius=3, tag=2)
+    # (1) Create a morphology with a single segment of length=diameter=6 μm
+    tree = arbor.segment_tree()
+    tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
     # (2) Define the soma and its center
-    labels = arbor.label_dict({'soma':   '(tag 2)',
+    labels = arbor.label_dict({'soma':   '(tag 1)',
                                'center': '(location 0 0.5)'})
 
     # (3) Create cell and set properties
@@ -49,19 +49,19 @@ create the ``cable_cell`` that represents it are quite straightforward:
     cell.place('center', arbor.iclamp( 10, 2, 0.8))
     cell.place('center', arbor.spike_detector(-10))
 
-Arbor's cell morphologies are constructed from a *sample tree*, which is a list of
-samples, each with (*x*, *y*, *z*), a *radius* and a *tag*.
-Step **(1)** above shows how the spherical cell is represented using a single sample.
+Arbor's cell morphologies are constructed from a :ref:`segment tree<morph-segment_tree>`,
+which is a list of segments, which are tapered cones with a *tag*.
+Step **(1)** above shows how the spherical cell is represented using a single segment.
 
 Cell builders need to refer to *regions* and *locations* on a cell morphology.
 Arbor uses a domains specific language (DSL) to describe regions and locations,
 which are given labels. In step **(2)** a dictionary of labels is created
 with two labels:
 
-* ``soma`` defines a *region* with ``(tag  2)``. Note that this corresponds to the ``tag`` parameter that was used to define the single sample in step (1).
+* ``soma`` defines a *region* with ``(tag  2)``. Note that this corresponds to the ``tag`` parameter that was used to define the single segment in step (1).
 * ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5`` of branch ``0``, which corresponds to the center of the soma on the morphology defined in Step (1).
 
-In step **(3)** the cable cell is constructed by combining the sample tree with
+In step **(3)** the cable cell is constructed by combining the segment tree with
 the named regions and locations.
 
 * Set initial membrane potential everywhere on the cell to -40 mV.
@@ -102,8 +102,8 @@ Morphology
 The first step in building a cell model is to define the cell's *morphology*.
 Conceptually, Arbor treats morphologies as a tree of truncated frustums, with
 an optional spherical segment at the root of the tree.
-These are represented as a tree of sample points, where each sample has a 3D location,
-a radius, and a tag, and a parent sample.
+These are represented as a tree of segments, where each segment is defined
+by two end points with radius, and a tag, and a parent segment to which it is attached.
 
 Let's start with a simple "ball and stick" model cell.
 
@@ -127,7 +127,7 @@ Let's start with a simple "ball and stick" model cell.
 
 
 Building the morphology there are two approaches: construct it manually using
-``sample_tree`` or ``flat_cell_builder``, or load from swc file.
+``segment_tree`` or ``flat_cell_builder``, or load from swc file.
 
 TODO: cover all methods here?
     - we could just ``flat_cell_builder`` because it is most comfortable for
@@ -159,7 +159,7 @@ Arbor is from a fresh start.
 
 .. note::
     NEURON represents morphologies as a tree of cylindrical *segments*, whereas
-    in Arbor the radius can vary linearly between two sample locations.
+    in Arbor the radius can vary linearly along segments.
 
     A cylinder with equal diameter and length is used to model spherical somata
     in NEURON, which coincidently has the same surface area as a sphere of the same diameter.
@@ -169,7 +169,7 @@ Arbor is from a fresh start.
 .. note::
     In NEURON cell morphologies are constructed by creating individual sections,
     then connecting them together. In Arbor we start with an "empty"
-    sample tree, to which samples are appended to build a connected morphology.
+    segment tree, to which segments are appended to build a connected morphology.
 
 1. Defining the `morphology <single_morpho_>`_ of the cell.
 2. Labeling regions and locations on the morphology.

@@ -39,7 +39,7 @@ regions on cells.
 The meaning of tag values are not fixed in Arbor, however we typically use tag values that correspond
 to SWC `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_.
 
-.. _morph-segment-definitions:
+.. _morph-segment_tree:
 
 Segment Trees
 --------------
@@ -56,6 +56,8 @@ Branches in the tree occur where a segment has more than one child.
 Furthermore, a segment can not have more than one parent.
 In this manner, neuron morphologies are modeled as a *tree*, where cables that
 represent dendrites and axons can branch, but branches can not rejoin.
+
+.. _morph-segment-definitions:
 
 The following definitions are used to refer to segments in a segment tree:
 
