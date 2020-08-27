@@ -141,7 +141,7 @@ locset segment_boundaries() {
 }
 
 mlocation_list thingify_(const segments_&, const mprovider& p) {
-    return p.embedding().segment_locations();
+    return p.embedding().segment_ends();
 }
 
 std::ostream& operator<<(std::ostream& o, const segments_& x) {

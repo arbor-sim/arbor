@@ -31,6 +31,7 @@ set(arbor_sources
     memory/gpu_wrappers.cpp
     memory/util.cpp
     morph/embed_pwlin.cpp
+    morph/stitch.cpp
     morph/label_dict.cpp
     morph/locset.cpp
     morph/morphexcept.cpp

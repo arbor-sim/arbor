@@ -140,42 +140,52 @@ region tagged(int id) {
 }
 
 mextent thingify_(const tagged_& reg, const mprovider& p) {
-    const auto& m = p.morphology();
     const auto& e = p.embedding();
-    size_t nb = m.num_branches();
+    const auto& m = p.morphology();
 
-    std::vector<mcable> L;
-    L.reserve(nb);
-    auto matches     = [reg](auto& seg){return seg.tag==reg.tag;};
-    auto not_matches = [&matches](auto& seg) {return !matches(seg);};
+    size_t nb = m.num_branches();
+    std::vector<mcable> cables;
 
     for (msize_t i: util::make_span(nb)) {
-        auto& segs = m.branch_segments(i); // Range of segments in the branch.
-        auto locs = util::make_range(e.branch_segment_locations(i));
-
-        auto beg = std::cbegin(segs);
-        auto end = std::cend(segs);
-
-        // Find the next section that matches reg.tag.
-        auto start = std::find_if(beg, end, [reg](auto& seg){return seg.tag==reg.tag;});
-        while (start!=end) {
-            // find the next sample that does not match reg.tag
-            auto last = std::find_if(start, end, not_matches);
-
-            auto l = locs[start-beg].pos;
-            auto r = last==end? 1: locs[last-beg].pos;
-            L.push_back({i, l, r});
-
-            // Find the next sample in the branch that matches reg.tag.
-            start = std::find_if(last, end, matches);
+        for (const auto& seg: m.branch_segments(i)) {
+            if (seg.tag==reg.tag) {
+                cables.push_back(e.segment(seg.id));
+            }
         }
     }
-
-    return mextent(L);
+    util::sort(cables);
+    return mextent(cables);
 }
 
 std::ostream& operator<<(std::ostream& o, const tagged_& t) {
     return o << "(tag " << t.tag << ")";
+}
+
+// Region comprising a single segment.
+
+struct segment_: region_tag {
+    explicit segment_(int id): id(id) {}
+    int id;
+};
+
+region segment(int id) {
+    return region(segment_{id});
+}
+
+mextent thingify_(const segment_& reg, const mprovider& p) {
+    const auto& e = p.embedding();
+
+    msize_t id(reg.id);
+    if (id>=e.num_segments()) {
+        throw no_such_segment(id);
+    }
+
+    mcable_list cables = {e.segment(id)};
+    return mextent(cables);
+}
+
+std::ostream& operator<<(std::ostream& o, const segment_& reg) {
+    return o << "(segment " << reg.id << ")";
 }
 
 // Region comprising whole morphology.
