@@ -116,7 +116,6 @@ def morph_image(morphs, methods, filename, sc=20):
         offset = maxx - minx + sc
 
 
-    print('y minmax; {}:{}'.format(miny, maxy))
     # Find extent of image.
     minx -= fudge
     miny -= fudge

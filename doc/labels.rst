@@ -366,8 +366,7 @@ Region Expressions
 
 .. label:: (tag tag_id:integer)
 
-    All of the segments with tag ``tag_id``.
-    See the :ref:`morphology documentation <morph-tags>` for the definition of tags on segments.
+    All of the segments with :ref:`tag <morph-tag-definition>` ``tag_id``.
 
     .. figure:: gen-images/tag_label.svg
       :width: 900
