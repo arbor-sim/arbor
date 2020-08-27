@@ -298,6 +298,10 @@ An example of an event generator reads as follows:
 Cells
 ------
 
+.. class:: cable_cell
+
+   See :ref:`pycable_cell`.
+
 .. class:: lif_cell
 
     A benchmarking cell (leaky integrate-and-fire), used by Arbor developers to test communication performance,

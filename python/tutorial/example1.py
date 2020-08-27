@@ -1,10 +1,10 @@
 import arbor
 
-# Create a morphology with a single segment of length=diameter=5 μm
-tree = arbor.segment_tree()
-tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
+# Create a sample tree with a single sample of radius 3 μm
+tree = arbor.sample_tree()
+tree.append(arbor.sample(x=0, y=0, z=0, radius=3, tag=2))
 
-labels = arbor.label_dict({'soma': '(tag 1)', 'center': '(location 0 0.5)'})
+labels = arbor.label_dict({'soma': '(tag 2)', 'center': '(location 0 0.5)'})
 
 cell = arbor.cable_cell(tree, labels)
 
@@ -12,8 +12,8 @@ cell = arbor.cable_cell(tree, labels)
 cell.set_properties(Vm=-40)
 # Put hh dynamics on soma, and passive properties on the dendrites.
 cell.paint('soma', 'hh')
-# Attach stimuli with duration of 100 ns and current of 0.8 nA.
-cell.place('center', arbor.iclamp( 10, duration=0.1, current=0.8))
+# Attach stimuli with duration of 1 ms and current of 0.8 nA.
+cell.place('center', arbor.iclamp( 10, duration=1, current=0.8))
 # Add a spike detector with threshold of -10 mV.
 cell.place('center', arbor.spike_detector(-10))
 
@@ -45,7 +45,7 @@ legend_labels = ['{}: {}'.format(s.variable, s.location) for s in m.traces]
 ax.legend(legend_labels)
 ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='cell builder demo')
 plt.xlim(0,tfinal)
-plt.ylim(-80,50)
+plt.ylim(-80,80)
 ax.grid()
 
 # Set to True to save the image to file instead of opening a plot window.

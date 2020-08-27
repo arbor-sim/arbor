@@ -79,3 +79,18 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
             kind = arbor.cell_kind.cable
 
+Morphology
+----------
+
+.. class:: location
+
+    Construct a location specification with the :attr:`branch` id and the relative :attr:`position` on the branch ∈ [0.,1.], where 0. means proximal and 1. distal.
+
+    .. attribute:: branch
+
+        The id of the branch.
+
+    .. attribute:: position
+
+        The relative position (from 0., proximal, to 1., distal) on the branch.
+

@@ -44,14 +44,6 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    single_cell
 
 .. toctree::
-   :caption: Concepts:
-
-   morphology
-   labels
-   cable_cell
-   mechanisms
-
-.. toctree::
    :caption: Arbor Models:
 
    model_intro
@@ -88,7 +80,6 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    :caption: Developers:
 
    library
-   nmodl
    simd_api
    profiler
    sampling_api
