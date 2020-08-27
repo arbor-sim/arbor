@@ -340,7 +340,6 @@ public:
                 // The length of the first branch is the upper bound on branch
                 // length as they are sorted in descending order of length.
                 lvl_meta.max_length = lvl_branches.front().length;
-                lvl_meta.max_length = util::max_element_by(lvl_branches, [](auto& l){return l.length;}).length;
 
                 unsigned bi = 0u;
                 for (const auto& b: lvl_branches) {
