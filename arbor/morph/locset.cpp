@@ -260,14 +260,13 @@ mlocation_list thingify_(const boundary_& n, const mprovider& p) {
     mlocation_list L;
 
     for (const mextent& comp: comps) {
-        mlocation_list proximal_set, distal_set;
+        arb_assert(!comp.empty());
+        arb_assert(thingify_(most_proximal_{region{comp}}, p).size()==1u);
 
-        for (const mcable& c: comp) {
-            proximal_set.push_back({c.branch, c.prox_pos});
-            distal_set.push_back({c.branch, c.dist_pos});
-        }
+        mlocation_list distal_set;
+        util::assign(distal_set, util::transform_view(comp, [](auto c) { return dist_loc(c); }));
 
-        L = sum(L, minset(p.morphology(), proximal_set));
+        L = sum(L, {prox_loc(comp.front())});
         L = sum(L, maxset(p.morphology(), distal_set));
     }
     return support(std::move(L));
@@ -297,13 +296,16 @@ mlocation_list thingify_(const cboundary_& n, const mprovider& p) {
     mlocation_list L;
 
     for (const mextent& comp: comps) {
-        mlocation_list proximal_set, distal_set;
-
         mextent ccomp = thingify(reg::complete(comp), p);
-        for (const mcable& c: ccomp.cables()) {
-            proximal_set.push_back({c.branch, c.prox_pos});
-            distal_set.push_back({c.branch, c.dist_pos});
-        }
+
+        // Note: if component contains the head of a top-level cable,
+        // the completion might not be connected (!).
+
+        mlocation_list proximal_set;
+        util::assign(proximal_set, util::transform_view(ccomp, [](auto c) { return prox_loc(c); }));
+
+        mlocation_list distal_set;
+        util::assign(distal_set, util::transform_view(ccomp, [](auto c) { return dist_loc(c); }));
 
         L = sum(L, minset(p.morphology(), proximal_set));
         L = sum(L, maxset(p.morphology(), distal_set));
@@ -313,6 +315,83 @@ mlocation_list thingify_(const cboundary_& n, const mprovider& p) {
 
 std::ostream& operator<<(std::ostream& o, const cboundary_& x) {
     return o << "(cboundary " << x.reg << ")";
+}
+
+// Proportional on components of a region.
+
+struct on_components_: locset_tag {
+    explicit on_components_(double relpos, region reg):
+        relpos(relpos), reg(std::move(reg)) {}
+    double relpos;
+    region reg;
+};
+
+locset on_components(double relpos, region reg) {
+    return locset(on_components_(relpos, std::move(reg)));
+}
+
+mlocation_list thingify_(const on_components_& n, const mprovider& p) {
+    if (n.relpos<0 || n.relpos>1) {
+        return {};
+    }
+
+    std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
+    std::vector<mlocation> L;
+
+    for (const mextent& comp: comps) {
+        arb_assert(!comp.empty());
+        arb_assert(thingify_(most_proximal_{region{comp}}, p).size()==1u);
+
+        mlocation prox = prox_loc(comp.front());
+        auto d_from_prox = [&](mlocation x) { return p.embedding().integrate_length(prox, x); };
+
+        if (n.relpos==0) {
+            L.push_back(prox);
+        }
+        else if (n.relpos==1) {
+            double diameter = 0;
+            mlocation_list most_distal = {prox};
+
+            for (mcable c: comp) {
+                mlocation x = dist_loc(c);
+                double d = d_from_prox(x);
+
+                if (d>diameter) {
+                    most_distal = {x};
+                    diameter = d;
+                }
+                else if (d==diameter) {
+                    most_distal.push_back(x);
+                }
+            }
+
+            util::append(L, most_distal);
+        }
+        else {
+            double diameter = util::max_value(util::transform_view(comp,
+                [&](auto c) { return d_from_prox(dist_loc(c)); }));
+
+            double d = n.relpos*diameter;
+            for (mcable c: comp) {
+                double d0 = d_from_prox(prox_loc(c));
+                double d1 = d_from_prox(dist_loc(c));
+
+                if (d0<=d && d<=d1) {
+                    double s = d0==d1? 0: (d-d0)/(d1-d0);
+                    s = std::min(1.0, std::fma(s, c.dist_pos-c.prox_pos, c.prox_pos));
+                    L.push_back(mlocation{c.branch, s});
+                }
+            }
+
+        }
+    }
+
+    util::sort(L);
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const on_components_& x) {
+    return o << "(on_components " << x.relpos << " " << x.reg << ")";
 }
 
 // Uniform locset.

@@ -11,6 +11,7 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/util/any_ptr.hpp>
 #include <arbor/util/variant.hpp>
 
 #include "backends/event.hpp"
@@ -40,12 +41,18 @@ struct fvm_integration_result {
 struct fvm_probe_scalar {
     probe_handle raw_handles[1] = {nullptr};
     util::variant<mlocation, cable_probe_point_info> metadata;
+
+    util::any_ptr get_metadata_ptr() const {
+        return util::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
+    }
 };
 
 struct fvm_probe_interpolated {
     probe_handle raw_handles[2] = {nullptr, nullptr};
     double coef[2];
     mlocation metadata;
+
+    util::any_ptr get_metadata_ptr() const { return &metadata; }
 };
 
 struct fvm_probe_multi {
@@ -55,6 +62,10 @@ struct fvm_probe_multi {
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();
         util::visit([](auto& v) { v.shrink_to_fit(); }, metadata);
+    }
+
+    util::any_ptr get_metadata_ptr() const {
+        return util::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
     }
 };
 
@@ -68,6 +79,8 @@ struct fvm_probe_weighted_multi {
         weight.shrink_to_fit();
         metadata.shrink_to_fit();
     }
+
+    util::any_ptr get_metadata_ptr() const { return &metadata; }
 };
 
 // Trans-membrane currents require special handling!
@@ -88,11 +101,16 @@ struct fvm_probe_membrane_currents {
         weight.shrink_to_fit();
         cv_cables_divs.shrink_to_fit();
     }
+
+    util::any_ptr get_metadata_ptr() const { return &metadata; }
 };
 
 struct missing_probe_info {
     // dummy data...
     std::array<probe_handle, 0> raw_handles;
+    void* metadata = nullptr;
+
+    util::any_ptr get_metadata_ptr() const { return util::any_ptr{}; }
 };
 
 struct fvm_probe_data {
@@ -121,6 +139,10 @@ struct fvm_probe_data {
                     return {data(i.raw_handles), data(i.raw_handles)+size(i.raw_handles)};
                 },
                 info));
+    }
+
+    util::any_ptr get_metadata_ptr() const {
+        return util::visit([](const auto& i) -> util::any_ptr { return i.get_metadata_ptr(); }, info);
     }
 
     sample_size_type n_raw() const { return raw_handle_range().size(); }

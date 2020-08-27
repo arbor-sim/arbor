@@ -1,7 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
-#include <unordered_set>
+#include <set>
 
 #include "gpuprinter.hpp"
 #include "expression.hpp"
@@ -384,11 +384,26 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
     auto body = e->body();
     auto indexed_vars = indexed_locals(e->scope());
 
-    std::unordered_set<std::string> indices;
+    struct index_prop {
+        std::string source_var; // array holding the indices
+        std::string index_name; // index into the array
+        bool operator==(const index_prop& other) const {
+            return (source_var == other.source_var) && (index_name==other.index_name);
+        }
+    };
+
+    std::list<index_prop> indices;
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            indices.insert(d.index_var);
+            index_prop node_idx = {d.node_index_var, "tid_"};
+            auto it = std::find(indices.begin(), indices.end(), node_idx);
+            if (it == indices.end()) indices.push_front(node_idx);
+            if (!d.cell_index_var.empty()) {
+                index_prop cell_idx = {d.cell_index_var, index_i_name(d.node_index_var)};
+                auto it = std::find(indices.begin(), indices.end(), cell_idx);
+                if (it == indices.end()) indices.push_back(cell_idx);
+            }
         }
     }
 
@@ -408,8 +423,8 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
         out << "if (tid_<n_) {\n" << indent;
 
         for (auto& index: indices) {
-            out << "auto " << index_i_name(index)
-                << " = params_." << index << "[tid_];\n";
+            out << "auto " << index_i_name(index.source_var)
+                << " = params_." << index.source_var << "[" << index.index_name << "];\n";
         }
 
         for (auto& sym: indexed_vars) {
@@ -437,8 +452,9 @@ namespace {
 
         deref(indexed_variable_info v): v(v) {}
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
+            auto index_var = wrap.v.cell_index_var.empty() ? wrap.v.node_index_var : wrap.v.cell_index_var;
             return o << "params_." << wrap.v.data_var << '['
-                     << (wrap.v.scalar()? "0": index_i_name(wrap.v.index_var)) << ']';
+                     << (wrap.v.scalar()? "0": index_i_name(index_var)) << ']';
         }
     };
 }
@@ -476,7 +492,9 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         if (coeff != 1) out << as_c_double(coeff) << '*';
 
         out << "params_.weight_[tid_]*" << from->name() << ',';
-        out << "params_." << d.data_var << ", " << index_i_name(d.index_var) << ", lane_mask_);\n";
+
+        auto index_var = d.cell_index_var.empty() ? d.node_index_var : d.cell_index_var;
+        out << "params_." << d.data_var << ", " << index_i_name(index_var) << ", lane_mask_);\n";
     }
     else if (d.accumulate) {
         out << deref(d) << " = fma(";

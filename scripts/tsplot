@@ -1,7 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #coding: utf-8
-
-from __future__ import print_function
 
 import argparse
 import json
@@ -84,7 +82,7 @@ def parse_clargs():
     return P.parse_args(argsbis)
 
 def isstring(s):
-    return isinstance(s,str) or isinstance(s,unicode)
+    return isinstance(s,str)
 
 def take(n, s):
     return islice((i for i in s), 0, n)
@@ -225,7 +223,7 @@ def read_json_timeseries(j, axis='time', select=[]):
            return ""
 
     i = 1
-    for key in jdata.keys():
+    for key in list(jdata.keys()):
         if key==axis: continue
 
         meta = j.copy()
@@ -278,7 +276,7 @@ class PlotData:
             return labels
 
         n = len(labels)
-        keyset = reduce(lambda k, s: k.union(s.meta.keys()), self.series, set())
+        keyset = reduce(lambda k, s: k.union(list(s.meta.keys())), self.series, set())
         keyi = iter(keyset)
         try:
             while len(set(labels)) != n:
@@ -293,7 +291,7 @@ class PlotData:
                 for i in range(n):
                     prefix = '' if k=='name' else k+'='
                     if vs[i] is not None:
-                        labels[i] += u', '+k+u'='+unicode(formatter(vs[i]))
+                        labels[i] += ', '+k+'='+str(formatter(vs[i]))
 
         except StopIteration:
             pass
@@ -310,7 +308,7 @@ def gather_ts_plots(tss, groupby):
     for ts in tss:
         key = tuple([ts.meta.get(g) for g in groupby])
         if key is () or None in key or key not in group_lookup:
-            pretty_key=', '.join([unicode(k)+u'='+unicode(v) for k,v in zip(groupby, key) if v is not None])
+            pretty_key=', '.join([str(k)+'='+str(v) for k,v in zip(groupby, key) if v is not None])
             pd = PlotData(pretty_key)
             pd.series = [ts]
             plot_groups.append(pd)

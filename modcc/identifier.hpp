@@ -46,6 +46,7 @@ enum class sourceKind {
     conductivity,
     conductance,
     dt,
+    time,
     ion_current,
     ion_current_density,
     ion_revpot,
