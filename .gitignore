@@ -69,6 +69,9 @@ commit.msg
 # Mac default files
 .DS_Store
 
+# generated documentation images
+doc/gen-images
+
 # by product of generating a source distribution for pip
 *.egg-info
 dist

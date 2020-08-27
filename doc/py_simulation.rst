@@ -198,7 +198,7 @@ In order to analyze the data collected from an :class:`arbor.probe` the samples 
 
 **Types**:
 
-.. class:: sample
+.. class:: trace_sample
 
     .. attribute:: time
 
