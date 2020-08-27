@@ -133,6 +133,9 @@ region branch(msize_t);
 // Region with all segments with segment tag id.
 region tagged(int id);
 
+// Region corresponding to a single segment.
+region segment(int id);
+
 // Region up to `distance` distal from points in `start`.
 region distal_interval(locset start, double distance);
 
