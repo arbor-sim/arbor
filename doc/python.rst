@@ -5,6 +5,10 @@ Python
 
 Arbor's Python wrapper will be the most convenient interface for most users.
 
+.. note::
+    To install Arbor on a HPC cluster, or to configure Arbor with system-specific
+    options, we recommend using the :ref:`CMake build process <installarbor>`.
+
 Getting Arbor
 -------------
 
@@ -31,10 +35,6 @@ Every point release is pushed to the Python Package Index. If you wish to instal
 
     - Debian/Ubuntu: `sudo apt install build-essential python-dev`
     - Fedora/Red Hat/CentOS: `sudo yum install @development-tools python-devel`.
-
-.. note::
-    To install Arbor on a HPC cluster, or to configure Arbor with system-specific
-    options, we recommend using the :ref:`CMake build process <installarbor>`.
 
 To test that Arbor is available in Python, try the following in a `Python 3 <python2_>`_ interpreter
 to see information about the version and enabled features:

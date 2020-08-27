@@ -18,6 +18,7 @@ using arb::util::any;
 using arb::util::any_cast;
 using arb::util::any_ptr;
 using arb::cell_gid_type;
+using arb::cell_member_type;
 
 // Recipe represents one cable cell with one synapse, together with probes for total trans-membrane current, membrane voltage,
 // ionic current density, and synaptic conductance. A sequence of spikes are presented to the one synapse on the cell.
@@ -70,12 +71,11 @@ private:
     void make_cell() {
         using namespace arb;
 
-        // Set up morphology as two branches:
         segment_tree tree;
-        // * soma, length 20 μm radius 10 μm, with SWC tag 1.
-        tree.append(arb::mnpos, {0, 0, 10, 10}, {0, 0, -10, 10}, 1);
-        // * apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
-        tree.append(arb::mnpos, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
+        // Soma, length 20 μm radius 10 μm, with SWC tag 1.
+        auto soma_apex = tree.append(arb::mnpos, {0, 0, -10, 10}, {0, 0, 10, 10}, 1);
+        // Apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
+        tree.append(soma_apex, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
         cell_ = cable_cell(tree);
 
@@ -90,8 +90,8 @@ private:
         cell_.paint(reg::tagged(1), "hh"); // (default parameters)
         cell_.paint(reg::tagged(4), mechanism_desc("pas").set("e", -70));
 
-        // Add exponential synapse at centre of soma (0.5 along branch 0).
-        synapse_location_ = mlocation{0, 0.5};
+        // Add exponential synapse at centre of soma.
+        synapse_location_ = ls::on_components(0.5, reg::tagged(1));
         cell_.place(synapse_location_, mechanism_desc("expsyn").set("e", 0).set("tau", 2));
     }
 };
@@ -99,17 +99,14 @@ private:
 struct position { double x, y, z; };
 
 struct lfp_sampler {
-    lfp_sampler(const arb::place_pwlin& p, std::vector<position> electrodes, double sigma):
-        placement(p), electrodes(std::move(electrodes)), sigma(sigma) {}
-
-    // Compute response coefficients for each electrode, given a set of cable-like sources.
-    void initialize(const arb::mcable_list& cables) {
+    lfp_sampler(const arb::place_pwlin& placement, const arb::mcable_list& cables, const std::vector<position>& electrodes, double sigma) {
+        // Compute response coefficients for each electrode, given a set of cable-like sources.
         const unsigned n_electrode = electrodes.size();
         response.assign(n_electrode, std::vector<double>(cables.size()));
 
         std::vector<arb::mpoint> midpoints;
         std::transform(cables.begin(), cables.end(), std::back_inserter(midpoints),
-            [this](const auto& c) { return placement.at({c.branch, 0.5*(c.prox_pos+c.dist_pos)}); });
+            [&placement](const auto& c) { return placement.at({c.branch, 0.5*(c.prox_pos+c.dist_pos)}); });
 
         const double coef = 1/(4*M_PI*sigma); // [Ω·m]
         for (unsigned i = 0; i<n_electrode; ++i) {
@@ -126,27 +123,9 @@ struct lfp_sampler {
         }
     }
 
-    void reset() {
-        response.clear();
-        lfp_time.clear();
-        lfp_voltage.clear();
-    }
-
-    bool is_initialized() const {
-        return !response.empty();
-    }
-
     // On receipt of a sequence of cell-wide current samples, apply response matrix and save results to lfp_voltage.
     arb::sampler_function callback() {
         return [this](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-            auto cables_ptr = any_cast<const arb::mcable_list*>(pm.meta);
-            assert(cables_ptr);
-
-            if (!is_initialized()) {
-                // The first time we get metadata, build the response matrix.
-                initialize(*cables_ptr);
-            }
-
             std::vector<double> currents;
             lfp_voltage.resize(response.size());
 
@@ -167,9 +146,6 @@ struct lfp_sampler {
     std::vector<std::vector<double>> lfp_voltage; // [mV] (one vector per electrode)
 
 private:
-    const arb::place_pwlin placement; // Represents cell morphology in space.
-    const std::vector<position> electrodes;    // [μm]
-    const double sigma;                        // [S/m]
     std::vector<std::vector<double>> response; // [MΩ]
 };
 
@@ -220,11 +196,16 @@ int main(int argc, char** argv) {
         {30, 0, 100}
     };
 
-    auto sample_schedule = arb::regular_schedule(sample_dt);
-
     arb::morphology cell_morphology = any_cast<arb::cable_cell>(R.get_cell_description(0)).morphology();
     arb::place_pwlin placed_cell(cell_morphology);
-    lfp_sampler lfp(placed_cell, electrodes, 3.0);
+
+    auto probe0_metadata = sim.get_probe_metadata(cell_member_type{0, 0});
+    assert(probe0_metadata.size()==1); // Should only be one probe associated with this id.
+    arb::mcable_list current_cables = *any_cast<const arb::mcable_list*>(probe0_metadata.at(0).meta);
+
+    lfp_sampler lfp(placed_cell, current_cables, electrodes, 3.0);
+
+    auto sample_schedule = arb::regular_schedule(sample_dt);
     sim.add_sampler(arb::one_probe({0, 0}), sample_schedule, lfp.callback(), arb::sampling_policy::exact);
 
     arb::trace_vector<double, arb::mlocation> membrane_voltage;

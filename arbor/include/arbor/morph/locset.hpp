@@ -159,6 +159,11 @@ locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
 // Proportional location on every branch.
 locset on_branches(double pos);
 
+// Proportional locations on each component:
+// For each component C of the region, find locations L
+// s.t. dist(h, L) = r * max {dist(h, t) | t is a distal point in C}.
+locset on_components(double relpos, region reg);
+
 // Support of a locset (x s.t. x in locset).
 locset support(locset);
 

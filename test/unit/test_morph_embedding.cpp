@@ -13,28 +13,13 @@
 #include "../test/gtest.h"
 #include "common.hpp"
 #include "common_cells.hpp"
+#include "morph_pred.hpp"
 
 using namespace arb;
 using embedding = embed_pwlin;
 
-::testing::AssertionResult location_eq(const morphology& m, mlocation a, mlocation b) {
-    a = canonical(m, a);
-    b = canonical(m, b);
-
-    if (a.branch!=b.branch) {
-        return ::testing::AssertionFailure()
-            << "branch ids " << a.branch << " and " << b.branch << " differ";
-    }
-
-    using FP = testing::internal::FloatingPoint<double>;
-    if (FP(a.pos).AlmostEquals(FP(b.pos))) {
-        return ::testing::AssertionSuccess();
-    }
-    else {
-        return ::testing::AssertionFailure()
-            << "location positions " << a.pos << " and " << b.pos << " differ";
-    }
-}
+using testing::mlocation_eq;
+using testing::cable_eq;
 
 TEST(embedding, segments_and_branch_length) {
     using pvec = std::vector<msize_t>;
@@ -58,21 +43,20 @@ TEST(embedding, segments_and_branch_length) {
         embedding em(m);
 
         auto nloc = 5u;
-        EXPECT_EQ(nloc, em.segment_locations().size());
-        auto locs = arb::util::make_range(em.branch_segment_locations(0));
+        EXPECT_EQ(nloc, em.segment_ends().size());
+        const auto& locs = em.segment_ends();
         EXPECT_EQ(nloc, locs.size());
-        EXPECT_TRUE(location_eq(m, locs[0], (loc{0,0})));
-        EXPECT_TRUE(location_eq(m, locs[1], (loc{0,0.1})));
-        EXPECT_TRUE(location_eq(m, locs[2], (loc{0,0.3})));
-        EXPECT_TRUE(location_eq(m, locs[3], (loc{0,0.7})));
-        EXPECT_TRUE(location_eq(m, locs[4], (loc{0,1})));
+        EXPECT_TRUE(mlocation_eq(locs[0], (loc{0,0})));
+        EXPECT_TRUE(mlocation_eq(locs[1], (loc{0,0.1})));
+        EXPECT_TRUE(mlocation_eq(locs[2], (loc{0,0.3})));
+        EXPECT_TRUE(mlocation_eq(locs[3], (loc{0,0.7})));
+        EXPECT_TRUE(mlocation_eq(locs[4], (loc{0,1})));
 
         EXPECT_EQ(10., em.branch_length(0));
     }
 
-    // Eight samples
+    // Eight samples - point indices:
     //
-    //  sample ids:
     //            0
     //           1 3
     //          2   4
@@ -96,24 +80,26 @@ TEST(embedding, segments_and_branch_length) {
 
     embedding em(m);
 
-    auto locs = arb::util::make_range(em.branch_segment_locations(0));
-    EXPECT_TRUE(location_eq(m, locs[0], (loc{0,0})));
-    EXPECT_TRUE(location_eq(m, locs[1], (loc{0,0.1})));
-    EXPECT_TRUE(location_eq(m, locs[2], (loc{0,1})));
+    const auto& locs = em.segment_ends();
+    EXPECT_TRUE(mlocation_eq(locs[0], (loc{0,0})));
+    EXPECT_TRUE(mlocation_eq(locs[1], (loc{0,0.1})));
+    EXPECT_TRUE(mlocation_eq(locs[2], (loc{0,1})));
+    EXPECT_TRUE(mlocation_eq(locs[3], (loc{1,0})));
+    EXPECT_TRUE(mlocation_eq(locs[4], (loc{1,0.1})));
+    EXPECT_TRUE(mlocation_eq(locs[5], (loc{1,1})));
+    EXPECT_TRUE(mlocation_eq(locs[6], (loc{2,0})));
+    EXPECT_TRUE(mlocation_eq(locs[7], (loc{2,1})));
+    EXPECT_TRUE(mlocation_eq(locs[8], (loc{3,0})));
+    EXPECT_TRUE(mlocation_eq(locs[9], (loc{3,0.15})));
+    EXPECT_TRUE(mlocation_eq(locs[10], (loc{3,1})));
 
-    locs = em.branch_segment_locations(1);
-    EXPECT_TRUE(location_eq(m, locs[0], (loc{1,0})));
-    EXPECT_TRUE(location_eq(m, locs[1], (loc{1,0.1})));
-    EXPECT_TRUE(location_eq(m, locs[2], (loc{1,1})));
-
-    locs = em.branch_segment_locations(2);
-    EXPECT_TRUE(location_eq(m, locs[0], (loc{2,0})));
-    EXPECT_TRUE(location_eq(m, locs[1], (loc{2,1})));
-
-    locs = em.branch_segment_locations(3);
-    EXPECT_TRUE(location_eq(m, locs[0], (loc{3,0})));
-    EXPECT_TRUE(location_eq(m, locs[1], (loc{3,0.15})));
-    EXPECT_TRUE(location_eq(m, locs[2], (loc{3,1})));
+    EXPECT_TRUE(cable_eq(mcable{0, 0.  , 0.1 }, em.segment(0)));
+    EXPECT_TRUE(cable_eq(mcable{0, 0.1 , 1.  }, em.segment(1)));
+    EXPECT_TRUE(cable_eq(mcable{1, 0.  , 0.1 }, em.segment(2)));
+    EXPECT_TRUE(cable_eq(mcable{1, 0.1 , 1.  }, em.segment(3)));
+    EXPECT_TRUE(cable_eq(mcable{2, 0.  , 1.  }, em.segment(4)));
+    EXPECT_TRUE(cable_eq(mcable{3, 0.  , 0.15}, em.segment(5)));
+    EXPECT_TRUE(cable_eq(mcable{3, 0.15, 1.  }, em.segment(6)));
 
     EXPECT_EQ(100., em.branch_length(0));
     EXPECT_EQ(100., em.branch_length(1));
