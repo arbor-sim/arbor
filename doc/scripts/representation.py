@@ -63,26 +63,7 @@ class Segment:
 # to be able to draw morphologies with gaps.
 
 class Branch:
-   #def __init__(self, tree, indexes):
-   #    X = tree['x']
-   #    Y = tree['y']
-   #    R = tree['r']
-   #    T = tree['t']
 
-   #    L = 0
-   #    self.sections = []
-   #    for sec in indexes:
-   #        segs = []
-   #        for i in range(len(sec)-1):
-   #            pid = sec[i]
-   #            did = sec[i+1]
-   #            prox = (X[pid], Y[pid], R[pid])
-   #            dist = (X[did], Y[did], R[did])
-   #            if not is_collocated(prox, dist):
-   #                segs.append(Segment(prox, dist, T[did]))
-   #                L += segs[-1].length
-   #        self.sections.append(segs)
-   #    self.length = L
     def __init__(self, sections):
         self.sections = sections
         length = 0
