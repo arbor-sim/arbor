@@ -218,9 +218,24 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(begb1, mp), (ll{{1,0}}));
         EXPECT_EQ(thingify(begb2, mp), (ll{{2,0}}));
         EXPECT_EQ(thingify(begb3, mp), (ll{{3,0}}));
-
-        // In the absence of a spherical root, there is no branch 4.
         EXPECT_THROW(thingify(begb4, mp), no_such_branch);
+
+        auto oc_beg_b0 = ls::on_components(0, reg::branch(0));
+        auto oc_mid_b1 = ls::on_components(0.5, reg::branch(1));
+        auto oc_mid_b123 = ls::on_components(0.5, join(reg::branch(1), reg::branch(2), reg::branch(3)));
+        auto oc_end_b123 = ls::on_components(1, join(reg::branch(1), reg::branch(2), reg::branch(3)));
+        auto oc_end_b123h = ls::on_components(1, join(reg::branch(1), reg::branch(2), reg::cable(3, 0, 0.5)));
+        auto oc_mid_b02 = ls::on_components(0.5, join(reg::branch(0), reg::branch(2)));
+        auto oc_end_b02 = ls::on_components(1, join(reg::branch(0), reg::branch(2)));
+
+        EXPECT_EQ(thingify(oc_beg_b0, mp),  (ll{{0, 0}}));
+        EXPECT_EQ(thingify(oc_mid_b1, mp),  (ll{{1, 0.5}}));
+        EXPECT_EQ(thingify(oc_mid_b123, mp),  (ll{{2, 0.5}, {3, 0.25}}));
+        EXPECT_EQ(thingify(oc_end_b123, mp),  (ll{{3, 1}}));
+        EXPECT_EQ(thingify(oc_end_b123h, mp),  (ll{{2, 1}, {3, 0.5}}));
+        EXPECT_EQ(thingify(oc_mid_b02, mp),  (ll{{0, 0.5}, {2, 0.5}}));
+        EXPECT_EQ(thingify(oc_end_b02, mp),  (ll{{0, 1}, {2, 1}}));
+        EXPECT_EQ(thingify(ls::on_components(0.25, reg::cable(1, 0.5, 1)), mp),  (ll{{1, 0.625}}));
     }
     {
         auto mp = mprovider(morphology(sm));
@@ -338,6 +353,8 @@ TEST(region, thingify_simple_morphologies) {
         auto q2  = reg::cable(0, 0.25, 0.5);
         auto q3  = reg::cable(0, 0.5,  0.75);
         auto q4  = reg::cable(0, 0.75, 1);
+        auto s0  = reg::segment(0);
+        auto s2  = reg::segment(2);
 
         // Concrete cable lists
         cl h1_{{0, 0.0, 0.5}};
@@ -345,8 +362,9 @@ TEST(region, thingify_simple_morphologies) {
         cl t1_{{0, 0.0, 0.1}, {0, 0.3, 0.7}};
         cl t2_{{0, 0.1, 0.3}, {0, 0.7, 1.0}};
         cl all_{{0, 0, 1}};
-        cl empty_{};
 
+        EXPECT_TRUE(region_eq(mp, s0, cl{{0, 0, 0.1}}));
+        EXPECT_TRUE(region_eq(mp, s2, cl{{0, 0.3, 0.7}}));
         EXPECT_TRUE(region_eq(mp, join(h1, h2), all_));
         EXPECT_TRUE(region_eq(mp, intersect(h1, h2), cl{{0, 0.5, 0.5}}));
         EXPECT_TRUE(region_eq(mp, t1, t1_));
@@ -374,7 +392,7 @@ TEST(region, thingify_simple_morphologies) {
     }
 
 
-    // Test handling of spherical soma on multi-branch morphologies
+    // A simple Y-shaped morphology.
     //
     //  sample ids:
     //              0           |
@@ -402,6 +420,7 @@ TEST(region, thingify_simple_morphologies) {
         auto mp = mprovider(morphology(sm));
 
         using ls::location;
+        using reg::segment;
         using reg::tagged;
         using reg::distal_interval;
         using reg::proximal_interval;
@@ -421,6 +440,8 @@ TEST(region, thingify_simple_morphologies) {
         auto reg5_ = distal_interval(start1_, 0);
         auto reg6_ = proximal_interval(start1_, 0);
 
+        EXPECT_TRUE(region_eq(mp, segment(3), mcable_list{{2,0,0}}));
+        EXPECT_TRUE(region_eq(mp, segment(4), mcable_list{{2,0,1}}));
         EXPECT_TRUE(region_eq(mp, tagged(1), mcable_list{{0,0,1}}));
         EXPECT_TRUE(region_eq(mp, tagged(2), mcable_list{{2,0,1}}));
         EXPECT_TRUE(region_eq(mp, tagged(3), mcable_list{{1,0,1}}));
@@ -444,20 +465,27 @@ TEST(region, thingify_moderate_morphologies) {
 
     // Test multi-level morphologies.
     //
-    // Eight samples
-    //
-    //  sample ids:
+    // Eight points:
     //            0
     //           1 3
     //          2   4
     //             5 6
     //                7
-    //  tags:
-    //            1
-    //           3 2
-    //          3   2
-    //             4 3
-    //                3
+    //
+    // Segments [with tag]:
+    //             +
+    //           ./ \.
+    //         0[3]  2[2]
+    //         ./     \.
+    //       1[3]     3[2]
+    //       ./         \.
+    //       +           +
+    //                 ./ \.
+    //               4[4]  5[3]
+    //               ./     \.
+    //               +      6[3]
+    //                        \.
+    //                         +
     {
         pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
         svec points = {
@@ -477,6 +505,7 @@ TEST(region, thingify_moderate_morphologies) {
         auto mp = mprovider(morphology(sm));
 
         using ls::location;
+        using reg::segment;
         using reg::tagged;
         using reg::distal_interval;
         using reg::proximal_interval;
@@ -489,16 +518,12 @@ TEST(region, thingify_moderate_morphologies) {
         using reg::cable;
         using reg::complete;
 
-        auto soma = tagged(1);
         auto axon = tagged(2);
         auto dend = tagged(3);
         auto apic = tagged(4);
         auto b1  = branch(1);
         auto b3  = branch(3);
         auto b13 = join(b1, b3);
-
-        cl empty_{};
-        cl soma_ = empty_;
 
         // Whole branches:
         mcable b0_{0,0,1};
@@ -513,6 +538,10 @@ TEST(region, thingify_moderate_morphologies) {
         EXPECT_TRUE(region_eq(mp, apic, cl{b2_}));
         EXPECT_TRUE(region_eq(mp, join(dend, apic), cl{b0_,b2_,b3_}));
         EXPECT_TRUE(region_eq(mp, join(axon, join(dend, apic)), all_));
+
+        EXPECT_TRUE(region_eq(mp, tagged(2), join(segment(2), segment(3))));
+        EXPECT_TRUE(region_eq(mp, tagged(3), join(segment(0), segment(1), segment(5), segment(6))));
+        EXPECT_TRUE(region_eq(mp, tagged(4), segment(4)));
 
         // Test that intersection correctly generates zero-length cables at
         // parent-child interfaces.

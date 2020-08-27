@@ -133,10 +133,13 @@ region branch(msize_t);
 // Region with all segments with segment tag id.
 region tagged(int id);
 
-// Region with all segments distal from another region
+// Region corresponding to a single segment.
+region segment(int id);
+
+// Region up to `distance` distal from points in `start`.
 region distal_interval(locset start, double distance);
 
-// Region with all segments proximal from another region
+// Region up to `distance` proximal from points in `start`.
 region proximal_interval(locset end, double distance);
 
 // Region with all segments with radius less than/less than or equal to r

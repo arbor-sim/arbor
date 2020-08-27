@@ -29,6 +29,11 @@ table.docutils td {
     vertical-align: top !important;
 }
 
+em {
+  font-style: bold;
+  color: #000099;
+}
+
 @media screen and (min-width: 40em) {
     .wy-table-responsive table td,
     .wy-table-responsive table th {

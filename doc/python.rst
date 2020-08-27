@@ -15,13 +15,19 @@ The easiest way to get Arbor is with
 
     pip3 install arbor
 
-It is also possible to use Setuptools directly on a local copy of the source code:
+Every point release it pushed to the Python Package Index. If you wish to install another version, it is also possible to use Setuptools directly on a local copy of the source code, or instruct `pip` to install directly from our git repository:
 
 .. code-block:: bash
 
     # use setuptools and python directly
     git clone https://github.com/arbor-sim/arbor.git --recursive
     python3 install ./arbor/setup.py
+
+    # tell pip to build and install from master
+    pip install git+https://github.com/arbor-sim/arbor.git
+
+.. note::
+    You will need to have some development packages installed in order to build Arbor this way. For Debian/Ubuntu: `sudo apt install build-essential python-dev`, Fedora/Red Hat/CentOS: `sudo yum install @development-tools python-devel`.
 
 .. note::
     Arbor's Setuptools process simplifies installation for common configurations
