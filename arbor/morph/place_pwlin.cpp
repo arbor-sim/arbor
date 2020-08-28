@@ -129,8 +129,6 @@ place_pwlin::place_pwlin(const arb::morphology& m, const isometry& iso) {
 
     if (!n_branch) return;
 
-    std::vector<double> sample_pos_on_branch;
-
     std::vector<double> seg_pos;
     for (msize_t bid = 0; bid<n_branch; ++bid) {
         auto& segments = m.branch_segments(bid);

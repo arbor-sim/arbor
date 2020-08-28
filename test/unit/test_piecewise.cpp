@@ -263,7 +263,7 @@ TEST(piecewise, equal_range) {
     {
         pw_elements<int> p{{1, 1, 2, 2, 2, 3, 3}, {10, 11, 12, 13, 14, 15}};
 
-        auto er0 = p.equal_range(5.0);
+        auto er0 = p.equal_range(0.0);
         ASSERT_EQ(er0.first, er0.second);
 
         auto er1 = p.equal_range(1.0);
