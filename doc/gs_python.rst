@@ -1,13 +1,12 @@
-.. _getstarted_python:
+.. _gs_python:
 
-Python
-======
+Python Installation
+===================
 
-Arbor's Python wrapper will be the most convenient interface for most users.
+Arbor's Python API will be the most convenient interface for most users. Note that we only support Python 3.6 and later. Any instruction hereafter assumes you're using `python` and `pip` no older than that.
 
 .. note::
-    To install Arbor on a HPC cluster, or to configure Arbor with system-specific
-    options, we recommend using the :ref:`CMake build process <installarbor>`.
+    To build Arbor yourself, we recommend using the :ref:`CMake installation instructions <gs_install>`.
 
 Getting Arbor
 -------------
@@ -28,15 +27,17 @@ Every point release is pushed to the Python Package Index. If you wish to instal
     python3 install ./arbor/setup.py
 
     # tell pip to build and install from master
-    pip install git+https://github.com/arbor-sim/arbor.git
+    pip3 install git+https://github.com/arbor-sim/arbor.git
 
 .. note::
     You will need to have some development packages installed in order to build Arbor this way.
 
-    - Debian/Ubuntu: `sudo apt install build-essential python-dev`
-    - Fedora/Red Hat/CentOS: `sudo yum install @development-tools python-devel`.
+    * Ubuntu/Debian: `sudo apt install git build-essential python3-dev python3-pip`
+    * Fedora/CentOS/Red Hat: `sudo yum install git @development-tools python3-devel python3-pip`
+    * macOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3`
+    * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
 
-To test that Arbor is available in Python, try the following in a `Python 3 <python2_>`_ interpreter
+To test that Arbor is available, try the following in a Python interpreter
 to see information about the version and enabled features:
 
 .. code-block:: python
@@ -44,6 +45,9 @@ to see information about the version and enabled features:
     >>> import arbor
     >>> print(arbor.__version__)
     >>> print(arbor.__config__)
+
+.. Note::
+    To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
 
 Advanced Options
 ^^^^^^^^^^^^^^^^^^
@@ -116,16 +120,10 @@ below demonstrate this for both pip and ``setup.py``.
 .. Note::
     Detailed instructions on how to install using CMake are in the
     :ref:`Python configuration <install-python>` section of the
-    :ref:`installation guide <installarbor>`.
+    :ref:`installation guide <gs_install>`.
     CMake is recommended for developers, integration with package managers such as
     Spack and EasyBuild, and users who require fine grained control over compilation
     and installation.
-
-.. Note::
-    To report problems installing with pip,
-    run pip with the ``--verbose`` flag, and attach the output (along with
-    the pip command itself) to a ticket on
-    `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
 
 Dependencies
 ^^^^^^^^^^^^^
@@ -147,20 +145,3 @@ Performance
 The Python interface can incur significant memory and runtime overheads relative to C++
 during the *model building* phase, however simulation performance is the same
 for both interfaces.
-
-.. _python2:
-
-Python 2
-----------
-
-Python 2 reached `end of life <https://pythonclock.org/>`_ in January 2020.
-Arbor only provides support for Python 3.6 and later.
-
-.. note::
-    It might be possible to install and run Arbor
-    using Python 2.7 by setting the ``PYTHON_EXECUTABLE`` variable when
-    :ref:`configuring CMake <install-python>`.
-    However, Arbor is not tested against Python 2.7, and we won't be able
-    to provide support.
-
-

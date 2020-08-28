@@ -21,4 +21,9 @@ A *load balancer* generates the domain decomposition using the model recipe and 
 resources on which the model will run described by an execution context.
 Currently Arbor provides one load balancer and more will be added over time.
 
-Arbor's Python interface of domain decomposition and load balancers is documented in :ref:`pydomdec` and the C++ interface in :ref:`cppdomdec`.
+API
+---
+
+* :ref:`Python <pydomdec>`
+* :ref:`C++ <cppdomdec>`
+

@@ -37,61 +37,64 @@ Citing Arbor
 Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
 
 .. toctree::
-   :caption: Getting Stared:
+   :caption: Getting Started:
 
-   install
-   python
-   single_cell
-
-.. toctree::
-   :caption: Concepts:
-
-   morphology
-   labels
-   cable_cell
-   mechanisms
+   gs_install
+   gs_python
 
 .. toctree::
-   :caption: Arbor Models:
+   :caption: How does Arbor work?
 
-   model_intro
-   model_concepts
-   model_hardware
-   model_recipe
-   model_domdec
-   model_simulation
+   co_overview
+   co_recipe
+   co_network_components
+   co_morphology
+   co_labels
+   co_mechanisms
+   co_cable_cell
+   co_hardware
+   co_domdec
+   co_simulation
 
 .. toctree::
-   :caption: Python:
+   :caption: Python API
 
-   py_intro
-   py_common
+   py_overview
    py_recipe
+   py_common
+   py_morphology
+   py_labels
+   py_mechanisms
    py_cable_cell
+   py_single_cell
    py_hardware
    py_domdec
    py_simulation
    py_profiler
 
 .. toctree::
-   :caption: C++ API:
+   :caption: C++ API
 
-   cpp_intro
-   cpp_common
-   cpp_hardware
+   cpp_overview
    cpp_recipe
+   cpp_common
+   cpp_cable_cell
+   cpp_hardware
    cpp_domdec
    cpp_simulation
-   cpp_cable_cell
+   cpp_profiler
 
 .. toctree::
-   :caption: Developers:
+   :caption: C++ API for HPC
 
-   library
-   nmodl
-   simd_api
-   profiler
-   sampling_api
    cpp_distributed_context
    cpp_dry_run
+
+.. toctree::
+   :caption: Arbor Internals
+
+   ai_library
+   ai_nmodl
+   api_simd
+   api_sampling
 

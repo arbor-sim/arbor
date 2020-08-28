@@ -1,17 +1,18 @@
-.. _installarbor:
+.. _gs_install:
 
-Installing Arbor
-################
+CMake Installation
+##################
 
 .. Note::
-    If you want to get started quickly experimenting with Arbor via its Python wrapper, see the Python installation guide at :doc:`/python`.
+    If you want to get started quickly experimenting with Arbor via its Python API, see the :ref:`Python installation guide <gs_python>`.
 
 This guide covers installing Arbor using CMake, which is the recommended method for configuring Arbor for HPC applications and developers.
 
-This guide starts with an overview of the building process, and the various options
-available to customize the build.
-The guide then covers installation and running on `HPC clusters <cluster_>`_, followed by a
-`troubleshooting guide <troubleshooting_>`_ for common build problems.
+This guide starts with an overview of the building process, and the various options available to customize the build.
+The guide then covers installation and running on `HPC clusters <cluster_>`_, followed by a `troubleshooting guide <troubleshooting_>`_ for common build problems.
+
+.. note::
+    To get help in case of problems installing Arbor, please make an issue on the Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 
 .. _install_requirements:
 
@@ -497,7 +498,7 @@ HPC Clusters
 ============
 
 HPC clusters offer their own unique challenges when compiling and running
-software, so we cover some common issues in this section.  If you have problems
+software, so we cover some common issues in this section. If you have problems
 on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.

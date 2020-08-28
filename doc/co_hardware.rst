@@ -24,4 +24,8 @@ Execution Context
 
 An *execution context* contains the local thread pool, and optionally the GPU state and MPI communicator, if available. Users of the library configure contexts, which are passed to Arbor methods and types.
 
-See :ref:`pyhardware` for documentation of the Python interface and :ref:`cpphardware` for the C++ interface for managing hardware resources.
+API
+---
+
+* :ref:`Python <pyhardware>`
+* :ref:`C++ <cpphardware>`

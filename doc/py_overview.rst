@@ -5,22 +5,8 @@ Overview
 The Python frontend for Arbor is an interface that the vast majority of users will use to interact with Arbor.
 This section covers how to use the frontend with examples and detailed descriptions of features.
 
-.. _prerequisites:
-
-Prerequisites
-~~~~~~~~~~~~~
-
-Once Arbor has been built and installed (see the :ref:`installation guide <installarbor>`),
-the location of the installed module needs to be set in the ``PYTHONPATH`` environment variable.
-For example:
-
-.. code-block:: bash
-
-    export PYTHONPATH="/usr/lib/python3.7/site-packages/:$PYTHONPATH"
-
-With this setup, Arbor's python module :py:mod:`arbor` can be imported with python3 via
-
-    >>> import arbor
+.. Note::
+    If you haven't set up Arbor yet, see the :ref:`Python installation guide <gs_python>`.
 
 .. _simsteps:
 

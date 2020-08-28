@@ -87,7 +87,8 @@ General Best Practices
 
 
 Mechanisms
-----------------------
+----------
+
 The description of multi-compartment cells also includes the specification of ion channel and synapse dynamics.
 In the recipe, these specifications are called *mechanisms*.
 Implementations of mechanisms are either hand-coded or a translator (modcc) is used to compile a
@@ -96,5 +97,8 @@ subset of NEURON's mechanism specification language NMODL.
 Examples
     Common examples are the *passive/ leaky integrate-and-fire* model, the *Hodgkin-Huxley* mechanism, the *(double-) exponential synapse* model, or the *Natrium current* model for an axon.
 
-Detailed documentation for Python recipes can be found in :ref:`pyrecipe`.
-C++ :ref:`cpprecipe` are documented and best practices are shown as well.
+API
+---
+
+* :ref:`Python <pyrecipe>`
+* :ref:`C++ <cpprecipe>`

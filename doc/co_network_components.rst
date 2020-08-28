@@ -1,9 +1,9 @@
-.. _modelconcepts:
+.. _co_network_components:
 
-Concepts
-########
+Network Components
+##################
 
-This section describes some of the core concepts of Arbor.
+This section describes the components out of which networks are built.
 
 .. _modelcells:
 
