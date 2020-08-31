@@ -95,6 +95,6 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
    ai_library
    ai_nmodl
-   api_simd
-   api_sampling
+   ai_simd_api
+   ai_sampling_api
 
