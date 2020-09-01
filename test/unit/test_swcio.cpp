@@ -201,10 +201,10 @@ TEST(swc_parser, valid_strict) {
 
 // hipcc bug in reading DATADIR
 #ifndef ARB_HIP
-TEST(swc_parser, from_allen_db)
+TEST(swc_parser, from_neuromorpho)
 {
     std::string datadir{DATADIR};
-    auto fname = datadir + "/example.swc";
+    auto fname = datadir + "/pyramidal.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
@@ -212,6 +212,6 @@ TEST(swc_parser, from_allen_db)
     }
 
     auto data = parse_swc(fid, swc_mode::strict);
-    EXPECT_EQ(1060u, data.records.size());
+    EXPECT_EQ(5799u, data.records.size());
 }
 #endif

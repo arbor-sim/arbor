@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 #include "backends/multicore/fvm.hpp"
 #include "benchmark/benchmark.h"
@@ -48,22 +49,22 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0,0,soma_radius,dend_radius}, 3);
+        tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
         arb::label_dict d;
         d.set("soma", arb::reg::tagged(1));
-        arb::cable_cell cell(arb::morphology(tree, true), d);
+        arb::cable_cell cell{arb::morphology(tree), d};
         cell.paint("soma", "pas");
 
         auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
@@ -99,20 +100,20 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0,0,soma_radius,dend_radius}, 3);
+        tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "pas");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
@@ -142,22 +143,22 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0          ,0          ,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0          ,0          ,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
+        auto s2 = tree.append(s1, {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(s2,           {0          ,dend_length,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(s2,           {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "pas");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
@@ -187,20 +188,20 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
+        tree.append(s1,           {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "hh");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
@@ -230,22 +231,22 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0          ,0          ,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0          ,0          ,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
+        auto s2 = tree.append(s1, {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(          s2, {0          ,dend_length,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(          s2, {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "hh");
 
         cell.default_parameters = arb::neuron_parameter_defaults;

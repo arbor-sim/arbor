@@ -310,7 +310,7 @@ TEST(morphology, branches) {
 #ifndef ARB_HIP
 TEST(morphology, swc) {
     std::string datadir{DATADIR};
-    auto fname = datadir + "/example.swc";
+    auto fname = datadir + "/pyramidal.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
@@ -322,11 +322,11 @@ TEST(morphology, swc) {
 
     // Build a segmewnt_tree from swc samples.
     auto sm = arb::as_segment_tree(swc);
-    EXPECT_EQ(1059u, sm.size()); // file contains 1060 samples
+    EXPECT_EQ(5798u, sm.size()); // SWC data contains 5799 samples.
 
     // Test that the morphology contains the expected number of branches.
     auto m = arb::morphology(sm);
-    EXPECT_EQ(32u, m.num_branches());
+    EXPECT_EQ(221u, m.num_branches()); // 219 branches + 2 from divided soma.
 }
 #endif
 
