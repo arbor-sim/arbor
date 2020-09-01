@@ -134,7 +134,8 @@ swc_data parse_swc(std::istream& in, swc_mode mode) {
             getline(in, line, '\n');
             auto from = line.find_first_not_of(" \t");
             if (from != std::string::npos) {
-                data.metadata.append(line, from);
+                // data.metadata.append(line, from); // TODO: restore when g++6 is gone.
+                data.metadata.append(line.substr(from));
             }
             data.metadata += '\n';
         }
