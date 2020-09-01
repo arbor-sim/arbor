@@ -5,12 +5,13 @@
 
 #include "../test/gtest.h"
 
+#include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/cable_cell.hpp>
+#include <arbor/morph/primitives.hpp>
+#include <arbor/morph/segment_tree.hpp>
+#include <arbor/swcio.hpp>
 
-#include "arbor/morph/primitives.hpp"
-#include "arbor/morph/segment_tree.hpp"
 #include "util/span.hpp"
 
 #include "morph_pred.hpp"
@@ -317,15 +318,15 @@ TEST(morphology, swc) {
     }
 
     // Load swc samples from file.
-    auto swc_samples = arb::parse_swc_file(fid);
+    auto swc = arb::parse_swc(fid, arb::swc_mode::strict);
 
     // Build a segmewnt_tree from swc samples.
-    auto sm = arb::swc_as_segment_tree(swc_samples);
-    EXPECT_EQ(1057u, sm.size()); // file contains 195 samples
+    auto sm = arb::as_segment_tree(swc);
+    EXPECT_EQ(1059u, sm.size()); // file contains 1060 samples
 
     // Test that the morphology contains the expected number of branches.
     auto m = arb::morphology(sm);
-    EXPECT_EQ(30u, m.num_branches());
+    EXPECT_EQ(32u, m.num_branches());
 }
 #endif
 

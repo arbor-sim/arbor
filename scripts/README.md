@@ -345,3 +345,20 @@ Module exports the following functions:
    model, `x` can take values in [0, 0.001].
 
    Absolute tolerance `tol` defaults to 1e-8.
+
+# rewrite-single-soma
+
+If given an SWC file with a single point soma, it will print an amended SWC
+file where that soma has been replaced with an equivalent cylinder, and
+all samples that connected to the soma before will be instead connected to
+the midpoint of that cylinder.
+
+Two extra samples are added, in total.
+
+No effort is expended to check that the SWC data _is_ a single point soma file,
+nor to adjust the displacement or length of any attached neurites.
+
+Usage:
+```
+    rewrite-single-soma single.swc > fixed.swc
+```

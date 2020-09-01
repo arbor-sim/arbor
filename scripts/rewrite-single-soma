@@ -1,0 +1,42 @@
+#!/usr/bin/env perl
+
+# Blindly replace first sample with a cable comprising three samples,
+# of total length equal to twice the original sample's radius.
+# Rebind all children of the first sample to point to the middle
+# of this new cable.
+
+use warnings;
+
+$first = 1;
+while (<>) {
+    do { print; next; } if /^#/ or /^\s*$/;
+
+    my @fields = split;
+    die "bad record line $. $_" if $#fields!=6;
+
+    if ($first) {
+        $r = $fields[5];
+
+        @s1 = @fields;
+        $s1[2] -= $r;
+        print join(' ',@s1)."\n";
+
+        @s2 = @fields;
+        $s2[0] = 2;
+        $s2[6] = 1;
+        print join(' ',@s2)."\n";
+
+        @s3 = @fields;
+        $s3[2] += $r;
+        $s3[0] = 3;
+        $s3[6] = 2;
+        print join(' ',@s3)."\n";
+
+        $first = 0;
+    }
+    else {
+        $fields[0] += 2;
+        $fields[6] = $fields[6]==1? 2: $fields[6]+2;
+        print join(' ',@fields)."\n";
+    }
+}
