@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys,os
 
+# Path to Python Binding (_arbor)
+sys.path.insert(0, os.path.abspath('../python/arbor'))
+# Path to doxygen
+breathe_projects = { "Arbor": "../xml" }
+breathe_default_project = "Arbor"
 
 html_static_path = ['static']
 
@@ -10,6 +16,8 @@ def setup(app):
     app.add_object_type('label', 'lab', 'pair: %s; label')
 
 extensions = [
+    'sphinx.ext.autodoc',
+    'breathe',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
 ]

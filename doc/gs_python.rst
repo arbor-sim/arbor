@@ -16,7 +16,7 @@ The easiest way to get Arbor is with
 
 .. code-block:: bash
 
-    pip3 install arbor
+    pip3 install arbor --user
 
 Every point release is pushed to the Python Package Index. If you wish to install another version, it is possible to use Setuptools directly on a local copy of the source code, or instruct `pip` to install directly from our git repository:
 
@@ -27,7 +27,7 @@ Every point release is pushed to the Python Package Index. If you wish to instal
     python3 install ./arbor/setup.py
 
     # tell pip to build and install from master
-    pip3 install git+https://github.com/arbor-sim/arbor.git
+    pip3 install git+https://github.com/arbor-sim/arbor.git --user
 
 .. note::
     You will need to have some development packages installed in order to build Arbor this way.
