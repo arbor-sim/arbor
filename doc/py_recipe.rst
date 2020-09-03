@@ -34,10 +34,10 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
     .. function:: cell_description(gid)
 
-        A high level decription of the cell with global identifier :attr:`arbor.cell_member.gid`,
+        A high level description of the cell with global identifier :attr:`arbor.cell_member.gid`,
         for example the morphology, synapses and ion channels required to build a multi-compartment neuron.
         The type used to describe a cell depends on the kind of the cell.
-        The interface for querying the kind and description of a cell are seperate
+        The interface for querying the kind and description of a cell are separate
         to allow the cell type to be provided without building a full cell description,
         which can be very expensive.
 

@@ -20,7 +20,7 @@ exhale_args = {
     "exhaleExecutesDoxygen": True,
     "verboseBuild": False,
     "exhaleDoxygenStdin": textwrap.dedent('''
-        INPUT = ../arbor
+        INPUT = ../arbor/include/arbor/
         FILE_PATTERNS = *.hpp
         EXCLUDE_PATTERNS = *impl.hpp
         EXCLUDE_SYMBOLS = ARB_DEFINE_*, ARB_PP_*

@@ -156,7 +156,7 @@ public:
         time_type t0 = 0;
         cell_member_type target{gid, 0};
 
-        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
+        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lacable_probe_ion_current_cellmbda_, G));
         return gens;
     }
 
