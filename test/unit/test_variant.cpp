@@ -270,6 +270,86 @@ TEST(variant, valueless) {
     EXPECT_EQ(std::size_t(-1), vi.index());
 }
 
+namespace {
+struct nope {};
+
+struct maybe_throws_on_assign {
+    int i;
+    explicit maybe_throws_on_assign(int i): i(i) {}
+    maybe_throws_on_assign(const maybe_throws_on_assign& x): i(x.i) {}
+    maybe_throws_on_assign(maybe_throws_on_assign&& x): i(x.i) {}
+
+    maybe_throws_on_assign& operator=(const maybe_throws_on_assign& x) {
+        if (x.i<0) throw nope{};
+        i = x.i;
+        return *this;
+    }
+
+    maybe_throws_on_assign& operator=(maybe_throws_on_assign&& x) {
+        if (x.i<0) throw nope{};
+        i = x.i;
+        return *this;
+    }
+
+    ~maybe_throws_on_assign() { ++dtor; }
+
+    static int dtor;
+};
+
+int maybe_throws_on_assign::dtor = 0;
+} // anonymous namespace
+
+TEST(variant, copy_assign) {
+    struct X {
+        X& operator=(const X&) { throw nope{}; }
+    };
+
+    using vidX = variant<int, double, X>;
+
+    vidX v0{in_place_type<int>(), 3};
+    vidX v1{in_place_type<double>(), 4.};
+
+    vidX valueless{X{}};
+    try { valueless = valueless; } catch (...) {}
+    ASSERT_TRUE(valueless.valueless_by_exception());
+
+    vidX v;
+    v = v0;
+    ASSERT_EQ(0u, v.index());
+    EXPECT_EQ(3, get<0>(v));
+
+    v = v1;
+    ASSERT_EQ(1u, v.index());
+    EXPECT_EQ(4., get<1>(v));
+
+    v = valueless;
+    EXPECT_TRUE(v.valueless_by_exception());
+
+    v = v1;
+    ASSERT_EQ(1u, v.index());
+    EXPECT_EQ(4., get<1>(v));
+
+    using vbM = variant<bool, maybe_throws_on_assign>;
+    maybe_throws_on_assign::dtor = 0;
+
+    vbM w0(in_place_type<maybe_throws_on_assign>(), 2);
+    vbM w1(in_place_type<maybe_throws_on_assign>(), -2);
+    ASSERT_EQ(0, maybe_throws_on_assign::dtor);
+
+    EXPECT_THROW(w0 = w1, nope);
+    EXPECT_TRUE(w0.valueless_by_exception());
+    EXPECT_EQ(1, maybe_throws_on_assign::dtor);
+
+    maybe_throws_on_assign::dtor = 0;
+    vbM w2(in_place_type<maybe_throws_on_assign>(), 2);
+
+    ASSERT_EQ(0, maybe_throws_on_assign::dtor);
+
+    EXPECT_THROW(w2 = std::move(w1), nope);
+    EXPECT_FALSE(w2.valueless_by_exception());
+    EXPECT_EQ(0, maybe_throws_on_assign::dtor);
+}
+
 TEST(variant, equality) {
     struct X {
         int i;
