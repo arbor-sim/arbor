@@ -7,8 +7,8 @@
 #include <ostream>
 #include <vector>
 
-#include <arbor/util/either.hpp>
 #include <arbor/arbexcept.hpp>
+#include <arbor/util/variant.hpp>
 
 #include "s_expr.hpp"
 #include "strprintf.hpp"
@@ -298,26 +298,32 @@ bool test_identifier(const char* in) {
 //
 
 bool s_expr::is_atom() const {
-    return (bool)state;
+    std::cout << "testing atom\n";
+    return state.index()==0;
 }
 
 const token& s_expr::atom() const {
+    std::cout << "testing atom\n";
     return state.get<0>();
 }
 
 const s_expr& s_expr::head() const {
+    std::cout << "getting head\n";
     return state.get<1>().head.get();
 }
 
 const s_expr& s_expr::tail() const {
+    std::cout << "getting tail\n";
     return state.get<1>().tail.get();
 }
 
 s_expr& s_expr::head() {
+    std::cout << "getting head\n";
     return state.get<1>().head.get();
 }
 
 s_expr& s_expr::tail() {
+    std::cout << "getting tail\n";
     return state.get<1>().tail.get();
 }
 
@@ -361,7 +367,9 @@ s_expr parse(lexer& L) {
     using namespace std::string_literals;
 
     s_expr node;
+    std::cout << "STARTING: " << node << std::endl;
     auto t = L.current();
+    std::cout << "da lexah is priiiiiiimed" << std::endl;
 
     if (t.kind==tok::lparen) {
         t = L.next();
@@ -395,6 +403,7 @@ s_expr parse(lexer& L) {
         return token{t.column, tok::error, "Missing opening parenthesis'('."};;
     }
 
+    std::cout << "FINISHED: " << node << std::endl;
     return node;
 }
 
