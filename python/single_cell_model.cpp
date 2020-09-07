@@ -9,8 +9,9 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 
-#include "error.hpp"
 #include "cells.hpp"
+#include "error.hpp"
+#include "strprintf.hpp"
 
 namespace pyarb {
 

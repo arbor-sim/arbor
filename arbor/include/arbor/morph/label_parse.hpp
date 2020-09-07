@@ -11,9 +11,9 @@ struct label_parse_error: arb::arbor_exception {
 };
 
 template <typename T>
-using parse_hopefully = hopefully<T, label_parse_error>;
+using parse_hopefully = arb::util::hopefully<T, label_parse_error>;
 
-parse_hopefully<arb::util::any> eval(const std::string&);
+parse_hopefully<arb::util::any> parse_label_expression(const std::string&);
 bool test_identifier(const std::string &in);
 
 

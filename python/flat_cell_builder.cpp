@@ -2,14 +2,13 @@
 #include <pybind11/stl.h>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"
-#include "morph_parse.hpp"
-#include "s_expr.hpp"
 #include "strprintf.hpp"
 
 namespace pyarb {
@@ -90,7 +89,7 @@ public:
             throw pyarb_error(util::pprintf("'{}' is not a valid label name.", name));
         }
 
-        if (auto result = eval(parse(description)) ) {
+        if (auto result = parse_label_expression(description) ) {
             // The description is a region.
             if (result->type()==typeid(arb::region)) {
                 if (dict_.locset(name)) {
@@ -121,7 +120,7 @@ public:
             }
         }
         else {
-            throw pyarb_error(result.error().message);
+            throw pyarb_error(result.error().what());
         }
     }
 

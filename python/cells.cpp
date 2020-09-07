@@ -5,6 +5,7 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/morph/label_dict.hpp>
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -16,7 +17,6 @@
 #include "cells.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
-#include "morph_parse.hpp"
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
@@ -96,12 +96,10 @@ struct label_dict_proxy {
             if (!test_identifier(name)) {
                 throw std::string(util::pprintf("'{}' is not a valid label name.", name));
             }
-            // Parse the input string into an s-expression.
-            auto parsed = parse(desc);
             // Evaluate the s-expression to build a region/locset.
-            auto result = eval(parsed);
+            auto result = parse_label_expression(desc);
             if (!result) { // an error parsing / evaluating description.
-                throw std::string(result.error().message);
+                throw result.error();
             }
             else if (result->type()==typeid(arb::region)) { // describes a region.
                 dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
