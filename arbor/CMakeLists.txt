@@ -53,6 +53,7 @@ set(arbor_sources
     spike_event_io.cpp
     spike_source_cell_group.cpp
     swcio.cpp
+    s_expr.cpp
     threading/threading.cpp
     thread_private_spike_store.cpp
     tree.cpp

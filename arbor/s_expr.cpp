@@ -1,25 +1,27 @@
-#include <iostream>
-
 #include <cctype>
 #include <cstring>
 #include <string>
 #include <memory>
-#include <ostream>
+#include <unordered_map>
 #include <vector>
 
 #include <arbor/util/either.hpp>
 #include <arbor/arbexcept.hpp>
 
 #include "s_expr.hpp"
-#include "strprintf.hpp"
+#include "util/strprintf.hpp"
 
-namespace pyarb {
+namespace arb {
 
 inline bool is_alphanumeric(char c) {
     return std::isdigit(c) || std::isalpha(c);
 }
 inline bool is_plusminus(char c) {
     return (c=='-' || c=='+');
+}
+
+std::ostream& operator<<(std::ostream& o, const src_location& l) {
+    return o << l.line << ":" << l.column;
 }
 
 std::ostream& operator<<(std::ostream& o, const tok& t) {
@@ -48,10 +50,9 @@ std::ostream& operator<<(std::ostream& o, const token& t) {
 // lexer
 //
 
-struct parser_error: public arb::arbor_exception {
-    int loc;
-    parser_error(const std::string& msg, int l):
-        arbor_exception(msg), loc(l)
+struct s_expr_lexer_error: public arb::arbor_internal_error {
+    s_expr_lexer_error(const std::string& msg, src_location l):
+        arbor_internal_error(util::pprintf("s-expression internal error at {}: {}", l, msg))
     {}
 };
 
@@ -64,18 +65,15 @@ static std::unordered_map<std::string, tok> keyword_to_tok = {
 };
 
 class lexer {
-    const char* data_;;
-    const char* end_;;
-    const char* current_;
-    int loc_;
+    s_expr_stream line_start_;
+    s_expr_stream stream_;
+    unsigned line_;
     token token_;
 
 public:
 
-    lexer(const char* s):
-        data_(s),
-        end_(data_ + std::strlen(data_)),
-        current_(data_)
+    lexer(s_expr_stream begin):
+        line_start_(begin), stream_(begin), line_(0)
     {
         // Prime the first token.
         parse();
@@ -93,24 +91,37 @@ public:
 
 private:
 
-    // Consume the and return the next token in the stream.
+    src_location loc() const {
+        return src_location(line_+1, stream_-line_start_+1);
+    }
+
+    bool empty() const {
+        return *stream_ == '\0';
+    }
+
+    // Consume and return the next token in the stream.
     void parse() {
         using namespace std::string_literals;
 
-        while (current_!=end_) {
-            loc_ = current_-data_;
-            switch (*current_) {
+        while (!empty()) {
+            switch (*stream_) {
                 // end of file
                 case 0      :       // end of string
-                    token_ = {loc_, tok::eof, "eof"s};
+                    token_ = {loc(), tok::eof, "eof"s};
                     return;
+
+                // new line
+                case '\n'   :
+                    line_++;
+                    ++stream_;;
+                    line_start_ = stream_;
+                    continue;
 
                 // white space
                 case ' '    :
                 case '\t'   :
                 case '\v'   :
                 case '\f'   :
-                case '\n'   :
                     character();
                     continue;   // skip to next character
 
@@ -118,10 +129,10 @@ private:
                     eat_comment();
                     continue;
                 case '(':
-                    token_ = {loc_, tok::lparen, {character()}};
+                    token_ = {loc(), tok::lparen, {character()}};
                     return;
                 case ')':
-                    token_ = {loc_, tok::rparen, {character()}};
+                    token_ = {loc(), tok::rparen, {character()}};
                     return;
                 case 'a' ... 'z':
                 case 'A' ... 'Z':
@@ -135,36 +146,40 @@ private:
                     return;
                 case '-':
                 case '+':
+                case '.':
                     {
-                        char c = current_[1];
+                        if (empty()) {
+                            token_ = {loc(), tok::error, "Unexpected end of input."};
+                        }
+                        char c = stream_.peek(1);
                         if (std::isdigit(c) or c=='.') {
                             token_ = number();
                             return;
                         }
                     }
-                    token_ = {loc_, tok::error,
+                    token_ = {loc(), tok::error,
                         util::pprintf("Unexpected character '{}'.", character())};
                     return;
 
                 default:
-                    token_ = {loc_, tok::error,
+                    token_ = {loc(), tok::error,
                         util::pprintf("Unexpected character '{}'.", character())};
                     return;
             }
         }
 
-        if (current_!=end_) {
+        if (!empty()) {
             // todo: handle error: should never hit this
         }
-        token_ = {loc_, tok::eof, "eof"s};
+        token_ = {loc(), tok::eof, "eof"s};
         return;
     }
 
     // Consumes characters in the stream until end of stream or a new line.
-    // Assumes that the current_ location is the `;` that starts the comment.
+    // Assumes that the current location is the `;` that starts the comment.
     void eat_comment() {
-        while (*current_ && *current_!='\n') {
-            character();
+        while (!empty() && *stream_!='\n') {
+            ++stream_;
         }
     }
 
@@ -184,22 +199,24 @@ private:
     //
     // Returns the appropriate token kind if name is a keyword.
     token name() {
+        auto start = loc();
         std::string name;
-        char c = *current_;
+        char c = *stream_;
 
         // Assert that current position is at the start of an identifier
         if( !(std::isalpha(c)) ) {
-            throw parser_error(
-                "Lexer attempting to read identifier when none is available", loc_);
+            throw s_expr_lexer_error(
+                "Lexer attempting to read identifier when none is available", loc());
         }
 
         name += c;
-        ++current_;
+        ++stream_;
         while(1) {
-            c = *current_;
+            c = *stream_;
 
             if(is_alphanumeric(c) || c=='_' || c=='-') {
-                name += character();
+                name += c;
+                ++stream_;
             }
             else {
                 break;
@@ -209,63 +226,73 @@ private:
         // test if the name matches a keyword
         auto it = keyword_to_tok.find(name.c_str());
         if (it!=keyword_to_tok.end()) {
-            return {loc_, it->second, std::move(name)};
+            return {start, it->second, std::move(name)};
         }
-        return {loc_, tok::name, std::move(name)};
+        return {start, tok::name, std::move(name)};
     }
 
     token string() {
         using namespace std::string_literals;
+        if (*stream_ != '"') {
+            s_expr_lexer_error(
+                "Lexer attempting to read string without opening \"", loc());
+        }
 
-        ++current_;
-        const char* begin = current_;
-        while (current_!=end_ && character()!='"');
+        auto start = loc();
+        ++stream_;
+        std::string str;
+        while (!empty() && *stream_!='"') {
+            str.push_back(*stream_);
+            ++stream_;
+        }
+        ++stream_; // gobble the closing "
 
-        if (current_==end_) return {loc_, tok::error, "string missing closing \""};
+        if (empty()) return {start, tok::error, "string missing closing \""};
 
-        return {loc_, tok::string, std::string(begin, current_-1)};
+        return {start, tok::string, str};
     }
 
     token number() {
         using namespace std::string_literals;
 
+        auto start = loc();
         std::string str;
-        char c = *current_;
+        char c = *stream_;
 
         // Start counting the number of points in the number.
         auto num_point = (c=='.' ? 1 : 0);
         auto uses_scientific_notation = 0;
 
         str += c;
-        current_++;
+        ++stream_;
         while(1) {
-            c = *current_;
-            if(std::isdigit(c)) {
+            c = *stream_;
+            if (std::isdigit(c)) {
                 str += c;
-                current_++;
+                ++stream_;
             }
-            else if(c=='.') {
+            else if (c=='.') {
                 if (++num_point>1) {
                     // Can't have more than one '.' in a number
-                    return {int(current_-data_), tok::error, "unexpected '.'"s};
+                    return {start, tok::error, "unexpected '.'"s};
                 }
                 str += c;
-                current_++;
-                if(uses_scientific_notation) {
+                ++stream_;
+                if (uses_scientific_notation) {
                     // Can't have a '.' in the mantissa
-                    return {int(current_-data_), tok::error, "unexpected '.'"s};
+                    return {start, tok::error, "unexpected '.'"s};
                 }
             }
-            else if(!uses_scientific_notation && (c=='e' || c=='E')) {
-                if(std::isdigit(current_[1]) ||
-                   (is_plusminus(current_[1]) && std::isdigit(current_[2])))
+            else if (!uses_scientific_notation && (c=='e' || c=='E')) {
+                if ( std::isdigit(stream_.peek(1)) ||
+                    (is_plusminus(stream_.peek(1)) && std::isdigit(stream_.peek(2))))
                 {
                     uses_scientific_notation++;
                     str += c;
-                    current_++;
+                    stream_++;
                     // Consume the next char if +/-
-                    if (is_plusminus(*current_)) {
-                        str += *current_++;
+                    if (is_plusminus(*stream_)) {
+                        str += *stream_++;
                     }
                 }
                 else {
@@ -279,19 +306,13 @@ private:
         }
 
         const bool is_real = uses_scientific_notation || num_point>0;
-        return {loc_, (is_real? tok::real: tok::integer), std::move(str)};
+        return {start, (is_real? tok::real: tok::integer), std::move(str)};
     }
 
     char character() {
-        return *current_++;
+        return *stream_++;
     }
 };
-
-bool test_identifier(const char* in) {
-    lexer L(in);
-    auto x = L.current();
-    return x.kind==tok::name && x.spelling==in;
-}
 
 //
 // s expression members
@@ -327,27 +348,33 @@ s_expr::operator bool() const {
 
 std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     if (x.is_atom()) return o << x.atom();
-#if 0 // print full tree with terminating 'nil'
+#if 1
+    o << "(";
+    bool first = true;
+    for (auto& e: x) {
+        o << (first? "": " ") << e;
+        first = false;
+    }
+    return o << ")";
+#else
     return o << "(" << x.head() << " . " << x.tail() << ")";
-#else // print '(a . nil)' as 'a'
-    return x.tail()? o << "(" << x.head() << " . " << x.tail() << ")"
-                   : o << x.head();
 #endif
 }
 
 std::size_t length(const s_expr& l) {
+    // The length of an atom is 1.
     if (l.is_atom() && l) {
-        throw arb::arbor_internal_error(
-            util::pprintf("Internal error: can't take length of an atom in '{}'.", l));
+        return 1;
     }
-    if (!l) { // nil
+    // nil marks the end of a list.
+    if (!l) {
         return 0u;
     }
     return 1+length(l.tail());
 }
 
-int location(const s_expr& l) {
-    if (l.is_atom()) return l.atom().column;
+src_location location(const s_expr& l) {
+    if (l.is_atom()) return l.atom().loc;
     return location(l.head());
 }
 
@@ -368,53 +395,70 @@ s_expr parse(lexer& L) {
         s_expr* n = &node;
         while (true) {
             if (t.kind == tok::eof) {
-                return token{t.column, tok::error,
+                return token{t.loc, tok::error,
                     "Unexpected end of input. Missing a closing parenthesis ')'."};;
             }
             if (t.kind == tok::error) {
                 return t;
             }
             else if (t.kind == tok::rparen) {
-                *n = token{t.column, tok::nil, "nil"};
+                *n = token{t.loc, tok::nil, "nil"};
+                t = L.next();
                 break;
             }
             else if (t.kind == tok::lparen) {
                 auto e = parse(L);
                 if (e.is_atom() && e.atom().kind==tok::error) return e;
                 *n = {std::move(e), {}};
+                t = L.current();
             }
             else {
                 *n = {s_expr(t), {}};
+                t = L.next();
             }
 
             n = &n->tail();
-            t = L.next();
         }
     }
     else {
-        return token{t.column, tok::error, "Missing opening parenthesis'('."};;
+        return token{t.loc, tok::error, "Missing opening parenthesis'('."};;
     }
 
     return node;
 }
 
-s_expr parse(const char* in) {
-    lexer l(in);
+s_expr parse(s_expr_stream begin) {
+    lexer l(begin);
     s_expr result = parse(l);
     const bool err = result.is_atom()? result.atom().kind==tok::error: false;
     if (!err) {
-        auto t = l.next(); // pop the last rparen token.
+        auto t = l.current();
         if (t.kind!=tok::eof) {
-            return token{t.column, tok::error,
+            return token{t.loc, tok::error,
                          util::pprintf("Unexpected '{}' at the end of input.", t)};
         }
     }
     return result;
 }
 
-s_expr parse(const std::string& in) {
-    return parse(in.c_str());
+// For parsing a file with multiple high level s expressions.
+// Returns a vector of the expressions.
+// If an error occured, terminate early and the last expression will be an error.
+std::vector<s_expr> parse_multi(s_expr_stream begin) {
+    std::vector<s_expr> result;
+    lexer l(begin);
+    bool error = false;
+    while (!error && l.current().kind!=tok::eof) {
+        result.push_back(parse(l));
+        const auto& e = result.back();
+        error = e.is_atom() && e.atom().kind==tok::error;
+    }
+
+    return result;
 }
 
-} // namespace pyarb
+s_expr parse(const std::string& in) {
+    return parse(s_expr_stream{in});
+}
 
+} // namespace arb

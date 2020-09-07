@@ -13,8 +13,6 @@
 
 #include <arbor/util/optional.hpp>
 
-#include "s_expr.hpp"
-
 namespace pyarb {
 namespace util {
 

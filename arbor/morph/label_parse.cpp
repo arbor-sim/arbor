@@ -1,13 +1,19 @@
+#include <limits>
+
+#include <arbor/arbexcept.hpp>
 #include <arbor/util/any.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
-#include <limits>
 
 #include "error.hpp"
 #include "s_expr.hpp"
 #include "morph_parse.hpp"
 
 namespace pyarb {
+
+label_parse_error::label_parse_error(const std::string& msg):
+    arb::arbor_exception(msg)
+{}
 
 struct nil_tag {};
 
@@ -249,13 +255,23 @@ parse_hopefully<arb::util::any> eval(const s_expr& e);
 
 parse_hopefully<std::vector<arb::util::any>> eval_args(const s_expr& e) {
     if (!e) return {std::vector<arb::util::any>{}}; // empty argument list
-    const s_expr* h = &e;
     std::vector<arb::util::any> args;
+    /*
+    const s_expr* h = &e;
     while (*h) {
         auto arg = eval(h->head());
         if (!arg) return std::move(arg.error());
         args.push_back(std::move(*arg));
         h = &h->tail();
+    }
+    */
+    for (auto& h: e) {
+        if (auto arg=eval(h)) {
+            args.push_back(std::move(*arg));
+        }
+        else {
+            return std::move(arg.error());
+        }
     }
     return args;
 }
@@ -294,6 +310,9 @@ std::string eval_description(const char* name, const std::vector<arb::util::any>
     return msg;
 }
 
+label_parse_error parse_error(std::string const& msg, src_location loc) {
+    return {util::pprintf("error in label description at {}: {}.", loc, msg)};
+}
 // Evaluate an s expression.
 // On success the result is wrapped in util::any, where the result is one of:
 //      int         : an integer atom
@@ -316,12 +335,11 @@ parse_hopefully<arb::util::any> eval(const s_expr& e) {
             case tok::nil:
                 return {nil_tag()};
             case tok::string:
-                return {std::string(t.spelling)};
+                return arb::util::any{std::string(t.spelling)};
             case tok::error:
-                return parse_error_state{e.atom().spelling, location(e)};
+                return parse_error(e.atom().spelling, location(e));
             default:
-                return parse_error_state{
-                    util::pprintf("Unexpected term: {}", e), location(e)};
+                return parse_error(util::pprintf("Unexpected term '{}'", e), location(e));
         }
     }
     if (e.head().is_atom()) {
@@ -353,14 +371,25 @@ parse_hopefully<arb::util::any> eval(const s_expr& e) {
         for (auto i=matches.first; i!=matches.second; ++i) {
             msg += util::pprintf("\n  Candidate {}  {}", ++count, i->second.message);
         }
-        return parse_error_state{std::move(msg), location(e)};
+        return parse_error(msg, location(e));
     }
 
-    return parse_error_state{
-        util::pprintf("Unable to evaluate '{}': expression must be either integer, real expression of the form (op <args>)", e),
-            location(e)};
+    return parse_error(
+        util::pprintf("'{}' is not either integer, real expression of the form (op <args>)", e),
+            location(e));
 }
 
-} // namespace pyarb
+parse_hopefully<arb::util::any> eval(const std::string& e) {
+    return eval(parse(e));
+}
 
+bool test_identifier(const std::string &in) {
+    const auto s = parse("("+in+")");
+    if (s.is_atom()) return false;
+    auto& h = s.head();
+    return length(s)==1 && h.is_atom() && h.atom().kind==tok::name && h.atom().spelling==in;
+}
+
+
+} // namespace pyarb
 
