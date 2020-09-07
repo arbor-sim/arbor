@@ -99,7 +99,7 @@ Morphology
 
     The flat cell builder documented below is likely to change before
     version 0.4 is released. It is a wrapper around a segment tree that
-    simplifies morphology construction the spatial location of segments
+    simplifies morphology construction when the spatial location of segments
     is not important (for example, when we only need to describe the length,
     radius and parent-child relationship of branches in the morphology).
 
@@ -134,7 +134,7 @@ tree (the sticks).
         cell = builder.build()
 
 
-Building the morphology there are two approaches: construct it manually using
+There are two approaches available for building a morphology: construct it manually using
 :ref:`segment tree<morph-segment_tree>` or ``flat_cell_builder``, or load from a file.
 The ``flat_cell_builder`` is a helper tool, that internally constructs a segment
 tree.
