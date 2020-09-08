@@ -53,6 +53,22 @@ arb::cable_cell_parameter_set load_cell_parameters(nlohmann::json& defaults_json
     return defaults;
 }
 
+void check_defaults(const arb::cable_cell_parameter_set& defaults) {
+    if(!defaults.temperature_K) throw pyarb_error("Default cell values don't include temperature");
+    if(!defaults.init_membrane_potential) throw pyarb_error("Default cell values don't include initial membrane potential");
+    if(!defaults.axial_resistivity) throw pyarb_error("Default cell values don't include axial_resistivity");
+    if(!defaults.membrane_capacitance) throw pyarb_error("Default cell values don't include membrane_capacitance");
+
+    std::vector<std::string> default_ions = {"ca", "na", "k"};
+
+    for (auto ion:default_ions) {
+        if(!defaults.ion_data.count(ion)) throw pyarb_error("Default cell values don't include " + ion + " default values");
+        if(isnan(defaults.ion_data.at(ion).init_int_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial internal concentration");
+        if(isnan(defaults.ion_data.at(ion).init_ext_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial external concentration");
+        if(isnan(defaults.ion_data.at(ion).init_reversal_potential)) throw pyarb_error("Default cell values don't include " + ion + "'s initial reversal potential");
+    }
+}
+
 arb::cable_cell_parameter_set overwrite_cable_parameters(const arb::cable_cell_parameter_set& base, const arb::cable_cell_parameter_set& overwrite) {
     arb::cable_cell_parameter_set merged = base;
     if (auto temp = overwrite.temperature_K) {
@@ -86,22 +102,6 @@ arb::cable_cell_parameter_set overwrite_cable_parameters(const arb::cable_cell_p
         merged.reversal_potential_method[name] = data;
     }
     return merged;
-}
-
-void check_defaults(const arb::cable_cell_parameter_set& defaults) {
-    if(!defaults.temperature_K) throw pyarb_error("Default cell values don't include temperature");
-    if(!defaults.init_membrane_potential) throw pyarb_error("Default cell values don't include initial membrane potential");
-    if(!defaults.axial_resistivity) throw pyarb_error("Default cell values don't include axial_resistivity");
-    if(!defaults.membrane_capacitance) throw pyarb_error("Default cell values don't include membrane_capacitance");
-
-    std::vector<std::string> default_ions = {"ca", "na", "k"};
-
-    for (auto ion:default_ions) {
-        if(!defaults.ion_data.count(ion)) throw pyarb_error("Default cell values don't include " + ion + " default values");
-        if(isnan(defaults.ion_data.at(ion).init_int_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial internal concentration");
-        if(isnan(defaults.ion_data.at(ion).init_ext_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial external concentration");
-        if(isnan(defaults.ion_data.at(ion).init_reversal_potential)) throw pyarb_error("Default cell values don't include " + ion + "'s initial reversal potential");
-    }
 }
 
 void register_param_loader(pybind11::module& m) {
@@ -138,10 +138,41 @@ void register_param_loader(pybind11::module& m) {
               }
               return arb::cable_cell_parameter_set();
           },
-          "Load default cel parameters.");
+          "Load global cell parameters.");
+
+    m.def("load_cell_local_parameter_map",
+          [](std::string fname) {
+              std::unordered_map<std::string, arb::cable_cell_parameter_set> local_map;
+
+              std::ifstream fid{fname};
+              if (!fid.good()) {
+                  throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+              }
+              nlohmann::json cells_json;
+              cells_json << fid;
+
+              auto locals_json = find_and_remove_json<std::vector<nlohmann::json>>("local", cells_json);
+              if (locals_json) {
+                  for (auto l: locals_json.value()) {
+                      auto region = find_and_remove_json<std::string>("region", l);
+                      if (!region) {
+                          throw pyarb_error("Local cell parameters do not include region label in \"" + fname + "\"");
+                      }
+                      local_map[region.value()] = load_cell_parameters(l);
+                  }
+              }
+              for (auto l: local_map) {
+                  std::cout << l.first << std::endl;
+              }
+              return local_map;
+          },
+          "Load local cell parameters.");
 
     // arb::cable_cell_parameter_set
     pybind11::class_<arb::cable_cell_parameter_set> cable_cell_parameter_set(m, "cable_cell_parameter_set");
+
+    // map of arb::cable_cell_parameter_set
+    pybind11::class_<std::unordered_map<std::string, arb::cable_cell_parameter_set>> region_cable_cell_parameter_set_map(m, "region_cable_cell_parameter_set_map");
 }
 
 } //namespace pyarb
