@@ -156,13 +156,16 @@ void register_param_loader(pybind11::module& m) {
                   for (auto l: locals_json.value()) {
                       auto region = find_and_remove_json<std::string>("region", l);
                       if (!region) {
-                          throw pyarb_error("Local cell parameters do not include region label in \"" + fname + "\"");
+                          throw pyarb_error("Local cell parameters do not include region label (in \"" + fname + "\")");
                       }
-                      local_map[region.value()] = load_cell_parameters(l);
+                      auto region_params = load_cell_parameters(l);
+
+                      if(!region_params.reversal_potential_method.empty()) {
+                          throw pyarb_error("Cannot implement local reversal potential methods (in \"" + fname + "\")");
+                      }
+
+                      local_map[region.value()] = region_params;
                   }
-              }
-              for (auto l: local_map) {
-                  std::cout << l.first << std::endl;
               }
               return local_map;
           },

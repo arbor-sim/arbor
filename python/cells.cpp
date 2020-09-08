@@ -514,6 +514,30 @@ void register_cells(pybind11::module& m) {
                 if(c.default_parameters.reversal_potential_method.count("k")) std::cout << "k_method "   << c.default_parameters.reversal_potential_method["k   "].name() << std::endl;
              },
             "Overwrite default values for cable and cell properties.")
+            .def("overwrite_local_parameters",
+                 [](arb::cable_cell& c,
+                    std::unordered_map<std::string, arb::cable_cell_parameter_set>& local_map)
+                 {
+                     for (const auto& local: local_map) {
+                         auto region = local.first;
+                         const auto& params = local.second;
+                         if (params.temperature_K)           c.paint(region, arb::temperature_K{params.temperature_K.value()});
+                         if (params.init_membrane_potential) c.paint(region, arb::init_membrane_potential{params.init_membrane_potential.value()});
+                         if (params.axial_resistivity)       c.paint(region, arb::axial_resistivity{params.axial_resistivity.value()});
+                         if (params.membrane_capacitance)    c.paint(region, arb::membrane_capacitance{params.membrane_capacitance.value()});
+                         for (auto ion_params: params.ion_data) {
+                             auto ion = ion_params.first;
+                             auto data = ion_params.second;
+
+                             auto ion_data = c.default_parameters.ion_data[ion];
+                             if (!isnan(data.init_int_concentration)) ion_data.init_int_concentration = data.init_int_concentration;
+                             if (!isnan(data.init_ext_concentration)) ion_data.init_ext_concentration = data.init_ext_concentration;
+                             if (!isnan(data.init_reversal_potential)) ion_data.init_reversal_potential = data.init_reversal_potential;
+                             c.paint(region, arb::initial_ion_data{ion, ion_data});
+                         }
+                     }
+                 },
+                 "Overwrite regional values for cable properties.")
         // Set cell-wide properties
         .def("set_properties",
             [](arb::cable_cell& c,
