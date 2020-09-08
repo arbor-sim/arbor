@@ -130,7 +130,7 @@
     },
     {
       "region": "apic",
-      "mechanism": "SKv3",
+      "mechanism": "SKv3_1",
       "parameters": {"gSKv3_1bar": 0.004226}
     },
     {
