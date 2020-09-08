@@ -97,7 +97,7 @@ TEST(gpu_intrinsics, minmax) {
         {  0, -inf, -inf,   0},
     };
 
-    const auto n = arb::util::size(inputs);
+    const auto n = std::size(inputs);
 
     arb::memory::device_vector<double> lhs(n);
     arb::memory::device_vector<double> rhs(n);
@@ -139,7 +139,7 @@ TEST(gpu_intrinsics, exprelr) {
     constexpr double deps = std::numeric_limits<double>::epsilon();
     double inputs[] = {-1.,  -0.,  0.,  1., -dmax,  -dmin,  dmin,  dmax, -deps, deps, 10*deps, 100*deps, 1000*deps};
 
-    auto n = arb::util::size(inputs);
+    auto n = std::size(inputs);
     arb::memory::device_vector<double> x(arb::memory::host_view<double>(inputs, n));
     arb::memory::device_vector<double> result(n);
 

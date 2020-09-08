@@ -17,8 +17,6 @@ namespace util {
 
 namespace impl {
 
-template <typename> using void_t = void; // TODO: C++17 use std::void_t.
-
 template <typename X, typename Y>
 struct propagate_qualifier { using type = Y; };
 
@@ -64,7 +62,7 @@ struct any_visitor<T> {
     };
 
     template <typename F>
-    struct invoke_or_throw<F, impl::void_t<decltype(std::declval<F>()())>> {
+    struct invoke_or_throw<F, std::void_t<decltype(std::declval<F>()())>> {
         template <typename A>
         static auto visit(F&& f, A&& a) {
             using Q = impl::propagate_qualifier_t<A, T>;
@@ -103,7 +101,7 @@ struct invocable_impl {
     struct test: std::false_type {};
 
     template <typename G>
-    struct test<G, void_t<decltype(std::declval<G>()(std::declval<A>()...))>>: std::true_type {};
+    struct test<G, std::void_t<decltype(std::declval<G>()(std::declval<A>()...))>>: std::true_type {};
 
     using type = typename test<F>::type;
 };

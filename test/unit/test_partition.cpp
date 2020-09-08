@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <array>
-#include <forward_list>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -12,7 +12,7 @@
 using namespace arb;
 
 TEST(partition, partition_view) {
-    std::forward_list<int> fl = {1, 4, 6, 8, 10 };
+    std::vector<int> fl = {1, 4, 6, 8, 10 };
 
     auto p1 = util::partition_view(fl);
     EXPECT_EQ(std::make_pair(1,4), p1.front());
@@ -83,7 +83,7 @@ TEST(partition, partition_view_non_numeric) {
 
 TEST(partition, make_partition_in_place) {
     unsigned sizes[] = { 7, 3, 0, 2 };
-    unsigned part_store[util::size(sizes)+1];
+    unsigned part_store[std::size(sizes)+1];
 
     auto p = util::make_partition(util::partition_in_place, part_store, sizes, 10u);
     ASSERT_EQ(4u, p.size());
@@ -134,7 +134,7 @@ TEST(partition, make_partition_in_place) {
 TEST(partition, make_partition) {
     // (also tests differing types for sizes and divisiosn)
     unsigned sizes[] = { 7, 3, 0, 2 };
-    std::forward_list<double> part_store = { 100.3 };
+    std::list<double> part_store = { 100.3 };
 
     auto p = util::make_partition(part_store, sizes, 10.0);
     ASSERT_EQ(4u, p.size());

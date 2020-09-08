@@ -421,7 +421,7 @@ TEST(range, assign_from) {
 
     {
         std::vector<int> copy = util::assign_from(in);
-        for (auto i=0u; i<util::size(in); ++i) {
+        for (auto i=0u; i<std::size(in); ++i) {
             EXPECT_EQ(in[i], copy[i]);
         }
     }
@@ -429,7 +429,7 @@ TEST(range, assign_from) {
     {
         std::vector<int> copy = util::assign_from(
             util::transform_view(in, [](int i) {return 2*i;}));
-        for (auto i=0u; i<util::size(in); ++i) {
+        for (auto i=0u; i<std::size(in); ++i) {
             EXPECT_EQ(2*in[i], copy[i]);
         }
     }
@@ -659,14 +659,6 @@ TEST(range, is_sorted_by) {
     EXPECT_FALSE(util::is_sorted_by(v_unsorted_4, id_copy, cmp_nomove));
     EXPECT_EQ(4, copies());
     EXPECT_EQ(4, invocations);
-
-    // 5. sequence defined by input (not forward) iterator.
-
-    std::istringstream s_reversed("18 15 13 13 11");
-    auto seq = util::make_range(std::istream_iterator<int>(s_reversed), std::istream_iterator<int>());
-    EXPECT_FALSE(util::is_sorted_by(seq, [](int x) { return x+2; }));
-    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return 2-x; }));
-    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
 }
 
 template <typename V>

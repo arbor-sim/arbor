@@ -202,8 +202,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     std::vector<deliverable_event> staged_events,
     std::vector<sample_event> staged_samples)
 {
-    using util::as_const;
-
     set_gpu();
 
     // Integration setup
