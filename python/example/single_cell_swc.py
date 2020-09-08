@@ -20,6 +20,7 @@ tree = arbor.load_swc('example.swc')
 defaults = arbor.load_cell_default_parameters('defaults.json')
 globals  = arbor.load_cell_global_parameters('cells.json')
 locals   = arbor.load_cell_local_parameter_map('cells.json')
+regions_mechs = arbor.load_cell_mechanism_map('cells.json')
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.

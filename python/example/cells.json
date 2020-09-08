@@ -147,11 +147,6 @@
       "region": "apic",
       "mechanism": "Im",
       "parameters": {"gImbar": 0.00143}
-    },
-    {
-      "region": "apic",
-      "mechanism": "Ih",
-      "parameters": {"gIhbar":  "-0.869600+2.087000*exp(distance_from_soma*0.003100))*0.000080"}
     }
   ]
 }

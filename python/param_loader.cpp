@@ -53,6 +53,23 @@ arb::cable_cell_parameter_set load_cell_parameters(nlohmann::json& defaults_json
     return defaults;
 }
 
+arb::mechanism_desc load_mechanism_desc(nlohmann::json& mech_json) {
+    std::vector<arb::mechanism_desc> mech_vec;
+
+    auto name = find_and_remove_json<std::string>("mechanism", mech_json);
+    if (name) {
+        auto mech = arb::mechanism_desc(name.value());
+        auto params = find_and_remove_json<std::unordered_map<std::string, double>>("parameters", mech_json);
+        if (params) {
+            for (auto p: params.value()) {
+                mech.set(p.first, p.second);
+            }
+        }
+        return mech;
+    }
+    throw pyarb::pyarb_error("Mechanism not specified");
+}
+
 void check_defaults(const arb::cable_cell_parameter_set& defaults) {
     if(!defaults.temperature_K) throw pyarb_error("Default cell values don't include temperature");
     if(!defaults.init_membrane_potential) throw pyarb_error("Default cell values don't include initial membrane potential");
@@ -171,11 +188,54 @@ void register_param_loader(pybind11::module& m) {
           },
           "Load local cell parameters.");
 
+    m.def("load_cell_mechanism_map",
+          [](std::string fname) {
+              std::unordered_map<std::string, std::vector<arb::mechanism_desc>> mech_map;
+
+              std::ifstream fid{fname};
+              if (!fid.good()) {
+                  throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+              }
+              nlohmann::json cells_json;
+              cells_json << fid;
+
+              auto mech_json = find_and_remove_json<std::vector<nlohmann::json>>("mechanisms", cells_json);
+              if (mech_json) {
+                  for (auto m: mech_json.value()) {
+                      auto region = find_and_remove_json<std::string>("region", m);
+                      if (!region) {
+                          throw pyarb_error("Mechanisms do not include region label (in \"" + fname + "\")");
+                      }
+                      try {
+                          mech_map[region.value()].push_back(load_mechanism_desc(m));
+                      }
+                      catch (std::exception& e) {
+                          throw pyarb_error("error loading mechanism for region " + region.value() + " in file \"" + fname + "\": " + std::string(e.what()));
+                      }
+                  }
+              }
+              for (auto m: mech_map) {
+                  std::cout << m.first << std::endl;
+                  std::cout << m.second.size() << std::endl;
+                  for (auto v: m.second) {
+                      std::cout << "\t" << v.name() << std::endl;
+                      for (auto p: v.values()) {
+                          std::cout << "\t\t" << p.first <<  " " << p.second << std::endl;
+                      }
+                  }
+              }
+              return mech_map;
+          },
+          "Load region mechanism descriptions.");
+
     // arb::cable_cell_parameter_set
     pybind11::class_<arb::cable_cell_parameter_set> cable_cell_parameter_set(m, "cable_cell_parameter_set");
 
     // map of arb::cable_cell_parameter_set
     pybind11::class_<std::unordered_map<std::string, arb::cable_cell_parameter_set>> region_cable_cell_parameter_set_map(m, "region_cable_cell_parameter_set_map");
+
+    // map of arb::cable_cell_parameter_set
+    pybind11::class_<std::unordered_map<std::string, std::vector<arb::mechanism_desc>>> region_mechanism_map(m, "region_mechanism_map");
 }
 
 } //namespace pyarb
