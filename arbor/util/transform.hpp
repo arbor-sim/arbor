@@ -9,9 +9,11 @@
 #include <memory>
 #include <type_traits>
 
-#include <util/iterutil.hpp>
-#include <util/meta.hpp>
-#include <util/range.hpp>
+#include <arbor/util/uninitialized.hpp>
+
+#include "util/iterutil.hpp"
+#include "util/meta.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 namespace util {

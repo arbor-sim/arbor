@@ -7,6 +7,7 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
+#include <arbor/util/expected.hpp>
 
 namespace arb {
 
@@ -35,19 +36,19 @@ void mprovider::init() {
 // label_dict_ptr will be null, and concrete regions/locsets will only be retrieved
 // from the maps established during initialization.
 
-template <typename RegOrLocMap, typename LabelDictMap, typename Err>
-static const auto& try_lookup(const mprovider& provider, const std::string& name, RegOrLocMap& map, const LabelDictMap* dict_ptr, Err errval) {
+template <typename RegOrLocMap, typename LabelDictMap>
+static const auto& try_lookup(const mprovider& provider, const std::string& name, RegOrLocMap& map, const LabelDictMap* dict_ptr) {
     auto it = map.find(name);
     if (it==map.end()) {
         if (dict_ptr) {
-            map.emplace(name, errval);
+            map.emplace(name, util::unexpect);
 
             auto it = dict_ptr->find(name);
             if (it==dict_ptr->end()) {
                 throw unbound_name(name);
             }
 
-            return (map[name] = thingify(it->second, provider)).first();
+            return (map[name] = thingify(it->second, provider)).value();
         }
         else {
             throw unbound_name(name);
@@ -57,18 +58,18 @@ static const auto& try_lookup(const mprovider& provider, const std::string& name
         throw circular_definition(name);
     }
     else {
-        return it->second.first();
+        return it->second.value();
     }
 }
 
 const mextent& mprovider::region(const std::string& name) const {
     const auto* regions_ptr = label_dict_ptr? &(label_dict_ptr->regions()): nullptr;
-    return try_lookup(*this, name, regions_, regions_ptr, circular_def{});
+    return try_lookup(*this, name, regions_, regions_ptr);
 }
 
 const mlocation_list& mprovider::locset(const std::string& name) const {
     const auto* locsets_ptr = label_dict_ptr? &(label_dict_ptr->locsets()): nullptr;
-    return try_lookup(*this, name, locsets_, locsets_ptr, circular_def{});
+    return try_lookup(*this, name, locsets_, locsets_ptr);
 }
 
 

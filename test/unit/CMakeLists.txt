@@ -95,11 +95,11 @@ set(unit_sources
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
     test_double_buffer.cpp
-    test_either.cpp
     test_event_binner.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
     test_event_queue.cpp
+    test_expected.cpp
     test_filter.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp

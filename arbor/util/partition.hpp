@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include <arbor/util/either.hpp>
+#include <arbor/util/expected.hpp>
 
 #include "util/meta.hpp"
 #include "util/partition_iterator.hpp"
@@ -52,7 +52,7 @@ public:
     void validate() const {
         auto ok = is_valid();
         if (!ok) {
-            throw invalid_partition(ok.second());
+            throw invalid_partition(ok.error());
         }
     }
 
@@ -86,13 +86,11 @@ public:
     }
 
 private:
-    either<bool, std::string> is_valid() const {
+    expected<void, std::string> is_valid() const {
         if (!std::is_sorted(left.get(), right.get())) {
-            return std::string("offsets are not monotonically increasing");
+            return make_unexpected(std::string("offsets are not monotonically increasing"));
         }
-        else {
-            return true;
-        }
+        return {};
     }
 };
 

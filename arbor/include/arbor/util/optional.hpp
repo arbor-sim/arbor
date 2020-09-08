@@ -14,8 +14,6 @@
  *
  *   4. `swap()` method and ADL-available `swap()` function.
  *
- *   5. In-place construction with `std::in_place_t` tags or equivalent.
- *
  *   5. No `make_optional` function (but see `just` below).
  *
  * Additional/differing functionality:
@@ -44,6 +42,9 @@
 
 namespace arb {
 namespace util {
+
+struct in_place_t {};
+static constexpr in_place_t in_place{};
 
 template <typename X> struct optional;
 
@@ -123,6 +124,13 @@ namespace detail {
         optional_base(bool set_, T&& init) : set(set_) {
             if (set) {
                 data.construct(std::forward<T>(init));
+            }
+        }
+
+        template <typename... Args>
+        optional_base(bool set_, in_place_t, Args&&... args) : set(set_) {
+            if (set) {
+                data.construct(std::forward<Args>(args)...);
             }
         }
 
@@ -207,6 +215,12 @@ struct optional: detail::optional_base<X> {
 
     optional(X&& x)
         noexcept(std::is_nothrow_move_constructible<X>::value): base(true, std::move(x)) {}
+
+    template <typename... Args>
+    optional(in_place_t, Args&&... args): base(true, in_place_t{}, std::forward<Args>(args)...) {}
+
+    template <typename U, typename... Args>
+    optional(in_place_t, std::initializer_list<U> il, Args&&... args): base(true, in_place_t{}, il, std::forward<Args>(args)...) {}
 
     optional(const optional& ot): base(ot.set, ot.ref()) {}
 
