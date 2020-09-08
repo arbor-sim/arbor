@@ -53,6 +53,41 @@ arb::cable_cell_parameter_set load_cell_defaults(nlohmann::json& defaults_json) 
     return defaults;
 }
 
+arb::cable_cell_parameter_set overwrite_cable_parameters(const arb::cable_cell_parameter_set& base, const arb::cable_cell_parameter_set& overwrite) {
+    arb::cable_cell_parameter_set merged = base;
+    if (auto temp = overwrite.temperature_K) {
+        merged.temperature_K = temp;
+    }
+    if (auto cm = overwrite.membrane_capacitance) {
+        merged.membrane_capacitance = cm;
+    }
+    if (auto ra = overwrite.axial_resistivity) {
+        merged.axial_resistivity = ra;
+    }
+    if (auto vm = overwrite.init_membrane_potential) {
+        merged.init_membrane_potential = vm;
+    }
+    for (auto ion: overwrite.ion_data) {
+        auto name = ion.first;
+        auto data = ion.second;
+        if (!isnan(data.init_reversal_potential)) {
+            merged.ion_data[name].init_reversal_potential = data.init_reversal_potential;
+        }
+        if (!isnan(data.init_ext_concentration)) {
+            merged.ion_data[name].init_ext_concentration = data.init_ext_concentration;
+        }
+        if (!isnan(data.init_int_concentration)) {
+            merged.ion_data[name].init_int_concentration = data.init_int_concentration;
+        }
+    }
+    for (auto ion: overwrite.reversal_potential_method) {
+        auto name = ion.first;
+        auto data = ion.second;
+        merged.reversal_potential_method[name] = data;
+    }
+    return merged;
+}
+
 void check_defaults(const arb::cable_cell_parameter_set& defaults) {
     if(!defaults.temperature_K) throw pyarb_error("Default cell values don't include temperature");
     if(!defaults.init_membrane_potential) throw pyarb_error("Default cell values don't include initial membrane potential");

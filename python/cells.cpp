@@ -213,6 +213,8 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
             md.name(), util::dictionary_csv(md.values()));
 }
 
+arb::cable_cell_parameter_set overwrite_cable_parameters(const arb::cable_cell_parameter_set& base, const arb::cable_cell_parameter_set& overwrite);
+
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
     using arb::util::optional;
@@ -487,6 +489,14 @@ void register_cells(pybind11::module& m) {
                  c.default_parameters = s;
              },
              "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
+         // Overwrite default cell parameters
+         .def("overwrite_default_parameters",
+             [](arb::cable_cell& c,
+                arb::cable_cell_parameter_set& s)
+             {
+                c.default_parameters = overwrite_cable_parameters(c.default_parameters, s);
+             },
+            "Overwrite default values for cable and cell properties.")
         // Set cell-wide properties
         .def("set_properties",
             [](arb::cable_cell& c,
