@@ -6,6 +6,7 @@
 #include <arbor/util/optional.hpp>
 
 #include "json.hpp"
+#include "error.hpp"
 
 namespace sup {
 
@@ -15,7 +16,7 @@ namespace sup {
     arb::util::optional<T> find_and_remove_json(const char* name, nlohmann::json& j) {
         auto it = j.find(name);
         if (it==j.end()) {
-            return arb::util::nullopt;
+            throw std::runtime_error("param "+ std::string(name) + " not found in json_file");
         }
         T value = std::move(*it);
         j.erase(name);
