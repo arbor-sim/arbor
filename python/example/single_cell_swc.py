@@ -53,7 +53,7 @@ cell.compartments_on_segments()
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)
-m.properties.catalogue.extend(arbor.default_catalogue(), "")
+m.properties.catalogue.extend(arbor.bbp_catalogue(), "")
 
 # Attach voltage probes that sample at 50 kHz.
 m.probe('voltage', where='root',  frequency=50000)
