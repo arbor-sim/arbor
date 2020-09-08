@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 # The model has 31 branches, including soma, dendrites and axon.
 #tree = arbor.load_swc('../../test/unit/swc/example.swc')
 tree = arbor.load_swc('example.swc')
-defaults = arbor.load_cell_defaults('defaults.json')
+defaults = arbor.load_cell_default_parameters('defaults.json')
+globals  = arbor.load_cell_global_parameters('cells.json')
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -30,7 +31,9 @@ labels = arbor.label_dict(defs)
 
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(tree, labels)
+
 cell.apply_default_parameters(defaults)
+cell.overwrite_default_parameters(globals)
 
 print(cell.locations('axon_end'))
 

@@ -12,7 +12,7 @@
 namespace pyarb {
 using sup::find_and_remove_json;
 
-arb::cable_cell_parameter_set load_cell_defaults(nlohmann::json& defaults_json) {
+arb::cable_cell_parameter_set load_cell_parameters(nlohmann::json& defaults_json) {
     arb::cable_cell_parameter_set defaults;
 
     defaults.init_membrane_potential = find_and_remove_json<double>("Vm", defaults_json);
@@ -105,7 +105,7 @@ void check_defaults(const arb::cable_cell_parameter_set& defaults) {
 }
 
 void register_param_loader(pybind11::module& m) {
-    m.def("load_cell_defaults",
+    m.def("load_cell_default_parameters",
           [](std::string fname) {
               std::ifstream fid{fname};
               if (!fid.good()) {
@@ -113,7 +113,7 @@ void register_param_loader(pybind11::module& m) {
               }
               nlohmann::json defaults_json;
               defaults_json << fid;
-              auto defaults = load_cell_defaults(defaults_json);
+              auto defaults = load_cell_parameters(defaults_json);
               try {
                   check_defaults(defaults);
               }
@@ -121,6 +121,22 @@ void register_param_loader(pybind11::module& m) {
                   throw pyarb_error("error loading parameter from \"" + fname + "\": " + std::string(e.what()));
               }
               return defaults;
+          },
+          "Load default cell parameters.");
+
+    m.def("load_cell_global_parameters",
+          [](std::string fname) {
+              std::ifstream fid{fname};
+              if (!fid.good()) {
+                  throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+              }
+              nlohmann::json cells_json;
+              cells_json << fid;
+              auto globals_json = find_and_remove_json<nlohmann::json>("global", cells_json);
+              if (globals_json) {
+                  return load_cell_parameters(globals_json.value());
+              }
+              return arb::cable_cell_parameter_set();
           },
           "Load default cel parameters.");
 

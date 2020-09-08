@@ -495,6 +495,23 @@ void register_cells(pybind11::module& m) {
                 arb::cable_cell_parameter_set& s)
              {
                 c.default_parameters = overwrite_cable_parameters(c.default_parameters, s);
+
+                std::cout << "Vm " << c.default_parameters.init_membrane_potential.value() << std::endl;
+                std::cout << "cm " << c.default_parameters.membrane_capacitance.value() << std::endl;
+                std::cout << "Ra " << c.default_parameters.axial_resistivity.value() << std::endl;
+                std::cout << "temp " << c.default_parameters.temperature_K.value() << std::endl;
+                std::cout << "ca_rev_pot "  << c.default_parameters.ion_data["ca"].init_reversal_potential<< std::endl;
+                std::cout << "ca_int_conc " << c.default_parameters.ion_data["ca"].init_int_concentration<< std::endl;
+                std::cout << "ca_ext_conc " << c.default_parameters.ion_data["ca"].init_ext_concentration<< std::endl;
+                if(c.default_parameters.reversal_potential_method.count("ca")) std::cout << "ca_method "   << c.default_parameters.reversal_potential_method["ca"].name() << std::endl;
+                std::cout << "na_rev_pot "  << c.default_parameters.ion_data["na"].init_reversal_potential<< std::endl;
+                std::cout << "na_int_conc " << c.default_parameters.ion_data["na"].init_int_concentration<< std::endl;
+                std::cout << "na_ext_conc " << c.default_parameters.ion_data["na"].init_ext_concentration<< std::endl;
+                if(c.default_parameters.reversal_potential_method.count("na")) std::cout << "na_method "   << c.default_parameters.reversal_potential_method["na"].name() << std::endl;
+                std::cout << "k_rev_pot "  << c.default_parameters.ion_data["k"].init_reversal_potential<< std::endl;
+                std::cout << "k_int_conc " << c.default_parameters.ion_data["k"].init_int_concentration<< std::endl;
+                std::cout << "k_ext_conc " << c.default_parameters.ion_data["k"].init_ext_concentration<< std::endl;
+                if(c.default_parameters.reversal_potential_method.count("k")) std::cout << "k_method "   << c.default_parameters.reversal_potential_method["k   "].name() << std::endl;
              },
             "Overwrite default values for cable and cell properties.")
         // Set cell-wide properties
