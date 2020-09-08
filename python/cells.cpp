@@ -479,6 +479,14 @@ void register_cells(pybind11::module& m) {
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
+        // Apply default cell parameters
+        .def("apply_default_parameters",
+             [](arb::cable_cell& c,
+                arb::cable_cell_parameter_set& s)
+             {
+                 c.default_parameters = s;
+             },
+             "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
         // Set cell-wide properties
         .def("set_properties",
             [](arb::cable_cell& c,

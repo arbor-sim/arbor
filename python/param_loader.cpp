@@ -5,8 +5,8 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <sup/json_params.hpp>
 
-#include "json_params.hpp"
 #include "error.hpp"
 
 namespace pyarb {
@@ -22,7 +22,7 @@ arb::cable_cell_parameter_set load_cell_defaults(std::istream& is) {
 
     try {
         param_from_json(ions_json, "ions", defaults_json);
-        param_from_json(Vm, "Vm", defaults_json);
+        param_from_json(Vm, "V", defaults_json);
         param_from_json(cm, "cm", defaults_json);
         param_from_json(Ra, "Ra", defaults_json);
         param_from_json(celsius, "celsius", defaults_json);

@@ -30,6 +30,7 @@ labels = arbor.label_dict(defs)
 
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(tree, labels)
+cell.apply_default_parameters(defaults)
 
 print(cell.locations('axon_end'))
 
