@@ -7,9 +7,9 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "util/piecewise.hpp"
+#include "util/rangeutil.hpp"
 
 #include "../test/gtest.h"
-#include "common.hpp"
 #include "common_cells.hpp"
 
 using namespace arb;
@@ -290,4 +290,254 @@ TEST(place_pwlin, branched) {
     EXPECT_TRUE(mpoint_almost_eq(x_0, p_0));
     EXPECT_TRUE(mpoint_almost_eq(x_1, p_1));
     EXPECT_TRUE(mpoint_almost_eq(x_2, p_2));
+}
+
+TEST(place_pwlin, all_at) {
+    // One branch, two discontinguous segments.
+    {
+        mpoint p0p{0, 0, 0, 1};
+        mpoint p0d{2, 3, 4, 5};
+        mpoint p1p{3, 4, 5, 7};
+        mpoint p1d{6, 6, 7, 8};
+
+        segment_tree tree;
+        msize_t s0 = tree.append(mnpos, p0p, p0d, 0);
+        msize_t s1 = tree.append(s0, p1p, p1d, 0);
+
+        morphology m(tree);
+        mprovider p(m, label_dict{});
+        place_pwlin place(m);
+
+        mlocation_list end_s0 = thingify(ls::most_distal(reg::segment(s0)), p);
+        ASSERT_EQ(1u, end_s0.size());
+        mlocation_list end_s1 = thingify(ls::most_distal(reg::segment(s1)), p);
+        ASSERT_EQ(1u, end_s1.size());
+
+        auto points_end_s1 = place.all_at(end_s1[0]);
+        ASSERT_EQ(1u, points_end_s1.size());
+        EXPECT_TRUE(mpoint_almost_eq(p1d, points_end_s1[0]));
+
+        auto points_end_s0 = place.all_at(end_s0[0]);
+        ASSERT_EQ(2u, points_end_s0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_end_s0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p1p, points_end_s0[1]));
+    }
+
+    // One branch, multiple zero-length segments at end.
+    {
+        mpoint p0p{0, 0, 0, 1};
+        mpoint p0d{2, 3, 4, 5};
+        mpoint p1p{3, 4, 5, 7};
+        mpoint p1d = p1p;
+        mpoint p2p{6, 6, 7, 8};
+        mpoint p2d = p2p;
+
+        segment_tree tree;
+        msize_t s0 = tree.append(mnpos, p0p, p0d, 0);
+        msize_t s1 = tree.append(s0, p1p, p1d, 0);
+        (void)tree.append(s1, p2p, p2d, 0);
+
+        morphology m(tree);
+        mprovider p(m, label_dict{});
+        place_pwlin place(m);
+
+        auto points_end_b0 = place.all_at(mlocation{0, 1});
+        ASSERT_EQ(3u, points_end_b0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_end_b0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p1d, points_end_b0[1]));
+        EXPECT_TRUE(mpoint_almost_eq(p2d, points_end_b0[2]));
+    }
+
+    // Zero length branch comprising multiple zero-length segments.
+    // (Please don't do this.)
+    {
+        mpoint p0p{2, 3, 4, 5};
+        mpoint p0d = p0p;
+        mpoint p1p{3, 4, 5, 7};
+        mpoint p1d = p1p;
+        mpoint p2p{6, 6, 7, 8};
+        mpoint p2d = p2p;
+
+        segment_tree tree;
+        msize_t s0 = tree.append(mnpos, p0p, p0d, 0);
+        msize_t s1 = tree.append(s0, p1p, p1d, 0);
+        (void)tree.append(s1, p2p, p2d, 0);
+
+        morphology m(tree);
+        mprovider p(m, label_dict{});
+        place_pwlin place(m);
+
+        auto points_begin_b0 = place.all_at(mlocation{0, 0});
+        ASSERT_EQ(3u, points_begin_b0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_begin_b0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p1d, points_begin_b0[1]));
+        EXPECT_TRUE(mpoint_almost_eq(p2d, points_begin_b0[2]));
+
+        auto points_mid_b0 = place.all_at(mlocation{0, 0.5});
+        ASSERT_EQ(3u, points_mid_b0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_mid_b0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p1d, points_mid_b0[1]));
+        EXPECT_TRUE(mpoint_almost_eq(p2d, points_mid_b0[2]));
+
+        auto points_end_b0 = place.all_at(mlocation{0, 1});
+        ASSERT_EQ(3u, points_end_b0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_end_b0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p1d, points_end_b0[1]));
+        EXPECT_TRUE(mpoint_almost_eq(p2d, points_end_b0[2]));
+    }
+}
+
+TEST(place_pwlin, segments) {
+    // Y-shaped morphology with some discontinuous
+    // and zero-length segments.
+
+    segment_tree tree;
+
+    // root branch
+
+    mpoint p0p{0, 0, 0, 1};
+    mpoint p0d{1, 0, 0, 1};
+    mpoint p1p = p0d;
+    mpoint p1d{2, 0, 0, 1};
+
+    msize_t s0 = tree.append(mnpos, p0p, p0d, 0);
+    msize_t s1 = tree.append(s0, p1p, p1d, 0);
+
+    // branch A (total length 2)
+
+    mpoint p2p{2, 0, 0, 1};
+    mpoint p2d{2, 1, 0, 1};
+    mpoint p3p{2, 1, 0, 0.5};
+    mpoint p3d{2, 2, 0, 0.5};
+    mpoint p4p{8, 9, 7, 1.5}; // some random zero-length segments on the end...
+    mpoint p4d = p4p;
+    mpoint p5p{3, 1, 3, 0.5};
+    mpoint p5d = p5p;
+
+    msize_t s2 = tree.append(s1, p2p, p2d, 0);
+    msize_t s3 = tree.append(s2, p3p, p3d, 0);
+    msize_t s4 = tree.append(s3, p4p, p4d, 0);
+    msize_t s5 = tree.append(s4, p5p, p5d, 0);
+    (void)s5;
+
+    // branch B (total length 4)
+
+    mpoint p6p{2, 0, 0, 1};
+    mpoint p6d{2, 0, 2, 1};
+    mpoint p7p{2, 0, 2, 0.5}; // a zero-length segment in the middle...
+    mpoint p7d = p7p;
+    mpoint p8p{2, 0, 3, 1};
+    mpoint p8d{2, 0, 5, 1};
+
+    msize_t s6 = tree.append(s1, p6p, p6d, 0);
+    msize_t s7 = tree.append(s6, p7p, p7d, 0);
+    msize_t s8 = tree.append(s7, p8p, p8d, 0);
+    (void)s8;
+
+    morphology m(tree);
+    mprovider p(m, label_dict{});
+    place_pwlin place(m);
+
+    // Thingify a segment expression to work out which branch id is A and
+    // which is B.
+
+    mextent s2_extent = thingify(reg::segment(2), p);
+    msize_t branch_A = s2_extent.front().branch;
+
+    mextent s6_extent = thingify(reg::segment(6), p);
+    msize_t branch_B = s6_extent.front().branch;
+
+    ASSERT_TRUE((branch_A==1 && branch_B==2) || (branch_A==2 && branch_B==1));
+
+    // Region 1: all of branch A, middle section of branch B.
+
+    region r1 = join(reg::branch(branch_A), reg::cable(branch_B, 0.25, 0.75));
+    mextent x1 = thingify(r1, p);
+
+    std::vector<msegment> x1min = place.segments(x1);
+    std::vector<msegment> x1all = place.all_segments(x1);
+
+    auto seg_id = [](const msegment& s) { return s.id; };
+
+    util::sort_by(x1min, seg_id);
+    std::vector<msize_t> x1min_seg_ids = util::assign_from(util::transform_view(x1min, seg_id));
+
+    util::sort_by(x1all, seg_id);
+    std::vector<msize_t> x1all_seg_ids = util::assign_from(util::transform_view(x1all, seg_id));
+
+    ASSERT_EQ((std::vector<msize_t>{2, 3, 6, 8}), x1min_seg_ids);
+    ASSERT_EQ((std::vector<msize_t>{2, 3, 4, 5, 6, 7, 8}), x1all_seg_ids);
+
+    EXPECT_TRUE(mpoint_almost_eq(p2p, x1all[0].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p2d, x1all[0].dist));
+
+    EXPECT_TRUE(mpoint_almost_eq(p3p, x1all[1].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p3d, x1all[1].dist));
+
+    EXPECT_TRUE(mpoint_almost_eq(p4p, x1all[2].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p4d, x1all[2].dist));
+
+    EXPECT_TRUE(mpoint_almost_eq(p5p, x1all[3].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p5d, x1all[3].dist));
+
+    EXPECT_FALSE(mpoint_almost_eq(p6p, x1all[4].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p6d, x1all[4].dist));
+    EXPECT_TRUE(mpoint_almost_eq(mpoint{2, 0, 1, 1}, x1all[4].prox));
+
+    EXPECT_TRUE(mpoint_almost_eq(p7p, x1all[5].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p7d, x1all[5].dist));
+
+    EXPECT_TRUE(mpoint_almost_eq(p8p, x1all[6].prox));
+    EXPECT_FALSE(mpoint_almost_eq(p8d, x1all[6].dist));
+    EXPECT_TRUE(mpoint_almost_eq(mpoint{2, 0, 4, 1}, x1all[6].dist));
+
+    // Region 2: first half of branch A. Test exclusion of zero-length partial
+    // segments.
+
+    region r2 = reg::cable(branch_A, 0., 0.5);
+    mextent x2 = thingify(r2, p);
+
+    std::vector<msegment> x2min = place.segments(x2);
+    std::vector<msegment> x2all = place.all_segments(x2);
+
+    util::sort_by(x2min, seg_id);
+    std::vector<msize_t> x2min_seg_ids = util::assign_from(util::transform_view(x2min, seg_id));
+
+    util::sort_by(x2all, seg_id);
+    std::vector<msize_t> x2all_seg_ids = util::assign_from(util::transform_view(x2all, seg_id));
+
+    ASSERT_EQ((std::vector<msize_t>{2}), x2min_seg_ids);
+    ASSERT_EQ((std::vector<msize_t>{2, 3}), x2all_seg_ids);
+
+    EXPECT_TRUE(mpoint_almost_eq(p3p, x2all[1].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p3p, x2all[1].dist));
+
+    // Region 3: trivial region, midpont of branch B.
+
+    region r3 = reg::cable(branch_B, 0.5, 0.5);
+    mextent x3 = thingify(r3, p);
+
+    std::vector<msegment> x3min = place.segments(x3);
+    std::vector<msegment> x3all = place.all_segments(x3);
+
+    util::sort_by(x3min, seg_id);
+    std::vector<msize_t> x3min_seg_ids = util::assign_from(util::transform_view(x3min, seg_id));
+
+    util::sort_by(x3all, seg_id);
+    std::vector<msize_t> x3all_seg_ids = util::assign_from(util::transform_view(x3all, seg_id));
+
+    ASSERT_EQ(1u, x3min_seg_ids.size()); // Could be end of s6, all of s7, or beginning of s8
+    ASSERT_EQ((std::vector<msize_t>{6, 7, 8}), x3all_seg_ids);
+
+    EXPECT_TRUE(mpoint_almost_eq(x3min[0].prox, x3min[0].dist));
+    EXPECT_TRUE(mpoint_almost_eq(p6d, x3min[0].prox) ||
+                mpoint_almost_eq(p7d, x3min[0].prox) ||
+                mpoint_almost_eq(p8p, x3min[0].prox));
+
+    EXPECT_TRUE(mpoint_almost_eq(p6d, x3all[0].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p6d, x3all[0].dist));
+    EXPECT_TRUE(mpoint_almost_eq(p7d, x3all[1].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p7d, x3all[1].dist));
+    EXPECT_TRUE(mpoint_almost_eq(p8p, x3all[2].prox));
+    EXPECT_TRUE(mpoint_almost_eq(p8p, x3all[2].dist));
 }
