@@ -214,16 +214,6 @@ void register_param_loader(pybind11::module& m) {
                       }
                   }
               }
-              for (auto m: mech_map) {
-                  std::cout << m.first << std::endl;
-                  std::cout << m.second.size() << std::endl;
-                  for (auto v: m.second) {
-                      std::cout << "\t" << v.name() << std::endl;
-                      for (auto p: v.values()) {
-                          std::cout << "\t\t" << p.first <<  " " << p.second << std::endl;
-                      }
-                  }
-              }
               return mech_map;
           },
           "Load region mechanism descriptions.");

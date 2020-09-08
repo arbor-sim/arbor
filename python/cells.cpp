@@ -490,54 +490,69 @@ void register_cells(pybind11::module& m) {
              },
              "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
          // Overwrite default cell parameters
-         .def("overwrite_default_parameters",
+        .def("overwrite_default_parameters",
              [](arb::cable_cell& c,
                 arb::cable_cell_parameter_set& s)
              {
-                c.default_parameters = overwrite_cable_parameters(c.default_parameters, s);
+                 c.default_parameters = overwrite_cable_parameters(c.default_parameters, s);
 
-                std::cout << "Vm " << c.default_parameters.init_membrane_potential.value() << std::endl;
-                std::cout << "cm " << c.default_parameters.membrane_capacitance.value() << std::endl;
-                std::cout << "Ra " << c.default_parameters.axial_resistivity.value() << std::endl;
-                std::cout << "temp " << c.default_parameters.temperature_K.value() << std::endl;
-                std::cout << "ca_rev_pot "  << c.default_parameters.ion_data["ca"].init_reversal_potential<< std::endl;
-                std::cout << "ca_int_conc " << c.default_parameters.ion_data["ca"].init_int_concentration<< std::endl;
-                std::cout << "ca_ext_conc " << c.default_parameters.ion_data["ca"].init_ext_concentration<< std::endl;
-                if(c.default_parameters.reversal_potential_method.count("ca")) std::cout << "ca_method "   << c.default_parameters.reversal_potential_method["ca"].name() << std::endl;
-                std::cout << "na_rev_pot "  << c.default_parameters.ion_data["na"].init_reversal_potential<< std::endl;
-                std::cout << "na_int_conc " << c.default_parameters.ion_data["na"].init_int_concentration<< std::endl;
-                std::cout << "na_ext_conc " << c.default_parameters.ion_data["na"].init_ext_concentration<< std::endl;
-                if(c.default_parameters.reversal_potential_method.count("na")) std::cout << "na_method "   << c.default_parameters.reversal_potential_method["na"].name() << std::endl;
-                std::cout << "k_rev_pot "  << c.default_parameters.ion_data["k"].init_reversal_potential<< std::endl;
-                std::cout << "k_int_conc " << c.default_parameters.ion_data["k"].init_int_concentration<< std::endl;
-                std::cout << "k_ext_conc " << c.default_parameters.ion_data["k"].init_ext_concentration<< std::endl;
-                if(c.default_parameters.reversal_potential_method.count("k")) std::cout << "k_method "   << c.default_parameters.reversal_potential_method["k   "].name() << std::endl;
+                 std::cout << "Vm " << c.default_parameters.init_membrane_potential.value() << std::endl;
+                 std::cout << "cm " << c.default_parameters.membrane_capacitance.value() << std::endl;
+                 std::cout << "Ra " << c.default_parameters.axial_resistivity.value() << std::endl;
+                 std::cout << "temp " << c.default_parameters.temperature_K.value() << std::endl;
+                 std::cout << "ca_rev_pot "  << c.default_parameters.ion_data["ca"].init_reversal_potential<< std::endl;
+                 std::cout << "ca_int_conc " << c.default_parameters.ion_data["ca"].init_int_concentration<< std::endl;
+                 std::cout << "ca_ext_conc " << c.default_parameters.ion_data["ca"].init_ext_concentration<< std::endl;
+                 if(c.default_parameters.reversal_potential_method.count("ca")) std::cout << "ca_method "   << c.default_parameters.reversal_potential_method["ca"].name() << std::endl;
+                 std::cout << "na_rev_pot "  << c.default_parameters.ion_data["na"].init_reversal_potential<< std::endl;
+                 std::cout << "na_int_conc " << c.default_parameters.ion_data["na"].init_int_concentration<< std::endl;
+                 std::cout << "na_ext_conc " << c.default_parameters.ion_data["na"].init_ext_concentration<< std::endl;
+                 if(c.default_parameters.reversal_potential_method.count("na")) std::cout << "na_method "   << c.default_parameters.reversal_potential_method["na"].name() << std::endl;
+                 std::cout << "k_rev_pot "  << c.default_parameters.ion_data["k"].init_reversal_potential<< std::endl;
+                 std::cout << "k_int_conc " << c.default_parameters.ion_data["k"].init_int_concentration<< std::endl;
+                 std::cout << "k_ext_conc " << c.default_parameters.ion_data["k"].init_ext_concentration<< std::endl;
+                 if(c.default_parameters.reversal_potential_method.count("k")) std::cout << "k_method "   << c.default_parameters.reversal_potential_method["k   "].name() << std::endl;
              },
-            "Overwrite default values for cable and cell properties.")
-            .def("overwrite_local_parameters",
-                 [](arb::cable_cell& c,
-                    std::unordered_map<std::string, arb::cable_cell_parameter_set>& local_map)
-                 {
-                     for (const auto& local: local_map) {
-                         auto region = local.first;
-                         const auto& params = local.second;
-                         if (params.temperature_K)           c.paint(region, arb::temperature_K{params.temperature_K.value()});
-                         if (params.init_membrane_potential) c.paint(region, arb::init_membrane_potential{params.init_membrane_potential.value()});
-                         if (params.axial_resistivity)       c.paint(region, arb::axial_resistivity{params.axial_resistivity.value()});
-                         if (params.membrane_capacitance)    c.paint(region, arb::membrane_capacitance{params.membrane_capacitance.value()});
-                         for (auto ion_params: params.ion_data) {
-                             auto ion = ion_params.first;
-                             auto data = ion_params.second;
+             "Overwrite default values for cable and cell properties.")
+        // Overwrite local (regional) parameters
+        .def("overwrite_local_parameters",
+             [](arb::cable_cell& c,
+                std::unordered_map<std::string, arb::cable_cell_parameter_set>& local_map)
+             {
+                 for (const auto& local: local_map) {
+                     auto region = local.first;
+                     const auto& params = local.second;
+                     if (params.temperature_K)           c.paint(region, arb::temperature_K{params.temperature_K.value()});
+                     if (params.init_membrane_potential) c.paint(region, arb::init_membrane_potential{params.init_membrane_potential.value()});
+                     if (params.axial_resistivity)       c.paint(region, arb::axial_resistivity{params.axial_resistivity.value()});
+                     if (params.membrane_capacitance)    c.paint(region, arb::membrane_capacitance{params.membrane_capacitance.value()});
+                     for (auto ion_params: params.ion_data) {
+                         auto ion = ion_params.first;
+                         auto data = ion_params.second;
 
-                             auto ion_data = c.default_parameters.ion_data[ion];
-                             if (!isnan(data.init_int_concentration)) ion_data.init_int_concentration = data.init_int_concentration;
-                             if (!isnan(data.init_ext_concentration)) ion_data.init_ext_concentration = data.init_ext_concentration;
-                             if (!isnan(data.init_reversal_potential)) ion_data.init_reversal_potential = data.init_reversal_potential;
-                             c.paint(region, arb::initial_ion_data{ion, ion_data});
-                         }
+                         auto ion_data = c.default_parameters.ion_data[ion];
+                         if (!isnan(data.init_int_concentration)) ion_data.init_int_concentration = data.init_int_concentration;
+                         if (!isnan(data.init_ext_concentration)) ion_data.init_ext_concentration = data.init_ext_concentration;
+                         if (!isnan(data.init_reversal_potential)) ion_data.init_reversal_potential = data.init_reversal_potential;
+                         c.paint(region, arb::initial_ion_data{ion, ion_data});
                      }
-                 },
-                 "Overwrite regional values for cable properties.")
+                 }
+             },
+             "Overwrite regional values for cable properties.")
+         // Write cell dynamics
+         .def("write_dynamics",
+              [](arb::cable_cell& c,
+                 std::unordered_map<std::string, std::vector<arb::mechanism_desc>>& region_map)
+              {
+                  for (const auto& region_mech: region_map) {
+                      auto region = region_mech.first;
+                      const auto& mech_vec = region_mech.second;
+                      for (const auto& mech: mech_vec) {
+                          c.paint(region, mech);
+                      }
+                  }
+              },
+              "Paint mechamnisms on the regions")
         // Set cell-wide properties
         .def("set_properties",
             [](arb::cable_cell& c,

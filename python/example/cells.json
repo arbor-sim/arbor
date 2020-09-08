@@ -41,7 +41,7 @@
     {
       "region": "soma",
       "mechanism": "CaDynamics_E2",
-      "parameters": {"gamma": 0.000609}
+      "parameters": {"gamma": 0.000609,"decay": 210.485284}
     },
     {
       "region": "soma",
@@ -70,11 +70,6 @@
     },
     {
       "region": "soma",
-      "mechanism": "CaDynamics_E2",
-      "parameters": {"decay": 210.485284}
-    },
-    {
-      "region": "soma",
       "mechanism": "Ca_LVAst",
       "parameters": {"gCa_LVAstbar": 0.000333}
     },
@@ -91,7 +86,7 @@
     {
       "region": "axon",
       "mechanism": "CaDynamics_E2",
-      "parameters": {"gamma": 0.002910}
+      "parameters": {"gamma": 0.002910, "decay": 287.198731}
     },
     {
       "region": "axon",
@@ -117,11 +112,6 @@
       "region": "axon",
       "mechanism": "SKv3_1",
       "parameters": {"gSKv3_1bar": 1.021945}
-    },
-    {
-      "region": "axon",
-      "mechanism": "CaDynamics_E2",
-      "parameters": {"decay": 287.198731}
     },
     {
       "region": "axon",

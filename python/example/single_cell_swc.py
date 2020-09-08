@@ -20,13 +20,14 @@ tree = arbor.load_swc('example.swc')
 defaults = arbor.load_cell_default_parameters('defaults.json')
 globals  = arbor.load_cell_global_parameters('cells.json')
 locals   = arbor.load_cell_local_parameter_map('cells.json')
-regions_mechs = arbor.load_cell_mechanism_map('cells.json')
+region_mechs = arbor.load_cell_mechanism_map('cells.json')
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
         'axon': '(tag 2)',  # axon has tag 2 in swc files.
         'dend': '(tag 3)',  # dendrites have tag 3 in swc files.
         'apic': '(tag 4)',  # dendrites have tag 3 in swc files.
+        'all' : '(all)',    # all the cell
         'root': '(root)',   # the start of the soma in this morphology is at the root of the cell.
         'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 1.
         'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
@@ -38,6 +39,7 @@ cell = arbor.cable_cell(tree, labels)
 cell.apply_default_parameters(defaults)
 cell.overwrite_default_parameters(globals)
 cell.overwrite_local_parameters(locals)
+cell.write_dynamics(region_mechs)
 
 print(cell.locations('axon_end'))
 
@@ -49,7 +51,7 @@ cell.set_ion('ca', method=mech('nernst/x=ca'))
 cell.paint('soma', 'hh')
 cell.paint('axon', 'hh')
 # pas mechanism the dendrites.
-cell.paint('dend', 'pas')
+# cell.paint('dend', 'pas')
 # Increase resistivity on dendrites.
 cell.paint('dend', rL=500)
 # Attach stimuli that inject 0.8 nA currents for 1 ms, starting at 3 and 8 ms.
