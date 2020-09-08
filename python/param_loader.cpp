@@ -10,60 +10,63 @@
 #include "error.hpp"
 
 namespace pyarb {
-using nlohmann::json;
-using sup::param_from_json;
+using sup::find_and_remove_json;
 
-arb::cable_cell_parameter_set load_cell_defaults(std::istream& is) {
-    double celsius, Vm, Ra, cm;
+arb::cable_cell_parameter_set load_cell_defaults(nlohmann::json& defaults_json) {
     arb::cable_cell_parameter_set defaults;
 
-    json defaults_json, ions_json;
-    defaults_json << is;
-
-    try {
-        param_from_json(ions_json, "ions", defaults_json);
-        param_from_json(Vm, "V", defaults_json);
-        param_from_json(cm, "cm", defaults_json);
-        param_from_json(Ra, "Ra", defaults_json);
-        param_from_json(celsius, "celsius", defaults_json);
-    }
-    catch (std::exception& e) {
-        throw pyarb_error("necessary cell default value missing: " + std::string(e.what()));
+    defaults.init_membrane_potential = find_and_remove_json<double>("Vm", defaults_json);
+    defaults.membrane_capacitance    = find_and_remove_json<double>("cm", defaults_json);
+    defaults.axial_resistivity       = find_and_remove_json<double>("Ra", defaults_json);
+    auto temp_c = find_and_remove_json<double>("celsius", defaults_json);
+    if (temp_c) {
+        defaults.temperature_K = temp_c.value() + 273.15;
     }
 
-    auto ions_map = ions_json.get<std::unordered_map<std::string, nlohmann::json>>();
-    for (auto& i: ions_map) {
-        auto ion_name = i.first;
-        auto ion_json = i.second;
+    if (auto ions_json = find_and_remove_json<nlohmann::json>("ions", defaults_json)) {
+        auto ions_map = ions_json.value().get<std::unordered_map<std::string, nlohmann::json>>();
+        for (auto& i: ions_map) {
+            auto ion_name = i.first;
+            auto ion_json = i.second;
 
-        arb::cable_cell_ion_data ion_data;
-        std::string method;
+            arb::cable_cell_ion_data ion_data;
+            if (auto iconc = find_and_remove_json<double>("internal-concentration", ion_json)) {
+                ion_data.init_int_concentration = iconc.value();
+            }
+            if (auto econc = find_and_remove_json<double>("external-concentration", ion_json)) {
+                ion_data.init_ext_concentration = econc.value();
+            }
+            if (auto rev_pot = find_and_remove_json<double>("reversal-potential", ion_json)) {
+                ion_data.init_reversal_potential = rev_pot.value();
+            }
+            defaults.ion_data.insert({ion_name, ion_data});
 
-        try {
-            param_from_json(ion_data.init_int_concentration, "internal-concentration", ion_json);
-            param_from_json(ion_data.init_ext_concentration, "external-concentration", ion_json);
-            param_from_json(ion_data.init_reversal_potential, "reversal-potential", ion_json);
-            param_from_json(method, "method", ion_json);
-        }
-        catch (std::exception& e) {
-            throw pyarb_error("necessary cell default for ion \"" + ion_name + "\" value missing: " + std::string(e.what()));
-        }
-
-        defaults.ion_data.insert({ion_name, ion_data});
-        if(method == "nernst") {
-            defaults.reversal_potential_method.insert({ion_name,"nernst/"+ion_name});
-        } else if (method != "constant") {
-            std::cout << "here " << method << std::endl;
-            throw pyarb_error("method of ion \"" + ion_name + "\" can only be either constant or nernst");
+            if (auto method = find_and_remove_json<std::string>("method", ion_json)) {
+                if (method.value() == "nernst") {
+                    defaults.reversal_potential_method.insert({ion_name, "nernst/" + ion_name});
+                } else if (method.value() != "constant") {
+                    throw pyarb_error("method of ion \"" + ion_name + "\" can only be either constant or nernst");
+                }
+            }
         }
     }
-
-    defaults.init_membrane_potential = Vm;
-    defaults.membrane_capacitance = cm;
-    defaults.axial_resistivity = Ra;
-    defaults.temperature_K = celsius + 273.15;
-
     return defaults;
+}
+
+void check_defaults(const arb::cable_cell_parameter_set& defaults) {
+    if(!defaults.temperature_K) throw pyarb_error("Default cell values don't include temperature");
+    if(!defaults.init_membrane_potential) throw pyarb_error("Default cell values don't include initial membrane potential");
+    if(!defaults.axial_resistivity) throw pyarb_error("Default cell values don't include axial_resistivity");
+    if(!defaults.membrane_capacitance) throw pyarb_error("Default cell values don't include membrane_capacitance");
+
+    std::vector<std::string> default_ions = {"ca", "na", "k"};
+
+    for (auto ion:default_ions) {
+        if(!defaults.ion_data.count(ion)) throw pyarb_error("Default cell values don't include " + ion + " default values");
+        if(isnan(defaults.ion_data.at(ion).init_int_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial internal concentration");
+        if(isnan(defaults.ion_data.at(ion).init_ext_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial external concentration");
+        if(isnan(defaults.ion_data.at(ion).init_reversal_potential)) throw pyarb_error("Default cell values don't include " + ion + "'s initial reversal potential");
+    }
 }
 
 void register_param_loader(pybind11::module& m) {
@@ -73,12 +76,16 @@ void register_param_loader(pybind11::module& m) {
               if (!fid.good()) {
                   throw pyarb_error(util::pprintf("can't open file '{}'", fname));
               }
+              nlohmann::json defaults_json;
+              defaults_json << fid;
+              auto defaults = load_cell_defaults(defaults_json);
               try {
-                  return load_cell_defaults(fid);
+                  check_defaults(defaults);
               }
               catch (std::exception& e) {
                   throw pyarb_error("error loading parameter from \"" + fname + "\": " + std::string(e.what()));
               }
+              return defaults;
           },
           "Load default cel parameters.");
 

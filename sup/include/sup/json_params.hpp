@@ -15,7 +15,7 @@ template <typename T>
 arb::util::optional<T> find_and_remove_json(const char* name, nlohmann::json& j) {
     auto it = j.find(name);
     if (it==j.end()) {
-        throw std::runtime_error("parameter "+std::string(name)+" not found");
+        return arb::util::nullopt;
     }
     T value = std::move(*it);
     j.erase(name);
