@@ -10,6 +10,9 @@ The :class:`recipe` class documentation is below.
 A recipe describes neuron models in a cell-oriented manner and supplies methods to provide cell information.
 Details on why Arbor uses recipes and general best practices can be found in :ref:`modelrecipe`.
 
+Recipe
+------
+
 .. class:: recipe
 
     Describe a model by describing the cells and network, without any information about how the model is to be represented or executed.
@@ -99,6 +102,9 @@ Details on why Arbor uses recipes and general best practices can be found in :re
 
         By default throws a runtime error. If :func:`num_probes`
         returns a non-zero value, this must also be overridden.
+
+Probes
+------
 
 .. class:: probe
 
@@ -363,6 +369,9 @@ Cells
         :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
 
         :param realtime_ratio: Time taken to integrate a cell, for example if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.
+
+Example
+-------
 
 Below is an example of a recipe construction of a ring network of multi-compartmental cells.
 Because the interface for specifying cable morphology cells is under construction, the temporary

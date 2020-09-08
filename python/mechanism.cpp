@@ -152,7 +152,7 @@ void register_mechanisms(pybind11::module& m) {
             }),
             "name"_a, "The name of the mechanism",
             "params"_a, "A dictionary of parameter values, with parameter name as key.",
-            "Example usage setting pararmeters:\n"
+            "Example usage setting parameters:\n"
             "  m = arbor.mechanism('expsyn', {'tau': 1.4})\n"
             "will create parameters for the 'expsyn' mechanism, with the provided value\n"
             "for 'tau' overrides the default. If a parameter is not set, the default\n"

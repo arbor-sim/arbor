@@ -62,10 +62,10 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    py_overview
    py_recipe
    py_common
+   py_cable_cell
    py_morphology
    py_labels
    py_mechanisms
-   py_cable_cell
    py_single_cell
    py_hardware
    py_domdec
