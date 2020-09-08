@@ -15,6 +15,7 @@ void register_flat_builder(pybind11::module& m);
 void register_identifiers(pybind11::module& m);
 void register_mechanisms(pybind11::module& m);
 void register_morphology(pybind11::module& m);
+void register_param_loader(pybind11::module& m);
 void register_profiler(pybind11::module& m);
 void register_recipe(pybind11::module& m);
 void register_sampling(pybind11::module& m);
@@ -42,6 +43,7 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_mechanisms(m);
     pyarb::register_morphology(m);
     pyarb::register_profiler(m);
+    pyarb::register_param_loader(m);
     pyarb::register_recipe(m);
     pyarb::register_sampling(m);
     pyarb::register_schedules(m);
