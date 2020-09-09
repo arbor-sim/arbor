@@ -53,17 +53,17 @@ INITIAL {
 }
 
 FUNCTION m_alpha(v) {
-    m_alpha = -0.182*6*exprelr(-(v + 38)/6)
+    m_alpha = 0.182*6*exprelr(-(v + 38)/6)
 }
 
 FUNCTION m_beta(v) {
-    m_beta = -0.124*6*exprelr( (v + 38)/6)
+    m_beta = 0.124*6*exprelr( (v + 38)/6)
 }
 
 FUNCTION h_alpha(v) {
-    h_alpha = -0.015*6*exprelr( (v + 66)/6)
+    h_alpha = 0.015*6*exprelr( (v + 66)/6)
 }
 
 FUNCTION h_beta(v) {
-    h_beta = -0.015*6*exprelr(-(v + 66)/6)
+    h_beta = 0.015*6*exprelr(-(v + 66)/6)
 }

@@ -30,13 +30,13 @@ DERIVATIVE states {
     qt = 2.3^((34 - 21)/10)
 
     mInf = m_inf(v)
-    mAlpha = -0.182*6*exprelr(-(v + 38)/6)
-    mBeta  = -0.124*6*exprelr( (v + 38)/6)
+    mAlpha = 0.182*6*exprelr(-(v + 38)/6)
+    mBeta  = 0.124*6*exprelr( (v + 38)/6)
     mTau   = 6.0/(mAlpha + mBeta)
 
     hInf = h_inf(v)
-    hAlpha = -2.88e-6*4.63*exprelr( (v + 17.0)/4.63)
-    hBeta  = -6.94e-6*2.63*exprelr(-(v + 64.4)/2.63)
+    hAlpha = 2.88e-6*4.63*exprelr( (v + 17.0)/4.63)
+    hBeta  = 6.94e-6*2.63*exprelr(-(v + 64.4)/2.63)
     hTau   = 1.0/(hAlpha + hBeta)
 
     m' = qt*(mInf - m)/mTau

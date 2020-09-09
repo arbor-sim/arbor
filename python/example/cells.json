@@ -41,7 +41,7 @@
     {
       "region": "soma",
       "mechanism": "CaDynamics_E2",
-      "parameters": {"gamma": 0.000609,"decay": 210.485284}
+      "parameters": {"gamma": 0.000609, "decay": 210.485284, "initCai": 5e-5}
     },
     {
       "region": "soma",
@@ -86,7 +86,7 @@
     {
       "region": "axon",
       "mechanism": "CaDynamics_E2",
-      "parameters": {"gamma": 0.002910, "decay": 287.198731}
+      "parameters": {"gamma": 0.002910, "decay": 287.198731, "initCai": 5e-5}
     },
     {
       "region": "axon",
