@@ -4,7 +4,7 @@
 NEURON {
    SUFFIX CaDynamics_E2
    USEION ca READ ica WRITE cai
-   RANGE decay, gamma, minCai, depth
+   RANGE decay, gamma, minCai, depth, initCai
 }
 
 UNITS {
@@ -21,10 +21,15 @@ PARAMETER {
    decay  = 80                  (ms)           : rate of removal of calcium
    depth  = 0.1                 (um)           : depth of shell
    minCai = 1e-4                (mM)
+   initCai
 }
 
 STATE {
-   cai (mM)
+   cai
+}
+
+INITIAL {
+   cai = initCai
 }
 
 BREAKPOINT {
