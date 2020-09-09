@@ -1,25 +1,10 @@
-# NOTE: deprecating spherical roots changes the behavior of this model.
-# There is no soma, because only the root sample has tag 1, which will be
-# ignored as it is always the proximal end of any cable segment.
-# The fix is to:
-#   - Write an swc interpreter that inserts a cylinder with the
-#     appropriate properties.
-#   - Extend the cable-only descriptions to handle detached cables, to
-#     preserve surface area and correct starting locations of cables
-#     attached to the soma.
-
 import arbor
-from arbor import mechanism as mech
-from arbor import location as loc
 import matplotlib.pyplot as plt
 
-# Load a cell morphology from an swc file.
-# The model has 31 branches, including soma, dendrites and axon.
-#tree = arbor.load_swc('../../test/unit/swc/example.swc')
-tree = arbor.load_swc('example.swc')
-defaults = arbor.load_cell_default_parameters('defaults.json')
-globals  = arbor.load_cell_global_parameters('cells.json')
-locals   = arbor.load_cell_local_parameter_map('cells.json')
+tree         = arbor.load_swc('example.swc')
+defaults     = arbor.load_cell_default_parameters('defaults.json')
+globals      = arbor.load_cell_global_parameters('cells.json')
+locals       = arbor.load_cell_local_parameter_map('cells.json')
 region_mechs = arbor.load_cell_mechanism_map('cells.json')
 
 # Define the regions and locsets in the model.
@@ -29,8 +14,11 @@ defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
         'apic': '(tag 4)',  # dendrites have tag 3 in swc files.
         'all' : '(all)',    # all the cell
         'root': '(root)',   # the start of the soma in this morphology is at the root of the cell.
-        'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 1.
-        'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
+        'mid_soma': '(location 0 0.5)',
+        'mid_dend': '(location 1 0.5)',
+        'mid_axon': '(location 2 0.5)',
+        'mid_apic': '(location 3 0.5)',
+        } # end of the axon.
 labels = arbor.label_dict(defs)
 
 # Combine morphology with region and locset definitions to make a cable cell.
@@ -41,11 +29,7 @@ cell.overwrite_default_parameters(globals)
 cell.overwrite_local_parameters(locals)
 cell.write_dynamics(region_mechs)
 
-# Set initial membrane potential to -55 mV
-cell.place('stim_site', arbor.iclamp(3, 1, current=0.5))
-cell.place('stim_site', arbor.iclamp(8, 1, current=1))
-
-# Detect spikes at the soma with a voltage threshold of -10 mV.
+cell.place('mid_soma', arbor.iclamp(0, 3, current=3.5))
 cell.place('root', arbor.spike_detector(-10))
 
 # Have one compartment between each sample point.
@@ -57,12 +41,13 @@ m.properties.catalogue.extend(arbor.bbp_catalogue(), "")
 
 # Attach voltage probes that sample at 50 kHz.
 m.probe('voltage', where='root',  frequency=50000)
-m.probe('voltage', where=loc(2,1),  frequency=50000)
-m.probe('voltage', where='stim_site',  frequency=50000)
-m.probe('voltage', where='axon_end', frequency=50000)
+m.probe('voltage', where='mid_soma', frequency=50000)
+m.probe('voltage', where='mid_dend', frequency=50000)
+m.probe('voltage', where='mid_axon', frequency=50000)
+m.probe('voltage', where='mid_apic', frequency=50000)
 
 # Simulate the cell for 15 ms.
-tfinal=15
+tfinal=20
 m.run(tfinal)
 
 # Print spike times.
@@ -77,12 +62,14 @@ else:
 fig, ax = plt.subplots()
 for t in m.traces:
     ax.plot(t.time, t.value)
+    # for v in t.value:
+    #     print(v)
 
 legend_labels = ['{}: {}'.format(s.variable, s.location) for s in m.traces]
 ax.legend(legend_labels)
 ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='swc morphology demo')
 plt.xlim(0,tfinal)
-plt.ylim(-80,80)
+# plt.ylim(-80,80)
 ax.grid()
 
 plot_to_file=False

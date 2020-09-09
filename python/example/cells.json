@@ -1,13 +1,13 @@
 {
   "global": {
     "celsius": 34,
-    "cm": 1,
+    "cm": 0.01,
     "Ra": 100
   },
   "local": [
     {
       "region": "apic",
-      "cm": 2,
+      "cm": 0.02,
       "ions": {
         "na": {"reversal-potential":  50},
         "k":  {"reversal-potential": -85}
@@ -22,7 +22,7 @@
     },
     {
       "region": "dend",
-      "cm": 2
+      "cm": 0.02
     },
     {
       "region": "soma",
