@@ -131,7 +131,7 @@ TEST(matrix, assemble)
     m_gpu.assemble(on_gpu(dt), gpu_array(group_size, -64), gpu_array(group_size, 10), gpu_array(group_size, 3));
     m_gpu.solve(x_d);
     auto result_g = on_host(x_d);
-    
+
     // Compare the GPU and CPU results.
     // Cast result to float, because we are happy to ignore small differencs
     EXPECT_TRUE(seq_almost_eq<float>(result_h, result_g));

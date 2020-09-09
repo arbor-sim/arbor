@@ -38,21 +38,6 @@ TEST(vector, make_host_devicevector) {
     EXPECT_TRUE((std::is_same<int, target_type::value_type>::value));
 }
 
-// test that memory::on_gpu correctly makes a view of a device vector
-/*
-TEST(vector, make_gpu_devicevector) {
-    memory::device_vector<int> dvec(10);
-    auto view = memory::on_gpu(dvec);
-    using target_type = std::decay_t<decltype(view)>;
-    EXPECT_EQ(view.size(), dvec.size());
-    EXPECT_EQ(view.data(), dvec.data());
-    EXPECT_TRUE(memory::util::is_on_gpu<target_type>());
-    EXPECT_FALSE(memory::util::is_on_host<target_type>());
-
-    EXPECT_TRUE((std::is_same<int, target_type::value_type>::value));
-}
-*/
-
 //
 //  fill
 //
@@ -72,21 +57,6 @@ TEST(vector, fill_gpu) {
             EXPECT_EQ(value, double(v[i]));
         }
     }
-
-    // fill an array view
-    /*
-    memory::device_vector<float> ubervec(N);
-    for (auto n : make_span(0u, N)) {
-        float value = float((n+1)/2.f);
-        // make a view of a sub-range of the std::vector ubervec
-        auto v = ubervec(0, n);
-        memory::fill(v, value);
-
-        for (auto i: make_span(0u, n)) {
-            EXPECT_EQ(float(v[i]), value);
-        }
-    }
-    */
 }
 
 //
