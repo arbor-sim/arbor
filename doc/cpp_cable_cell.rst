@@ -1,4 +1,4 @@
-.. _cppcablecell:
+.. _cppcable_cell:
 
 Cable Cells
 ===========

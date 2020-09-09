@@ -5,15 +5,18 @@ Cable Cells
 
 An Arbor *cable cell* is a full description of a cell with morphology and cell
 dynamics, where cell dynamics include ion species and their properties, ion
-channels, synapses, gap junction sites, stimulii and spike detectors.
+channels, synapses, gap junction sites, stimuli and spike detectors.
 Arbor cable cells are constructed from a morphology and a label dictionary,
 and provide a rich interface for specifying the cell's dynamics.
 
 .. note::
-    Before reading this page, it is recommended that you first read about
-    :ref:`morphology descriptions <morph-morphology>`, and also
-    :ref:`label dictionary <labels-dictionary>` that are used to describe
-    :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell.
+    The cable cell does not have *one* dedicated page, it has a few more! This page describes how to build a full description of a cable cell, based on three components that are broken out into their own pages:
+
+    * :ref:`morphology descriptions <morph-morphology>`;
+    * :ref:`label dictionary <labels-dictionary>` that are used to describe :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell;
+    * :ref:`mechanisms <mechanisms>`.
+
+    It can be helpful to consult those pages for some of the sections of this page.
 
 .. _cablecell-decoration:
 
@@ -42,7 +45,7 @@ of dynamics in Arbor:
   * :ref:`Synapses <cable-synapses>`.
   * :ref:`Gap junction sites <cable-gj-sites>`.
   * :ref:`Threshold detectors <cable-threshold-detectors>` (spike detectors).
-  * :ref:`Stimulii <cable-stimulii>`.
+  * :ref:`Stimuli <cable-stimuli>`.
   * :ref:`Probes <cable-probes>`.
 
 .. _cablecell-paint:
@@ -54,7 +57,7 @@ Painted dynamics are applied to a subset of the surface and/or volume of cells.
 They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
-* *per-cell*: overide the global defaults for a specific cell.
+* *per-cell*: override the global defaults for a specific cell.
 * *per-region*: specialize on specific cell regions.
 
 This hierarchical approach for resolving parameters and properties allows
@@ -75,7 +78,7 @@ The types of dynamics, and where they can be defined, are
                   ,       **region**, **cell**, **global**
    cable properties,       ✓, ✓, ✓
    ion initial conditions, ✓, ✓, ✓
-   density mechnism,       ✓, --, --
+   density mechanism,       ✓, --, --
    ion rev pot mechanism,  --, ✓, ✓
    ion valence,            --, --, ✓
 
@@ -131,10 +134,10 @@ Density mechanisms
 Regions can have density mechanisms defined over their extents.
 Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
 which describe biophysical processes. These are processes
-that are distributed in space, but whose behaviour is defined purely
+that are distributed in space, but whose behavior is defined purely
 by the state of the cell and the process at any given point.
 
-The most common use for density mecahnisms is to describe ion channel dynamics,
+The most common use for density mechanisms is to describe ion channel dynamics,
 for example the ``hh`` and ``pas`` mechanisms provided by NEURON and Arbor,
 which model classic Hodgkin-Huxley and passive leaky currents respectively.
 
@@ -159,10 +162,10 @@ Take for example a mechanism passive leaky dynamics:
 
 .. code-block:: Python
 
-    # Create pas mechanism with default parameter values (set in NOMDL file).
+    # Create pas mechanism with default parameter values (set in NMODL file).
     m1 = arbor.mechanism('passive')
 
-    # Create default mechainsm with custom conductance (range)
+    # Create default mechanism with custom conductance (range)
     m2 = arbor.mechanism('passive', {'g', 0.1})
 
     # Create a new pas mechanism with that changes reversal potential (global)
@@ -183,7 +186,7 @@ Ion species
 Arbor allows arbitrary ion species to be defined, to extend the default
 calcium, potassium and sodium ion species.
 A ion species is defined globally by its name and valence, which
-can't be overriden at cell or region level.
+can't be overridden at cell or region level.
 
 .. csv-table:: Default ion species in Arbor
    :widths: 15, 10, 10
@@ -202,7 +205,7 @@ Each ion species has the following properties:
 
 Properties 1, 2 and 3 must be defined, and are used as the initial values for
 each quantity at the start of the simulation. They are specified globally,
-then specialised at cell and region level.
+then specialized at cell and region level.
 
 The reversal potential of an ion species is calculated by an
 optional *reversal potential mechanism*.
@@ -251,7 +254,7 @@ The NMODL code for the
 can be used as a guide for how to calculate reversal potentials.
 
 While the reversal potential mechanism must be the same for a whole cell,
-the initial concentrations and reversal potential can be localised for regions
+the initial concentrations and reversal potential can be localized for regions
 using the *paint* interface:
 
 .. code-block:: Python
@@ -267,11 +270,11 @@ using the *paint* interface:
 
 .. _cablecell-place:
 
-Placed Dynamices
+Placed Dynamics
 ''''''''''''''''
 
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
-and are asigned to specific locations.
+and are assigned to specific locations.
 
 .. _cable-synapses:
 
@@ -290,9 +293,9 @@ Gap junction sites
 Threshold detectors (spike detectors).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _cable-stimulii:
+.. _cable-stimuli:
 
-Stimulii
+Stimuli
 ~~~~~~~~
 
 .. _cable-probes:

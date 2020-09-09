@@ -51,6 +51,16 @@ The steps of building a simulation from a recipe are:
     local cell groups and the part of the communication network by querying the recipe
     for more information about the cells assigned to it.
 
+.. Note::
+    An example of how performance considerations impact Arbor's architecture: you will notice cell kind and cell description are separately added to a recipe. Consider the following conversation between an Arbor simulation, recipe and hardware back-end:
+
+    | Simulator: give me cell 37.
+    | Recipe: here you go, it's of C++ type s3cr1ts4uc3.
+    | Simulator: wot? What is the cell kind for cell 37?
+    | Recipe: it's a foobar.
+    | Simulator: Okay. Cell group implementations: which one of you lot deals with foobars?
+    | Foobar_GPUFTW_lolz: That'd be me, if we've got GPU enabled.
+    | Simulator: Okay it's up to you then to deal with this s3cr1ts4uc3 object.
 
 General Best Practices
 ----------------------
@@ -85,17 +95,6 @@ General Best Practices
     To get a reproducible model, use the cell `gid` (or a hash based on the `gid`)
     to seed random number generators, including those for :cpp:type:`event_generator` s.
 
-
-Mechanisms
-----------
-
-The description of multi-compartment cells also includes the specification of ion channel and synapse dynamics.
-In the recipe, these specifications are called *mechanisms*.
-Implementations of mechanisms are either hand-coded or a translator (modcc) is used to compile a
-subset of NEURON's mechanism specification language NMODL.
-
-Examples
-    Common examples are the *passive/ leaky integrate-and-fire* model, the *Hodgkin-Huxley* mechanism, the *(double-) exponential synapse* model, or the *Natrium current* model for an axon.
 
 API
 ---

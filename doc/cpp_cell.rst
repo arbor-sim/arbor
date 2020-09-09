@@ -1,6 +1,6 @@
-.. _cppcommon:
+.. _cppcell:
 
-Common Types
+Cells
 ============
 
 .. cpp:namespace:: arb
@@ -91,65 +91,6 @@ cells and members of cell-local collections.
 
         Proxy cell used for benchmarking.
 
-Probes
-------
 
-.. cpp:type:: probe_tag = int
-
-    Extra contextual information associated with a probe.
-
-.. cpp:class:: probe_info
-
-    Probes are specified in the recipe objects that are used to initialize a
-    model; the specification of the item or value that is subjected to a
-    probe will be specific to a particular cell type.
-
-    .. cpp:member:: cell_member_type id
-
-           Cell gid, index of probe.
-
-    .. cpp:member:: probe_tag tag
-
-           Opaque key, returned in sample record.
-
-    .. cpp:member:: util::any address
-
-           Cell-type specific location info, specific to cell kind of ``id.gid``.
-
-Utility Wrappers and Containers
---------------------------------
-
-.. cpp:namespace:: arb::util
-
-
-.. cpp:class:: template <typename T> optional
-
-    A wrapper around a contained value of type :cpp:type:`T`, that may or may not be set.
-    A faithful copy of the C++17 ``std::optional`` type.
-    See the online C++ standard documentation
-    `<https://en.cppreference.com/w/cpp/utility/optional>`_
-    for more information.
-
-.. cpp:class:: any
-
-    A container for a single value of any type that is copy constructable.
-    Used in the Arbor API where a type of a value passed to or from the API
-    is decided at run time.
-
-    A faithful copy of the C++17 ``std::any`` type.
-    See the online C++ standard documentation
-    `<https://en.cppreference.com/w/cpp/utility/any>`_
-    for more information.
-
-    The :cpp:any:`arb::util` namespace also implementations of the
-    :cpp:any:`any_cast`, :cpp:any:`make_any` and :cpp:any:`bad_any_cast`
-    helper functions and types from C++17.
-
-.. cpp:class:: unique_any
-
-   Equivalent to :cpp:class:`util::any`, except that:
-   
-      * it can store any type that is move constructable;
-      * it is move only, that is it can't be copied.
-
-
+Cell kinds
+----------------------------

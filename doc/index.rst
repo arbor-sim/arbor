@@ -47,11 +47,12 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
    co_overview
    co_recipe
-   co_network_components
+   co_cell
+   co_cable_cell
    co_morphology
    co_labels
    co_mechanisms
-   co_cable_cell
+   co_synapses
    co_hardware
    co_domdec
    co_simulation
@@ -61,11 +62,12 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
    py_overview
    py_recipe
-   py_common
+   py_cell
    py_cable_cell
    py_morphology
    py_labels
    py_mechanisms
+   py_synapses
    py_single_cell
    py_hardware
    py_domdec
@@ -78,8 +80,9 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
    cpp_overview
    cpp_recipe
-   cpp_common
+   cpp_cell
    cpp_cable_cell
+   cpp_synapses
    cpp_hardware
    cpp_domdec
    cpp_simulation

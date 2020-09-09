@@ -103,6 +103,16 @@ Recipe
         By default throws a runtime error. If :func:`num_probes`
         returns a non-zero value, this must also be overridden.
 
+Cells
+------
+
+See :ref:`pycell`.
+
+Synapses
+--------
+
+See :ref:`pysynapses`.
+
 Probes
 ------
 
@@ -125,70 +135,6 @@ Probes
             id    = arbor.cell_member(0, 0) # cell 0, probe 0
             loc   = arbor.location(0, 0)    # at the soma
             probe = arbor.cable_probe('voltage', id, loc)
-
-.. class:: connection
-
-    Describes a connection between two cells:
-    Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
-    a connection weight and a delay time.
-
-    .. function:: connection(source, destination, weight, delay)
-
-        Construct a connection between the :attr:`source` and the :attr:`dest` with a :attr:`weight` and :attr:`delay`.
-
-    .. attribute:: source
-
-        The source end point of the connection (type: :class:`arbor.cell_member`).
-
-    .. attribute:: dest
-
-        The destination end point of the connection (type: :class:`arbor.cell_member`).
-
-    .. attribute:: weight
-
-        The weight delivered to the target synapse.
-        The weight is dimensionless, and its interpretation is specific to the type of the synapse target.
-        For example, the expsyn synapse interprets it as a conductance with units μS (micro-Siemens).
-
-    .. attribute:: delay
-
-        The delay time of the connection [ms]. Must be positive.
-
-    An example of a connection reads as follows:
-
-    .. container:: example-code
-
-        .. code-block:: python
-
-            import arbor
-
-            # construct a connection between cells (0,0) and (1,0) with weight 0.01 and delay of 10 ms.
-            src  = arbor.cell_member(0,0)
-            dest = arbor.cell_member(1,0)
-            w    = 0.01
-            d    = 10
-            con  = arbor.connection(src, dest, w, d)
-
-.. class:: gap_junction_connection
-
-    Describes a gap junction between two gap junction sites.
-    Gap junction sites are represented by :class:`arbor.cell_member`.
-
-    .. function::gap_junction_connection(local, peer, ggap)
-
-        Construct a gap junction connection between :attr:`local` and :attr:`peer` with conductance :attr:`ggap`.
-
-    .. attribute:: local
-
-        The gap junction site: one half of the gap junction connection.
-
-    .. attribute:: peer
-
-        The gap junction site: other half of the gap junction connection.
-
-    .. attribute:: ggap
-
-        The gap junction conductance [μS].
 
 Event Generator and Schedules
 -----------------------------
@@ -300,75 +246,6 @@ An example of an event generator reads as follows:
         # construct an event generator with this schedule on target cell and weight 0.1
         w      = 0.1
         gen    = arbor.event_generator(target, w, sched)
-
-Cells
-------
-
-.. class:: lif_cell
-
-    A benchmarking cell (leaky integrate-and-fire), used by Arbor developers to test communication performance,
-    with neuronal parameters:
-
-    .. attribute:: tau_m
-
-        Membrane potential decaying constant [ms].
-
-    .. attribute:: V_th
-
-        Firing threshold [mV].
-
-    .. attribute:: C_m
-
-        Membrane capacitance [pF].
-
-    .. attribute:: E_L
-
-        Resting potential [mV].
-
-    .. attribute:: V_m
-
-        Initial value of the Membrane potential [mV].
-
-    .. attribute:: t_ref
-
-        Refractory period [ms].
-
-    .. attribute:: V_reset
-
-        Reset potential [mV].
-
-.. class:: spike_source_cell
-
-    A spike source cell, that generates a user-defined sequence of spikes
-    that act as inputs for other cells in the network.
-
-    .. function:: spike_source_cell(schedule)
-
-        Construct a spike source cell that generates spikes
-
-        - at regular intervals (using an :class:`arbor.regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
-        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
-
-        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
-
-.. class:: benchmark_cell
-
-    A benchmarking cell, used by Arbor developers to test communication performance.
-
-    .. function:: benchmark_cell(schedule, realtime_ratio)
-
-        A benchmark cell generates spikes at a user-defined sequence of time points:
-
-        - at regular intervals (using an :class:`arbor.regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
-        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
-
-        and the time taken to integrate a cell can be tuned by setting the parameter ``realtime_ratio``.
-
-        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
-
-        :param realtime_ratio: Time taken to integrate a cell, for example if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.
 
 Example
 -------

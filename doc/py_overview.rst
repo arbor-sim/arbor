@@ -21,7 +21,7 @@ in Python as follows:
 3. Partition the model over the hardware resources using :class:`arbor.partition_load_balance`;
 4. Run the model by initiating then running the :class:`arbor.simulation`.
 
-These details are described and examples are given in the next sections :ref:`pycommon`, :ref:`pyrecipe`, :ref:`pydomdec`, :ref:`pysimulation`, and :ref:`pyprofiler`.
+These details are described and examples are given in the next sections :ref:`pycell`, :ref:`pyrecipe`, :ref:`pydomdec`, :ref:`pysimulation`, and :ref:`pyprofiler`.
 
 .. note::
 
