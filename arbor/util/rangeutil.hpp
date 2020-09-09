@@ -250,7 +250,7 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
     using std::begin;
     using std::end;
 
-    if (util::empty(seq)) {
+    if (std::empty(seq)) {
         return Value{};
     }
 
@@ -277,7 +277,7 @@ std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
     using std::begin;
     using std::end;
 
-    if (util::empty(seq)) {
+    if (std::empty(seq)) {
         return {Value{}, Value{}};
     }
 

@@ -12,50 +12,6 @@
 namespace arb {
 namespace util {
 
-// The following classes and functions can be replaced
-// with std functions when we migrate to later versions of C++.
-//
-// C++17:
-// void_t, empty, data, as_const
-
-// Use sequence `empty() const` method if exists, otherwise
-// compare begin and end.
-
-namespace impl_empty {
-    template <typename C>
-    struct has_const_empty_method {
-        template <typename T>
-        static decltype(std::declval<const T>().empty(), std::true_type{}) test(int);
-        template <typename T>
-        static std::false_type test(...);
-
-        using type = decltype(test<C>(0));
-    };
-
-    using std::begin;
-    using std::end;
-
-    template <typename Seq>
-    constexpr bool empty(const Seq& seq, std::false_type) {
-        return begin(seq)==end(seq);
-    }
-
-    template <typename Seq>
-    constexpr bool empty(const Seq& seq, std::true_type) {
-        return seq.empty();
-    }
-}
-
-template <typename Seq>
-constexpr bool empty(const Seq& seq) {
-    return impl_empty::empty(seq, typename impl_empty::has_const_empty_method<Seq>::type{});
-}
-
-template <typename T, std::size_t N>
-constexpr bool empty(const T (& c)[N]) noexcept {
-    return false; // N cannot be zero
-}
-
 // Types associated with a container or sequence
 
 namespace impl_seqtrait {
