@@ -94,3 +94,17 @@ cells and members of cell-local collections.
 
 Cell kinds
 ----------------------------
+
+.. cpp:class:: lif_cell
+
+
+.. cpp:class:: spike_source_cell
+
+
+.. cpp:class:: benchmark_cell
+
+
+.. cpp:class:: cable_cell
+
+    See :ref:`cppcable_cell`.
+
