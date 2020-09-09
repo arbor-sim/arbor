@@ -26,7 +26,7 @@ struct with_mpi {
         // force exit the application before the exception that is unwinding
         // the stack has been caught, which would deny the opportunity to print
         // an error message explaining the cause of the exception.
-        if (!std::uncaught_exception()) {
+        if (std::uncaught_exceptions()==0) {
             MPI_Finalize();
         }
     }
