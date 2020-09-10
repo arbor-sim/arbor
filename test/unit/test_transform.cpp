@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <cctype>
-#include <list>
+#include <forward_list>
 #include <vector>
 
 #include <util/range.hpp>
@@ -14,7 +14,7 @@
 using namespace arb;
 
 TEST(transform, transform_view) {
-    std::list<int> fl = {1, 4, 6, 8, 10 };
+    std::forward_list<int> fl = {1, 4, 6, 8, 10 };
     std::vector<double> result;
 
     auto r = util::transform_view(fl, [](int i) { return i*i+0.5; });
