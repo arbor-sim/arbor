@@ -29,7 +29,7 @@ DERIVATIVE states {
     LOCAL mInf, mRho
     
     mInf = m_inf(v)
-    mRho = 0.25*(1 + exp((v + 46.56)/44.140))
+    mRho = 0.25*(1 + exp((v + 46.56)/(-44.140)))
 
     m' = (mInf - m)*mRho
 }

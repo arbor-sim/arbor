@@ -36,7 +36,7 @@ DERIVATIVE states {
     mBeta  = m_beta(v)
     mRate  = mAlpha + mBeta
     
-    hAlpha = m_alpha(v)
+    hAlpha = h_alpha(v)
     hBeta  = h_beta(v)
     hRate  = hAlpha + hBeta
     
