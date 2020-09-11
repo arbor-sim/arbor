@@ -21,7 +21,7 @@ PARAMETER {
    decay  = 80                  (ms)           : rate of removal of calcium
    depth  = 0.1                 (um)           : depth of shell
    minCai = 1e-4                (mM)
-   initCai
+   initCai = 5e-5
 }
 
 STATE {
