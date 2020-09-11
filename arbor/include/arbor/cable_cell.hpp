@@ -334,6 +334,13 @@ public:
     const cable_cell_region_map& region_assignments() const;
     const cable_cell_location_map& location_assignments() const;
 
+    // Paint records
+    std::unordered_map<std::string, temperature_K> region_temperature_K;
+    std::unordered_map<std::string, init_membrane_potential> region_init_membrane_potential;
+    std::unordered_map<std::string, axial_resistivity> region_axial_resistivity;
+    std::unordered_map<std::string, membrane_capacitance> region_membrane_capacitance;
+    std::unordered_map<std::string, std::vector<initial_ion_data>> region_initial_ion_data;
+    std::unordered_map<std::string, std::vector<mechanism_desc>> region_mechanism_desc;
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };

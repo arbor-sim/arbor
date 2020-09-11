@@ -48,6 +48,8 @@ cell.compartments_length(0.5)
 # Make single cell model.
 m = arbor.single_cell_model(cell)
 
+arbor.write_cell_params(cell, "here.json")
+
 # Extend the default catalogue
 m.properties.catalogue.extend(arbor.bbp_catalogue(), "")
 

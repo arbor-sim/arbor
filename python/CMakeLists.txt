@@ -27,7 +27,7 @@ set(pyarb_source
     morphology.cpp
     morph_parse.cpp
     mpi.cpp
-    param_loader.cpp
+    param_io.cpp
     profiler.cpp
     pyarb.cpp
     recipe.cpp

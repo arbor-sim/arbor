@@ -163,6 +163,32 @@ const cable_cell_region_map& cable_cell::region_assignments() const {
 
 // Forward paint methods to implementation class.
 
+void cable_cell::paint(const region& target, init_membrane_potential prop) {
+    region_init_membrane_potential[to_string(target)] = prop;
+    impl_->paint(target, prop);
+}
+void cable_cell::paint(const region& target, axial_resistivity prop) {
+    region_axial_resistivity[to_string(target)] = prop;
+    impl_->paint(target, prop);
+}
+void cable_cell::paint(const region& target, membrane_capacitance prop) {
+    region_membrane_capacitance[to_string(target)] = prop;
+    impl_->paint(target, prop);
+}
+void cable_cell::paint(const region& target, temperature_K prop) {
+    region_temperature_K[to_string(target)] = prop;
+    impl_->paint(target, prop);
+}
+void cable_cell::paint(const region& target, initial_ion_data prop) {
+    region_initial_ion_data[to_string(target)].push_back(prop);
+    impl_->paint(target, prop);
+}
+void cable_cell::paint(const region& target, mechanism_desc prop) {
+    region_mechanism_desc[to_string(target)].push_back(prop);
+    impl_->paint(target, prop);
+}
+
+/*
 #define FWD_PAINT(proptype)\
 void cable_cell::paint(const region& target, proptype prop) {\
     impl_->paint(target, prop);\
@@ -170,6 +196,7 @@ void cable_cell::paint(const region& target, proptype prop) {\
 ARB_PP_FOREACH(FWD_PAINT,\
     mechanism_desc, init_membrane_potential, axial_resistivity,\
     temperature_K, membrane_capacitance, initial_ion_data)
+*/
 
 // Forward place methods to implementation class.
 

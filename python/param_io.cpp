@@ -126,6 +126,82 @@ arb::cable_cell_parameter_set overwrite_cable_parameters(const arb::cable_cell_p
     return merged;
 }
 
+void output_cell_params(const arb::cable_cell& cell, std::string file_name) {
+    // Global
+    nlohmann::json json_file, global, ion_data;
+
+    global["celsius"] = cell.default_parameters.temperature_K.value() - 273.15;
+    global["Vm"] = cell.default_parameters.init_membrane_potential.value();
+    global["Ra"] = cell.default_parameters.axial_resistivity.value();
+    global["cm"] = cell.default_parameters.membrane_capacitance.value();
+    for (auto ion: cell.default_parameters.ion_data) {
+        auto ion_name = ion.first;
+        nlohmann::json data;
+        data["internal-concentration"] = ion.second.init_int_concentration;
+        data["external-concentration"] = ion.second.init_ext_concentration;
+        data["reversal-potential"] = ion.second.init_reversal_potential;
+        if (cell.default_parameters.reversal_potential_method.count(ion_name)) {
+            data["method"] = cell.default_parameters.reversal_potential_method.at(ion_name).name();
+        }
+        ion_data[ion.first] = data;
+    }
+    global["ions"] = ion_data;
+    json_file["global"] = global;
+
+    // Local
+    std::unordered_map<std::string, nlohmann::json> regions;
+
+    for (const auto& entry: cell.region_temperature_K) {
+        regions[entry.first]["celsius"] = entry.second.value;
+    }
+    for (const auto& entry: cell.region_init_membrane_potential) {
+        regions[entry.first]["Vm"] = entry.second.value;
+    }
+    for (const auto& entry: cell.region_axial_resistivity) {
+        regions[entry.first]["Ra"] = entry.second.value;
+    }
+    for (const auto& entry: cell.region_membrane_capacitance) {
+         regions[entry.first]["cm"] = entry.second.value;
+    }
+    for (const auto& entry: cell.region_initial_ion_data) {
+        nlohmann::json ion_data;
+        for (auto ion: entry.second) {
+            nlohmann::json data;
+            data["internal-concentration"] =ion.initial.init_int_concentration;
+            data["external-concentration"] = ion.initial.init_ext_concentration;
+            data["reversal-potential"] = ion.initial.init_reversal_potential;
+            ion_data[ion.ion] = data;
+        }
+        regions[entry.first]["ions"] = ion_data;
+    }
+
+    std::vector<nlohmann::json> reg_vec;
+    for (auto reg: regions) {
+        reg.second["region"] = reg.first;
+        reg_vec.push_back(reg.second);
+    }
+
+    json_file["local"] = reg_vec;
+
+    // Mechs
+    std::vector<nlohmann::json> mechs;
+    for (const auto& entry: cell.region_mechanism_desc) {
+        auto reg = entry.first;
+        for (auto& mech_desc: entry.second) {
+            nlohmann::json data;
+            data["region"] = reg;
+            data["mechanism"] = mech_desc.name();
+            data["parameters"] = mech_desc.values();
+            mechs.push_back(data);
+        }
+    }
+
+    json_file["mechanisms"] = mechs;
+
+    std::ofstream file(file_name);
+    file << std::setw(2) << json_file;
+}
+
 void register_param_loader(pybind11::module& m) {
     m.def("load_cell_default_parameters",
           [](std::string fname) {
@@ -222,6 +298,12 @@ void register_param_loader(pybind11::module& m) {
               return mech_map;
           },
           "Load region mechanism descriptions.");
+
+    m.def("write_cell_params",
+          [](const arb::cable_cell& cell, std::string file_name) {
+              output_cell_params(cell, file_name);
+          },
+          "write our region parameters.");
 
     // arb::cable_cell_parameter_set
     pybind11::class_<arb::cable_cell_parameter_set> cable_cell_parameter_set(m, "cable_cell_parameter_set");
