@@ -1,0 +1,9 @@
+#example swc file from the Allen DB
+#name C:/neuron tracing and reconstruction/vaa3d/vaa3d_bin_msvc_64bit_v2921_a/vaa3d_bin_msvc_64bit_v2921_a/Sst-IRES-Cre;Ai14(IVSCC)-173191.06.01.01.DS.swc_resampled.swc_sorted.swc_pruned.swc_pruned.swc
+#comment
+##n,type,x,y,z,radius,parent
+1 1 0 0 -20 10  -1
+2 1 0 0   0 10   1
+3 3 0 0 200 5    2
+4 2 0 200 0 4    2
+5 4 200 0 0 3    2
