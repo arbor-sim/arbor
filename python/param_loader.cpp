@@ -54,8 +54,6 @@ arb::cable_cell_parameter_set load_cell_parameters(nlohmann::json& defaults_json
 }
 
 arb::mechanism_desc load_mechanism_desc(nlohmann::json& mech_json) {
-    std::vector<arb::mechanism_desc> mech_vec;
-
     auto name = find_and_remove_json<std::string>("mechanism", mech_json);
     if (name) {
         auto mech = arb::mechanism_desc(name.value());
@@ -70,19 +68,26 @@ arb::mechanism_desc load_mechanism_desc(nlohmann::json& mech_json) {
     throw pyarb::pyarb_error("Mechanism not specified");
 }
 
+// Checks that all the argumnets in the arb::cable_cell_parameter_set are valid and throws an exception if that's not the case
 void check_defaults(const arb::cable_cell_parameter_set& defaults) {
-    if(!defaults.temperature_K) throw pyarb_error("Default cell values don't include temperature");
-    if(!defaults.init_membrane_potential) throw pyarb_error("Default cell values don't include initial membrane potential");
-    if(!defaults.axial_resistivity) throw pyarb_error("Default cell values don't include axial_resistivity");
-    if(!defaults.membrane_capacitance) throw pyarb_error("Default cell values don't include membrane_capacitance");
+    if(!defaults.temperature_K) throw pyarb_error("temperature missing");
+    if(!defaults.init_membrane_potential) throw pyarb_error("initial membrane potential missing");
+    if(!defaults.axial_resistivity) throw pyarb_error("axial resistivity missing");
+    if(!defaults.membrane_capacitance) throw pyarb_error("membrane capacitance missing");
 
+    for (auto ion_data: defaults.ion_data) {
+        auto ion = ion_data.first;
+        auto& ion_params = ion_data.second;
+
+        if(isnan(ion_params.init_int_concentration))  throw pyarb_error("initial internal concentration of " + ion + " missing");
+        if(isnan(ion_params.init_ext_concentration))  throw pyarb_error("initial external concentration of " + ion + " missing");
+        if(isnan(ion_params.init_reversal_potential)) throw pyarb_error("initial reversal potential of " + ion + " missing");
+    }
+
+    // Check that ca, na and k are initialized
     std::vector<std::string> default_ions = {"ca", "na", "k"};
-
     for (auto ion:default_ions) {
-        if(!defaults.ion_data.count(ion)) throw pyarb_error("Default cell values don't include " + ion + " default values");
-        if(isnan(defaults.ion_data.at(ion).init_int_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial internal concentration");
-        if(isnan(defaults.ion_data.at(ion).init_ext_concentration))  throw pyarb_error("Default cell values don't include " + ion + "'s initial external concentration");
-        if(isnan(defaults.ion_data.at(ion).init_reversal_potential)) throw pyarb_error("Default cell values don't include " + ion + "'s initial reversal potential");
+        if (!defaults.ion_data.count(ion)) throw pyarb_error("initial parameters of " + ion + " missing");
     }
 }
 
@@ -222,7 +227,7 @@ void register_param_loader(pybind11::module& m) {
     pybind11::class_<arb::cable_cell_parameter_set> cable_cell_parameter_set(m, "cable_cell_parameter_set");
 
     // map of arb::cable_cell_parameter_set
-    pybind11::class_<std::unordered_map<std::string, arb::cable_cell_parameter_set>> region_cable_cell_parameter_set_map(m, "region_cable_cell_parameter_set_map");
+    pybind11::class_<std::unordered_map<std::string, arb::cable_cell_parameter_set>> region_cable_cell_parameter_set_map(m, "regional_cable_cell_parameter_set_map");
 
     // map of arb::cable_cell_parameter_set
     pybind11::class_<std::unordered_map<std::string, std::vector<arb::mechanism_desc>>> region_mechanism_map(m, "region_mechanism_map");

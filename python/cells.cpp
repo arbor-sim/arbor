@@ -505,10 +505,10 @@ void register_cells(pybind11::module& m) {
                  for (const auto& local: local_map) {
                      auto region = local.first;
                      const auto& params = local.second;
-                     if (params.temperature_K)           c.paint(region, arb::temperature_K{params.temperature_K.value()});
-                     if (params.init_membrane_potential) c.paint(region, arb::init_membrane_potential{params.init_membrane_potential.value()});
-                     if (params.axial_resistivity)       c.paint(region, arb::axial_resistivity{params.axial_resistivity.value()});
-                     if (params.membrane_capacitance)    c.paint(region, arb::membrane_capacitance{params.membrane_capacitance.value()});
+                     if (auto t = params.temperature_K)           c.paint(region, arb::temperature_K{t.value()});
+                     if (auto v = params.init_membrane_potential) c.paint(region, arb::init_membrane_potential{v.value()});
+                     if (auto r = params.axial_resistivity)       c.paint(region, arb::axial_resistivity{r.value()});
+                     if (auto m = params.membrane_capacitance)    c.paint(region, arb::membrane_capacitance{m.value()});
                      for (auto ion_params: params.ion_data) {
                          auto ion = ion_params.first;
                          auto data = ion_params.second;
