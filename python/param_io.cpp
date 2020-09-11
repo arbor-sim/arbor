@@ -225,9 +225,13 @@ void register_param_loader(pybind11::module& m) {
 
     // arb::cable_cell_parameter_set
     pybind11::class_<arb::cable_cell_parameter_set> cable_cell_parameter_set(m, "cable_cell_parameter_set");
+    cable_cell_parameter_set
+            .def("__repr__", [](const arb::cable_cell_parameter_set& s) { return util::pprintf("<arbor.cable_cell_parameter_set>"); })
+            .def("__str__", [](const arb::cable_cell_parameter_set& s) { return util::pprintf("(cell_parameter_set)"); });
+
 
     // map of arb::cable_cell_parameter_set
-    pybind11::class_<std::unordered_map<std::string, arb::cable_cell_parameter_set>> region_cable_cell_parameter_set_map(m, "regional_cable_cell_parameter_set_map");
+    pybind11::class_<std::unordered_map<std::string, arb::cable_cell_parameter_set>> region_parameter_map(m, "region_parameter_map");
 
     // map of arb::cable_cell_parameter_set
     pybind11::class_<std::unordered_map<std::string, std::vector<arb::mechanism_desc>>> region_mechanism_map(m, "region_mechanism_map");
