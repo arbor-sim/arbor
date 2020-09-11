@@ -3,6 +3,8 @@
 Cable Cells
 ===========
 
+.. currentmodule:: arbor
+
 .. py:class:: cable_cell
 
     A cable cell is constructed from a :ref:`morphology <morph-morphology>`

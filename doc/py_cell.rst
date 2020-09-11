@@ -149,5 +149,5 @@ Cell kinds
         :param realtime_ratio: Time taken to integrate a cell, for example if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.
 
 .. class:: cable_cell
-
+    :noindex:
     See :ref:`pycable_cell`.

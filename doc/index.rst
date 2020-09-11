@@ -41,6 +41,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
    gs_install
    gs_python
+   gs_quick_start
 
 .. toctree::
    :caption: How does Arbor work?
@@ -68,7 +69,6 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    py_labels
    py_mechanisms
    py_synapses
-   py_single_cell
    py_hardware
    py_domdec
    py_simulation
