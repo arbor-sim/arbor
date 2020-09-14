@@ -112,11 +112,11 @@ partition_range<SeqIter> partition_view(const Seq& r) {
  *
  * If the first parameter is `partition_in_place`, the provided
  * container `divisions` will not be resized, and the partition will 
- * be of length `util::size(divisions)-1` or zero if `divisions` is
+ * be of length `std::size(divisions)-1` or zero if `divisions` is
  * empty.
  *
- * Otherwise, `divisions` will be be resized to `util::size(sizes)+1`
- * and represent a partition of length `util::size(sizes)`.
+ * Otherwise, `divisions` will be be resized to `std::size(sizes)+1`
+ * and represent a partition of length `std::size(sizes)`.
  *
  * Returns a partition view over `divisions`.
  */
@@ -159,7 +159,7 @@ template <
 >
 partition_range<typename sequence_traits<Part>::const_iterator>
 make_partition(Part& divisions, const Sizes& sizes, T from=T{}) {
-    divisions.resize(size(sizes)+1);
+    divisions.resize(std::size(sizes)+1);
 
     // (would use std::inclusive_scan in C++17)
     auto pi = std::begin(divisions);

@@ -92,20 +92,24 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 if(ARB_GPU STREQUAL "cuda")
     set(ARB_WITH_NVCC TRUE)
 
+    # CMake 18 and later set the default CUDA architecture for
+    # each target according to CMAKE_CUDA_ARCHITECTURES.
+    if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    endif()
+
     enable_language(CUDA)
 
-    # Despite native CUDA support, the CUDA package is still required to find
-    # the NVML library and to export the cuda library dependencies from the
-    # installed target.
-    find_package(CUDA REQUIRED)
+    # Despite native CUDA support, the CUDA package is still required to export
+    # the cuda library dependencies from the installed target.
+    find_package(CUDA 10 REQUIRED)
 
 elseif(ARB_GPU STREQUAL "cuda-clang")
     set(ARB_WITH_CUDA_CLANG TRUE)
 
-    # The CUDA package is needed for clang compilation for the same reasons as
-    # above.
+    # The CUDA package is needed for clang compilation for the same reasons as above.
     # enable_langaue(CUDA) has a bug with clang
-    find_package(CUDA REQUIRED)
+    find_package(CUDA 10 REQUIRED)
 elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
 endif()
@@ -132,7 +136,8 @@ include("CheckCompilerXLC")
 
 include("CompilerOptions")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -256,28 +261,6 @@ if(ARB_WITH_GPU)
     if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
         target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-        # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
-
-        if (${CUDA_VERSION_MAJOR} LESS 10)
-            set(arborenv_requires_nvml TRUE)
-        endif()
-
-        if(arborenv_requires_nvml)
-            set(nvml_names nvidia-ml) # Note: platform dependent? e.g. nvml.lib on Windows.
-            find_library(CUDA_NVML
-                    NAMES ${nvml_names}
-                    NO_DEFAULT_PATH
-                    PATHS ${CMAKE_CUDA_IMPLICIT_DIRECTORIES} ${CUDA_TOOLKIT_ROOT_DIR}
-                    PATH_SUFFIXES lib64/stubs lib/stubs)
-
-            if (NOT CUDA_NVML)
-                message(FATAL_ERROR "Unable to find CUDA NVML library by: ${nvml_names}")
-            endif()
-
-            target_link_libraries(arborenv-private-deps INTERFACE ${CUDA_NVML})
-            target_compile_definitions(arborenv-private-deps INTERFACE ARBENV_USE_NVML)
-        endif()
-
         add_compile_options(
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
@@ -286,19 +269,19 @@ if(ARB_WITH_GPU)
 
     if(ARB_WITH_NVCC)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
-        target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
-        target_compile_options(arbor-private-deps INTERFACE
             $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
         target_compile_options(arbor-private-deps INTERFACE
             $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+        if (${CUDA_VERSION_MAJOR} GREATER 10)
+            target_compile_options(arbor-private-deps INTERFACE
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_80,code=sm_80>)
+        endif()
 
         target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
         target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
 
     elseif(ARB_WITH_CUDA_CLANG)
-        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_35 --cuda-gpu-arch=sm_37 --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 
@@ -456,10 +439,6 @@ if(ARB_WITH_GPU)
     set(arbor_override_import_lang CXX)
     set(arbor_add_import_libs ${CUDA_LIBRARIES})
     set(arborenv_add_import_libs ${CUDA_LIBRARIES})
-
-    if(arborenv_requires_nvml)
-        list(APPEND arborenv_add_import_libs ${CUDA_NVML})
-    endif()
 endif()
 
 configure_file(

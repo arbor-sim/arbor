@@ -228,7 +228,7 @@ public:
         return size_;
     }
 
-    bool is_empty() const {
+    bool empty() const {
         return size_==0;
     }
 

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -134,8 +135,8 @@ struct fvm_probe_data {
         return util::make_range(
             util::visit(
                 [](auto& i) -> std::pair<const probe_handle*, const probe_handle*> {
-                    using util::data;
-                    using util::size;
+                    using std::data;
+                    using std::size;
                     return {data(i.raw_handles), data(i.raw_handles)+size(i.raw_handles)};
                 },
                 info));
