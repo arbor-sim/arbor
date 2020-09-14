@@ -21,14 +21,17 @@ namespace detail {
 // True if T can constructed from or converted from [const, ref] X.
 template <typename T, typename X>
 struct conversion_hazard: std::integral_constant<bool,
-    std::is_constructible<T, X>::value ||
-    std::is_constructible<T, const X>::value ||
-    std::is_constructible<T, X&>::value ||
-    std::is_constructible<T, const X&>::value ||
-    std::is_convertible<X, T>::value ||
-    std::is_convertible<const X, T>::value ||
-    std::is_convertible<X&, T>::value ||
-    std::is_convertible<const X&, T>::value> {};
+    std::is_constructible_v<T, X> ||
+    std::is_constructible_v<T, const X> ||
+    std::is_constructible_v<T, X&> ||
+    std::is_constructible_v<T, const X&> ||
+    std::is_convertible_v<X, T> ||
+    std::is_convertible_v<const X, T> ||
+    std::is_convertible_v<X&, T> ||
+    std::is_convertible_v<const X&, T>> {};
+
+template <typename T, typename X>
+inline constexpr bool conversion_hazard_v = conversion_hazard<T, X>::value;
 
 // TODO: C++20 replace with std::remove_cvref_t
 template <typename X>
@@ -85,21 +88,21 @@ struct unexpected {
     // Converting ctors.
 
     template <typename F,
-        typename = std::enable_if_t<std::is_constructible<E, F&&>::value>,
-        typename = std::enable_if_t<!std::is_same<std::in_place_t, detail::remove_cvref_t<F>>::value>,
-        typename = std::enable_if_t<!std::is_same<unexpected, detail::remove_cvref_t<F>>::value>
+        typename = std::enable_if_t<std::is_constructible_v<E, F&&>>,
+        typename = std::enable_if_t<!std::is_same_v<std::in_place_t, detail::remove_cvref_t<F>>>,
+        typename = std::enable_if_t<!std::is_same_v<unexpected, detail::remove_cvref_t<F>>>
     >
     explicit unexpected(F&& f): value_(std::forward<F>(f)) {}
 
     template <
         typename F,
-        typename = std::enable_if_t<!detail::conversion_hazard<E, unexpected<F>>::value>
+        typename = std::enable_if_t<!detail::conversion_hazard_v<E, unexpected<F>>>
     >
     unexpected(unexpected<F>&& u): value_(std::move(u.value_)) {}
 
     template <
         typename F,
-        typename = std::enable_if_t<!detail::conversion_hazard<E, unexpected<F>>::value>
+        typename = std::enable_if_t<!detail::conversion_hazard_v<E, unexpected<F>>>
     >
     unexpected(const unexpected<F>& u): value_(u.value_) {}
 
@@ -132,8 +135,7 @@ struct unexpected {
 
     // Swap.
 
-    // TODO: C++17 add noexcept(std::is_nothrow_swappable<E>::value)
-    void swap(unexpected& other) {
+    void swap(unexpected& other) noexcept(std::is_nothrow_swappable_v<E>) {
         using std::swap;
         swap(value_, other.value_);
     }
@@ -184,8 +186,8 @@ struct expected {
     template <
         typename S,
         typename F,
-        typename = std::enable_if_t<!detail::conversion_hazard<T, expected<S, F>>::value>,
-        typename = std::enable_if_t<!detail::conversion_hazard<unexpected<E>, expected<S, F>>::value>
+        typename = std::enable_if_t<!detail::conversion_hazard_v<T, expected<S, F>>>,
+        typename = std::enable_if_t<!detail::conversion_hazard_v<unexpected<E>, expected<S, F>>>
     >
     expected(const expected<S, F>& other):
         data_(other? data_type(std::in_place_index<0>, *other): data_type(std::in_place_index<1>, other.error()))
@@ -194,8 +196,8 @@ struct expected {
     template <
         typename S,
         typename F,
-        typename = std::enable_if_t<!detail::conversion_hazard<T, expected<S, F>>::value>,
-        typename = std::enable_if_t<!detail::conversion_hazard<unexpected<E>, expected<S, F>>::value>
+        typename = std::enable_if_t<!detail::conversion_hazard_v<T, expected<S, F>>>,
+        typename = std::enable_if_t<!detail::conversion_hazard_v<unexpected<E>, expected<S, F>>>
     >
     expected(expected<S, F>&& other):
         data_(other? data_type(std::in_place_index<0>, *std::move(other)): data_type(std::in_place_index<1>, std::move(other).error()))
@@ -203,10 +205,10 @@ struct expected {
 
     template <
         typename S,
-        typename = std::enable_if_t<std::is_constructible<T, S&&>::value>,
-        typename = std::enable_if_t<!std::is_same<std::in_place_t, detail::remove_cvref_t<S>>::value>,
-        typename = std::enable_if_t<!std::is_same<expected, detail::remove_cvref_t<S>>::value>,
-        typename = std::enable_if_t<!std::is_same<unexpected<E>, detail::remove_cvref_t<S>>::value>
+        typename = std::enable_if_t<std::is_constructible_v<T, S&&>>,
+        typename = std::enable_if_t<!std::is_same_v<std::in_place_t, detail::remove_cvref_t<S>>>,
+        typename = std::enable_if_t<!std::is_same_v<expected, detail::remove_cvref_t<S>>>,
+        typename = std::enable_if_t<!std::is_same_v<unexpected<E>, detail::remove_cvref_t<S>>>
     >
     expected(S&& x): data_(std::in_place_index<0>, std::forward<S>(x)) {}
 
@@ -218,21 +220,21 @@ struct expected {
 
     // Assignment ops.
 
-    expected& operator=(const expected& other) noexcept(std::is_nothrow_copy_assignable<data_type>::value) {
+    expected& operator=(const expected& other) noexcept(std::is_nothrow_copy_assignable_v<data_type>) {
         data_ = other.data_;
         return *this;
     }
 
-    expected& operator=(expected&& other) noexcept(std::is_nothrow_move_assignable<data_type>::value) {
+    expected& operator=(expected&& other) noexcept(std::is_nothrow_move_assignable_v<data_type>) {
         data_ = std::move(other.data_);
         return *this;
     }
 
     template <
         typename S,
-        typename = std::enable_if_t<!std::is_same<expected, detail::remove_cvref_t<S>>::value>,
-        typename = std::enable_if_t<std::is_constructible<T, S>::value>,
-        typename = std::enable_if_t<std::is_assignable<T&, S>::value>
+        typename = std::enable_if_t<!std::is_same_v<expected, detail::remove_cvref_t<S>>>,
+        typename = std::enable_if_t<std::is_constructible_v<T, S>>,
+        typename = std::enable_if_t<std::is_assignable_v<T&, S>>
     >
     expected& operator=(S&& v) {
         data_ = data_type(std::in_place_index<0>, std::forward<S>(v));
@@ -267,7 +269,9 @@ struct expected {
 
     // Swap ops.
 
-    void swap(expected& other) { data_.swap(other.data_); }
+    void swap(expected& other) noexcept(std::is_nothrow_swappable_v<data_type>) {
+        data_.swap(other.data_);
+    }
 
     friend void swap(expected& a, expected& b) { a.swap(b); }
 
@@ -322,42 +326,42 @@ private:
 // Equality comparisons for non-void expected.
 
 template <typename T1, typename E1, typename T2, typename E2,
-          typename = std::enable_if_t<!std::is_void<T1>::value>,
-          typename = std::enable_if_t<!std::is_void<T2>::value>>
+          typename = std::enable_if_t<!std::is_void_v<T1>>,
+          typename = std::enable_if_t<!std::is_void_v<T2>>>
 inline bool operator==(const expected<T1, E1>& a, const expected<T2, E2>& b) {
     return a? b && a.value()==b.value(): !b && a.error()==b.error();
 }
 
 template <typename T1, typename E1, typename T2, typename E2,
-          typename = std::enable_if_t<!std::is_void<T1>::value>,
-          typename = std::enable_if_t<!std::is_void<T2>::value>>
+          typename = std::enable_if_t<!std::is_void_v<T1>>,
+          typename = std::enable_if_t<!std::is_void_v<T2>>>
 inline bool operator!=(const expected<T1, E1>& a, const expected<T2, E2>& b) {
     return a? !b || a.value()!=b.value(): b || a.error()!=b.error();
 }
 
 template <typename T1, typename E1, typename T2,
-          typename = std::enable_if_t<!std::is_void<T1>::value>,
+          typename = std::enable_if_t<!std::is_void_v<T1>>,
           typename = decltype(static_cast<bool>(std::declval<const expected<T1, E1>>().value()==std::declval<T2>()))>
 inline bool operator==(const expected<T1, E1>& a, const T2& v) {
     return a && a.value()==v;
 }
 
 template <typename T1, typename E1, typename T2,
-          typename = std::enable_if_t<!std::is_void<T1>::value>,
+          typename = std::enable_if_t<!std::is_void_v<T1>>,
           typename = decltype(static_cast<bool>(std::declval<const expected<T1, E1>>().value()==std::declval<T2>()))>
 inline bool operator==(const T2& v, const expected<T1, E1>& a) {
     return a==v;
 }
 
 template <typename T1, typename E1, typename T2,
-          typename = std::enable_if_t<!std::is_void<T1>::value>,
+          typename = std::enable_if_t<!std::is_void_v<T1>>,
           typename = decltype(static_cast<bool>(std::declval<const expected<T1, E1>>().value()!=std::declval<T2>()))>
 inline bool operator!=(const expected<T1, E1>& a, const T2& v) {
     return !a || a.value()!=v;
 }
 
 template <typename T1, typename E1, typename T2,
-          typename = std::enable_if_t<!std::is_void<T1>::value>,
+          typename = std::enable_if_t<!std::is_void_v<T1>>,
           typename = decltype(static_cast<bool>(std::declval<const expected<T1, E1>>().value()!=std::declval<T2>()))>
 inline bool operator!=(const T2& v, const expected<T1, E1>& a) {
     return a!=v;
@@ -421,13 +425,13 @@ struct expected<void, E> {
 
     template <
         typename F,
-        typename = std::enable_if_t<!detail::conversion_hazard<unexpected<E>, expected<void, F>>::value>
+        typename = std::enable_if_t<!detail::conversion_hazard_v<unexpected<E>, expected<void, F>>>
     >
     expected(const expected<void, F>& other): data_(other.data_) {}
 
     template <
         typename F,
-        typename = std::enable_if_t<!detail::conversion_hazard<unexpected<E>, expected<void, F>>::value>
+        typename = std::enable_if_t<!detail::conversion_hazard_v<unexpected<E>, expected<void, F>>>
     >
     expected(expected<void, F>&& other): data_(std::move(other.data_)) {}
 
@@ -439,12 +443,12 @@ struct expected<void, E> {
 
     // Assignment ops.
 
-    expected& operator=(const expected& other) noexcept(std::is_nothrow_copy_assignable<data_type>::value) {
+    expected& operator=(const expected& other) noexcept(std::is_nothrow_copy_assignable_v<data_type>) {
         data_ = other.data_;
         return *this;
     }
 
-    expected& operator=(expected&& other) noexcept(std::is_nothrow_move_assignable<data_type>::value) {
+    expected& operator=(expected&& other) noexcept(std::is_nothrow_move_assignable_v<data_type>) {
         data_ = std::move(other.data_);
         return *this;
     }
@@ -504,15 +508,15 @@ private:
 // Equality comparisons for void expected.
 
 template <typename T1, typename E1, typename T2, typename E2,
-          typename = std::enable_if_t<std::is_void<T1>::value || std::is_void<T2>::value>>
+          typename = std::enable_if_t<std::is_void_v<T1> || std::is_void_v<T2>>>
 inline bool operator==(const expected<T1, E1>& a, const expected<T2, E2>& b) {
-    return a? b && std::is_void<T1>::value && std::is_void<T2>::value: !b && a.error()==b.error();
+    return a? b && std::is_void_v<T1> && std::is_void_v<T2>: !b && a.error()==b.error();
 }
 
 template <typename T1, typename E1, typename T2, typename E2,
-          typename = std::enable_if_t<std::is_void<T1>::value || std::is_void<T2>::value>>
+          typename = std::enable_if_t<std::is_void_v<T1> || std::is_void_v<T2>>>
 inline bool operator!=(const expected<T1, E1>& a, const expected<T2, E2>& b) {
-    return a? !b || !std::is_void<T2>::value || !std::is_void<T1>::value: b || a.error()!=b.error();
+    return a? !b || !std::is_void_v<T2> || !std::is_void_v<T1>: b || a.error()!=b.error();
 }
 
 

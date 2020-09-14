@@ -311,12 +311,15 @@ struct Xswap {
         ++*n_swap_ptr;
         std::swap(val, other.val);
     }
-    friend void swap(Xswap& x1, Xswap& x2) { x1.swap(x2); }
+    friend void swap(Xswap& x1, Xswap& x2) noexcept { x1.swap(x2); }
+};
+
+struct swap_can_throw {
+    friend void swap(swap_can_throw& s1, swap_can_throw& s2) noexcept(false) {}
 };
 }
 
 TEST(expected, swap) {
-
     int swaps = 0;
     expected<Xswap, int> x1(in_place, -1, swaps), x2(in_place, -2, swaps);
 
@@ -332,4 +335,14 @@ TEST(expected, swap) {
     EXPECT_EQ(4, x1.error());
     EXPECT_EQ(-2, x3->val);
     EXPECT_EQ(0, swaps); // Xswap is moved, not swapped.
+
+    swaps = 0;
+    unexpected<Xswap> u1(in_place, -1, swaps), u2(in_place, -2, swaps);
+    swap(u1, u2);
+    EXPECT_EQ(-2, u1.value().val);
+    EXPECT_EQ(-1, u2.value().val);
+    EXPECT_EQ(1, swaps);
+
+    EXPECT_TRUE(std::is_nothrow_swappable<unexpected<Xswap>>::value);
+    EXPECT_FALSE(std::is_nothrow_swappable<unexpected<swap_can_throw>>::value);
 }
