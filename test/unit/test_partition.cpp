@@ -2,7 +2,6 @@
 
 #include <array>
 #include <forward_list>
-#include <list>
 #include <string>
 #include <vector>
 
@@ -135,7 +134,7 @@ TEST(partition, make_partition_in_place) {
 TEST(partition, make_partition) {
     // (also tests differing types for sizes and divisiosn)
     unsigned sizes[] = { 7, 3, 0, 2 };
-    std::list<double> part_store = { 100.3 };
+    std::forward_list<double> part_store = { 100.3 };
 
     auto p = util::make_partition(part_store, sizes, 10.0);
     ASSERT_EQ(4u, p.size());

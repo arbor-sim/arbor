@@ -1,5 +1,6 @@
 #include "../gtest.h"
 
+#include <algorithm>
 #include <vector>
 
 #include <backends/gpu/reduce_by_key.hpp>
@@ -84,8 +85,10 @@ TEST(reduce_by_key, single_repeated_index)
 
 TEST(reduce_by_key, scatter)
 {
+    // A monotonic sequence of keys with repetitions and gaps, for a reduction
+    // onto an array of length 12.
+    std::size_t n = 12;
     std::vector<int> index = {0,0,0,1,2,2,2,2,3,3,7,7,7,7,7,11};
-    unsigned n = index.back()+1;
     std::vector<double> in(index.size(), 1);
     std::vector<double> expected = {3., 1., 4., 2., 0., 0., 0., 5., 0., 0., 0., 1.};
 
@@ -140,8 +143,10 @@ std::vector<T> reduce_twice(const std::vector<T>& in, size_t n_out, const std::v
 
 TEST(reduce_by_key, scatter_twice)
 {
+    // A monotonic sequence of keys with repetitions and gaps, for a reduction
+    // onto an array of length 12.
+    std::size_t n = 12;
     std::vector<int> index = {0,0,0,1,2,2,3,7,7,7,11};
-    unsigned n = index.back()+1;
     std::vector<double> in(index.size(), 1);
     std::vector<double> expected = {6., 2., 4., 2., 0., 0., 0., 6., 0., 0., 0., 2.};
 

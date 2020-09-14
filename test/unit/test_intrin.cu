@@ -92,36 +92,36 @@ TEST(gpu_intrinsics, minmax) {
         {  0, -inf, -inf,   0},
     };
 
-    const auto n = inputs.size();
+    const int n = inputs.size();
 
     gpu_vector<double> lhs(n);
     gpu_vector<double> rhs(n);
     gpu_vector<double> result(n);
 
-    for (unsigned i=0; i<n; ++i) {
+    for (int i=0; i<n; ++i) {
         lhs[i] = inputs[i].lhs;
         rhs[i] = inputs[i].rhs;
     }
 
     // test min
     kernels::test_min<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    for (unsigned i=0; i<n; ++i) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     kernels::test_min<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    for (unsigned i=0; i<n; ++i) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     // test max
     kernels::test_max<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    for (unsigned i=0; i<n; ++i) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
 
     kernels::test_max<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    for (unsigned i=0; i<n; ++i) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
 }
