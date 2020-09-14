@@ -4,7 +4,6 @@
 #include <memory>
 #include <vector>
 
-#include <arbor/util/either.hpp>
 #include <arbor/util/variant.hpp>
 
 namespace pyarb {
