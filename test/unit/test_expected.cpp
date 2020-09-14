@@ -7,6 +7,7 @@
 #include "common.hpp"
 
 using namespace arb::util;
+using std::in_place;
 
 TEST(expected, ctors) {
     // Test constructors, verify against bool conversion and
@@ -52,7 +53,7 @@ TEST(expected, ctors) {
 
         int3 v;
         v.v = 19;
-        expected<int3, int3> x(make_unexpected(v));
+        expected<int3, int3> x{unexpected(v)};
         EXPECT_FALSE(x);
         EXPECT_EQ(19, x.error().v);
         EXPECT_THROW(x.value(), bad_expected_access<int3>);
@@ -62,7 +63,7 @@ TEST(expected, ctors) {
 
         int3 v;
         v.v = 19;
-        expected<void, int3> x(make_unexpected(v));
+        expected<void, int3> x{unexpected(v)};
         EXPECT_FALSE(x);
         EXPECT_EQ(19, x.error().v);
     }
@@ -141,12 +142,12 @@ TEST(expected, assignment) {
         EXPECT_EQ(30, (y=a).value().v);
 
         expected<int, X> z;
-        EXPECT_EQ(20, (z=make_unexpected(1)).error().v);
+        EXPECT_EQ(20, (z=unexpected(1)).error().v);
         unexpected<int> b(3);
         EXPECT_EQ(30, (z=b).error().v);
 
         expected<void, X> v;
-        EXPECT_EQ(20, (v=make_unexpected(1)).error().v);
+        EXPECT_EQ(20, (v=unexpected(1)).error().v);
         EXPECT_EQ(30, (v=b).error().v);
     }
 }
@@ -217,22 +218,22 @@ TEST(expected, equality) {
         EXPECT_FALSE(x!=10);
         EXPECT_FALSE(10!=x);
 
-        EXPECT_FALSE(x==make_unexpected(10));
-        EXPECT_FALSE(make_unexpected(10)==x);
-        EXPECT_TRUE(x!=make_unexpected(10));
-        EXPECT_TRUE(make_unexpected(10)!=x);
+        EXPECT_FALSE(x==unexpected(10));
+        EXPECT_FALSE(unexpected(10)==x);
+        EXPECT_TRUE(x!=unexpected(10));
+        EXPECT_TRUE(unexpected(10)!=x);
 
-        x = make_unexpected(10);
+        x = unexpected(10);
 
         EXPECT_FALSE(x==10);
         EXPECT_FALSE(10==x);
         EXPECT_TRUE(x!=10);
         EXPECT_TRUE(10!=x);
 
-        EXPECT_TRUE(x==make_unexpected(10));
-        EXPECT_TRUE(make_unexpected(10)==x);
-        EXPECT_FALSE(x!=make_unexpected(10));
-        EXPECT_FALSE(make_unexpected(10)!=x);
+        EXPECT_TRUE(x==unexpected(10));
+        EXPECT_TRUE(unexpected(10)==x);
+        EXPECT_FALSE(x!=unexpected(10));
+        EXPECT_FALSE(unexpected(10)!=x);
     }
     {
         // void value expected comparisons:
@@ -280,18 +281,18 @@ TEST(expected, equality) {
         expected<void, int> x;
 
         EXPECT_TRUE(x);
-        EXPECT_FALSE(x==make_unexpected(10));
-        EXPECT_FALSE(make_unexpected(10)==x);
-        EXPECT_TRUE(x!=make_unexpected(10));
-        EXPECT_TRUE(make_unexpected(10)!=x);
+        EXPECT_FALSE(x==unexpected(10));
+        EXPECT_FALSE(unexpected(10)==x);
+        EXPECT_TRUE(x!=unexpected(10));
+        EXPECT_TRUE(unexpected(10)!=x);
 
         x = unexpected<int>(10);
 
         EXPECT_FALSE(x);
-        EXPECT_TRUE(x==make_unexpected(10));
-        EXPECT_TRUE(make_unexpected(10)==x);
-        EXPECT_FALSE(x!=make_unexpected(10));
-        EXPECT_FALSE(make_unexpected(10)!=x);
+        EXPECT_TRUE(x==unexpected(10));
+        EXPECT_TRUE(unexpected(10)==x);
+        EXPECT_FALSE(x!=unexpected(10));
+        EXPECT_FALSE(unexpected(10)!=x);
     }
 }
 

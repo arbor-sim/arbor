@@ -60,7 +60,7 @@
 namespace arb {
 
 using util::value_by_key;
-using util::make_unexpected;
+using util::unexpected;
 
 using std::make_unique;
 using std::make_exception_ptr;
@@ -89,7 +89,7 @@ T value(hopefully<T>&& x) {
 
 // Conveniently make an unexpected exception_ptr:
 template <typename X>
-auto unexpected_exception_ptr(X x) { return make_unexpected(make_exception_ptr(std::move(x))); }
+auto unexpected_exception_ptr(X x) { return unexpected(make_exception_ptr(std::move(x))); }
 } // anonymous namespace
 
 struct derivation {
@@ -178,7 +178,7 @@ struct catalogue_state {
             return {};
         }
         else {
-            return make_unexpected(fptr.error());
+            return unexpected(fptr.error());
         }
     }
 
@@ -219,7 +219,7 @@ struct catalogue_state {
             return *(deriv->derived_info.get());
         }
         else {
-            return make_unexpected(deriv.error());
+            return unexpected(deriv.error());
         }
     }
 
@@ -234,7 +234,7 @@ struct catalogue_state {
                 base = &implicit_deriv->parent;
             }
             else {
-                return make_unexpected(implicit_deriv.error());
+                return unexpected(implicit_deriv.error());
             }
         }
 
@@ -270,7 +270,7 @@ struct catalogue_state {
             new_info.reset(new mechanism_info(parent_info.value()));
         }
         else {
-            return make_unexpected(parent_info.error());
+            return unexpected(parent_info.error());
         }
 
         // Update global parameter values in info for derived mechanism.
@@ -402,7 +402,7 @@ struct catalogue_state {
         if (!defined(name)) {
             implicit_deriv = derive(name);
             if (!implicit_deriv) {
-                return make_unexpected(implicit_deriv.error());
+                return unexpected(implicit_deriv.error());
             }
             impl_name = &implicit_deriv->parent;
         }
@@ -467,7 +467,7 @@ struct catalogue_state {
                 implicit_deriv = std::move(deriv.value());
             }
             else {
-                return make_unexpected(deriv.error());
+                return unexpected(deriv.error());
             }
         }
 

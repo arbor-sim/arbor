@@ -88,7 +88,7 @@ public:
 private:
     expected<void, std::string> is_valid() const {
         if (!std::is_sorted(left.get(), right.get())) {
-            return make_unexpected(std::string("offsets are not monotonically increasing"));
+            return unexpected(std::string("offsets are not monotonically increasing"));
         }
         return {};
     }

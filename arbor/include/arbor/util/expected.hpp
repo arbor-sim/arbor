@@ -7,14 +7,12 @@
 //
 // * Left out lots of constexpr.
 // * Lazy about explicitness of some conversions.
-// * Can't use type deduction `unexpected(E)` in C++14, so have `make_unexpected` helper.
 
 #include <initializer_list>
+#include <optional>
 #include <type_traits>
 #include <utility>
-
-#include <arbor/util/optional.hpp>
-#include <arbor/util/variant.hpp>
+#include <variant>
 
 namespace arb {
 namespace util {
@@ -32,13 +30,13 @@ struct conversion_hazard: std::integral_constant<bool,
     std::is_convertible<X&, T>::value ||
     std::is_convertible<const X&, T>::value> {};
 
-// TODO: C++17 replace with std::remove_cvref_t
+// TODO: C++20 replace with std::remove_cvref_t
 template <typename X>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<X>>;
 } // namespace detail
 
 struct unexpect_t {};
-static constexpr unexpect_t unexpect{}; // TODO: C++17 replace with inline constexpr
+inline constexpr unexpect_t unexpect{};
 
 template <typename E = void>
 struct bad_expected_access;
@@ -77,18 +75,18 @@ struct unexpected {
     // Emplace-style ctors.
 
     template <typename... Args>
-    explicit unexpected(in_place_t, Args&&... args):
+    explicit unexpected(std::in_place_t, Args&&... args):
         value_(std::forward<Args>(args)...) {}
 
     template <typename X, typename... Args>
-    explicit unexpected(in_place_t, std::initializer_list<X> il, Args&&... args):
+    explicit unexpected(std::in_place_t, std::initializer_list<X> il, Args&&... args):
         value_(il, std::forward<Args>(args)...) {}
 
     // Converting ctors.
 
     template <typename F,
         typename = std::enable_if_t<std::is_constructible<E, F&&>::value>,
-        typename = std::enable_if_t<!std::is_same<in_place_t, detail::remove_cvref_t<F>>::value>,
+        typename = std::enable_if_t<!std::is_same<std::in_place_t, detail::remove_cvref_t<F>>::value>,
         typename = std::enable_if_t<!std::is_same<unexpected, detail::remove_cvref_t<F>>::value>
     >
     explicit unexpected(F&& f): value_(std::forward<F>(f)) {}
@@ -147,14 +145,14 @@ private:
 };
 
 template <typename E>
-unexpected<E> inline make_unexpected(E e) { return unexpected<E>(std::move(e)); }
+unexpected(E) -> unexpected<E>;
 
 template <typename T, typename E>
 struct expected {
     using value_type = T;
     using error_type = E;
     using unexpected_type = unexpected<E>;
-    using data_type = variant<T, unexpected_type>;
+    using data_type = std::variant<T, unexpected_type>;
 
     expected() = default;
     expected(const expected&) = default;
@@ -163,23 +161,23 @@ struct expected {
     // Emplace-style ctors.
 
     template <typename... Args>
-    explicit expected(in_place_t, Args&&... args):
-        data_(in_place_index<0>(), std::forward<Args>(args)...) {}
+    explicit expected(std::in_place_t, Args&&... args):
+        data_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
     template <typename X, typename... Args>
-    explicit expected(in_place_t, std::initializer_list<X> il, Args&&... args):
-        data_(in_place_index<0>(), il, std::forward<Args>(args)...) {}
+    explicit expected(std::in_place_t, std::initializer_list<X> il, Args&&... args):
+        data_(std::in_place_index<0>, il, std::forward<Args>(args)...) {}
 
     // (Proposal says to forward args to unexpected<E>, but this is not compatible
     // with the requirement that E is constructible from args; so here we're forwarding
     // to unexpected<E> with an additional 'in_place' argument.)
     template <typename... Args>
     explicit expected(unexpect_t, Args&&... args):
-        data_(in_place_index<1>(), in_place_t{}, std::forward<Args>(args)...) {}
+        data_(std::in_place_index<1>, std::in_place_t{}, std::forward<Args>(args)...) {}
 
     template <typename X, typename... Args>
     explicit expected(unexpect_t, std::initializer_list<X> il, Args&&... args):
-        data_(in_place_index<1>(), in_place_t{}, il, std::forward<Args>(args)...) {}
+        data_(std::in_place_index<1>, std::in_place_t{}, il, std::forward<Args>(args)...) {}
 
     // Converting ctors.
 
@@ -190,7 +188,7 @@ struct expected {
         typename = std::enable_if_t<!detail::conversion_hazard<unexpected<E>, expected<S, F>>::value>
     >
     expected(const expected<S, F>& other):
-        data_(other? data_type(in_place_index<0>(), *other): data_type(in_place_index<1>(), other.error()))
+        data_(other? data_type(std::in_place_index<0>, *other): data_type(std::in_place_index<1>, other.error()))
     {}
 
     template <
@@ -200,23 +198,23 @@ struct expected {
         typename = std::enable_if_t<!detail::conversion_hazard<unexpected<E>, expected<S, F>>::value>
     >
     expected(expected<S, F>&& other):
-        data_(other? data_type(in_place_index<0>(), *std::move(other)): data_type(in_place_index<1>(), std::move(other).error()))
+        data_(other? data_type(std::in_place_index<0>, *std::move(other)): data_type(std::in_place_index<1>, std::move(other).error()))
     {}
 
     template <
         typename S,
         typename = std::enable_if_t<std::is_constructible<T, S&&>::value>,
-        typename = std::enable_if_t<!std::is_same<in_place_t, detail::remove_cvref_t<S>>::value>,
+        typename = std::enable_if_t<!std::is_same<std::in_place_t, detail::remove_cvref_t<S>>::value>,
         typename = std::enable_if_t<!std::is_same<expected, detail::remove_cvref_t<S>>::value>,
         typename = std::enable_if_t<!std::is_same<unexpected<E>, detail::remove_cvref_t<S>>::value>
     >
-    expected(S&& x): data_(in_place_index<0>(), std::forward<S>(x)) {}
+    expected(S&& x): data_(std::in_place_index<0>, std::forward<S>(x)) {}
 
     template <typename F>
-    expected(const unexpected<F>& u): data_(in_place_index<1>(), u) {}
+    expected(const unexpected<F>& u): data_(std::in_place_index<1>, u) {}
 
     template <typename F>
-    expected(unexpected<F>&& u): data_(in_place_index<1>(), std::move(u)) {}
+    expected(unexpected<F>&& u): data_(std::in_place_index<1>, std::move(u)) {}
 
     // Assignment ops.
 
@@ -237,19 +235,19 @@ struct expected {
         typename = std::enable_if_t<std::is_assignable<T&, S>::value>
     >
     expected& operator=(S&& v) {
-        data_ = data_type(in_place_index<0>(), std::forward<S>(v));
+        data_ = data_type(std::in_place_index<0>, std::forward<S>(v));
         return *this;
     }
 
     template <typename F>
     expected& operator=(const unexpected<F>& u) {
-        data_ = data_type(in_place_index<1>(), u);
+        data_ = data_type(std::in_place_index<1>, u);
         return *this;
     }
 
     template <typename F>
     expected& operator=(unexpected<F>&& u) {
-        data_ = data_type(in_place_index<1>(), std::move(u));
+        data_ = data_type(std::in_place_index<1>, std::move(u));
         return *this;
     }
 
@@ -257,13 +255,13 @@ struct expected {
 
     template <typename... Args>
     T& emplace(Args&&... args) {
-        data_ = data_type(in_place_index<0>(), std::forward<Args>(args)...);
+        data_ = data_type(std::in_place_index<0>, std::forward<Args>(args)...);
         return value();
     }
 
     template <typename U, typename... Args>
     T& emplace(std::initializer_list<U> il, Args&&... args) {
-        data_ = data_type(in_place_index<0>(), il, std::forward<Args>(args)...);
+        data_ = data_type(std::in_place_index<0>, il, std::forward<Args>(args)...);
         return value();
     }
 
@@ -279,37 +277,37 @@ struct expected {
     explicit operator bool() const noexcept { return has_value(); }
 
     T& value() & {
-        if (*this) return get<0>(data_);
-        throw bad_expected_access<E>(error());
+        if (*this) return std::get<0>(data_);
+        throw bad_expected_access(error());
     }
     const T& value() const& {
-        if (*this) return get<0>(data_);
-        throw bad_expected_access<E>(error());
+        if (*this) return std::get<0>(data_);
+        throw bad_expected_access(error());
     }
 
     T&& value() && {
-        if (*this) return get<0>(std::move(data_));
-        throw bad_expected_access<E>(error());
+        if (*this) return std::get<0>(std::move(data_));
+        throw bad_expected_access(error());
     }
     const T&& value() const&& {
-        if (*this) return get<0>(std::move(data_));
-        throw bad_expected_access<E>(error());
+        if (*this) return std::get<0>(std::move(data_));
+        throw bad_expected_access(error());
     }
 
-    const E& error() const& { return get<1>(data_).value(); }
-    E& error() & { return get<1>(data_).value(); }
+    const E& error() const& { return std::get<1>(data_).value(); }
+    E& error() & { return std::get<1>(data_).value(); }
 
-    const E&& error() const&& { return get<1>(std::move(data_)).value(); }
-    E&& error() && { return get<1>(std::move(data_)).value(); }
+    const E&& error() const&& { return std::get<1>(std::move(data_)).value(); }
+    E&& error() && { return std::get<1>(std::move(data_)).value(); }
 
-    const T& operator*() const& { return get<0>(data_); }
-    T& operator*() & { return get<0>(data_); }
+    const T& operator*() const& { return std::get<0>(data_); }
+    T& operator*() & { return std::get<0>(data_); }
 
-    const T&& operator*() const&& { return get<0>(std::move(data_)); }
-    T&& operator*() && { return get<0>(std::move(data_)); }
+    const T&& operator*() const&& { return std::get<0>(std::move(data_)); }
+    T&& operator*() && { return std::get<0>(std::move(data_)); }
 
-    const T* operator->() const { return get_if<0>(data_); }
-    T* operator->() { return get_if<0>(data_); }
+    const T* operator->() const { return std::get_if<0>(&data_); }
+    T* operator->() { return std::get_if<0>(&data_); }
 
     template <typename S>
     T value_or(S&& s) const& { return has_value()? value(): std::forward<S>(s); }
@@ -368,28 +366,28 @@ inline bool operator!=(const T2& v, const expected<T1, E1>& a) {
 // Equality comparisons against unexpected.
 
 template <typename T1, typename E1, typename E2,
-          typename = decltype(static_cast<bool>(make_unexpected(std::declval<const expected<T1, E1>>().error())
+          typename = decltype(static_cast<bool>(unexpected(std::declval<const expected<T1, E1>>().error())
                                                 ==std::declval<const unexpected<E2>>()))>
 inline bool operator==(const expected<T1, E1>& a, const unexpected<E2>& u) {
-    return !a && make_unexpected(a.error())==u;
+    return !a && unexpected(a.error())==u;
 }
 
 template <typename T1, typename E1, typename E2,
-          typename = decltype(static_cast<bool>(make_unexpected(std::declval<const expected<T1, E1>>().error())
+          typename = decltype(static_cast<bool>(unexpected(std::declval<const expected<T1, E1>>().error())
                                                 ==std::declval<const unexpected<E2>>()))>
 inline bool operator==(const unexpected<E2>& u, const expected<T1, E1>& a) {
     return a==u;
 }
 
 template <typename T1, typename E1, typename E2,
-          typename = decltype(static_cast<bool>(make_unexpected(std::declval<const expected<T1, E1>>().error())
+          typename = decltype(static_cast<bool>(unexpected(std::declval<const expected<T1, E1>>().error())
                                                 !=std::declval<const unexpected<E2>>()))>
 inline bool operator!=(const expected<T1, E1>& a, const unexpected<E2>& u) {
-    return a || make_unexpected(a.error())!=u;
+    return a || unexpected(a.error())!=u;
 }
 
 template <typename T1, typename E1, typename E2,
-          typename = decltype(static_cast<bool>(make_unexpected(std::declval<const expected<T1, E1>>().error())
+          typename = decltype(static_cast<bool>(unexpected(std::declval<const expected<T1, E1>>().error())
                                                 !=std::declval<const unexpected<E2>>()))>
 inline bool operator!=(const unexpected<E2>& u, const expected<T1, E1>& a) {
     return a!=u;
@@ -401,7 +399,7 @@ struct expected<void, E> {
     using value_type = void;
     using error_type = E;
     using unexpected_type = unexpected<E>;
-    using data_type = optional<unexpected_type>;
+    using data_type = std::optional<unexpected_type>;
 
     expected() = default;
     expected(const expected&) = default;
@@ -409,15 +407,15 @@ struct expected<void, E> {
 
     // Emplace-style ctors.
 
-    explicit expected(in_place_t) {}
+    explicit expected(std::in_place_t) {}
 
     template <typename... Args>
     explicit expected(unexpect_t, Args&&... args):
-        data_(in_place_t{}, in_place_t{}, std::forward<Args>(args)...) {}
+        data_(std::in_place_t{}, std::in_place_t{}, std::forward<Args>(args)...) {}
 
     template <typename X, typename... Args>
     explicit expected(unexpect_t, std::initializer_list<X> il, Args&&... args):
-        data_(in_place_t{}, in_place_t{}, il, std::forward<Args>(args)...) {}
+        data_(std::in_place_t{}, std::in_place_t{}, il, std::forward<Args>(args)...) {}
 
     // Converting ctors.
 

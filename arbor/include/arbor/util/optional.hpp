@@ -43,9 +43,6 @@
 namespace arb {
 namespace util {
 
-struct in_place_t {};
-static constexpr in_place_t in_place{};
-
 template <typename X> struct optional;
 
 struct optional_unset_error: std::runtime_error {
@@ -128,7 +125,7 @@ namespace detail {
         }
 
         template <typename... Args>
-        optional_base(bool set_, in_place_t, Args&&... args) : set(set_) {
+        optional_base(bool set_, std::in_place_t, Args&&... args) : set(set_) {
             if (set) {
                 data.construct(std::forward<Args>(args)...);
             }
@@ -217,10 +214,10 @@ struct optional: detail::optional_base<X> {
         noexcept(std::is_nothrow_move_constructible<X>::value): base(true, std::move(x)) {}
 
     template <typename... Args>
-    optional(in_place_t, Args&&... args): base(true, in_place_t{}, std::forward<Args>(args)...) {}
+    optional(std::in_place_t, Args&&... args): base(true, std::in_place_t{}, std::forward<Args>(args)...) {}
 
     template <typename U, typename... Args>
-    optional(in_place_t, std::initializer_list<U> il, Args&&... args): base(true, in_place_t{}, il, std::forward<Args>(args)...) {}
+    optional(std::in_place_t, std::initializer_list<U> il, Args&&... args): base(true, std::in_place_t{}, il, std::forward<Args>(args)...) {}
 
     optional(const optional& ot): base(ot.set, ot.ref()) {}
 
