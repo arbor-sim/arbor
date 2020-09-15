@@ -6,6 +6,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
+#include <include/arbor/arbexcept.hpp>
 
 #include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
@@ -32,6 +33,7 @@ communicator::communicator(const recipe& rec,
     num_domains_ = distributed_->size();
     num_local_groups_ = dom_dec.groups.size();
     num_local_cells_ = dom_dec.num_local_cells;
+    auto num_total_cells = rec.num_cells();
 
     // For caching information about each cell
     struct gid_info {
@@ -91,7 +93,18 @@ communicator::communicator(const recipe& rec,
     auto offsets = connection_part_;
     std::size_t pos = 0;
     for (const auto& cell: gid_infos) {
+        auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
+            auto num_sources = rec.num_sources(c.source.index);
+            if (c.source.gid >= num_total_cells || c.source.index >= num_sources) {
+                throw arb::bad_connection_source(cell.gid, c.source);
+            }
+            if (c.dest.gid >= num_total_cells || c.dest.index >= num_targets) {
+                throw arb::bad_connection_target(cell.gid, c.dest);
+            }
+            if (c.dest.gid != cell.gid) {
+                throw arb::connection_target_mismatch(cell.gid, c.dest);
+            }
             const auto i = offsets[src_domains[pos]]++;
             connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
             ++pos;

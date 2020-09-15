@@ -16,6 +16,31 @@ bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     kind(kind)
 {}
 
+bad_target_description::bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
+    arbor_exception(pprintf("recipe::num_targets(gid={}) -> {} does not match the number of synapses on the cell -> {})", gid, rec_val, cell_val)),
+    gid(gid), rec_val(rec_val), cell_val(cell_val)
+{}
+
+bad_source_description::bad_source_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
+    arbor_exception(pprintf("recipe::num_source(gid={}) -> {} does not match the number of threshold detectors on the cell -> {})", gid, rec_val, cell_val)),
+    gid(gid), rec_val(rec_val), cell_val(cell_val)
+{}
+
+bad_connection_source::bad_connection_source(cell_gid_type gid, cell_member_type source):
+    arbor_exception(pprintf("recipe::connections_on(gid={}): source ({}, {}) does not exist)", gid, source.gid, source.index)),
+    gid(gid), source(source)
+{}
+
+bad_connection_target::bad_connection_target(cell_gid_type gid, cell_member_type target):
+    arbor_exception(pprintf("recipe::connections_on(gid={}): target ({}, {}) does not exist)", gid, target.gid, target.index)),
+    gid(gid), target(target)
+{}
+
+connection_target_mismatch::connection_target_mismatch(cell_gid_type gid, cell_member_type target):
+arbor_exception(pprintf("recipe::connections_on(gid={}): target ({}, {}) must be on the cell with gid = {})", gid, target.gid, target.index, gid)),
+gid(gid), target(target)
+{}
+
 bad_global_property::bad_global_property(cell_kind kind):
     arbor_exception(pprintf("bad global property for cell kind {}", kind)),
     kind(kind)
@@ -30,6 +55,20 @@ gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gi
     arbor_exception(pprintf("No support for gap junctions across domain decomposition groups for gid {} and {}", gid_0, gid_1)),
     gid_0(gid_0),
     gid_1(gid_1)
+{}
+
+gj_connection_mismatch::gj_connection_mismatch(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1):
+        arbor_exception(pprintf("recipe::gap_junctions_on(gid={}) -> ({}, {}) <-> ({}, {}): one of the sites must be on the cell with gid = {})", gid, site_0, site_1, gid)),
+        gid(gid),
+        site_0(site_0),
+        site_1(site_1)
+{}
+
+bad_gj_connection::bad_gj_connection(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1):
+    arbor_exception(pprintf("recipe::gap_junctions_on(gid={}) -> ({}, {}) <-> ({}, {}): one of the sites' does not exist)", gid, site_0.gid, site_0.index, site_1.gid, site_1.index)),
+    gid(gid),
+    site_0(site_0),
+    site_1(site_1)
 {}
 
 gj_kind_mismatch::gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1):

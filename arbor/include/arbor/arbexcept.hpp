@@ -35,6 +35,36 @@ struct bad_cell_description: arbor_exception {
     cell_kind kind;
 };
 
+struct bad_target_description: arbor_exception {
+    bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val);
+    cell_gid_type gid;
+    cell_size_type rec_val, cell_val;
+};
+
+struct bad_source_description: arbor_exception {
+    bad_source_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val);
+    cell_gid_type gid;
+    cell_size_type rec_val, cell_val;
+};
+
+struct bad_connection_source: arbor_exception {
+    bad_connection_source(cell_gid_type gid, cell_member_type source);
+    cell_gid_type gid;
+    cell_member_type source;
+};
+
+struct bad_connection_target: arbor_exception {
+    bad_connection_target(cell_gid_type gid, cell_member_type target);
+    cell_gid_type gid;
+    cell_member_type target;
+};
+
+struct connection_target_mismatch: arbor_exception {
+    connection_target_mismatch(cell_gid_type gid, cell_member_type target);
+    cell_gid_type gid;
+    cell_member_type target;
+};
+
 struct bad_global_property: arbor_exception {
     explicit bad_global_property(cell_kind kind);
     cell_kind kind;
@@ -48,6 +78,18 @@ struct bad_probe_id: arbor_exception {
 struct gj_kind_mismatch: arbor_exception {
     gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1);
     cell_gid_type gid_0, gid_1;
+};
+
+struct gj_connection_mismatch: arbor_exception {
+    gj_connection_mismatch(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1);
+    cell_gid_type gid;
+    cell_member_type site_0, site_1;
+};
+
+struct bad_gj_connection: arbor_exception {
+    bad_gj_connection(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1);
+    cell_gid_type gid;
+    cell_member_type site_0, site_1;
 };
 
 // Domain decomposition errors:

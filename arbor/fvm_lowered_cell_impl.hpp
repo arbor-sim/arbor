@@ -529,7 +529,6 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-    // Collect detectors, probe handles.
 
     std::vector<index_type> detector_cv;
     std::vector<value_type> detector_threshold;
@@ -538,6 +537,23 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
 
+        // Sanity check recipe
+        auto rec_sources = rec.num_sources(gid);
+        auto rec_targets = rec.num_targets(gid);
+        auto cell_sources = cells[cell_idx].detectors().size();
+        unsigned cell_targets = 0;
+        for (auto syn : cells[cell_idx].synapses()) {
+            cell_targets += syn.second.size();
+        }
+
+        if (rec_sources != cell_sources) {
+            throw arb::bad_source_description(gid, rec_sources, cell_sources);
+        }
+        if (rec_targets != cell_targets) {
+            throw arb::bad_target_description(gid, rec_targets, cell_targets);
+        }
+
+        // Collect detectors, probe handles.
         for (auto entry: cells[cell_idx].detectors()) {
             detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
             detector_threshold.push_back(entry.item.threshold);
@@ -591,7 +607,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {
             if (gid != g.local.gid && gid != g.peer.gid) {
-                throw arb::bad_cell_description(cell_kind::cable, gid);
+                throw arb::gj_connection_mismatch(gid, g.local, g.peer);
             }
             cell_gid_type cv0, cv1;
             try {
@@ -599,7 +615,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
                 cv1 = gid_to_cvs[g.peer.gid].at(g.peer.index);
             }
             catch (std::out_of_range&) {
-                throw arb::bad_cell_description(cell_kind::cable, gid);
+                throw arb::bad_gj_connection(gid, g.local, g.peer);
             }
             if (gid != g.local.gid) {
                 std::swap(cv0, cv1);
