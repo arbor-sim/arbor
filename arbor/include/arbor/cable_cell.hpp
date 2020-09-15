@@ -334,6 +334,28 @@ public:
     const cable_cell_region_map& region_assignments() const;
     const cable_cell_location_map& location_assignments() const;
 
+    const std::unordered_map<std::string, temperature_K>& get_region_temperatures() const {
+        return region_temperature_K;
+    }
+    const std::unordered_map<std::string, init_membrane_potential>& get_region_init_membrabe_potentials() const {
+        return region_init_membrane_potential;
+    }
+    const std::unordered_map<std::string, axial_resistivity>& get_region_axial_resistivity() const{
+        return region_axial_resistivity;
+    }
+    const std::unordered_map<std::string, membrane_capacitance>& get_region_membrane_capacitance() const {
+        return region_membrane_capacitance;
+    }
+    const std::unordered_map<std::string, std::vector<initial_ion_data>>& get_region_initial_ion_data() const {
+        return region_initial_ion_data;
+    }
+    const std::unordered_map<std::string, std::vector<mechanism_desc>>& get_region_mechanism_desc() const {
+        return region_mechanism_desc;
+    }
+
+private:
+    std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
+
     // Paint records
     std::unordered_map<std::string, temperature_K> region_temperature_K;
     std::unordered_map<std::string, init_membrane_potential> region_init_membrane_potential;
@@ -341,8 +363,6 @@ public:
     std::unordered_map<std::string, membrane_capacitance> region_membrane_capacitance;
     std::unordered_map<std::string, std::vector<initial_ion_data>> region_initial_ion_data;
     std::unordered_map<std::string, std::vector<mechanism_desc>> region_mechanism_desc;
-private:
-    std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 
 } // namespace arb

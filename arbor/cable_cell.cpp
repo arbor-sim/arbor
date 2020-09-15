@@ -188,16 +188,6 @@ void cable_cell::paint(const region& target, mechanism_desc prop) {
     impl_->paint(target, prop);
 }
 
-/*
-#define FWD_PAINT(proptype)\
-void cable_cell::paint(const region& target, proptype prop) {\
-    impl_->paint(target, prop);\
-}
-ARB_PP_FOREACH(FWD_PAINT,\
-    mechanism_desc, init_membrane_potential, axial_resistivity,\
-    temperature_K, membrane_capacitance, initial_ion_data)
-*/
-
 // Forward place methods to implementation class.
 
 #define FWD_PLACE(proptype)\
