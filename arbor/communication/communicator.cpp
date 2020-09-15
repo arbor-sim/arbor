@@ -33,7 +33,12 @@ communicator::communicator(const recipe& rec,
     num_domains_ = distributed_->size();
     num_local_groups_ = dom_dec.groups.size();
     num_local_cells_ = dom_dec.num_local_cells;
+
+    std::vector<cell_size_type> cell_num_sources;
     auto num_total_cells = rec.num_cells();
+    for (auto gid: util::make_span(num_total_cells)) {
+        cell_num_sources.push_back(rec.num_sources(gid));
+    }
 
     // For caching information about each cell
     struct gid_info {
@@ -95,7 +100,7 @@ communicator::communicator(const recipe& rec,
     for (const auto& cell: gid_infos) {
         auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
-            auto num_sources = rec.num_sources(c.source.index);
+            auto num_sources = cell_num_sources[c.source.gid];
             if (c.source.gid >= num_total_cells || c.source.index >= num_sources) {
                 throw arb::bad_connection_source(cell.gid, c.source);
             }
