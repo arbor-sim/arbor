@@ -58,35 +58,18 @@ struct gap_junction_site {};
 
 struct init_membrane_potential {
     double value = NAN; // [mV]
-    friend std::ostream& operator<< ( std::ostream& os, const init_membrane_potential& c ) {
-        os << "Vm (" << c.value << ")";
-        return os;
-    }
-
 };
 
 struct temperature_K {
     double value = NAN; // [K]
-    friend std::ostream& operator<< ( std::ostream& os, const temperature_K& c ) {
-        os << "temp (" << c.value << ")";
-        return os;
-    }
 };
 
 struct axial_resistivity {
     double value = NAN; // [[Ω·cm]
-    friend std::ostream& operator<< ( std::ostream& os, const axial_resistivity& c ) {
-        os << "rL (" << c.value << ")";
-        return os;
-    }
 };
 
 struct membrane_capacitance {
     double value = NAN; // [F/m²]
-    friend std::ostream& operator<< ( std::ostream& os, const membrane_capacitance& c ) {
-        os << "cm (" << c.value << ")";
-        return os;
-    }
 };
 
 // Mechanism description, viz. mechanism name and
@@ -147,15 +130,6 @@ struct mechanism_desc {
 
     const std::string& name() const { return name_; }
 
-    friend std::ostream& operator<< ( std::ostream& os, const mechanism_desc& c ) {
-        os << "mech (" << c.name() << ") {";
-        for (auto p: c.values()) {
-            os << "(" << p.first <<  ", " << p.second << ") ";
-        }
-        os << "}";
-        return os;
-    }
-
 private:
     std::string name_;
     std::unordered_map<std::string, double> param_;
@@ -164,15 +138,6 @@ private:
 struct initial_ion_data {
     std::string ion;
     cable_cell_ion_data initial;
-
-    friend std::ostream& operator<< ( std::ostream& os, const initial_ion_data& c ) {
-        os << "ion (" << c.ion << ") {";
-        os << "( iconc: " << c.initial.init_int_concentration <<  ") ";
-        os << "( econc: " << c.initial.init_ext_concentration <<  ") ";
-        os << "( revpot: " << c.initial.init_reversal_potential <<  ") ";
-        os << "}";
-        return os;
-    }
 };
 
 struct ion_reversal_potential_method {

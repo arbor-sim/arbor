@@ -151,19 +151,19 @@ void output_cell_params(const arb::cable_cell& cell, std::string file_name) {
     // Local
     std::unordered_map<std::string, nlohmann::json> regions;
 
-    for (const auto& entry: cell.region_temperature_K) {
+    for (const auto& entry: cell.get_region_temperatures()) {
         regions[entry.first]["celsius"] = entry.second.value;
     }
-    for (const auto& entry: cell.region_init_membrane_potential) {
+    for (const auto& entry: cell.get_region_init_membrabe_potentials()) {
         regions[entry.first]["Vm"] = entry.second.value;
     }
-    for (const auto& entry: cell.region_axial_resistivity) {
+    for (const auto& entry: cell.get_region_axial_resistivity()) {
         regions[entry.first]["Ra"] = entry.second.value;
     }
-    for (const auto& entry: cell.region_membrane_capacitance) {
+    for (const auto& entry: cell.get_region_membrane_capacitance()) {
          regions[entry.first]["cm"] = entry.second.value;
     }
-    for (const auto& entry: cell.region_initial_ion_data) {
+    for (const auto& entry: cell.get_region_initial_ion_data()) {
         nlohmann::json ion_data;
         for (auto ion: entry.second) {
             nlohmann::json data;
@@ -185,7 +185,7 @@ void output_cell_params(const arb::cable_cell& cell, std::string file_name) {
 
     // Mechs
     std::vector<nlohmann::json> mechs;
-    for (const auto& entry: cell.region_mechanism_desc) {
+    for (const auto& entry: cell.get_region_mechanism_desc()) {
         auto reg = entry.first;
         for (auto& mech_desc: entry.second) {
             nlohmann::json data;

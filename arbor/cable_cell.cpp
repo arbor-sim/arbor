@@ -98,7 +98,6 @@ struct cable_cell_impl {
         auto& mm = get_region_map(prop);
 
         for (auto c: cables) {
-            std::cout << "paint " << c.branch << " from " << c.prox_pos << " to " << c.dist_pos << " with " << prop << std::endl;
             // Skip zero-length cables in extent:
             if (c.prox_pos==c.dist_pos) continue;
 
