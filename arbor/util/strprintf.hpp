@@ -10,6 +10,7 @@
 #include <string>
 #include <sstream>
 #include <system_error>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -33,7 +34,7 @@ namespace impl_to_string {
     };
 
     template <typename T>
-    struct select<T, util::void_t<decltype(to_string(std::declval<T>()))>> {
+    struct select<T, std::void_t<decltype(to_string(std::declval<T>()))>> {
         static std::string str(const T& v) {
             return to_string(v);
         }

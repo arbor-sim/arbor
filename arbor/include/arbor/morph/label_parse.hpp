@@ -1,8 +1,9 @@
 #pragma once
 
+#include <any>
+
 #include <arbor/arbexcept.hpp>
 #include <arbor/util/hopefully.hpp>
-#include <arbor/util/any.hpp>
 
 namespace arb {
 
@@ -13,7 +14,7 @@ struct label_parse_error: arb::arbor_exception {
 template <typename T>
 using parse_hopefully = arb::util::hopefully<T, label_parse_error>;
 
-parse_hopefully<arb::util::any> parse_label_expression(const std::string&);
+parse_hopefully<std::any> parse_label_expression(const std::string&);
 bool valid_label_name(const std::string &in);
 
 

@@ -32,8 +32,8 @@ TEST(morph, stitch_none_or_one) {
     EXPECT_EQ(p1, seg0.prox);
     EXPECT_EQ(p2, seg0.dist);
 
-    mprovider p(m1, sm1.labels("stitch:"));
-    EXPECT_TRUE(region_eq(p, "stitch:first", reg::segment(0)));
+    mprovider p(m1, sm1.labels("stitch-"));
+    EXPECT_TRUE(region_eq(p, "stitch-first", reg::segment(0)));
 }
 
 TEST(morph, stitch_two) {
@@ -60,9 +60,9 @@ TEST(morph, stitch_two) {
         EXPECT_EQ(p2, seg1.prox);
         EXPECT_EQ(p3, seg1.dist);
 
-        mprovider p(m, sm.labels("stitch:"));
-        EXPECT_TRUE(region_eq(p, "stitch:0", reg::segment(0)));
-        EXPECT_TRUE(region_eq(p, "stitch:1", reg::segment(1)));
+        mprovider p(m, sm.labels("stitch-"));
+        EXPECT_TRUE(region_eq(p, "stitch-0", reg::segment(0)));
+        EXPECT_TRUE(region_eq(p, "stitch-1", reg::segment(1)));
     }
     {
         // p1 ===== p2
@@ -92,16 +92,16 @@ TEST(morph, stitch_two) {
         EXPECT_EQ(p1, seg0.prox);
         EXPECT_EQ(p1, seg1.prox);
 
-        mprovider p(m, sm.labels("stitch:"));
+        mprovider p(m, sm.labels("stitch-"));
         // Branch ordering is arbitrary, so check both possibilities:
         if (seg0.dist == p2) {
-            EXPECT_TRUE(region_eq(p, "stitch:0", reg::segment(0)));
-            EXPECT_TRUE(region_eq(p, "stitch:1", reg::segment(1)));
+            EXPECT_TRUE(region_eq(p, "stitch-0", reg::segment(0)));
+            EXPECT_TRUE(region_eq(p, "stitch-1", reg::segment(1)));
         }
         else {
             ASSERT_EQ(p2, seg1.dist);
-            EXPECT_TRUE(region_eq(p, "stitch:0", reg::segment(1)));
-            EXPECT_TRUE(region_eq(p, "stitch:1", reg::segment(0)));
+            EXPECT_TRUE(region_eq(p, "stitch-0", reg::segment(1)));
+            EXPECT_TRUE(region_eq(p, "stitch-1", reg::segment(0)));
         }
     }
     {
@@ -135,16 +135,18 @@ TEST(morph, stitch_two) {
         EXPECT_EQ(x, seg1.prox);
         EXPECT_EQ(x, seg2.prox);
 
-        mprovider p(m, sm.labels("stitch:"));
+        mprovider p(m, sm.labels("stitch-"));
         // Branch ordering is arbitrary, so check both possibilities:
         if (seg2.dist == p2) {
-            EXPECT_TRUE(region_eq(p, "stitch:0", join(reg::segment(0), reg::segment(2))));
-            EXPECT_TRUE(region_eq(p, "stitch:1", reg::segment(1)));
+            EXPECT_TRUE(region_eq(p, "stitch-0", join(reg::segment(0), reg::segment(2))));
+            EXPECT_TRUE(region_eq(p, "stitch-1", reg::segment(1)));
         }
         else {
             ASSERT_EQ(p2, seg1.dist);
-            EXPECT_TRUE(region_eq(p, "stitch:0", join(reg::segment(0), reg::segment(1))));
-            EXPECT_TRUE(region_eq(p, "stitch:1", reg::segment(2)));
+            EXPECT_TRUE(region_eq(p, "stitch-0", join(reg::segment(0), reg::segment(1))));
+            EXPECT_TRUE(region_eq(p, "stitch-1", reg::segment(2)));
+            EXPECT_TRUE(region_eq(p, "(segment 2)", reg::segment(2)));
+            EXPECT_TRUE(region_eq(p, "(region \"stitch-1\")", reg::segment(2)));
         }
     }
 }

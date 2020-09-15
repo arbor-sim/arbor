@@ -73,8 +73,7 @@ template <typename V, typename Allocator>
 struct ordered_forest_builder;
 
 template <typename V, typename Allocator = std::allocator<V>>
-struct ordered_forest {
-private:
+class ordered_forest {
     struct node {
         V* item_ = nullptr;
         node* parent_ = nullptr;

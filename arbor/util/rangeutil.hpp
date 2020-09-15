@@ -39,7 +39,7 @@ range_view(Seq&& seq) {
 
 template <typename Seq, typename = std::enable_if_t<sequence_traits<Seq&&>::is_contiguous>>
 auto range_pointer_view(Seq&& seq) {
-    return make_range(util::data(seq), util::data(seq)+util::size(seq));
+    return make_range(std::data(seq), std::data(seq)+std::size(seq));
 }
 
 template <
@@ -250,7 +250,7 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
     using std::begin;
     using std::end;
 
-    if (util::empty(seq)) {
+    if (std::empty(seq)) {
         return Value{};
     }
 
@@ -277,7 +277,7 @@ std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
     using std::begin;
     using std::end;
 
-    if (util::empty(seq)) {
+    if (std::empty(seq)) {
         return {Value{}, Value{}};
     }
 

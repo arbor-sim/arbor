@@ -7,56 +7,57 @@
 #include <string>
 #include <memory>
 #include <type_traits>
+#include <unordered_map>
+#include <variant>
 #include <vector>
-
-#include <arbor/util/either.hpp>
-#include <arbor/util/optional.hpp>
 
 namespace arb {
 
 // Forward iterator that can translate a raw stream to valid s_expr input if,
-// perchance, you want to parse a Neurolucida .asc file.
-// I am not fond of .asc files, which would be s-expressions, if they
-// didn't sometimes contain '|' and ',' characters which translate to ')(' and
-// '' respectively.
+// perchance, you want to parse a half-hearted attempt at an s-expression
+// (looking at you, the guy who invented the Neurolucida .asc format).
 //
-// As a result, we create the following hot mess to leave the s-expression
-// parser uncontaminated.
-class s_expr_stream {
+// I am not fond of .asc files, which would be s-expressions, if they
+// didn't sometimes contain '|' and ',' characters which translate to ")(" and
+// " " respectively (not mentioning the spine syntax).
+//
+// To remedy such situations, the transmogrifier performs user-provided string
+// substitution on a characters in the input.
+//
+// For example, if you are unfortuinate enough to parse an asc file, you might want
+// to try the following:
+//
+// transmogrifier(str, {{',', " "},
+//                      {'|', ")("},
+//                      {'<', "(spine "},
+//                      {'>', ")"}});
+
+class transmogrifier {
+    using sub_map = std::unordered_map<char, std::string>;
     using iterator_type = std::string::const_iterator;
+    using difference_type = std::string::difference_type;
+    using iterator = transmogrifier;
+
     iterator_type pos_;
     iterator_type end_;
+    sub_map sub_map_;
 
-    using iterator = s_expr_stream;
-    using const_iterator = const s_expr_stream;
-    using difference_type = std::string::difference_type;
-
-    bool pipes_ = false;
-    bool munch_commas_ = false;
-    enum pipe_state {ps_none, ps_lparen, ps_rparen};
-    int pipe_state_ = ps_none;
+    const char* sub_pos_ = nullptr;
 
     void set_state() {
-        pipe_state_ = ps_none;
-        if (pipes_ && *pos_=='|') {
-            pipe_state_ = ps_rparen;
-            return;
-        }
-
-        if (munch_commas_) {
-            while (pos_!=end_ && *pos_==',') {
-                ++pos_;
-            }
+        sub_pos_ = nullptr;
+        char next = *pos_;
+        if (auto it=sub_map_.find(next); it!=sub_map_.end()) {
+            sub_pos_ = it->second.c_str();
         }
     }
 
     public:
 
-    s_expr_stream(const std::string& s, bool pipes=false, bool munch_commas=false):
+    transmogrifier(const std::string& s, sub_map map={}):
         pos_(s.cbegin()),
         end_(s.cend()),
-        pipes_(pipes),
-        munch_commas_(munch_commas)
+        sub_map_(std::move(map))
     {
         if (pos_!=end_) {
             set_state();
@@ -67,25 +68,28 @@ class s_expr_stream {
         if (pos_==end_) {
             return '\0';
         }
-        switch (pipe_state_) {
-            case ps_lparen:
-                return '(';
-            case ps_rparen:
-                return ')';
-            default:
-                return *pos_;
+        if (sub_pos_) {
+            return *sub_pos_;
         }
+        return *pos_;
     }
 
-    s_expr_stream& operator++() {
+    iterator& operator++() {
         // If already at the end don't advance.
         if (pos_==end_) {
             return *this;
         }
 
-        if (pipe_state_==ps_rparen) {
-            pipe_state_=ps_lparen;
-            return *this;
+        // If currently substituting a string, advance by one and
+        // test whether we have reached the end of the string.
+        if (sub_pos_) {
+            ++sub_pos_;
+            if (*sub_pos_=='\0') { // test for end of string
+                sub_pos_ = nullptr;
+            }
+            else {
+                return *this;
+            }
         }
 
         ++pos_;
@@ -94,16 +98,16 @@ class s_expr_stream {
         return *this;
     }
 
-    s_expr_stream operator++(int) {
-        s_expr_stream it = *this;
+    iterator operator++(int) {
+        iterator it = *this;
 
         ++(*this);
 
         return it;
     }
 
-    s_expr_stream operator+(unsigned n) {
-        s_expr_stream it = *this;
+    iterator operator+(unsigned n) {
+        iterator it = *this;
 
         while (n--) ++it;
 
@@ -114,15 +118,19 @@ class s_expr_stream {
         return *(*this+i);
     }
 
-    bool operator==(const s_expr_stream& other) const {
-        return pos_==other.pos_ && pipe_state_==other.pipe_state_;
+    bool operator==(const transmogrifier& other) const {
+        return pos_==other.pos_ && sub_pos_==other.sub_pos_;
     }
 
-    bool operator!=(const s_expr_stream& other) {
+    bool operator!=(const transmogrifier& other) {
         return !(*this==other);
     }
 
-    difference_type operator-(const s_expr_stream& rhs) const {
+    operator bool() const {
+        return pos_ != end_;
+    }
+
+    difference_type operator-(const transmogrifier& rhs) const {
         return pos_ - rhs.pos_;
     }
 };
@@ -304,12 +312,12 @@ struct s_expr {
     // An s_expr can be one of
     //      1. an atom
     //      2. a pair of s_expr (head and tail)
-    // The s_expr uses a util::either to represent these two possible states,
+    // The s_expr uses a util::variant to represent these two possible states,
     // which requires using an incomplete definition of s_expr, requiring
     // with a std::unique_ptr via value_wrapper.
 
     using pair_type = s_pair<value_wrapper<s_expr>>;
-    arb::util::either<token, pair_type> state = token{{0,0}, tok::nil, "nil"};
+    std::variant<token, pair_type> state = token{{0,0}, tok::nil, "nil"};
 
     s_expr(const s_expr& s): state(s.state) {}
     s_expr() = default;
@@ -343,8 +351,8 @@ std::size_t length(const s_expr& l);
 src_location location(const s_expr& l);
 
 s_expr parse_s_expr(const std::string& line);
-s_expr parse_s_expr(s_expr_stream begin);
-std::vector<s_expr> parse_multi(s_expr_stream begin);
+s_expr parse_s_expr(transmogrifier begin);
+std::vector<s_expr> parse_multi(transmogrifier begin);
 
 } // namespace arb
 

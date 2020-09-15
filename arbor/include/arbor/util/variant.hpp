@@ -172,7 +172,7 @@ struct variant_dynamic_impl<> {
         if (i!=std::size_t(-1)) throw bad_variant_access{};
     }
 
-    static void move_assign(std::size_t i, char* data, const char* from) {
+    static void move_assign(std::size_t i, char* data, char* from) {
         if (i!=std::size_t(-1)) throw bad_variant_access{};
     }
 
@@ -218,12 +218,11 @@ struct variant_dynamic_impl<H, T...> {
         else {
             variant_dynamic_impl<T...>::assign(i-1, data, from);
         }
-        if (i!=std::size_t(-1)) throw bad_variant_access{};
     }
 
-    static void move_assign(std::size_t i, char* data, const char* from) {
+    static void move_assign(std::size_t i, char* data, char* from) {
         if (i==0) {
-            *reinterpret_cast<H*>(data) = std::move(*reinterpret_cast<const H*>(from));
+            *reinterpret_cast<H*>(data) = std::move(*reinterpret_cast<H*>(from));
         }
         else {
             variant_dynamic_impl<T...>::move_assign(i-1, data, from);
@@ -344,10 +343,17 @@ struct variant {
             }
         }
         else {
+            auto old_which = which_;
             which_ = npos;
             if (x.which_!=npos) {
-                variant_dynamic_impl<T...>::assign(x.which_, data, x.data);
-                which_ = x.which_;
+                try {
+                    variant_dynamic_impl<T...>::assign(x.which_, data, x.data);
+                    which_ = x.which_;
+                }
+                catch (...) {
+                    variant_dynamic_impl<T...>::destroy(old_which, data);
+                    throw;
+                }
             }
         }
         return *this;
@@ -365,10 +371,8 @@ struct variant {
             }
         }
         else {
-            which_ = npos;
             if (x.which_!=npos) {
                 variant_dynamic_impl<T...>::move_assign(x.which_, data, x.data);
-                which_ = x.which_;
             }
         }
         return *this;

@@ -176,9 +176,9 @@ struct exp_instance {
 
     template <typename Seq>
     exp_instance(int cv, const Seq& tgts, double e, double tau):
-        cv(cv), multiplicity(util::size(tgts)), e(e), tau(tau)
+        cv(cv), multiplicity(std::size(tgts)), e(e), tau(tau)
     {
-        targets.reserve(util::size(tgts));
+        targets.reserve(std::size(tgts));
         for (auto t: tgts) targets.push_back(t);
         util::sort(targets);
     }

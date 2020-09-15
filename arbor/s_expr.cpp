@@ -5,12 +5,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include <arbor/util/either.hpp>
 #include <arbor/arbexcept.hpp>
+#include <arbor/util/variant.hpp>
 
-#include "s_expr.hpp"
 #include "util/strprintf.hpp"
-
+#include "s_expr.hpp"
 namespace arb {
 
 inline bool is_alphanumeric(char c) {
@@ -65,14 +64,14 @@ static std::unordered_map<std::string, tok> keyword_to_tok = {
 };
 
 class lexer {
-    s_expr_stream line_start_;
-    s_expr_stream stream_;
+    transmogrifier line_start_;
+    transmogrifier stream_;
     unsigned line_;
     token token_;
 
 public:
 
-    lexer(s_expr_stream begin):
+    lexer(transmogrifier begin):
         line_start_(begin), stream_(begin), line_(0)
     {
         // Prime the first token.
@@ -245,9 +244,8 @@ private:
             str.push_back(*stream_);
             ++stream_;
         }
-        ++stream_; // gobble the closing "
-
         if (empty()) return {start, tok::error, "string missing closing \""};
+        ++stream_; // gobble the closing "
 
         return {start, tok::string, str};
     }
@@ -319,27 +317,27 @@ private:
 //
 
 bool s_expr::is_atom() const {
-    return (bool)state;
+    return state.index()==0;
 }
 
 const token& s_expr::atom() const {
-    return state.get<0>();
+    return std::get<0>(state);
 }
 
 const s_expr& s_expr::head() const {
-    return state.get<1>().head.get();
+    return std::get<1>(state).head.get();
 }
 
 const s_expr& s_expr::tail() const {
-    return state.get<1>().tail.get();
+    return std::get<1>(state).tail.get();
 }
 
 s_expr& s_expr::head() {
-    return state.get<1>().head.get();
+    return std::get<1>(state).head.get();
 }
 
 s_expr& s_expr::tail() {
-    return state.get<1>().tail.get();
+    return std::get<1>(state).tail.get();
 }
 
 s_expr::operator bool() const {
@@ -422,15 +420,24 @@ s_expr parse(lexer& L) {
             n = &n->tail();
         }
     }
+    else if (t.kind==tok::eof) {
+        return token{t.loc, tok::error, "Empty expression."};
+    }
+    else if (t.kind==tok::rparen) {
+        return token{t.loc, tok::error, "Missing opening parenthesis'('."};
+    }
+    // an atom or an error
     else {
-        return token{t.loc, tok::error, "Missing opening parenthesis'('."};;
+        L.next(); // advance the lexer to the next token
+        return t;
     }
 
     return node;
 }
+
 }
 
-s_expr parse_s_expr(s_expr_stream begin) {
+s_expr parse_s_expr(transmogrifier begin) {
     lexer l(begin);
     s_expr result = impl::parse(l);
     const bool err = result.is_atom()? result.atom().kind==tok::error: false;
@@ -445,13 +452,13 @@ s_expr parse_s_expr(s_expr_stream begin) {
 }
 
 s_expr parse_s_expr(const std::string& in) {
-    return parse_s_expr(s_expr_stream{in});
+    return parse_s_expr(transmogrifier{in});
 }
 
 // For parsing a file with multiple high level s expressions.
 // Returns a vector of the expressions.
 // If an error occured, terminate early and the last expression will be an error.
-std::vector<s_expr> parse_multi_s_expr(s_expr_stream begin) {
+std::vector<s_expr> parse_multi_s_expr(transmogrifier begin) {
     std::vector<s_expr> result;
     lexer l(begin);
     bool error = false;

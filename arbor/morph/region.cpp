@@ -1,7 +1,9 @@
+#include <any>
+#include <stack>
 #include <string>
 #include <vector>
-#include <stack>
 
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphexcept.hpp>
@@ -9,6 +11,7 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/util/optional.hpp>
 
+#include "s_expr.hpp"
 #include "util/mergeview.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
@@ -738,13 +741,26 @@ region::region() {
 
 // Implicit constructors/converters.
 
-region::region(std::string label) {
-    *this = reg::named(std::move(label));
+region::region(const std::string& label) {
+    std::cout << "testing " << label << std::endl;
+    if (arb::valid_label_name(label)) {
+        *this = reg::named(label);
+        return;
+    }
+    // Evaluate the s-expression to build a region/locset.
+    auto result = arb::parse_label_expression(label);
+    if (!result) { // An error parsing / evaluating description.
+        throw result.error();
+    }
+    else if (result->type()==typeid(arb::region)) {
+        *this = std::move(std::any_cast<region&>(*result));
+    }
+    else {
+        throw "not a valid region expression or label";
+    }
 }
 
-region::region(const char* label) {
-    *this = reg::named(label);
-}
+region::region(const char* label): region(std::string(label)) {}
 
 region::region(mcable c) {
     *this = reg::cable(c.branch, c.prox_pos, c.dist_pos);

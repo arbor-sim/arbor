@@ -311,11 +311,11 @@ void print(std::ostream& o,
     if (proportion<thresh) return;
 
     if (n.count==profile_node::npos) {
-        snprintf(buf, util::size(buf), "_p_ %-20s%12s%12.3f%12.3f%8.1f",
+        snprintf(buf, std::size(buf), "_p_ %-20s%12s%12.3f%12.3f%8.1f",
                name.c_str(), "-", float(n.time), per_thread_time, proportion);
     }
     else {
-        snprintf(buf, util::size(buf), "_p_ %-20s%12lu%12.3f%12.3f%8.1f",
+        snprintf(buf, std::size(buf), "_p_ %-20s%12lu%12.3f%12.3f%8.1f",
                name.c_str(), n.count, float(n.time), per_thread_time, proportion);
     }
     o << "\n" << buf;
@@ -353,7 +353,7 @@ std::ostream& operator<<(std::ostream& o, const profile& prof) {
 
     auto tree = make_profile_tree(prof);
 
-    snprintf(buf, util::size(buf), "_p_ %-20s%12s%12s%12s%8s", "REGION", "CALLS", "THREAD", "WALL", "\%");
+    snprintf(buf, std::size(buf), "_p_ %-20s%12s%12s%12s%8s", "REGION", "CALLS", "THREAD", "WALL", "\%");
     o << buf;
     print(o, tree, tree.time, prof.num_threads, 0, "");
     return o;
