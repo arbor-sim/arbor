@@ -117,7 +117,11 @@ public:
     }
 
     cell_size_type num_targets(cell_gid_type i) const override {
-        return cells_.at(i).synapses().size();
+        cell_size_type total_synapses = 0;
+        for (auto syn_type: cells_.at(i).synapses()) {
+            total_synapses+= syn_type.second.size();
+        }
+        return total_synapses;
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {

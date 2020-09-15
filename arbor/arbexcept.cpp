@@ -22,7 +22,7 @@ bad_target_description::bad_target_description(cell_gid_type gid, cell_size_type
 {}
 
 bad_source_description::bad_source_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
-    arbor_exception(pprintf("recipe::num_source(gid={}) -> {} does not match the number of threshold detectors on the cell -> {})", gid, rec_val, cell_val)),
+    arbor_exception(pprintf("recipe::num_sources(gid={}) -> {} does not match the number of threshold detectors on the cell -> {})", gid, rec_val, cell_val)),
     gid(gid), rec_val(rec_val), cell_val(cell_val)
 {}
 
@@ -65,7 +65,7 @@ gj_connection_mismatch::gj_connection_mismatch(cell_gid_type gid, cell_member_ty
 {}
 
 bad_gj_connection::bad_gj_connection(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1):
-    arbor_exception(pprintf("recipe::gap_junctions_on(gid={}) -> ({}, {}) <-> ({}, {}): one of the sites' does not exist)", gid, site_0.gid, site_0.index, site_1.gid, site_1.index)),
+    arbor_exception(pprintf("recipe::gap_junctions_on(gid={}) -> ({}, {}) <-> ({}, {}): one of the sites does not exist)", gid, site_0.gid, site_0.index, site_1.gid, site_1.index)),
     gid(gid),
     site_0(site_0),
     site_1(site_1)
