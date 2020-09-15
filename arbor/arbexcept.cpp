@@ -58,10 +58,10 @@ gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gi
 {}
 
 gj_connection_mismatch::gj_connection_mismatch(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1):
-        arbor_exception(pprintf("recipe::gap_junctions_on(gid={}) -> ({}, {}) <-> ({}, {}): one of the sites must be on the cell with gid = {})", gid, site_0, site_1, gid)),
-        gid(gid),
-        site_0(site_0),
-        site_1(site_1)
+    arbor_exception(pprintf("recipe::gap_junctions_on(gid={}) -> ({}, {}) <-> ({}, {}): one of the sites must be on the cell with gid = {})", gid, site_0.gid, site_0.index, site_1.gid, site_1.index, gid)),
+    gid(gid),
+    site_0(site_0),
+    site_1(site_1)
 {}
 
 bad_gj_connection::bad_gj_connection(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1):

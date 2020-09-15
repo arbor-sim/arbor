@@ -82,21 +82,7 @@ communicator::communicator(const recipe& rec,
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
-    for (const auto& g: gid_infos) {
-        for (auto con: g.conns) {
-            const auto src = dom_dec.gid_domain(con.source.gid);
-            src_domains.push_back(src);
-            src_counts[src]++;
-        }
-    }
 
-    // Construct the connections.
-    // The loop above gave the information required to construct in place
-    // the connections as partitioned by the domain of their source gid.
-    connections_.resize(n_cons);
-    connection_part_ = algorithms::make_index(src_counts);
-    auto offsets = connection_part_;
-    std::size_t pos = 0;
     for (const auto& cell: gid_infos) {
         auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
@@ -110,6 +96,21 @@ communicator::communicator(const recipe& rec,
             if (c.dest.gid != cell.gid) {
                 throw arb::connection_target_mismatch(cell.gid, c.dest);
             }
+            const auto src = dom_dec.gid_domain(c.source.gid);
+            src_domains.push_back(src);
+            src_counts[src]++;
+        }
+    }
+
+    // Construct the connections.
+    // The loop above gave the information required to construct in place
+    // the connections as partitioned by the domain of their source gid.
+    connections_.resize(n_cons);
+    connection_part_ = algorithms::make_index(src_counts);
+    auto offsets = connection_part_;
+    std::size_t pos = 0;
+    for (const auto& cell: gid_infos) {
+        for (auto c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
             connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
             ++pos;

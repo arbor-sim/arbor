@@ -139,6 +139,7 @@ set(unit_sources
     test_pp_util.cpp
     test_probe.cpp
     test_range.cpp
+    test_recipe.cpp
     test_ratelem.cpp
     test_schedule.cpp
     test_scope_exit.cpp
