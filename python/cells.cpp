@@ -93,11 +93,11 @@ struct label_dict_proxy {
             // Test that the identifier is valid, i.e.
             //  * only numbers, letters and underscore.
             //  * no leading number or underscore.
-            if (!test_identifier(name)) {
+            if (!arb::valid_label_name(name)) {
                 throw std::string(util::pprintf("'{}' is not a valid label name.", name));
             }
             // Evaluate the s-expression to build a region/locset.
-            auto result = parse_label_expression(desc);
+            auto result = arb::parse_label_expression(desc);
             if (!result) { // an error parsing / evaluating description.
                 throw result.error();
             }

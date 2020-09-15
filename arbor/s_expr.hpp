@@ -342,8 +342,8 @@ struct s_expr {
 std::size_t length(const s_expr& l);
 src_location location(const s_expr& l);
 
-s_expr parse(const std::string& line);
-s_expr parse(s_expr_stream begin);
+s_expr parse_s_expr(const std::string& line);
+s_expr parse_s_expr(s_expr_stream begin);
 std::vector<s_expr> parse_multi(s_expr_stream begin);
 
 } // namespace arb

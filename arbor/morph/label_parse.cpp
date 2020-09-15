@@ -4,12 +4,12 @@
 #include <arbor/util/any.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/morph/label_parse.hpp>
 
-#include "error.hpp"
 #include "s_expr.hpp"
-#include "morph_parse.hpp"
+#include "util/strprintf.hpp"
 
-namespace pyarb {
+namespace arb {
 
 label_parse_error::label_parse_error(const std::string& msg):
     arb::arbor_exception(msg)
@@ -256,15 +256,6 @@ parse_hopefully<arb::util::any> eval(const s_expr& e);
 parse_hopefully<std::vector<arb::util::any>> eval_args(const s_expr& e) {
     if (!e) return {std::vector<arb::util::any>{}}; // empty argument list
     std::vector<arb::util::any> args;
-    /*
-    const s_expr* h = &e;
-    while (*h) {
-        auto arg = eval(h->head());
-        if (!arg) return std::move(arg.error());
-        args.push_back(std::move(*arg));
-        h = &h->tail();
-    }
-    */
     for (auto& h: e) {
         if (auto arg=eval(h)) {
             args.push_back(std::move(*arg));
@@ -379,17 +370,17 @@ parse_hopefully<arb::util::any> eval(const s_expr& e) {
             location(e));
 }
 
-parse_hopefully<arb::util::any> eval(const std::string& e) {
-    return eval(parse(e));
+parse_hopefully<arb::util::any> parse_label_expression(const std::string& e) {
+    return eval(parse_s_expr(e));
 }
 
-bool test_identifier(const std::string &in) {
-    const auto s = parse("("+in+")");
+bool valid_label_name(const std::string &in) {
+    const auto s = parse_s_expr("("+in+")");
     if (s.is_atom()) return false;
     auto& h = s.head();
     return length(s)==1 && h.is_atom() && h.atom().kind==tok::name && h.atom().spelling==in;
 }
 
 
-} // namespace pyarb
+} // namespace arb
 

@@ -55,7 +55,7 @@ public:
 
         cached_morpho_ = false;
 
-        if (!test_identifier(region)) {
+        if (!arb::valid_label_name(region)) {
             throw pyarb_error(util::pprintf("'{}' is not a valid label name.", region));
         }
 
@@ -85,11 +85,11 @@ public:
     }
 
     void add_label(const char* name, const char* description) {
-        if (!test_identifier(name)) {
+        if (!arb::valid_label_name(name)) {
             throw pyarb_error(util::pprintf("'{}' is not a valid label name.", name));
         }
 
-        if (auto result = parse_label_expression(description) ) {
+        if (auto result = arb::parse_label_expression(description) ) {
             // The description is a region.
             if (result->type()==typeid(arb::region)) {
                 if (dict_.locset(name)) {

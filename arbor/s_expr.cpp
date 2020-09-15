@@ -382,6 +382,8 @@ src_location location(const s_expr& l) {
 // parsing s expressions
 //
 
+namespace impl {
+
 // If there is a parsing error, then an atom with kind==tok::error is returned
 // with the error string in its spelling.
 s_expr parse(lexer& L) {
@@ -426,10 +428,11 @@ s_expr parse(lexer& L) {
 
     return node;
 }
+}
 
-s_expr parse(s_expr_stream begin) {
+s_expr parse_s_expr(s_expr_stream begin) {
     lexer l(begin);
-    s_expr result = parse(l);
+    s_expr result = impl::parse(l);
     const bool err = result.is_atom()? result.atom().kind==tok::error: false;
     if (!err) {
         auto t = l.current();
@@ -441,15 +444,19 @@ s_expr parse(s_expr_stream begin) {
     return result;
 }
 
+s_expr parse_s_expr(const std::string& in) {
+    return parse_s_expr(s_expr_stream{in});
+}
+
 // For parsing a file with multiple high level s expressions.
 // Returns a vector of the expressions.
 // If an error occured, terminate early and the last expression will be an error.
-std::vector<s_expr> parse_multi(s_expr_stream begin) {
+std::vector<s_expr> parse_multi_s_expr(s_expr_stream begin) {
     std::vector<s_expr> result;
     lexer l(begin);
     bool error = false;
     while (!error && l.current().kind!=tok::eof) {
-        result.push_back(parse(l));
+        result.push_back(impl::parse(l));
         const auto& e = result.back();
         error = e.is_atom() && e.atom().kind==tok::error;
     }
@@ -457,8 +464,5 @@ std::vector<s_expr> parse_multi(s_expr_stream begin) {
     return result;
 }
 
-s_expr parse(const std::string& in) {
-    return parse(s_expr_stream{in});
-}
 
 } // namespace arb

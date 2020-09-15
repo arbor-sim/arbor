@@ -1,38 +1,38 @@
-#include "gtest.h"
+#include "../test/gtest.h"
 
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/morph/label_parse.hpp>
 
-#include <morph_parse.hpp>
-#include <s_expr.hpp>
-#include <strprintf.hpp>
+#include "s_expr.hpp"
+#include "util/strprintf.hpp"
 
-using namespace pyarb;
+using namespace arb;
 using namespace std::string_literals;
 
 TEST(s_expr, identifier) {
-    EXPECT_TRUE(test_identifier("foo"));
-    EXPECT_TRUE(test_identifier("f1"));
-    EXPECT_TRUE(test_identifier("f_"));
-    EXPECT_TRUE(test_identifier("f_1__"));
-    EXPECT_TRUE(test_identifier("A_1__"));
+    EXPECT_TRUE(valid_label_name("foo"));
+    EXPECT_TRUE(valid_label_name("f1"));
+    EXPECT_TRUE(valid_label_name("f_"));
+    EXPECT_TRUE(valid_label_name("f_1__"));
+    EXPECT_TRUE(valid_label_name("A_1__"));
 
-    EXPECT_TRUE(test_identifier("A-1"));
-    EXPECT_TRUE(test_identifier("hello-world"));
-    EXPECT_TRUE(test_identifier("hello--world"));
-    EXPECT_TRUE(test_identifier("hello--world_"));
+    EXPECT_TRUE(valid_label_name("A-1"));
+    EXPECT_TRUE(valid_label_name("hello-world"));
+    EXPECT_TRUE(valid_label_name("hello--world"));
+    EXPECT_TRUE(valid_label_name("hello--world_"));
 
-    EXPECT_FALSE(test_identifier("_foobar"));
-    EXPECT_FALSE(test_identifier("-foobar"));
-    EXPECT_FALSE(test_identifier("2dogs"));
-    EXPECT_FALSE(test_identifier("1"));
-    EXPECT_FALSE(test_identifier("_"));
-    EXPECT_FALSE(test_identifier("-"));
-    EXPECT_FALSE(test_identifier(""));
-    EXPECT_FALSE(test_identifier(" foo"));
-    EXPECT_FALSE(test_identifier("foo "));
-    EXPECT_FALSE(test_identifier("foo bar"));
-    EXPECT_FALSE(test_identifier(""));
+    EXPECT_FALSE(valid_label_name("_foobar"));
+    EXPECT_FALSE(valid_label_name("-foobar"));
+    EXPECT_FALSE(valid_label_name("2dogs"));
+    EXPECT_FALSE(valid_label_name("1"));
+    EXPECT_FALSE(valid_label_name("_"));
+    EXPECT_FALSE(valid_label_name("-"));
+    EXPECT_FALSE(valid_label_name(""));
+    EXPECT_FALSE(valid_label_name(" foo"));
+    EXPECT_FALSE(valid_label_name("foo "));
+    EXPECT_FALSE(valid_label_name("foo bar"));
+    EXPECT_FALSE(valid_label_name(""));
 }
 
 TEST(s_expr, atoms) {
@@ -43,40 +43,40 @@ TEST(s_expr, atoms) {
     };
 
     for (auto spelling: {"foo", "bar_", "car1", "car_1", "x_1__"}){
-        auto a = get_atom(parse("("s+spelling+")"));
+        auto a = get_atom(parse_s_expr("("s+spelling+")"));
         EXPECT_EQ(a.kind, tok::name);
         EXPECT_EQ(a.spelling, spelling);
     }
     // test parsing of integers
     for (auto spelling: {"0", "-0", "1", "42", "-3287"}){
-        auto a = get_atom(parse("("s+spelling+")"));
+        auto a = get_atom(parse_s_expr("("s+spelling+")"));
         EXPECT_EQ(a.kind, tok::integer);
         EXPECT_EQ(a.spelling, spelling);
     }
     // test parsing of real numbers
     for (auto spelling: {"0.", "-0.0", "1.21", "42.", "-3287.12"}){
-        auto a = get_atom(parse("("s+spelling+")"));
+        auto a = get_atom(parse_s_expr("("s+spelling+")"));
         EXPECT_EQ(a.kind, tok::real);
         EXPECT_EQ(a.spelling, spelling);
     }
     // test parsing of strings
     for (auto spelling: {"foo", "dog cat", ""}) {
         auto s = "(\""s+spelling+"\")";
-        auto a = get_atom(parse(s));
+        auto a = get_atom(parse_s_expr(s));
         EXPECT_EQ(a.kind, tok::string);
     }
 }
 
-TEST(s_expr, parse) {
-    auto round_trip_reg = [](const char* in) {
-        auto x = eval(parse(in));
-        return util::pprintf("{}", arb::util::any_cast<arb::region>(*x));
-    };
-    auto round_trip_loc = [](const char* in) {
-        auto x = eval(parse(in));
-        return util::pprintf("{}", arb::util::any_cast<arb::locset>(*x));
-    };
+std::string round_trip_reg(const char* in) {
+    auto x = parse_label_expression(in);
+    return util::pprintf("{}", arb::util::any_cast<arb::region>(*x));
+}
+std::string round_trip_loc(const char* in) {
+    auto x = parse_label_expression(in);
+    return util::pprintf("{}", arb::util::any_cast<arb::locset>(*x));
+}
 
+TEST(regloc, parse_str) {
     EXPECT_EQ("(cable 3 0 1)",      round_trip_reg("(branch 3)"));
     EXPECT_EQ("(cable 2 0.1 0.4)",  round_trip_reg("(cable 2 0.1 0.4)"));
     EXPECT_EQ("(all)",              round_trip_reg("(all)"));
@@ -86,18 +86,13 @@ TEST(s_expr, parse) {
     EXPECT_EQ("(root)",     round_trip_loc("(root)"));
     EXPECT_EQ("(locset \"cat_burgler\")", round_trip_loc("(locset \"cat_burgler\")"));
 
-    auto lhs = arb::util::any_cast<arb::region>(*eval(parse("(region \"dend\")")));
-    auto rhs = arb::util::any_cast<arb::region>(*eval(parse("(all)")));
+    auto lhs = arb::util::any_cast<arb::region>(*parse_label_expression("(region \"dend\")"));
+    auto rhs = arb::util::any_cast<arb::region>(*parse_label_expression("(all)"));
 
     EXPECT_EQ(util::pprintf("{}", join(lhs,rhs)), "(join (region \"dend\") (all))");
 }
 
-TEST(s_expr, comments) {
-    auto round_trip_reg = [](const char* in) {
-        auto x = eval(parse(in));
-        return util::pprintf("{}", arb::util::any_cast<arb::region>(*x));
-    };
-
+TEST(regloc, comments) {
     EXPECT_EQ("(all)",  round_trip_reg("(all) ; a comment"));
     const char *multi_line = 
         "; comment at start\n"
