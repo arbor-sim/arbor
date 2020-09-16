@@ -277,6 +277,18 @@ public:
         default_parameters.ion_data[prop.ion] = prop.initial;
     }
 
+    void set_default(init_int_concentration prop) {
+        default_parameters.ion_data[prop.ion].init_int_concentration = prop.value;
+    }
+
+    void set_default(init_ext_concentration prop) {
+        default_parameters.ion_data[prop.ion].init_ext_concentration = prop.value;
+    }
+
+    void set_default(init_reversal_potential prop) {
+        default_parameters.ion_data[prop.ion].init_reversal_potential = prop.value;
+    }
+
     void set_default(ion_reversal_potential_method prop) {
         default_parameters.reversal_potential_method[prop.ion] = prop.method;
     }
