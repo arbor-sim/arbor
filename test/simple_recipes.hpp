@@ -10,6 +10,8 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
 
+#include "util/rangeutil.hpp"
+
 namespace arb {
 
 // Common functionality: maintain an unordered map of probe data
@@ -117,11 +119,7 @@ public:
     }
 
     cell_size_type num_targets(cell_gid_type i) const override {
-        cell_size_type total_synapses = 0;
-        for (auto syn_type: cells_.at(i).synapses()) {
-            total_synapses+= syn_type.second.size();
-        }
-        return total_synapses;
+        return util::sum_by(cells_.at(i).synapses(), [](auto& syn) {return syn.second.size();});
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {

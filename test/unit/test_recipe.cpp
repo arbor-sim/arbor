@@ -117,13 +117,6 @@ TEST(recipe, num_sources)
 
         EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_source_description);
     }
-    {
-        auto recipe_2 = custom_recipe({cell}, {0}, {0}, {{}}, {{}});
-        auto decomp_2 = partition_load_balance(recipe_2, context);
-
-        EXPECT_THROW(simulation(recipe_2, decomp_2, context), arb::bad_source_description);
-
-    }
 }
 
 TEST(recipe, num_targets)
@@ -149,12 +142,6 @@ TEST(recipe, num_targets)
         auto decomp_1 = partition_load_balance(recipe_1, context);
 
         EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_target_description);
-    }
-    {
-        auto recipe_2 = custom_recipe({cell}, {0}, {3}, {{}}, {{}});
-        auto decomp_2 = partition_load_balance(recipe_2, context);
-
-        EXPECT_THROW(simulation(recipe_2, decomp_2, context), arb::bad_target_description);
     }
 }
 
@@ -190,7 +177,7 @@ TEST(recipe, gap_junctions)
         auto recipe_1 = custom_recipe({cell_0, cell_1}, {0, 0}, {0, 0}, {{}, {}}, {gjs_1, gjs_1});
         auto decomp_1 = partition_load_balance(recipe_1, context);
 
-        EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_gj_connection);
+        EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_gj_connection_lid);
 
     }
     {
@@ -201,7 +188,7 @@ TEST(recipe, gap_junctions)
         auto recipe_2 = custom_recipe({cell_0, cell_1}, {0, 0}, {0, 0}, {{}, {}}, {gjs_2, gjs_2});
         auto context = make_context(resources);
 
-        EXPECT_THROW(partition_load_balance(recipe_2, context), arb::gj_connection_mismatch);
+        EXPECT_THROW(partition_load_balance(recipe_2, context), arb::bad_gj_connection_gid);
     }
 }
 
@@ -224,7 +211,6 @@ TEST(recipe, connections)
                    {{1, 1}, {0, 0}, 0.1, 0.1},
                    {{1, 0}, {0, 1}, 0.2, 0.4}};
 
-
         conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
                    {{0, 0}, {1, 0}, 0.3, 0.1},
                    {{0, 0}, {1, 0}, 0.1, 0.8}};
@@ -246,7 +232,7 @@ TEST(recipe, connections)
         auto recipe_1 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}});
         auto decomp_1 = partition_load_balance(recipe_1, context);
 
-        EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_connection_source);
+        EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_connection_source_gid);
     }
     {
         conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
@@ -260,7 +246,7 @@ TEST(recipe, connections)
         auto recipe_2 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}});
         auto decomp_2 = partition_load_balance(recipe_2, context);
 
-        EXPECT_THROW(simulation(recipe_2, decomp_2, context), arb::bad_connection_source);
+        EXPECT_THROW(simulation(recipe_2, decomp_2, context), arb::bad_connection_source_lid);
     }
     {
         conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
@@ -274,21 +260,7 @@ TEST(recipe, connections)
         auto recipe_3 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}});
         auto decomp_3 = partition_load_balance(recipe_3, context);
 
-        EXPECT_THROW(simulation(recipe_3, decomp_3, context), arb::bad_connection_target);
-    }
-    {
-        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
-                   {{1, 1}, {0, 0}, 0.1, 0.1},
-                   {{1, 0}, {0, 1}, 0.2, 0.4}};
-
-        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
-                   {{0, 0}, {1, 9}, 0.3, 0.1},
-                   {{0, 0}, {1, 0}, 0.1, 0.8}};
-
-        auto recipe_4 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}});
-        auto decomp_4 = partition_load_balance(recipe_4, context);
-
-        EXPECT_THROW(simulation(recipe_4, decomp_4, context), arb::bad_connection_target);
+        EXPECT_THROW(simulation(recipe_3, decomp_3, context), arb::bad_connection_target_gid);
     }
     {
         conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
@@ -302,6 +274,20 @@ TEST(recipe, connections)
         auto recipe_5 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}});
         auto decomp_5 = partition_load_balance(recipe_5, context);
 
-        EXPECT_THROW(simulation(recipe_5, decomp_5, context), arb::connection_target_mismatch);
+        EXPECT_THROW(simulation(recipe_5, decomp_5, context), arb::bad_connection_target_gid);
+    }
+    {
+        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
+                   {{1, 1}, {0, 0}, 0.1, 0.1},
+                   {{1, 0}, {0, 1}, 0.2, 0.4}};
+
+        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
+                   {{0, 0}, {1, 9}, 0.3, 0.1},
+                   {{0, 0}, {1, 0}, 0.1, 0.8}};
+
+        auto recipe_4 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}});
+        auto decomp_4 = partition_load_balance(recipe_4, context);
+
+        EXPECT_THROW(simulation(recipe_4, decomp_4, context), arb::bad_connection_target_lid);
     }
 }

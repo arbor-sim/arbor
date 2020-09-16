@@ -47,22 +47,29 @@ struct bad_source_description: arbor_exception {
     cell_size_type rec_val, cell_val;
 };
 
-struct bad_connection_source: arbor_exception {
-    bad_connection_source(cell_gid_type gid, cell_member_type source);
-    cell_gid_type gid;
-    cell_member_type source;
+struct bad_connection_source_gid: arbor_exception {
+    bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells);
+    cell_gid_type gid, src_gid;
+    cell_size_type num_cells;
 };
 
-struct bad_connection_target: arbor_exception {
-    bad_connection_target(cell_gid_type gid, cell_member_type target);
+struct bad_connection_source_lid: arbor_exception {
+    bad_connection_source_lid(cell_gid_type gid, cell_lid_type src_lid, cell_size_type num_sources);
     cell_gid_type gid;
-    cell_member_type target;
+    cell_lid_type src_lid;
+    cell_size_type num_sources;
 };
 
-struct connection_target_mismatch: arbor_exception {
-    connection_target_mismatch(cell_gid_type gid, cell_member_type target);
+struct bad_connection_target_gid: arbor_exception {
+    bad_connection_target_gid(cell_gid_type gid, cell_gid_type tgt_gid);
+    cell_gid_type gid, tgt_gid;
+};
+
+struct bad_connection_target_lid: arbor_exception {
+    bad_connection_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets);
     cell_gid_type gid;
-    cell_member_type target;
+    cell_lid_type tgt_lid;
+    cell_size_type num_targets;
 };
 
 struct bad_global_property: arbor_exception {
@@ -80,16 +87,15 @@ struct gj_kind_mismatch: arbor_exception {
     cell_gid_type gid_0, gid_1;
 };
 
-struct gj_connection_mismatch: arbor_exception {
-    gj_connection_mismatch(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1);
-    cell_gid_type gid;
-    cell_member_type site_0, site_1;
+struct bad_gj_connection_gid: arbor_exception {
+    bad_gj_connection_gid(cell_gid_type gid, cell_gid_type site_0, cell_gid_type site_1);
+    cell_gid_type gid, site_0, site_1;
 };
 
-struct bad_gj_connection: arbor_exception {
-    bad_gj_connection(cell_gid_type gid, cell_member_type site_0, cell_member_type site_1);
+struct bad_gj_connection_lid: arbor_exception {
+    bad_gj_connection_lid(cell_gid_type gid, cell_member_type site);
     cell_gid_type gid;
-    cell_member_type site_0, site_1;
+    cell_member_type site;
 };
 
 // Domain decomposition errors:

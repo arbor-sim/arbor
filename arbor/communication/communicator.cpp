@@ -33,12 +33,7 @@ communicator::communicator(const recipe& rec,
     num_domains_ = distributed_->size();
     num_local_groups_ = dom_dec.groups.size();
     num_local_cells_ = dom_dec.num_local_cells;
-
-    std::vector<cell_size_type> cell_num_sources;
     auto num_total_cells = rec.num_cells();
-    for (auto gid: util::make_span(num_total_cells)) {
-        cell_num_sources.push_back(rec.num_sources(gid));
-    }
 
     // For caching information about each cell
     struct gid_info {
@@ -86,15 +81,18 @@ communicator::communicator(const recipe& rec,
     for (const auto& cell: gid_infos) {
         auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
-            auto num_sources = cell_num_sources[c.source.gid];
-            if (c.source.gid >= num_total_cells || c.source.index >= num_sources) {
-                throw arb::bad_connection_source(cell.gid, c.source);
+            auto num_sources = rec.num_sources(c.source.gid);
+            if (c.source.gid >= num_total_cells) {
+                throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
             }
-            if (c.dest.gid >= num_total_cells || c.dest.index >= num_targets) {
-                throw arb::bad_connection_target(cell.gid, c.dest);
+            if (c.source.index >= num_sources) {
+                throw arb::bad_connection_source_lid(cell.gid, c.source.index, num_sources);
             }
             if (c.dest.gid != cell.gid) {
-                throw arb::connection_target_mismatch(cell.gid, c.dest);
+                throw arb::bad_connection_target_gid(cell.gid, c.dest.gid);
+            }
+            if (c.dest.index >= num_targets) {
+                throw arb::bad_connection_target_lid(cell.gid, c.dest.index, num_targets);
             }
             const auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);
