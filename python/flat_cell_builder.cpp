@@ -1,3 +1,5 @@
+#include <any>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -95,7 +97,7 @@ public:
                 if (dict_.locset(name)) {
                     throw pyarb_error("Region name clashes with a locset.");
                 }
-                auto& reg = arb::util::any_cast<arb::region&>(*result);
+                auto& reg = std::any_cast<arb::region&>(*result);
                 if (auto r = dict_.region(name)) {
                     dict_.set(name, join(std::move(reg), std::move(*r)));
                 }
@@ -107,7 +109,7 @@ public:
                 if (dict_.region(name)) {
                     throw pyarb_error("Locset name clashes with a region.");
                 }
-                auto& loc = arb::util::any_cast<arb::locset&>(*result);
+                auto& loc = std::any_cast<arb::locset&>(*result);
                 if (auto l = dict_.locset(name)) {
                     dict_.set(name, sum(std::move(loc), std::move(*l)));
                 }

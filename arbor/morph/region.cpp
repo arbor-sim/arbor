@@ -741,8 +741,17 @@ region::region() {
 
 // Implicit constructors/converters.
 
-region::region(const std::string& label) {
-    std::cout << "testing " << label << std::endl;
+region::region(const std::string& desc) {
+    std::cout << "testingg " << desc << std::endl;
+    if (auto r=parse_region_expression(desc)) {
+        std::cout << "  result " << *r << "\n";
+        *this = *r;
+    }
+    else {
+        std::cout << "  result " << r.error().what() << "\n";
+        throw r.error();
+    }
+    /*
     if (arb::valid_label_name(label)) {
         *this = reg::named(label);
         return;
@@ -758,6 +767,7 @@ region::region(const std::string& label) {
     else {
         throw "not a valid region expression or label";
     }
+    */
 }
 
 region::region(const char* label): region(std::string(label)) {}

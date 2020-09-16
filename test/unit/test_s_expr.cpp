@@ -33,6 +33,7 @@ TEST(s_expr, transmogrify) {
     EXPECT_EQ(transform("(1 2 3 | 4 5 6)", asc_map), "(1 2 3 )( 4 5 6)");
     EXPECT_EQ(transform("", asc_map), "");
     EXPECT_EQ(transform("<>", asc_map), "(spine )");
+    EXPECT_EQ(transform("<32|>", asc_map), "(spine 32)()");
 }
 
 TEST(s_expr, identifier) {

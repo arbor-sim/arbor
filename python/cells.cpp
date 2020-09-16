@@ -1,3 +1,5 @@
+#include <any>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -11,7 +13,6 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
-#include <arbor/util/any.hpp>
 #include <arbor/util/unique_any.hpp>
 
 #include "cells.hpp"
@@ -102,12 +103,12 @@ struct label_dict_proxy {
                 throw result.error();
             }
             else if (result->type()==typeid(arb::region)) { // describes a region.
-                dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
+                dict.set(name, std::move(std::any_cast<arb::region&>(*result)));
                 auto it = std::lower_bound(regions.begin(), regions.end(), name);
                 if (it==regions.end() || *it!=name) regions.insert(it, name);
             }
             else if (result->type()==typeid(arb::locset)) { // describes a locset.
-                dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
+                dict.set(name, std::move(std::any_cast<arb::locset&>(*result)));
                 auto it = std::lower_bound(locsets.begin(), locsets.end(), name);
                 if (it==locsets.end() || *it!=name) locsets.insert(it, name);
             }
