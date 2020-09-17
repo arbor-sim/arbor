@@ -1,3 +1,9 @@
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -5,12 +11,15 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
+#include <arbor/util/any_cast.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"
 #include "morph_parse.hpp"
 #include "s_expr.hpp"
 #include "strprintf.hpp"
+
+using arb::util::any_cast;
 
 namespace pyarb {
 
@@ -96,7 +105,7 @@ public:
                 if (dict_.locset(name)) {
                     throw pyarb_error("Region name clashes with a locset.");
                 }
-                auto& reg = arb::util::any_cast<arb::region&>(*result);
+                auto& reg = any_cast<arb::region&>(*result);
                 if (auto r = dict_.region(name)) {
                     dict_.set(name, join(std::move(reg), std::move(*r)));
                 }
@@ -108,7 +117,7 @@ public:
                 if (dict_.region(name)) {
                     throw pyarb_error("Locset name clashes with a region.");
                 }
-                auto& loc = arb::util::any_cast<arb::locset&>(*result);
+                auto& loc = any_cast<arb::locset&>(*result);
                 if (auto l = dict_.locset(name)) {
                     dict_.set(name, sum(std::move(loc), std::move(*l)));
                 }

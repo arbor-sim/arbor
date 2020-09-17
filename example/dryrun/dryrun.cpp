@@ -3,6 +3,7 @@
  *
  */
 
+#include <any>
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -80,7 +81,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         arb::cable_cell_global_properties gprop;
         gprop.default_parameters = arb::neuron_parameter_defaults;
         return gprop;

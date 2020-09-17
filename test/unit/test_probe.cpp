@@ -13,6 +13,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/version.hpp>
@@ -37,6 +38,7 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
+using util::any_cast;
 
 using multicore_fvm_cell = fvm_lowered_cell_impl<multicore::backend>;
 using multicore_shared_state = multicore::backend::shared_state;
@@ -830,12 +832,12 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
             ASSERT_EQ(1u, n_sample);
 
             if (pm.tag==1) { // (whole cell probe)
-                const mcable_list* m = util::any_cast<const mcable_list*>(pm.meta);
+                const mcable_list* m = any_cast<const mcable_list*>(pm.meta);
                 ASSERT_NE(nullptr, m);
                 // Metadata should comprise one cable per CV.
                 ASSERT_EQ(n_cv, m->size());
 
-                const cable_sample_range* s = util::any_cast<const cable_sample_range*>(samples[0].data);
+                const cable_sample_range* s = any_cast<const cable_sample_range*>(samples[0].data);
                 ASSERT_NE(nullptr, s);
                 ASSERT_EQ(s->first+n_cv, s->second);
 
@@ -847,10 +849,10 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
                 // Probe id tells us which axial current this is.
                 ASSERT_LT(pm.id.index, n_axial_probe);
 
-                const mlocation* m = util::any_cast<const mlocation*>(pm.meta);
+                const mlocation* m = any_cast<const mlocation*>(pm.meta);
                 ASSERT_NE(nullptr, m);
 
-                const double* s = util::any_cast<const double*>(samples[0].data);
+                const double* s = any_cast<const double*>(samples[0].data);
                 ASSERT_NE(nullptr, s);
 
                 i_axial.at(pm.id.index) = *s;
@@ -889,7 +891,7 @@ auto run_simple_samplers(
     double t_end,
     const std::vector<cable_cell>& cells,
     cell_gid_type probe_cell,
-    const std::vector<util::any>& probe_addrs,
+    const std::vector<std::any>& probe_addrs,
     const std::vector<double>& when)
 {
     cable1d_recipe rec(cells, false);
@@ -920,7 +922,7 @@ auto run_simple_sampler(
     double t_end,
     const std::vector<cable_cell>& cells,
     cell_gid_type probe_cell,
-    const util::any& probe_addr,
+    const std::any& probe_addr,
     const std::vector<double>& when)
 {
     return run_simple_samplers<SampleData, SampleMeta>(ctx, t_end, cells, probe_cell, {probe_addr}, when).at(0);
@@ -1187,8 +1189,8 @@ void run_exact_sampling_probe_test(const context& ctx) {
             return {explicit_generator(spikes)};
         }
 
-        util::any get_global_properties(cell_kind k) const override {
-            return k==cell_kind::cable? gprop_: util::any{};
+        std::any get_global_properties(cell_kind k) const override {
+            return k==cell_kind::cable? gprop_: std::any{};
         }
     };
 
@@ -1316,9 +1318,9 @@ TEST(probe, get_probe_metadata) {
     EXPECT_EQ(7, mm[1].tag);
     EXPECT_EQ(7, mm[2].tag);
 
-    const mlocation* l0 = util::any_cast<const mlocation*>(mm[0].meta);
-    const mlocation* l1 = util::any_cast<const mlocation*>(mm[1].meta);
-    const mlocation* l2 = util::any_cast<const mlocation*>(mm[2].meta);
+    const mlocation* l0 = any_cast<const mlocation*>(mm[0].meta);
+    const mlocation* l1 = any_cast<const mlocation*>(mm[1].meta);
+    const mlocation* l2 = any_cast<const mlocation*>(mm[2].meta);
 
     ASSERT_TRUE(l0);
     ASSERT_TRUE(l1);

@@ -1,15 +1,17 @@
 #pragma once
 
+#include <any>
 #include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <stdexcept>
 
 #include <arbor/recipe.hpp>
+#include <arbor/util/unique_any.hpp>
 
 namespace arb {
 
-// tile inherits from recipe but is not a regular recipe.
+// `tile` inherits from recipe but is not a regular recipe.
 // It is used to describe a recipe on a single rank
 // that will be translated to all other ranks using symmetric_recipe.
 // This means it can allow connections from gid >= ncells
@@ -19,7 +21,7 @@ public:
     virtual cell_size_type num_tiles() const { return 1; }
 };
 
-// symmetric recipe takes a tile and duplicates it across
+// `symmetric_recipe` takes a tile and duplicates it across
 // as many ranks as tile indicates. Its functions call the
 // underlying functions of tile and perform transformations
 // on the results when needed.
@@ -74,7 +76,7 @@ public:
         return tiled_recipe_->get_probes(i);
     }
 
-    util::any get_global_properties(cell_kind ck) const override {
+    std::any get_global_properties(cell_kind ck) const override {
         return tiled_recipe_->get_global_properties(ck);
     };
 

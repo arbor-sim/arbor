@@ -3,6 +3,7 @@
  *
  */
 
+#include <any>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -99,7 +100,7 @@ public:
         return {arb::cable_probe_membrane_voltage{loc}};
     }
 
-    arb::util::any get_global_properties(cell_kind k) const override {
+    std::any get_global_properties(cell_kind k) const override {
         arb::cable_cell_global_properties a;
         a.default_parameters = arb::neuron_parameter_defaults;
         a.default_parameters.temperature_K = 308.15;

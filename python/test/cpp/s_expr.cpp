@@ -1,14 +1,19 @@
 #include "gtest.h"
 
+#include <string>
+
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/util/any_cast.hpp>
 
-#include <morph_parse.hpp>
-#include <s_expr.hpp>
-#include <strprintf.hpp>
+#include "morph_parse.hpp"
+#include "s_expr.hpp"
+#include "strprintf.hpp"
 
 using namespace pyarb;
 using namespace std::string_literals;
+
+using arb::util::any_cast;
 
 TEST(s_expr, identifier) {
     EXPECT_TRUE(test_identifier("foo"));
@@ -70,11 +75,11 @@ TEST(s_expr, atoms) {
 TEST(s_expr, parse) {
     auto round_trip_reg = [](const char* in) {
         auto x = eval(parse(in));
-        return util::pprintf("{}", arb::util::any_cast<arb::region>(*x));
+        return util::pprintf("{}", any_cast<arb::region>(*x));
     };
     auto round_trip_loc = [](const char* in) {
         auto x = eval(parse(in));
-        return util::pprintf("{}", arb::util::any_cast<arb::locset>(*x));
+        return util::pprintf("{}", any_cast<arb::locset>(*x));
     };
 
     EXPECT_EQ("(cable 3 0 1)",      round_trip_reg("(branch 3)"));
@@ -86,8 +91,8 @@ TEST(s_expr, parse) {
     EXPECT_EQ("(root)",     round_trip_loc("(root)"));
     EXPECT_EQ("(locset \"cat_burgler\")", round_trip_loc("(locset \"cat_burgler\")"));
 
-    auto lhs = arb::util::any_cast<arb::region>(*eval(parse("(region \"dend\")")));
-    auto rhs = arb::util::any_cast<arb::region>(*eval(parse("(all)")));
+    auto lhs = any_cast<arb::region>(*eval(parse("(region \"dend\")")));
+    auto rhs = any_cast<arb::region>(*eval(parse("(all)")));
 
     EXPECT_EQ(util::pprintf("{}", join(lhs,rhs)), "(join (region \"dend\") (all))");
 }
@@ -95,7 +100,7 @@ TEST(s_expr, parse) {
 TEST(s_expr, comments) {
     auto round_trip_reg = [](const char* in) {
         auto x = eval(parse(in));
-        return util::pprintf("{}", arb::util::any_cast<arb::region>(*x));
+        return util::pprintf("{}", any_cast<arb::region>(*x));
     };
 
     EXPECT_EQ("(all)",  round_trip_reg("(all) ; a comment"));

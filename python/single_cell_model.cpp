@@ -1,4 +1,7 @@
+#include <any>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <pybind11/pybind11.h>
@@ -8,9 +11,12 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/util/any_cast.hpp>
 
 #include "error.hpp"
 #include "cells.hpp"
+
+using arb::util::any_cast;
 
 namespace pyarb {
 
@@ -45,7 +51,7 @@ struct trace_callback {
     void operator()(arb::probe_metadata, std::size_t n, const arb::sample_record* recs) {
         // Push each (time, value) pair from the last epoch into trace_.
         for (std::size_t i=0; i<n; ++i) {
-            if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
+            if (auto p = any_cast<const double*>(recs[i].data)) {
                 trace_.t.push_back(recs[i].time);
                 trace_.v.push_back(*p);
             }
@@ -125,7 +131,7 @@ struct single_cell_recipe: arb::recipe {
         return {}; // No gap junctions on a single cell model.
     }
 
-    virtual arb::util::any get_global_properties(arb::cell_kind) const override {
+    virtual std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
