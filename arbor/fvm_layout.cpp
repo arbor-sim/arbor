@@ -1113,15 +1113,15 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         config.reset_econc.resize(n_cv);
         config.init_revpot.resize(n_cv);
 
-        auto ion_data = value_by_key(global_dflt.ion_data, ion).value();
-        auto dflt_iconc = ion_data.init_int_concentration.value();
-        auto dflt_econc = ion_data.init_ext_concentration.value();
-        auto dflt_rvpot = ion_data.init_reversal_potential.value();
+        auto global_ion_data = value_by_key(global_dflt.ion_data, ion).value();
+        auto dflt_iconc = global_ion_data.init_int_concentration.value();
+        auto dflt_econc = global_ion_data.init_ext_concentration.value();
+        auto dflt_rvpot = global_ion_data.init_reversal_potential.value();
 
         if (auto ion_data = value_by_key(dflt.ion_data, ion)) {
-            if (auto iconc = ion_data.value().init_int_concentration) dflt_iconc = iconc.value();
-            if (auto econc = ion_data.value().init_ext_concentration) dflt_econc = econc.value();
-            if (auto rvpot = ion_data.value().init_reversal_potential) dflt_rvpot = rvpot.value();
+            dflt_iconc = ion_data.value().init_int_concentration.value_or(dflt_iconc);
+            dflt_econc = ion_data.value().init_ext_concentration.value_or(dflt_econc);
+            dflt_rvpot = ion_data.value().init_reversal_potential.value_or(dflt_rvpot);
         }
 
         const mcable_map<init_int_concentration>&  iconc_on_cable = initial_iconc_map[ion];
