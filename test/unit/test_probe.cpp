@@ -144,9 +144,9 @@ void run_v_i_probe_test(const context& ctx) {
     // to wrap an fvm_probe_interpolated; ion current density is
     // a scalar, so should wrap fvm_probe_scalar.
 
-    ASSERT_TRUE(util::get_if<fvm_probe_interpolated>(probe_map.data_on({0, 0}).front().info));
-    ASSERT_TRUE(util::get_if<fvm_probe_interpolated>(probe_map.data_on({0, 0}).front().info));
-    ASSERT_TRUE(util::get_if<fvm_probe_scalar>(probe_map.data_on({0, 2}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 0}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 0}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_scalar>(&probe_map.data_on({0, 2}).front().info));
 
     probe_handle p0a = get_probe_raw_handle({0, 0}, 0);
     probe_handle p0b = get_probe_raw_handle({0, 0}, 1);
@@ -227,11 +227,11 @@ void run_v_cell_probe_test(const context& ctx) {
 
         ASSERT_EQ(1u, probe_map.size());
 
-        const fvm_probe_multi* h_ptr = util::get_if<fvm_probe_multi>(probe_map.data_on({0, 0}).front().info);
+        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, 0}).front().info);
         ASSERT_TRUE(h_ptr);
         auto& h = *h_ptr;
 
-        const mcable_list* cl_ptr = util::get_if<mcable_list>(h_ptr->metadata);
+        const mcable_list* cl_ptr = std::get_if<mcable_list>(&h_ptr->metadata);
         ASSERT_TRUE(cl_ptr);
         auto& cl = *cl_ptr;
 
@@ -422,10 +422,10 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
 
         ASSERT_EQ(2u, probe_map.size());
         for (unsigned i: {0u, 1u}) {
-            const auto* h_ptr = util::get_if<fvm_probe_multi>(probe_map.data_on({i, 0}).front().info);
+            const auto* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({i, 0}).front().info);
             ASSERT_TRUE(h_ptr);
 
-            const auto* m_ptr = util::get_if<std::vector<cable_probe_point_info>>(h_ptr->metadata);
+            const auto* m_ptr = std::get_if<std::vector<cable_probe_point_info>>(&h_ptr->metadata);
             ASSERT_TRUE(m_ptr);
 
             const fvm_probe_multi& h = *h_ptr;
@@ -611,11 +611,11 @@ void run_ion_density_probe_test(const context& ctx) {
     // sorted by CV in the fvm_probe_weighted_multi object; this is assumed
     // below.
 
-    auto* p_ptr = util::get_if<fvm_probe_multi>(probe_map.data_on({0, 11}).front().info);
+    auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, 11}).front().info);
     ASSERT_TRUE(p_ptr);
     const fvm_probe_multi& na_int_all_info = *p_ptr;
 
-    auto* m_ptr = util::get_if<mcable_list>(na_int_all_info.metadata);
+    auto* m_ptr = std::get_if<mcable_list>(&na_int_all_info.metadata);
     ASSERT_TRUE(m_ptr);
     mcable_list na_int_all_metadata = *m_ptr;
 
@@ -629,11 +629,11 @@ void run_ion_density_probe_test(const context& ctx) {
     EXPECT_EQ(na_int_cv2,   na_int_all_info.raw_handles[1]);
     EXPECT_EQ(na_int_cv2-1, na_int_all_info.raw_handles[0]);
 
-    p_ptr = util::get_if<fvm_probe_multi>(probe_map.data_on({0, 12}).front().info);
+    p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, 12}).front().info);
     ASSERT_TRUE(p_ptr);
     const fvm_probe_multi& ca_ext_all_info = *p_ptr;
 
-    m_ptr = util::get_if<mcable_list>(ca_ext_all_info.metadata);
+    m_ptr = std::get_if<mcable_list>(&ca_ext_all_info.metadata);
     ASSERT_TRUE(m_ptr);
     mcable_list ca_ext_all_metadata = *m_ptr;
 
