@@ -48,7 +48,8 @@ m = arbor.single_cell_model(cell)
 # Set the model default parameters
 m.set_default_properties(defaults)
 
-# arbor.output_cell_description(cell, "cell_out.json")
+cell.output_description("cell_out.json")
+m.output_default_properties("defaults_out.json")
 
 # Extend the default catalogue
 m.properties.catalogue.extend(arbor.bbp_catalogue(), "")

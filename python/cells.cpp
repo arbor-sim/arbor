@@ -212,6 +212,8 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
             md.name(), util::dictionary_csv(md.values()));
 }
 
+void output_cell_description(const arb::cable_cell& cell, std::string file_name);
+
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
     using arb::util::optional;
@@ -501,30 +503,33 @@ void register_cells(pybind11::module& m) {
                      for (auto ion_params: params.ion_data) {
                          auto ion = ion_params.first;
                          auto data = ion_params.second;
-
-                         auto ion_data = c.default_parameters.ion_data[ion];
-                         if (auto iconc = data.init_int_concentration) ion_data.init_int_concentration = iconc.value();
-                         if (auto econc = data.init_ext_concentration) ion_data.init_ext_concentration = econc.value();
-                         if (auto rvpot = data.init_reversal_potential) ion_data.init_reversal_potential = rvpot.value();
-                         c.paint(region, arb::initial_ion_data{ion, ion_data});
+                         if (auto iconc = data.init_int_concentration)  c.paint(region, arb::init_int_concentration{ion, iconc.value()});
+                         if (auto econc = data.init_ext_concentration)  c.paint(region, arb::init_ext_concentration{ion, econc.value()});
+                         if (auto rvpot = data.init_reversal_potential) c.paint(region, arb::init_reversal_potential{ion, rvpot.value()});
                      }
                  }
              },
              "Overwrite regional values for cable properties.")
          // Write cell dynamics
-         .def("paint_dynamics",
-              [](arb::cable_cell& c,
-                 std::unordered_map<std::string, std::vector<arb::mechanism_desc>>& region_map)
-              {
-                  for (const auto& region_mech: region_map) {
-                      auto region = region_mech.first;
-                      const auto& mech_vec = region_mech.second;
-                      for (const auto& mech: mech_vec) {
-                          c.paint(region, mech);
-                      }
-                  }
-              },
-              "Paint mechamnisms on the regions")
+        .def("paint_dynamics",
+             [](arb::cable_cell& c,
+                std::unordered_map<std::string, std::vector<arb::mechanism_desc>>& region_map)
+             {
+                 for (const auto& region_mech: region_map) {
+                     auto region = region_mech.first;
+                     const auto& mech_vec = region_mech.second;
+                     for (const auto& mech: mech_vec) {
+                         c.paint(region, mech);
+                     }
+                 }
+             },
+             "Paint mechamnisms on the regions")
+        .def("output_description",
+            [](arb::cable_cell& c, std::string file_name)
+            {
+                output_cell_description(c, file_name);
+            },
+            "Write out cell description: default parameter set, regional parameter set and mechanisms to file.")
         // Set cell-wide properties
         .def("set_properties",
             [](arb::cable_cell& c,

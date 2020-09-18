@@ -216,6 +216,8 @@ public:
     }
 };
 
+void output_parameter_set(const arb::cable_cell_parameter_set& set, std::string file_name);
+
 void register_single_cell(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -267,6 +269,10 @@ void register_single_cell(pybind11::module& m) {
             m.gprop.props.default_parameters = props;},
             "cable_cell_parameters"_a,
             "Set the default cable_cell parameters for the model")
+        .def("output_default_properties", [](single_cell_model& m, std::string file_name) {
+            output_parameter_set(m.gprop.props.default_parameters, file_name);},
+            "file_name"_a,
+            "Write the default cable_cell parameters of the model to file")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }
