@@ -30,7 +30,7 @@ template <typename C>
 typename util::sequence_traits<C>::value_type
 mean(C const& c)
 {
-    return util::sum(c)/util::size(c);
+    return util::sum(c)/std::size(c);
 }
 
 // returns the prefix sum of c in the form `[0, c[0], c[0]+c[1], ..., sum(c)]`.

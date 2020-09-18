@@ -88,24 +88,29 @@ an interface for recording
     m.run(tfinal=100)
 
 Step (4) instantiates the single cell model using our single-compartment cell.
-To record variables from the model three pieces of information are prov
-* 
-
-
-**Everything below here is to be discarded/moved**
+To record variables from the model three pieces of information are provided.
 
 .. _single_morpho:
 
 Morphology
 ----------
 
+.. warning::
+
+    The flat cell builder documented below is likely to change before
+    version 0.4 is released. It is a wrapper around a segment tree that
+    simplifies morphology construction when the spatial location of segments
+    is not important (for example, when we only need to describe the length,
+    radius and parent-child relationship of branches in the morphology).
+
 The first step in building a cell model is to define the cell's *morphology*.
-Conceptually, Arbor treats morphologies as a tree of truncated frustums, with
-an optional spherical segment at the root of the tree.
+Conceptually, Arbor treats morphologies as a tree of truncated frustums.
 These are represented as a tree of segments, where each segment is defined
 by two end points with radius, and a tag, and a parent segment to which it is attached.
 
-Let's start with a simple "ball and stick" model cell.
+Let's start with a simple "ball and stick" model cell, with a spherical soma
+(the ball, treated as a cylinder with length=with) and a y-shaped dendritic
+tree (the sticks).
 
 .. container:: example-code
 
@@ -114,9 +119,9 @@ Let's start with a simple "ball and stick" model cell.
         import arbor
         builder = arbor.flat_cell_builder()
 
-        # Start with a spherical segment with radius 10 μm.
-        # Label this segment 'soma'.
-        p = builder.add_sphere(radius=10, name='soma')
+        # Start with the soma, which is a cylinder with the same area as
+        # a sphere of radius 5 μm. Label this segment 'soma'.
+        p = builder.add_cable(parent=arbor.mnpos, length=10, radius=5, name='soma')
 
         # Attach a cable to the soma with length 100 μm and constant radius 4 μm.
         q = builder.add_cable(parent=p, length=100, radius=4, name='dend')
@@ -125,55 +130,12 @@ Let's start with a simple "ball and stick" model cell.
         p = builder.add_cable(parent=q, length=50, radius=(4,2), name='dend')
         p = builder.add_cable(parent=q, length=50, radius=(4,2), name='dend')
 
+        # Generate the cable cell once all cables have been described.
+        cell = builder.build()
 
-Building the morphology there are two approaches: construct it manually using
-``segment_tree`` or ``flat_cell_builder``, or load from swc file.
 
-TODO: cover all methods here?
-    - we could just ``flat_cell_builder`` because it is most comfortable for
-      users coming over from NEURON.
-    - have links to another page that goes into detail on all the different
-      methods for morphology building. That page could take a moderately
-      complicated, well-defined, morphology, and illustrate how to build
-      it using all of the different methods.
-
-NEURON erratum
-------------------------------
-
-These should probably be combined into a single section that describes the differences
-between Arbor and NEURON, because the alternative is to keep stopping the
-narative to point out the difference with NEURON, instead of explaining what
-Arbor is from a fresh start.
-
-.. note::
-    Most readers will be familiar with NEURON. Boxes like this
-    will be used to highlight differences between NEURON and Arbor
-    throughout the guide.
-
-    NEURON users will recognise that Arbor uses many similar concepts, and
-    an effort has been made to use the same nomenclature wherever possible.
-
-    Arbor takes a more structured approach to model building,
-    from morphology descriptions up to network connectivity, to allow model
-    descriptions that are more scalable and portable.
-
-.. note::
-    NEURON represents morphologies as a tree of cylindrical *segments*, whereas
-    in Arbor the radius can vary linearly along segments.
-
-    A cylinder with equal diameter and length is used to model spherical somata
-    in NEURON, which coincidently has the same surface area as a sphere of the same diameter.
-    Arbor allows the user to optionally use a spherical section at the root
-    of the tree to represent spherical somata.
-
-.. note::
-    In NEURON cell morphologies are constructed by creating individual sections,
-    then connecting them together. In Arbor we start with an "empty"
-    segment tree, to which segments are appended to build a connected morphology.
-
-1. Defining the `morphology <single_morpho_>`_ of the cell.
-2. Labeling regions and locations on the morphology.
-3. Defining the mechanisms that will be applied to the cell.
-4. Adding ion channels and synapses (mechanisms) to labeled regions and locations.
-5. Attaching stimuli, spike detectors, event generators and probes to locations (inputs & outputs).
+There are two approaches available for building a morphology: construct it manually using
+:ref:`segment tree<morph-segment_tree>` or ``flat_cell_builder``, or load from a file.
+The ``flat_cell_builder`` is a helper tool, that internally constructs a segment
+tree.
 

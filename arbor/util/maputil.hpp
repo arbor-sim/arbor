@@ -39,7 +39,7 @@ template <typename Seq, typename = void>
 struct is_associative_container: std::false_type {};
 
 template <typename Seq>
-struct is_associative_container<Seq, void_t<maputil_impl::assoc_test<Seq>>>: maputil_impl::assoc_test<Seq> {};
+struct is_associative_container<Seq, std::void_t<maputil_impl::assoc_test<Seq>>>: maputil_impl::assoc_test<Seq> {};
 
 // Find value in a sequence of key-value pairs or in a key-value assocation map, with
 // optional explicit comparator.

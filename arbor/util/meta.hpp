@@ -12,76 +12,6 @@
 namespace arb {
 namespace util {
 
-// The following classes and functions can be replaced
-// with std functions when we migrate to later versions of C++.
-//
-// C++17:
-// void_t, empty, data, as_const
-
-template <class...>
-using void_t = void;
-
-template <typename X>
-constexpr std::size_t size(const X& x) { return x.size(); }
-
-template <typename X, std::size_t N>
-constexpr std::size_t size(X (&)[N]) noexcept { return N; }
-
-template <typename C>
-constexpr auto data(C& c) { return c.data(); }
-
-template <typename C>
-constexpr auto data(const C& c) { return c.data(); }
-
-template <typename T, std::size_t N>
-constexpr T* data(T (&a)[N]) noexcept { return a; }
-
-template <typename T>
-void as_const(T&& t) = delete;
-
-template <typename T>
-constexpr std::add_const_t<T>& as_const(T& t) {
-    return t;
-}
-
-// Use sequence `empty() const` method if exists, otherwise
-// compare begin and end.
-
-namespace impl_empty {
-    template <typename C>
-    struct has_const_empty_method {
-        template <typename T>
-        static decltype(std::declval<const T>().empty(), std::true_type{}) test(int);
-        template <typename T>
-        static std::false_type test(...);
-
-        using type = decltype(test<C>(0));
-    };
-
-    using std::begin;
-    using std::end;
-
-    template <typename Seq>
-    constexpr bool empty(const Seq& seq, std::false_type) {
-        return begin(seq)==end(seq);
-    }
-
-    template <typename Seq>
-    constexpr bool empty(const Seq& seq, std::true_type) {
-        return seq.empty();
-    }
-}
-
-template <typename Seq>
-constexpr bool empty(const Seq& seq) {
-    return impl_empty::empty(seq, typename impl_empty::has_const_empty_method<Seq>::type{});
-}
-
-template <typename T, std::size_t N>
-constexpr bool empty(const T (& c)[N]) noexcept {
-    return false; // N cannot be zero
-}
-
 // Types associated with a container or sequence
 
 namespace impl_seqtrait {
@@ -95,8 +25,18 @@ namespace impl_seqtrait {
     struct data_returns_pointer<T (&)[N], void>: public std::true_type {};
 
     template <typename T>
-    struct data_returns_pointer<T, void_t<decltype(std::declval<T>().data())>>:
+    struct data_returns_pointer<T, std::void_t<decltype(std::declval<T>().data())>>:
         public std::is_pointer<decltype(std::declval<T>().data())>::type {};
+
+    template <typename Seq, typename=void>
+    struct size_type_ {
+        using type = void;
+    };
+
+    template <typename Seq>
+    struct size_type_<Seq, std::void_t<decltype(std::size(std::declval<Seq&>()))>> {
+        using type = decltype(std::size(std::declval<Seq&>()));
+    };
 
     template <typename Seq>
     struct sequence_traits {
@@ -105,7 +45,7 @@ namespace impl_seqtrait {
         using value_type = typename std::iterator_traits<iterator>::value_type;
         using reference = typename std::iterator_traits<iterator>::reference;
         using difference_type = typename std::iterator_traits<iterator>::difference_type;
-        using size_type = decltype(size(std::declval<Seq&>()));
+        using size_type = typename size_type_<Seq>::type;
         // For use with heterogeneous ranges:
         using sentinel = decltype(end(std::declval<Seq&>()));
         using const_sentinel = decltype(end(std::declval<const Seq&>()));
@@ -119,7 +59,7 @@ namespace impl_seqtrait {
         std::false_type {};
 
     template<typename T>
-    struct is_sequence<T, void_t<decltype(begin(std::declval<T>()))>>:
+    struct is_sequence<T, std::void_t<decltype(begin(std::declval<T>()))>>:
         std::true_type {};
 
 }
@@ -178,7 +118,7 @@ template <typename T, typename = void>
 struct is_iterator: public std::false_type {};
 
 template <typename T>
-struct is_iterator<T, void_t<typename std::iterator_traits<T>::iterator_category>>:
+struct is_iterator<T, std::void_t<typename std::iterator_traits<T>::iterator_category>>:
     public std::true_type {};
 
 template <typename T>
@@ -249,7 +189,7 @@ template <typename I, typename E>
 struct common_random_access_iterator<
     I,
     E,
-    void_t<decltype(false? std::declval<I>(): std::declval<E>())>,
+    std::void_t<decltype(false? std::declval<I>(): std::declval<E>())>,
     std::enable_if_t<
         is_random_access_iterator<
             std::decay_t<decltype(false? std::declval<I>(): std::declval<E>())>
@@ -269,7 +209,7 @@ struct has_common_random_access_iterator:
     std::false_type {};
 
 template <typename I, typename E>
-struct has_common_random_access_iterator<I, E, void_t<util::common_random_access_iterator_t<I, E>>>:
+struct has_common_random_access_iterator<I, E, std::void_t<util::common_random_access_iterator_t<I, E>>>:
     std::true_type {};
 
 // Generic accessors:

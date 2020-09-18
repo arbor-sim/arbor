@@ -40,8 +40,8 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
     using std::begin;
     using std::end;
 
-    auto dest_n = util::size(dest);
-    auto source_n = util::size(source);
+    auto dest_n = std::size(dest);
+    auto source_n = std::size(source);
 
     auto n = source_n<dest_n? source_n: dest_n;
     auto tail = std::copy_n(begin(source), n, begin(dest));

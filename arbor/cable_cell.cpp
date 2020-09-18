@@ -88,8 +88,16 @@ struct cable_cell_impl {
         return region_map.get<mechanism_desc>()[desc.name()];
     }
 
-    mcable_map<initial_ion_data>& get_region_map(const initial_ion_data& init) {
-        return region_map.get<initial_ion_data>()[init.ion];
+    mcable_map<init_int_concentration>& get_region_map(const init_int_concentration& init) {
+        return region_map.get<init_int_concentration>()[init.ion];
+    }
+
+    mcable_map<init_ext_concentration>& get_region_map(const init_ext_concentration& init) {
+        return region_map.get<init_ext_concentration>()[init.ion];
+    }
+
+    mcable_map<init_reversal_potential>& get_region_map(const init_reversal_potential& init) {
+        return region_map.get<init_reversal_potential>()[init.ion];
     }
 
     template <typename Property>
@@ -186,7 +194,6 @@ void cable_cell::paint(const region& target, mechanism_desc prop) {
     region_mechanism_desc[to_string(target)].push_back(prop);
     impl_->paint(target, prop);
 }
-
 // Forward place methods to implementation class.
 
 #define FWD_PLACE(proptype)\

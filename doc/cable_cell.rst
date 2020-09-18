@@ -163,13 +163,13 @@ Take for example a mechanism passive leaky dynamics:
     m1 = arbor.mechanism('passive')
 
     # Create default mechainsm with custom conductance (range)
-    m2 = arbor.mechanism('passive', {'g', 0.1})
+    m2 = arbor.mechanism('passive', {'g': 0.1})
 
     # Create a new pas mechanism with that changes reversal potential (global)
     m3 = arbor.mechanism('passive/el=-45')
 
     # Create an instance of the same mechanism, that also sets conductance (range)
-    m4 = arbor.mechanism('passive/el=-45', {'g', 0.1})
+    m4 = arbor.mechanism('passive/el=-45', {'g': 0.1})
 
     cell.paint('soma', m1)
     cell.paint('soma', m2) # error: can't place the same mechanism on overlapping regions

@@ -165,7 +165,6 @@ global_props_shim::global_props_shim():
 std::string to_string(const global_props_shim& G) {
     std::string s = "{arbor.cable_global_properties";
 
-    auto nan_is_none = [](double x) {return x==x? std::to_string(x): "None";};
     const auto& P = G.props;
     const auto& D = P.default_parameters;
     const auto& I = D.ion_data;
@@ -182,9 +181,9 @@ std::string to_string(const global_props_shim& G) {
                 "'"+D.reversal_potential_method.at(ion.first).name()+"'": "None";
             s += util::pprintf("\n    {name: '{}', valence: {}, int_con: {}, ext_con: {}, rev_pot: {}, rev_pot_method: {}}",
                     ion.first, ion.second,
-                    nan_is_none(props.init_int_concentration),
-                    nan_is_none(props.init_ext_concentration),
-                    nan_is_none(props.init_reversal_potential),
+                    props.init_int_concentration,
+                    props.init_ext_concentration,
+                    props.init_reversal_potential,
                     method);
         }
     }
@@ -611,12 +610,20 @@ void register_cells(pybind11::module& m) {
             " rL:    axial resistivity [Ω·cm].\n"
             " tempK: temperature [Kelvin].")
 
+
+
         // Paint ion species initial conditions on a region.
         .def("paint",
-            [](arb::cable_cell& c, const char* region, const arb::initial_ion_data& d) {
-                c.paint(region, d);
+            [](arb::cable_cell& c, const char* region, const char* name,
+               optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
+                if (int_con) c.paint(region, arb::init_int_concentration{name, *int_con});
+                if (ext_con) c.paint(region, arb::init_int_concentration{name, *ext_con});
+                if (rev_pot) c.paint(region, arb::init_int_concentration{name, *rev_pot});
             },
-            "region"_a, "ion_data"_a,
+            "region"_a, "ion_name"_a,
+             pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
+             pybind11::arg_v("ext_con", pybind11::none(), "Intial external concentration [mM]"),
+             pybind11::arg_v("rev_pot", pybind11::none(), "Intial reversal potential [mV]"),
             "Set ion species properties conditions on a region.")
         // Place synapses
         .def("place",

@@ -176,9 +176,9 @@ struct exp_instance {
 
     template <typename Seq>
     exp_instance(int cv, const Seq& tgts, double e, double tau):
-        cv(cv), multiplicity(util::size(tgts)), e(e), tau(tau)
+        cv(cv), multiplicity(std::size(tgts)), e(e), tau(tau)
     {
-        targets.reserve(util::size(tgts));
+        targets.reserve(std::size(tgts));
         for (auto t: tgts) targets.push_back(t);
         util::sort(targets);
     }
@@ -769,8 +769,8 @@ TEST(fvm_layout, ion_weights) {
     gprop.catalogue = &testcat;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration;
-    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration;
+    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
+    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration.value();
 
     for (auto& v: expected_init_iconc) {
         for (auto& iconc: v) {

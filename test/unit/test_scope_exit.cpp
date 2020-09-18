@@ -16,7 +16,8 @@ TEST(scope_exit, basic) {
 }
 
 TEST(scope_exit, noexceptcall) {
-    auto guard1 = on_scope_exit([] {});
+    bool chill = true;
+    auto guard1 = on_scope_exit([&] { if (!chill) throw 0; });
     using G1 = decltype(guard1);
     EXPECT_FALSE(noexcept(guard1.~G1()));
 

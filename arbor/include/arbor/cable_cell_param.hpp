@@ -21,13 +21,14 @@ struct cable_cell_error: arbor_exception {
 
 // Ion inital concentration and reversal potential
 // parameters, as used in cable_cell_parameter_set,
-// and set locally via painting initial_ion_data
-// (see below).
+// and set locally via painting init_int_concentration,
+// init_ext_concentration and init_reversal_potential
+// separately (see below).
 
 struct cable_cell_ion_data {
-    double init_int_concentration = NAN;
-    double init_ext_concentration = NAN;
-    double init_reversal_potential = NAN;
+    util::optional<double> init_int_concentration;
+    util::optional<double> init_ext_concentration;
+    util::optional<double> init_reversal_potential;
 };
 
 // Current clamp description for stimulus specification.
@@ -70,6 +71,21 @@ struct axial_resistivity {
 
 struct membrane_capacitance {
     double value = NAN; // [F/m²]
+};
+
+struct init_int_concentration {
+    std::string ion;
+    double value = NAN;
+};
+
+struct init_ext_concentration {
+    std::string ion;
+    double value = NAN;
+};
+
+struct init_reversal_potential {
+    std::string ion;
+    double value = NAN;
 };
 
 // Mechanism description, viz. mechanism name and

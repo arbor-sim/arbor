@@ -95,11 +95,11 @@ set(unit_sources
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
     test_double_buffer.cpp
-    test_either.cpp
     test_event_binner.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
     test_event_queue.cpp
+    test_expected.cpp
     test_filter.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
@@ -174,18 +174,17 @@ set(unit_sources
 
 if(ARB_WITH_GPU)
     list(APPEND unit_sources
-
         test_intrin.cu
         test_gpu_stack.cu
-        test_matrix.cu
-        test_matrix_cpuvsgpu.cpp
+        test_multi_event_stream_gpu.cu
         test_reduce_by_key.cu
-        test_vector.cu
 
+        test_matrix_cpuvsgpu.cpp
+        test_matrix_gpu.cpp
         test_mc_cell_group_gpu.cpp
         test_multi_event_stream_gpu.cpp
-        test_multi_event_stream_gpu.cu
         test_spikes_gpu.cpp
+        test_vector_gpu.cpp
     )
 endif()
 

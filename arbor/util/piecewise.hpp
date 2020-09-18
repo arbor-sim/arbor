@@ -24,7 +24,7 @@ constexpr pw_size_type pw_npos = -1;
 
 template <typename T>
 struct indexed_const_iterator {
-    using size_type = decltype(util::size(std::declval<T>()));
+    using size_type = decltype(std::size(std::declval<T>()));
     using difference_type = std::make_signed_t<size_type>;
 
     using value_type = decltype(std::declval<T>()[0]);

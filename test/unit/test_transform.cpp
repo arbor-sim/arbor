@@ -19,7 +19,7 @@ TEST(transform, transform_view) {
 
     auto r = util::transform_view(fl, [](int i) { return i*i+0.5; });
 
-    EXPECT_EQ(5u, util::size(r));
+    EXPECT_EQ(5u, std::size(r));
     EXPECT_EQ(16.5, *(std::next(std::begin(r), 1)));
 
     std::copy(r.begin(), r.end(), std::back_inserter(result));
@@ -122,7 +122,7 @@ TEST(indirect, nocopy) {
 
 TEST(indirect, nomove) {
     testing::nomove<double> data[6];
-    for (unsigned i=0; i<util::size(data); ++i) data[i].value = 10.+i;
+    for (unsigned i=0; i<std::size(data); ++i) data[i].value = 10.+i;
     unsigned map_reverse[6] = {5, 4, 3, 2, 1, 0};
     auto reversed = util::indirect_view(data, map_reverse);
 
@@ -156,7 +156,7 @@ TEST(indirect, modifying) {
     // permuted[4] = data[1]
     // permuted[5] = data[0]
 
-    for (unsigned i = 0; i<util::size(permuted); ++i) {
+    for (unsigned i = 0; i<std::size(permuted); ++i) {
         permuted[i] = 10.+i;
     }
     std::vector<double> expected = {15., 14., 12.};
