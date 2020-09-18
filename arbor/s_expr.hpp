@@ -152,7 +152,7 @@ enum class tok {
     nil,
     real,       // real number
     integer,    // integer
-    name,       // name
+    symbol,     // symbol
     lparen,     // left parenthesis '('
     rparen,     // right parenthesis ')'
     string,     // string, written as "spelling"

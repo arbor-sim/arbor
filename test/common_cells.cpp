@@ -1,3 +1,4 @@
+#include <arbor/string_literals.hpp>
 #include "common_cells.hpp"
 
 namespace arb {
@@ -173,10 +174,11 @@ cable_cell soma_cell_builder::make_cell() const {
  */
 
 cable_cell make_cell_soma_only(bool with_stim) {
+    using namespace arb::literals;
     soma_cell_builder builder(18.8/2.0);
 
     auto c = builder.make_cell();
-    c.paint("soma", "hh");
+    c.paint("soma"_lab, "hh");
     if (with_stim) {
         c.place(builder.location({0,0.5}), i_clamp{10., 100., 0.1});
     }
@@ -206,12 +208,13 @@ cable_cell make_cell_soma_only(bool with_stim) {
  */
 
 cable_cell make_cell_ball_and_stick(bool with_stim) {
+    using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
     auto c = builder.make_cell();
-    c.paint("soma", "hh");
-    c.paint("dend", "pas");
+    c.paint("soma"_lab, "hh");
+    c.paint("dend"_lab, "pas");
     if (with_stim) {
         c.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
     }
@@ -244,14 +247,15 @@ cable_cell make_cell_ball_and_stick(bool with_stim) {
  */
 
 cable_cell make_cell_ball_and_3stick(bool with_stim) {
+    using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
 
     auto c = builder.make_cell();
-    c.paint("soma", "hh");
-    c.paint("dend", "pas");
+    c.paint("soma"_lab, "hh");
+    c.paint("dend"_lab, "pas");
     if (with_stim) {
         c.place(builder.location({2,1}), i_clamp{5.,  80., 0.45});
         c.place(builder.location({3,1}), i_clamp{40., 10.,-0.2});

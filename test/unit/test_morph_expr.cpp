@@ -9,6 +9,7 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
+#include <arbor/string_literals.hpp>
 
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
@@ -18,6 +19,7 @@
 #include "morph_pred.hpp"
 
 using namespace arb;
+using namespace arb::literals;
 using embedding = embed_pwlin;
 
 using testing::region_eq;
@@ -104,17 +106,17 @@ TEST(locset, thingify_named) {
         dict.set("cake", cake);
 
         mprovider mp(morphology(sm), dict);
-        EXPECT_EQ(thingify(locset("cake"), mp), thingify(cake, mp));
-        EXPECT_EQ(thingify(locset("banana"), mp), thingify(banana, mp));
+        EXPECT_EQ(thingify(locset("cake"_lab), mp), thingify(cake, mp));
+        EXPECT_EQ(thingify(locset("banana"_lab), mp), thingify(banana, mp));
 
-        EXPECT_THROW(thingify(locset("durian"), mp), unbound_name);
+        EXPECT_THROW(thingify(locset("durian"_lab), mp), unbound_name);
     }
     {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
-        dict.set("topping", locset("fruit"));
-        dict.set("fruit", locset("strawberry"));
+        dict.set("topping", locset("fruit"_lab));
+        dict.set("fruit", locset("strawberry"_lab));
 
         EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
@@ -122,8 +124,8 @@ TEST(locset, thingify_named) {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
-        dict.set("topping", locset("fruit"));
-        dict.set("fruit", sum(locset("banana"), locset("topping")));
+        dict.set("topping", locset("(locset \"fruit\")"));
+        dict.set("fruit", sum(locset("banana"_lab), locset("topping"_lab)));
 
         EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }
@@ -145,17 +147,17 @@ TEST(region, thingify_named) {
         dict.set("cake", cake);
 
         mprovider mp(morphology(sm), dict);
-        EXPECT_EQ(thingify(region("cake"), mp), thingify(cake, mp));
-        EXPECT_EQ(thingify(region("banana"), mp), thingify(banana, mp));
+        EXPECT_EQ(thingify(region("cake"_lab), mp), thingify(cake, mp));
+        EXPECT_EQ(thingify(region("banana"_lab), mp), thingify(banana, mp));
 
-        EXPECT_THROW(thingify(region("durian"), mp), unbound_name);
+        EXPECT_THROW(thingify(region("durian"_lab), mp), unbound_name);
     }
     {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
-        dict.set("topping", region("fruit"));
-        dict.set("fruit", region("strawberry"));
+        dict.set("topping", region("fruit"_lab));
+        dict.set("fruit", region("(region \"strawberry\")"));
 
         EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
@@ -163,8 +165,8 @@ TEST(region, thingify_named) {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
-        dict.set("topping", region("fruit"));
-        dict.set("fruit", join(region("cake"), region("topping")));
+        dict.set("topping", region("fruit"_lab));
+        dict.set("fruit", join(region("(region \"cake\")"), region("topping"_lab)));
 
         EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }

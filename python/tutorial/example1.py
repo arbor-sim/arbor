@@ -11,17 +11,17 @@ cell = arbor.cable_cell(tree, labels)
 # Set initial membrane potential everywhere on the cell to -40 mV.
 cell.set_properties(Vm=-40)
 # Put hh dynamics on soma, and passive properties on the dendrites.
-cell.paint('soma', 'hh')
+cell.paint('"soma"', 'hh')
 # Attach stimuli with duration of 100 ns and current of 0.8 nA.
-cell.place('center', arbor.iclamp( 10, duration=0.1, current=0.8))
+cell.place('"center"', arbor.iclamp( 10, duration=0.1, current=0.8))
 # Add a spike detector with threshold of -10 mV.
-cell.place('center', arbor.spike_detector(-10))
+cell.place('"center"', arbor.spike_detector(-10))
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes, sampling at 1 MHz.
-m.probe('voltage', 'center',  1000000)
+m.probe('voltage', '"center"',  1000000)
 
 # Run simulation for tfinal ms with time steps of 1 μs.
 tfinal=30

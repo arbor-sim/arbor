@@ -57,10 +57,6 @@ public:
 
         cached_morpho_ = false;
 
-        if (!arb::valid_label_name(region)) {
-            throw pyarb_error(util::pprintf("'{}' is not a valid label name.", region));
-        }
-
         // Get tag id of region (add a new tag if region does not already exist).
         int tag = get_tag(region);
         const bool at_root = parent==mnpos;
@@ -87,10 +83,6 @@ public:
     }
 
     void add_label(const char* name, const char* description) {
-        if (!arb::valid_label_name(name)) {
-            throw pyarb_error(util::pprintf("'{}' is not a valid label name.", name));
-        }
-
         if (auto result = arb::parse_label_expression(description) ) {
             // The description is a region.
             if (result->type()==typeid(arb::region)) {
@@ -105,6 +97,7 @@ public:
                     dict_.set(name, std::move(reg));
                 }
             }
+            // The description is a locset.
             else if (result->type()==typeid(arb::locset)) {
                 if (dict_.region(name)) {
                     throw pyarb_error("Locset name clashes with a region.");
@@ -117,6 +110,7 @@ public:
                     dict_.set(name, std::move(loc));
                 }
             }
+            // Error: the description is neither.
             else {
                 throw pyarb_error("Label describes neither a region nor a locset.");
             }

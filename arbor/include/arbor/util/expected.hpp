@@ -69,7 +69,7 @@ private:
 template <typename E>
 struct unexpected {
     template <typename F>
-    friend class unexpected;
+    friend struct unexpected;
 
     unexpected() = default;
     unexpected(const unexpected&) = default;

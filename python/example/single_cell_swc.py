@@ -37,17 +37,17 @@ cell.set_properties(Vm=-55)
 # Use Nernst to calculate reversal potential for calcium.
 cell.set_ion('ca', method=mech('nernst/x=ca'))
 # hh mechanism on the soma and axon.
-cell.paint('soma', 'hh')
-cell.paint('axon', 'hh')
+cell.paint('"soma"', 'hh')
+cell.paint('"axon"', 'hh')
 # pas mechanism the dendrites.
-cell.paint('dend', 'pas')
+cell.paint('"dend"', 'pas')
 # Increase resistivity on dendrites.
-cell.paint('dend', rL=500)
+cell.paint('"dend"', rL=500)
 # Attach stimuli that inject 0.8 nA currents for 1 ms, starting at 3 and 8 ms.
-cell.place('stim_site', arbor.iclamp(3, 1, current=0.5))
-cell.place('stim_site', arbor.iclamp(8, 1, current=1))
+cell.place('"stim_site"', arbor.iclamp(3, 1, current=0.5))
+cell.place('"stim_site"', arbor.iclamp(8, 1, current=1))
 # Detect spikes at the soma with a voltage threshold of -10 mV.
-cell.place('root', arbor.spike_detector(-10))
+cell.place('"root"', arbor.spike_detector(-10))
 
 # Have one compartment between each sample point.
 cell.compartments_on_segments()

@@ -742,32 +742,12 @@ region::region() {
 // Implicit constructors/converters.
 
 region::region(const std::string& desc) {
-    std::cout << "testingg " << desc << std::endl;
     if (auto r=parse_region_expression(desc)) {
-        std::cout << "  result " << *r << "\n";
         *this = *r;
     }
     else {
-        std::cout << "  result " << r.error().what() << "\n";
         throw r.error();
     }
-    /*
-    if (arb::valid_label_name(label)) {
-        *this = reg::named(label);
-        return;
-    }
-    // Evaluate the s-expression to build a region/locset.
-    auto result = arb::parse_label_expression(label);
-    if (!result) { // An error parsing / evaluating description.
-        throw result.error();
-    }
-    else if (result->type()==typeid(arb::region)) {
-        *this = std::move(std::any_cast<region&>(*result));
-    }
-    else {
-        throw "not a valid region expression or label";
-    }
-    */
 }
 
 region::region(const char* label): region(std::string(label)) {}

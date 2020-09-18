@@ -85,18 +85,11 @@ struct label_dict_proxy {
         // Then it parses the description, and tests whether the description
         // is a region or locset, and updates the label dictionary appropriately.
         // Errors occur when:
-        //  * the name is not a valid name.
         //  * a region is described with a name that matches an existing locset
         //    (and vice versa.)
         //  * the description is not well formed, e.g. it contains a syntax error.
         //  * the description is well-formed, but describes neither a region or locset.
         try{
-            // Test that the identifier is valid, i.e.
-            //  * only numbers, letters and underscore.
-            //  * no leading number or underscore.
-            if (!arb::valid_label_name(name)) {
-                throw std::string(util::pprintf("'{}' is not a valid label name.", name));
-            }
             // Evaluate the s-expression to build a region/locset.
             auto result = arb::parse_label_expression(desc);
             if (!result) { // an error parsing / evaluating description.

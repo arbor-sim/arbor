@@ -18,6 +18,28 @@ inline bool is_alphanumeric(char c) {
 inline bool is_plusminus(char c) {
     return (c=='-' || c=='+');
 }
+inline bool is_valid_symbol_char(char c) {
+    switch (c) {
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '@':
+        case '$':
+        case '%':
+        case '^':
+        case '&':
+        case '_':
+        case '=':
+        case '<':
+        case '>':
+        case '~':
+        case '.':
+            return true;
+        default:
+            return is_alphanumeric(c);
+    }
+}
 
 std::ostream& operator<<(std::ostream& o, const src_location& l) {
     return o << l.line << ":" << l.column;
@@ -30,7 +52,7 @@ std::ostream& operator<<(std::ostream& o, const tok& t) {
         case tok::rparen: return o << "rparen";
         case tok::real:   return o << "real";
         case tok::integer:return o << "integer";
-        case tok::name:   return o << "name";
+        case tok::symbol: return o << "symbol";
         case tok::string: return o << "string";
         case tok::eof:    return o << "eof";
         case tok::error:  return o << "error";
@@ -135,7 +157,7 @@ private:
                     return;
                 case 'a' ... 'z':
                 case 'A' ... 'Z':
-                    token_ = name();
+                    token_ = symbol();
                     return;
                 case '0' ... '9':
                     token_ = number();
@@ -183,23 +205,28 @@ private:
     }
 
     // Parse alphanumeric sequence that starts with an alphabet character,
-    // and my contain alphabet, numeric or underscore '_' characters.
+    // and my contain alphabet, numeric or one of {+ -  *  /  @  $  %  ^  &  _  =  <  >  ~ .}
     //
-    // Valid names:
+    // This definition follows the symbol naming conventions of common lisp, without the
+    // use of pipes || to define symbols with arbitrary strings.
+    //
+    // Valid symbols:
     //    sub_dendrite
     //    sub-dendrite
+    //    sub-dendrite:
+    //    foo@3.2/lower
     //    temp_
     //    branch3
     //    A
-    // Invalid names:
+    // Invalid symbols:
     //    _cat          ; can't start with underscore
     //    -cat          ; can't start with hyphen
     //    2ndvar        ; can't start with numeric character
     //
-    // Returns the appropriate token kind if name is a keyword.
-    token name() {
+    // Returns the appropriate token kind if symbol is a keyword.
+    token symbol() {
         auto start = loc();
-        std::string name;
+        std::string symbol;
         char c = *stream_;
 
         // Assert that current position is at the start of an identifier
@@ -208,13 +235,13 @@ private:
                 "Lexer attempting to read identifier when none is available", loc());
         }
 
-        name += c;
+        symbol += c;
         ++stream_;
         while(1) {
             c = *stream_;
 
-            if(is_alphanumeric(c) || c=='_' || c=='-') {
-                name += c;
+            if(is_valid_symbol_char(c)) {
+                symbol += c;
                 ++stream_;
             }
             else {
@@ -222,12 +249,12 @@ private:
             }
         }
 
-        // test if the name matches a keyword
-        auto it = keyword_to_tok.find(name.c_str());
+        // test if the symbol matches a keyword
+        auto it = keyword_to_tok.find(symbol.c_str());
         if (it!=keyword_to_tok.end()) {
-            return {start, it->second, std::move(name)};
+            return {start, it->second, std::move(symbol)};
         }
-        return {start, tok::name, std::move(name)};
+        return {start, tok::symbol, std::move(symbol)};
     }
 
     token string() {

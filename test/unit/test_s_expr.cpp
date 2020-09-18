@@ -36,39 +36,14 @@ TEST(s_expr, transmogrify) {
     EXPECT_EQ(transform("<32|>", asc_map), "(spine 32)()");
 }
 
-TEST(s_expr, identifier) {
-    EXPECT_TRUE(valid_label_name("foo"));
-    EXPECT_TRUE(valid_label_name("f1"));
-    EXPECT_TRUE(valid_label_name("f_"));
-    EXPECT_TRUE(valid_label_name("f_1__"));
-    EXPECT_TRUE(valid_label_name("A_1__"));
-
-    EXPECT_TRUE(valid_label_name("A-1"));
-    EXPECT_TRUE(valid_label_name("hello-world"));
-    EXPECT_TRUE(valid_label_name("hello--world"));
-    EXPECT_TRUE(valid_label_name("hello--world_"));
-
-    EXPECT_FALSE(valid_label_name("_foobar"));
-    EXPECT_FALSE(valid_label_name("-foobar"));
-    EXPECT_FALSE(valid_label_name("2dogs"));
-    EXPECT_FALSE(valid_label_name("1"));
-    EXPECT_FALSE(valid_label_name("_"));
-    EXPECT_FALSE(valid_label_name("-"));
-    EXPECT_FALSE(valid_label_name(""));
-    EXPECT_FALSE(valid_label_name(" foo"));
-    EXPECT_FALSE(valid_label_name("foo "));
-    EXPECT_FALSE(valid_label_name("foo bar"));
-    EXPECT_FALSE(valid_label_name(""));
-}
-
 TEST(s_expr, atoms) {
     auto get_atom = [](s_expr e) {
         return e.atom();
     };
 
-    for (auto spelling: {"foo", "bar_", "car1", "car_1", "x_1__"}){
+    for (auto spelling: {"foo", "bar_", "car1", "car_1", "x_1__", "x/bar", "x/bar@4.2"}){
         auto a = get_atom(parse_s_expr(spelling));
-        EXPECT_EQ(a.kind, tok::name);
+        EXPECT_EQ(a.kind, tok::symbol);
         EXPECT_EQ(a.spelling, spelling);
     }
     // test parsing of integers
@@ -98,9 +73,9 @@ TEST(s_expr, atoms_in_parens) {
         return e.head().atom();
     };
 
-    for (auto spelling: {"foo", "bar_", "car1", "car_1", "x_1__"}){
+    for (auto spelling: {"foo", "bar_", "car1", "car_1", "x_1__", "x/bar", "x/bar@4.2"}){
         auto a = get_atom(parse_s_expr("("s+spelling+")"));
-        EXPECT_EQ(a.kind, tok::name);
+        EXPECT_EQ(a.kind, tok::symbol);
         EXPECT_EQ(a.spelling, spelling);
     }
     // test parsing of integers

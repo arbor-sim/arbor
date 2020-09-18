@@ -7,6 +7,7 @@
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
 
+#include "arbor/util/expected.hpp"
 #include "s_expr.hpp"
 #include "util/strprintf.hpp"
 
@@ -262,7 +263,7 @@ parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e) {
             args.push_back(std::move(*arg));
         }
         else {
-            return std::move(arg.error());
+            return util::unexpected(std::move(arg.error()));
         }
     }
     return args;
@@ -309,6 +310,7 @@ label_parse_error parse_error(std::string const& msg, src_location loc) {
 // On success the result is wrapped in std::any, where the result is one of:
 //      int         : an integer atom
 //      double      : a real atom
+//      std::string : a string atom: to be treated as a label
 //      arb::region : a region
 //      arb::locset : a locset
 //
@@ -328,10 +330,16 @@ parse_hopefully<std::any> eval(const s_expr& e) {
                 return {nil_tag()};
             case tok::string:
                 return std::any{std::string(t.spelling)};
+            // An arbitrary symbol in a region/locset expression is an error, and is
+            // often a result of not quoting a label correctly.
+            case tok::symbol:
+                return parse_error(
+                        util::pprintf("Unexpected symbol '{}' in a region or locset definition. If '{}' is a label, it must be quoted \"{}\"", e, e, e),
+                        location(e));
             case tok::error:
                 return parse_error(e.atom().spelling, location(e));
             default:
-                return parse_error(util::pprintf("Unexpected term '{}'", e), location(e));
+                return parse_error(util::pprintf("Unexpected term '{}' in a region or locset definition", e), location(e));
         }
     }
     if (e.head().is_atom()) {
@@ -383,20 +391,31 @@ parse_hopefully<arb::region> parse_region_expression(const std::string& s) {
         if (e->type() == typeid(std::string)) {
             return {reg::named(std::move(std::any_cast<std::string&>(*e)))};
         }
-        return {label_parse_error("Invalid region description: '{}' is neither a valid region expression or region label string.")};
+        return util::unexpected(
+                label_parse_error(
+                util::pprintf("Invalid region description: '{}' is neither a valid region expression or region label string.", s)));
     }
     else {
-        return {label_parse_error(std::string()+e.error().what())};
+        return util::unexpected(label_parse_error(std::string()+e.error().what()));
     }
 }
 
-bool valid_label_name(const std::string &in) {
-    const auto s = parse_s_expr("("+in+")");
-    if (s.is_atom()) return false;
-    auto& h = s.head();
-    return length(s)==1 && h.is_atom() && h.atom().kind==tok::name && h.atom().spelling==in;
+parse_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
+    if (auto e = eval(parse_s_expr(s))) {
+        if (e->type() == typeid(locset)) {
+            return {std::move(std::any_cast<locset&>(*e))};
+        }
+        if (e->type() == typeid(std::string)) {
+            return {ls::named(std::move(std::any_cast<std::string&>(*e)))};
+        }
+        return util::unexpected(
+                label_parse_error(
+                util::pprintf("Invalid locset description: '{}' is neither a valid locset expression or locset label string.", s)));
+    }
+    else {
+        return util::unexpected(label_parse_error(std::string()+e.error().what()));
+    }
 }
-
 
 } // namespace arb
 
