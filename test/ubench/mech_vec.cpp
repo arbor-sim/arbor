@@ -5,6 +5,7 @@
 // NOTE: This targets an earlier version of the Arbor API and
 // will need to be reworked in order to compile.
 
+#include <any>
 #include <fstream>
 
 #include <arbor/cable_cell.hpp>
@@ -80,7 +81,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -123,7 +124,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -168,7 +169,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -211,7 +212,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -256,7 +257,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };

@@ -186,6 +186,7 @@ struct expected {
     template <
         typename S,
         typename F,
+        typename = std::enable_if_t<!std::is_same_v<expected, expected<S, F>>>,
         typename = std::enable_if_t<!detail::conversion_hazard_v<T, expected<S, F>>>,
         typename = std::enable_if_t<!detail::conversion_hazard_v<unexpected<E>, expected<S, F>>>
     >
@@ -196,6 +197,7 @@ struct expected {
     template <
         typename S,
         typename F,
+        typename = std::enable_if_t<!std::is_same_v<expected, expected<S, F>>>,
         typename = std::enable_if_t<!detail::conversion_hazard_v<T, expected<S, F>>>,
         typename = std::enable_if_t<!detail::conversion_hazard_v<unexpected<E>, expected<S, F>>>
     >
@@ -205,10 +207,10 @@ struct expected {
 
     template <
         typename S,
-        typename = std::enable_if_t<std::is_constructible_v<T, S&&>>,
         typename = std::enable_if_t<!std::is_same_v<std::in_place_t, detail::remove_cvref_t<S>>>,
         typename = std::enable_if_t<!std::is_same_v<expected, detail::remove_cvref_t<S>>>,
-        typename = std::enable_if_t<!std::is_same_v<unexpected<E>, detail::remove_cvref_t<S>>>
+        typename = std::enable_if_t<!std::is_same_v<unexpected<E>, detail::remove_cvref_t<S>>>,
+        typename = std::enable_if_t<std::is_constructible_v<T, S&&>>
     >
     expected(S&& x): data_(std::in_place_index<0>, std::forward<S>(x)) {}
 

@@ -1,3 +1,4 @@
+#include <any>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -13,14 +14,14 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/sampling.hpp>
-#include <arbor/util/any.hpp>
+#include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
 #include <tinyopt/smolopt.h>
 
 // Simulate a cell modelled as a simple cable with HH dynamics,
 // emitting the results of a user specified probe over time.
 
-using arb::util::any;
+using std::any;
 using arb::util::any_cast;
 using arb::util::any_ptr;
 
@@ -108,7 +109,7 @@ struct cable_recipe: public arb::recipe {
         return arb::cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    any get_global_properties(arb::cell_kind) const override {
         return gprop;
     }
 

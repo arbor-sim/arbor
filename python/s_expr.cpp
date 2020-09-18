@@ -3,10 +3,10 @@
 #include <string>
 #include <memory>
 #include <ostream>
+#include <variant>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/util/variant.hpp>
 
 #include "s_expr.hpp"
 #include "strprintf.hpp"
@@ -300,23 +300,23 @@ bool s_expr::is_atom() const {
 }
 
 const token& s_expr::atom() const {
-    return state.get<0>();
+    return std::get<0>(state);
 }
 
 const s_expr& s_expr::head() const {
-    return state.get<1>().head.get();
+    return std::get<1>(state).head.get();
 }
 
 const s_expr& s_expr::tail() const {
-    return state.get<1>().tail.get();
+    return std::get<1>(state).tail.get();
 }
 
 s_expr& s_expr::head() {
-    return state.get<1>().head.get();
+    return std::get<1>(state).head.get();
 }
 
 s_expr& s_expr::tail() {
-    return state.get<1>().tail.get();
+    return std::get<1>(state).tail.get();
 }
 
 s_expr::operator bool() const {

@@ -1,5 +1,6 @@
 #include <functional>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include <arbor/assert.hpp>
@@ -309,7 +310,7 @@ void run_samples(
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
-    util::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
+    std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
 void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {

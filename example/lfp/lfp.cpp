@@ -1,3 +1,4 @@
+#include <any>
 #include <cassert>
 #include <vector>
 #include <iostream>
@@ -11,12 +12,14 @@
 #include <arbor/sampling.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/util/any.hpp>
+#include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
+#include <arbor/util/unique_any.hpp>
 
-using arb::util::any;
+using std::any;
 using arb::util::any_cast;
 using arb::util::any_ptr;
+using arb::util::unique_any;
 using arb::cell_gid_type;
 using arb::cell_member_type;
 
@@ -49,7 +52,7 @@ struct lfp_demo_recipe: public arb::recipe {
         return arb::cell_kind::cable;
     }
 
-    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+    unique_any get_cell_description(cell_gid_type) const override {
         return cell_;
     }
 

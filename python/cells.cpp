@@ -1,3 +1,12 @@
+#include <algorithm>
+#include <any>
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -10,7 +19,8 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
-#include <arbor/util/any.hpp>
+#include <arbor/util/any_cast.hpp>
+#include <arbor/util/optional.hpp>
 #include <arbor/util/unique_any.hpp>
 
 #include "cells.hpp"
@@ -19,6 +29,8 @@
 #include "morph_parse.hpp"
 #include "schedule.hpp"
 #include "strprintf.hpp"
+
+using arb::util::any_cast;
 
 namespace pyarb {
 
@@ -104,12 +116,12 @@ struct label_dict_proxy {
                 throw std::string(result.error().message);
             }
             else if (result->type()==typeid(arb::region)) { // describes a region.
-                dict.set(name, std::move(arb::util::any_cast<arb::region&>(*result)));
+                dict.set(name, std::move(any_cast<arb::region&>(*result)));
                 auto it = std::lower_bound(regions.begin(), regions.end(), name);
                 if (it==regions.end() || *it!=name) regions.insert(it, name);
             }
             else if (result->type()==typeid(arb::locset)) { // describes a locset.
-                dict.set(name, std::move(arb::util::any_cast<arb::locset&>(*result)));
+                dict.set(name, std::move(any_cast<arb::locset&>(*result)));
                 auto it = std::lower_bound(locsets.begin(), locsets.end(), name);
                 if (it==locsets.end() || *it!=name) locsets.insert(it, name);
             }

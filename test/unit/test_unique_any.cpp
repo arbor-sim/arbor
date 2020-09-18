@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <arbor/util/any_cast.hpp>
 #include <arbor/util/unique_any.hpp>
 
 #include "util/rangeutil.hpp"
@@ -9,6 +10,7 @@
 #include "common.hpp"
 
 using namespace arb;
+using util::any_cast;
 
 TEST(unique_any, copy_construction) {
     using util::unique_any;
@@ -48,11 +50,11 @@ TEST(unique_any, move_construction) {
     util::unique_any moved(std::move(m));
 
     // Check that the expected number of copies and moves were performed.
-    const auto& cref = util::any_cast<const moveable&>(copied);
+    const auto& cref = any_cast<const moveable&>(copied);
     EXPECT_EQ(cref.moves, 0);
     EXPECT_EQ(cref.copies, 1);
 
-    const auto& mref = util::any_cast<const moveable&>(moved);
+    const auto& mref = any_cast<const moveable&>(moved);
     EXPECT_EQ(mref.moves, 1);
     EXPECT_EQ(mref.copies, 0);
 
@@ -60,11 +62,11 @@ TEST(unique_any, move_construction) {
     // constructed value
     util::unique_any fin(std::move(moved));
     EXPECT_FALSE(moved.has_value()); // moved has been moved from and should be empty
-    const auto& fref = util::any_cast<const moveable&>(fin);
+    const auto& fref = any_cast<const moveable&>(fin);
     EXPECT_EQ(fref.moves, 1);
     EXPECT_EQ(fref.copies, 0);
 
-    const auto value = util::any_cast<moveable>(fin);
+    const auto value = any_cast<moveable>(fin);
     EXPECT_EQ(value.moves, 1);
     EXPECT_EQ(value.copies, 1);
 }
@@ -91,7 +93,6 @@ TEST(unique_any, type) {
 
 TEST(unique_any, swap) {
     using util::unique_any;
-    using util::any_cast;
 
     unique_any any1(42);     // integer
     unique_any any2(3.14);   // double
@@ -121,24 +122,24 @@ TEST(unique_any, not_copy_constructable) {
 
     util::unique_any a(T(42));
 
-    auto& ref = util::any_cast<T&>(a);
+    auto& ref = any_cast<T&>(a);
     EXPECT_EQ(ref, 42);
     ref.value = 100;
 
-    EXPECT_EQ(util::any_cast<T&>(a).value, 100);
+    EXPECT_EQ(any_cast<T&>(a).value, 100);
 
     // the following will fail if uncommented, because we are requesting
     // a copy of an non-copyable type.
 
-    //auto value = util::any_cast<T>(a);
+    //auto value = any_cast<T>(a);
 
     // Test that we can move the contents of the unique_any.
     // NOTE: it makes sense to sink a with std::move(a) instead
     // of the following, because after such an assignment a will
     // be in a moved from state, and enforcing std::move(a) it
     // is made clearer in the calling code that a has been invalidated.
-    //     util::any_cast<T&&>(a)
-    T val(util::any_cast<T&&>(std::move(a)));
+    //     any_cast<T&&>(a)
+    T val(any_cast<T&&>(std::move(a)));
     EXPECT_EQ(val.value, 100);
 }
 
@@ -151,32 +152,32 @@ TEST(unique_any, any_cast_ptr) {
     // test that valid pointers are returned for int and std::string types
 
     unique_any ai(42);
-    auto ptr_i = util::any_cast<int>(&ai);
+    auto ptr_i = any_cast<int>(&ai);
     EXPECT_EQ(*ptr_i, 42);
 
     unique_any as(std::string("hello"));
-    auto ptr_s = util::any_cast<std::string>(&as);
+    auto ptr_s = any_cast<std::string>(&as);
     EXPECT_EQ(*ptr_s, "hello");
 
     // test that exceptions are thrown for invalid casts
-    EXPECT_EQ(util::any_cast<int>(&as), nullptr);
-    EXPECT_EQ(util::any_cast<std::string>(&ai), nullptr);
+    EXPECT_EQ(any_cast<int>(&as), nullptr);
+    EXPECT_EQ(any_cast<std::string>(&ai), nullptr);
     unique_any empty;
-    EXPECT_EQ(util::any_cast<int>(&empty), nullptr);
-    EXPECT_EQ(util::any_cast<int>((util::unique_any*)nullptr), nullptr);
+    EXPECT_EQ(any_cast<int>(&empty), nullptr);
+    EXPECT_EQ(any_cast<int>((util::unique_any*)nullptr), nullptr);
 
     // Check that constness of the returned pointer matches that the input.
     // Check that constness of the returned pointer matches that the input.
     {
         unique_any a(42);
-        auto p = util::any_cast<int>(&a);
+        auto p = any_cast<int>(&a);
 
         // any_cast(any*) should not return const*
         EXPECT_TRUE((std::is_same<int*, decltype(p)>::value));
     }
     {
         const unique_any a(42);
-        auto p = util::any_cast<int>(&a);
+        auto p = any_cast<int>(&a);
 
         // any_cast(const any*) should return const*
         EXPECT_TRUE((std::is_same<const int*, decltype(p)>::value));
@@ -186,20 +187,20 @@ TEST(unique_any, any_cast_ptr) {
 // test any_cast(unique_any&)
 TEST(unique_any, any_cast_ref) {
     util::unique_any ai(42);
-    auto& i = util::any_cast<int&>(ai);
+    auto& i = any_cast<int&>(ai);
 
     EXPECT_EQ(typeid(i), typeid(int));
     EXPECT_EQ(i, 42);
 
     // any_cast<T>(unique_any&) returns a 
     i = 100;
-    EXPECT_EQ(util::any_cast<int>(ai), 100);
+    EXPECT_EQ(any_cast<int>(ai), 100);
 }
 
 // test any_cast(const unique_any&)
 TEST(unique_any, any_cast_const_ref) {
     const util::unique_any ai(42);
-    auto& i = util::any_cast<const int&>(ai);
+    auto& i = any_cast<const int&>(ai);
 
     EXPECT_EQ(typeid(i), typeid(int));
     EXPECT_EQ(i, 42);
@@ -209,7 +210,7 @@ TEST(unique_any, any_cast_const_ref) {
 
 // test any_cast(unique_any&&)
 TEST(unique_any, any_cast_rvalue) {
-    auto moved = util::any_cast<moveable>(util::unique_any(moveable()));
+    auto moved = any_cast<moveable>(util::unique_any(moveable()));
     EXPECT_EQ(moved.moves, 2);
     EXPECT_EQ(moved.copies, 0);
 }
@@ -218,18 +219,18 @@ TEST(unique_any, std_swap) {
     util::unique_any a1(42);
     util::unique_any a2(3.14);
 
-    auto pi = util::any_cast<int>(&a1);
-    auto pd = util::any_cast<double>(&a2);
+    auto pi = any_cast<int>(&a1);
+    auto pd = any_cast<double>(&a2);
 
     std::swap(a1, a2);
 
     // test that values were swapped
-    EXPECT_EQ(util::any_cast<int>(a2), 42);
-    EXPECT_EQ(util::any_cast<double>(a1), 3.14);
+    EXPECT_EQ(any_cast<int>(a2), 42);
+    EXPECT_EQ(any_cast<double>(a1), 3.14);
 
     // test that underlying pointers did not change
-    EXPECT_EQ(pi, util::any_cast<int>(&a2));
-    EXPECT_EQ(pd, util::any_cast<double>(&a1));
+    EXPECT_EQ(pi, any_cast<int>(&a2));
+    EXPECT_EQ(pd, any_cast<double>(&a1));
 }
 
 // test operator=(unique_any&&)
@@ -244,9 +245,9 @@ TEST(unique_any, assignment_from_rvalue) {
     unique_any b;
     b = std::move(a); // move assignment
 
-    EXPECT_EQ(str1, util::any_cast<string>(b));
+    EXPECT_EQ(str1, any_cast<string>(b));
 
-    EXPECT_EQ(nullptr, util::any_cast<string>(&a));
+    EXPECT_EQ(nullptr, any_cast<string>(&a));
 }
 
 // test template<typename T> operator=(T&&)
@@ -263,7 +264,7 @@ TEST(unique_any, assignment_from_value) {
         unique_any a;
         a = std::move(tmp);
 
-        auto vec = util::any_cast<std::vector<int>>(&a);
+        auto vec = any_cast<std::vector<int>>(&a);
 
         // ensure the value was moved
         EXPECT_EQ(ptr, vec->data());
@@ -299,7 +300,6 @@ TEST(unique_any, assignment_from_value) {
 
 TEST(unique_any, make_unique_any) {
     using util::make_unique_any;
-    using util::any_cast;
 
     {
         auto a = make_unique_any<int>(42);
@@ -366,7 +366,7 @@ TEST(unique_any, stdvector)
     // push_back
     {
         using T = testing::nocopy<std::string>;
-        auto get = [](const unique_any& v) {return util::any_cast<const T&>(v).value;};
+        auto get = [](const unique_any& v) {return any_cast<const T&>(v).value;};
 
         std::vector<unique_any> vec;
         vec.push_back(T("h"));
@@ -389,7 +389,7 @@ TEST(unique_any, stdvector)
 
     // sort
     {
-        auto get = [](const unique_any& v) {return util::any_cast<int>(v);};
+        auto get = [](const unique_any& v) {return any_cast<int>(v);};
         int n = 10;
         std::vector<unique_any> vec;
 
@@ -410,7 +410,7 @@ TEST(unique_any, stdvector)
     // std::reverse with non-copyable type
     {
         using T = testing::nocopy<int>;
-        auto get = [](const unique_any& v) {return util::any_cast<const T&>(v).value;};
+        auto get = [](const unique_any& v) {return any_cast<const T&>(v).value;};
         int n = 10;
         std::vector<unique_any> vec;
 

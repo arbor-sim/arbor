@@ -20,7 +20,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/util/any.hpp>
 #include <arbor/util/any_visitor.hpp>
 #include <arbor/util/optional.hpp>
 
@@ -145,7 +144,7 @@ private:
         std::vector<fvm_probe_data>& probe_data, // out parameter
         const std::vector<cable_cell>& cells,
         std::size_t cell_idx,
-        const util::any& paddr,
+        const std::any& paddr,
         const fvm_cv_discretization& D,
         const fvm_mechanism_data& M,
         const std::vector<target_handle>& handles,
@@ -356,7 +355,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     std::vector<target_handle>& target_handles,
     probe_association_map& probe_map)
 {
-    using util::any_cast;
+    using std::any_cast;
     using util::count_along;
     using util::make_span;
     using util::value_by_key;
@@ -374,19 +373,19 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                try {
                    cells[i] = any_cast<cable_cell&&>(rec.get_cell_description(gid));
                }
-               catch (util::bad_any_cast&) {
+               catch (std::bad_any_cast&) {
                    throw bad_cell_description(rec.get_cell_kind(gid), gid);
                }
            });
 
     cable_cell_global_properties global_props;
     try {
-        util::any rec_props = rec.get_global_properties(cell_kind::cable);
+        std::any rec_props = rec.get_global_properties(cell_kind::cable);
         if (rec_props.has_value()) {
             global_props = any_cast<cable_cell_global_properties>(rec_props);
         }
     }
-    catch (util::bad_any_cast&) {
+    catch (std::bad_any_cast&) {
         throw bad_global_property(cell_kind::cable);
     }
 
@@ -712,7 +711,7 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
     std::vector<fvm_probe_data>& probe_data,
     const std::vector<cable_cell>& cells,
     std::size_t cell_idx,
-    const util::any& paddr,
+    const std::any& paddr,
     const fvm_cv_discretization& D,
     const fvm_mechanism_data& M,
     const std::vector<target_handle>& handles,

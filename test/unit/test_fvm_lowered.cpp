@@ -13,6 +13,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/util/any_ptr.hpp>
 
 #include <arborenv/concurrency.hpp>
 
@@ -240,12 +241,12 @@ TEST(fvm_lowered, matrix_init)
     auto n = J.size();
     auto& mat = J.state_;
 
-    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan));
-    EXPECT_FALSE(util::any_of(mat.d, isnan));
-    EXPECT_FALSE(util::any_of(S->voltage, isnan));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), isnan));
+    EXPECT_FALSE(arb::util::any_of(mat.d, isnan));
+    EXPECT_FALSE(arb::util::any_of(S->voltage, isnan));
 
-    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), ispos));
-    EXPECT_FALSE(util::any_of(mat.d, isneg));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), ispos));
+    EXPECT_FALSE(arb::util::any_of(mat.d, isneg));
 }
 
 TEST(fvm_lowered, target_handles) {

@@ -3,6 +3,7 @@
  *
  */
 
+#include <any>
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -115,7 +116,7 @@ public:
         return {arb::cable_probe_membrane_voltage{loc}};
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 

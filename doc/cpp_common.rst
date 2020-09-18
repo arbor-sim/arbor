@@ -112,7 +112,7 @@ Probes
 
            Opaque key, returned in sample record.
 
-    .. cpp:member:: util::any address
+    .. cpp:member:: std::any address
 
            Cell-type specific location info, specific to cell kind of ``id.gid``.
 
@@ -121,35 +121,31 @@ Utility Wrappers and Containers
 
 .. cpp:namespace:: arb::util
 
-
-.. cpp:class:: template <typename T> optional
-
-    A wrapper around a contained value of type :cpp:type:`T`, that may or may not be set.
-    A faithful copy of the C++17 ``std::optional`` type.
-    See the online C++ standard documentation
-    `<https://en.cppreference.com/w/cpp/utility/optional>`_
-    for more information.
-
-.. cpp:class:: any
-
-    A container for a single value of any type that is copy constructable.
-    Used in the Arbor API where a type of a value passed to or from the API
-    is decided at run time.
-
-    A faithful copy of the C++17 ``std::any`` type.
-    See the online C++ standard documentation
-    `<https://en.cppreference.com/w/cpp/utility/any>`_
-    for more information.
-
-    The :cpp:any:`arb::util` namespace also implementations of the
-    :cpp:any:`any_cast`, :cpp:any:`make_any` and :cpp:any:`bad_any_cast`
-    helper functions and types from C++17.
-
 .. cpp:class:: unique_any
 
-   Equivalent to :cpp:class:`util::any`, except that:
-   
+   Equivalent to :cpp:class:`std::any`, except that:
+
       * it can store any type that is move constructable;
-      * it is move only, that is it can't be copied.
+      * it is move only, that is, it can't be copied.
+
+.. cpp:class:: any_ptr
+
+   Holds a pointer to an arbitrary type, together with the type information.
+
+   .. cpp:function:: template <typename T> T as()
+
+      Retrieve the pointer as type T. If T is ``void *`` or the same
+      as the type of the pointer stored in ``any_ptr``, return the held
+      value, cast accordingly. Otherwise return ``nullptr``.
+
+   ``any_ptr`` can be used with ``util::any_cast``, so that
+   ``util::any_cast<T>(p)`` is equivalent to ``p.as<T>()`` for a value ``p``
+   of type ``any_ptr``.
+
+.. cpp:function:: template <typename T> any_cast(...)
+
+    Equivalent to ``std::any_cast`` for ``std::any`` arguments, ``any_cast``
+    also performs analagous casting for the :cpp:class:`unique_any` and
+    :cpp:class:`any_ptr` utility classes.
 
 

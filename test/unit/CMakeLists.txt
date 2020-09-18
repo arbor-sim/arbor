@@ -84,7 +84,8 @@ endforeach()
 set(unit_sources
     ../common_cells.cpp
     test_algorithms.cpp
-    test_any.cpp
+    test_any_cast.cpp
+    test_any_ptr.cpp
     test_any_visitor.cpp
     test_backend.cpp
     test_counter.cpp
@@ -159,7 +160,6 @@ set(unit_sources
     test_uninitialized.cpp
     test_unique.cpp
     test_unique_any.cpp
-    test_variant.cpp
     test_vector.cpp
     test_version.cpp
 
