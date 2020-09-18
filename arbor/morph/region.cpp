@@ -550,7 +550,7 @@ mextent thingify_(const named_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(region \"" << x.name << "\")";
+    return o << "(region " << x.name << ")";
 }
 
 // Adds all cover points to a region.

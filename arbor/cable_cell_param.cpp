@@ -38,13 +38,13 @@ void check_global_properties(const cable_cell_global_properties& G) {
     for (const auto& kv: param.ion_data) {
         auto& ion = kv.first;
         const cable_cell_ion_data& data = kv.second;
-        if (std::isnan(data.init_int_concentration)) {
+        if (!data.init_int_concentration) {
             throw cable_cell_error("missing init_int_concentration for ion "+ion);
         }
-        if (std::isnan(data.init_ext_concentration)) {
+        if (!data.init_ext_concentration) {
             throw cable_cell_error("missing init_ext_concentration for ion "+ion);
         }
-        if (std::isnan(data.init_reversal_potential) && !param.reversal_potential_method.count(ion)) {
+        if (!data.init_reversal_potential && !param.reversal_potential_method.count(ion)) {
             throw cable_cell_error("missing init_reversal_potential or reversal_potential_method for ion "+ion);
         }
     }

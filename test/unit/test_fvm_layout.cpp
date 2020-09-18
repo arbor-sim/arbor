@@ -769,8 +769,8 @@ TEST(fvm_layout, ion_weights) {
     gprop.catalogue = &testcat;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration;
-    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration;
+    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
+    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration.value();
 
     for (auto& v: expected_init_iconc) {
         for (auto& iconc: v) {
