@@ -1,4 +1,9 @@
 #include <any>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -8,6 +13,7 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
+#include <arbor/util/any_cast.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"

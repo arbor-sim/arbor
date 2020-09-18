@@ -3,10 +3,11 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+#include <ostream>
+#include <variant>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/util/variant.hpp>
 
 #include "util/strprintf.hpp"
 #include "s_expr.hpp"

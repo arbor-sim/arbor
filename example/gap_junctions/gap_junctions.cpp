@@ -3,6 +3,7 @@
  *
  */
 
+#include <any>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -99,7 +100,7 @@ public:
         return {arb::cable_probe_membrane_voltage{loc}};
     }
 
-    arb::util::any get_global_properties(cell_kind k) const override {
+    std::any get_global_properties(cell_kind k) const override {
         arb::cable_cell_global_properties a;
         a.default_parameters = arb::neuron_parameter_defaults;
         a.default_parameters.temperature_K = 308.15;
@@ -285,12 +286,8 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     double dend_rad = 3./2; // μm
     tree.append(0, {0,0,2*soma_rad, dend_rad}, {0,0,2*soma_rad+300, dend_rad}, 3);  // dendrite
 
-    // Create a label dictionary that creates a single region that covers the whole cell.
-    arb::label_dict d;
-    d.set("all",  arb::reg::all());
-
     // Create the cell and set its electrical properties.
-    arb::cable_cell cell(tree, d);
+    arb::cable_cell cell(tree);
     cell.default_parameters.axial_resistivity = 100;       // [Ω·cm]
     cell.default_parameters.membrane_capacitance = 0.018;  // [F/m²]
 
@@ -310,17 +307,17 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     pas["e"] =  -65;
 
     // Paint density channels on all parts of the cell
-    cell.paint("all", nax);
-    cell.paint("all", kdrmt);
-    cell.paint("all", kamt);
-    cell.paint("all", pas);
+    cell.paint("(all)", nax);
+    cell.paint("(all)", kdrmt);
+    cell.paint("(all)", kamt);
+    cell.paint("(all)", pas);
 
     // Add a spike detector to the soma.
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add two gap junction sites.
     cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
-    cell.place(arb::mlocation{1, 1}, arb::gap_junction_site{});
+    cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
 
     // Attach a stimulus to the second cell.
     if (!gid) {
@@ -329,7 +326,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.place(arb::mlocation{1, 0.5}, "expsyn");
+    cell.place(arb::mlocation{0, 0.5}, "expsyn");
 
     return cell;
 }

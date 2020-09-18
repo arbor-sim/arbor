@@ -1,3 +1,4 @@
+#include <any>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -50,7 +51,7 @@ struct single_recipe: public arb::recipe {
         return arb::cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop;
     }
 
@@ -62,8 +63,8 @@ struct single_recipe: public arb::recipe {
         arb::cable_cell c(morpho, dict);
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        c.paint("soma", "hh");
-        c.paint("dend", "pas");
+        c.paint("\"soma\"", "hh");
+        c.paint("\"dend\"", "pas");
 
         // Add synapse to last branch.
 

@@ -173,13 +173,13 @@ TEST(regloc, comments) {
     EXPECT_EQ("(all)",  round_trip_region("(all) ; a comment"));
     const char *multi_line = 
         "; comment at start\n"
-        "(radius_lt\n"
+        "(radius-lt\n"
         "    (join\n"
         "        (tag 3) ; end of line\n"
         " ;comment on whole line\n"
         "        (tag 4))\n"
         "    0.5) ; end of string";
-    EXPECT_EQ("(radius_lt (join (tag 3) (tag 4)) 0.5)",
+    EXPECT_EQ("(radius-lt (join (tag 3) (tag 4)) 0.5)",
               round_trip_region(multi_line));
 }
 

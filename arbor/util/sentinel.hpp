@@ -1,8 +1,7 @@
 #pragma once
 
 #include <type_traits>
-
-#include <arbor/util/variant.hpp>
+#include <variant>
 
 #include "util/meta.hpp"
 
@@ -28,7 +27,7 @@ struct iterator_category_select<I,S,true> {
 
 template <typename I, typename S>
 class sentinel_iterator {
-    arb::util::variant<I, S> e_;
+    std::variant<I, S> e_;
 
     I& iter() {
         arb_assert(!is_sentinel());

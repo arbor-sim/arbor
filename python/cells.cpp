@@ -1,4 +1,11 @@
+#include <algorithm>
 #include <any>
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -13,6 +20,8 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
+#include <arbor/util/any_cast.hpp>
+#include <arbor/util/optional.hpp>
 #include <arbor/util/unique_any.hpp>
 
 #include "cells.hpp"

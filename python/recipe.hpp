@@ -20,7 +20,7 @@ arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlo
 // pyarb::recipe is the recipe interface used by Python.
 // Calls that return generic types return pybind11::object, to avoid
 // having to wrap some C++ types used by the C++ interface (specifically
-// util::unique_any, util::any, std::unique_ptr, etc.)
+// util::unique_any, std::any, std::unique_ptr, etc.)
 // For example, requests for cell description return pybind11::object, instead
 // of util::unique_any used by the C++ recipe interface.
 // The py_recipe_shim unwraps the python objects, and forwards them
@@ -158,13 +158,13 @@ public:
     }
 
     // TODO: make thread safe
-    arb::util::any get_global_properties(arb::cell_kind kind) const override {
+    std::any get_global_properties(arb::cell_kind kind) const override {
         if (kind==arb::cell_kind::cable) {
             arb::cable_cell_global_properties gprop;
             gprop.default_parameters = arb::neuron_parameter_defaults;
             return gprop;
         }
-        return arb::util::any{};
+        return std::any{};
     }
 };
 
