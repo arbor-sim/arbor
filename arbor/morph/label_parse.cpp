@@ -317,7 +317,7 @@ label_parse_error parse_error(std::string const& msg, src_location loc) {
 //      arb::locset : a locset
 //
 // If there invalid input is detected, hopefully return value contains
-// a parse_error_state with an error string and location.
+// a label_error_state with an error string and location.
 //
 // If there was an unexpected/fatal error, an exception will be thrown.
 parse_hopefully<std::any> eval(const s_expr& e) {

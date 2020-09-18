@@ -170,8 +170,6 @@ struct token {
 
 std::ostream& operator<<(std::ostream&, const token&);
 
-std::vector<token> tokenize(const char* line);
-
 struct s_expr {
     template <typename U>
     struct s_pair {

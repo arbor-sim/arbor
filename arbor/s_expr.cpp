@@ -135,7 +135,7 @@ private:
                 // new line
                 case '\n'   :
                     line_++;
-                    ++stream_;;
+                    ++stream_;
                     line_start_ = stream_;
                     continue;
 
@@ -424,7 +424,7 @@ s_expr parse(lexer& L) {
         while (true) {
             if (t.kind == tok::eof) {
                 return token{t.loc, tok::error,
-                    "Unexpected end of input. Missing a closing parenthesis ')'."};;
+                    "Unexpected end of input. Missing a closing parenthesis ')'."};
             }
             if (t.kind == tok::error) {
                 return t;

@@ -252,7 +252,6 @@ TEST(fvm_lowered, matrix_init)
 
 TEST(fvm_lowered, target_handles) {
     using namespace arb;
-    using namespace arb::literals;
 
     arb::proc_allocation resources;
     if (auto nt = arbenv::get_env_num_threads()) {
