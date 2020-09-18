@@ -120,8 +120,8 @@ for setting cell-wide defaults for properties, and the
     cell.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
 
     # Override specific values on the soma and axon
-    cell.paint('soma', Vm=-50, cm=0.01, rL=35)
-    cell.paint('axon', Vm=-60, rL=40)
+    cell.paint('"soma"', Vm=-50, cm=0.01, rL=35)
+    cell.paint('"axon"', Vm=-60, rL=40)
 
 .. _cable-density-mechs:
 
@@ -171,9 +171,9 @@ Take for example a mechanism passive leaky dynamics:
     # Create an instance of the same mechanism, that also sets conductance (range)
     m4 = arbor.mechanism('passive/el=-45', {'g': 0.1})
 
-    cell.paint('soma', m1)
-    cell.paint('soma', m2) # error: can't place the same mechanism on overlapping regions
-    cell.paint('soma', m3) # error: technically a different mechanism?
+    cell.paint('"soma"', m1)
+    cell.paint('"soma"', m2) # error: can't place the same mechanism on overlapping regions
+    cell.paint('"soma"', m3) # error: technically a different mechanism?
 
 .. _cable-ions:
 
@@ -260,10 +260,10 @@ using the *paint* interface:
 
     # It is possible to define all of the initial condition values
     # for a ion species.
-    cell.paint('soma', arbor.ion('ca', int_con=2e-4, ext_con=2.5, rev_pot=114))
+    cell.paint('(tag 1)', arbor.ion('ca', int_con=2e-4, ext_con=2.5, rev_pot=114))
 
     # Alternatively, one can selectively overwrite the global defaults.
-    cell.paint('axon', arbor.ion('ca', rev_pot=126)
+    cell.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
 
 .. _cablecell-place:
 
@@ -378,9 +378,10 @@ Creating a cable cell
         .. code-block:: Python
 
             # Specialize resistivity on soma
-            cell.paint('soma', rL=100)
-            # Specialize resistivity and capacitance on the axon
-            cell.paint('axon', cm=0.05, rL=80)
+            cell.paint('"soma"', rL=100)
+            # Specialize resistivity and capacitance on the axon, where
+            # axon is defined using a region expression.
+            cell.paint('(tag 2)', cm=0.05, rL=80)
 
 .. py:class:: ion
 

@@ -190,7 +190,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
 
     (distal-interval                   ; take subtrees that start at
         (proximal                      ; locations closest to the soma
-            (radius-lte                ; with radius <= 0.2 um
+            (radius-le                 ; with radius <= 0.2 um
                 (join (tag 3) (tag 4)) ; on basal and apical dendrites
                 0.2)))
 
