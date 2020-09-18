@@ -362,8 +362,14 @@ public:
     const std::unordered_map<std::string, membrane_capacitance>& get_region_membrane_capacitance() const {
         return region_membrane_capacitance;
     }
-    const std::unordered_map<std::string, std::vector<initial_ion_data>>& get_region_initial_ion_data() const {
-        return region_initial_ion_data;
+    const std::unordered_map<std::string, std::vector<init_int_concentration>>& get_region_init_int_concentration() const {
+        return region_init_int_concentration;
+    }
+    const std::unordered_map<std::string, std::vector<init_ext_concentration>>& get_region_init_ext_concentration() const {
+        return region_init_ext_concentration;
+    }
+    const std::unordered_map<std::string, std::vector<init_reversal_potential>>& get_region_init_reversal_potential() const {
+        return region_init_reversal_potential;
     }
     const std::unordered_map<std::string, std::vector<mechanism_desc>>& get_region_mechanism_desc() const {
         return region_mechanism_desc;
@@ -377,7 +383,9 @@ private:
     std::unordered_map<std::string, init_membrane_potential> region_init_membrane_potential;
     std::unordered_map<std::string, axial_resistivity> region_axial_resistivity;
     std::unordered_map<std::string, membrane_capacitance> region_membrane_capacitance;
-    std::unordered_map<std::string, std::vector<initial_ion_data>> region_initial_ion_data;
+    std::unordered_map<std::string, std::vector<init_int_concentration>> region_init_int_concentration;
+    std::unordered_map<std::string, std::vector<init_ext_concentration>> region_init_ext_concentration;
+    std::unordered_map<std::string, std::vector<init_reversal_potential>> region_init_reversal_potential;
     std::unordered_map<std::string, std::vector<mechanism_desc>> region_mechanism_desc;
 };
 

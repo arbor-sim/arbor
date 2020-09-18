@@ -7,10 +7,10 @@ cells_file    = sys.argv[2]
 swc_file      = sys.argv[3]
 
 tree         = arbor.load_swc(swc_file)
-defaults     = arbor.load_cell_default_parameters(defaults_file)
-globals      = arbor.load_cell_global_parameters(cells_file)
-locals       = arbor.load_cell_local_parameter_map(cells_file)
-region_mechs = arbor.load_cell_mechanism_map(cells_file)
+defaults     = arbor.load_default_parameters(defaults_file)
+globals      = arbor.load_cell_parameters(cells_file)
+locals       = arbor.load_region_parameters(cells_file)
+region_mechs = arbor.load_region_mechanisms(cells_file)
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -26,17 +26,14 @@ labels = arbor.label_dict(defs)
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(tree, labels)
 
-# Apply the default cell parameters.
-cell.apply_default_parameters(defaults)
-
-# Overwrite the default global cell parameters.
-cell.overwrite_default_parameters(globals)
+# Set the default cell parameters.
+cell.set_default_properties(globals)
 
 # Overwrite the default local cell parameters.
-cell.overwrite_local_parameters(locals)
+cell.set_local_properties(locals)
 
 # Paint density mechanisms on the regions of the cell.
-cell.write_dynamics(region_mechs)
+cell.paint_dynamics(region_mechs)
 
 # Place current clamp and spike detector.
 cell.place('mid_soma', arbor.iclamp(0, 3, current=3.5))
@@ -48,7 +45,10 @@ cell.compartments_length(0.5)
 # Make single cell model.
 m = arbor.single_cell_model(cell)
 
-arbor.write_cell_params(cell, "here.json")
+# Set the model default parameters
+m.set_default_properties(defaults)
+
+# arbor.output_cell_description(cell, "cell_out.json")
 
 # Extend the default catalogue
 m.properties.catalogue.extend(arbor.bbp_catalogue(), "")

@@ -212,8 +212,6 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
             md.name(), util::dictionary_csv(md.values()));
 }
 
-arb::cable_cell_parameter_set overwrite_cable_parameters(const arb::cable_cell_parameter_set& base, const arb::cable_cell_parameter_set& overwrite);
-
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
     using arb::util::optional;
@@ -480,24 +478,16 @@ void register_cells(pybind11::module& m) {
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
-        // Apply default cell parameters
-        .def("apply_default_parameters",
+         // Overwrite default cell parameters
+        .def("set_default_properties",
              [](arb::cable_cell& c,
                 arb::cable_cell_parameter_set& s)
              {
                  c.default_parameters = s;
              },
-             "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
-         // Overwrite default cell parameters
-        .def("overwrite_default_parameters",
-             [](arb::cable_cell& c,
-                arb::cable_cell_parameter_set& s)
-             {
-                 c.default_parameters = overwrite_cable_parameters(c.default_parameters, s);
-             },
              "Overwrite default values for cable and cell properties.")
         // Overwrite local (regional) parameters
-        .def("overwrite_local_parameters",
+        .def("set_local_properties",
              [](arb::cable_cell& c,
                 std::unordered_map<std::string, arb::cable_cell_parameter_set>& local_map)
              {
@@ -513,16 +503,16 @@ void register_cells(pybind11::module& m) {
                          auto data = ion_params.second;
 
                          auto ion_data = c.default_parameters.ion_data[ion];
-                         if (!isnan(data.init_int_concentration)) ion_data.init_int_concentration = data.init_int_concentration;
-                         if (!isnan(data.init_ext_concentration)) ion_data.init_ext_concentration = data.init_ext_concentration;
-                         if (!isnan(data.init_reversal_potential)) ion_data.init_reversal_potential = data.init_reversal_potential;
+                         if (auto iconc = data.init_int_concentration) ion_data.init_int_concentration = iconc.value();
+                         if (auto econc = data.init_ext_concentration) ion_data.init_ext_concentration = econc.value();
+                         if (auto rvpot = data.init_reversal_potential) ion_data.init_reversal_potential = rvpot.value();
                          c.paint(region, arb::initial_ion_data{ion, ion_data});
                      }
                  }
              },
              "Overwrite regional values for cable properties.")
          // Write cell dynamics
-         .def("write_dynamics",
+         .def("paint_dynamics",
               [](arb::cable_cell& c,
                  std::unordered_map<std::string, std::vector<arb::mechanism_desc>>& region_map)
               {

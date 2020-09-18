@@ -263,6 +263,10 @@ void register_single_cell(pybind11::module& m) {
                 return m.traces();},
             "Holds sample traces after a call to run().")
         .def_readwrite("properties", &single_cell_model::gprop, "Global properties.")
+        .def("set_default_properties", [](single_cell_model& m, arb::cable_cell_parameter_set props) {
+            m.gprop.props.default_parameters = props;},
+            "cable_cell_parameters"_a,
+            "Set the default cable_cell parameters for the model")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }

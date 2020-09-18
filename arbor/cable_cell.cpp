@@ -186,8 +186,16 @@ void cable_cell::paint(const region& target, temperature_K prop) {
     region_temperature_K[to_string(target)] = prop;
     impl_->paint(target, prop);
 }
-void cable_cell::paint(const region& target, initial_ion_data prop) {
-    region_initial_ion_data[to_string(target)].push_back(prop);
+void cable_cell::paint(const region& target, init_int_concentration prop) {
+    region_init_int_concentration[to_string(target)].push_back(prop);
+    impl_->paint(target, prop);
+}
+void cable_cell::paint(const region& target, init_ext_concentration prop) {
+    region_init_ext_concentration[to_string(target)].push_back(prop);
+    impl_->paint(target, prop);
+}
+void cable_cell::paint(const region& target, init_reversal_potential prop) {
+    region_init_reversal_potential[to_string(target)].push_back(prop);
     impl_->paint(target, prop);
 }
 void cable_cell::paint(const region& target, mechanism_desc prop) {
