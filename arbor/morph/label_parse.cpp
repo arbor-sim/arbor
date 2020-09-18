@@ -2,7 +2,6 @@
 #include <limits>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/util/any.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
