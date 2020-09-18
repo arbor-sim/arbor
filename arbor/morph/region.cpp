@@ -282,7 +282,9 @@ mextent thingify_(const distal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
-    return o << "(distal_interval " << d.start << " " << d.distance << ")";
+    return d.distance==std::numeric_limits<double>::max()?
+        o << "(distal-interval " << d.start << ")":
+        o << "(distal-interval " << d.start << " " << d.distance << ")";
 }
 
 // Region comprising points up to `distance` proximal to a point in `end`.
@@ -336,7 +338,9 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
-    return o << "(proximal_interval " << d.end << " " << d.distance << ")";
+    return d.distance==std::numeric_limits<double>::max()?
+        o << "(proximal-interval " << d.end << ")":
+        o << "(proximal-interval " << d.end << " " << d.distance << ")";
 }
 
 mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {
@@ -371,7 +375,7 @@ mextent thingify_(const radius_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
-    return o << "(radius_lt " << r.reg << " " << r.val << ")";
+    return o << "(radius-lt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius less than r
@@ -389,7 +393,7 @@ mextent thingify_(const radius_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
-    return o << "(radius_le " << r.reg << " " << r.val << ")";
+    return o << "(radius-le " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than r
@@ -407,7 +411,7 @@ mextent thingify_(const radius_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
-    return o << "(radius_gt " << r.reg << " " << r.val << ")";
+    return o << "(radius-gt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than or equal to r
@@ -425,7 +429,7 @@ mextent thingify_(const radius_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
-    return o << "(radius_ge " << r.reg << " " << r.val << ")";
+    return o << "(radius-ge " << r.reg << " " << r.val << ")";
 }
 
 mextent projection_cmp(const mprovider& p, double v, comp_op op) {
@@ -454,7 +458,7 @@ mextent thingify_(const projection_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
-    return o << "(projection_lt " << r.val << ")";
+    return o << "(projection-lt " << r.val << ")";
 }
 
 // Region with all segments with projection less than or equal to val
@@ -471,7 +475,7 @@ mextent thingify_(const projection_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
-    return o << "(projection_le " << r.val << ")";
+    return o << "(projection-le " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -488,7 +492,7 @@ mextent thingify_(const projection_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
-    return o << "(projection_gt " << r.val << ")";
+    return o << "(projection-gt " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -505,7 +509,7 @@ mextent thingify_(const projection_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
-    return o << "(projection_ge " << r.val << ")";
+    return o << "(projection-ge " << r.val << ")";
 }
 
 region z_dist_from_root_lt(double r0) {
@@ -550,7 +554,7 @@ mextent thingify_(const named_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(region " << x.name << ")";
+    return o << "(region \"" << x.name << "\")";
 }
 
 // Adds all cover points to a region.

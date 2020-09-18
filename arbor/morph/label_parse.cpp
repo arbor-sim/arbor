@@ -194,34 +194,34 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'cable' with 3 arguments: (branch_id:integer prox:real dist:real)")},
     {"region",  make_call<std::string>(arb::reg::named,
                             "'region' with 1 argument: (name:string)")},
-    {"distal_interval",  make_call<arb::locset, double>(arb::reg::distal_interval,
-                            "'distal_interval' with 2 arguments: (start:locset extent:real)")},
-    {"distal_interval", make_call<arb::locset>(
+    {"distal-interval",  make_call<arb::locset, double>(arb::reg::distal_interval,
+                            "'distal-interval' with 2 arguments: (start:locset extent:real)")},
+    {"distal-interval", make_call<arb::locset>(
                             [](arb::locset ls){return arb::reg::distal_interval(std::move(ls), std::numeric_limits<double>::max());},
-                            "'distal_interval' with 1 argument: (start:locset)")},
-    {"proximal_interval",make_call<arb::locset, double>(arb::reg::proximal_interval,
-                            "'proximal_interval' with 2 arguments: (start:locset extent:real)")},
-    {"proximal_interval", make_call<arb::locset>(
+                            "'distal-interval' with 1 argument: (start:locset)")},
+    {"proximal-interval",make_call<arb::locset, double>(arb::reg::proximal_interval,
+                            "'proximal-interval' with 2 arguments: (start:locset extent:real)")},
+    {"proximal-interval", make_call<arb::locset>(
                             [](arb::locset ls){return arb::reg::proximal_interval(std::move(ls), std::numeric_limits<double>::max());},
                             "'proximal_interval' with 1 argument: (start:locset)")},
     {"complete", make_call<arb::region>(arb::reg::complete,
-                            "'super' with 1 argment: (reg:region)")},
-    {"radius_lt",make_call<arb::region, double>(arb::reg::radius_lt,
-                            "'radius_lt' with 2 arguments: (reg:region radius:real)")},
-    {"radius_le",make_call<arb::region, double>(arb::reg::radius_le,
-                            "'radius_le' with 2 arguments: (reg:region radius:real)")},
-    {"radius_gt",make_call<arb::region, double>(arb::reg::radius_gt,
-                            "'radius_gt' with 2 arguments: (reg:region radius:real)")},
-    {"radius_ge",make_call<arb::region, double>(arb::reg::radius_ge,
-                            "'radius_ge' with 2 arguments: (reg:region radius:real)")},
-    {"z_dist_from_root_lt",make_call<double>(arb::reg::z_dist_from_root_lt,
-                            "'z_dist_from_root_lt' with 1 arguments: (distance:real)")},
-    {"z_dist_from_root_le",make_call<double>(arb::reg::z_dist_from_root_le,
-                            "'z_dist_from_root_le' with 1 arguments: (distance:real)")},
-    {"z_dist_from_root_gt",make_call<double>(arb::reg::z_dist_from_root_gt,
-                            "'z_dist_from_root_gt' with 1 arguments: (distance:real)")},
-    {"z_dist_from_root_ge",make_call<double>(arb::reg::z_dist_from_root_ge,
-                            "'z_dist_from_root_ge' with 1 arguments: (distance:real)")},
+                            "'complete' with 1 argment: (reg:region)")},
+    {"radius-lt",make_call<arb::region, double>(arb::reg::radius_lt,
+                            "'radius-lt' with 2 arguments: (reg:region radius:real)")},
+    {"radius-le",make_call<arb::region, double>(arb::reg::radius_le,
+                            "'radius-le' with 2 arguments: (reg:region radius:real)")},
+    {"radius-gt",make_call<arb::region, double>(arb::reg::radius_gt,
+                            "'radius-gt' with 2 arguments: (reg:region radius:real)")},
+    {"radius-ge",make_call<arb::region, double>(arb::reg::radius_ge,
+                            "'radius-ge' with 2 arguments: (reg:region radius:real)")},
+    {"z-dist-from-root-lt",make_call<double>(arb::reg::z_dist_from_root_lt,
+                            "'z-dist-from-root-lt' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-le",make_call<double>(arb::reg::z_dist_from_root_le,
+                            "'z-dist-from-root-le' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-gt",make_call<double>(arb::reg::z_dist_from_root_gt,
+                            "'z-dist-from-root-gt' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-ge",make_call<double>(arb::reg::z_dist_from_root_ge,
+                            "'z-dist-from-root-ge' with 1 arguments: (distance:real)")},
     {"join",    make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::join),
                             "'join' with at least 2 arguments: (region region [...region])")},
     {"intersect",make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::intersect),
@@ -241,8 +241,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'proximal' with 1 argument: (reg:region)")},
     {"uniform",make_call<arb::region, int, int, int>(arb::ls::uniform,
                             "'uniform' with 4 arguments: (reg:region, first:int, last:int, seed:int)")},
-    {"on_branches",make_call<double>(arb::ls::on_branches,
-                            "'on_branches' with 1 argument: (pos:double)")},
+    {"on-branches",make_call<double>(arb::ls::on_branches,
+                            "'on-branches' with 1 argument: (pos:double)")},
     {"locset",  make_call<std::string>(arb::ls::named,
                             "'locset' with 1 argument: (name:string)")},
     {"restrict",  make_call<arb::locset, arb::region>(arb::ls::restrict,
@@ -333,13 +333,13 @@ parse_hopefully<std::any> eval(const s_expr& e) {
             // An arbitrary symbol in a region/locset expression is an error, and is
             // often a result of not quoting a label correctly.
             case tok::symbol:
-                return parse_error(
-                        util::pprintf("Unexpected symbol '{}' in a region or locset definition. If '{}' is a label, it must be quoted \"{}\"", e, e, e),
-                        location(e));
+                return util::unexpected(parse_error(
+                        util::pprintf("Unexpected symbol '{}' in a region or locset definition. If '{}' is a label, it must be quoted {}{}{}", e, e, '"', e, '"'),
+                        location(e)));
             case tok::error:
-                return parse_error(e.atom().spelling, location(e));
+                return util::unexpected(parse_error(e.atom().spelling, location(e)));
             default:
-                return parse_error(util::pprintf("Unexpected term '{}' in a region or locset definition", e), location(e));
+                return util::unexpected(parse_error(util::pprintf("Unexpected term '{}' in a region or locset definition", e), location(e)));
         }
     }
     if (e.head().is_atom()) {
@@ -371,12 +371,12 @@ parse_hopefully<std::any> eval(const s_expr& e) {
         for (auto i=matches.first; i!=matches.second; ++i) {
             msg += util::pprintf("\n  Candidate {}  {}", ++count, i->second.message);
         }
-        return parse_error(msg, location(e));
+        return util::unexpected(parse_error(msg, location(e)));
     }
 
-    return parse_error(
-        util::pprintf("'{}' is not either integer, real expression of the form (op <args>)", e),
-            location(e));
+    return util::unexpected(parse_error(
+            util::pprintf("'{}' is not either integer, real expression of the form (op <args>)", e),
+            location(e)));
 }
 
 parse_hopefully<std::any> parse_label_expression(const std::string& e) {
@@ -393,7 +393,7 @@ parse_hopefully<arb::region> parse_region_expression(const std::string& s) {
         }
         return util::unexpected(
                 label_parse_error(
-                util::pprintf("Invalid region description: '{}' is neither a valid region expression or region label string.", s)));
+                util::pprintf("Invalid region description: '{}' is neither a valid region expression or region label string.\n{}", s, e.error().what())));
     }
     else {
         return util::unexpected(label_parse_error(std::string()+e.error().what()));
@@ -410,7 +410,7 @@ parse_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
         }
         return util::unexpected(
                 label_parse_error(
-                util::pprintf("Invalid locset description: '{}' is neither a valid locset expression or locset label string.", s)));
+                util::pprintf("Invalid locset description: '{}' is neither a valid locset expression or locset label string.\n{}", s, e.error().what())));
     }
     else {
         return util::unexpected(label_parse_error(std::string()+e.error().what()));

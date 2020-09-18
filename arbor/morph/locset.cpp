@@ -213,7 +213,7 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
-    return o << "(distal \"" << x.reg << "\")";
+    return o << "(distal " << x.reg << ")";
 }
 
 // Most proximal points of a region
@@ -238,7 +238,7 @@ mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
-    return o << "(proximal \"" << x.reg << "\")";
+    return o << "(proximal " << x.reg << ")";
 }
 
 // Boundary points of a region.

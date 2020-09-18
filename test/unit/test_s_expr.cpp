@@ -5,6 +5,7 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
+#include <typeinfo>
 
 #include "s_expr.hpp"
 #include "util/strprintf.hpp"
@@ -98,34 +99,78 @@ TEST(s_expr, atoms_in_parens) {
     }
 }
 
-std::string round_trip_reg(const char* in) {
-    auto x = parse_label_expression(in);
-    return util::pprintf("{}", std::any_cast<arb::region>(*x));
+template <typename L>
+std::string round_trip_label(const char* in) {
+    if (auto x = parse_label_expression(in)) {
+        return util::pprintf("{}", std::any_cast<L>(*x));
+    }
+    else {
+        return x.error().what();
+    }
 }
 
-std::string round_trip_loc(const char* in) {
-    auto x = parse_label_expression(in);
-    return util::pprintf("{}", std::any_cast<arb::locset>(*x));
+std::string round_trip_region(const char* in) {
+    if (auto x = parse_region_expression(in)) {
+        return util::pprintf("{}", std::any_cast<arb::region>(*x));
+    }
+    else {
+        return x.error().what();
+    }
 }
 
-TEST(regloc, parse_str) {
-    EXPECT_EQ("(cable 3 0 1)",      round_trip_reg("(branch 3)"));
-    EXPECT_EQ("(cable 2 0.1 0.4)",  round_trip_reg("(cable 2 0.1 0.4)"));
-    EXPECT_EQ("(all)",              round_trip_reg("(all)"));
-    EXPECT_EQ("(region \"foo\")",   round_trip_reg("(region \"foo\")"));
+std::string round_trip_locset(const char* in) {
+    if (auto x = parse_locset_expression(in)) {
+        return util::pprintf("{}", std::any_cast<arb::locset>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
 
-    EXPECT_EQ("(terminal)", round_trip_loc("(terminal)"));
-    EXPECT_EQ("(root)",     round_trip_loc("(root)"));
-    EXPECT_EQ("(locset \"cat_burgler\")", round_trip_loc("(locset \"cat_burgler\")"));
+TEST(regloc, round_tripping) {
+    EXPECT_EQ("(cable 3 0 1)", round_trip_label<arb::region>("(branch 3)"));
+    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))", round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
+    auto region_literals = {
+        "(cable 2 0.1 0.4)",
+        "(region \"foo\")",
+        "(all)",
+        "(tag 42)",
+        "(distal-interval (location 3 0))",
+        "(distal-interval (location 3 0) 3.2)",
+        "(proximal-interval (location 3 0))",
+        "(proximal-interval (location 3 0) 3.2)",
+        "(join (region \"dend\") (all))",
+        "(radius-lt (tag 1) 1)",
+        "(radius-le (tag 2) 1)",
+        "(radius-gt (tag 3) 1)",
+        "(radius-ge (tag 4) 3)",
+        "(intersect (cable 2 0 0.5) (region \"axon\"))",
+    };
+    for (auto l: region_literals) {
+        EXPECT_EQ(l, round_trip_label<arb::region>(l));
+        EXPECT_EQ(l, round_trip_region(l));
+    }
 
-    auto lhs = std::any_cast<arb::region>(*parse_label_expression("(region \"dend\")"));
-    auto rhs = std::any_cast<arb::region>(*parse_label_expression("(all)"));
-
-    EXPECT_EQ(util::pprintf("{}", join(lhs,rhs)), "(join (region \"dend\") (all))");
+    auto locset_literals = {
+        "(root)",
+        "(locset \"cat man do\")",
+        "(location 3 0.2)",
+        "(terminal)",
+        "(distal (tag 2))",
+        "(proximal (join (tag 1) (tag 2)))",
+        "(uniform (tag 1) 0 100 52)",
+        "(restrict (terminal) (tag 12))",
+        "(join (terminal) (root))",
+        "(sum (terminal) (root))",
+    };
+    for (auto l: locset_literals) {
+        EXPECT_EQ(l, round_trip_label<arb::locset>(l));
+        EXPECT_EQ(l, round_trip_locset(l));
+    }
 }
 
 TEST(regloc, comments) {
-    EXPECT_EQ("(all)",  round_trip_reg("(all) ; a comment"));
+    EXPECT_EQ("(all)",  round_trip_region("(all) ; a comment"));
     const char *multi_line = 
         "; comment at start\n"
         "(radius_lt\n"
@@ -135,5 +180,6 @@ TEST(regloc, comments) {
         "        (tag 4))\n"
         "    0.5) ; end of string";
     EXPECT_EQ("(radius_lt (join (tag 3) (tag 4)) 0.5)",
-              round_trip_reg(multi_line));
+              round_trip_region(multi_line));
 }
+
