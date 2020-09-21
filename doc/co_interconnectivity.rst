@@ -39,5 +39,5 @@ Similarly to `Connections`, Gap Junctions in Arbor are defined in two steps:
 API
 ---
 
-* :ref:`Python <py_interconnectivity>`
-* :ref:`C++ <cpp_interconnectivity>`
+* :ref:`Python <pyinterconnectivity>`
+* :ref:`C++ <cppinterconnectivity>`
