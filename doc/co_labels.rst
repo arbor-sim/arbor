@@ -4,7 +4,7 @@ Cell Labels
 ===========
 
 Arbor provides a domain specific language (DSL) for describing regions and
-locations on morphologies, and a dictionary for assiciating these descriptions
+locations on morphologies, and a dictionary for associating these descriptions
 with a string label.
 
 The labels are used to refer to regions
@@ -151,7 +151,7 @@ describes the region of all parts of a cell with either tag 3 or tag 4 and radiu
     As a result, label dictionaries are much more concise and easy to interpret for
     consumers of a model than hoc templates.
     Furthermore they are less error prone because
-    Arbor handles generation of conrete cable sections and locations when
+    Arbor handles generation of concrete cable sections and locations when
     expressions are applied to a morphology.
 
 .. _labels-expr-docs:
@@ -238,7 +238,7 @@ Locset Expressions
 .. label:: (terminal}
 
     The location of terminal points, which are the most distal locations on the morphology.
-    These will typicall correspond to the tips, or end points, of dendrites and axons.
+    These will typically correspond to the tips, or end points, of dendrites and axons.
 
     .. figure:: gen-images/term_label.svg
       :width: 300
@@ -332,8 +332,8 @@ Locset Expressions
 .. label:: (sum lhs:locset rhs:locset [...locset])
 
     Multiset summation of two locsets, such that ``(sum lhs rhs) = A + B``, where A and B are multisets of locations.
-    This is equivalent to contactenating the two lists, and the length of the result is the sum of
-    the lenghts of the inputs. For example:
+    This is equivalent to concatenating the two lists, and the length of the result is the sum of
+    the lengths of the inputs. For example:
 
     .. code-block:: lisp
 
@@ -565,13 +565,13 @@ Concretisation
 ----------------
 
 When a region or locset expression is applied to a cell morphology it is
-*concretised*. Concretising a locset will return a set of *locations* on the
-morphology, and concretising a region will return a list of unbranched *cables*
+*concretized*. Concretizing a locset will return a set of *locations* on the
+morphology, and concretizing a region will return a list of unbranched *cables*
 on the morphology.
 
 .. note::
     Applying an expression to different morphologies may give different
-    concretised results.
+    concretized results.
 
 Locations
 ~~~~~~~~~
