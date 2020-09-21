@@ -1,6 +1,6 @@
-.. _gs_quick_start:
+.. _gs_single_cell:
 
-Quick start: a single cell model
+A single cell model
 ================================
 
 Building and testing detailed models of individual cells, then optimizing their parameters is usually the first step in building models with multi-compartment cells. Arbor supports a *single cell model* workflow for this purpose, which is a good way to introduce Arbor's cell modeling concepts and approach.
@@ -114,6 +114,9 @@ The other measurement we have is that of the potential, which we plot in step **
 .. image:: images/quick_start_plot.png
     :width: 400
     :alt: Plot of the potential over time for the voltage probe added in step (5).
+
+.. Note::
+    You can find the source code for this example in full at ``python/examples/single_cell_model.py``.
 
 .. Todo::
     Add equivalent but more comprehensive recipe implementation in parallel, such that the reader learns how single_cell_model works.

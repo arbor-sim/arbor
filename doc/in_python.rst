@@ -1,4 +1,4 @@
-.. _gs_python:
+.. _in_python:
 
 Python Installation
 ===================
@@ -43,7 +43,7 @@ to see information about the version and enabled features:
     >>> print(arbor.__version__)
     >>> print(arbor.__config__)
 
-You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the :mod:`Python API Reference<arbor._arbor>`, or visit the :ref:`Quick Start page<gs_quick_start>`.
+You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the :mod:`Python API Reference<arbor._arbor>`, or visit the :ref:`Quick Start page<gs_single_cell>`.
 
 .. Note::
     To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.

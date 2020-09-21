@@ -1,4 +1,4 @@
-.. _gs_build_install:
+.. _in_build_install:
 
 Build and install from source
 #############################

@@ -1,4 +1,4 @@
-.. _gs_install:
+.. _in_install:
 
 Install Arbor
 #############################

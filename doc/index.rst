@@ -24,13 +24,18 @@ Citing Arbor
 Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
 
 .. toctree::
-   :caption: Getting Started:
+   :caption: Get Arbor:
 
-   gs_install
-   gs_python
-   gs_build_install
-   gs_spack
-   gs_quick_start
+   in_install
+   in_python
+   in_build_install
+   in_spack
+
+.. toctree::
+   :caption: Getting started:
+
+   gs_single_cell
+   gs_other_examples
 
 .. toctree::
    :caption: How does Arbor work?
