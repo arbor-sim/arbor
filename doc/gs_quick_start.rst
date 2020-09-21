@@ -1,15 +1,13 @@
-.. _single:
+.. _gs_quick_start:
 
 Quick start: a single cell model
 ================================
 
-Building and testing detailed models of individual cells, then optimizing their parameters
-is usually the first step in building models with multi-compartment cells.
-Arbor supports a *single cell model* workflow for this purpose, which is a good way to
-introduce Arbor's cell modeling concepts and approach.
+Building and testing detailed models of individual cells, then optimizing their parameters is usually the first step in building models with multi-compartment cells. Arbor supports a *single cell model* workflow for this purpose, which is a good way to introduce Arbor's cell modeling concepts and approach.
 
-This guide will walk through a series of single cell models of increasing
-complexity. Links are provide to separate documentation that covers relevant topics in more detail.
+This guide will walk through a series of single cell models of increasing complexity. Links are provide to separate documentation that covers relevant topics in more detail.
+
+In an interactive Python interpreter, you can use ``help()`` on any class or function to obtain some documentation. E.g.: ``help(arbor.gap_junction_connection)`` will print :class:`this<arbor._arbor.gap_junction_connection>`.
 
 .. _single_soma:
 
@@ -97,7 +95,7 @@ Our cell and network are defined; we have ran the simulation. However, we have n
     if len(m.spikes)>0:
         print('{} spikes:'.format(len(m.spikes)))
         for s in m.spikes:
-            print('  {:7.4f}'.format(s))
+            print('{:3.3f}'.format(s))
     else:
         print('no spikes')
 
