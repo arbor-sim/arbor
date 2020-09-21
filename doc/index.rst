@@ -47,7 +47,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    co_morphology
    co_labels
    co_mechanisms
-   co_synapses
+   co_interconnectivity
    co_hardware
    co_domdec
    co_simulation
@@ -62,7 +62,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    py_morphology
    py_labels
    py_mechanisms
-   py_synapses
+   py_interconnectivity
    py_hardware
    py_domdec
    py_simulation
@@ -76,7 +76,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    cpp_recipe
    cpp_cell
    cpp_cable_cell
-   cpp_synapses
+   cpp_interconnectivity
    cpp_hardware
    cpp_domdec
    cpp_simulation
