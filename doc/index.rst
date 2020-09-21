@@ -28,6 +28,8 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 
    gs_install
    gs_python
+   gs_build_install
+   gs_spack
    gs_quick_start
 
 .. toctree::
