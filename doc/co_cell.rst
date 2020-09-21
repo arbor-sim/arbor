@@ -37,14 +37,6 @@ relative to other objects of the same type on that cell.
 A unique (:gen:`gid`, :gen:`index`) pair defined by a :gen:`cell_member` can be used to uniquely identify
 objects on a cell in a global model.
 
-    Simulator: give me cell 37.
-    Recipe: here you go, it's of C++ type s3cr1ts4uc3.
-    Simulator: wth is this thing? What is the cell kind for cell 37?
-    Recipe: it's a foobar.
-    Simulator: Okay. Cell group implementations: which one of you lot deals with foobars?
-    Foorbar_GPUFTW_lolz: That'd be me, if we've got GPU enabled.
-    Simulator: Okay it's up to you then to deal with this s3cr1ts4uc3 object.
-
 
 Cell Kinds
 ----------
