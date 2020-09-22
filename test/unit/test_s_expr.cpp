@@ -183,3 +183,48 @@ TEST(regloc, comments) {
               round_trip_region(multi_line));
 }
 
+TEST(regloc, errors) {
+    for (auto expr: {"axon",         // unquoted region name
+                     "(tag 1.2)",    // invalid argument in an otherwise valid region expression
+                     "(tag 1 2)",    // too many arguments to otherwise valid region expression
+                     "(tag 1) (tag 2)", // more than one valid description
+                     "(tag",         // syntax error in region expression
+                     "(terminal)",   // a valid locset expression
+                     "\"my region",  // unclosed quote on label
+                     })
+    {
+        // If an invalid label/expression was passed and handled correctly the parse
+        // call will return without throwing, with the error stored in the return type.
+        // So it is sufficient to assert that it evaluates to false.
+        EXPECT_FALSE(parse_region_expression(expr));
+    }
+
+    for (auto expr: {"axon",         // unquoted locset name
+                     "(location 1 \"0.5\")",  // invalid argument in an otherwise valid locset expression
+                     "(location 1 0.2 0.2)",  // too many arguments to otherwise valid locset expression
+                     "(root) (location 2 0)", // more than one valid description
+                     "(tag",         // syntax error in locset expression
+                     "(tag 3)",      // a valid region expression
+                     "\"my locset",  // unclosed quote on label
+                     })
+    {
+        // If an invalid label/expression was passed and handled correctly the parse
+        // call will return without throwing, with the error stored in the return type.
+        // So it is sufficient to assert that it evaluates to false.
+        EXPECT_FALSE(parse_locset_expression(expr));
+    }
+
+    for (auto expr: {"axon",         // unquoted locset name
+                     "(location 1 \"0.5\")",  // invalid argument in an otherwise valid locset expression
+                     "(location 1 0.2 0.2)",  // too many arguments to otherwise valid locset expression
+                     "(root) (location 2 0)", // more than one valid description
+                     "(tag",         // syntax error in locset expression
+                     "\"my locset",  // unclosed quote on label
+                     })
+    {
+        // If an invalid label/expression was passed and handled correctly the parse
+        // call will return without throwing, with the error stored in the return type.
+        // So it is sufficient to assert that it evaluates to false.
+        EXPECT_FALSE(parse_label_expression(expr));
+    }
+}

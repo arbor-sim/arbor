@@ -394,7 +394,7 @@ parse_hopefully<arb::region> parse_region_expression(const std::string& s) {
         }
         return util::unexpected(
                 label_parse_error(
-                util::pprintf("Invalid region description: '{}' is neither a valid region expression or region label string.\n{}", s, e.error().what())));
+                util::pprintf("Invalid region description: '{}' is neither a valid region expression or region label string.", s)));
     }
     else {
         return util::unexpected(label_parse_error(std::string()+e.error().what()));
@@ -411,7 +411,7 @@ parse_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
         }
         return util::unexpected(
                 label_parse_error(
-                util::pprintf("Invalid locset description: '{}' is neither a valid locset expression or locset label string.\n{}", s, e.error().what())));
+                util::pprintf("Invalid locset description: '{}' is neither a valid locset expression or locset label string.", s)));
     }
     else {
         return util::unexpected(label_parse_error(std::string()+e.error().what()));
