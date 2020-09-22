@@ -28,11 +28,6 @@ option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
-# For sup::glop, just wrap POSIX glob(3)?
-# Turn off for platforms without glob(3) in libc, e.g. Android Bionic.
-
-option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
-
 # Use libunwind to generate stack traces on errors?
 
 option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)

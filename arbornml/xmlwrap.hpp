@@ -10,11 +10,9 @@
 #include <string>
 #include <utility>
 
-extern "C" {
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
-}
 
 #include <arbornml/nmlexcept.hpp>
 

@@ -1,8 +1,6 @@
 #include <arbornml/with_xml.hpp>
 
-extern "C" {
 #include <libxml/parser.h>
-}
 
 namespace arbnml {
 

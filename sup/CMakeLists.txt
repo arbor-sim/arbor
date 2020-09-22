@@ -1,16 +1,8 @@
 set(sup-sources
-    glob_basic.cpp
     ioutil.cpp
     json_meter.cpp
     path.cpp
 )
-
-if(ARB_USE_POSIX_GLOB)
-    list(APPEND sup-sources glob_posix.cpp)
-else()
-    list(APPEND sup-sources glob_basic_wrap.cpp)
-endif()
-
 
 add_library(arbor-sup ${sup-sources})
 

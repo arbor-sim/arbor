@@ -4,14 +4,13 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <locale>
 #include <sstream>
 #include <string>
 #include <vector>
 
-extern "C" {
 #include <libxml/xmlerror.h>
-}
 
 #include <arbornml/nmlexcept.hpp>
 
