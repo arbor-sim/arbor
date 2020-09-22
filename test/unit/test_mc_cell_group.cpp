@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
+#include <arbor/string_literals.hpp>
 
 #include "epoch.hpp"
 #include "fvm_lowered_cell.hpp"
@@ -12,6 +13,7 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
+using namespace arb::literals;
 
 namespace {
     execution_context context;
@@ -24,8 +26,8 @@ namespace {
         soma_cell_builder builder(12.6157/2.0);
         builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
         cable_cell c = builder.make_cell();
-        c.paint("soma", "hh");
-        c.paint("dend", "pas");
+        c.paint("soma"_lab, "hh");
+        c.paint("dend"_lab, "pas");
         c.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
         c.place(builder.location({0, 0}), threshold_detector{0});
         return c;

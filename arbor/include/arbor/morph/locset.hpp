@@ -49,7 +49,7 @@ public:
     locset(mlocation_list other);
 
     // Implicitly convert string to named locset expression.
-    locset(std::string label);
+    locset(const std::string& label);
     locset(const char* label);
 
     template <typename Impl,

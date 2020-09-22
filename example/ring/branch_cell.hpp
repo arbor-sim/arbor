@@ -8,9 +8,12 @@
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/segment_tree.hpp>
+#include <arbor/string_literals.hpp>
 
 #include <string>
 #include <sup/json_params.hpp>
+
+using namespace arb::literals;
 
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
@@ -107,8 +110,8 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     arb::cable_cell cell(arb::morphology(tree), d);
 
-    cell.paint("soma", "hh");
-    cell.paint("dend", "pas");
+    cell.paint("soma"_lab, "hh");
+    cell.paint("dend"_lab, "pas");
     cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
 
     // Add spike threshold detector at the soma.

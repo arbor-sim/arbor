@@ -1,7 +1,9 @@
+#include <any>
+#include <stack>
 #include <string>
 #include <vector>
-#include <stack>
 
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphexcept.hpp>
@@ -9,6 +11,7 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/util/optional.hpp>
 
+#include "s_expr.hpp"
 #include "util/mergeview.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
@@ -279,7 +282,9 @@ mextent thingify_(const distal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
-    return o << "(distal_interval " << d.start << " " << d.distance << ")";
+    return d.distance==std::numeric_limits<double>::max()?
+        o << "(distal-interval " << d.start << ")":
+        o << "(distal-interval " << d.start << " " << d.distance << ")";
 }
 
 // Region comprising points up to `distance` proximal to a point in `end`.
@@ -333,7 +338,9 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
-    return o << "(proximal_interval " << d.end << " " << d.distance << ")";
+    return d.distance==std::numeric_limits<double>::max()?
+        o << "(proximal-interval " << d.end << ")":
+        o << "(proximal-interval " << d.end << " " << d.distance << ")";
 }
 
 mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {
@@ -368,7 +375,7 @@ mextent thingify_(const radius_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
-    return o << "(radius_lt " << r.reg << " " << r.val << ")";
+    return o << "(radius-lt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius less than r
@@ -386,7 +393,7 @@ mextent thingify_(const radius_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
-    return o << "(radius_le " << r.reg << " " << r.val << ")";
+    return o << "(radius-le " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than r
@@ -404,7 +411,7 @@ mextent thingify_(const radius_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
-    return o << "(radius_gt " << r.reg << " " << r.val << ")";
+    return o << "(radius-gt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than or equal to r
@@ -422,7 +429,7 @@ mextent thingify_(const radius_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
-    return o << "(radius_ge " << r.reg << " " << r.val << ")";
+    return o << "(radius-ge " << r.reg << " " << r.val << ")";
 }
 
 mextent projection_cmp(const mprovider& p, double v, comp_op op) {
@@ -451,7 +458,7 @@ mextent thingify_(const projection_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
-    return o << "(projection_lt " << r.val << ")";
+    return o << "(projection-lt " << r.val << ")";
 }
 
 // Region with all segments with projection less than or equal to val
@@ -468,7 +475,7 @@ mextent thingify_(const projection_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
-    return o << "(projection_le " << r.val << ")";
+    return o << "(projection-le " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -485,7 +492,7 @@ mextent thingify_(const projection_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
-    return o << "(projection_gt " << r.val << ")";
+    return o << "(projection-gt " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -502,7 +509,7 @@ mextent thingify_(const projection_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
-    return o << "(projection_ge " << r.val << ")";
+    return o << "(projection-ge " << r.val << ")";
 }
 
 region z_dist_from_root_lt(double r0) {
@@ -547,7 +554,7 @@ mextent thingify_(const named_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(region " << x.name << ")";
+    return o << "(region \"" << x.name << "\")";
 }
 
 // Adds all cover points to a region.
@@ -738,13 +745,16 @@ region::region() {
 
 // Implicit constructors/converters.
 
-region::region(std::string label) {
-    *this = reg::named(std::move(label));
+region::region(const std::string& desc) {
+    if (auto r=parse_region_expression(desc)) {
+        *this = *r;
+    }
+    else {
+        throw r.error();
+    }
 }
 
-region::region(const char* label) {
-    *this = reg::named(label);
-}
+region::region(const char* label): region(std::string(label)) {}
 
 region::region(mcable c) {
     *this = reg::cable(c.branch, c.prox_pos, c.dist_pos);

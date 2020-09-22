@@ -44,8 +44,8 @@ namespace {
 
             cells.push_back(builder.make_cell());
             auto& cell = cells.back();
-            cell.paint("soma", "hh");
-            cell.paint("dend", "pas");
+            cell.paint("\"soma\"", "hh");
+            cell.paint("\"dend\"", "pas");
             cell.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
 
             s.builders.push_back(std::move(builder));
@@ -87,8 +87,8 @@ namespace {
             cells.push_back(b.make_cell());
             auto& cell = cells.back();
 
-            cell.paint("soma", "hh");
-            cell.paint("dend", "pas");
+            cell.paint("\"soma\"", "hh");
+            cell.paint("\"dend\"", "pas");
 
             using ::arb::reg::branch;
             auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
@@ -542,10 +542,10 @@ TEST(fvm_layout, density_norm_area) {
     hh_3["gl"] = seg3_gl;
 
     auto cell = builder.make_cell();
-    cell.paint("soma", std::move(hh_0));
-    cell.paint("reg1", std::move(hh_1));
-    cell.paint("reg2", std::move(hh_2));
-    cell.paint("reg3", std::move(hh_3));
+    cell.paint("\"soma\"", std::move(hh_0));
+    cell.paint("\"reg1\"", std::move(hh_1));
+    cell.paint("\"reg2\"", std::move(hh_2));
+    cell.paint("\"reg3\"", std::move(hh_3));
 
     std::vector<cable_cell> cells{std::move(cell)};
 
@@ -691,7 +691,7 @@ TEST(fvm_layout, density_norm_area_partial) {
 
 TEST(fvm_layout, valence_verify) {
     auto cell = soma_cell_builder(6).make_cell();
-    cell.paint("soma", "test_cl_valence");
+    cell.paint("\"soma\"", "test_cl_valence");
     std::vector<cable_cell> cells{std::move(cell)};
 
     cable_cell_global_properties gprop;
@@ -820,9 +820,9 @@ TEST(fvm_layout, revpot) {
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
     auto cell = builder.make_cell();
-    cell.paint("soma", "read_eX/c");
-    cell.paint("soma", "read_eX/a");
-    cell.paint("dend", "read_eX/a");
+    cell.paint("\"soma\"", "read_eX/c");
+    cell.paint("\"soma\"", "read_eX/a");
+    cell.paint("\"dend\"", "read_eX/a");
 
     std::vector<cable_cell> cells{cell, cell};
 

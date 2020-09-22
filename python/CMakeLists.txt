@@ -25,7 +25,6 @@ set(pyarb_source
     identifiers.cpp
     mechanism.cpp
     morphology.cpp
-    morph_parse.cpp
     mpi.cpp
     profiler.cpp
     pyarb.cpp
@@ -35,7 +34,6 @@ set(pyarb_source
     simulation.cpp
     single_cell_model.cpp
     spikes.cpp
-    s_expr.cpp
 )
 
 # compile the pyarb sources into an object library that will be

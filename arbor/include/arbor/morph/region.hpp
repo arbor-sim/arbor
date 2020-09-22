@@ -59,7 +59,7 @@ public:
     region(mcable_list);
 
     // Implicitly convert string to named region expression.
-    region(std::string label);
+    region(const std::string& label);
     region(const char* label);
 
     friend mextent thingify(const region& r, const mprovider& m) {

@@ -53,16 +53,16 @@ cell = b.build()
 # Set initial membrane potential everywhere on the cell to -40 mV.
 cell.set_properties(Vm=-40)
 # Put hh dynamics on soma, and passive properties on the dendrites.
-cell.paint('soma', 'hh')
-cell.paint('dend', 'pas')
+cell.paint('"soma"', 'hh')
+cell.paint('"dend"', 'pas')
 # Set axial resistivity in dendrite regions (Ohm.cm)
-cell.paint('dendn', rL=500)
-cell.paint('dendx', rL=10000)
+cell.paint('"dendn"', rL=500)
+cell.paint('"dendx"', rL=10000)
 # Attach stimuli with duration of 2 ms and current of 0.8 nA.
 # There are three stimuli, which activate at 10 ms, 50 ms and 80 ms.
-cell.place('stim_site', arbor.iclamp( 10, 2, 0.8))
-cell.place('stim_site', arbor.iclamp( 50, 2, 0.8))
-cell.place('stim_site', arbor.iclamp( 80, 2, 0.8))
+cell.place('"stim_site"', arbor.iclamp( 10, 2, 0.8))
+cell.place('"stim_site"', arbor.iclamp( 50, 2, 0.8))
+cell.place('"stim_site"', arbor.iclamp( 80, 2, 0.8))
 # Add a spike detector with threshold of -10 mV.
 cell.place('root', arbor.spike_detector(-10))
 
@@ -71,7 +71,7 @@ m = arbor.single_cell_model(cell)
 
 # Attach voltage probes, sampling at 10 kHz.
 m.probe('voltage', loc(0,0), 10000) # at the soma.
-m.probe('voltage', 'dtips',   10000) # at the tips of the dendrites.
+m.probe('voltage', '"dtips"',   10000) # at the tips of the dendrites.
 
 # Run simulation for 100 ms of simulated activity.
 tfinal=100

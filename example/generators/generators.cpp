@@ -56,7 +56,7 @@ public:
         d.set("soma", arb::reg::tagged(1));
 
         arb::cable_cell c(tree, d);
-        c.paint("soma", "pas");
+        c.paint("\"soma\"", "pas");
 
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both

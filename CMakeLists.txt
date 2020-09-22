@@ -7,6 +7,10 @@ string(REGEX MATCH "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?" numeric_version
 project(arbor VERSION ${numeric_version})
 enable_language(CXX)
 
+# Turn on this option to force the compilers to produce color output when output is
+# redirected from the terminal (e.g. when using ninja or a pager).
+
+option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
@@ -47,7 +51,6 @@ option(ARB_WITH_MPI "build with MPI support" OFF)
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
-
 
 #----------------------------------------------------------
 # Python front end for Arbor:

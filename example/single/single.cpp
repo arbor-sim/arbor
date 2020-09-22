@@ -63,8 +63,8 @@ struct single_recipe: public arb::recipe {
         arb::cable_cell c(morpho, dict);
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        c.paint("soma", "hh");
-        c.paint("dend", "pas");
+        c.paint("\"soma\"", "hh");
+        c.paint("\"dend\"", "pas");
 
         // Add synapse to last branch.
 

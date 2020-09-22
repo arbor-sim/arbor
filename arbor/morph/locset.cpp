@@ -3,6 +3,7 @@
 #include <numeric>
 
 #include <arbor/math.hpp>
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -212,7 +213,7 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
-    return o << "(distal \"" << x.reg << "\")";
+    return o << "(distal " << x.reg << ")";
 }
 
 // Most proximal points of a region
@@ -237,7 +238,7 @@ mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
-    return o << "(proximal \"" << x.reg << "\")";
+    return o << "(proximal " << x.reg << ")";
 }
 
 // Boundary points of a region.
@@ -584,12 +585,15 @@ locset::locset(mlocation_list ll) {
     *this = ls::location_list(std::move(ll));
 }
 
-locset::locset(std::string name) {
-    *this = ls::named(std::move(name));
+locset::locset(const std::string& desc) {
+    if (auto r=parse_locset_expression(desc)) {
+        *this = *r;
+    }
+    else {
+        throw r.error();
+    }
 }
 
-locset::locset(const char* name) {
-    *this = ls::named(name);
-}
+locset::locset(const char* label): locset(std::string(label)) {}
 
 } // namespace arb

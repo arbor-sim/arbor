@@ -13,8 +13,9 @@
 #include <arbor/simulation.hpp>
 #include <arbor/util/any_cast.hpp>
 
-#include "error.hpp"
 #include "cells.hpp"
+#include "error.hpp"
+#include "strprintf.hpp"
 
 using arb::util::any_cast;
 

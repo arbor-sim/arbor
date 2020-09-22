@@ -166,20 +166,20 @@ regions  = {
             'soma': '(region "tag1")',
             'axon': '(region "tag2")',
             'dend': '(join (region "tag3") (region "tag4"))',
-            'radlt5': '(radius_lt (all) 0.5)',
-            'radle5': '(radius_le (all) 0.5)',
-            'radgt5': '(radius_gt (all) 0.5)',
-            'radge5': '(radius_ge (all) 0.5)',
-            'rad36':  '(intersect (radius_gt (all) 0.3) (radius_lt (all) 0.6))',
+            'radlt5': '(radius-lt (all) 0.5)',
+            'radle5': '(radius-le (all) 0.5)',
+            'radgt5': '(radius-gt (all) 0.5)',
+            'radge5': '(radius-ge (all) 0.5)',
+            'rad36':  '(intersect (radius-gt (all) 0.3) (radius-lt (all) 0.6))',
             'branch0': '(branch 0)',
             'branch3': '(branch 3)',
             'cable_1_01': '(cable 1 0 1)',
             'cable_1_31': '(cable 1 0.3 1)',
             'cable_1_37': '(cable 1 0.3 0.7)',
-            'proxint':     '(proximal_interval (locset "proxint_in") 5)',
-            'proxintinf':  '(proximal_interval (locset "proxint_in"))',
-            'distint':     '(distal_interval   (locset "distint_in") 5)',
-            'distintinf':  '(distal_interval   (locset "distint_in"))',
+            'proxint':     '(proximal-interval (locset "proxint_in") 5)',
+            'proxintinf':  '(proximal-interval (locset "proxint_in"))',
+            'distint':     '(distal-interval   (locset "distint_in") 5)',
+            'distintinf':  '(distal-interval   (locset "distint_in"))',
             'lhs' : '(join (cable 0 0.5 1) (cable 1 0 0.5))',
             'rhs' : '(branch 1)',
             'and': '(intersect (region "lhs") (region "rhs"))',
@@ -192,7 +192,7 @@ locsets = {
             'loc15': '(location 1 0.5)',
             'uniform0': '(uniform (tag 3) 0 9 0)',
             'uniform1': '(uniform (tag 3) 0 9 1)',
-            'branchmid': '(on_branches 0.5)',
+            'branchmid': '(on-branches 0.5)',
             'distal':  '(distal   (region "rad36"))',
             'proximal':'(proximal (region "rad36"))',
             'distint_in': '(sum (location 1 0.5) (location 2 0.7) (location 5 0.1))',
@@ -231,12 +231,12 @@ f.write(write_morphology('ysoma_morph3',   ysoma_morph3))
 
 f.write('\n############# locsets\n\n')
 for label in locsets:
-    locs = [(l.branch, l.pos) for l in cell.locations(label)]
+    locs = [(l.branch, l.pos) for l in cell.locations('"{}"'.format(label))]
     f.write('ls_{}  = {{\'type\': \'locset\', \'value\': {}}}\n'.format(label, locs))
 
 f.write('\n############# regions\n\n')
 for label in regions:
-    comps = [(c.branch, c.prox, c.dist) for c in cell.cables(label)]
+    comps = [(c.branch, c.prox, c.dist) for c in cell.cables('"{}"'.format(label))]
     f.write('reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
 
 f.close()
