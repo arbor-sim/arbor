@@ -1,4 +1,4 @@
-#include <any>
+#include <optional>
 #include <stack>
 #include <string>
 #include <vector>
@@ -9,7 +9,6 @@
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "s_expr.hpp"
 #include "util/mergeview.hpp"
@@ -21,12 +20,12 @@
 namespace arb {
 namespace reg {
 
-util::optional<mcable> intersect(const mcable& a, const mcable& b) {
-    if (a.branch!=b.branch) return util::nullopt;
+std::optional<mcable> intersect(const mcable& a, const mcable& b) {
+    if (a.branch!=b.branch) return std::nullopt;
 
     double prox = std::max(a.prox_pos, b.prox_pos);
     double dist = std::min(a.dist_pos, b.dist_pos);
-    return prox<=dist? util::just(mcable{a.branch, prox, dist}): util::nullopt;
+    return prox<=dist? std::optional(mcable{a.branch, prox, dist}): std::nullopt;
 }
 
 // Empty region.

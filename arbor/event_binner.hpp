@@ -1,11 +1,11 @@
 #pragma once
 
 #include <limits>
+#include <optional>
 #include <unordered_map>
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
-#include <arbor/util/optional.hpp>
 
 namespace arb {
 
@@ -32,7 +32,7 @@ private:
     // Interval in which event times can be aliased.
     time_type bin_interval_;
 
-    util::optional<time_type> last_event_time_;
+    std::optional<time_type> last_event_time_;
 };
 
 } // namespace arb

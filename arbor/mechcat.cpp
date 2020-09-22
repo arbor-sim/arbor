@@ -59,7 +59,7 @@
 
 namespace arb {
 
-using util::value_by_key;
+using util::ptr_by_key;
 using util::unexpected;
 
 using std::make_unique;
@@ -209,10 +209,10 @@ struct catalogue_state {
     // Retrieve mechanism info for mechanism, derived mechanism, or implicitly
     // derived mechanism.
     hopefully<mechanism_info> info(const std::string& name) const {
-        if (const auto& deriv = value_by_key(derived_map_, name)) {
+        if (const auto* deriv = ptr_by_key(derived_map_, name)) {
             return *(deriv->derived_info.get());
         }
-        else if (auto p = value_by_key(info_map_, name)) {
+        else if (auto* p = ptr_by_key(info_map_, name)) {
             return *(p->get());
         }
         else if (auto deriv = derive(name)) {
@@ -238,12 +238,12 @@ struct catalogue_state {
             }
         }
 
-        while (auto maybe_deriv = value_by_key(derived_map_, *base)) {
-            base = &maybe_deriv->parent;
+        while (auto* deriv = ptr_by_key(derived_map_, *base)) {
+            base = &deriv->parent;
         }
 
-        if (const auto& p = value_by_key(info_map_, *base)) {
-            return &p.value()->fingerprint;
+        if (const auto* p = ptr_by_key(info_map_, *base)) {
+            return &p->get()->fingerprint;
         }
 
         throw arbor_internal_error("inconsistent catalogue map state");
@@ -279,7 +279,7 @@ struct catalogue_state {
             const auto& param = kv.first;
             const auto& value = kv.second;
 
-            if (auto p = value_by_key(new_info->globals, param)) {
+            if (auto* p = ptr_by_key(new_info->globals, param)) {
                 if (!p->valid(value)) {
                     return unexpected_exception_ptr(invalid_parameter_value(name, param, value));
                 }
@@ -302,7 +302,7 @@ struct catalogue_state {
 
         string_map<ion_dependency> new_ions;
         for (const auto& kv: new_info->ions) {
-            if (auto new_ion = value_by_key(ion_remap_map, kv.first)) {
+            if (auto* new_ion = ptr_by_key(ion_remap_map, kv.first)) {
                 if (!new_ions.insert({*new_ion, kv.second}).second) {
                     return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, *new_ion));
                 }
@@ -408,14 +408,14 @@ struct catalogue_state {
         }
 
         for (;;) {
-            if (const auto mech_impls = value_by_key(impl_map_, *impl_name)) {
-                if (auto p = value_by_key(mech_impls.value(), tidx)) {
+            if (const auto* mech_impls = ptr_by_key(impl_map_, *impl_name)) {
+                if (auto* p = ptr_by_key(*mech_impls, tidx)) {
                     return p->get()->clone();
                 }
             }
 
             // Try parent instead.
-            if (const auto p = value_by_key(derived_map_, *impl_name)) {
+            if (const auto* p = ptr_by_key(derived_map_, *impl_name)) {
                 impl_name = &p->parent;
             }
             else {
@@ -436,13 +436,13 @@ struct catalogue_state {
             if (!deriv.ion_remap.empty()) {
                 string_map<std::string> new_rebind = deriv.ion_remap;
                 for (auto& kv: over.ion_rebind) {
-                    if (auto opt_v = value_by_key(deriv.ion_remap, kv.second)) {
+                    if (auto* v = ptr_by_key(deriv.ion_remap, kv.second)) {
                         new_rebind.erase(kv.second);
-                        new_rebind[kv.first] = *opt_v;
+                        new_rebind[kv.first] = *v;
                     }
                 }
                 for (auto& kv: over.ion_rebind) {
-                    if (!value_by_key(deriv.ion_remap, kv.second)) {
+                    if (!ptr_by_key(deriv.ion_remap, kv.second)) {
                         new_rebind[kv.first] = kv.second;
                     }
                 }
@@ -455,13 +455,13 @@ struct catalogue_state {
         // requested mechanism.
 
         auto apply_globals = [this, &apply_deriv](auto& self, const std::string& name, mechanism_overrides& over) -> void {
-            if (auto p = value_by_key(derived_map_, name)) {
+            if (auto* p = ptr_by_key(derived_map_, name)) {
                 self(self, p->parent, over);
                 apply_deriv(over, *p);
             }
         };
 
-        util::optional<derivation> implicit_deriv;
+        std::optional<derivation> implicit_deriv;
         if (!defined(name)) {
             if (auto deriv = derive(name)) {
                 implicit_deriv = std::move(deriv.value());

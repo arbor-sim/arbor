@@ -1,11 +1,14 @@
 #pragma once
 
+#include <optional>
+#include <random>
+#include <vector>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include <arbor/schedule.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/optional.hpp>
 
 namespace pyarb {
 
@@ -15,7 +18,7 @@ namespace pyarb {
 // an arb::regular_schedule when a C++ recipe is created from a Python recipe.
 struct regular_schedule_shim {
     using time_type = arb::time_type;
-    using opt_time_type = arb::util::optional<time_type>;
+    using opt_time_type = std::optional<time_type>;
 
     opt_time_type tstart = {};
     opt_time_type tstop = {};

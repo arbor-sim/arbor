@@ -5,7 +5,6 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "arbor/morph/morphology.hpp"
 #include "arbor/morph/segment_tree.hpp"
@@ -25,6 +24,7 @@ using namespace arb;
 
 using util::make_span;
 using util::count_along;
+using util::ptr_by_key;
 using util::value_by_key;
 
 namespace {
@@ -190,12 +190,12 @@ struct exp_instance {
     bool is_in(const arb::fvm_mechanism_config& C) const {
         std::vector<unsigned> _;
         auto part = util::make_partition(_, C.multiplicity);
-        auto& evals = *value_by_key(C.param_values, "e");
+        auto& evals = *ptr_by_key(C.param_values, "e");
         // Handle both expsyn and exp2syn by looking for "tau1" if "tau"
         // parameter is not found.
-        auto& tauvals = value_by_key(C.param_values, "tau")?
-            *value_by_key(C.param_values, "tau"):
-            *value_by_key(C.param_values, "tau1");
+        auto& tauvals = *(value_by_key(C.param_values, "tau")?
+            ptr_by_key(C.param_values, "tau"):
+            ptr_by_key(C.param_values, "tau1"));
 
         for (auto i: make_span(C.multiplicity.size())) {
             exp_instance other(C.cv[i],
@@ -445,11 +445,11 @@ TEST(fvm_layout, synapse_targets) {
 
     auto& expsyn_cv = M.mechanisms.at("expsyn").cv;
     auto& expsyn_target = M.mechanisms.at("expsyn").target;
-    auto& expsyn_e = value_by_key(M.mechanisms.at("expsyn").param_values, "e"s).value();
+    auto& expsyn_e = *ptr_by_key(M.mechanisms.at("expsyn").param_values, "e"s);
 
     auto& exp2syn_cv = M.mechanisms.at("exp2syn").cv;
     auto& exp2syn_target = M.mechanisms.at("exp2syn").target;
-    auto& exp2syn_e = value_by_key(M.mechanisms.at("exp2syn").param_values, "e"s).value();
+    auto& exp2syn_e = *ptr_by_key(M.mechanisms.at("exp2syn").param_values, "e"s);
 
     EXPECT_TRUE(util::is_sorted(expsyn_cv));
     EXPECT_TRUE(util::is_sorted(exp2syn_cv));
@@ -597,8 +597,8 @@ TEST(fvm_layout, density_norm_area) {
     ASSERT_EQ(1u, M.mechanisms.count("hh"));
     auto& hh_params = M.mechanisms.at("hh").param_values;
 
-    auto& gkbar = value_by_key(hh_params, "gkbar"s).value();
-    auto& gl = value_by_key(hh_params, "gl"s).value();
+    auto& gkbar = *ptr_by_key(hh_params, "gkbar"s);
+    auto& gl = *ptr_by_key(hh_params, "gl"s);
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gkbar, gkbar));
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gl, gl));
@@ -676,9 +676,9 @@ TEST(fvm_layout, density_norm_area_partial) {
 
     auto& hh_params = M.mechanisms.at("hh").param_values;
 
-    auto& gkbar = value_by_key(hh_params, "gkbar"s).value();
-    auto& gnabar = value_by_key(hh_params, "gnabar"s).value();
-    auto& gl = value_by_key(hh_params, "gl"s).value();
+    auto& gkbar = *ptr_by_key(hh_params, "gkbar"s);
+    auto& gnabar = *ptr_by_key(hh_params, "gnabar"s);
+    auto& gl = *ptr_by_key(hh_params, "gl"s);
 
     ASSERT_EQ(1u, gkbar.size());
     ASSERT_EQ(1u, gnabar.size());

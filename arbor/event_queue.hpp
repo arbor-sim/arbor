@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <ostream>
 #include <queue>
 #include <type_traits>
@@ -9,7 +10,6 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike_event.hpp>
-#include <arbor/util/optional.hpp>
 #include <arbor/generic_event.hpp>
 
 namespace arb {
@@ -46,20 +46,20 @@ public:
     }
 
     // Return time t of head of queue if `t_until` > `t`.
-    util::optional<event_time_type> time_if_before(const event_time_type& t_until) {
+    std::optional<event_time_type> time_if_before(const event_time_type& t_until) {
         if (queue_.empty()) {
-            return util::nullopt;
+            return std::nullopt;
         }
 
         using ::arb::event_time;
         auto t = event_time(queue_.top());
-        return t_until > t? util::just(t): util::nullopt;
+        return t_until > t? std::optional(t): std::nullopt;
     }
 
     // Generic conditional pop: pop and return head of queue if
     // queue non-empty and the head satisfies predicate.
     template <typename Pred>
-    util::optional<value_type> pop_if(Pred&& pred) {
+    std::optional<value_type> pop_if(Pred&& pred) {
         using ::arb::event_time;
         if (!queue_.empty() && pred(queue_.top())) {
             auto ev = queue_.top();
@@ -67,12 +67,12 @@ public:
             return ev;
         }
         else {
-            return util::nullopt;
+            return std::nullopt;
         }
     }
 
     // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
-    util::optional<value_type> pop_if_before(const event_time_type& t_until) {
+    std::optional<value_type> pop_if_before(const event_time_type& t_until) {
         using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return t_until > event_time(ev); }
@@ -80,7 +80,7 @@ public:
     }
 
     // Pop and return top event `ev` of queue unless `event_time(ev)` > `t_until`
-    util::optional<value_type> pop_if_not_after(const event_time_type& t_until) {
+    std::optional<value_type> pop_if_not_after(const event_time_type& t_until) {
         using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }

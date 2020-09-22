@@ -8,7 +8,6 @@
 
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
-#include <arbor/util/optional.hpp>
 
 // Mechanism catalogue maintains:
 //

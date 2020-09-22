@@ -5,11 +5,11 @@
 #include <iomanip>
 #include <ios>
 #include <numeric>
+#include <optional>
 #include <ostream>
 #include <stdexcept>
 #include <vector>
 
-#include <arbor/util/optional.hpp>
 #include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
 #include "gpu_api.hpp"
@@ -20,19 +20,19 @@ extern "C" {
     #include <unistd.h>
 }
 
-arb::util::optional<std::string> get_hostname() {
+std::optional<std::string> get_hostname() {
     // Hostnames can be up to 256 characters in length, however on many systems
     // it is limitted to 64.
     char name[256];
     auto result = gethostname(name, sizeof(name));
     if (result) {
-        return arb::util::nullopt;
+        return std::nullopt;
     }
     return std::string(name);
 }
 #else
-arb::util::optional<std::string> get_hostname() {
-    return arb::util::nullopt;
+std::optional<std::string> get_hostname() {
+    return std::nullopt;
 }
 #endif
 

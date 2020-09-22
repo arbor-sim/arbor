@@ -10,6 +10,7 @@
 #include <cmath>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <stdexcept>
 #include <utility>
@@ -21,7 +22,6 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/util/any_visitor.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "builtin_mechanisms.hpp"
 #include "execution_context.hpp"
@@ -697,12 +697,12 @@ struct probe_resolution_data {
     };
 
     // Index into ion data from location.
-    util::optional<fvm_index_type> ion_location_index(const std::string& ion, mlocation loc) const {
+    std::optional<fvm_index_type> ion_location_index(const std::string& ion, mlocation loc) const {
         if (state->ion_data.count(ion)) {
             return util::binary_search_index(M.ions.at(ion).cv,
                 fvm_index_type(D.geometry.location_cv(cell_idx, loc, cv_prefer::cv_nonempty)));
         }
-        return util::nullopt;
+        return std::nullopt;
     }
 };
 
