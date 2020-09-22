@@ -182,7 +182,7 @@ R"~(
         labels.import(m1.segments, "seg:");
         mprovider P(m1.morphology, labels);
 
-        EXPECT_TRUE(region_eq(P, "seg:0", reg::all()));
+        EXPECT_TRUE(region_eq(P, reg::named("seg:0"), reg::all()));
 
         place_pwlin G(P.morphology());
         EXPECT_EQ(p0, G.at(mlocation{0, 0}));
@@ -442,6 +442,7 @@ R"~(
 )~";
 
     arbnml::neuroml N(doc);
+    using reg::named;
 
     {
         arbnml::morphology_data m1 = N.morphology("m1").value();
@@ -450,9 +451,9 @@ R"~(
         labels.import(m1.groups);
         mprovider P(m1.morphology, labels);
 
-        EXPECT_TRUE(region_eq(P, "group-a", "0"));
-        EXPECT_TRUE(region_eq(P, "group-b", "2"));
-        EXPECT_TRUE(region_eq(P, "group-c", join(region("2"), region("1"))));
+        EXPECT_TRUE(region_eq(P, named("group-a"), named("0")));
+        EXPECT_TRUE(region_eq(P, named("group-b"), named("2")));
+        EXPECT_TRUE(region_eq(P, named("group-c"), join(named("2"), named("1"))));
     }
     {
         arbnml::morphology_data m2 = N.morphology("m2").value();
@@ -461,9 +462,9 @@ R"~(
         labels.import(m2.groups);
         mprovider P(m2.morphology, labels);
 
-        EXPECT_TRUE(region_eq(P, "group-a", join(region("0"), region("2"))));
-        EXPECT_TRUE(region_eq(P, "group-c", join(region("0"), region("1"), region("2"))));
-        EXPECT_TRUE(region_eq(P, "group-d", join(region("0"), region("2"), region("3"))));
+        EXPECT_TRUE(region_eq(P, named("group-a"), join(named("0"), named("2"))));
+        EXPECT_TRUE(region_eq(P, named("group-c"), join(named("0"), named("1"), named("2"))));
+        EXPECT_TRUE(region_eq(P, named("group-d"), join(named("0"), named("2"), named("3"))));
     }
 }
 
@@ -622,17 +623,19 @@ R"~(
     // Note: paths/subTrees respect segment parent–child relationships,
     // not morphological distality.
 
-    EXPECT_TRUE(region_eq(P, "path01", join(region("0"), region("1"))));
-    EXPECT_TRUE(region_eq(P, "path12", join(region("1"), region("2"))));
-    EXPECT_TRUE(region_eq(P, "path10", reg::nil()));
-    EXPECT_TRUE(region_eq(P, "path0-", reg::all()));
-    EXPECT_TRUE(region_eq(P, "path1-", join(region("1"), region("2"), region("3"))));
-    EXPECT_TRUE(region_eq(P, "path-3", join(region("0"), region("1"), region("3"))));
+    using reg::named;
 
-    EXPECT_TRUE(region_eq(P, "subTree01", join(region("0"), region("1"))));
-    EXPECT_TRUE(region_eq(P, "subTree12", join(region("1"), region("2"))));
-    EXPECT_TRUE(region_eq(P, "subTree10", reg::nil()));
-    EXPECT_TRUE(region_eq(P, "subTree0-", reg::all()));
-    EXPECT_TRUE(region_eq(P, "subTree1-", join(region("1"), region("2"), region("3"))));
-    EXPECT_TRUE(region_eq(P, "subTree-3", join(region("0"), region("1"), region("3"))));
+    EXPECT_TRUE(region_eq(P, named("path01"), join(named("0"), named("1"))));
+    EXPECT_TRUE(region_eq(P, named("path12"), join(named("1"), named("2"))));
+    EXPECT_TRUE(region_eq(P, named("path10"), reg::nil()));
+    EXPECT_TRUE(region_eq(P, named("path0-"), reg::all()));
+    EXPECT_TRUE(region_eq(P, named("path1-"), join(named("1"), named("2"), named("3"))));
+    EXPECT_TRUE(region_eq(P, named("path-3"), join(named("0"), named("1"), named("3"))));
+
+    EXPECT_TRUE(region_eq(P, named("subTree01"), join(named("0"), named("1"))));
+    EXPECT_TRUE(region_eq(P, named("subTree12"), join(named("1"), named("2"))));
+    EXPECT_TRUE(region_eq(P, named("subTree10"), reg::nil()));
+    EXPECT_TRUE(region_eq(P, named("subTree0-"), reg::all()));
+    EXPECT_TRUE(region_eq(P, named("subTree1-"), join(named("1"), named("2"), named("3"))));
+    EXPECT_TRUE(region_eq(P, named("subTree-3"), join(named("0"), named("1"), named("3"))));
 }
