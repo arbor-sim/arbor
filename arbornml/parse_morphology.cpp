@@ -146,7 +146,7 @@ struct neuroml_segment {
 };
 
 struct neuroml_segment_group_subtree {
-    // Interval determined by segmend ids.
+    // Interval determined by segment ids.
     // Represents both `<path>` and `<subTree>` elements.
     optional<non_negative> from, to;
 
@@ -192,8 +192,7 @@ struct neuroml_segment_tree {
         return index_.count(id);
     }
 
-    // Construct from vector of segments. Will happily throw if
-    // something doesn't add up.
+    // Construct from vector of segments. Will happily throw if something doesn't add up.
     explicit neuroml_segment_tree(std::vector<neuroml_segment> segs):
         segments_(std::move(segs))
     {

@@ -43,7 +43,7 @@ set(CXXOPT_WALL
     # Clang (Apple):
     #
     # * Disable 'range-loop-analysis' warning: disabled by default in
-    #   clang, but enabled in clang, this will flag loops of the form
+    #   clang, but enabled in Apple clang, this will flag loops of the form
     #   `for (auto& x: y)` where iterators for `y` dereference to proxy objects.
     #   Such code is correct, and the warning is spurious.
 
