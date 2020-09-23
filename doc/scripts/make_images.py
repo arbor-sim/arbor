@@ -11,11 +11,11 @@ tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 # ############################################
 #
 
-def dataframe_line_plot(input_filename, output_filename):
-    print('generating:', output_filename)
-    dataframe = pandas.read_csv(input_filename,index_col=0)
-    axes = dict(zip(['x','y','hue','col','style'],dataframe.columns.values)) ##5D seems enough for now.
-    seaborn.relplot(data=dataframe, kind="line", **axes).savefig(output_filename)
+def dataframe_line_plot(input_csv, output_svg):
+    print('generating:', output_svg)
+    dataframe = pandas.read_csv(input_csv,index_col=0)
+    axes = dict(zip(['x','y','hue','col','style'],dataframe.columns.values)) # 5D seems enough for now.
+    seaborn.relplot(data=dataframe, kind="line", **axes).savefig(output_svg)
 
 #
 # ############################################
