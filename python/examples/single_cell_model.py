@@ -33,9 +33,11 @@ else:
     print('no spikes')
 
 # (8) Plot the recorded voltages over time.
-import matplotlib.pyplot as plt
-fig, ax = plt.subplots()
-for t in m.traces:
-    ax.plot(t.time, t.value)
-ax.set(xlabel='time (ms)', ylabel='voltage (mV)')
-plt.show()
+import seaborn
+df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
+seaborn.relplot(data=df, kind="line", x=m.traces[0].time, y=m.traces[0].value).savefig('single_cell_model_result.svg')
+
+# (9) Optionally, you can store your results for later processing.
+import pandas
+df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
+df.to_csv('single_cell_model_result.csv', float_format='%g')

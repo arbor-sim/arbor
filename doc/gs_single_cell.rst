@@ -100,23 +100,21 @@ Our cell and network are defined; we have ran the simulation. However, we have n
         print('no spikes')
 
     # (8) Plot the recorded voltages over time.
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots()
-    for t in m.traces:
-        ax.plot(t.time, t.value)
-    ax.set(xlabel='time (ms)', ylabel='voltage (mV)')
-    plt.show()
+    import pandas, seaborn
+    df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
+    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 
 In step **(7)** we access :meth:`arbor.single_cell_model.spikes<arbor._arbor.single_cell_model.spikes>` to access the spike time. A single spike at a little over 10 ms should be printed, which matches the stimulus we have provided in step (3).
 
 The other measurement we have is that of the potential, which we plot in step **(8)**. Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor._arbor.single_cell_model.traces>`. You should be seeing something like this:
 
-.. image:: images/quick_start_plot.png
+.. figure:: gen-images/single_cell_model_result.svg
     :width: 400
-    :alt: Plot of the potential over time for the voltage probe added in step (5).
+    :align: center
 
-.. Note::
-    You can find the source code for this example in full at ``python/examples/single_cell_model.py``.
+    Plot of the potential over time for the voltage probe added in step (5).
+
+You can find the source code for this example in full at ``python/examples/single_cell_model.py``.
 
 .. Todo::
     Add equivalent but more comprehensive recipe implementation in parallel, such that the reader learns how single_cell_model works.
