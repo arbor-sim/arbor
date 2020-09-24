@@ -31,22 +31,22 @@ class sentinel_iterator {
 
     I& iter() {
         arb_assert(!is_sentinel());
-        return get<0>(e_);
+        return std::get<0>(e_);
     }
 
     const I& iter() const {
         arb_assert(!is_sentinel());
-        return get<0>(e_);
+        return std::get<0>(e_);
     }
 
     S& sentinel() {
         arb_assert(is_sentinel());
-        return get<1>(e_);
+        return std::get<1>(e_);
     }
 
     const S& sentinel() const {
         arb_assert(is_sentinel());
-        return get<1>(e_);
+        return std::get<1>(e_);
     }
 
 public:

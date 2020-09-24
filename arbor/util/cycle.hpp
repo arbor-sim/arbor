@@ -185,31 +185,20 @@ cyclic_iterator<I, S> make_cyclic_iterator(const I& iter, const S& sentinel) {
 }
 
 
-// TODO C++17: simplify with constexpr-if
-namespace cycle_impl {
+template <typename Seq>
+auto cyclic_view(Seq&& s) {
     using std::begin;
     using std::end;
 
-    // cycle over regular sequences:
-    template <typename Seq>
-    auto cycle_(Seq&& s, std::true_type) {
-        auto b = begin(s);
-        auto e = end(s);
+    auto b = begin(s);
+    auto e = end(s);
+
+    if constexpr (is_regular_sequence_v<Seq&&>) {
         return make_range(make_cyclic_iterator(b, e), make_cyclic_iterator(e, e));
     }
-
-    // cycle over sentinel-terminated sequences:
-    template <typename Seq>
-    auto cycle_(Seq&& s, std::false_type) {
-        auto b = begin(s);
-        auto e = end(s);
+    else {
         return make_range(make_cyclic_iterator(b, e), e);
     }
-}
-
-template <typename Seq>
-auto cyclic_view(Seq&& s) {
-    return cycle_impl::cycle_(std::forward<Seq>(s), is_regular_sequence<Seq&&>{});
 }
 
 // Handle initializer lists

@@ -49,20 +49,20 @@ static bool is_degenerate(const util::pw_elements<Elem>& pw) {
 }
 
 mpoint place_pwlin::at(mlocation loc) const {
-    const auto& index = data_->segment_index.at(loc.branch);
-    double pos = is_degenerate(index)? 0: loc.pos;
+    const auto& pw_index = data_->segment_index.at(loc.branch);
+    double pos = is_degenerate(pw_index)? 0: loc.pos;
 
-    auto piece = index(pos); // Here and below, TODO: C++17 structured bindings for piece.first and second.
-    return interpolate_segment(piece.first, data_->segments.at(piece.second), pos);
+    auto [bounds, index] = pw_index(pos);
+    return interpolate_segment(bounds, data_->segments.at(index), pos);
 }
 
 std::vector<mpoint> place_pwlin::all_at(mlocation loc) const {
     std::vector<mpoint> result;
-    const auto& index = data_->segment_index.at(loc.branch);
-    double pos = is_degenerate(index)? 0: loc.pos;
+    const auto& pw_index = data_->segment_index.at(loc.branch);
+    double pos = is_degenerate(pw_index)? 0: loc.pos;
 
-    for (auto piece: util::make_range(index.equal_range(pos))) {
-        result.push_back(interpolate_segment(piece.first, data_->segments.at(piece.second), pos));
+    for (auto [bounds, index]: util::make_range(pw_index.equal_range(pos))) {
+        result.push_back(interpolate_segment(bounds, data_->segments.at(index), pos));
     }
     return result;
 }
@@ -72,17 +72,16 @@ static std::vector<msegment> extent_segments_impl(const place_pwlin_data& data, 
     std::vector<msegment> result;
 
     for (mcable c: extent) {
-        const auto& index = data.segment_index.at(c.branch);
-        if (is_degenerate(index)) {
+        const auto& pw_index = data.segment_index.at(c.branch);
+        if (is_degenerate(pw_index)) {
             c.prox_pos = c.dist_pos = 0;
         }
 
-        auto b = index.equal_range(c.prox_pos).first;
-        auto e = index.equal_range(c.dist_pos).second;
+        auto b = pw_index.equal_range(c.prox_pos).first;
+        auto e = pw_index.equal_range(c.dist_pos).second;
 
-        for (auto piece: util::make_range(b, e)) {
-            const auto& bounds = piece.first;
-            const msegment& seg = data.segments.at(piece.second);
+        for (const auto [bounds, index]: util::make_range(b, e)) {
+            const msegment& seg = data.segments.at(index);
 
             auto partial_bounds = bounds;
             msegment partial = seg;

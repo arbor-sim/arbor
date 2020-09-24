@@ -33,9 +33,7 @@ double interpolate(const branch_pw_ratpoly<p, q>& f, unsigned bid, double pos) {
     const auto& pw = f.at(bid);
     if (is_degenerate(pw)) pos = 0;
 
-    auto piece = pw(pos);
-    auto& bounds = piece.first;   // TODO: C++17 structured binding.
-    auto& element = piece.second;
+    auto [bounds, element] = pw(pos);
 
     if (bounds.first==bounds.second) return element[0];
     else {

@@ -127,27 +127,17 @@ transform_iterator<I, std::decay_t<F>> make_transform_iterator(const I& i, const
     return transform_iterator<I, std::decay_t<F>>(i, f);
 }
 
-// TODO C++17: simplify with constexpr-if
-namespace transform_impl {
+template <typename Seq, typename F>
+auto transform_view(Seq&& s, const F& f) {
     using std::begin;
     using std::end;
 
-    // transform over regular sequences:
-    template <typename Seq, typename F>
-    auto transform_(Seq&& s, const F& f, std::true_type) {
+    if constexpr (is_regular_sequence_v<Seq&&>) {
         return make_range(make_transform_iterator(begin(s), f), make_transform_iterator(end(s), f));
     }
-
-    // transform over sentinel-terminated sequences:
-    template <typename Seq, typename F>
-    auto transform_(Seq&& s, const F& f, std::false_type) {
+    else {
         return make_range(make_transform_iterator(begin(s), f), end(s));
     }
-}
-
-template <typename Seq, typename F>
-auto transform_view(Seq&& s, const F& f) {
-    return transform_impl::transform_(std::forward<Seq>(s), f, is_regular_sequence<Seq&&>{});
 }
 
 } // namespace util
