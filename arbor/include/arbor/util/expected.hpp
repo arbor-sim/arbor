@@ -472,20 +472,7 @@ struct expected<void, E> {
     // Swap ops.
 
     void swap(expected& other) {
-        // TODO: C++17 just use std::optional::swap; haven't implemented util::optional::swap.
-        if (data_) {
-            if (other.data_) {
-                std::swap(*data_, *other.data_);
-            }
-            else {
-                other.data_ = std::move(data_);
-                data_.reset();
-            }
-        }
-        else if (other.data_) {
-            data_ = std::move(other.data_);
-            other.data_.reset();
-        }
+        data_.swap(other.data);
     }
 
     // Accessors.

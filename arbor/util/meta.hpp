@@ -73,13 +73,22 @@ template <typename T>
 using is_sequence = impl_seqtrait::is_sequence<T>;
 
 template <typename T>
+inline constexpr bool is_sequence_v = is_sequence<T>::value;
+
+template <typename T>
 using enable_if_sequence_t = std::enable_if_t<util::is_sequence<T>::value>;
 
 template <typename T>
 using is_contiguous = std::integral_constant<bool, sequence_traits<T>::is_contiguous>;
 
 template <typename T>
+inline constexpr bool is_contiguous_v = is_contiguous<T>::value;
+
+template <typename T>
 using is_regular_sequence = std::integral_constant<bool, sequence_traits<T>::is_regular>;
+
+template <typename T>
+inline constexpr bool is_regular_sequence_v = is_regular_sequence<T>::value;
 
 // Convenience short cuts for `enable_if`
 
@@ -122,7 +131,7 @@ struct is_iterator<T, std::void_t<typename std::iterator_traits<T>::iterator_cat
     public std::true_type {};
 
 template <typename T>
-using is_iterator_t = typename util::is_iterator<T>::type;
+inline constexpr bool is_iterator_v = is_iterator<T>::value;
 
 // Random access iterator test
 
@@ -137,7 +146,7 @@ struct is_random_access_iterator<T, std::enable_if_t<
     >> : public std::true_type {};
 
 template <typename T>
-using is_random_access_iterator_t = typename util::is_random_access_iterator<T>::type;
+inline constexpr bool is_random_access_iterator_v = is_random_access_iterator<T>::value;
 
 // Bidirectional iterator test
 
@@ -156,7 +165,7 @@ struct is_bidirectional_iterator<T, std::enable_if_t<
     >> : public std::true_type {};
 
 template <typename T>
-using is_bidirectional_iterator_t = typename util::is_bidirectional_iterator<T>::type;
+inline constexpr bool is_bidirectional_iterator_v = is_bidirectional_iterator<T>::value;
 
 // Forward iterator test
 
@@ -179,8 +188,7 @@ struct is_forward_iterator<T, std::enable_if_t<
     >> : public std::true_type {};
 
 template <typename T>
-using is_forward_iterator_t = typename util::is_forward_iterator<T>::type;
-
+inline constexpr bool is_forward_iterator_v = is_forward_iterator<T>::value;
 
 template <typename I, typename E, typename = void, typename = void>
 struct common_random_access_iterator {};
@@ -202,7 +210,7 @@ struct common_random_access_iterator<
 };
 
 template <typename I, typename E>
-using common_random_access_iterator_t = typename util::common_random_access_iterator<I, E>::type;
+using common_random_access_iterator_t = typename common_random_access_iterator<I, E>::type;
 
 template <typename I, typename E, typename V=void>
 struct has_common_random_access_iterator:
@@ -212,6 +220,9 @@ template <typename I, typename E>
 struct has_common_random_access_iterator<I, E, std::void_t<util::common_random_access_iterator_t<I, E>>>:
     std::true_type {};
 
+template <typename I, typename E>
+inline constexpr bool has_common_random_access_iterator_v = has_common_random_access_iterator<I, E>::value;
+
 // Generic accessors:
 //    * first and second for pairs and tuples;
 //    * util::get<I> to forward to std::get<I> where applicable, but
@@ -219,12 +230,6 @@ struct has_common_random_access_iterator<I, E, std::void_t<util::common_random_a
 
 static auto first = [](auto&& pair) -> decltype(auto) { return std::get<0>(std::forward<decltype(pair)>(pair)); };
 static auto second = [](auto&& pair) -> decltype(auto) { return std::get<1>(std::forward<decltype(pair)>(pair)); };
-
-template <typename X, typename U>
-decltype(auto) get(U&& u) { return std::get<X>(std::forward<U>(u));}
-
-template <std::size_t I, typename U>
-decltype(auto) get(U&& u) { return std::get<I>(std::forward<U>(u));}
 
 } // namespace util
 } // namespace arb
