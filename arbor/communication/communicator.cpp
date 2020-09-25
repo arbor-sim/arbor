@@ -6,6 +6,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
+#include <include/arbor/arbexcept.hpp>
 
 #include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
@@ -32,6 +33,7 @@ communicator::communicator(const recipe& rec,
     num_domains_ = distributed_->size();
     num_local_groups_ = dom_dec.groups.size();
     num_local_cells_ = dom_dec.num_local_cells;
+    auto num_total_cells = rec.num_cells();
 
     // For caching information about each cell
     struct gid_info {
@@ -75,9 +77,24 @@ communicator::communicator(const recipe& rec,
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
-    for (const auto& g: gid_infos) {
-        for (auto con: g.conns) {
-            const auto src = dom_dec.gid_domain(con.source.gid);
+
+    for (const auto& cell: gid_infos) {
+        auto num_targets = rec.num_targets(cell.gid);
+        for (auto c: cell.conns) {
+            auto num_sources = rec.num_sources(c.source.gid);
+            if (c.source.gid >= num_total_cells) {
+                throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
+            }
+            if (c.source.index >= num_sources) {
+                throw arb::bad_connection_source_lid(cell.gid, c.source.index, num_sources);
+            }
+            if (c.dest.gid != cell.gid) {
+                throw arb::bad_connection_target_gid(cell.gid, c.dest.gid);
+            }
+            if (c.dest.index >= num_targets) {
+                throw arb::bad_connection_target_lid(cell.gid, c.dest.index, num_targets);
+            }
+            const auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);
             src_counts[src]++;
         }

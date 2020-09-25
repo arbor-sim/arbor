@@ -12,6 +12,8 @@
 #include <arbor/recipe.hpp>
 #include <arbor/util/unique_any.hpp>
 
+#include "util/rangeutil.hpp"
+
 namespace arb {
 
 // Common functionality: maintain an unordered map of probe data
@@ -119,7 +121,7 @@ public:
     }
 
     cell_size_type num_targets(cell_gid_type i) const override {
-        return cells_.at(i).synapses().size();
+        return util::sum_by(cells_.at(i).synapses(), [](auto& syn) {return syn.second.size();});
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
