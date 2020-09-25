@@ -25,12 +25,12 @@ void label_dict::set(const std::string& name, arb::region reg) {
     regions_[name] = std::move(reg);
 }
 
-void label_dict::import(const label_dict& other) {
+void label_dict::import(const label_dict& other, const std::string& prefix) {
     for (const auto& entry: other.locsets()) {
-        set(entry.first, entry.second);
+        set(prefix+entry.first, entry.second);
     }
     for (const auto& entry: other.regions()) {
-        set(entry.first, entry.second);
+        set(prefix+entry.first, entry.second);
     }
 }
 
