@@ -76,7 +76,12 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} -DARB_ARCH=${ARCH} ${CXX_FLAGS} ${PY_FLAGS}"
+# Fix CMake/Homebrew/XCode mess. See: https://github.com/apple/swift/pull/32436
+if which xcrun >/dev/null; then
+    typeset -x CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}":$(xcrun --sdk macosx --show-sdk-path)/usr
+fi
+
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_NEUROML=${WITH_NEUROML} -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} -DARB_ARCH=${ARCH} ${CXX_FLAGS} ${PY_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 

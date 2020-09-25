@@ -16,7 +16,7 @@ class label_dict {
     reg_map regions_;
 
 public:
-    void import(const label_dict& other);
+    void import(const label_dict& other, const std::string& prefix = "");
 
     void set(const std::string& name, locset ls);
     void set(const std::string& name, region reg);

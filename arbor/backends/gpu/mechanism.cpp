@@ -157,7 +157,8 @@ void mechanism::instantiate(unsigned id,
     for (auto i: make_span(0, num_ions_)) {
         auto ion_binding = value_by_key(overrides.ion_rebind, ion_index_tbl[i].first).value_or(ion_index_tbl[i].first);
 
-        ion_state* oion = value_by_key(shared.ion_data, ion_binding);
+        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
+
         if (!oion) {
             throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
         }
