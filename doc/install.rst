@@ -48,7 +48,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     Compiler    Min version  Notes
     =========== ============ ============================================
     GCC         8.4.0
-    Clang       7.0          Needs GCC 8 or later for standard library.
+    Clang       8.0          Needs GCC 8 or later for standard library.
     Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
     Hip Clang   Rocm 3.6     HIP support is currently experimental.
     =========== ============ ============================================
@@ -131,7 +131,7 @@ NeuroML
 
 Arbor supports reading cell morphologies defined in NeuroML version 2 through
 an additional NeuroML support library ``arbornml``. This library requires
-``libxml2`` for the parsing of NeuroML2 XML. See :ref:`install-neuroml` for
+`libxml2 <http://xmlsoft.org>`_ for the parsing of NeuroML2 XML. See :ref:`install-neuroml` for
 more information.
 
 
@@ -475,7 +475,7 @@ Arbor has limited support for NeuroML version 2 through an additional library
 is passed to CMake at configuration time. ``arbornml`` depends upon the
 the ``libxml2`` library for XML parsing.
 
-With NeuroML support enabled, Arbor will aditionally install the static library
+With NeuroML support enabled, Arbor will additionally install the static library
 ``libarbornml.a``. Applications using this functionality will need to link
 against this library in addition to the main Arbor library and ``libxml2``.
 For example:

@@ -219,7 +219,7 @@ struct neuroml_segment_tree {
             return s.parent_id? box{index_.at(*s.parent_id)}: box<std::size_t>{};
         };
         if (auto depths = topological_sort(n_seg, inset)) {
-            const auto&d = depths.value();
+            const auto& d = depths.value();
             for (std::size_t i = 0; i<n_seg; ++i) {
                 segments_[i].tdepth = d[i];
             }

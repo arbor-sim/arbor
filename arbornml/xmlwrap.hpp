@@ -18,6 +18,13 @@
 
 namespace arbnml {
 
+// `non_negative` represents the corresponding constraint in the schema, which
+// can mean any arbitrarily large non-negtative integer value.
+//
+// A faithful representation would use an arbitrary-size 'big' integer or
+// a string, but for ease of implementation (and a bit more speed) we restrict
+// it to whatever we can fit in an unsigned long long.
+
 using non_negative = unsigned long long;
 
 // String wrappers around `to_chars` for attribute types we care about.
@@ -138,7 +145,7 @@ struct xml_nodeset: protected xml_base<xmlNodeSet>  {
 
         struct ptr_proxy {
             xml_node inner_;
-            xml_node* operator->() const { return const_cast<xml_node*>(&inner_); }
+            const xml_node* operator->() const { return &inner_; }
         };
         ptr_proxy operator->() const { return ptr_proxy{ns_ptr_->mk_xml_node(*p_)}; }
 
