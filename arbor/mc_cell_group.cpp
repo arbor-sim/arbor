@@ -1,4 +1,5 @@
 #include <functional>
+#include <optional>
 #include <unordered_set>
 #include <variant>
 #include <vector>
