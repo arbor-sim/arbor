@@ -12,7 +12,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/util/any_ptr.hpp>
-#include <arbor/util/optional.hpp>
 
 namespace arb {
 

@@ -5,7 +5,6 @@
 #include <arbor/math.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/locset.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "fvm_layout.hpp"
 #include "util/span.hpp"

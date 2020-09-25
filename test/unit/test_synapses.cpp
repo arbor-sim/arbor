@@ -6,7 +6,6 @@
 
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/optional.hpp>
 #include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"

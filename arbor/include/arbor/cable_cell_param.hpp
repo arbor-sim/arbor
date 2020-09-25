@@ -1,14 +1,14 @@
 #pragma once
 
+#include <memory>
+#include <optional>
+#include <unordered_map>
+#include <string>
+
 #include <arbor/arbexcept.hpp>
 #include <arbor/cv_policy.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/locset.hpp>
-#include <arbor/util/optional.hpp>
-
-#include <memory>
-#include <unordered_map>
-#include <string>
 
 namespace arb {
 
@@ -26,9 +26,9 @@ struct cable_cell_error: arbor_exception {
 // separately (see below).
 
 struct cable_cell_ion_data {
-    util::optional<double> init_int_concentration;
-    util::optional<double> init_ext_concentration;
-    util::optional<double> init_reversal_potential;
+    std::optional<double> init_int_concentration;
+    std::optional<double> init_ext_concentration;
+    std::optional<double> init_reversal_potential;
 };
 
 // Current clamp description for stimulus specification.
@@ -172,15 +172,15 @@ struct ion_reversal_potential_method {
 // cell defaults can be individually set with `cable_cell:set_default()`.
 
 struct cable_cell_parameter_set {
-    util::optional<double> init_membrane_potential; // [mV]
-    util::optional<double> temperature_K;           // [K]
-    util::optional<double> axial_resistivity;       // [Ω·cm]
-    util::optional<double> membrane_capacitance;    // [F/m²]
+    std::optional<double> init_membrane_potential; // [mV]
+    std::optional<double> temperature_K;           // [K]
+    std::optional<double> axial_resistivity;       // [Ω·cm]
+    std::optional<double> membrane_capacitance;    // [F/m²]
 
     std::unordered_map<std::string, cable_cell_ion_data> ion_data;
     std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
 
-    util::optional<cv_policy> discretization;
+    std::optional<cv_policy> discretization;
 };
 
 extern cable_cell_parameter_set neuron_parameter_defaults;

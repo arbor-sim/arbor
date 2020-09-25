@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <utility>
 
-#include <arbor/util/optional.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/locset.hpp>

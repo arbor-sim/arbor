@@ -21,7 +21,6 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/util/any_cast.hpp>
-#include <arbor/util/optional.hpp>
 #include <arbor/util/unique_any.hpp>
 
 #include "cells.hpp"
@@ -215,7 +214,7 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
 
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
-    using arb::util::optional;
+    using std::optional;
 
     // arb::spike_source_cell
 

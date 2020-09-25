@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <unordered_set>
@@ -10,7 +11,6 @@
 #include <arbor/morph/mcable_map.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "fvm_layout.hpp"
 #include "threading/threading.hpp"
@@ -45,7 +45,7 @@ struct get_value {
 };
 
 template <typename V>
-util::optional<V> operator|(const util::optional<V>& a, const util::optional<V>& b) {
+std::optional<V> operator|(const std::optional<V>& a, const std::optional<V>& b) {
     return a? a: b;
 }
 

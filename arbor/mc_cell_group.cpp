@@ -1,4 +1,5 @@
 #include <functional>
+#include <optional>
 #include <unordered_set>
 #include <variant>
 #include <vector>
@@ -506,7 +507,7 @@ void mc_cell_group::remove_all_samplers() {
 std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type probe_id) const {
     // Probe associations are fixed after construction, so we do not need to grab the mutex.
 
-    util::optional<probe_tag> maybe_tag = util::value_by_key(probe_map_.tag, probe_id);
+    std::optional<probe_tag> maybe_tag = util::value_by_key(probe_map_.tag, probe_id);
     if (!maybe_tag) {
         return {};
     }
