@@ -206,7 +206,7 @@ add_subdirectory(ext)
 set(arbor_export_dependencies)
 
 # Keep track of which 'components' of arbor are included (this is
-# currently just 'MPI' support and 'NeuroML' for NeuroML support in
+# currently just 'MPI' support and 'neuroml' for NeuroML support in
 # libarbornml.)
 
 set(arbor_supported_components)
