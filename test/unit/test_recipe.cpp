@@ -1,5 +1,8 @@
 #include "../gtest.h"
 
+#include <any>
+#include <vector>
+
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
@@ -52,7 +55,7 @@ namespace {
         cell_size_type num_targets(cell_gid_type gid) const override {
             return num_targets_[gid];
         }
-        arb::util::any get_global_properties(cell_kind) const override {
+        std::any get_global_properties(cell_kind) const override {
             arb::cable_cell_global_properties a;
             a.default_parameters = arb::neuron_parameter_defaults;
             return a;
