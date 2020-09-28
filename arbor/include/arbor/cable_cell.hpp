@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -183,6 +184,7 @@ struct cable_probe_ion_ext_concentration_cell {
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
+
 // Typed maps for access to painted and placed assignments:
 //
 // Mechanisms and initial ion data are further keyed by
@@ -297,29 +299,9 @@ public:
     // Used to describe regions and locations where density channels, stimuli,
     // synapses, gap juncitons and detectors are located.
 
-    // Density channels.
-    void paint(const region&, mechanism_desc);
+    void paint(const region&, paintable);
 
-    // Properties.
-    void paint(const region&, init_membrane_potential);
-    void paint(const region&, axial_resistivity);
-    void paint(const region&, temperature_K);
-    void paint(const region&, membrane_capacitance);
-    void paint(const region&, init_int_concentration);
-    void paint(const region&, init_ext_concentration);
-    void paint(const region&, init_reversal_potential);
-
-    // Synapses.
-    lid_range place(const locset&, mechanism_desc);
-
-    // Stimuli.
-    lid_range place(const locset&, i_clamp);
-
-    // Gap junctions.
-    lid_range place(const locset&, gap_junction_site);
-
-    // Spike detectors.
-    lid_range place(const locset&, threshold_detector);
+    lid_range place(const locset&, placeable);
 
     // Convenience access to placed items.
 

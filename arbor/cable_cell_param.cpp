@@ -2,6 +2,7 @@
 #include <cmath>
 #include <numeric>
 #include <vector>
+#include <variant>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
@@ -67,5 +68,54 @@ cable_cell_parameter_set neuron_parameter_defaults = {
         {"ca", {5e-5,    2.0,  12.5*std::log(2.0/5e-5)}}
     },
 };
+
+
+// s-expression printers for paintable and placeable items.
+
+std::ostream& sstring(std::ostream& o, const mechanism_desc& d) {
+    o << "(mechanism \"" << d.name() << "\" (";
+    for (auto [n, v]: d.values()) {
+        o << "(\"" << n << "\" " << v << ")";
+    }
+    return o << "))";
+}
+std::ostream& sstring(std::ostream& o, const init_membrane_potential& p) {
+    return o << "(membrane-potential " << p.value << ")";
+}
+std::ostream& sstring(std::ostream& o, const axial_resistivity& r) {
+    return o << "(axial-resistivity " << r.value << ")";
+}
+std::ostream& sstring(std::ostream& o, const temperature_K& t) {
+    return o << "(temperature-kelvin " << t.value << ")";
+}
+std::ostream& sstring(std::ostream& o, const membrane_capacitance& c) {
+    return o << "(membrane-capacitance " << c.value << ")";
+}
+std::ostream& sstring(std::ostream& o, const init_int_concentration& c) {
+    return o << "(ion-internal-concentration \"" << c.ion << "\" " << c.value << ")";
+}
+std::ostream& sstring(std::ostream& o, const init_ext_concentration& c) {
+    return o << "(ion-external-concentration \"" << c.ion << "\" " << c.value << ")";
+}
+std::ostream& sstring(std::ostream& o, const init_reversal_potential& e) {
+    return o << "(ion-reversal-potential \"" << e.ion << "\" " << e.value << ")";
+}
+std::ostream& sstring(std::ostream& o, const i_clamp& c) {
+    return o << "(current-clamp " << c.amplitude << " " << c.delay << " " << c.duration << ")";
+}
+std::ostream& sstring(std::ostream& o, const threshold_detector& d) {
+    return o << "(threshold-detector " << d.threshold << ")";
+}
+std::ostream& sstring(std::ostream& o, const gap_junction_site& s) {
+    return o << "(gap-junciton-site)";
+}
+
+std::ostream& operator<<(std::ostream& o, const paintable& thing) {
+    return std::visit([&o](auto&& p) -> std::ostream& {return sstring(o, p);}, thing);
+}
+
+std::ostream& operator<<(std::ostream& o, const placeable& thing) {
+    return std::visit([&o](auto&& p) -> std::ostream& {return sstring(o, p);}, thing);
+}
 
 } // namespace arb

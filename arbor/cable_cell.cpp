@@ -1,5 +1,6 @@
 #include <sstream>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -168,24 +169,18 @@ const cable_cell_region_map& cable_cell::region_assignments() const {
     return impl_->region_map;
 }
 
-// Forward paint methods to implementation class.
-
-#define FWD_PAINT(proptype)\
-void cable_cell::paint(const region& target, proptype prop) {\
-    impl_->paint(target, prop);\
+// Forward paint method to implementation class.
+void cable_cell::paint(const region& target, paintable prop) {
+    std::visit(
+            [this, &target] (auto&& p) {impl_->paint(target, p);},
+            prop);
 }
-ARB_PP_FOREACH(FWD_PAINT,\
-    mechanism_desc, init_membrane_potential, axial_resistivity,\
-    temperature_K, membrane_capacitance, init_int_concentration,
-    init_ext_concentration, init_reversal_potential)
 
-// Forward place methods to implementation class.
-
-#define FWD_PLACE(proptype)\
-lid_range cable_cell::place(const locset& target, proptype prop) {\
-    return impl_->place(target, prop);\
+// Forward place method to implementation class.
+lid_range cable_cell::place(const locset& target, placeable prop) {
+    return std::visit(
+            [this, &target] (auto&& p) -> lid_range {return impl_->place(target, p);},
+            prop);
 }
-ARB_PP_FOREACH(FWD_PLACE,\
-    mechanism_desc, i_clamp, gap_junction_site, threshold_detector)
 
 } // namespace arb
