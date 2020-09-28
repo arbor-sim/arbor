@@ -11,7 +11,7 @@ endif()
 # Set up pybind11, which is used to generate Python bindings.
 # Pybind11 has good cmake support, so just add the pybind11 directory,
 # instead of using find_package.
-set(PYBIND11_CPP_STANDARD -std=c++14)
+set(PYBIND11_CPP_STANDARD -std=c++17)
 add_subdirectory(pybind11)
 
 set(pyarb_source
@@ -25,7 +25,6 @@ set(pyarb_source
     identifiers.cpp
     mechanism.cpp
     morphology.cpp
-    morph_parse.cpp
     mpi.cpp
     profiler.cpp
     pyarb.cpp
@@ -35,7 +34,6 @@ set(pyarb_source
     simulation.cpp
     single_cell_model.cpp
     spikes.cpp
-    s_expr.cpp
 )
 
 # compile the pyarb sources into an object library that will be

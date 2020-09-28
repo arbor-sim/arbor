@@ -1,5 +1,7 @@
 #include <functional>
+#include <optional>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include <arbor/assert.hpp>
@@ -309,7 +311,7 @@ void run_samples(
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
-    util::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
+    std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
 void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
@@ -505,7 +507,7 @@ void mc_cell_group::remove_all_samplers() {
 std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type probe_id) const {
     // Probe associations are fixed after construction, so we do not need to grab the mutex.
 
-    util::optional<probe_tag> maybe_tag = util::value_by_key(probe_map_.tag, probe_id);
+    std::optional<probe_tag> maybe_tag = util::value_by_key(probe_map_.tag, probe_id);
     if (!maybe_tag) {
         return {};
     }

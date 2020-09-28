@@ -460,13 +460,8 @@ bool Module::semantic() {
             }
         }
 
-        // handle the case where there is no SOLVE in BREAKPOINT
-        if(!found_solve) {
-            warning(" there is no SOLVE statement, required to update the"
-                    " state variables, in the BREAKPOINT block",
-                    breakpoint->location());
-        }
-        else {
+        // handle the case where there is a SOLVE in BREAKPOINT (which is the typical case)
+        if (found_solve) {
             // Redo semantic pass in order to elimate any removed local symbols.
             api_state->semantic(symbols_);
         }

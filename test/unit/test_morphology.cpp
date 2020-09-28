@@ -5,12 +5,13 @@
 
 #include "../test/gtest.h"
 
+#include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/cable_cell.hpp>
+#include <arbor/morph/primitives.hpp>
+#include <arbor/morph/segment_tree.hpp>
+#include <arbor/swcio.hpp>
 
-#include "arbor/morph/primitives.hpp"
-#include "arbor/morph/segment_tree.hpp"
 #include "util/span.hpp"
 
 #include "morph_pred.hpp"
@@ -309,7 +310,7 @@ TEST(morphology, branches) {
 #ifndef ARB_HIP
 TEST(morphology, swc) {
     std::string datadir{DATADIR};
-    auto fname = datadir + "/example.swc";
+    auto fname = datadir + "/pyramidal.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
@@ -317,15 +318,15 @@ TEST(morphology, swc) {
     }
 
     // Load swc samples from file.
-    auto swc_samples = arb::parse_swc_file(fid);
+    auto swc = arb::parse_swc(fid, arb::swc_mode::strict);
 
     // Build a segmewnt_tree from swc samples.
-    auto sm = arb::swc_as_segment_tree(swc_samples);
-    EXPECT_EQ(1057u, sm.size()); // file contains 195 samples
+    auto sm = arb::as_segment_tree(swc);
+    EXPECT_EQ(5798u, sm.size()); // SWC data contains 5799 samples.
 
     // Test that the morphology contains the expected number of branches.
     auto m = arb::morphology(sm);
-    EXPECT_EQ(30u, m.num_branches());
+    EXPECT_EQ(221u, m.num_branches()); // 219 branches + 2 from divided soma.
 }
 #endif
 

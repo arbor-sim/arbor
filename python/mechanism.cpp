@@ -1,3 +1,6 @@
+#include <optional>
+#include <stdexcept>
+
 #include <pybind11/pybind11.h>
 #include "pybind11/pytypes.h"
 #include <pybind11/stl.h>
@@ -5,8 +8,6 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/optional.hpp>
-#include <stdexcept>
 
 #include "arbor/mechinfo.hpp"
 
@@ -37,7 +38,7 @@ void apply_derive(arb::mechanism_catalogue& m,
 }
 
 void register_mechanisms(pybind11::module& m) {
-    using arb::util::optional;
+    using std::optional;
     using namespace pybind11::literals;
 
     pybind11::class_<arb::mechanism_field_spec> field_spec(m, "mechanism_field",

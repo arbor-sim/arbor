@@ -1,5 +1,6 @@
 set(py_unit_sources
-    s_expr.cpp
+    # Currently empty: the s expression tests were moved, however keep this
+    # open for the inevitable tests that will be written in the future.
 
     # unit test driver
     test.cpp

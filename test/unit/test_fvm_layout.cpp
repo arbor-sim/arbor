@@ -5,7 +5,6 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "arbor/morph/morphology.hpp"
 #include "arbor/morph/segment_tree.hpp"
@@ -25,6 +24,7 @@ using namespace arb;
 
 using util::make_span;
 using util::count_along;
+using util::ptr_by_key;
 using util::value_by_key;
 
 namespace {
@@ -44,8 +44,8 @@ namespace {
 
             cells.push_back(builder.make_cell());
             auto& cell = cells.back();
-            cell.paint("soma", "hh");
-            cell.paint("dend", "pas");
+            cell.paint("\"soma\"", "hh");
+            cell.paint("\"dend\"", "pas");
             cell.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
 
             s.builders.push_back(std::move(builder));
@@ -87,8 +87,8 @@ namespace {
             cells.push_back(b.make_cell());
             auto& cell = cells.back();
 
-            cell.paint("soma", "hh");
-            cell.paint("dend", "pas");
+            cell.paint("\"soma\"", "hh");
+            cell.paint("\"dend\"", "pas");
 
             using ::arb::reg::branch;
             auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
@@ -176,9 +176,9 @@ struct exp_instance {
 
     template <typename Seq>
     exp_instance(int cv, const Seq& tgts, double e, double tau):
-        cv(cv), multiplicity(util::size(tgts)), e(e), tau(tau)
+        cv(cv), multiplicity(std::size(tgts)), e(e), tau(tau)
     {
-        targets.reserve(util::size(tgts));
+        targets.reserve(std::size(tgts));
         for (auto t: tgts) targets.push_back(t);
         util::sort(targets);
     }
@@ -190,12 +190,12 @@ struct exp_instance {
     bool is_in(const arb::fvm_mechanism_config& C) const {
         std::vector<unsigned> _;
         auto part = util::make_partition(_, C.multiplicity);
-        auto& evals = *value_by_key(C.param_values, "e");
+        auto& evals = *ptr_by_key(C.param_values, "e");
         // Handle both expsyn and exp2syn by looking for "tau1" if "tau"
         // parameter is not found.
-        auto& tauvals = value_by_key(C.param_values, "tau")?
-            *value_by_key(C.param_values, "tau"):
-            *value_by_key(C.param_values, "tau1");
+        auto& tauvals = *(value_by_key(C.param_values, "tau")?
+            ptr_by_key(C.param_values, "tau"):
+            ptr_by_key(C.param_values, "tau1"));
 
         for (auto i: make_span(C.multiplicity.size())) {
             exp_instance other(C.cv[i],
@@ -445,11 +445,11 @@ TEST(fvm_layout, synapse_targets) {
 
     auto& expsyn_cv = M.mechanisms.at("expsyn").cv;
     auto& expsyn_target = M.mechanisms.at("expsyn").target;
-    auto& expsyn_e = value_by_key(M.mechanisms.at("expsyn").param_values, "e"s).value();
+    auto& expsyn_e = *ptr_by_key(M.mechanisms.at("expsyn").param_values, "e"s);
 
     auto& exp2syn_cv = M.mechanisms.at("exp2syn").cv;
     auto& exp2syn_target = M.mechanisms.at("exp2syn").target;
-    auto& exp2syn_e = value_by_key(M.mechanisms.at("exp2syn").param_values, "e"s).value();
+    auto& exp2syn_e = *ptr_by_key(M.mechanisms.at("exp2syn").param_values, "e"s);
 
     EXPECT_TRUE(util::is_sorted(expsyn_cv));
     EXPECT_TRUE(util::is_sorted(exp2syn_cv));
@@ -542,10 +542,10 @@ TEST(fvm_layout, density_norm_area) {
     hh_3["gl"] = seg3_gl;
 
     auto cell = builder.make_cell();
-    cell.paint("soma", std::move(hh_0));
-    cell.paint("reg1", std::move(hh_1));
-    cell.paint("reg2", std::move(hh_2));
-    cell.paint("reg3", std::move(hh_3));
+    cell.paint("\"soma\"", std::move(hh_0));
+    cell.paint("\"reg1\"", std::move(hh_1));
+    cell.paint("\"reg2\"", std::move(hh_2));
+    cell.paint("\"reg3\"", std::move(hh_3));
 
     std::vector<cable_cell> cells{std::move(cell)};
 
@@ -597,8 +597,8 @@ TEST(fvm_layout, density_norm_area) {
     ASSERT_EQ(1u, M.mechanisms.count("hh"));
     auto& hh_params = M.mechanisms.at("hh").param_values;
 
-    auto& gkbar = value_by_key(hh_params, "gkbar"s).value();
-    auto& gl = value_by_key(hh_params, "gl"s).value();
+    auto& gkbar = *ptr_by_key(hh_params, "gkbar"s);
+    auto& gl = *ptr_by_key(hh_params, "gl"s);
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gkbar, gkbar));
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gl, gl));
@@ -676,9 +676,9 @@ TEST(fvm_layout, density_norm_area_partial) {
 
     auto& hh_params = M.mechanisms.at("hh").param_values;
 
-    auto& gkbar = value_by_key(hh_params, "gkbar"s).value();
-    auto& gnabar = value_by_key(hh_params, "gnabar"s).value();
-    auto& gl = value_by_key(hh_params, "gl"s).value();
+    auto& gkbar = *ptr_by_key(hh_params, "gkbar"s);
+    auto& gnabar = *ptr_by_key(hh_params, "gnabar"s);
+    auto& gl = *ptr_by_key(hh_params, "gl"s);
 
     ASSERT_EQ(1u, gkbar.size());
     ASSERT_EQ(1u, gnabar.size());
@@ -691,7 +691,7 @@ TEST(fvm_layout, density_norm_area_partial) {
 
 TEST(fvm_layout, valence_verify) {
     auto cell = soma_cell_builder(6).make_cell();
-    cell.paint("soma", "test_cl_valence");
+    cell.paint("\"soma\"", "test_cl_valence");
     std::vector<cable_cell> cells{std::move(cell)};
 
     cable_cell_global_properties gprop;
@@ -769,8 +769,8 @@ TEST(fvm_layout, ion_weights) {
     gprop.catalogue = &testcat;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration;
-    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration;
+    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
+    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration.value();
 
     for (auto& v: expected_init_iconc) {
         for (auto& iconc: v) {
@@ -820,9 +820,9 @@ TEST(fvm_layout, revpot) {
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
     auto cell = builder.make_cell();
-    cell.paint("soma", "read_eX/c");
-    cell.paint("soma", "read_eX/a");
-    cell.paint("dend", "read_eX/a");
+    cell.paint("\"soma\"", "read_eX/c");
+    cell.paint("\"soma\"", "read_eX/a");
+    cell.paint("\"dend\"", "read_eX/a");
 
     std::vector<cable_cell> cells{cell, cell};
 

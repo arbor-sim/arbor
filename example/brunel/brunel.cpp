@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -19,7 +20,6 @@
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/util/optional.hpp>
 #include <arbor/version.hpp>
 
 #include <arborenv/concurrency.hpp>
@@ -68,7 +68,7 @@ struct cl_options {
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
-util::optional<cl_options> read_options(int argc, char** argv);
+std::optional<cl_options> read_options(int argc, char** argv);
 
 void banner(const context& ctx);
 
@@ -346,7 +346,7 @@ std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start,
 }
 
 // Read options from (optional) json file and command line arguments.
-util::optional<cl_options> read_options(int argc, char** argv) {
+std::optional<cl_options> read_options(int argc, char** argv) {
     using namespace to;
     auto usage_str = "\n"
                      "-n|--n-excitatory      [Number of cells in the excitatory population]\n"

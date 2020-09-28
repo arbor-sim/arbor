@@ -10,6 +10,7 @@
 #include <cmath>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <stdexcept>
 #include <utility>
@@ -20,9 +21,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/util/any.hpp>
 #include <arbor/util/any_visitor.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "builtin_mechanisms.hpp"
 #include "execution_context.hpp"
@@ -145,7 +144,7 @@ private:
         std::vector<fvm_probe_data>& probe_data, // out parameter
         const std::vector<cable_cell>& cells,
         std::size_t cell_idx,
-        const util::any& paddr,
+        const std::any& paddr,
         const fvm_cv_discretization& D,
         const fvm_mechanism_data& M,
         const std::vector<target_handle>& handles,
@@ -202,8 +201,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     std::vector<deliverable_event> staged_events,
     std::vector<sample_event> staged_samples)
 {
-    using util::as_const;
-
     set_gpu();
 
     // Integration setup
@@ -358,7 +355,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     std::vector<target_handle>& target_handles,
     probe_association_map& probe_map)
 {
-    using util::any_cast;
+    using std::any_cast;
     using util::count_along;
     using util::make_span;
     using util::value_by_key;
@@ -376,19 +373,19 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                try {
                    cells[i] = any_cast<cable_cell&&>(rec.get_cell_description(gid));
                }
-               catch (util::bad_any_cast&) {
+               catch (std::bad_any_cast&) {
                    throw bad_cell_description(rec.get_cell_kind(gid), gid);
                }
            });
 
     cable_cell_global_properties global_props;
     try {
-        util::any rec_props = rec.get_global_properties(cell_kind::cable);
+        std::any rec_props = rec.get_global_properties(cell_kind::cable);
         if (rec_props.has_value()) {
             global_props = any_cast<cable_cell_global_properties>(rec_props);
         }
     }
-    catch (util::bad_any_cast&) {
+    catch (std::bad_any_cast&) {
         throw bad_global_property(cell_kind::cable);
     }
 
@@ -529,7 +526,6 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-    // Collect detectors, probe handles.
 
     std::vector<index_type> detector_cv;
     std::vector<value_type> detector_threshold;
@@ -538,6 +534,17 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
 
+        // Sanity check recipe
+        auto& cell = cells[cell_idx];
+        if (rec.num_sources(gid) > cell.detectors().size()) {
+            throw arb::bad_source_description(gid, rec.num_sources(gid), cell.detectors().size());;
+        }
+        auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) {return syn.second.size();});
+        if (cell_targets > rec.num_targets(gid)) {
+            throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
+        }
+
+        // Collect detectors, probe handles.
         for (auto entry: cells[cell_idx].detectors()) {
             detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
             detector_threshold.push_back(entry.item.threshold);
@@ -591,16 +598,16 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {
             if (gid != g.local.gid && gid != g.peer.gid) {
-                throw arb::bad_cell_description(cell_kind::cable, gid);
+                throw arb::bad_gj_connection_gid(gid, g.local.gid, g.peer.gid);
             }
-            cell_gid_type cv0, cv1;
-            try {
-                cv0 = gid_to_cvs[g.local.gid].at(g.local.index);
-                cv1 = gid_to_cvs[g.peer.gid].at(g.peer.index);
+            if (g.local.index >= gid_to_cvs[g.local.gid].size()) {
+                throw arb::bad_gj_connection_lid(gid, g.local);
             }
-            catch (std::out_of_range&) {
-                throw arb::bad_cell_description(cell_kind::cable, gid);
+            if (g.peer.index >= gid_to_cvs[g.peer.gid].size()) {
+                throw arb::bad_gj_connection_lid(gid, g.peer);
             }
+            auto cv0 = gid_to_cvs[g.local.gid][g.local.index];
+            auto cv1 = gid_to_cvs[g.peer.gid][g.peer.index];
             if (gid != g.local.gid) {
                 std::swap(cv0, cv1);
             }
@@ -700,12 +707,12 @@ struct probe_resolution_data {
     };
 
     // Index into ion data from location.
-    util::optional<fvm_index_type> ion_location_index(const std::string& ion, mlocation loc) const {
+    std::optional<fvm_index_type> ion_location_index(const std::string& ion, mlocation loc) const {
         if (state->ion_data.count(ion)) {
             return util::binary_search_index(M.ions.at(ion).cv,
                 fvm_index_type(D.geometry.location_cv(cell_idx, loc, cv_prefer::cv_nonempty)));
         }
-        return util::nullopt;
+        return std::nullopt;
     }
 };
 
@@ -714,7 +721,7 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
     std::vector<fvm_probe_data>& probe_data,
     const std::vector<cable_cell>& cells,
     std::size_t cell_idx,
-    const util::any& paddr,
+    const std::any& paddr,
     const fvm_cv_discretization& D,
     const fvm_mechanism_data& M,
     const std::vector<target_handle>& handles,

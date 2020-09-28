@@ -21,7 +21,7 @@ spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.push_back(std::move(cell.seq));
         }
-        catch (util::bad_any_cast& e) {
+        catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);
         }
     }

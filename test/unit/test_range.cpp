@@ -65,7 +65,7 @@ TEST(range, pointer) {
     util::range<int *> s(&xs[l], &xs[r]);
     auto s_deduced = util::make_range(xs+l, xs+r);
 
-    EXPECT_TRUE((std::is_same<decltype(s), decltype(s_deduced)>::value));
+    EXPECT_TRUE((std::is_same_v<decltype(s), decltype(s_deduced)>));
     EXPECT_EQ(s.left, s_deduced.left);
     EXPECT_EQ(s.right, s_deduced.right);
 
@@ -142,11 +142,11 @@ TEST(range, input_iterator) {
 TEST(range, const_iterator) {
     std::vector<int> xs = { 1, 2, 3, 4, 5 };
     auto r = util::make_range(xs.begin(), xs.end());
-    EXPECT_TRUE((std::is_same<int&, decltype(r.front())>::value));
+    EXPECT_TRUE((std::is_same_v<int&, decltype(r.front())>));
 
     const auto& xs_const = xs;
     auto r_const = util::make_range(xs_const.begin(), xs_const.end());
-    EXPECT_TRUE((std::is_same<const int&, decltype(r_const.front())>::value));
+    EXPECT_TRUE((std::is_same_v<const int&, decltype(r_const.front())>));
 }
 
 TEST(range, view) {
@@ -188,7 +188,7 @@ TEST(range, strictify) {
     auto cstr_range = util::make_range(cstr, null_terminated);
 
     auto ptr_range = util::strict_view(cstr_range);
-    EXPECT_TRUE((std::is_same<decltype(ptr_range), util::range<const char *>>::value));
+    EXPECT_TRUE((std::is_same_v<decltype(ptr_range), util::range<const char *>>));
     EXPECT_EQ(cstr, ptr_range.left);
     EXPECT_EQ(cstr+11, ptr_range.right);
 
@@ -259,7 +259,7 @@ TEST(range, max_element_by) {
     auto i = util::max_element_by(cstr_range,
         [](char c) -> int { return -c; });
 
-    EXPECT_TRUE((std::is_same<const char *, decltype(i)>::value));
+    EXPECT_TRUE((std::is_same_v<const char *, decltype(i)>));
     EXPECT_EQ('d', *i);
     EXPECT_EQ(cstr+9, i);
 
@@ -421,7 +421,7 @@ TEST(range, assign_from) {
 
     {
         std::vector<int> copy = util::assign_from(in);
-        for (auto i=0u; i<util::size(in); ++i) {
+        for (auto i=0u; i<std::size(in); ++i) {
             EXPECT_EQ(in[i], copy[i]);
         }
     }
@@ -429,7 +429,7 @@ TEST(range, assign_from) {
     {
         std::vector<int> copy = util::assign_from(
             util::transform_view(in, [](int i) {return 2*i;}));
-        for (auto i=0u; i<util::size(in); ++i) {
+        for (auto i=0u; i<std::size(in); ++i) {
             EXPECT_EQ(2*in[i], copy[i]);
         }
     }

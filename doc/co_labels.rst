@@ -135,7 +135,7 @@ from simple expressions. For example, the expression:
 
 .. code-block:: lisp
 
-    (radius_lt (join (tag 3) (tag 4)) 0.5)
+    (radius-lt (join (tag 3) (tag 4)) 0.5)
 
 describes the region of all parts of a cell with either tag 3 or tag 4 and radius less than 0.5 μm.
 
@@ -188,9 +188,9 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
 
 .. code:: lisp
 
-    (distal_interval                   ; take subtrees that start at
+    (distal-interval                   ; take subtrees that start at
         (proximal                      ; locations closest to the soma
-            (radius_lte                ; with radius <= 0.2 um
+            (radius-le                 ; with radius <= 0.2 um
                 (join (tag 3) (tag 4)) ; on basal and apical dendrites
                 0.2)))
 
@@ -256,7 +256,7 @@ Locset Expressions
       On the left with  a seed of 0: ``(uniform (tag 3) 0 9 0)``,
       and on the right with  a seed of 1: ``(uniform (tag 3) 0 9 1)``.
 
-.. label:: (on_branches pos:double)
+.. label:: (on-branches pos:double)
 
     The set of locations ``{(location b pos) | 0 ≤ b < nbranch-1}``.
 
@@ -264,7 +264,7 @@ Locset Expressions
       :width: 300
       :align: center
 
-      The set of locations at the midpoint of every branch, expressed as ``(on_branches 0.5)``.
+      The set of locations at the midpoint of every branch, expressed as ``(on-branches 0.5)``.
 
 .. label:: (distal reg:region)
 
@@ -407,7 +407,7 @@ Region Expressions
 
     Refer to a region by its label. For example, ``(region "axon")`` would refer to a region with the label ``"axon"``.
 
-.. label:: (distal_interval start:locset extent:real)
+.. label:: (distal-interval start:locset extent:real)
 
     The distal interval of a location is the region that contains all points that are distal to the location,
     and up to ``extent`` μm from the location, measured as the distance traversed along cables between two locations.
@@ -422,9 +422,9 @@ Region Expressions
 
       .. code-block:: lisp
 
-        (distal_interval (sum (location 1 0.5) (location 2 0.7) (location 5 0.1)) 5)
+        (distal-interval (sum (location 1 0.5) (location 2 0.7) (location 5 0.1)) 5)
 
-.. label:: (distal_interval start:locset)
+.. label:: (distal-interval start:locset)
 
     When no ``extent`` distance is provided, the distal intervals are extended to all terminal
     locations that are distal to each location in ``start``.
@@ -438,10 +438,10 @@ Region Expressions
 
       .. code-block:: lisp
 
-        (distal_interval (sum (location 1 0.5) (location 2 0.7) (location 5 0.1)))
+        (distal-interval (sum (location 1 0.5) (location 2 0.7) (location 5 0.1)))
 
 
-.. label:: (proximal_interval start:locset extent:real)
+.. label:: (proximal-interval start:locset extent:real)
 
     The proximal interval of a location is the region that contains all points that are proximal to the location,
     and up to ``extent`` μm from the location, measured as the distance traversed along cables between two locations.
@@ -456,9 +456,9 @@ Region Expressions
 
       .. code-block:: lisp
 
-        (proximal_interval (sum (location 1 0.8) (location 2 0.3)) 5)
+        (proximal-interval (sum (location 1 0.8) (location 2 0.3)) 5)
 
-.. label:: (proximal_interval start:locset)
+.. label:: (proximal-interval start:locset)
 
     When no ``extent`` distance is provided, the proximal intervals are extended to the root location.
 
@@ -471,9 +471,9 @@ Region Expressions
 
       .. code-block:: lisp
 
-        (proximal_interval (sum (location 1 0.8) (location 2 0.3)))
+        (proximal-interval (sum (location 1 0.8) (location 2 0.3)))
 
-.. label:: (radius_lt reg:region radius:real)
+.. label:: (radius-lt reg:region radius:real)
 
     All parts of cable segments in the region ``reg`` with radius less than ``radius``.
 
@@ -481,16 +481,16 @@ Region Expressions
       :width: 300
       :align: center
 
-      All cable segments with radius **less than** 0.5 μm, found by applying ``radius_lt`` to all of
+      All cable segments with radius **less than** 0.5 μm, found by applying ``radius-lt`` to all of
       the cables in the morphology.
       Note that branch 2, which has a constant radius of 0.5 μm, is not in the result because its radius
       is not strictly less than 0.5 μm.
 
       .. code-block:: lisp
 
-        (radius_lt (all) 0.5)
+        (radius-lt (all) 0.5)
 
-.. label:: (radius_le reg:region radius:real)
+.. label:: (radius-le reg:region radius:real)
 
     All parts of cable segments in the region ``reg`` with radius less than or equal to ``radius``.
 
@@ -498,15 +498,15 @@ Region Expressions
       :width: 300
       :align: center
 
-      All cable segments with radius **less than or equal to** 0.5 μm, found by applying ``radius_le`` to all of
+      All cable segments with radius **less than or equal to** 0.5 μm, found by applying ``radius-le`` to all of
       the cables in the morphology.
       Note that branch 2, which has a constant radius of 0.5 μm, is in the result.
 
       .. code-block:: lisp
 
-        (radius_le (all) 0.5)
+        (radius-le (all) 0.5)
 
-.. label:: (radius_gt reg:region radius:real)
+.. label:: (radius-gt reg:region radius:real)
 
     All parts of cable segments in the region ``reg`` with radius greater than ``radius``.
 
@@ -514,16 +514,16 @@ Region Expressions
       :width: 300
       :align: center
 
-      All cable segments with radius **greater than** 0.5 μm, found by applying ``radius_ge`` to all of
+      All cable segments with radius **greater than** 0.5 μm, found by applying ``radius-ge`` to all of
       the cables in the morphology.
       Note that branch 2, which has a constant radius of 0.5 μm, is not in the result because its radius
       is not strictly greater than 0.5 μm.
 
       .. code-block:: lisp
 
-        (radius_gt (all) 0.5)
+        (radius-gt (all) 0.5)
 
-.. label:: (radius_ge reg:region radius:real)
+.. label:: (radius-ge reg:region radius:real)
 
     All parts of cable segments in the region ``reg`` with radius greater than or equal to ``radius``.
 
@@ -531,13 +531,13 @@ Region Expressions
       :width: 300
       :align: center
 
-      All cable segments with radius **greater than or equal to** 0.5 μm, found by applying ``radius_le`` to all of
+      All cable segments with radius **greater than or equal to** 0.5 μm, found by applying ``radius-le`` to all of
       the cables in the morphology.
       Note that branch 2, which has a constant radius of 0.5 μm, is in the result.
 
       .. code-block:: lisp
 
-        (radius_ge (all) 0.5)
+        (radius-ge (all) 0.5)
 
 .. label:: (join lhs:region rhs:region [...region])
 

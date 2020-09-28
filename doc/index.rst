@@ -81,6 +81,7 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    cpp_domdec
    cpp_simulation
    cpp_profiler
+   cpp_neuroml
 
 .. toctree::
    :caption: C++ API for HPC

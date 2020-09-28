@@ -191,7 +191,8 @@ struct cable_cell_impl;
 template <typename T>
 using region_assignment =
     std::conditional_t<
-        std::is_same<T, mechanism_desc>::value || std::is_same<T, initial_ion_data>::value,
+        std::is_same<T, mechanism_desc>::value || std::is_same<T, init_int_concentration>::value ||
+        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value,
         std::unordered_map<std::string, mcable_map<T>>,
         mcable_map<T>>;
 
@@ -215,7 +216,8 @@ using location_assignment =
 
 using cable_cell_region_map = static_typed_map<region_assignment,
     mechanism_desc, init_membrane_potential, axial_resistivity,
-    temperature_K, membrane_capacitance, initial_ion_data>;
+    temperature_K, membrane_capacitance, init_int_concentration,
+    init_ext_concentration, init_reversal_potential>;
 
 using cable_cell_location_map = static_typed_map<location_assignment,
     mechanism_desc, i_clamp, gap_junction_site, threshold_detector>;
@@ -226,7 +228,6 @@ public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
-    using point_type = point<value_type>;
 
     using gap_junction_instance = mlocation;
 
@@ -275,6 +276,18 @@ public:
         default_parameters.ion_data[prop.ion] = prop.initial;
     }
 
+    void set_default(init_int_concentration prop) {
+        default_parameters.ion_data[prop.ion].init_int_concentration = prop.value;
+    }
+
+    void set_default(init_ext_concentration prop) {
+        default_parameters.ion_data[prop.ion].init_ext_concentration = prop.value;
+    }
+
+    void set_default(init_reversal_potential prop) {
+        default_parameters.ion_data[prop.ion].init_reversal_potential = prop.value;
+    }
+
     void set_default(ion_reversal_potential_method prop) {
         default_parameters.reversal_potential_method[prop.ion] = prop.method;
     }
@@ -292,7 +305,9 @@ public:
     void paint(const region&, axial_resistivity);
     void paint(const region&, temperature_K);
     void paint(const region&, membrane_capacitance);
-    void paint(const region&, initial_ion_data);
+    void paint(const region&, init_int_concentration);
+    void paint(const region&, init_ext_concentration);
+    void paint(const region&, init_reversal_potential);
 
     // Synapses.
     lid_range place(const locset&, mechanism_desc);

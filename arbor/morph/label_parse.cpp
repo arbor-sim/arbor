@@ -1,13 +1,22 @@
-#include <arbor/util/any.hpp>
-#include <arbor/morph/region.hpp>
-#include <arbor/morph/locset.hpp>
+#include <any>
 #include <limits>
 
-#include "error.hpp"
-#include "s_expr.hpp"
-#include "morph_parse.hpp"
+#include <arbor/arbexcept.hpp>
+#include <arbor/morph/region.hpp>
+#include <arbor/morph/locset.hpp>
+#include <arbor/morph/label_parse.hpp>
+#include <arbor/morph/region.hpp>
+#include <arbor/morph/locset.hpp>
 
-namespace pyarb {
+#include "arbor/util/expected.hpp"
+#include "s_expr.hpp"
+#include "util/strprintf.hpp"
+
+namespace arb {
+
+label_parse_error::label_parse_error(const std::string& msg):
+    arb::arbor_exception(msg)
+{}
 
 struct nil_tag {};
 
@@ -32,40 +41,40 @@ bool match<arb::locset>(const std::type_info& info) {
 }
 
 template <typename T>
-T eval_cast(arb::util::any arg) {
-    return std::move(arb::util::any_cast<T&>(arg));
+T eval_cast(std::any arg) {
+    return std::move(std::any_cast<T&>(arg));
 }
 
 template <>
-double eval_cast<double>(arb::util::any arg) {
-    if (arg.type()==typeid(int)) return arb::util::any_cast<int>(arg);
-    return arb::util::any_cast<double>(arg);
+double eval_cast<double>(std::any arg) {
+    if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
+    return std::any_cast<double>(arg);
 }
 
 template <>
-arb::region eval_cast<arb::region>(arb::util::any arg) {
-    if (arg.type()==typeid(arb::region)) return arb::util::any_cast<arb::region>(arg);
+arb::region eval_cast<arb::region>(std::any arg) {
+    if (arg.type()==typeid(arb::region)) return std::any_cast<arb::region>(arg);
     return arb::reg::nil();
 }
 
 template <>
-arb::locset eval_cast<arb::locset>(arb::util::any arg) {
-    if (arg.type()==typeid(arb::locset)) return arb::util::any_cast<arb::locset>(arg);
+arb::locset eval_cast<arb::locset>(std::any arg) {
+    if (arg.type()==typeid(arb::locset)) return std::any_cast<arb::locset>(arg);
     return arb::ls::nil();
 }
 
 template <typename... Args>
 struct call_eval {
-    using ftype = std::function<arb::util::any(Args...)>;
+    using ftype = std::function<std::any(Args...)>;
     ftype f;
     call_eval(ftype f): f(std::move(f)) {}
 
     template<std::size_t... I>
-    arb::util::any expand_args_then_eval(std::vector<arb::util::any> args, std::index_sequence<I...>) {
+    std::any expand_args_then_eval(std::vector<std::any> args, std::index_sequence<I...>) {
         return f(eval_cast<Args>(std::move(args[I]))...);
     }
 
-    arb::util::any operator()(std::vector<arb::util::any> args) {
+    std::any operator()(std::vector<std::any> args) {
         return expand_args_then_eval(std::move(args), std::make_index_sequence<sizeof...(Args)>());
     }
 };
@@ -73,21 +82,21 @@ struct call_eval {
 template <typename... Args>
 struct call_match {
     template <std::size_t I, typename T, typename Q, typename... Rest>
-    bool match_args_impl(const std::vector<arb::util::any>& args) const {
+    bool match_args_impl(const std::vector<std::any>& args) const {
         return match<T>(args[I].type()) && match_args_impl<I+1, Q, Rest...>(args);
     }
 
     template <std::size_t I, typename T>
-    bool match_args_impl(const std::vector<arb::util::any>& args) const {
+    bool match_args_impl(const std::vector<std::any>& args) const {
         return match<T>(args[I].type());
     }
 
     template <std::size_t I>
-    bool match_args_impl(const std::vector<arb::util::any>& args) const {
+    bool match_args_impl(const std::vector<std::any>& args) const {
         return true;
     }
 
-    bool operator()(const std::vector<arb::util::any>& args) const {
+    bool operator()(const std::vector<std::any>& args) const {
         const auto nargs_in = args.size();
         const auto nargs_ex = sizeof...(Args);
         return nargs_in==nargs_ex? match_args_impl<0, Args...>(args): false;
@@ -99,7 +108,7 @@ struct fold_eval {
     using fold_fn = std::function<T(T, T)>;
     fold_fn f;
 
-    using anyvec = std::vector<arb::util::any>;
+    using anyvec = std::vector<std::any>;
     using iterator = anyvec::iterator;
 
     fold_eval(fold_fn f): f(std::move(f)) {}
@@ -111,14 +120,14 @@ struct fold_eval {
         return f(eval_cast<T>(std::move(*left)), fold_impl(left+1, right));
     }
 
-    arb::util::any operator()(anyvec args) {
+    std::any operator()(anyvec args) {
         return fold_impl(args.begin(), args.end());
     }
 };
 
 template <typename T>
 struct fold_match {
-    using anyvec = std::vector<arb::util::any>;
+    using anyvec = std::vector<std::any>;
     bool operator()(const anyvec& args) const {
         if (args.size()<2u) return false;
         for (auto& a: args) {
@@ -129,8 +138,8 @@ struct fold_match {
 };
 
 struct evaluator {
-    using any_vec = std::vector<arb::util::any>;
-    using eval_fn = std::function<arb::util::any(any_vec)>;
+    using any_vec = std::vector<std::any>;
+    using eval_fn = std::function<std::any(any_vec)>;
     using args_fn = std::function<bool(const any_vec&)>;
 
     eval_fn eval;
@@ -186,34 +195,34 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'cable' with 3 arguments: (branch_id:integer prox:real dist:real)")},
     {"region",  make_call<std::string>(arb::reg::named,
                             "'region' with 1 argument: (name:string)")},
-    {"distal_interval",  make_call<arb::locset, double>(arb::reg::distal_interval,
-                            "'distal_interval' with 2 arguments: (start:locset extent:real)")},
-    {"distal_interval", make_call<arb::locset>(
+    {"distal-interval",  make_call<arb::locset, double>(arb::reg::distal_interval,
+                            "'distal-interval' with 2 arguments: (start:locset extent:real)")},
+    {"distal-interval", make_call<arb::locset>(
                             [](arb::locset ls){return arb::reg::distal_interval(std::move(ls), std::numeric_limits<double>::max());},
-                            "'distal_interval' with 1 argument: (start:locset)")},
-    {"proximal_interval",make_call<arb::locset, double>(arb::reg::proximal_interval,
-                            "'proximal_interval' with 2 arguments: (start:locset extent:real)")},
-    {"proximal_interval", make_call<arb::locset>(
+                            "'distal-interval' with 1 argument: (start:locset)")},
+    {"proximal-interval",make_call<arb::locset, double>(arb::reg::proximal_interval,
+                            "'proximal-interval' with 2 arguments: (start:locset extent:real)")},
+    {"proximal-interval", make_call<arb::locset>(
                             [](arb::locset ls){return arb::reg::proximal_interval(std::move(ls), std::numeric_limits<double>::max());},
                             "'proximal_interval' with 1 argument: (start:locset)")},
     {"complete", make_call<arb::region>(arb::reg::complete,
-                            "'super' with 1 argment: (reg:region)")},
-    {"radius_lt",make_call<arb::region, double>(arb::reg::radius_lt,
-                            "'radius_lt' with 2 arguments: (reg:region radius:real)")},
-    {"radius_le",make_call<arb::region, double>(arb::reg::radius_le,
-                            "'radius_le' with 2 arguments: (reg:region radius:real)")},
-    {"radius_gt",make_call<arb::region, double>(arb::reg::radius_gt,
-                            "'radius_gt' with 2 arguments: (reg:region radius:real)")},
-    {"radius_ge",make_call<arb::region, double>(arb::reg::radius_ge,
-                            "'radius_ge' with 2 arguments: (reg:region radius:real)")},
-    {"z_dist_from_root_lt",make_call<double>(arb::reg::z_dist_from_root_lt,
-                            "'z_dist_from_root_lt' with 1 arguments: (distance:real)")},
-    {"z_dist_from_root_le",make_call<double>(arb::reg::z_dist_from_root_le,
-                            "'z_dist_from_root_le' with 1 arguments: (distance:real)")},
-    {"z_dist_from_root_gt",make_call<double>(arb::reg::z_dist_from_root_gt,
-                            "'z_dist_from_root_gt' with 1 arguments: (distance:real)")},
-    {"z_dist_from_root_ge",make_call<double>(arb::reg::z_dist_from_root_ge,
-                            "'z_dist_from_root_ge' with 1 arguments: (distance:real)")},
+                            "'complete' with 1 argment: (reg:region)")},
+    {"radius-lt",make_call<arb::region, double>(arb::reg::radius_lt,
+                            "'radius-lt' with 2 arguments: (reg:region radius:real)")},
+    {"radius-le",make_call<arb::region, double>(arb::reg::radius_le,
+                            "'radius-le' with 2 arguments: (reg:region radius:real)")},
+    {"radius-gt",make_call<arb::region, double>(arb::reg::radius_gt,
+                            "'radius-gt' with 2 arguments: (reg:region radius:real)")},
+    {"radius-ge",make_call<arb::region, double>(arb::reg::radius_ge,
+                            "'radius-ge' with 2 arguments: (reg:region radius:real)")},
+    {"z-dist-from-root-lt",make_call<double>(arb::reg::z_dist_from_root_lt,
+                            "'z-dist-from-root-lt' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-le",make_call<double>(arb::reg::z_dist_from_root_le,
+                            "'z-dist-from-root-le' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-gt",make_call<double>(arb::reg::z_dist_from_root_gt,
+                            "'z-dist-from-root-gt' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-ge",make_call<double>(arb::reg::z_dist_from_root_ge,
+                            "'z-dist-from-root-ge' with 1 arguments: (distance:real)")},
     {"join",    make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::join),
                             "'join' with at least 2 arguments: (region region [...region])")},
     {"intersect",make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::intersect),
@@ -233,8 +242,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'proximal' with 1 argument: (reg:region)")},
     {"uniform",make_call<arb::region, int, int, int>(arb::ls::uniform,
                             "'uniform' with 4 arguments: (reg:region, first:int, last:int, seed:int)")},
-    {"on_branches",make_call<double>(arb::ls::on_branches,
-                            "'on_branches' with 1 argument: (pos:double)")},
+    {"on-branches",make_call<double>(arb::ls::on_branches,
+                            "'on-branches' with 1 argument: (pos:double)")},
     {"locset",  make_call<std::string>(arb::ls::named,
                             "'locset' with 1 argument: (name:string)")},
     {"restrict",  make_call<arb::locset, arb::region>(arb::ls::restrict,
@@ -245,17 +254,18 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'sum' with at least 2 arguments: (locset locset [...locset])")},
 };
 
-parse_hopefully<arb::util::any> eval(const s_expr& e);
+parse_hopefully<std::any> eval(const s_expr& e);
 
-parse_hopefully<std::vector<arb::util::any>> eval_args(const s_expr& e) {
-    if (!e) return {std::vector<arb::util::any>{}}; // empty argument list
-    const s_expr* h = &e;
-    std::vector<arb::util::any> args;
-    while (*h) {
-        auto arg = eval(h->head());
-        if (!arg) return std::move(arg.error());
-        args.push_back(std::move(*arg));
-        h = &h->tail();
+parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e) {
+    if (!e) return {std::vector<std::any>{}}; // empty argument list
+    std::vector<std::any> args;
+    for (auto& h: e) {
+        if (auto arg=eval(h)) {
+            args.push_back(std::move(*arg));
+        }
+        else {
+            return util::unexpected(std::move(arg.error()));
+        }
     }
     return args;
 }
@@ -267,7 +277,7 @@ parse_hopefully<std::vector<arb::util::any>> eval_args(const s_expr& e) {
 //  'cat' with 3 arguments: (locset region integer)
 // Where 'foo', 'bar' and 'cat' are the name of the function, and the
 // types (integer, real, region, locset) are inferred from the arguments.
-std::string eval_description(const char* name, const std::vector<arb::util::any>& args) {
+std::string eval_description(const char* name, const std::vector<std::any>& args) {
     auto type_string = [](const std::type_info& t) -> const char* {
         if (t==typeid(int))         return "integer";
         if (t==typeid(double))      return "real";
@@ -294,18 +304,22 @@ std::string eval_description(const char* name, const std::vector<arb::util::any>
     return msg;
 }
 
+label_parse_error parse_error(std::string const& msg, src_location loc) {
+    return {util::pprintf("error in label description at {}: {}.", loc, msg)};
+}
 // Evaluate an s expression.
-// On success the result is wrapped in util::any, where the result is one of:
+// On success the result is wrapped in std::any, where the result is one of:
 //      int         : an integer atom
 //      double      : a real atom
+//      std::string : a string atom: to be treated as a label
 //      arb::region : a region
 //      arb::locset : a locset
 //
 // If there invalid input is detected, hopefully return value contains
-// a parse_error_state with an error string and location.
+// a label_error_state with an error string and location.
 //
 // If there was an unexpected/fatal error, an exception will be thrown.
-parse_hopefully<arb::util::any> eval(const s_expr& e) {
+parse_hopefully<std::any> eval(const s_expr& e) {
     if (e.is_atom()) {
         auto& t = e.atom();
         switch (t.kind) {
@@ -316,12 +330,17 @@ parse_hopefully<arb::util::any> eval(const s_expr& e) {
             case tok::nil:
                 return {nil_tag()};
             case tok::string:
-                return {std::string(t.spelling)};
+                return std::any{std::string(t.spelling)};
+            // An arbitrary symbol in a region/locset expression is an error, and is
+            // often a result of not quoting a label correctly.
+            case tok::symbol:
+                return util::unexpected(parse_error(
+                        util::pprintf("Unexpected symbol '{}' in a region or locset definition. If '{}' is a label, it must be quoted {}{}{}", e, e, '"', e, '"'),
+                        location(e)));
             case tok::error:
-                return parse_error_state{e.atom().spelling, location(e)};
+                return util::unexpected(parse_error(e.atom().spelling, location(e)));
             default:
-                return parse_error_state{
-                    util::pprintf("Unexpected term: {}", e), location(e)};
+                return util::unexpected(parse_error(util::pprintf("Unexpected term '{}' in a region or locset definition", e), location(e)));
         }
     }
     if (e.head().is_atom()) {
@@ -353,14 +372,51 @@ parse_hopefully<arb::util::any> eval(const s_expr& e) {
         for (auto i=matches.first; i!=matches.second; ++i) {
             msg += util::pprintf("\n  Candidate {}  {}", ++count, i->second.message);
         }
-        return parse_error_state{std::move(msg), location(e)};
+        return util::unexpected(parse_error(msg, location(e)));
     }
 
-    return parse_error_state{
-        util::pprintf("Unable to evaluate '{}': expression must be either integer, real expression of the form (op <args>)", e),
-            location(e)};
+    return util::unexpected(parse_error(
+            util::pprintf("'{}' is not either integer, real expression of the form (op <args>)", e),
+            location(e)));
 }
 
-} // namespace pyarb
+parse_hopefully<std::any> parse_label_expression(const std::string& e) {
+    return eval(parse_s_expr(e));
+}
 
+parse_hopefully<arb::region> parse_region_expression(const std::string& s) {
+    if (auto e = eval(parse_s_expr(s))) {
+        if (e->type() == typeid(region)) {
+            return {std::move(std::any_cast<region&>(*e))};
+        }
+        if (e->type() == typeid(std::string)) {
+            return {reg::named(std::move(std::any_cast<std::string&>(*e)))};
+        }
+        return util::unexpected(
+                label_parse_error(
+                util::pprintf("Invalid region description: '{}' is neither a valid region expression or region label string.", s)));
+    }
+    else {
+        return util::unexpected(label_parse_error(std::string()+e.error().what()));
+    }
+}
+
+parse_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
+    if (auto e = eval(parse_s_expr(s))) {
+        if (e->type() == typeid(locset)) {
+            return {std::move(std::any_cast<locset&>(*e))};
+        }
+        if (e->type() == typeid(std::string)) {
+            return {ls::named(std::move(std::any_cast<std::string&>(*e)))};
+        }
+        return util::unexpected(
+                label_parse_error(
+                util::pprintf("Invalid locset description: '{}' is neither a valid locset expression or locset label string.", s)));
+    }
+    else {
+        return util::unexpected(label_parse_error(std::string()+e.error().what()));
+    }
+}
+
+} // namespace arb
 

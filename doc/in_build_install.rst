@@ -29,7 +29,7 @@ with very few tools.
     =========== ============================================
     Git         To check out the code, minimum version 2.0.
     CMake       To set up the build, minimum version 3.12.
-    compiler    A C++14 compiler. See `compilers <install-compilers_>`_.
+    compiler    A C++17 compiler. See `compilers <install-compilers_>`_.
     =========== ============================================
 
 .. _install-compilers:
@@ -37,7 +37,7 @@ with very few tools.
 Compilers
 ~~~~~~~~~
 
-Arbor requires a C++ compiler that fully supports C++14.
+Arbor requires a C++ compiler that fully supports C++17.
 We recommend using GCC or Clang, for which Arbor has been tested and optimised.
 
 .. table:: Supported Compilers
@@ -45,10 +45,10 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     =========== ============ ============================================
     Compiler    Min version  Notes
     =========== ============ ============================================
-    GCC         6.1.0
-    Clang       4.0          Needs GCC 6 or later for standard library.
+    GCC         8.4.0
+    Clang       8.0          Needs GCC 8 or later for standard library.
     Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
-    Hip Clang                Unofficial Release
+    Hip Clang   Rocm 3.6     HIP support is currently experimental.
     =========== ============ ============================================
 
 .. _note_CC:
@@ -58,7 +58,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     CMake should use. If these are not set, CMake will attempt to automatically choose a compiler,
     which may be too old to compile Arbor.
     For example, the default compiler chosen below by CMake was GCC 4.8.5 at ``/usr/bin/c++``,
-    so the ``CC`` and ``CXX`` variables were used to specify GCC 6.1.0 before calling ``cmake``.
+    so the ``CC`` and ``CXX`` variables were used to specify GCC 10.2.0 before calling ``cmake``.
 
     .. code-block:: bash
 
@@ -68,8 +68,8 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
 
         # check which version of GCC is available
         $ g++ --version
-        g++ (GCC) 6.1.0
-        Copyright (C) 2015 Free Software Foundation, Inc.
+        g++ (GCC) 10.2.0
+        Copyright (C) 2020 Free Software Foundation, Inc.
 
         # set environment variables for compilers
         $ export CC=`which gcc`; export CXX=`which g++`;
@@ -77,10 +77,10 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
         # launch CMake
         # the compiler version and path is given in the CMake output
         $ cmake ..
-        -- The C compiler identification is GNU 6.1.0
-        -- The CXX compiler identification is GNU 6.1.0
-        -- Check for working C compiler: /cm/local/apps/gcc/6.1.0/bin/gcc
-        -- Check for working C compiler: /cm/local/apps/gcc/6.1.0/bin/gcc -- works
+        -- The C compiler identification is GNU 10.2.0
+        -- The CXX compiler identification is GNU 10.2.0
+        -- Check for working C compiler: /cm/local/apps/gcc/10.2.0/bin/gcc
+        -- Check for working C compiler: /cm/local/apps/gcc/10.2.0/bin/gcc -- works
         ...
 
 .. Note::
@@ -106,7 +106,7 @@ Optional Requirements
 GPU Support
 ~~~~~~~~~~~
 
-Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 9 is required.
+Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 10 is required.
 And experimental support for AMD GPUs when compiled with hip-clang (non-release compiler).
 
 Distributed
@@ -123,6 +123,14 @@ Arbor has a Python frontend, for which a minimum of Python 3.6 is required.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
 Python package is recommended. See :ref:`install-python` for more information.
+
+NeuroML
+~~~~~~~
+
+Arbor supports reading cell morphologies defined in NeuroML version 2 through
+an additional NeuroML support library ``arbornml``. This library requires
+`libxml2 <http://xmlsoft.org>`_ for the parsing of NeuroML2 XML. See :ref:`install-neuroml` for
+more information.
 
 
 Documentation
@@ -218,13 +226,6 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         cmake -DARB_WITH_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=debug
 
-.. topic:: `Release <buildtarget_>`_ mode (compiler optimizations enabled) with the default
-           compiler, optimized for the local `system architecture <install-architecture_>`_.
-
-    .. code-block:: bash
-
-        cmake -DARB_ARCH=native
-
 .. topic:: `Release <buildtarget_>`_ mode with `Clang <install-compilers_>`_.
 
     .. code-block:: bash
@@ -239,12 +240,12 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         cmake -DARB_VECTORIZE=ON -DARB_ARCH=haswell
 
-.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, targeting the `Broadwell architecture <install-vectorize_>`_, with support for `Nvidia GPUs <install-gpu_>`_, and building with `GCC 6 <install-compilers_>`_.
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, targeting the `Broadwell architecture <install-vectorize_>`_, with support for `Nvidia GPUs <install-gpu_>`_, and building with `GCC 9 <install-compilers_>`_.
 
     .. code-block:: bash
 
-        export CC=gcc-6
-        export CXX=g++-6
+        export CC=gcc-9
+        export CXX=g++-9
         cmake -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU=cuda
 
 .. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, targeting the `Broadwell architecture <install-vectorize_>`_, with support for `AMD GPUs <install-gpu_>`_, and building with `hipcc <install-compilers_>`_.
@@ -256,11 +257,11 @@ CMake parameters and flags, follow links to the more detailed descriptions below
         cmake -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU=hip
 
 
-.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, optimized for the `local system architecture <install-architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <install-vectorize_>`_, optimized for the local system architecture and `install <install_>`_ in ``/opt/arbor``
 
     .. code-block:: bash
 
-        cmake -DARB_VECTORIZE=ON -DARB_ARCH=native -DCMAKE_INSTALL_PREFIX=/opt/arbor
+        cmake -DARB_VECTORIZE=ON -DCMAKE_INSTALL_PREFIX=/opt/arbor
 
 .. _buildtarget:
 
@@ -339,6 +340,7 @@ with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support 
 
 GPU Backend
 -----------
+
 Compiling for the GPU backend is controlled by the ``ARB_GPU`` CMake option which is used to select between NVIDIA and AMD GPUs
 as well as specify the chosen GPU compiler.
 
@@ -390,8 +392,8 @@ Arbor has experimental support for AMD GPUs using HIP. The only compiler current
 Arbor is built for all supported AMD GPUs and the available GPU will be used at runtime.
 
 .. Note::
-    Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
-    as well as Vega10 and Vega20 GPUs
+    Arbor supports and has been tested on Pascal (P100) and Volta (V100) NVIDIA GPUs,
+    as well as Mi50 and Mi60 AMD GPUs.
 
 
 .. _install-python:
@@ -409,12 +411,12 @@ CMake ``ARB_WITH_PYTHON`` option:
 By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
 A specific version of Python can be set when configuring with CMake using the
-``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.7 installed on a Linux
-system with the executable in ``/usr/bin/python3.7``:
+``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
+system with the executable in ``/usr/bin/python3.8``:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.7
+    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
 By default the Python module will be installed in the standard ``CMAKE_INSTALL_PREFIX``
 location. To install the module in a different location, for example as a
@@ -435,7 +437,7 @@ On the target LINUX system, the Arbor package was installed in
     By default CMake sets ``CMAKE_INSTALL_PREFIX`` to ``/usr/local`` on Linux and OS X.
     The compiled libraries are installed in ``/usr/local/lib``, headers are installed in
     ``/usr/local/include``, and the Python module will be installed in a path like
-    ``/usr/local/lib/python3.7/site-packages``.
+    ``/usr/local/lib/python3.8/site-packages``.
     Because ``/usr/local`` is a system path, the installation phase needs to be run as root,
     i.e. ``sudo make install``, even if ``ARB_PYTHON_PREFIX`` is set to a user path
     that does not require root to install.
@@ -460,6 +462,35 @@ variable before configuring and building Arbor:
     export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
 
     cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
+
+.. _install-neuroml:
+
+NeuroML support
+---------------
+
+Arbor has limited support for NeuroML version 2 through an additional library
+``arbornml``. This library will be built if the option ``-DARB_WITH_NEUROML=ON``
+is passed to CMake at configuration time. ``arbornml`` depends upon the
+the ``libxml2`` library for XML parsing.
+
+With NeuroML support enabled, Arbor will additionally install the static library
+``libarbornml.a``. Applications using this functionality will need to link
+against this library in addition to the main Arbor library and ``libxml2``.
+For example:
+
+.. code-block:: bash
+
+    g++ -std=c++17 -pthread mycode.cpp -larbornml -larbor -lxml2
+
+For projects using CMake, Arbor NeuroML support can be required with the
+component ``neuroml``. The corresponding CMake library target is ``arbor::arbornml``.
+
+.. code-block:: cmake
+
+   find_package(arbor COMPONENTS neuroml)
+   # ...
+   target_link_libraries(myapp arbor::arbornml)
+
 
 .. _install:
 

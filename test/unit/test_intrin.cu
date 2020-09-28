@@ -4,9 +4,8 @@
 
 #include "backends/gpu/gpu_api.hpp"
 #include "backends/gpu/math_cu.hpp"
-#include "memory/memory.hpp"
-#include "util/rangeutil.hpp"
-#include "util/span.hpp"
+
+#include "gpu_vector.hpp"
 
 namespace kernels {
     template <typename T>
@@ -45,15 +44,13 @@ namespace kernels {
 TEST(gpu_intrinsics, gpu_atomic_add) {
     int expected = (128*129)/2;
 
-    arb::memory::device_vector<float> f(1);
-    f[0] = 0.f;
+    gpu_vector<float> f(std::vector<float>{0.f});
 
     kernels::test_atomic_add<<<1, 128>>>(f.data());
 
     EXPECT_EQ(float(expected), f[0]);
 
-    arb::memory::device_vector<double> d(1);
-    d[0] = 0.f;
+    gpu_vector<double> d(std::vector<double>{0.});
 
     kernels::test_atomic_add<<<1, 128>>>(d.data());
 
@@ -64,15 +61,13 @@ TEST(gpu_intrinsics, gpu_atomic_add) {
 TEST(gpu_intrinsics, gpu_atomic_sub) {
     int expected = -(128*129)/2;
 
-    arb::memory::device_vector<float> f(1);
-    f[0] = 0.f;
+    gpu_vector<float> f(std::vector<float>{0.f});
 
     kernels::test_atomic_sub<<<1, 128>>>(f.data());
 
     EXPECT_EQ(float(expected), f[0]);
 
-    arb::memory::device_vector<double> d(1);
-    d[0] = 0.f;
+    gpu_vector<double> d(std::vector<double>{0.});
 
     kernels::test_atomic_sub<<<1, 128>>>(d.data());
 
@@ -97,38 +92,36 @@ TEST(gpu_intrinsics, minmax) {
         {  0, -inf, -inf,   0},
     };
 
-    const auto n = arb::util::size(inputs);
+    const int n = inputs.size();
 
-    arb::memory::device_vector<double> lhs(n);
-    arb::memory::device_vector<double> rhs(n);
-    arb::memory::device_vector<double> result(n);
+    gpu_vector<double> lhs(n);
+    gpu_vector<double> rhs(n);
+    gpu_vector<double> result(n);
 
-    using arb::util::make_span;
-
-    for (auto i: make_span(0, n)) {
+    for (int i=0; i<n; ++i) {
         lhs[i] = inputs[i].lhs;
         rhs[i] = inputs[i].rhs;
     }
 
     // test min
     kernels::test_min<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    for (auto i: make_span(0, n)) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     kernels::test_min<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    for (auto i: make_span(0, n)) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_min);
     }
 
     // test max
     kernels::test_max<<<1, n>>>(lhs.data(), rhs.data(), result.data());
-    for (auto i: make_span(0, n)) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
 
     kernels::test_max<<<1, n>>>(rhs.data(), lhs.data(), result.data());
-    for (auto i: make_span(0, n)) {
+    for (int i=0; i<n; ++i) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
     }
 }
@@ -137,16 +130,15 @@ TEST(gpu_intrinsics, exprelr) {
     constexpr double dmin = std::numeric_limits<double>::min();
     constexpr double dmax = std::numeric_limits<double>::max();
     constexpr double deps = std::numeric_limits<double>::epsilon();
-    double inputs[] = {-1.,  -0.,  0.,  1., -dmax,  -dmin,  dmin,  dmax, -deps, deps, 10*deps, 100*deps, 1000*deps};
+    std::vector<double> inputs{-1.,  -0.,  0.,  1., -dmax,  -dmin,  dmin,  dmax, -deps, deps, 10*deps, 100*deps, 1000*deps};
 
-    auto n = arb::util::size(inputs);
-    arb::memory::device_vector<double> x(arb::memory::host_view<double>(inputs, n));
-    arb::memory::device_vector<double> result(n);
+    auto n = inputs.size();
+    gpu_vector<double> x(inputs);
+    gpu_vector<double> result(n);
 
     kernels::test_exprelr<<<1,n>>>(x.data(), result.data());
 
-    auto index = arb::util::make_span(0, n);
-    for (auto i: index) {
+    for (unsigned i=0; i<n; ++i) {
         auto x = inputs[i];
         double expected = std::fabs(x)<deps? 1.0: x/std::expm1(x);
         double error = std::fabs(expected-double(result[i]));

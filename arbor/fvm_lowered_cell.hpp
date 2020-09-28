@@ -2,7 +2,9 @@
 
 #include <cstddef>
 #include <memory>
+#include <type_traits>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <arbor/assert.hpp>
@@ -12,7 +14,6 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/util/any_ptr.hpp>
-#include <arbor/util/variant.hpp>
 
 #include "backends/event.hpp"
 #include "backends/threshold_crossing.hpp"
@@ -40,10 +41,10 @@ struct fvm_integration_result {
 
 struct fvm_probe_scalar {
     probe_handle raw_handles[1] = {nullptr};
-    util::variant<mlocation, cable_probe_point_info> metadata;
+    std::variant<mlocation, cable_probe_point_info> metadata;
 
     util::any_ptr get_metadata_ptr() const {
-        return util::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
+        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
     }
 };
 
@@ -57,15 +58,15 @@ struct fvm_probe_interpolated {
 
 struct fvm_probe_multi {
     std::vector<probe_handle> raw_handles;
-    util::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
+    std::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
 
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();
-        util::visit([](auto& v) { v.shrink_to_fit(); }, metadata);
+        std::visit([](auto& v) { v.shrink_to_fit(); }, metadata);
     }
 
     util::any_ptr get_metadata_ptr() const {
-        return util::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
+        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
     }
 };
 
@@ -121,7 +122,7 @@ struct fvm_probe_data {
     fvm_probe_data(fvm_probe_weighted_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_membrane_currents p): info(std::move(p)) {}
 
-    util::variant<
+    std::variant<
         missing_probe_info,
         fvm_probe_scalar,
         fvm_probe_interpolated,
@@ -132,22 +133,22 @@ struct fvm_probe_data {
 
     auto raw_handle_range() const {
         return util::make_range(
-            util::visit(
+            std::visit(
                 [](auto& i) -> std::pair<const probe_handle*, const probe_handle*> {
-                    using util::data;
-                    using util::size;
+                    using std::data;
+                    using std::size;
                     return {data(i.raw_handles), data(i.raw_handles)+size(i.raw_handles)};
                 },
                 info));
     }
 
     util::any_ptr get_metadata_ptr() const {
-        return util::visit([](const auto& i) -> util::any_ptr { return i.get_metadata_ptr(); }, info);
+        return std::visit([](const auto& i) -> util::any_ptr { return i.get_metadata_ptr(); }, info);
     }
 
     sample_size_type n_raw() const { return raw_handle_range().size(); }
 
-    explicit operator bool() const { return !util::get_if<missing_probe_info>(info); }
+    explicit operator bool() const { return !std::get_if<missing_probe_info>(&info); }
 };
 
 // Samplers are tied to probe ids, but one probe id may

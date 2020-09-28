@@ -309,8 +309,8 @@ mechanism that is to be painted or placed on the cable cell.
 
         # Decorate the 'soma' on a cable_cell.
 
-        cell.paint('soma', m1)
-        cell.paint('soma', m2) # Error: can't place the same mechanism on overlapping regions
-        cell.paint('soma', m3) # This would be ok: m3 is a new, derived mechanism by virtue of
-                               # having a different name, i.e. 'passive/el=-45' vs. 'passive'.
+        cell.paint('"soma"', m1)
+        cell.paint('"soma"', m2) # Error: can't place the same mechanism on overlapping regions
+        cell.paint('"soma"', m3) # This would be ok: m3 is a new, derived mechanism by virtue of
+                                 # having a different name, i.e. 'passive/el=-45' vs. 'passive'.
 

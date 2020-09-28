@@ -33,6 +33,7 @@ set(arbor_sources
     morph/embed_pwlin.cpp
     morph/stitch.cpp
     morph/label_dict.cpp
+    morph/label_parse.cpp
     morph/locset.cpp
     morph/morphexcept.cpp
     morph/morphology.cpp
@@ -53,6 +54,7 @@ set(arbor_sources
     spike_event_io.cpp
     spike_source_cell_group.cpp
     swcio.cpp
+    s_expr.cpp
     threading/threading.cpp
     thread_private_spike_store.cpp
     tree.cpp

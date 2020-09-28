@@ -1,15 +1,22 @@
+#include <any>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
+#include <arbor/util/any_cast.hpp>
 
 #include "conversion.hpp"
 #include "error.hpp"
-#include "morph_parse.hpp"
-#include "s_expr.hpp"
 #include "strprintf.hpp"
 
 namespace pyarb {
@@ -56,10 +63,6 @@ public:
 
         cached_morpho_ = false;
 
-        if (!test_identifier(region)) {
-            throw pyarb_error(util::pprintf("'{}' is not a valid label name.", region));
-        }
-
         // Get tag id of region (add a new tag if region does not already exist).
         int tag = get_tag(region);
         const bool at_root = parent==mnpos;
@@ -86,17 +89,13 @@ public:
     }
 
     void add_label(const char* name, const char* description) {
-        if (!test_identifier(name)) {
-            throw pyarb_error(util::pprintf("'{}' is not a valid label name.", name));
-        }
-
-        if (auto result = eval(parse(description)) ) {
+        if (auto result = arb::parse_label_expression(description) ) {
             // The description is a region.
             if (result->type()==typeid(arb::region)) {
                 if (dict_.locset(name)) {
                     throw pyarb_error("Region name clashes with a locset.");
                 }
-                auto& reg = arb::util::any_cast<arb::region&>(*result);
+                auto& reg = std::any_cast<arb::region&>(*result);
                 if (auto r = dict_.region(name)) {
                     dict_.set(name, join(std::move(reg), std::move(*r)));
                 }
@@ -104,11 +103,12 @@ public:
                     dict_.set(name, std::move(reg));
                 }
             }
+            // The description is a locset.
             else if (result->type()==typeid(arb::locset)) {
                 if (dict_.region(name)) {
                     throw pyarb_error("Locset name clashes with a region.");
                 }
-                auto& loc = arb::util::any_cast<arb::locset&>(*result);
+                auto& loc = std::any_cast<arb::locset&>(*result);
                 if (auto l = dict_.locset(name)) {
                     dict_.set(name, sum(std::move(loc), std::move(*l)));
                 }
@@ -116,12 +116,13 @@ public:
                     dict_.set(name, std::move(loc));
                 }
             }
+            // Error: the description is neither.
             else {
                 throw pyarb_error("Label describes neither a region nor a locset.");
             }
         }
         else {
-            throw pyarb_error(result.error().message);
+            throw pyarb_error(result.error().what());
         }
     }
 

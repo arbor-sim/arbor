@@ -1,6 +1,5 @@
 #include <arbor/schedule.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/optional.hpp>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -13,9 +12,9 @@ namespace pyarb {
 
 std::ostream& operator<<(std::ostream& o, const regular_schedule_shim& x) {
     return o << "<arbor.regular_schedule: tstart "
-             << x.tstart << " ms, dt "
+             << util::to_string(x.tstart) << " ms, dt "
              << x.dt << " ms, tstop "
-             << x.tstop << " ms>";
+             << util::to_string(x.tstop) << " ms>";
 }
 
 std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {

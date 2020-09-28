@@ -2,6 +2,7 @@
 
 // Simple recipe classes for use in unit and validation tests.
 
+#include <any>
 #include <unordered_map>
 #include <vector>
 
@@ -9,6 +10,9 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/util/unique_any.hpp>
+
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -29,16 +33,16 @@ public:
         return probes_.at(i);
     }
 
-    virtual void add_probe(cell_gid_type gid, probe_tag tag, util::any address) {
+    virtual void add_probe(cell_gid_type gid, probe_tag tag, std::any address) {
         probes_[gid].emplace_back(std::move(address), tag);
     }
 
-    util::any get_global_properties(cell_kind k) const override {
+    std::any get_global_properties(cell_kind k) const override {
         switch (k) {
         case cell_kind::cable:
             return cell_gprop_;
         default:
-            return util::any{};
+            return std::any{};
         }
     }
 
@@ -117,7 +121,7 @@ public:
     }
 
     cell_size_type num_targets(cell_gid_type i) const override {
-        return cells_.at(i).synapses().size();
+        return util::sum_by(cells_.at(i).synapses(), [](auto& syn) {return syn.second.size();});
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {

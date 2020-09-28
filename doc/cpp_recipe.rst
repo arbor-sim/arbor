@@ -133,7 +133,7 @@ Recipe
         By default throws :cpp:type:`std::logic_error`. If :cpp:func:`num_probes`
         returns a non-zero value, this must also be overridden.
 
-    .. cpp:function:: virtual util::any get_global_properties(cell_kind) const
+    .. cpp:function:: virtual std::any get_global_properties(cell_kind) const
 
         Global property type will be specific to given cell kind.
 

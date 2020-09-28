@@ -26,7 +26,7 @@ arb::morphology from_swc(const std::string& path) {
     std::ifstream in(path);
     if (!in) throw std::runtime_error("could not open "+path);
 
-    return morphology(swc_as_sample_tree(parse_swc_file(in)));
+    return morphology(arb::as_segment_tree(parse_swc(in)));
 }
 
 void run_cv_geom(benchmark::State& state) {
@@ -41,11 +41,11 @@ void run_cv_geom(benchmark::State& state) {
     }
 }
 
-void run_cv_geom_every_sample(benchmark::State& state) {
+void run_cv_geom_every_segment(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
 
     cable_cell c(from_swc(SWCFILE));
-    auto ends = cv_policy_every_sample().cv_boundary_points(c);
+    auto ends = cv_policy_every_segment().cv_boundary_points(c);
 
     while (state.KeepRunning()) {
         benchmark::DoNotOptimize(cv_geometry_from_ends(c, ends));
@@ -58,7 +58,7 @@ void run_cv_geom_explicit(benchmark::State& state) {
     cable_cell c(from_swc(SWCFILE));
 
     while (state.KeepRunning()) {
-        auto ends = cv_policy_every_sample().cv_boundary_points(c);
+        auto ends = cv_policy_every_segment().cv_boundary_points(c);
         auto ends2 = cv_policy_explicit(std::move(ends)).cv_boundary_points(c);
 
         benchmark::DoNotOptimize(cv_geometry_from_ends(c, ends2));
@@ -77,11 +77,11 @@ void run_discretize(benchmark::State& state) {
     }
 }
 
-void run_discretize_every_sample(benchmark::State& state) {
+void run_discretize_every_segment(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
 
     cable_cell c(from_swc(SWCFILE));
-    c.default_parameters.discretization = cv_policy_every_sample();
+    c.default_parameters.discretization = cv_policy_every_segment();
 
     while (state.KeepRunning()) {
         benchmark::DoNotOptimize(fvm_cv_discretize(c, gdflt));
@@ -94,7 +94,7 @@ void run_discretize_explicit(benchmark::State& state) {
     cable_cell c(from_swc(SWCFILE));
 
     while (state.KeepRunning()) {
-        auto ends = cv_policy_every_sample().cv_boundary_points(c);
+        auto ends = cv_policy_every_segment().cv_boundary_points(c);
         c.default_parameters.discretization = cv_policy_explicit(std::move(ends));
 
         benchmark::DoNotOptimize(fvm_cv_discretize(c, gdflt));
@@ -104,8 +104,8 @@ void run_discretize_explicit(benchmark::State& state) {
 BENCHMARK(run_cv_geom)->RangeMultiplier(2)->Range(1,32)->Unit(benchmark::kMicrosecond);
 BENCHMARK(run_discretize)->RangeMultiplier(2)->Range(1,32)->Unit(benchmark::kMicrosecond);
 
-BENCHMARK(run_cv_geom_every_sample)->Unit(benchmark::kMillisecond);
-BENCHMARK(run_discretize_every_sample)->Unit(benchmark::kMillisecond);
+BENCHMARK(run_cv_geom_every_segment)->Unit(benchmark::kMillisecond);
+BENCHMARK(run_discretize_every_segment)->Unit(benchmark::kMillisecond);
 
 BENCHMARK(run_cv_geom_explicit)->Unit(benchmark::kMillisecond);
 BENCHMARK(run_discretize_explicit)->Unit(benchmark::kMillisecond);

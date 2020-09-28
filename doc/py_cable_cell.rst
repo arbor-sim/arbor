@@ -77,9 +77,10 @@ Cable Cells
         .. code-block:: Python
 
             # Specialize resistivity on soma
-            cell.paint('soma', rL=100)
-            # Specialize resistivity and capacitance on the axon
-            cell.paint('axon', cm=0.05, rL=80)
+            cell.paint('"soma"', rL=100)
+            # Specialize resistivity and capacitance on the axon, where
+            # axon is defined using a region expression.
+            cell.paint('(tag 2)', cm=0.05, rL=80)
 
 .. py:class:: ion
 

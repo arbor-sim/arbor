@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <utility>
 #include <vector>
 
@@ -13,7 +14,7 @@ struct probe_info {
     probe_tag tag;
 
     // Address type will be specific to cell kind of cell `id.gid`.
-    util::any address;
+    std::any address;
 
     probe_info(probe_info&) = default;
     probe_info(const probe_info&) = default;
@@ -89,7 +90,7 @@ public:
     }
 
     // Global property type will be specific to given cell kind.
-    virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
+    virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
 
     virtual ~recipe() {}
 };

@@ -13,6 +13,8 @@
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/string_literals.hpp>
+#include <arbor/util/any_ptr.hpp>
 
 #include <arborenv/concurrency.hpp>
 
@@ -240,12 +242,12 @@ TEST(fvm_lowered, matrix_init)
     auto n = J.size();
     auto& mat = J.state_;
 
-    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan));
-    EXPECT_FALSE(util::any_of(mat.d, isnan));
-    EXPECT_FALSE(util::any_of(S->voltage, isnan));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), isnan));
+    EXPECT_FALSE(arb::util::any_of(mat.d, isnan));
+    EXPECT_FALSE(arb::util::any_of(S->voltage, isnan));
 
-    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), ispos));
-    EXPECT_FALSE(util::any_of(mat.d, isneg));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), ispos));
+    EXPECT_FALSE(arb::util::any_of(mat.d, isneg));
 }
 
 TEST(fvm_lowered, target_handles) {
@@ -541,7 +543,7 @@ TEST(fvm_lowered, read_valence) {
 
         soma_cell_builder builder(6);
         auto cell = builder.make_cell();
-        cell.paint("soma", "test_ca_read_valence");
+        cell.paint("\"soma\"", "test_ca_read_valence");
         cable1d_recipe rec({std::move(cell)});
         rec.catalogue() = make_unit_test_catalogue();
 
@@ -564,7 +566,7 @@ TEST(fvm_lowered, read_valence) {
         // Check ion renaming.
         soma_cell_builder builder(6);
         auto cell = builder.make_cell();
-        cell.paint("soma", "cr_read_valence");
+        cell.paint("\"soma\"", "cr_read_valence");
         cable1d_recipe rec({std::move(cell)});
         rec.catalogue() = make_unit_test_catalogue();
         rec.catalogue() = make_unit_test_catalogue();
@@ -651,6 +653,7 @@ TEST(fvm_lowered, ionic_concentrations) {
 }
 
 TEST(fvm_lowered, ionic_currents) {
+    using namespace arb::literals;
     arb::proc_allocation resources;
     if (auto nt = arbenv::get_env_num_threads()) {
         resources.num_threads = nt;
@@ -680,8 +683,8 @@ TEST(fvm_lowered, ionic_currents) {
     m2["coeff"] = coeff;
 
     auto c = b.make_cell();
-    c.paint("soma", m1);
-    c.paint("soma", m2);
+    c.paint("soma"_lab, m1);
+    c.paint("soma"_lab, m2);
 
     cable1d_recipe rec(std::move(c));
     rec.catalogue() = make_unit_test_catalogue();

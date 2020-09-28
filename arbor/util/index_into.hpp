@@ -32,9 +32,9 @@ struct index_into_iterator {
     using reference = const value_type&;
     using iterator_category =
         std::conditional_t<
-            std::is_same<Sup, SupEnd>::value
-                && is_bidirectional_iterator_t<Sup>::value
-                && is_bidirectional_iterator_t<Sub>::value,
+            std::is_same_v<Sup, SupEnd>
+                && is_bidirectional_iterator_v<Sup>
+                && is_bidirectional_iterator_v<Sub>,
             std::bidirectional_iterator_tag,
             std::forward_iterator_tag
         >;
