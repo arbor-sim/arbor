@@ -100,7 +100,7 @@ Our cell and network are defined; we have ran the simulation. However, we have n
         print('no spikes')
 
     # (8) Plot the recorded voltages over time.
-    import pandas, seaborn
+    import pandas, seaborn # You may have to pip install these.
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
     seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 

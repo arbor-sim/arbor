@@ -7,7 +7,7 @@ A cell's *morphology* describes both its geometry and branching structure.
 Morphologies in Arbor are modeled as a set of one dimensional cables of variable radius,
 joined together to form a tree.
 
-The building blocks of morpholgies tree are points and segments.
+The building blocks of morphology tree are points and segments.
 A *point* is a three-dimensional location and a radius, used to mark the centre and radius
 of the cable.
 
@@ -96,7 +96,7 @@ We can apply the following labels to the segments:
 * The proximal ends of segments 0 and 9 (the soma and axon hillock respectively) are attached to the root of the tree.
 * Segment 2 is a fork, with segments 3 and 5 as children.
 * Segment 5 is a fork, with segments 6 and 7 as children.
-* There is also a fork at the root, whith segments 0 and 9 as children.
+* There is also a fork at the root, with segments 0 and 9 as children.
 * Segments 4, 6, 8 and 10 are terminal segments.
 
 In the example above there are no gaps between segments, however
@@ -151,7 +151,7 @@ The branches of a morphology are unbranched cables, composed of one or more segm
 
   * the first (proximal) segment of the branch is either a root or the child of fork segment;
   * the last (distal) segment of the branch is either a fork or terminal segment;
-  * branches are enumerated according to the ids of their proximal segments in the segment trree.
+  * branches are enumerated according to the ids of their proximal segments in the segment tree.
 
 When constructed in this manner, the following statements are true for the branches and
 their enumeration:
@@ -169,7 +169,7 @@ their enumeration:
 .. Note::
 
     Because two topologically-equivalent morphologies may have different segment and
-    branch numbering, it is important that model descriptions should avoid refering to
+    branch numbering, it is important that model descriptions should avoid referring to
     branches or segments by id.
     This should be relaxed only in well-understood situations, for example when working with
     models that always represent to soma with a single segment at the root of the tree,
@@ -192,7 +192,7 @@ There are four more branches in the dendritic tree, and one representing the two
 segments of the axon.
 
 Note, that though it is possible to create an unbranched sequence of segments composed
-of the axon, soma and first two segements in the dendritic tree, this sequence is decomposed
+of the axon, soma and first two segments in the dendritic tree, this sequence is decomposed
 as two branches because segments 0 (soma) and 9 (first segment in axon) are at the
 root of the tree.
 
@@ -201,7 +201,7 @@ Every branch has one parent, with branches at the root of the tree having the pl
 parent index :data:`mnpos <arbor.mnpos>`. Segments can have any non-negative number of children,
 however by nature of their construction, no branch can have only one child: a branch has
 either no children, or two or more children.
-The parent-child information and segments for the morphology are summarised:
+The parent-child information and segments for the morphology are summarized:
 
 .. csv-table::
    :widths: 10, 10, 10, 10
@@ -216,7 +216,7 @@ The parent-child information and segments for the morphology are summarised:
 
 Gaps between segments do not influence branch creation, hence branches
 can contain gaps between segments. Take the example of a morphology with
-a gap between the soma and the axona and dendritic trees:
+a gap between the soma and the axon and dendritic trees:
 
 .. figure:: gen-images/detached_morph.svg
   :width: 800
@@ -261,7 +261,7 @@ multiple soma and dendrite segments in branch 0.
 .. Note::
     Arbor provides a consistent representation of morphologies with no
     special cases for concepts like magical soma branches, in order to
-    build reproducable and consistent model descriptions.
+    build reproducible and consistent model descriptions.
 
     Users of NEURON who are used to creating a separate soma section
     that is always the first section in a morphology should not
@@ -270,7 +270,7 @@ multiple soma and dendrite segments in branch 0.
 
     The soma in the examples above can be referred to in later model
     building phases, for example when describing the distribution of
-    ion channels, by using refering to all parts of the cell with
+    ion channels, by using referring to all parts of the cell with
     :ref:`tag 1 <labels-expressions>`.
 
 
@@ -325,7 +325,7 @@ This can be described using a single segment.
 
   A tapered cable with one cable segment (left), generates a morphology with one branch (right).
 
-The radius of a cable segment varies lineary between its end points. To define an unbranched cable
+The radius of a cable segment varies linearly between its end points. To define an unbranched cable
 with irregular radius and "squiggly" shape, use multiple segments to build a piecewise linear reconstruction
 of the cable geometry.
 This example starts and ends at the same locations as the previous, however it is constructed from 4
@@ -340,13 +340,11 @@ distinct cable segments:
     tree.append(2,     mpoint( 8.0,  0.0,  0.0, 0.6), mpoint(10.0,  0.0,  0.0, 0.5), tag=3)
     morph = arbor.morphology(tree)
 
-    morph = arbor.morphology(tree)
-
 .. figure:: gen-images/branch_morph2.svg
   :width: 600
   :align: center
 
-  The morphology is an ubranched cable comprised of 4 cable segments,
+  The morphology is an unbranched cable comprised of 4 cable segments,
   colored according to their tags: tag 1 red; tag 2 gree; tag 3 blue (left).
   The four segments form one branch (right).
 
@@ -369,7 +367,7 @@ joining the segments together, such that the morphology with the gap is the same
 
   There is a gap between segment 1 and segment 2 (left), and there is a single branch (right).
 
-The radius of a cable is piecewise linear, with discontinuities permited at the
+The radius of a cable is piecewise linear, with discontinuities permitted at the
 interface between segments.
 The next example adds a discontinuity to the previous example between segments
 3 and 4, where the radius changes from 0.5 μm to 0.3 μm:
