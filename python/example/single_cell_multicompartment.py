@@ -2,9 +2,6 @@ import arbor
 import seaborn
 import pandas
 from math import sqrt
-from arbor import mechanism as mech
-from arbor import location as loc
-import matplotlib.pyplot as plt
 
 # Make a ball and stick cell model
 
@@ -78,14 +75,19 @@ cell.place('"stim_site"', arbor.iclamp( 10, 2, 0.8))
 cell.place('"stim_site"', arbor.iclamp( 50, 2, 0.8))
 cell.place('"stim_site"', arbor.iclamp( 80, 2, 0.8))
 # Add a spike detector with threshold of -10 mV.
-cell.place('root', arbor.spike_detector(-10))
+cell.place('"root"', arbor.spike_detector(-10))
+
+# Discretization: the default discretization in Arbor is 1 compartment per branch.
+# Let's be a bit more precise and make that every 2 micron:
+cell.compartments_length(2)
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes, sampling at 10 kHz.
-m.probe('voltage', loc(0,0), 10000) # at the soma.
-m.probe('voltage', 'dtips',  10000) # at the tips of the dendrites.
+m.probe('voltage', '(location 0 0)', 10000) # at the soma.
+# m.probe('voltage', loc(0,0), 10000) # at the soma.
+m.probe('voltage', '"dtips"',  10000) # at the tips of the dendrites.
 
 # Run simulation for 100 ms of simulated activity.
 tfinal=100
@@ -100,20 +102,8 @@ else:
     print('no spikes')
 
 # Plot the recorded voltages over time.
-fig, ax = plt.subplots()
+df = pandas.DataFrame()
 for t in m.traces:
-    ax.plot(t.time, t.value)
+    df=df.append( pandas.DataFrame( {'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable} ))
 
-legend_labels = ['{}: {}'.format(s.variable, s.location) for s in m.traces]
-ax.legend(legend_labels)
-ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='cell builder demo')
-plt.xlim(0,tfinal)
-# plt.ylim(-80,50)
-ax.grid()
-
-# Set to True to save the image to file instead of opening a plot window.
-plot_to_file=False
-if plot_to_file:
-    fig.savefig("voltages.svg")
-else:
-    plt.show()
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable").savefig('single_cell_multicompartment_result.svg')
