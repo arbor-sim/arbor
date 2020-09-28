@@ -495,6 +495,15 @@ mechanism_catalogue::mechanism_catalogue():
     state_(new catalogue_state)
 {}
 
+std::vector<std::string> mechanism_catalogue::mechanism_names() const {
+    std::vector<std::string> result;
+    for (const auto& [k, v]: state_->info_map_) {
+        result.push_back(k);
+    }
+    return result;
+}
+
+
 mechanism_catalogue::mechanism_catalogue(mechanism_catalogue&& other) = default;
 mechanism_catalogue& mechanism_catalogue::operator=(mechanism_catalogue&& other) = default;
 

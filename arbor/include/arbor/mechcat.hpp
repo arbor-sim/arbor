@@ -110,6 +110,8 @@ public:
 
    ~mechanism_catalogue();
 
+   std::vector<std::string> mechanism_names() const;
+
 private:
     std::unique_ptr<catalogue_state> state_;
 
