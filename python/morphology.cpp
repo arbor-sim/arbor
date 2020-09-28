@@ -20,7 +20,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
         }
         try {
             using namespace arb;
-            auto records = parse_swc_file(fid);
+            auto records = parse_swc(fid, swc_mode::relaxed).records;
 
             // Assert that the file contains at least one sample.
             if (records.empty()) {
@@ -104,8 +104,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
         catch (arb::swc_error& e) {
             // Try to produce helpful error messages for SWC parsing errors.
             throw pyarb_error(
-                util::pprintf("Allen SWC: error parsing line {} of '{}': {}",
-                              e.line_number, fname, e.what()));
+                util::pprintf("Allen SWC: error parsing {}: {}", fname, e.what()));
         }
 }
 
@@ -237,14 +236,13 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                auto records = arb::parse_swc_file(fid);
-                return arb::swc_as_segment_tree(records);
+                auto records = arb::parse_swc(fid).records;
+                return arb::as_segment_tree(records);
             }
             catch (arb::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
                 throw pyarb_error(
-                    util::pprintf("error parsing line {} of '{}': {}.",
-                                  e.line_number, fname, e.what()));
+                    util::pprintf("error parsing {}: {}", fname, e.what()));
             }
         },
         "Load an swc file and as a segment_tree.");

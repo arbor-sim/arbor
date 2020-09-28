@@ -228,7 +228,6 @@ public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
-    using point_type = point<value_type>;
 
     using gap_junction_instance = mlocation;
 

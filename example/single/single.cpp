@@ -157,5 +157,5 @@ arb::morphology read_swc(const std::string& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("unable to open SWC file: "+path);
 
-    return arb::morphology(arb::swc_as_segment_tree(arb::parse_swc_file(f)));
+    return arb::morphology(arb::as_segment_tree(arb::parse_swc(f)));
 }

@@ -87,40 +87,5 @@ std::ostream& operator<<(std::ostream& o, const segment_tree& m) {
              << io::sepval(tstr, ' ') <<  "))";
 }
 
-segment_tree swc_as_segment_tree(const std::vector<swc_record>& swc_records) {
-    if (swc_records.size()<2) {
-        throw "At least two swc records are required to construct a segment tree.";
-    }
-
-    auto point = [&swc_records] (msize_t i) {
-        auto& r = swc_records[i];
-        return mpoint{r.x, r.y, r.z, r.r};
-    };
-    auto tag = [&swc_records] (msize_t i) {
-        return swc_records[i].tag;
-    };
-
-    segment_tree tree;
-    tree.reserve(swc_records.size());
-
-    std::unordered_map<msize_t, msize_t> segmap;
-
-    tree.append(mnpos, point(0), point(1), tag(1));
-    segmap[0] = mnpos;
-    segmap[1] = 0;
-    for (unsigned i=2; i<swc_records.size(); ++i) {
-        msize_t p = segmap[swc_records[i].parent_id];
-        if (p==mnpos) {
-            tree.append(p, point(0), point(i), tag(i));
-        }
-        else {
-            tree.append(p, point(i), tag(i));
-        }
-        segmap[i] = i-1;
-    }
-
-    return tree;
-}
-
 } // namespace arb
 

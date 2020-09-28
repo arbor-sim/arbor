@@ -1,6 +1,7 @@
 #include <optional>
 #include <stack>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <arbor/morph/label_parse.hpp>

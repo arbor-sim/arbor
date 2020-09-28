@@ -5,7 +5,6 @@
 #include <vector>
 #include <string>
 
-#include <arbor/swcio.hpp>
 #include <arbor/morph/primitives.hpp>
 
 namespace arb {
@@ -53,9 +52,6 @@ public:
 
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
 };
-
-/// Build a sample tree from a sequence of swc records.
-segment_tree swc_as_segment_tree(const std::vector<swc_record>& swc_records);
 
 } // namesapce arb
 
