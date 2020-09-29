@@ -64,7 +64,7 @@ cell.place('"stim_site"', arbor.iclamp( 10, 2, 0.8))
 cell.place('"stim_site"', arbor.iclamp( 50, 2, 0.8))
 cell.place('"stim_site"', arbor.iclamp( 80, 2, 0.8))
 # Add a spike detector with threshold of -10 mV.
-cell.place('root', arbor.spike_detector(-10))
+cell.place('"root"', arbor.spike_detector(-10))
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)

@@ -33,12 +33,12 @@ def make_cable_cell(gid):
     cell = b.build()
 
     # Put hh dynamics on soma, and passive properties on the dendrites.
-    cell.paint('soma', 'hh')
-    cell.paint('dend', 'pas')
+    cell.paint('"soma"', 'hh')
+    cell.paint('"dend"', 'pas')
     # Attach a single synapse.
-    cell.place('synapse_site', 'expsyn')
+    cell.place('"synapse_site"', 'expsyn')
     # Attach a spike detector with threshold of -10 mV.
-    cell.place('root', arbor.spike_detector(-10))
+    cell.place('"root"', arbor.spike_detector(-10))
 
     return cell
 
@@ -84,13 +84,9 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
-    # Define one probe (for measuring voltage at the soma) on each cell.
-    def num_probes(self, gid):
-        return 1
-
-    def get_probe(self, id):
+    def get_probes(self, gid):
         loc = arbor.location(0, 0) # at the soma
-        return arbor.cable_probe('voltage', id, loc)
+        return [arbor.cable_probe('voltage', loc)]
 
 context = arbor.context(threads=12, gpu_id=None)
 print(context)
