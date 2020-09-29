@@ -11,7 +11,7 @@
 import arbor
 from arbor import mechanism as mech
 from arbor import location as loc
-import matplotlib.pyplot as plt
+import pandas, seaborn
 
 # Load a cell morphology from an swc file.
 tree = arbor.load_swc('../../test/unit/swc/pyramidal.swc')
@@ -72,19 +72,8 @@ else:
     print('no spikes')
 
 # Plot the recorded voltages over time.
-fig, ax = plt.subplots()
+df = pandas.DataFrame()
 for t in m.traces:
-    ax.plot(t.time, t.value)
+    df=df.append( pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable}) )
 
-legend_labels = ['{}: {}'.format(s.variable, s.location) for s in m.traces]
-ax.legend(legend_labels)
-ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='swc morphology demo')
-plt.xlim(0,tfinal)
-plt.ylim(-80,80)
-ax.grid()
-
-plot_to_file=False
-if plot_to_file:
-    fig.savefig("voltages.png", dpi=300)
-else:
-    plt.show()
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable").savefig('single_cell_swc.svg')

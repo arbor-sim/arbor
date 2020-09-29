@@ -41,6 +41,7 @@ b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(100, 0, 0, 2), tag=2)
 # Radius tapers from 2 to 0.5 over the length of the branch.
 
 b1 = tree.append(b0, arbor.mpoint(100, 0, 0, 2), arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 0.5), tag=2)
+b2 = tree.append(b0, arbor.mpoint(100, 0, 0, 1), arbor.mpoint(100+50/sqrt(2), -50/sqrt(2), 0, 1), tag=2)
 b3 = tree.append(b1, arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 1), arbor.mpoint(100+50/sqrt(2)+50, 50/sqrt(2), 0, 1), tag=3)
 b4 = tree.append(b1, arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 1), arbor.mpoint(100+2*50/sqrt(2), 2*50/sqrt(2), 0, 1), tag=3)
 
@@ -85,7 +86,6 @@ m = arbor.single_cell_model(cell)
 
 # Attach voltage probes, sampling at 10 kHz.
 m.probe('voltage', '(location 0 0)', 10000) # at the soma.
-# m.probe('voltage', loc(0,0), 10000) # at the soma.
 m.probe('voltage', '"dtips"',  10000) # at the tips of the dendrites.
 
 # Run simulation for 100 ms of simulated activity.
@@ -103,6 +103,6 @@ else:
 # Plot the recorded voltages over time.
 df = pandas.DataFrame()
 for t in m.traces:
-    df=df.append( pandas.DataFrame( {'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable} ))
+    df=df.append( pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable}) )
 
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable").savefig('single_cell_multicompartment_result.svg')

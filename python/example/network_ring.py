@@ -1,6 +1,6 @@
 import sys
 import arbor
-import matplotlib.pyplot as plt
+import pandas, seaborn
 from math import sqrt
 
 # Construct a cell with the following morphology.
@@ -147,24 +147,9 @@ print('spikes:')
 for sp in spike_recorder.spikes:
     print(' ', sp)
 
-# Plot the voltage trace at the soma of each cell.
-fig, ax = plt.subplots()
+# Plot the recorded voltages over time.
+df = pandas.DataFrame()
 for gid in range(ncells):
-    times = [s.time  for s in samplers[gid].samples(arbor.cell_member(gid,0))]
-    volts = [s.value for s in samplers[gid].samples(arbor.cell_member(gid,0))]
-    ax.plot(times, volts)
-
-legends = ['cell {}'.format(gid) for gid in range(ncells)]
-ax.legend(legends)
-
-ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='ring demo')
-plt.xlim(0,tfinal)
-plt.ylim(-80,40)
-ax.grid()
-
-plot_to_file=False
-if plot_to_file:
-    fig.savefig("voltages.png", dpi=300)
-    print('voltage samples saved to voltages.png')
-else:
-    plt.show()
+    for s in samplers[gid].samples(arbor.cell_member(gid,0)):
+        df=df.append({'t/ms': s.time, 'U/mV': s.value, 'Cell': f"cell {gid}"}, ignore_index=True)
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell").savefig('network_ring_result.svg')
