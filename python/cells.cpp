@@ -560,8 +560,8 @@ void register_cells(pybind11::module& m) {
             [](arb::cable_cell& c, const char* region, const char* name,
                optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
                 if (int_con) c.paint(region, arb::init_int_concentration{name, *int_con});
-                if (ext_con) c.paint(region, arb::init_int_concentration{name, *ext_con});
-                if (rev_pot) c.paint(region, arb::init_int_concentration{name, *rev_pot});
+                if (ext_con) c.paint(region, arb::init_ext_concentration{name, *ext_con});
+                if (rev_pot) c.paint(region, arb::init_reversal_potential{name, *rev_pot});
             },
             "region"_a, "ion_name"_a,
              pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
