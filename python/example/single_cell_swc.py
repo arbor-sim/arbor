@@ -14,9 +14,7 @@ from arbor import location as loc
 import matplotlib.pyplot as plt
 
 # Load a cell morphology from an swc file.
-# The model has 31 branches, including soma, dendrites and axon.
-#tree = arbor.load_swc('../../test/unit/swc/example.swc')
-tree = arbor.load_swc('example.swc')
+tree = arbor.load_swc('../../test/unit/swc/pyramidal.swc')
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -30,7 +28,7 @@ labels = arbor.label_dict(defs)
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(tree, labels)
 
-print(cell.locations('axon_end'))
+print(cell.locations('"axon_end"'))
 
 # Set initial membrane potential to -55 mV
 cell.set_properties(Vm=-55)
@@ -44,8 +42,8 @@ cell.paint('"dend"', 'pas')
 # Increase resistivity on dendrites.
 cell.paint('"dend"', rL=500)
 # Attach stimuli that inject 0.8 nA currents for 1 ms, starting at 3 and 8 ms.
-cell.place('"stim_site"', arbor.iclamp(3, 1, current=0.5))
-cell.place('"stim_site"', arbor.iclamp(8, 1, current=1))
+cell.place('"stim_site"', arbor.iclamp(3, 1, current=2))
+cell.place('"stim_site"', arbor.iclamp(8, 1, current=4))
 # Detect spikes at the soma with a voltage threshold of -10 mV.
 cell.place('"root"', arbor.spike_detector(-10))
 
@@ -56,10 +54,10 @@ cell.compartments_on_segments()
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe('voltage', where='root',  frequency=50000)
+m.probe('voltage', where='"root"',  frequency=50000)
 m.probe('voltage', where=loc(2,1),  frequency=50000)
-m.probe('voltage', where='stim_site',  frequency=50000)
-m.probe('voltage', where='axon_end', frequency=50000)
+m.probe('voltage', where='"stim_site"',  frequency=50000)
+m.probe('voltage', where='"axon_end"', frequency=50000)
 
 # Simulate the cell for 15 ms.
 tfinal=15
