@@ -1,44 +1,53 @@
 import sys
 import arbor
-import matplotlib.pyplot as plt
+import pandas, seaborn
+from math import sqrt
 
 # Construct a cell with the following morphology.
 # The soma (at the root of the tree) is marked 's', and
 # the end of each branch i is marked 'bi'.
 #
-#         b2
+#         b1
 #        /
-# s----b1
+# s----b0
 #        \
-#         b3
+#         b2
 
 def make_cable_cell(gid):
-    b = arbor.flat_cell_builder()
+    # Associate labels to tags
+    labels = arbor.label_dict()
+    labels['soma'] = '(tag 1)'
+    labels['dend'] = '(tag 2)'
 
-    # Soma with radius 6 μm, modelled as cylinder of length 2*radius
-    s  = b.add_cable(length=12, radius=6, name="soma", ncomp=1)
-    # Single dendrite of length 100 μm and radius 2 μm attached to soma.
-    b1 = b.add_cable(parent=s, length=100, radius=2, name="dend", ncomp=1)
-    # Attach two dendrites of length 50 μm to the end of the first dendrite.
+    # Build a segment tree
+    tree = arbor.segment_tree()
+
+    # Soma (tag=1) with radius 6 μm, modelled as cylinder of length 2*radius
+    s = tree.append(arbor.mnpos, arbor.mpoint(-12, 0, 0, 6), arbor.mpoint(0, 0, 0, 6), tag=1)
+
+    # Single dendrite (tag=2) of length 100 μm and radius 2 μm attached to soma.
+    b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(100, 0, 0, 2), tag=2)
+
+    # Attach two dendrites (tag=2) of length 50 μm to the end of the first dendrite.
     # Radius tapers from 2 to 0.5 μm over the length of the dendrite.
-    b2 = b.add_cable(parent=b1, length=50, radius=(2,0.5), name="dend", ncomp=1)
+    b1 = tree.append(b0, arbor.mpoint(100, 0, 0, 2), arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 0.5), tag=2)
     # Constant radius of 1 μm over the length of the dendrite.
-    b3 = b.add_cable(parent=b1, length=50, radius=1, name="dend", ncomp=1)
+    b2 = tree.append(b0, arbor.mpoint(100, 0, 0, 1), arbor.mpoint(100+50/sqrt(2), -50/sqrt(2), 0, 1), tag=2)
 
     # Mark location for synapse at the midpoint of branch 1 (the first dendrite).
-    b.add_label('synapse_site', '(location 1 0.5)')
+    labels['synapse_site'] = '(location 1 0.5)'
     # Mark the root of the tree.
-    b.add_label('root', '(root)')
+    labels['root'] = '(root)'
 
-    cell = b.build()
+    cell = arbor.cable_cell(tree, labels)
 
     # Put hh dynamics on soma, and passive properties on the dendrites.
-    cell.paint('soma', 'hh')
-    cell.paint('dend', 'pas')
+    cell.paint('"soma"', 'hh')
+    cell.paint('"dend"', 'pas')
     # Attach a single synapse.
-    cell.place('synapse_site', 'expsyn')
+    cell.place('"synapse_site"', 'expsyn')
     # Attach a spike detector with threshold of -10 mV.
-    cell.place('root', arbor.spike_detector(-10))
+    cell.place('"root"', arbor.spike_detector(-10))
 
     return cell
 
@@ -84,13 +93,9 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
-    # Define one probe (for measuring voltage at the soma) on each cell.
-    def num_probes(self, gid):
-        return 1
-
-    def get_probe(self, id):
+    def get_probes(self, gid):
         loc = arbor.location(0, 0) # at the soma
-        return arbor.cable_probe('voltage', id, loc)
+        return [arbor.cable_probe('voltage', loc)]
 
 context = arbor.context(threads=12, gpu_id=None)
 print(context)
@@ -142,24 +147,9 @@ print('spikes:')
 for sp in spike_recorder.spikes:
     print(' ', sp)
 
-# Plot the voltage trace at the soma of each cell.
-fig, ax = plt.subplots()
+# Plot the recorded voltages over time.
+df = pandas.DataFrame()
 for gid in range(ncells):
-    times = [s.time  for s in samplers[gid].samples(arbor.cell_member(gid,0))]
-    volts = [s.value for s in samplers[gid].samples(arbor.cell_member(gid,0))]
-    ax.plot(times, volts)
-
-legends = ['cell {}'.format(gid) for gid in range(ncells)]
-ax.legend(legends)
-
-ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='ring demo')
-plt.xlim(0,tfinal)
-plt.ylim(-80,40)
-ax.grid()
-
-plot_to_file=False
-if plot_to_file:
-    fig.savefig("voltages.png", dpi=300)
-    print('voltage samples saved to voltages.png')
-else:
-    plt.show()
+    for s in samplers[gid].samples(arbor.cell_member(gid,0)):
+        df=df.append({'t/ms': s.time, 'U/mV': s.value, 'Cell': f"cell {gid}"}, ignore_index=True)
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell").savefig('network_ring_result.svg')
