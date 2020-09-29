@@ -52,7 +52,7 @@ std::ostream& operator<<(std::ostream& out, const swc_record& record) {
 
     out.precision(std::numeric_limits<double>::digits10+2);
     return out << record.id << ' ' << record.tag << ' '
-               << record.x  << ' ' << record.y   << ' ' << record.z << ' ' << record.r
+               << record.x  << ' ' << record.y   << ' ' << record.z << ' ' << record.r << ' '
                << record.parent_id << '\n';
 }
 
