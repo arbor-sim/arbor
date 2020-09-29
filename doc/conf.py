@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys, os
 
+# Path to Python Binding (_arbor)
+sys.path.insert(0, os.path.abspath('../python/arbor'))
 
 html_static_path = ['static']
 
@@ -10,13 +13,14 @@ def setup(app):
     app.add_object_type('label', 'lab', 'pair: %s; label')
 
 extensions = [
+    'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
 ]
 source_suffix = '.rst'
 master_doc = 'index'
 
-html_logo = 'images/arbor-logo.svg'
+html_logo = 'images/arbor-lines-proto-colour.svg'
 
 project = 'Arbor'
 copyright = '2017, ETHZ & FZ Julich'

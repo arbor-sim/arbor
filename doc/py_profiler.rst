@@ -2,7 +2,7 @@
 
 .. currentmodule:: arbor
 
-Metering
+Profiler
 ========
 
 Arbor's python module :py:mod:`arbor` has a :class:`meter_manager` for measuring time (and if applicable memory) consumptions of regions of interest in the python code.

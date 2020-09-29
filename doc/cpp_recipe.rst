@@ -20,8 +20,8 @@ Here we collect rules of thumb to keep in mind when making recipes in C++.
     lazy evaluation when possible (see `Be lazy <_recipe_lazy>`_).
 
 
-Class Documentation
--------------------
+Recipe
+------
 
 .. cpp:namespace:: arb
 
@@ -139,50 +139,44 @@ Class Documentation
 
         By default returns an empty container.
 
-.. cpp:class:: cell_connection
+Cells
+--------
 
-    Describes a connection between two cells: a pre-synaptic source and a
-    post-synaptic destination. The source is typically a threshold detector on
-    a cell or a spike source. The destination is a synapse on the post-synaptic cell.
+See :ref:`cppcell`.
 
-    .. cpp:type:: cell_connection_endpoint = cell_member_type
+Synapses
+--------
 
-        Connection end-points are represented by pairs
-        (cell index, source/target index on cell).
+See :ref:`cppsynapses`.
 
-    .. cpp:member:: cell_connection_endpoint source
+Probes
+------
 
-        Source end point.
+.. cpp:type:: probe_tag = int
 
-    .. cpp:member:: cell_connection_endpoint dest
+    Extra contextual information associated with a probe.
 
-        Destination end point.
+.. cpp:class:: probe_info
 
-    .. cpp:member:: float weight
+    Probes are specified in the recipe objects that are used to initialize a
+    model; the specification of the item or value that is subjected to a
+    probe will be specific to a particular cell type.
 
-        The weight delivered to the target synapse.
-        The weight is dimensionless, and its interpretation is
-        specific to the synapse type of the target. For example,
-        the `expsyn` synapse interprets it as a conductance
-        with units μS (micro-Siemens).
+    .. cpp:member:: cell_member_type id
 
-    .. cpp:member:: float delay
+           Cell gid, index of probe.
 
-        Delay of the connection (milliseconds).
+    .. cpp:member:: probe_tag tag
 
-.. cpp:class:: gap_junction_connection
+           Opaque key, returned in sample record.
 
-    Describes a gap junction between two gap junction sites.
-    Gap junction sites are represented by :cpp:type:cell_member_type.
+    .. cpp:member:: util::any address
 
-    .. cpp:member:: cell_member_type local
+           Cell-type specific location info, specific to cell kind of ``id.gid``.
 
-        gap junction site: one half of the gap junction connection.
+Event Generator and Schedules
+-----------------------------
 
-    .. cpp:member:: cell_member_type peer
 
-        gap junction site: other half of the gap junction connection.
-
-    .. cpp:member:: float ggap
-
-        gap junction conductance in μS.
+Example
+-------

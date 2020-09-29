@@ -1,7 +1,7 @@
-.. _cppcablecell:
+.. _cppcable_cell:
 
-Cable cells
-===============
+Cable Cells
+===========
 
 .. Warning::
    The interface for building and modifying cable cell objects
