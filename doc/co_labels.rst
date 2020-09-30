@@ -111,6 +111,7 @@ Examples of expressions that define regions include:
 * ``(tag 1)``: all segments with tag 1.
 * ``(branch 2)``: branch 2.
 * ``(region "soma")``: the region with the label "soma".
+* ``"soma"``: a shortcut for the region with the label "soma".
 
 Examples of expressions that define locsets include:
 
@@ -615,13 +616,11 @@ Label Dictionaries
 
 *Labels* can be assigned to expressions, and used to refer to the expression or the
 concrete region or locset generated when the expression is applied to a morphology.
-A label is a string with the following rules:
+Although any string is a valid label, it is a good idea to avoid labels that would
+also be valid expressions in the region DSL. E.g. do not create a ``"(tag 1)"`` label;
+it would lead to confusion.
 
-* may contain alpha-numeric values, ``{a-z}[A-z][0-9]``, underscore ``_`` and hyphen ``-``.
-* no leading underscore, hyphen or numeric values: for example ``_myregion``,
-  ``-samples``, and ``2ndpoint`` are invalid labels.
-
-labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
+Labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
 
 
 API
