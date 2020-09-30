@@ -258,41 +258,7 @@ public:
 
     // Set cell-wide default physical and ion parameters.
 
-    void set_default(init_membrane_potential prop) {
-        default_parameters.init_membrane_potential = prop.value;
-    }
-
-    void set_default(axial_resistivity prop) {
-        default_parameters.axial_resistivity = prop.value;
-    }
-
-    void set_default(temperature_K prop) {
-        default_parameters.temperature_K = prop.value;
-    }
-
-    void set_default(membrane_capacitance prop) {
-        default_parameters.membrane_capacitance = prop.value;
-    }
-
-    void set_default(initial_ion_data prop) {
-        default_parameters.ion_data[prop.ion] = prop.initial;
-    }
-
-    void set_default(init_int_concentration prop) {
-        default_parameters.ion_data[prop.ion].init_int_concentration = prop.value;
-    }
-
-    void set_default(init_ext_concentration prop) {
-        default_parameters.ion_data[prop.ion].init_ext_concentration = prop.value;
-    }
-
-    void set_default(init_reversal_potential prop) {
-        default_parameters.ion_data[prop.ion].init_reversal_potential = prop.value;
-    }
-
-    void set_default(ion_reversal_potential_method prop) {
-        default_parameters.reversal_potential_method[prop.ion] = prop.method;
-    }
+    void set_default(defaultable prop);
 
     // Painters and placers.
     //

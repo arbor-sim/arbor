@@ -179,21 +179,16 @@ using placeable =
                  threshold_detector,
                  gap_junction_site>;
 
-std::ostream& sstring(std::ostream&, const i_clamp&);
-std::ostream& sstring(std::ostream&, const threshold_detector&);
-std::ostream& sstring(std::ostream&, const gap_junction_site&);
-std::ostream& operator<<(std::ostream&, const placeable&);
-
-std::ostream& sstring(std::ostream&, const mechanism_desc&);
-std::ostream& sstring(std::ostream&, const init_membrane_potential&);
-std::ostream& sstring(std::ostream&, const axial_resistivity&);
-std::ostream& sstring(std::ostream&, const temperature_K&);
-std::ostream& sstring(std::ostream&, const membrane_capacitance&);
-std::ostream& sstring(std::ostream&, const init_int_concentration&);
-std::ostream& sstring(std::ostream&, const init_ext_concentration&);
-std::ostream& sstring(std::ostream&, const init_reversal_potential&);
-std::ostream& operator<<(std::ostream&, const paintable&);
-
+using defaultable =
+    std::variant<init_membrane_potential,
+                 axial_resistivity,
+                 temperature_K,
+                 membrane_capacitance,
+                 initial_ion_data,
+                 init_int_concentration,
+                 init_ext_concentration,
+                 init_reversal_potential,
+                 ion_reversal_potential_method>;
 
 // Cable cell ion and electrical defaults.
 
