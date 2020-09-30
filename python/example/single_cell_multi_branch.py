@@ -33,17 +33,17 @@ s = tree.append(arbor.mnpos, arbor.mpoint(-12, 0, 0, 6), arbor.mpoint(0, 0, 0, 6
 
 labels = arbor.label_dict()
 labels['soma'] = '(tag 1)'
-labels['dendn'] = '(tag 2)'
-labels['dendx'] = '(tag 3)'
+labels['dendn'] = '(tag 5)'
+labels['dendx'] = '(tag 6)'
 
-b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(100, 0, 0, 2), tag=2)
+b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(100, 0, 0, 2), tag=5)
 
 # Radius tapers from 2 to 0.5 over the length of the branch.
 
-b1 = tree.append(b0, arbor.mpoint(100, 0, 0, 2), arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 0.5), tag=2)
-b2 = tree.append(b0, arbor.mpoint(100, 0, 0, 1), arbor.mpoint(100+50/sqrt(2), -50/sqrt(2), 0, 1), tag=2)
-b3 = tree.append(b1, arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 1), arbor.mpoint(100+50/sqrt(2)+50, 50/sqrt(2), 0, 1), tag=3)
-b4 = tree.append(b1, arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 1), arbor.mpoint(100+2*50/sqrt(2), 2*50/sqrt(2), 0, 1), tag=3)
+b1 = tree.append(b0, arbor.mpoint(100, 0, 0, 2), arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 0.5), tag=5)
+b2 = tree.append(b0, arbor.mpoint(100, 0, 0, 1), arbor.mpoint(100+50/sqrt(2), -50/sqrt(2), 0, 1), tag=5)
+b3 = tree.append(b1, arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 1), arbor.mpoint(100+50/sqrt(2)+50, 50/sqrt(2), 0, 1), tag=6)
+b4 = tree.append(b1, arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 1), arbor.mpoint(100+2*50/sqrt(2), 2*50/sqrt(2), 0, 1), tag=6)
 
 # Combine the "dendn" and "dendx" regions into a single "dend" region.
 # The dendrites were labelled as such so that we can set different

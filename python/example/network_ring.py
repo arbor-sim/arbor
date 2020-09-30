@@ -17,7 +17,7 @@ def make_cable_cell(gid):
     # Associate labels to tags
     labels = arbor.label_dict()
     labels['soma'] = '(tag 1)'
-    labels['dend'] = '(tag 2)'
+    labels['dend'] = '(tag 3)'
 
     # Build a segment tree
     tree = arbor.segment_tree()
@@ -25,14 +25,14 @@ def make_cable_cell(gid):
     # Soma (tag=1) with radius 6 μm, modelled as cylinder of length 2*radius
     s = tree.append(arbor.mnpos, arbor.mpoint(-12, 0, 0, 6), arbor.mpoint(0, 0, 0, 6), tag=1)
 
-    # Single dendrite (tag=2) of length 100 μm and radius 2 μm attached to soma.
-    b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(100, 0, 0, 2), tag=2)
+    # Single dendrite (tag=3) of length 100 μm and radius 2 μm attached to soma.
+    b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(100, 0, 0, 2), tag=3)
 
-    # Attach two dendrites (tag=2) of length 50 μm to the end of the first dendrite.
+    # Attach two dendrites (tag=3) of length 50 μm to the end of the first dendrite.
     # Radius tapers from 2 to 0.5 μm over the length of the dendrite.
-    b1 = tree.append(b0, arbor.mpoint(100, 0, 0, 2), arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 0.5), tag=2)
+    b1 = tree.append(b0, arbor.mpoint(100, 0, 0, 2), arbor.mpoint(100+50/sqrt(2), 50/sqrt(2), 0, 0.5), tag=3)
     # Constant radius of 1 μm over the length of the dendrite.
-    b2 = tree.append(b0, arbor.mpoint(100, 0, 0, 1), arbor.mpoint(100+50/sqrt(2), -50/sqrt(2), 0, 1), tag=2)
+    b2 = tree.append(b0, arbor.mpoint(100, 0, 0, 1), arbor.mpoint(100+50/sqrt(2), -50/sqrt(2), 0, 1), tag=3)
 
     # Mark location for synapse at the midpoint of branch 1 (the first dendrite).
     labels['synapse_site'] = '(location 1 0.5)'
