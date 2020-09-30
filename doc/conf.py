@@ -21,6 +21,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 html_logo = 'images/arbor-lines-proto-colour.svg'
+html_favicon = 'images/arbor-lines-proto-colour-notext.svg'
 
 project = 'Arbor'
 copyright = '2017, ETHZ & FZ Julich'
