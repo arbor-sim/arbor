@@ -90,12 +90,12 @@ struct cable_probe_total_ion_current_density {
     locset locations;
 };
 
-// Total ionic current [nA] across membrance _excluding_ capacitive current across components of the cell.
+// Total ionic current [nA] across membrane _excluding_ capacitive current across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
 struct cable_probe_total_ion_current_cell {};
 
-// Total membrance current [nA] across components of the cell.
+// Total membrane current [nA] across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
 struct cable_probe_total_current_cell {};
@@ -295,7 +295,7 @@ public:
     // Painters and placers.
     //
     // Used to describe regions and locations where density channels, stimuli,
-    // synapses, gap juncitons and detectors are located.
+    // synapses, gap junctions and detectors are located.
 
     // Density channels.
     void paint(const region&, mechanism_desc);

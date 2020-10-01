@@ -277,7 +277,7 @@ void register_cells(pybind11::module& m) {
         .def_readwrite("V_th", &arb::lif_cell::V_th,
             "Firing threshold [mV].")
         .def_readwrite("C_m", &arb::lif_cell::C_m,
-            " Membrane capacitance [pF].")
+            "Membrane capacitance [pF].")
         .def_readwrite("E_L", &arb::lif_cell::E_L,
             "Resting potential [mV].")
         .def_readwrite("V_m", &arb::lif_cell::V_m,
