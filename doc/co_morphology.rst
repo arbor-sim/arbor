@@ -22,7 +22,9 @@ of the cable.
 
 
 A *segment* is a frustum (cylinder or truncated cone), with the centre and radius at each
-end defined by a pair of points.
+end defined by a pair of points. In other words, in Arbor the radius between two points is interpolated
+linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
+centered at the line through the pair of points.
 
 .. csv-table::
    :widths: 10, 10, 30
