@@ -5,8 +5,7 @@ Interconnectivity
 
 .. class:: connection
 
-    Describes a connection between two cells:
-    Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
+    Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
     a connection weight and a delay time.
 
     .. function:: connection(source, destination, weight, delay)
