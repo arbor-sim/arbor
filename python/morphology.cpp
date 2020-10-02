@@ -157,7 +157,6 @@ arb::segment_tree load_swc_neuron(const std::string& fname) {
         throw pyarb_error(
                 util::pprintf("NEURON SWC: error parsing {}: {}", fname, e.what()));
     }
-
 }
 
 arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
