@@ -33,11 +33,6 @@ struct swc_duplicate_record_id: swc_error {
     explicit swc_duplicate_record_id(int record_id);
 };
 
-// Irregular record ordering.
-struct swc_irregular_id: swc_error {
-    explicit swc_irregular_id(int record_id);
-};
-
 // Smells like a spherical soma.
 struct swc_spherical_soma: swc_error {
     explicit swc_spherical_soma(int record_id);
@@ -88,25 +83,22 @@ struct swc_data {
 // in comments (stripping initial '#' and subsequent whitespace).
 // Stops at EOF or after reading the first line that does not parse as SWC.
 //
-// Note that 'one-point soma' SWC files are explicitly not supported.
-//
 // In `relaxed` mode, it will check that:
 //     * There are no duplicate record ids.
 //     * All record ids are positive.
 //     * There are no records whose parent id is not less than the record id.
 //     * Only one record has parent id -1; all other parent ids correspond to records.
-//     * There are at least two records.
 //
-// In `strict` mode, it will additionally check:
-//     * Record ids are numbered contiguously from 1.
-//     * The data cannot be interpreted as a 'spherical soma' SWC file.
-//       Specifically, the root record shares its tag with at least one other
-//       record with has the root as parent.
+// In `strict` mode, it will additionally check that the data cannot be interpreted
+// as a 'spherical soma' SWC file:
+//     * The root record must share its tag with at least one other record
+//       which has the root as parent. This implies that there must be at least
+//       two SWC records.
 //
 // Throws a corresponding exception of type derived from `swc_error` if any of the
 // conditions above are encountered.
 //
-// SWC records are stored in id order.
+// SWC records are returned in id order.
 
 enum class swc_mode { relaxed, strict };
 
@@ -118,6 +110,14 @@ swc_data parse_swc(const std::string& text, swc_mode mode = swc_mode::strict);
 swc_data parse_swc(std::vector<swc_record>, swc_mode = swc_mode::strict);
 
 // Convert a valid, ordered sequence of SWC records to a morphological segment tree.
+//
+// Note that 'one-point soma' SWC files are explicitly not supported; the swc_data
+// is expected to abide by the restrictions of `strict` mode parsing as described
+// above.
+//
+// The generated segment tree will be contiguous. There will be one segment for
+// each SWC record after the first: this record defines the tag and distal point
+// of the segment, while the proximal point is taken from the parent record.
 
 segment_tree as_segment_tree(const std::vector<swc_record>&);
 
