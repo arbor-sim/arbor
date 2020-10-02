@@ -3,7 +3,11 @@
 import sys, os
 
 # Path to Python Binding (_arbor)
-sys.path.insert(0, os.path.abspath('../python/arbor'))
+try:
+    sys.path.append(os.path.join(os.environ['OLDPWD'],"python"))
+    import arbor
+except ImportError:
+    autodoc_mock_imports = ['arbor._arbor']
 
 html_static_path = ['static']
 
@@ -39,20 +43,18 @@ pygments_style = 'perldoc'
 
 # Generate images for the documentation.
 print("--- generating images ---")
-import sys, os
-
-this_path=os.path.split(os.path.abspath(__file__))[0]
 
 # Location of scripts used to generate images
+this_path=os.path.split(os.path.abspath(__file__))[0]
 script_path=this_path+'/scripts'
 sys.path.append(script_path)
+import make_images
 
 # Output path for generated images
 img_path=this_path+'/gen-images'
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
-import make_images
 make_images.generate(img_path)
 
 print("-------------------------")
