@@ -126,6 +126,18 @@ for setting cell-wide defaults for properties, and the
     cell.paint('"soma"', Vm=-50, cm=0.01, rL=35)
     cell.paint('"axon"', Vm=-60, rL=40)
 
+.. _cable-discretisation:
+
+Discretisation
+~~~~~~~~~~~~~~~~
+
+For the purpose of simulation, cable cells are decomposed into discrete
+subcomponents called *control volumes* (CVs), following the finite volume method
+terminology. Each control volume comprises a connected subset of the
+morphology. Each fork point in the morphology will be the responsibility of
+a single CV, and as a special case a zero-volume CV can be used to represent
+a single fork point in isolation.
+
 .. _cable-density-mechs:
 
 Density mechanisms
@@ -134,7 +146,7 @@ Density mechanisms
 Regions can have density mechanisms defined over their extents.
 Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
 which describe biophysical processes. These are processes
-that are distributed in space, but whose behavior is defined purely
+that are distributed in space, but whose behaviour is defined purely
 by the state of the cell and the process at any given point.
 
 The most common use for density mechanisms is to describe ion channel dynamics,
@@ -278,10 +290,10 @@ and are assigned to specific locations.
 
 .. _cable-synapses:
 
-Synapses
-~~~~~~~~
+Connections
+~~~~~~~~~~~
 
-Synapses are instances of NMODL POINT mechanisms.
+Connections (synapses) are instances of NMODL POINT mechanisms.
 
 .. _cable-gj-sites:
 

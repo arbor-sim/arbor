@@ -112,26 +112,21 @@ Recipe
 
         By default returns 0.
 
-    .. cpp:function:: virtual cell_size_type num_probes(cell_gid_type gid) const
-
-        The number of probes attached to the cell.
-
-        By default returns 0.
-
     .. cpp:function:: virtual cell_size_type num_gap_junction_sites(cell_gid_type gid) const
 
         Returns the number of gap junction sites on `gid`.
 
         By default returns 0.
 
-    .. cpp:function:: virtual probe_info get_probe(cell_member_type) const
+    .. cpp:function:: virtual std::vector<probe_info> get_probes(cell_gid_type gid) const
 
         Intended for use by cell group implementations to set up sampling data
         structures ahead of time and for putting in place any structures or
         information in the concrete cell implementations to allow monitoring.
 
-        By default throws :cpp:type:`std::logic_error`. If :cpp:func:`num_probes`
-        returns a non-zero value, this must also be overridden.
+        Returns a vector containing (in order) all the probes on a given cell `gid`.
+
+        By default throws :cpp:type:`std::logic_error`.
 
     .. cpp:function:: virtual std::any get_global_properties(cell_kind) const
 
@@ -161,10 +156,6 @@ Probes
     Probes are specified in the recipe objects that are used to initialize a
     model; the specification of the item or value that is subjected to a
     probe will be specific to a particular cell type.
-
-    .. cpp:member:: cell_member_type id
-
-           Cell gid, index of probe.
 
     .. cpp:member:: probe_tag tag
 

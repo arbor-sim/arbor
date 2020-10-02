@@ -76,7 +76,7 @@ Cell Kinds
    * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <modelgapjunctions>`.
      They are declared by specifying a location on a branch of the cell.
 
-   Because cable cells are the main cell kind in Arbor and has more properties than listed here, it has a :ref:`dedicated page <cablecell>`.
+   Because cable cells are the main cell kind in Arbor and have more properties than listed here, they have a :ref:`dedicated page <cablecell>`.
 
 2. **LIF Cells**
 

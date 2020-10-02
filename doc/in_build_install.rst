@@ -5,8 +5,8 @@ Build and install from source
 
 This guide covers building and installing Arbor using CMake, which is the recommended method for configuring Arbor for HPC applications and developers.
 
-This guide starts with an overview of the building process, and the various options available to customize the build.
-The guide then covers installation and running on `HPC clusters <cluster_>`_, followed by a `troubleshooting guide <troubleshooting_>`_ for common build problems.
+We start with an overview of the building process, and the various options available to customize the build.
+Then installation and running on `HPC clusters <cluster_>`_ is covered, followed by a `troubleshooting guide <troubleshooting_>`_ for common build problems.
 
 .. note::
     To get help in case of problems installing Arbor, please make an issue on the Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.

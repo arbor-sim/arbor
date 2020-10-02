@@ -4,7 +4,7 @@ Cell Morphology
 ===============
 
 A cell's *morphology* describes both its geometry and branching structure.
-Morphologies in Arbor are modeled as a set of one dimensional cables of variable radius,
+Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius,
 joined together to form a tree.
 
 The building blocks of morphology tree are points and segments.
@@ -24,7 +24,7 @@ of the cable.
 A *segment* is a frustum (cylinder or truncated cone), with the centre and radius at each
 end defined by a pair of points. In other words, in Arbor the radius between two points is interpolated
 linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
-centered at the line through the pair of points.
+centred at the line through the pair of points.
 
 .. csv-table::
    :widths: 10, 10, 30
@@ -56,7 +56,7 @@ together with a parent-child adjacency relationship where a child segment is
 distal to its parent.
 Branches in the tree occur where a segment has more than one child.
 Furthermore, a segment can not have more than one parent.
-In this manner, neuron morphologies are modeled as a *tree*, where cables that
+In this manner, neuron morphologies are modelled as a *tree*, where cables that
 represent dendrites and axons can branch, but branches can not rejoin.
 
 .. _morph-segment-definitions:
@@ -79,9 +79,9 @@ The following definitions are used to refer to segments in a segment tree:
   * Arbor allows more than two branches at a fork point.
 
 The following segment tree models a soma as a cylinder, a branching dendritic tree and
-an axon with an axonal hillock. The segments are colored according to their tag, which
-in this case are SWC structure identifiers: tag 1 colored pink for soma;
-tag 2 colored grey for axon; tag 3 colored blue for basal dendrites.
+an axon with an axonal hillock. The segments are coloured according to their tag, which
+in this case are SWC structure identifiers: tag 1 coloured pink for soma;
+tag 2 coloured grey for axon; tag 3 coloured blue for basal dendrites.
 
 .. _morph-label-seg-fig:
 
@@ -123,7 +123,7 @@ axon and dendritic tree and the soma segment to which they attach.
 
     A gap between a cylindrical soma and segments attached to it does not mean
     that the segmentation is invalid.
-    To illustrate why this can occur, consider a potato-shaped soma modeled with a
+    To illustrate why this can occur, consider a potato-shaped soma modelled with a
     cylinder of the same surface area.
     If the cell description places the first segment of a dendritic tree where it attaches to
     the "potato soma", it is unlikely to be collocated with an end of the simplified soma.
@@ -153,7 +153,7 @@ The branches of a morphology are unbranched cables, composed of one or more segm
 
   * the first (proximal) segment of the branch is either a root or the child of fork segment;
   * the last (distal) segment of the branch is either a fork or terminal segment;
-  * branches are enumerated according to the ids of their proximal segments in the segment tree.
+  * branches are enumerated in order, following the order of the ids of their proximal segments in the segment tree.
 
 When constructed in this manner, the following statements are true for the branches and
 their enumeration:
@@ -173,9 +173,7 @@ their enumeration:
     Because two topologically-equivalent morphologies may have different segment and
     branch numbering, it is important that model descriptions should avoid referring to
     branches or segments by id.
-    This should be relaxed only in well-understood situations, for example when working with
-    models that always represent to soma with a single segment at the root of the tree,
-    which will always have segment id 0.
+    This should only be relaxed when the configuration of branches in a particular morphology is known exactly and unambiguously.
 
 To illustrate branch generation, consider the first segment tree example on this page,
 which is illustrated along with its branches below.
@@ -287,12 +285,12 @@ The examples use the Python API are two-dimensional, with the z-dimension set to
 Example 1: Spherical cell
 """"""""""""""""""""""""""""""
 
-A simple model of a cell as a sphere can be modeled using a cylinder with length
+A simple model of a cell as a sphere can be modelled using a cylinder with length
 and diameter equal to the diameter of the sphere, which will have the same
 surface area (disregarding the area of the cylinder's circular ends).
 
 Here a cylinder of length and diameter 5 μm is used to represent a *spherical cell*
-with a radius of 2 μm, centered at the origin.
+with a radius of 2 μm, centred at the origin.
 
 .. code:: Python
 
@@ -347,7 +345,7 @@ distinct cable segments:
   :align: center
 
   The morphology is an unbranched cable comprised of 4 cable segments,
-  colored according to their tags: tag 1 red; tag 2 gree; tag 3 blue (left).
+  coloured according to their tags: tag 1 red; tag 2 green; tag 3 blue (left).
   The four segments form one branch (right).
 
 Gaps are possible between two segments. The example below inserts a 1 μm gap between the second
@@ -441,8 +439,8 @@ diameter equal to 6 μm, which has the same surface area as the sphere.
 
   Note that branch 0 (right) is composed of segments 0, 1, and 2 (left).
 
-The soma is the first segment, labeled with tag 1. The dendritic tree is a simple
-y-shaped tree composed of 4 segments, each labeled with tag 3.
+The soma is the first segment, labelled with tag 1. The dendritic tree is a simple
+y-shaped tree composed of 4 segments, each labelled with tag 3.
 The first branch is composed of 3 segments: the soma segment and the first two segments
 in the dendritic tree because the segments have parent child ordering and no fork points.
 
@@ -469,7 +467,7 @@ because it has two children: the dendrites attached to its distal end.
 
 
 .. note::
-    The discretization process, which converts segments and branches into compartments,
+    The discretisation process, which converts segments and branches into compartments,
     will ignore gaps between segments in the input. The cell below, in which the dendrites
     and axon have been translated to remove any gaps, is equivalent to the previous example
     for the back end simulator.

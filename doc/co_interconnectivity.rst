@@ -3,7 +3,7 @@
 Interconnectivity
 #################
 
-Networks consist of two components, nodes (cells) and edges (synapses). Arbor models the two kinds of synapses: chemical and electrical. In Arbor, a chemical synapse is called a *connection*, and an electrical synapse a *gap junction*. On cells (more on cells :ref:`here <modelcells>`) you can make connection sites and junction sites, and in a recipe you define which sites on which cells are in fact connected.
+Networks consist of two components, nodes (cells) and edges (synapses). In biology we find two kinds of synapses: chemical and electrical. In Arbor chemical processes are *not* modelled, only their electrical implications. You will not be able to define the chemical structure of a neurotransmitter and insert it into an Arbor synapse, for instance. To avoid confusion, Arbor calls its edges *connection*s and models the biological synapse as an electrical transmission delay. Arbor also has a *gap junction*, which lets currents pass through directly. On cells (more on cells :ref:`here <modelcells>`) you can make connection sites and junction sites, and in a recipe you define which sites on which cells are in fact connected.
 
 .. _modelconnections:
 
@@ -15,7 +15,7 @@ Connections implement chemical synapses between **source** and **target** cells 
 Connections in Arbor are defined in two steps:
 
 1. Create **Source** and **Target** on two cells: a source defined on one cell, and a target defined on another.
-2. Declare the connection in the :ref:`recipe <modelrecipe>`: with a source and target idenfied using :gen:`cell_member`, a connection delay and a connection weight.
+2. Declare the connection in the :ref:`recipe <modelrecipe>`: with a source and target identified using :gen:`cell_member`, a connection delay and a connection weight.
 
 .. _modelgapjunctions:
 

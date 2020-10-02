@@ -24,7 +24,7 @@ descriptions. It has a soma, dendritic tree and an axon with a hillock:
   :width: 800
   :align: left
 
-  Segments of the morphology are colored according to tags:
+  Segments of the morphology are coloured according to tags:
   soma (tag 1, red), axon (tag 2, grey), dendrites (tag 3, blue) (left).
   The 6 branches of the morphology with their branch ids (right).
 
@@ -566,13 +566,13 @@ Concretisation
 ----------------
 
 When a region or locset expression is applied to a cell morphology it is
-*concretized*. Concretizing a locset will return a set of *locations* on the
-morphology, and concretizing a region will return a list of unbranched *cables*
+*concretised*. Concretising a locset will return a set of *locations* on the
+morphology, and concretising a region will return a list of unbranched *cables*
 on the morphology.
 
 .. note::
     Applying an expression to different morphologies may give different
-    concretized results.
+    concretised results.
 
 Locations
 ~~~~~~~~~
@@ -617,8 +617,8 @@ Label Dictionaries
 *Labels* can be assigned to expressions, and used to refer to the expression or the
 concrete region or locset generated when the expression is applied to a morphology.
 Although any string is a valid label, it is a good idea to avoid labels that would
-also be valid expressions in the region DSL. E.g. do not create a ``"(tag 1)"`` label;
-it would lead to confusion.
+also be valid expressions in the region DSL; creating a label ``"(tag 1)"`` will only
+lead to confusion.
 
 Labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
 

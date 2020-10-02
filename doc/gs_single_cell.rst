@@ -3,9 +3,9 @@
 A single cell model
 ================================
 
-Building and testing detailed models of individual cells, then optimizing their parameters is usually the first step in building models with multi-compartment cells. Arbor supports a *single cell model* workflow for this purpose, which is a good way to introduce Arbor's cell modeling concepts and approach.
+Building and testing detailed models of individual cells, then optimizing their parameters is usually the first step in building models with multi-compartment cells. Arbor supports a *single cell model* workflow for this purpose, which is a good way to introduce Arbor's cell modelling concepts and approach.
 
-This guide will walk through a series of single cell models of increasing complexity. Links are provide to separate documentation that covers relevant topics in more detail.
+This guide will walk through a series of single cell models of increasing complexity. Links are provided to separate documentation that covers relevant topics in more detail.
 
 In an interactive Python interpreter, you can use ``help()`` on any class or function to obtain some documentation. E.g.: ``help(arbor.gap_junction_connection)`` will print :class:`this<arbor._arbor.gap_junction_connection>`.
 
@@ -14,10 +14,10 @@ In an interactive Python interpreter, you can use ``help()`` on any class or fun
 Single compartment cell with HH dynamics
 ----------------------------------------------------
 
-The most trivial representation of a cell in Arbor is to model the entire cell as a sphere.
-The following model shows the steps required to construct a model of a spherical cell with
+The most trivial representation of a cell in Arbor is to model the entire cell as a cylinder.
+The following example shows the steps required to construct a model of a cylindrical cell with
 radius 3 μm, Hodgkin–Huxley dynamics and a current clamp stimulus, then run the model for
-30 ms.
+100 ms.
 
 The first step is to construct the cell. In Arbor, the abstract representation used to define
 a cell with branching "cable" morphology is a ``cable_cell``, which holds a description
@@ -46,6 +46,11 @@ create the ``cable_cell`` that represents it are as follows:
     cell.place('center', arbor.iclamp( 10, 2, 0.8))
     cell.place('center', arbor.spike_detector(-10))
 
+    # Discretization: the default discretization in Arbor is 1 compartment per branch.
+    # Let's be a bit more precise and make that every 2 μm:
+    cell.compartments_length(2)
+
+
 Let's unpack that.
 
 Step **(1)** above shows how the cell is represented using a :class:`arbor.segment_tree` to which a single segment is added. Arbor's cell morphologies are constructed from a :ref:`segment tree<morph-segment_tree>` which is a list of segments, which are tapered cones with a *tag*. :meth:`arbor.segment_tree.append` takes 4 arguments, starting with the parent segment. The first segment added has no parent however, which is made clear by using :class:`arbor.mnpos`. Then two :class:`arbor.mpoint` s are supplied, the proximal and distal endpoints of the segment. Finally, an integer value can be supplied to tag the segment for future reference.
@@ -55,12 +60,13 @@ In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict
 * ``soma`` defines a *region* with ``(tag  2)``. Note that this corresponds to the ``tag`` parameter that was used to define the single segment in step (1).
 * ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5`` of branch ``0``, which corresponds to the center of the soma on the morphology defined in Step (1).
 
-In step **(3)** a :class:`arbor.cable_cell` is constructed by combining the segment tree with
-the named regions and locations.
+In step **(3)** a :class:`arbor.cable_cell` is constructed by combining the segment tree with the
+named regions and locations.
 
 * "Cell-wide" properties are set through :meth:`arbor.cable_cell.set_properties`. Here, the initial membrane potential everywhere on the cell is set to -40 mV.
 * Properties can also be set to a region of the cell, which Arbor calls 'painting'. This is meant to convey placement is not precise: we wouldn't want to manually place ion channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details out for us.
 * Other properties we do want to :meth:`arbor.cable_cell.place<arbor._arbor.cable_cell.place>` in a precise :class:`arbor.location<arbor._arbor.location>`. We place two things: an :class:`arbor.iclamp<arbor._arbor.iclamp>` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector<arbor._arbor.spike_detector>` with a threshold of -10 mV to the location we've labelled 'center'.
+* Finally, we adjust the :ref:`discretisation <cable-discretisation>` of the simulation by setting the compartment length to 2 μm. By default there is one compartment per branch.
 
 Single cell network
 ----------------------------------------------------

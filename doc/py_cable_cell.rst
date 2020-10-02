@@ -17,9 +17,9 @@ Cable Cells
 
         There are two reasons an expression might be invalid:
 
-        1. Explicitly refers to a location of cable that does not exist in the
+        1. Explicit reference to a location of cable that does not exist in the
            morphology, for example ``(branch 12)`` on a cell with 6 branches.
-        2. Incorrect label reference: circular reference, or a label that does not exist.
+        2. Reference to an incorrect label: circular reference, or a label that does not exist.
 
 
     .. code-block:: Python
@@ -41,7 +41,7 @@ Cable Cells
     .. method:: set_properties(Vm=None, cm=None, rL=None, tempK=None)
 
         Set default values of cable properties on the whole cell.
-        Overrides the default global values, and can be overriden by painting
+        Overrides the default global values, and can be overridden by painting
         the values onto regions.
 
         :param str region: name of the region.
@@ -59,6 +59,13 @@ Cable Cells
             # Set cell-wide values for properties
             cell.set_properties(Vm=-70, cm=0.01, rL=100, tempK=280)
 
+    .. method: compartments_length(length)
+
+        Adjust the :ref:`compartments length <cable-discretisation>`.
+
+        :param int length: length of compartments [μm].
+
+        Defaults to one control volume per branch.
 
     .. method:: paint(region, [Vm=None, cm=None, rL=None, tempK=None])
 

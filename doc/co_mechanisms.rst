@@ -5,7 +5,7 @@ Cell Mechanisms
 
 Mechanisms describe biophysical processes such as ion channels and synapses.
 Mechanisms are assigned to regions and locations on a cell morphology
-through a process that called :ref:`decoration <cablecell-decoration>`.
+through a process that is called :ref:`decoration <cablecell-decoration>`.
 Mechanisms are described using a dialect of the :ref:`NMODL <nmodl>` domain
 specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
 
@@ -14,29 +14,20 @@ Mechanism Catalogues
 
 A *mechanism catalogue* is a collection of mechanisms that maintains:
 
-1. Collection of mechanism metadata indexed by name.
+1. A collection of mechanism metadata indexed by name.
 2. A further hierarchy of *derived* mechanisms, that allow specialization of
    global parameters, ion bindings, and implementations.
 3. A map for looking up a concrete mechanism implementation on a target hardware back end.
 
-A derived mechanism can be given a new name. Alternatively derived mechanisms can
-be created implicitly.
-When a mechanism name of the form ``"mech/param=value,..."`` is :ref:`requested <mechanisms-name-note>`,
-if the mechanism of that name does not already exist in the catalogue, it will be
-implicitly derived from an existing mechanism ``"mech"``, with global parameters
-and ion bindings overridden by the supplied assignments that follow the slash.
-If the mechanism in question has a single ion dependence, then that ion name
-can be omitted in the assignments; ``"mech/oldion=newion"`` will make the same
-derived mechanism as simply ``"mech/newion"``.
+Derived mechanisms will always have a different name to the mechanism from which they are derived. This name is given explicitly when the derivation is constructed, or implicitly when a mechanism is :ref:`requested <mechanisms-name-note>` with a name of the form ``"mech/param=value,..."``. In this instance, if a mechanism of that name does not already exist in the catalogue, it will be implicitly derived from an existing mechanism ``"mech"`` with global parameters and ion bindings set according to the assignments following the slash. If the mechanism ``"mech"`` depends upon only a single ion, the name of that ion can be omitted in the assignments: ``"mech/oldion=newion"`` and ``"mech/newion"`` are equivalent derivations.
 
-In additional being able to derive new mechanisms, catalogtues provide and interface
-for looking up a mechanism by name, and querying the following properties:
 
-* Global parameter: name, units and default value.
-* Range parameters: name, units and default value.
-* State variables: name, units and default value.
-* Ion dependency: for each ion whether it writes concentrations or reversal potential, and
-  whether the mechanism reads the reversal potential.
+Catalogues provide an interface for querying mechanism metadata, which includes the following information:
+
+* Global parameter names, units, and default values.
+* Range parameter names, units, and default values.
+* State variable names, units and default values.
+* Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes to its internal or external concentration or to its reversal potential value, and whether it reads or asserts the ionic charge.
 
 Default Mechanisms
 ''''''''''''''''''
@@ -47,15 +38,15 @@ Arbor provides a default catalogue with the following mechanisms:
 * *hh*:  Classic Hodgkin-Huxley dynamics (:ref:`density mechanism <mechanisms-density>`).
 * *nernst*: Calculate reversal potential for an ionic species using the Nernst equation (:ref:`reversal potential mechanism <mechanisms-revpot>`)
 * *expsyn*: Synapse with discontinuous change in conductance at an event followed by an exponential decay (:ref:`point mechanism <mechanisms-point>`).
-* *exp2syn*: Two state kinetic scheme synapse described by two time constants: rise and decay (:ref:`point mechanism <mechanisms-point>`).
+* *exp2syn*: Bi-exponential conductance synapse described by two time constants: rise and decay (:ref:`point mechanism <mechanisms-point>`).
 
 With the exception of *nernst*, these mechanisms are the same as those available in NEURON.
 
 Parameters
 ''''''''''
 
-Mechanism behavior can be tuned using parameters and ion channel dependencies,
-prescribed in the NMODL description.
+Mechanism behaviour can be tuned using parameters and ion channel dependencies,
+as defined in the NMODL description.
 Parameters and ion species are set initially before a simulation starts, and remain
 unchanged thereafter, for the duration of the simulation.
 There are two types of parameters that can be set by users:
@@ -63,7 +54,7 @@ There are two types of parameters that can be set by users:
 * *Global* parameters are a single scalar value that is the same everywhere a mechanism is defined.
 * *Range* parameters can vary spatially.
 
-Every mechanism is described with a *mechanism description*, a
+Every mechanism is applied to a cell via a *mechanism description*, a
 ``(name, range_parameters)`` tuple, where ``name`` is a string,
 and ``range_parameters`` is an optional dictionary of key-value pairs
 that specifies values for range parameters.
@@ -87,16 +78,15 @@ This allows the use of generic mechanisms that can be adapted to a specific spec
 during model instantiation.
 For example, the ``nernst`` mechanism in Arbor's default mechanism catalogue calculates
 the reversal potential of a generic ionic species ``x`` according to its internal
-and external concentrations and valence. To specialize ``nersnt`` for calcium name it
-``("nernst/x=ca")``, or if there is only one ions species in the mechanism the following
+and external concentrations and valence. To specialize ``nernst`` for calcium name it
+``("nernst/x=ca")``, or as there is only one ion species in the mechanism the
 shorthand ``("nernst/ca")`` can be used unambiguously.
 
 .. _mechanisms-name-note:
 
 .. note::
     Global parameter values and ionic dependencies are the same for each instance of
-    a mechanism, so when these are redifeind a new mechanism is created, derived from
-    the parent mechanism.
+    a mechanism; changing these requires the derivation of a new mechanism, implicitly or explicitly.
     For this reason, new global parameter values and ion renaming are part of the name of
     the new mechanism, or a mechanism with a new unique name must be defined.
 
@@ -159,9 +149,9 @@ Point mechanisms
 
 *Point mechanisms*, which are associated with connection end points on a
 cable cell, are placed at discrete locations on the cell.
-Unlike density mechanisms, whose behaviour is defined purely by the state of the cell and the process,
-their behavior is additionally governed by the timing and weight of events delivered
-via incoming connections.
+Unlike density mechanisms, whose behaviour is defined purely by the state of the cell
+and the process, their behaviour is additionally governed by the timing and weight of
+events delivered via incoming connections.
 
 
 API

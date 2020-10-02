@@ -13,7 +13,7 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
     .. function:: cell_member(gid, index)
 
-        Construct a cell member with parameters :attr:`gid` and :attr:`index` for global identification of a cell-local item.
+        Construct a ``cell_member`` object with parameters :attr:`gid` and :attr:`index` for global identification of a cell-local item.
 
         Items of type :class:`cell_member` must:
 
@@ -150,4 +150,5 @@ Cell kinds
 
 .. class:: cable_cell
     :noindex:
+
     See :ref:`pycable_cell`.
