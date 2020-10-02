@@ -248,7 +248,12 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
             soma_records.push_back(r);
         }
 
-        if (auto p = r.parent_id; r.tag != 1 && records[record_index[p]].tag == 1 && p != soma_records.back().id) {
+        // Find record index of the parent
+        auto iter = record_index.find(r.parent_id);
+        if (iter==record_index.end()) throw bad_swc_data{r.id};
+        auto parent_record = records[iter->second];
+
+        if (r.tag != 1 && parent_record.tag == 1 && r.parent_id != soma_records.back().id) {
             throw swc_branchy_soma{r.id};
         }
 
@@ -257,8 +262,11 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
     }
 
     segment_tree tree;
+    tree.reserve(records.size());
 
-    std::unordered_map<int, msize_t> smap; // SWC record id -> segment id
+    // Map of SWC record id to index in `tree`.
+    std::unordered_map<int, msize_t> tree_index;
+
     // First, construct the soma
     if (soma_records.size() == 1) {
         // Model the soma as a 2 cylinders with total length=2*radius, extended along the y axis
@@ -266,7 +274,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
                              {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r}, 1);
         tree.append(p, {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r},
                     {soma_prox.x, soma_prox.y + soma_prox.r, soma_prox.z, soma_prox.r}, 1);
-        smap[soma_prox.id] = p;
+        tree_index[soma_prox.id] = p;
 
     } else {
         // Calculate segment lengths
@@ -274,9 +282,9 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
         for (std::size_t i = 1; i < soma_records.size(); ++i) {
             const auto& p0 = soma_records[i-1];
             const auto& p1 = soma_records[i];
-            soma_segment_lengths.push_back(distance(mpoint(p0.x, p0.y, p0.z, p0.r), mpoint(p1.x, p1.y, p1.z, p1.r)));
+            soma_segment_lengths.push_back(distance(mpoint{p0.x, p0.y, p0.z, p0.r}, mpoint{p1.x, p1.y, p1.z, p1.r}));
         }
-        double midlength = std::accumulate(soma_segment_lengths.begin(), soma_segment_lengths.end(), 0)/2;
+        double midlength = std::accumulate(soma_segment_lengths.begin(), soma_segment_lengths.end(), 0.)/2;
 
         std::size_t idx = 0;
         for (; idx < soma_segment_lengths.size(); ++idx) {
@@ -318,7 +326,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
             parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
         }
 
-        smap[soma_records.back().id] = soma_seg;
+        tree_index[soma_records.back().id] = soma_seg;
     }
 
     // Build branches off soma.
@@ -326,16 +334,25 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
         // Skip the soma samples
         if (r.tag==1) continue;
 
+        const auto p = r.parent_id;
+
+        // Find parent segment of the record
+        auto pseg_iter = tree_index.find(p);
+        if (pseg_iter==tree_index.end()) throw bad_swc_data{r.id};
+
+        // Find parent record of the record
+        auto prec_iter = record_index.find(p);
+        if (prec_iter == record_index.end()) throw bad_swc_data{r.id};
+
         // If the sample has a soma sample as its parent don't create a segment.
         if (records[r.parent_id].tag == 1) {
-            // Map the sample id to the segment id of the soma
-            smap[r.id] = smap[r.parent_id];
+            // Map the sample id to the segment id of the soma (parent)
+            tree_index[r.id] = pseg_iter->second;
             continue;
         }
 
-        const auto p = r.parent_id;
-        const auto& prox = records[record_index[p]];
-        smap[r.id] = tree.append(smap.at(p), {prox.x, prox.y, prox.z, prox.r}, {r.x, r.y, r.z, r.r}, r.tag);
+        const auto& prox = records[prec_iter->second];
+        tree_index[r.id] = tree.append(pseg_iter->second, {prox.x, prox.y, prox.z, prox.r}, {r.x, r.y, r.z, r.r}, r.tag);
     }
 
     return tree;

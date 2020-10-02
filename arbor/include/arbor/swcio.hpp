@@ -141,6 +141,10 @@ swc_data parse_swc(std::vector<swc_record>, swc_mode = swc_mode::strict);
 
 segment_tree as_segment_tree(const std::vector<swc_record>&);
 
+// Convert a valid sequence of SWC to a morphological segment tree.
+
+segment_tree load_swc_neuron(const std::vector<swc_record>& records);
+
 inline segment_tree as_segment_tree(const swc_data& data) {
     return as_segment_tree(data.records);
 }
