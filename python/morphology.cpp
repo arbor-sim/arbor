@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 
 #include <fstream>
+#include <cmath>
 
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -12,6 +13,152 @@
 #include "strprintf.hpp"
 
 namespace pyarb {
+
+arb::segment_tree load_swc_neuron(const std::string& fname) {
+    std::ifstream fid{fname};
+    if (!fid.good()) {
+        throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+    }
+    try {
+        using namespace arb;
+        auto records = parse_swc(fid, swc_mode::relaxed).records;
+
+        // Assert that the file contains at least one sample.
+        if (records.empty()) {
+            throw pyarb_error("NEURON SWC: empty file");
+        }
+
+        // Map of SWC record id to index in `records`.
+        std::unordered_map<int, std::size_t> record_index;
+
+        auto soma_prox = records.front();
+        int soma_prox_id = soma_prox.id;
+        record_index[soma_prox_id] = 0;
+
+        // Assert that root sample has tag 1.
+        if (soma_prox.tag!=1) {
+            throw pyarb_error("NEURON SWC: The first sample does not have tag 1");
+        }
+
+        int prev_tag = 1;
+        int prev_id = soma_prox_id;
+
+        std::vector<swc_record> soma_records = {soma_prox};
+        for (std::size_t i = 1; i<records.size(); ++i) {
+            const auto& r = records[i];
+            record_index[r.id] = i;
+
+            if (r.tag == 1 && prev_tag != 1) {
+                throw pyarb_error("NEURON SWC: soma samples (tag 1) are not listed consecutively at the root of the file");
+            }
+
+            if (r.tag == 1) {
+                if (r.parent_id != prev_id) {
+                    throw pyarb_error("NEURON SWC: soma samples (tag 1) are not connected serially");
+                }
+                soma_records.push_back(r);
+            }
+
+            if (auto p = r.parent_id; r.tag != 1 && records[record_index[p]].tag == 1 && p != soma_records.back().id) {
+                throw pyarb_error("NEURON SWC: non-soma samples (tag >= 1) can only connect to the most distal sample of a soma");
+            }
+
+            prev_tag = r.tag;
+            prev_id = r.id;
+        }
+
+        segment_tree tree;
+
+        std::unordered_map<int, msize_t> smap; // SWC record id -> segment id
+        // First, construct the soma
+        if (soma_records.size() == 1) {
+            // Model the soma as a 2 cylinders with total length=2*radius, extended along the y axis
+            auto p = tree.append(mnpos, {soma_prox.x, soma_prox.y - soma_prox.r, soma_prox.z, soma_prox.r},
+                                        {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r}, 1);
+            tree.append(p, {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r},
+                           {soma_prox.x, soma_prox.y + soma_prox.r, soma_prox.z, soma_prox.r}, 1);
+            smap[soma_prox.id] = p;
+
+        } else {
+            // Calculate segment lengths
+            std::vector<double> soma_segment_lengths;
+            for (std::size_t i = 1; i < soma_records.size(); ++i) {
+                const auto& p0 = soma_records[i-1];
+                const auto& p1 = soma_records[i];
+                soma_segment_lengths.push_back(distance(mpoint(p0.x, p0.y, p0.z, p0.r), mpoint(p1.x, p1.y, p1.z, p1.r)));
+            }
+            double midlength = std::accumulate(soma_segment_lengths.begin(), soma_segment_lengths.end(), 0)/2;
+
+            std::size_t idx = 0;
+            for (; idx < soma_segment_lengths.size(); ++idx) {
+                auto l = soma_segment_lengths[idx];
+                if (midlength > l) {
+                    midlength -= l;
+                    continue;
+                }
+                break;
+            }
+
+            // Interpolate along the segment that contains the midpoint of the soma
+            double pos_on_segment = midlength/soma_segment_lengths[idx];
+
+            auto& r0 = soma_records[idx];
+            auto& r1 = soma_records[idx+1];
+
+            auto x = r0.x + pos_on_segment*(r1.x-r0.x);
+            auto y = r0.y + pos_on_segment*(r1.y-r0.y);
+            auto z = r0.z + pos_on_segment*(r1.z-r0.z);
+            auto r = r0.r + pos_on_segment*(r1.r-r0.r);
+
+            mpoint mid_soma = {x, y, z, r};
+
+            // Construct the soma
+            msize_t parent = mnpos;
+            for (std::size_t i = 0; i < idx; ++i) {
+                const auto& p0 = soma_records[i];
+                const auto& p1 = soma_records[i+1];
+                parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
+            }
+            auto soma_seg = tree.append(parent, {r0.x, r0.y, r0.z, r0.r}, mid_soma, 1);
+
+            parent = tree.append(soma_seg, mid_soma, {r1.x, r1.y, r1.z, r1.r}, 1);
+
+            for (std::size_t i = idx + 1; i < soma_records.size(); ++i ) {
+                const auto& p0 = soma_records[i];
+                const auto& p1 = soma_records[i+1];
+                parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
+            }
+
+            smap[soma_records.back().id] = soma_seg;
+        }
+
+        // Build branches off soma.
+        for (const auto& r: records) {
+            // Skip the soma samples
+            if (r.tag==1) continue;
+
+            // If the sample has a soma sample as its parent don't create a segment.
+            if (records[r.parent_id].tag == 1) {
+                // Map the sample id to the segment id of the soma
+                smap[r.id] = smap[r.parent_id];
+                continue;
+            }
+
+            const auto p = r.parent_id;
+            const auto& prox = records[record_index[p]];
+            smap[id] = tree.append(smap.at(p), {prox.x, prox.y, prox.z, prox.r}, {r.x, r.y, r.z, r.r}, r.tag);
+            unused_samples.erase(p);
+        }
+
+        return tree;
+    }
+    catch (arb::swc_error& e) {
+        // Try to produce helpful error messages for SWC parsing errors.
+        throw pyarb_error(
+                util::pprintf("NEURON SWC: error parsing {}: {}", fname, e.what()));
+    }
+
+}
 
 arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
         std::ifstream fid{fname};
