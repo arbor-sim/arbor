@@ -7,7 +7,7 @@ The :cpp:class:`arb::recipe` class documentation is below.
 
 .. _cpp_recipe_best_practice:
 
-C++ Best Practices
+C++ best practices
 ------------------
 
 Here we collect rules of thumb to keep in mind when making recipes in C++.
@@ -165,7 +165,7 @@ Probes
 
            Cell-type specific location info, specific to cell kind of ``id.gid``.
 
-Event Generator and Schedules
+Event generator and schedules
 -----------------------------
 
 

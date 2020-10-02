@@ -1,6 +1,6 @@
 .. _cppcable_cell:
 
-Cable Cells
+Cable cells
 ===========
 
 .. Warning::

@@ -3,7 +3,7 @@
 Cells
 =====================
 
-Cell Identifiers and Indexes
+Cell identifiers and indexes
 ----------------------------
 The types defined below are used as identifiers for cells and members of cell-local collections.
 

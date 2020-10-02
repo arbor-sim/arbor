@@ -20,6 +20,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
+    'sphinx.ext.coverage'
 ]
 source_suffix = '.rst'
 master_doc = 'index'

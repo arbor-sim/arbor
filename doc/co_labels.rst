@@ -1,6 +1,6 @@
 .. _labels:
 
-Cell Labels
+Cell labels
 ===========
 
 Arbor provides a domain specific language (DSL) for describing regions and
@@ -12,7 +12,7 @@ and locations when setting cell properties and attributes.
 For example, the membrane capacitance on a region of the cell membrane, or
 the location of synapse instances.
 
-Example Cell
+Example cell
 ------------
 
 The following morphology is used on this page to illustrate region and location
@@ -43,7 +43,7 @@ The other branches in the dendritic tree have the following properties:
 tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the start of the
 axon proper with constant radius 0.4 μm.
 
-Label Types
+Label types
 ------------
 
 .. _labels-locset:
@@ -157,7 +157,7 @@ describes the region of all parts of a cell with either tag 3 or tag 4 and radiu
 
 .. _labels-expr-docs:
 
-Expression Syntax
+Expression syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The DSL uses `s-expressions <https://en.wikipedia.org/wiki/S-expression>`_, which are composed of the following basic types:
@@ -201,7 +201,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
     and applicable to arbitrary morphologies.
 
 
-Locset Expressions
+Locset expressions
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: gen-images/label_branch.svg
@@ -348,7 +348,7 @@ Locset Expressions
 
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
 
-Region Expressions
+Region expressions
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. label:: (nil)

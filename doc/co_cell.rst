@@ -38,7 +38,7 @@ A unique (:gen:`gid`, :gen:`index`) pair defined by a :gen:`cell_member` can be 
 objects on a cell in a global model.
 
 
-Cell Kinds
+Cell kinds
 ----------
 
 .. table:: The 4 types of cell supported by Arbor

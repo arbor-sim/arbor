@@ -1,6 +1,6 @@
 .. _cpphardware:
 
-Hardware Management
+Hardware management
 ===================
 
 Arbor provides two library APIs for working with hardware resources:
@@ -75,7 +75,7 @@ own code for managing MPI, GPUs, and thread counts.
 
 .. cpp:function:: int default_gpu()
 
-   Returns the integer identifier of the first available GPU, if a GPU is available 
+   Returns the integer identifier of the first available GPU, if a GPU is available
 
    Return value:
 
@@ -223,7 +223,7 @@ The core Arbor library *libarbor* provides an API for:
             // 4 threads and the first available GPU
             arb::proc_allocation resources(8, 0);
 
-            // Construct with 
+            // Construct with
             auto num_threads = arbenv::thread_concurrency();
             auto gpu_id = arbenv::default_gpu();
             arb::proc_allocation resources(num_threads, gpu_id);

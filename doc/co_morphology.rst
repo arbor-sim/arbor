@@ -1,6 +1,6 @@
 .. _co_morphology:
 
-Cell Morphology
+Cell morphology
 ===============
 
 A cell's *morphology* describes both its geometry and branching structure.
@@ -43,7 +43,7 @@ to SWC `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/M
 
 .. _morph-segment_tree:
 
-Segment Trees
+Segment trees
 --------------
 
 A *segment tree* describes a morphology as a set of segments and their connections,

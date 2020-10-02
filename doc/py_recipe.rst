@@ -136,7 +136,7 @@ Probes
             loc   = arbor.location(0, 0)    # at the soma
             probe = arbor.cable_probe('voltage', id, loc)
 
-Event Generator and Schedules
+Event generator and schedules
 -----------------------------
 
 .. class:: event_generator

@@ -1,6 +1,6 @@
 .. _py_morphology:
 
-Cell Morphology
+Cell morphology
 ===============
 
 .. currentmodule:: arbor

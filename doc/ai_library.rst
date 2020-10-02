@@ -1,11 +1,11 @@
 .. _libref:
 
-Library Reference
+Library reference
 #################
 
 Low level library reference material goes here, e.g. `range` library documentation.
 
-Utility Wrappers and Containers
+Utility wrappers and containers
 --------------------------------
 
 .. cpp:namespace:: arb::util

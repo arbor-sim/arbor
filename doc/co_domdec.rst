@@ -1,6 +1,6 @@
 .. _modeldomdec:
 
-Domain Decomposition
+Domain decomposition
 ====================
 
 A *domain decomposition* describes the distribution of the model over the available computational resources.
@@ -14,7 +14,7 @@ cell group will run on a CPU core or the GPU. The domain decomposition is solely
 of cells across cell groups and domains.
 
 
-Load Balancers
+Load balancers
 --------------
 
 A *load balancer* generates the domain decomposition using the model recipe and a description of the available computational

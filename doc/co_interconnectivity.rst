@@ -3,7 +3,15 @@
 Interconnectivity
 #################
 
-Networks consist of two components, nodes (cells) and edges (synapses). In biology we find two kinds of synapses: chemical and electrical. In Arbor chemical processes are *not* modelled, only their electrical implications. You will not be able to define the chemical structure of a neurotransmitter and insert it into an Arbor synapse, for instance. To avoid confusion, Arbor calls its edges *connection*s and models the biological synapse as an electrical transmission delay. Arbor also has a *gap junction*, which lets currents pass through directly. On cells (more on cells :ref:`here <modelcells>`) you can make connection sites and junction sites, and in a recipe you define which sites on which cells are in fact connected.
+Networks can be regarded as a sort of graph, where the nodes are cells and the edges
+describe the communications between them. In Arbor, two sorts of edges are modelled: a
+connection abstracts the propagation of action potentials (spikes) through the network,
+while a gap junction is used to describe a direct electrical connection between two cells.
+Connections only capture the propagation delay and attenuation associated with spike
+connectivity: the biophysical modelling of the chemical synapses themselves is the
+responsibility of the target cell model.
+
+Connection sites and gap junction sites are defined on locations on cells (more on cells :ref:`here <modelcells>`). A recipe lets you define which sites are connected to which.
 
 .. _modelconnections:
 
@@ -19,7 +27,7 @@ Connections in Arbor are defined in two steps:
 
 .. _modelgapjunctions:
 
-Gap Junctions
+Gap junctions
 =============
 
 Gap junctions represent electrical synapses where transmission between cells is bidirectional and direct.

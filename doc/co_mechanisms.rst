@@ -1,6 +1,6 @@
 .. _mechanisms:
 
-Cell Mechanisms
+Cell mechanisms
 ===============
 
 Mechanisms describe biophysical processes such as ion channels and synapses.
@@ -9,7 +9,7 @@ through a process that is called :ref:`decoration <cablecell-decoration>`.
 Mechanisms are described using a dialect of the :ref:`NMODL <nmodl>` domain
 specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
 
-Mechanism Catalogues
+Mechanism catalogues
 ----------------------
 
 A *mechanism catalogue* is a collection of mechanisms that maintains:
@@ -29,7 +29,7 @@ Catalogues provide an interface for querying mechanism metadata, which includes 
 * State variable names, units and default values.
 * Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes to its internal or external concentration or to its reversal potential value, and whether it reads or asserts the ionic charge.
 
-Default Mechanisms
+Default mechanisms
 ''''''''''''''''''
 
 Arbor provides a default catalogue with the following mechanisms:
@@ -91,7 +91,7 @@ shorthand ``("nernst/ca")`` can be used unambiguously.
     the new mechanism, or a mechanism with a new unique name must be defined.
 
 
-Mechanism Types
+Mechanism types
 ---------------
 
 There are two broad categories of mechanism, density mechanisms and

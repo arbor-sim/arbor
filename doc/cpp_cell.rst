@@ -5,7 +5,7 @@ Cells
 
 .. cpp:namespace:: arb
 
-Cell Identifiers and Indexes
+Cell identifiers and indexes
 ----------------------------
 
 These types, defined in ``common_types.hpp``, are used as identifiers for

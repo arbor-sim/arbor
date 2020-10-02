@@ -1,7 +1,7 @@
 .. _modelhardware:
 
-Hardware
-========
+Hardware management
+===================
 
 *Local resources* are locally available computational resources, specifically the number of hardware threads and the number of GPUs.
 
@@ -19,7 +19,7 @@ An *allocation* enumerates the computational resources to be used for a simulati
    applications/libraries.
 
 
-Execution Context
+Execution context
 -----------------
 
 An *execution context* contains the local thread pool, and optionally the GPU state and MPI communicator, if available. Users of the library configure contexts, which are passed to Arbor methods and types.

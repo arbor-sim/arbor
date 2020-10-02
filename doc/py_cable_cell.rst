@@ -1,6 +1,6 @@
 .. _pycable_cell:
 
-Cable Cells
+Cable cells
 ===========
 
 .. currentmodule:: arbor

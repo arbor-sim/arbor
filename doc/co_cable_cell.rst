@@ -1,6 +1,6 @@
 .. _cablecell:
 
-Cable Cells
+Cable cells
 ===========
 
 An Arbor *cable cell* is a full description of a cell with morphology and cell
@@ -50,7 +50,7 @@ of dynamics in Arbor:
 
 .. _cablecell-paint:
 
-Painted Dynamics
+Painted dynamics
 ''''''''''''''''
 
 Painted dynamics are applied to a subset of the surface and/or volume of cells.
@@ -282,7 +282,7 @@ using the *paint* interface:
 
 .. _cablecell-place:
 
-Placed Dynamics
+Placed dynamics
 ''''''''''''''''
 
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
@@ -290,15 +290,17 @@ and are assigned to specific locations.
 
 .. _cable-synapses:
 
-Connections
-~~~~~~~~~~~
+Connection sites
+~~~~~~~~~~~~~~~~
 
-Connections (synapses) are instances of NMODL POINT mechanisms.
+Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
 .. _cable-gj-sites:
 
 Gap junction sites
 ~~~~~~~~~~~~~~~~~~
+
+See :ref:`modelgapjunctions`.
 
 .. _cable-threshold-detectors:
 

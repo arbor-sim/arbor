@@ -15,7 +15,7 @@ building phase to provide information about cells in the model, such as:
   * incoming network connections from other cells terminating on a cell;
   * gap junction connections on a cell.
 
-Why Recipes?
+Why recipes?
 --------------
 
 The interface and design of Arbor recipes was motivated by the following aims:
@@ -62,13 +62,13 @@ The steps of building a simulation from a recipe are:
     | Foobar_GPUFTW_lolz: That'd be me, if we've got GPU enabled.
     | Simulator: Okay it's up to you then to deal with this s3cr1ts4uc3 object.
 
-General Best Practices
+General best practices
 ----------------------
 
 .. topic:: Think of the cells
 
     When formulating a model, think cell-first, and try to formulate the model and
-    the associated workflow from a cell-centered perspective. If this isn't possible,
+    the associated workflow from a cell-centred perspective. If this isn't possible,
     please contact the developers, because we would like to develop tools that help
     make this simpler.
 

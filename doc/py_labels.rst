@@ -1,6 +1,6 @@
 .. _py_labels:
 
-Cell Labels
+Cell labels
 ===========
 
 The ``arbor.label_dict`` type is used for creating and manipulating label dictionaries,
@@ -20,8 +20,7 @@ to label soma, axon, dendrite and apical dendrites is:
 
     d = arbor.label_dict(labels)
 
-Alternatively, start with an empty label dictionary and add the labels and
-their definitions one by one:
+The same ``label_dict`` can be created by starting with an empty label dictionary and adding the labels and their definitions one by one:
 
 .. code-block:: python
 
