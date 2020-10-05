@@ -33,10 +33,6 @@ swc_duplicate_record_id::swc_duplicate_record_id(int record_id):
     swc_error("duplicate SWC sample id", record_id)
 {}
 
-swc_irregular_id::swc_irregular_id(int record_id):
-    swc_error("SWC record id not numbered consecutively from 1", record_id)
-{}
-
 swc_spherical_soma::swc_spherical_soma(int record_id):
     swc_error("SWC with spherical somata are not supported", record_id)
 {}
@@ -92,10 +88,6 @@ static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> rec
 
         if (r.parent_id>=r.id) {
             throw swc_record_precedes_parent(r.id);
-        }
-
-        if (mode==swc_mode::strict && r.id != (int)i+1) {
-            throw swc_irregular_id(r.id);
         }
 
         if (!seen.insert(r.id).second) {
