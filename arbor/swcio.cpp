@@ -216,6 +216,9 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
         throw swc_no_soma{soma_prox.id};
     }
 
+    // check for single soma cell
+    bool has_children = false;
+
     // Map of SWC record id to index in `records`.
     std::unordered_map<int, std::size_t> record_index;
     record_index[soma_prox.id] = 0;
@@ -249,6 +252,10 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
             throw swc_branchy_soma{r.id};
         }
 
+        if (r.tag != 1 && parent_record.tag == 1) {
+            has_children = true;
+        }
+
         prev_tag = r.tag;
         prev_id = r.id;
     }
@@ -261,64 +268,85 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
 
     // First, construct the soma
     if (soma_records.size() == 1) {
-        // Model the soma as a 2 cylinders with total length=2*radius, extended along the y axis
-        auto p = tree.append(mnpos, {soma_prox.x, soma_prox.y - soma_prox.r, soma_prox.z, soma_prox.r},
-                             {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r}, 1);
-        tree.append(p, {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r},
-                    {soma_prox.x, soma_prox.y + soma_prox.r, soma_prox.z, soma_prox.r}, 1);
-        tree_index[soma_prox.id] = p;
-
+        if (!has_children) {
+            // Model the soma as a 1 cylinder with total length=2*radius, extended along the y axis
+            tree.append(mnpos, {soma_prox.x, soma_prox.y - soma_prox.r, soma_prox.z, soma_prox.r},
+                        {soma_prox.x, soma_prox.y + soma_prox.r, soma_prox.z, soma_prox.r}, 1);
+            return tree;
+        } else {
+            // Model the soma as a 2 cylinders with total length=2*radius, extended along the y axis
+            auto p = tree.append(mnpos, {soma_prox.x, soma_prox.y - soma_prox.r, soma_prox.z, soma_prox.r},
+                                        {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r}, 1);
+            tree.append(p, {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r},
+                           {soma_prox.x, soma_prox.y + soma_prox.r, soma_prox.z, soma_prox.r}, 1);
+            tree_index[soma_prox.id] = p;
+        }
     } else {
-        // Calculate segment lengths
-        std::vector<double> soma_segment_lengths;
-        for (std::size_t i = 1; i < soma_records.size(); ++i) {
-            const auto& p0 = soma_records[i-1];
-            const auto& p1 = soma_records[i];
-            soma_segment_lengths.push_back(distance(mpoint{p0.x, p0.y, p0.z, p0.r}, mpoint{p1.x, p1.y, p1.z, p1.r}));
-        }
-        double midlength = std::accumulate(soma_segment_lengths.begin(), soma_segment_lengths.end(), 0.)/2;
-
-        std::size_t idx = 0;
-        for (; idx < soma_segment_lengths.size(); ++idx) {
-            auto l = soma_segment_lengths[idx];
-            if (midlength > l) {
-                midlength -= l;
-                continue;
+        if (!has_children) {
+            msize_t parent = mnpos;
+            for (std::size_t i = 0; i < soma_records.size()-1; ++i) {
+                const auto& p0 = soma_records[i];
+                const auto& p1 = soma_records[i+1];
+                parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
             }
-            break;
+            return tree;
+        } else {
+            // Calculate segment lengths
+            std::vector<double> soma_segment_lengths;
+            for (std::size_t i = 1; i < soma_records.size(); ++i) {
+                const auto& p0 = soma_records[i - 1];
+                const auto& p1 = soma_records[i];
+                soma_segment_lengths.push_back(
+                        distance(mpoint{p0.x, p0.y, p0.z, p0.r}, mpoint{p1.x, p1.y, p1.z, p1.r}));
+            }
+            double midlength = std::accumulate(soma_segment_lengths.begin(), soma_segment_lengths.end(), 0.) / 2;
+
+            std::size_t idx = 0;
+            for (; idx < soma_segment_lengths.size(); ++idx) {
+                auto l = soma_segment_lengths[idx];
+                if (midlength > l) {
+                    midlength -= l;
+                    continue;
+                }
+                break;
+            }
+
+            // Interpolate along the segment that contains the midpoint of the soma
+            double pos_on_segment = midlength / soma_segment_lengths[idx];
+
+            auto& r0 = soma_records[idx];
+            auto& r1 = soma_records[idx + 1];
+
+            auto x = r0.x + pos_on_segment * (r1.x - r0.x);
+            auto y = r0.y + pos_on_segment * (r1.y - r0.y);
+            auto z = r0.z + pos_on_segment * (r1.z - r0.z);
+            auto r = r0.r + pos_on_segment * (r1.r - r0.r);
+
+            mpoint mid_soma = {x, y, z, r};
+
+            // Construct the soma
+            msize_t parent = mnpos;
+            for (std::size_t i = 0; i < idx; ++i) {
+                const auto& p0 = soma_records[i];
+                const auto& p1 = soma_records[i + 1];
+                parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
+            }
+            auto soma_seg = tree.append(parent, {r0.x, r0.y, r0.z, r0.r}, mid_soma, 1);
+
+            if (mpoint r1_p = {r1.x, r1.y, r1.z, r1.r}; mid_soma != r1_p) {
+                parent = tree.append(soma_seg, mid_soma, r1_p, 1);
+            } else {
+                parent = soma_seg;
+            }
+
+            for (std::size_t i = idx + 1; i < soma_records.size() - 1; ++i) {
+                const auto& p0 = soma_records[i];
+                const auto& p1 = soma_records[i + 1];
+                parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
+            }
+
+            tree_index[soma_records.back().id] = soma_seg;
         }
-
-        // Interpolate along the segment that contains the midpoint of the soma
-        double pos_on_segment = midlength/soma_segment_lengths[idx];
-
-        auto& r0 = soma_records[idx];
-        auto& r1 = soma_records[idx+1];
-
-        auto x = r0.x + pos_on_segment*(r1.x-r0.x);
-        auto y = r0.y + pos_on_segment*(r1.y-r0.y);
-        auto z = r0.z + pos_on_segment*(r1.z-r0.z);
-        auto r = r0.r + pos_on_segment*(r1.r-r0.r);
-
-        mpoint mid_soma = {x, y, z, r};
-
-        // Construct the soma
-        msize_t parent = mnpos;
-        for (std::size_t i = 0; i < idx; ++i) {
-            const auto& p0 = soma_records[i];
-            const auto& p1 = soma_records[i+1];
-            parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
-        }
-        auto soma_seg = tree.append(parent, {r0.x, r0.y, r0.z, r0.r}, mid_soma, 1);
-
-        parent = tree.append(soma_seg, mid_soma, {r1.x, r1.y, r1.z, r1.r}, 1);
-
-        for (std::size_t i = idx + 1; i < soma_records.size(); ++i ) {
-            const auto& p0 = soma_records[i];
-            const auto& p1 = soma_records[i+1];
-            parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
-        }
-
-        tree_index[soma_records.back().id] = soma_seg;
     }
 
     // Build branches off soma.
@@ -337,7 +365,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
         if (prec_iter == record_index.end()) throw bad_swc_data{r.id};
 
         // If the sample has a soma sample as its parent don't create a segment.
-        if (records[r.parent_id].tag == 1) {
+        if (records[prec_iter->second].tag == 1) {
             // Map the sample id to the segment id of the soma (parent)
             tree_index[r.id] = pseg_iter->second;
             continue;
