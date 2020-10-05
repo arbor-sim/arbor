@@ -377,7 +377,7 @@ void register_cells(pybind11::module& m) {
                     arb::initial_ion_data x;
                     x.ion = name;
                     if (int_con) x.initial.init_int_concentration = *int_con;
-                    if (ext_con) x.initial.init_int_concentration = *ext_con;
+                    if (ext_con) x.initial.init_ext_concentration = *ext_con;
                     if (rev_pot) x.initial.init_reversal_potential = *rev_pot;
                     return x;
                 }
