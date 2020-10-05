@@ -20,4 +20,4 @@ A cell represents the smallest unit of computation and forms the smallest unit o
 
 :ref:`modelsimulation` manage the instantiation of the model and the scheduling of spike exchange as well as the integration for each cell group. A cell group represents a collection of cells of the same type computed together on the GPU or CPU. The partitioning into cell groups is provided by :ref:`modeldomdec` which describes the distribution of the model over the locally available computational resources.
 
-In order to visualise the result of detected spikes a spike recorder can be used and to analyse Arbor's performance a meter manager is available.
+In order to visualize the result of detected spikes a spike recorder can be used and to analyse Arbor's performance a meter manager is available.

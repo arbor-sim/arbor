@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys, os
 
+# Path to Python Binding (_arbor)
+try:
+    sys.path.append(os.path.join(os.environ['OLDPWD'],"python"))
+    import arbor
+except ImportError:
+    autodoc_mock_imports = ['arbor._arbor']
 
 html_static_path = ['static']
 
@@ -10,13 +17,16 @@ def setup(app):
     app.add_object_type('label', 'lab', 'pair: %s; label')
 
 extensions = [
+    'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
+    'sphinx.ext.coverage'
 ]
 source_suffix = '.rst'
 master_doc = 'index'
 
-html_logo = 'images/arbor-logo.svg'
+html_logo = 'images/arbor-lines-proto-colour.svg'
+html_favicon = 'images/arbor-lines-proto-colour-notext.svg'
 
 project = 'Arbor'
 copyright = '2017, ETHZ & FZ Julich'
@@ -34,20 +44,18 @@ pygments_style = 'perldoc'
 
 # Generate images for the documentation.
 print("--- generating images ---")
-import sys, os
-
-this_path=os.path.split(os.path.abspath(__file__))[0]
 
 # Location of scripts used to generate images
+this_path=os.path.split(os.path.abspath(__file__))[0]
 script_path=this_path+'/scripts'
 sys.path.append(script_path)
+import make_images
 
 # Output path for generated images
 img_path=this_path+'/gen-images'
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
-import make_images
 make_images.generate(img_path)
 
 print("-------------------------")

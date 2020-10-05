@@ -1,6 +1,6 @@
 .. _cppdistcontext:
 
-Distributed Context
+Distributed context
 ===================
 
 To support running on systems from laptops and workstations to large distributed
@@ -69,7 +69,7 @@ A distributed context can then be generated using helper functions :cpp:func:`ar
         auto dist_ctx = arb::make_mpi_context(MPI_COMM_WORLD);
 
 
-Class Documentation
+Class documentation
 -------------------
 
 .. cpp:namespace:: arb

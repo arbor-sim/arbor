@@ -3,9 +3,8 @@
 Overview
 =========
 
-The C++ API for is the main interface through which application developers will
-access Arbor, though it is designed to be usable for power users to
-implement models.
+The C++ API is the recommended interface through which advanced users and HPC
+developers can access Arbor.
 
 Arbor makes a distinction between the **description** of a model, and the
 **execution** of a model.

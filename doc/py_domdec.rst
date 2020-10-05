@@ -1,11 +1,11 @@
 .. _pydomdec:
 
-Domain Decomposition
+Domain decomposition
 ====================
 
 The Python API for partitioning a model over distributed and local hardware is described here.
 
-Load Balancers
+Load balancers
 --------------
 
 .. currentmodule:: arbor

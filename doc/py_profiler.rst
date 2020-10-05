@@ -2,7 +2,7 @@
 
 .. currentmodule:: arbor
 
-Metering
+Profiler
 ========
 
 Arbor's python module :py:mod:`arbor` has a :class:`meter_manager` for measuring time (and if applicable memory) consumptions of regions of interest in the python code.
@@ -11,7 +11,7 @@ Users manually instrument the regions to measure.
 This allows the user to only measure the parts of the python code that are of interest.
 Once a region of code is marked for the :class:`meter_manager`, the application will track the total time (and memory) spent in this region.
 
-Marking Metering Regions
+Marking metering regions
 ------------------------
 
 First the :class:`meter_manager` needs to be initiated, then the metering started and checkpoints set,
@@ -76,7 +76,7 @@ For instance, the following python code will record and summarize the total time
         meter_manager.checkpoint('simulation-run', context)
 
 
-Metering Output
+Metering output
 ------------------
 
 At any point a summary of the timing regions can be obtained by the :class:`meter_report`.

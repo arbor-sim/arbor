@@ -2,12 +2,12 @@
 
 .. cpp:namespace:: arb
 
-Domain Decomposition
+Domain decomposition
 ====================
 
 The C++ API for partitioning a model over distributed and local hardware is described here.
 
-Load Balancers
+Load balancers
 --------------
 
 Load balancing generates a :cpp:class:`domain_decomposition` given an :cpp:class:`arb::recipe`
