@@ -1,4 +1,2 @@
 sphinx>=2.3.0
 svgwrite
-pandas
-seaborn

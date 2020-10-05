@@ -292,7 +292,7 @@ def generate(path=''):
     label_image(inputs.label_morph, [inputs.reg_radgt5],  path+'/radiusgt_label.svg')
     label_image(inputs.label_morph, [inputs.reg_radge5],  path+'/radiusge_label.svg')
 
-    dataframe_line_plot(path+'/../images/single_cell_model_result.csv', path+'/single_cell_model_result.svg')
+    # dataframe_line_plot(path+'/../images/single_cell_model_result.csv', path+'/single_cell_model_result.svg')
 
 
 if __name__ == '__main__':
