@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <cfloat>
 #include <cmath>
 #include <numeric>
@@ -8,6 +10,7 @@
 #include <arbor/cable_cell_param.hpp>
 
 #include "util/maputil.hpp"
+#include "s_expr.hpp"
 
 namespace arb {
 
@@ -72,50 +75,77 @@ cable_cell_parameter_set neuron_parameter_defaults = {
 
 // s-expression printers for paintable and placeable items.
 
-std::ostream& sstring(std::ostream& o, const mechanism_desc& d) {
+s_expr make_s_expr(const init_membrane_potential& p) {
+    using namespace s_expr_literals;
+    return slist("membrane-potential"_symbol, p.value);
+}
+s_expr make_s_expr(const axial_resistivity& r) {
+    using namespace s_expr_literals;
+    return slist("axial-resistivity"_symbol, r.value);
+}
+s_expr make_s_expr(const temperature_K& t) {
+    using namespace s_expr_literals;
+    return slist("temperature-kelvin"_symbol, t.value);
+}
+s_expr make_s_expr(const membrane_capacitance& c) {
+    using namespace s_expr_literals;
+    return slist("membrane-capacitance"_symbol, c.value);
+}
+s_expr make_s_expr(const init_int_concentration& c) {
+    using namespace s_expr_literals;
+    return slist("ion-internal-concentration"_symbol, c.ion, c.value);
+}
+s_expr make_s_expr(const init_ext_concentration& c) {
+    using namespace s_expr_literals;
+    return slist("ion-external-concentration"_symbol, c.ion, c.value);
+}
+s_expr make_s_expr(const init_reversal_potential& e) {
+    using namespace s_expr_literals;
+    return slist("ion-reversal-potential"_symbol, e.ion, e.value);
+}
+s_expr make_s_expr(const i_clamp& c) {
+    using namespace s_expr_literals;
+    return slist("current-clamp"_symbol, c.amplitude, c.delay, c.duration);
+}
+s_expr make_s_expr(const threshold_detector& d) {
+    using namespace s_expr_literals;
+    return slist("threshold-detector"_symbol, d.threshold);
+}
+s_expr make_s_expr(const gap_junction_site& s) {
+    using namespace s_expr_literals;
+    return slist("gap-junction-site"_symbol);
+}
+
+s_expr make_s_expr(const mechanism_desc& d) {
+    s_expr e;
+    s_expr args;
+    for (auto [n, v]: d.values()) {
+    }
+    /*
     o << "(mechanism \"" << d.name() << "\" (";
     for (auto [n, v]: d.values()) {
         o << "(\"" << n << "\" " << v << ")";
     }
     return o << "))";
-}
-std::ostream& sstring(std::ostream& o, const init_membrane_potential& p) {
-    return o << "(membrane-potential " << p.value << ")";
-}
-std::ostream& sstring(std::ostream& o, const axial_resistivity& r) {
-    return o << "(axial-resistivity " << r.value << ")";
-}
-std::ostream& sstring(std::ostream& o, const temperature_K& t) {
-    return o << "(temperature-kelvin " << t.value << ")";
-}
-std::ostream& sstring(std::ostream& o, const membrane_capacitance& c) {
-    return o << "(membrane-capacitance " << c.value << ")";
-}
-std::ostream& sstring(std::ostream& o, const init_int_concentration& c) {
-    return o << "(ion-internal-concentration \"" << c.ion << "\" " << c.value << ")";
-}
-std::ostream& sstring(std::ostream& o, const init_ext_concentration& c) {
-    return o << "(ion-external-concentration \"" << c.ion << "\" " << c.value << ")";
-}
-std::ostream& sstring(std::ostream& o, const init_reversal_potential& e) {
-    return o << "(ion-reversal-potential \"" << e.ion << "\" " << e.value << ")";
-}
-std::ostream& sstring(std::ostream& o, const i_clamp& c) {
-    return o << "(current-clamp " << c.amplitude << " " << c.delay << " " << c.duration << ")";
-}
-std::ostream& sstring(std::ostream& o, const threshold_detector& d) {
-    return o << "(threshold-detector " << d.threshold << ")";
-}
-std::ostream& sstring(std::ostream& o, const gap_junction_site& s) {
-    return o << "(gap-junciton-site)";
+    */
+    return e;
 }
 
+/*
 std::ostream& operator<<(std::ostream& o, const paintable& thing) {
     return std::visit([&o](auto&& p) -> std::ostream& {return sstring(o, p);}, thing);
 }
 
 std::ostream& operator<<(std::ostream& o, const placeable& thing) {
     return std::visit([&o](auto&& p) -> std::ostream& {return sstring(o, p);}, thing);
+}
+*/
+
+void foo() {
+    using namespace s_expr_literals;
+    //std::cout << slist("foo"_symbol, "hello world", -12, 12.8) << "\n";
+    auto s = slist("foo"_symbol, "hello world", -12, 12.8);
+    std::cout << slist(12, 12) << "\n";
 }
 
 } // namespace arb

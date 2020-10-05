@@ -83,11 +83,11 @@ private:
         cell_ = cable_cell(tree);
 
         // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
-        cell_.default_parameters.axial_resistivity = 100;     // [Ω·cm]
-        cell_.default_parameters.membrane_capacitance = 0.01; // [F/m²]
+        cell_.set_default(axial_resistivity{100});     // [Ω·cm]
+        cell_.set_default(membrane_capacitance{0.01}); // [F/m²]
 
         // Twenty CVs per branch on the dendrites (tag 4).
-        cell_.default_parameters.discretization = cv_policy_fixed_per_branch(20, arb::reg::tagged(4));
+        cell_.discretization() = cv_policy_fixed_per_branch(20, arb::reg::tagged(4));
 
         // Add pas and hh mechanisms:
         cell_.paint(reg::tagged(1), "hh"); // (default parameters)

@@ -128,7 +128,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Make a CV between every sample in the sample tree.
-    cell.default_parameters.discretization = arb::cv_policy_every_segment();
+    cell.discretization() = arb::cv_policy_every_segment();
 
     return cell;
 }

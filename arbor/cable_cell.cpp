@@ -137,7 +137,7 @@ cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary):
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 
 cable_cell::cable_cell(const cable_cell& other):
-    default_parameters(other.default_parameters),
+    default_parameters_(other.default_parameters_),
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
 
@@ -174,13 +174,17 @@ void cable_cell::paint(const region& target, paintable prop) {
     std::visit(
             [this, &target] (auto&& p) {impl_->paint(target, p);},
             prop);
+    decor_.paintings.push_back({target, prop});
 }
 
 // Forward place method to implementation class.
 lid_range cable_cell::place(const locset& target, placeable prop) {
-    return std::visit(
+    auto lids = std::visit(
             [this, &target] (auto&& p) -> lid_range {return impl_->place(target, p);},
             prop);
+
+    decor_.placements.push_back({target, prop});
+    return lids;
 }
 
 void cable_cell::set_default(defaultable prop) {
@@ -188,34 +192,35 @@ void cable_cell::set_default(defaultable prop) {
             [this] (auto&& p) {
                 using T = std::decay_t<decltype(p)>;
                 if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                    default_parameters.init_membrane_potential = p.value;
+                    default_parameters_.init_membrane_potential = p.value;
                 }
                 else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                    default_parameters.axial_resistivity = p.value;
+                    default_parameters_.axial_resistivity = p.value;
                 }
                 else if constexpr (std::is_same_v<temperature_K, T>) {
-                    default_parameters.temperature_K = p.value;
+                    default_parameters_.temperature_K = p.value;
                 }
                 else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                    default_parameters.membrane_capacitance = p.value;
+                    default_parameters_.membrane_capacitance = p.value;
                 }
                 else if constexpr (std::is_same_v<initial_ion_data, T>) {
-                    default_parameters.ion_data[p.ion] = p.initial;
+                    default_parameters_.ion_data[p.ion] = p.initial;
                 }
                 else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                    default_parameters.ion_data[p.ion].init_int_concentration = p.value;
+                    default_parameters_.ion_data[p.ion].init_int_concentration = p.value;
                 }
                 else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                    default_parameters.ion_data[p.ion].init_ext_concentration = p.value;
+                    default_parameters_.ion_data[p.ion].init_ext_concentration = p.value;
                 }
                 else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                    default_parameters.ion_data[p.ion].init_reversal_potential = p.value;
+                    default_parameters_.ion_data[p.ion].init_reversal_potential = p.value;
                 }
                 else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
-                    default_parameters.reversal_potential_method[p.ion] = p.method;
+                    default_parameters_.reversal_potential_method[p.ion] = p.method;
                 }
             },
             prop);
+    decor_.defaults.push_back(prop);
 }
 
 } // namespace arb

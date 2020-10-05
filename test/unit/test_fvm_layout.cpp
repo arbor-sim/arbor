@@ -101,7 +101,7 @@ namespace {
             cell.place(b.location({2,1}), i_clamp{5.,  80., 0.45});
             cell.place(b.location({3,1}), i_clamp{40., 10.,-0.2});
 
-            cell.default_parameters.axial_resistivity = 90;
+            cell.set_default(axial_resistivity{90});
 
             s.builders.push_back(std::move(b));
         }
@@ -640,7 +640,7 @@ TEST(fvm_layout, density_norm_area_partial) {
     hh_end["gkbar"] = end_gkbar;
 
     auto cell = builder.make_cell();
-    cell.default_parameters.discretization = cv_policy_fixed_per_branch(1);
+    cell.discretization() = cv_policy_fixed_per_branch(1);
 
     cell.paint(builder.cable({1, 0., 0.3}), hh_begin);
     cell.paint(builder.cable({1, 0.4, 1.}), hh_end);
@@ -852,16 +852,16 @@ TEST(fvm_layout, revpot) {
         auto test_gprop = gprop;
         test_gprop.default_parameters.reversal_potential_method["b"] = write_eb_ec;
         test_gprop.default_parameters.reversal_potential_method["c"] = write_eb_ec;
-        cells[1].default_parameters.reversal_potential_method["c"] = "write_eX/c";
+        cells[1].set_default(ion_reversal_potential_method{"c", "write_eX/c"});
 
         fvm_cv_discretization D = fvm_cv_discretize(cells, test_gprop.default_parameters);
         EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, D), cable_cell_error);
     }
 
-    auto& cell1_prop = cells[1].default_parameters;
+    auto& cell1_prop = const_cast<cable_cell_parameter_set&>(cells[1].default_parameters());
     cell1_prop.reversal_potential_method.clear();
-    cell1_prop.reversal_potential_method["b"] = write_eb_ec;
-    cell1_prop.reversal_potential_method["c"] = write_eb_ec;
+    cells[1].set_default(ion_reversal_potential_method{"b", write_eb_ec});
+    cells[1].set_default(ion_reversal_potential_method{"c", write_eb_ec});
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
     fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
@@ -887,7 +887,7 @@ TEST(fvm_layout, vinterp_cable) {
 
     // CV midpoints at branch pos 0.1, 0.3, 0.5, 0.7, 0.9.
     // Expect voltage reference locations to be CV modpoints.
-    cell.default_parameters.discretization = cv_policy_fixed_per_branch(5);
+    cell.discretization() = cv_policy_fixed_per_branch(5);
     fvm_cv_discretization D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Test locations, either side of CV midpoints plus extrema, CV boundaries.
@@ -946,7 +946,7 @@ TEST(fvm_layout, vinterp_forked) {
     // CV 0 contains branch 0 and the fork point; CV 1 and CV 2 have CV 0 as parent,
     // and contain branches 1 and 2 respectively, excluding the fork point.
     mlocation_list cv_ends{{1, 0.}, {2, 0.}};
-    cell.default_parameters.discretization = cv_policy_explicit(cv_ends);
+    cell.discretization() = cv_policy_explicit(cv_ends);
     fvm_cv_discretization D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Points in branch 0 should only get CV 0 for interpolation.
@@ -998,11 +998,11 @@ TEST(fvm_layout, iinterp) {
         if (p.second.empty()) continue;
 
         cells.emplace_back(p.second);
-        cells.back().default_parameters.discretization = cv_policy_fixed_per_branch(3);
+        cells.back().discretization() = cv_policy_fixed_per_branch(3);
         label.push_back(p.first+": forks-at-end"s);
 
         cells.emplace_back(p.second);
-        cells.back().default_parameters.discretization = cv_policy_fixed_per_branch(3, cv_policy_flag::interior_forks);
+        cells.back().discretization() = cv_policy_fixed_per_branch(3, cv_policy_flag::interior_forks);
         label.push_back(p.first+": interior-forks"s);
     }
 
@@ -1050,7 +1050,7 @@ TEST(fvm_layout, iinterp) {
     // CV 0 contains branch 0 and the fork point; CV 1 and CV 2 have CV 0 as parent,
     // and contain branches 1 and 2 respectively, excluding the fork point.
     mlocation_list cv_ends{{1, 0.}, {2, 0.}};
-    cell.default_parameters.discretization = cv_policy_explicit(cv_ends);
+    cell.discretization() = cv_policy_explicit(cv_ends);
     D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Expect axial current interpolations on branches 1 and 2 to match CV 1 and 2

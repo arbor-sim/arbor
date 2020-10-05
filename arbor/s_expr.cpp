@@ -430,7 +430,7 @@ s_expr parse(lexer& L) {
                 return t;
             }
             else if (t.kind == tok::rparen) {
-                *n = token{t.loc, tok::nil, "nil"};
+                *n = nil_token(t.loc);
                 t = L.next();
                 break;
             }

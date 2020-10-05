@@ -288,8 +288,8 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
 
     // Create the cell and set its electrical properties.
     arb::cable_cell cell(tree);
-    cell.default_parameters.axial_resistivity = 100;       // [Ω·cm]
-    cell.default_parameters.membrane_capacitance = 0.018;  // [F/m²]
+    cell.set_default(arb::axial_resistivity{100});       // [Ω·cm]
+    cell.set_default(arb::membrane_capacitance{0.018});  // [F/m²]
 
     // Define the density channels and their parameters.
     arb::mechanism_desc nax("nax");

@@ -233,8 +233,6 @@ public:
 
     using gap_junction_instance = mlocation;
 
-    cable_cell_parameter_set default_parameters;
-
     // Default constructor.
     cable_cell();
 
@@ -297,8 +295,23 @@ public:
     const cable_cell_region_map& region_assignments() const;
     const cable_cell_location_map& location_assignments() const;
 
+    const decor& decorations() const {
+        return decor_;
+    }
+
+    const cable_cell_parameter_set& default_parameters() const {
+        return default_parameters_;
+    }
+
+    std::optional<cv_policy>& discretization() {
+        return default_parameters_.discretization;
+    }
+
 private:
+
+    cable_cell_parameter_set default_parameters_;
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
+    decor decor_;
 };
 
 } // namespace arb

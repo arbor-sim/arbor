@@ -153,7 +153,7 @@ public:
 
     arb::cable_cell build() const {
         auto c = arb::cable_cell(morphology(), dict_);
-        c.default_parameters.discretization = arb::cv_policy_every_segment{};
+        c.discretization() = arb::cv_policy_every_segment{};
         return c;
     }
 
