@@ -9,18 +9,6 @@ tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 # ############################################
 #
 
-def dataframe_line_plot(input_csv, output_svg):
-    import seaborn
-    import pandas
-    print('generating:', output_svg)
-    dataframe = pandas.read_csv(input_csv,index_col=0)
-    axes = dict(zip(['x','y','hue','col','style'],dataframe.columns.values)) # 5D seems enough for now.
-    seaborn.relplot(data=dataframe, kind="line", **axes).savefig(output_svg)
-
-#
-# ############################################
-#
-
 def translate(x, f, xshift):
     return (f*x[0]+xshift, -f*x[1])
 
@@ -291,8 +279,6 @@ def generate(path=''):
     label_image(inputs.label_morph, [inputs.reg_radle5],  path+'/radiusle_label.svg')
     label_image(inputs.label_morph, [inputs.reg_radgt5],  path+'/radiusgt_label.svg')
     label_image(inputs.label_morph, [inputs.reg_radge5],  path+'/radiusge_label.svg')
-
-    # dataframe_line_plot(path+'/../images/single_cell_model_result.csv', path+'/single_cell_model_result.svg')
 
 
 if __name__ == '__main__':
