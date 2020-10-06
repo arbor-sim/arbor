@@ -13,7 +13,7 @@ Links are provided to separate documentation that covers relevant topics in more
 
 In an interactive Python interpreter, you can use ``help()`` on any class or function to
 obtain some documentation. E.g.: ``help(arbor.gap_junction_connection)`` will print
-:class:`this<arbor._arbor.gap_junction_connection>`.
+:class:`this<arbor.gap_junction_connection>`.
 
 .. _single_soma:
 
@@ -68,8 +68,8 @@ using :class:`arbor.mnpos`. Then two :class:`arbor.mpoint` s are supplied, the p
 and distal endpoints of the segment. Finally, an integer value can be supplied to tag the
 segment for future reference.
 
-In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor.
-_arbor.label_dict>`. Cell builders need to refer to *regions* and *locations* on a cell
+In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict`.
+Cell builders need to refer to *regions* and *locations* on a cell
 morphology. Arbor uses a domains specific language (DSL) to describe regions and
 locations, which are given labels. We add two labels:
 
@@ -88,10 +88,10 @@ with the named regions and locations.
   channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us
   instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details
   out for us.
-* Other properties we do want to :meth:`arbor.cable_cell.place<arbor._arbor.cable_cell.place>`
-  in a precise :class:`arbor.location<arbor._arbor.location>`. We place two things:
-  an :class:`arbor.iclamp<arbor._arbor.iclamp>` with a duration of 2 ms and a current of
-  0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector<arbor._arbor.spike_detector>`
+* Other properties we do want to :meth:`arbor.cable_cell.place`
+  in a precise :class:`arbor.location`. We place two things:
+  an :class:`arbor.iclamp` with a duration of 2 ms and a current of
+  0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector`
   with a threshold of -10 mV to the location we've labelled 'center'.
 * Finally, we adjust the :ref:`discretisation <cable-discretisation>` of the simulation
   by setting the compartment length to 2 μm. By default there is one compartment per branch.
@@ -102,8 +102,8 @@ Single cell network
 Great, we have defined our cell! Now, let's move to the network. Arbor can simulate
 networks with multiple individual cells, connected together in a network. Single cell
 models do not require the full *recipe* interface used to describing such network models,
-with many unique cells, network and gap junctions. Arbor provides a :class:`arbor.
-single_cell_model<arbor._arbor.single_cell_model>` helper that wraps a cell description,
+with many unique cells, network and gap junctions. Arbor provides a
+:class:`arbor.single_cell_model` helper that wraps a cell description,
 and provides an interface for recording potentials and running the simulation.
 
 .. code-block:: python
@@ -117,10 +117,10 @@ and provides an interface for recording potentials and running the simulation.
     # (6) Run simulation for 100 ms of simulated activity.
     m.run(tfinal=100)
 
-Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor._arbor.single_cell_model>` with our single-compartment cell.
+Step **(4)** instantiates the :class:`arbor.single_cell_model` with our single-compartment cell.
 
-In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor._arbor.single_cell_model.
-probe>` is used to record variables from the model. Three pieces of information are
+In step **(5)** a :meth:`arbor.single_cell_model.probe()` is used to record variables from
+the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
 probe ('center'), and the frequency at which we want to sample (10kHz).
 
@@ -148,13 +148,13 @@ spike_detector and a voltage probe. Let's see what they have produced!
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
     seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 
-In step **(7)** we access :meth:`arbor.single_cell_model.spikes<arbor._arbor.
-single_cell_model.spikes>` to access the spike time. A single spike at a little over 10
+In step **(7)** we access :meth:`arbor.single_cell_model.spikes`
+to access the spike time. A single spike at a little over 10
 ms should be printed, which matches the stimulus we have provided in step (3).
 
 The other measurement we have is that of the potential, which we plot in step **(8)**.
-Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor._arbor.
-single_cell_model.traces>`. You should be seeing something like this:
+Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces`.
+You should be seeing something like this:
 
 .. figure:: gen-images/single_cell_model_result.svg
     :width: 400

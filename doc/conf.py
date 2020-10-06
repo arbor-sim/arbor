@@ -2,13 +2,6 @@
 # -*- coding: utf-8 -*-
 import sys, os
 
-# Path to Python Binding (_arbor)
-try:
-    sys.path.append(os.path.join(os.environ['OLDPWD'],"python"))
-    import arbor
-except ImportError:
-    autodoc_mock_imports = ['arbor._arbor']
-
 html_static_path = ['static']
 
 def setup(app):
@@ -50,6 +43,7 @@ this_path=os.path.split(os.path.abspath(__file__))[0]
 script_path=this_path+'/scripts'
 sys.path.append(script_path)
 import make_images
+import autodoc_cache #autodoc_cache rebuilds python reference if Arbor is importable
 
 # Output path for generated images
 img_path=this_path+'/gen-images'
