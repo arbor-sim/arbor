@@ -81,7 +81,7 @@ An example of a partition load balance with hints reads as follows:
         n_cells = 100
         recipe = my_recipe(n_cells)
 
-        # The hints perfer the multicore backend, so the decomposition is expected
+        # The hints prefer the multicore backend, so the decomposition is expected
         # to never have cell groups on the GPU, regardless of whether a GPU is
         # available or not.
         cable_hint                  = arb.partition_hint()
@@ -117,14 +117,14 @@ Therefore, the following data structures are used to describe domain decompositi
 
 .. class:: domain_decomposition
 
-    Describes a domain decomposition and is soley responsible for describing the
+    Describes a domain decomposition and is solely responsible for describing the
     distribution of cells across cell groups and domains.
     It holds cell group descriptions (:attr:`groups`) for cells assigned to
     the local domain, and a helper function (:func:`gid_domain`) used to
     look up which domain a cell has been assigned to.
     The :class:`domain_decomposition` object also has meta-data about the
     number of cells in the global model, and the number of domains over which
-    the model is destributed.
+    the model is distributed.
 
     .. Note::
         The domain decomposition represents a division of **all** of the cells in

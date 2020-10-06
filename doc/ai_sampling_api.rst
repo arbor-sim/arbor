@@ -65,7 +65,7 @@ identified with a probe-id: ``cell_member_type{gid, k}``.
 
 One probe address may describe more than one concrete probe, depending
 upon the interpretation of the probe address by the cell group. In this
-instance, each of the concerete probes will be associated with the
+instance, each of the concrete probes will be associated with the
 same probe-id. Samplers can distinguish between different probes with
 the same id by their probe index (see below).
 
@@ -88,7 +88,7 @@ will be passed to a sampler function or function object:
             };
 
             using sampler_function =
-                std::function<void (probe_metadta, size_t, const sample_record*)>;
+                std::function<void (probe_metadata, size_t, const sample_record*)>;
 
 where the parameters are respectively the probe metadata, the number of
 samples, and finally a pointer to the sequence of sample records.
@@ -298,7 +298,7 @@ Helper classes for probe/sampler management
 
 The ``simulation`` and ``mc_cell_group`` classes use classes defined in
 ``scheduler_map.hpp`` to simplify the management of sampler--probe associations
-and probe metdata.
+and probe metadata.
 
 ``sampler_association_map`` wraps an ``unordered_map`` between sampler association
 handles and tuples (*schedule*, *sampler*, *probe set*, *policy*), with thread-safe
