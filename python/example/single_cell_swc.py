@@ -12,10 +12,16 @@ import arbor
 from arbor import mechanism as mech
 from arbor import location as loc
 import pandas, seaborn
-import matplotlib.pyplot as plt
+import sys
 
 # Load a cell morphology from an swc file.
-tree = arbor.load_swc('../../test/unit/swc/pyramidal.swc')
+# Example present here: ../../test/unit/swc/pyramidal.swc
+if len(sys.argv) < 2:
+    print("No SWC file passed to the program")
+    sys.exit(0)
+
+filename = sys.argv[1]
+tree = arbor.load_swc(filename)
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.

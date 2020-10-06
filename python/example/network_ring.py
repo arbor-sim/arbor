@@ -1,4 +1,3 @@
-import sys
 import arbor
 import pandas, seaborn
 from math import sqrt
