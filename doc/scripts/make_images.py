@@ -2,8 +2,6 @@ import copy
 import svgwrite
 import math
 import inputs
-import seaborn
-import pandas
 
 tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 
@@ -12,6 +10,8 @@ tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
 #
 
 def dataframe_line_plot(input_csv, output_svg):
+    import seaborn
+    import pandas
     print('generating:', output_svg)
     dataframe = pandas.read_csv(input_csv,index_col=0)
     axes = dict(zip(['x','y','hue','col','style'],dataframe.columns.values)) # 5D seems enough for now.
