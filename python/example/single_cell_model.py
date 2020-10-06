@@ -24,6 +24,7 @@ m.probe('voltage', '"center"', frequency=10000)
 
 # (6) Run simulation for 100 ms of simulated activity.
 m.run(tfinal=100)
+print("Simulation done.")
 
 # (7) Print spike times, if any.
 if len(m.spikes)>0:

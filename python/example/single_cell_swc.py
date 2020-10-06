@@ -63,6 +63,7 @@ m.probe('voltage', where='"axon_end"', frequency=50000)
 # Simulate the cell for 15 ms.
 tfinal=15
 m.run(tfinal)
+print("Simulation done.")
 
 # Print spike times.
 if len(m.spikes)>0:

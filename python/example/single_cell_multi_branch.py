@@ -91,6 +91,7 @@ m.probe('voltage', '"dtips"',  10000) # at the tips of the dendrites.
 # Run simulation for 100 ms of simulated activity.
 tfinal=100
 m.run(tfinal)
+print("Simulation done.")
 
 # Print spike times.
 if len(m.spikes)>0:
