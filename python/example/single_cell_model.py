@@ -15,10 +15,6 @@ cell.paint('"soma"', 'hh')
 cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
 cell.place('"center"', arbor.spike_detector(-10))
 
-# Discretization: the default discretization in Arbor is 1 compartment per branch.
-# Let's be a bit more precise and make that every 2 μm:
-cell.compartments_length(2)
-
 # (4) Make single cell model.
 m = arbor.single_cell_model(cell)
 

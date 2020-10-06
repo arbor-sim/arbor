@@ -52,10 +52,6 @@ create the ``cable_cell`` that represents it are as follows:
     cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
     cell.place('"center"', arbor.spike_detector(-10))
 
-    # Discretization: the default discretization in Arbor is 1 compartment per branch.
-    # Let's be a bit more precise and make that every 2 μm:
-    cell.compartments_length(2)
-
 
 Let's unpack that.
 
