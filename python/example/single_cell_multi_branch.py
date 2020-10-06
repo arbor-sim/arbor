@@ -101,8 +101,9 @@ else:
     print('no spikes')
 
 # Plot the recorded voltages over time.
+print("Plotting results...")
 df = pandas.DataFrame()
 for t in m.traces:
-    df=df.append( pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable}) )
+    df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable}) )
 
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable").savefig('single_cell_multi_branch_result.svg')

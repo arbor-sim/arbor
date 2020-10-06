@@ -48,9 +48,9 @@ create the ``cable_cell`` that represents it are as follows:
     # (3) Create cell and set properties
     cell = arbor.cable_cell(tree, labels)
     cell.set_properties(Vm=-40)
-    cell.paint('soma', 'hh')
-    cell.place('center', arbor.iclamp( 10, 2, 0.8))
-    cell.place('center', arbor.spike_detector(-10))
+    cell.paint('"soma"', 'hh')
+    cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
+    cell.place('"center"', arbor.spike_detector(-10))
 
     # Discretization: the default discretization in Arbor is 1 compartment per branch.
     # Let's be a bit more precise and make that every 2 μm:
@@ -112,7 +112,7 @@ and provides an interface for recording potentials and running the simulation.
     m = arbor.single_cell_model(cell)
 
     # (5) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-    m.probe('voltage', 'center', frequency=10000)
+    m.probe('voltage', '"center"', frequency=10000)
 
     # (6) Run simulation for 100 ms of simulated activity.
     m.run(tfinal=100)
@@ -122,7 +122,7 @@ Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor._arbor.singl
 In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor._arbor.single_cell_model.
 probe>` is used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
-probe ('center'), and the frequency at which we want to sample (10kHz).
+probe ('"center"'), and the frequency at which we want to sample (10kHz).
 
 Finally, step **(6)** starts the actual simulation for a duration of 100 ms.
 

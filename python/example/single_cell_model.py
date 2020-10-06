@@ -1,4 +1,5 @@
 import arbor
+import pandas, seaborn # You may have to pip install these.
 
 # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
 tree = arbor.segment_tree()
@@ -11,15 +12,15 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
 # (3) Create cell and set properties
 cell = arbor.cable_cell(tree, labels)
 cell.set_properties(Vm=-40)
-cell.paint('soma', 'hh')
-cell.place('center', arbor.iclamp( 10, 2, 0.8))
-cell.place('center', arbor.spike_detector(-10))
+cell.paint('"soma"', 'hh')
+cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
+cell.place('"center"', arbor.spike_detector(-10))
 
 # (4) Make single cell model.
 m = arbor.single_cell_model(cell)
 
 # (5) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-m.probe('voltage', 'center', frequency=10000)
+m.probe('voltage', '"center"', frequency=10000)
 
 # (6) Run simulation for 100 ms of simulated activity.
 m.run(tfinal=100)
@@ -33,7 +34,7 @@ else:
     print('no spikes')
 
 # (8) Plot the recorded voltages over time.
-import pandas, seaborn # You may have to pip install these.
+print("Plotting results ...")
 df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 
