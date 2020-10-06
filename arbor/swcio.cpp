@@ -1,5 +1,6 @@
 #include <iostream>
 #include <limits>
+#include <set>
 #include <string>
 #include <sstream>
 #include <unordered_map>
@@ -46,7 +47,7 @@ swc_no_soma::swc_no_soma(int record_id):
 {}
 
 swc_non_consecutive_soma::swc_non_consecutive_soma (int record_id):
-    swc_error("Soma samples (tag 1) are not all listed consecutively", record_id)
+    swc_error("Soma samples (tag 1) are not listed consecutively", record_id)
 {}
 
 swc_non_serial_soma::swc_non_serial_soma (int record_id):
@@ -57,6 +58,13 @@ swc_branchy_soma::swc_branchy_soma (int record_id):
     swc_error("Non-soma sample (tag >= 1) connected to a non-distal sample of the soma", record_id)
 {}
 
+swc_collocated_soma::swc_collocated_soma(int record_id) :
+    swc_error("The samples that make the soma (tag 1) are not allowed to be collocated", record_id)
+{}
+
+swc_single_sample_segment::swc_single_sample_segment(int record_id) :
+    swc_error("Segments connected to the soma (tag 1) must have 2 samples with the same tag", record_id)
+{}
 
 // Record I/O
 
@@ -245,7 +253,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
 
         // Find record index of the parent
         auto iter = record_index.find(r.parent_id);
-        if (iter==record_index.end()) throw bad_swc_data{r.id};
+        if (iter==record_index.end() || records[iter->second].id == r.id) throw bad_swc_data{r.id};
         auto parent_record = records[iter->second];
 
         if (r.tag != 1 && parent_record.tag == 1 && r.parent_id != soma_records.back().id) {
@@ -283,21 +291,32 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
         }
     } else {
         if (!has_children) {
+            // Don't split soma at the midpoint
             msize_t parent = mnpos;
+            bool collocated_samples = true;
             for (std::size_t i = 0; i < soma_records.size()-1; ++i) {
                 const auto& p0 = soma_records[i];
                 const auto& p1 = soma_records[i+1];
                 parent = tree.append(parent, {p0.x, p0.y, p0.z, p0.r}, {p1.x, p1.y, p1.z, p1.r}, 1);
+                collocated_samples &= ((p0.x == p1.x) && (p0.y == p1.y) && (p0.z == p1.z));
+            }
+            if (collocated_samples) {
+                throw swc_collocated_soma{records[0].id};
             }
             return tree;
         } else {
             // Calculate segment lengths
+            bool collocated_samples = true;
             std::vector<double> soma_segment_lengths;
             for (std::size_t i = 1; i < soma_records.size(); ++i) {
                 const auto& p0 = soma_records[i - 1];
                 const auto& p1 = soma_records[i];
                 soma_segment_lengths.push_back(
                         distance(mpoint{p0.x, p0.y, p0.z, p0.r}, mpoint{p1.x, p1.y, p1.z, p1.r}));
+                collocated_samples &= ((p0.x == p1.x) && (p0.y == p1.y) && (p0.z == p1.z));
+            }
+            if (collocated_samples) {
+                throw swc_collocated_soma{records[0].id};
             }
             double midlength = std::accumulate(soma_segment_lengths.begin(), soma_segment_lengths.end(), 0.) / 2;
 
@@ -350,6 +369,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
     }
 
     // Build branches off soma.
+    std::set<int> unused_samples;
     for (const auto& r: records) {
         // Skip the soma samples
         if (r.tag==1) continue;
@@ -362,19 +382,24 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
 
         // Find parent record of the record
         auto prec_iter = record_index.find(p);
-        if (prec_iter == record_index.end()) throw bad_swc_data{r.id};
+        if (prec_iter == record_index.end() || records[prec_iter->second].id == r.id) throw bad_swc_data{r.id};
 
         // If the sample has a soma sample as its parent don't create a segment.
         if (records[prec_iter->second].tag == 1) {
             // Map the sample id to the segment id of the soma (parent)
             tree_index[r.id] = pseg_iter->second;
+            unused_samples.insert(r.id);
             continue;
         }
 
         const auto& prox = records[prec_iter->second];
         tree_index[r.id] = tree.append(pseg_iter->second, {prox.x, prox.y, prox.z, prox.r}, {r.x, r.y, r.z, r.r}, r.tag);
+        unused_samples.erase(prox.id);
     }
 
+    if(!unused_samples.empty()) {
+        throw swc_single_sample_segment(*unused_samples.begin());
+    }
     return tree;
 }
 

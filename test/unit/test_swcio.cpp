@@ -264,7 +264,7 @@ TEST(swc_parser, neuron_compliant) {
 
         mpoint p0{0, 0, 0, 10};
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -284,8 +284,8 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p1{0, 0,   0, 10};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -303,9 +303,9 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p2{0, 0,  10, 10};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
-                {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -331,12 +331,12 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p5{0, 0,  15, 2};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
-                {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
-                {4, 1, p3.x, p3.y, p3.z, p3.radius,  3},
-                {5, 1, p4.x, p4.y, p4.z, p4.radius,  4},
-                {6, 1, p5.x, p5.y, p5.z, p5.radius,  5},
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 1, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 1, p4.x, p4.y, p4.z, p4.radius,  4},
+            {6, 1, p5.x, p5.y, p5.z, p5.radius,  5}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -375,9 +375,9 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p2{0, 200, 0, 10};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
-                {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -413,14 +413,14 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p7{0, 0,  55, 9};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
-                {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
-                {4, 1, p3.x, p3.y, p3.z, p3.radius,  3},
-                {5, 1, p4.x, p4.y, p4.z, p4.radius,  4},
-                {6, 1, p5.x, p5.y, p5.z, p5.radius,  5},
-                {7, 3, p6.x, p6.y, p6.z, p6.radius,  6},
-                {8, 3, p7.x, p7.y, p7.z, p7.radius,  7}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 1, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 1, p4.x, p4.y, p4.z, p4.radius,  4},
+            {6, 1, p5.x, p5.y, p5.z, p5.radius,  5},
+            {7, 3, p6.x, p6.y, p6.z, p6.radius,  6},
+            {8, 3, p7.x, p7.y, p7.z, p7.radius,  7}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -471,10 +471,10 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p3{0, 200,   0, 10};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
-                {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
-                {4, 3, p3.x, p3.y, p3.z, p3.radius,  3}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  3}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -506,11 +506,11 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p4{0, 0, -80, 10};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
-                {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
-                {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
-                {5, 2, p4.x, p4.y, p4.z, p4.radius,  3}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 2, p4.x, p4.y, p4.z, p4.radius,  3}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -548,12 +548,12 @@ TEST(swc_parser, neuron_compliant) {
         mpoint p5{0, 0, 30, 10};
 
         std::vector<swc_record> swc{
-                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
-                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
-                {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
-                {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
-                {5, 2, p4.x, p4.y, p4.z, p4.radius,  4},
-                {6, 2, p5.x, p5.y, p5.z, p5.radius,  5}
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 2, p4.x, p4.y, p4.z, p4.radius,  4},
+            {6, 2, p5.x, p5.y, p5.z, p5.radius,  5}
         };
         segment_tree tree = load_swc_neuron(swc);
 
@@ -585,6 +585,161 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(2,   tree.segments()[4].tag);
         EXPECT_EQ(p4,  tree.segments()[4].prox);
         EXPECT_EQ(p5,  tree.segments()[4].dist);
+    }
+}
+
+TEST(swc_parser, not_neuron_compliant) {
+    {
+        // Two-point collocated soma
+        mpoint p0{0, 0, 0, 5};
+        mpoint p1{0, 0, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+
+        EXPECT_THROW(load_swc_neuron(swc), swc_collocated_soma);
+    }
+    {
+        // 3-point soma joined in the middle (1-0-2)
+        mpoint p0{0, 0,   0, 10};
+        mpoint p1{0, 0, -10, 10};
+        mpoint p2{0, 0,  10, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  1}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_non_serial_soma);
+    }
+    {
+        // 4-point branching soma
+        mpoint p0{0,  0,  0, 10};
+        mpoint p1{0,  0, 10, 10};
+        mpoint p2{0, -5, 20, 10};
+        mpoint p3{0,  5, 20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 1, p3.x, p3.y, p3.z, p3.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_non_serial_soma);
+    }
+    {
+        // 1-point soma and 1-point dendrite
+        mpoint p0{0,   0, 0, 10};
+        mpoint p1{0, 200, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point soma and 1-point dendrite
+        mpoint p0{0,   0, -10, 10};
+        mpoint p1{0,   0,   0, 10};
+        mpoint p2{0, 200,   0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point soma and two 1-point dendrite
+        mpoint p0{0,  0, -20, 10};
+        mpoint p1{0,  0,   0, 10};
+        mpoint p2{0, -5,  80, 10};
+        mpoint p3{0,  5, -90, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point dendrite and 1-point soma at the end
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 3, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_no_soma);
+    }
+    {
+        // 3-point non-consecutive soma and a 2 point dendrite
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0,   0,  10, 10};
+        mpoint p3{0, 200,  20, 10};
+        mpoint p4{0,   0,  20,  1};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+                {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
+                {5, 1, p4.x, p4.y, p4.z, p4.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_non_consecutive_soma);
+    }
+    {
+        // 3-point soma and a 2 point dendrite connected in the middle of the soma
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0,   0,  20,  1};
+        mpoint p3{0,   0,  10, 10};
+        mpoint p4{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+                {4, 3, p3.x, p3.y, p3.z, p3.radius,  2},
+                {5, 3, p4.x, p4.y, p4.z, p4.radius,  4}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_branchy_soma);
+    }
+    {
+        // non-existent parent sample
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 3, p2.x, p2.y, p2.z, p2.radius,  4}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), bad_swc_data);
+    }
+    {
+        // parent sample is self
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 3, p2.x, p2.y, p2.z, p2.radius,  3}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), bad_swc_data);
     }
 }
 

@@ -63,6 +63,16 @@ struct swc_branchy_soma: swc_error {
     explicit swc_branchy_soma(int record_id);
 };
 
+// Sample connecting to the middle of a soma causing an unsupported branch.
+struct swc_collocated_soma: swc_error {
+    explicit swc_collocated_soma(int record_id);
+};
+
+struct swc_single_sample_segment: swc_error {
+    explicit swc_single_sample_segment(int record_id);
+};
+
+
 struct swc_record {
     int id = 0;          // sample number
     int tag = 0;         // structure identifier (tag)
