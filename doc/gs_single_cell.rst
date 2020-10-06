@@ -89,8 +89,6 @@ with the named regions and locations.
   an :class:`arbor.iclamp<arbor._arbor.iclamp>` with a duration of 2 ms and a current of
   0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector<arbor._arbor.spike_detector>`
   with a threshold of -10 mV to the location we've labelled 'center'.
-* Finally, we adjust the :ref:`discretisation <cable-discretisation>` of the simulation
-  by setting the compartment length to 2 μm. By default there is one compartment per branch.
 
 Single cell network
 ----------------------------------------------------
