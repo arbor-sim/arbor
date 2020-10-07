@@ -239,8 +239,17 @@ arb::segment_tree load_swc_allen(std::vector<arb::swc_record>& records, bool no_
         const auto& r = records[i];
         record_index[r.id] = i;
 
+        // Find record index of the parent
+        auto p = r.parent_id;
+        auto parent_iter = record_index.find(p);
+
+        if (parent_iter == record_index.end() || records[parent_iter->second].id == r.id)
+        {
+            throw arb::bad_swc_data{r.id};
+        }
+
         // Assert that all samples have the same tag as their parent, except those attached to the soma.
-        if (auto p = r.parent_id; p != soma_id && r.tag != records[record_index[p]].tag) {
+        if (p != soma_id && r.tag != records[parent_iter->second].tag) {
             throw swc_mismatched_tags{r.id};
         }
 

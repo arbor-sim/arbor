@@ -259,6 +259,178 @@ TEST(swc_parser, segment_tree) {
         EXPECT_EQ(p4, tree.segments()[3].dist);
     }
 }
+TEST(swc_parser, allen_compliant) {
+    using namespace arborio;
+    {
+        // One-point soma; interpretted as 1 segment
+        mpoint p0{0, 0, 0, 10};
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1}
+        };
+        segment_tree tree = load_swc_allen(swc);
+
+        mpoint prox{p0.x, p0.y-p0.radius, p0.z, p0.radius};
+        mpoint dist{p0.x, p0.y+p0.radius, p0.z, p0.radius};
+
+        ASSERT_EQ(1u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(dist,  tree.segments()[0].dist);
+    }
+    {
+        // One-point soma, two-point dendrite
+        mpoint p0{0,   0, 0, 10};
+        mpoint p1{0,   0, 0,  5};
+        mpoint p2{0, 200, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        segment_tree tree = load_swc_allen(swc);
+
+        mpoint prox{0, -10, 0, 10};
+        mpoint dist{0,  10, 0, 10};
+
+        ASSERT_EQ(2u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(dist,    tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[1]);
+        EXPECT_EQ(3,   tree.segments()[1].tag);
+        EXPECT_EQ(p1,  tree.segments()[1].prox);
+        EXPECT_EQ(p2,  tree.segments()[1].dist);
+    }
+    {
+        // 1-point soma, 2-point dendrite, 2-point axon
+        mpoint p0{0, 0,  0,  1};
+        mpoint p1{0, 0, 10, 10};
+        mpoint p2{0, 0, 20, 10};
+        mpoint p3{0, 0, 21, 10};
+        mpoint p4{0, 0, 30, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 2, p3.x, p3.y, p3.z, p3.radius,  1},
+            {5, 2, p4.x, p4.y, p4.z, p4.radius,  4}
+        };
+        segment_tree tree = load_swc_allen(swc);
+
+        mpoint prox{0, -1, 0, 1};
+        mpoint dist{0,  1, 0, 1};
+
+        ASSERT_EQ(3u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(dist,  tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[1]);
+        EXPECT_EQ(3,   tree.segments()[1].tag);
+        EXPECT_EQ(p1,  tree.segments()[1].prox);
+        EXPECT_EQ(p2,  tree.segments()[1].dist);
+
+        EXPECT_EQ(mnpos,  tree.parents()[2]);
+        EXPECT_EQ(2,   tree.segments()[2].tag);
+        EXPECT_EQ(p3,  tree.segments()[2].prox);
+        EXPECT_EQ(p4,  tree.segments()[2].dist);
+    }
+}
+
+TEST(swc_parser, not_allen_compliant) {
+    using namespace arborio;
+    {
+        mpoint p0{0, 0, -10, 10};
+        mpoint p1{0, 0,   0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_unsupported_tag);
+    }
+    {
+        // unsupported tag
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 5, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_unsupported_tag);
+    }
+    {
+        // 1-point soma; 2-point dendrite; 1-point axon connected to the proximal end of the dendrite
+        mpoint p0{0, 0, -15, 10};
+        mpoint p1{0, 0,   0, 10};
+        mpoint p2{0, 0,  80, 10};
+        mpoint p3{0, 0, -80, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 2, p3.x, p3.y, p3.z, p3.radius,  2}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_mismatched_tags);
+    }
+    {
+        // 1-point soma and 1-point dendrite
+        mpoint p0{0,   0, 0, 10};
+        mpoint p1{0, 200, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point dendrite and 1-point soma at the end
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 3, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_no_soma);
+    }
+    {
+        // non-existent parent sample
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  4}
+        };
+        EXPECT_THROW(load_swc_allen(swc), bad_swc_data);
+    }
+    {
+        // parent sample is self
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  2}
+        };
+        EXPECT_THROW(load_swc_allen(swc), bad_swc_data);
+    }
+}
 
 TEST(swc_parser, neuron_compliant) {
     using namespace arborio;
@@ -542,7 +714,7 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p4,  tree.segments()[3].dist);
     }
     {
-        //2-point soma, 2-point dendrite, 2-point axon: (Good)
+        // 2-point soma, 2-point dendrite, 2-point axon
         mpoint p0{0, 0,  0,  1};
         mpoint p1{0, 0,  9,  2};
         mpoint p2{0, 0, 10, 10};
