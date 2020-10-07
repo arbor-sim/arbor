@@ -8,6 +8,8 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/swcio.hpp>
 
+#include <arborio/swcio.hpp>
+
 #include "../gtest.h"
 
 
@@ -259,6 +261,7 @@ TEST(swc_parser, segment_tree) {
 }
 
 TEST(swc_parser, neuron_compliant) {
+    using namespace arborio;
     {
         // One-point soma; interpretted as 1 segment
 
@@ -316,7 +319,7 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p0,    tree.segments()[0].prox);
         EXPECT_EQ(p1,    tree.segments()[0].dist);
 
-        EXPECT_EQ(0,   tree.parents()[1]);
+        EXPECT_EQ(0u,  tree.parents()[1]);
         EXPECT_EQ(1,   tree.segments()[1].tag);
         EXPECT_EQ(p1,  tree.segments()[1].prox);
         EXPECT_EQ(p2,  tree.segments()[1].dist);
@@ -348,22 +351,22 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p0,    tree.segments()[0].prox);
         EXPECT_EQ(p1,    tree.segments()[0].dist);
 
-        EXPECT_EQ(0,  tree.parents()[1]);
+        EXPECT_EQ(0u, tree.parents()[1]);
         EXPECT_EQ(1,  tree.segments()[1].tag);
         EXPECT_EQ(p1, tree.segments()[1].prox);
         EXPECT_EQ(p2, tree.segments()[1].dist);
 
-        EXPECT_EQ(1,   tree.parents()[2]);
+        EXPECT_EQ(1u,  tree.parents()[2]);
         EXPECT_EQ(1,   tree.segments()[2].tag);
         EXPECT_EQ(p2,  tree.segments()[2].prox);
         EXPECT_EQ(p3,  tree.segments()[2].dist);
 
-        EXPECT_EQ(2,  tree.parents()[3]);
+        EXPECT_EQ(2u, tree.parents()[3]);
         EXPECT_EQ(1,  tree.segments()[3].tag);
         EXPECT_EQ(p3, tree.segments()[3].prox);
         EXPECT_EQ(p4, tree.segments()[3].dist);
 
-        EXPECT_EQ(3,  tree.parents()[4]);
+        EXPECT_EQ(3u, tree.parents()[4]);
         EXPECT_EQ(1,  tree.segments()[4].tag);
         EXPECT_EQ(p4, tree.segments()[4].prox);
         EXPECT_EQ(p5, tree.segments()[4].dist);
@@ -391,12 +394,12 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(prox,  tree.segments()[0].prox);
         EXPECT_EQ(p0,    tree.segments()[0].dist);
 
-        EXPECT_EQ(0,     tree.parents()[1]);
+        EXPECT_EQ(0u,    tree.parents()[1]);
         EXPECT_EQ(1,     tree.segments()[1].tag);
         EXPECT_EQ(p0,    tree.segments()[1].prox);
         EXPECT_EQ(dist,  tree.segments()[1].dist);
 
-        EXPECT_EQ(0,   tree.parents()[2]);
+        EXPECT_EQ(0u,  tree.parents()[2]);
         EXPECT_EQ(3,   tree.segments()[2].tag);
         EXPECT_EQ(p1,  tree.segments()[2].prox);
         EXPECT_EQ(p2,  tree.segments()[2].dist);
@@ -433,32 +436,32 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p0,    tree.segments()[0].prox);
         EXPECT_EQ(p1,    tree.segments()[0].dist);
 
-        EXPECT_EQ(0,  tree.parents()[1]);
+        EXPECT_EQ(0u, tree.parents()[1]);
         EXPECT_EQ(1,  tree.segments()[1].tag);
         EXPECT_EQ(p1, tree.segments()[1].prox);
         EXPECT_EQ(p2, tree.segments()[1].dist);
 
-        EXPECT_EQ(1,   tree.parents()[2]);
+        EXPECT_EQ(1u,  tree.parents()[2]);
         EXPECT_EQ(1,   tree.segments()[2].tag);
         EXPECT_EQ(p2,  tree.segments()[2].prox);
         EXPECT_EQ(mid, tree.segments()[2].dist);
 
-        EXPECT_EQ(2,   tree.parents()[3]);
+        EXPECT_EQ(2u,  tree.parents()[3]);
         EXPECT_EQ(1,   tree.segments()[3].tag);
         EXPECT_EQ(mid, tree.segments()[3].prox);
         EXPECT_EQ(p3,  tree.segments()[3].dist);
 
-        EXPECT_EQ(3,  tree.parents()[4]);
+        EXPECT_EQ(3u, tree.parents()[4]);
         EXPECT_EQ(1,  tree.segments()[4].tag);
         EXPECT_EQ(p3, tree.segments()[4].prox);
         EXPECT_EQ(p4, tree.segments()[4].dist);
 
-        EXPECT_EQ(4,  tree.parents()[5]);
+        EXPECT_EQ(4u, tree.parents()[5]);
         EXPECT_EQ(1,  tree.segments()[5].tag);
         EXPECT_EQ(p4, tree.segments()[5].prox);
         EXPECT_EQ(p5, tree.segments()[5].dist);
 
-        EXPECT_EQ(2,  tree.parents()[6]);
+        EXPECT_EQ(2u, tree.parents()[6]);
         EXPECT_EQ(3,  tree.segments()[6].tag);
         EXPECT_EQ(p6, tree.segments()[6].prox);
         EXPECT_EQ(p7, tree.segments()[6].dist);
@@ -487,12 +490,12 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p0,    tree.segments()[0].prox);
         EXPECT_EQ(mid,   tree.segments()[0].dist);
 
-        EXPECT_EQ(0,     tree.parents()[1]);
+        EXPECT_EQ(0u,    tree.parents()[1]);
         EXPECT_EQ(1,     tree.segments()[1].tag);
         EXPECT_EQ(mid,   tree.segments()[1].prox);
         EXPECT_EQ(p1,    tree.segments()[1].dist);
 
-        EXPECT_EQ(0,   tree.parents()[2]);
+        EXPECT_EQ(0u,  tree.parents()[2]);
         EXPECT_EQ(3,   tree.segments()[2].tag);
         EXPECT_EQ(p2,  tree.segments()[2].prox);
         EXPECT_EQ(p3,  tree.segments()[2].dist);
@@ -523,17 +526,17 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p0,    tree.segments()[0].prox);
         EXPECT_EQ(mid,   tree.segments()[0].dist);
 
-        EXPECT_EQ(0,     tree.parents()[1]);
+        EXPECT_EQ(0u,    tree.parents()[1]);
         EXPECT_EQ(1,     tree.segments()[1].tag);
         EXPECT_EQ(mid,   tree.segments()[1].prox);
         EXPECT_EQ(p1,    tree.segments()[1].dist);
 
-        EXPECT_EQ(0,   tree.parents()[2]);
+        EXPECT_EQ(0u,  tree.parents()[2]);
         EXPECT_EQ(3,   tree.segments()[2].tag);
         EXPECT_EQ(p2,  tree.segments()[2].prox);
         EXPECT_EQ(p3,  tree.segments()[2].dist);
 
-        EXPECT_EQ(0,   tree.parents()[3]);
+        EXPECT_EQ(0u,  tree.parents()[3]);
         EXPECT_EQ(2,   tree.segments()[3].tag);
         EXPECT_EQ(p2,  tree.segments()[3].prox);
         EXPECT_EQ(p4,  tree.segments()[3].dist);
@@ -566,22 +569,22 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p0,    tree.segments()[0].prox);
         EXPECT_EQ(mid,   tree.segments()[0].dist);
 
-        EXPECT_EQ(0,     tree.parents()[1]);
+        EXPECT_EQ(0u,    tree.parents()[1]);
         EXPECT_EQ(1,     tree.segments()[1].tag);
         EXPECT_EQ(mid,   tree.segments()[1].prox);
         EXPECT_EQ(p1,    tree.segments()[1].dist);
 
-        EXPECT_EQ(0,   tree.parents()[2]);
+        EXPECT_EQ(0u,  tree.parents()[2]);
         EXPECT_EQ(3,   tree.segments()[2].tag);
         EXPECT_EQ(p2,  tree.segments()[2].prox);
         EXPECT_EQ(p3,  tree.segments()[2].dist);
 
-        EXPECT_EQ(2,   tree.parents()[3]);
+        EXPECT_EQ(2u,  tree.parents()[3]);
         EXPECT_EQ(2,   tree.segments()[3].tag);
         EXPECT_EQ(p3,  tree.segments()[3].prox);
         EXPECT_EQ(p4,  tree.segments()[3].dist);
 
-        EXPECT_EQ(3,   tree.parents()[4]);
+        EXPECT_EQ(3u,  tree.parents()[4]);
         EXPECT_EQ(2,   tree.segments()[4].tag);
         EXPECT_EQ(p4,  tree.segments()[4].prox);
         EXPECT_EQ(p5,  tree.segments()[4].dist);
@@ -589,6 +592,7 @@ TEST(swc_parser, neuron_compliant) {
 }
 
 TEST(swc_parser, not_neuron_compliant) {
+    using namespace arborio;
     {
         // Two-point collocated soma
         mpoint p0{0, 0, 0, 5};
