@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # NOTE: deprecating spherical roots changes the behavior of this model.
 # There is no soma, because only the root sample has tag 1, which will be
 # ignored as it is always the proximal end of any cable segment.
