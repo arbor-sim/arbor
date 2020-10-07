@@ -25,22 +25,22 @@ BREAKPOINT {
 }
 
 DERIVATIVE states {
-    LOCAL qt, mInf, mAlpha, mBeta, mTau, hInf, hAlpha, hBeta, hTau
+    LOCAL qt, mInf, mAlpha, mBeta, mRho, hInf, hAlpha, hBeta, hRho
 
     qt = 2.3^((34 - 21)/10)
 
     mInf = m_inf(v)
     mAlpha = 0.182*6*exprelr(-(v + 38)/6)
     mBeta  = 0.124*6*exprelr( (v + 38)/6)
-    mTau   = 6.0/(mAlpha + mBeta)
+    mRho   = mAlpha + mBeta
 
     hInf = h_inf(v)
     hAlpha = 2.88e-6*4.63*exprelr( (v + 17.0)/4.63)
     hBeta  = 6.94e-6*2.63*exprelr(-(v + 64.4)/2.63)
-    hTau   = 1.0/(hAlpha + hBeta)
+    hRho   = hAlpha + hBeta
 
-    m' = qt*(mInf - m)/mTau
-    h' = qt*(hInf - h)/hTau
+    m' = qt*(mInf - m)*mRho/6.0     : equivalent to mTau = 6.0/mRho; m' = qt*(mInf - m)/mTau
+    h' = qt*(hInf - h)*hRho         : equivalent to hTau = 1.0/hRho; h' = qt*(hInf - h)/hTau
 }
 
 INITIAL {
