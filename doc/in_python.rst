@@ -3,7 +3,8 @@
 Python Installation
 ===================
 
-Arbor's Python API will be the most convenient interface for most users. Note that we only support Python 3.6 and later. Any instruction hereafter assumes you're using `python` and `pip` no older than that.
+Arbor's Python API will be the most convenient interface for most users. Note that we only support Python 3.6 and later.
+ Any instruction hereafter assumes you're using `python` and `pip` no older than that.
 
 Getting Arbor
 -------------
@@ -15,7 +16,8 @@ The easiest way to get Arbor is with
 
     pip3 install arbor --user
 
-Every point release is pushed to the Python Package Index. If you wish to install another version, it is possible to use Setuptools directly on a local copy of the source code, or instruct `pip` to install directly from our git repository:
+Every point release is pushed to the Python Package Index. If you wish to install another version, it is possible to use
+ Setuptools directly on a local copy of the source code, or instruct `pip` to install directly from our git repository:
 
 .. code-block:: bash
 
@@ -43,10 +45,11 @@ to see information about the version and enabled features:
     >>> print(arbor.__version__)
     >>> print(arbor.__config__)
 
-You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the :mod:`Python API Reference<arbor._arbor>`, or visit the :ref:`Quick Start page<gs_single_cell>`.
+You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the :ref:`py_reference`, or visit the :ref:`Quick Start page<gs_single_cell>`.
 
 .. Note::
-    To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
+    To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output
+    (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
 
 Advanced options
 ^^^^^^^^^^^^^^^^^^

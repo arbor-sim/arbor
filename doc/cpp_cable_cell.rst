@@ -142,7 +142,7 @@ by two stitches:
    stitched_morphology stitched(std::move(builder));
    cable_cell cell(stitched.morphology(), stitched.labels());
 
-   cell.paint("soma", "hh");
+   cell.paint("\"soma\"", "hh");
 
 
 .. _locsets-and-regions:

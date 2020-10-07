@@ -12,16 +12,16 @@ This guide will walk through a series of single cell models of increasing comple
 Links are provided to separate documentation that covers relevant topics in more detail.
 
 In an interactive Python interpreter, you can use ``help()`` on any class or function to
-obtain some documentation. E.g.: ``help(arbor.gap_junction_connection)`` will print
-:class:`this<arbor._arbor.gap_junction_connection>`.
+obtain some documentation. E.g.: ``help(arbor.gap_junction_connection)`` will print a
+description of :class:`arbor.gap_junction_connection`.
 
 .. _single_soma:
 
-Single compartment cell with HH dynamics
+Single segment cell with HH dynamics
 ----------------------------------------------------
 
 The most trivial representation of a cell in Arbor is to model the entire cell as a
-cylinder. The following example shows the steps required to construct a model of a
+single cylinder. The following example shows the steps required to construct a model of a
 cylindrical cell with radius 3 μm, Hodgkin–Huxley dynamics and a current clamp stimulus,
 then run the model for 100 ms.
 
@@ -30,7 +30,7 @@ define a cell with branching "cable" morphology is a ``cable_cell``, which holds
 description of the cell's morphology, named regions and locations on the morphology, and
 descriptions of ion channels, synapses, spike detectors and electrical properties.
 
-Our "single-compartment HH cell" has a simple morphology and dynamics, so the steps to
+Our "single-segment HH cell" has a simple morphology and dynamics, so the steps to
 create the ``cable_cell`` that represents it are as follows:
 
 .. code-block:: python
@@ -52,27 +52,25 @@ create the ``cable_cell`` that represents it are as follows:
     cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
     cell.place('"center"', arbor.spike_detector(-10))
 
-
 Let's unpack that.
 
 Step **(1)** above shows how the cell is represented using a :class:`arbor.segment_tree`
 to which a single segment is added. Arbor's cell morphologies are constructed from a
 :ref:`segment tree<morph-segment_tree>` which is a list of segments, which are tapered
 cones with a *tag*. :meth:`arbor.segment_tree.append` takes 4 arguments, starting with
-the parent segment. The first segment added has no parent however, which is made clear by
+the parent segment. The first segment added has no parent, which is made clear by
 using :class:`arbor.mnpos`. Then two :class:`arbor.mpoint` s are supplied, the proximal
-and distal endpoints of the segment. Finally, an integer value can be supplied to tag the
+and distal endpoints of the segment. Finally, an integer value is supplied to tag the
 segment for future reference.
 
-In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor.
-_arbor.label_dict>`. Cell builders need to refer to *regions* and *locations* on a cell
-morphology. Arbor uses a domains specific language (DSL) to describe regions and
-locations, which are given labels. We add two labels:
+In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor..label_dict>`.
+Cell builders need to refer to *regions* and *locations* on a cell morphology. Arbor uses a domains
+specific language (DSL) to describe regions and locations, which are given labels. We add two labels:
 
-* ``soma`` defines a *region* with ``(tag  2)``. Note that this corresponds to the
+* ``soma`` defines a *region* with ``(tag  1)``. Note that this corresponds to the
   ``tag`` parameter that was used to define the single segment in step (1).
 * ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
-  of branch ``0``, which corresponds to the center of the soma on the morphology defined in Step (1).
+  of branch ``0``, which corresponds to the center of the soma on the morphology defined in step (1).
 
 In step **(3)** a :class:`arbor.cable_cell` is constructed by combining the segment tree
 with the named regions and locations.
@@ -84,10 +82,10 @@ with the named regions and locations.
   channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us
   instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details
   out for us.
-* Other properties we do want to :meth:`arbor.cable_cell.place<arbor._arbor.cable_cell.place>`
-  in a precise :class:`arbor.location<arbor._arbor.location>`. We place two things:
-  an :class:`arbor.iclamp<arbor._arbor.iclamp>` with a duration of 2 ms and a current of
-  0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector<arbor._arbor.spike_detector>`
+* Other properties we do want to :meth:`arbor.cable_cell.place<arbor.cable_cell.place>`
+  in a precise :class:`arbor.location<arbor.location>`. We place two things:
+  an :class:`arbor.iclamp<arbor.iclamp>` with a duration of 2 ms and a current of
+  0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector<arbor.spike_detector>`
   with a threshold of -10 mV to the location we've labelled 'center'.
 
 Single cell network
@@ -97,7 +95,7 @@ Great, we have defined our cell! Now, let's move to the network. Arbor can simul
 networks with multiple individual cells, connected together in a network. Single cell
 models do not require the full *recipe* interface used to describing such network models,
 with many unique cells, network and gap junctions. Arbor provides a :class:`arbor.
-single_cell_model<arbor._arbor.single_cell_model>` helper that wraps a cell description,
+single_cell_model<arbor.single_cell_model>` helper that wraps a cell description,
 and provides an interface for recording potentials and running the simulation.
 
 .. code-block:: python
@@ -111,21 +109,21 @@ and provides an interface for recording potentials and running the simulation.
     # (6) Run simulation for 100 ms of simulated activity.
     m.run(tfinal=100)
 
-Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor._arbor.single_cell_model>` with our single-compartment cell.
+Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor.single_cell_model>`
+with our single-compartment cell.
 
-In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor._arbor.single_cell_model.
+In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor.single_cell_model.
 probe>` is used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
-probe ('center'), and the frequency at which we want to sample (10kHz).
+probe ('"center"'), and the frequency at which we want to sample (10kHz).
 
 Finally, step **(6)** starts the actual simulation for a duration of 100 ms.
 
 Results
 ----------------------------------------------------
 
-Our cell and network are defined; we have ran the simulation. However, we have not looked
-at any results! We have added two things that should have recorded something, a
-spike_detector and a voltage probe. Let's see what they have produced!
+Our cell and network are defined; we have run the simulation. However, we have not looked
+at any results! We had added a spike_detector and a voltage probe to our model. Let's see what they have produced!
 
 .. code-block:: python
 
@@ -142,13 +140,13 @@ spike_detector and a voltage probe. Let's see what they have produced!
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
     seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 
-In step **(7)** we access :meth:`arbor.single_cell_model.spikes<arbor._arbor.
-single_cell_model.spikes>` to access the spike time. A single spike at a little over 10
-ms should be printed, which matches the stimulus we have provided in step (3).
+In step **(7)** we access :meth:`arbor.single_cell_model.spikes<arbor.single_cell_model.spikes>`
+to access the spike time. A single spike at a little over 10 ms should be printed, which matches
+the stimulus we have provided in step (3).
 
 The other measurement we have is that of the potential, which we plot in step **(8)**.
-Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor._arbor.
-single_cell_model.traces>`. You should be seeing something like this:
+Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor.single_cell_model.traces>`.
+You should be seeing something like this:
 
 .. figure:: images/single_cell_model_result.svg
     :width: 400
