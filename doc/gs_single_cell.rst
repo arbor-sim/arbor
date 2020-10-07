@@ -52,11 +52,6 @@ create the ``cable_cell`` that represents it are as follows:
     cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
     cell.place('"center"', arbor.spike_detector(-10))
 
-    # Discretization: the default discretization in Arbor is 1 compartment per branch.
-    # Let's be a bit more precise and make that every 2 μm:
-    cell.compartments_length(2)
-
-
 Let's unpack that.
 
 Step **(1)** above shows how the cell is represented using a :class:`arbor.segment_tree`
@@ -93,8 +88,6 @@ with the named regions and locations.
   an :class:`arbor.iclamp<arbor._arbor.iclamp>` with a duration of 2 ms and a current of
   0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector<arbor._arbor.spike_detector>`
   with a threshold of -10 mV to the location we've labelled 'center'.
-* Finally, we adjust the :ref:`discretisation <cable-discretisation>` of the simulation
-  by setting the compartment length to 2 μm. By default there is one compartment per branch.
 
 Single cell network
 ----------------------------------------------------
@@ -156,7 +149,7 @@ The other measurement we have is that of the potential, which we plot in step **
 Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor._arbor.
 single_cell_model.traces>`. You should be seeing something like this:
 
-.. figure:: gen-images/single_cell_model_result.svg
+.. figure:: images/single_cell_model_result.svg
     :width: 400
     :align: center
 
