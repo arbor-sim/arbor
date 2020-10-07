@@ -82,21 +82,22 @@ with the named regions and locations.
   channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us
   instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details
   out for us.
-* Other properties we do want to :meth:`arbor.cable_cell.place<arbor.cable_cell.place>`
-  in a precise :class:`arbor.location<arbor.location>`. We place two things:
-  an :class:`arbor.iclamp<arbor.iclamp>` with a duration of 2 ms and a current of
-  0.8 nA, starting at 10 ms. Then, add an :class:`arbor.spike_detector<arbor.spike_detector>`
-  with a threshold of -10 mV to the location we've labelled 'center'.
+* Stimuli and spike detectors are added to the cell using the
+  :meth:`arbor.cable_cell.place<arbor.cable_cell.place>` method. This method places objects
+  on precise :class:`arbor.location`s. We place an :class:`arbor.iclamp<arbor.iclamp>` with
+  a duration of 2 ms and a current of 0.8 nA, starting at 10 ms; and an
+  :class:`arbor.spike_detector<arbor.spike_detector>` with a threshold of -10 mV to
+  the location we've labelled 'center'.
 
-Single cell network
+Single cell simulation
 ----------------------------------------------------
 
-Great, we have defined our cell! Now, let's move to the network. Arbor can simulate
-networks with multiple individual cells, connected together in a network. Single cell
-models do not require the full *recipe* interface used to describing such network models,
-with many unique cells, network and gap junctions. Arbor provides a :class:`arbor.
-single_cell_model<arbor.single_cell_model>` helper that wraps a cell description,
-and provides an interface for recording potentials and running the simulation.
+Great, we have defined our cell! Now, let's move to the simulation. Arbor is able to simulate
+networks with multiple individual cells; this requires a *recipe* to describe the cells,
+connections, gap junctions, etc. However, for single cell models, arbor does not require the recipe
+to be provided by the user. Arbor provides a :class:`arbor.single_cell_model<arbor.single_cell_model>`
+helper that wraps a cell description, and provides an interface for recording potentials and
+running the simulation.
 
 .. code-block:: python
 
@@ -122,8 +123,8 @@ Finally, step **(6)** starts the actual simulation for a duration of 100 ms.
 Results
 ----------------------------------------------------
 
-Our cell and network are defined; we have run the simulation. However, we have not looked
-at any results! We had added a spike_detector and a voltage probe to our model. Let's see what they have produced!
+Our cell and model have been defined and we have run our simulation. However, we have not seen any
+results! Let's take a look at what the spike detector and a voltage probes from our model have produced.
 
 .. code-block:: python
 
