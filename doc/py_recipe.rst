@@ -84,17 +84,24 @@ Recipe
 
         By default returns 0.
 
+    .. function:: num_probes(gid)
+
+        The number of probes attached to the cell with :attr:`arbor.cell_member.gid`.
+
+        By default returns 0.
+
     .. function:: num_gap_junction_sites(gid)
 
         Returns the number of gap junction sites on :attr:`arbor.cell_member.gid`.
 
         By default returns 0.
 
-    .. function:: get_probes(gid)
+    .. function:: get_probe(id)
 
-        Returns a vector containing (in order) all the probes on a given cell `gid`.
+        Returns the probe(s) to allow monitoring.
 
-        By default returns an empty list.
+        By default throws a runtime error. If :func:`num_probes`
+        returns a non-zero value, this must also be overridden.
 
 Cells
 ------

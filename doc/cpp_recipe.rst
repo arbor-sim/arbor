@@ -126,7 +126,7 @@ Recipe
 
         Returns a vector containing (in order) all the probes on a given cell `gid`.
 
-        By default returns an empty vector.
+        By default throws :cpp:type:`std::logic_error`.
 
     .. cpp:function:: virtual std::any get_global_properties(cell_kind) const
 

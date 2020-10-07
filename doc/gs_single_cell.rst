@@ -52,6 +52,7 @@ create the ``cable_cell`` that represents it are as follows:
     cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
     cell.place('"center"', arbor.spike_detector(-10))
 
+
 Let's unpack that.
 
 Step **(1)** above shows how the cell is represented using a :class:`arbor.segment_tree`
@@ -115,7 +116,7 @@ Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor._arbor.singl
 In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor._arbor.single_cell_model.
 probe>` is used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
-probe ('"center"'), and the frequency at which we want to sample (10kHz).
+probe ('center'), and the frequency at which we want to sample (10kHz).
 
 Finally, step **(6)** starts the actual simulation for a duration of 100 ms.
 
