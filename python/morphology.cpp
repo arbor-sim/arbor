@@ -10,6 +10,8 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/swcio.hpp>
 
+#include <arborio/swcio.hpp>
+
 #include "error.hpp"
 #include "strprintf.hpp"
 
@@ -22,7 +24,7 @@ arb::segment_tree load_swc_neuron(const std::string& fname) {
     }
     try {
         auto records = arb::parse_swc(fid, arb::swc_mode::relaxed).records;
-        return arb::load_swc_neuron(records);
+        return arborio::load_swc_neuron(records);
     }
     catch (arb::swc_error& e) {
         // Try to produce helpful error messages for SWC parsing errors.
@@ -39,7 +41,7 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
         try {
             using namespace arb;
             auto records = arb::parse_swc(fid, arb::swc_mode::relaxed).records;
-            return arb::load_swc_allen(records, no_gaps);
+            return arborio::load_swc_allen(records, no_gaps);
         }
         catch (arb::swc_error& e) {
             // Try to produce helpful error messages for SWC parsing errors.
