@@ -53,7 +53,7 @@ INITIAL {
 }
 
 DERIVATIVE states {
-    LOCAL alpha, beta
+    LOCAL alpha, beta, sum
 
     : sodium activation system
     alpha = m_alpha(v)
