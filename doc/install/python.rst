@@ -119,7 +119,7 @@ below demonstrate this for both pip and ``setup.py``.
 .. Note::
     Detailed instructions on how to install using CMake are in the
     :ref:`Python configuration <install-python>` section of the
-    :ref:`installation guide <gs_install>`.
+    :ref:`installation guide <in_build_install>`.
     CMake is recommended for developers, integration with package managers such as
     Spack and EasyBuild, and users who require fine grained control over compilation
     and installation.
