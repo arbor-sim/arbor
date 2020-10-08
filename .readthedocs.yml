@@ -14,7 +14,10 @@ formats: []
 
 python:
   version: 3.7
+  system_packages: true
   install:
     - requirements: doc/requirements.txt
+    - method: pip
+      path: cmake
     - method: setuptools
       path: .
