@@ -63,7 +63,7 @@ using :class:`arbor.mnpos`. Then two :class:`arbor.mpoint` s are supplied, the p
 and distal endpoints of the segment. Finally, an integer value can be supplied to tag the
 segment for future reference.
 
-In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor._arbor.label_dict>`.
+In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor.label_dict>`.
 Cell builders need to refer to *regions* and *locations* on a cell
 morphology. Arbor uses a domains specific language (DSL) to describe regions and
 locations, which are given labels. We add two labels:
