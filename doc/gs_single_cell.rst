@@ -89,7 +89,7 @@ with the named regions and locations.
   :class:`arbor.spike_detector<arbor.spike_detector>` with a threshold of -10 mV to
   the location we've labelled 'center'.
 
-Single cell simulation
+Single cell model
 ----------------------------------------------------
 
 Great, we have defined our cell! Now, let's move to the simulation. Arbor is able to simulate

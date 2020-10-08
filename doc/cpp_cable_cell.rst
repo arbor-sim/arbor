@@ -287,7 +287,7 @@ Global properties
    .. cpp:member:: bool coalesce_synapses
 
    when synapse dynamics are sufficiently simple, the states of synapses within
-   the same discretized element can be combined for better performance. this
+   the same discretised element can be combined for better performance. this
    is true by default.
 
    .. cpp:member:: std::unordered_map<std::string, int> ion_species

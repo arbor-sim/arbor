@@ -297,10 +297,6 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
                     return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
                 return []
 
-            # Define one probe (for measuring voltage at the soma) on the cell.
-            def num_probes(self, gid):
-                return 1
-
-            def get_probe(self, id):
+            def get_probes(self, id):
                 loc = arbor.location(0, 0) # at the soma
-                return arbor.cable_probe('voltage', id, loc)
+                return [arbor.cable_probe('voltage', loc)]
