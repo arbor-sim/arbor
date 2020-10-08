@@ -70,8 +70,8 @@ Cell kinds
    * **Morphology**: The morphology of a cable cell is composed of a branching tree of one-dimensional line segments.
      Strictly speaking, Arbor represents a morphology is an *acyclic directed graph*, with the soma at the root.
    * **Detectors**: Spike detectors generate spikes when the voltage at location on the cell
-     passes a threshold. Dectectors act as **sources** of :ref:`connections <modelconnections>`.
-   * **Synapses**: Synapases act as **targets** of :ref:`connections <modelconnections>`.
+     passes a threshold. Detectors act as **sources** of :ref:`connections <modelconnections>`.
+   * **Synapses**: Synapses act as **targets** of :ref:`connections <modelconnections>`.
      A synapse is described by a synapse type (with associated parameters) and location on a cell.
    * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <modelgapjunctions>`.
      They are declared by specifying a location on a branch of the cell.

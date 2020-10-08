@@ -160,7 +160,7 @@ Cell morphology
 
     A segment can not be added before its parent, hence the first segment
     is always at the root. In this manner, a segment tree is
-    always guarenteed to be in a correct state, with consistent parent-child
+    always guaranteed to be in a correct state, with consistent parent-child
     indexing, and with *n* segments numbered from *0* to *n-1*.
 
     To illustrate how a segment tree is constructed by appending segments,
@@ -327,7 +327,7 @@ Cell morphology
         is stored for fast look up during later stages of model building, and
         querying by users.
 
-        For this reason, morpholgies are read only. To change a morphology, a new
+        For this reason, morphologies are read only. To change a morphology, a new
         morphology should be created using a new segment tree.
 
     There is one *constructor* for a morphology:
