@@ -24,11 +24,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.coverage'
 ]
-source_suffix = {
-    '.rst': 'restructuredtext',
-    '.txt': 'restructuredtext',
-    '.md': 'markdown',
-}
+source_suffix = '.rst'
 master_doc = 'index'
 
 html_logo = 'images/arbor-lines-proto-colour.svg'
