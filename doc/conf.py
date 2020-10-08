@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys, os
+this_path = os.path.dirname(__file__)
+sys.path.append(os.path.abspath(os.path.join(this_path, 'scripts')))
 
 # Path to Python Binding (_arbor)
 try:
@@ -33,7 +35,8 @@ copyright = '2017, ETHZ & FZ Julich'
 author = 'ETHZ & FZ Julich'
 todo_include_todos = True
 
-html_theme = "sphinx_rtd_theme"
+html_theme = 'pydata_sphinx_theme'
+# html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     'logo_only': True,
     'style_nav_header_background': '#dfdcdf'}
@@ -46,9 +49,6 @@ pygments_style = 'perldoc'
 print("--- generating images ---")
 
 # Location of scripts used to generate images
-this_path=os.path.split(os.path.abspath(__file__))[0]
-script_path=this_path+'/scripts'
-sys.path.append(script_path)
 import make_images
 
 # Output path for generated images
