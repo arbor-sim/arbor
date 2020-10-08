@@ -28,7 +28,6 @@ author = 'ETHZ & FZ Julich'
 todo_include_todos = True
 
 html_theme = 'pydata_sphinx_theme'
-# html_theme = "sphinx_rtd_theme"
 html_context = {
     "github_user": "arbor-sim",
     "github_repo": "arbor",
@@ -38,6 +37,11 @@ html_context = {
 html_theme_options = {
     "github_url": "https://github.com/arbor-sim/arbor",
     "use_edit_page_button": True}
+
+# html_theme = "sphinx_rtd_theme"
+# html_theme_options = {
+#     'logo_only': True,
+#     'style_nav_header_background': '#dfdcdf'}
 
 # This style makes the source code pop out a bit more
 # from the background text, without being overpowering.
