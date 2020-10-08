@@ -4,13 +4,6 @@ import sys, os
 this_path = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(this_path, 'scripts')))
 
-# Path to Python Binding (_arbor)
-try:
-    sys.path.append(os.path.join(os.environ['OLDPWD'],"python"))
-    import arbor
-except:
-    autodoc_mock_imports = ['arbor._arbor']
-
 html_static_path = ['static']
 
 def setup(app):
@@ -21,8 +14,7 @@ def setup(app):
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.coverage'
+    'sphinx.ext.mathjax'
 ]
 source_suffix = '.rst'
 master_doc = 'index'
