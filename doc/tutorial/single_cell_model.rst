@@ -156,7 +156,7 @@ The other measurement we have is that of the potential, which we plot in step **
 Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor._arbor.
 single_cell_model.traces>`. You should be seeing something like this:
 
-.. figure:: images/single_cell_model_result.svg
+.. figure:: single_cell_model_result.svg
     :width: 400
     :align: center
 

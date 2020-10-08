@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(this_path, 'scripts')))
 try:
     sys.path.append(os.path.join(os.environ['OLDPWD'],"python"))
     import arbor
-except ImportError:
+except:
     autodoc_mock_imports = ['arbor._arbor']
 
 html_static_path = ['static']
@@ -44,9 +44,7 @@ html_context = {
     "doc_path": "doc",
 }
 html_theme_options = {
-    'logo_only': True,
     "github_url": "https://github.com/arbor-sim/arbor",
-    'style_nav_header_background': '#dfdcdf',
     "use_edit_page_button": True}
 
 # This style makes the source code pop out a bit more

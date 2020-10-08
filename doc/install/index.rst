@@ -1,7 +1,7 @@
 .. _in_install:
 
-Install Arbor
-#############################
+Get Arbor
+=========
 
 Currently we offer three ways to get Arbor.
 
@@ -10,3 +10,11 @@ Currently we offer three ways to get Arbor.
 3. **Spack**. See :ref:`Spack installation guide <gs_spack>`.
 
 If you wish to use the C++ API, you'll need to build Arbor from source or use Spack. Note that you can build the Python bindings with both of those as well.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Install Arbor:
+
+   python
+   build_install
+   spack

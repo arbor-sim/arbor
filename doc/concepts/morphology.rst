@@ -85,7 +85,7 @@ tag 2 coloured grey for axon; tag 3 coloured blue for basal dendrites.
 
 .. _morph-label-seg-fig:
 
-.. figure:: gen-images/label_seg.svg
+.. figure:: ../gen-images/label_seg.svg
   :width: 600
   :align: center
 
@@ -108,7 +108,7 @@ axon and dendritic tree and the soma segment to which they attach.
 
 .. _morph-detached-seg-fig:
 
-.. figure:: gen-images/detached_seg.svg
+.. figure:: ../gen-images/detached_seg.svg
   :width: 600
   :align: center
 
@@ -136,7 +136,7 @@ uses 4 segments to model the soma.
 
 .. _morph-stacked-seg-fig:
 
-.. figure:: gen-images/stacked_seg.svg
+.. figure:: ../gen-images/stacked_seg.svg
   :width: 600
   :align: center
 
@@ -180,7 +180,7 @@ which is illustrated along with its branches below.
 
 .. _morph-label-morph-fig:
 
-.. figure:: gen-images/label_morph.svg
+.. figure:: ../gen-images/label_morph.svg
   :width: 800
   :align: center
 
@@ -218,7 +218,7 @@ Gaps between segments do not influence branch creation, hence branches
 can contain gaps between segments. Take the example of a morphology with
 a gap between the soma and the axon and dendritic trees:
 
-.. figure:: gen-images/detached_morph.svg
+.. figure:: ../gen-images/detached_morph.svg
   :width: 800
   :align: center
 
@@ -240,7 +240,7 @@ contain segments with different tags, which in our examples gives branches
 that contain both soma and dendrite segments. For example, when building the
 soma from multiple segments:
 
-.. figure:: gen-images/stacked_morph.svg
+.. figure:: ../gen-images/stacked_morph.svg
   :width: 800
   :align: center
 
@@ -298,7 +298,7 @@ with a radius of 2 μm, centred at the origin.
     tree.append(mnpos, mpoint(-2, 0, 0, 2), mpoint(2, 0, 0, 2), tag=1)
     morph = arbor.morphology(tree)
 
-.. figure:: gen-images/sphere_morph.svg
+.. figure:: ../gen-images/sphere_morph.svg
   :width: 400
   :align: center
 
@@ -319,7 +319,7 @@ This can be described using a single segment.
     tree.append(mnpos, mpoint(0, 0, 0, 1), mpoint(10, 0, 0, 0.5), tag=3)
     morph = arbor.morphology(tree)
 
-.. figure:: gen-images/branch_morph1.svg
+.. figure:: ../gen-images/branch_morph1.svg
   :width: 600
   :align: center
 
@@ -340,7 +340,7 @@ distinct cable segments:
     tree.append(2,     mpoint( 8.0,  0.0,  0.0, 0.6), mpoint(10.0,  0.0,  0.0, 0.5), tag=3)
     morph = arbor.morphology(tree)
 
-.. figure:: gen-images/branch_morph2.svg
+.. figure:: ../gen-images/branch_morph2.svg
   :width: 600
   :align: center
 
@@ -361,7 +361,7 @@ joining the segments together, such that the morphology with the gap is the same
     tree.append(2,     mpoint(10.0,  0.0,  0.0, 0.6), mpoint(12.0, 0.0,  0.0, 0.5), tag=3)
     morph = arbor.morphology(tree)
 
-.. figure:: gen-images/branch_morph3.svg
+.. figure:: ../gen-images/branch_morph3.svg
   :width: 600
   :align: center
 
@@ -381,7 +381,7 @@ The next example adds a discontinuity to the previous example between segments
     tree.append(2,     mpoint( 8.0,  0.0,  0.0, 0.3), mpoint(10.0,  0.0,  0.0, 0.5), tag=3)
     morph = arbor.morphology(tree)
 
-.. figure:: gen-images/branch_morph4.svg
+.. figure:: ../gen-images/branch_morph4.svg
   :width: 600
   :align: center
 
@@ -411,7 +411,7 @@ radius as the distal end of the parent.
     tree.append(0,     mpoint(15.0,-3.0, 0.0, 0.2), tag= 3)
     morph = arbor.morphology(tree)
 
-.. figure:: gen-images/yshaped_morph.svg
+.. figure:: ../gen-images/yshaped_morph.svg
   :width: 800
   :align: center
 
@@ -433,7 +433,7 @@ diameter equal to 6 μm, which has the same surface area as the sphere.
     morph = arbor.morphology(tree)
 
 
-.. figure:: gen-images/ysoma_morph1.svg
+.. figure:: ../gen-images/ysoma_morph1.svg
   :width: 900
   :align: center
 
@@ -461,7 +461,7 @@ so it has :data:`mnpos` as its parent.
 There are 7 branches generated from 10 segments, and soma segment is its own branch,
 because it has two children: the dendrites attached to its distal end.
 
-.. figure:: gen-images/ysoma_morph2.svg
+.. figure:: ../gen-images/ysoma_morph2.svg
   :width: 900
   :align: center
 
@@ -478,7 +478,7 @@ because it has two children: the dendrites attached to its distal end.
     More generally, segments at the root of the tree are connected electrically at their
     proximal ends.
 
-    .. figure:: gen-images/ysoma_morph3.svg
+    .. figure:: ../gen-images/ysoma_morph3.svg
       :width: 900
       :align: center
 

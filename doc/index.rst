@@ -24,76 +24,13 @@ Citing Arbor
 Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
 
 .. toctree::
-   :caption: Get Arbor:
+   :caption: Arbor documentation:
+   :maxdepth: 1
 
-   in_install
-   in_python
-   in_build_install
-   in_spack
-
-.. toctree::
-   :caption: Getting started:
-
-   gs_single_cell
-   gs_other_examples
-
-.. toctree::
-   :caption: How does Arbor work?
-
-   co_overview
-   co_recipe
-   co_cell
-   co_cable_cell
-   co_morphology
-   co_labels
-   co_mechanisms
-   co_interconnectivity
-   co_hardware
-   co_domdec
-   co_simulation
-
-.. toctree::
-   :caption: Python API
-
-   py_overview
-   py_recipe
-   py_cell
-   py_cable_cell
-   py_morphology
-   py_labels
-   py_mechanisms
-   py_interconnectivity
-   py_hardware
-   py_domdec
-   py_simulation
-   py_profiler
-   py_reference
-
-.. toctree::
-   :caption: C++ API
-
-   cpp_overview
-   cpp_recipe
-   cpp_cell
-   cpp_cable_cell
-   cpp_interconnectivity
-   cpp_hardware
-   cpp_domdec
-   cpp_simulation
-   cpp_profiler
-   cpp_neuroml
-
-.. toctree::
-   :caption: C++ API for HPC
-
-   cpp_distributed_context
-   cpp_dry_run
-
-.. toctree::
-   :caption: Arbor Internals
-
-   ai_library
-   ai_nmodl
-   ai_simd_api
-   ai_sampling_api
-
+   install/index
+   tutorial/index
+   concepts/index
+   py/index
+   cpp/index
+   hpc/index
+   internals/index
