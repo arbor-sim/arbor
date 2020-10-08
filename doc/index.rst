@@ -29,7 +29,6 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    in_install
    in_python
    in_build_install
-   in_spack
 
 .. toctree::
    :caption: Getting started:
