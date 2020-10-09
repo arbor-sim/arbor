@@ -1,3 +1,5 @@
+.. _cppprofiler:
+
 Profiler
 ========
 
@@ -16,7 +18,7 @@ For example to compile a debug build with profiling turned on:
 
     cmake .. -DARB_WITH_PROFILING=ON
 
-Instrumenting Code
+Instrumenting code
 ------------------
 
 Developers manually instrument the regions to profile.
@@ -25,7 +27,7 @@ the appropriate granularity for profiling different regions.
 
 Once a region of code is marked for the profiler, each thread in the application will track the total time spent in the region, and how many times the region is executed on that thread.
 
-Marking Regions
+Marking regions
 ~~~~~~~~~~~~~~~
 
 To instrument a region, use ``PE`` (profiler enter) and ``PL`` (profiler leave) macros to mark the beginning and end of a region.
@@ -68,7 +70,7 @@ and the difference accumulated.
 If a region includes time executing other tasks, for example when calling
 ``arb::threading::parallel_for``, the time spent executing the other tasks will be included, which will give meaningless timings.
 
-Organising Regions
+Organising regions
 ~~~~~~~~~~~~~~~~~~
 
 The profiler allows the user to build a hierarchy of regions by grouping related regions together.
@@ -152,7 +154,7 @@ hierarchical report that shows accumulated time spent in each region and its chi
 For _p_ more information on interpreting the profiler's output see
 `Running the Profiler`_ and `Profiler Output`_.
 
-Running the Profiler
+Running the profiler
 --------------------
 
 The profiler does not need to be started or stopped by the user.
@@ -194,7 +196,7 @@ and the profiler regions can be reset.
 After a call to ``util::profiler_clear``, all counters and timers are set to zero.
 This could be used, for example, to generate separate profiler reports for model building and model execution phases.
 
-Profiler Output
+Profiler output
 ~~~~~~~~~~~~~~~
 
 The profiler keeps accumulated call count and time values for each region in each thread.

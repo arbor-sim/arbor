@@ -1,19 +1,22 @@
 .. _cablecell:
 
-Cable Cells
+Cable cells
 ===========
 
 An Arbor *cable cell* is a full description of a cell with morphology and cell
 dynamics, where cell dynamics include ion species and their properties, ion
-channels, synapses, gap junction sites, stimulii and spike detectors.
+channels, synapses, gap junction sites, stimuli and spike detectors.
 Arbor cable cells are constructed from a morphology and a label dictionary,
 and provide a rich interface for specifying the cell's dynamics.
 
 .. note::
-    Before reading this page, it is recommended that you first read about
-    :ref:`morphology descriptions <morph-morphology>`, and also
-    :ref:`label dictionary <labels-dictionary>` that are used to describe
-    :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell.
+    The cable cell does not have *one* dedicated page, it has a few more! This page describes how to build a full description of a cable cell, based on three components that are broken out into their own pages:
+
+    * :ref:`morphology descriptions <morph-morphology>`;
+    * :ref:`label dictionary <labels-dictionary>` that are used to describe :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell;
+    * :ref:`mechanisms <mechanisms>`.
+
+    It can be helpful to consult those pages for some of the sections of this page.
 
 .. _cablecell-decoration:
 
@@ -42,19 +45,19 @@ of dynamics in Arbor:
   * :ref:`Synapses <cable-synapses>`.
   * :ref:`Gap junction sites <cable-gj-sites>`.
   * :ref:`Threshold detectors <cable-threshold-detectors>` (spike detectors).
-  * :ref:`Stimulii <cable-stimulii>`.
+  * :ref:`Stimuli <cable-stimuli>`.
   * :ref:`Probes <cable-probes>`.
 
 .. _cablecell-paint:
 
-Painted Dynamics
+Painted dynamics
 ''''''''''''''''
 
 Painted dynamics are applied to a subset of the surface and/or volume of cells.
 They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
-* *per-cell*: overide the global defaults for a specific cell.
+* *per-cell*: override the global defaults for a specific cell.
 * *per-region*: specialize on specific cell regions.
 
 This hierarchical approach for resolving parameters and properties allows
@@ -75,7 +78,7 @@ The types of dynamics, and where they can be defined, are
                   ,       **region**, **cell**, **global**
    cable properties,       ✓, ✓, ✓
    ion initial conditions, ✓, ✓, ✓
-   density mechnism,       ✓, --, --
+   density mechanism,       ✓, --, --
    ion rev pot mechanism,  --, ✓, ✓
    ion valence,            --, --, ✓
 
@@ -123,6 +126,18 @@ for setting cell-wide defaults for properties, and the
     cell.paint('"soma"', Vm=-50, cm=0.01, rL=35)
     cell.paint('"axon"', Vm=-60, rL=40)
 
+.. _cable-discretisation:
+
+Discretisation
+~~~~~~~~~~~~~~~~
+
+For the purpose of simulation, cable cells are decomposed into discrete
+subcomponents called *control volumes* (CVs), following the finite volume method
+terminology. Each control volume comprises a connected subset of the
+morphology. Each fork point in the morphology will be the responsibility of
+a single CV, and as a special case a zero-volume CV can be used to represent
+a single fork point in isolation.
+
 .. _cable-density-mechs:
 
 Density mechanisms
@@ -134,7 +149,7 @@ which describe biophysical processes. These are processes
 that are distributed in space, but whose behaviour is defined purely
 by the state of the cell and the process at any given point.
 
-The most common use for density mecahnisms is to describe ion channel dynamics,
+The most common use for density mechanisms is to describe ion channel dynamics,
 for example the ``hh`` and ``pas`` mechanisms provided by NEURON and Arbor,
 which model classic Hodgkin-Huxley and passive leaky currents respectively.
 
@@ -159,10 +174,10 @@ Take for example a mechanism passive leaky dynamics:
 
 .. code-block:: Python
 
-    # Create pas mechanism with default parameter values (set in NOMDL file).
+    # Create pas mechanism with default parameter values (set in NMODL file).
     m1 = arbor.mechanism('passive')
 
-    # Create default mechainsm with custom conductance (range)
+    # Create default mechanism with custom conductance (range)
     m2 = arbor.mechanism('passive', {'g': 0.1})
 
     # Create a new pas mechanism with that changes reversal potential (global)
@@ -183,7 +198,7 @@ Ion species
 Arbor allows arbitrary ion species to be defined, to extend the default
 calcium, potassium and sodium ion species.
 A ion species is defined globally by its name and valence, which
-can't be overriden at cell or region level.
+can't be overridden at cell or region level.
 
 .. csv-table:: Default ion species in Arbor
    :widths: 15, 10, 10
@@ -202,7 +217,7 @@ Each ion species has the following properties:
 
 Properties 1, 2 and 3 must be defined, and are used as the initial values for
 each quantity at the start of the simulation. They are specified globally,
-then specialised at cell and region level.
+then specialized at cell and region level.
 
 The reversal potential of an ion species is calculated by an
 optional *reversal potential mechanism*.
@@ -251,7 +266,7 @@ The NMODL code for the
 can be used as a guide for how to calculate reversal potentials.
 
 While the reversal potential mechanism must be the same for a whole cell,
-the initial concentrations and reversal potential can be localised for regions
+the initial concentrations and reversal potential can be localized for regions
 using the *paint* interface:
 
 .. code-block:: Python
@@ -267,32 +282,34 @@ using the *paint* interface:
 
 .. _cablecell-place:
 
-Placed Dynamices
+Placed dynamics
 ''''''''''''''''
 
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
-and are asigned to specific locations.
+and are assigned to specific locations.
 
 .. _cable-synapses:
 
-Synapses
-~~~~~~~~
+Connection sites
+~~~~~~~~~~~~~~~~
 
-Synapses are instances of NMODL POINT mechanisms.
+Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
 .. _cable-gj-sites:
 
 Gap junction sites
 ~~~~~~~~~~~~~~~~~~
 
+See :ref:`modelgapjunctions`.
+
 .. _cable-threshold-detectors:
 
 Threshold detectors (spike detectors).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _cable-stimulii:
+.. _cable-stimuli:
 
-Stimulii
+Stimuli
 ~~~~~~~~
 
 .. _cable-probes:
@@ -300,90 +317,9 @@ Stimulii
 Probes
 ~~~~~~
 
-Python API
-----------
+API
+---
 
-Creating a cable cell
-'''''''''''''''''''''
-
-.. py:class:: cable_cell
-
-    A cable cell is constructed from a :ref:`morphology <morph-morphology>`
-    and an optional :ref:`label dictionary <labels-dictionary>`.
-
-    .. note::
-        The regions and locsets defined in the label dictionary are
-        :ref:`concretised <labels-concretise>` when the cable cell is constructed,
-        and an exception will be thrown if an invalid label expression is found.
-
-        There are two reasons an expression might be invalid:
-
-        1. Explicitly refers to a location of cable that does not exist in the
-           morphology, for example ``(branch 12)`` on a cell with 6 branches.
-        2. Incorrect label reference: circular reference, or a label that does not exist.
-
-
-    .. code-block:: Python
-
-        import arbor
-
-        # Construct the morphology from an SWC file.
-        tree = arbor.load_swc('granule.swc')
-        morph = arbor.morphology(tree, spherical_root=True)
-
-        # Define regions using standard SWC tags
-        labels = arbor.label_dict({'soma': '(tag 1)',
-                                   'axon': '(tag 2)',
-                                   'dend': '(join (tag 3) (tag 4))'})
-
-        # Construct a cable cell.
-        cell = arbor.cable_cell(morph, labels)
-
-    .. method:: set_properties(Vm=None, cm=None, rL=None, tempK=None)
-
-        Set default values of cable properties on the whole cell.
-        Overrides the default global values, and can be overriden by painting
-        the values onto regions.
-
-        :param str region: name of the region.
-        :param Vm: Initial membrane voltage [mV].
-        :type Vm: float or None
-        :param cm: Membrane capacitance [F/m²].
-        :type cm: float or None
-        :param rL: Axial resistivity of cable [Ω·cm].
-        :type rL: float or None
-        :param tempK: Temperature [Kelvin].
-        :type tempK: float or None
-
-        .. code-block:: Python
-
-            # Set cell-wide values for properties
-            cell.set_properties(Vm=-70, cm=0.01, rL=100, tempK=280)
-
-
-    .. method:: paint(region, [Vm=None, cm=None, rL=None, tempK=None])
-
-        Set cable properties on a region.
-
-        :param str region: name of the region.
-        :param Vm: Initial membrane voltage [mV].
-        :type Vm: float or None
-        :param cm: Membrane capacitance [F/m²].
-        :type cm: float or None
-        :param rL: Axial resistivity of cable [Ω·cm].
-        :type rL: float or None
-        :param tempK: Temperature [Kelvin].
-        :type tempK: float or None
-
-        .. code-block:: Python
-
-            # Specialize resistivity on soma
-            cell.paint('"soma"', rL=100)
-            # Specialize resistivity and capacitance on the axon, where
-            # axon is defined using a region expression.
-            cell.paint('(tag 2)', cm=0.05, rL=80)
-
-.. py:class:: ion
-
-    properties of an ionic species.
+* :ref:`Python <pycable_cell>`
+* :ref:`C++ <cppcable_cell>`
 

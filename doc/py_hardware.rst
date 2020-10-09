@@ -1,6 +1,6 @@
 .. _pyhardware:
 
-Hardware Management
+Hardware management
 ===================
 
 Arbor provides two ways for working with hardware resources:
@@ -8,7 +8,7 @@ Arbor provides two ways for working with hardware resources:
 * *Prescribe* the hardware resources and their contexts for use in Arbor simulations.
 * *Query* available hardware resources (e.g. the number of available GPUs), and initializing MPI.
 
-Available Resources
+Available resources
 -------------------
 
 Helper functions for checking cmake or environment variables, as well as configuring and checking MPI are the following:
@@ -59,7 +59,7 @@ Helper functions for checking cmake or environment variables, as well as configu
 
     Check if MPI is finalized.
 
-Prescribed Resources
+Prescribed resources
 ---------------------
 
 The Python wrapper provides an API for:

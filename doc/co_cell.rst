@@ -1,10 +1,3 @@
-.. _modelconcepts:
-
-Concepts
-########
-
-This section describes some of the core concepts of Arbor.
-
 .. _modelcells:
 
 Cells
@@ -13,9 +6,6 @@ Cells
 The basic unit of abstraction in an Arbor model is a cell.
 A cell represents the smallest model that can be simulated.
 Cells interact with each other via spike exchange and gap junctions.
-Cells can be of various types, admitting different representations and implementations.
-Arbor currently supports specialized leaky integrate and fire cells and cells representing artificial spike sources in
-addition to multi-compartment neurons.
 
 .. table:: Identifiers used to uniquely refer to cells and objects like synapses on cells.
 
@@ -44,21 +34,22 @@ are formed between two **gap junction sites**.
 
 A cell can have multiple sources, targets and gap junction site objects. Each object has a local :gen:`index`
 relative to other objects of the same type on that cell.
-A unique (:gen:`gid`, :gen:`index`) pair defned by a :gen:`cell_member` can be used to uniquely identify
+A unique (:gen:`gid`, :gen:`index`) pair defined by a :gen:`cell_member` can be used to uniquely identify
 objects on a cell in a global model.
 
 
-Cell Kinds
+Cell kinds
 ----------
 
-.. table:: The types of cell supported by Arbor
+.. table:: The 4 types of cell supported by Arbor
 
     ========================  ===========================================================
     Cell Kind                 Description
     ========================  ===========================================================
     **cable**                 Cell with morphology described by branching
-                              1D cable segments.
-    **lif**                   Leaky-integrate and fire neuron.
+                              1D cable segments and user configurable mechanisms.
+    **lif**                   Single-compartment no-mechanism leaky integrate-and-fire
+                              neuron.
     **spiking**               Proxy cell that generates spikes from a user-supplied
                               time sequence.
     **benchmark**             Proxy cell used for benchmarking (developer use only).
@@ -79,11 +70,13 @@ Cell Kinds
    * **Morphology**: The morphology of a cable cell is composed of a branching tree of one-dimensional line segments.
      Strictly speaking, Arbor represents a morphology is an *acyclic directed graph*, with the soma at the root.
    * **Detectors**: Spike detectors generate spikes when the voltage at location on the cell
-     passes a threshold. Dectectors act as **sources** of :ref:`connections <modelconnections>`.
-   * **Synapses**: Synapases act as **targets** of :ref:`connections <modelconnections>`.
+     passes a threshold. Detectors act as **sources** of :ref:`connections <modelconnections>`.
+   * **Synapses**: Synapses act as **targets** of :ref:`connections <modelconnections>`.
      A synapse is described by a synapse type (with associated parameters) and location on a cell.
    * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <modelgapjunctions>`.
      They are declared by specifying a location on a branch of the cell.
+
+   Because cable cells are the main cell kind in Arbor and have more properties than listed here, they have a :ref:`dedicated page <cablecell>`.
 
 2. **LIF Cells**
 
@@ -99,33 +92,10 @@ Cell Kinds
 
    Proxy cell used for benchmarking, and used by developers to benchmark the spike exchange and event delivery infrastructure.
 
-.. _modelconnections:
+Most Arbor users will want to use the cable cell, because it's the only cell kind that supports complex morphologies and user-defined mechanisms. See cable cells :ref:`dedicated page <cablecell>`. The LIF cell can be used to build networks with point-neurons.
 
-Connections
-===========
+API
+---
 
-Connections implement chemical synapses between **source** and **target** cells and are characterized by having a transmission delay.
-
-Connections in Arbor are defined in two steps:
-
-1. Create **Source** and **Target** on two cells: a source defined on one cell, and a target defined on another.
-2. Declare the connection in the :ref:`recipe <modelrecipe>`: with a source and target idenfied using :gen:`cell_member`, a connection delay and a connection weight.
-
-.. _modelgapjunctions:
-
-Gap Junctions
-=============
-
-Gap junctions represent electrical synapses where transmission between cells is bidirectional and direct.
-They are modeled as a conductance between two **gap junction sites** on two cells.
-
-Similarly to `Connections`, Gap Junctions in Arbor are defined in two steps:
-
-1. A **gap junction site** is created on each of the two cells.
-   These locations need to be declared on the :ref:`cell <modelcells>`.
-2. Gap Junction instantiation in the :ref:`recipe <modelrecipe>`: The **gap junction sites** are indexed using :gen:`cell_member`
-   because a single cell may have more than one gap junction site.
-   A gap junction is instantiated by providing two **gap junction sites'** and a conductance in μS.
-
-   .. Note::
-      Only cable cells support gap junctions as of now.
+* :ref:`Python <pycell>`
+* :ref:`C++ <cppcell>`

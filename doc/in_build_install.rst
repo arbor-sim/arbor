@@ -1,24 +1,22 @@
-.. _installarbor:
+.. _in_build_install:
 
-Installing Arbor
-################
+Build and install from source
+#############################
 
-.. Note::
-    If you want to get started quickly experimenting with Arbor via its Python wrapper, see the Python installation guide at :doc:`/python`.
+This guide covers building and installing Arbor using CMake, which is the recommended method for configuring Arbor for HPC applications and developers.
 
-This guide covers installing Arbor using CMake, which is the recommended method for configuring Arbor for HPC applications and developers.
+We start with an overview of the building process, and the various options available to customize the build.
+Then we cover installing and running on `HPC clusters <cluster_>`_, followed by a `troubleshooting guide <troubleshooting_>`_ for common build problems.
 
-This guide starts with an overview of the building process, and the various options
-available to customize the build.
-The guide then covers installation and running on `HPC clusters <cluster_>`_, followed by a
-`troubleshooting guide <troubleshooting_>`_ for common build problems.
+.. note::
+    To get help in case of problems installing Arbor, please make an issue on the Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 
 .. _install_requirements:
 
 Requirements
 ============
 
-Minimum Requirements
+Minimum requirements
 --------------------
 
 The non distributed (i.e. no MPI) version of Arbor can be compiled on Linux or OS X systems
@@ -102,10 +100,10 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     compiler issues. We strongly recommend building with GCC or Clang instead on PowerPC
     and Intel platforms.
 
-Optional Requirements
+Optional requirements
 ---------------------
 
-GPU Support
+GPU support
 ~~~~~~~~~~~
 
 Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 10 is required.
@@ -143,7 +141,7 @@ install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
-Getting the Code
+Getting the code
 ================
 
 The easiest way to acquire the latest version of Arbor is to check the code out from
@@ -173,7 +171,7 @@ If you use the zip file, then don't forget to run Git submodule update manually.
 
 .. _building:
 
-Building and Installing Arbor
+Building and installing Arbor
 =============================
 
 Once the Arbor code has been checked out, first run CMake to configure the build, then run make.
@@ -213,7 +211,7 @@ This will build Arbor in release mode with the `default C++ compiler <note_CC_>`
 
 .. _quickstart:
 
-Quick Start: Examples
+Quick start: examples
 ---------------------
 
 Below are some example of CMake configurations for Arbor. For more detail on individual
@@ -267,7 +265,7 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
 .. _buildtarget:
 
-Build Target
+Build target
 ------------
 
 By default, Arbor is built in release mode, which should be used when installing
@@ -340,7 +338,7 @@ with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support 
 
 .. _install-gpu:
 
-GPU Backend
+GPU backend
 -----------
 
 Compiling for the GPU backend is controlled by the ``ARB_GPU`` CMake option which is used to select between NVIDIA and AMD GPUs
@@ -400,7 +398,7 @@ Arbor is built for all supported AMD GPUs and the available GPU will be used at 
 
 .. _install-python:
 
-Python Frontend
+Python frontend
 ----------------
 
 Arbor can be used with a python frontend which is enabled by toggling the
@@ -524,11 +522,11 @@ currently relies upon private headers that are not installed.
 
 .. _cluster:
 
-HPC Clusters
+HPC clusters
 ============
 
 HPC clusters offer their own unique challenges when compiling and running
-software, so we cover some common issues in this section.  If you have problems
+software, so we cover some common issues in this section. If you have problems
 on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
@@ -576,7 +574,7 @@ using the supplied MPI compiler wrappers in preference.
         $ CC --version
         g++ (GCC) 6.2.0 20160822 (Cray Inc.)
 
-Cray Systems
+Cray systems
 ------------
 
 The compiler used by the MPI wrappers is set using a "programming environment" module.
@@ -649,7 +647,7 @@ Troubleshooting
 
 .. _crosscompiling:
 
-Cross Compiling NMODL
+Cross compiling NMODL
 ---------------------
 
 Care must be taken when Arbor is compiled on a system with a different
@@ -800,7 +798,7 @@ and have to be turned on by setting the ``ARB_WITH_ASSERTIONS`` CMake option:
     `bug report <https://github.com/arbor-sim/arbor/issues>`_ you send to the Arbor developers!
 
 
-CMake Git Submodule Warnings
+CMake Git submodule warnings
 ----------------------------
 
 When running CMake, warnings like the following indicate that the Git submodules

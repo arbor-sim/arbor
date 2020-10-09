@@ -278,7 +278,7 @@ void register_cells(pybind11::module& m) {
         .def_readwrite("V_th", &arb::lif_cell::V_th,
             "Firing threshold [mV].")
         .def_readwrite("C_m", &arb::lif_cell::C_m,
-            " Membrane capacitance [pF].")
+            "Membrane capacitance [pF].")
         .def_readwrite("E_L", &arb::lif_cell::E_L,
             "Resting potential [mV].")
         .def_readwrite("V_m", &arb::lif_cell::V_m,
@@ -378,7 +378,7 @@ void register_cells(pybind11::module& m) {
                     arb::initial_ion_data x;
                     x.ion = name;
                     if (int_con) x.initial.init_int_concentration = *int_con;
-                    if (ext_con) x.initial.init_int_concentration = *ext_con;
+                    if (ext_con) x.initial.init_ext_concentration = *ext_con;
                     if (rev_pot) x.initial.init_reversal_potential = *rev_pot;
                     return x;
                 }

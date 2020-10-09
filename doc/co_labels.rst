@@ -1,10 +1,10 @@
 .. _labels:
 
-Labels
-=========
+Cell labels
+===========
 
 Arbor provides a domain specific language (DSL) for describing regions and
-locations on morphologies, and a dictionary for assiciating these descriptions
+locations on morphologies, and a dictionary for associating these descriptions
 with a string label.
 
 The labels are used to refer to regions
@@ -12,7 +12,7 @@ and locations when setting cell properties and attributes.
 For example, the membrane capacitance on a region of the cell membrane, or
 the location of synapse instances.
 
-Example Cell
+Example cell
 ------------
 
 The following morphology is used on this page to illustrate region and location
@@ -24,7 +24,7 @@ descriptions. It has a soma, dendritic tree and an axon with a hillock:
   :width: 800
   :align: left
 
-  Segments of the morphology are colored according to tags:
+  Segments of the morphology are coloured according to tags:
   soma (tag 1, red), axon (tag 2, grey), dendrites (tag 3, blue) (left).
   The 6 branches of the morphology with their branch ids (right).
 
@@ -43,7 +43,7 @@ The other branches in the dendritic tree have the following properties:
 tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the start of the
 axon proper with constant radius 0.4 μm.
 
-Label Types
+Label types
 ------------
 
 .. _labels-locset:
@@ -111,6 +111,7 @@ Examples of expressions that define regions include:
 * ``(tag 1)``: all segments with tag 1.
 * ``(branch 2)``: branch 2.
 * ``(region "soma")``: the region with the label "soma".
+* ``"soma"``: a shortcut for the region with the label "soma".
 
 Examples of expressions that define locsets include:
 
@@ -151,12 +152,12 @@ describes the region of all parts of a cell with either tag 3 or tag 4 and radiu
     As a result, label dictionaries are much more concise and easy to interpret for
     consumers of a model than hoc templates.
     Furthermore they are less error prone because
-    Arbor handles generation of conrete cable sections and locations when
+    Arbor handles generation of concrete cable sections and locations when
     expressions are applied to a morphology.
 
 .. _labels-expr-docs:
 
-Expression Syntax
+Expression syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The DSL uses `s-expressions <https://en.wikipedia.org/wiki/S-expression>`_, which are composed of the following basic types:
@@ -200,7 +201,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
     and applicable to arbitrary morphologies.
 
 
-Locset Expressions
+Locset expressions
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: gen-images/label_branch.svg
@@ -238,7 +239,7 @@ Locset Expressions
 .. label:: (terminal}
 
     The location of terminal points, which are the most distal locations on the morphology.
-    These will typicall correspond to the tips, or end points, of dendrites and axons.
+    These will typically correspond to the tips, or end points, of dendrites and axons.
 
     .. figure:: gen-images/term_label.svg
       :width: 300
@@ -332,8 +333,8 @@ Locset Expressions
 .. label:: (sum lhs:locset rhs:locset [...locset])
 
     Multiset summation of two locsets, such that ``(sum lhs rhs) = A + B``, where A and B are multisets of locations.
-    This is equivalent to contactenating the two lists, and the length of the result is the sum of
-    the lenghts of the inputs. For example:
+    This is equivalent to concatenating the two lists, and the length of the result is the sum of
+    the lengths of the inputs. For example:
 
     .. code-block:: lisp
 
@@ -347,7 +348,7 @@ Locset Expressions
 
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
 
-Region Expressions
+Region expressions
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. label:: (nil)
@@ -615,148 +616,15 @@ Label Dictionaries
 
 *Labels* can be assigned to expressions, and used to refer to the expression or the
 concrete region or locset generated when the expression is applied to a morphology.
-A label is a string with the following rules:
+Although any string is a valid label, it is a good idea to avoid labels that would
+also be valid expressions in the region DSL; creating a label ``"(tag 1)"`` will only
+lead to confusion.
 
-* may contain alpha-numeric values, ``{a-z}[A-z][0-9]``, underscore ``_`` and hyphen ``-``.
-* no leading underscore, hyphen or numeric values: for example ``_myregion``,
-  ``-samples``, and ``2ndpoint`` are invalid labels.
-
-labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
-
-Python API
-----------
-
-The ``arbor.label_dict`` type is used for creating and manipulating label dictionaries,
-which can be initialised with a dictionary that defines (label, expression)
-pairs. For example, a dictionary that uses tags that correspond to SWC
-`structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
-to label soma, axon, dendrite and apical dendrites is:
+Labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
 
 
-.. code-block:: python
+API
+---
 
-    import arbor
-
-    labels = {'soma': '(tag 1)',
-              'axon': '(tag 2)',
-              'dend': '(tag 3)',
-              'apic': '(tag 4)'}
-
-    d = arbor.label_dict(labels)
-
-Alternatively, start with an empty label dictionary and add the labels and
-their definitions one by one:
-
-.. code-block:: python
-
-    import arbor
-
-    d = arbor.label_dict()
-
-    d['soma'] = '(tag 1)'
-    d['axon'] = '(tag 2)'
-    d['dend'] = '(tag 3)'
-    d['apic'] = '(tag 4)'
-
-The square bracket operator is used above to add label definitions. It can
-be used to modify existing definitions, so long as the new new definition has the
-same type (region or locset):
-
-.. code-block:: python
-
-    import arbor
-
-    # A label dictionary that defines the label "dend" that defines a region.
-    d = arbor.label_dict({'dend': '(tag 3)')
-
-    # The definition of a label can be overwritten with a definition of the
-    # same type, in this case a region.
-    d['dend'] = '(join (tag 3) (tag 4))'
-
-    # However, a region can't be overwritten by a locset, or vice-versa.
-    d['dend'] = '(terminal)' # error: '(terminal)' defines a locset.
-
-    # New labels can be added to the dictionary.
-    d['soma'] = '(tag 1)'
-    d['axon'] = '(tag 2)'
-
-    # Square brackets can also be used to get a label's definition.
-    assert(d['soma'] == '(tag 1)')
-
-Expressions can refer to other regions and locsets in a label dictionary.
-In the example below, we define a region labeled *'tree'* that is the union
-of both the *'dend'* and *'apic'* regions.
-
-.. code-block:: python
-
-    import arbor
-
-    d = arbor.label_dict({
-            'soma': '(tag 1)',
-            'axon': '(tag 2)',
-            'dend': '(tag 3)',
-            'apic': '(tag 4)',
-            # equivalent to (join (tag 3) (tag 4))
-            'tree': '(join (region "dend") (region "apic"))'})
-
-The order that labels are defined does not matter, so an expression can refer to a
-label that has not yet been defined:
-
-.. code-block:: python
-
-    import arbor
-
-    d = arbor.label_dict()
-    # 'reg' refers 
-    d['reg'] = '(distal-interval (locset "loc"))'
-    d['loc'] = '(location 3 0.5)'
-
-    # If d was applied to a morphology, 'reg' would refer to the region:
-    #   '(distal-interval (location 3 0.5))'
-    # Which is the sub-tree of the matrix starting at '(location 3 0.5)'
-
-    # The locset 'loc' can be redefined
-    d['loc'] = '(proximal (tag 3))'
-
-    # Now if d was applied to a morphology, 'reg' would refer to:
-    #   '(distal-interval (proximal (tag 3))'
-    # Which is the subtrees that start at the proximal locations of
-    # the region '(tag 3)'
-
-Cyclic dependencies are not permitted, as in the following example where
-two labels refer to one another:
-
-.. code-block:: python
-
-    import arbor
-
-    d = arbor.label_dict()
-    d['reg'] = '(distal-interval (locset "loc"))'
-    d['loc'] = '(proximal (region "reg"))'
-
-    # Error: 'reg' needs the definition of 'loc', which in turn needs the
-    # definition of 'reg'.
-
-.. note::
-    In the example above there will be no error when the label dictionary is defined.
-    Instead, there will be an error later when the label dictionary is applied to
-    a morphology, and the cyclic dependency is detected when concretising the locations
-    in the locsets and the cable segments in the regions.
-
-
-The type of an expression, locset or region, is inferred automatically when it is
-input into a label dictionary.
-Lists of the labels for regions and locsets are available as attributes:
-
-.. code-block:: python
-
-    import arbor
-
-    d = arbor.label_dict({
-            'soma': '(tag 1)',
-            'axon': '(tag 2)',
-            'dend': '(tag 3)',
-            'apic': '(tag 4)',
-            'site': '(location 2 0.5)',
-            'term': '(terminal)'})
-
+* :ref:`Python <py_labels>`
+* :ref:`C++ <cpp_labels>`

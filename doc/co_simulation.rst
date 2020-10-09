@@ -25,5 +25,8 @@ Simulations provide an interface for executing and interacting with the model:
     * The model state can be *reset* to its initial state before the simulation was started.
     * *Sampling* of the simulation state can be performed during execution with samplers and probes (e.g. compartment voltage and current) and spike output with the total number of spikes generated since either construction or reset.
 
-The documentation for Arbor's Python simulation interface can be found in :ref:`pysimulation`.
-See :ref:`cppsimulation` for documentation of the C++ simulation API.
+API
+---
+
+* :ref:`Python <pysimulation>`
+* :ref:`C++ <cppsimulation>`

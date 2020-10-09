@@ -183,7 +183,8 @@ Definitions
 ***********
 
 probe
-    A location or component of a cell that is available for monitoring (see :attr:`arbor.recipe.num_probes`, :attr:`arbor.recipe.get_probe` and :attr:`arbor.cable_probe` as references).
+    A location or component of a cell that is available for monitoring (see :attr:`arbor.recipe.num_probes`,
+    :attr:`arbor.recipe.get_probes` and :attr:`arbor.cable_probe` as references).
 
 sample/record
     A record of data corresponding to the value at a specific *probe* at a specific time.
@@ -236,7 +237,7 @@ In order to analyze the data collected from an :class:`arbor.probe` the samples 
 
         import arbor
 
-        # Instatitate the simulation.
+        # Instantiate the simulation.
         sim = arbor.simulation(recipe, decomp, context)
 
         # Build the sample recorder on cell 0 and probe 0 with regular sampling interval of 0.1 ms

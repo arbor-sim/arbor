@@ -1,7 +1,7 @@
-.. _cppcablecell:
+.. _cppcable_cell:
 
 Cable cells
-===============
+===========
 
 .. Warning::
    The interface for building and modifying cable cell objects
@@ -43,8 +43,8 @@ are specified via the ``place`` method. See :ref:`cable-cell-dynamics`, below.
 
 .. _morphology-construction:
 
-Constucting cell morphologies
------------------------------
+Constructing cell morphologies
+------------------------------
 
 .. todo::
 
@@ -142,7 +142,7 @@ by two stitches:
    stitched_morphology stitched(std::move(builder));
    cable_cell cell(stitched.morphology(), stitched.labels());
 
-   cell.paint("soma", "hh");
+   cell.paint("\"soma\"", "hh");
 
 
 .. _locsets-and-regions:
@@ -208,7 +208,7 @@ cable cell, are attached to a cell with:
 
 .. _electrical-properties:
 
-Electrical properities and ion values
+Electrical properties and ion values
 -------------------------------------
 
 On each cell segment, electrical and ion properties can be specified by the
@@ -222,7 +222,7 @@ value should be taken from the cell or global parameter set.
 
    .. cpp:member:: std::unordered_map<std::string, cable_cell_ion_data> ion_data
 
-   The keys of this map are names of ions, whose parameters will be locally overriden.
+   The keys of this map are names of ions, whose parameters will be locally overridden.
    The struct :cpp:type:`cable_cell_ion_data` has three fields:
    :cpp:type:`init_int_concentration`, :cpp:type:`init_ext_concentration`, and
    :cpp:type:`init_reversal_potential`.
@@ -246,9 +246,9 @@ value should be taken from the cell or global parameter set.
 
    Local areal capacitance of the cell membrane, in Farads per square metre.
 
-   .. cpp:member:: util::optional<cv_policy> discretization
+   .. cpp:member:: util::optional<cv_policy> discretisation
 
-   Method by which CV boundaries are determined when the cell is discretized.
+   Method by which CV boundaries are determined when the cell is discretised.
    See :ref:`cv-policies`.
 
 Default parameters for a cell are given by the :cpp:expr:`default_parameters`
@@ -287,7 +287,7 @@ Global properties
    .. cpp:member:: bool coalesce_synapses
 
    when synapse dynamics are sufficiently simple, the states of synapses within
-   the same discretized element can be combined for better performance. this
+   the same discretised element can be combined for better performance. this
    is true by default.
 
    .. cpp:member:: std::unordered_map<std::string, int> ion_species
@@ -353,7 +353,7 @@ the global parameters via
 
 This mechanism has global scalar parameters for the gas constant *R* and
 Faraday constant *F*, corresponding to the exact values given by the 2019
-redifinition of the SI base units. These values can be changed in a derived
+redefinition of the SI base units. These values can be changed in a derived
 mechanism in order to use, for example, older values of these physical
 constants.
 
@@ -432,7 +432,7 @@ Cable cell probe addresses that are described by a ``locset`` may generate more
 than one concrete probe: there will be one per location in the locset that is
 satisfiable. Sampler callback functions can distinguish between different
 probes with the same address and id by examining their index and/or
-probe-sepcific metadata found in the ``probe_metadata`` parameter.
+probe-specific metadata found in the ``probe_metadata`` parameter.
 
 Membrane voltage
 ^^^^^^^^^^^^^^^^
@@ -458,7 +458,7 @@ Queries cell membrane potential across whole cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the
    average membrane potential in millivolts across an unbranched
-   component of the cell, as determined by the discretization.
+   component of the cell, as determined by the discretisation.
 
 *  Metadata: ``mcable_list``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
@@ -490,7 +490,7 @@ Transmembrane current
         std::string ion;
     };
 
-Membrance current density attributed to a particular ion at
+Membrane current density attributed to a particular ion at
 each site in ``locations``.
 
 *  Sample value: ``double``. Current density in amperes per square metre.
@@ -508,7 +508,7 @@ Membrane current attributed to a particular ion across components of the cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the current in
    nanoamperes across an unbranched component of the cell, as determined
-   by the discretization.
+   by the discretisation.
 
 *  Metadata: ``mcable_list``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
@@ -535,7 +535,7 @@ Membrane current _excluding_ capacitive currents across components of the cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the current in
    nanoamperes across an unbranched component of the cell, as determined
-   by the discretization.
+   by the discretisation.
 
 *  Metadata: ``mcable_list``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
@@ -549,7 +549,7 @@ Total membrance current across components of the cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the current in
    nanoamperes across an unbranched component of the cell, as determined
-   by the discretization.
+   by the discretisation.
 
 *  Metadata: ``mcable_list``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
@@ -582,7 +582,7 @@ Ionic external concentration of ion across components of the cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the concentration in
    millimoles per lire across an unbranched component of the cell, as determined
-   by the discretization.
+   by the discretisation.
 
 *  Metadata: ``mcable_list``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
@@ -612,7 +612,7 @@ Ionic external concentration of ion across components of the cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the concentration in
    millimoles per lire across an unbranched component of the cell, as determined
-   by the discretization.
+   by the discretisation.
 
 *  Metadata: ``mcable_list``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
@@ -646,11 +646,11 @@ If the mechanism is not defined at a particular site, that site is ignored.
         std::string state;
     };
 
-Value of state variable in adensity mechanism across components of the cell.
+Value of state variable in a density mechanism across components of the cell.
 
 *  Sample value: ``cable_sample_range``. State variable values from the
    mechanism across unbranched components of the cell, as determined
-   by the discretization and mechanism extent.
+   by the discretisation and mechanism extent.
 
 *  Metadata: ``mcable_list``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
@@ -691,17 +691,12 @@ with which it is associated.
 
 .. _cv-policies:
 
-Discretization and CV policies
+Discretisation and CV policies
 ------------------------------
 
-For the purpose of simulation, cable cells are decomposed into discrete
-subcomponents called *control volumes* (CVs), following the finite volume method
-terminology. Each control volume comprises a connected subset of the
-morphology. Each fork point in the morphology will be the responsibility of
-a single CV, and as a special case a zero-volume CV can be used to represent
-a single fork point in isolation.
-
-The CVs are uniquely determined by a set of *B* of ``mlocation`` boundary points.
+For the purpose of simulation, cable cells are decomposed into :ref:`discrete
+subcomponents <cable-discretisation>` called *control volumes* (CVs) The CVs are
+uniquely determined by a set of *B* of ``mlocation`` boundary points.
 For each non-terminal point *h* in *B*, there is a CV comprising the points
 {*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
 geometrical partial order of locations on the morphology. A fork point is
@@ -727,7 +722,7 @@ Specific CV policy objects are created by functions described below (strictly
 speaking, these are class constructors for classes are implicit converted to
 ``cv_policy`` objects). These all take a ``region`` parameter that restrict the
 domain of applicability of that policy; this facility is useful for specifying
-differing discretizations on different parts of a cell morphology. When a CV
+differing discretisations on different parts of a cell morphology. When a CV
 policy is constrained in this manner, the boundary of the domain will always
 constitute part of the CV boundary point set.
 
@@ -765,7 +760,7 @@ supplied domain.
 
    cv_policy_every_sample(region domain = reg::all())
 
-Use every sample point in the morpholgy definition as a CV boundary, optionally
+Use every sample point in the morphology definition as a CV boundary, optionally
 restricted to the supplied domain. Each fork point in the domain is
 represented by a trivial CV.
 

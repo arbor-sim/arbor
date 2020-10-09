@@ -39,7 +39,7 @@ then build the simulation.
         arb::simulation sim(recipe, decomp, context);
 
 
-Class Documentation
+Class documentation
 -------------------
 
 .. cpp:namespace:: arb
