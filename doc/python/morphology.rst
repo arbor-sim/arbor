@@ -167,7 +167,7 @@ Cell morphology
     take the segment tree used in the :ref:`documentation above <morph-label-seg-fig>`.
 
 
-    .. figure:: gen-images/label_seg.svg
+    .. figure:: ../gen-images/label_seg.svg
 
 
     Which is constructed as follows.

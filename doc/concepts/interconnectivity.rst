@@ -1,7 +1,7 @@
 .. _co_interconnectivity:
 
 Interconnectivity
-#################
+=================
 
 Networks can be regarded as a sort of graph, where the nodes are cells and the edges
 describe the communications between them. In Arbor, two sorts of edges are modelled: a
@@ -16,7 +16,7 @@ Connection sites and gap junction sites are defined on locations on cells (more 
 .. _modelconnections:
 
 Connections
-===========
+-----------
 
 Connections implement chemical synapses between **source** and **target** cells and are characterized by having a transmission delay.
 
@@ -28,7 +28,7 @@ Connections in Arbor are defined in two steps:
 .. _modelgapjunctions:
 
 Gap junctions
-=============
+-------------
 
 Gap junctions represent electrical synapses where transmission between cells is bidirectional and direct.
 They are modeled as a conductance between two **gap junction sites** on two cells.

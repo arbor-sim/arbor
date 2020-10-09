@@ -20,7 +20,7 @@ descriptions. It has a soma, dendritic tree and an axon with a hillock:
 
 .. _labels-morph-fig:
 
-.. figure:: gen-images/label_morph.svg
+.. figure:: ../gen-images/label_morph.svg
   :width: 800
   :align: left
 
@@ -58,7 +58,7 @@ which may contain multiple instances of the same location, for example:
 * The locations of inhibitory synapses.
 * The tips of the dendritic tree.
 
-.. figure:: gen-images/locset_label_examples.svg
+.. figure:: ../gen-images/locset_label_examples.svg
   :width: 800
   :align: center
 
@@ -91,7 +91,7 @@ the region of cables that have radius less than 0.5 μm
 
 .. _labels-region-examples:
 
-.. figure:: gen-images/region_label_examples.svg
+.. figure:: ../gen-images/region_label_examples.svg
   :width: 800
   :align: center
 
@@ -204,7 +204,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
 Locset expressions
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. figure:: gen-images/label_branch.svg
+.. figure:: ../gen-images/label_branch.svg
   :width: 800
   :align: center
 
@@ -217,7 +217,7 @@ Locset expressions
 
     Equivalent to ``(location 0 0)``.
 
-    .. figure:: gen-images/root_label.svg
+    .. figure:: ../gen-images/root_label.svg
       :width: 300
       :align: center
 
@@ -230,7 +230,7 @@ Locset expressions
     of branch length, so for example, on a branch of length 100 μm ``pos=0.2``
     corresponds to 20 μm from the proximal end, or 80 μm from the distal end.
 
-    .. figure:: gen-images/location_label.svg
+    .. figure:: ../gen-images/location_label.svg
       :width: 300
       :align: center
 
@@ -241,7 +241,7 @@ Locset expressions
     The location of terminal points, which are the most distal locations on the morphology.
     These will typically correspond to the tips, or end points, of dendrites and axons.
 
-    .. figure:: gen-images/term_label.svg
+    .. figure:: ../gen-images/term_label.svg
       :width: 300
       :align: center
 
@@ -249,7 +249,7 @@ Locset expressions
 
 .. label:: (uniform reg:region first:int last:int seed:int)
 
-    .. figure:: gen-images/uniform_label.svg
+    .. figure:: ../gen-images/uniform_label.svg
       :width: 600
       :align: center
 
@@ -261,7 +261,7 @@ Locset expressions
 
     The set of locations ``{(location b pos) | 0 ≤ b < nbranch-1}``.
 
-    .. figure:: gen-images/on_branches_label.svg
+    .. figure:: ../gen-images/on_branches_label.svg
       :width: 300
       :align: center
 
@@ -272,7 +272,7 @@ Locset expressions
     The set of the most distal locations of a region.
     These are defined as the locations for which there are no other locations more distal in the region.
 
-    .. figure:: gen-images/distal_label.svg
+    .. figure:: ../gen-images/distal_label.svg
       :width: 600
       :align: center
 
@@ -284,7 +284,7 @@ Locset expressions
     The set of the most proximal locations of a region.
     These are defined as the locations for which there are no other locations more proximal in the region.
 
-    .. figure:: gen-images/proximal_label.svg
+    .. figure:: ../gen-images/proximal_label.svg
       :width: 600
       :align: center
 
@@ -300,7 +300,7 @@ Locset expressions
 
     The set of locations in the locset ``loc`` that are in the region ``reg``.
 
-    .. figure:: gen-images/restrict_label.svg
+    .. figure:: ../gen-images/restrict_label.svg
       :width: 600
       :align: center
 
@@ -359,7 +359,7 @@ Region expressions
 
     All branches in the morphology.
 
-    .. figure:: gen-images/nil_all_label.svg
+    .. figure:: ../gen-images/nil_all_label.svg
       :width: 600
       :align: center
 
@@ -369,7 +369,7 @@ Region expressions
 
     All of the segments with :ref:`tag <morph-tag-definition>` ``tag_id``.
 
-    .. figure:: gen-images/tag_label.svg
+    .. figure:: ../gen-images/tag_label.svg
       :width: 900
       :align: center
 
@@ -380,7 +380,7 @@ Region expressions
 
     Refer to a branch by its id.
 
-    .. figure:: gen-images/branch_label.svg
+    .. figure:: ../gen-images/branch_label.svg
       :width: 600
       :align: center
 
@@ -397,7 +397,7 @@ Region expressions
     would give a cable that starts and ends 20 μm and 80 μm along the branch
     respectively.
 
-    .. figure:: gen-images/cable_label.svg
+    .. figure:: ../gen-images/cable_label.svg
       :width: 600
       :align: center
 
@@ -414,7 +414,7 @@ Region expressions
     and up to ``extent`` μm from the location, measured as the distance traversed along cables between two locations.
     The distal interval of the locset ``start`` is the union of the distal interval of each location in ``start``.
 
-    .. figure:: gen-images/distint_label.svg
+    .. figure:: ../gen-images/distint_label.svg
       :width: 600
       :align: center
 
@@ -430,7 +430,7 @@ Region expressions
     When no ``extent`` distance is provided, the distal intervals are extended to all terminal
     locations that are distal to each location in ``start``.
 
-    .. figure:: gen-images/distintinf_label.svg
+    .. figure:: ../gen-images/distintinf_label.svg
       :width: 600
       :align: center
 
@@ -448,7 +448,7 @@ Region expressions
     and up to ``extent`` μm from the location, measured as the distance traversed along cables between two locations.
     The proximal interval of the locset ``start`` is the union of the proximal interval of each location in ``start``.
 
-    .. figure:: gen-images/proxint_label.svg
+    .. figure:: ../gen-images/proxint_label.svg
       :width: 600
       :align: center
 
@@ -463,7 +463,7 @@ Region expressions
 
     When no ``extent`` distance is provided, the proximal intervals are extended to the root location.
 
-    .. figure:: gen-images/proxintinf_label.svg
+    .. figure:: ../gen-images/proxintinf_label.svg
       :width: 600
       :align: center
 
@@ -478,7 +478,7 @@ Region expressions
 
     All parts of cable segments in the region ``reg`` with radius less than ``radius``.
 
-    .. figure:: gen-images/radiuslt_label.svg
+    .. figure:: ../gen-images/radiuslt_label.svg
       :width: 300
       :align: center
 
@@ -495,7 +495,7 @@ Region expressions
 
     All parts of cable segments in the region ``reg`` with radius less than or equal to ``radius``.
 
-    .. figure:: gen-images/radiusle_label.svg
+    .. figure:: ../gen-images/radiusle_label.svg
       :width: 300
       :align: center
 
@@ -511,7 +511,7 @@ Region expressions
 
     All parts of cable segments in the region ``reg`` with radius greater than ``radius``.
 
-    .. figure:: gen-images/radiusgt_label.svg
+    .. figure:: ../gen-images/radiusgt_label.svg
       :width: 300
       :align: center
 
@@ -528,7 +528,7 @@ Region expressions
 
     All parts of cable segments in the region ``reg`` with radius greater than or equal to ``radius``.
 
-    .. figure:: gen-images/radiusge_label.svg
+    .. figure:: ../gen-images/radiusge_label.svg
       :width: 300
       :align: center
 
@@ -544,7 +544,7 @@ Region expressions
 
     The union of two or more regions.
 
-    .. figure:: gen-images/union_label.svg
+    .. figure:: ../gen-images/union_label.svg
       :width: 900
       :align: center
 
@@ -554,7 +554,7 @@ Region expressions
 
     The intersection of two or more regions.
 
-    .. figure:: gen-images/intersect_label.svg
+    .. figure:: ../gen-images/intersect_label.svg
       :width: 900
       :align: center
 
