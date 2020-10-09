@@ -3,12 +3,19 @@
 
 version: 2
 
+submodules:
+  include: all
+  recursive: true
+
 sphinx:
   configuration: doc/conf.py
 
-formats: all
+formats: []
 
 python:
   version: 3.7
+  system_packages: true
   install:
     - requirements: doc/requirements.txt
+    - method: setuptools
+      path: .

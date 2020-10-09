@@ -4,7 +4,15 @@ Arbor
 .. image:: https://travis-ci.org/arbor-sim/arbor.svg?branch=master
     :target: https://travis-ci.org/arbor-sim/arbor
 
-Arbor is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells, from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to help neuroscientists effectively use contemporary and future HPC systems to meet their simulation needs. The performance portability is by virtue of back-end specific optimizations for x86 multicore, Intel KNL, and NVIDIA GPUs. When coupled with low memory overheads, these optimizations make Arbor an order of magnitude faster than the most widely-used comparable simulation software. Arbor is open source and openly developed, and we use development practices such as unit testing, continuous integration, and validation.
+Arbor is a high-performance library for computational neuroscience simulations with multi-compartment,
+morphologically-detailed cells, from single cell models to very large networks. Arbor is written from
+the ground up with many-cpu and gpu architectures in mind, to help neuroscientists effectively use
+contemporary and future HPC systems to meet their simulation needs. The performance portability is by
+virtue of back-end specific optimizations for explicit vectorization on CPUs from Intel (AVX, AVX2 and
+AVX512) and ARM (Neon and SVE), as well as for NVIDIA and AMD GPUs. When coupled with low memory
+overheads, these optimizations make Arbor an order of magnitude faster than the most widely-used
+comparable simulation software. Arbor is open source and openly developed, and we use development
+practices such as unit testing, continuous integration, and validation.
 
 Citing Arbor
 ------------
@@ -24,74 +32,13 @@ Citing Arbor
 Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
 
 .. toctree::
-   :caption: Get Arbor:
+   :caption: Arbor documentation:
+   :maxdepth: 1
 
-   in_install
-   in_python
-   in_build_install
-
-.. toctree::
-   :caption: Getting started:
-
-   gs_single_cell
-   gs_other_examples
-
-.. toctree::
-   :caption: How does Arbor work?
-
-   co_overview
-   co_recipe
-   co_cell
-   co_cable_cell
-   co_morphology
-   co_labels
-   co_mechanisms
-   co_interconnectivity
-   co_hardware
-   co_domdec
-   co_simulation
-
-.. toctree::
-   :caption: Python API
-
-   py_overview
-   py_recipe
-   py_cell
-   py_cable_cell
-   py_morphology
-   py_labels
-   py_mechanisms
-   py_interconnectivity
-   py_hardware
-   py_domdec
-   py_simulation
-   py_profiler
-
-.. toctree::
-   :caption: C++ API
-
-   cpp_overview
-   cpp_recipe
-   cpp_cell
-   cpp_cable_cell
-   cpp_interconnectivity
-   cpp_hardware
-   cpp_domdec
-   cpp_simulation
-   cpp_profiler
-   cpp_neuroml
-
-.. toctree::
-   :caption: C++ API for HPC
-
-   cpp_distributed_context
-   cpp_dry_run
-
-.. toctree::
-   :caption: Arbor Internals
-
-   ai_library
-   ai_nmodl
-   ai_simd_api
-   ai_sampling_api
-
+   install/index
+   tutorial/index
+   concepts/index
+   python/index
+   cpp/index
+   hpc/index
+   internals/index

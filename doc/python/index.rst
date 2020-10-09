@@ -1,7 +1,8 @@
 .. _pyoverview:
 
-Overview
+Python
 =========
+
 The Python frontend for Arbor is an interface that the vast majority of users will use to interact with Arbor.
 This section covers how to use the frontend with examples and detailed descriptions of features.
 
@@ -10,8 +11,7 @@ This section covers how to use the frontend with examples and detailed descripti
 
 .. _simsteps:
 
-Simulation steps
-~~~~~~~~~~~~~~~~
+.. rubric:: Simulation steps
 
 The workflow for defining and running a model defined in :ref:`modelsimulation` can be performed
 in Python as follows:
@@ -25,7 +25,7 @@ These details are described and examples are given in the next sections :ref:`py
 
 .. note::
 
-    Detailed information on Arbor's python features can also be obtained with Python's ``help`` function, e.g.
+    Detailed information on Arbor's Python features can also be obtained with Python's ``help`` function, e.g.
 
     .. code-block:: python3
 
@@ -35,3 +35,19 @@ These details are described and examples are given in the next sections :ref:`py
         class proc_allocation(pybind11_builtins.pybind11_object)
         |  Enumerates the computational resources on a node to be used for simulation.
         |...
+
+.. toctree::
+   :caption: Python API:
+   :maxdepth: 2
+
+   recipe
+   cell
+   cable_cell
+   morphology
+   labels
+   mechanisms
+   interconnectivity
+   hardware
+   domdec
+   simulation
+   profiler

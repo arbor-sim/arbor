@@ -1,6 +1,6 @@
 .. _gs_other_examples:
 
-Other examples
+Quick start
 ================================
 
 .. Note::
@@ -8,3 +8,9 @@ Other examples
 
 .. Todo::
     Add more in-depth tutorial-like pages building up examples here.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+
+   single_cell_model

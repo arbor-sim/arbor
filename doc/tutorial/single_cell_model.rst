@@ -22,7 +22,7 @@ Single compartment cell with HH dynamics
 The most trivial representation of a cell in Arbor is to model the entire cell as a
 cylinder. The following example shows the steps required to construct a model of a
 cylindrical cell with radius 3 μm, Hodgkin–Huxley dynamics and a current clamp stimulus,
-then run the model for 100 ms.
+then run the model for 30 ms.
 
 The first step is to construct the cell. In Arbor, the abstract representation used to
 define a cell with branching "cable" morphology is a ``cable_cell``, which holds a
@@ -107,8 +107,8 @@ and provides an interface for recording potentials and running the simulation.
     # (5) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
     m.probe('voltage', '"center"', frequency=10000)
 
-    # (6) Run simulation for 100 ms of simulated activity.
-    m.run(tfinal=100)
+    # (6) Run simulation for 30 ms of simulated activity.
+    m.run(tfinal=30)
 
 Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor.single_cell_model>`
 with our single-compartment cell.
@@ -118,7 +118,7 @@ is used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
 probe ('center'), and the frequency at which we want to sample (10kHz).
 
-Finally, step **(6)** starts the actual simulation for a duration of 100 ms.
+Finally, step **(6)** starts the actual simulation for a duration of 30 ms.
 
 Results
 ----------------------------------------------------
@@ -139,6 +139,7 @@ spike_detector and a voltage probe. Let's see what they have produced!
 
     # (8) Plot the recorded voltages over time.
     import pandas, seaborn # You may have to pip install these.
+    seaborn.set_theme() # Apply some styling to the plot
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
     seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 
@@ -151,7 +152,7 @@ Arbor stores sampled quantities under
 :meth:`arbor.single_cell_model.traces<arbor.single_cell_model.traces>`.
 You should be seeing something like this:
 
-.. figure:: images/single_cell_model_result.svg
+.. figure:: single_cell_model_result.svg
     :width: 400
     :align: center
 
