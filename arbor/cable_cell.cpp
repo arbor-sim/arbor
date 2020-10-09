@@ -142,7 +142,7 @@ cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary):
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 
 cable_cell::cable_cell(const cable_cell& other):
-    default_parameters_(other.default_parameters_),
+    decor_(other.decor_),
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
 
@@ -197,39 +197,54 @@ void cable_cell::set_default(defaultable prop) {
             [this] (auto&& p) {
                 using T = std::decay_t<decltype(p)>;
                 if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                    default_parameters_.init_membrane_potential = p.value;
+                    decor_.defaults.init_membrane_potential = p.value;
                 }
                 else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                    default_parameters_.axial_resistivity = p.value;
+                    decor_.defaults.axial_resistivity = p.value;
                 }
                 else if constexpr (std::is_same_v<temperature_K, T>) {
-                    default_parameters_.temperature_K = p.value;
+                    decor_.defaults.temperature_K = p.value;
                 }
                 else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                    default_parameters_.membrane_capacitance = p.value;
+                    decor_.defaults.membrane_capacitance = p.value;
                 }
                 else if constexpr (std::is_same_v<initial_ion_data, T>) {
-                    default_parameters_.ion_data[p.ion] = p.initial;
+                    decor_.defaults.ion_data[p.ion] = p.initial;
                 }
                 else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                    default_parameters_.ion_data[p.ion].init_int_concentration = p.value;
+                    decor_.defaults.ion_data[p.ion].init_int_concentration = p.value;
                 }
                 else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                    default_parameters_.ion_data[p.ion].init_ext_concentration = p.value;
+                    decor_.defaults.ion_data[p.ion].init_ext_concentration = p.value;
                 }
                 else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                    default_parameters_.ion_data[p.ion].init_reversal_potential = p.value;
+                    decor_.defaults.ion_data[p.ion].init_reversal_potential = p.value;
                 }
                 else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
-                    default_parameters_.reversal_potential_method[p.ion] = p.method;
+                    decor_.defaults.reversal_potential_method[p.ion] = p.method;
                 }
             },
             prop);
-    decor_.defaults.push_back(prop);
+}
+
+void cable_cell::set_default(cable_cell_parameter_set params) {
+    decor_.defaults = std::move(params);
 }
 
 const label_dict& cable_cell::labels() const {
     return impl_->dictionary;
+}
+
+void cable_cell::decorate(const decor& d) {
+    for (auto& x: d.paintings) {
+        paint(x.first, x.second);
+    }
+    for (auto& x: d.placements) {
+        place(x.first, x.second);
+    }
+    for (auto& x: d.defaults.serialize()) {
+        set_default(x);
+    }
 }
 
 } // namespace arb

@@ -25,9 +25,6 @@ TEST(cable_cell, decor) {
     dict.set("term", locset("(terminal)"));
     dict.set("stim-site", locset("(location 0 0.5)"));
     cable_cell c(tree, dict);
-
-    std::cout << c.decorations() << "\n\n";
-
     auto mech = mechanism_desc{"hh"};
     mech.set("foo", 12);
     mech.set("bar", 1.2);
@@ -36,9 +33,16 @@ TEST(cable_cell, decor) {
     c.paint("\"dend\"", "hh");
     c.paint("\"axon\"", mech);
     c.place("(terminal)", threshold_detector{-10});
+    c.set_default(arb::neuron_parameter_defaults);
     c.set_default(init_membrane_potential{-60});
 
-    write_s_expr(std::cout, c) << "\n";
+    write_s_expr(std::cout, c) << "\n==============================================\n";
+
+    cable_cell c2(tree, dict);
+
+    write_s_expr(std::cout, c2) << "\n==============================================\n";
+    c2.decorate(c.decorations());
+    write_s_expr(std::cout, c2) << "\n==============================================\n";
 }
 
 TEST(cable_cell, printer) {

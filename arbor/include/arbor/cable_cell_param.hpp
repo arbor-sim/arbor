@@ -197,17 +197,6 @@ using defaultable =
                  init_reversal_potential,
                  ion_reversal_potential_method>;
 
-// A flat description of defaults, paintings and placings that
-// are to be applied to a morphology in a cable_cell.
-struct decor {
-    std::vector<std::pair<region, paintable>> paintings;
-    std::vector<std::pair<locset, placeable>> placements;
-    std::vector<defaultable> defaults;
-
-    std::string as_s_sexpr() const;
-};
-std::ostream& operator<<(std::ostream& o, const decor& d);
-
 // Cable cell ion and electrical defaults.
 
 // Parameters can be given as per-cell and global defaults via
@@ -228,6 +217,18 @@ struct cable_cell_parameter_set {
     std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
 
     std::optional<cv_policy> discretization;
+
+    std::vector<defaultable> serialize() const;
+};
+
+// A flat description of defaults, paintings and placings that
+// are to be applied to a morphology in a cable_cell.
+struct decor {
+    std::vector<std::pair<region, paintable>> paintings;
+    std::vector<std::pair<locset, placeable>> placements;
+    cable_cell_parameter_set defaults;
+
+    std::string as_s_sexpr() const;
 };
 
 extern cable_cell_parameter_set neuron_parameter_defaults;

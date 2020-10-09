@@ -90,7 +90,7 @@ s_expr mksexp(const decor& d) {
         return parse_s_expr(s.str());
     };
     s_expr lst = slist();
-    for (const auto& p: d.defaults) {
+    for (const auto& p: d.defaults.serialize()) {
         lst = {std::visit([&](auto& x) {return slist("default"_symbol, mksexp(x));}, p), std::move(lst)};
     }
     for (const auto& p: d.paintings) {

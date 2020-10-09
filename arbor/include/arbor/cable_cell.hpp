@@ -259,7 +259,10 @@ public:
 
     // Set cell-wide default physical and ion parameters.
 
+    // Individual properties.
     void set_default(defaultable prop);
+    // Copy over a set of properties.
+    void set_default(cable_cell_parameter_set params);
 
     // Painters and placers.
     //
@@ -298,23 +301,28 @@ public:
     const cable_cell_region_map& region_assignments() const;
     const cable_cell_location_map& location_assignments() const;
 
+    // View the decorations on the cell.
     const decor& decorations() const {
         return decor_;
     }
 
+    // Apply a set of decorations to the cell.
+    // Note: these will not remove existing paintings & placements, and
+    // will apply changes on top of existing defaults.
+    void decorate(const decor&);
+
     const cable_cell_parameter_set& default_parameters() const {
-        return default_parameters_;
+        return decor_.defaults;
     }
 
     std::optional<cv_policy>& discretization() {
-        return default_parameters_.discretization;
+        return decor_.defaults.discretization;
     }
 
 private:
 
-    cable_cell_parameter_set default_parameters_;
-    std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
     decor decor_;
+    std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 
 } // namespace arb

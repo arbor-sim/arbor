@@ -73,83 +73,44 @@ cable_cell_parameter_set neuron_parameter_defaults = {
 };
 
 
-// s-expression printers for paintable, placeable and defaultable items.
+std::vector<defaultable> cable_cell_parameter_set::serialize() const {
+    std::vector<defaultable> D;
+    if (init_membrane_potential) {
+        D.push_back(arb::init_membrane_potential{*this->init_membrane_potential});
+    }
+    if (temperature_K) {
+        D.push_back(arb::temperature_K{*this->temperature_K});
+    }
+    if (axial_resistivity) {
+        D.push_back(arb::axial_resistivity{*this->axial_resistivity});
+    }
+    if (membrane_capacitance) {
+        D.push_back(arb::membrane_capacitance{*this->membrane_capacitance});
+    }
 
-s_expr make_s_expr(const init_membrane_potential& p) {
-    using namespace s_expr_literals;
-    return slist("membrane-potential"_symbol, p.value);
-}
-s_expr make_s_expr(const axial_resistivity& r) {
-    using namespace s_expr_literals;
-    return slist("axial-resistivity"_symbol, r.value);
-}
-s_expr make_s_expr(const temperature_K& t) {
-    using namespace s_expr_literals;
-    return slist("temperature-kelvin"_symbol, t.value);
-}
-s_expr make_s_expr(const membrane_capacitance& c) {
-    using namespace s_expr_literals;
-    return slist("membrane-capacitance"_symbol, c.value);
-}
-s_expr make_s_expr(const init_int_concentration& c) {
-    using namespace s_expr_literals;
-    return slist("ion-internal-concentration"_symbol, c.ion, c.value);
-}
-s_expr make_s_expr(const init_ext_concentration& c) {
-    using namespace s_expr_literals;
-    return slist("ion-external-concentration"_symbol, c.ion, c.value);
-}
-s_expr make_s_expr(const init_reversal_potential& e) {
-    using namespace s_expr_literals;
-    return slist("ion-reversal-potential"_symbol, e.ion, e.value);
-}
-s_expr make_s_expr(const mechanism_desc& d); // forward declaration
-s_expr make_s_expr(const ion_reversal_potential_method& e) {
-    using namespace s_expr_literals;
-    return slist("ion-reversal-potential-method"_symbol, e.ion, make_s_expr(e.method));
-}
-s_expr make_s_expr(const i_clamp& c) {
-    using namespace s_expr_literals;
-    return slist("current-clamp"_symbol, c.amplitude, c.delay, c.duration);
-}
-s_expr make_s_expr(const threshold_detector& d) {
-    using namespace s_expr_literals;
-    return slist("threshold-detector"_symbol, d.threshold);
-}
-s_expr make_s_expr(const gap_junction_site& s) {
-    using namespace s_expr_literals;
-    return slist("gap-junction-site"_symbol);
-}
-s_expr make_s_expr(const initial_ion_data& s) {
-    using namespace s_expr_literals;
-    return slist("ion-data"_symbol);
-}
-s_expr make_s_expr(const mechanism_desc& d) {
-    s_expr e;
-    s_expr args = slist(); // initialise arguments as an empty list
-    for (auto [n, v]: d.values()) {
-        args = s_expr({n, v}, std::move(args));
+    //std::unordered_map<std::string, cable_cell_ion_data> ion_data;
+    for (auto& ion: ion_data) {
+        auto& d = ion.second;
+        if (d.init_int_concentration) {
+            D.push_back(init_int_concentration{ion.first, *d.init_int_concentration});
+        }
+        if (d.init_ext_concentration) {
+            D.push_back(init_ext_concentration{ion.first, *d.init_ext_concentration});
+        }
+        if (d.init_reversal_potential) {
+            D.push_back(init_reversal_potential{ion.first, *d.init_reversal_potential});
+        }
     }
-    return slist("mechanism", args);
-}
 
-std::ostream& operator<<(std::ostream& o, const decor& d) {
-    o << "(defaults";
-    for (const auto& p: d.defaults) {
-        o << "\n  " << " " << std::visit([](auto& x) {return make_s_expr(x);}, p) << ")";
+    //std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
+    for (auto& ion: reversal_potential_method) {
+        D.push_back(ion_reversal_potential_method{ion.first, ion.second});
     }
-    o << ")\n";
-    o << "(paintings";
-    for (const auto& p: d.paintings) {
-        o << "\n  (" << p.first << " " << std::visit([](auto& x) {return make_s_expr(x);}, p.second) << ")";
-    }
-    o << ")\n";
-    o << "(placements";
-    for (const auto& p: d.placements) {
-        o << "\n  (" << p.first << " " << std::visit([](auto& x) {return make_s_expr(x);}, p.second) << ")";
-    }
-    o << ")";
-    return o;
+
+    // TODO
+    //std::optional<cv_policy> discretization;
+
+    return D;
 }
 
 } // namespace arb
