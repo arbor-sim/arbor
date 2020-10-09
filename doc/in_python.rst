@@ -45,7 +45,7 @@ to see information about the version and enabled features:
     >>> print(arbor.__version__)
     >>> print(arbor.__config__)
 
-You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the :ref:`pyoverview`,
+You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the :ref:`pyoverview` ,
  or visit the :ref:`Quick Start page<gs_single_cell>`.
 
 .. Note::

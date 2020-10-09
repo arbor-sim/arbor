@@ -75,13 +75,13 @@ In step **(3)** a :class:`arbor.cable_cell` is constructed by combining the segm
 with the named regions and locations.
 
 * "Cell-wide" properties are set through :meth:`arbor.cable_cell.set_properties`. Here,
-  the initial membrane potential everywhere on the cell is set to -40 mV.
+  the initial membrane potential is set to -40 mV everywhere on the cell.
 * Properties can also be set to a region of the cell, which Arbor calls 'painting'. This
   is meant to convey placement is not precise: we wouldn't want to manually place ion
   channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us
   instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details
   out for us.
-* Other properties should be added to the cell on precise :class:`arbor.location`s. This is
+* Other properties should be added to the cell on precise :class:`arbor.location` s. This is
   done using the :meth:`arbor.cable_cell.place<arbor.cable_cell.place>` method.
   We place a current stimulus :class:`arbor.iclamp<arbor.iclamp>` with a duration of 2 ms
   and a current of 0.8 nA, starting at 10 ms on the location we've labelled 'center'. We also
@@ -91,7 +91,7 @@ with the named regions and locations.
 Single cell model
 ----------------------------------------------------
 
-Great, we have defined our cell! Now, let's move to the simulation. Arbor is able to simulate
+Great, we have defined our cell! Now, let's move on to the simulation. Arbor is able to simulate
 networks with multiple individual cells; this requires a *recipe* to describe the cells,
 connections, gap junctions, etc. However, for single cell models, arbor does not require the recipe
 to be provided by the user. Arbor provides a :class:`arbor.single_cell_model<arbor.single_cell_model>`

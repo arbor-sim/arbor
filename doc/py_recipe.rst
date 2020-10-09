@@ -92,7 +92,7 @@ Recipe
 
     .. function:: get_probes(gid)
 
-        Returns a vector containing (in order) all the probes on a given cell `gid`.
+        Returns a list containing (in order) all the probes on a given cell `gid`.
 
         By default returns an empty list.
 
