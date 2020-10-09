@@ -43,8 +43,7 @@ DERIVATIVE states {
 }
 
 INITIAL {
-    LOCAL qt, mAlpha, mBeta
-    qt = 2.3^((celsius - 30)/10)
+    LOCAL mAlpha, mBeta
     
     mAlpha = 0.007*exp(( 6 *      0.4  * (v + 48))/26.12)
     mBeta  = 0.007*exp((-6 * (1 - 0.4) * (v + 48))/26.12)

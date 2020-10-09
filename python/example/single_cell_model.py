@@ -22,9 +22,8 @@ m = arbor.single_cell_model(cell)
 # (5) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
 m.probe('voltage', '"center"', frequency=10000)
 
-# (6) Run simulation for 100 ms of simulated activity.
-m.run(tfinal=100)
-print("Simulation done.")
+# (6) Run simulation for 30 ms of simulated activity.
+m.run(tfinal=30)
 
 # (7) Print spike times, if any.
 if len(m.spikes)>0:
@@ -36,6 +35,7 @@ else:
 
 # (8) Plot the recorded voltages over time.
 print("Plotting results ...")
+seaborn.set_theme() # Apply some styling to the plot
 df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 

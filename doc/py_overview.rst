@@ -6,7 +6,7 @@ The Python frontend for Arbor is an interface that the vast majority of users wi
 This section covers how to use the frontend with examples and detailed descriptions of features.
 
 .. Note::
-    If you haven't set up Arbor yet, see the :ref:`Python installation guide <gs_python>`.
+    If you haven't set up Arbor yet, see the :ref:`Python installation guide <in_python>`.
 
 .. _simsteps:
 
