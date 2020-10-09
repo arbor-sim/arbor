@@ -4,15 +4,14 @@ Arbor
 .. image:: https://travis-ci.org/arbor-sim/arbor.svg?branch=master
     :target: https://travis-ci.org/arbor-sim/arbor
 
-Arbor is a high-performance library for computational neuroscience simulations with multi-compartment,
-morphologically-detailed cells, from single cell models to very large networks. Arbor is written from
-the ground up with many-cpu and gpu architectures in mind, to help neuroscientists effectively use
-contemporary and future HPC systems to meet their simulation needs. The performance portability is by
-virtue of back-end specific optimizations for explicit vectorization on CPUs from Intel (AVX, AVX2 and
-AVX512) and ARM (Neon and SVE), as well as for NVIDIA and AMD GPUs. When coupled with low memory
-overheads, these optimizations make Arbor an order of magnitude faster than the most widely-used
-comparable simulation software. Arbor is open source and openly developed, and we use development
-practices such as unit testing, continuous integration, and validation.
+Arbor is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
+from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to
+help neuroscientists effectively use contemporary and future HPC systems to meet their simulation needs.
+
+Arbor supports NVIDIA and AMD GPUs as well as explicit vectorization on CPUs from Intel (AVX, AVX2 and AVX512) and ARM (Neon and SVE).
+When coupled with low memory overheads, this makes Arbor an order of magnitude faster than the most widely-used comparable simulation software.
+
+Arbor is open source and openly developed, and we use development practices such as unit testing, continuous integration, and validation.
 
 Citing Arbor
 ------------

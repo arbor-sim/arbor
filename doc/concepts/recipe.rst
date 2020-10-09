@@ -52,13 +52,16 @@ The steps of building a simulation from a recipe are:
     for more information about the cells assigned to it.
 
 .. Note::
-    An example of how performance considerations impact Arbor's architecture: you will notice cell kind and cell description are separately added to a recipe. Consider the following conversation between an Arbor simulation, recipe and hardware back-end:
+    An example of how performance considerations impact Arbor's architecture:
+    you will notice cell kind and cell description are separately added to a recipe.
+    Consider the following conversation between an Arbor simulation, recipe and hardware back-end:
 
     | Simulator: give me cell 37.
     | Recipe: here you go, it's of C++ type s3cr1ts4uc3.
     | Simulator: wot? What is the cell kind for cell 37?
     | Recipe: it's a foobar.
-    | Simulator: Okay. Cell group implementations: which one of you lot deals with foobars?
+    | Simulator: Okay.
+    | Cell group implementations: which one of you lot deals with foobars?
     | Foobar_GPUFTW_lolz: That'd be me, if we've got GPU enabled.
     | Simulator: Okay it's up to you then to deal with this s3cr1ts4uc3 object.
 

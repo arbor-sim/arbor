@@ -1,4 +1,3 @@
-import sys
 import arbor
 import pandas, seaborn
 from math import sqrt
@@ -109,9 +108,6 @@ print(f'{recipe}')
 
 meters.checkpoint('recipe-create', context)
 
-decomp = arbor.partition_load_balance(recipe, context)
-print(f'{decomp}')
-
 hint = arbor.partition_hint()
 hint.prefer_gpu = True
 hint.gpu_group_size = 1000
@@ -148,8 +144,12 @@ for sp in spike_recorder.spikes:
     print(' ', sp)
 
 # Plot the recorded voltages over time.
-df = pandas.DataFrame()
+print("Plotting results ...")
+df_list = []
 for gid in range(ncells):
-    for s in samplers[gid].samples(arbor.cell_member(gid,0)):
-        df=df.append({'t/ms': s.time, 'U/mV': s.value, 'Cell': f"cell {gid}"}, ignore_index=True)
+    times = [s.time  for s in samplers[gid].samples(arbor.cell_member(gid,0))]
+    volts = [s.value for s in samplers[gid].samples(arbor.cell_member(gid,0))]
+    df_list.append(pandas.DataFrame({'t/ms': times, 'U/mV': volts, 'Cell': f"cell {gid}"}))
+
+df = pandas.concat(df_list)
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell").savefig('network_ring_result.svg')

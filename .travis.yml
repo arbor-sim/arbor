@@ -143,6 +143,8 @@ install:
       curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
       python$PY get-pip.py
       pip$PY --version
+      pip$PY install pandas
+      pip$PY install seaborn
     fi
   - if [[ ( "$WITH_PYTHON" == "true" ) && ( "$TRAVIS_OS_NAME" == "osx" ) ]]; then pip$PY install numpy; fi
   - |
