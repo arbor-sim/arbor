@@ -2,13 +2,6 @@
 # -*- coding: utf-8 -*-
 import sys, os
 
-# Path to Python Binding (_arbor)
-try:
-    sys.path.append(os.path.join(os.environ['OLDPWD'],"python"))
-    import arbor
-except ImportError:
-    autodoc_mock_imports = ['arbor._arbor']
-
 html_static_path = ['static']
 
 def setup(app):

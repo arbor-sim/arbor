@@ -12,8 +12,7 @@ This guide will walk through a series of single cell models of increasing comple
 Links are provided to separate documentation that covers relevant topics in more detail.
 
 In an interactive Python interpreter, you can use ``help()`` on any class or function to
-obtain some documentation. E.g.: ``help(arbor.gap_junction_connection)`` will print a
-description of :class:`arbor.gap_junction_connection`.
+obtain some documentation.
 
 .. _single_soma:
 
@@ -63,7 +62,7 @@ using :class:`arbor.mnpos`. Then two :class:`arbor.mpoint` s are supplied, the p
 and distal endpoints of the segment. Finally, an integer value is supplied to tag the
 segment for future reference.
 
-In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor..label_dict>`.
+In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor.label_dict>`.
 Cell builders need to refer to *regions* and *locations* on a cell morphology. Arbor uses a domains
 specific language (DSL) to describe regions and locations, which are given labels. We add two labels:
 
@@ -113,8 +112,8 @@ running the simulation.
 Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor.single_cell_model>`
 with our single-compartment cell.
 
-In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor.single_cell_model.
-probe>` is used to record variables from the model. Three pieces of information are
+In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor.single_cell_model.probe>`
+is used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
 probe ('"center"'), and the frequency at which we want to sample (10kHz).
 
@@ -142,8 +141,8 @@ results! Let's take a look at what the spike detector and a voltage probes from 
     seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
 
 In step **(7)** we access :meth:`arbor.single_cell_model.spikes<arbor.single_cell_model.spikes>`
-to access the spike time. A single spike at a little over 10 ms should be printed, which matches
-the stimulus we have provided in step (3).
+to access the spike time. A single spike at a little over 10 ms should be printed,
+which matches the stimulus we have provided in step (3).
 
 The other measurement we have is that of the potential, which we plot in step **(8)**.
 Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor.single_cell_model.traces>`.

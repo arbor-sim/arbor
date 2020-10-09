@@ -104,7 +104,7 @@ See :ref:`pycell`.
 Synapses
 --------
 
-See :ref:`pysynapses`.
+See :ref:`pyinterconnectivity`.
 
 Probes
 ------

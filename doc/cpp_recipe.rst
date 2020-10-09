@@ -142,7 +142,7 @@ See :ref:`cppcell`.
 Synapses
 --------
 
-See :ref:`cppsynapses`.
+See :ref:`cppinterconnectivity`.
 
 Probes
 ------
