@@ -32,19 +32,24 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& dictionary):
-        provider(m, dictionary)
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels):
+        dictionary(labels),
+        provider(m, labels)
     {}
 
     cable_cell_impl(): cable_cell_impl({},{}) {}
 
     cable_cell_impl(const cable_cell_impl& other):
+        dictionary(other.dictionary),
         provider(other.provider),
         region_map(other.region_map),
         location_map(other.location_map)
     {}
 
     cable_cell_impl(cable_cell_impl&& other) = default;
+
+    // Definition of labels.
+    label_dict dictionary;
 
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
@@ -221,6 +226,10 @@ void cable_cell::set_default(defaultable prop) {
             },
             prop);
     decor_.defaults.push_back(prop);
+}
+
+const label_dict& cable_cell::labels() const {
+    return impl_->dictionary;
 }
 
 } // namespace arb

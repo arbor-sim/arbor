@@ -254,6 +254,9 @@ public:
     const arb::morphology& morphology() const;
     const mprovider& provider() const;
 
+    // Access to labels
+    const label_dict& labels() const;
+
     // Set cell-wide default physical and ion parameters.
 
     void set_default(defaultable prop);

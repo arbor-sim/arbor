@@ -397,7 +397,7 @@ struct s_expr {
 namespace impl {
     template <typename T>
     void slist(s_expr* n, T v) {
-        *n = {v, {}};
+        *n = s_expr(v, {});
     }
 
     template <typename T, typename... Args>
@@ -423,6 +423,17 @@ s_expr slist(T v) {
 inline
 s_expr slist() {
     return {};
+}
+
+template <typename Range>
+s_expr slist_range(const Range& range) {
+    s_expr lst = slist();
+    s_expr* n = &lst;
+    for (const auto& x: range) {
+        *n = s_expr{x, {}};
+        n = &n->tail();
+    }
+    return lst;
 }
 
 std::size_t length(const s_expr& l);

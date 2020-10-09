@@ -73,7 +73,7 @@ cable_cell_parameter_set neuron_parameter_defaults = {
 };
 
 
-// s-expression printers for paintable and placeable items.
+// s-expression printers for paintable, placeable and defaultable items.
 
 s_expr make_s_expr(const init_membrane_potential& p) {
     using namespace s_expr_literals;
@@ -103,6 +103,11 @@ s_expr make_s_expr(const init_reversal_potential& e) {
     using namespace s_expr_literals;
     return slist("ion-reversal-potential"_symbol, e.ion, e.value);
 }
+s_expr make_s_expr(const mechanism_desc& d); // forward declaration
+s_expr make_s_expr(const ion_reversal_potential_method& e) {
+    using namespace s_expr_literals;
+    return slist("ion-reversal-potential-method"_symbol, e.ion, make_s_expr(e.method));
+}
 s_expr make_s_expr(const i_clamp& c) {
     using namespace s_expr_literals;
     return slist("current-clamp"_symbol, c.amplitude, c.delay, c.duration);
@@ -115,37 +120,36 @@ s_expr make_s_expr(const gap_junction_site& s) {
     using namespace s_expr_literals;
     return slist("gap-junction-site"_symbol);
 }
-
+s_expr make_s_expr(const initial_ion_data& s) {
+    using namespace s_expr_literals;
+    return slist("ion-data"_symbol);
+}
 s_expr make_s_expr(const mechanism_desc& d) {
     s_expr e;
-    s_expr args;
+    s_expr args = slist(); // initialise arguments as an empty list
     for (auto [n, v]: d.values()) {
+        args = s_expr({n, v}, std::move(args));
     }
-    /*
-    o << "(mechanism \"" << d.name() << "\" (";
-    for (auto [n, v]: d.values()) {
-        o << "(\"" << n << "\" " << v << ")";
+    return slist("mechanism", args);
+}
+
+std::ostream& operator<<(std::ostream& o, const decor& d) {
+    o << "(defaults";
+    for (const auto& p: d.defaults) {
+        o << "\n  " << " " << std::visit([](auto& x) {return make_s_expr(x);}, p) << ")";
     }
-    return o << "))";
-    */
-    return e;
-}
-
-/*
-std::ostream& operator<<(std::ostream& o, const paintable& thing) {
-    return std::visit([&o](auto&& p) -> std::ostream& {return sstring(o, p);}, thing);
-}
-
-std::ostream& operator<<(std::ostream& o, const placeable& thing) {
-    return std::visit([&o](auto&& p) -> std::ostream& {return sstring(o, p);}, thing);
-}
-*/
-
-void foo() {
-    using namespace s_expr_literals;
-    //std::cout << slist("foo"_symbol, "hello world", -12, 12.8) << "\n";
-    auto s = slist("foo"_symbol, "hello world", -12, 12.8);
-    std::cout << slist(12, 12) << "\n";
+    o << ")\n";
+    o << "(paintings";
+    for (const auto& p: d.paintings) {
+        o << "\n  (" << p.first << " " << std::visit([](auto& x) {return make_s_expr(x);}, p.second) << ")";
+    }
+    o << ")\n";
+    o << "(placements";
+    for (const auto& p: d.placements) {
+        o << "\n  (" << p.first << " " << std::visit([](auto& x) {return make_s_expr(x);}, p.second) << ")";
+    }
+    o << ")";
+    return o;
 }
 
 } // namespace arb

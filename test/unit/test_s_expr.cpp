@@ -131,6 +131,13 @@ TEST(s_expr, list) {
     }
 }
 
+TEST(s_expr, list_range) {
+    std::cout << slist_range(std::vector{1,2,3}) << "\n";
+    std::cout << slist_range(std::vector<int>{}) << "\n";
+    std::cout << slist_range(std::vector{12.1, 0.1}) << "\n";
+    std::cout << slist_range(slist(1, 2, "hello world")) << "\n";
+}
+
 TEST(s_expr, iterate) {
     {
         auto l = slist();

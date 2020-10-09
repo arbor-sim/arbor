@@ -60,34 +60,41 @@ struct gap_junction_site {};
 // cell-wide default:
 
 struct init_membrane_potential {
-    double value = NAN; // [mV]
+    init_membrane_potential() = delete;
+    double value; // [mV]
 };
 
 struct temperature_K {
-    double value = NAN; // [K]
+    temperature_K() = delete;
+    double value; // [K]
 };
 
 struct axial_resistivity {
-    double value = NAN; // [Ω·cm]
+    axial_resistivity() = delete;
+    double value; // [Ω·cm]
 };
 
 struct membrane_capacitance {
-    double value = NAN; // [F/m²]
+    membrane_capacitance() = delete;
+    double value; // [F/m²]
 };
 
 struct init_int_concentration {
+    init_int_concentration() = delete;
     std::string ion;
-    double value = NAN; // [mM]
+    double value; // [mM]
 };
 
 struct init_ext_concentration {
+    init_ext_concentration() = delete;
     std::string ion;
-    double value = NAN; // [mM]
+    double value; // [mM]
 };
 
 struct init_reversal_potential {
+    init_reversal_potential() = delete;
     std::string ion;
-    double value = NAN; // [mV]
+    double value; // [mV]
 };
 
 // Mechanism description, viz. mechanism name and
@@ -199,6 +206,7 @@ struct decor {
 
     std::string as_s_sexpr() const;
 };
+std::ostream& operator<<(std::ostream& o, const decor& d);
 
 // Cable cell ion and electrical defaults.
 
