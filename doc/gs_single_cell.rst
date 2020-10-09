@@ -81,7 +81,7 @@ with the named regions and locations.
   channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us
   instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details
   out for us.
-* Other properties should be added to the cell on precise :class:`arbor.location` s. This is
+* Other properties should be added to the cell on a precise :class:`arbor.location`. This is
   done using the :meth:`arbor.cable_cell.place<arbor.cable_cell.place>` method.
   We place a current stimulus :class:`arbor.iclamp<arbor.iclamp>` with a duration of 2 ms
   and a current of 0.8 nA, starting at 10 ms on the location we've labelled 'center'. We also
