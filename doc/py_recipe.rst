@@ -84,24 +84,17 @@ Recipe
 
         By default returns 0.
 
-    .. function:: num_probes(gid)
-
-        The number of probes attached to the cell with :attr:`arbor.cell_member.gid`.
-
-        By default returns 0.
-
     .. function:: num_gap_junction_sites(gid)
 
         Returns the number of gap junction sites on :attr:`arbor.cell_member.gid`.
 
         By default returns 0.
 
-    .. function:: get_probe(id)
+    .. function:: get_probes(gid)
 
-        Returns the probe(s) to allow monitoring.
+        Returns a list containing (in order) all the probes on a given cell `gid`.
 
-        By default throws a runtime error. If :func:`num_probes`
-        returns a non-zero value, this must also be overridden.
+        By default returns an empty list.
 
 Cells
 ------
@@ -304,10 +297,6 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
                     return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
                 return []
 
-            # Define one probe (for measuring voltage at the soma) on the cell.
-            def num_probes(self, gid):
-                return 1
-
-            def get_probe(self, id):
+            def get_probes(self, id):
                 loc = arbor.location(0, 0) # at the soma
-                return arbor.cable_probe('voltage', id, loc)
+                return [arbor.cable_probe('voltage', loc)]

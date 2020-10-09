@@ -142,7 +142,7 @@ by two stitches:
    stitched_morphology stitched(std::move(builder));
    cable_cell cell(stitched.morphology(), stitched.labels());
 
-   cell.paint("soma", "hh");
+   cell.paint("\"soma\"", "hh");
 
 
 .. _locsets-and-regions:
@@ -287,7 +287,7 @@ Global properties
    .. cpp:member:: bool coalesce_synapses
 
    when synapse dynamics are sufficiently simple, the states of synapses within
-   the same discretized element can be combined for better performance. this
+   the same discretised element can be combined for better performance. this
    is true by default.
 
    .. cpp:member:: std::unordered_map<std::string, int> ion_species

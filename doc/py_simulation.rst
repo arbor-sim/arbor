@@ -183,7 +183,8 @@ Definitions
 ***********
 
 probe
-    A location or component of a cell that is available for monitoring (see :attr:`arbor.recipe.num_probes`, :attr:`arbor.recipe.get_probe` and :attr:`arbor.cable_probe` as references).
+    A location or component of a cell that is available for monitoring (see :attr:`arbor.recipe.num_probes`,
+    :attr:`arbor.recipe.get_probes` and :attr:`arbor.cable_probe` as references).
 
 sample/record
     A record of data corresponding to the value at a specific *probe* at a specific time.
