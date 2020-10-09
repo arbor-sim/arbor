@@ -63,7 +63,7 @@ and distal endpoints of the segment. Finally, an integer value is supplied to ta
 segment for future reference.
 
 In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor.label_dict>`.
-Cell builders need to refer to *regions* and *locations* on a cell morphology. Arbor uses a domains
+Cell builders need to refer to *regions* and *locations* on a cell morphology. Arbor uses a domain
 specific language (DSL) to describe regions and locations, which are given labels. We add two labels:
 
 * ``soma`` defines a *region* with ``(tag  1)``. Note that this corresponds to the
@@ -81,12 +81,12 @@ with the named regions and locations.
   channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us
   instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details
   out for us.
-* Stimuli and spike detectors are added to the cell using the
-  :meth:`arbor.cable_cell.place<arbor.cable_cell.place>` method. This method places objects
-  on precise :class:`arbor.location`s. We place an :class:`arbor.iclamp<arbor.iclamp>` with
-  a duration of 2 ms and a current of 0.8 nA, starting at 10 ms; and an
-  :class:`arbor.spike_detector<arbor.spike_detector>` with a threshold of -10 mV to
-  the location we've labelled 'center'.
+* Other properties should be added to the cell on precise :class:`arbor.location`s. This is
+  done using the :meth:`arbor.cable_cell.place<arbor.cable_cell.place>` method.
+  We place a current stimulus :class:`arbor.iclamp<arbor.iclamp>` with a duration of 2 ms
+  and a current of 0.8 nA, starting at 10 ms on the location we've labelled 'center'. We also
+  place a :class:`arbor.spike_detector<arbor.spike_detector>` with a threshold of -10 mV on the
+  same location.
 
 Single cell model
 ----------------------------------------------------
@@ -95,8 +95,8 @@ Great, we have defined our cell! Now, let's move to the simulation. Arbor is abl
 networks with multiple individual cells; this requires a *recipe* to describe the cells,
 connections, gap junctions, etc. However, for single cell models, arbor does not require the recipe
 to be provided by the user. Arbor provides a :class:`arbor.single_cell_model<arbor.single_cell_model>`
-helper that wraps a cell description, and provides an interface for recording potentials and
-running the simulation.
+helper that wraps a cell description and creates a recipe under the hood, providing an interface for
+recording potentials and running the simulation more easily.
 
 .. code-block:: python
 
