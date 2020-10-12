@@ -25,9 +25,14 @@ ASSIGNED { q10 }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-          
-    ina = gnabar*m*m*m*h*(v - ena)
-    ik  = gkbar*n*n*n*n*(v - ek)
+    LOCAL gk, m_, n_, n2
+
+    n_ = n
+    m_ = m
+    n2 = n_*n_
+    gk = gkbar*n2*n2
+    ina = gnabar*m_*m_*m_*h*(v - ena)
+    ik  = gk*(v - ek)
     il  = gl*(v - el)
 }
 
