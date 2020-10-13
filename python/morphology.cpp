@@ -1,9 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <cmath>
 #include <fstream>
-#include <numeric>
 
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
