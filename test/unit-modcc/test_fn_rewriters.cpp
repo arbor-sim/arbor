@@ -132,21 +132,29 @@ TEST(lower_functions, compound_args) {
         {
             "{ a = g(c, a + b)\n }",
             "{ LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = a + b\n"
             "  a = g(c, ll0_)\n }"
         },
         {
             "{ a = f(1, 2, a)\n }",
-            "{ LOCAL ll0_\n ll0_ = f(1, 2, a)\n a = ll0_\n }"
+            "{ LOCAL ll0_\n "
+            "  ll0_ = 0\n"
+            "  ll0_ = f(1, 2, a)\n "
+            "  a = ll0_\n }"
         },
         {
             "{ a = h(b + c)\n"
             "  b = g(a + b, b)\n"
             "  c = f(a, b, c)\n }",
             "{ LOCAL ll3_\n"
+            "  ll3_ = 0\n"
             "  LOCAL ll2_\n"
+            "  ll2_ = 0\n"
             "  LOCAL ll1_\n"
+            "  ll1_ = 0\n"
             "  LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = b + c\n"
             "  a = h(ll0_)\n"
             "  ll1_ = a + b\n"
@@ -178,8 +186,11 @@ TEST(lower_functions, compound_rhs) {
         {
             "{ a = f(b, c) + g(a, a + b)\n }",
             "{ LOCAL ll2_\n"
+            "  ll2_ = 0\n"
             "  LOCAL ll1_\n"
+            "  ll1_ = 0\n"
             "  LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = f(b, c)\n"
             "  ll1_ = a + b\n"
             "  ll2_ = g(a, ll1_)\n"
@@ -188,6 +199,7 @@ TEST(lower_functions, compound_rhs) {
         {
             "{ a = log(exp(h(b)))\n }",
             "{ LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = h(b)\n"
             "  a = log(exp(ll0_))\n }"
         }
@@ -214,7 +226,9 @@ TEST(lower_functions, nested_calls) {
         {
             "{ a = h(g(a, a + b))\n }",
             "{ LOCAL ll1_\n"
+            "  ll1_ = 0\n"
             "  LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = a + b\n"
             "  ll1_ = g(a, ll0_)\n"
             "  a = h(ll1_)\n }"
@@ -222,8 +236,11 @@ TEST(lower_functions, nested_calls) {
         {
             "{ p2(g(a, b), h(h(c)))\n }",
             "{ LOCAL ll2_\n"
+            "  ll2_ = 0\n"
             "  LOCAL ll1_\n"
+            "  ll1_ = 0\n"
             "  LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = g(a, b)\n"
             "  ll1_ = h(c)\n"
             "  ll2_ = h(ll1_)\n"
@@ -269,13 +286,16 @@ TEST(lower_functions, ifexpr) {
         {
             "{ if (f(a, 1, c)) { p1(a)\n }\n }",
             "{ LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = f(a, 1, c)\n"
             "  if (ll0_ != 0) { p1(a)\n }\n }"
         },
         {
             "{ if (h(a + 2) > 1) { p1(a)\n }\n }",
             "{ LOCAL ll1_\n"
+            "  ll1_ = 0\n"
             "  LOCAL ll0_\n"
+            "  ll0_ = 0\n"
             "  ll0_ = a + 2\n"
             "  ll1_ = h(ll0_)\n"
             "  if (ll1_ > 1) { p1(a)\n }\n }"
@@ -377,6 +397,7 @@ TEST(inline_functions, twice_assign) {
 
     const char* after_defn =
         "{ LOCAL ll0_\n"
+        "  ll0_ = 0\n"
         "  ll0_ = a * 2\n"
         "  if (a<2) {\n"
         "      ll0_ = 2\n"

@@ -48,6 +48,7 @@ std::unordered_map<std::string, targetKind> targetKindMap = {
 std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
     {"none", simd_spec::none},
     {"neon", simd_spec::neon},
+    {"sve", simd_spec::sve},
     {"avx",  simd_spec::avx},
     {"avx2", simd_spec::avx2},
     {"avx512", simd_spec::avx512},
@@ -118,7 +119,7 @@ std::istream& operator>> (std::istream& i, simd_spec& spec) {
     auto npos = std::string::npos;
     std::string s;
     i >> s;
-    unsigned width = 0;
+    unsigned width = no_size;
 
     auto suffix = s.find_last_of('/');
     if (suffix!=npos) {

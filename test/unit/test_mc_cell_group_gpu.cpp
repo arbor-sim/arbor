@@ -27,8 +27,8 @@ namespace {
         cable_cell c = builder.make_cell();
         c.paint("soma", "hh");
         c.paint("dend", "pas");
-        c.place(mlocation{1,1}, i_clamp{5, 80, 0.3});
-        c.place(mlocation{0, 0}, threshold_detector{0});
+        c.place(builder.location({1, 1}), i_clamp{5, 80, 0.3});
+        c.place(builder.location({0, 0}), threshold_detector{0});
         return c;
     }
 }

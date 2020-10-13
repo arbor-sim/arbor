@@ -146,36 +146,24 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
 
     std::vector<mcable> L;
     L.reserve(nb);
-    auto& samples = m.samples();
-    auto matches     = [reg, &samples](msize_t i) {return samples[i].tag==reg.tag;};
-    auto not_matches = [&matches](msize_t i) {return !matches(i);};
+    auto matches     = [reg](auto& seg){return seg.tag==reg.tag;};
+    auto not_matches = [&matches](auto& seg) {return !matches(seg);};
 
     for (msize_t i: util::make_span(nb)) {
-        auto ids = util::make_range(m.branch_indexes(i)); // range of sample ids in branch.
-        size_t ns = util::size(ids);        // number of samples in branch.
+        auto& segs = m.branch_segments(i); // Range of segments in the branch.
+        auto locs = util::make_range(e.branch_segment_locations(i));
 
-        if (ns==1) {
-            // The branch is a spherical soma
-            if (samples[0].tag==reg.tag) {
-                L.push_back({0,0,1});
-            }
-            continue;
-        }
+        auto beg = std::cbegin(segs);
+        auto end = std::cend(segs);
 
-        // The branch has at least 2 samples.
-        // Start at begin+1 because a segment gets its tag from its distal sample.
-        auto beg = std::cbegin(ids);
-        auto end = std::cend(ids);
-
-        // Find the next sample that matches reg.tag.
-        auto start = std::find_if(beg+1, end, matches);
+        // Find the next section that matches reg.tag.
+        auto start = std::find_if(beg, end, [reg](auto& seg){return seg.tag==reg.tag;});
         while (start!=end) {
             // find the next sample that does not match reg.tag
-            auto first = start-1;
             auto last = std::find_if(start, end, not_matches);
 
-            auto l = first==beg? 0.: e.sample_location(*first).pos;
-            auto r = last==end?  1.: e.sample_location(*(last-1)).pos;
+            auto l = locs[start-beg].pos;
+            auto r = last==end? 1: locs[last-beg].pos;
             L.push_back({i, l, r});
 
             // Find the next sample in the branch that matches reg.tag.
@@ -335,7 +323,7 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
-    return o << "(distal_interval " << d.end << " " << d.distance << ")";
+    return o << "(proximal_interval " << d.end << " " << d.distance << ")";
 }
 
 mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {
@@ -416,7 +404,7 @@ struct radius_ge_ {
 };
 
 region radius_ge(region reg, double val) {
-    return region(radius_gt_{reg, val});
+    return region(radius_ge_{reg, val});
 }
 
 mextent thingify_(const radius_ge_& r, const mprovider& p) {
@@ -558,7 +546,7 @@ struct super_ {
     region reg;
 };
 
-region super(region r) {
+region complete(region r) {
     return region(super_{std::move(r)});
 }
 
@@ -617,7 +605,7 @@ mextent thingify_(const super_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const super_& r) {
-    return o << "(super " << r.reg << ")";
+    return o << "(complete " << r.reg << ")";
 }
 
 
@@ -654,11 +642,69 @@ std::ostream& operator<<(std::ostream& o, const reg_or& x) {
     return o << "(join " << x.lhs << " " << x.rhs << ")";
 }
 
+
+// Complement of a region.
+
+struct reg_not: region_tag {
+    region r;
+    explicit reg_not(region r): r(std::move(r)) {}
+};
+
+mextent thingify_(const reg_not& P, const mprovider& p) {
+    auto nb = p.morphology().num_branches();
+    mcable_list result;
+
+    mextent rex = thingify(P.r, p);
+    auto rex_i = rex.begin();
+
+    for (auto i: util::make_span(nb)) {
+        while (rex_i!=rex.end() && rex_i->branch<i) ++rex_i;
+
+        double x = 0;
+        while (rex_i!=rex.end() && rex_i->branch==i) {
+            double y = rex_i->prox_pos;
+            if (y>x) {
+                result.push_back(mcable{i, x, y});
+            }
+
+            x = rex_i->dist_pos;
+            ++rex_i;
+        }
+
+        if (x<1) {
+            result.push_back(mcable{i, x, 1});
+        }
+    }
+
+    return mextent(result);
+}
+
+std::ostream& operator<<(std::ostream& o, const reg_not& x) {
+    return o << "(complement " << x.r << ")";
+}
+
+
+// Closed set difference of two regions.
+
+struct reg_minus: region_tag {
+    region lhs;
+    region rhs;
+    reg_minus(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+};
+
+mextent thingify_(const reg_minus& P, const mprovider& p) {
+    return thingify(intersect(std::move(P.lhs), complement(std::move(P.rhs))), p);
+}
+
+std::ostream& operator<<(std::ostream& o, const reg_minus& x) {
+    return o << "(difference " << x.lhs << " " << x.rhs << ")";
+}
+
 } // namespace reg
 
-// The intersect and join operations in the arb:: namespace with region so that
-// ADL allows for construction of expressions with regions without having
-// to namespace qualify the intersect/join.
+// The intersect, join, complement and difference operations are in the arb::
+// namespace with region so that ADL allows for construction of expressions
+// with regions without having to namespace qualify these operations.
 
 region intersect(region l, region r) {
     return region{reg::reg_and(std::move(l), std::move(r))};
@@ -666,6 +712,14 @@ region intersect(region l, region r) {
 
 region join(region l, region r) {
     return region{reg::reg_or(std::move(l), std::move(r))};
+}
+
+region complement(region r) {
+    return region{reg::reg_not(std::move(r))};
+}
+
+region difference(region l, region r) {
+    return region{reg::reg_minus(std::move(l), std::move(r))};
 }
 
 region::region() {

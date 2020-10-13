@@ -14,9 +14,9 @@
 //
 // Function | Default implemention by
 // ----------------------------------
-// min      | negate, cmp_gt, ifelse
-// max      | negate, cmp_gt, ifelse
-// abs      | negate, max
+// min      | neg, cmp_gt, ifelse
+// max      | neg, cmp_gt, ifelse
+// abs      | neg, max
 // sin      | lane-wise std::sin
 // cos      | lane-wise std::cos
 // exp      | lane-wise std::exp
@@ -181,7 +181,7 @@ struct implbase {
         return I::copy_from(a);
     }
 
-    static vector_type negate(const vector_type& u) {
+    static vector_type neg(const vector_type& u) {
         store a, r;
         I::copy_to(u, a);
 

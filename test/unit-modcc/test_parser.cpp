@@ -93,7 +93,7 @@ TEST(Parser, procedure) {
         "  y = a + b *c + a + b\n"
         "}"
         ,
-        "PROCEDURE trates(v) {\n"
+        "PROCEDURE trates(v (mV)) {\n"
         "    LOCAL qt\n"
         "    qt=q10^((celsius-22)/10)\n"
         "    minf=1-1/(1+exp((v-vhalfm)/km))\n"
@@ -157,6 +157,32 @@ TEST(Parser, parameters_from_constant) {
     EXPECT_EQ("0.5", param_block.parameters[0].value);
     EXPECT_EQ("e", param_block.parameters[1].name());
     EXPECT_EQ("1.2", param_block.parameters[1].value);
+}
+
+TEST(Parser, parameters_range) {
+    const char str[] =
+            "PARAMETER {   \n"
+            "  tau = 0.2 <0,1000>  \n"
+            "  rho = 0.2 \n"
+            "}";
+
+    expression_ptr null;
+    Module m(str, str+std::strlen(str), "");
+    Parser p(m, false);
+    p.parse_parameter_block();
+
+    EXPECT_EQ(lexerStatus::happy, p.status());
+    verbose_print(null, p, str);
+
+    auto param_block = m.parameter_block();
+    EXPECT_EQ("tau",  param_block.parameters[0].name());
+    EXPECT_EQ("0.2",  param_block.parameters[0].value);
+    EXPECT_EQ("0",    param_block.parameters[0].range.first.spelling);
+    EXPECT_EQ("1000", param_block.parameters[0].range.second.spelling);
+    EXPECT_EQ("rho",  param_block.parameters[1].name());
+    EXPECT_EQ("0.2",  param_block.parameters[1].value);
+    EXPECT_EQ("",     param_block.parameters[1].range.first.spelling);
+    EXPECT_EQ("",     param_block.parameters[1].range.second.spelling);
 }
 
 TEST(Parser, net_receive) {
@@ -245,6 +271,19 @@ TEST(Parser, parse_if) {
         "   if(a<b) {      \n"
         "       a = 2+b    \n"
         "   } else {       \n"
+        "       a = 2+b    \n"
+        "   }                "
+    ));
+    if (s) {
+        EXPECT_NE(s->condition()->is_binary(), nullptr);
+        EXPECT_NE(s->true_branch()->is_block(), nullptr);
+        EXPECT_NE(s->false_branch(), nullptr);
+    }
+
+    EXPECT_TRUE(check_parse(s, &Parser::parse_if,
+        "   IF(a<b) {      \n"
+        "       a = 2+b    \n"
+        "   } ELSE {       \n"
         "       a = 2+b    \n"
         "   }                "
     ));
@@ -646,6 +685,10 @@ TEST(Parser, parse_state_block) {
         "STATE {\n"
         "    h (nA)\n"
         "    m (nA) r (uA)\n"
+        "}",
+        "STATE {\n"
+        "    h FROM 0 TO 1\n"
+        "    m r (uA)\n"
         "}"
     };
 
