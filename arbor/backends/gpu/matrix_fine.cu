@@ -66,18 +66,12 @@ void assemble_matrix_fine(
         const auto dt = dt_intdom[cv_to_intdom[tid]];
         const auto p = dt > 0;
         const auto pid = perm[tid];
-        const auto u = voltage[tid];
-        const auto i = current[tid];
-        const auto a = T(1e-3)*area[tid];
-        const auto s = conductivity[tid];
-        const auto c = cv_capacitance[tid];
-        const auto D = invariant_d[tid];
-        const auto gi = T(1e-3)*c/dt + a*s;
-        const auto r_d = gi + D;
-        const auto r_rhs = gi*u - a*i;
+        const auto gi = T(1e-3)*cv_capacitance[tid]/dt + T(1e-3)*area[tid]*conductivity[tid];
+        const auto r_d   = gi + invariant_d[tid];
+        const auto r_rhs = gi*voltage[tid] - T(1e-3)*area[tid]*current[tid];
 
         d[pid]   = p ? r_d : 0;
-        rhs[pid] = p ? r_rhs : u;
+        rhs[pid] = p ? r_rhs : voltage[tid];
     }
 }
 
