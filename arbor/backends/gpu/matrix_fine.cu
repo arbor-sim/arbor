@@ -195,7 +195,8 @@ void solve_matrix_fine(
 
                 // forward
                 for (unsigned i=0; i<len-1; ++i) {
-                    rhsp = (rhs[pos] - u[pos]*rhsp)/d[pos];
+                    rhsp = rhs[pos] - u[pos]*rhsp;
+                    rhsp /= d[pos];
                     rhs[pos] = rhsp;
                     pos -= width;
                 }
@@ -232,7 +233,8 @@ void solve_matrix_fine(
                 T rhsp = rhs[p];
                 // each branch perform substitution
                 for (unsigned i=0; i<len; ++i) {
-                    rhsp = (rhs_ - u[pos]*rhs[pos])/d[pos];
+                    rhsp = rhs[pos] - u[pos]*rhsp;
+                    rhsp /= d[pos];
                     rhs[pos] = rhsp;
                     pos -= width;
                 }
