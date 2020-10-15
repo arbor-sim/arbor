@@ -141,7 +141,7 @@ class cmake_build(build_ext):
         self.copy_tree(source_path, dest_path)
 
 setuptools.setup(
-    name='arbor1',
+    name='arbor',
     version=version_,
     python_requires='>=3.6',
 
