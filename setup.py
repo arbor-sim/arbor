@@ -167,8 +167,6 @@ setuptools.setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: C++',
-        'Environment :: CUDA :: 10',
-        'Environment :: CUDA :: 11',
     ],
     project_urls={
         'Source': 'https://github.com/arbor-sim/arbor',
