@@ -457,6 +457,8 @@ Overriding properties locally
    the morphology.
 
 
+.. _cable-cell-probes:
+
 Cable cell probes
 -----------------
 

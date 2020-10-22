@@ -536,7 +536,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
         // Sanity check recipe
         auto& cell = cells[cell_idx];
-        if (rec.num_sources(gid) > cell.detectors().size()) {
+        if (rec.num_sources(gid) != cell.detectors().size()) {
             throw arb::bad_source_description(gid, rec.num_sources(gid), cell.detectors().size());;
         }
         auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) {return syn.second.size();});
