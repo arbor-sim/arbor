@@ -372,6 +372,45 @@ s_expr::operator bool() const {
     return !(is_atom() && atom().kind==tok::nil);
 }
 
+// assume that stream indented and ready to go at location to start printing.
+std::ostream& pr(std::ostream& o, const s_expr& x, int indent) {
+    std::string in(std::string::size_type(2*indent), ' ');
+    if (x.is_atom()) {
+        o << x.atom();
+    }
+    else {
+        bool first=true;
+        o << "(";
+        auto it = std::begin(x);
+        auto end = std::end(x);
+        while (it!=end) {
+            if (!first && !it->is_atom() && length(*it)>=0) {
+                o << "\n" << in;
+                pr(o, *it, indent+1);
+                ++it;
+                if (it!=end && it->is_atom()) {
+                    o << "\n" << in;
+                }
+            }
+            else {
+                pr(o, *it, indent+1);
+                if (++it!=end) {
+                    o << " ";
+                }
+            }
+
+            first = false;
+        }
+        o << ")";
+    }
+    return o;
+}
+
+std::ostream& operator<<(std::ostream& o, const s_expr& x) {
+    return pr(o, x, 1);
+}
+
+/*
 std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     if (x.is_atom()) return o << x.atom();
 #if 1
@@ -386,6 +425,7 @@ std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     return o << "(" << x.head() << " . " << x.tail() << ")";
 #endif
 }
+*/
 
 std::size_t length(const s_expr& l) {
     // The length of an atom is 1.
@@ -430,7 +470,7 @@ s_expr parse(lexer& L) {
                 return t;
             }
             else if (t.kind == tok::rparen) {
-                *n = token{t.loc, tok::nil, "nil"};
+                *n = nil_token(t.loc);
                 t = L.next();
                 break;
             }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arbor/cable_cell_param.hpp"
 #include <array>
 #include <random>
 
@@ -112,7 +113,8 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     cell.paint("soma"_lab, "hh");
     cell.paint("dend"_lab, "pas");
-    cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
+
+    cell.set_default(arb::axial_resistivity{100}); // [Ω·cm]
 
     // Add spike threshold detector at the soma.
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
@@ -126,7 +128,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Make a CV between every sample in the sample tree.
-    cell.default_parameters.discretization = arb::cv_policy_every_segment();
+    cell.discretization() = arb::cv_policy_every_segment();
 
     return cell;
 }

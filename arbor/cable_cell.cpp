@@ -1,5 +1,6 @@
 #include <sstream>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -31,19 +32,24 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& dictionary):
-        provider(m, dictionary)
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels):
+        dictionary(labels),
+        provider(m, labels)
     {}
 
     cable_cell_impl(): cable_cell_impl({},{}) {}
 
     cable_cell_impl(const cable_cell_impl& other):
+        dictionary(other.dictionary),
         provider(other.provider),
         region_map(other.region_map),
         location_map(other.location_map)
     {}
 
     cable_cell_impl(cable_cell_impl&& other) = default;
+
+    // Definition of labels.
+    label_dict dictionary;
 
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
@@ -136,7 +142,7 @@ cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary):
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 
 cable_cell::cable_cell(const cable_cell& other):
-    default_parameters(other.default_parameters),
+    decor_(other.decor_),
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
 
@@ -168,24 +174,77 @@ const cable_cell_region_map& cable_cell::region_assignments() const {
     return impl_->region_map;
 }
 
-// Forward paint methods to implementation class.
-
-#define FWD_PAINT(proptype)\
-void cable_cell::paint(const region& target, proptype prop) {\
-    impl_->paint(target, prop);\
+// Forward paint method to implementation class.
+void cable_cell::paint(const region& target, paintable prop) {
+    std::visit(
+            [this, &target] (auto&& p) {impl_->paint(target, p);},
+            prop);
+    decor_.paintings.push_back({target, prop});
 }
-ARB_PP_FOREACH(FWD_PAINT,\
-    mechanism_desc, init_membrane_potential, axial_resistivity,\
-    temperature_K, membrane_capacitance, init_int_concentration,
-    init_ext_concentration, init_reversal_potential)
 
-// Forward place methods to implementation class.
+// Forward place method to implementation class.
+lid_range cable_cell::place(const locset& target, placeable prop) {
+    auto lids = std::visit(
+            [this, &target] (auto&& p) -> lid_range {return impl_->place(target, p);},
+            prop);
 
-#define FWD_PLACE(proptype)\
-lid_range cable_cell::place(const locset& target, proptype prop) {\
-    return impl_->place(target, prop);\
+    decor_.placements.push_back({target, prop});
+    return lids;
 }
-ARB_PP_FOREACH(FWD_PLACE,\
-    mechanism_desc, i_clamp, gap_junction_site, threshold_detector)
+
+void cable_cell::set_default(defaultable prop) {
+    std::visit(
+            [this] (auto&& p) {
+                using T = std::decay_t<decltype(p)>;
+                if constexpr (std::is_same_v<init_membrane_potential, T>) {
+                    decor_.defaults.init_membrane_potential = p.value;
+                }
+                else if constexpr (std::is_same_v<axial_resistivity, T>) {
+                    decor_.defaults.axial_resistivity = p.value;
+                }
+                else if constexpr (std::is_same_v<temperature_K, T>) {
+                    decor_.defaults.temperature_K = p.value;
+                }
+                else if constexpr (std::is_same_v<membrane_capacitance, T>) {
+                    decor_.defaults.membrane_capacitance = p.value;
+                }
+                else if constexpr (std::is_same_v<initial_ion_data, T>) {
+                    decor_.defaults.ion_data[p.ion] = p.initial;
+                }
+                else if constexpr (std::is_same_v<init_int_concentration, T>) {
+                    decor_.defaults.ion_data[p.ion].init_int_concentration = p.value;
+                }
+                else if constexpr (std::is_same_v<init_ext_concentration, T>) {
+                    decor_.defaults.ion_data[p.ion].init_ext_concentration = p.value;
+                }
+                else if constexpr (std::is_same_v<init_reversal_potential, T>) {
+                    decor_.defaults.ion_data[p.ion].init_reversal_potential = p.value;
+                }
+                else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
+                    decor_.defaults.reversal_potential_method[p.ion] = p.method;
+                }
+            },
+            prop);
+}
+
+void cable_cell::set_default(cable_cell_parameter_set params) {
+    decor_.defaults = std::move(params);
+}
+
+const label_dict& cable_cell::labels() const {
+    return impl_->dictionary;
+}
+
+void cable_cell::decorate(const decor& d) {
+    for (auto& x: d.paintings) {
+        paint(x.first, x.second);
+    }
+    for (auto& x: d.placements) {
+        place(x.first, x.second);
+    }
+    for (auto& x: d.defaults.serialize()) {
+        set_default(x);
+    }
+}
 
 } // namespace arb

@@ -31,7 +31,7 @@ set(arbor_sources
     memory/gpu_wrappers.cpp
     memory/util.cpp
     morph/embed_pwlin.cpp
-    morph/stitch.cpp
+    morph/io.cpp
     morph/label_dict.cpp
     morph/label_parse.cpp
     morph/locset.cpp
@@ -42,6 +42,7 @@ set(arbor_sources
     morph/primitives.cpp
     morph/region.cpp
     morph/segment_tree.cpp
+    morph/stitch.cpp
     merge_events.cpp
     simulation.cpp
     partition_load_balance.cpp

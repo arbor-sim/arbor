@@ -107,7 +107,7 @@ void run_v_i_probe_test(const context& ctx) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     cable_cell bs = builder.make_cell();
 
-    bs.default_parameters.discretization = cv_policy_fixed_per_branch(1);
+    bs.discretization() = cv_policy_fixed_per_branch(1);
 
     i_clamp stim(0, 100, 0.3);
     bs.place(mlocation{1, 1}, stim);
@@ -213,7 +213,7 @@ void run_v_cell_probe_test(const context& ctx) {
 
     for (auto& testcase: test_policies) {
         SCOPED_TRACE(testcase.first);
-        cell.default_parameters.discretization = testcase.second;
+        cell.discretization() = testcase.second;
 
         cable1d_recipe rec(cell, false);
         rec.add_probe(0, 0, cable_probe_membrane_voltage_cell{});
@@ -274,7 +274,7 @@ void run_expsyn_g_probe_test(const context& ctx) {
     cable_cell bs = builder.make_cell();
     bs.place(loc0, "expsyn");
     bs.place(loc1, "expsyn");
-    bs.default_parameters.discretization = cv_policy_fixed_per_branch(2);
+    bs.discretization() = cv_policy_fixed_per_branch(2);
 
     auto run_test = [&](bool coalesce_synapses) {
         cable1d_recipe rec(bs, coalesce_synapses);
@@ -368,7 +368,7 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
     cv_policy policy = cv_policy_fixed_per_branch(3);
 
     cable_cell cell(make_y_morphology());
-    cell.default_parameters.discretization = policy;
+    cell.discretization() = policy;
 
     std::unordered_map<cell_lid_type, mlocation> expsyn_target_loc_map;
 
@@ -501,7 +501,7 @@ void run_ion_density_probe_test(const context& ctx) {
     // Simple constant diameter cable, 3 CVs.
 
     cable_cell cable(make_stick_morphology());
-    cable.default_parameters.discretization = cv_policy_fixed_per_branch(3);
+    cable.discretization() = cv_policy_fixed_per_branch(3);
 
     // Calcium ions everywhere, half written by write_ca1, half by write_ca2.
     // Sodium ions only on distal half.
@@ -665,10 +665,10 @@ void run_partial_density_probe_test(const context& ctx) {
     auto m = make_stick_morphology();
 
     cells[0] = cable_cell(m);
-    cells[0].default_parameters.discretization = cv_policy_fixed_per_branch(3);
+    cells[0].discretization() = cv_policy_fixed_per_branch(3);
 
     cells[1] = cable_cell(m);
-    cells[1].default_parameters.discretization = cv_policy_fixed_per_branch(3);
+    cells[1].discretization() = cv_policy_fixed_per_branch(3);
 
     // Paint the mechanism on every second 10% interval of each cell.
     // Expected values on a CV are the weighted mean of the parameter values
@@ -781,7 +781,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
 
     const unsigned n_cv = 3;
     cv_policy policy = cv_policy_fixed_per_branch(n_cv);
-    cell.default_parameters.discretization = policy;
+    cell.discretization() = policy;
 
     cell.place(mlocation{0, 0}, i_clamp(0, INFINITY, 0.3));
 
@@ -790,7 +790,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // to 0.01 F/m².
 
     cell.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
-    cell.default_parameters.membrane_capacitance = 0.01; // [F/m²]
+    cell.set_default(membrane_capacitance{0.01}); // [F/m²]
     const double tau = 0.1; // [ms]
 
     cable1d_recipe rec(cell);
@@ -969,7 +969,7 @@ void run_v_sampled_probe_test(const context& ctx) {
 
     cable_cell bs = builder.make_cell();
 
-    bs.default_parameters.discretization = cv_policy_fixed_per_branch(1);
+    bs.discretization() = cv_policy_fixed_per_branch(1);
 
     std::vector<cable_cell> cells = {bs, bs};
 
@@ -1027,12 +1027,12 @@ void run_total_current_probe_test(const context& ctx) {
     cell.place(mlocation{0, 0}, i_clamp(0, INFINITY, 0.3));
 
     cell.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
-    cell.default_parameters.membrane_capacitance = 0.01; // [F/m²]
+    cell.set_default(membrane_capacitance{0.01}); // [F/m²]
 
     std::vector<cable_cell> cells = {cell, cell};
 
     // Tweak membrane capacitance on cells[1] so as to change dynamics a bit.
-    cells[1].default_parameters.membrane_capacitance = 0.009; // [F/m²]
+    cells[1].set_default(membrane_capacitance{0.009}); // [F/m²]
 
     // We'll run each set of tests twice: once with a trivial (zero-volume) CV
     // at the fork points, and once with a non-trivial CV centred on the fork
@@ -1047,7 +1047,7 @@ void run_total_current_probe_test(const context& ctx) {
     auto run_cells = [&](bool interior_forks) {
         auto flags = interior_forks? cv_policy_flag::interior_forks: cv_policy_flag::none;
         cv_policy policy = cv_policy_fixed_per_branch(n_cv_per_branch, flags);
-        for (auto& c: cells) { c.default_parameters.discretization = policy; }
+        for (auto& c: cells) { c.discretization() = policy; }
 
         for (unsigned i = 0; i<2; ++i) {
             SCOPED_TRACE(i);

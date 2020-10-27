@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -183,6 +184,7 @@ struct cable_probe_ion_ext_concentration_cell {
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
+
 // Typed maps for access to painted and placed assignments:
 //
 // Mechanisms and initial ion data are further keyed by
@@ -231,8 +233,6 @@ public:
 
     using gap_junction_instance = mlocation;
 
-    cable_cell_parameter_set default_parameters;
-
     // Default constructor.
     cable_cell();
 
@@ -254,72 +254,24 @@ public:
     const arb::morphology& morphology() const;
     const mprovider& provider() const;
 
+    // Access to labels
+    const label_dict& labels() const;
+
     // Set cell-wide default physical and ion parameters.
 
-    void set_default(init_membrane_potential prop) {
-        default_parameters.init_membrane_potential = prop.value;
-    }
-
-    void set_default(axial_resistivity prop) {
-        default_parameters.axial_resistivity = prop.value;
-    }
-
-    void set_default(temperature_K prop) {
-        default_parameters.temperature_K = prop.value;
-    }
-
-    void set_default(membrane_capacitance prop) {
-        default_parameters.membrane_capacitance = prop.value;
-    }
-
-    void set_default(initial_ion_data prop) {
-        default_parameters.ion_data[prop.ion] = prop.initial;
-    }
-
-    void set_default(init_int_concentration prop) {
-        default_parameters.ion_data[prop.ion].init_int_concentration = prop.value;
-    }
-
-    void set_default(init_ext_concentration prop) {
-        default_parameters.ion_data[prop.ion].init_ext_concentration = prop.value;
-    }
-
-    void set_default(init_reversal_potential prop) {
-        default_parameters.ion_data[prop.ion].init_reversal_potential = prop.value;
-    }
-
-    void set_default(ion_reversal_potential_method prop) {
-        default_parameters.reversal_potential_method[prop.ion] = prop.method;
-    }
+    // Individual properties.
+    void set_default(defaultable prop);
+    // Copy over a set of properties.
+    void set_default(cable_cell_parameter_set params);
 
     // Painters and placers.
     //
     // Used to describe regions and locations where density channels, stimuli,
     // synapses, gap junctions and detectors are located.
 
-    // Density channels.
-    void paint(const region&, mechanism_desc);
+    void paint(const region&, paintable);
 
-    // Properties.
-    void paint(const region&, init_membrane_potential);
-    void paint(const region&, axial_resistivity);
-    void paint(const region&, temperature_K);
-    void paint(const region&, membrane_capacitance);
-    void paint(const region&, init_int_concentration);
-    void paint(const region&, init_ext_concentration);
-    void paint(const region&, init_reversal_potential);
-
-    // Synapses.
-    lid_range place(const locset&, mechanism_desc);
-
-    // Stimuli.
-    lid_range place(const locset&, i_clamp);
-
-    // Gap junctions.
-    lid_range place(const locset&, gap_junction_site);
-
-    // Spike detectors.
-    lid_range place(const locset&, threshold_detector);
+    lid_range place(const locset&, placeable);
 
     // Convenience access to placed items.
 
@@ -349,7 +301,27 @@ public:
     const cable_cell_region_map& region_assignments() const;
     const cable_cell_location_map& location_assignments() const;
 
+    // View the decorations on the cell.
+    const decor& decorations() const {
+        return decor_;
+    }
+
+    // Apply a set of decorations to the cell.
+    // Note: these will not remove existing paintings & placements, and
+    // will apply changes on top of existing defaults.
+    void decorate(const decor&);
+
+    const cable_cell_parameter_set& default_parameters() const {
+        return decor_.defaults;
+    }
+
+    std::optional<cv_policy>& discretization() {
+        return decor_.defaults.discretization;
+    }
+
 private:
+
+    decor decor_;
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 

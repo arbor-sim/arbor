@@ -1,12 +1,16 @@
+#include <iostream>
+
 #include <cfloat>
 #include <cmath>
 #include <numeric>
 #include <vector>
+#include <variant>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 
 #include "util/maputil.hpp"
+#include "s_expr.hpp"
 
 namespace arb {
 
@@ -67,5 +71,46 @@ cable_cell_parameter_set neuron_parameter_defaults = {
         {"ca", {5e-5,    2.0,  12.5*std::log(2.0/5e-5)}}
     },
 };
+
+
+std::vector<defaultable> cable_cell_parameter_set::serialize() const {
+    std::vector<defaultable> D;
+    if (init_membrane_potential) {
+        D.push_back(arb::init_membrane_potential{*this->init_membrane_potential});
+    }
+    if (temperature_K) {
+        D.push_back(arb::temperature_K{*this->temperature_K});
+    }
+    if (axial_resistivity) {
+        D.push_back(arb::axial_resistivity{*this->axial_resistivity});
+    }
+    if (membrane_capacitance) {
+        D.push_back(arb::membrane_capacitance{*this->membrane_capacitance});
+    }
+
+    //std::unordered_map<std::string, cable_cell_ion_data> ion_data;
+    for (auto& ion: ion_data) {
+        auto& d = ion.second;
+        if (d.init_int_concentration) {
+            D.push_back(init_int_concentration{ion.first, *d.init_int_concentration});
+        }
+        if (d.init_ext_concentration) {
+            D.push_back(init_ext_concentration{ion.first, *d.init_ext_concentration});
+        }
+        if (d.init_reversal_potential) {
+            D.push_back(init_reversal_potential{ion.first, *d.init_reversal_potential});
+        }
+    }
+
+    //std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
+    for (auto& ion: reversal_potential_method) {
+        D.push_back(ion_reversal_potential_method{ion.first, ion.second});
+    }
+
+    // TODO
+    //std::optional<cv_policy> discretization;
+
+    return D;
+}
 
 } // namespace arb

@@ -156,7 +156,7 @@ cable_cell soma_cell_builder::make_cell() const {
     for (auto& b: boundaries) {
         b = location(b);
     }
-    c.default_parameters.discretization = cv_policy_explicit(boundaries);
+    c.discretization() = cv_policy_explicit(boundaries);
     return c;
 }
 
