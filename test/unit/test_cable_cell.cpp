@@ -5,7 +5,6 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
-#include <arbor/morph/io.hpp>
 
 using namespace arb;
 
@@ -36,13 +35,13 @@ TEST(cable_cell, decor) {
     c.set_default(arb::neuron_parameter_defaults);
     c.set_default(init_membrane_potential{-60});
 
-    write_s_expr(std::cout, c) << "\n==============================================\n";
+    //write_s_expr(std::cout, c) << "\n==============================================\n";
 
     cable_cell c2(tree, dict);
 
-    write_s_expr(std::cout, c2) << "\n==============================================\n";
+    //write_s_expr(std::cout, c2) << "\n==============================================\n";
     c2.decorate(c.decorations());
-    write_s_expr(std::cout, c2) << "\n==============================================\n";
+    //write_s_expr(std::cout, c2) << "\n==============================================\n";
 }
 
 TEST(cable_cell, printer) {
