@@ -540,7 +540,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
             throw arb::bad_source_description(gid, rec.num_sources(gid), cell.detectors().size());;
         }
         auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) {return syn.second.size();});
-        if (cell_targets > rec.num_targets(gid)) {
+        if (rec.num_targets(gid) > cell_targets) {
             throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
         }
 
