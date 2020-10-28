@@ -110,10 +110,6 @@ public:
 
    ~mechanism_catalogue();
 
-<<<<<<< HEAD
-   // Grab a collection of all mechanism names in the catalogue.
-=======
->>>>>>> 835b3524 (Add interface for querying names.)
    std::vector<std::string> mechanism_names() const;
 
 private:
