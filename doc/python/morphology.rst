@@ -264,7 +264,8 @@ Cell morphology
 
 .. py:function:: load_swc(filename)
 
-    Loads the morphology in an SWC file as a :class:`segment_tree`.
+    Loads the morphology in an SWC file as a :class:`segment_tree` according to arbor's SWC specifications.
+    (See the morphology concepts :ref:`page <morph-formats>` for more details).
 
     The samples in the SWC files are treated as the end points of segments, where a
     sample and its parent form a segment.
@@ -290,6 +291,23 @@ Cell morphology
 
     :param str filename: the name of the SWC file.
     :rtype: segment_tree
+
+.. py:function:: load_swc_allen(filename)
+
+    Loads the morphology in an SWC file as a :class:`segment_tree` according to the Allen Institues's SWC specifications.
+    (See the morphology concepts :ref:`page <morph-formats>` for more details).
+
+    :param str filename: the name of the SWC file.
+            :rtype: segment_tree
+
+.. py:function:: load_swc_neuron(filename)
+
+    Loads the morphology in an SWC file as a :class:`segment_tree` according to the Allen Institues's SWC specifications.
+    (See the morphology concepts :ref:`page <morph-formats>` for more details).
+
+    :param str filename: the name of the SWC file.
+                    :rtype: segment_tree
+
 
 .. py:function:: load_swc_allen(filename, no_gaps=False)
 

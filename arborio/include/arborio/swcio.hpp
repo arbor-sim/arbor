@@ -180,6 +180,15 @@ inline arb::segment_tree as_segment_tree(const swc_data& data) {
 // These rules are explicitly listed in the docs.
 
 arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records);
+
+inline arb::segment_tree load_swc_neuron(const swc_data& data) {
+    return load_swc_neuron(data.records);
+}
+
 arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps=false);
+
+inline arb::segment_tree load_swc_allen(swc_data& data) {
+    return load_swc_allen(data.records);
+}
 
 } // namespace arborio
