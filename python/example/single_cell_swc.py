@@ -11,10 +11,17 @@
 import arbor
 from arbor import mechanism as mech
 from arbor import location as loc
-import matplotlib.pyplot as plt
+import pandas, seaborn
+import sys
 
 # Load a cell morphology from an swc file.
-tree = arbor.load_swc('../../test/unit/swc/pyramidal.swc')
+# Example present here: ../../test/unit/swc/pyramidal.swc
+if len(sys.argv) < 2:
+    print("No SWC file passed to the program")
+    sys.exit(0)
+
+filename = sys.argv[1]
+tree = arbor.load_swc(filename)
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -45,7 +52,7 @@ cell.paint('"dend"', rL=500)
 cell.place('"stim_site"', arbor.iclamp(3, 1, current=2))
 cell.place('"stim_site"', arbor.iclamp(8, 1, current=4))
 # Detect spikes at the soma with a voltage threshold of -10 mV.
-cell.place('"root"', arbor.spike_detector(-10))
+cell.place('"axon_end"', arbor.spike_detector(-10))
 
 # Have one compartment between each sample point.
 cell.compartments_on_segments()
@@ -62,6 +69,7 @@ m.probe('voltage', where='"axon_end"', frequency=50000)
 # Simulate the cell for 15 ms.
 tfinal=15
 m.run(tfinal)
+print("Simulation done.")
 
 # Print spike times.
 if len(m.spikes)>0:
@@ -72,19 +80,11 @@ else:
     print('no spikes')
 
 # Plot the recorded voltages over time.
-fig, ax = plt.subplots()
+print("Plotting results ...")
+df_list = []
 for t in m.traces:
-    ax.plot(t.time, t.value)
+    df_list.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable}))
 
-legend_labels = ['{}: {}'.format(s.variable, s.location) for s in m.traces]
-ax.legend(legend_labels)
-ax.set(xlabel='time (ms)', ylabel='voltage (mV)', title='swc morphology demo')
-plt.xlim(0,tfinal)
-plt.ylim(-80,80)
-ax.grid()
+df = pandas.concat(df_list)
 
-plot_to_file=False
-if plot_to_file:
-    fig.savefig("voltages.png", dpi=300)
-else:
-    plt.show()
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable").savefig('single_cell_swc.svg')
