@@ -6,7 +6,6 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
-#include <arbor/swcio.hpp>
 
 #include <arborio/swcio.hpp>
 
@@ -18,7 +17,10 @@
 #   define DATADIR "../data"
 #endif
 
-using namespace arb;
+using namespace arborio;
+using arb::segment_tree;
+using arb::mpoint;
+using arb::mnpos;
 
 TEST(swc_record, construction) {
     swc_record record(1, 7, 1., 2., 3., 4., -1);
