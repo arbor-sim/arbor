@@ -110,6 +110,7 @@ public:
 
    ~mechanism_catalogue();
 
+   // Grab a collection of all mechanism names in the catalogue.
    std::vector<std::string> mechanism_names() const;
 
 private:
