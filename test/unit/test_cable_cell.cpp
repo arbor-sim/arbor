@@ -43,22 +43,3 @@ TEST(cable_cell, decor) {
     c2.decorate(c.decorations());
     //write_s_expr(std::cout, c2) << "\n==============================================\n";
 }
-
-TEST(cable_cell, printer) {
-    using namespace arb::s_expr_literals;
-    std::cout << slist() << "\n";
-    std::cout << "-------\n";
-    std::cout << slist(42) << "\n";
-    std::cout << "-------\n";
-    std::cout << slist(21, 21) << "\n";
-    std::cout << "-------\n";
-    std::cout << slist(1, 2, slist(1), 3) << "\n";
-    std::cout << "-------\n";
-    std::cout << slist("transform"_symbol,
-                       slist("all"_symbol),
-                       slist("join"_symbol,
-                             slist("tag"_symbol, 1),
-                             slist("tag"_symbol, 2),
-                             1, 2, 3))
-               << "\n";
-}
