@@ -6,7 +6,6 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
-#include <arbor/swcio.hpp>
 
 #include <arborio/swcio.hpp>
 
@@ -21,10 +20,10 @@ arb::segment_tree load_swc_neuron(const std::string& fname) {
         throw pyarb_error(util::pprintf("can't open file '{}'", fname));
     }
     try {
-        auto records = arb::parse_swc(fid, arb::swc_mode::relaxed).records;
+        auto records = arborio::parse_swc(fid, arborio::swc_mode::relaxed).records;
         return arborio::load_swc_neuron(records);
     }
-    catch (arb::swc_error& e) {
+    catch (arborio::swc_error& e) {
         // Try to produce helpful error messages for SWC parsing errors.
         throw pyarb_error(
                 util::pprintf("NEURON SWC: error parsing {}: {}", fname, e.what()));
@@ -38,10 +37,10 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
         }
         try {
             using namespace arb;
-            auto records = arb::parse_swc(fid, arb::swc_mode::relaxed).records;
+            auto records = arborio::parse_swc(fid, arborio::swc_mode::relaxed).records;
             return arborio::load_swc_allen(records, no_gaps);
         }
-        catch (arb::swc_error& e) {
+        catch (arborio::swc_error& e) {
             // Try to produce helpful error messages for SWC parsing errors.
             throw pyarb_error(
                 util::pprintf("Allen SWC: error parsing {}: {}", fname, e.what()));
@@ -176,10 +175,10 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                auto records = arb::parse_swc(fid).records;
-                return arb::as_segment_tree(records);
+                auto records = arborio::parse_swc(fid).records;
+                return arborio::as_segment_tree(records);
             }
-            catch (arb::swc_error& e) {
+            catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
                 throw pyarb_error(
                     util::pprintf("error parsing {}: {}", fname, e.what()));
