@@ -212,14 +212,14 @@ TEST(swc_parser, segment_tree) {
             {1, 1, 0., 0., 0., 1., -1},
             {5, 3, 1., 1., 1., 1., 2}
         };
-        EXPECT_THROW(as_segment_tree(swc), bad_swc_data);
+        EXPECT_THROW(as_segment_tree(swc), swc_no_such_parent);
     }
     {
         // A single SWC record will throw.
         std::vector<swc_record> swc{
             {1, 1, 0., 0., 0., 1., -1}
         };
-        EXPECT_THROW(as_segment_tree(swc), bad_swc_data);
+        EXPECT_THROW(as_segment_tree(swc), swc_bad_description);
     }
     {
         // Otherwise, ensure segment ends and tags correspond.
@@ -419,7 +419,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 3, p1.x, p1.y, p1.z, p1.radius,  4}
         };
-        EXPECT_THROW(load_swc_allen(swc), bad_swc_data);
+        EXPECT_THROW(load_swc_allen(swc), swc_no_such_parent);
     }
     {
         // parent sample is self
@@ -430,7 +430,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 1, p1.x, p1.y, p1.z, p1.radius,  2}
         };
-        EXPECT_THROW(load_swc_allen(swc), bad_swc_data);
+        EXPECT_THROW(load_swc_allen(swc), swc_no_such_parent);
     }
 }
 
@@ -904,7 +904,7 @@ TEST(swc_parser, not_neuron_compliant) {
                 {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
                 {3, 3, p2.x, p2.y, p2.z, p2.radius,  4}
         };
-        EXPECT_THROW(load_swc_neuron(swc), bad_swc_data);
+        EXPECT_THROW(load_swc_neuron(swc), swc_no_such_parent);
     }
     {
         // parent sample is self
@@ -917,7 +917,7 @@ TEST(swc_parser, not_neuron_compliant) {
                 {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
                 {3, 3, p2.x, p2.y, p2.z, p2.radius,  3}
         };
-        EXPECT_THROW(load_swc_neuron(swc), bad_swc_data);
+        EXPECT_THROW(load_swc_neuron(swc), swc_no_such_parent);
     }
 }
 

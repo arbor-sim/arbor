@@ -38,11 +38,6 @@ struct swc_spherical_soma: swc_error {
     explicit swc_spherical_soma(int record_id);
 };
 
-// Bad or inconsistent SWC data was fed to an `swc_data` consumer.
-struct bad_swc_data: swc_error {
-    explicit bad_swc_data(int record_id);
-};
-
 // Missing soma.
 struct swc_no_soma: swc_error {
     explicit swc_no_soma(int record_id);
@@ -86,6 +81,11 @@ struct swc_unsupported_tag: swc_error {
 // No gaps allowed
 struct swc_unsupported_gaps: swc_error {
     explicit swc_unsupported_gaps(int record_id);
+};
+
+// Can't form a segment from a single sample
+struct swc_bad_description: swc_error {
+    explicit swc_bad_description(int record_id);
 };
 
 struct swc_record {
@@ -169,6 +169,15 @@ arb::segment_tree as_segment_tree(const std::vector<swc_record>&);
 inline arb::segment_tree as_segment_tree(const swc_data& data) {
     return as_segment_tree(data.records);
 }
+
+// As above, will convert a valid, ordered sequence of SWC records to a morphological
+// segment tree.
+//
+// Note that 'one-point soma' SWC files are supported here; the swc_data is expected
+// to abide by the restrictions of `relaxed` mode parsing as described above.
+//
+// These functions comply with inferred SWC rules from the Allen institute and Neuron.
+// These rules are explicitly listed in the docs.
 
 arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records);
 arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps=false);

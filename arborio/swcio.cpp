@@ -24,7 +24,7 @@ swc_error::swc_error(const std::string& msg, int record_id):
 {}
 
 swc_no_such_parent::swc_no_such_parent(int record_id):
-    swc_error("missing SWC parent record", record_id)
+    swc_error("Missing SWC parent record", record_id)
 {}
 
 swc_record_precedes_parent::swc_record_precedes_parent(int record_id):
@@ -75,8 +75,8 @@ swc_unsupported_gaps::swc_unsupported_gaps(int record_id):
     swc_error("No gaps are allowed between the soma and any axons, dendrites or apical dendrites", record_id)
 {}
 
-bad_swc_data::bad_swc_data(int record_id):
-    swc_error("Cannot interpret bad SWC data", record_id)
+swc_bad_description::swc_bad_description(int record_id):
+    swc_error("Need at least 2 samples to form a segment", record_id)
 {}
 
 
@@ -201,7 +201,7 @@ swc_data parse_swc(std::vector<swc_record> records, swc_mode mode) {
 
 arb::segment_tree as_segment_tree(const std::vector<swc_record>& records) {
     if (records.empty()) return {};
-    if (records.size()<2) throw bad_swc_data{records.front().id};
+    if (records.size()<2) throw swc_bad_description{records.front().id};
 
     arb::segment_tree tree;
     std::size_t n_seg = records.size()-1;
@@ -215,7 +215,7 @@ arb::segment_tree as_segment_tree(const std::vector<swc_record>& records) {
         const auto& dist = records[i];
 
         auto iter = id_to_index.find(dist.parent_id);
-        if (iter==id_to_index.end()) throw bad_swc_data{dist.id};
+        if (iter==id_to_index.end()) throw swc_no_such_parent{dist.id};
         auto parent_idx = iter->second;
 
         const auto& prox = records[parent_idx];
@@ -253,6 +253,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
     int prev_tag = soma_prox.tag;
     int prev_id = soma_prox.id;
 
+    // Preliminary error checking and building the record_index
     for (std::size_t i = 1; i < records.size(); ++i) {
         const auto& r = records[i];
         record_index[r.id] = i;
@@ -266,7 +267,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
         // Find record index of the parent
         auto parent_iter = record_index.find(r.parent_id);
 
-        if (parent_iter == record_index.end() || records[parent_iter->second].id == r.id) throw bad_swc_data{r.id};
+        if (parent_iter == record_index.end() || records[parent_iter->second].id == r.id) throw swc_no_such_parent{r.id};
 
         if (r.tag != soma_tag && records[parent_iter->second].tag == soma_tag) {
             if (r.parent_id != soma_records.back().id) throw swc_branchy_soma{r.id};
@@ -373,7 +374,7 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
     }
 
     // Build branches off soma.
-    std::set<int> unused_samples;
+    std::set<int> unused_samples; // Samples that are not part of a segment
     for (const auto& r: records) {
         // Skip the soma samples
         if (r.tag == soma_tag) continue;
@@ -382,11 +383,11 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
 
         // Find parent segment of the record
         auto pseg_iter = tree_index.find(p);
-        if (pseg_iter == tree_index.end()) throw bad_swc_data{r.id};
+        if (pseg_iter == tree_index.end()) throw swc_no_such_parent{r.id};
 
         // Find parent record of the record
         auto prec_iter = record_index.find(p);
-        if (prec_iter == record_index.end() || records[prec_iter->second].id == r.id) throw bad_swc_data{r.id};
+        if (prec_iter == record_index.end() || records[prec_iter->second].id == r.id) throw swc_no_such_parent{r.id};
 
         // If the sample has a soma sample as its parent don't create a segment.
         if (records[prec_iter->second].tag == soma_tag) {
@@ -432,7 +433,7 @@ arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps)
 
         if (parent_iter == record_index.end() || records[parent_iter->second].id == r.id)
         {
-            throw bad_swc_data{r.id};
+            throw swc_no_such_parent{r.id};
         }
 
         // Assert that all samples have the same tag as their parent, except those attached to the soma.
@@ -463,7 +464,7 @@ arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps)
 
     // Build branches off soma.
     std::unordered_map<int, arb::msize_t> smap; // SWC record id -> segment id
-    std::set<int> unused_samples;
+    std::set<int> unused_samples;               // Samples that are not part of a segment
     for (const auto& r: records) {
         int id = r.id;
         if (id == soma_id) continue;
