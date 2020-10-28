@@ -512,7 +512,7 @@ to check the validity of SWC files:
 
 In addition, all interpretations agree that a *segment* is (in the common case) constructed between a sample and
 its parent sample; and if more than 1 sample have the same parent sample, the parent sample is interpreted as a fork
-point in the morphology, and acts as the distal point to a new branch for each of its "child" samples.
+point in the morphology, and acts as the proximal point to a new branch for each of its "child" samples.
 There a couple of exceptions to these rules which are listed below.
 
 Arbor interpretation:
@@ -527,22 +527,22 @@ of a different tag can connect to its distal end, proximal end or anywhere in th
 morphology with a single segment soma; a single segment axon connected to one end of the soma; and a single segment
 dendrite connected to the other end of the soma, the following swc file can be used:
 
-```
-# id, tag, x, y,   z, r, parent
-   1,   1, 0, 0,   0, 5, -1
-   2,   1, 0, 0,  10, 5,  1
-   3,   2, 0, 0, -10, 2,  1
-   4,   3, 0, 0, 100, 1,  2
-```
+.. code:: Python
+
+   # id, tag, x, y,   z, r, parent
+      1,   1, 0, 0,   0, 5, -1
+      2,   1, 0, 0,  10, 5,  1
+      3,   2, 0, 0, -10, 2,  1
+      4,   3, 0, 0, 100, 1,  2
 
 Samples 1 and 2 will form the soma; samples 1 and 3 will form the axon, connected to the soma at the proximal end;
 samples 2 and 4 will form the dendrite, connected to the soma at the distal end.
 
 Allen interpretation:
 """""""""""""""""""""
-In addition to the previously mentioned checks, the Allen interpretation expects a single-sample soma, to be
-interpreted as a spherical soma. Arbor represents the spherical soma as a cylinder with length and diameter equal
-to the diameter of the sample representing the sphere.
+In addition to the previously mentioned checks, the Allen interpretation expects a single-sample soma to be the first
+sample of the file and to be interpreted as a spherical soma. Arbor represents the spherical soma as a cylinder with
+length and diameter equal to the diameter of the sample representing the sphere.
 
 This interpretation also expects that samples have the same tag as their parent samples, with the exception of samples
 that have the soma sample as a parent. In this case, when a sample's parent is the soma, no *segment* is created
