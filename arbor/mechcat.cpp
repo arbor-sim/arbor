@@ -8,6 +8,7 @@
 #include <arbor/mechcat.hpp>
 #include <arbor/util/expected.hpp>
 
+#include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 
 /* Notes on implementation:
@@ -479,6 +480,14 @@ struct catalogue_state {
         return over;
     }
 
+    // Collect all mechanism names present in this catalogue
+    std::vector<std::string> mechanism_names() const {
+        std::vector<std::string> result;
+        util::assign(result, util::keys(info_map_));
+        util::append(result, util::keys(derived_map_));
+        return result;
+    }
+
     // Schemata for (un-derived) mechanisms.
     string_map<mechanism_info_ptr> info_map_;
 
@@ -496,13 +505,8 @@ mechanism_catalogue::mechanism_catalogue():
 {}
 
 std::vector<std::string> mechanism_catalogue::mechanism_names() const {
-    std::vector<std::string> result;
-    for (const auto& [k, v]: state_->info_map_) {
-        result.push_back(k);
-    }
-    return result;
+    return state_->mechanism_names();
 }
-
 
 mechanism_catalogue::mechanism_catalogue(mechanism_catalogue&& other) = default;
 mechanism_catalogue& mechanism_catalogue::operator=(mechanism_catalogue&& other) = default;
