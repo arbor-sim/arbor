@@ -14,6 +14,7 @@ building phase to provide information about cells in the model, such as:
   * the number of gap junction sites;
   * incoming network connections from other cells terminating on a cell;
   * gap junction connections on a cell.
+  * probes on a cell.
 
 Why recipes?
 --------------
@@ -22,7 +23,7 @@ The interface and design of Arbor recipes was motivated by the following aims:
 
     * Building a simulation from a recipe description must be possible in a
       distributed system efficiently with minimal communication.
-    * To minimise the amount of memory used in model building, to make it
+    * Minimising the amount of memory used in model building, making it
       possible to build and run simulations in one run.
 
 Recipe descriptions are cell-oriented, in order that the building phase can
@@ -38,7 +39,8 @@ The steps of building a simulation from a recipe are:
 
 .. topic:: 1. Load balancing
 
-    First, the cells are partitioned over MPI ranks, and each rank parses
+    This can be done manually, by creating a :ref:`domain decomposition<modeldomdec>`
+    object. Or by using an Arbor-provided load balancer. First, the cells are partitioned over MPI ranks, and each rank parses
     the cells assigned to it to build a cost model.
     The ranks then coordinate to redistribute cells over MPI ranks so that
     each rank has a balanced workload. Finally, each rank groups its local

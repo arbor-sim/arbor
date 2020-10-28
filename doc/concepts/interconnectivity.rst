@@ -5,8 +5,8 @@ Interconnectivity
 
 Networks can be regarded as a sort of graph, where the nodes are cells and the edges
 describe the communications between them. In Arbor, two sorts of edges are modelled: a
-connection abstracts the propagation of action potentials (spikes) through the network,
-while a gap junction is used to describe a direct electrical connection between two cells.
+**connection** abstracts the propagation of action potentials (spikes) through the network,
+while a **gap junction** is used to describe a direct electrical connection between two cells.
 Connections only capture the propagation delay and attenuation associated with spike
 connectivity: the biophysical modelling of the chemical synapses themselves is the
 responsibility of the target cell model.

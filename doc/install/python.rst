@@ -84,7 +84,7 @@ below demonstrate this for both pip and ``setup.py``.
     pip3 install --install-option='--mpi' ./arbor
     python3 ./arbor/setup.py install --mpi
 
-**Compile with** :ref:`vectorization <install-vectorize>` on a system with SkyLake:
+**Compile with** :ref:`vectorization <install-vectorize>` on a system with a SkyLake
 :ref:`architecture <install-architecture>`:
 
 .. code-block:: bash

@@ -84,7 +84,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
         ...
 
 .. Note::
-    Is is commonly assumed that to get the best performance one should use a vendor-specific
+    It is commonly assumed that to get the best performance one should use a vendor-specific
     compiler (e.g. the Intel, Cray or IBM compilers). These compilers are often better at
     auto-vectorizing loops, however for everything else GCC and Clang nearly always generate
     more efficient code.
@@ -92,7 +92,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     The main computational loops in Arbor are generated from
     `NMODL <https://www.neuron.yale.edu/neuron/static/docs/help/neuron/nmodl/nmodl.html>`_.
     The generated code is explicitly vectorised, obviating the need for vendor compilers,
-    and we can take advantage of their benefits of GCC and Clang:
+    and we can take advantage of the benefits of GCC and Clang:
     faster compilation times; fewer compiler bugs; and better support for C++ standards.
 
 .. Note::
@@ -177,7 +177,7 @@ Building and installing Arbor
 Once the Arbor code has been checked out, first run CMake to configure the build, then run make.
 
 Below is a simple workflow for: **1)** getting the source; **2)** configuring the build;
-**3)** building; **4)** running tests; **5)** install.
+**3)** building; **4)** running tests; **5)** installing.
 
 For more detailed build configuration options, see the `quick start <quickstart_>`_ guide.
 
@@ -334,7 +334,8 @@ for the architecture, enabling ``ARB_VECTORIZE`` will lead to a compilation erro
 
 With this flag set, the library will use architecture-specific vectorization intrinsics
 to implement these kernels. Arbor currently has vectorization support for x86 architectures
-with AVX, AVX2 or AVX512 ISA extensions, and for ARM architectures with support for AArch64 NEON intrinsics (first available on ARMv8-A).
+with AVX, AVX2 or AVX512 ISA extensions; and for AArch64 ARM architectures with NEON and SVE
+(first available on ARMv8-A).
 
 .. _install-gpu:
 
