@@ -49,7 +49,7 @@ struct cable_cell_impl {
     cable_cell_impl(cable_cell_impl&& other) = default;
 
     // Definition of labels.
-    label_dict dictionary;
+    const label_dict dictionary;
 
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
