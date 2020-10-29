@@ -39,8 +39,8 @@ struct swc_spherical_soma: swc_error {
 };
 
 // Smells like a non-spherical soma.
-struct swc_non_spheical_soma: swc_error {
-    explicit swc_non_spheical_soma(int record_id);
+struct swc_non_spherical_soma: swc_error {
+    explicit swc_non_spherical_soma(int record_id);
 };
 
 // Missing soma.

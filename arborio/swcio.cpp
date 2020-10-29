@@ -39,7 +39,7 @@ swc_spherical_soma::swc_spherical_soma(int record_id):
     swc_error("SWC with spherical somata are not supported", record_id)
 {}
 
-swc_non_spheical_soma::swc_non_spheical_soma(int record_id):
+swc_non_spherical_soma::swc_non_spherical_soma(int record_id):
     swc_error("SWC with multi-sample somata are not supported", record_id)
 {}
 
@@ -446,7 +446,7 @@ arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps)
         }
 
         // Assert that all non-root samples have a tag of 2, 3, or 4.
-        if (r.tag < 2) throw swc_non_spheical_soma{r.id};
+        if (r.tag < 2) throw swc_non_spherical_soma{r.id};
         if (r.tag > 4) throw swc_unsupported_tag{r.id};
     }
 

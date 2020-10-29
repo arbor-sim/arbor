@@ -359,7 +359,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
         };
-        EXPECT_THROW(load_swc_allen(swc), swc_non_spheical_soma);
+        EXPECT_THROW(load_swc_allen(swc), swc_non_spherical_soma);
     }
     {
         // unsupported tag
