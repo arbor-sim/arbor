@@ -151,7 +151,7 @@ set(unit_sources
     test_stats.cpp
     test_strprintf.cpp
     test_swcio.cpp
-   #test_synapses.cpp
+    test_synapses.cpp
     test_s_expr.cpp
     test_thread.cpp
     test_threading_exceptions.cpp

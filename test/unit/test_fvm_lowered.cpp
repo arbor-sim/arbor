@@ -250,8 +250,6 @@ TEST(fvm_lowered, matrix_init)
     EXPECT_FALSE(arb::util::any_of(mat.d, isneg));
 }
 
-/*
-
 TEST(fvm_lowered, target_handles) {
     using namespace arb;
 
@@ -264,21 +262,23 @@ TEST(fvm_lowered, target_handles) {
     }
     arb::execution_context context(resources);
 
-    cable_cell cells[] = {
+    cable_cell_description descriptions[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_3stick()
     };
 
+    // (in increasing target order)
+    descriptions[0].decorations.place(mlocation{0, 0.7}, "expsyn");
+    descriptions[0].decorations.place(mlocation{0, 0.3}, "expsyn");
+    descriptions[1].decorations.place(mlocation{2, 0.2}, "exp2syn");
+    descriptions[1].decorations.place(mlocation{2, 0.8}, "expsyn");
+
+    descriptions[1].decorations.place(mlocation{0, 0}, threshold_detector{3.3});
+
+    cable_cell cells[] = {descriptions[0], descriptions[1]};
+
     EXPECT_EQ(cells[0].morphology().num_branches(), 1u);
     EXPECT_EQ(cells[1].morphology().num_branches(), 3u);
-
-    // (in increasing target order)
-    cells[0].place(mlocation{0, 0.7}, "expsyn");
-    cells[0].place(mlocation{0, 0.3}, "expsyn");
-    cells[1].place(mlocation{2, 0.2}, "exp2syn");
-    cells[1].place(mlocation{2, 0.8}, "expsyn");
-
-    cells[1].place(mlocation{0, 0}, threshold_detector{3.3});
 
     std::vector<target_handle> targets;
     std::vector<fvm_index_type> cell_to_intdom;
@@ -322,6 +322,7 @@ TEST(fvm_lowered, target_handles) {
 
 }
 
+
 TEST(fvm_lowered, stimulus) {
     // Ball-and-stick with two stimuli:
     //
@@ -341,13 +342,14 @@ TEST(fvm_lowered, stimulus) {
     }
     arb::execution_context context(resources);
 
-    std::vector<cable_cell> cells;
-    cells.push_back(make_cell_ball_and_stick(false));
+    auto desc = make_cell_ball_and_stick(false);
 
     // At end of stick
-    cells[0].place(mlocation{0,1},   i_clamp{5., 80., 0.3});
+    desc.decorations.place(mlocation{0,1},   i_clamp{5., 80., 0.3});
     // On the soma CV, which is over the approximate interval: (cable 0 0 0.1)
-    cells[0].place(mlocation{0,0.05}, i_clamp{1., 2.,  0.1});
+    desc.decorations.place(mlocation{0,0.05}, i_clamp{1., 2.,  0.1});
+
+    std::vector<cable_cell> cells{desc};
 
     const fvm_size_type soma_cv = 0u;
     const fvm_size_type tip_cv = 5u;
@@ -439,17 +441,17 @@ TEST(fvm_lowered, derived_mechs) {
 
         switch (i) {
             case 0:
-                cell.paint(reg::all(), "test_kin1");
+                cell.decorations.paint(reg::all(), "test_kin1");
                 break;
             case 1:
-                cell.paint(reg::all(), "custom_kin1");
+                cell.decorations.paint(reg::all(), "custom_kin1");
                 break;
             case 2:
-                cell.paint(reg::all(), "test_kin1");
-                cell.paint(reg::all(), "custom_kin1");
+                cell.decorations.paint(reg::all(), "test_kin1");
+                cell.decorations.paint(reg::all(), "custom_kin1");
                 break;
         }
-        cells.push_back(std::move(cell));
+        cells.push_back(cell);
     }
 
     cable1d_recipe rec(cells);
@@ -545,8 +547,8 @@ TEST(fvm_lowered, read_valence) {
 
         soma_cell_builder builder(6);
         auto cell = builder.make_cell();
-        cell.paint("\"soma\"", "test_ca_read_valence");
-        cable1d_recipe rec({std::move(cell)});
+        cell.decorations.paint("\"soma\"", "test_ca_read_valence");
+        cable1d_recipe rec(cable_cell{cell});
         rec.catalogue() = make_unit_test_catalogue();
 
         arb::execution_context context(resources);
@@ -568,8 +570,8 @@ TEST(fvm_lowered, read_valence) {
         // Check ion renaming.
         soma_cell_builder builder(6);
         auto cell = builder.make_cell();
-        cell.paint("\"soma\"", "cr_read_valence");
-        cable1d_recipe rec({std::move(cell)});
+        cell.decorations.paint("\"soma\"", "cr_read_valence");
+        cable1d_recipe rec(cable_cell{cell});
         rec.catalogue() = make_unit_test_catalogue();
         rec.catalogue() = make_unit_test_catalogue();
 
@@ -685,10 +687,10 @@ TEST(fvm_lowered, ionic_currents) {
     m2["coeff"] = coeff;
 
     auto c = b.make_cell();
-    c.paint("soma"_lab, m1);
-    c.paint("soma"_lab, m2);
+    c.decorations.paint("soma"_lab, m1);
+    c.decorations.paint("soma"_lab, m2);
 
-    cable1d_recipe rec(std::move(c));
+    cable1d_recipe rec({cable_cell{c}});
     rec.catalogue() = make_unit_test_catalogue();
 
     std::vector<target_handle> targets;
@@ -726,14 +728,14 @@ TEST(fvm_lowered, point_ionic_current) {
 
     double r = 6.0; // [µm]
     soma_cell_builder b(r);
-    cable_cell c = b.make_cell();
+    auto c = b.make_cell();
 
     double soma_area_m2 = 4*math::pi<double>*r*r*1e-12; // [m²]
 
     // Event weight is translated by point_ica_current into a current contribution in nA.
-    c.place(mlocation{0u, 0.5}, "point_ica_current");
+    c.decorations.place(mlocation{0u, 0.5}, "point_ica_current");
 
-    cable1d_recipe rec(c);
+    cable1d_recipe rec({cable_cell{c}});
     rec.catalogue() = make_unit_test_catalogue();
 
     std::vector<target_handle> targets;
@@ -802,18 +804,18 @@ TEST(fvm_lowered, weighted_write_ion) {
     b.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     b.add_branch(1, 100, 0.5, 0.5, 1, "dend");
 
-    cable_cell c = b.make_cell();
+    auto c = b.make_cell();
 
     const double con_int = 80;
     const double con_ext = 120;
 
     // Ca ion reader test_kinlva on CV 2 and 3 via branch 2:
-    c.paint(reg::branch(1), "test_kinlva");
+    c.decorations.paint(reg::branch(1), "test_kinlva");
 
     // Ca ion writer test_ca on CV 2 and 4 via branch 3:
-    c.paint(reg::branch(2), "test_ca");
+    c.decorations.paint(reg::branch(2), "test_ca");
 
-    cable1d_recipe rec(c);
+    cable1d_recipe rec({cable_cell{c}});
     rec.catalogue() = make_unit_test_catalogue();
     rec.add_ion("ca", 2, con_int, con_ext, 0.0);
 
@@ -903,16 +905,16 @@ TEST(fvm_lowered, gj_coords_simple) {
         soma_cell_builder b(2.1);
         b.add_branch(0, 10, 0.3, 0.2, 5, "dend");
         auto c = b.make_cell();
-        c.place(b.location({1, 0.8}), gap_junction_site{});
-        cells.push_back(std::move(c));
+        c.decorations.place(b.location({1, 0.8}), gap_junction_site{});
+        cells.push_back(c);
     }
 
     {
         soma_cell_builder b(2.4);
         b.add_branch(0, 10, 0.3, 0.2, 2, "dend");
         auto c = b.make_cell();
-        c.place(b.location({1, 1}), gap_junction_site{});
-        cells.push_back(std::move(c));
+        c.decorations.place(b.location({1, 1}), gap_junction_site{});
+        cells.push_back(c);
     }
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
@@ -988,8 +990,8 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c0 = b0.make_cell();
     mlocation c0_gj[2] = {b0.location({1, 1}), b0.location({1, 0.5})};
 
-    c0.place(c0_gj[0], gap_junction_site{});
-    c0.place(c0_gj[1], gap_junction_site{});
+    c0.decorations.place(c0_gj[0], gap_junction_site{});
+    c0.decorations.place(c0_gj[1], gap_junction_site{});
 
     soma_cell_builder b1(1.4);
     b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
@@ -999,10 +1001,10 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c1 = b1.make_cell();
     mlocation c1_gj[4] = {b1.location({2, 1}), b1.location({1, 1}), b1.location({1, 0.45}), b1.location({1, 0.1})};
 
-    c1.place(c1_gj[0], gap_junction_site{});
-    c1.place(c1_gj[1], gap_junction_site{});
-    c1.place(c1_gj[2], gap_junction_site{});
-    c1.place(c1_gj[3], gap_junction_site{});
+    c1.decorations.place(c1_gj[0], gap_junction_site{});
+    c1.decorations.place(c1_gj[1], gap_junction_site{});
+    c1.decorations.place(c1_gj[2], gap_junction_site{});
+    c1.decorations.place(c1_gj[3], gap_junction_site{});
 
 
     soma_cell_builder b2(2.9);
@@ -1015,11 +1017,11 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c2 = b2.make_cell();
     mlocation c2_gj[3] = {b2.location({1, 0.5}), b2.location({4, 1}), b2.location({2, 1})};
 
-    c2.place(c2_gj[0], gap_junction_site{});
-    c2.place(c2_gj[1], gap_junction_site{});
-    c2.place(c2_gj[2], gap_junction_site{});
+    c2.decorations.place(c2_gj[0], gap_junction_site{});
+    c2.decorations.place(c2_gj[1], gap_junction_site{});
+    c2.decorations.place(c2_gj[2], gap_junction_site{});
 
-    std::vector<cable_cell> cells{std::move(c0), std::move(c1), std::move(c2)};
+    std::vector<cable_cell> cells{c0, c1, c2};
 
     std::vector<fvm_index_type> cell_to_intdom;
 
@@ -1116,15 +1118,15 @@ TEST(fvm_lowered, cell_group_gj) {
 
     // Make 20 cells
     for (unsigned i = 0; i < 20; i++) {
-        cable_cell c = soma_cell_builder(2.1).make_cell();
+        cable_cell_description c = soma_cell_builder(2.1).make_cell();
         if (i % 2 == 0) {
-            c.place(mlocation{0, 1}, gap_junction_site{});
+            c.decorations.place(mlocation{0, 1}, gap_junction_site{});
         }
         if (i < 10) {
-            cell_group0.push_back(std::move(c));
+            cell_group0.push_back(c);
         }
         else {
-            cell_group1.push_back(std::move(c));
+            cell_group1.push_back(c);
         }
     }
 
@@ -1204,5 +1206,4 @@ TEST(fvm_lowered, integration_domains) {
         EXPECT_EQ(expected_doms, cell_to_intdom);
     }
 }
-*/
 
