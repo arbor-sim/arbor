@@ -351,6 +351,7 @@ TEST(swc_parser, allen_compliant) {
 TEST(swc_parser, not_allen_compliant) {
     using namespace arborio;
     {
+        // multi-point soma
         mpoint p0{0, 0, -10, 10};
         mpoint p1{0, 0,   0, 10};
 
@@ -358,7 +359,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
         };
-        EXPECT_THROW(load_swc_allen(swc), swc_unsupported_tag);
+        EXPECT_THROW(load_swc_allen(swc), swc_non_spheical_soma);
     }
     {
         // unsupported tag
