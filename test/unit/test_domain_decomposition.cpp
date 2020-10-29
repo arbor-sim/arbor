@@ -68,8 +68,8 @@ namespace {
 
         arb::util::unique_any get_cell_description(cell_gid_type) const override {
             auto c = arb::make_cell_soma_only(false);
-            c.place(mlocation{0,1}, gap_junction_site{});
-            return {std::move(c)};
+            c.decorations.place(mlocation{0,1}, gap_junction_site{});
+            return {arb::cable_cell(c)};
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {

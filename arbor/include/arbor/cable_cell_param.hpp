@@ -195,7 +195,8 @@ using defaultable =
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
-                 ion_reversal_potential_method>;
+                 ion_reversal_potential_method,
+                 cv_policy>;
 
 // Cable cell ion and electrical defaults.
 
@@ -224,11 +225,12 @@ struct cable_cell_parameter_set {
 // A flat description of defaults, paintings and placings that
 // are to be applied to a morphology in a cable_cell.
 struct decor {
+    void paint(region, paintable);
+    void place(locset, placeable);
+    void set_default(defaultable);
     std::vector<std::pair<region, paintable>> paintings;
     std::vector<std::pair<locset, placeable>> placements;
     cable_cell_parameter_set defaults;
-
-    std::string as_s_sexpr() const;
 };
 
 extern cable_cell_parameter_set neuron_parameter_defaults;

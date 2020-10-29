@@ -74,24 +74,26 @@ namespace {
         tree.append(arb::mnpos, {0,0,0,10}, {0,0,20,10}, 1); // soma
         tree.append(0, {0,0, 20, 2}, {0,0, 320, 2}, 3);  // dendrite
 
-        arb::cable_cell cell(tree, {});
+        arb::cable_cell cell(tree);
+
+        arb::decor decorations;
 
         // Add a num_detectors detectors to the cell.
         for (auto i: util::make_span(num_detectors)) {
-            cell.place(arb::mlocation{0,(double)i/num_detectors}, arb::threshold_detector{10});
+            decorations.place(arb::mlocation{0,(double)i/num_detectors}, arb::threshold_detector{10});
         }
 
         // Add a num_synapses synapses to the cell.
         for (auto i: util::make_span(num_synapses)) {
-            cell.place(arb::mlocation{0,(double)i/num_synapses}, "expsyn");
+            decorations.place(arb::mlocation{0,(double)i/num_synapses}, "expsyn");
         }
 
         // Add a num_gj gap_junctions to the cell.
         for (auto i: util::make_span(num_gj)) {
-            cell.place(arb::mlocation{0,(double)i/num_gj}, arb::gap_junction_site{});
+            decorations.place(arb::mlocation{0,(double)i/num_gj}, arb::gap_junction_site{});
         }
 
-        return cell;
+        return arb::cable_cell(tree, {}, decorations);
     }
 }
 

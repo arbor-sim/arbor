@@ -33,23 +33,18 @@ struct cable_cell_impl {
     using size_type  = cable_cell::size_type;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels):
-        dictionary(labels),
         provider(m, labels)
     {}
 
     cable_cell_impl(): cable_cell_impl({},{}) {}
 
     cable_cell_impl(const cable_cell_impl& other):
-        dictionary(other.dictionary),
         provider(other.provider),
         region_map(other.region_map),
         location_map(other.location_map)
     {}
 
     cable_cell_impl(cable_cell_impl&& other) = default;
-
-    // Definition of labels.
-    const label_dict dictionary;
 
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
@@ -135,9 +130,11 @@ impl_ptr make_impl(cable_cell_impl* c) {
     return impl_ptr(c, [](cable_cell_impl* p){delete p;});
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary):
+cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary, const decor& decorations):
     impl_(make_impl(new cable_cell_impl(m, dictionary)))
-{}
+{
+    this->decorate(decorations);
+}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 
@@ -192,49 +189,6 @@ lid_range cable_cell::place(const locset& target, placeable prop) {
     return lids;
 }
 
-void cable_cell::set_default(defaultable prop) {
-    std::visit(
-            [this] (auto&& p) {
-                using T = std::decay_t<decltype(p)>;
-                if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                    decor_.defaults.init_membrane_potential = p.value;
-                }
-                else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                    decor_.defaults.axial_resistivity = p.value;
-                }
-                else if constexpr (std::is_same_v<temperature_K, T>) {
-                    decor_.defaults.temperature_K = p.value;
-                }
-                else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                    decor_.defaults.membrane_capacitance = p.value;
-                }
-                else if constexpr (std::is_same_v<initial_ion_data, T>) {
-                    decor_.defaults.ion_data[p.ion] = p.initial;
-                }
-                else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                    decor_.defaults.ion_data[p.ion].init_int_concentration = p.value;
-                }
-                else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                    decor_.defaults.ion_data[p.ion].init_ext_concentration = p.value;
-                }
-                else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                    decor_.defaults.ion_data[p.ion].init_reversal_potential = p.value;
-                }
-                else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
-                    decor_.defaults.reversal_potential_method[p.ion] = p.method;
-                }
-            },
-            prop);
-}
-
-void cable_cell::set_default(cable_cell_parameter_set params) {
-    decor_.defaults = std::move(params);
-}
-
-const label_dict& cable_cell::labels() const {
-    return impl_->dictionary;
-}
-
 void cable_cell::decorate(const decor& d) {
     for (auto& x: d.paintings) {
         paint(x.first, x.second);
@@ -242,9 +196,7 @@ void cable_cell::decorate(const decor& d) {
     for (auto& x: d.placements) {
         place(x.first, x.second);
     }
-    for (auto& x: d.defaults.serialize()) {
-        set_default(x);
-    }
+    decor_.defaults = d.defaults;
 }
 
 } // namespace arb

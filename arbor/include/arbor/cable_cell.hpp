@@ -240,38 +240,22 @@ public:
     cable_cell(const cable_cell& other);
     cable_cell(cable_cell&& other) = default;
 
-    // Copy and move assignment operators..
+    // Copy and move assignment operators.
     cable_cell& operator=(cable_cell&&) = default;
     cable_cell& operator=(const cable_cell& other) {
         return *this = cable_cell(other);
     }
 
-    /// construct from morphology
-    cable_cell(const class morphology& m, const label_dict& dictionary={});
+    /// Construct from morphology, label and decoration descriptions.
+    cable_cell(const class morphology&, const label_dict&, const decor&);
+    cable_cell(const class morphology& m):
+        cable_cell(m, {}, {})
+    {}
 
     /// Access to morphology and embedding
     const concrete_embedding& embedding() const;
     const arb::morphology& morphology() const;
     const mprovider& provider() const;
-
-    // Access to labels
-    const label_dict& labels() const;
-
-    // Set cell-wide default physical and ion parameters.
-
-    // Individual properties.
-    void set_default(defaultable prop);
-    // Copy over a set of properties.
-    void set_default(cable_cell_parameter_set params);
-
-    // Painters and placers.
-    //
-    // Used to describe regions and locations where density channels, stimuli,
-    // synapses, gap junctions and detectors are located.
-
-    void paint(const region&, paintable);
-
-    lid_range place(const locset&, placeable);
 
     // Convenience access to placed items.
 
@@ -306,20 +290,22 @@ public:
         return decor_;
     }
 
+    const cable_cell_parameter_set& default_parameters() const {
+        return decor_.defaults;
+    }
+
+private:
     // Apply a set of decorations to the cell.
     // Note: these will not remove existing paintings & placements, and
     // will apply changes on top of existing defaults.
     void decorate(const decor&);
 
-    const cable_cell_parameter_set& default_parameters() const {
-        return decor_.defaults;
-    }
+    // Painters and placers.
+    // Used to describe regions and locations where density channels, stimuli,
+    // synapses, gap junctions and detectors are located.
+    void paint(const region&, paintable);
+    lid_range place(const locset&, placeable);
 
-    std::optional<cv_policy>& discretization() {
-        return decor_.defaults.discretization;
-    }
-
-private:
 
     decor decor_;
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;

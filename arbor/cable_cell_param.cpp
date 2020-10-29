@@ -107,10 +107,57 @@ std::vector<defaultable> cable_cell_parameter_set::serialize() const {
         D.push_back(ion_reversal_potential_method{ion.first, ion.second});
     }
 
-    // TODO
-    //std::optional<cv_policy> discretization;
+    if (discretization) {
+        D.push_back(*discretization);
+    }
 
     return D;
+}
+
+void decor::paint(region where, paintable what) {
+    paintings.push_back({std::move(where), std::move(what)});
+}
+
+void decor::place(locset where, placeable what) {
+    placements.push_back({std::move(where), std::move(what)});
+}
+
+void decor::set_default(defaultable what) {
+    std::visit(
+            [this] (auto&& p) {
+                using T = std::decay_t<decltype(p)>;
+                if constexpr (std::is_same_v<init_membrane_potential, T>) {
+                    defaults.init_membrane_potential = p.value;
+                }
+                else if constexpr (std::is_same_v<axial_resistivity, T>) {
+                    defaults.axial_resistivity = p.value;
+                }
+                else if constexpr (std::is_same_v<temperature_K, T>) {
+                    defaults.temperature_K = p.value;
+                }
+                else if constexpr (std::is_same_v<membrane_capacitance, T>) {
+                    defaults.membrane_capacitance = p.value;
+                }
+                else if constexpr (std::is_same_v<initial_ion_data, T>) {
+                    defaults.ion_data[p.ion] = p.initial;
+                }
+                else if constexpr (std::is_same_v<init_int_concentration, T>) {
+                    defaults.ion_data[p.ion].init_int_concentration = p.value;
+                }
+                else if constexpr (std::is_same_v<init_ext_concentration, T>) {
+                    defaults.ion_data[p.ion].init_ext_concentration = p.value;
+                }
+                else if constexpr (std::is_same_v<init_reversal_potential, T>) {
+                    defaults.ion_data[p.ion].init_reversal_potential = p.value;
+                }
+                else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
+                    defaults.reversal_potential_method[p.ion] = p.method;
+                }
+                else if constexpr (std::is_same_v<cv_policy, T>) {
+                    defaults.discretization = std::forward<cv_policy>(p);
+                }
+            },
+            what);
 }
 
 } // namespace arb
