@@ -43,13 +43,13 @@ If you have found a bug or problem in Arbor, or want to request a feature, you c
 please do so and describe the problem, bug or feature as best you can. You can add supporting data, code or documents
 to help make your point.
 
-### Making a pull request (PR)
+### Making a pull request
 
 If you want to contribute code that implements a solution or feature, the workflow is as follows:
 
 1. Fork the Arbor repository
 2. Create a branch off of master and implement your feature
-3. Make a pull request and refer to the issue(s) that the PR addresses.
+3. Make a pull request (PR) and refer to the issue(s) that the PR addresses.
 4. An administrative matter: Arbor requests [an explicit copyright assignment](https://en.wikipedia.org/wiki/Copyright_transfer_agreement)
 on your contribution. This grants us the right to defend copyright on your contributions on your behalf,
 and allows us to change the license on your contribution to another open source license should that become
@@ -73,13 +73,13 @@ many questions and comments. It can be helpful to reach out on our Slack, Discus
 beforehand if you've big things planned for Arbor!
 * At least one core Arbor team member needs to mark your PR with a positive review. Some tips to
 help getting a positive review:
-    * Commit logical units to make review easier and faster.
-    * Make sure Arbor compiles and has no new warnings.
+    * Commit logical units with clear commit messages.
     * Make sure your code conforms to our [coding guidelines](https://github.com/arbor-sim/arbor/wiki/Coding-Style-Guidelines)
     * If you add functionality, please update the documentation accordingly.
     * If you add functionality, add tests if applicable. This helps make sure Arbor is stable and
     functionality does what it's supposed to do.
-    * If adding/changing the public C++ API, provide python wrappings.
+    * If adding/changing the public C++ API, provide Python wrappings.
+    * Make sure Arbor compiles and has no new warnings.
 * Travis CI must produce a favourable result on your PR.
 * The creator of a pull request should not review or merge their own pull request.
 * An Arbor team member will merge the PR.
