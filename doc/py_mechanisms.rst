@@ -280,6 +280,12 @@ Mechanism catalogues
         :return: mechanism metadata
         :rtype: :class:`mechanism_info`
 
+    .. py:method:: names()
+
+        Return a list names of all the mechanisms in the catalogue.
+
+        :return: list
+
     .. py:method:: derive(name, parent, globals={}, ions={})
 
         Derive a new mechanism with *name* from the mechanism *parent*.
