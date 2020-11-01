@@ -154,7 +154,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # in the same CMakeLists.txt in which the target is defined.
 
 # Interface library `arbor-config-defs` collects configure-time defines
-# for arbor, arborenv and arbornml, of the form ARB_HAVE_XXX. These
+# for arbor, arborenv, arborio and arbornml, of the form ARB_HAVE_XXX. These
 # defines should _not_ be used in any installed public headers.
 
 add_library(arbor-config-defs INTERFACE)
@@ -180,6 +180,13 @@ install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 add_library(arbornml-private-deps INTERFACE)
 target_link_libraries(arbornml-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arbornml-private-deps EXPORT arbor-targets)
+
+# Interface library `arborio-private-deps` collects dependencies, options etc.
+# for the arborio library.
+
+add_library(arborio-private-deps INTERFACE)
+target_link_libraries(arborio-private-deps INTERFACE arbor-config-defs)
+install(TARGETS arborio-private-deps EXPORT arbor-targets)
 
 # Interface library `arbor-public-deps` collects requirements for the
 # users of the arbor library (e.g. mpi) that will become part
@@ -404,6 +411,9 @@ add_subdirectory(arbor)
 # arborenv, arborenv-public-headers:
 add_subdirectory(arborenv)
 
+# arborio, arborio-public-headers:
+add_subdirectory(arborio)
+
 # arbornml, arbornml-public-headers:
 if(ARB_WITH_NEUROML)
     add_subdirectory(arbornml)
@@ -459,6 +469,7 @@ set(arbor_override_import_lang)
 set(arbor_add_import_libs)
 set(arborenv_add_import_libs)
 set(arbornml_add_import_libs)
+set(arborio_add_import_libs)
 
 if(ARB_WITH_GPU)
     set(arbor_override_import_lang CXX)

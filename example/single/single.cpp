@@ -10,9 +10,10 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/segment_tree.hpp>
-#include <arbor/swcio.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/simple_sampler.hpp>
+
+#include <arborio/swcio.hpp>
 
 #include <tinyopt/tinyopt.h>
 
@@ -157,5 +158,5 @@ arb::morphology read_swc(const std::string& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("unable to open SWC file: "+path);
 
-    return arb::morphology(arb::as_segment_tree(arb::parse_swc(f)));
+    return arb::morphology(arborio::as_segment_tree(arborio::parse_swc(f)));
 }

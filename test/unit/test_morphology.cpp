@@ -10,7 +10,8 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
-#include <arbor/swcio.hpp>
+
+#include <arborio/swcio.hpp>
 
 #include "util/span.hpp"
 
@@ -318,10 +319,10 @@ TEST(morphology, swc) {
     }
 
     // Load swc samples from file.
-    auto swc = arb::parse_swc(fid, arb::swc_mode::strict);
+    auto swc = arborio::parse_swc(fid, arborio::swc_mode::strict);
 
     // Build a segmewnt_tree from swc samples.
-    auto sm = arb::as_segment_tree(swc);
+    auto sm = arborio::as_segment_tree(swc);
     EXPECT_EQ(5798u, sm.size()); // SWC data contains 5799 samples.
 
     // Test that the morphology contains the expected number of branches.

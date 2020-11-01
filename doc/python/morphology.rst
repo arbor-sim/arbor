@@ -264,7 +264,8 @@ Cell morphology
 
 .. py:function:: load_swc(filename)
 
-    Loads the morphology in an SWC file as a :class:`segment_tree`.
+    Loads the morphology in an SWC file as a :class:`segment_tree` according to arbor's SWC specifications.
+    (See the morphology concepts :ref:`page <morph-formats>` for more details).
 
     The samples in the SWC files are treated as the end points of segments, where a
     sample and its parent form a segment.
@@ -290,6 +291,28 @@ Cell morphology
 
     :param str filename: the name of the SWC file.
     :rtype: segment_tree
+
+.. py:function:: load_swc_neuron(filename)
+
+    Loads the morphology in an SWC file as a :class:`segment_tree` according to NEURON's SWC specifications.
+    Specifically:
+        * The first sample must be a soma sample.
+        * The soma is represented by a series of n≥1 unbranched, serially listed samples.
+        * The soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
+          segments forming the soma.
+        * A single-sample soma at is constructed as a cylinder with length=diameter.
+        * If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
+          as the parent.
+        * Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
+        * If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
+          instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
+          electrically as a zero-resistance wire)
+        * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
+          tag.
+
+    :param str filename: the name of the SWC file.
+    :rtype: segment_tree
+
 
 .. py:function:: load_swc_allen(filename, no_gaps=False)
 

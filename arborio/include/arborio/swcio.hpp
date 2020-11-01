@@ -7,12 +7,12 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/morph/segment_tree.hpp>
 
-namespace arb {
+namespace arborio {
 
 // SWC exceptions are thrown by `parse_swc`, and correspond
 // to inconsistent, or in `strict` mode, dubious SWC data.
 
-struct swc_error: public arbor_exception {
+struct swc_error: public arb::arbor_exception {
     swc_error(const std::string& msg, int record_id);
     int record_id;
 };
@@ -38,9 +38,59 @@ struct swc_spherical_soma: swc_error {
     explicit swc_spherical_soma(int record_id);
 };
 
-// Bad or inconsistent SWC data was fed to an `swc_data` consumer.
-struct bad_swc_data: swc_error {
-    explicit bad_swc_data(int record_id);
+// Smells like a non-spherical soma.
+struct swc_non_spherical_soma: swc_error {
+    explicit swc_non_spherical_soma(int record_id);
+};
+
+// Missing soma.
+struct swc_no_soma: swc_error {
+    explicit swc_no_soma(int record_id);
+};
+
+// Non-consecutive soma samples.
+struct swc_non_consecutive_soma: swc_error {
+    explicit swc_non_consecutive_soma(int record_id);
+};
+
+// Non-serial soma samples.
+struct swc_non_serial_soma: swc_error {
+    explicit swc_non_serial_soma(int record_id);
+};
+
+// Sample connecting to the middle of a soma causing an unsupported branch.
+struct swc_branchy_soma: swc_error {
+    explicit swc_branchy_soma(int record_id);
+};
+
+// Sample connecting to the middle of a soma causing an unsupported branch.
+struct swc_collocated_soma: swc_error {
+    explicit swc_collocated_soma(int record_id);
+};
+
+// Sample is not part of a segment
+struct swc_single_sample_segment: swc_error {
+    explicit swc_single_sample_segment(int record_id);
+};
+
+// Segment cannot have samples with different tags
+struct swc_mismatched_tags: swc_error {
+    explicit swc_mismatched_tags(int record_id);
+};
+
+// Only tags 1, 2, 3, 4 supported
+struct swc_unsupported_tag: swc_error {
+    explicit swc_unsupported_tag(int record_id);
+};
+
+// No gaps allowed
+struct swc_unsupported_gaps: swc_error {
+    explicit swc_unsupported_gaps(int record_id);
+};
+
+// Can't form a segment from a single sample
+struct swc_bad_description: swc_error {
+    explicit swc_bad_description(int record_id);
 };
 
 struct swc_record {
@@ -119,11 +169,31 @@ swc_data parse_swc(std::vector<swc_record>, swc_mode = swc_mode::strict);
 // each SWC record after the first: this record defines the tag and distal point
 // of the segment, while the proximal point is taken from the parent record.
 
-segment_tree as_segment_tree(const std::vector<swc_record>&);
+arb::segment_tree as_segment_tree(const std::vector<swc_record>&);
 
-inline segment_tree as_segment_tree(const swc_data& data) {
+inline arb::segment_tree as_segment_tree(const swc_data& data) {
     return as_segment_tree(data.records);
 }
 
+// As above, will convert a valid, ordered sequence of SWC records to a morphological
+// segment tree.
+//
+// Note that 'one-point soma' SWC files are supported here; the swc_data is expected
+// to abide by the restrictions of `relaxed` mode parsing as described above.
+//
+// These functions comply with inferred SWC rules from the Allen institute and Neuron.
+// These rules are explicitly listed in the docs.
 
-} // namespace arb
+arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records);
+
+inline arb::segment_tree load_swc_neuron(const swc_data& data) {
+    return load_swc_neuron(data.records);
+}
+
+arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps=false);
+
+inline arb::segment_tree load_swc_allen(swc_data& data) {
+    return load_swc_allen(data.records);
+}
+
+} // namespace arborio

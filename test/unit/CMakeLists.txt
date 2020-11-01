@@ -220,7 +220,7 @@ endif()
 target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_link_libraries(unit PRIVATE gtest arbor arborenv arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arbor-private-headers arbor-sup)
 
 if(ARB_WITH_NEUROML)
     target_link_libraries(unit PRIVATE arbornml)
