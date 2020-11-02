@@ -244,6 +244,48 @@ TEST(mechcat, fingerprint) {
         arb::fingerprint_mismatch);
 }
 
+TEST(mechcat, names) {
+    // All names are caught; covers `add' and `derive'
+    {
+        auto cat = build_fake_catalogue();
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{"bleeble", "burble", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+
+    // Deriving names does not add to catalogue
+    {
+        auto cat = build_fake_catalogue();
+        auto info   = cat["burble/quux=3,xyzzy=4"];
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{"bleeble", "burble", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+
+    // Deleting a mechanism removes it and all derived from it.
+    {
+        auto cat = build_fake_catalogue();
+        cat.remove("fleeb");
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{"bleeble", "burble"};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+
+    // Empty means empty.
+    {
+        auto cat = build_fake_catalogue();
+        cat.remove("fleeb");
+        cat.remove("burble");
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+}
+
 TEST(mechcat, derived_info) {
     auto cat = build_fake_catalogue();
 
