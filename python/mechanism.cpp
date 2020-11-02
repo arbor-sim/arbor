@@ -107,7 +107,9 @@ void register_mechanisms(pybind11::module& m) {
     cat
         .def(pybind11::init<const arb::mechanism_catalogue&>())
         .def("has", &arb::mechanism_catalogue::has,
-                "name"_a, "Is 'name' in the catalogue?")
+             "name"_a, "Is 'name' in the catalogue?")
+        .def("keys", &arb::mechanism_catalogue::mechanism_names,
+             "Return a list of all mechanisms in this catalogues.")
         .def("is_derived", &arb::mechanism_catalogue::is_derived,
                 "name"_a, "Is 'name' a derived mechanism or can it be implicitly derived?")
         .def("__getitem__",
