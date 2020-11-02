@@ -15,7 +15,7 @@ building phase to provide information about cells in the model, such as:
   * incoming network connections from other cells terminating on a cell;
   * gap junction connections on a cell.
 
-Why Recipes?
+Why recipes?
 --------------
 
 The interface and design of Arbor recipes was motivated by the following aims:
@@ -51,14 +51,24 @@ The steps of building a simulation from a recipe are:
     local cell groups and the part of the communication network by querying the recipe
     for more information about the cells assigned to it.
 
+.. Note::
+    An example of how performance considerations impact Arbor's architecture: you will notice cell kind and cell description are separately added to a recipe. Consider the following conversation between an Arbor simulation, recipe and hardware back-end:
 
-General Best Practices
+    | Simulator: give me cell 37.
+    | Recipe: here you go, it's of C++ type s3cr1ts4uc3.
+    | Simulator: wot? What is the cell kind for cell 37?
+    | Recipe: it's a foobar.
+    | Simulator: Okay. Cell group implementations: which one of you lot deals with foobars?
+    | Foobar_GPUFTW_lolz: That'd be me, if we've got GPU enabled.
+    | Simulator: Okay it's up to you then to deal with this s3cr1ts4uc3 object.
+
+General best practices
 ----------------------
 
 .. topic:: Think of the cells
 
     When formulating a model, think cell-first, and try to formulate the model and
-    the associated workflow from a cell-centered perspective. If this isn't possible,
+    the associated workflow from a cell-centred perspective. If this isn't possible,
     please contact the developers, because we would like to develop tools that help
     make this simpler.
 
@@ -86,15 +96,8 @@ General Best Practices
     to seed random number generators, including those for :cpp:type:`event_generator` s.
 
 
-Mechanisms
-----------------------
-The description of multi-compartment cells also includes the specification of ion channel and synapse dynamics.
-In the recipe, these specifications are called *mechanisms*.
-Implementations of mechanisms are either hand-coded or a translator (modcc) is used to compile a
-subset of NEURON's mechanism specification language NMODL.
+API
+---
 
-Examples
-    Common examples are the *passive/ leaky integrate-and-fire* model, the *Hodgkin-Huxley* mechanism, the *(double-) exponential synapse* model, or the *Natrium current* model for an axon.
-
-Detailed documentation for Python recipes can be found in :ref:`pyrecipe`.
-C++ :ref:`cpprecipe` are documented and best practices are shown as well.
+* :ref:`Python <pyrecipe>`
+* :ref:`C++ <cpprecipe>`

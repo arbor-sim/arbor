@@ -22,7 +22,7 @@
 namespace pyarb {
 
 class flat_cell_builder {
-    // The segment tree describing the morphology, constructed additatively with
+    // The segment tree describing the morphology, constructed additively with
     // segments that are attached to existing segments using add_cable.
     arb::segment_tree tree_;
 

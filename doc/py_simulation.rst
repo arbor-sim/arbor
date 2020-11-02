@@ -236,7 +236,7 @@ In order to analyze the data collected from an :class:`arbor.probe` the samples 
 
         import arbor
 
-        # Instatitate the simulation.
+        # Instantiate the simulation.
         sim = arbor.simulation(recipe, decomp, context)
 
         # Build the sample recorder on cell 0 and probe 0 with regular sampling interval of 0.1 ms

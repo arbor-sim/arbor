@@ -277,7 +277,7 @@ void register_cells(pybind11::module& m) {
         .def_readwrite("V_th", &arb::lif_cell::V_th,
             "Firing threshold [mV].")
         .def_readwrite("C_m", &arb::lif_cell::C_m,
-            " Membrane capacitance [pF].")
+            "Membrane capacitance [pF].")
         .def_readwrite("E_L", &arb::lif_cell::E_L,
             "Resting potential [mV].")
         .def_readwrite("V_m", &arb::lif_cell::V_m,
@@ -377,7 +377,7 @@ void register_cells(pybind11::module& m) {
                     arb::initial_ion_data x;
                     x.ion = name;
                     if (int_con) x.initial.init_int_concentration = *int_con;
-                    if (ext_con) x.initial.init_int_concentration = *ext_con;
+                    if (ext_con) x.initial.init_ext_concentration = *ext_con;
                     if (rev_pot) x.initial.init_reversal_potential = *rev_pot;
                     return x;
                 }
@@ -560,8 +560,8 @@ void register_cells(pybind11::module& m) {
             [](arb::cable_cell& c, const char* region, const char* name,
                optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
                 if (int_con) c.paint(region, arb::init_int_concentration{name, *int_con});
-                if (ext_con) c.paint(region, arb::init_int_concentration{name, *ext_con});
-                if (rev_pot) c.paint(region, arb::init_int_concentration{name, *rev_pot});
+                if (ext_con) c.paint(region, arb::init_ext_concentration{name, *ext_con});
+                if (rev_pot) c.paint(region, arb::init_reversal_potential{name, *rev_pot});
             },
             "region"_a, "ion_name"_a,
              pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),

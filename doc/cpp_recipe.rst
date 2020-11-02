@@ -7,7 +7,7 @@ The :cpp:class:`arb::recipe` class documentation is below.
 
 .. _cpp_recipe_best_practice:
 
-C++ Best Practices
+C++ best practices
 ------------------
 
 Here we collect rules of thumb to keep in mind when making recipes in C++.
@@ -20,8 +20,8 @@ Here we collect rules of thumb to keep in mind when making recipes in C++.
     lazy evaluation when possible (see `Be lazy <_recipe_lazy>`_).
 
 
-Class Documentation
--------------------
+Recipe
+------
 
 .. cpp:namespace:: arb
 
@@ -112,26 +112,21 @@ Class Documentation
 
         By default returns 0.
 
-    .. cpp:function:: virtual cell_size_type num_probes(cell_gid_type gid) const
-
-        The number of probes attached to the cell.
-
-        By default returns 0.
-
     .. cpp:function:: virtual cell_size_type num_gap_junction_sites(cell_gid_type gid) const
 
         Returns the number of gap junction sites on `gid`.
 
         By default returns 0.
 
-    .. cpp:function:: virtual probe_info get_probe(cell_member_type) const
+    .. cpp:function:: virtual std::vector<probe_info> get_probes(cell_gid_type gid) const
 
         Intended for use by cell group implementations to set up sampling data
         structures ahead of time and for putting in place any structures or
         information in the concrete cell implementations to allow monitoring.
 
-        By default throws :cpp:type:`std::logic_error`. If :cpp:func:`num_probes`
-        returns a non-zero value, this must also be overridden.
+        Returns a vector containing (in order) all the probes on a given cell `gid`.
+
+        By default throws :cpp:type:`std::logic_error`.
 
     .. cpp:function:: virtual std::any get_global_properties(cell_kind) const
 
@@ -139,50 +134,40 @@ Class Documentation
 
         By default returns an empty container.
 
-.. cpp:class:: cell_connection
+Cells
+--------
 
-    Describes a connection between two cells: a pre-synaptic source and a
-    post-synaptic destination. The source is typically a threshold detector on
-    a cell or a spike source. The destination is a synapse on the post-synaptic cell.
+See :ref:`cppcell`.
 
-    .. cpp:type:: cell_connection_endpoint = cell_member_type
+Synapses
+--------
 
-        Connection end-points are represented by pairs
-        (cell index, source/target index on cell).
+See :ref:`cppsynapses`.
 
-    .. cpp:member:: cell_connection_endpoint source
+Probes
+------
 
-        Source end point.
+.. cpp:type:: probe_tag = int
 
-    .. cpp:member:: cell_connection_endpoint dest
+    Extra contextual information associated with a probe.
 
-        Destination end point.
+.. cpp:class:: probe_info
 
-    .. cpp:member:: float weight
+    Probes are specified in the recipe objects that are used to initialize a
+    model; the specification of the item or value that is subjected to a
+    probe will be specific to a particular cell type.
 
-        The weight delivered to the target synapse.
-        The weight is dimensionless, and its interpretation is
-        specific to the synapse type of the target. For example,
-        the `expsyn` synapse interprets it as a conductance
-        with units μS (micro-Siemens).
+    .. cpp:member:: probe_tag tag
 
-    .. cpp:member:: float delay
+           Opaque key, returned in sample record.
 
-        Delay of the connection (milliseconds).
+    .. cpp:member:: util::any address
 
-.. cpp:class:: gap_junction_connection
+           Cell-type specific location info, specific to cell kind of ``id.gid``.
 
-    Describes a gap junction between two gap junction sites.
-    Gap junction sites are represented by :cpp:type:cell_member_type.
+Event generator and schedules
+-----------------------------
 
-    .. cpp:member:: cell_member_type local
 
-        gap junction site: one half of the gap junction connection.
-
-    .. cpp:member:: cell_member_type peer
-
-        gap junction site: other half of the gap junction connection.
-
-    .. cpp:member:: float ggap
-
-        gap junction conductance in μS.
+Example
+-------

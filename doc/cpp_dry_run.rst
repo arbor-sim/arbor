@@ -3,7 +3,7 @@
 .. Note::
     This is a developer feature for benchmarking, and is not useful for scientific use cases.
 
-Dry-run Mode
+Dry-run mode
 ===================
 
 Dry-run mode is used to mimic the performance of running an MPI distributed simulation

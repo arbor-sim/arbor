@@ -27,28 +27,32 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                 throw pyarb_error("Allen SWC: empty file");
             }
 
-            // assert that root sample has tag 1.
+            // Map of SWC record id to index in `records`.
+            std::unordered_map<int, std::size_t> record_index;
+
+            int soma_id = records[0].id;
+            record_index[soma_id] = 0;
+
+            // Assert that root sample has tag 1.
             if (records[0].tag!=1) {
                 throw pyarb_error("Allen SWC: the soma record does not have tag 1");
             }
 
-            // Assert that all non-root samples have a tag of 2, 3, or 4.
-            auto it = std::find_if(
-                        records.begin()+1, records.end(),
-                        [](auto& r){return r.tag<2 || r.tag>4;});
-            if (it!=records.end()) {
-                throw pyarb_error(
-                        "Allen SWC: every record must have a tag of 2, 3 or 4, except for the first which must have tag 1");
-            }
+            for (std::size_t i = 1; i<records.size(); ++i) {
+                const auto& r = records[i];
+                record_index[r.id] = i;
 
-            // Assert that all samples have the same tag as their parent, except
-            // those attached to the soma.
-            it = std::find_if(
-                        records.begin()+1, records.end(),
-                        [&records](auto& r){auto p = r.parent_id; return p && r.tag!=records[p].tag;});
-            if (it!=records.end()) {
-                throw pyarb_error(
+                // Assert that all samples have the same tag as their parent, except those attached to the soma.
+                if (auto p = r.parent_id; p!=soma_id && r.tag!=records[record_index[p]].tag) {
+                    throw pyarb_error(
                         "Allen SWC: every record not attached to the soma must have the same tag as its parent");
+                }
+
+                // Assert that all non-root samples have a tag of 2, 3, or 4.
+                if (r.tag<2 || r.tag>4) {
+                    throw pyarb_error(
+                        "Allen SWC: every record must have a tag of 2, 3 or 4, except for the first which must have tag 1");
+                }
             }
 
             // Translate the morphology so that the soma is centered at the origin (0,0,0)
@@ -67,13 +71,14 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
             tree.append(mnpos, {0, -soma_rad, 0, soma_rad}, {0, soma_rad, 0, soma_rad}, 1);
 
             // Build branches off soma.
-            std::unordered_map<msize_t, msize_t> pmap;
-            std::set<msize_t> unused_samples;
-            const auto nrec = records.size();
-            for (unsigned i=1; i<nrec; ++i) {
-                const auto& r = records[i];
+            std::unordered_map<int, msize_t> smap; // SWC record id -> segment id
+            std::set<int> unused_samples;
+            for (const auto& r: records) {
+                int id = r.id;
+                if (id==soma_id) continue;
+
                 // If sample i has the root as its parent don't create a segment.
-                if (r.parent_id==0) {
+                if (r.parent_id==soma_id) {
                     if (no_gaps) {
                         // Assert that this branch starts on the "surface" of the spherical soma.
                         auto d = std::fabs(soma_rad - std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z));
@@ -82,16 +87,14 @@ arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
                         }
                     }
                     // This maps axons and apical dendrites to soma.prox, and dendrites to soma.dist.
-                    pmap[i] = r.tag==3? 0: mnpos;
-                    unused_samples.insert(i);
+                    smap[id] = r.tag==3? 0: mnpos;
+                    unused_samples.insert(id);
                     continue;
                 }
 
                 const auto p = r.parent_id;
-                const auto& prox = records[p];
-                const auto& dist = records[i];
-                tree.append(pmap.at(p), {prox.x, prox.y, prox.z, prox.r}, {dist.x, dist.y, dist.z, dist.r}, r.tag);
-                pmap[i] = tree.size() - 1;
+                const auto& prox = records[record_index[p]];
+                smap[id] = tree.append(smap.at(p), {prox.x, prox.y, prox.z, prox.r}, {r.x, r.y, r.z, r.r}, r.tag);
                 unused_samples.erase(p);
             }
 

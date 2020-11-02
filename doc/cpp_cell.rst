@@ -1,11 +1,11 @@
-.. _cppcommon:
+.. _cppcell:
 
-Common Types
+Cells
 ============
 
 .. cpp:namespace:: arb
 
-Cell Identifiers and Indexes
+Cell identifiers and indexes
 ----------------------------
 
 These types, defined in ``common_types.hpp``, are used as identifiers for
@@ -90,62 +90,4 @@ cells and members of cell-local collections.
     .. cpp:enumerator:: benchmark
 
         Proxy cell used for benchmarking.
-
-Probes
-------
-
-.. cpp:type:: probe_tag = int
-
-    Extra contextual information associated with a probe.
-
-.. cpp:class:: probe_info
-
-    Probes are specified in the recipe objects that are used to initialize a
-    model; the specification of the item or value that is subjected to a
-    probe will be specific to a particular cell type.
-
-    .. cpp:member:: cell_member_type id
-
-           Cell gid, index of probe.
-
-    .. cpp:member:: probe_tag tag
-
-           Opaque key, returned in sample record.
-
-    .. cpp:member:: std::any address
-
-           Cell-type specific location info, specific to cell kind of ``id.gid``.
-
-Utility Wrappers and Containers
---------------------------------
-
-.. cpp:namespace:: arb::util
-
-.. cpp:class:: unique_any
-
-   Equivalent to :cpp:class:`std::any`, except that:
-
-      * it can store any type that is move constructable;
-      * it is move only, that is, it can't be copied.
-
-.. cpp:class:: any_ptr
-
-   Holds a pointer to an arbitrary type, together with the type information.
-
-   .. cpp:function:: template <typename T> T as()
-
-      Retrieve the pointer as type T. If T is ``void *`` or the same
-      as the type of the pointer stored in ``any_ptr``, return the held
-      value, cast accordingly. Otherwise return ``nullptr``.
-
-   ``any_ptr`` can be used with ``util::any_cast``, so that
-   ``util::any_cast<T>(p)`` is equivalent to ``p.as<T>()`` for a value ``p``
-   of type ``any_ptr``.
-
-.. cpp:function:: template <typename T> any_cast(...)
-
-    Equivalent to ``std::any_cast`` for ``std::any`` arguments, ``any_cast``
-    also performs analagous casting for the :cpp:class:`unique_any` and
-    :cpp:class:`any_ptr` utility classes.
-
 
