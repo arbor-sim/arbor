@@ -6,7 +6,7 @@ know how to ask questions and how to work on something.
 
 ## Types of contributions
 
-There are many ways to contribute, from writing tutorials or blog posts, improving the
+There are many ways to contribute: writing tutorials or blog posts, improving the
 documentation, submitting bug reports and feature requests or writing code which can be
 incorporated into Arbor itself.
 
@@ -66,20 +66,20 @@ for more explanation of the Git workflow described above.
 
 ### Reviewing a PR
 
-Each pull request is reviewed according to these guidelines:
+Each pull request is reviewed. Some tips to help you get a positive review:
 
 * You can use labels to categorize your PR. For very large PRs, it is likely the reviewer will have
 many questions and comments. It can be helpful to reach out on our Slack, Discussions or by email
 beforehand if you've big things planned for Arbor!
 * At least one core Arbor team member needs to mark your PR with a positive review. Some tips to
-help getting a positive review:
+help you get a positive review:
     * Commit logical units with clear commit messages.
     * Make sure your code conforms to our [coding guidelines](https://github.com/arbor-sim/arbor/wiki/Coding-Style-Guidelines)
     * If you add functionality, please update the documentation accordingly.
     * If you add functionality, add tests if applicable. This helps make sure Arbor is stable and
     functionality does what it's supposed to do.
     * If you make changes to GPU simulations, you can post a reply to your PR with `bors try`. This will run our GPU test-suite.
-    * If adding/changing the public C++ API, provide Python wrappings.
+    * If you add/change the public C++ API, provide Python wrappings.
     * Make sure Arbor compiles and has no new warnings.
 * Travis CI must produce a favourable result on your PR.
 * The creator of a pull request should not review or merge their own pull request.
