@@ -322,7 +322,7 @@ TEST(morphology, swc) {
     auto swc = arborio::parse_swc(fid, arborio::swc_mode::strict);
 
     // Build a segmewnt_tree from swc samples.
-    auto sm = arborio::as_segment_tree(swc);
+    auto sm = arborio::load_swc_arbor(swc);
     EXPECT_EQ(5798u, sm.size()); // SWC data contains 5799 samples.
 
     // Test that the morphology contains the expected number of branches.

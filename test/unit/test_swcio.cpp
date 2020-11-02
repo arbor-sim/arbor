@@ -123,7 +123,7 @@ TEST(swc_parser, bad_strict) {
         std::string bad6 =
             "1 7 0.1 0.2 0.3 0.4 -1\n"; // just one record
 
-        EXPECT_THROW(parse_swc(bad6, swc_mode::relaxed), swc_spherical_soma);
+        EXPECT_THROW(parse_swc(bad6, swc_mode::strict), swc_spherical_soma);
     }
     {
         std::string bad3 =
@@ -169,8 +169,8 @@ TEST(swc_parser, valid_strict) {
             "# world.\n";
 
         swc_data data = parse_swc(valid1, swc_mode::strict);
-        EXPECT_EQ("Hello\nworld.\n", data.metadata);
-        EXPECT_TRUE(data.records.empty());
+        EXPECT_EQ("Hello\nworld.\n", data.metadata());
+        EXPECT_TRUE(data.records().empty());
     }
 
     {
@@ -184,12 +184,12 @@ TEST(swc_parser, valid_strict) {
             "4 0 0.2 0.8 0.6 0.3 2";
 
         swc_data data = parse_swc(valid2, swc_mode::strict);
-        EXPECT_EQ("Some people put\n<xml /> in here!\n", data.metadata);
-        ASSERT_EQ(4u, data.records.size());
-        EXPECT_EQ(swc_record(1, 1, 0.1, 0.2, 0.3, 0.4, -1), data.records[0]);
-        EXPECT_EQ(swc_record(2, 1, 0.3, 0.4, 0.5, 0.3, 1), data.records[1]);
-        EXPECT_EQ(swc_record(4, 0, 0.2, 0.8, 0.6, 0.3, 2), data.records[2]);
-        EXPECT_EQ(swc_record(5, 2, 0.2, 0.6, 0.8, 0.2, 2), data.records[3]);
+        EXPECT_EQ("Some people put\n<xml /> in here!\n", data.metadata());
+        ASSERT_EQ(4u, data.records().size());
+        EXPECT_EQ(swc_record(1, 1, 0.1, 0.2, 0.3, 0.4, -1), data.records()[0]);
+        EXPECT_EQ(swc_record(2, 1, 0.3, 0.4, 0.5, 0.3, 1), data.records()[1]);
+        EXPECT_EQ(swc_record(4, 0, 0.2, 0.8, 0.6, 0.3, 2), data.records()[2]);
+        EXPECT_EQ(swc_record(5, 2, 0.2, 0.6, 0.8, 0.2, 2), data.records()[3]);
 
         // Trailing garbage is ignored in data records.
         std::string valid3 =
@@ -201,7 +201,7 @@ TEST(swc_parser, valid_strict) {
             "4 0 0.2 0.8 0.6 0.3 2";
 
         swc_data data2 = parse_swc(valid2, swc_mode::strict);
-        EXPECT_EQ(data.records, data2.records);
+        EXPECT_EQ(data.records(), data2.records());
     }
 }
 
@@ -212,14 +212,14 @@ TEST(swc_parser, segment_tree) {
             {1, 1, 0., 0., 0., 1., -1},
             {5, 3, 1., 1., 1., 1., 2}
         };
-        EXPECT_THROW(as_segment_tree(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_arbor(swc), swc_no_such_parent);
     }
     {
         // A single SWC record will throw.
         std::vector<swc_record> swc{
             {1, 1, 0., 0., 0., 1., -1}
         };
-        EXPECT_THROW(as_segment_tree(swc), swc_bad_description);
+        EXPECT_THROW(load_swc_arbor(swc), swc_spherical_soma);
     }
     {
         // Otherwise, ensure segment ends and tags correspond.
@@ -237,7 +237,7 @@ TEST(swc_parser, segment_tree) {
             {7, 3, p4.x, p4.y, p4.z, p4.radius, 4}
         };
 
-        segment_tree tree = as_segment_tree(swc);
+        segment_tree tree = load_swc_arbor(swc);
         ASSERT_EQ(4u, tree.segments().size());
 
         EXPECT_EQ(mnpos, tree.parents()[0]);
@@ -420,7 +420,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 3, p1.x, p1.y, p1.z, p1.radius,  4}
         };
-        EXPECT_THROW(load_swc_allen(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_allen(swc), swc_record_precedes_parent);
     }
     {
         // parent sample is self
@@ -431,7 +431,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 1, p1.x, p1.y, p1.z, p1.radius,  2}
         };
-        EXPECT_THROW(load_swc_allen(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_allen(swc), swc_record_precedes_parent);
     }
 }
 
@@ -905,7 +905,7 @@ TEST(swc_parser, not_neuron_compliant) {
                 {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
                 {3, 3, p2.x, p2.y, p2.z, p2.radius,  4}
         };
-        EXPECT_THROW(load_swc_neuron(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_neuron(swc), swc_record_precedes_parent);
     }
     {
         // parent sample is self
@@ -918,7 +918,7 @@ TEST(swc_parser, not_neuron_compliant) {
                 {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
                 {3, 3, p2.x, p2.y, p2.z, p2.radius,  3}
         };
-        EXPECT_THROW(load_swc_neuron(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_neuron(swc), swc_record_precedes_parent);
     }
 }
 
@@ -935,6 +935,6 @@ TEST(swc_parser, from_neuromorpho)
     }
 
     auto data = parse_swc(fid, swc_mode::strict);
-    EXPECT_EQ(5799u, data.records.size());
+    EXPECT_EQ(5799u, data.records().size());
 }
 #endif

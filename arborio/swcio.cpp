@@ -126,7 +126,7 @@ static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> rec
     int first_id = records[0].id;
     int first_tag = records[0].tag;
 
-    if (records.size()<2) {
+    if (mode==swc_mode::strict && records.size()<2) {
         throw swc_spherical_soma(first_id);
     }
 
@@ -161,10 +161,24 @@ static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> rec
     return records;
 }
 
+// swc_data
+swc_data::swc_data(std::vector<arborio::swc_record> recs, swc_mode mode) :
+    metadata_(),
+    records_(sort_and_validate_swc(std::move(recs), mode)),
+    mode_(mode) {};
+
+swc_data::swc_data(std::string meta, std::vector<arborio::swc_record> recs, swc_mode mode) :
+    metadata_(meta),
+    records_(sort_and_validate_swc(std::move(recs), mode)),
+    mode_(mode) {};
+
+// Parse and validate swc data
+
 swc_data parse_swc(std::istream& in, swc_mode mode) {
     // Collect any initial comments (lines beginning with '#').
 
-    swc_data data;
+    std::string metadata;
+    std::vector<swc_record> records;
     std::string line;
 
     while (in) {
@@ -173,9 +187,9 @@ swc_data parse_swc(std::istream& in, swc_mode mode) {
             getline(in, line, '\n');
             auto from = line.find_first_not_of(" \t");
             if (from != std::string::npos) {
-                data.metadata.append(line, from);
+                metadata.append(line, from);
             }
-            data.metadata += '\n';
+            metadata += '\n';
         }
         else {
             in.unget();
@@ -185,11 +199,10 @@ swc_data parse_swc(std::istream& in, swc_mode mode) {
 
     swc_record r;
     while (in && in >> r) {
-        data.records.push_back(r);
+        records.push_back(r);
     }
 
-    data.records = sort_and_validate_swc(std::move(data.records), mode);
-    return data;
+    return swc_data(metadata, std::move(records), mode);
 }
 
 swc_data parse_swc(const std::string& text, swc_mode mode) {
@@ -198,14 +211,13 @@ swc_data parse_swc(const std::string& text, swc_mode mode) {
 }
 
 swc_data parse_swc(std::vector<swc_record> records, swc_mode mode) {
-    swc_data data;
-    data.records = sort_and_validate_swc(std::move(records), mode);
-    return data;
+    return swc_data(std::move(records), mode);
 }
 
-arb::segment_tree as_segment_tree(const std::vector<swc_record>& records) {
+arb::segment_tree load_swc_arbor(const swc_data& data) {
+    const auto& records = data.mode() == swc_mode::strict ? data.records() : sort_and_validate_swc(data.records(), swc_mode::strict);
+
     if (records.empty()) return {};
-    if (records.size()<2) throw swc_bad_description{records.front().id};
 
     arb::segment_tree tree;
     std::size_t n_seg = records.size()-1;
@@ -236,7 +248,10 @@ arb::segment_tree as_segment_tree(const std::vector<swc_record>& records) {
     return tree;
 }
 
-arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
+arb::segment_tree load_swc_neuron(const swc_data& data) {
+    const auto& records = data.records();
+
+    // Assert that the file contains at least one sample.
     if (records.empty()) return {};
 
     const int soma_tag = 1;
@@ -412,7 +427,9 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
     return tree;
 }
 
-arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps) {
+arb::segment_tree load_swc_allen(const swc_data& data, bool no_gaps) {
+    auto records = data.records();
+
     // Assert that the file contains at least one sample.
     if (records.empty()) return {};
 
