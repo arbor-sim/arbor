@@ -11,13 +11,21 @@ check the last box.
 #### What is the purpose of this change?
 
 <!--
-Describe the changes here
+Describe (reason for) the changes here
 -->
 
 #### Was the change discussed in an issue or a discussion before?
 
 <!--
 Link issues and relevant forum posts here.
+-->
+
+#### Change summary
+
+<!--
+* Change 1
+* Change 2
+* etc.
 -->
 
 #### Checklist

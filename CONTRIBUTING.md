@@ -66,14 +66,15 @@ for more explanation of the Git workflow described above.
 
 ### Reviewing a PR
 
-Each pull request is reviewed. Some tips to help you get a positive review:
+Each pull request is reviewed according to these guidelines:
 
-* You can use labels to categorize your PR. For very large PRs, it is likely the reviewer will have
-many questions and comments. It can be helpful to reach out on our Slack, Discussions or by email
-beforehand if you've big things planned for Arbor!
 * At least one core Arbor team member needs to mark your PR with a positive review. Some tips to
 help you get a positive review:
+    * You can use labels to categorize your PR. For very large PRs, it is likely the reviewer will have
+many questions and comments. It can be helpful to reach out on our Slack, Discussions or by email
+beforehand if you've big things planned for Arbor!
     * Commit logical units with clear commit messages.
+    * Add change summary to the PR message. If you remembered to commit logical units, this could simply be a bulleted list of all commit messages in the PR.
     * Make sure your code conforms to our [coding guidelines](https://github.com/arbor-sim/arbor/wiki/Coding-Style-Guidelines)
     * If you add functionality, please update the documentation accordingly.
     * If you add functionality, add tests if applicable. This helps make sure Arbor is stable and
@@ -83,7 +84,7 @@ help you get a positive review:
     * Make sure Arbor compiles and has no new warnings.
 * Travis CI must produce a favourable result on your PR.
 * The creator of a pull request should not review or merge their own pull request.
-* An Arbor team member will merge the PR.
+* An Arbor team member will (squash) merge the PR with the PR change summery as commit message.
 
 ## Get in touch
 
