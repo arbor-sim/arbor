@@ -236,7 +236,7 @@ Locset expressions
 
       The result of ``(location 1 0.5)``, which corresponds to the mid point of branch 1.
 
-.. label:: (terminal}
+.. label:: (terminal)
 
     The location of terminal points, which are the most distal locations on the morphology.
     These will typically correspond to the tips, or end points, of dendrites and axons.

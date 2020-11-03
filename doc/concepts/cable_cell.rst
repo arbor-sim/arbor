@@ -29,7 +29,7 @@ on the cell. The decorations, coupled with a description of a cell morphology, a
 that is required to build a standalone single-cell model, or a cell that is part of
 a larger network.
 
-Decorations use :ref:`region <labels-region>` and :ref:`locaset <labels-locset>`
+Decorations use :ref:`region <labels-region>` and :ref:`locset <labels-locset>`
 descriptions, with their respective use for this purpose reflected in the two broad
 classes of dynamics in Arbor:
 
