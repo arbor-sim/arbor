@@ -124,22 +124,18 @@ struct swc_record {
     friend std::istream& operator>>(std::istream&, swc_record&);
 };
 
-enum class swc_mode { relaxed, strict };
-
 struct swc_data {
 private:
     std::string metadata_;
     std::vector<swc_record> records_;
-    swc_mode mode_;
 
 public:
     swc_data() = delete;
-    swc_data(std::vector<arborio::swc_record>, swc_mode = swc_mode::relaxed);
-    swc_data(std::string, std::vector<arborio::swc_record>, swc_mode = swc_mode::relaxed);
+    swc_data(std::vector<arborio::swc_record>);
+    swc_data(std::string, std::vector<arborio::swc_record>);
 
     const std::vector<swc_record>& records() const {return records_;};
     std::string metadata() const {return metadata_;};
-    swc_mode mode() const {return mode_;};
 };
 
 // Read SWC records from stream, collecting any initial metadata represented
@@ -163,12 +159,12 @@ public:
 //
 // SWC records are returned in id order.
 
-swc_data parse_swc(std::istream&, swc_mode = swc_mode::relaxed);
-swc_data parse_swc(const std::string&, swc_mode mode = swc_mode::relaxed);
+swc_data parse_swc(std::istream&);
+swc_data parse_swc(const std::string&);
 
 // Parse a series of existing SWC records.
 
-swc_data parse_swc(std::vector<swc_record>, swc_mode = swc_mode::relaxed);
+swc_data parse_swc(std::vector<swc_record>);
 
 // Convert a valid, ordered sequence of SWC records to a morphological segment tree.
 //

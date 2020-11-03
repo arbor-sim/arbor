@@ -142,7 +142,7 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_arbor(arborio::parse_swc(fid, arborio::swc_mode::strict));
+                return arborio::load_swc_arbor(arborio::parse_swc(fid));
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -166,7 +166,7 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_allen(arborio::parse_swc(fid, arborio::swc_mode::relaxed), no_gaps);
+                return arborio::load_swc_allen(arborio::parse_swc(fid), no_gaps);
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -199,7 +199,7 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_neuron(arborio::parse_swc(fid, arborio::swc_mode::relaxed));
+                return arborio::load_swc_neuron(arborio::parse_swc(fid));
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.

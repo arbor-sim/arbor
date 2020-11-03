@@ -319,7 +319,7 @@ TEST(morphology, swc) {
     }
 
     // Load swc samples from file.
-    auto swc = arborio::parse_swc(fid, arborio::swc_mode::strict);
+    auto swc = arborio::parse_swc(fid);
 
     // Build a segmewnt_tree from swc samples.
     auto sm = arborio::load_swc_arbor(swc);
