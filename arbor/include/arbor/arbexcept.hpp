@@ -130,8 +130,14 @@ struct fingerprint_mismatch: arbor_exception {
     std::string mech_name;
 };
 
-struct no_such_parameter: arbor_exception {
-    no_such_parameter(const std::string& mech_name, const std::string& param_name);
+struct no_such_global_parameter: arbor_exception {
+    no_such_global_parameter(const std::string& mech_name, const std::string& param_name);
+    std::string mech_name;
+    std::string param_name;
+};
+
+struct no_such_range_parameter: arbor_exception {
+    no_such_range_parameter(const std::string& mech_name, const std::string& param_name);
     std::string mech_name;
     std::string param_name;
 };
