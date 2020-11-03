@@ -12,11 +12,6 @@ check the last box.
 
 <!--
 Describe (reason for) the changes here
--->
-
-#### Was the change discussed in an issue or a discussion before?
-
-<!--
 Link issues and relevant forum posts here.
 -->
 
