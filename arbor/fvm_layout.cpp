@@ -771,7 +771,6 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     for (auto cell_idx: count_along(cells)) {
         append(combined, cell_mech[cell_idx]);
     }
-    combined.f
     return combined;
 }
 
