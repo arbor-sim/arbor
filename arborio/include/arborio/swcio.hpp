@@ -168,9 +168,7 @@ swc_data parse_swc(std::vector<swc_record>);
 
 // Convert a valid, ordered sequence of SWC records to a morphological segment tree.
 //
-// Note that 'one-point soma' SWC files are explicitly not supported; the swc_data
-// is expected to abide by the restrictions of `strict` mode parsing as described
-// above.
+// Note that 'one-point soma' SWC files are explicitly not supported.
 //
 // The generated segment tree will be contiguous. There will be one segment for
 // each SWC record after the first: this record defines the tag and distal point
@@ -181,8 +179,7 @@ arb::segment_tree load_swc_arbor(const swc_data& data);
 // As above, will convert a valid, ordered sequence of SWC records to a morphological
 // segment tree.
 //
-// Note that 'one-point soma' SWC files are supported here; the swc_data is expected
-// to abide by the restrictions of `relaxed` mode parsing as described above.
+// Note that 'one-point soma' SWC files are supported here
 //
 // These functions comply with inferred SWC rules from the Allen institute and Neuron.
 // These rules are explicitly listed in the docs.
