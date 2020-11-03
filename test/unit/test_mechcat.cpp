@@ -422,7 +422,7 @@ TEST(mechcat, implicit_deriv) {
     EXPECT_EQ(4.5, fleeb2_derived.overrides.globals.at("plugh"));
 
     // Requesting an implicitly derived instance with improper parameters should throw.
-    EXPECT_THROW(cat.instance<foo_backend>("fleeb2/fidget=7"), no_such_parameter);
+    EXPECT_THROW(cat.instance<foo_backend>("fleeb2/fidget=7"), no_such_global_parameter);
 
     // Testing for implicit derivation though should not throw.
     EXPECT_TRUE(cat.has("fleeb2/plugh=7"));
