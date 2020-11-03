@@ -145,8 +145,8 @@ by two stitches:
    cell.paint("\"soma\"", "hh");
 
 
-Supported morphology formats:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Supported morphology formats
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Arbor supports morphologies described using the SWC file format and the NeuroML file format.
 
