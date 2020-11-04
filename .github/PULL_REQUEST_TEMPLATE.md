@@ -1,35 +1,20 @@
 <!--
-Thank you very much for contributing to Arbor! Please
-fill out the following questions to make it easier for us to review your
-changes.
+Thank you for contributing to Arbor!
 
-You do not need to check all the boxes below, or at once, feel free to take
-your time and add more commits. If you're done and ready for review, please
-check the last box.
+We ask that you read our [contribution guidelines](https://github.com/arbor-sim/arbor/blob/master/CONTRIBUTING.md#making-a-pull-request)
+to help make review of your PR easy and fast.
+
+In the PR message, please add a clear outline of your changes (bulleted if possible).
+For context, you may want to refer to an issue or forum post,
+or add your motivation for this PR separate from the change summary.
+
+You do not need to do everything at once, feel free to take
+your time and add more commits. If you're done and ready for review,
+please request a review or reply to your PR.
 -->
-
-#### What is the purpose of this change?
-
-<!--
-Describe (reason for) the changes here
-Link issues and relevant forum posts here.
--->
-
-#### Change summary
 
 <!--
 * Change 1
 * Change 2
 * etc.
 -->
-
-#### Checklist
-
-- [ ] I have read the [contribution guidelines](https://github.com/arbor-sim/arbor/blob/master/CONTRIBUTING.md#making-a-pull-request).
-- [ ] I have written clear commit messages.
-- [ ] My code is written in accordance with the [coding style guidelines](https://github.com/arbor-sim/arbor/wiki/Coding-Style-Guidelines).
-- [ ] I have updated the documentation, if applicable.
-- [ ] I have added tests, if applicable.
-- [ ] I have added Python wrappings alongside my changes to the public C++ API.
-- [ ] I have made sure Arbor compiles and has no new warnings.
-- [ ] I'm done, this Pull Request is ready for review :-)
