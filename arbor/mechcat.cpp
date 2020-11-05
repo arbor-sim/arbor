@@ -285,7 +285,7 @@ struct catalogue_state {
                 }
             }
             else {
-                return unexpected_exception_ptr(no_such_global_parameter(name, param));
+                return unexpected_exception_ptr(no_such_global(name, param));
             }
 
             deriv.globals[param] = value;

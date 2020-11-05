@@ -101,14 +101,14 @@ fingerprint_mismatch::fingerprint_mismatch(const std::string& mech_name):
     mech_name(mech_name)
 {}
 
-no_such_global_parameter::no_such_global_parameter(const std::string& mech_name, const std::string& param_name):
-    arbor_exception(pprintf("mechanism {} has no GLOBAL parameter {}", mech_name, param_name)),
+no_such_global::no_such_global(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism {} has no global {} that can be derived", mech_name, param_name)),
     mech_name(mech_name),
     param_name(param_name)
 {}
 
-no_such_range_parameter::no_such_range_parameter(const std::string& mech_name, const std::string& param_name):
-    arbor_exception(pprintf("mechanism {} has no RANGE parameter {}", mech_name, param_name)),
+no_such_parameter::no_such_parameter(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism {} has no parameter {} that can be set", mech_name, param_name)),
     mech_name(mech_name),
     param_name(param_name)
 {}

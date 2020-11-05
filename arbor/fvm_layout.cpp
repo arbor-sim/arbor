@@ -797,7 +797,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         for (const auto& pv: desc.values()) {
             if (!info.parameters.count(pv.first)) {
-                throw no_such_range_parameter(desc.name(), pv.first);
+                throw no_such_parameter(desc.name(), pv.first);
             }
             if (!info.parameters.at(pv.first).valid(pv.second)) {
                 throw invalid_parameter_value(desc.name(), pv.first, pv.second);
