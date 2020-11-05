@@ -125,8 +125,17 @@ struct swc_record {
 };
 
 struct swc_data {
-    std::string metadata;
-    std::vector<swc_record> records;
+private:
+    std::string metadata_;
+    std::vector<swc_record> records_;
+
+public:
+    swc_data() = delete;
+    swc_data(std::vector<arborio::swc_record>);
+    swc_data(std::string, std::vector<arborio::swc_record>);
+
+    const std::vector<swc_record>& records() const {return records_;};
+    std::string metadata() const {return metadata_;};
 };
 
 // Read SWC records from stream, collecting any initial metadata represented
@@ -150,50 +159,28 @@ struct swc_data {
 //
 // SWC records are returned in id order.
 
-enum class swc_mode { relaxed, strict };
-
-swc_data parse_swc(std::istream&, swc_mode = swc_mode::strict);
-swc_data parse_swc(const std::string& text, swc_mode mode = swc_mode::strict);
-
-// Parse a series of existing SWC records.
-
-swc_data parse_swc(std::vector<swc_record>, swc_mode = swc_mode::strict);
+swc_data parse_swc(std::istream&);
+swc_data parse_swc(const std::string&);
 
 // Convert a valid, ordered sequence of SWC records to a morphological segment tree.
 //
-// Note that 'one-point soma' SWC files are explicitly not supported; the swc_data
-// is expected to abide by the restrictions of `strict` mode parsing as described
-// above.
+// Note that 'one-point soma' SWC files are explicitly not supported.
 //
 // The generated segment tree will be contiguous. There will be one segment for
 // each SWC record after the first: this record defines the tag and distal point
 // of the segment, while the proximal point is taken from the parent record.
 
-arb::segment_tree as_segment_tree(const std::vector<swc_record>&);
-
-inline arb::segment_tree as_segment_tree(const swc_data& data) {
-    return as_segment_tree(data.records);
-}
+arb::segment_tree load_swc_arbor(const swc_data& data);
 
 // As above, will convert a valid, ordered sequence of SWC records to a morphological
 // segment tree.
 //
-// Note that 'one-point soma' SWC files are supported here; the swc_data is expected
-// to abide by the restrictions of `relaxed` mode parsing as described above.
+// Note that 'one-point soma' SWC files are supported here
 //
 // These functions comply with inferred SWC rules from the Allen institute and Neuron.
 // These rules are explicitly listed in the docs.
 
-arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records);
-
-inline arb::segment_tree load_swc_neuron(const swc_data& data) {
-    return load_swc_neuron(data.records);
-}
-
-arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps=false);
-
-inline arb::segment_tree load_swc_allen(swc_data& data) {
-    return load_swc_allen(data.records);
-}
+arb::segment_tree load_swc_neuron(const swc_data& data);
+arb::segment_tree load_swc_allen(const swc_data& data, bool no_gaps=false);
 
 } // namespace arborio

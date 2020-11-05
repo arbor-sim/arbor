@@ -145,8 +145,8 @@ by two stitches:
    cell.paint("\"soma\"", "hh");
 
 
-Supported morphology formats:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Supported morphology formats
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Arbor supports morphologies described using the SWC file format and the NeuroML file format.
 
@@ -163,7 +163,7 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 :cpp:type:`segment_tree` object using one of the following functions: (See the morphology concepts
 :ref:`page <morph-formats>` for more details).
 
-  * :cpp:func:`as_segment_tree`
+  * :cpp:func:`load_swc_arbor`
   * :cpp:func:`load_swc_allen`
   * :cpp:func:`load_swc_neuron`
 
@@ -209,17 +209,19 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
 .. cpp:function:: swc_data parse_swc(std::istream&)
 
-   Returns an `swc_data` object given an std::istream object.
+   Returns an :cpp:type:`swc_data` object given an std::istream object.
 
-.. cpp:function:: segment_tree as_segment_tree(const swc_data& data)
+.. cpp:function:: segment_tree load_swc_arbor(const swc_data& data)
 
    Returns a segment tree constructed according to Arbor's SWC specifications.
 
-.. cpp:function:: segment_tree load_swc_allen(swc_data& data)
+.. cpp:function:: segment_tree load_swc_allen(const swc_data& data, bool no_gaps=false)
 
    Returns a segment tree constructed according to the Allen Institute's SWC specifications.
+   By default, gaps in the segment tree are allowed, this can be toggled using the ``no_gaps``
+   argument.
 
-.. cpp:function:: segment_tree load_swc_neuron(swc_data& data)
+.. cpp:function:: segment_tree load_swc_neuron(const swc_data& data)
 
    Returns a segment tree constructed according to NEURON's SWC specifications.
 

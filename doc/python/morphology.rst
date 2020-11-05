@@ -285,7 +285,7 @@ Cell morphology
         the use of cylinders or fustrums to describe morphologies, and it is not possible to
         infer how branches attached to the soma should be connected.
 
-        The :func:`load_swc_allen` function provides support for interpreting
+        The :func:`load_swc_allen` and :func:`load_swc_neuron` functions provide support for interpreting
         such SWC files.
 
 
