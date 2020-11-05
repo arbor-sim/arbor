@@ -195,10 +195,6 @@ swc_data parse_swc(const std::string& text) {
     return parse_swc(is);
 }
 
-swc_data parse_swc(std::vector<swc_record> records) {
-    return swc_data(std::move(records));
-}
-
 arb::segment_tree load_swc_arbor(const swc_data& data) {
     const auto& records = data.records();
 

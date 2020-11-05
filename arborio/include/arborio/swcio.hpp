@@ -162,10 +162,6 @@ public:
 swc_data parse_swc(std::istream&);
 swc_data parse_swc(const std::string&);
 
-// Parse a series of existing SWC records.
-
-swc_data parse_swc(std::vector<swc_record>);
-
 // Convert a valid, ordered sequence of SWC records to a morphological segment tree.
 //
 // Note that 'one-point soma' SWC files are explicitly not supported.
