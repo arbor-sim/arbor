@@ -142,7 +142,11 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_arbor(arborio::parse_swc(fid));
+                auto data = arborio::load_swc_arbor(arborio::parse_swc(fid));
+                if (fid.rdbuf()->in_avail()) {
+                    throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
+                }
+                return data;
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -166,7 +170,12 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_allen(arborio::parse_swc(fid), no_gaps);
+                auto data = arborio::load_swc_allen(arborio::parse_swc(fid), no_gaps);
+                if (fid.rdbuf()->in_avail()) {
+                    throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
+                }
+                return data;
+
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -199,7 +208,11 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_neuron(arborio::parse_swc(fid));
+                auto data = arborio::load_swc_neuron(arborio::parse_swc(fid));
+                if (fid.rdbuf()->in_avail()) {
+                    throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
+                }
+                return data;
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
