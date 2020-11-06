@@ -14,6 +14,12 @@
 
 namespace pyarb {
 
+void check_trailing(std::istream& in, std::string fname) {
+    if (!(in >> std::ws).eof()) {
+        throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
+    }
+}
+
 void register_morphology(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -142,7 +148,9 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_arbor(arborio::parse_swc(fid));
+                auto data = arborio::parse_swc(fid);
+                check_trailing(fid, fname);
+                return arborio::load_swc_arbor(data);
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -166,7 +174,10 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_allen(arborio::parse_swc(fid), no_gaps);
+                auto data = arborio::parse_swc(fid);
+                check_trailing(fid, fname);
+                return arborio::load_swc_allen(data, no_gaps);
+
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -199,7 +210,9 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                return arborio::load_swc_neuron(arborio::parse_swc(fid));
+                auto data = arborio::parse_swc(fid);
+                check_trailing(fid, fname);
+                return arborio::load_swc_neuron(data);
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.

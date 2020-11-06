@@ -494,10 +494,11 @@ SWC
 
 Arbor supports reading morphologies described using the
 `SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format.
-SWC files describe the morphology as a list of samples with an id, an `x,y,z` location is space, a radius, a tag
-and a parent id. Arbor parses these samples, performs some checks, then generates a
-:ref:`segment tree <morph-segment_tree>` describing the morphology according to one of three possible
-interpretations.
+SWC files may contain comments, which are stored as metadata. A blank line anywhere in the file is
+interpreted as end of data. The description of the morphology is encoded as a list of samples with an id,
+an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
+then generates a :ref:`segment tree <morph-segment_tree>` describing the morphology according to one of three
+possible interpretations.
 
 The SWC file format specifications are not very detailed, which has lead different simulators to interpret
 SWC files in different ways, especially when it comes to the soma. Arbor has its own an interpretation that

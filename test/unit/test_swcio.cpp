@@ -182,6 +182,75 @@ TEST(swc_parser, valid_parse) {
         swc_data data2 = parse_swc(valid4);
         EXPECT_EQ(data.records(), data2.records());
     }
+}
+
+TEST(swc_parser, stream_validity) {
+    {
+        std::string valid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 0.4 -1\n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(valid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(2u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_TRUE(is.eof());
+    }
+    {
+        std::string valid =
+                "# metadata\n"
+                "\n"
+                "1 1 0.1 0.2 0.3 0.4 -1\n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(valid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_TRUE(is.good());
+
+        is >> std::ws;
+        data = parse_swc(is);
+        ASSERT_EQ(2u, data.records().size());
+        EXPECT_TRUE(data.metadata().empty());
+        EXPECT_TRUE(is.eof());
+    }
+    {
+        std::string invalid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 \n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(invalid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_FALSE(is.good());
+    }
+    {
+        std::string invalid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 \n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(invalid);
+
+        auto data = parse_swc(is);
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_FALSE(is.good());
+
+        is >> std::ws;
+        data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata().empty());
+        EXPECT_FALSE(is.good());
+    }
 
 }
 
