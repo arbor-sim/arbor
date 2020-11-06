@@ -20,22 +20,25 @@ Cells interact with each other via spike exchange and gap junctions.
                                                                 For example, the 7th synapse on cell 42.
     ========================  ================================  ===========================================================
 
+Cell interactions via :ref:`connections <modelconnections>` and :ref:`gap junctions <modelgapjunctions>` occur
+between **source**, **target** and **gap junction site** locations on a cell. Connections are formed from sources
+to targets. Gap junctions are formed between two gap junction sites. An example of a source on a
+:ref:`cable cell<model_cable_cell>` is a :ref:`threshold detector <cable-threshold-detectors>` (spike detector);
+an example of a target on a :ref:`cable cell<model_cable_cell>` is a :ref:`synapse <cable-synapses>`.
 
-Each cell has a global identifier :gen:`gid`, which is used to refer to cells in :ref:`recipes <modelrecipe>`.
-To describe or refer to cell-to-cell interactions, the following object types need to be enumerated:
+Each cell has a global identifier :gen:`gid`, and each **source**, **target** and **gap junction site** has a
+global identifier :gen:`cell_member`. These are used to refer to them in :ref:`recipes <modelrecipe>`.
 
-1. **Sources**
-2. **Targets**
-3. **Gap Junction Sites**
+A cell can have multiple sources, targets and gap junction site objects. Each object is ordered relative to other
+objects of the same type on that cell. The unique :gen:`cell_member` (:gen:`gid`, :gen:`index`) identifies an object
+according to the :gen:`gid` of the cell it is placed on, and its :gen:`index` on the cell enumerated according to the
+order of insertion in the cell description relative to other objects of the same type.
 
-Cells interact with other cells via :ref:`connections <modelconnections>` or
-:ref:`gap junctions <modelgapjunctions>`. Connections are formed from **sources** to **targets**. Gap junctions
-are formed between two **gap junction sites**.
+The :gen:`gid` of a cell is used to determine its :ref:`cell kind <model_cell_kinds>` and cell description
+(morphology, dynamics, etc) in the :ref:`recipe <modelrecipe>`.
+The :gen:`cell_member` of a source, target or gap junction site is used to form :ref:`connections <modelconnections>`
+and :ref:`gap junctions <modelgapjunctions>` in the :ref:`recipe <modelrecipe>`.
 
-A cell can have multiple sources, targets and gap junction site objects. Each object has a local :gen:`index`
-relative to other objects of the same type on that cell.
-A unique (:gen:`gid`, :gen:`index`) pair defined by a :gen:`cell_member` can be used to uniquely identify
-objects on a cell in a global model.
 
 
 .. _model_cell_kinds:
@@ -48,13 +51,13 @@ Cell kinds
     ========================  ===========================================================
     Cell Kind                 Description
     ========================  ===========================================================
-    **cable**                 Cell with morphology described by branching
-                              1D cable segments and user configurable mechanisms.
-    **lif**                   Single-compartment no-mechanism leaky integrate-and-fire
+    **Cable cell**            Cell with morphology described by branching
+                              1D cable segments and user configurable dynamics.
+    **LIF cell**              Single-compartment no-mechanism leaky integrate-and-fire
                               neuron.
-    **spiking**               Proxy cell that generates spikes from a user-supplied
+    **Spiking cell**          Proxy cell that generates spikes from a user-supplied
                               time sequence.
-    **benchmark**             Proxy cell used for benchmarking (developer use only).
+    **Benchmark cell**        Proxy cell used for benchmarking (developer use only).
     ========================  ===========================================================
 
 .. _model_cable_cell:
@@ -63,24 +66,27 @@ Cell kinds
    Cable cells are morphologically-detailed cells represented as branching linear 1D segments. They can be coupled
    to other cell types via the following mechanisms:
 
-   1. Spike exchange over a **connection** with fixed latency.
+   1. Spike exchange over a :ref:`connection <modelconnections>` with fixed latency.
       Cable cells can *receive* spikes from any kind of cell, and can be a *source* of spikes
-      cells that have target sites (i.e. *cable* and *lif* cells).
-   2. Direct electrical coupling between two cable cells via **gap junctions**.
+      to cells that have target sites (i.e. *cable* and *lif* cells).
+   2. Direct electrical coupling between two cable cells via :ref:`gap junctions <modelgapjunctions>`.
 
    Key concepts:
 
-   * **Morphology**: The morphology of a cable cell is composed of a branching tree of one-dimensional line segments.
-     Strictly speaking, Arbor represents a morphology is an *acyclic directed graph*, with the soma at the root.
-   * **Detectors**: Spike detectors generate spikes when the voltage at location on the cell
-     passes a threshold. Detectors act as **sources** of :ref:`connections <modelconnections>`.
-   * **Synapses**: Synapses act as **targets** of :ref:`connections <modelconnections>`.
-     A synapse is described by a synapse type (with associated parameters) and location on a cell.
-   * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <modelgapjunctions>`.
-     They are declared by specifying a location on a branch of the cell.
+   * **Morphology**: The :ref:`morphology <co_morphology>` of a cable cell is composed of a branching
+     tree of one-dimensional line segments. Strictly speaking, Arbor represents a morphology as an
+     *acyclic directed graph*, with the soma at the root.
+   * **Detectors**: Spike :ref:`detectors <cable-threshold-detectors>` generate spikes when the voltage
+     at location on the cell passes a threshold. Detectors act as **sources** of
+     :ref:`connections <modelconnections>`.
+   * **Synapses**: :ref:`Synapses <cable-synapses>` act as **targets** of
+     :ref:`connections <modelconnections>`. A synapse is described by a synapse type
+     (with associated parameters) and location on a cell.
+   * **Gap Junction Sites**: These refer to the :ref:`sites <cable-gj-sites>` of
+     :ref:`gap junctions <modelgapjunctions>`. They are declared by specifying a location on a cell.
 
-   Because cable cells are the main cell kind in Arbor and have more properties than listed here, they have a
-   :ref:`dedicated page <cablecell>`.
+   Because cable cells are the main cell kind in Arbor and have more properties than listed here,
+   they have several :ref:`dedicated pages <cablecell>`.
 
 .. _model_lif_cell:
 2. **LIF Cells**
@@ -102,8 +108,8 @@ Cell kinds
    Benchmark cells are proxy cells used for benchmarking, and used by developers to benchmark the spike exchange and
    event delivery infrastructure.
 
-Most Arbor users will want to use the cable cell, which is the only cell kind that supports complex morphologies
-and user-defined mechanisms. You can visit the :ref:`cable cell page <cablecell>` for more information.
+Most Arbor users will want to use the cable cell, because it is the only cell kind that supports complex
+morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated page <cablecell>` for more info.
 
 API
 ---
