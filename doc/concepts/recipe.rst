@@ -39,8 +39,7 @@ The steps of building a simulation from a recipe are:
 
 .. topic:: 1. Load balancing
 
-    This can be done manually, by creating a :ref:`domain decomposition<modeldomdec>`
-    object. Or by using an Arbor-provided load balancer. First, the cells are partitioned over MPI ranks, and each rank parses
+    First, the cells are partitioned over MPI ranks, and each rank parses
     the cells assigned to it to build a cost model.
     The ranks then coordinate to redistribute cells over MPI ranks so that
     each rank has a balanced workload. Finally, each rank groups its local

@@ -83,6 +83,7 @@ Cell kinds
 
    LIF cells are single compartment leaky integrate and fire neurons with one **source** and one **target**.
    LIF cells do not support adding additional **sources** or **targets**. They do not support **gap junctions**.
+   They are typically used to simulate point-neuron networks.
 
 3. **Spiking Cells**
 
