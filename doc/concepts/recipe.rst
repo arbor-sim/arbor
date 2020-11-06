@@ -8,7 +8,8 @@ building phase to provide information about cells in the model, such as:
 
   * The **number of cells** in the model.
   * The **kind** of each cell.
-  * The **description** of each cell, e.g. with morphology, synapses, detectors, stimuli.
+  * The **description** of each cell, e.g. with morphology, dynamics, synapses, detectors,
+    stimuli etc.
   * The number of **spike targets**.
   * The number of **spike sources**.
   * The number of **gap junction sites**.
@@ -16,21 +17,24 @@ building phase to provide information about cells in the model, such as:
   * **Gap junction connections** on a cell.
   * **Probes** on a cell.
 
-To better illustrate the content of a recipe, let's consider the following model of
+To better illustrate the content of a recipe, let's consider the following network of
 three cells:
 
--  | ``Cell 0``: Is a single soma, with ``HH`` dynamics. In the middle of the soma, a
-     spike detector is attached, it generates a spiking event when the voltage goes
-     above 10 mV. In the same spot on the soma, a current clamp is also attached, with
-     the intention of triggering some spikes. This is the **description** of the cell.
-   | ``Cell 0`` is a complex cell with dynamics, which should be modeled as a
-     :ref:`cable cell<model_cable_cell>`. This is the **kind** of the cell.
-   | It's quite expensive to build complex cells, so we don't want to do this too often.
-     But when the simulation is first set up, it needs to now how cells interact with
-     one another in order to partition cells across nodes in an ideal manner. This is
-     why the number of **targets**, **sources** and **gap junction sites** is needed
-     separately from the cell description: with them, the simulation can tell that
-     ``cell 0`` has 1 **spike source** (the detector), 0 **spike targets**, and 0
+-  | ``Cell 0``: Is a single soma, with ``hh`` (Hodgkin-huxley) dynamics. In the middle
+     of the soma, a spike detector is attached, it generates a spiking event when the
+     voltage goes above 10 mV. In the same spot on the soma, a current clamp is also
+     attached, with the intention of triggering some spikes. All of the preceding info:
+     the morphology, dynamics, spike detector and current clamp are what is refered to in
+     Arbor as the **description** of the cell.
+   | ``Cell 0`` should be modeled as a :ref:`cable cell<model_cable_cell>`,
+     (because cable cells allow complex dynamics such as ``hh``). This is refered to as
+     the **kind** of the cell.
+   | It's quite expensive to build cable cells, so we don't want to do this too often.
+     But when the simulation is first set up, it needs to know how cells interact with
+     one another in order to distribute the simulation over the available computational
+     resources. This is why the number of **targets**, **sources** and **gap junction sites**
+     is needed separately from the cell description: with them, the simulation can tell
+     that ``cell 0`` has 1 **spike source** (the detector), 0 **spike targets**, and 0
      **gap junction sites**, without having to build the cell.
 -  | ``Cell 1``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
      It has a single synapse at the end of the dendrite and a gap junction site in the
@@ -48,14 +52,14 @@ is known and can be registered in the recipe. Next is the cell interaction.
 
 The model is designed such that ``cell 0`` has a spike source, ``cell 1`` has
 a spike target and gap junction site, and ``cell 2`` has a gap junction site. A
-**network connection** can be fromed from ``cell 0`` to ``cell 1``; and a
+**network connection** can be formed from ``cell 0`` to ``cell 1``; and a
 **gap junction connection** from ``cell 1`` to ``cell 2``. If ``cell 0`` spikes,
 a spike should be observed on ``cell 2`` after some delay. To monitor
 the voltage on ``cell 2`` and record the spike, a **probe** can be set up
 on ``cell 2``. All this information is also registered via the recipe.
 
 The recipe is used to distribute the model across machines and is used in the simulation.
-Technical details of the recipe class are presented in the  :ref:`python <pyrecipe>` and
+Technical details of the recipe class are presented in the  :ref:`Python <pyrecipe>` and
 :ref:`C++ <cpprecipe>` APIs.
 
 Are recipes always neccessary?
