@@ -14,6 +14,12 @@
 
 namespace pyarb {
 
+void check_trailing(std::istream& in, std::string fname) {
+    if (!(in >> std::ws).eof()) {
+        throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
+    }
+}
+
 void register_morphology(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -143,9 +149,7 @@ void register_morphology(pybind11::module& m) {
             }
             try {
                 auto data = arborio::parse_swc(fid);
-                if (fid.rdbuf()->in_avail()) {
-                    throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
-                }
+                check_trailing(fid, fname);
                 return arborio::load_swc_arbor(data);
             }
             catch (arborio::swc_error& e) {
@@ -171,9 +175,7 @@ void register_morphology(pybind11::module& m) {
             }
             try {
                 auto data = arborio::parse_swc(fid);
-                if (fid.rdbuf()->in_avail()) {
-                    throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
-                }
+                check_trailing(fid, fname);
                 return arborio::load_swc_allen(data, no_gaps);
 
             }
@@ -209,9 +211,7 @@ void register_morphology(pybind11::module& m) {
             }
             try {
                 auto data = arborio::parse_swc(fid);
-                if (fid.rdbuf()->in_avail()) {
-                    throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
-                }
+                check_trailing(fid, fname);
                 return arborio::load_swc_neuron(data);
             }
             catch (arborio::swc_error& e) {

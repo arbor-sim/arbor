@@ -183,7 +183,7 @@ swc_data parse_swc(std::istream& in) {
     }
 
     swc_record r;
-    while (in && in >> r) {
+    while (in && (in.peek() != '\n') && in >> r) {
         records.push_back(r);
     }
 
