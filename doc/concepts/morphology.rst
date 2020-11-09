@@ -90,9 +90,7 @@ tag 2 coloured grey for axon; tag 3 coloured blue for basal dendrites.
   :align: center
 
   Example Python code to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
-  documentation :ref:`below <morph-label-seg-code>`.
-
-We can apply the following labels to the segments:
+  documentation :ref:`here <morph-label-seg-code>`.
 
 * The tree is composed of 11 segments (1 soma, 2 axon, 8 dendrite).
 * The proximal ends of segments 0 and 9 (the soma and axon hillock respectively) are attached to the root of the tree.
