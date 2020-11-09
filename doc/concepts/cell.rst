@@ -32,19 +32,19 @@ global identifier :gen:`cell_member`. These are used to refer to them in :ref:`r
 A cell can have multiple sources, targets and gap junction site objects. Each object is ordered relative to other
 objects of the same type on that cell. The unique :gen:`cell_member` (:gen:`gid`, :gen:`index`) identifies an object
 according to the :gen:`gid` of the cell it is placed on, and its :gen:`index` on the cell enumerated according to the
-order of insertion in the cell description relative to other objects of the same type.
+order of insertion on the cell relative to other objects of the same type.
 
-The :gen:`gid` of a cell is used to determine its :ref:`cell kind <model_cell_kinds>` and cell description
-(morphology, dynamics, etc) in the :ref:`recipe <modelrecipe>`.
-The :gen:`cell_member` of a source, target or gap junction site is used to form :ref:`connections <modelconnections>`
-and :ref:`gap junctions <modelgapjunctions>` in the :ref:`recipe <modelrecipe>`.
+The :gen:`gid` of a cell is used to determine its cell :ref:`kind <model_cell_kind>` and
+:ref:`description <model_cell_description>` in the :ref:`recipe <modelrecipe>`. The :gen:`cell_member` of a source,
+target or gap junction site is used to form :ref:`connections <modelconnections>` and
+:ref:`gap junctions <modelgapjunctions>` in the :ref:`recipe <modelrecipe>`.
 
 
 
-.. _model_cell_kinds:
+.. _model_cell_kind:
 
-Cell kinds
-----------
+Cell kind
+---------
 
 .. table:: The 4 types of cell supported by Arbor
 
@@ -110,6 +110,67 @@ Cell kinds
 
 Most Arbor users will want to use the cable cell, because it is the only cell kind that supports complex
 morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated page <cablecell>` for more info.
+
+.. _model_cell_description:
+
+Cell description
+----------------
+
+The `description` of a cell details everything needed to build a cell. This degree of detail needed
+differs according to the cell kind.
+
+1. **Cable Cells**
+
+   The description of a cable cell includes the following:
+
+     * :ref:`Morphology <co_morphology>`: the shape of the cell.
+     * Discretisation: how to split the morphology into discrete components for the simulation.
+     * Initial membrane voltage.
+     * Initial axial resistivity.
+     * Intial membrane capacitance.
+     * Initial temperature.
+     * Initial ion internal and external concentrations.
+     * Initial ion reversal potential.
+     * :ref:`Density mechanisms <mechanisms-density>`: commonly used to describe ion-channel dynamics accross
+       :ref:`regions <labels-region>` of the cell.
+     * :ref:`Ion reversal potential mechanisms <mechanisms-revpot>`: used to control the reversal potentials of
+       ions accross :ref:`regions <labels-region>` of the cell.
+     * :ref:`Point mechanisms <mechanisms-point>`: commonly used to describe synapses on specific
+       :ref:`locations <labels-locset>` of the cell; typically act as targets in the recipe.
+     * Stimuli: such as current clamps; placed on specific :ref:`locations <labels-locset>` on the cell.
+     * Threshold detectors: used to generate spiking events on specific :ref:`locations <labels-locset>` on the
+       cell, when the voltage increases above a certain threshold; typically act as sources in the recipe.
+     * Gap junction sites: used to electrically couple the cell to another gap junction site on another cell;
+       placed on specific :ref:`locations <labels-locset>` on the cell.
+
+   The cable cell is the most complex cell kind provided in arbor and is highly customisable. The provided links
+   describe each concept in more detail. And the :ref:`C++ <cppcable_cell>` and :ref:`Python <pycable_cell>` APIs
+   illustrate how to programmatically provide the cell description in Arbor.
+
+2. **LIF Cells**
+
+   The description of a LIF cell is used to control the leaky integrate-and-fire dynamics.
+      * Resting potential.
+      * Reset potential.
+      * Initial value of membrane potential.
+      * Membrane potential decaying constant.
+      * Membrane capacitance.
+      * Firing threshold.
+      * Refractory period.
+
+   The morphology of a lif cell is automatically modeled as a single compartment; each cell has a single built-in
+   source and target which do not need to be explicitly added in the cell description.
+
+3. **Spiking cells**
+
+   The description of a spiking cell is used to determine the spiking schedule of the cell. Its morphology is
+   automatically modeled as a single compartment; each cell has a single built-in source which does not need to
+   be explicitly added in the cell description.
+
+4. **Benchmark Cells**
+
+   The description of a benchmark cell is used to determine the spiking schedule of the cell and manipulate its
+   performance efficiency. This cell is mainly used by developers.
 
 API
 ---
