@@ -93,7 +93,7 @@ public:
         ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
-            std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
+            throw std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
         }
 
         // Set up the parameters.

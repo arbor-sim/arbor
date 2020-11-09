@@ -129,8 +129,9 @@ TYPED_TEST_P(simd_value, elements) {
     EXPECT_TRUE(testing::indexed_eq_n(N, bv, b));
 
     // array rvalue initialization:
+    auto cv_copy = cv;
     simd c(std::move(cv));
-    EXPECT_TRUE(testing::indexed_eq_n(N, cv, c));
+    EXPECT_TRUE(testing::indexed_eq_n(N, cv_copy, c));
 
     // pointer initialization:
     simd d(&dv[0]);
@@ -415,8 +416,9 @@ TYPED_TEST_P(simd_value, mask_elements) {
         EXPECT_TRUE(testing::indexed_eq_n(N, bv, b));
 
         // array rvalue initialization:
+        auto cv_copy = cv;
         mask c(std::move(cv));
-        EXPECT_TRUE(testing::indexed_eq_n(N, cv, c));
+        EXPECT_TRUE(testing::indexed_eq_n(N, cv_copy, c));
 
         // pointer initialization:
         mask d(&dv[0]);
