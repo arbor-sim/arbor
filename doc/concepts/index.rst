@@ -1,7 +1,7 @@
 .. _modelintro:
 
 Concepts
-====================
+========
 
 To learn how to use Arbor, it is helpful to understand some of its concepts.
 
@@ -35,11 +35,11 @@ In order to visualize the result of detected spikes a spike recorder can be used
 
    recipe
    cell
-   cable_cell
-   morphology
-   labels
-   mechanisms
    interconnectivity
    hardware
    domdec
    simulation
+   cable_cell
+   morphology
+   labels
+   mechanisms
