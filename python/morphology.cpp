@@ -14,37 +14,10 @@
 
 namespace pyarb {
 
-arb::segment_tree load_swc_neuron(const std::string& fname) {
-    std::ifstream fid{fname};
-    if (!fid.good()) {
-        throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+void check_trailing(std::istream& in, std::string fname) {
+    if (!(in >> std::ws).eof()) {
+        throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
     }
-    try {
-        auto records = arborio::parse_swc(fid, arborio::swc_mode::relaxed).records;
-        return arborio::load_swc_neuron(records);
-    }
-    catch (arborio::swc_error& e) {
-        // Try to produce helpful error messages for SWC parsing errors.
-        throw pyarb_error(
-                util::pprintf("NEURON SWC: error parsing {}: {}", fname, e.what()));
-    }
-}
-
-arb::segment_tree load_swc_allen(const std::string& fname, bool no_gaps=false) {
-        std::ifstream fid{fname};
-        if (!fid.good()) {
-            throw pyarb_error(util::pprintf("can't open file '{}'", fname));
-        }
-        try {
-            using namespace arb;
-            auto records = arborio::parse_swc(fid, arborio::swc_mode::relaxed).records;
-            return arborio::load_swc_allen(records, no_gaps);
-        }
-        catch (arborio::swc_error& e) {
-            // Try to produce helpful error messages for SWC parsing errors.
-            throw pyarb_error(
-                util::pprintf("Allen SWC: error parsing {}: {}", fname, e.what()));
-        }
 }
 
 void register_morphology(pybind11::module& m) {
@@ -167,7 +140,7 @@ void register_morphology(pybind11::module& m) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
     // Function that creates a segment_tree from an swc file.
-    // Wraps calls to C++ functions arb::parse_swc_file() and arb::swc_as_segment_tree().
+    // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc",
         [](std::string fname) {
             std::ifstream fid{fname};
@@ -175,35 +148,97 @@ void register_morphology(pybind11::module& m) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
             try {
-                auto records = arborio::parse_swc(fid).records;
-                return arborio::as_segment_tree(records);
+                auto data = arborio::parse_swc(fid);
+                check_trailing(fid, fname);
+                return arborio::load_swc_arbor(data);
+            }
+            catch (arborio::swc_error& e) {
+                // Try to produce helpful error messages for SWC parsing errors.
+                throw pyarb_error(util::pprintf("error parsing {}: {}", fname, e.what()));
+            }
+        },
+        "filename"_a,
+        "Generate a segment tree from an SWC file following the rules prescribed by\n"
+        "Arbor. Specifically:\n"
+        "* Single-segment somas are disallowed. These are usually interpreted as spherical somas\n"
+        "  and are a special case. This behavior is not allowed using this SWC loader.\n"
+        "* There are no special rules related to somata. They can be one or multiple branches\n"
+        "  and other segments can connect anywhere along them.\n"
+        "* A segment is always created between a sample and its parent, meaning there\n"
+        "  are no gaps in the resulting segment tree.");
+
+    m.def("load_swc_allen",
+        [](std::string fname, bool no_gaps=false) {
+            std::ifstream fid{fname};
+            if (!fid.good()) {
+                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+            }
+            try {
+                auto data = arborio::parse_swc(fid);
+                check_trailing(fid, fname);
+                return arborio::load_swc_allen(data, no_gaps);
+
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
                 throw pyarb_error(
-                    util::pprintf("error parsing {}: {}", fname, e.what()));
+                        util::pprintf("Allen SWC: error parsing {}: {}", fname, e.what()));
             }
         },
-        "Load an swc file and as a segment_tree.");
+        "filename"_a, "no_gaps"_a=false,
+        "Generate a segment tree from an SWC file following the rules prescribed by\n"
+        "AllenDB and Sonata. Specifically:\n"
+        "* The first sample (the root) is treated as the center of the soma.\n"
+        "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
+        "* The first sample has tag 1 (soma).\n"
+        "* All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)\n"
+        "SONATA prescribes that there should be no gaps, however the models in AllenDB\n"
+        "have gaps between the start of sections and the soma. The flag no_gaps can be\n"
+        "used to enforce this requirement.\n"
+        "\n"
+        "Arbor does not support modelling the soma as a sphere, so a cylinder with length\n"
+        "equal to the soma diameter is used. The cylinder is centered on the origin, and\n"
+        "aligned along the z axis.\n"
+        "Axons and apical dendrites are attached to the proximal end of the cylinder, and\n"
+        "dendrites to the distal end, with a gap between the start of each branch and the\n"
+        "end of the soma cylinder to which it is attached.");
 
-    m.def("load_swc_allen", &load_swc_allen,
-            "filename"_a, "no_gaps"_a=false,
-            "Generate a segment tree from an SWC file following the rules prescribed by\n"
-            "AllenDB and Sonata. Specifically:\n"
-            "* The first sample (the root) is treated as the center of the soma.\n"
-            "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
-            "* The first sample has tag 1 (soma).\n"
-            "* All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)\n"
-            "SONATA prescribes that there should be no gaps, however the models in AllenDB\n"
-            "have gaps between the start of sections and the soma. The flag no_gaps can be\n"
-            "used to enforce this requirement.\n"
-            "\n"
-            "Arbor does not support modelling the soma as a sphere, so a cylinder with length\n"
-            "equal to the soma diameter is used. The cylinder is centered on the origin, and\n"
-            "aligned along the z axis.\n"
-            "Axons and apical dendrites are attached to the proximal end of the cylinder, and\n"
-            "dendrites to the distal end, with a gap between the start of each branch and the\n"
-            "end of the soma cylinder to which it is attached.");
+    m.def("load_swc_neuron",
+        [](std::string fname) {
+            std::ifstream fid{fname};
+            if (!fid.good()) {
+                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+            }
+            try {
+                auto data = arborio::parse_swc(fid);
+                check_trailing(fid, fname);
+                return arborio::load_swc_neuron(data);
+            }
+            catch (arborio::swc_error& e) {
+                // Try to produce helpful error messages for SWC parsing errors.
+                throw pyarb_error(
+                    util::pprintf("NEURON SWC: error parsing {}: {}", fname, e.what()));
+            }
+        },
+        "filename"_a,
+        "Generate a segment tree from an SWC file following the rules prescribed by\n"
+        "NEURON. Specifically:\n"
+        "* The first sample must be a soma sample.\n"
+        "* The soma is represented by a series of n≥1 unbranched, serially listed samples.\n"
+        "* The soma is constructed as a single cylinder with diameter equal to the piecewise\n"
+        "  average diameter of all the segments forming the soma.\n"
+        "* A single-sample soma at is constructed as a cylinder with length=diameter.\n"
+        "* If a non-soma sample is to have a soma sample as its parent, it must have the\n"
+        "  most distal sample of the soma as the parent.\n"
+        "* Every non-soma sample that has a soma sample as its parent, attaches to the\n"
+        "  created soma cylinder at its midpoint.\n"
+        "* If a non-soma sample has a soma sample as its parent, no segment is created\n"
+        "  between the sample and its parent, instead that sample is the proximal point of\n"
+        "  a new segment, and there is a gap in the morphology (represented electrically as a\n"
+        "  zero-resistance wire)\n"
+        "* To create a segment with a certain tag, that is to be attached to the soma,\n"
+        "  we need at least 2 samples with that tag."
+        );
 
     // arb::morphology
 

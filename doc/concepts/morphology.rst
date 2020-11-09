@@ -90,9 +90,7 @@ tag 2 coloured grey for axon; tag 3 coloured blue for basal dendrites.
   :align: center
 
   Example Python code to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
-  documentation :ref:`below <morph-label-seg-code>`.
-
-We can apply the following labels to the segments:
+  documentation :ref:`here <morph-label-seg-code>`.
 
 * The tree is composed of 11 segments (1 soma, 2 axon, 8 dendrite).
 * The proximal ends of segments 0 and 9 (the soma and axon hillock respectively) are attached to the root of the tree.
@@ -494,18 +492,19 @@ SWC
 
 Arbor supports reading morphologies described using the
 `SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format.
-SWC files describe the morphology as a list of samples with an id, an `x,y,z` location is space, a radius, a tag
-and a parent id. Arbor parses these samples, performs some checks, then generates a
-:ref:`segment tree <morph-segment_tree>` describing the morphology according to one of three possible
-interpretations.
+SWC files may contain comments, which are stored as metadata. A blank line anywhere in the file is
+interpreted as end of data. The description of the morphology is encoded as a list of samples with an id,
+an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
+then generates a :ref:`segment tree <morph-segment_tree>` describing the morphology according to one of three
+possible interpretations.
 
 The SWC file format specifications are not very detailed, which has lead different simulators to interpret
 SWC files in different ways, especially when it comes to the soma. Arbor has its own an interpretation that
-is powerful, and simple to understand at the same time. However, we have also developed functions that will
+is powerful and simple to understand at the same time. However, we have also developed functions that will
 interpret SWC files similarly to how the NEURON simulator would, and how the Allen Institute would.
 
 Despite the differences between the interpretations, there is a common set of checks that are always performed
-to check the validity of SWC files:
+to validate an SWC file:
    * Check that there are no duplicate ids.
    * Check that the parent id of a sample is less than the id of the sample.
    * Check that the parent id of a sample refers to an existing sample.
@@ -562,25 +561,25 @@ and all samples are translated in space towards the origin.
 
 NEURON interpretation:
 """"""""""""""""""""""
-The NEURON interpretation was obtained by experimenting with the `Import3d_SWC_read` function. We came up with the
+The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function. We came up with the
 following set of rules that govern NEURON's SWC behavior and enforced them in arbor's NEURON-complaint SWC
 interpreter:
    * SWC files must contain a soma sample and it must to be the first sample.
    * A soma is represented by a series of n≥1 unbranched, serially listed samples.
    * A soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
-   segments forming the soma.
+     segments forming the soma.
    * A single-sample soma at is constructed as a cylinder with length=diameter.
    * If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
-   as the parent.
+     as the parent.
    * Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
    * If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
-   instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
-   electrically as a zero-resistance wire)
+     instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
+     electrically as a zero-resistance wire)
    * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
-   tag.
+     tag.
 
 API
 ---
 
 * :ref:`Python <py_morphology>`
-* :ref:`C++ <cpp_morphology>`
+* :ref:`C++ <morphology-construction>`

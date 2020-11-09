@@ -20,12 +20,12 @@ build_modules(
         SOURCE_DIR "${bbp_mod_srcdir}"
         DEST_DIR "${mech_dir}"
         ${external_modcc}
-        MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
+        MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N arb::bbp_catalogue
         GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
         TARGET build_catalogue_bbp_mods)
 
 set(bbp_catalogue_source ${CMAKE_CURRENT_BINARY_DIR}/bbp_catalogue.cpp)
-set(bbp_catalogue_options -A arbor -I ${mech_dir} -o ${bbp_catalogue_source} -B multicore -C bbp)
+set(bbp_catalogue_options -A arbor -I ${mech_dir} -o ${bbp_catalogue_source} -B multicore -C bbp -N arb::bbp_catalogue)
 if(ARB_WITH_GPU)
     list(APPEND bbp_catalogue_options -B gpu)
 endif()
@@ -60,12 +60,12 @@ build_modules(
     SOURCE_DIR "${allen_mod_srcdir}"
     DEST_DIR "${mech_dir}"
     ${external_modcc}
-    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
+    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N arb::allen_catalogue
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     TARGET build_catalogue_allen_mods)
 
 set(allen_catalogue_source ${CMAKE_CURRENT_BINARY_DIR}/allen_catalogue.cpp)
-set(allen_catalogue_options -A arbor -I ${mech_dir} -o ${allen_catalogue_source} -B multicore -C allen)
+set(allen_catalogue_options -A arbor -I ${mech_dir} -o ${allen_catalogue_source} -B multicore -C allen -N arb::allen_catalogue)
 if(ARB_WITH_GPU)
     list(APPEND allen_catalogue_options -B gpu)
 endif()
@@ -100,12 +100,12 @@ build_modules(
     SOURCE_DIR "${default_mod_srcdir}"
     DEST_DIR "${mech_dir}"
     ${external_modcc}
-    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
+    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N arb::default_catalogue
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     TARGET build_catalogue_default_mods)
 
 set(default_catalogue_source ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
-set(default_catalogue_options -A arbor -I ${mech_dir} -o ${default_catalogue_source} -B multicore -C default)
+set(default_catalogue_options -A arbor -I ${mech_dir} -o ${default_catalogue_source} -B multicore -C default -N arb::default_catalogue)
 if(ARB_WITH_GPU)
     list(APPEND default_catalogue_options -B gpu)
 endif()

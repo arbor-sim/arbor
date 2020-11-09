@@ -118,17 +118,11 @@ std::istream& operator>>(std::istream& in, swc_record& record) {
 
 // Parse SWC format data (comments and sequence of SWC records).
 
-static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records, swc_mode mode) {
+static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records) {
     if (records.empty()) return {};
 
     std::unordered_set<int> seen;
     std::size_t n_rec = records.size();
-    int first_id = records[0].id;
-    int first_tag = records[0].tag;
-
-    if (records.size()<2) {
-        throw swc_spherical_soma(first_id);
-    }
 
     for (std::size_t i = 0; i<n_rec; ++i) {
         swc_record& r = records[i];
@@ -143,28 +137,33 @@ static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> rec
     }
 
     std::sort(records.begin(), records.end(), [](const auto& lhs, const auto& rhs) { return lhs.id < rhs.id; });
-    bool first_tag_match = false;
 
     for (std::size_t i = 0; i<n_rec; ++i) {
         const swc_record& r = records[i];
-        first_tag_match |= r.parent_id==first_id && r.tag==first_tag;
-
         if ((i==0 && r.parent_id!=-1) || (i>0 && !seen.count(r.parent_id))) {
             throw swc_no_such_parent(r.id);
         }
     }
 
-    if (mode==swc_mode::strict && !first_tag_match) {
-        throw swc_spherical_soma(first_id);
-    }
-
     return records;
 }
 
-swc_data parse_swc(std::istream& in, swc_mode mode) {
+// swc_data
+swc_data::swc_data(std::vector<arborio::swc_record> recs) :
+    metadata_(),
+    records_(sort_and_validate_swc(std::move(recs))) {};
+
+swc_data::swc_data(std::string meta, std::vector<arborio::swc_record> recs) :
+    metadata_(meta),
+    records_(sort_and_validate_swc(std::move(recs))) {};
+
+// Parse and validate swc data
+
+swc_data parse_swc(std::istream& in) {
     // Collect any initial comments (lines beginning with '#').
 
-    swc_data data;
+    std::string metadata;
+    std::vector<swc_record> records;
     std::string line;
 
     while (in) {
@@ -173,9 +172,9 @@ swc_data parse_swc(std::istream& in, swc_mode mode) {
             getline(in, line, '\n');
             auto from = line.find_first_not_of(" \t");
             if (from != std::string::npos) {
-                data.metadata.append(line, from);
+                metadata.append(line, from);
             }
-            data.metadata += '\n';
+            metadata += '\n';
         }
         else {
             in.unget();
@@ -184,28 +183,23 @@ swc_data parse_swc(std::istream& in, swc_mode mode) {
     }
 
     swc_record r;
-    while (in && in >> r) {
-        data.records.push_back(r);
+    while (in && (in.peek() != '\n') && in >> r) {
+        records.push_back(r);
     }
 
-    data.records = sort_and_validate_swc(std::move(data.records), mode);
-    return data;
+    return swc_data(metadata, std::move(records));
 }
 
-swc_data parse_swc(const std::string& text, swc_mode mode) {
+swc_data parse_swc(const std::string& text) {
     std::istringstream is(text);
-    return parse_swc(is, mode);
+    return parse_swc(is);
 }
 
-swc_data parse_swc(std::vector<swc_record> records, swc_mode mode) {
-    swc_data data;
-    data.records = sort_and_validate_swc(std::move(records), mode);
-    return data;
-}
+arb::segment_tree load_swc_arbor(const swc_data& data) {
+    const auto& records = data.records();
 
-arb::segment_tree as_segment_tree(const std::vector<swc_record>& records) {
-    if (records.empty()) return {};
-    if (records.size()<2) throw swc_bad_description{records.front().id};
+    if (records.empty())  return {};
+    if (records.size()<2) throw swc_spherical_soma(records[0].tag);
 
     arb::segment_tree tree;
     std::size_t n_seg = records.size()-1;
@@ -214,9 +208,15 @@ arb::segment_tree as_segment_tree(const std::vector<swc_record>& records) {
     std::unordered_map<int, std::size_t> id_to_index;
     id_to_index[records[0].id] = 0;
 
+    // Check whether the first sample has at least one child with the same tag
+    bool first_tag_match = false;
+    int first_id = records[0].id;
+    int first_tag = records[0].tag;
+
     // ith segment is built from i+1th SWC record and its parent.
     for (std::size_t i = 1; i<n_seg+1; ++i) {
         const auto& dist = records[i];
+        first_tag_match |= dist.parent_id==first_id && dist.tag==first_tag;
 
         auto iter = id_to_index.find(dist.parent_id);
         if (iter==id_to_index.end()) throw swc_no_such_parent{dist.id};
@@ -233,10 +233,17 @@ arb::segment_tree as_segment_tree(const std::vector<swc_record>& records) {
         id_to_index[dist.id] = i;
     }
 
+    if (!first_tag_match) {
+        throw swc_spherical_soma(first_id);
+    }
+
     return tree;
 }
 
-arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
+arb::segment_tree load_swc_neuron(const swc_data& data) {
+    const auto& records = data.records();
+
+    // Assert that the file contains at least one sample.
     if (records.empty()) return {};
 
     const int soma_tag = 1;
@@ -412,7 +419,9 @@ arb::segment_tree load_swc_neuron(const std::vector<swc_record>& records) {
     return tree;
 }
 
-arb::segment_tree load_swc_allen(std::vector<swc_record>& records, bool no_gaps) {
+arb::segment_tree load_swc_allen(const swc_data& data, bool no_gaps) {
+    auto records = data.records();
+
     // Assert that the file contains at least one sample.
     if (records.empty()) return {};
 

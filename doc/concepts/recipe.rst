@@ -81,7 +81,7 @@ The interface and design of Arbor recipes was motivated by the following aims:
 
     * Building a simulation from a recipe description must be possible in a
       distributed system efficiently with minimal communication.
-    * To minimise the amount of memory used in model building, to make it
+    * Minimising the amount of memory used in model building, making it
       possible to build and run simulations in one run.
 
 Recipe descriptions are cell-oriented, in order that the building phase can

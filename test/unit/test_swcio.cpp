@@ -66,7 +66,7 @@ TEST(swc_record, invalid_input) {
     }
 }
 
-TEST(swc_parser, bad_relaxed) {
+TEST(swc_parser, bad_parse) {
     {
         std::string bad1 =
             "1 1 0.1 0.2 0.3 0.4 -1\n"
@@ -74,7 +74,7 @@ TEST(swc_parser, bad_relaxed) {
             "3 1 0.1 0.2 0.3 0.4 2\n"
             "5 1 0.1 0.2 0.3 0.4 4\n";
 
-        EXPECT_THROW(parse_swc(bad1, swc_mode::relaxed), swc_no_such_parent);
+        EXPECT_THROW(parse_swc(bad1), swc_no_such_parent);
     }
 
     {
@@ -84,7 +84,7 @@ TEST(swc_parser, bad_relaxed) {
             "3 1 0.1 0.2 0.3 0.4 2\n"
             "4 1 0.1 0.2 0.3 0.4 -1\n";
 
-        EXPECT_THROW(parse_swc(bad2, swc_mode::relaxed), swc_no_such_parent);
+        EXPECT_THROW(parse_swc(bad2), swc_no_such_parent);
     }
 
     {
@@ -94,7 +94,7 @@ TEST(swc_parser, bad_relaxed) {
             "3 1 0.1 0.2 0.3 0.4 1\n"
             "4 1 0.1 0.2 0.3 0.4 3\n";
 
-        EXPECT_THROW(parse_swc(bad3, swc_mode::relaxed), swc_record_precedes_parent);
+        EXPECT_THROW(parse_swc(bad3), swc_record_precedes_parent);
     }
 
     {
@@ -104,7 +104,7 @@ TEST(swc_parser, bad_relaxed) {
             "3 1 0.1 0.2 0.3 0.4 1\n"
             "4 1 0.1 0.2 0.3 0.4 3\n";
 
-        EXPECT_THROW(parse_swc(bad4, swc_mode::relaxed), swc_duplicate_record_id);
+        EXPECT_THROW(parse_swc(bad4), swc_duplicate_record_id);
     }
 
     {
@@ -114,68 +114,47 @@ TEST(swc_parser, bad_relaxed) {
             "3 1 0.1 0.2 0.3 0.4 2\n"
             "4 1 0.1 0.2 0.3 0.4 -1\n";
 
-        EXPECT_THROW(parse_swc(bad5, swc_mode::relaxed), swc_no_such_parent);
+        EXPECT_THROW(parse_swc(bad5), swc_no_such_parent);
     }
 }
 
-TEST(swc_parser, bad_strict) {
-    {
-        std::string bad6 =
-            "1 7 0.1 0.2 0.3 0.4 -1\n"; // just one record
-
-        EXPECT_THROW(parse_swc(bad6, swc_mode::relaxed), swc_spherical_soma);
-    }
-    {
-        std::string bad3 =
-            "1 4 0.1 0.2 0.3 0.4 -1\n" // solitary tag
-            "2 6 0.1 0.2 0.3 0.4 1\n"
-            "3 6 0.1 0.2 0.3 0.4 2\n"
-            "4 6 0.1 0.2 0.3 0.4 1\n";
-
-        EXPECT_THROW(parse_swc(bad3, swc_mode::strict), swc_spherical_soma);
-        EXPECT_NO_THROW(parse_swc(bad3, swc_mode::relaxed));
-    }
-}
-
-TEST(swc_parser, valid_relaxed) {
+TEST(swc_parser, valid_parse) {
     // Non-contiguous is okay.
     {
-        std::string bad1 =
+        std::string valid1 =
             "1 1 0.1 0.2 0.3 0.4 -1\n"
             "2 1 0.1 0.2 0.3 0.4 1\n"
             "3 1 0.1 0.2 0.3 0.4 2\n"
             "5 1 0.1 0.2 0.3 0.4 3\n"; // non-contiguous
 
-        EXPECT_NO_THROW(parse_swc(bad1, swc_mode::relaxed));
+        EXPECT_NO_THROW(parse_swc(valid1));
     }
 
     // As is out of order.
     {
-        std::string bad2 =
+        std::string valid2 =
             "1 1 0.1 0.2 0.3 0.4 -1\n"
             "3 1 0.1 0.2 0.3 0.4 2\n" // out of order
             "2 1 0.1 0.2 0.3 0.4 1\n"
             "4 1 0.1 0.2 0.3 0.4 3\n";
 
-        EXPECT_NO_THROW(parse_swc(bad2, swc_mode::relaxed));
+        EXPECT_NO_THROW(parse_swc(valid2));
     }
 
-}
-
-TEST(swc_parser, valid_strict) {
+    //  With comments
     {
-        std::string valid1 =
+        std::string valid3 =
             "# Hello\n"
             "# world.\n";
 
-        swc_data data = parse_swc(valid1, swc_mode::strict);
-        EXPECT_EQ("Hello\nworld.\n", data.metadata);
-        EXPECT_TRUE(data.records.empty());
+        swc_data data = parse_swc(valid3);
+        EXPECT_EQ("Hello\nworld.\n", data.metadata());
+        EXPECT_TRUE(data.records().empty());
     }
 
+    // Non-contiguous, out of order records with comments.
     {
-        // Non-contiguous, out of order records are fine.
-        std::string valid2 =
+        std::string valid4 =
             "# Some people put\n"
             "# <xml /> in here!\n"
             "1 1 0.1 0.2 0.3 0.4 -1\n"
@@ -183,13 +162,13 @@ TEST(swc_parser, valid_strict) {
             "5 2 0.2 0.6 0.8 0.2 2\n"
             "4 0 0.2 0.8 0.6 0.3 2";
 
-        swc_data data = parse_swc(valid2, swc_mode::strict);
-        EXPECT_EQ("Some people put\n<xml /> in here!\n", data.metadata);
-        ASSERT_EQ(4u, data.records.size());
-        EXPECT_EQ(swc_record(1, 1, 0.1, 0.2, 0.3, 0.4, -1), data.records[0]);
-        EXPECT_EQ(swc_record(2, 1, 0.3, 0.4, 0.5, 0.3, 1), data.records[1]);
-        EXPECT_EQ(swc_record(4, 0, 0.2, 0.8, 0.6, 0.3, 2), data.records[2]);
-        EXPECT_EQ(swc_record(5, 2, 0.2, 0.6, 0.8, 0.2, 2), data.records[3]);
+        swc_data data = parse_swc(valid4);
+        EXPECT_EQ("Some people put\n<xml /> in here!\n", data.metadata());
+        ASSERT_EQ(4u, data.records().size());
+        EXPECT_EQ(swc_record(1, 1, 0.1, 0.2, 0.3, 0.4, -1), data.records()[0]);
+        EXPECT_EQ(swc_record(2, 1, 0.3, 0.4, 0.5, 0.3, 1), data.records()[1]);
+        EXPECT_EQ(swc_record(4, 0, 0.2, 0.8, 0.6, 0.3, 2), data.records()[2]);
+        EXPECT_EQ(swc_record(5, 2, 0.2, 0.6, 0.8, 0.2, 2), data.records()[3]);
 
         // Trailing garbage is ignored in data records.
         std::string valid3 =
@@ -200,27 +179,82 @@ TEST(swc_parser, valid_strict) {
             "3 2 0.2 0.6 0.8 0.2 2 # it is a cow!\n"
             "4 0 0.2 0.8 0.6 0.3 2";
 
-        swc_data data2 = parse_swc(valid2, swc_mode::strict);
-        EXPECT_EQ(data.records, data2.records);
+        swc_data data2 = parse_swc(valid4);
+        EXPECT_EQ(data.records(), data2.records());
     }
 }
 
-TEST(swc_parser, segment_tree) {
+TEST(swc_parser, stream_validity) {
     {
-        // Missing parent record will throw.
-        std::vector<swc_record> swc{
-            {1, 1, 0., 0., 0., 1., -1},
-            {5, 3, 1., 1., 1., 1., 2}
-        };
-        EXPECT_THROW(as_segment_tree(swc), swc_no_such_parent);
+        std::string valid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 0.4 -1\n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(valid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(2u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_TRUE(is.eof());
     }
     {
-        // A single SWC record will throw.
-        std::vector<swc_record> swc{
-            {1, 1, 0., 0., 0., 1., -1}
-        };
-        EXPECT_THROW(as_segment_tree(swc), swc_bad_description);
+        std::string valid =
+                "# metadata\n"
+                "\n"
+                "1 1 0.1 0.2 0.3 0.4 -1\n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(valid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_TRUE(is.good());
+
+        is >> std::ws;
+        data = parse_swc(is);
+        ASSERT_EQ(2u, data.records().size());
+        EXPECT_TRUE(data.metadata().empty());
+        EXPECT_TRUE(is.eof());
     }
+    {
+        std::string invalid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 \n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(invalid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_FALSE(is.good());
+    }
+    {
+        std::string invalid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 \n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(invalid);
+
+        auto data = parse_swc(is);
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_FALSE(is.good());
+
+        is >> std::ws;
+        data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata().empty());
+        EXPECT_FALSE(is.good());
+    }
+
+}
+
+TEST(swc_parser, arbor_complaint) {
     {
         // Otherwise, ensure segment ends and tags correspond.
         mpoint p0{0.1, 0.2, 0.3, 0.4};
@@ -237,7 +271,7 @@ TEST(swc_parser, segment_tree) {
             {7, 3, p4.x, p4.y, p4.z, p4.radius, 4}
         };
 
-        segment_tree tree = as_segment_tree(swc);
+        segment_tree tree = load_swc_arbor(swc);
         ASSERT_EQ(4u, tree.segments().size());
 
         EXPECT_EQ(mnpos, tree.parents()[0]);
@@ -260,7 +294,67 @@ TEST(swc_parser, segment_tree) {
         EXPECT_EQ(p2, tree.segments()[3].prox);
         EXPECT_EQ(p4, tree.segments()[3].dist);
     }
+    {
+        // Otherwise, ensure segment ends and tags correspond.
+        mpoint p0{0.1, 0.2, 0.3, 0.4};
+        mpoint p1{0.3, 0.4, 0.5, 0.3};
+        mpoint p2{0.2, 0.8, 0.6, 0.3};
+        mpoint p3{0.2, 0.6, 0.8, 0.2};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius, 1},
+            {3, 2, p2.x, p2.y, p2.z, p2.radius, 1},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius, 2},
+        };
+
+        segment_tree tree = load_swc_arbor(swc);
+        ASSERT_EQ(3u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,  tree.segments()[0].tag);
+        EXPECT_EQ(p0, tree.segments()[0].prox);
+        EXPECT_EQ(p1, tree.segments()[0].dist);
+
+        EXPECT_EQ(mnpos, tree.parents()[1]);
+        EXPECT_EQ(2,  tree.segments()[1].tag);
+        EXPECT_EQ(p0, tree.segments()[1].prox);
+        EXPECT_EQ(p2, tree.segments()[1].dist);
+
+        EXPECT_EQ(0u, tree.parents()[2]);
+        EXPECT_EQ(3,  tree.segments()[2].tag);
+        EXPECT_EQ(p1, tree.segments()[2].prox);
+        EXPECT_EQ(p3, tree.segments()[2].dist);
+    }
 }
+
+TEST(swc_parser, not_arbor_complaint) {
+    {
+        // Missing parent record will throw.
+        std::vector<swc_record> swc{
+            {1, 1, 0., 0., 0., 1., -1},
+            {5, 3, 1., 1., 1., 1., 2}
+        };
+        EXPECT_THROW(load_swc_arbor(swc), swc_no_such_parent);
+    }
+    {
+        // A single SWC record will throw.
+        std::vector<swc_record> swc{
+            {1, 1, 0., 0., 0., 1., -1}
+        };
+        EXPECT_THROW(load_swc_arbor(swc), swc_spherical_soma);
+    }
+    {
+        std::vector<swc_record> swc{
+            {1, 4, 0.1, 0.2, 0.3, 0.4, -1},
+            {2, 6, 0.1, 0.2, 0.3, 0.4,  1},
+            {3, 6, 0.1, 0.2, 0.3, 0.4,  2},
+            {4, 6, 0.1, 0.2, 0.3, 0.4,  1}
+        };
+        EXPECT_THROW(load_swc_arbor(swc), swc_spherical_soma);
+    }
+}
+
 TEST(swc_parser, allen_compliant) {
     using namespace arborio;
     {
@@ -420,7 +514,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 3, p1.x, p1.y, p1.z, p1.radius,  4}
         };
-        EXPECT_THROW(load_swc_allen(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_allen(swc), swc_record_precedes_parent);
     }
     {
         // parent sample is self
@@ -431,7 +525,7 @@ TEST(swc_parser, not_allen_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 1, p1.x, p1.y, p1.z, p1.radius,  2}
         };
-        EXPECT_THROW(load_swc_allen(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_allen(swc), swc_record_precedes_parent);
     }
 }
 
@@ -905,7 +999,7 @@ TEST(swc_parser, not_neuron_compliant) {
                 {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
                 {3, 3, p2.x, p2.y, p2.z, p2.radius,  4}
         };
-        EXPECT_THROW(load_swc_neuron(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_neuron(swc), swc_record_precedes_parent);
     }
     {
         // parent sample is self
@@ -918,7 +1012,7 @@ TEST(swc_parser, not_neuron_compliant) {
                 {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
                 {3, 3, p2.x, p2.y, p2.z, p2.radius,  3}
         };
-        EXPECT_THROW(load_swc_neuron(swc), swc_no_such_parent);
+        EXPECT_THROW(load_swc_neuron(swc), swc_record_precedes_parent);
     }
 }
 
@@ -934,7 +1028,7 @@ TEST(swc_parser, from_neuromorpho)
         return;
     }
 
-    auto data = parse_swc(fid, swc_mode::strict);
-    EXPECT_EQ(5799u, data.records.size());
+    auto data = parse_swc(fid);
+    EXPECT_EQ(5799u, data.records().size());
 }
 #endif

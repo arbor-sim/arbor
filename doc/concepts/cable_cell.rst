@@ -10,11 +10,12 @@ Arbor cable cells are constructed from a morphology and a label dictionary,
 and provide a rich interface for specifying the cell's dynamics.
 
 .. note::
-    The cable cell does not have *one* dedicated page, it has a few more! This page describes how to build a full description of a cable cell, based on three components that are broken out into their own pages:
+    The cable cell has more than *one* dedicated page, it has a few more! This page describes how to build a full
+    description of a cable cell, based on three components that are broken out into their own pages:
 
-    * :ref:`morphology descriptions <morph-morphology>`;
-    * :ref:`label dictionary <labels-dictionary>` that are used to describe :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell;
-    * :ref:`mechanisms <mechanisms>`.
+    * :ref:`Morphology descriptions <morph-morphology>`
+    * :ref:`Label dictionaries <labels-dictionary>`
+    * :ref:`Mechanisms <mechanisms>`
 
     It can be helpful to consult those pages for some of the sections of this page.
 
@@ -24,13 +25,13 @@ Decoration
 ----------------
 
 A cable cell is *decorated* by specifying the distribution and placement of dynamics
-on the cell to produce a full description
-of a cell morphology and its dynamics with all information required to build
-a standalone single-cell model, or as part of a larger network.
+on the cell. The decorations, coupled with a description of a cell morphology, are all
+that is required to build a standalone single-cell model, or a cell that is part of
+a larger network.
 
-Decoration uses region and locset descriptions, with
-their respective use for this purpose reflected in the two broad classes
-of dynamics in Arbor:
+Decorations use :ref:`region <labels-region>` and :ref:`locset <labels-locset>`
+descriptions, with their respective use for this purpose reflected in the two broad
+classes of dynamics in Arbor:
 
 * *Painted dynamics* are applied to regions of a cell, and are associated with
   an area of the membrane or volume of the cable.
@@ -163,7 +164,7 @@ Every mechanism is described by a string with its name, and
 an optional list of key-value pairs that define its range parameters.
 
 Because a global parameter is fixed over the entire spatial extent
-of a density mechanism, a new mechanism has to created for every
+of a density mechanism, a new mechanism has to be created for every
 combination of global parameter values.
 
 Take for example a mechanism passive leaky dynamics:

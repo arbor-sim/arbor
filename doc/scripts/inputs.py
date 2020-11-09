@@ -85,7 +85,7 @@ tmp = [
 ysoma_morph3 = representation.make_morph(tmp)
 
 tmp = [
-    [[Segment((-3.0, 0.0, 0.7), (0.0, 0.0, 1.0), 2)], [Segment((0.0, 0.0, 1.0), (2.0, 0.0,  1.0), 1)], [Segment((2.0, 0.0, 1.0), (20.0, 0.0, 1.0), 3)]],
+    [[Segment((0.0, 0.0, 1.0), (2.0, 0.0,  1.0), 1)], [Segment((-3.0, 0.0, 0.7), (0.0, 0.0, 1.0), 2)], [Segment((2.0, 0.0, 1.0), (20.0, 0.0, 1.0), 3)]],
 ]
 swc_morph = representation.make_morph(tmp)
 
