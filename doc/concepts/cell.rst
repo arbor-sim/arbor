@@ -63,8 +63,8 @@ Cell kind
 .. _model_cable_cell:
 1. **Cable Cells**
 
-   Cable cells are morphologically-detailed cells represented as branching linear 1D segments. They can be coupled
-   to other cell types via the following mechanisms:
+   Cable cells are morphologically-detailed cells. They can be coupled to other cells via the following
+   mechanisms:
 
    1. Spike exchange over a :ref:`connection <modelconnections>` with fixed latency.
       Cable cells can *receive* spikes from any kind of cell, and can be a *source* of spikes
@@ -116,12 +116,12 @@ morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated p
 Cell description
 ----------------
 
-The `description` of a cell details everything needed to build a cell. This degree of detail needed
-differs according to the cell kind.
+The `description` of a cell is referred to in the :ref:`recipe <modelrecipe>`, and elsewhere in the docs.
+It details everything needed to build a cell. The degree of detail differs according to the cell kind.
 
 1. **Cable Cells**
 
-   The description of a cable cell includes the following:
+   The description of a cable cell can include all the following:
 
      * :ref:`Morphology <co_morphology>`: the shape of the cell.
      * Discretisation: how to split the morphology into discrete components for the simulation.
@@ -131,15 +131,15 @@ differs according to the cell kind.
      * Initial temperature.
      * Initial ion internal and external concentrations.
      * Initial ion reversal potential.
-     * :ref:`Density mechanisms <mechanisms-density>`: commonly used to describe ion-channel dynamics accross
+     * :ref:`Density mechanisms <mechanisms-density>`: commonly used to describe ion-channel dynamics across
        :ref:`regions <labels-region>` of the cell.
      * :ref:`Ion reversal potential mechanisms <mechanisms-revpot>`: used to control the reversal potentials of
-       ions accross :ref:`regions <labels-region>` of the cell.
+       ions across :ref:`regions <labels-region>` of the cell.
      * :ref:`Point mechanisms <mechanisms-point>`: commonly used to describe synapses on specific
        :ref:`locations <labels-locset>` of the cell; typically act as targets in the recipe.
      * Stimuli: such as current clamps; placed on specific :ref:`locations <labels-locset>` on the cell.
      * Threshold detectors: used to generate spiking events on specific :ref:`locations <labels-locset>` on the
-       cell, when the voltage increases above a certain threshold; typically act as sources in the recipe.
+       cell when the voltage increases above a certain threshold; typically act as sources in the recipe.
      * Gap junction sites: used to electrically couple the cell to another gap junction site on another cell;
        placed on specific :ref:`locations <labels-locset>` on the cell.
 
@@ -149,7 +149,8 @@ differs according to the cell kind.
 
 2. **LIF Cells**
 
-   The description of a LIF cell is used to control the leaky integrate-and-fire dynamics.
+   The description of a LIF cell is used to control the leaky integrate-and-fire dynamics:
+
       * Resting potential.
       * Reset potential.
       * Initial value of membrane potential.
@@ -158,7 +159,7 @@ differs according to the cell kind.
       * Firing threshold.
       * Refractory period.
 
-   The morphology of a lif cell is automatically modeled as a single compartment; each cell has a single built-in
+   The morphology of a LIF cell is automatically modeled as a single compartment; each cell has a single built-in
    source and target which do not need to be explicitly added in the cell description.
 
 3. **Spiking cells**
