@@ -238,7 +238,6 @@ endif()
 
 # Python bindings
 #----------------------------------------------------------
-option(ARB_WITH_PYTHON "enable python front end" OFF)
 if(ARB_WITH_PYTHON)
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.
