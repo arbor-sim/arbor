@@ -49,7 +49,7 @@ class RegularSchedule(unittest.TestCase):
 
     def test_exceptions_regular_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
-            "tstart must be a non-negative number, or None"):
+            "tstart must be a non-negative number"):
             arb.regular_schedule(tstart=-1., dt=0.1)
         with self.assertRaisesRegex(RuntimeError,
             "dt must be a positive number"):
