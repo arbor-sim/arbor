@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import arbor
 import pandas, seaborn
 from math import sqrt
