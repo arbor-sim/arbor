@@ -38,6 +38,8 @@ A unique (:gen:`gid`, :gen:`index`) pair defined by a :gen:`cell_member` can be 
 objects on a cell in a global model.
 
 
+.. _model_cell_kinds:
+
 Cell kinds
 ----------
 
@@ -55,6 +57,7 @@ Cell kinds
     **benchmark**             Proxy cell used for benchmarking (developer use only).
     ========================  ===========================================================
 
+.. _model_cable_cell:
 1. **Cable Cells**
 
    Cable cells are morphologically-detailed cells represented as branching linear 1D segments. They can be coupled
@@ -79,18 +82,21 @@ Cell kinds
    Because cable cells are the main cell kind in Arbor and have more properties than listed here, they have a
    :ref:`dedicated page <cablecell>`.
 
+.. _model_lif_cell:
 2. **LIF Cells**
 
    LIF cells are single compartment leaky integrate and fire neurons with one **source** and one **target**.
    LIF cells do not support adding additional **sources** or **targets**. They do not support **gap junctions**.
    They are typically used to simulate point-neuron networks.
 
+.. _model_spike_cell:
 3. **Spiking Cells**
 
    Spiking cells act as spike sources from values inserted via a `schedule description`.
    They are point neurons with one built-in **source** and no **targets**.
    They do not support adding additional **sources** or **targets**. They do not support **gap junctions**.
 
+.. _model_bench_cell:
 4. **Benchmark Cells**
 
    Benchmark cells are proxy cells used for benchmarking, and used by developers to benchmark the spike exchange and
