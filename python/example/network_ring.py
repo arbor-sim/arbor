@@ -152,4 +152,4 @@ for gid in range(ncells):
     df_list.append(pandas.DataFrame({'t/ms': times, 'U/mV': volts, 'Cell': f"cell {gid}"}))
 
 df = pandas.concat(df_list)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell").savefig('network_ring_result.svg')
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('network_ring_result.svg')
