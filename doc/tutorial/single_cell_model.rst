@@ -142,7 +142,7 @@ results! Let's take a look at what the spike detector and a voltage probes from 
     import pandas, seaborn # You may have to pip install these.
     seaborn.set_theme() # Apply some styling to the plot
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
-    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
+    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",ci=None).savefig('single_cell_model_result.svg')
 
 Step **(7)** accesses :meth:`arbor.single_cell_model.spikes<arbor.single_cell_model.spikes>`
 to print the spike times. A single spike should be generated at around the same time the stimulus
