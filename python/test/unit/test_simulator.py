@@ -25,7 +25,6 @@ class cc2_recipe(A.recipe):
     def __init__(self):
         A.recipe.__init__(self)
         st = A.segment_tree()
-        foo = A.mpoint((10, 0, 0, 10))
         i = st.append(A.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
         st.append(i, (1, 3, 0, 5), 1)
         st.append(i, (1, -4, 0, 3), 1)
@@ -195,6 +194,7 @@ class Simulator(unittest.TestCase):
         # (order is not guaranteed to line up though)
         if meta20==meta0:
             self.assertEqual(meta1, meta21)
+            self.assertTrue((s0[:,1]==s20[:,1]).all())
             self.assertTrue((s1[:,1]==s21[:,1]).all())
         else:
             self.assertEqual(meta1, meta20)

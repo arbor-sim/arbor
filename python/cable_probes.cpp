@@ -230,46 +230,58 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
         "Probe specification for cable cell membrane voltage associated with each cable in each CV.");
 
     m.def("cable_probe_axial_current", &cable_probe_axial_current,
-        "Probe specification for cable cell axial current at points in a location set.");
+        "Probe specification for cable cell axial current at points in a location set.",
+        "where"_a);
 
     m.def("cable_probe_total_ion_current_density", &cable_probe_total_ion_current_density,
-        "Probe specification for cable cell total transmembrane current density excluding capacitive currents at points in a location set.");
+        "Probe specification for cable cell total transmembrane current density excluding capacitive currents at points in a location set.",
+        "where"_a);
 
     m.def("cable_probe_total_ion_current_cell", &cable_probe_total_ion_current_cell,
         "Probe specification for cable cell total transmembrane current excluding capacitive currents for each cable in each CV.");
 
-    m.def("cable_probe_membrane_total_current_cell", &cable_probe_total_current_cell,
+    m.def("cable_probe_total_current_cell", &cable_probe_total_current_cell,
         "Probe specification for cable cell total transmembrane current for each cable in each CV.");
 
     m.def("cable_probe_density_state", &cable_probe_density_state,
-        "Probe specification for a cable cell density mechanism state variable at points in a location set.");
+        "Probe specification for a cable cell density mechanism state variable at points in a location set.",
+        "where"_a, "mechanism"_a, "state"_a);
 
     m.def("cable_probe_density_state_cell", &cable_probe_density_state_cell,
-        "Probe specification for a cable cell density mechanism state variable on each cable in each CV.");
+        "Probe specification for a cable cell density mechanism state variable on each cable in each CV.",
+        "mechanism"_a, "state"_a);
 
     m.def("cable_probe_point_state", &cable_probe_point_state,
-        "Probe specification for a cable cell point mechanism state variable value at a given target index.");
+        "Probe specification for a cable cell point mechanism state variable value at a given target index.",
+        "target"_a, "mechanism"_a, "state"_a);
 
     m.def("cable_probe_point_state_cell", &cable_probe_point_state_cell,
-        "Probe specification for a cable cell point mechanism state variable value at every corresponding target.");
+        "Probe specification for a cable cell point mechanism state variable value at every corresponding target.",
+        "mechanism"_a, "state"_a);
 
     m.def("cable_probe_ion_current_density", &cable_probe_ion_current_density,
-        "Probe specification for cable cell ionic current density at points in a location set.");
+        "Probe specification for cable cell ionic current density at points in a location set.",
+        "where"_a, "ion"_a);
 
     m.def("cable_probe_ion_current_cell", &cable_probe_ion_current_cell,
-        "Probe specification for cable cell ionic current across each cable in each CV.");
+        "Probe specification for cable cell ionic current across each cable in each CV.",
+        "ion"_a);
 
     m.def("cable_probe_ion_int_concentration", &cable_probe_ion_int_concentration,
-        "Probe specification for cable cell internal ionic concentration at points in a location set.");
+        "Probe specification for cable cell internal ionic concentration at points in a location set.",
+        "where"_a, "ion"_a);
 
     m.def("cable_probe_ion_int_concentration_cell", &cable_probe_ion_int_concentration_cell,
-        "Probe specification for cable cell internal ionic concentration for each cable in each CV.");
+        "Probe specification for cable cell internal ionic concentration for each cable in each CV.",
+        "ion"_a);
 
     m.def("cable_probe_ion_ext_concentration", &cable_probe_ion_ext_concentration,
-        "Probe specification for cable cell external ionic concentration at points in a location set.");
+        "Probe specification for cable cell external ionic concentration at points in a location set.",
+        "where"_a, "ion"_a);
 
     m.def("cable_probe_ion_ext_concentration_cell", &cable_probe_ion_ext_concentration_cell,
-        "Probe specification for cable cell external ionic concentration for each cable in each CV.");
+        "Probe specification for cable cell external ionic concentration for each cable in each CV.",
+        "ion"_a);
 
     // Add probe metadata to maps for converters and recorders.
 

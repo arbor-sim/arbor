@@ -202,7 +202,8 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("spikes", &py_simulation::spikes,
             "Retrieve recorded spikes as numpy array.")
         .def("probe_metadata", &py_simulation::get_probe_metadata,
-            "Retrieve metadata associated with given probe id.")
+            "Retrieve metadata associated with given probe id.",
+            "probe_id"_a)
         .def("sample", &py_simulation::sample,
             "Record data from probes with given probe_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",

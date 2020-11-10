@@ -119,7 +119,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: probe_metadata(probe_id)
 
-        Retrieve probe metadata for the probes associated with the given probe_id of type ;class:`cell_member`.
+        Retrieve probe metadata for the probes associated with the given probe_id of type :class:`cell_member`.
         The result will be a list, with one entry per probe; the specifics of each metadata entry will depend upon
         the kind of probe in question.
 
@@ -293,7 +293,7 @@ Procedure
 
     3. Retrieve recorded data.
 
-       The method :py:func:`simulation.samples` method takes a handle and returns the recorded data as a list,
+       The method :py:func:`simulation.samples` takes a handle and returns the recorded data as a list,
        with one entry for each probe associated with the *probe id* that was used in step 2 above. Each
        entry will be a tuple ``(data, meta)`` where ``meta`` is the metadata associated with the
        probe, and ``data`` contains all the data sampled on that probe over the course of the

@@ -113,6 +113,7 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Python examples"
     python$PY $python_path/example/network_ring.py                                              || error "running python network_ring example"
     python$PY $python_path/example/single_cell_model.py                                         || error "running python single_cell_model example"
+    python$PY $python_path/example/single_cell_recipe.py                                        || error "running python single_cell_recipe example"
     python$PY $python_path/example/single_cell_multi_branch.py                                  || error "running python single_cell_multi_branch example"
     python$PY $python_path/example/single_cell_swc.py  $base_path/test/unit/swc/pyramidal.swc   || error "running python single_cell_swc example"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
