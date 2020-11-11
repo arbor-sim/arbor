@@ -136,7 +136,7 @@ if(ARB_WITH_CUDA_CLANG)
     target_link_libraries(arbor PUBLIC  ${CUDA_LIBRARIES})
 endif()
 
-set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON POSITION_INDEPENDENT_CODE ON)
+set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
