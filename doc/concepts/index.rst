@@ -21,17 +21,28 @@ The python front-end further abstracts away some of these steps for single cell 
 describe the cell and simulation; and the details of the recipe and computational resources construction are
 handled under the hood. Generally speaking though, these 3 steps are the building blocks of an Arbor application.
 
-:ref:`Recipes <modelrecipe>` represent a set of neuron constructions and connections with *mechanisms* specifying ion channel and synapse dynamics in a cell-oriented manner. This has the advantage that cell data can be initiated in parallel.
+:ref:`Recipes <modelrecipe>` represent a set of neuron constructions and connections with *mechanisms* specifying
+ion channel and synapse dynamics in a cell-oriented manner. This has the advantage that cell data can be initiated
+in parallel.
 
-A cell represents the smallest unit of computation and forms the smallest unit of work distributed across processes. Arbor has built-in support for different :ref:`cell types <modelcells>`, which can be extended by adding new cell types to the C++ cell group interface.
+A cell represents the smallest unit of computation and forms the smallest unit of work distributed across processes.
+Arbor has built-in support for different :ref:`cell types <modelcells>`, which can be extended by adding new cell
+types to the C++ cell group interface.
 
-:ref:`modelsimulation` manage the instantiation of the model and the scheduling of spike exchange as well as the integration for each cell group. A cell group represents a collection of cells of the same type computed together on the GPU or CPU. The partitioning into cell groups is provided by :ref:`modeldomdec` which describes the distribution of the model over the locally available computational resources.
+:ref:`modelsimulation` manage the instantiation of the model and the scheduling of spike exchange as well as the
+integration for each cell group. A cell group represents a collection of cells of the same type computed together
+on the GPU or CPU. The partitioning into cell groups is provided by :ref:`modeldomdec` which describes the distribution
+of the model over the locally available computational resources.
 
-In order to visualize the result of detected spikes a spike recorder can be used and to analyse Arbor's performance a meter manager is available.
+In order to visualize the result of detected spikes a spike recorder can be used and to analyse Arbor's performance a
+meter manager is available.
+
+Arbor concepts
+==============
 
 .. toctree::
    :maxdepth: 2
-   :caption: Arbor concepts:
+   :caption: From recipe to simulation:
 
    recipe
    cell
@@ -39,6 +50,11 @@ In order to visualize the result of detected spikes a spike recorder can be used
    hardware
    domdec
    simulation
+
+.. toctree::
+   :maxdepth: 2
+   :caption: The cable cell:
+
    cable_cell
    morphology
    labels
