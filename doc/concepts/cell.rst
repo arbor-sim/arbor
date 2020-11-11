@@ -20,7 +20,7 @@ Cells interact with each other via spike exchange and gap junctions.
                                                                 For example, the 7th synapse on cell 42.
     ========================  ================================  ===========================================================
 
-Cell interactions via :ref:`connections <modelconnections>` and :ref:`gap junctions <modelgapjunctions>` occur
+Cell interactions via :ref:`connections <model_connections>` and :ref:`gap junctions <model_gapjunctions>` occur
 between **source**, **target** and **gap junction site** locations on a cell. Connections are formed from sources
 to targets. Gap junctions are formed between two gap junction sites. An example of a source on a
 :ref:`cable cell<model_cable_cell>` is a :ref:`threshold detector <cable-threshold-detectors>` (spike detector);
@@ -36,8 +36,8 @@ order of insertion on the cell relative to other objects of the same type.
 
 The :gen:`gid` of a cell is used to determine its cell :ref:`kind <model_cell_kind>` and
 :ref:`description <model_cell_description>` in the :ref:`recipe <modelrecipe>`. The :gen:`cell_member` of a source,
-target or gap junction site is used to form :ref:`connections <modelconnections>` and
-:ref:`gap junctions <modelgapjunctions>` in the :ref:`recipe <modelrecipe>`.
+target or gap junction site is used to form :ref:`connections <model_connections>` and
+:ref:`gap junctions <model_gapjunctions>` in the :ref:`recipe <modelrecipe>`.
 
 
 
@@ -66,24 +66,22 @@ Cell kind
    Cable cells are morphologically-detailed cells. They can be coupled to other cells via the following
    mechanisms:
 
-   1. Spike exchange over a :ref:`connection <modelconnections>` with fixed latency.
+   1. Spike exchange over a :ref:`connection <model_connections>` with fixed latency.
       Cable cells can *receive* spikes from any kind of cell, and can be a *source* of spikes
       to cells that have target sites (i.e. *cable* and *lif* cells).
-   2. Direct electrical coupling between two cable cells via :ref:`gap junctions <modelgapjunctions>`.
+   2. Direct electrical coupling between two cable cells via :ref:`gap junctions <model_gapjunctions>`.
 
    Key concepts:
 
    * **Morphology**: The :ref:`morphology <co_morphology>` of a cable cell is composed of a branching
      tree of one-dimensional line segments. Strictly speaking, Arbor represents a morphology as an
      *acyclic directed graph*, with the soma at the root.
-   * **Detectors**: Spike :ref:`detectors <cable-threshold-detectors>` generate spikes when the voltage
-     at location on the cell passes a threshold. Detectors act as **sources** of
-     :ref:`connections <modelconnections>`.
-   * **Synapses**: :ref:`Synapses <cable-synapses>` act as **targets** of
-     :ref:`connections <modelconnections>`. A synapse is described by a synapse type
-     (with associated parameters) and location on a cell.
-   * **Gap Junction Sites**: These refer to the :ref:`sites <cable-gj-sites>` of
-     :ref:`gap junctions <modelgapjunctions>`. They are declared by specifying a location on a cell.
+   * **Detectors**: Spike detectors generate spikes when the voltage at location on the cell passes
+     a threshold. Detectors act as **sources** of :ref:`connections <model_connections>`.
+   * **Synapses**: Synapses are described by a synapse type (with associated parameters) at a location
+     on a cell. Synapses act as **targets** of :ref:`connections <model_connections>`.
+   * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <model_gapjunctions>`.
+     Gap junction sites are declared by specifying a location on a cell.
 
    Because cable cells are the main cell kind in Arbor and have more properties than listed here,
    they have several :ref:`dedicated pages <cablecell>`.
@@ -91,24 +89,22 @@ Cell kind
 .. _model_lif_cell:
 2. **LIF Cells**
 
-   LIF cells are single compartment leaky integrate and fire neurons with one **source** and one **target**.
-   LIF cells do not support adding additional **sources** or **targets**. They do not support **gap junctions**.
-   They are typically used to simulate point-neuron networks.
+   LIF cells are single compartment leaky integrate and fire neurons. They are typically used to simulate
+   point-neuron networks.
 
 .. _model_spike_cell:
 3. **Spiking Cells**
 
-   Spiking cells act as spike sources from values inserted via a `schedule description`.
-   They are point neurons with one built-in **source** and no **targets**.
-   They do not support adding additional **sources** or **targets**. They do not support **gap junctions**.
+   Spiking cells act as spike sources from values inserted via a `schedule description`. They are typically
+   used as stimuli in a network of more complex cells.
 
 .. _model_bench_cell:
 4. **Benchmark Cells**
 
-   Benchmark cells are proxy cells used for benchmarking, and used by developers to benchmark the spike exchange and
-   event delivery infrastructure.
+   Benchmark cells are proxy cells used for benchmarking, and used by developers to benchmark the spike
+   exchange and event delivery infrastructure.
 
-Most Arbor users will want to use the cable cell, because it is the only cell kind that supports complex
+Most Arbor users will want to use the cable cell because it is the only cell kind that supports complex
 morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated page <cablecell>` for more info.
 
 .. _model_cell_description:
@@ -159,14 +155,18 @@ It details everything needed to build a cell. The degree of detail differs accor
       * Firing threshold.
       * Refractory period.
 
-   The morphology of a LIF cell is automatically modeled as a single compartment; each cell has a single built-in
-   source and target which do not need to be explicitly added in the cell description.
+   The morphology of a LIF cell is automatically modeled as a single compartment; each cell has one built-in
+   **source** and one built-in **target** which do not need to be explicitly added in the cell description.
+   LIF cells do not support adding additional **sources** or **targets** to the description. They do not support
+   **gap junctions**. They do not support adding density or point mechanisms.
 
 3. **Spiking cells**
 
-   The description of a spiking cell is used to determine the spiking schedule of the cell. Its morphology is
-   automatically modeled as a single compartment; each cell has a single built-in source which does not need to
-   be explicitly added in the cell description.
+   The description of a spiking cell controls the spiking schedule of the cell. Its morphology is
+   automatically modeled as a single compartment; each cell has one built-in **source** which does not need to
+   be explicitly added in the cell description, and no **targets**. Spiking cells do not support adding additional
+   **sources** or **targets**. They do not support **gap junctions**. They do not support adding density or
+   point mechanisms.
 
 4. **Benchmark Cells**
 

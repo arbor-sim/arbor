@@ -15,7 +15,7 @@ Connection sites and gap junction sites are defined on locations on cells as par
 :ref:`cell description <model_cell_description>`.
 A recipe lets you define which sites are connected to which.
 
-.. _modelconnections:
+.. _model_connections:
 
 Connections
 -----------
@@ -26,13 +26,13 @@ by having a transmission delay.
 Connections in Arbor are defined in two steps:
 
 1. Create **source** and **target** on two separate cells as part of their
-   :ref:`cell descriptions <model_cell_description>`. Sources typically generate spiking events. Targets
-   are typically synapses with associated biophysical model descriptions.
-2. Declare the connection in the :ref:`recipe <modelrecipe>`: with a source aget identified using
+   :ref:`cell descriptions <model_cell_description>` in the :ref:`recipe <modelrecipe>`. Sources typically
+   generate spiking events. Targets are typically synapses with associated biophysical model descriptions.
+2. Declare the connection in the :ref:`recipe <modelrecipe>`: with the source and target identified using
    :gen:`cell_member`, a connection delay and a connection weight. The connection should be declared on the
    target cell.
 
-.. _modelgapjunctions:
+.. _model_gapjunctions:
 
 Gap junctions
 -------------
@@ -43,7 +43,7 @@ They are modeled as a conductance between two **gap junction sites** on two cell
 Similarly to `Connections`, Gap Junctions in Arbor are defined in two steps:
 
 1. Create a **gap junction site** on two separate cells as part of their
-   :ref:`cell descriptions <model_cell_description>`.
+   :ref:`cell descriptions <model_cell_description>` in the :ref:`recipe <modelrecipe>`.
 2. Declare the Gap Junction in the :ref:`recipe <modelrecipe>`: with two **gap junction sites** identified
    using :gen:`cell_member` and a conductance in μS.
 

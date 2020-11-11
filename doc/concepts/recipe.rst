@@ -58,6 +58,10 @@ a spike should be observed on ``cell 2`` after some delay. To monitor
 the voltage on ``cell 2`` and record the spike, a **probe** can be set up
 on ``cell 2``. All this information is also registered via the recipe.
 
+There are additional docs on :ref:`cell kinds <model_cell_kind>`;
+:ref:`cell descriptions <model_cell_description>`; :ref:`network connections <model_connections>`;
+:ref:`gap junction connections <model_gapjunctions>`; :ref:`probes <modelprobes>`
+
 The recipe is used to distribute the model across machines and is used in the simulation.
 Technical details of the recipe class are presented in the  :ref:`Python <pyrecipe>` and
 :ref:`C++ <cpprecipe>` APIs.
