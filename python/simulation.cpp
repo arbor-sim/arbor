@@ -16,14 +16,14 @@ namespace py = pybind11;
 
 namespace pyarb {
 
-enum class py_spike_recording {
+enum class spike_recording {
     off, local, all
 };
 
 // Wraps an arb::simulation object and in addition manages a set of
 // sampler callbacks for retrieving probe data.
 
-class py_simulation {
+class simulation_shim {
     std::unique_ptr<arb::simulation> sim_;
     std::vector<arb::spike> spike_record_;
     pyarb_global_ptr global_ptr_;
@@ -53,7 +53,7 @@ class py_simulation {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    py_simulation(std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx, pyarb_global_ptr global_ptr):
+    simulation_shim(std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx, pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
@@ -83,21 +83,21 @@ public:
         sim_->set_binning_policy(policy, bin_interval);
     }
 
-    void record(py_spike_recording policy) {
+    void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
             spike_record_.insert(spike_record_.end(), spikes.begin(), spikes.end());
         };
 
         switch (policy) {
-        case py_spike_recording::off:
+        case spike_recording::off:
             sim_->set_global_spike_callback();
             sim_->set_local_spike_callback();
             break;
-        case py_spike_recording::local:
+        case spike_recording::local:
             sim_->set_global_spike_callback();
             sim_->set_local_spike_callback(spike_recorder);
             break;
-        case py_spike_recording::all:
+        case spike_recording::all:
             sim_->set_global_spike_callback(spike_recorder);
             sim_->set_local_spike_callback();
             break;
@@ -160,13 +160,13 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
        .value("lax", arb::sampling_policy::lax)
        .value("exact", arb::sampling_policy::exact);
 
-    py::enum_<py_spike_recording>(m, "spike_recording")
-       .value("off", py_spike_recording::off)
-       .value("local", py_spike_recording::local)
-       .value("all", py_spike_recording::all);
+    py::enum_<spike_recording>(m, "spike_recording")
+       .value("off", spike_recording::off)
+       .value("local", spike_recording::local)
+       .value("all", spike_recording::all);
 
     // Simulation
-    py::class_<py_simulation> simulation(m, "simulation",
+    py::class_<simulation_shim> simulation(m, "simulation",
         "The executable form of a model.\n"
         "A simulation is constructed from a recipe, and then used to update and monitor model state.");
     simulation
@@ -175,7 +175,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def(pybind11::init(
             [global_ptr](std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx) {
                 try {
-                    return new py_simulation(rec, decomp, ctx, global_ptr);
+                    return new simulation_shim(rec, decomp, ctx, global_ptr);
                 }
                 catch (...) {
                     py_reset_and_throw();
@@ -187,34 +187,34 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "Initialize the model described by a recipe, with cells and network distributed\n"
             "according to the domain decomposition and computational resources described by a context.",
             "recipe"_a, "domain_decomposition"_a, "context"_a)
-        .def("reset", &py_simulation::reset,
+        .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")
-        .def("run", &py_simulation::run,
+        .def("run", &simulation_shim::run,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, "dt"_a=0.025)
-        .def("set_binning_policy", &py_simulation::set_binning_policy,
+        .def("set_binning_policy", &simulation_shim::set_binning_policy,
             "Set the binning policy for event delivery, and the binning time interval if applicable [ms].",
             "policy"_a, "bin_interval"_a)
-        .def("record", &py_simulation::record,
+        .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
-        .def("spikes", &py_simulation::spikes,
+        .def("spikes", &simulation_shim::spikes,
             "Retrieve recorded spikes as numpy array.")
-        .def("probe_metadata", &py_simulation::get_probe_metadata,
+        .def("probe_metadata", &simulation_shim::get_probe_metadata,
             "Retrieve metadata associated with given probe id.",
             "probe_id"_a)
-        .def("sample", &py_simulation::sample,
+        .def("sample", &simulation_shim::sample,
             "Record data from probes with given probe_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
             "probe_id"_a, "schedule"_a, "policy"_a = arb::sampling_policy::lax)
-        .def("samples", &py_simulation::samples,
+        .def("samples", &simulation_shim::samples,
             "Retrieve sample data as a list, one element per probe associated with the query.",
             "handle"_a)
-        .def("remove_sampler", &py_simulation::remove_sampler,
+        .def("remove_sampler", &simulation_shim::remove_sampler,
             "Remove sampling associated with the given handle.",
             "handle"_a)
-        .def("remove_all_samplers", &py_simulation::remove_sampler,
+        .def("remove_all_samplers", &simulation_shim::remove_sampler,
             "Remove all sampling on the simulatr.");
 
 }

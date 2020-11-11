@@ -109,10 +109,8 @@ def suite():
 def run():
     v = options.parse_arguments().verbosity
 
-    print('hello?')
     if not A.mpi_is_initialized():
         A.mpi_init()
-    print('wat')
 
     comm = A.mpi_comm()
     alloc = A.proc_allocation()
