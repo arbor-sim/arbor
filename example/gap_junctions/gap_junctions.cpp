@@ -352,7 +352,7 @@ gap_params read_options(int argc, char** argv) {
     }
 
     nlohmann::json json;
-    json << f;
+    f >> json;
 
     param_from_json(params.name, "name", json);
     param_from_json(params.n_cables, "n-cables", json);
