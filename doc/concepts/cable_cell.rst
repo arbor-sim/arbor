@@ -294,14 +294,14 @@ and are assigned to specific locations.
 Connection sites
 ~~~~~~~~~~~~~~~~
 
-Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`model_connections`.
+Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
 .. _cable-gj-sites:
 
 Gap junction sites
 ~~~~~~~~~~~~~~~~~~
 
-See :ref:`model_gapjunctions`.
+See :ref:`modelgapjunctions`.
 
 .. _cable-threshold-detectors:
 

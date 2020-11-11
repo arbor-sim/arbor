@@ -12,10 +12,10 @@ connectivity: the biophysical modelling of the chemical synapses themselves is t
 responsibility of the target cell model.
 
 Connection sites and gap junction sites are defined on locations on cells as part of the
-:ref:`cell description <model_cell_description>`.
+:ref:`cell description <modelcelldesc>`.
 A recipe lets you define which sites are connected to which.
 
-.. _model_connections:
+.. _modelconnections:
 
 Connections
 -----------
@@ -26,13 +26,12 @@ by having a transmission delay.
 Connections in Arbor are defined in two steps:
 
 1. Create **source** and **target** on two separate cells as part of their
-   :ref:`cell descriptions <model_cell_description>` in the :ref:`recipe <modelrecipe>`. Sources typically
+   :ref:`cell descriptions <modelcelldesc>` in the :ref:`recipe <modelrecipe>`. Sources typically
    generate spiking events. Targets are typically synapses with associated biophysical model descriptions.
-2. Declare the connection in the :ref:`recipe <modelrecipe>`: with the source and target identified using
-   :gen:`cell_member`, a connection delay and a connection weight. The connection should be declared on the
-   target cell.
+2. Declare the connection in the recipe: with the source and target identified using :gen:`cell_member`,
+   a connection delay and a connection weight. The connection should be declared on the target cell.
 
-.. _model_gapjunctions:
+.. _modelgapjunctions:
 
 Gap junctions
 -------------
@@ -43,9 +42,9 @@ They are modeled as a conductance between two **gap junction sites** on two cell
 Similarly to `Connections`, Gap Junctions in Arbor are defined in two steps:
 
 1. Create a **gap junction site** on two separate cells as part of their
-   :ref:`cell descriptions <model_cell_description>` in the :ref:`recipe <modelrecipe>`.
-2. Declare the Gap Junction in the :ref:`recipe <modelrecipe>`: with two **gap junction sites** identified
-   using :gen:`cell_member` and a conductance in μS.
+   :ref:`cell descriptions <modelcelldesc>` in the :ref:`recipe <modelrecipe>`.
+2. Declare the Gap Junction in the recipe: with two **gap junction sites** identified using :gen:`cell_member`
+   and a conductance in μS.
 
    .. Note::
       Only cable cells support gap junctions as of now.
