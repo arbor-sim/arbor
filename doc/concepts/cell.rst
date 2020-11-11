@@ -51,12 +51,9 @@ Cell kind
     ========================  ===========================================================
     Cell Kind                 Description
     ========================  ===========================================================
-    **Cable cell**            Cell with morphology described by branching
-                              1D cable segments and user configurable dynamics.
-    **LIF cell**              Single-compartment no-mechanism leaky integrate-and-fire
-                              neuron.
-    **Spiking cell**          Proxy cell that generates spikes from a user-supplied
-                              time sequence.
+    **Cable cell**            Cell with morphology and user configurable dynamics.
+    **LIF cell**              Leaky integrate-and-fire neuron.
+    **Spiking cell**          Proxy cell that generates spikes.
     **Benchmark cell**        Proxy cell used for benchmarking (developer use only).
     ========================  ===========================================================
 
@@ -71,41 +68,31 @@ Cell kind
       to cells that have target sites (i.e. *cable* and *lif* cells).
    2. Direct electrical coupling between two cable cells via :ref:`gap junctions <modelgapjunctions>`.
 
-   Key concepts:
-
-   * **Morphology**: The :ref:`morphology <co_morphology>` of a cable cell is composed of a branching
-     tree of one-dimensional line segments. Strictly speaking, Arbor represents a morphology as an
-     *acyclic directed graph*, with the soma at the root.
-   * **Detectors**: Spike detectors generate spikes when the voltage at location on the cell passes
-     a threshold. Detectors act as **sources** of :ref:`connections <modelconnections>`.
-   * **Synapses**: Synapses are described by a synapse type (with associated parameters) at a location
-     on a cell. Synapses act as **targets** of connections.
-   * **Gap Junction Sites**: These refer to the sites of :ref:`gap junctions <modelgapjunctions>`.
-     Gap junction sites are declared by specifying a location on a cell.
-
-   Because cable cells are the main cell kind in Arbor and have more properties than listed here,
-   they have several :ref:`dedicated pages <cablecell>`.
-
 .. _modellifcell:
 2. **LIF Cells**
 
-   LIF cells are single compartment leaky integrate and fire neurons. They are typically used to simulate
+   LIF cells are single-compartment leaky integrate and fire neurons. They are typically used to simulate
    point-neuron networks.
+
+   LIF cells can only interact with other cells via spike exchange over a
+   :ref:`connection <modelconnections>` where they can receive spikes from any kind of cell, and can
+   be a *source* of spikes to cells that have target sites (i.e. *cable* and *lif* cells).
 
 .. _modelspikecell:
 3. **Spiking Cells**
 
-   Spiking cells act as spike sources from values inserted via a `schedule description`. They are typically
-   used as stimuli in a network of more complex cells.
+   Spiking cells act as spike sources from user-specified values inserted via a `schedule description`.
+   They are typically used as stimuli in a network of more complex cells.
+
+   Spiking Cells can only interact with other cells via spike exchange over a
+   :ref:`connection <modelconnections>` where they be a *source* of spikes to cells that have target sites
+   (i.e. *cable* and *lif* cells), but they can not *receive* spikes.
 
 .. _modelbenchcell:
 4. **Benchmark Cells**
 
    Benchmark cells are proxy cells used for benchmarking, and used by developers to benchmark the spike
    exchange and event delivery infrastructure.
-
-Most Arbor users will want to use the cable cell because it is the only cell kind that supports complex
-morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated page <cablecell>` for more info.
 
 .. _modelcelldesc:
 
@@ -119,29 +106,32 @@ It details everything needed to build a cell. The degree of detail differs accor
 
    The description of a cable cell can include all the following:
 
-     * :ref:`Morphology <co_morphology>`: the shape of the cell.
-     * Discretisation: how to split the morphology into discrete components for the simulation.
+     * :ref:`Morphology <co_morphology>`: composed of a branching tree of one-dimensional line segments.
+       Strictly speaking, Arbor represents a morphology as an *acyclic directed graph*, with the soma at
+       the root.
+     * Discretisation: specifies how to split the morphology into discrete components for the simulation.
      * Initial membrane voltage.
      * Initial axial resistivity.
      * Intial membrane capacitance.
      * Initial temperature.
      * Initial ion internal and external concentrations.
      * Initial ion reversal potential.
+     * Stimuli: such as current clamps; placed on specific :ref:`locations <labels-locset>` on the cell.
      * :ref:`Density mechanisms <mechanisms-density>`: commonly used to describe ion-channel dynamics across
        :ref:`regions <labels-region>` of the cell.
      * :ref:`Ion reversal potential mechanisms <mechanisms-revpot>`: used to control the reversal potentials of
        ions across regions of the cell.
-     * :ref:`Point mechanisms <mechanisms-point>`: commonly used to describe synapses on specific
-       :ref:`locations <labels-locset>` of the cell; typically act as targets in the recipe.
-     * Stimuli: such as current clamps; placed on specific locations on the cell.
-     * Threshold detectors: used to generate spiking events on specific locations on the cell when the voltage
-       increases above a certain threshold; typically act as sources in the recipe.
-     * Gap junction sites: used to electrically couple the cell to another gap junction site on another cell;
-       placed on specific locations on the cell.
+     * Synapses: implemented using :ref:`point mechanisms <mechanisms-point>` on specific locations of the cell;
+       typically act as **targets** of :ref:`connections <modelconnections>` in the recipe.
+     * Detectors: used to generate spiking events on specific locations on the cell when the voltage
+       increases above a certain threshold; typically act as **sources** of :ref:`connections <modelconnections>`.
+     * Gap junction sites: placed on a specific location on a cell and used to electrically couple the cell to
+       another gap junction site on another cell by forming a :ref:`gap junction <modelgapjunctions>`.
 
-   The cable cell is the most complex cell kind provided in arbor and is highly customisable. The provided links
-   describe each concept in more detail. And the :ref:`C++ <cppcable_cell>` and :ref:`Python <pycable_cell>` APIs
-   illustrate how to programmatically provide the cell description in Arbor.
+   Most Arbor users will want to use the cable cell because it is the only cell kind that supports complex
+   morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated page <cablecell>` for more info.
+   And visit the :ref:`C++ <cppcable_cell>` and :ref:`Python <pycable_cell>` APIs to learn how to programmatically
+   provide the cable cell description in Arbor.
 
 2. **LIF Cells**
 
