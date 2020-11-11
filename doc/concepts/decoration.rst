@@ -1,29 +1,7 @@
-.. _cablecell:
-
-Cable cells
-===========
-
-An Arbor *cable cell* is a full description of a cell with morphology and cell
-dynamics, where cell dynamics include ion species and their properties, ion
-channels, synapses, gap junction sites, stimuli and spike detectors.
-Arbor cable cells are constructed from a morphology, a label dictionary,
-and a description of the 
-and provide a rich interface for specifying the cell's dynamics.
-
-.. note::
-   This page describes how to construct a cable cell from its constituent components.
-   More information about the components are documented on their own pages, including:
-
-    * :ref:`morphology descriptions <morph-morphology>`;
-    * :ref:`label dictionary <labels-dictionary>` that are used to describe :ref:`locations <labels-locset>` and :ref:`regions <labels-region>` on a cell;
-    * :ref:`decoration <decoration>` describes the dynamics (ion channels, synapses, probes and so forth) that are placed on the cell.
-
-    It can be helpful to consult those pages for some of the sections of this page.
-
-.. _cablecell-decoration:
+.. _decoration:
 
 Decoration
-----------------
+===========
 
 A cable cell is *decorated* by specifying the distribution and placement of dynamics
 on the cell to produce a full description
@@ -37,23 +15,23 @@ of dynamics in Arbor:
 * *Painted dynamics* are applied to regions of a cell, and are associated with
   an area of the membrane or volume of the cable.
 
-  * :ref:`Cable properties <cable-properties>`.
-  * :ref:`Density mechanisms <cable-density-mechs>`.
-  * :ref:`Ion species <cable-ions>`.
+  * :ref:`Cable properties <decoration-properties>`.
+  * :ref:`Density mechanisms <decoration-density-mechs>`.
+  * :ref:`Ion species <decoration-ions>`.
 
 * *Placed dynamics* are applied to locations on the cell, and are associated
   with entities that can be counted.
 
-  * :ref:`Synapses <cable-synapses>`.
-  * :ref:`Gap junction sites <cable-gj-sites>`.
-  * :ref:`Threshold detectors <cable-threshold-detectors>` (spike detectors).
-  * :ref:`Stimuli <cable-stimuli>`.
-  * :ref:`Probes <cable-probes>`.
+  * :ref:`Synapses <decoration-synapses>`.
+  * :ref:`Gap junction sites <decoration-gj-sites>`.
+  * :ref:`Threshold detectors <decoration-threshold-detectors>` (spike detectors).
+  * :ref:`Stimuli <decoration-stimuli>`.
+  * :ref:`Probes <decoration-probes>`.
 
-.. _cablecell-paint:
+.. _decoration-paint:
 
 Painted dynamics
-''''''''''''''''
+----------------
 
 Painted dynamics are applied to a subset of the surface and/or volume of cells.
 They can be specified at three different levels:
@@ -70,9 +48,9 @@ Some dynamics, such as membrane capacitance and the initial concentration of ion
 must be defined for all compartments. Others need only be applied where they are
 present, for example ion channels.
 The types of dynamics, and where they can be defined, are
-:ref:`tabulated <cable-painted-resolution>` below.
+:ref:`tabulated <decoration-painted-resolution>` below.
 
-.. _cable-painted-resolution:
+.. _decoration-painted-resolution:
 
 .. csv-table:: Painted property resolution options.
    :widths: 20, 10, 10, 10
@@ -93,10 +71,10 @@ will override any cell-local or global definition on that region.
     deterministically choose the correct definition, and an error will be
     raised during model instantiation.
 
-.. _cable-properties:
+.. _decoration-properties:
 
 Cable properties
-~~~~~~~~~~~~~~~~
+----------------
 
 There are four cable properties that are defined everywhere on all cables:
 
@@ -128,10 +106,10 @@ for setting cell-wide defaults for properties, and the
     cell.paint('"soma"', Vm=-50, cm=0.01, rL=35)
     cell.paint('"axon"', Vm=-60, rL=40)
 
-.. _cable-discretisation:
+.. _decoration-discretisation:
 
 Discretisation
-~~~~~~~~~~~~~~~~
+----------------
 
 For the purpose of simulation, cable cells are decomposed into discrete
 subcomponents called *control volumes* (CVs), following the finite volume method
@@ -140,7 +118,7 @@ morphology. Each fork point in the morphology will be the responsibility of
 a single CV, and as a special case a zero-volume CV can be used to represent
 a single fork point in isolation.
 
-.. _cable-density-mechs:
+.. _decoration-density-mechs:
 
 Density mechanisms
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -192,7 +170,7 @@ Take for example a mechanism passive leaky dynamics:
     cell.paint('"soma"', m2) # error: can't place the same mechanism on overlapping regions
     cell.paint('"soma"', m3) # error: technically a different mechanism?
 
-.. _cable-ions:
+.. _decoration-ions:
 
 Ion species
 ~~~~~~~~~~~
@@ -282,46 +260,40 @@ using the *paint* interface:
     # Alternatively, one can selectively overwrite the global defaults.
     cell.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
 
-.. _cablecell-place:
+.. _decoration-place:
 
 Placed dynamics
-''''''''''''''''
+----------------
 
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
 and are assigned to specific locations.
 
-.. _cable-synapses:
+.. _decoration-synapses:
 
 Connection sites
-~~~~~~~~~~~~~~~~
+----------------
 
 Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
-.. _cable-gj-sites:
+.. _decoration-gj-sites:
 
 Gap junction sites
-~~~~~~~~~~~~~~~~~~
+------------------
 
 See :ref:`modelgapjunctions`.
 
-.. _cable-threshold-detectors:
+.. _decoration-threshold-detectors:
 
 Threshold detectors (spike detectors).
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------
 
-.. _cable-stimuli:
+.. _decoration-stimuli:
 
 Stimuli
-~~~~~~~~
+--------
 
-.. _cable-probes:
+.. _decoration-probes:
 
 Probes
-~~~~~~
-
-API
----
-
-* :ref:`Python <pycable_cell>`
-* :ref:`C++ <cppcable_cell>`
+------
 

@@ -5,7 +5,7 @@ Cell mechanisms
 
 Mechanisms describe biophysical processes such as ion channels and synapses.
 Mechanisms are assigned to regions and locations on a cell morphology
-through a process that is called :ref:`decoration <cablecell-decoration>`.
+through the process of :ref:`decoration <decoration>`.
 Mechanisms are described using a dialect of the :ref:`NMODL <nmodl>` domain
 specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
 
