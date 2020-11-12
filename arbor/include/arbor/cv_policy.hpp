@@ -159,7 +159,7 @@ struct cv_policy_fixed_per_branch: cv_policy_base {
     explicit cv_policy_fixed_per_branch(unsigned cv_per_branch, cv_policy_flag::value flags = cv_policy_flag::none):
          cv_per_branch_(cv_per_branch), domain_(reg::all()), flags_(flags) {}
 
-    cv_policy_base_ptr clone() const override ;
+    cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
     region domain() const override;
 

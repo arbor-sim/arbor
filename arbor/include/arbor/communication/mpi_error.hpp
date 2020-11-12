@@ -83,8 +83,8 @@ const mpi_error_category_impl& mpi_error_category();
 
 class mpi_error_category_impl: public std::error_category {
     const char* name() const noexcept override;
-    std::string message(int ev) const override;
-    std::error_condition default_error_condition(int ) const noexcept override;
+    std::string message(int) const override;
+    std::error_condition default_error_condition(int) const noexcept override;
 };
 
 inline std::error_condition make_error_condition(mpi_errc ec) {
