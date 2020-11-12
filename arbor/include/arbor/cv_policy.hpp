@@ -114,12 +114,9 @@ struct cv_policy_explicit: cv_policy_base {
     explicit cv_policy_explicit(locset locs, region domain = reg::all()):
         locs_(std::move(locs)), domain_(std::move(domain)) {}
 
-    cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_explicit(*this));
-    }
-
+    cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
-    region domain() const override { return domain_; }
+    region domain() const override;
 
 private:
     locset locs_;
@@ -130,14 +127,9 @@ struct cv_policy_single: cv_policy_base {
     explicit cv_policy_single(region domain = reg::all()):
         domain_(domain) {}
 
-    cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_single(*this));
-    }
-
-    locset cv_boundary_points(const cable_cell&) const override {
-        return ls::cboundary(domain_);
-    }
-    region domain() const override { return domain_; }
+    cv_policy_base_ptr clone() const override;
+    locset cv_boundary_points(const cable_cell&) const override;
+    region domain() const override;
 
 private:
     region domain_;
@@ -150,12 +142,9 @@ struct cv_policy_max_extent: cv_policy_base {
     explicit cv_policy_max_extent(double max_extent, cv_policy_flag::value flags = cv_policy_flag::none):
          max_extent_(max_extent), domain_(reg::all()), flags_(flags) {}
 
-    cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_max_extent(*this));
-    }
-
+    cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
-    region domain() const override { return domain_; }
+    region domain() const override;
 
 private:
     double max_extent_;
@@ -170,12 +159,9 @@ struct cv_policy_fixed_per_branch: cv_policy_base {
     explicit cv_policy_fixed_per_branch(unsigned cv_per_branch, cv_policy_flag::value flags = cv_policy_flag::none):
          cv_per_branch_(cv_per_branch), domain_(reg::all()), flags_(flags) {}
 
-    cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_fixed_per_branch(*this));
-    }
-
+    cv_policy_base_ptr clone() const override ;
     locset cv_boundary_points(const cable_cell&) const override;
-    region domain() const override { return domain_; }
+    region domain() const override;
 
 private:
     unsigned cv_per_branch_;
@@ -187,12 +173,9 @@ struct cv_policy_every_segment: cv_policy_base {
     explicit cv_policy_every_segment(region domain = reg::all()):
          domain_(std::move(domain)) {}
 
-    cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_every_segment(*this));
-    }
-
+    cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
-    region domain() const override { return domain_; }
+    region domain() const override;
 
 private:
     region domain_;
