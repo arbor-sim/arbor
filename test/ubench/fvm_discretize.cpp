@@ -5,7 +5,9 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/swcio.hpp>
+
+#include <arborio/swcio.hpp>
+
 #include <benchmark/benchmark.h>
 
 #include "event_queue.hpp"
@@ -26,7 +28,7 @@ arb::morphology from_swc(const std::string& path) {
     std::ifstream in(path);
     if (!in) throw std::runtime_error("could not open "+path);
 
-    return morphology(arb::as_segment_tree(parse_swc(in)));
+    return morphology(arborio::load_swc_arbor(arborio::parse_swc(in)));
 }
 
 void run_cv_geom(benchmark::State& state) {

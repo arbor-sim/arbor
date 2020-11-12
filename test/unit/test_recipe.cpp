@@ -143,7 +143,7 @@ TEST(recipe, num_targets)
         EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
     }
     {
-        auto recipe_1 = custom_recipe({cell}, {0}, {1}, {{}}, {{}});
+        auto recipe_1 = custom_recipe({cell}, {0}, {3}, {{}}, {{}});
         auto decomp_1 = partition_load_balance(recipe_1, context);
 
         EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_target_description);

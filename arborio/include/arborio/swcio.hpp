@@ -7,12 +7,12 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/morph/segment_tree.hpp>
 
-namespace arb {
+namespace arborio {
 
 // SWC exceptions are thrown by `parse_swc`, and correspond
 // to inconsistent, or in `strict` mode, dubious SWC data.
 
-struct swc_error: public arbor_exception {
+struct swc_error: public arb::arbor_exception {
     swc_error(const std::string& msg, int record_id);
     int record_id;
 };
@@ -38,9 +38,59 @@ struct swc_spherical_soma: swc_error {
     explicit swc_spherical_soma(int record_id);
 };
 
-// Bad or inconsistent SWC data was fed to an `swc_data` consumer.
-struct bad_swc_data: swc_error {
-    explicit bad_swc_data(int record_id);
+// Smells like a non-spherical soma.
+struct swc_non_spherical_soma: swc_error {
+    explicit swc_non_spherical_soma(int record_id);
+};
+
+// Missing soma.
+struct swc_no_soma: swc_error {
+    explicit swc_no_soma(int record_id);
+};
+
+// Non-consecutive soma samples.
+struct swc_non_consecutive_soma: swc_error {
+    explicit swc_non_consecutive_soma(int record_id);
+};
+
+// Non-serial soma samples.
+struct swc_non_serial_soma: swc_error {
+    explicit swc_non_serial_soma(int record_id);
+};
+
+// Sample connecting to the middle of a soma causing an unsupported branch.
+struct swc_branchy_soma: swc_error {
+    explicit swc_branchy_soma(int record_id);
+};
+
+// Sample connecting to the middle of a soma causing an unsupported branch.
+struct swc_collocated_soma: swc_error {
+    explicit swc_collocated_soma(int record_id);
+};
+
+// Sample is not part of a segment
+struct swc_single_sample_segment: swc_error {
+    explicit swc_single_sample_segment(int record_id);
+};
+
+// Segment cannot have samples with different tags
+struct swc_mismatched_tags: swc_error {
+    explicit swc_mismatched_tags(int record_id);
+};
+
+// Only tags 1, 2, 3, 4 supported
+struct swc_unsupported_tag: swc_error {
+    explicit swc_unsupported_tag(int record_id);
+};
+
+// No gaps allowed
+struct swc_unsupported_gaps: swc_error {
+    explicit swc_unsupported_gaps(int record_id);
+};
+
+// Can't form a segment from a single sample
+struct swc_bad_description: swc_error {
+    explicit swc_bad_description(int record_id);
 };
 
 struct swc_record {
@@ -75,8 +125,17 @@ struct swc_record {
 };
 
 struct swc_data {
-    std::string metadata;
-    std::vector<swc_record> records;
+private:
+    std::string metadata_;
+    std::vector<swc_record> records_;
+
+public:
+    swc_data() = delete;
+    swc_data(std::vector<arborio::swc_record>);
+    swc_data(std::string, std::vector<arborio::swc_record>);
+
+    const std::vector<swc_record>& records() const {return records_;};
+    std::string metadata() const {return metadata_;};
 };
 
 // Read SWC records from stream, collecting any initial metadata represented
@@ -100,30 +159,28 @@ struct swc_data {
 //
 // SWC records are returned in id order.
 
-enum class swc_mode { relaxed, strict };
-
-swc_data parse_swc(std::istream&, swc_mode = swc_mode::strict);
-swc_data parse_swc(const std::string& text, swc_mode mode = swc_mode::strict);
-
-// Parse a series of existing SWC records.
-
-swc_data parse_swc(std::vector<swc_record>, swc_mode = swc_mode::strict);
+swc_data parse_swc(std::istream&);
+swc_data parse_swc(const std::string&);
 
 // Convert a valid, ordered sequence of SWC records to a morphological segment tree.
 //
-// Note that 'one-point soma' SWC files are explicitly not supported; the swc_data
-// is expected to abide by the restrictions of `strict` mode parsing as described
-// above.
+// Note that 'one-point soma' SWC files are explicitly not supported.
 //
 // The generated segment tree will be contiguous. There will be one segment for
 // each SWC record after the first: this record defines the tag and distal point
 // of the segment, while the proximal point is taken from the parent record.
 
-segment_tree as_segment_tree(const std::vector<swc_record>&);
+arb::segment_tree load_swc_arbor(const swc_data& data);
 
-inline segment_tree as_segment_tree(const swc_data& data) {
-    return as_segment_tree(data.records);
-}
+// As above, will convert a valid, ordered sequence of SWC records to a morphological
+// segment tree.
+//
+// Note that 'one-point soma' SWC files are supported here
+//
+// These functions comply with inferred SWC rules from the Allen institute and Neuron.
+// These rules are explicitly listed in the docs.
 
+arb::segment_tree load_swc_neuron(const swc_data& data);
+arb::segment_tree load_swc_allen(const swc_data& data, bool no_gaps=false);
 
-} // namespace arb
+} // namespace arborio

@@ -255,7 +255,7 @@ bench_params read_options(int argc, char** argv) {
     }
 
     nlohmann::json json;
-    json << f;
+    f >> json;
 
     param_from_json(params.name, "name", json);
     param_from_json(params.num_cells, "num-cells", json);

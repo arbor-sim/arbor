@@ -235,6 +235,7 @@ def generate(path=''):
     morph_image([inputs.label_morph],    ['segments'], path+'/label_seg.svg')
     morph_image([inputs.detached_morph], ['segments'], path+'/detached_seg.svg')
     morph_image([inputs.stacked_morph],  ['segments'], path+'/stacked_seg.svg')
+    morph_image([inputs.swc_morph],      ['segments'], path+'/swc_morph.svg')
 
     morph_image([inputs.label_morph, inputs.label_morph], ['segments', 'branches'], path+'/label_morph.svg')
     morph_image([inputs.detached_morph, inputs.detached_morph], ['segments', 'branches'], path+'/detached_morph.svg')

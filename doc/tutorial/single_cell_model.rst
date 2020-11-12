@@ -12,7 +12,7 @@ This guide will walk through a series of single cell models of increasing comple
 Links are provided to separate documentation that covers relevant topics in more detail.
 
 In an interactive Python interpreter, you can use ``help()`` on any class or function to
-obtain some documentation.
+obtain some documentation. (Try, for example, ``help(arbor.simulation``).
 
 .. _single_soma:
 
@@ -21,8 +21,8 @@ Single segment cell with HH dynamics
 
 The most trivial representation of a cell in Arbor is to model the entire cell as a
 single cylinder. The following example shows the steps required to construct a model of a
-cylindrical cell with radius 3 μm, Hodgkin–Huxley dynamics and a current clamp stimulus,
-then run the model for 30 ms.
+cylindrical cell with a length of 6 μm and a radius of 3 μm; Hodgkin–Huxley dynamics
+and a current clamp stimulus, then run the model for 30 ms.
 
 The first step is to construct the cell. In Arbor, the abstract representation used to
 define a cell with branching "cable" morphology is a ``cable_cell``, which holds a
@@ -53,40 +53,43 @@ create the ``cable_cell`` that represents it are as follows:
 
 Let's unpack that.
 
-Step **(1)** above shows how the cell is represented using a :class:`arbor.segment_tree`
-to which a single segment is added. Arbor's cell morphologies are constructed from a
-:ref:`segment tree<morph-segment_tree>` which is a list of segments, which are tapered
-cones with a *tag*. :meth:`arbor.segment_tree.append` takes 4 arguments, starting with
-the parent segment. The first segment added has no parent, which is made clear by
-using :class:`arbor.mnpos`. Then two :class:`arbor.mpoint` s are supplied, the proximal
-and distal endpoints of the segment. Finally, an integer value is supplied to tag the
-segment for future reference.
+Step **(1)** constructs a :class:`arbor.segment_tree` (see also :ref:`segment tree<morph-segment_tree>`).
+The segment tree is the representation used to construct the morphology of a cell. A segment is
+a tapered cone with a tag; the tag can be used to classify the type of the segment (for example
+soma, dendrite etc). To create a segment tree representing our single-cylinder cell, we need to add
+one segment to our ``tree`` object. We use the :meth:`arbor.segment_tree.append` method, which takes
+4 arguments: the parent segment which does not exist for the first segment, so we use :class:`arbor.mnpos`;
+the proximal :class:`arbor.mpoint` (location and radius) of the segment; the distal :class:`arbor.mpoint`
+of the segment; and the tag.
 
-In step **(2)** a dictionary of labels is created using :class:`arbor.label_dict<arbor.label_dict>`.
-Cell builders need to refer to *regions* and *locations* on a cell morphology. Arbor uses a domain
-specific language (DSL) to describe regions and locations, which are given labels. We add two labels:
+Step **(2)** creates a dictionary of labels (:class:`arbor.label_dict<arbor.label_dict>`). Labels give
+names to :ref:`regions<labels-region>` and :ref:`location<labels-locset>` described using a DSL
+based on s-expressions. Labels from the dictionary can then be used to facilitate adding synapses,
+dynamics, stimulii and probes to the cell. We add two labels:
 
 * ``soma`` defines a *region* with ``(tag  1)``. Note that this corresponds to the
   ``tag`` parameter that was used to define the single segment in step (1).
 * ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
   of branch ``0``, which corresponds to the center of the soma on the morphology defined in step (1).
 
-In step **(3)** a :class:`arbor.cable_cell` is constructed by combining the segment tree
-with the named regions and locations.
+Step **(3)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labeled
+regions and locations. The resulting cell's default properties can be modified, and we can use
+:meth:`arbor.cable_cell.paint` and :meth:`arbor.cable_cell.place` to further customise it in the
+following way:
 
-* "Cell-wide" properties are set through :meth:`arbor.cable_cell.set_properties`. Here,
-  the initial membrane potential is set to -40 mV everywhere on the cell.
-* Properties can also be set to a region of the cell, which Arbor calls 'painting'. This
-  is meant to convey placement is not precise: we wouldn't want to manually place ion
-  channels all over the surface of the cell. :meth:`arbor.cable_cell.paint` lets us
-  instruct Arbor to use HH dynamics on the region we've labelled soma and sort the details
-  out for us.
-* Other properties should be added to the cell on a precise :class:`arbor.location`. This is
-  done using the :meth:`arbor.cable_cell.place<arbor.cable_cell.place>` method.
-  We place a current stimulus :class:`arbor.iclamp<arbor.iclamp>` with a duration of 2 ms
-  and a current of 0.8 nA, starting at 10 ms on the location we've labelled 'center'. We also
-  place a :class:`arbor.spike_detector<arbor.spike_detector>` with a threshold of -10 mV on the
-  same location.
+* :meth:`arbor.cable_cell.set_properties` is used to set some default properties on the entire cell.
+  In the above example we set the initial membrane potential to -40 mV.
+* :meth:`arbor.cable_cell.paint` is used to set properties or add dynamics to a region of the cell.
+  We call this method 'painting' to convey that we are working on sections of a cell, as opposed to
+  precise locations: for example, we might want to ``paint`` an ion channel on all dendrites, and then
+  ``place`` a synapse at the tip of the axon. In the above example we :meth:`arbor.cable_cell.paint`
+  HH dynamics on the region we previously named 'soma' in our label dictionary.
+* :meth:`arbor.cable_cell.place<arbor.cable_cell.place>` is used to add objects on a precise
+  :class:`arbor.location` on a cell. Examples of objects that are ``placed`` are synapses,
+  spike detectors, current stimulii, and probes. In the above example we place a current stimulus
+  :class:`arbor.iclamp<arbor.iclamp>` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
+  on the location we previously labelled 'center'. We also place a :class:`arbor.spike_detector<arbor.spike_detector>`
+  with a threshold of -10 mV on the same location.
 
 Single cell model
 ----------------------------------------------------
@@ -112,12 +115,12 @@ recording potentials and running the simulation more easily.
 Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor.single_cell_model>`
 with our single-compartment cell.
 
-In step **(5)** a :meth:`arbor.single_cell_model.probe()<arbor.single_cell_model.probe>`
-is used to record variables from the model. Three pieces of information are
+Step **(5)** adds a :meth:`arbor.single_cell_model.probe()<arbor.single_cell_model.probe>`
+used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
 probe ('"center"'), and the frequency at which we want to sample (10kHz).
 
-Finally, step **(6)** starts the actual simulation for a duration of 30 ms.
+Step **(6)** runs the actual simulation for a duration of 30 ms.
 
 Results
 ----------------------------------------------------
@@ -139,15 +142,15 @@ results! Let's take a look at what the spike detector and a voltage probes from 
     import pandas, seaborn # You may have to pip install these.
     seaborn.set_theme() # Apply some styling to the plot
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
-    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV").savefig('single_cell_model_result.svg')
+    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",ci=None).savefig('single_cell_model_result.svg')
 
-In step **(7)** we access :meth:`arbor.single_cell_model.spikes<arbor.single_cell_model.spikes>`
-to access the spike time. A single spike at a little over 10 ms should be printed,
-which matches the stimulus we have provided in step (3).
+Step **(7)** accesses :meth:`arbor.single_cell_model.spikes<arbor.single_cell_model.spikes>`
+to print the spike times. A single spike should be generated at around the same time the stimulus
+we provided in step (3) gets activated (10ms).
 
-The other measurement we have is that of the potential, which we plot in step **(8)**.
-Arbor stores sampled quantities under :meth:`arbor.single_cell_model.traces<arbor.single_cell_model.traces>`.
-You should be seeing something like this:
+Step **(8)** plots the measured potentials during the runtime of the simulation. The sampled quantities
+can be accessed through :meth:`arbor.single_cell_model.traces<arbor.single_cell_model.traces>`.
+We should be seeing something like this:
 
 .. figure:: single_cell_model_result.svg
     :width: 400

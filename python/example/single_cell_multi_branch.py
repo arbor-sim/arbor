@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import arbor
 import seaborn
 import pandas
@@ -107,4 +109,4 @@ df = pandas.DataFrame()
 for t in m.traces:
     df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable}) )
 
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable").savefig('single_cell_multi_branch_result.svg')
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # NOTE: deprecating spherical roots changes the behavior of this model.
 # There is no soma, because only the root sample has tag 1, which will be
 # ignored as it is always the proximal end of any cable segment.
@@ -92,4 +94,4 @@ for t in m.traces:
 
 df = pandas.concat(df_list)
 
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable").savefig('single_cell_swc.svg')
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_swc.svg')
