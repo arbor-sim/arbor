@@ -1,7 +1,7 @@
 .. _labels:
 
-Cell labels
-===========
+Labels
+======
 
 Arbor provides a domain specific language (DSL) for describing regions and
 locations on morphologies, and a dictionary for associating these descriptions

@@ -3,18 +3,19 @@
 Cable cells
 ===========
 
-An Arbor *cable cell* is a full description of a cell with morphology and cell
-dynamics, where cell dynamics include ion species and their properties, ion
-channels, synapses, gap junction sites, stimuli and spike detectors.
+An Arbor *cable cell* is a full :ref:`description <modelcelldesc>` of a cell with
+morphology and cell dynamics, where cell dynamics include ion species and their
+properties, ion channels, synapses, gap junction sites, stimuli and spike detectors.
 Arbor cable cells are constructed from a morphology and a label dictionary,
 and provide a rich interface for specifying the cell's dynamics.
 
 .. note::
-    The cable cell has more than *one* dedicated page, it has a few more! This page describes how to build a full
-    description of a cable cell, based on three components that are broken out into their own pages:
+    The cable cell has several dedicated pages! This page describes how to build a full
+    description of a cable cell, based on three components that are broken out into their
+    own pages:
 
-    * :ref:`Morphology descriptions <morph-morphology>`
-    * :ref:`Label dictionaries <labels-dictionary>`
+    * :ref:`Morphologies <co_morphology>`
+    * :ref:`labels <labels>`
     * :ref:`Mechanisms <mechanisms>`
 
     It can be helpful to consult those pages for some of the sections of this page.
@@ -22,7 +23,7 @@ and provide a rich interface for specifying the cell's dynamics.
 .. _cablecell-decoration:
 
 Decoration
-----------------
+----------
 
 A cable cell is *decorated* by specifying the distribution and placement of dynamics
 on the cell. The decorations, coupled with a description of a cell morphology, are all

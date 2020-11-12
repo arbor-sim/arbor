@@ -1,7 +1,7 @@
 .. _co_morphology:
 
-Cell morphology
-===============
+Morphology
+==========
 
 A cell's *morphology* describes both its geometry and branching structure.
 Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius,
