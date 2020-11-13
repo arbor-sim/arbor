@@ -47,6 +47,7 @@ jobs:
             name: "Ubuntu XVIII GCC X",
             os:   "ubuntu-18.04",
             cc:   "gcc-10",
+            cxx:  "g++-10"
           }
         - {
             name: "Ubuntu XVIII GCC IX",
