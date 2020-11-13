@@ -9,8 +9,13 @@ through a process that is called :ref:`decoration <cablecell-decoration>`.
 Mechanisms are described using a dialect of the :ref:`NMODL <nmodl>` domain
 specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
 
+Arbor supports mechanism descriptions using the NMODL language through our ``modcc``
+compiler. ``modcc`` supports many of NMODL's features but there are a few
+additional `guidelines <https://github.com/arbor-sim/arbor/wiki/Arbor's-NMODL-guidlines>`_
+for users who wish to compile their own mechanisms for Arbor.
+
 Mechanism catalogues
-----------------------
+--------------------
 
 A *mechanism catalogue* is a collection of mechanisms that maintains:
 
@@ -28,6 +33,9 @@ Catalogues provide an interface for querying mechanism metadata, which includes 
 * Range parameter names, units, and default values.
 * State variable names, units and default values.
 * Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes to its internal or external concentration or to its reversal potential value, and whether it reads or asserts the ionic charge.
+
+Arbor provides a default catalogue of mechanisms as well as two other catalogues containing the sets of common mechanisms
+used by the `Allen Institute <https://alleninstitute.org/>`_ and the `Blue Brain Project <https://portal.bluebrain.epfl.ch/>`_.
 
 Default mechanisms
 ''''''''''''''''''
