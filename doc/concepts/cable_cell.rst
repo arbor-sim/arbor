@@ -4,30 +4,23 @@ Cable cells
 ===========
 
 An Arbor *cable cell* is a full description of a cell with morphology and cell
-dynamics, where cell dynamics include ion species and their properties, ion
+dynamics like ion species and their properties, ion
 channels, synapses, gap junction sites, stimuli and spike detectors.
 Arbor cable cells are constructed from a morphology, a label dictionary,
-and a description of the 
-and provide a rich interface for specifying the cell's dynamics.
-
-.. note::
-   This page describes how to construct a cable cell from its constituent components.
-   More information about the components are documented on their own pages, including:
-
-    * :ref:`Morphology descriptions <morph-morphology>`
-    * :ref:`Label dictionary <labels-dictionary>`
-    * :ref:`Decoration <decoration>`
+and a description of the cell's dynamics.
 
 Construction
 ----------------
 
-Cable cells are created by combining three components:
+Cable cells are constructed from three constituent components:
 
-  * **Morpholgy**: a decription of the geometry and branching structure of the cell shape.
-  * **Label dictionary**: a set of rules that refer to regions and locations on the cell.
-  * **Decoration**: a description of the dynamics on the cell, placed according to the named rules in the dictionary.
+  * :ref:`Morphology <morph>`: a decription of the geometry and branching structure of the cell shape.
+  * :ref:`Label dictionary <labels>`: a set of rules that refer to regions and locations on the cell.
+  * Decoration: a description of the dynamics on the cell, placed according to the named rules in the dictionary.
 
-
+Design justification:
+these three components are orthogonal. The rules that define regions on a cell (e.g. axon, soma, dendrite, etc)
+are independent of the underlying geometry.
 
 .. _cablecell-decoration:
 
@@ -35,11 +28,7 @@ Decoration
 ----------------
 
 A cable cell is *decorated* by specifying the distribution and placement of dynamics
-on the cell. The decorations, coupled with a description of a cell morphology, are all
-that is required to build a standalone single-cell model, or a cell that is part of
-a larger network.
-
-Decorations use :ref:`region <labels-region>` and :ref:`locset <labels-locset>`
+on the cell. Decorations use :ref:`region <labels-region>` and :ref:`locset <labels-locset>`
 descriptions, with their respective use for this purpose reflected in the two broad
 classes of dynamics in Arbor:
 
@@ -59,12 +48,33 @@ classes of dynamics in Arbor:
   * :ref:`Stimuli <cable-stimuli>`.
   * :ref:`Probes <cable-probes>`.
 
+Decorations are described by a **decor** object in Arbor.
+Provides facility for
+* setting properties defined over the whole cell
+* descriptions of dynamics applied to regions and locsets
+A cable cell is constructed using a morphology, label dictionary, and a decor.
+1. Concrete regions and locsets are generated for the morphology for each labeled region and locset in the dictionary
+2. The default values for parameters specified in the decor, such as ion species concentration, are instantiated
+3. Dynamics that are applied to regions and locsets are instantiated.
+
+The morphology, label definitions and decor are orthogonal, and can be combined in different ways.
+For example, consider a model with the following
+* three cell types: pyramidal, purkinje and granule.
+* there two different morphologies for each cell type.
+* all cells have the same basic regions definitions: soma, axon, dendrites
+* all cells of the same type (e.g. Purkinje) have the same dynamics defined on their respective regions.
+
+The basic building blocks required to construct all of the cells in a model:
+* 6 morphologies (2 for each of purkinje, granule and pyramidal).
+* 3 decors (1 for each of purkinje, granule and pyramidal).
+* 1 label dictionary that defines the region types.
+
 .. _cablecell-paint:
 
 Painted dynamics
 ''''''''''''''''
 
-Painted dynamics are applied to a subset of the surface and/or volume of cells.
+Painted dynamics are applied to a subset of the surface or volume of cells.
 They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
@@ -107,35 +117,35 @@ will override any cell-local or global definition on that region.
 Cable properties
 ~~~~~~~~~~~~~~~~
 
-There are four cable properties that are defined everywhere on all cables:
+There are four cable properties that must be defined everywhere on a cell:
 
 * *Vm*: Initial membrane voltage [mV].
 * *cm*: Membrane capacitance [F/m²].
 * *rL*: Axial resistivity of cable [Ω·cm].
 * *tempK*: Temperature [Kelvin].
 
-In Python, the :py:class:`cable_cell` interface provides the :py:func:`cable_cell.set_properties` method
-for setting cell-wide defaults for properties, and the
-:py:meth:`cable_cell.paint` interface for overriding properties on specific regions.
+Each of the cable properties can be defined as a cell-wide default, that is then
+specialised on specific regions.
 
-.. code-block:: Python
+.. note::
 
-    import arbor
+    In Python, the :py:class:`decor` interface provides the :py:func:`decor.set_properties` method
+    for setting cell-wide defaults for properties, and the
+    :py:meth:`decor.paint` interface for overriding properties on specific regions.
 
-    # Load a morphology from file and define basic regions.
-    tree = arbor.load_swc('granule.swc')
-    morph = arbor.morphology(tree, spherical_root=True)
-    labels = arbor.label_dict({'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)'})
+    .. code-block:: Python
 
-    # Create a cable cell.
-    cell = arbor.cable_cell(morph, labels)
+        import arbor
 
-    # Set cell-wide properties that will be applied by default to # the entire cell.
-    cell.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
+        # Create an empty decor.
+        decor = arbor.decor
 
-    # Override specific values on the soma and axon
-    cell.paint('"soma"', Vm=-50, cm=0.01, rL=35)
-    cell.paint('"axon"', Vm=-60, rL=40)
+        # Set cell-wide properties that will be applied by default to the entire cell.
+        decor.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
+
+        # Override specific values on regions named "soma" and "axon".
+        decor.paint('"soma"', Vm=-50, cm=0.01, rL=35)
+        decor.paint('"axon"', Vm=-60, rL=40)
 
 .. _cable-discretisation:
 

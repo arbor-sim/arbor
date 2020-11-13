@@ -1,5 +1,7 @@
 .. _py_morphology:
 
+   .. 
+
 Cell morphology
 ===============
 
@@ -30,7 +32,7 @@ Cell morphology
                     dist=arbor.mpoint(0, 0,50, 0.2),
                     tag=3)
 
-        # mnpos can also be used when querying a sample_tree or morphology,
+        # mnpos can also be used when querying a segment_tree or morphology,
         # for example the following snippet that finds all branches in the
         # morphology that are attached to the root of the morphology.
         m = arbor.morphology(tree)
