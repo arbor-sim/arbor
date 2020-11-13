@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  build_ubuntu_gcc:
-    name: "Build on Ubuntu"
+  build:
+    name: "Build & Test"
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
