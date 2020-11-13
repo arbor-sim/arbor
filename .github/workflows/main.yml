@@ -57,15 +57,21 @@ jobs:
           }
         - { 
             name: "MacOS X.XV GCC VII",
-            os:   "ubuntu-20.04",
+            os:   "macos-10.15",
             cc:   "gcc-8",
             cxx:  "g++-8"
           }
         - { 
             name: "MacOS X.XV GCC IX",
-            os:   "ubuntu-20.04",
+            os:   "macos-10.15",
             cc:   "gcc-9",
             cxx:  "g++-9"
+          }
+        - { 
+            name: "MacOS X.XV LLVM XI",
+            os:   "macos-10.15",
+            cc:   "clang-11",
+            cxx:  "clang++-11"
           }
     steps:
       - name: "Clone w/ submodules"
