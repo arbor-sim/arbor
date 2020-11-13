@@ -114,15 +114,14 @@ The steps of building a simulation from a recipe are:
     An example of how performance considerations impact Arbor's architecture:
     you will notice cell kind and cell description are separately added to a recipe.
 
-    It might seem like overkill to have a separate call that returns the cell kind, when one could determine
-    the kind by requesting the cell description, then querying the kind of the result.
+    It might seem like overkill to have a separate call that returns the cell
+    kind, when one could determine the kind by requesting the cell description,
+    then querying the kind of the result.
 
-    However, in some parts of model building only require the cell kind, and not
-    the full cell description. Cell descriptions can be quite expensive to
-    assemble, for example, building a Purkinje cell model with complex geometry and
-    rich ion channel and thousands of synapses.
-    To avoid the overhead of constructing a full cell model when only the cell kind
-    is required, the recipe provides a separate callback that returns only the cell kind.
+    Some phases of model construction, however, only require the cell kind, and
+    not the full cell description, which can be quite expensive to
+    assemble; for example, a Purkinje cell model can have very complex geometry,
+    a rich collection of ion channels, and thousands of synapses.
 
 General best practices
 ----------------------
