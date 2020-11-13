@@ -45,23 +45,30 @@ jobs:
           }
         - { 
             name: "Ubuntu XVIII GCC IX",
-            os:   "ubuntu-20.04",
+            os:   "ubuntu-18.04",
             cc:   "gcc-9",
             cxx:  "g++-9"
           }
         - { 
             name: "Ubuntu XVIII LLVM VII",
-            os:   "ubuntu-20.04",
+            os:   "ubuntu-18.04",
             cc:   "gcc-8",
             cxx:  "g++-8"
           }
-
+        - { 
+            name: "MacOS X.XV LLVM XI",
+            os:   "ubuntu-20.04",
+            cc:   "clang-11",
+            cxx:  "clang++11"
+          }
     steps:
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }}
+        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DARB_WITH_PYTHON=ON
       - name: Build
-        run: cmake --build build
+        run: make -C build tests examples
+      - name: "Run unit tests"
+        run: build/bin/unit
