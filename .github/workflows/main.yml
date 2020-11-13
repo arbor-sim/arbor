@@ -59,7 +59,7 @@ jobs:
             name: "MacOS X.XV LLVM XI",
             os:   "ubuntu-20.04",
             cc:   "clang-11",
-            cxx:  "clang++11"
+            cxx:  "clang++-11"
           }
     steps:
       - name: "Clone w/ submodules"
