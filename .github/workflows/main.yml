@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_ubuntu_gcc:
+    name: "Build on Ubuntu"
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      matrix:
+        config:
+        - { 
+            name: "Ubuntu GCC X",
+            os:   "ubuntu-20.04",
+            cc:   "gcc-10",
+            cxx:  "g++-10"
+          }
+        - { 
+            name: "Ubuntu GCC IX",
+            os:   "ubuntu-20.04",
+            cc:   "gcc-9",
+            cxx:  "g++-9"
+          }
+        - { 
+            name: "Ubuntu LLVM X",
+            os:   "ubuntu-20.04",
+            cc:   "clang-10",
+            cxx:  "clang++-10"
+          }
+        - { 
+            name: "Ubuntu LLVM IX",
+            os:   "ubuntu-20.04",
+            cc:   "clang-9",
+            cxx:  "clang++-9"
+          }
+    steps:
+      - name: "Clone w/ submodules"
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }}
+      - name: Build
+        run: cmake --build build
