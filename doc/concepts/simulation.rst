@@ -16,14 +16,12 @@ To build a simulation the following are needed:
       model over the local and distributed :ref:`hardware resources <modelhardware>`.
     * An :ref:`execution context <modelcontext>` used to execute the simulation.
 
-Optionally, experimental inputs that can change between model runs, such as external spike trains, can be injected.
-
 Simulation execution and interaction
 ------------------------------------
 
 Simulations provide an interface for executing and interacting with the model:
 
-    * The simulation is executed/ *run* by advancing the model state from the current simulation time to another
+    * The simulation is executed/*run* by advancing the model state from the current simulation time to another
       with maximum time step size.
     * The model state can be *reset* to its initial state before the simulation was started.
     * *Sampling* of the simulation state can be performed during execution with samplers and probes (e.g.
