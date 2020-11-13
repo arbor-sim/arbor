@@ -44,12 +44,12 @@ tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the s
 axon proper with constant radius 0.4 μm.
 
 Label types
-------------
+-----------
 
 .. _labels-locset:
 
 Locsets
-~~~~~~~~~~~
+~~~~~~~
 
 A *locset* is a set of locations on a morphology, specifically a *multiset*,
 which may contain multiple instances of the same location, for example:
@@ -72,7 +72,7 @@ which may contain multiple instances of the same location, for example:
 .. _labels-region:
 
 Regions
-~~~~~~~~~~~~
+~~~~~~~
 
 A *region* is a subset of a morphology's cable segments, for example:
 
@@ -158,7 +158,7 @@ describes the region of all parts of a cell with either tag 3 or tag 4 and radiu
 .. _labels-expr-docs:
 
 Expression syntax
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 The DSL uses `s-expressions <https://en.wikipedia.org/wiki/S-expression>`_, which are composed of the following basic types:
 
@@ -202,7 +202,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
 
 
 Locset expressions
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. figure:: ../gen-images/label_branch.svg
   :width: 800
@@ -349,7 +349,7 @@ Locset expressions
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
 
 Region expressions
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. label:: (nil)
 
@@ -560,19 +560,19 @@ Region expressions
 
       Two regions (left and middle) and their intersection (right).
 
-.. _labels-concretise:
+.. _labels-thingify:
 
-Concretisation
-----------------
+Thingification
+--------------
 
-When a region or locset expression is applied to a cell morphology it is
-*concretised*. Concretising a locset will return a set of *locations* on the
-morphology, and concretising a region will return a list of unbranched *cables*
-on the morphology.
+When a region or locset expression is applied to a cell morphology, it is represented
+as a list of unbranched *cables* or a set of *locations* on the morphology respectively.
+This process is called ``thingify`` in arbor, because it turns the abstract description
+of a region or a loscet into an actual 'thing' when it is applied to a real morphology.
 
 .. note::
     Applying an expression to different morphologies may give different
-    concretised results.
+    thingified results.
 
 Locations
 ~~~~~~~~~
@@ -590,7 +590,7 @@ Examples of locations, :ref:`expressed using the DSL <labels-location-def>`, inc
 * One quarter of the way along branch 5 ``(location 5 0.25)``.
 
 Cables
-~~~~~~~~~
+~~~~~~
 
 An unbranched *cable* is a tuple of the form ``(branch, prox, dist)``,
 where ``branch`` is the branch id, and ``0 ≤ prox ≤ dist ≤ 1`` define the relative position
@@ -621,6 +621,22 @@ also be valid expressions in the region DSL; creating a label ``"(tag 1)"`` will
 lead to confusion.
 
 Labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
+Label dictionaries are then used to create a cable-cell along with the :ref:`morphology <co_morphology>`
+and a set of :ref:`decorations <cablecell-decoration>`. The decorations can be painted or placed on
+the regions and locsets defined in the label dictionary by referring to their labels.
+
+.. code-block:: python
+   :caption: Example of a lable dictionary in python:
+
+    arbor.label_dict({
+      'soma': '(tag 1)',  # soma is every cable with tag 1 in the morphology.
+      'axon': '(tag 2)',  # axon is every cable with tag 2 in the morphology.
+      'dend': '(tag 3)',  # dend is every cable with tab 3 in the morphology
+      'root': '(root)',   # typically the start of the soma is at the root of the cell.
+      'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 1.
+      'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
+    })
+
 
 
 API

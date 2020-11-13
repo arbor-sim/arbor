@@ -5,11 +5,12 @@ Morphology
 
 A cell's *morphology* describes both its geometry and branching structure.
 Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius,
-joined together to form a tree.
+joined together to form a tree. Only :ref:`cable cells <modelcablecell>` support custom
+morphologies in Arbor.
 
-The building blocks of morphology tree are points and segments.
-A *point* is a three-dimensional location and a radius, used to mark the centre and radius
-of the cable.
+The building blocks of a morphology tree are points and segments.
+A *point* is a three-dimensional location and a radius, used to mark the cross-sectional
+centre and radius of the cable.
 
 .. csv-table::
    :widths: 10, 10, 30
@@ -492,8 +493,11 @@ SWC
 
 Arbor supports reading morphologies described using the
 `SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format.
-SWC files may contain comments, which are stored as metadata. A blank line anywhere in the file is
-interpreted as end of data. The description of the morphology is encoded as a list of samples with an id,
+
+SWC files may contain comments, which are stored as metadata. And a blank line anywhere in the file is
+interpreted as end of data.
+
+The description of the morphology is encoded as a list of samples with an id,
 an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
 then generates a :ref:`segment tree <morph-segment_tree>` describing the morphology according to one of three
 possible interpretations.
@@ -577,6 +581,45 @@ interpreter:
      electrically as a zero-resistance wire)
    * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
      tag.
+
+NeuroML
+~~~~~~~
+
+Arbor offers limited support for models described in `NeuroML version 2 <https://neuroml.org/neuromlv2>`_.
+This is not built by default (see :ref:`NeuroML support <install-neuroml>` for instructions on how
+to build arbor with NeuroML).
+
+Once support is enabled, Arbor is able to parse and check the validity of morphologies described in NeuroML files,
+and present the encoded data to the user.  This is more than a simple a `segment tree`.
+
+NeuroML can encode in the same file multiple top-level morphologies, as well as cells:
+
+.. code:: XML
+
+   <neuroml xmlns="http://www.neuroml.org/schema/neuroml2">
+   <morphology id="m1">
+       <segment id="seg-0">
+           <proximal x="1" y="1" z="1" diameter="1"/>
+           <distal x="2" y="2" z="2" diameter="2"/>
+       </segment>
+       <segmentGroup id="group-0">
+           <member segment="1"/>
+       </segmentGroup>
+   </morphology>
+   <morphology id="m2"/>
+   <cell id="c1" morphology="m1"/>
+   <cell id="c2">
+       <morphology id="m3"/>
+   </cell>
+   </neuroml>
+
+The above NeuroML description defines 2 top-level morphologies ``m1`` and ``m2`` (empty); a cell ``c1`` that uses
+morphology ``m1``; and a cell ``c2`` that uses an internally defined (empty) morphology ``m3``.
+
+Arbor can query the cells and morphologies using their ids and return all the associated morphological data for each.
+The morphological data includes the actual morphology as well as the named segments and groups of the morphology.
+For example, the above ``m1`` morphology has one named segment ``seg-0`` and one named group ``group-0`` that are
+both represented using Arbor's :ref:`region expressions <labels-expressions>`.
 
 API
 ---
