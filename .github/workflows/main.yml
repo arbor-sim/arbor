@@ -70,8 +70,8 @@ jobs:
         - { 
             name: "MacOS X.XV LLVM XI",
             os:   "macos-10.15",
-            cc:   "clang-11",
-            cxx:  "clang++-11"
+            cc:   "clang",
+            cxx:  "clang++"
           }
     steps:
       - name: "Clone w/ submodules"
