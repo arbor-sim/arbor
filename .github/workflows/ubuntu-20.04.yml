@@ -20,8 +20,14 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
-      - name: "Install packages"
-        run: sudo apt install openmpi
+      - name: Install OpenMPI
+        run: |
+           wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
+           tar -xvf ./openmpi-4.0.2.tar.gz
+           cd openmpi-4.0.2
+           ./configure
+           make -j
+           sudo make install:  
       - name: "Install python packages"
         run: pip${{ matrix.py }} install mpi4py
       - name: Configure
