@@ -10,15 +10,17 @@ Arbor cable cells are constructed from a morphology and a label dictionary,
 and provide a rich interface for specifying the cell's dynamics.
 
 .. note::
-    The cable cell has several dedicated pages! This page describes how to build a full
-    description of a cable cell, based on three components that are broken out into their
-    own pages:
+    The cable cell has several dedicated pages. This page describes the cell dynamics
+    and properties that can be set on the cable cel.
 
-    * :ref:`Morphologies <co_morphology>`
-    * :ref:`labels <labels>`
-    * :ref:`Mechanisms <mechanisms>`
+    * :ref:`The morphology page <co_morphology>` describes the geometry of the cell and
+      how it is constructed and discretised.
+    * :ref:`The labels page <labels>` describes the DSL used to specify regions and
+      locations on the morphology of the cell.
+    * :ref:`The mechanisms page <mechanisms>` describes the available density and point
+      mechanisms.
 
-    It can be helpful to consult those pages for some of the sections of this page.
+    We provide links to these pages where relevant.
 
 .. _cablecell-decoration:
 
@@ -95,8 +97,8 @@ will override any cell-local or global definition on that region.
 
 .. _cable-properties:
 
-Cable properties
-~~~~~~~~~~~~~~~~
+1. Cable properties
+~~~~~~~~~~~~~~~~~~~
 
 There are four cable properties that are defined everywhere on all cables:
 
@@ -130,8 +132,8 @@ for setting cell-wide defaults for properties, and the
 
 .. _cable-discretisation:
 
-Discretisation
-~~~~~~~~~~~~~~~~
+2. Discretisation
+~~~~~~~~~~~~~~~~~
 
 For the purpose of simulation, cable cells are decomposed into discrete
 subcomponents called *control volumes* (CVs), following the finite volume method
@@ -142,8 +144,8 @@ a single fork point in isolation.
 
 .. _cable-density-mechs:
 
-Density mechanisms
-~~~~~~~~~~~~~~~~~~~~~~
+3. Density mechanisms
+~~~~~~~~~~~~~~~~~~~~~
 
 Regions can have density mechanisms defined over their extents.
 Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
@@ -194,8 +196,8 @@ Take for example a mechanism passive leaky dynamics:
 
 .. _cable-ions:
 
-Ion species
-~~~~~~~~~~~
+4. Ion species
+~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
 calcium, potassium and sodium ion species.
@@ -292,32 +294,32 @@ and are assigned to specific locations.
 
 .. _cable-synapses:
 
-Connection sites
-~~~~~~~~~~~~~~~~
+1. Connection sites
+~~~~~~~~~~~~~~~~~~~
 
 Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
 .. _cable-gj-sites:
 
-Gap junction sites
-~~~~~~~~~~~~~~~~~~
+2. Gap junction sites
+~~~~~~~~~~~~~~~~~~~~~
 
 See :ref:`modelgapjunctions`.
 
 .. _cable-threshold-detectors:
 
-Threshold detectors (spike detectors).
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3. Threshold detectors (spike detectors).
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _cable-stimuli:
 
-Stimuli
-~~~~~~~~
+4. Stimuli
+~~~~~~~~~~
 
 .. _cable-probes:
 
-Probes
-~~~~~~
+5. Probes
+~~~~~~~~~
 
 API
 ---
