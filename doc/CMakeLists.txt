@@ -12,6 +12,8 @@ string(REPLACE ";" "," theme_path "${theme_path}")
 
 add_custom_target(html
     COMMAND
+        pip3 install -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt --user
+    COMMAND
         ${SPHINX_EXECUTABLE}
         -b html
         -d ${doctree_dir}
