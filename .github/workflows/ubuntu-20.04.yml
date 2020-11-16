@@ -27,7 +27,7 @@ jobs:
            cd openmpi-4.0.2
            ./configure
            make -j
-           sudo make install:  
+           sudo make install
       - name: "Install python packages"
         run: pip${{ matrix.py }} install mpi4py
       - name: Configure
