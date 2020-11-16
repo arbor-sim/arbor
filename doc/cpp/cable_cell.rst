@@ -211,19 +211,19 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
    Returns an :cpp:type:`swc_data` object given an std::istream object.
 
-.. cpp:function:: segment_tree load_swc_arbor(const swc_data& data)
+.. cpp:function:: morphology load_swc_arbor(const swc_data& data)
 
-   Returns a segment tree constructed according to Arbor's SWC specifications.
+   Returns a :cpp:type:`morphology` constructed according to Arbor's SWC specifications.
 
 .. cpp:function:: segment_tree load_swc_allen(const swc_data& data, bool no_gaps=false)
 
-   Returns a segment tree constructed according to the Allen Institute's SWC specifications.
-   By default, gaps in the segment tree are allowed, this can be toggled using the ``no_gaps``
-   argument.
+   Returns a :cpp:type:`morphology` constructed according to the Allen Institute's SWC
+   specifications. By default, gaps in the segment tree are allowed, this can be toggled
+   using the ``no_gaps`` argument.
 
 .. cpp:function:: segment_tree load_swc_neuron(const swc_data& data)
 
-   Returns a segment tree constructed according to NEURON's SWC specifications.
+   Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
 
 .. _locsets-and-regions:
 

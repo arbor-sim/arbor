@@ -105,7 +105,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     arb::label_dict d;
 
     using arb::reg::tagged;
-    d.set("soma",      tagged(stag));
+    d.set("soma", tagged(stag));
     d.set("dend", tagged(dtag));
 
     arb::cable_cell cell(arb::morphology(tree), d);
