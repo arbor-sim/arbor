@@ -14,14 +14,18 @@ jobs:
       matrix:
         os: ["ubuntu-20.04"]
         cxx: ["g++-8", "g++-9", "g++-10", "clang++-9", "clang++-10"]
-        py: ["python3.6"]
+        py: ["3.6", "3.7", "3.8", "3.9"]
     steps:
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
+      - name: "Install packages"
+        run: sudo apt install open-mpi
+      - name: "Install python packages"
+        run: pip${{ matrix.py }} install mpi4py
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=${{ matrix.py }}
+        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=python${{ matrix.py }}
       - name: Build
         run: make -C build tests examples
       - name: "Run unit tests"
