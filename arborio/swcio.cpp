@@ -13,7 +13,6 @@
 #include <arbor/morph/segment_tree.hpp>
 
 #include <arborio/swcio.hpp>
-#include <arbor/morph/morphology.hpp>
 
 namespace arborio {
 
