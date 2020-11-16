@@ -21,7 +21,7 @@ jobs:
         with:
           submodules: "recursive"
       - name: "Install packages"
-        run: sudo apt install open-mpi
+        run: sudo apt install openmpi
       - name: "Install python packages"
         run: pip${{ matrix.py }} install mpi4py
       - name: Configure
