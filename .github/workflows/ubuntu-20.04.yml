@@ -13,8 +13,10 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-20.04"]
-        cxx: ["g++-8", "g++-9", "g++-10", "clang++-9", "clang++-10"]
-        py: ["3.6", "3.7", "3.8", "3.9"]
+        #cxx: ["g++-8", "g++-9", "g++-10", "clang++-9", "clang++-10"]
+        cxx: ["g++-10"]
+        #py: ["3.6", "3.7", "3.8", "3.9"]
+        py: ["3.6"]
     steps:
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
@@ -29,7 +31,7 @@ jobs:
            make -j
            sudo make install
       - name: "Install python packages"
-        run: pip${{ matrix.py }} install mpi4py
+        run: python${{ matrix.py }} -mpip install mpi4py
       - name: Configure
         run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=python${{ matrix.py }}
       - name: Build
