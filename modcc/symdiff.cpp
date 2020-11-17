@@ -262,7 +262,7 @@ private:
     std::string id_;
 };
 
-long double expr_value(Expression* e) {
+double expr_value(Expression* e) {
     return e && e->is_number()? e->is_number()->value(): NAN;
 }
 
@@ -273,7 +273,7 @@ private:
     static bool is_number(Expression* e) { return e && e->is_number(); }
     static bool is_number(const expression_ptr& e) { return is_number(e.get()); }
 
-    void as_number(Location loc, long double v) {
+    void as_number(Location loc, double v) {
         result_ = make_expression<NumberExpression>(loc, v);
     }
 
@@ -293,7 +293,7 @@ public:
         result_ = nullptr;
     }
 
-    long double value() const { return expr_value(result_); }
+    double value() const { return expr_value(result_); }
 
     bool is_number() const { return is_number(result_); }
 
