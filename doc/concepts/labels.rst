@@ -574,6 +574,7 @@ of a region or a loscet into an actual 'thing' when it is applied to a real morp
     Applying an expression to different morphologies may give different
     thingified results.
 
+.. _labels-locations:
 Locations
 ~~~~~~~~~
 
@@ -589,6 +590,7 @@ Examples of locations, :ref:`expressed using the DSL <labels-location-def>`, inc
 * The end of branch 5 ``(location 5 1)``.
 * One quarter of the way along branch 5 ``(location 5 0.25)``.
 
+.. _labels-cables:
 Cables
 ~~~~~~
 

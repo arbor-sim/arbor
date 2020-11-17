@@ -11,7 +11,7 @@ and provide a rich interface for specifying the cell's dynamics.
 
 .. note::
     The cable cell has several dedicated pages. This page describes the cell dynamics
-    and properties that can be set on the cable cel.
+    and properties that can be set on the cable cell.
 
     * :ref:`The morphology page <co_morphology>` describes the geometry of the cell and
       how it is constructed and discretised.

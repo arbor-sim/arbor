@@ -141,11 +141,11 @@ uses 4 segments to model the soma.
 
 .. _morph-morphology:
 
-Geometry
---------
+Morphology
+----------
 
-A *morphology* describes the geometry of a cell as unbranched cables with variable radius
-, and their associated tree structure.
+A *morphology* describes the geometry of a cell as unbranched cables with variable radius,
+and their associated tree structure.
 Every segment tree can be used to generate a unique morphology, which derives and enumerates
 *branches* from the segments.
 The branches of a morphology are unbranched cables, composed of one or more segments, where:
@@ -184,7 +184,7 @@ which is illustrated along with its branches below.
   :align: center
 
   The code used to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
-  documentation :ref:`below <morph-label-seg-code>`.
+  :ref:`python documentation <morph-label-seg-code>`.
 
 The first branch contains the soma and the first two segments of the dendritic tree.
 There are four more branches in the dendritic tree, and one representing the two
@@ -272,6 +272,18 @@ multiple soma and dendrite segments in branch 0.
     ion channels, by using referring to all parts of the cell with
     :ref:`tag 1 <labels-expressions>`.
 
+.. Note::
+   This representation of the cell morphology in terms of *branches* is what
+   Arbor uses to create a :ref:`cable cell <cablecell>`, and it is how Arbor
+   view's the cell's geometry and refers to it internally.
+   :ref:`Regions <labels-region>` and :ref:`locsets <labels-locset>` formed
+   on the cell, are eventually represented either as
+   :ref:`subsets of branches <labels-cables>` of the morphology, or exact
+   :ref:`locations on branches <labels-locations>` of the morphology.
+
+   Once the morphology is formed from a segment tree, the specific segments
+   are no longer of much use for the user and it is better to think of the
+   cell structure as Arbor does: in terms of branches.
 
 Examples
 ~~~~~~~~~~~~~~~
