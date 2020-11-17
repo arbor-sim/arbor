@@ -1,3 +1,4 @@
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
@@ -50,8 +51,7 @@ void register_morphology(py::module& m) {
             "The id of the branch.")
         .def_readonly("pos", &arb::mlocation::pos,
             "The relative position on the branch (∈ [0.,1.], where 0. means proximal and 1. distal).")
-        .def("__eq__",
-            [](arb::mlocation a, arb::mlocation b) { return a==b; })
+        .def(py::self==py::self)
         .def("__str__",
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); })
         .def("__repr__",
@@ -108,8 +108,7 @@ void register_morphology(py::module& m) {
                 "The relative position of the proximal end of the cable on its branch ∈ [0,1].")
         .def_readonly("dist", &arb::mcable::dist_pos,
                 "The relative position of the distal end of the cable on its branch ∈ [0,1].")
-        .def("__eq__",
-            [](arb::mcable a, arb::mcable b) { return a==b; })
+        .def(py::self==py::self)
         .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
 

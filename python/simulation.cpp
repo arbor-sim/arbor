@@ -16,6 +16,8 @@ namespace py = pybind11;
 
 namespace pyarb {
 
+// Argument type for simulation_shim::record() (see below).
+
 enum class spike_recording {
     off, local, all
 };
