@@ -1,11 +1,13 @@
+#include <fstream>
+#include <tuple>
+
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
-#include <fstream>
-
 #include <arbor/morph/morphology.hpp>
+#include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
 
@@ -17,6 +19,10 @@
 namespace py = pybind11;
 
 namespace pyarb {
+
+static inline bool cable_lt(const arb::mcable& a, const arb::mcable& b) {
+    return std::tuple(a.branch, a.prox_pos, a.dist_pos)<std::tuple(b.branch, b.prox_pos, b.dist_pos);
+}
 
 void check_trailing(std::istream& in, std::string fname) {
     if (!(in >> std::ws).eof()) {
@@ -60,11 +66,6 @@ void register_morphology(py::module& m) {
     // arb::mpoint
     py::class_<arb::mpoint> mpoint(m, "mpoint");
     mpoint
-        .def(py::init(
-                [](double x, double y, double z, double r) {
-                    return arb::mpoint{x,y,z,r};
-                }),
-                "x"_a, "y"_a, "z"_a, "radius"_a, "All values in μm.")
         .def(py::init([](py::tuple t) {
                 if (py::len(t)!=4) throw std::runtime_error("tuple length != 4");
                 return arb::mpoint{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), t[3].cast<double>()};
@@ -111,6 +112,63 @@ void register_morphology(py::module& m) {
         .def(py::self==py::self)
         .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
+
+    // arb::isometry
+    py::class_<arb::isometry> isometry(m, "isometry");
+    isometry
+        .def(py::init<>())
+        .def("__call__", [](arb::isometry& iso, arb::mpoint& p) {
+                return iso.apply(p);
+            })
+        .def("__call__", [](arb::isometry& iso, py::tuple t) {
+                if (py::len(t)<3) throw std::runtime_error("tuple length < 3");
+                arb::mpoint p{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), 0.};
+                p = iso.apply(p);
+                t[0] = p.x;
+                t[1] = p.y;
+                t[2] = p.z;
+                return t;
+            })
+        .def(py::self*py::self);
+
+    m.def("translation",
+        [](double x, double y, double z) { return arb::isometry::translate(x, y, z); },
+        "x"_a, "y"_a, "z"_a);
+    m.def("translation",
+        [](py::tuple t) {
+            if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
+            return arb::isometry::translate(t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+        });
+    m.def("translation",
+        [](arb::mpoint p) { return arb::isometry::translate(p.x, p.y, p.z); });
+
+    m.def("rotation",
+        [](double theta, double x, double y, double z) { return arb::isometry::rotate(theta, x, y, z); },
+        "theta"_a, "x"_a, "y"_a, "z"_a);
+    m.def("rotation",
+        [](double theta, py::tuple t) {
+            if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
+            return arb::isometry::rotate(theta, t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+        },
+        "theta"_a, "axis"_a);
+
+    // arb::place_pwlin
+    py::class_<arb::place_pwlin> place(m, "place_pwlin");
+    place
+        .def(py::init<const arb::morphology&, const arb::isometry&>(),
+            "morphology"_a, "isometry"_a=arb::isometry{})
+        .def("at", &arb::place_pwlin::at, "location"_a)
+        .def("all_at", &arb::place_pwlin::all_at, "location"_a)
+        .def("segments",
+            [](const arb::place_pwlin& self, std::vector<arb::mcable> cables) {
+                std::sort(cables.begin(), cables.end(), cable_lt);
+                return self.segments(cables);
+            })
+        .def("all_segments",
+            [](const arb::place_pwlin& self, std::vector<arb::mcable> cables) {
+                std::sort(cables.begin(), cables.end(), cable_lt);
+                return self.all_segments(cables);
+            });
 
     //
     // Higher-level data structures (segment_tree, morphology)
