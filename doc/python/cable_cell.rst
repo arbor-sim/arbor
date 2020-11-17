@@ -7,7 +7,8 @@ Cable cells
 
 .. py:class:: cable_cell
 
-    A cable cell is constructed from a :ref:`morphology <morph-morphology>`
+    .. method:: cable_cell(morphology, label_dict=None)
+    Construct a cable cell from a :ref:`morphology <morph-morphology>`
     and an optional :ref:`label dictionary <labels-dictionary>`.
 
     .. note::
@@ -59,7 +60,7 @@ Cable cells
             # Set cell-wide values for properties
             cell.set_properties(Vm=-70, cm=0.01, rL=100, tempK=280)
 
-    .. method: compartments_length(length)
+    .. method:: compartments_length(length)
 
         Adjust the :ref:`compartments length <cable-discretisation>`.
 

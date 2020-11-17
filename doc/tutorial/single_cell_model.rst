@@ -97,7 +97,7 @@ Single cell model
 Great, we have defined our cell! Now, let's move on to the simulation. Arbor is able to simulate
 networks with multiple individual cells; this requires a *recipe* to describe the cells,
 connections, gap junctions, etc. However, for single cell models, arbor does not require the recipe
-to be provided by the user. Arbor provides a :class:`arbor.single_cell_model<arbor.single_cell_model>`
+to be provided by the user. Arbor provides a :class:`arbor.single_cell_model`
 helper that wraps a cell description and creates a recipe under the hood, providing an interface for
 recording potentials and running the simulation more easily.
 
@@ -112,10 +112,10 @@ recording potentials and running the simulation more easily.
     # (6) Run simulation for 30 ms of simulated activity.
     m.run(tfinal=30)
 
-Step **(4)** instantiates the :class:`arbor.single_cell_model<arbor.single_cell_model>`
+Step **(4)** instantiates the :class:`arbor.single_cell_model`
 with our single-compartment cell.
 
-Step **(5)** adds a :meth:`arbor.single_cell_model.probe()<arbor.single_cell_model.probe>`
+Step **(5)** adds a :meth:`arbor.single_cell_model.probe`
 used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
 probe ('"center"'), and the frequency at which we want to sample (10kHz).
@@ -144,12 +144,12 @@ results! Let's take a look at what the spike detector and a voltage probes from 
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
     seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",ci=None).savefig('single_cell_model_result.svg')
 
-Step **(7)** accesses :meth:`arbor.single_cell_model.spikes<arbor.single_cell_model.spikes>`
+Step **(7)** accesses :meth:`arbor.single_cell_model.spikes`
 to print the spike times. A single spike should be generated at around the same time the stimulus
 we provided in step (3) gets activated (10ms).
 
 Step **(8)** plots the measured potentials during the runtime of the simulation. The sampled quantities
-can be accessed through :meth:`arbor.single_cell_model.traces<arbor.single_cell_model.traces>`.
+can be accessed through :meth:`arbor.single_cell_model.traces`.
 We should be seeing something like this:
 
 .. figure:: single_cell_model_result.svg
