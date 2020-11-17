@@ -45,7 +45,7 @@ jobs:
       - name: Build
         run: make -C build tests examples
       - name: Install
-        run: make -C build install
+        run: sudo make -C build install
       - name: "Run unit tests"
         run: build/bin/unit
       - name: "Run python tests"
