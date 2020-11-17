@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: ${{ matrix.py }}
       - name: "Install python packages"
-        run: python${{ matrix.py }} -mpip install mpi4py skbuild cmake==${{ matrix.cmake }}
+        run: python${{ matrix.py }} -mpip install mpi4py cmake==${{ matrix.cmake }}
       - name: "Check cmake version"
         run: cmake --version
       - name: Configure
