@@ -23,8 +23,8 @@ jobs:
           submodules: "recursive"
       - name: Install OpenMPI
         run: |
-           export CC=gcc-${{ matrix.cc }}
-           export CXX=g++-${{ matrix.cxx }}
+           export CC=gcc-${{ matrix.gcc }}
+           export CXX=g++-${{ matrix.gcc }}
            wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
            tar -xvf ./openmpi-4.0.2.tar.gz
            cd openmpi-4.0.2
