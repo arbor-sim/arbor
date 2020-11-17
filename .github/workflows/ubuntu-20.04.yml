@@ -15,6 +15,7 @@ jobs:
         os: ["ubuntu-20.04"]
         #cxx: ["g++-8", "g++-9", "g++-10", "clang++-9", "clang++-10"]
         cxx: ["g++-10"]
+        cc: ["gcc-10"]
         #py: ["3.6", "3.7", "3.8", "3.9"]
         py: ["3.6"]
     steps:
@@ -24,6 +25,8 @@ jobs:
           submodules: "recursive"
       - name: Install OpenMPI
         run: |
+           export CC=${{ matrix.cc }}
+           export CXX=${{ matrix.cxx }}
            wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
            tar -xvf ./openmpi-4.0.2.tar.gz
            cd openmpi-4.0.2
@@ -38,7 +41,7 @@ jobs:
       - name: "Install python packages"
         run: python${{ matrix.py }} -mpip install mpi4py
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=python${{ matrix.py }}
+        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=python${{ matrix.py }} -DARB_WITH_MPI=ON
       - name: Build
         run: make -C build tests examples
       - name: "Run unit tests"
