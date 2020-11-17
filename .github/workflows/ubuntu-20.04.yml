@@ -30,6 +30,7 @@ jobs:
            ./configure
            make -j
            sudo make install
+           sudo ldconfig
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
