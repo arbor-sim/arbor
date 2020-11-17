@@ -13,12 +13,9 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-20.04"]
-        #cxx: ["g++-8", "g++-9", "g++-10", "clang++-9", "clang++-10"]
-        cxx: ["g++-10"]
-        cc: ["gcc-10"]
-        #py: ["3.6", "3.7", "3.8", "3.9"]
+        gcc: ["10"]
         py: ["3.6"]
-        cmake: ["3.13.2.post1"]
+        cmake: ["3.14.3.post1"]
     steps:
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
@@ -26,8 +23,8 @@ jobs:
           submodules: "recursive"
       - name: Install OpenMPI
         run: |
-           export CC=${{ matrix.cc }}
-           export CXX=${{ matrix.cxx }}
+           export CC=gcc-${{ matrix.cc }}
+           export CXX=g++-${{ matrix.cxx }}
            wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
            tar -xvf ./openmpi-4.0.2.tar.gz
            cd openmpi-4.0.2
@@ -44,7 +41,7 @@ jobs:
       - name: "Check cmake version"
         run: cmake --version
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=ON
+        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-${{ matrix.gcc }} -DCMAKE_C_COMPILER=gcc-${{ matrix.gcc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=ON
       - name: Build
         run: make -C build tests examples
       - name: "Run unit tests"
