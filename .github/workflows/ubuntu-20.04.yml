@@ -49,3 +49,7 @@ jobs:
         run: make -C build tests examples
       - name: "Run unit tests"
         run: build/bin/unit
+      - name: "Run python tests"
+        run: python${{ matrix.py }} python/test/unit/runner.py
+      - name: "Run python+MPI tests"
+        run: python${{ matrix.py }} python/test/unit_distributed/runner.py
