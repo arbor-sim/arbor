@@ -1,13 +1,13 @@
 #pragma once
 
-#include "arbor/cable_cell_param.hpp"
 #include <array>
 #include <random>
 
 #include <nlohmann/json.hpp>
 
-#include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/cable_cell_param.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/string_literals.hpp>
 
@@ -103,32 +103,34 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
         dist_from_soma += l;
     }
 
-    arb::label_dict d;
+    arb::label_dict labels;
 
     using arb::reg::tagged;
-    d.set("soma",      tagged(stag));
-    d.set("dend", tagged(dtag));
+    labels.set("soma", tagged(stag));
+    labels.set("dend", tagged(dtag));
 
-    arb::cable_cell cell(arb::morphology(tree), d);
+    arb::decor decor;
 
-    cell.paint("soma"_lab, "hh");
-    cell.paint("dend"_lab, "pas");
+    decor.paint("soma"_lab, "hh");
+    decor.paint("dend"_lab, "pas");
 
-    cell.set_default(arb::axial_resistivity{100}); // [Ω·cm]
+    decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
 
     // Add spike threshold detector at the soma.
-    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.place(arb::mlocation{0, 0.5}, "expsyn");
+    decor.place(arb::mlocation{0, 0.5}, "expsyn");
 
     // Add additional synapses that will not be connected to anything.
     for (unsigned i=1u; i<params.synapses; ++i) {
-        cell.place(arb::mlocation{1, 0.5}, "expsyn");
+        decor.place(arb::mlocation{1, 0.5}, "expsyn");
     }
 
     // Make a CV between every sample in the sample tree.
-    cell.discretization() = arb::cv_policy_every_segment();
+    decor.set_default(arb::cv_policy_every_segment());
+
+    arb::cable_cell cell(arb::morphology(tree), labels, decor);
 
     return cell;
 }

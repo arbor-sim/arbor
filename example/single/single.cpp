@@ -61,19 +61,20 @@ struct single_recipe: public arb::recipe {
         using arb::reg::tagged;
         dict.set("soma", tagged(1));
         dict.set("dend", join(tagged(3), tagged(4), tagged(42)));
-        arb::cable_cell c(morpho, dict);
+
+        arb::decor decor;
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        c.paint("\"soma\"", "hh");
-        c.paint("\"dend\"", "pas");
+        decor.paint("\"soma\"", "hh");
+        decor.paint("\"dend\"", "pas");
 
         // Add synapse to last branch.
 
-        arb::cell_lid_type last_branch = c.morphology().num_branches()-1;
+        arb::cell_lid_type last_branch = morpho.num_branches()-1;
         arb::mlocation end_last_branch = { last_branch, 1. };
-        c.place(end_last_branch, "exp2syn");
+        decor.place(end_last_branch, "exp2syn");
 
-        return c;
+        return arb::cable_cell(morpho, dict, decor);
     }
 
     arb::morphology morpho;
@@ -158,5 +159,5 @@ arb::morphology read_swc(const std::string& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("unable to open SWC file: "+path);
 
-    return arb::morphology(arborio::load_swc_arbor(arborio::parse_swc(f)));
+    return arborio::load_swc_arbor(arborio::parse_swc(f));
 }

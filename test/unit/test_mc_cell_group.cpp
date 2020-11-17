@@ -71,7 +71,7 @@ TEST(mc_cell_group, sources) {
         if (i==0 || i==3 || i==17) {
             desc.decorations.place(mlocation{0, 0.3}, threshold_detector{2.3});
         }
-        cells.push_back(desc);
+        cells.emplace_back(desc);
 
         EXPECT_EQ(1u + (i==0 || i==3 || i==17), cells.back().detectors().size());
     }

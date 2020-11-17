@@ -904,7 +904,6 @@ TEST(fvm_layout, vinterp_cable) {
     tree.append(mnpos, { 0,0,0,1}, {10,0,0,1}, 1);
     arb::morphology m(tree);
     decor d;
-    //cable_cell cell(m);
 
     // CV midpoints at branch pos 0.1, 0.3, 0.5, 0.7, 0.9.
     // Expect voltage reference locations to be CV modpoints.
@@ -1063,7 +1062,7 @@ TEST(fvm_layout, iinterp) {
     // 2. Weird discretization: test points where the interpolated current has to be zero.
     // Use the same cell/discretiazation as in vinterp_forked test:
 
-    // Cable cell with three branchses; branches 0 has child branches 1 and 2.
+    // Cable cell with three branches; branch 0 has child branches 1 and 2.
     segment_tree tree;
     tree.append(mnpos, {0., 0., 0., 1.}, {10., 0., 0., 1}, 1);
     tree.append(    0, {10., 20., 0., 1}, 1);

@@ -80,22 +80,24 @@ private:
         // Apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
         tree.append(soma_apex, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
-        cell_ = cable_cell(tree);
+        decor dec;
 
         // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
-        cell_.set_default(axial_resistivity{100});     // [Ω·cm]
-        cell_.set_default(membrane_capacitance{0.01}); // [F/m²]
+        dec.set_default(axial_resistivity{100});     // [Ω·cm]
+        dec.set_default(membrane_capacitance{0.01}); // [F/m²]
 
         // Twenty CVs per branch on the dendrites (tag 4).
-        cell_.discretization() = cv_policy_fixed_per_branch(20, arb::reg::tagged(4));
+        dec.set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)));
 
         // Add pas and hh mechanisms:
-        cell_.paint(reg::tagged(1), "hh"); // (default parameters)
-        cell_.paint(reg::tagged(4), mechanism_desc("pas").set("e", -70));
+        dec.paint(reg::tagged(1), "hh"); // (default parameters)
+        dec.paint(reg::tagged(4), mechanism_desc("pas").set("e", -70));
 
         // Add exponential synapse at centre of soma.
         synapse_location_ = ls::on_components(0.5, reg::tagged(1));
-        cell_.place(synapse_location_, mechanism_desc("expsyn").set("e", 0).set("tau", 2));
+        dec.place(synapse_location_, mechanism_desc("expsyn").set("e", 0).set("tau", 2));
+
+        cell_ = cable_cell(tree, {}, dec);
     }
 };
 

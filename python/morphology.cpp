@@ -139,7 +139,7 @@ void register_morphology(pybind11::module& m) {
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
-    // Function that creates a segment_tree from an swc file.
+    // Function that creates a morphology from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc",
         [](std::string fname) {
@@ -158,14 +158,14 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "filename"_a,
-        "Generate a segment tree from an SWC file following the rules prescribed by\n"
-        "Arbor. Specifically:\n"
+        "Generate a morphology from an SWC file following the rules prescribed by Arbor.\n"
+        "Specifically:\n"
         "* Single-segment somas are disallowed. These are usually interpreted as spherical somas\n"
         "  and are a special case. This behavior is not allowed using this SWC loader.\n"
         "* There are no special rules related to somata. They can be one or multiple branches\n"
         "  and other segments can connect anywhere along them.\n"
         "* A segment is always created between a sample and its parent, meaning there\n"
-        "  are no gaps in the resulting segment tree.");
+        "  are no gaps in the resulting morphology.");
 
     m.def("load_swc_allen",
         [](std::string fname, bool no_gaps=false) {
@@ -186,8 +186,8 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "filename"_a, "no_gaps"_a=false,
-        "Generate a segment tree from an SWC file following the rules prescribed by\n"
-        "AllenDB and Sonata. Specifically:\n"
+        "Generate a morphology from an SWC file following the rules prescribed by AllenDB\n"
+        " and Sonata. Specifically:\n"
         "* The first sample (the root) is treated as the center of the soma.\n"
         "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
         "* The first sample has tag 1 (soma).\n"
@@ -221,8 +221,8 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "filename"_a,
-        "Generate a segment tree from an SWC file following the rules prescribed by\n"
-        "NEURON. Specifically:\n"
+        "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
+        " Specifically:\n"
         "* The first sample must be a soma sample.\n"
         "* The soma is represented by a series of n≥1 unbranched, serially listed samples.\n"
         "* The soma is constructed as a single cylinder with diameter equal to the piecewise\n"

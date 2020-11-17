@@ -70,7 +70,7 @@ std::ostream& operator<<(std::ostream& out, ::arb::cv_prefer::type p) {
 TEST(cv_geom, empty) {
     using namespace common_morphology;
 
-    cable_cell empty_cell{m_empty, {}, {}};
+    cable_cell empty_cell{m_empty};
     cv_geometry geom = cv_geometry_from_ends(empty_cell, ls::nil());
     EXPECT_TRUE(verify_cv_children(geom));
 
@@ -93,7 +93,7 @@ TEST(cv_geom, trivial) {
         if (p.second.empty()) continue;
 
         SCOPED_TRACE(p.first);
-        cable_cell cell{p.second, {}, {}};
+        cable_cell cell{p.second};
         auto& m = cell.morphology();
 
         // Equivalent ways of specifying one CV comprising whole cell:
@@ -134,7 +134,7 @@ TEST(cv_geom, one_cv_per_branch) {
         if (p.second.empty()) continue;
         SCOPED_TRACE(p.first);
 
-        cable_cell cell{p.second, {}, {}};
+        cable_cell cell{p.second};
         auto& m = cell.morphology();
 
         cv_geometry geom =
@@ -189,7 +189,7 @@ TEST(cv_geom, midpoints) {
         if (p.second.empty()) continue;
         SCOPED_TRACE(p.first);
 
-        cable_cell cell{p.second, {}, {}};
+        cable_cell cell{p.second};
         auto& m = cell.morphology();
 
         cv_geometry geom = cv_geometry_from_ends(cell, ls::on_branches(0.5));
@@ -282,7 +282,7 @@ TEST(cv_geom, weird) {
     using C = mcable;
     using testing::seq_eq;
 
-    cable_cell cell{common_morphology::m_reg_b6, {}, {}};
+    cable_cell cell{common_morphology::m_reg_b6};
     cv_geometry geom = cv_geometry_from_ends(cell, mlocation_list{{1, 0}, {4,0}});
 
     EXPECT_TRUE(verify_cv_children(geom));
@@ -301,7 +301,7 @@ TEST(cv_geom, weird) {
 TEST(cv_geom, location_cv) {
     using namespace common_morphology;
 
-    cable_cell cell{m_reg_b6, {}, {}};
+    cable_cell cell{m_reg_b6};
     auto& m = cell.morphology();
 
     auto cv_extent = [](const cv_geometry& geom, auto cv) {
@@ -448,7 +448,7 @@ TEST(cv_geom, multicell) {
     using namespace common_morphology;
     using index_type = cv_geometry::index_type;
 
-    cable_cell cell = cable_cell(m_reg_b6, {}, {});
+    cable_cell cell = cable_cell(m_reg_b6);
 
     cv_geometry geom = cv_geometry_from_ends(cell, ls::on_branches(0.5));
     unsigned n_cv = geom.size();

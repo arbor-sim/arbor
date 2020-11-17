@@ -218,8 +218,8 @@ arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& re
     return arb::cv_policy_max_extent(cv_length, reg);
 }
 
-// helper for finding a mechanism description in a Python object
-                // allow rev_pot_method to be specified with string or mechanism_desc
+// Helper for finding a mechanism description in a Python object.
+// Allows rev_pot_method to be specified with string or mechanism_desc
 std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
     if (!method.is_none()) {
         if (auto m=try_cast<std::string>(method)) {

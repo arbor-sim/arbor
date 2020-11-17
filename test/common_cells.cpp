@@ -151,14 +151,13 @@ cable_cell_description  soma_cell_builder::make_cell() const {
         dict.set(tag.first, reg::tagged(tag.second));
     }
 
-    // Make cable_cell from sample tree and dictionary.
-    //cable_cell c(tree, dict);
     auto boundaries = cv_boundaries;
     for (auto& b: boundaries) {
         b = location(b);
     }
     decor decorations;
     decorations.set_default(cv_policy_explicit(boundaries));
+    // Construct cable_cell from sample tree, dictionary and decorations.
     return {std::move(tree), std::move(dict), std::move(decorations)};
 }
 

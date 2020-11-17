@@ -195,7 +195,7 @@ swc_data parse_swc(const std::string& text) {
     return parse_swc(is);
 }
 
-arb::segment_tree load_swc_arbor(const swc_data& data) {
+arb::morphology load_swc_arbor(const swc_data& data) {
     const auto& records = data.records();
 
     if (records.empty())  return {};
@@ -237,10 +237,10 @@ arb::segment_tree load_swc_arbor(const swc_data& data) {
         throw swc_spherical_soma(first_id);
     }
 
-    return tree;
+    return arb::morphology(tree);
 }
 
-arb::segment_tree load_swc_neuron(const swc_data& data) {
+arb::morphology load_swc_neuron(const swc_data& data) {
     const auto& records = data.records();
 
     // Assert that the file contains at least one sample.
@@ -416,10 +416,10 @@ arb::segment_tree load_swc_neuron(const swc_data& data) {
     if (!unused_samples.empty()) {
         throw swc_single_sample_segment(*unused_samples.begin());
     }
-    return tree;
+    return arb::morphology(tree);
 }
 
-arb::segment_tree load_swc_allen(const swc_data& data, bool no_gaps) {
+arb::morphology load_swc_allen(const swc_data& data, bool no_gaps) {
     auto records = data.records();
 
     // Assert that the file contains at least one sample.
@@ -506,7 +506,7 @@ arb::segment_tree load_swc_allen(const swc_data& data, bool no_gaps) {
         throw swc_single_sample_segment{*unused_samples.begin()};
     }
 
-    return tree;
+    return arb::morphology(tree);
 }
 } // namespace arborio
 
