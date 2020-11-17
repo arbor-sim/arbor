@@ -18,6 +18,7 @@ jobs:
         cc: ["gcc-10"]
         #py: ["3.6", "3.7", "3.8", "3.9"]
         py: ["3.6"]
+        cmake: ["3.12.0"]
     steps:
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
@@ -39,7 +40,9 @@ jobs:
         with:
           python-version: ${{ matrix.py }}
       - name: "Install python packages"
-        run: python${{ matrix.py }} -mpip install mpi4py
+        run: python${{ matrix.py }} -mpip install mpi4py skbuild cmake==${{ matrix.cmake }}
+      - name: "Check cmake version"
+        run: cmake --version
       - name: Configure
         run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=ON
       - name: Build
