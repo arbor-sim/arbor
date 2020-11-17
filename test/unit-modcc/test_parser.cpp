@@ -580,7 +580,7 @@ TEST(Parser, parse_conserve) {
     }
 }
 
-long double eval(Expression *e) {
+double eval(Expression *e) {
     if (auto n = e->is_number()) {
         return n->value();
     }
@@ -606,7 +606,7 @@ long double eval(Expression *e) {
             default:;
         }
     }
-    return std::numeric_limits<long double>::quiet_NaN();
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 // test parsing of expressions for correctness
@@ -656,10 +656,10 @@ TEST(Parser, parse_binop) {
         EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
 
         // A loose tolerance of 1e-10 is required here because the eval()
-        // function uses long double for intermediate results (like constant
+        // function uses double for intermediate results (like constant
         // folding in modparser).  For expressions with transcendental
         // operations this can see relatively large divergence between the
-        // double and long double results.
+        // double and double results.
         EXPECT_NEAR(eval(e.get()), test_case.second, 1e-10);
     }
 }
