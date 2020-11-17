@@ -30,6 +30,10 @@ jobs:
            ./configure
            make -j
            sudo make install
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
       - name: "Install python packages"
         run: python${{ matrix.py }} -mpip install mpi4py
       - name: Configure
