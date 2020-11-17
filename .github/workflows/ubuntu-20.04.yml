@@ -41,7 +41,7 @@ jobs:
       - name: "Install python packages"
         run: python${{ matrix.py }} -mpip install mpi4py
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=python${{ matrix.py }} -DARB_WITH_MPI=ON
+        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DCMAKE_C_COMPILER=${{ matrix.cc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=ON
       - name: Build
         run: make -C build tests examples
       - name: "Run unit tests"
