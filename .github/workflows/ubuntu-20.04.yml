@@ -44,6 +44,8 @@ jobs:
         run: cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-${{ matrix.gcc }} -DCMAKE_C_COMPILER=gcc-${{ matrix.gcc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=ON
       - name: Build
         run: make -C build tests examples
+      - name: Install
+        run: make -C build install
       - name: "Run unit tests"
         run: build/bin/unit
       - name: "Run python tests"
