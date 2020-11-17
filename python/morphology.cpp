@@ -165,7 +165,7 @@ void register_morphology(pybind11::module& m) {
         "* There are no special rules related to somata. They can be one or multiple branches\n"
         "  and other segments can connect anywhere along them.\n"
         "* A segment is always created between a sample and its parent, meaning there\n"
-        "  are no gaps in the resulting segment tree.");
+        "  are no gaps in the resulting morphology.");
 
     m.def("load_swc_allen",
         [](std::string fname, bool no_gaps=false) {

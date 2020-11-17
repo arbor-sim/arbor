@@ -516,9 +516,8 @@ is interpreted as a fork point in the morphology, and acts as the proximal point
 Arbor interpretation:
 """""""""""""""""""""
 In addition to the previously listed checks, the arbor interpretation explicitly disallows SWC files where the soma is
-described by a single sample. It constructs the soma from 2 or more samples that form 1 or more segments in the segment
-tree. A *segment* is always constructed between a sample and its parent. This means that there are no gaps in the
-resulting morphology.
+described by a single sample. It constructs the soma from 2 or more samples, forming 1 or more segments. A *segment* is
+always constructed between a sample and its parent. This means that there are no gaps in the resulting morphology.
 
 Arbor has no magic rules or transformations for the soma. It can be a single branch or multiple branches; segments
 of a different tag can connect to its distal end, proximal end or anywhere in the middle. For example, to create a
