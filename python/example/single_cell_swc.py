@@ -23,7 +23,7 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-tree = arbor.load_swc(filename)
+morpho = arbor.load_swc(filename)
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -35,7 +35,7 @@ defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
 labels = arbor.label_dict(defs)
 
 # Combine morphology with region and locset definitions to make a cable cell.
-cell = arbor.cable_cell(tree, labels)
+cell = arbor.cable_cell(morpho, labels)
 
 print(cell.locations('"axon_end"'))
 

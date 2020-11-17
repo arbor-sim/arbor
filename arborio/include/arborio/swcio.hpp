@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/morph/segment_tree.hpp>
+#include <arbor/morph/morphology.hpp>
 
 namespace arborio {
 
@@ -162,25 +162,25 @@ public:
 swc_data parse_swc(std::istream&);
 swc_data parse_swc(const std::string&);
 
-// Convert a valid, ordered sequence of SWC records to a morphological segment tree.
+// Convert a valid, ordered sequence of SWC records into a morphology.
 //
 // Note that 'one-point soma' SWC files are explicitly not supported.
 //
-// The generated segment tree will be contiguous. There will be one segment for
-// each SWC record after the first: this record defines the tag and distal point
-// of the segment, while the proximal point is taken from the parent record.
+// The segments of the generated morphology  will be contiguous. There will be
+// one segment for each SWC record after the first: this record defines the tag
+// and distal point of the segment, while the proximal point is taken from the
+// parent record.
 
-arb::segment_tree load_swc_arbor(const swc_data& data);
+arb::morphology load_swc_arbor(const swc_data& data);
 
-// As above, will convert a valid, ordered sequence of SWC records to a morphological
-// segment tree.
+// As above, will convert a valid, ordered sequence of SWC records into a morphology
 //
 // Note that 'one-point soma' SWC files are supported here
 //
 // These functions comply with inferred SWC rules from the Allen institute and Neuron.
 // These rules are explicitly listed in the docs.
 
-arb::segment_tree load_swc_neuron(const swc_data& data);
-arb::segment_tree load_swc_allen(const swc_data& data, bool no_gaps=false);
+arb::morphology load_swc_neuron(const swc_data& data);
+arb::morphology load_swc_allen(const swc_data& data, bool no_gaps=false);
 
 } // namespace arborio
