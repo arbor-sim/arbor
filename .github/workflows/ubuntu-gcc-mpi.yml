@@ -39,7 +39,7 @@ jobs:
            sudo ldconfig
            sudo python${{ matrix.py }} -mpip install mpi4py
            cd -
-        if: ${{ matrix.mpi == "ON" }}
+        if: ${{ matrix.mpi }} == "ON"
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
         with:
