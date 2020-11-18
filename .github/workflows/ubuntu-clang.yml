@@ -35,8 +35,8 @@ jobs:
       - if: ${{ matrix.mpi == 'ON' }}
         name: Install OpenMPI
         run: |
-           export CC=clang-${{ matrix.clang }}
-           export CXX=clang++-${{ matrix.clang }}
+           export CC=gcc-10
+           export CXX=g++-10
            wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
            tar -xvf ./openmpi-4.0.2.tar.gz
            cd openmpi-4.0.2
