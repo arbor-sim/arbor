@@ -47,6 +47,8 @@ jobs:
       - name: Install arbor
         run: |
           pwd
+          ls -l
+          mkdir build
           cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-${{ matrix.gcc }} -DCMAKE_C_COMPILER=gcc-${{ matrix.gcc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=${{ matrix.mpi }}
           make -C build tests examples
           sudo make -C build install
