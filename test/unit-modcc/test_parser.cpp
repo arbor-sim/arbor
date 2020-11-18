@@ -654,12 +654,6 @@ TEST(Parser, parse_binop) {
     for (const auto& test_case: tests) {
         std::unique_ptr<Expression> e;
         EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
-
-        // A loose tolerance of 1e-10 is required here because the eval()
-        // function uses double for intermediate results (like constant
-        // folding in modparser).  For expressions with transcendental
-        // operations this can see relatively large divergence between the
-        // double and double results.
         EXPECT_NEAR(eval(e.get()), test_case.second, 1e-10);
     }
 }
