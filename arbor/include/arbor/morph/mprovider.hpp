@@ -6,7 +6,7 @@
 #include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/label_dict.hpp>
-#include <arbor/util/either.hpp>
+#include <arbor/util/expected.hpp>
 
 namespace arb {
 
@@ -34,8 +34,8 @@ private:
     struct circular_def {};
 
     // Maps are mutated only during initialization phase of mprovider.
-    mutable std::unordered_map<std::string, util::either<mextent, circular_def>> regions_;
-    mutable std::unordered_map<std::string, util::either<mlocation_list, circular_def>> locsets_;
+    mutable std::unordered_map<std::string, util::expected<mextent, circular_def>> regions_;
+    mutable std::unordered_map<std::string, util::expected<mlocation_list, circular_def>> locsets_;
 
     // Non-null only during initialization phase.
     mutable const label_dict* label_dict_ptr;

@@ -1,8 +1,11 @@
 ######## Testing minimal compiler requirements ########
-# GCC          6.4.0
-# Clang        7.0
+# GCC          8.1.0
+# Clang        8.0
 # Apple Clang  1100.0.33.16
 #######################################################
+
+# Ignore bors testing branches.
+if: NOT branch =~ \.tmp$
 
 language: cpp
 sudo: false
@@ -10,52 +13,52 @@ sudo: false
 matrix:
   include:
 ########################## OS X #########################
-## test gcc6 - single node/rank with threading backend ##
+## test gcc8 - single node/rank with threading backend ##
   - name: "osx, gcc, serial, py"
     os: osx
-    osx_image: xcode11.3
+    osx_image: xcode12
     python: 3.6
     env:
-      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="brew install gcc@8 && brew link --force --overwrite gcc@8 && brew install cmake && CC=gcc-8 && CXX=g++-8"
       - BUILD_NAME=cthread-osx-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
-    compiler: gcc-6
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=native
+    compiler: gcc-8
 
-## test gcc6 - mpi with threading backend ##
+## test gcc8 - mpi with threading backend ##
   - name: "osx, gcc, mpi, py"
     os: osx
-    osx_image: xcode11.3
+    osx_image: xcode12
     python: 3.6
     env:
-      - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && brew install cmake && CC=gcc-6 && CXX=g++-6"
+      - MATRIX_EVAL="brew install gcc@8 && brew link --force --overwrite gcc@8 && brew install cmake && CC=gcc-8 && CXX=g++-8"
       - BUILD_NAME=mpi-osx-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
-    compiler: gcc-6
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=native
+    compiler: gcc-8
 
 ## test clang9 - single node/rank with threading backend ##
   - name: "osx, apple clang, serial, py"
     os: osx
-    osx_image: xcode11.3
+    osx_image: xcode12
     python: 3.6
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=cthread-osx-clang-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=native
     compiler: clang
 
 ## test clang9 - mpi with threading backend ##
   - name: "osx, apple clang, mpi, py"
     os: osx
-    osx_image: xcode11.3
+    osx_image: xcode12
     python: 3.6
     env:
       - MATRIX_EVAL="CC=clang && CXX=clang++"
       - BUILD_NAME=mpi-osx-clang
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=native
     compiler: clang
 
 ######################### LINUX #########################
-## test gcc7 - single node/rank with threading backend ##
+## test gcc8 - single node/rank with threading backend ##
   - name: "linux, gcc, serial, py"
     os: linux
     dist: bionic
@@ -63,16 +66,17 @@ matrix:
       apt:
         sources:
         packages:
-          - g++-7
+          - g++-8
           - openmpi-bin
           - libopenmpi-dev
+          - libxml2
     env:
-      - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+      - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
       - BUILD_NAME=cthread-linux-gcc-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=haswell
-    compiler: gcc-7
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=haswell
+    compiler: gcc-8
 
-## test gcc7 - mpi with threading backend ##
+## test gcc8 - mpi with threading backend ##
   - name: "linux, gcc, mpi, py"
     os: linux
     dist: bionic
@@ -80,16 +84,18 @@ matrix:
       apt:
         sources:
         packages:
-          - g++-6
+          - g++-8
           - openmpi-bin
           - libopenmpi-dev
+          - libxml2
     env:
-      - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+      - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
       - BUILD_NAME=mpi-linux-gcc-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=haswell
-    compiler: gcc-7
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=haswell
+    compiler: gcc-8
 
-## test clang4 - single node/rank with threading backend ##
+## test clang8 - single node/rank with threading backend ##
+# Note: need g++8 for C++17 stdlib.
   - name: "linux, clang, serial, py"
     os: linux
     dist: bionic
@@ -97,15 +103,19 @@ matrix:
       apt:
         sources:
         packages:
+          - g++-8
+          - clang-8
           - openmpi-bin
           - libopenmpi-dev
+          - libxml2
     env:
-      - MATRIX_EVAL="CC=clang && CXX=clang++"
+      - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
       - BUILD_NAME=cthread-linux-clang-py
-      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 ARCH=native
-    compiler: clang-4.0
+      - WITH_DISTRIBUTED=serial WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=native
+    compiler: clang-8.0
 
-## test clang4 - mpi with threading backend ##
+## test clang8 - mpi with threading backend ##
+# Note: need g++8 for C++17 stdlib.
   - name: "linux, clang, mpi, py"
     os: linux
     dist: bionic
@@ -113,13 +123,16 @@ matrix:
       apt:
         sources:
         packages:
+          - g++-8
+          - clang-8
           - openmpi-bin
           - libopenmpi-dev
+          - libxml2
     env:
-      - MATRIX_EVAL="CC=clang && CXX=clang++"
+      - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
       - BUILD_NAME=mpi-linux-clang-py
-      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 ARCH=native
-    compiler: clang-4.0
+      - WITH_DISTRIBUTED=mpi WITH_PYTHON=true PY=3 WITH_NEUROML=ON ARCH=native
+    compiler: clang-8.0
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
@@ -129,7 +142,9 @@ install:
     if [[ "$WITH_PYTHON" == "true" ]]; then
       curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
       python$PY get-pip.py
-      pip --version
+      pip$PY --version
+      pip$PY install pandas
+      pip$PY install seaborn
     fi
   - if [[ ( "$WITH_PYTHON" == "true" ) && ( "$TRAVIS_OS_NAME" == "osx" ) ]]; then pip$PY install numpy; fi
   - |

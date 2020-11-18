@@ -1,5 +1,6 @@
 #include <exception>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/schedule.hpp>
@@ -20,7 +21,7 @@ spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.push_back(std::move(cell.seq));
         }
-        catch (util::bad_any_cast& e) {
+        catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);
         }
     }
@@ -63,7 +64,7 @@ void spike_source_cell_group::clear_spikes() {
 }
 
 void spike_source_cell_group::add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) {
-    std::logic_error("A spike_source_cell group doen't support sampling of internal state!");
+    throw std::logic_error("A spike_source_cell group doen't support sampling of internal state!");
 }
 
 } // namespace arb

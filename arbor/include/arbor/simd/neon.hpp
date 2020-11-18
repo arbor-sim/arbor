@@ -68,7 +68,7 @@ struct neon_int2 : implbase<neon_int2> {
         return a;
     }
 
-    static int32x2_t negate(const int32x2_t& a) { return vneg_s32(a); }
+    static int32x2_t neg(const int32x2_t& a) { return vneg_s32(a); }
 
     static int32x2_t add(const int32x2_t& a, const int32x2_t& b) {
         return vadd_s32(a, b);
@@ -222,7 +222,7 @@ struct neon_double2 : implbase<neon_double2> {
         return a;
     }
 
-    static float64x2_t negate(const float64x2_t& a) { return vnegq_f64(a); }
+    static float64x2_t neg(const float64x2_t& a) { return vnegq_f64(a); }
 
     static float64x2_t add(const float64x2_t& a, const float64x2_t& b) {
         return vaddq_f64(a, b);

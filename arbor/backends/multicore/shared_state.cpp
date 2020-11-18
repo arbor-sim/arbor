@@ -26,9 +26,10 @@
 namespace arb {
 namespace multicore {
 
-constexpr unsigned simd_width = simd::simd_abi::native_width<fvm_value_type>::value;
-using simd_value_type = simd::simd<fvm_value_type, simd_width>;
-using simd_index_type = simd::simd<fvm_index_type, simd_width>;
+constexpr unsigned vector_length = (unsigned) simd::simd_abi::native_width<fvm_value_type>::value;
+using simd_value_type = simd::simd<fvm_value_type, vector_length, simd::simd_abi::default_abi>;
+using simd_index_type = simd::simd<fvm_index_type, vector_length, simd::simd_abi::default_abi>;
+const int simd_width  = simd::width<simd_value_type>();
 
 // Pick alignment compatible with native SIMD width for explicitly
 // vectorized operations below.
@@ -168,27 +169,38 @@ void shared_state::ions_init_concentration() {
 }
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
+    using simd::assign;
+    using simd::indirect;
+    using simd::add;
+    using simd::min;
     for (fvm_size_type i = 0; i<n_intdom; i+=simd_width) {
-        simd_value_type t(time.data()+i);
-        t = min(t+dt_step, simd_value_type(tmax));
-        t.copy_to(time_to.data()+i);
+        simd_value_type t;
+        assign(t, indirect(time.data()+i, simd_width));
+        t = min(add(t, dt_step), tmax);
+        indirect(time_to.data()+i, simd_width) = t;
     }
 }
 
 void shared_state::set_dt() {
+    using simd::assign;
+    using simd::indirect;
+    using simd::sub;
     for (fvm_size_type j = 0; j<n_intdom; j+=simd_width) {
-        simd_value_type t(time.data()+j);
-        simd_value_type t_to(time_to.data()+j);
+        simd_value_type t, t_to;
+        assign(t, indirect(time.data()+j, simd_width));
+        assign(t_to, indirect(time_to.data()+j, simd_width));
 
-        auto dt = t_to-t;
-        dt.copy_to(dt_intdom.data()+j);
+        auto dt = sub(t_to,t);
+        indirect(dt_intdom.data()+j, simd_width) = dt;
     }
 
     for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_index_type intdom_idx(cv_to_intdom.data()+i);
+        simd_index_type intdom_idx;
+        assign(intdom_idx, indirect(cv_to_intdom.data()+i, simd_width));
 
-        simd_value_type dt(simd::indirect(dt_intdom.data(), intdom_idx));
-        dt.copy_to(dt_cv.data()+i);
+        simd_value_type dt;
+        assign(dt, indirect(dt_intdom.data(), intdom_idx, simd_width));
+        indirect(dt_cv.data()+i, simd_width) = dt;
     }
 }
 
@@ -246,7 +258,7 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     out << "conductivity " << csv(s.conductivity) << "\n";
     for (const auto& ki: s.ion_data) {
         auto& kn = ki.first;
-        auto& i = const_cast<ion_state&>(ki.second);
+        auto& i = ki.second;
         out << kn << "/current_density        " << csv(i.iX_) << "\n";
         out << kn << "/reversal_potential     " << csv(i.eX_) << "\n";
         out << kn << "/internal_concentration " << csv(i.Xi_) << "\n";

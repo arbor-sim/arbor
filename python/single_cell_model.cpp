@@ -1,4 +1,7 @@
+#include <any>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <pybind11/pybind11.h>
@@ -8,8 +11,13 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/util/any_cast.hpp>
 
+#include "cells.hpp"
 #include "error.hpp"
+#include "strprintf.hpp"
+
+using arb::util::any_cast;
 
 namespace pyarb {
 
@@ -41,15 +49,15 @@ struct trace_callback {
 
     trace_callback(trace& t): trace_(t) {}
 
-    void operator()(arb::cell_member_type probe_id, arb::probe_tag tag, arb::util::any_ptr meta, std::size_t n, const arb::sample_record* recs) {
+    void operator()(arb::probe_metadata, std::size_t n, const arb::sample_record* recs) {
         // Push each (time, value) pair from the last epoch into trace_.
         for (std::size_t i=0; i<n; ++i) {
-            if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
+            if (auto p = any_cast<const double*>(recs[i].data)) {
                 trace_.t.push_back(recs[i].time);
                 trace_.v.push_back(*p);
             }
             else {
-                throw std::runtime_error("unexpected sample type in simple_sampler");
+                throw std::runtime_error("unexpected sample type");
             }
         }
     }
@@ -105,19 +113,13 @@ struct single_cell_recipe: arb::recipe {
 
     // probes
 
-    virtual arb::cell_size_type num_probes(arb::cell_gid_type)  const override {
-        return probes_.size();
-    }
-
-    virtual arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
-        // Test that a valid probe site is requested.
-        if (probe_id.gid || probe_id.index>=probes_.size()) {
-            throw arb::bad_probe_id(probe_id);
-        }
-
+    virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
         // For now only voltage can be selected for measurement.
-        const auto& loc = probes_[probe_id.index].site;
-        return arb::probe_info{probe_id, 0, arb::cable_probe_membrane_voltage{loc}};
+        std::vector<arb::probe_info> pinfo;
+        for (auto& p: probes_) {
+            pinfo.push_back(arb::cable_probe_membrane_voltage{p.site});
+        }
+        return pinfo;
     }
 
     // gap junctions
@@ -130,7 +132,7 @@ struct single_cell_recipe: arb::recipe {
         return {}; // No gap junctions on a single cell model.
     }
 
-    virtual arb::util::any get_global_properties(arb::cell_kind) const override {
+    virtual std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -139,7 +141,6 @@ class single_cell_model {
     arb::cable_cell cell_;
     arb::context ctx_;
     bool run_ = false;
-    arb::cable_cell_global_properties gprop_;
 
     std::vector<probe_site> probes_;
     std::unique_ptr<arb::simulation> sim_;
@@ -148,10 +149,15 @@ class single_cell_model {
     std::vector<trace> traces_;
 
 public:
+    // Make gprop public to make it possible to expose it as a field in Python:
+    //      model.properties.catalogue = my_custom_cat
+    //arb::cable_cell_global_properties gprop;
+    global_props_shim gprop;
+
     single_cell_model(arb::cable_cell c):
         cell_(std::move(c)), ctx_(arb::make_context())
     {
-        gprop_.default_parameters = arb::neuron_parameter_defaults;
+        gprop.props.default_parameters = arb::neuron_parameter_defaults;
     }
 
     // example use:
@@ -173,12 +179,8 @@ public:
         }
     }
 
-    void add_ion(const std::string& ion, double valence, double int_con, double ext_con, double rev_pot) {
-        gprop_.add_ion(ion, valence, int_con, ext_con, rev_pot);
-    }
-
-    void run(double tfinal) {
-        single_cell_recipe rec(cell_, probes_, gprop_);
+    void run(double tfinal, double dt) {
+        single_cell_recipe rec(cell_, probes_, gprop.props);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 
@@ -207,7 +209,7 @@ public:
                 }
             });
 
-        sim_->run(tfinal, 0.025);
+        sim_->run(tfinal, dt);
 
         run_ = true;
     }
@@ -239,7 +241,11 @@ void register_single_cell(pybind11::module& m) {
     model
         .def(pybind11::init<arb::cable_cell>(),
             "cell"_a, "Initialise a single cell model for a cable cell.")
-        .def("run", &single_cell_model::run, "tfinal"_a, "Run model from t=0 to t=tfinal ms.")
+        .def("run",
+             &single_cell_model::run,
+             "tfinal"_a,
+             "dt"_a = 0.025,
+             "Run model from t=0 to t=tfinal ms.")
         .def("probe",
             [](single_cell_model& m, const char* what, const char* where, double frequency) {
                 m.probe(what, where, frequency);},
@@ -256,20 +262,14 @@ void register_single_cell(pybind11::module& m) {
             " what:      Name of the variable to record (currently only 'voltage').\n"
             " where:     Location on cell morphology at which to sample the variable.\n"
             " frequency: The target frequency at which to sample [Hz].")
-        .def("add_ion", &single_cell_model::add_ion,
-            "ion"_a, "valence"_a, "int_con"_a, "ext_con"_a, "rev_pot"_a,
-            "Add a new ion species to the model.\n"
-            " ion: name of the ion species.\n"
-            " valence: valence of the ion species.\n"
-            " int_con: initial internal concentration [mM].\n"
-            " ext_con: initial external concentration [mM].\n"
-            " rev_pot: reversal potential [mV].")
         .def_property_readonly("spikes",
             [](const single_cell_model& m) {
                 return m.spike_times();}, "Holds spike times [ms] after a call to run().")
         .def_property_readonly("traces",
             [](const single_cell_model& m) {
-                return m.traces();}, "Holds sample traces after a call to run().")
+                return m.traces();},
+            "Holds sample traces after a call to run().")
+        .def_readwrite("properties", &single_cell_model::gprop, "Global properties.")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }

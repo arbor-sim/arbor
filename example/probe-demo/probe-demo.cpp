@@ -1,3 +1,4 @@
+#include <any>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -13,14 +14,14 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/sampling.hpp>
-#include <arbor/util/any.hpp>
+#include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
 #include <tinyopt/smolopt.h>
 
 // Simulate a cell modelled as a simple cable with HH dynamics,
 // emitting the results of a user specified probe over time.
 
-using arb::util::any;
+using std::any;
 using arb::util::any_cast;
 using arb::util::any_ptr;
 
@@ -83,8 +84,8 @@ struct options {
 
 const char* argv0 = "";
 bool parse_options(options&, int& argc, char** argv);
-void vector_sampler(arb::cell_member_type, arb::probe_tag, any_ptr, std::size_t, const arb::sample_record*);
-void scalar_sampler(arb::cell_member_type, arb::probe_tag, any_ptr, std::size_t, const arb::sample_record*);
+void vector_sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
+void scalar_sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
 
 struct cable_recipe: public arb::recipe {
     arb::cable_cell_global_properties gprop;
@@ -98,18 +99,17 @@ struct cable_recipe: public arb::recipe {
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
-    arb::cell_size_type num_probes(arb::cell_gid_type) const override { return 1; }
     arb::cell_size_type num_targets(arb::cell_gid_type) const override { return 0; }
 
-    arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
-        return {probe_id, 0, probe_addr}; // (tag value 0 is not used)
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
+        return {probe_addr}; // (use default tag value 0)
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
         return arb::cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    any get_global_properties(arb::cell_kind) const override {
         return gprop;
     }
 
@@ -118,8 +118,9 @@ struct cable_recipe: public arb::recipe {
         const double length = 1000; // [µm]
         const double diam = 1; // [µm]
 
-        sample_tree samples({msample{0, 0, 0, 0.5*diam}, msample{length, 0, 0, 0.5*diam}}, {mnpos, 0u});
-        cable_cell c(samples);
+        segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0, 0.5*diam}, {length, 0, 0, 0.5*diam}, 1);
+        cable_cell c(tree);
 
         c.paint(reg::all(), "hh"); // HH mechanism over whole cell.
         c.place(mlocation{0, 0.}, i_clamp{0., INFINITY, 1.}); // Inject a 1 nA current indefinitely.
@@ -160,8 +161,8 @@ int main(int argc, char** argv) {
     }
 }
 
-void scalar_sampler(arb::cell_member_type, arb::probe_tag, any_ptr meta, std::size_t n, const arb::sample_record* samples) {
-    auto* loc = any_cast<const arb::mlocation*>(meta);
+void scalar_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+    auto* loc = any_cast<const arb::mlocation*>(pm.meta);
     assert(loc);
 
     std::cout << std::fixed << std::setprecision(4);
@@ -173,8 +174,8 @@ void scalar_sampler(arb::cell_member_type, arb::probe_tag, any_ptr meta, std::si
     }
 }
 
-void vector_sampler(arb::cell_member_type, arb::probe_tag, any_ptr meta, std::size_t n, const arb::sample_record* samples) {
-    auto* cables_ptr = any_cast<const arb::mcable_list*>(meta);
+void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+    auto* cables_ptr = any_cast<const arb::mcable_list*>(pm.meta);
     assert(cables_ptr);
     unsigned n_cable = cables_ptr->size();
 
@@ -200,19 +201,21 @@ bool parse_options(options& opt, int& argc, char** argv) {
 
     auto do_help = [&]() { usage(argv0, help_msg); };
 
+    using L = arb::mlocation;
+
     // Map probe argument to output variable name, scalarity, and a lambda that makes specific probe address from a location.
     std::pair<const char*, std::tuple<const char*, bool, std::function<any (double)>>> probe_tbl[] {
         // located probes
-        {"v",         {"v",       true,  [](double x) { return arb::cable_probe_membrane_voltage{{0, x}}; }}},
-        {"i_axial",   {"i_axial", true,  [](double x) { return arb::cable_probe_axial_current{{0, x}}; }}},
-        {"j_ion",     {"j_ion",   true,  [](double x) { return arb::cable_probe_total_ion_current_density{{0, x}}; }}},
-        {"j_na",      {"j_na",    true,  [](double x) { return arb::cable_probe_ion_current_density{{0, x}, "na"}; }}},
-        {"j_k",       {"j_k",     true,  [](double x) { return arb::cable_probe_ion_current_density{{0, x}, "k"}; }}},
-        {"c_na",      {"c_na",    true,  [](double x) { return arb::cable_probe_ion_int_concentration{{0, x}, "na"}; }}},
-        {"c_k",       {"c_k",     true,  [](double x) { return arb::cable_probe_ion_int_concentration{{0, x}, "k"}; }}},
-        {"hh_m",      {"hh_m",    true,  [](double x) { return arb::cable_probe_density_state{{0, x}, "hh", "m"}; }}},
-        {"hh_h",      {"hh_h",    true,  [](double x) { return arb::cable_probe_density_state{{0, x}, "hh", "h"}; }}},
-        {"hh_n",      {"hh_n",    true,  [](double x) { return arb::cable_probe_density_state{{0, x}, "hh", "n"}; }}},
+        {"v",         {"v",       true,  [](double x) { return arb::cable_probe_membrane_voltage{L{0, x}}; }}},
+        {"i_axial",   {"i_axial", true,  [](double x) { return arb::cable_probe_axial_current{L{0, x}}; }}},
+        {"j_ion",     {"j_ion",   true,  [](double x) { return arb::cable_probe_total_ion_current_density{L{0, x}}; }}},
+        {"j_na",      {"j_na",    true,  [](double x) { return arb::cable_probe_ion_current_density{L{0, x}, "na"}; }}},
+        {"j_k",       {"j_k",     true,  [](double x) { return arb::cable_probe_ion_current_density{L{0, x}, "k"}; }}},
+        {"c_na",      {"c_na",    true,  [](double x) { return arb::cable_probe_ion_int_concentration{L{0, x}, "na"}; }}},
+        {"c_k",       {"c_k",     true,  [](double x) { return arb::cable_probe_ion_int_concentration{L{0, x}, "k"}; }}},
+        {"hh_m",      {"hh_m",    true,  [](double x) { return arb::cable_probe_density_state{L{0, x}, "hh", "m"}; }}},
+        {"hh_h",      {"hh_h",    true,  [](double x) { return arb::cable_probe_density_state{L{0, x}, "hh", "h"}; }}},
+        {"hh_n",      {"hh_n",    true,  [](double x) { return arb::cable_probe_density_state{L{0, x}, "hh", "n"}; }}},
         // all-of-cell probes
         {"all_v",     {"v",       false, [](double)   { return arb::cable_probe_membrane_voltage_cell{}; }}},
         {"all_i_ion", {"i_ion",   false, [](double)   { return arb::cable_probe_total_ion_current_cell{}; }}},

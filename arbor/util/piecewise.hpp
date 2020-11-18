@@ -24,7 +24,7 @@ constexpr pw_size_type pw_npos = -1;
 
 template <typename T>
 struct indexed_const_iterator {
-    using size_type = decltype(util::size(std::declval<T>()));
+    using size_type = decltype(std::size(std::declval<T>()));
     using difference_type = std::make_signed_t<size_type>;
 
     using value_type = decltype(std::declval<T>()[0]);
@@ -138,12 +138,24 @@ struct pw_elements {
     value_type front() const { return (*this)[0]; }
     value_type back() const { return (*this)[size()-1]; }
 
+    // Return index of right-most element whose corresponding closed interval contains x.
     size_type index_of(double x) const {
         if (empty()) return npos;
 
         auto partn = intervals();
         if (x == partn.bounds().second) return size()-1;
         else return partn.index(x);
+    }
+
+    // Return iterator pair spanning elements whose corresponding closed intervals contain x.
+    std::pair<iterator, iterator> equal_range(double x) const {
+        auto eq = std::equal_range(vertex_.begin(), vertex_.end(), x);
+
+        if (eq.first==vertex_.end()) return {end(), end()};
+        if (eq.first>vertex_.begin()) --eq.first;
+        if (eq.second==vertex_.end()) --eq.second;
+
+        return {begin()+(eq.first-vertex_.begin()), begin()+(eq.second-vertex_.begin())};
     }
 
     value_type operator()(double x) const {

@@ -4,36 +4,27 @@
 #include <ostream>
 #include <vector>
 
-#include <arbor/util/lexcmp_def.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/morph/sample_tree.hpp>
+#include <arbor/morph/segment_tree.hpp>
+#include <arbor/util/lexcmp_def.hpp>
 
 namespace arb {
 
 struct morphology_impl;
-
-using mindex_range = std::pair<const msize_t*, const msize_t*>;
 
 class morphology {
     // Hold an immutable copy of the morphology implementation.
     std::shared_ptr<const morphology_impl> impl_;
 
 public:
-    morphology(sample_tree m, bool use_spherical_root);
-    morphology(sample_tree m);
+    morphology(segment_tree m);
     morphology();
 
     // Empty/default-constructed morphology?
     bool empty() const;
 
-    // Whether the root of the morphology is spherical.
-    bool spherical_root() const;
-
     // The number of branches in the morphology.
     msize_t num_branches() const;
-
-    // The number of samples in the morphology.
-    msize_t num_samples() const;
 
     // The parent branch of branch b.
     // Return mnpos if branch has no parent.
@@ -46,32 +37,11 @@ public:
     // Branches with no children.
     const std::vector<msize_t>& terminal_branches() const;
 
-    // Range of indexes into the sample points in branch b.
-    mindex_range branch_indexes(msize_t b) const;
-
-    // All of the samples in the morphology.
-    const std::vector<msample>& samples() const;
-
-    // The parent sample of sample i.
-    const std::vector<msize_t>& sample_parents() const;
-
-    // Point properties of samples in the morphology.
-    const std::vector<point_prop>& sample_props() const;
+    // Range of segments in a branch.
+    const std::vector<msegment>& branch_segments(msize_t b) const;
 
     friend std::ostream& operator<<(std::ostream&, const morphology&);
 };
-
-// Morphology utility functions.
-
-// Find the set of locations in an mlocation_list for which there
-// are no other locations that are more proximal in that list.
-mlocation_list minset(const morphology&, const mlocation_list&);
-
-// Find the set of locations in an mlocation_list for which there
-// are no other locations that are more distal in the list.
-mlocation_list maxset(const morphology&, const mlocation_list&);
-
-mlocation canonical(const morphology&, mlocation);
 
 // Represent a (possibly empty or disconnected) region on a morphology.
 //
@@ -135,8 +105,50 @@ private:
     mcable_list cables_;
 };
 
+// Morphology utility functions.
+
+mlocation canonical(const morphology&, mlocation);
+
+// Find the set of locations in an mlocation_list for which there
+// are no other locations that are more proximal in that list.
+mlocation_list minset(const morphology&, const mlocation_list&);
+
+// Find the set of locations in an mlocation_list for which there
+// are no other locations that are more distal in the list.
+mlocation_list maxset(const morphology&, const mlocation_list&);
+
 // Reduced representation of an extent, excluding zero-length cables
 // that are covered by more proximal or non-zero-length cables.
 mcable_list canonical(const morphology& m, const mextent& a);
+
+// Determine the components of an extent.
+//
+// Let T be the topological tree described by a morphology and C be the
+// cover, comprising the disjoint union of unit intervals, one per branch.
+//
+// Let π be the projection from C onto T.
+//
+// Locations in C are ordered by distality: (b1, x1) < (b2, x2) if branches b1
+// and b2 are the same and x1<x2, or else if b1 is a more proximal branch than
+// b2.
+//
+// Locations in T are ordered by distality: given points a and b in C,
+// π(a) < π(b) if a<b and π(a) is not equal to π(b).
+//
+// (NOTE: the notion of the cover may be extended in the future to include
+// a 'most proximal point' (-1, 1) which projects to the root of the tree,
+// and which is strictly more proximal than any other point in the cover.)
+//
+// Let two locations a,b in an extent X of C be directed-path-connected if
+// there is an order-preserving map p: [0, 1] -> C such that π∘p is a
+// path in T, with p(0) = a and p(1) = b.
+//
+// The components E_i of an extent X are subsets such that for all x and y
+// in E_i, there exists a location a with both a, x and a, y
+// directed-path-connected in X, and such that for all x in E_i and all y in
+// E_j, with i not equal to j, x and y are not directed-path-connected in X.
+
+std::vector<mextent> components(const morphology& m, const mextent&);
+
 
 } // namespace arb

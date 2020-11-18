@@ -34,9 +34,8 @@ void assemble_matrix_fine(
     const fvm_value_type* conductivity,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
-    const fvm_index_type* cv_to_cell,
+    const fvm_index_type* cv_to_intdom,
     const fvm_value_type* dt_intdom,
-    const fvm_index_type* cell_to_intdom,
     const fvm_index_type* perm,
     unsigned n);
 

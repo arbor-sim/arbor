@@ -170,6 +170,157 @@ void CExprEmitter::visit(IfExpression* e) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::unordered_set<std::string> SimdExprEmitter::mask_names_;
 
+void SimdExprEmitter::visit(PowBinaryExpression* e) {
+    out_ << "S::pow(";
+    e->lhs()->accept(this);
+    out_ << ", ";
+    e->rhs()->accept(this);
+    out_ << ')';
+}
+
+void SimdExprEmitter::visit(NumberExpression* e) {
+    out_ << " (double)" << as_c_double(e->value());
+} 
+
+void SimdExprEmitter::visit(UnaryExpression* e) {
+    static std::unordered_map<tok, const char*> unaryop_tbl = {
+        {tok::minus,   "S::neg"},
+        {tok::exp,     "S::exp"},
+        {tok::cos,     "S::cos"},
+        {tok::sin,     "S::sin"},
+        {tok::log,     "S::log"},
+        {tok::abs,     "S::abs"},
+        {tok::exprelr, "S::exprelr"},
+        {tok::safeinv, "safeinv"}
+    };
+
+    if (!unaryop_tbl.count(e->op())) {
+        throw compiler_exception(
+            "CExprEmitter: unsupported unary operator "+token_string(e->op()), e->location());
+    }
+
+    const char* op_spelling = unaryop_tbl.at(e->op());
+    Expression* inner = e->expression();
+
+    auto iden = inner->is_identifier();
+    bool is_scalar = iden && scalars_.count(iden->name()); 
+    if (e->op()==tok::minus && is_scalar) {
+        out_ << "simd_cast<simd_value>(-";
+        inner->accept(this);
+        out_ << ")";
+    }
+    else {
+        emit_as_call(op_spelling, inner);
+    }
+}
+
+void SimdExprEmitter::visit(BinaryExpression* e) {
+    static std::unordered_map<tok, const char *> func_tbl = {
+            {tok::minus,    "S::sub"},
+            {tok::plus,     "S::add"},
+            {tok::times,    "S::mul"},
+            {tok::divide,   "S::div"},
+            {tok::lt,       "S::cmp_lt"},
+            {tok::lte,      "S::cmp_leq"},
+            {tok::gt,       "S::cmp_gt"},
+            {tok::gte,      "S::cmp_geq"},
+            {tok::equality, "S::cmp_eq"},
+            {tok::land,     "S::logical_and"},
+            {tok::lor,      "S::logical_or"},
+            {tok::ne,       "S::cmp_neq"},
+            {tok::min,      "S::min"},
+            {tok::max,      "S::max"},
+    };
+
+    static std::unordered_map<tok, const char *> binop_tbl = {
+            {tok::minus,    "-"},
+            {tok::plus,     "+"},
+            {tok::times,    "*"},
+            {tok::divide,   "/"},
+            {tok::lt,       "<"},
+            {tok::lte,      "<="},
+            {tok::gt,       ">"},
+            {tok::gte,      ">="},
+            {tok::equality, "=="},
+            {tok::land,     "&&"},
+            {tok::lor,      "||"},
+            {tok::ne,       "!="},
+            {tok::min,      "min"},
+            {tok::max,      "max"},
+    };
+
+
+    if (!binop_tbl.count(e->op())) {
+        throw compiler_exception(
+                "CExprEmitter: unsupported binary operator " + token_string(e->op()), e->location());
+    }
+
+    std::string rhs_name, lhs_name;
+
+    auto rhs = e->rhs();
+    auto lhs = e->lhs();
+
+    const char *op_spelling = binop_tbl.at(e->op());
+    const char *func_spelling = func_tbl.at(e->op());
+
+    if (rhs->is_identifier()) {
+        rhs_name = rhs->is_identifier()->name();
+    }
+    if (lhs->is_identifier()) {
+        lhs_name = lhs->is_identifier()->name();
+    }
+
+    if (scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
+        if (e->is_infix()) {
+            associativityKind assoc = Lexer::operator_associativity(e->op());
+            int op_prec = Lexer::binop_precedence(e->op());
+
+            auto need_paren = [op_prec](Expression *subexpr, bool assoc_side) -> bool {
+                if (auto b = subexpr->is_binary()) {
+                    int sub_prec = Lexer::binop_precedence(b->op());
+                    return sub_prec < op_prec || (!assoc_side && sub_prec == op_prec);
+                }
+                return false;
+            };
+
+            out_ << "simd_cast<simd_value>(";
+            if (need_paren(lhs, assoc == associativityKind::left)) {
+                emit_as_call("", lhs);
+            } else {
+                lhs->accept(this);
+            }
+
+            out_ << op_spelling;
+
+            if (need_paren(rhs, assoc == associativityKind::right)) {
+                emit_as_call("", rhs);
+            } else {
+                rhs->accept(this);
+            }
+            out_ << ")";
+        } else {
+            out_ << "simd_cast<simd_value>(";
+            emit_as_call(op_spelling, lhs, rhs);
+            out_ << ")";
+        }
+    } else if (scalars_.count(rhs_name) && !scalars_.count(lhs_name)) {
+        out_ << func_spelling << '(';
+        lhs->accept(this);
+        out_ << ", simd_cast<simd_value>(" << rhs_name ;
+        out_ << "))";
+    } else if (!scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
+        out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_name << "), ";
+        rhs->accept(this);
+        out_ << ")";
+    } else {
+        out_ << func_spelling << '(';
+        lhs->accept(this);
+        out_ << ", ";
+        rhs->accept(this);
+        out_ << ')';
+    }
+}
+
 void SimdExprEmitter::visit(BlockExpression* block) {
     for (auto& stmt: block->statements()) {
         if (!stmt->is_local_declaration()) {
@@ -209,15 +360,22 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         if (!input_mask_.empty()) {
-            mask = mask + " && " + input_mask_;
+            mask = "S::logical_and(" + mask + ", " + input_mask_ + ")";
         }
-        out_ << "S::where(" << mask << ", " << "simd_value(";
-        e->rhs()->accept(this);
-        out_ << "))";
         if(is_indirect_)
-            out_ << ".copy_to(" << lhs->name() << "+index_)";
+            out_ << "indirect(" << lhs->name() << "+index_, simd_width_) = ";
         else
-            out_ << ".copy_to(" << lhs->name() << "+i_)";
+            out_ << "indirect(" << lhs->name() << "+i_, simd_width_) = ";
+
+        out_ << "S::where(" << mask << ", ";
+
+        bool cast = e->rhs()->is_number();
+        if (cast) out_ << "simd_cast<simd_value>(";
+        e->rhs()->accept(this);
+
+        out_ << ")";
+
+        if (cast) out_ << ")";
     } else {
         out_ << "S::where(" << mask << ", ";
         e->lhs()->accept(this);
@@ -237,17 +395,17 @@ void SimdExprEmitter::visit(IfExpression* e) {
     auto new_mask = make_unique_var(e->scope(), "mask_");
 
     // Set new masks
-    out_ << "simd_value::simd_mask " << new_mask << " = ";
+    out_ << "simd_mask " << new_mask << " = ";
     e->condition()->accept(this);
     out_ << ";\n";
 
     if (!current_mask_.empty()) {
         auto base_mask = processing_true_ ? current_mask_ : current_mask_bar_;
-        current_mask_bar_ = base_mask + " && !" + new_mask;
-        current_mask_     = base_mask + " && " + new_mask;
+        current_mask_bar_ = "S::logical_and(" + base_mask + ", S::logical_not(" + new_mask + "))";
+        current_mask_     = "S::logical_and(" + base_mask + ", " + new_mask + ")";
 
     } else {
-        current_mask_bar_ = "!" + new_mask;
+        current_mask_bar_ = "S::logical_not(" + new_mask + ")";
         current_mask_ = new_mask;
     }
 

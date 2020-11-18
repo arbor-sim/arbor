@@ -16,13 +16,13 @@ template <typename A, typename B, typename = void>
 struct has_common_type: std::false_type {};
 
 template <typename A, typename B>
-struct has_common_type<A, B, util::void_t<std::common_type_t<A, B>>>: std::true_type {};
+struct has_common_type<A, B, std::void_t<std::common_type_t<A, B>>>: std::true_type {};
 
 template <typename A, typename B, typename X, typename = void>
 struct common_type_or_else { using type = X; };
 
 template <typename A, typename B, typename X>
-struct common_type_or_else<A, B, X, util::void_t<std::common_type_t<A, B>>> {
+struct common_type_or_else<A, B, X, std::void_t<std::common_type_t<A, B>>> {
     using type = std::common_type_t<A, B>;
 };
 

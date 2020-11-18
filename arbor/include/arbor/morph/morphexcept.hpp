@@ -21,6 +21,11 @@ struct no_such_branch: morphology_error {
     msize_t bid;
 };
 
+struct no_such_segment: arbor_exception {
+    explicit no_such_segment(msize_t sid);
+    msize_t sid;
+};
+
 struct invalid_mcable: morphology_error {
     invalid_mcable(mcable cable);
     mcable cable;
@@ -30,10 +35,31 @@ struct invalid_mcable_list: morphology_error {
     invalid_mcable_list();
 };
 
-struct invalid_sample_parent: morphology_error {
-    invalid_sample_parent(msize_t parent, msize_t tree_size);
+struct invalid_segment_parent: morphology_error {
+    invalid_segment_parent(msize_t parent, msize_t tree_size);
     msize_t parent;
     msize_t tree_size;
+};
+
+struct duplicate_stitch_id: morphology_error {
+    duplicate_stitch_id(const std::string& id);
+    std::string id;
+};
+
+struct no_such_stitch: morphology_error {
+    no_such_stitch(const std::string& id);
+    std::string id;
+};
+
+struct missing_stitch_start: morphology_error {
+    missing_stitch_start(const std::string& id);
+    std::string id;
+};
+
+struct invalid_stitch_position: morphology_error {
+    invalid_stitch_position(const std::string& id, double along);
+    std::string id;
+    double along;
 };
 
 struct label_type_mismatch: morphology_error {

@@ -8,7 +8,6 @@
 
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
-#include <arbor/util/optional.hpp>
 
 // Mechanism catalogue maintains:
 //
@@ -75,6 +74,8 @@ public:
                 const std::vector<std::pair<std::string, double>>& global_params,
                 const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
 
+    void derive(const std::string& name, const std::string& parent);
+
     // Remove mechanism from catalogue, together with any derivations of it.
     void remove(const std::string& name);
 
@@ -104,7 +105,13 @@ public:
         register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
     }
 
-    ~mechanism_catalogue();
+   // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
+   void import(const mechanism_catalogue& other, const std::string& prefix);
+
+   ~mechanism_catalogue();
+
+   // Grab a collection of all mechanism names in the catalogue.
+   std::vector<std::string> mechanism_names() const;
 
 private:
     std::unique_ptr<catalogue_state> state_;
@@ -117,5 +124,7 @@ private:
 // Reference to global default mechanism catalogue.
 
 const mechanism_catalogue& global_default_catalogue();
+const mechanism_catalogue& global_allen_catalogue();
+const mechanism_catalogue& global_bbp_catalogue();
 
 } // namespace arb

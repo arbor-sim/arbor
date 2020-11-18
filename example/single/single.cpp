@@ -1,3 +1,4 @@
+#include <any>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -8,10 +9,11 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/morph/sample_tree.hpp>
-#include <arbor/swcio.hpp>
+#include <arbor/morph/segment_tree.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/simple_sampler.hpp>
+
+#include <arborio/swcio.hpp>
 
 #include <tinyopt/tinyopt.h>
 
@@ -34,24 +36,23 @@ struct single_recipe: public arb::recipe {
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
-    arb::cell_size_type num_probes(arb::cell_gid_type) const override { return 1; }
     arb::cell_size_type num_targets(arb::cell_gid_type) const override { return 1; }
 
-    arb::probe_info get_probe(arb::cell_member_type probe_id) const override {
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
         arb::mlocation mid_soma = {0, 0.5};
         arb::cable_probe_membrane_voltage probe = {mid_soma};
 
-        // Probe info consists of: the probe id, a tag value to distinguish this probe
-        // from others for any attached sampler (unused), and the cell probe address.
+        // Probe info consists of a probe address and an optional tag, for use
+        // by the sampler callback.
 
-        return {probe_id, 0, probe};
+        return {arb::probe_info{probe, 0}};
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
         return arb::cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop;
     }
 
@@ -63,8 +64,8 @@ struct single_recipe: public arb::recipe {
         arb::cable_cell c(morpho, dict);
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        c.paint("soma", "hh");
-        c.paint("dend", "pas");
+        c.paint("\"soma\"", "hh");
+        c.paint("\"dend\"", "pas");
 
         // Add synapse to last branch.
 
@@ -89,8 +90,8 @@ int main(int argc, char** argv) {
 
         // Attach a sampler to the probe described in the recipe, sampling every 0.1 ms.
 
-        arb::trace_data<double> trace;
-        sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), arb::make_simple_sampler(trace));
+        arb::trace_vector<double> traces;
+        sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), arb::make_simple_sampler(traces));
 
         // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms with
         // the given weight.
@@ -100,8 +101,7 @@ int main(int argc, char** argv) {
 
         sim.run(opt.t_end, opt.dt);
 
-        std::cout << std::fixed << std::setprecision(4);
-        for (auto entry: trace) {
+        for (auto entry: traces.at(0)) {
             std::cout << entry.t << ", " << entry.v << "\n";
         }
     }
@@ -130,7 +130,7 @@ options parse_options(int argc, char** argv) {
             opt.swc_file = swc.value();
         }
         else if (auto nseg = parse<unsigned>(arg, 'n', "cv-per-branch")) {
-            opt.policy = arb::cv_policy_fixed_per_branch(nseg.value(), arb::cv_policy_flag::single_root_cv);
+            opt.policy = arb::cv_policy_fixed_per_branch(nseg.value());
         }
         else {
             usage(argv[0], "[-m|--morphology SWCFILE] [-d|--dt TIME] [-t|--t-end TIME] [-w|--weight WEIGHT] [-n|--cv-per-branch N]");
@@ -146,18 +146,17 @@ options parse_options(int argc, char** argv) {
 // to 0.2 µm.
 
 arb::morphology default_morphology() {
-    arb::sample_tree samples;
+    arb::segment_tree tree;
 
-    auto p = samples.append(arb::msample{{  0.0, 0.0, 0.0, 6.3}, 1});
-    p = samples.append(p, arb::msample{{  6.3, 0.0, 0.0, 0.5}, 3});
-    p = samples.append(p, arb::msample{{206.3, 0.0, 0.0, 0.2}, 3});
+    tree.append(arb::mnpos, { -6.3, 0.0, 0.0, 6.3}, {  6.3, 0.0, 0.0, 6.3}, 1);
+    tree.append(         0, {  6.3, 0.0, 0.0, 0.5}, {206.3, 0.0, 0.0, 0.2}, 3);
 
-    return arb::morphology(std::move(samples));
+    return arb::morphology(tree);
 }
 
 arb::morphology read_swc(const std::string& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("unable to open SWC file: "+path);
 
-    return arb::morphology(arb::swc_as_sample_tree(arb::parse_swc_file(f)));
+    return arb::morphology(arborio::load_swc_arbor(arborio::parse_swc(f)));
 }

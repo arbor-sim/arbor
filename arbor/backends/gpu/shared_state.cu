@@ -14,7 +14,11 @@ namespace gpu {
 namespace kernel {
 
 template <typename T>
-__global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt, T tmax) {
+__global__ void update_time_to_impl(unsigned n,
+                                    T* __restrict__ const time_to,
+                                    const T* __restrict__ const time,
+                                    T dt,
+                                    T tmax) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         auto t = time[i]+dt;
@@ -23,7 +27,10 @@ __global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt,
 }
 
 template <typename T, typename I>
-__global__ void add_gj_current_impl(unsigned n, const T* gj_info, const I* voltage, I* current_density) {
+__global__ void add_gj_current_impl(unsigned n,
+                                    const T* __restrict__ const gj_info,
+                                    const I* __restrict__ const voltage,
+                                    I* __restrict__ const current_density) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         auto gj = gj_info[i];
@@ -35,7 +42,9 @@ __global__ void add_gj_current_impl(unsigned n, const T* gj_info, const I* volta
 
 // Vector/scalar addition: x[i] += v ∀i
 template <typename T>
-__global__ void add_scalar(unsigned n, T* x, fvm_value_type v) {
+__global__ void add_scalar(unsigned n,
+                           T* __restrict__ const x,
+                           fvm_value_type v) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         x[i] += v;
@@ -44,11 +53,11 @@ __global__ void add_scalar(unsigned n, T* x, fvm_value_type v) {
 
 template <typename T, typename I>
 __global__ void set_dt_impl(      T* __restrict__ dt_intdom,
-                            const T* time_to,
-                            const T* time,
+                            const T* __restrict__ time_to,
+                            const T* __restrict__ time,
                             const unsigned ncomp,
                                   T* __restrict__ dt_comp,
-                            const I* cv_to_intdom) {
+                            const I* __restrict__ cv_to_intdom) {
     auto idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (idx < ncomp) {
         const auto ind = cv_to_intdom[idx];
@@ -60,7 +69,9 @@ __global__ void set_dt_impl(      T* __restrict__ dt_intdom,
 
 __global__ void take_samples_impl(
     multi_event_stream_state<raw_probe_info> s,
-    const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value)
+    const fvm_value_type* __restrict__ const time,
+    fvm_value_type* __restrict__ const sample_time,
+    fvm_value_type* __restrict__ const sample_value)
 {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<s.n) {

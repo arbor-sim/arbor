@@ -3,10 +3,9 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
+#include <optional>
 #include <utility>
 #include <type_traits>
-
-#include <arbor/util/optional.hpp>
 
 #include "util/meta.hpp"
 #include "util/transform.hpp"
@@ -39,7 +38,7 @@ template <typename Seq, typename = void>
 struct is_associative_container: std::false_type {};
 
 template <typename Seq>
-struct is_associative_container<Seq, void_t<maputil_impl::assoc_test<Seq>>>: maputil_impl::assoc_test<Seq> {};
+struct is_associative_container<Seq, std::void_t<maputil_impl::assoc_test<Seq>>>: maputil_impl::assoc_test<Seq> {};
 
 // Find value in a sequence of key-value pairs or in a key-value assocation map, with
 // optional explicit comparator.
@@ -61,20 +60,30 @@ namespace maputil_impl {
         typename Seq,
         typename Key,
         typename Eq = std::equal_to<>,
-        typename Ret0 = decltype(get<1>(*begin(std::declval<Seq&&>()))),
-        typename Ret = std::conditional_t<
-            std::is_rvalue_reference<Seq&&>::value || !std::is_lvalue_reference<Ret0>::value,
-            std::remove_reference_t<Ret0>,
-            Ret0
-        >
+        typename Ret = std::remove_reference_t<decltype(get<1>(*begin(std::declval<Seq&&>())))>
     >
-    optional<Ret> value_by_key(std::false_type, Seq&& seq, const Key& key, Eq eq=Eq{}) {
+    std::optional<Ret> value_by_key(std::false_type, Seq&& seq, const Key& key, Eq eq=Eq{}) {
         for (auto&& entry: seq) {
             if (eq(get<0>(entry), key)) {
                 return get<1>(entry);
             }
         }
-        return nullopt;
+        return std::nullopt;
+    }
+
+    template <
+        typename Seq,
+        typename Key,
+        typename Eq = std::equal_to<>,
+        typename Ret = std::remove_reference_t<decltype(get<1>(*begin(std::declval<Seq&&>())))>
+    >
+    Ret* ptr_by_key(std::false_type, Seq&& seq, const Key& key, Eq eq=Eq{}) {
+        for (auto&& entry: seq) {
+            if (eq(get<0>(entry), key)) {
+                return &get<1>(entry);
+            }
+        }
+        return nullptr;
     }
 
     // use map find
@@ -82,21 +91,29 @@ namespace maputil_impl {
         typename Assoc,
         typename Key,
         typename FindRet = decltype(std::declval<Assoc&&>().find(std::declval<Key>())),
-        typename Ret0 = decltype(get<1>(*std::declval<FindRet>())),
-        typename Ret = std::conditional_t<
-            std::is_rvalue_reference<Assoc&&>::value || !std::is_lvalue_reference<Ret0>::value,
-            std::remove_reference_t<Ret0>,
-            Ret0
-        >
+        typename Ret = std::remove_reference_t<decltype(get<1>(*std::declval<FindRet>()))>
     >
-    optional<Ret> value_by_key(std::true_type, Assoc&& map, const Key& key) {
+    std::optional<Ret> value_by_key(std::true_type, Assoc&& map, const Key& key) {
         auto it = map.find(key);
         if (it!=std::end(map)) {
             return get<1>(*it);
         }
-        return nullopt;
+        return std::nullopt;
+    }
+
+    template <
+        typename Assoc,
+        typename Key,
+        typename FindRet = decltype(std::declval<Assoc&&>().find(std::declval<Key>())),
+        typename Ret = std::remove_reference_t<decltype(get<1>(*std::declval<FindRet>()))>
+    >
+    Ret* ptr_by_key(std::true_type, Assoc&& map, const Key& key) {
+        auto it = map.find(key);
+        return it!=std::end(map)? &get<1>(*it): nullptr;
     }
 }
+
+// Return copy of value associated with key, wrapped in std::optional, or std::nullopty.
 
 template <typename C, typename Key, typename Eq>
 auto value_by_key(C&& c, const Key& k, Eq eq) {
@@ -110,15 +127,29 @@ auto value_by_key(C&& c, const Key& k) {
         std::forward<C>(c), k);
 }
 
+// Return pointer to value associated with key, or nullptr.
+
+template <typename C, typename Key, typename Eq>
+auto ptr_by_key(C&& c, const Key& k, Eq eq) {
+    return maputil_impl::ptr_by_key(std::false_type{}, std::forward<C>(c), k, eq);
+}
+
+template <typename C, typename Key>
+auto ptr_by_key(C&& c, const Key& k) {
+    return maputil_impl::ptr_by_key(
+        std::integral_constant<bool, is_associative_container<C>::value>{},
+        std::forward<C>(c), k);
+}
+
 // Find the index into an ordered sequence of a value by binary search;
 // returns optional<size_type> for the size_type associated with the sequence.
 // (Note: this is pretty much all we use algorthim::binary_find for.) 
 
 template <typename C, typename Key>
-optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key) {
+std::optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key) {
     auto strict = strict_view(c);
     auto it = std::lower_bound(strict.begin(), strict.end(), key);
-    return it!=strict.end() && key==*it? just(std::distance(strict.begin(), it)): nullopt;
+    return it!=strict.end() && key==*it? std::optional(std::distance(strict.begin(), it)): std::nullopt;
 }
 
 // As binary_search_index above, but compare key against the proj(x) for elements
@@ -126,11 +157,11 @@ optional<typename sequence_traits<C>::difference_type> binary_search_index(const
 // increasing.
 
 template <typename C, typename Key, typename Proj>
-optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key, const Proj& proj) {
+std::optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key, const Proj& proj) {
     auto strict = strict_view(c);
     auto projected = transform_view(strict, proj);
     auto it = std::lower_bound(projected.begin(), projected.end(), key);
-    return it!=strict.end() && key==*it? just(std::distance(projected.begin(), it)): nullopt;
+    return it!=strict.end() && key==*it? std::optional(std::distance(projected.begin(), it)): std::nullopt;
 }
 
 

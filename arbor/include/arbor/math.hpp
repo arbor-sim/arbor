@@ -45,18 +45,6 @@ T constexpr volume_frustrum(T L, T r1, T r2) {
     return pi<T>/T(3) * (square(r1+r2) - r1*r2) * L;
 }
 
-// Volume of a sphere radius r.
-template <typename T>
-T constexpr volume_sphere(T r) {
-    return T(4)/T(3) * pi<T> * cube(r);
-}
-
-// Surface area of a sphere radius r.
-template <typename T>
-T constexpr area_sphere(T r) {
-    return T(4) * pi<T> * square(r);
-}
-
 // Linear interpolation by u in interval [a,b]: (1-u)*a + u*b.
 template <typename T, typename U>
 T constexpr lerp(T a, T b, U u) {

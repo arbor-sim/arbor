@@ -1,0 +1,19 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+submodules:
+  include: all
+  recursive: true
+
+sphinx:
+  configuration: doc/conf.py
+
+formats: []
+
+python:
+  version: 3.7
+  system_packages: true
+  install:
+    - requirements: doc/requirements.txt

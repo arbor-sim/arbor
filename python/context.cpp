@@ -1,4 +1,5 @@
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 
@@ -6,7 +7,6 @@
 
 #include <arbor/context.hpp>
 #include <arbor/version.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "context.hpp"
 #include "conversion.hpp"
@@ -33,7 +33,7 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
 
 // A Python shim that holds the information that describes an arb::proc_allocation.
 struct proc_allocation_shim {
-    arb::util::optional<int> gpu_id = {};
+    std::optional<int> gpu_id = {};
     int num_threads = 1;
 
     proc_allocation_shim(int threads, pybind11::object gpu) {
@@ -53,7 +53,7 @@ struct proc_allocation_shim {
         num_threads = threads;
     };
 
-    arb::util::optional<int> get_gpu_id() const { return gpu_id; }
+    std::optional<int> get_gpu_id() const { return gpu_id; }
     int get_num_threads() const { return num_threads; }
     bool has_gpu() const { return bool(gpu_id); }
 
@@ -64,7 +64,7 @@ struct proc_allocation_shim {
 };
 
 std::ostream& operator<<(std::ostream& o, const proc_allocation_shim& alloc) {
-    return o << "<arbor.proc_allocation: threads " << alloc.num_threads << ", gpu_id " << alloc.gpu_id << ">";
+    return o << "<arbor.proc_allocation: threads " << alloc.num_threads << ", gpu_id " << util::to_string(alloc.gpu_id) << ">";
 }
 
 void register_contexts(pybind11::module& m) {

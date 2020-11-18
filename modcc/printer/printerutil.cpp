@@ -115,7 +115,7 @@ NetReceiveExpression* find_net_receive(const Module& m) {
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     indexed_variable_info v;
-    v.index_var = "node_index_";
+    v.node_index_var = "node_index_";
     v.scale = 1;
     v.accumulate = true;
     v.readonly = true;
@@ -123,7 +123,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     std::string ion_pfx;
     if (sym->is_ion()) {
         ion_pfx = "ion_"+sym->ion_channel()+"_";
-        v.index_var = ion_pfx+"index_";
+        v.node_index_var = ion_pfx+"index_";
     }
 
     switch (sym->data_source()) {
@@ -155,6 +155,11 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.data_var = "vec_dt_";
         v.readonly = true;
         break;
+    case sourceKind::time:
+        v.data_var = "vec_t_";
+        v.cell_index_var = "vec_ci_";
+        v.readonly = true;
+        break;
     case sourceKind::ion_current_density:
         v.data_var = ion_pfx+".current_density";
         v.scale = 0.1;
@@ -180,7 +185,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         break;
     case sourceKind::ion_valence:
         v.data_var = ion_pfx+".ionic_charge";
-        v.index_var = ""; // scalar global
+        v.node_index_var = ""; // scalar global
         v.readonly = true;
         break;
     case sourceKind::temperature:

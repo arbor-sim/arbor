@@ -460,13 +460,8 @@ bool Module::semantic() {
             }
         }
 
-        // handle the case where there is no SOLVE in BREAKPOINT
-        if(!found_solve) {
-            warning(" there is no SOLVE statement, required to update the"
-                    " state variables, in the BREAKPOINT block",
-                    breakpoint->location());
-        }
-        else {
+        // handle the case where there is a SOLVE in BREAKPOINT (which is the typical case)
+        if (found_solve) {
             // Redo semantic pass in order to elimate any removed local symbols.
             api_state->semantic(symbols_);
         }
@@ -598,14 +593,17 @@ void Module::add_variables_to_symbols() {
             continue;
         }
 
-        // Special case: 'celsius' is an external indexed-variable with a special
-        // data source. Retrieval of value is handled especially by printers.
+        // Special cases: 'celsius', 'diam' and 't' are external indexed-variables with special
+        // data sources. Retrieval of their values is handled especially by printers.
 
         if (id.name() == "celsius") {
             create_indexed_variable("celsius", sourceKind::temperature, accessKind::read, "", Location());
         }
         else if (id.name() == "diam") {
             create_indexed_variable("diam", sourceKind::diameter, accessKind::read, "", Location());
+        }
+        else if (id.name() == "t") {
+            create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
         }
         else {
             // Parameters are scalar by default, but may later be changed to range.
@@ -619,7 +617,7 @@ void Module::add_variables_to_symbols() {
         }
     }
 
-    // Remove `celsius` and `diam` from the parameter block, as they are not true parameters anymore.
+    // Remove `celsius`, `diam` and `t` from the parameter block, as they are not true parameters anymore.
     parameter_block_.parameters.erase(
         std::remove_if(parameter_block_.begin(), parameter_block_.end(),
             [](const Id& id) { return id.name() == "celsius"; }),
@@ -629,6 +627,12 @@ void Module::add_variables_to_symbols() {
     parameter_block_.parameters.erase(
         std::remove_if(parameter_block_.begin(), parameter_block_.end(),
             [](const Id& id) { return id.name() == "diam"; }),
+        parameter_block_.end()
+    );
+
+    parameter_block_.parameters.erase(
+        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
+            [](const Id& id) { return id.name() == "t"; }),
         parameter_block_.end()
     );
 

@@ -5,8 +5,7 @@
 
 #include <arborenv/concurrency.hpp>
 
-// TODO: C++17 use __has_include(<unistd.h>)
-#if defined(__unix__) || defined(__APPLE__) && defined(__MACH__)
+#if __has_include(<unistd.h>)
 #include <unistd.h>
 #endif
 

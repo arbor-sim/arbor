@@ -5,9 +5,11 @@
 // NOTE: This targets an earlier version of the Arbor API and
 // will need to be reworked in order to compile.
 
+#include <any>
 #include <fstream>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 #include "backends/multicore/fvm.hpp"
 #include "benchmark/benchmark.h"
@@ -47,22 +49,22 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0,0,soma_radius,dend_radius}, 3);
+        tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
         arb::label_dict d;
         d.set("soma", arb::reg::tagged(1));
-        arb::cable_cell cell(arb::morphology(tree, true), d);
+        arb::cable_cell cell{arb::morphology(tree), d};
         cell.paint("soma", "pas");
 
         auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
@@ -80,7 +82,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -98,20 +100,20 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0,0,soma_radius,dend_radius}, 3);
+        tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "pas");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
@@ -123,7 +125,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -141,22 +143,22 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0          ,0          ,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0          ,0          ,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
+        auto s2 = tree.append(s1, {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(s2,           {0          ,dend_length,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(s2,           {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "pas");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
@@ -168,7 +170,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -186,20 +188,20 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0,0,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0,0,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
+        tree.append(s1,           {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "hh");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
@@ -211,7 +213,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -229,22 +231,22 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
 
         double soma_radius = 12.6157/2.0;
         double dend_radius = 1.0/2;
         double dend_length = 200;
 
         // Add soma.
-        tree.append(arb::mnpos, {{0,0,0,soma_radius}, 1});
+        auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
 
         // Add dendrite
-        tree.append(0, {{0          ,0          ,soma_radius,             dend_radius}, 3});
-        tree.append(1, {{0          ,0          ,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{0          ,dend_length,soma_radius+dend_length, dend_radius}, 3});
-        tree.append(2, {{dend_length,0          ,soma_radius+dend_length, dend_radius}, 3});
+        auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
+        auto s2 = tree.append(s1, {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(          s2, {0          ,dend_length,soma_radius+dend_length, dend_radius}, 3);
+        tree.append(          s2, {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell(arb::morphology(tree, true));
+        arb::cable_cell cell{arb::morphology(tree)};
         cell.paint(arb::reg::all(), "hh");
 
         cell.default_parameters = arb::neuron_parameter_defaults;
@@ -256,7 +258,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 };
@@ -269,7 +271,7 @@ void expsyn_1_branch_current(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_expsyn_1_branch, cell_to_intdom, target_handles, probe_handles);
@@ -289,7 +291,7 @@ void expsyn_1_branch_state(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_expsyn_1_branch, cell_to_intdom, target_handles, probe_handles);
@@ -308,7 +310,7 @@ void pas_1_branch_current(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_pas_1_branch, cell_to_intdom, target_handles, probe_handles);
@@ -327,7 +329,7 @@ void pas_3_branches_current(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_pas_3_branches, cell_to_intdom, target_handles, probe_handles);
@@ -346,7 +348,7 @@ void hh_1_branch_state(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_hh_1_branch, cell_to_intdom, target_handles, probe_handles);
@@ -365,7 +367,7 @@ void hh_1_branch_current(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_hh_1_branch, cell_to_intdom, target_handles, probe_handles);
@@ -384,7 +386,7 @@ void hh_3_branches_state(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_hh_3_branches, cell_to_intdom, target_handles, probe_handles);
@@ -403,7 +405,7 @@ void hh_3_branches_current(benchmark::State& state) {
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map<probe_handle> probe_handles;
+    probe_association_map probe_handles;
 
     fvm_cell cell((execution_context()));
     cell.initialize(gids, rec_hh_3_branches, cell_to_intdom, target_handles, probe_handles);

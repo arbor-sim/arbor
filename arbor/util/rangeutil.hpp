@@ -39,7 +39,7 @@ range_view(Seq&& seq) {
 
 template <typename Seq, typename = std::enable_if_t<sequence_traits<Seq&&>::is_contiguous>>
 auto range_pointer_view(Seq&& seq) {
-    return make_range(util::data(seq), util::data(seq)+util::size(seq));
+    return make_range(std::data(seq), std::data(seq)+std::size(seq));
 }
 
 template <
@@ -250,7 +250,7 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
     using std::begin;
     using std::end;
 
-    if (util::empty(seq)) {
+    if (std::empty(seq)) {
         return Value{};
     }
 
@@ -277,7 +277,7 @@ std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
     using std::begin;
     using std::end;
 
-    if (util::empty(seq)) {
+    if (std::empty(seq)) {
         return {Value{}, Value{}};
     }
 
@@ -398,6 +398,39 @@ range<Rev, Rev> reverse_view(Seq&& seq) {
     auto strict = strict_view(seq);
     return range<Rev, Rev>(Rev(strict.right), Rev(strict.left));
 }
+
+// Left fold (accumulate) over sequence.
+//
+// Note that the order of arguments follows the application order;
+// schematically:
+//
+//     foldl f a [] = a
+//     foldl f a (b:bs) = foldl f (f a b) bs
+//
+// The binary operator f will be invoked once per element in the
+// sequence in turn, with the running accumulator as the first
+// argument. If the iterators for the sequence deference to a
+// mutable lvalue, then mutation of the value in the input sequence
+// is explicitly permitted.
+//
+// std::accumulate(begin, end, init, f) is equivalent to
+// util::foldl(f, init, util::make_range(begin, end)).
+
+template <typename Seq, typename Acc, typename BinOp>
+auto foldl(BinOp f, Acc a, Seq&& seq) {
+    using std::begin;
+    using std::end;
+
+    auto b = begin(seq);
+    auto e = end(seq);
+
+    while (b!=e) {
+        a = f(std::move(a), *b);
+        ++b;
+    }
+    return a;
+}
+
 
 } // namespace util
 } // namespace arb

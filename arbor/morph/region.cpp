@@ -1,14 +1,17 @@
-#include <string>
-#include <vector>
+#include <optional>
 #include <stack>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/util/optional.hpp>
 
+#include "s_expr.hpp"
 #include "util/mergeview.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
@@ -18,12 +21,12 @@
 namespace arb {
 namespace reg {
 
-util::optional<mcable> intersect(const mcable& a, const mcable& b) {
-    if (a.branch!=b.branch) return util::nullopt;
+std::optional<mcable> intersect(const mcable& a, const mcable& b) {
+    if (a.branch!=b.branch) return std::nullopt;
 
     double prox = std::max(a.prox_pos, b.prox_pos);
     double dist = std::min(a.dist_pos, b.dist_pos);
-    return prox<=dist? util::just(mcable{a.branch, prox, dist}): util::nullopt;
+    return prox<=dist? std::optional(mcable{a.branch, prox, dist}): std::nullopt;
 }
 
 // Empty region.
@@ -140,54 +143,52 @@ region tagged(int id) {
 }
 
 mextent thingify_(const tagged_& reg, const mprovider& p) {
-    const auto& m = p.morphology();
     const auto& e = p.embedding();
-    size_t nb = m.num_branches();
+    const auto& m = p.morphology();
 
-    std::vector<mcable> L;
-    L.reserve(nb);
-    auto& samples = m.samples();
-    auto matches     = [reg, &samples](msize_t i) {return samples[i].tag==reg.tag;};
-    auto not_matches = [&matches](msize_t i) {return !matches(i);};
+    size_t nb = m.num_branches();
+    std::vector<mcable> cables;
 
     for (msize_t i: util::make_span(nb)) {
-        auto ids = util::make_range(m.branch_indexes(i)); // range of sample ids in branch.
-        size_t ns = util::size(ids);        // number of samples in branch.
-
-        if (ns==1) {
-            // The branch is a spherical soma
-            if (samples[0].tag==reg.tag) {
-                L.push_back({0,0,1});
+        for (const auto& seg: m.branch_segments(i)) {
+            if (seg.tag==reg.tag) {
+                cables.push_back(e.segment(seg.id));
             }
-            continue;
-        }
-
-        // The branch has at least 2 samples.
-        // Start at begin+1 because a segment gets its tag from its distal sample.
-        auto beg = std::cbegin(ids);
-        auto end = std::cend(ids);
-
-        // Find the next sample that matches reg.tag.
-        auto start = std::find_if(beg+1, end, matches);
-        while (start!=end) {
-            // find the next sample that does not match reg.tag
-            auto first = start-1;
-            auto last = std::find_if(start, end, not_matches);
-
-            auto l = first==beg? 0.: e.sample_location(*first).pos;
-            auto r = last==end?  1.: e.sample_location(*(last-1)).pos;
-            L.push_back({i, l, r});
-
-            // Find the next sample in the branch that matches reg.tag.
-            start = std::find_if(last, end, matches);
         }
     }
-
-    return mextent(L);
+    util::sort(cables);
+    return mextent(cables);
 }
 
 std::ostream& operator<<(std::ostream& o, const tagged_& t) {
     return o << "(tag " << t.tag << ")";
+}
+
+// Region comprising a single segment.
+
+struct segment_: region_tag {
+    explicit segment_(int id): id(id) {}
+    int id;
+};
+
+region segment(int id) {
+    return region(segment_{id});
+}
+
+mextent thingify_(const segment_& reg, const mprovider& p) {
+    const auto& e = p.embedding();
+
+    msize_t id(reg.id);
+    if (id>=e.num_segments()) {
+        throw no_such_segment(id);
+    }
+
+    mcable_list cables = {e.segment(id)};
+    return mextent(cables);
+}
+
+std::ostream& operator<<(std::ostream& o, const segment_& reg) {
+    return o << "(segment " << reg.id << ")";
 }
 
 // Region comprising whole morphology.
@@ -281,7 +282,9 @@ mextent thingify_(const distal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
-    return o << "(distal_interval " << d.start << " " << d.distance << ")";
+    return d.distance==std::numeric_limits<double>::max()?
+        o << "(distal-interval " << d.start << ")":
+        o << "(distal-interval " << d.start << " " << d.distance << ")";
 }
 
 // Region comprising points up to `distance` proximal to a point in `end`.
@@ -335,7 +338,9 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
-    return o << "(proximal_interval " << d.end << " " << d.distance << ")";
+    return d.distance==std::numeric_limits<double>::max()?
+        o << "(proximal-interval " << d.end << ")":
+        o << "(proximal-interval " << d.end << " " << d.distance << ")";
 }
 
 mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {
@@ -370,7 +375,7 @@ mextent thingify_(const radius_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
-    return o << "(radius_lt " << r.reg << " " << r.val << ")";
+    return o << "(radius-lt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius less than r
@@ -388,7 +393,7 @@ mextent thingify_(const radius_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
-    return o << "(radius_le " << r.reg << " " << r.val << ")";
+    return o << "(radius-le " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than r
@@ -406,7 +411,7 @@ mextent thingify_(const radius_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
-    return o << "(radius_gt " << r.reg << " " << r.val << ")";
+    return o << "(radius-gt " << r.reg << " " << r.val << ")";
 }
 
 // Region with all segments with radius greater than or equal to r
@@ -416,7 +421,7 @@ struct radius_ge_ {
 };
 
 region radius_ge(region reg, double val) {
-    return region(radius_gt_{reg, val});
+    return region(radius_ge_{reg, val});
 }
 
 mextent thingify_(const radius_ge_& r, const mprovider& p) {
@@ -424,7 +429,7 @@ mextent thingify_(const radius_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
-    return o << "(radius_ge " << r.reg << " " << r.val << ")";
+    return o << "(radius-ge " << r.reg << " " << r.val << ")";
 }
 
 mextent projection_cmp(const mprovider& p, double v, comp_op op) {
@@ -453,7 +458,7 @@ mextent thingify_(const projection_lt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
-    return o << "(projection_lt " << r.val << ")";
+    return o << "(projection-lt " << r.val << ")";
 }
 
 // Region with all segments with projection less than or equal to val
@@ -470,7 +475,7 @@ mextent thingify_(const projection_le_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
-    return o << "(projection_le " << r.val << ")";
+    return o << "(projection-le " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -487,7 +492,7 @@ mextent thingify_(const projection_gt_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
-    return o << "(projection_gt " << r.val << ")";
+    return o << "(projection-gt " << r.val << ")";
 }
 
 // Region with all segments with projection greater than val
@@ -504,7 +509,7 @@ mextent thingify_(const projection_ge_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
-    return o << "(projection_ge " << r.val << ")";
+    return o << "(projection-ge " << r.val << ")";
 }
 
 region z_dist_from_root_lt(double r0) {
@@ -558,7 +563,7 @@ struct super_ {
     region reg;
 };
 
-region super(region r) {
+region complete(region r) {
     return region(super_{std::move(r)});
 }
 
@@ -617,7 +622,7 @@ mextent thingify_(const super_& r, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const super_& r) {
-    return o << "(super " << r.reg << ")";
+    return o << "(complete " << r.reg << ")";
 }
 
 
@@ -654,11 +659,69 @@ std::ostream& operator<<(std::ostream& o, const reg_or& x) {
     return o << "(join " << x.lhs << " " << x.rhs << ")";
 }
 
+
+// Complement of a region.
+
+struct reg_not: region_tag {
+    region r;
+    explicit reg_not(region r): r(std::move(r)) {}
+};
+
+mextent thingify_(const reg_not& P, const mprovider& p) {
+    auto nb = p.morphology().num_branches();
+    mcable_list result;
+
+    mextent rex = thingify(P.r, p);
+    auto rex_i = rex.begin();
+
+    for (auto i: util::make_span(nb)) {
+        while (rex_i!=rex.end() && rex_i->branch<i) ++rex_i;
+
+        double x = 0;
+        while (rex_i!=rex.end() && rex_i->branch==i) {
+            double y = rex_i->prox_pos;
+            if (y>x) {
+                result.push_back(mcable{i, x, y});
+            }
+
+            x = rex_i->dist_pos;
+            ++rex_i;
+        }
+
+        if (x<1) {
+            result.push_back(mcable{i, x, 1});
+        }
+    }
+
+    return mextent(result);
+}
+
+std::ostream& operator<<(std::ostream& o, const reg_not& x) {
+    return o << "(complement " << x.r << ")";
+}
+
+
+// Closed set difference of two regions.
+
+struct reg_minus: region_tag {
+    region lhs;
+    region rhs;
+    reg_minus(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+};
+
+mextent thingify_(const reg_minus& P, const mprovider& p) {
+    return thingify(intersect(std::move(P.lhs), complement(std::move(P.rhs))), p);
+}
+
+std::ostream& operator<<(std::ostream& o, const reg_minus& x) {
+    return o << "(difference " << x.lhs << " " << x.rhs << ")";
+}
+
 } // namespace reg
 
-// The intersect and join operations in the arb:: namespace with region so that
-// ADL allows for construction of expressions with regions without having
-// to namespace qualify the intersect/join.
+// The intersect, join, complement and difference operations are in the arb::
+// namespace with region so that ADL allows for construction of expressions
+// with regions without having to namespace qualify these operations.
 
 region intersect(region l, region r) {
     return region{reg::reg_and(std::move(l), std::move(r))};
@@ -668,19 +731,30 @@ region join(region l, region r) {
     return region{reg::reg_or(std::move(l), std::move(r))};
 }
 
+region complement(region r) {
+    return region{reg::reg_not(std::move(r))};
+}
+
+region difference(region l, region r) {
+    return region{reg::reg_minus(std::move(l), std::move(r))};
+}
+
 region::region() {
     *this = reg::nil();
 }
 
 // Implicit constructors/converters.
 
-region::region(std::string label) {
-    *this = reg::named(std::move(label));
+region::region(const std::string& desc) {
+    if (auto r=parse_region_expression(desc)) {
+        *this = *r;
+    }
+    else {
+        throw r.error();
+    }
 }
 
-region::region(const char* label) {
-    *this = reg::named(label);
-}
+region::region(const char* label): region(std::string(label)) {}
 
 region::region(mcable c) {
     *this = reg::cable(c.branch, c.prox_pos, c.dist_pos);

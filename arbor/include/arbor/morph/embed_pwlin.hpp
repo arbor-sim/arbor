@@ -22,8 +22,17 @@ using pw_constant_fn = util::pw_elements<double>;
 struct embed_pwlin {
     explicit embed_pwlin(const arb::morphology& m);
 
-    mlocation sample_location(msize_t sid) const {
-        return sample_locations_.at(sid);
+    // Segment queries.
+    msize_t num_segments() const {
+        return segment_cables_.size();
+    }
+
+    mcable segment(msize_t seg_id) const {
+        return segment_cables_.at(seg_id);
+    }
+
+    const mlocation_list& segment_ends() const {
+        return all_segment_ends_;
     }
 
     // Interpolated radius at location.
@@ -58,9 +67,9 @@ struct embed_pwlin {
         return integrate_length(mcable{bid, 0, 1});
     }
 
-
 private:
-    std::vector<mlocation> sample_locations_;
+    mlocation_list all_segment_ends_;
+    std::vector<mcable> segment_cables_;
     std::shared_ptr<embed_pwlin_data> data_;
 };
 

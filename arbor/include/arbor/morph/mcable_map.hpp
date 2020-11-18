@@ -5,11 +5,11 @@
 // The only mutating operations are insert, emplace, and clear.
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 
 #include <arbor/assert.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/util/optional.hpp>
 
 namespace arb {
 
@@ -89,7 +89,7 @@ struct mcable_map {
 private:
     std::vector<value_type> elements_;
 
-    util::optional<typename std::vector<value_type>::iterator> insertion_point(const mcable& c) {
+    std::optional<typename std::vector<value_type>::iterator> insertion_point(const mcable& c) {
         struct as_mcable {
             mcable value;
             as_mcable(const value_type& x): value(x.first) {}
@@ -102,13 +102,13 @@ private:
         if (it!=elements_.begin()) {
             mcable prior = std::prev(it)->first;
             if (prior.branch==c.branch && prior.dist_pos>c.prox_pos) {
-                return util::nullopt;
+                return std::nullopt;
             }
         }
         if (it!=elements_.end()) {
             mcable next = it->first;
             if (c.branch==next.branch && c.dist_pos>next.prox_pos) {
-                return util::nullopt;
+                return std::nullopt;
             }
         }
         return it;

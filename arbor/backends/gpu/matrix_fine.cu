@@ -17,7 +17,10 @@ namespace kernels {
 // to[i] = from[p[i]]
 template <typename T, typename I>
 __global__
-void gather(const T* from, T* to, const I* p, unsigned n) {
+void gather(const T* __restrict__ const from,
+            T* __restrict__ const to,
+            const I* __restrict__ const p,
+            unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {
@@ -28,7 +31,10 @@ void gather(const T* from, T* to, const I* p, unsigned n) {
 // to[p[i]] = from[i]
 template <typename T, typename I>
 __global__
-void scatter(const T* from, T* to, const I* p, unsigned n) {
+void scatter(const T* __restrict__ const from,
+             T* __restrict__ const to,
+             const I* __restrict__ const p,
+             unsigned n) {
     unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (i<n) {
@@ -36,7 +42,7 @@ void scatter(const T* from, T* to, const I* p, unsigned n) {
     }
 }
 
-/// GPU implementatin of Hines matrix assembly.
+/// GPU implementation of Hines matrix assembly.
 /// Fine layout.
 /// For a given time step size dt:
 ///     - use the precomputed alpha and alpha_d values to construct the diagonal
@@ -45,43 +51,34 @@ void scatter(const T* from, T* to, const I* p, unsigned n) {
 template <typename T, typename I>
 __global__
 void assemble_matrix_fine(
-        T* d,
-        T* rhs,
-        const T* invariant_d,
-        const T* voltage,
-        const T* current,
-        const T* conductivity,
-        const T* cv_capacitance,
-        const T* area,
-        const I* cv_to_cell,
-        const T* dt_intdom,
-        const I* cell_to_intdom,
-        const I* perm,
+        T* __restrict__ const d,
+        T* __restrict__ const rhs,
+        const T* __restrict__ const invariant_d,
+        const T* __restrict__ const voltage,
+        const T* __restrict__ const current,
+        const T* __restrict__ const conductivity,
+        const T* __restrict__ const cv_capacitance,
+        const T* __restrict__ const area,
+        const I* __restrict__ const cv_to_intdom,
+        const T* __restrict__ const dt_intdom,
+        const I* __restrict__ const perm,
         unsigned n)
 {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid < n) {
+        // The 1e-3 is a constant of proportionality required to ensure that the
+        // conductance (gi) values have units μS (micro-Siemens).
+        // See the model documentation in docs/model for more information.
+        const auto dt = dt_intdom[cv_to_intdom[tid]];
+        const auto p = dt > 0;
+        const auto pid = perm[tid];
+        const auto area_factor = T(1e-3)*area[tid];
+        const auto gi = T(1e-3)*cv_capacitance[tid]/dt + area_factor*conductivity[tid];
+        const auto r_d = gi + invariant_d[tid];
+        const auto r_rhs = gi*voltage[tid] - area_factor*current[tid];
 
-    if (tid<n) {
-        auto cid = cv_to_cell[tid];
-        auto dt = dt_intdom[cell_to_intdom[cid]];
-
-        if (dt>0) {
-            // The 1e-3 is a constant of proportionality required to ensure that the
-            // conductance (gi) values have units μS (micro-Siemens).
-            // See the model documentation in docs/model for more information.
-            T oodt_factor = T(1e-3)/dt;
-            T area_factor = T(1e-3)*area[tid];
-
-            const auto gi = oodt_factor*cv_capacitance[tid] + area_factor*conductivity[tid];
-            const auto pid = perm[tid];
-            d[pid] = gi + invariant_d[tid];
-            rhs[pid] = gi*voltage[tid] - area_factor*current[tid];
-        }
-        else {
-            const auto pid = perm[tid];
-            d[pid] = 0;
-            rhs[pid] = voltage[tid];
-        }
+        d[pid]   = p ? r_d : 0;
+        rhs[pid] = p ? r_rhs : voltage[tid];
     }
 }
 
@@ -97,15 +94,14 @@ void assemble_matrix_fine(
 template <typename T>
 __global__
 void solve_matrix_fine(
-    T* rhs,
-    T* d,
-    const T* u,
-    const level_metadata* level_meta,
-    const fvm_index_type* level_lengths,
-    const fvm_index_type* level_parents,
-    const fvm_index_type* block_index,
-    fvm_index_type* num_matrix, // number of packed matrices = number of cells
-    fvm_index_type* padded_size)
+    T* __restrict__ const rhs,
+    T* __restrict__ const d,
+    const T* __restrict__ const u,
+    const level_metadata* __restrict__ const level_meta,
+    const fvm_index_type* __restrict__ const level_lengths,
+    const fvm_index_type* __restrict__ const level_parents,
+    const fvm_index_type* __restrict__ const block_index,
+    const fvm_index_type* __restrict__ const num_matrix) // number of packed matrices = number of cells
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
@@ -129,6 +125,7 @@ void solve_matrix_fine(
 
         const unsigned width = lvl_meta.num_branches;
 
+
         // Perform backward substitution for each branch on this level.
         // One thread per branch.
         if (tid < width) {
@@ -144,32 +141,31 @@ void solve_matrix_fine(
             // all the matrices at the same time. When a cell finishes, we put a
             // `0` on the diagonal to mark that it should not be solved for.
             if (d[pos]!=0) {
-
                 // each branch perform substitution
-                T factor = u[pos] / d[pos];
                 for (unsigned i=0; i<len-1; ++i) {
                     const unsigned next_pos = pos + width;
-                    d[next_pos]   -= factor * u[pos];
-                    rhs[next_pos] -= factor * rhs[pos];
-
-                    factor = u[next_pos] / d[next_pos];
+                    const auto d_next = d[next_pos];
+                    const auto rhs_next = rhs[next_pos];
+                    const T factor = -u[pos]/d[pos];
+                    d[next_pos] = fma(factor, u[pos], d_next);
+                    rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
                     pos = next_pos;
                 }
-
                 // Update d and rhs at the parent node of this branch.
                 // A parent may have more than one contributing to it, so we use
                 // atomic updates to avoid races conditions.
                 const unsigned parent_index = next_lvl_meta.matrix_data_index;
                 const unsigned p = parent_index + lvl_parents[tid];
-                //d[p]   -= factor * u[pos];
-                gpu_atomic_add(d  +p, -factor*u[pos]);
-                //rhs[p] -= factor * rhs[pos];
-                gpu_atomic_add(rhs+p, -factor*rhs[pos]);
+
+                const T factor = -u[pos] / d[pos];
+                gpu_atomic_add(d + p, factor*u[pos]);
+                gpu_atomic_add(rhs + p, factor*rhs[pos]);
             }
         }
         __syncthreads();
     }
 
+    // Solve the root
     {
         // The levels are sorted such that the root is the last level
         const auto& last_lvl_meta = block_level_meta[num_levels-1];
@@ -182,14 +178,14 @@ void solve_matrix_fine(
             unsigned pos = last_lvl_meta.matrix_data_index + tid;
 
             if (d[pos]!=0) {
-
                 // backward
                 for (unsigned i=0; i<len-1; ++i) {
-                    T factor = u[pos] / d[pos];
                     const unsigned next_pos = pos + width;
-                    d[next_pos]   -= factor * u[pos];
-                    rhs[next_pos] -= factor * rhs[pos];
-
+                    const T factor = -u[pos] / d[pos];
+                    const auto rhs_next = rhs[next_pos];
+                    const auto d_next = d[next_pos];
+                    d[next_pos]   = fma(factor, u[pos], d_next);
+                    rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
                     pos = next_pos;
                 }
 
@@ -227,15 +223,14 @@ void solve_matrix_fine(
         // Perform forward-substitution for each branch on this level.
         // One thread per branch.
         if (tid < width) {
-            // Load the rhs value for the parent node of this branch.
-            const unsigned p = parent_index + lvl_parents[tid];
-            T rhsp = rhs[p];
-
             // Find the index of the first node in this branch.
             const unsigned len = lvl_lengths[tid];
             unsigned pos = lvl_meta.matrix_data_index + (len-1)*width + tid;
 
             if (d[pos]!=0) {
+                // Load the rhs value for the parent node of this branch.
+                const unsigned p = parent_index + lvl_parents[tid];
+                T rhsp = rhs[p];
                 // each branch perform substitution
                 for (unsigned i=0; i<len; ++i) {
                     rhsp = rhs[pos] - u[pos]*rhsp;
@@ -274,7 +269,6 @@ void scatter(
     kernels::scatter<<<griddim, blockdim>>>(from, to, p, n);
 }
 
-
 void assemble_matrix_fine(
     fvm_value_type* d,
     fvm_value_type* rhs,
@@ -284,9 +278,8 @@ void assemble_matrix_fine(
     const fvm_value_type* conductivity,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
-    const fvm_index_type* cv_to_cell,
+    const fvm_index_type* cv_to_intdom,
     const fvm_value_type* dt_intdom,
-    const fvm_index_type* cell_to_intdom,
     const fvm_index_type* perm,
     unsigned n)
 {
@@ -295,8 +288,7 @@ void assemble_matrix_fine(
 
     kernels::assemble_matrix_fine<<<num_blocks, block_dim>>>(
         d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
-        cv_to_cell, dt_intdom, cell_to_intdom,
-        perm, n);
+        cv_to_intdom, dt_intdom, perm, n);
 }
 
 // Example:
@@ -331,7 +323,7 @@ void solve_matrix_fine(
 {
     kernels::solve_matrix_fine<<<num_blocks, blocksize>>>(
         rhs, d, u, level_meta, level_lengths, level_parents, block_index,
-        num_cells, padded_size);
+        num_cells);
 }
 
 } // namespace gpu

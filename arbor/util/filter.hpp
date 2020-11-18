@@ -9,11 +9,11 @@
 #include <type_traits>
 
 #include <arbor/assert.hpp>
+#include <arbor/util/uninitialized.hpp>
 
-#include <util/iterutil.hpp>
-#include <util/meta.hpp>
-#include <util/range.hpp>
-
+#include "util/iterutil.hpp"
+#include "util/meta.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 namespace util {
@@ -187,31 +187,20 @@ filter_iterator<I, S, std::decay_t<F>> make_filter_iterator(const I& i, const S&
     return filter_iterator<I, S, std::decay_t<F>>(i, end, f);
 }
 
-// TODO C++17: simplify with constexpr-if
-namespace filter_impl {
+template <typename Seq, typename F>
+auto filter(Seq&& s, const F& f) {
     using std::begin;
     using std::end;
 
-    // filter over regular sequences:
-    template <typename Seq, typename F>
-    auto filter_(Seq&& s, const F& f, std::true_type) {
-        auto b = begin(s);
-        auto e = end(s);
+    auto b = begin(s);
+    auto e = end(s);
+
+    if constexpr (is_regular_sequence_v<Seq&&>) {
         return make_range(make_filter_iterator(b, e, f), make_filter_iterator(e, e, f));
     }
-
-    // filter over sentinel-terminated sequences:
-    template <typename Seq, typename F>
-    auto filter_(Seq&& s, const F& f, std::false_type) {
-        auto b = begin(s);
-        auto e = end(s);
+    else {
         return make_range(make_filter_iterator(b, e, f), e);
     }
-}
-
-template <typename Seq, typename F>
-auto filter(Seq&& s, const F& f) {
-    return filter_impl::filter_(std::forward<Seq>(s), f, is_regular_sequence<Seq&&>{});
 }
 
 } // namespace util

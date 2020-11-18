@@ -1,20 +1,20 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <unordered_map>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "event_binner.hpp"
 
 namespace arb {
 
 void event_binner::reset() {
-    last_event_time_ = util::nullopt;
+    last_event_time_ = std::nullopt;
 }
 
 time_type event_binner::bin(time_type t, time_type t_min) {

@@ -72,15 +72,6 @@ public:
     cell_size_type num_targets(cell_gid_type) const override {
         return 1;
     }
-    cell_size_type num_probes(cell_gid_type) const override {
-        return 0;
-    }
-    probe_info get_probe(cell_member_type probe_id) const override {
-        return {};
-    }
-    std::vector<event_generator> event_generators(cell_gid_type) const override {
-        return {};
-    }
 
 private:
     cell_size_type n_lif_cells_;
@@ -124,15 +115,6 @@ public:
     }
     cell_size_type num_targets(cell_gid_type) const override {
         return 1;
-    }
-    cell_size_type num_probes(cell_gid_type) const override {
-        return 0;
-    }
-    probe_info get_probe(cell_member_type probe_id) const override {
-        return {};
-    }
-    std::vector<event_generator> event_generators(cell_gid_type) const override {
-        return {};
     }
 
 private:

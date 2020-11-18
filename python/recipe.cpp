@@ -29,12 +29,12 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
                 "Python error already thrown");
 }
 
-arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc) {
+arb::probe_info cable_loc_probe(std::string kind, arb::mlocation loc) {
     if (kind == "voltage") {
-        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
+        return arb::cable_probe_membrane_voltage{loc};
     }
     else if (kind == "ionic current density") {
-        return arb::probe_info{id, 0, arb::cable_probe_total_ion_current_density{loc}};
+        return arb::cable_probe_total_ion_current_density{loc};
     }
     else throw pyarb_error(util::pprintf("unrecognized probe kind: {}", kind));
 };
@@ -161,25 +161,22 @@ void register_recipe(pybind11::module& m) {
         .def("gap_junctions_on", &py_recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")
-        .def("num_probes", &py_recipe::num_probes,
+        .def("get_probes", &py_recipe::get_probes,
             "gid"_a,
-            "The number of probes on gid, 0 by default.")
-        .def("get_probe", &py_recipe::get_probe,
-            "id"_a,
-            "The probe(s) to allow monitoring, must be provided if num_probes() returns a non-zero value.")
+            "The probes to allow monitoring.")
         // TODO: py_recipe::global_properties
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
 
     // Probes
-    m.def("cable_probe", &cable_probe,
-        "Description of a probe at a location on a cable cell with id available for monitoring data of kind "\
+    m.def("cable_probe", &cable_loc_probe,
+        "Description of a probe at a location available for monitoring data of kind "\
         "where kind is one of 'voltage' or 'ionic current density'.",
-        "kind"_a, "id"_a, "location"_a);
+        "kind"_a, "location"_a);
 
     pybind11::class_<arb::probe_info> probe(m, "probe");
     probe
-        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: cell {}, probe {}>", p.id.gid, p.id.index);})
-        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: cell {}, probe {}>", p.id.gid, p.id.index);});
+        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
+        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);});
 }
 } // namespace pyarb

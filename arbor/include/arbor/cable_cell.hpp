@@ -15,6 +15,7 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/util/hash_def.hpp>
 #include <arbor/util/typed_map.hpp>
 
 namespace arb {
@@ -52,7 +53,10 @@ using cable_sample_range = std::pair<const double*, const double*>;
 //     * `cable_probe_point_info` for point mechanism state queries;
 //     * `mcable_list` for most vector queries;
 //     * `std::vector<cable_probe_point_info>` for cell-wide point mechanism state queries.
-
+//
+// Scalar probes which are described by a locset expression will generate multiple
+// calls to an attached sampler, one per valid location matched by the expression.
+//
 // Metadata for point process probes.
 struct cable_probe_point_info {
     cell_lid_type target;   // Target number of point process instance on cell.
@@ -64,7 +68,7 @@ struct cable_probe_point_info {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_membrane_voltage {
-    mlocation location;
+    locset locations;
 };
 
 // Voltage estimate [mV], reported against each cable in each control volume. Not interpolated.
@@ -76,22 +80,22 @@ struct cable_probe_membrane_voltage_cell {};
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_axial_current {
-    mlocation location;
+    locset locations;
 };
 
 // Total current density [A/m²] across membrane _excluding_ capacitive current at `location`.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mlocation`
 struct cable_probe_total_ion_current_density {
-    mlocation location;
+    locset locations;
 };
 
-// Total ionic current [nA] across membrance _excluding_ capacitive current across components of the cell.
+// Total ionic current [nA] across membrane _excluding_ capacitive current across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
 struct cable_probe_total_ion_current_cell {};
 
-// Total membrance current [nA] across components of the cell.
+// Total membrane current [nA] across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
 struct cable_probe_total_current_cell {};
@@ -100,7 +104,7 @@ struct cable_probe_total_current_cell {};
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_density_state {
-    mlocation location;
+    locset locations;
     std::string mechanism;
     std::string state;
 };
@@ -135,7 +139,7 @@ struct cable_probe_point_state_cell {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_ion_current_density {
-    mlocation location;
+    locset locations;
     std::string ion;
 };
 
@@ -150,7 +154,7 @@ struct cable_probe_ion_current_cell {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_ion_int_concentration {
-    mlocation location;
+    locset locations;
     std::string ion;
 };
 
@@ -165,7 +169,7 @@ struct cable_probe_ion_int_concentration_cell {
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
 struct cable_probe_ion_ext_concentration {
-    mlocation location;
+    locset locations;
     std::string ion;
 };
 
@@ -187,7 +191,8 @@ struct cable_cell_impl;
 template <typename T>
 using region_assignment =
     std::conditional_t<
-        std::is_same<T, mechanism_desc>::value || std::is_same<T, initial_ion_data>::value,
+        std::is_same<T, mechanism_desc>::value || std::is_same<T, init_int_concentration>::value ||
+        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value,
         std::unordered_map<std::string, mcable_map<T>>,
         mcable_map<T>>;
 
@@ -211,7 +216,8 @@ using location_assignment =
 
 using cable_cell_region_map = static_typed_map<region_assignment,
     mechanism_desc, init_membrane_potential, axial_resistivity,
-    temperature_K, membrane_capacitance, initial_ion_data>;
+    temperature_K, membrane_capacitance, init_int_concentration,
+    init_ext_concentration, init_reversal_potential>;
 
 using cable_cell_location_map = static_typed_map<location_assignment,
     mechanism_desc, i_clamp, gap_junction_site, threshold_detector>;
@@ -222,7 +228,6 @@ public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
-    using point_type = point<value_type>;
 
     using gap_junction_instance = mlocation;
 
@@ -271,6 +276,18 @@ public:
         default_parameters.ion_data[prop.ion] = prop.initial;
     }
 
+    void set_default(init_int_concentration prop) {
+        default_parameters.ion_data[prop.ion].init_int_concentration = prop.value;
+    }
+
+    void set_default(init_ext_concentration prop) {
+        default_parameters.ion_data[prop.ion].init_ext_concentration = prop.value;
+    }
+
+    void set_default(init_reversal_potential prop) {
+        default_parameters.ion_data[prop.ion].init_reversal_potential = prop.value;
+    }
+
     void set_default(ion_reversal_potential_method prop) {
         default_parameters.reversal_potential_method[prop.ion] = prop.method;
     }
@@ -278,7 +295,7 @@ public:
     // Painters and placers.
     //
     // Used to describe regions and locations where density channels, stimuli,
-    // synapses, gap juncitons and detectors are located.
+    // synapses, gap junctions and detectors are located.
 
     // Density channels.
     void paint(const region&, mechanism_desc);
@@ -288,7 +305,9 @@ public:
     void paint(const region&, axial_resistivity);
     void paint(const region&, temperature_K);
     void paint(const region&, membrane_capacitance);
-    void paint(const region&, initial_ion_data);
+    void paint(const region&, init_int_concentration);
+    void paint(const region&, init_ext_concentration);
+    void paint(const region&, init_reversal_potential);
 
     // Synapses.
     lid_range place(const locset&, mechanism_desc);
@@ -335,3 +354,5 @@ private:
 };
 
 } // namespace arb
+
+ARB_DEFINE_HASH(arb::cable_probe_point_info, a.target, a.multiplicity, a.loc);

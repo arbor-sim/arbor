@@ -1,7 +1,9 @@
 #include <queue>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
@@ -91,7 +93,7 @@ domain_decomposition partition_load_balance(
                     auto conns = rec.gap_junctions_on(element);
                     for (auto c: conns) {
                         if (element != c.local.gid && element != c.peer.gid) {
-                            throw bad_cell_description(cell_kind::cable, element);
+                            throw bad_gj_connection_gid(element, c.local.gid, c.peer.gid);
                         }
                         cell_member_type other = c.local.gid == element ? c.peer : c.local;
 

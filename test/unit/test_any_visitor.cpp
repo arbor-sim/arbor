@@ -1,19 +1,20 @@
+#include <any>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
 
-#include <arbor/util/any.hpp>
 #include <arbor/util/any_visitor.hpp>
 
 #include "../gtest.h"
 #include "common.hpp"
 
 using namespace std::string_literals;
-using arb::util::any;
-using arb::util::any_cast;
-using arb::util::any_visitor;
-using arb::util::bad_any_cast;
+using std::any;
+using std::any_cast;
+using std::bad_any_cast;
+
 using arb::util::overload;
+using arb::util::any_visitor;
 
 TEST(any_visitor, simple) {
     enum { A0, B0, C0 };

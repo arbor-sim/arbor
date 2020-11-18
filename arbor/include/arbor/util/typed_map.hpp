@@ -13,11 +13,10 @@
 //     m.get<int>() = {1, 2, 3};
 //     m.get<double>() = {1.2, 2.3};
 
+#include <any>
 #include <tuple>
 #include <typeindex>
 #include <unordered_map>
-
-#include <arbor/util/any.hpp>
 
 namespace arb {
 
@@ -27,19 +26,19 @@ struct dynamic_typed_map {
     // default value if no entry in map for T.
     template <typename T>
     E<T>& get() {
-        arb::util::any& store_entry = tmap_[std::type_index(typeid(T))];
+        std::any& store_entry = tmap_[std::type_index(typeid(T))];
         if (!store_entry.has_value()) {
-            store_entry = arb::util::any(E<T>{});
+            store_entry = std::any(E<T>{});
         }
 
-        return arb::util::any_cast<E<T>&>(store_entry);
+        return std::any_cast<E<T>&>(store_entry);
     }
 
     // Retrieve value by const reference associated with type T;
     // throw if no entry in map for T.
     template <typename T>
     const E<T>& get() const {
-        return arb::util::any_cast<const E<T>&>(tmap_.at(std::type_index(typeid(T))));
+        return std::any_cast<const E<T>&>(tmap_.at(std::type_index(typeid(T))));
     }
 
     // True if map has an entry for type T.
@@ -47,7 +46,7 @@ struct dynamic_typed_map {
     bool has() const { return tmap_.count(std::type_index(typeid(T))); }
 
 private:
-    std::unordered_map<std::type_index, arb::util::any> tmap_;
+    std::unordered_map<std::type_index, std::any> tmap_;
 };
 
 template <template <class> class E, typename... Keys>

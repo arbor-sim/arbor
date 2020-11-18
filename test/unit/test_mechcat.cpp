@@ -244,6 +244,48 @@ TEST(mechcat, fingerprint) {
         arb::fingerprint_mismatch);
 }
 
+TEST(mechcat, names) {
+    // All names are caught; covers `add' and `derive'
+    {
+        auto cat = build_fake_catalogue();
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{"bleeble", "burble", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+
+    // Deriving names does not add to catalogue
+    {
+        auto cat = build_fake_catalogue();
+        auto info   = cat["burble/quux=3,xyzzy=4"];
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{"bleeble", "burble", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+
+    // Deleting a mechanism removes it and all derived from it.
+    {
+        auto cat = build_fake_catalogue();
+        cat.remove("fleeb");
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{"bleeble", "burble"};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+
+    // Empty means empty.
+    {
+        auto cat = build_fake_catalogue();
+        cat.remove("fleeb");
+        cat.remove("burble");
+        auto names  = cat.mechanism_names();
+        auto expect = std::vector<std::string>{};
+        std::sort(names.begin(), names.end());
+        EXPECT_EQ(names, expect);
+    }
+}
+
 TEST(mechcat, derived_info) {
     auto cat = build_fake_catalogue();
 
@@ -443,4 +485,95 @@ TEST(mechcat, copy) {
     EXPECT_EQ(typeid(*fleeb2_inst.mech.get()), typeid(*fleeb2_inst2.mech.get()));
 }
 
+TEST(mechcat, import) {
+    auto cat = build_fake_catalogue();
+    mechanism_catalogue cat2;
+    cat2.import(cat, "fake_");
 
+    EXPECT_TRUE(cat.has("fleeb2"));
+    EXPECT_FALSE(cat.has("fake_fleeb2"));
+
+    EXPECT_TRUE(cat2.has("fake_fleeb2"));
+    EXPECT_FALSE(cat2.has("fleeb2"));
+
+    EXPECT_EQ(cat["fleeb2"], cat2["fake_fleeb2"]);
+
+    auto fleeb2_inst  = cat.instance<foo_backend>("fleeb2");
+    auto fleeb2_inst2 = cat2.instance<foo_backend>("fake_fleeb2");
+
+    EXPECT_EQ(typeid(*fleeb2_inst.mech.get()), typeid(*fleeb2_inst2.mech.get()));
+}
+
+TEST(mechcat, import_collisions) {
+    {
+        auto cat = build_fake_catalogue();
+
+        mechanism_catalogue cat2;
+        EXPECT_NO_THROW(cat2.import(cat, "prefix:")); // Should have no collisions.
+        EXPECT_NO_THROW(cat.import(cat2, "prefix:")); // Should have no collisions here either.
+
+        // cat should have both original entries and copies with 'prefix:prefix:' prefixed.
+        ASSERT_TRUE(cat.has("fleeb2"));
+        ASSERT_TRUE(cat.has("prefix:prefix:fleeb2"));
+    }
+
+    // We should throw if there any collisions between base or derived mechanism
+    // names between the catalogues. If the import fails, the catalogue should
+    // remain unchanged.
+    {
+        // Collision between two base mechanisms.
+        {
+            auto cat = build_fake_catalogue();
+
+            mechanism_catalogue other;
+            other.add("fleeb", burble_info); // Note different mechanism info!
+
+            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            ASSERT_EQ(cat["fleeb"], fleeb_info);
+        }
+
+        // Collision derived vs base.
+        {
+            auto cat = build_fake_catalogue();
+
+            mechanism_catalogue other;
+            other.add("fleeb2", burble_info);
+
+            auto fleeb2_info = cat["fleeb2"];
+            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            EXPECT_EQ(cat["fleeb2"], fleeb2_info);
+        }
+
+        // Collision base vs derived.
+        {
+            auto cat = build_fake_catalogue();
+
+            mechanism_catalogue other;
+            other.add("zonkers", fleeb_info);
+            other.derive("fleeb", "zonkers", {{"plugh", 8.}});
+            ASSERT_FALSE(other["fleeb"]==fleeb_info);
+
+            ASSERT_FALSE(cat.has("zonkers"));
+            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            EXPECT_EQ(cat["fleeb"], fleeb_info);
+            EXPECT_FALSE(cat.has("zonkers"));
+        }
+
+        // Collision derived vs derived.
+        {
+            auto cat = build_fake_catalogue();
+
+            mechanism_catalogue other;
+            other.add("zonkers", fleeb_info);
+            other.derive("fleeb2", "zonkers", {{"plugh", 8.}});
+
+            auto fleeb2_info = cat["fleeb2"];
+            ASSERT_FALSE(other["fleeb2"]==fleeb2_info);
+
+            ASSERT_FALSE(cat.has("zonkers"));
+            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            EXPECT_EQ(cat["fleeb2"], fleeb2_info);
+            EXPECT_FALSE(cat.has("zonkers"));
+        }
+    }
+}

@@ -1,8 +1,7 @@
 #pragma once
 
 #include <type_traits>
-
-#include <arbor/util/either.hpp>
+#include <variant>
 
 #include "util/meta.hpp"
 
@@ -28,26 +27,26 @@ struct iterator_category_select<I,S,true> {
 
 template <typename I, typename S>
 class sentinel_iterator {
-    arb::util::either<I, S> e_;
+    std::variant<I, S> e_;
 
     I& iter() {
         arb_assert(!is_sentinel());
-        return e_.template unsafe_get<0>();
+        return std::get<0>(e_);
     }
 
     const I& iter() const {
         arb_assert(!is_sentinel());
-        return e_.template unsafe_get<0>();
+        return std::get<0>(e_);
     }
 
     S& sentinel() {
         arb_assert(is_sentinel());
-        return e_.template unsafe_get<1>();
+        return std::get<1>(e_);
     }
 
     const S& sentinel() const {
         arb_assert(is_sentinel());
-        return e_.template unsafe_get<1>();
+        return std::get<1>(e_);
     }
 
 public:

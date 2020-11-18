@@ -38,6 +38,14 @@ build codecov:
     DEPLOY_DOCKERFILE: ci/codecov/deploy.Dockerfile
     DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
 
+notify_github_start:
+  stage: build
+  allow_failure: true
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh pending
+
 
 # Some variables used for running on daint
 variables:
@@ -49,6 +57,7 @@ variables:
   SLURM_JOB_NUM_NODES: 2
   SLURM_PARTITION: normal
   SLURM_TIMELIMIT: '15:00'
+  SLURM_EXCLUSIVE: '' # make sure resources are not shared
 
 ### Release tests ###
 allocate release:
@@ -65,7 +74,6 @@ single node release:
   image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
   stage: test
-  resource_group: daint-job
   script:
     - unit
     - unit-local
@@ -80,7 +88,6 @@ multi node release:
   image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
   stage: test
-  resource_group: daint-job
   script:
     - unit-mpi
   variables:
@@ -111,7 +118,6 @@ single node codecov:
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
-  resource_group: daint-job
   script:
     - codecov_pre
     - unit
@@ -131,7 +137,6 @@ multi node codecov:
   only: ['master', 'staging', 'trying']
   image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
-  resource_group: daint-job
   script:
     - codecov_pre
     - unit-mpi
@@ -154,7 +159,6 @@ upload codecov reports:
     SLURM_NTASKS: 1
     ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
   script: upload_codecov
-  resource_group: daint-job
 
 deallocate codecov:
   only: ['master', 'staging', 'trying']
@@ -163,3 +167,19 @@ deallocate codecov:
   extends: .daint_dealloc
   variables:
     ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
+
+notify_github_success:
+  stage: cleanup
+  when: on_success
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh success
+
+notify_github_failure:
+  stage: cleanup
+  when: on_failure
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh failure

@@ -69,6 +69,7 @@ private:
     std::string value_literal();
     int value_signed_integer();
     std::pair<Token, Token> range_description();
+    std::pair<Token, Token> from_to_description();
 
     /// build the identifier list
     void add_variables_to_symbols();

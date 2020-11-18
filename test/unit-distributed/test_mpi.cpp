@@ -79,12 +79,12 @@ TEST(mpi, gather_all_with_partition) {
         if (i%2) {
             int rank_data[] = { i, i+7, i+8 };
             util::append(expected_values, rank_data);
-            expected_divisions.push_back(expected_divisions.back()+util::size(rank_data));
+            expected_divisions.push_back(expected_divisions.back()+std::size(rank_data));
         }
         else {
             int rank_data[] = { i };
             util::append(expected_values, rank_data);
-            expected_divisions.push_back(expected_divisions.back()+util::size(rank_data));
+            expected_divisions.push_back(expected_divisions.back()+std::size(rank_data));
         }
     }
 

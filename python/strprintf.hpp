@@ -4,17 +4,43 @@
 
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <string>
 #include <sstream>
 #include <system_error>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include <arbor/util/optional.hpp>
-
 namespace pyarb {
 namespace util {
+
+namespace impl {
+    // Wrapper for formatted output of optional values.
+    template <typename T>
+    struct opt_wrap {
+        const T& ref;
+        opt_wrap(const T& ref): ref(ref) {}
+        friend std::ostream& operator<<(std::ostream& out, const opt_wrap& wrap) {
+            return out << wrap.ref;
+        }
+    };
+
+    template <typename T>
+    struct opt_wrap<std::optional<T>> {
+        const std::optional<T>& ref;
+        opt_wrap(const std::optional<T>& ref): ref(ref) {}
+        friend std::ostream& operator<<(std::ostream& out, const opt_wrap& wrap) {
+            if (wrap.ref) {
+                return out << *wrap.ref;
+            }
+            else {
+                return out << "None";
+            }
+        }
+    };
+}
 
 // Use ADL to_string or std::to_string, falling back to ostream formatting:
 
@@ -25,17 +51,13 @@ namespace impl_to_string {
     struct select {
         static std::string str(const T& value) {
             std::ostringstream o;
-            o << value;
+            o << impl::opt_wrap(value);
             return o.str();
         }
     };
 
-    // Can be eplaced with std::void_t in c++17.
-    template <typename ...Args>
-    using void_t = void;
-
     template <typename T>
-    struct select<T, void_t<decltype(to_string(std::declval<T>()))>> {
+    struct select<T, std::void_t<decltype(to_string(std::declval<T>()))>> {
         static std::string str(const T& v) {
             return to_string(v);
         }
@@ -100,7 +122,7 @@ namespace impl {
         }
         o.write(s, t-s);
         if (*t) {
-            o << std::forward<T>(value);
+            o << opt_wrap{value};
             pprintf_(o, t+2, std::forward<Tail>(tail)...);
         }
     }
@@ -202,24 +224,19 @@ impl::sepval_lim<Seq> csv(const Seq& seq, unsigned n) {
 // Print dictionary: this could be done easily with range adaptors in C++17
 template <typename Key, typename T>
 std::string dictionary_csv(const std::unordered_map<Key, T>& dict) {
-    constexpr bool string_key = std::is_same<std::string, std::decay_t<Key>>::value;
+    constexpr bool string_key   = std::is_same<std::string, std::decay_t<Key>>::value;
+    constexpr bool string_value = std::is_same<std::string, std::decay_t<T>>::value;
+    std::string format = pprintf("{}: {}", string_key? "\"{}\"": "{}", string_value? "\"{}\"": "{}");
     std::string s = "{";
     bool first = true;
     for (auto& p: dict) {
         if (!first) s += ", ";
         first = false;
-        s += pprintf(string_key? "'{}': {}": "{}: {}", p.first, p.second);
+        s += pprintf(format.c_str(), p.first, p.second);
     }
     s += "}";
     return s;
 }
 
 } // namespace util
-
-template <typename T>
-std::ostream& operator<<(std::ostream& o, const arb::util::optional<T>& x) {
-    return o << (x? util::to_string(*x): "None");
-}
-
 } // namespace pyarb
-

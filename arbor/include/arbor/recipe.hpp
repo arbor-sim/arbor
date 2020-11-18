@@ -1,11 +1,9 @@
 #pragma once
 
-#include <cstddef>
-#include <memory>
-#include <unordered_map>
-#include <stdexcept>
+#include <any>
+#include <utility>
+#include <vector>
 
-#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/util/unique_any.hpp>
@@ -13,11 +11,19 @@
 namespace arb {
 
 struct probe_info {
-    cell_member_type id;
     probe_tag tag;
 
     // Address type will be specific to cell kind of cell `id.gid`.
-    util::any address;
+    std::any address;
+
+    probe_info(probe_info&) = default;
+    probe_info(const probe_info&) = default;
+    probe_info(probe_info&&) = default;
+
+    // Implicit ctor uses tag of zero.
+    template <typename X>
+    probe_info(X&& x, probe_tag tag = 0):
+        tag(tag), address(std::forward<X>(x)) {}
 };
 
 /* Recipe descriptions are cell-oriented: in order that the building
@@ -66,7 +72,6 @@ public:
 
     virtual cell_size_type num_sources(cell_gid_type) const { return 0; }
     virtual cell_size_type num_targets(cell_gid_type) const { return 0; }
-    virtual cell_size_type num_probes(cell_gid_type)  const { return 0; }
     virtual cell_size_type num_gap_junction_sites(cell_gid_type gid)  const {
         return gap_junctions_on(gid).size();
     }
@@ -80,12 +85,12 @@ public:
         return {};
     }
 
-    virtual probe_info get_probe(cell_member_type probe_id) const {
-        throw bad_probe_id(probe_id);
+    virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
+        return {};
     }
 
     // Global property type will be specific to given cell kind.
-    virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
+    virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
 
     virtual ~recipe() {}
 };

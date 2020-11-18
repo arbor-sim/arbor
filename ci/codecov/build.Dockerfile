@@ -11,12 +11,12 @@ ENV MPICH_VERSION ${MPICH_VERSION}
 # Install basic tools
 RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
     build-essential lcov \
-    python \
+    python3 \
     git tar wget curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Install cmake
-RUN wget -qO- "https://cmake.org/files/v3.17/cmake-3.17.0-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+RUN wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
 
 # Install MPICH ABI compatible with Cray's lib on Piz Daint
 RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz && \
@@ -27,7 +27,7 @@ RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPIC
     rm -rf mpich-${MPICH_VERSION}.tar.gz mpich-${MPICH_VERSION}
 
 # Install bundle tooling for creating small Docker images
-RUN wget -q https://github.com/haampie/libtree/releases/download/v1.1.3/libtree_x86_64.tar.gz && \
+RUN wget -q https://github.com/haampie/libtree/releases/download/v1.2.0/libtree_x86_64.tar.gz && \
     tar -xzf libtree_x86_64.tar.gz && \
     rm libtree_x86_64.tar.gz && \
     ln -s /root/libtree/libtree /usr/local/bin/libtree

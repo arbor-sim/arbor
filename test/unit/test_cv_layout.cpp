@@ -5,7 +5,6 @@
 #include <arbor/math.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/locset.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "fvm_layout.hpp"
 #include "util/span.hpp"
@@ -47,6 +46,10 @@ TEST(cv_layout, trivial) {
     std::vector<cable_cell> cells;
     unsigned n_cv = 0;
     for (auto& p: test_morphologies) {
+        // Skip morpohologies with more than one root branch, becaue
+        // they are not 'connected', and will generate multiple CVs.
+        if (p.second.branch_children(mnpos).size()>1u) continue;
+
         cells.emplace_back(p.second);
         n_cv += !p.second.empty(); // one cv per non-empty cell
     }

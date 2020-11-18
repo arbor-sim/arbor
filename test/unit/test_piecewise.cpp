@@ -231,6 +231,67 @@ TEST(piecewise, index_of) {
     EXPECT_EQ(pw_npos, v0.index_of(0.));
 }
 
+TEST(piecewise, equal_range) {
+    {
+        pw_elements<int> p{{1, 2, 3, 4}, {10, 9, 8}};
+
+        auto er0 = p.equal_range(0.0);
+        ASSERT_EQ(er0.first, er0.second);
+
+        auto er1 = p.equal_range(1.0);
+        ASSERT_EQ(1, er1.second-er1.first);
+        EXPECT_EQ(10, er1.first->second);
+
+        auto er2 = p.equal_range(2.0);
+        ASSERT_EQ(2, er2.second-er2.first);
+        auto iter = er2.first;
+        EXPECT_EQ(10, iter++->second);
+        EXPECT_EQ(9, iter->second);
+
+        auto er3_5 = p.equal_range(3.5);
+        ASSERT_EQ(1, er3_5.second-er3_5.first);
+        EXPECT_EQ(8, er3_5.first->second);
+
+        auto er4 = p.equal_range(4.0);
+        ASSERT_EQ(1, er4.second-er4.first);
+        EXPECT_EQ(8, er4.first->second);
+
+        auto er5 = p.equal_range(5.0);
+        ASSERT_EQ(er5.first, er5.second);
+    }
+
+    {
+        pw_elements<int> p{{1, 1, 2, 2, 2, 3, 3}, {10, 11, 12, 13, 14, 15}};
+
+        auto er0 = p.equal_range(0.0);
+        ASSERT_EQ(er0.first, er0.second);
+
+        auto er1 = p.equal_range(1.0);
+        ASSERT_EQ(2, er1.second-er1.first);
+        auto iter = er1.first;
+        EXPECT_EQ(10, iter++->second);
+        EXPECT_EQ(11, iter++->second);
+
+        auto er2 = p.equal_range(2.0);
+        ASSERT_EQ(4, er2.second-er2.first);
+        iter = er2.first;
+        EXPECT_EQ(11, iter++->second);
+        EXPECT_EQ(12, iter++->second);
+        EXPECT_EQ(13, iter++->second);
+        EXPECT_EQ(14, iter++->second);
+
+        auto er3 = p.equal_range(3.0);
+        ASSERT_EQ(2, er3.second-er3.first);
+        iter = er3.first;
+        EXPECT_EQ(14, iter++->second);
+        EXPECT_EQ(15, iter++->second);
+
+        auto er5 = p.equal_range(5.0);
+        ASSERT_EQ(er5.first, er5.second);
+    }
+
+}
+
 TEST(piecewise, push) {
     pw_elements<int> q;
     using dp = std::pair<double, double>;

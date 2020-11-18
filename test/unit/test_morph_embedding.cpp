@@ -1,42 +1,29 @@
 #include <cmath>
+#include <unordered_map>
 #include <vector>
 
 #include <arbor/math.hpp>
 #include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/morph/sample_tree.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 #include "util/piecewise.hpp"
 
 #include "../test/gtest.h"
 #include "common.hpp"
+#include "common_cells.hpp"
+#include "morph_pred.hpp"
 
 using namespace arb;
 using embedding = embed_pwlin;
 
-::testing::AssertionResult location_eq(const morphology& m, mlocation a, mlocation b) {
-    a = canonical(m, a);
-    b = canonical(m, b);
+using testing::mlocation_eq;
+using testing::cable_eq;
 
-    if (a.branch!=b.branch) {
-        return ::testing::AssertionFailure()
-            << "branch ids " << a.branch << " and " << b.branch << " differ";
-    }
-
-    using FP = testing::internal::FloatingPoint<double>;
-    if (FP(a.pos).AlmostEquals(FP(b.pos))) {
-        return ::testing::AssertionSuccess();
-    }
-    else {
-        return ::testing::AssertionFailure()
-            << "location positions " << a.pos << " and " << b.pos << " differ";
-    }
-}
-
-TEST(embedding, samples_and_branch_length) {
+TEST(embedding, segments_and_branch_length) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
     using loc = mlocation;
 
     // A single unbranched cable with 5 sample points.
@@ -44,122 +31,99 @@ TEST(embedding, samples_and_branch_length) {
     // 0 μm, 1 μm, 3 μm, 7 μm and 10 μm.
     {
         pvec parents = {mnpos, 0, 1, 2, 3};
-        svec samples = {
-            {{  0,  0,  0,  2}, 1},
-            {{  1,  0,  0,  2}, 1},
-            {{  3,  0,  0,  2}, 1},
-            {{  7,  0,  0,  2}, 1},
-            {{ 10,  0,  0,  2}, 1},
+        svec points = {
+            { 0,  0,  0,  2},
+            { 1,  0,  0,  2},
+            { 3,  0,  0,  2},
+            { 7,  0,  0,  2},
+            {10,  0,  0,  2},
         };
-        sample_tree sm(samples, parents);
-        morphology m(sm, false);
+        morphology m(segments_from_points(points, parents));
 
         embedding em(m);
 
-        EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{0,0.1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{0,0.3})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{0,0.7})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{0,1})));
+        auto nloc = 5u;
+        EXPECT_EQ(nloc, em.segment_ends().size());
+        const auto& locs = em.segment_ends();
+        EXPECT_EQ(nloc, locs.size());
+        EXPECT_TRUE(mlocation_eq(locs[0], (loc{0,0})));
+        EXPECT_TRUE(mlocation_eq(locs[1], (loc{0,0.1})));
+        EXPECT_TRUE(mlocation_eq(locs[2], (loc{0,0.3})));
+        EXPECT_TRUE(mlocation_eq(locs[3], (loc{0,0.7})));
+        EXPECT_TRUE(mlocation_eq(locs[4], (loc{0,1})));
 
         EXPECT_EQ(10., em.branch_length(0));
     }
 
-    // Eight samples
+    // Eight samples - point indices:
     //
-    //  sample ids:
     //            0
     //           1 3
     //          2   4
     //             5 6
     //                7
-    {   // Spherical root.
-        pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
+    pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
 
-        svec samples = {
-            {{  0,  0,  0, 10}, 1},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 3},
-            {{  0,100,  0,  2}, 3},
-            {{100,100,  0,  2}, 3},
-            {{  0,200,  0,  2}, 3},
-            {{  0,300,  0,  2}, 3},
-        };
-        sample_tree sm(samples, parents);
-        morphology m(sm, true);
-        ASSERT_EQ(5u, m.num_branches());
+    svec points = {
+        {  0,  0,  0,  2},
+        { 10,  0,  0,  2},
+        {100,  0,  0,  2},
+        {  0, 10,  0,  2},
+        {  0,100,  0,  2},
+        {100,100,  0,  2},
+        {  0,130,  0,  2},
+        {  0,300,  0,  2},
+    };
+    morphology m(segments_from_points(points, parents));
 
-        embedding em(m);
+    ASSERT_EQ(4u, m.num_branches());
 
-        EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0.5})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{1,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{1,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{2,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{2,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(5), (loc{3,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(6), (loc{4,0.5})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(7), (loc{4,1})));
+    embedding em(m);
 
-        EXPECT_EQ(20.,  em.branch_length(0));
-        EXPECT_EQ(90.,  em.branch_length(1));
-        EXPECT_EQ(90.,  em.branch_length(2));
-        EXPECT_EQ(100., em.branch_length(3));
-        EXPECT_EQ(200., em.branch_length(4));
-    }
-    {   // No Spherical root
-        pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
+    const auto& locs = em.segment_ends();
+    EXPECT_TRUE(mlocation_eq(locs[0], (loc{0,0})));
+    EXPECT_TRUE(mlocation_eq(locs[1], (loc{0,0.1})));
+    EXPECT_TRUE(mlocation_eq(locs[2], (loc{0,1})));
+    EXPECT_TRUE(mlocation_eq(locs[3], (loc{1,0})));
+    EXPECT_TRUE(mlocation_eq(locs[4], (loc{1,0.1})));
+    EXPECT_TRUE(mlocation_eq(locs[5], (loc{1,1})));
+    EXPECT_TRUE(mlocation_eq(locs[6], (loc{2,0})));
+    EXPECT_TRUE(mlocation_eq(locs[7], (loc{2,1})));
+    EXPECT_TRUE(mlocation_eq(locs[8], (loc{3,0})));
+    EXPECT_TRUE(mlocation_eq(locs[9], (loc{3,0.15})));
+    EXPECT_TRUE(mlocation_eq(locs[10], (loc{3,1})));
 
-        svec samples = {
-            {{  0,  0,  0,  2}, 1},
-            {{ 10,  0,  0,  2}, 3},
-            {{100,  0,  0,  2}, 3},
-            {{  0, 10,  0,  2}, 3},
-            {{  0,100,  0,  2}, 3},
-            {{100,100,  0,  2}, 3},
-            {{  0,130,  0,  2}, 3},
-            {{  0,300,  0,  2}, 3},
-        };
-        sample_tree sm(samples, parents);
-        morphology m(sm, false);
-        ASSERT_EQ(4u, m.num_branches());
+    EXPECT_TRUE(cable_eq(mcable{0, 0.  , 0.1 }, em.segment(0)));
+    EXPECT_TRUE(cable_eq(mcable{0, 0.1 , 1.  }, em.segment(1)));
+    EXPECT_TRUE(cable_eq(mcable{1, 0.  , 0.1 }, em.segment(2)));
+    EXPECT_TRUE(cable_eq(mcable{1, 0.1 , 1.  }, em.segment(3)));
+    EXPECT_TRUE(cable_eq(mcable{2, 0.  , 1.  }, em.segment(4)));
+    EXPECT_TRUE(cable_eq(mcable{3, 0.  , 0.15}, em.segment(5)));
+    EXPECT_TRUE(cable_eq(mcable{3, 0.15, 1.  }, em.segment(6)));
 
-        embedding em(m);
-
-        EXPECT_TRUE(location_eq(m, em.sample_location(0), (loc{0,0})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(1), (loc{0,0.1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(2), (loc{0,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(3), (loc{1,0.1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(4), (loc{1,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(5), (loc{2,1})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(6), (loc{3,0.15})));
-        EXPECT_TRUE(location_eq(m, em.sample_location(7), (loc{3,1})));
-
-        EXPECT_EQ(100., em.branch_length(0));
-        EXPECT_EQ(100., em.branch_length(1));
-        EXPECT_EQ(100., em.branch_length(2));
-        EXPECT_EQ(200., em.branch_length(3));
-    }
+    EXPECT_EQ(100., em.branch_length(0));
+    EXPECT_EQ(100., em.branch_length(1));
+    EXPECT_EQ(100., em.branch_length(2));
+    EXPECT_EQ(200., em.branch_length(3));
 }
 
 // TODO: integrator tests
 
-
 TEST(embedding, partial_branch_length) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
     using util::pw_elements;
 
     pvec parents = {mnpos, 0, 1, 2, 2};
-    svec samples = {
-        {{  0,  0,  0, 10}, 1},
-        {{ 10,  0,  0, 20}, 1},
-        {{ 30,  0,  0, 10}, 1},
-        {{ 30, 10,  0, 5},  2},
-        {{ 30,  0, 50, 5},  2}
+    svec points = {
+        { 0,  0,  0, 10},
+        {10,  0,  0, 20},
+        {30,  0,  0, 10},
+        {30, 10,  0,  5},
+        {30,  0, 50,  5}
     };
 
-    morphology m(sample_tree(samples, parents), false);
+    morphology m(segments_from_points(points, parents));
     embedding em(m);
 
     EXPECT_DOUBLE_EQ(30., em.branch_length(0));
@@ -183,20 +147,20 @@ TEST(embedding, partial_branch_length) {
 
 TEST(embedding, partial_area) {
     using pvec = std::vector<msize_t>;
-    using svec = std::vector<msample>;
+    using svec = std::vector<mpoint>;
     using util::pw_elements;
     using testing::near_relative;
 
     pvec parents = {mnpos, 0, 1, 2, 2};
-    svec samples = {
-        {{  0,  0,  0, 10}, 1},
-        {{ 10,  0,  0, 20}, 1},
-        {{ 30,  0,  0, 10}, 1},
-        {{ 30, 10,  0, 5},  2},
-        {{ 30,  0, 50, 5},  2}
+    svec points = {
+        { 0,  0,  0, 10},
+        {10,  0,  0, 20},
+        {30,  0,  0, 10},
+        {30, 10,  0,  5},
+        {30,  0, 50,  5}
     };
 
-    morphology m(sample_tree(samples, parents), false);
+    morphology m(segments_from_points(points, parents));
     embedding em(m);
 
     // Cable 1: single truncated cone, length L = 10,

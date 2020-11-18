@@ -7,6 +7,7 @@
 #include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
+#include "util/unique.hpp"
 
 namespace arb {
 
@@ -54,14 +55,6 @@ double distance(const mpoint& a, const mpoint& b) {
     double dz = a.z - b.z;
 
     return std::sqrt(dx*dx + dy*dy + dz*dz);
-}
-
-bool is_collocated(const msample& a, const msample& b) {
-    return is_collocated(a.loc, b.loc);
-}
-
-double distance(const msample& a, const msample& b) {
-    return distance(a.loc, b.loc);
 }
 
 bool test_invariants(const mlocation& l) {
@@ -125,16 +118,13 @@ mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs
     return L;
 }
 
+mlocation_list support(mlocation_list L) {
+    util::unique_in_place(L);
+    return L;
+}
+
 bool test_invariants(const mcable& c) {
     return (0.<=c.prox_pos && c.prox_pos<=c.dist_pos && c.dist_pos<=1.) && c.branch!=mnpos;
-}
-
-mlocation prox_loc(const mcable& c) {
-    return {c.branch, c.prox_pos};
-}
-
-mlocation dist_loc(const mcable& c) {
-    return {c.branch, c.dist_pos};
 }
 
 bool test_invariants(const mcable_list& l) {
@@ -146,8 +136,8 @@ std::ostream& operator<<(std::ostream& o, const mpoint& p) {
     return o << "(point " << p.x << " " << p.y << " " << p.z << " " << p.radius << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const msample& s) {
-    return o << "(sample " << s.loc << " " << s.tag << ")";
+std::ostream& operator<<(std::ostream& o, const msegment& s) {
+    return o << "(segment " << s.id << " " << s.prox << " " << s.dist << " " << s.tag << ")";
 }
 
 std::ostream& operator<<(std::ostream& o, const mlocation& l) {

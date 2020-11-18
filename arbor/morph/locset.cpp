@@ -3,6 +3,7 @@
 #include <numeric>
 
 #include <arbor/math.hpp>
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -96,25 +97,6 @@ std::ostream& operator<<(std::ostream& o, const location_list_& x) {
     return o << ')';
 }
 
-// Location corresponding to a sample id.
-
-struct sample_: locset_tag {
-    explicit sample_(msize_t index): index(index) {}
-    msize_t index;
-};
-
-locset sample(msize_t index) {
-    return locset{sample_{index}};
-}
-
-mlocation_list thingify_(const sample_& x, const mprovider& p) {
-    return {canonical(p.morphology(), p.embedding().sample_location(x.index))};
-}
-
-std::ostream& operator<<(std::ostream& o, const sample_& x) {
-    return o << "(sample " << x.index << ")";
-}
-
 // Set of terminal points (most distal points).
 
 struct terminal_: locset_tag {};
@@ -150,6 +132,23 @@ mlocation_list thingify_(const root_&, const mprovider& p) {
 std::ostream& operator<<(std::ostream& o, const root_& x) {
     return o << "(root)";
 }
+
+// Locations that mark interface between segments.
+
+struct segments_: locset_tag {};
+
+locset segment_boundaries() {
+    return locset{segments_{}};
+}
+
+mlocation_list thingify_(const segments_&, const mprovider& p) {
+    return p.embedding().segment_ends();
+}
+
+std::ostream& operator<<(std::ostream& o, const segments_& x) {
+    return o << "(segment_boundaries)";
+}
+
 
 // Proportional location on every branch.
 
@@ -214,7 +213,7 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
-    return o << "(distal \"" << x.reg << "\")";
+    return o << "(distal " << x.reg << ")";
 }
 
 // Most proximal points of a region
@@ -239,9 +238,162 @@ mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
-    return o << "(proximal \"" << x.reg << "\")";
+    return o << "(proximal " << x.reg << ")";
 }
 
+// Boundary points of a region.
+//
+// The boundary points of a region R are defined as the most proximal
+// and most distal locations in the components of R.
+
+struct boundary_: locset_tag {
+    explicit boundary_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset boundary(region reg) {
+    return locset(boundary_(std::move(reg)));
+};
+
+mlocation_list thingify_(const boundary_& n, const mprovider& p) {
+    std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
+
+    mlocation_list L;
+
+    for (const mextent& comp: comps) {
+        arb_assert(!comp.empty());
+        arb_assert(thingify_(most_proximal_{region{comp}}, p).size()==1u);
+
+        mlocation_list distal_set;
+        util::assign(distal_set, util::transform_view(comp, [](auto c) { return dist_loc(c); }));
+
+        L = sum(L, {prox_loc(comp.front())});
+        L = sum(L, maxset(p.morphology(), distal_set));
+    }
+    return support(std::move(L));
+}
+
+std::ostream& operator<<(std::ostream& o, const boundary_& x) {
+    return o << "(boundary " << x.reg << ")";
+}
+
+// Completed boundary points of a region.
+//
+// The completed boundary is the boundary of the completion of
+// each component.
+
+struct cboundary_: locset_tag {
+    explicit cboundary_(region reg): reg(std::move(reg)) {}
+    region reg;
+};
+
+locset cboundary(region reg) {
+    return locset(cboundary_(std::move(reg)));
+};
+
+mlocation_list thingify_(const cboundary_& n, const mprovider& p) {
+    std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
+
+    mlocation_list L;
+
+    for (const mextent& comp: comps) {
+        mextent ccomp = thingify(reg::complete(comp), p);
+
+        // Note: if component contains the head of a top-level cable,
+        // the completion might not be connected (!).
+
+        mlocation_list proximal_set;
+        util::assign(proximal_set, util::transform_view(ccomp, [](auto c) { return prox_loc(c); }));
+
+        mlocation_list distal_set;
+        util::assign(distal_set, util::transform_view(ccomp, [](auto c) { return dist_loc(c); }));
+
+        L = sum(L, minset(p.morphology(), proximal_set));
+        L = sum(L, maxset(p.morphology(), distal_set));
+    }
+    return support(std::move(L));
+}
+
+std::ostream& operator<<(std::ostream& o, const cboundary_& x) {
+    return o << "(cboundary " << x.reg << ")";
+}
+
+// Proportional on components of a region.
+
+struct on_components_: locset_tag {
+    explicit on_components_(double relpos, region reg):
+        relpos(relpos), reg(std::move(reg)) {}
+    double relpos;
+    region reg;
+};
+
+locset on_components(double relpos, region reg) {
+    return locset(on_components_(relpos, std::move(reg)));
+}
+
+mlocation_list thingify_(const on_components_& n, const mprovider& p) {
+    if (n.relpos<0 || n.relpos>1) {
+        return {};
+    }
+
+    std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
+    std::vector<mlocation> L;
+
+    for (const mextent& comp: comps) {
+        arb_assert(!comp.empty());
+        arb_assert(thingify_(most_proximal_{region{comp}}, p).size()==1u);
+
+        mlocation prox = prox_loc(comp.front());
+        auto d_from_prox = [&](mlocation x) { return p.embedding().integrate_length(prox, x); };
+
+        if (n.relpos==0) {
+            L.push_back(prox);
+        }
+        else if (n.relpos==1) {
+            double diameter = 0;
+            mlocation_list most_distal = {prox};
+
+            for (mcable c: comp) {
+                mlocation x = dist_loc(c);
+                double d = d_from_prox(x);
+
+                if (d>diameter) {
+                    most_distal = {x};
+                    diameter = d;
+                }
+                else if (d==diameter) {
+                    most_distal.push_back(x);
+                }
+            }
+
+            util::append(L, most_distal);
+        }
+        else {
+            double diameter = util::max_value(util::transform_view(comp,
+                [&](auto c) { return d_from_prox(dist_loc(c)); }));
+
+            double d = n.relpos*diameter;
+            for (mcable c: comp) {
+                double d0 = d_from_prox(prox_loc(c));
+                double d1 = d_from_prox(dist_loc(c));
+
+                if (d0<=d && d<=d1) {
+                    double s = d0==d1? 0: (d-d0)/(d1-d0);
+                    s = std::min(1.0, std::fma(s, c.dist_pos-c.prox_pos, c.prox_pos));
+                    L.push_back(mlocation{c.branch, s});
+                }
+            }
+
+        }
+    }
+
+    util::sort(L);
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const on_components_& x) {
+    return o << "(on_components " << x.relpos << " " << x.reg << ")";
+}
 
 // Uniform locset.
 
@@ -348,6 +500,25 @@ std::ostream& operator<<(std::ostream& o, const lsum& x) {
     return o << "(sum " << x.lhs << " " << x.rhs << ")";
 }
 
+// Support of point set.
+
+struct lsup_: locset_tag {
+    locset arg;
+    lsup_(locset arg): arg(std::move(arg)) {}
+};
+
+locset support(locset arg) {
+    return locset{lsup_{std::move(arg)}};
+}
+
+mlocation_list thingify_(const lsup_& P, const mprovider& p) {
+    return support(thingify(P.arg, p));
+};
+
+std::ostream& operator<<(std::ostream& o, const lsup_& x) {
+    return o << "(support " << x.arg << ")";
+}
+
 // Restrict a locset on to a region: returns all locations in the locset that
 // are also in the region.
 
@@ -414,12 +585,15 @@ locset::locset(mlocation_list ll) {
     *this = ls::location_list(std::move(ll));
 }
 
-locset::locset(std::string name) {
-    *this = ls::named(std::move(name));
+locset::locset(const std::string& desc) {
+    if (auto r=parse_locset_expression(desc)) {
+        *this = *r;
+    }
+    else {
+        throw r.error();
+    }
 }
 
-locset::locset(const char* name) {
-    *this = ls::named(name);
-}
+locset::locset(const char* label): locset(std::string(label)) {}
 
 } // namespace arb

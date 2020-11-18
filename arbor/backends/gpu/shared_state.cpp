@@ -192,7 +192,7 @@ std::ostream& operator<<(std::ostream& o, shared_state& s) {
     o << " conductivity " << s.conductivity << "\n";
     for (auto& ki: s.ion_data) {
         auto& kn = ki.first;
-        auto& i = const_cast<ion_state&>(ki.second);
+        auto& i = ki.second;
         o << " " << kn << "/current_density        " << i.iX_ << "\n";
         o << " " << kn << "/reversal_potential     " << i.eX_ << "\n";
         o << " " << kn << "/internal_concentration " << i.Xi_ << "\n";

@@ -6,9 +6,16 @@
 #include "functionexpander.hpp"
 
 expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e) {
-    auto exprs = make_unique_local_assign(e->scope(), e);
+    auto zero = make_expression<NumberExpression>(e->location(), 0.);
+    auto exprs = make_unique_local_assign(e->scope(), zero);
+
+    stmts.push_front(std::move(exprs.assignment));
     stmts.push_front(std::move(exprs.local_decl));
-    stmts.push_back(std::move(exprs.assignment));
+
+    auto assign =  make_expression<AssignmentExpression>(e->location(), exprs.id->clone(),  e->clone());
+    assign->semantic(e->scope());
+    stmts.push_back(std::move(assign));
+
     return std::move(exprs.id);
 }
 

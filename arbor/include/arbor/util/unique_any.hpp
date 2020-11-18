@@ -1,50 +1,54 @@
 #pragma once
 
+#include <any>
 #include <memory>
 #include <typeinfo>
 #include <type_traits>
 
-#include <arbor/util/any.hpp>
+#include <arbor/util/any_cast.hpp>
 
-// A non copyable variant of util::any.
-// The two main use cases for such a container are
-//  1. storing types that are not copyable.
-//  2. ensuring that no copies are made of copyable types that have to be stored
-//     in a type-erased container.
+// A non copyable variant of std::any. The two main use cases for such a
+// container are:
+//     1. storing types that are not copyable, and
+//     2. ensuring that no copies are made of copyable types stored within a
+//        in a type-erased container.
 //
-// unique_any has the same semantics as any with the execption of copy and copy
-// assignment, which are explicitly forbidden for all contained types.
-// The requirement that the contained type be copy constructable has also been
-// relaxed.
+// util::unique_any has the same semantics as std::any with the execption of
+// copy and copy assignment, which are explicitly forbidden for all contained
+// types. Objects stored in util::unique_any also naturally need not be copy
+// constructable.
 //
-// The any_cast non-member functions have been overridden for unique_any, with
-// the same semantics as for any.
-// This makes it possible to copy the underlying stored type if the type is
-// copyable. For example, the following code will compile and execute as
-// expected.
+// util::any_cast<T> overloads are provided for util::unique_any, with
+// semantics analagous to those of std::any_cast and std::any, with copying
+// of the contained value permitted if the type of that value permits it.
 //
-//  unique_any<int> a(3);
-//  int& ref = any_cast<int&>(a); // take a reference
-//  ref = 42;                     // update contained value via reference
-//  int  val = any_cast<int>(a);  // take a copy
-//  assert(val==42);
+// Examples:
 //
-// If the underlying type is not copyable, only references may be taken
+//      unique_any<int> a(3);
+//      int& ref = any_cast<int&>(a); // Take a reference.
+//      ref = 42;                     // Update contained value via reference.
+//      int val = any_cast<int>(a);   // Take a copy.
+//      assert(val==42);
 //
-//  unique_any<nocopy_t> a();
-//  nocopy_t& ref        = any_cast<nocopy_t&>(a);       // ok
-//  const nocopy_t& cref = any_cast<const nocopy_t&>(a); // ok
-//  nocopy_t v           = any_cast<nocopy_t>(a);        // compile time error
+//      // If the underlying type is not copyable, only references may be
+//      // taken to the contained value. For a movable but non-copyable
+//      // type `nocopy_t`:
 //
-// An lvalue can be created by moving from the contained object:
-//
-//  nocopy_t v = any_cast<nocopy_t&&>(std::move(a)); // ok
-//
-// After which a is in moved from state.
-
+//      unique_any<nocopy_t> a();
+//      nocopy_t& ref = any_cast<nocopy_t&>(a);              // ok
+//      const nocopy_t& cref = any_cast<const nocopy_t&>(a); // ok
+//      nocopy_t v = any_cast<nocopy_t&&>(std::move(a));     // ok
+//      nocopy_t v = any_cast<nocopy_t>(a);   // Not ok: compile-time error.
 
 namespace arb {
 namespace util {
+
+namespace detail {
+    // TODO: C++20 replace with std::remove_cvref_t
+    template <typename T>
+    using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+}
+
 
 class unique_any {
 public:
@@ -56,7 +60,8 @@ public:
 
     template <
         typename T,
-        typename = std::enable_if_t<!std::is_same<std::decay_t<T>, unique_any>::value>
+        typename = std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<T>, unique_any>>,
+        typename = std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<T>, std::any>>
     >
     unique_any(T&& other) {
         state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
@@ -69,7 +74,8 @@ public:
 
     template <
         typename T,
-        typename = std::enable_if_t<!std::is_same<std::decay_t<T>, unique_any>::value>
+        typename = std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<T>, unique_any>>,
+        typename = std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<T>, std::any>>
     >
     unique_any& operator=(T&& other) {
         state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
@@ -160,40 +166,40 @@ T* any_cast(unique_any* operand) {
 
 template<class T>
 T any_cast(const unique_any& operand) {
-    using U = impl::any_cast_remove_qual<T>;
+    using U = detail::remove_cvref_t<T>;
     static_assert(std::is_constructible<T, const U&>::value,
         "any_cast type can't construct copy of contained object");
 
     auto ptr = any_cast<U>(&operand);
     if (ptr==nullptr) {
-        throw bad_any_cast();
+        throw std::bad_any_cast();
     }
     return static_cast<T>(*ptr);
 }
 
 template<class T>
 T any_cast(unique_any& operand) {
-    using U = impl::any_cast_remove_qual<T>;
+    using U = detail::remove_cvref_t<T>;
     static_assert(std::is_constructible<T, U&>::value,
         "any_cast type can't construct copy of contained object");
 
     auto ptr = any_cast<U>(&operand);
     if (ptr==nullptr) {
-        throw bad_any_cast();
+        throw std::bad_any_cast();
     }
     return static_cast<T>(*ptr);
 }
 
 template<class T>
 T any_cast(unique_any&& operand) {
-    using U = impl::any_cast_remove_qual<T>;
+    using U = detail::remove_cvref_t<T>;
 
     static_assert(std::is_constructible<T, U&&>::value,
         "any_cast type can't construct copy of contained object");
 
     auto ptr = any_cast<U>(&operand);
     if (ptr==nullptr) {
-        throw bad_any_cast();
+        throw std::bad_any_cast();
     }
     return static_cast<T>(std::move(*ptr));
 }

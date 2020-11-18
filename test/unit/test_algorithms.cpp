@@ -483,9 +483,9 @@ template <typename Sub, typename Sup>
     using namespace arb;
 
     auto indices = util::index_into(sub, sup);
-    auto n_indices = util::size(indices);
-    auto n_sub  = util::size(sub);
-    if (util::size(indices)!=util::size(sub)) {
+    auto n_indices = std::size(indices);
+    auto n_sub  = std::size(sub);
+    if (std::size(indices)!=std::size(sub)) {
         return ::testing::AssertionFailure()
              << "index_into size " << n_indices << " does not equal sub-sequence size " << n_sub;
     }
@@ -530,7 +530,7 @@ arb::util::range<std::reverse_iterator<I>> reverse_range(arb::util::range<I> r) 
 TEST(algorithms, index_into)
 {
     using ivector = std::vector<std::ptrdiff_t>;
-    using arb::util::size;
+    using std::size;
     using arb::util::index_into;
     using arb::util::assign_from;
     using arb::util::make_range;

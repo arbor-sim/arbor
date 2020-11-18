@@ -3,6 +3,7 @@
  *
  */
 
+#include <any>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -55,7 +56,7 @@ using arb::cell_kind;
 using arb::time_type;
 
 // Writes voltage trace as a json file.
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank);
+void write_trace_json(const std::vector<arb::trace_vector<double>>& trace, unsigned rank);
 
 // Generate a cell.
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncells, double stim_duration);
@@ -93,18 +94,13 @@ public:
         return {arb::cell_connection({gid - 1, 0}, {gid, 0}, params_.event_weight, params_.event_min_delay)};
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell.
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        return 1;
-    }
-
-    arb::probe_info get_probe(cell_member_type id) const override {
-        // Measure at the soma.
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        // Measure membrane voltage at end of soma.
         arb::mlocation loc{0, 1.};
-        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
+        return {arb::cable_probe_membrane_voltage{loc}};
     }
 
-    arb::util::any get_global_properties(cell_kind k) const override {
+    std::any get_global_properties(cell_kind k) const override {
         arb::cable_cell_global_properties a;
         a.default_parameters = arb::neuron_parameter_defaults;
         a.default_parameters.temperature_K = 308.15;
@@ -193,14 +189,13 @@ int main(int argc, char** argv) {
 
         auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
-        std::vector<arb::trace_data<double>> voltage(decomp.num_local_cells);
+        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells);
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         unsigned j=0;
         for (auto g : decomp.groups) {
             for (auto i : g.gids) {
-                auto t = recipe.get_probe({i, 0});
-                sim.add_sampler(arb::one_probe(t.id), sched, arb::make_simple_sampler(voltage[j++]));
+                sim.add_sampler(arb::one_probe({i, 0}), sched, arb::make_simple_sampler(voltage_traces[j++]));
             }
         }
 
@@ -244,7 +239,7 @@ int main(int argc, char** argv) {
 
         // Write the samples to a json file.
         if (params.print_all) {
-            write_trace_json(voltage, arb::rank(context));
+            write_trace_json(voltage_traces, arb::rank(context));
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
@@ -258,8 +253,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank) {
-    for (unsigned i = 0; i < trace.size(); i++) {
+void write_trace_json(const std::vector<arb::trace_vector<double>>& traces, unsigned rank) {
+    for (unsigned i = 0; i < traces.size(); i++) {
         std::string path = "./voltages_" + std::to_string(rank) +
                            "_" + std::to_string(i) + ".json";
 
@@ -273,7 +268,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
         auto &jt = json["data"]["time"];
         auto &jy = json["data"]["voltage"];
 
-        for (const auto &sample: trace[i]) {
+        for (const auto &sample: traces[i].at(0)) {
             jt.push_back(sample.t);
             jy.push_back(sample.v);
         }
@@ -285,19 +280,14 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
 
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
     // Create the sample tree that defines the morphology.
-    arb::sample_tree tree;
+    arb::segment_tree tree;
     double soma_rad = 22.360679775/2.0; // convert diameter to radius in μm
-    tree.append({{0,0,0,soma_rad}, 1}); // soma is a single sample point
-    double dend_rad = 3./2;
-    tree.append(0, {{0,0,soma_rad,     dend_rad}, 3});  // proximal point of the dendrite
-    tree.append(1, {{0,0,soma_rad+300, dend_rad}, 3});  // distal end of the dendrite
-
-    // Create a label dictionary that creates a single region that covers the whole cell.
-    arb::label_dict d;
-    d.set("all",  arb::reg::all());
+    tree.append(arb::mnpos, {0,0,0,soma_rad}, {0,0,2*soma_rad,soma_rad}, 1); // soma
+    double dend_rad = 3./2; // μm
+    tree.append(0, {0,0,2*soma_rad, dend_rad}, {0,0,2*soma_rad+300, dend_rad}, 3);  // dendrite
 
     // Create the cell and set its electrical properties.
-    arb::cable_cell cell(tree, d);
+    arb::cable_cell cell(tree);
     cell.default_parameters.axial_resistivity = 100;       // [Ω·cm]
     cell.default_parameters.membrane_capacitance = 0.018;  // [F/m²]
 
@@ -317,17 +307,17 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     pas["e"] =  -65;
 
     // Paint density channels on all parts of the cell
-    cell.paint("all", nax);
-    cell.paint("all", kdrmt);
-    cell.paint("all", kamt);
-    cell.paint("all", pas);
+    cell.paint("(all)", nax);
+    cell.paint("(all)", kdrmt);
+    cell.paint("(all)", kamt);
+    cell.paint("(all)", pas);
 
     // Add a spike detector to the soma.
     cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add two gap junction sites.
     cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
-    cell.place(arb::mlocation{1, 1}, arb::gap_junction_site{});
+    cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
 
     // Attach a stimulus to the second cell.
     if (!gid) {
@@ -336,7 +326,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.place(arb::mlocation{1, 0.5}, "expsyn");
+    cell.place(arb::mlocation{0, 0.5}, "expsyn");
 
     return cell;
 }
@@ -362,7 +352,7 @@ gap_params read_options(int argc, char** argv) {
     }
 
     nlohmann::json json;
-    json << f;
+    f >> json;
 
     param_from_json(params.name, "name", json);
     param_from_json(params.n_cables, "n-cables", json);

@@ -39,7 +39,7 @@ span<I> make_span(I right) {
 
 template <typename Seq>
 auto count_along(const Seq& s) {
-    return util::make_span(util::size(s));
+    return util::make_span(std::size(s));
 }
 
 } // namespace util

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cmath>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -9,7 +10,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechanism.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "util/index_into.hpp"
 #include "util/maputil.hpp"
@@ -26,10 +26,8 @@ namespace arb {
 namespace multicore {
 
 using util::make_range;
+using util::ptr_by_key;
 using util::value_by_key;
-
-constexpr unsigned simd_width = S::simd_abi::native_width<fvm_value_type>::value;
-
 
 // Copy elements from source sequence into destination sequence,
 // and fill the remaining elements of the destination sequence
@@ -43,8 +41,8 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
     using std::begin;
     using std::end;
 
-    auto dest_n = util::size(dest);
-    auto source_n = util::size(source);
+    auto dest_n = std::size(dest);
+    auto source_n = std::size(source);
 
     auto n = source_n<dest_n? source_n: dest_n;
     auto tail = std::copy_n(begin(source), n, begin(dest));
@@ -102,7 +100,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     for (auto i: ion_state_tbl) {
         auto ion_binding = value_by_key(overrides.ion_rebind, i.first).value_or(i.first);
 
-        util::optional<ion_state&> oion = value_by_key(shared.ion_data, ion_binding);
+        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
         if (!oion) {
             throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
         }
@@ -154,7 +152,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
-    index_constraints_ = make_constraint_partition(node_index_, width_, simd_width);
+    index_constraints_ = make_constraint_partition(node_index_, width_, simd_width());
 
     if (mult_in_place_) {
         multiplicity_ = iarray(width_padded_, pad);
@@ -164,7 +162,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     for (auto i: ion_index_table()) {
         auto ion_binding = value_by_key(overrides.ion_rebind, i.first).value_or(i.first);
 
-        util::optional<ion_state&> oion = value_by_key(shared.ion_data, ion_binding);
+        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
         if (!oion) {
             throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
         }
@@ -176,7 +174,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         ion_index = iarray(width_padded_, pad);
         copy_extend(indices, ion_index, util::back(indices));
 
-        arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width));
+        arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width()));
     }
 }
 

@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -19,7 +20,6 @@
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/util/optional.hpp>
 #include <arbor/version.hpp>
 
 #include <arborenv/concurrency.hpp>
@@ -68,7 +68,7 @@ struct cl_options {
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
-util::optional<cl_options> read_options(int argc, char** argv);
+std::optional<cl_options> read_options(int argc, char** argv);
 
 void banner(const context& ctx);
 
@@ -93,7 +93,7 @@ public:
         ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
-            std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
+            throw std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
         }
 
         // Set up the parameters.
@@ -166,14 +166,6 @@ public:
 
     cell_size_type num_targets(cell_gid_type) const override {
         return 1;
-    }
-
-    cell_size_type num_probes(cell_gid_type) const override {
-        return 0;
-    }
-
-    probe_info get_probe(cell_member_type probe_id) const override {
-        return {};
     }
 
 private:
@@ -354,7 +346,7 @@ std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start,
 }
 
 // Read options from (optional) json file and command line arguments.
-util::optional<cl_options> read_options(int argc, char** argv) {
+std::optional<cl_options> read_options(int argc, char** argv) {
     using namespace to;
     auto usage_str = "\n"
                      "-n|--n-excitatory      [Number of cells in the excitatory population]\n"

@@ -4,20 +4,17 @@
 // `operator()` from a number of functions or function objects.
 //
 // Provides the `any_visitor` class, which will call a provided functional
-// with the contained value in a `util::any` if it is one of a fixed set
+// with the contained value in a `std::any` if it is one of a fixed set
 // of types.
 
+#include <any>
 #include <utility>
 #include <type_traits>
-
-#include <arbor/util/any.hpp>
 
 namespace arb {
 namespace util {
 
 namespace impl {
-
-template <typename> using void_t = void; // TODO: C++17 use std::void_t.
 
 template <typename X, typename Y>
 struct propagate_qualifier { using type = Y; };
@@ -37,7 +34,7 @@ using propagate_qualifier_t = typename propagate_qualifier<X, Y>::type;
 } // namespace impl
 
 // A type `any_visitor<A, B, ...>` has one public static method
-// `visit(f, a)` where `a` is a possibly const lvalue or rvalue util::any,
+// `visit(f, a)` where `a` is a possibly const lvalue or rvalue std::any,
 // and `f` is a functional object or function pointer.
 //
 // If `a` contains a value of any of the types `A, B, ...`, `f` will
@@ -57,25 +54,25 @@ struct any_visitor<T> {
         template <typename A>
         static auto visit(F&& f, A&& a) {
             using Q = impl::propagate_qualifier_t<A, T>;
-            return util::any_cast<T>(&a)?
-                   std::forward<F>(f)(util::any_cast<Q&&>(std::forward<A>(a))):
-                   throw ::arb::util::bad_any_cast();
+            return std::any_cast<T>(&a)?
+                   std::forward<F>(f)(std::any_cast<Q&&>(std::forward<A>(a))):
+                   throw std::bad_any_cast();
         }
     };
 
     template <typename F>
-    struct invoke_or_throw<F, impl::void_t<decltype(std::declval<F>()())>> {
+    struct invoke_or_throw<F, std::void_t<decltype(std::declval<F>()())>> {
         template <typename A>
         static auto visit(F&& f, A&& a) {
             using Q = impl::propagate_qualifier_t<A, T>;
-            return util::any_cast<T>(&a)?
-                   std::forward<F>(f)(util::any_cast<Q&&>(std::forward<A>(a))):
+            return std::any_cast<T>(&a)?
+                   std::forward<F>(f)(std::any_cast<Q&&>(std::forward<A>(a))):
                    std::forward<F>(f)();
         }
     };
 
     template <typename F, typename A,
-        typename = std::enable_if_t<std::is_same<util::any, std::decay_t<A>>::value>
+        typename = std::enable_if_t<std::is_same_v<std::any, std::decay_t<A>>>
     >
     static auto visit(F&& f, A&& a) {
         return invoke_or_throw<F>::visit(std::forward<F>(f), std::forward<A>(a));
@@ -85,31 +82,17 @@ struct any_visitor<T> {
 template <typename T, typename U, typename... Rest>
 struct any_visitor<T, U, Rest...> {
     template <typename F, typename A,
-        typename = std::enable_if_t<std::is_same<util::any, std::decay_t<A>>::value>
+        typename = std::enable_if_t<std::is_same_v<std::any, std::decay_t<A>>>
     >
     static auto visit(F&& f, A&& a) {
         using Q = impl::propagate_qualifier_t<A, T>;
-        return util::any_cast<T>(&a)?
-               std::forward<F>(f)(util::any_cast<Q&&>(std::forward<A>(a))):
+        return std::any_cast<T>(&a)?
+               std::forward<F>(f)(std::any_cast<Q&&>(std::forward<A>(a))):
                any_visitor<U, Rest...>::visit(std::forward<F>(f), std::forward<A>(a));
     }
 };
 
 namespace impl {
-
-template <typename F, typename... A>
-struct invocable_impl {
-    template <typename G, typename = void>
-    struct test: std::false_type {};
-
-    template <typename G>
-    struct test<G, void_t<decltype(std::declval<G>()(std::declval<A>()...))>>: std::true_type {};
-
-    using type = typename test<F>::type;
-};
-
-template <typename F, typename... A>
-using invocable = typename invocable_impl<F, A...>::type;
 
 template <typename, typename...> struct overload_impl {};
 
@@ -119,7 +102,7 @@ struct overload_impl<F1> {
 
     overload_impl(F1&& f1): f_(std::forward<F1>(f1)) {}
 
-    template <typename... A, std::enable_if_t<invocable<F1, A...>::value, int> = 0>
+    template <typename... A, std::enable_if_t<std::is_invocable_v<F1, A...>, int> = 0>
     decltype(auto) operator()(A&&... a) { return f_(std::forward<A>(a)...); }
 };
 
@@ -131,10 +114,10 @@ struct overload_impl<F1, F2, Fn...>: overload_impl<F2, Fn...> {
         overload_impl<F2, Fn...>(std::forward<F2>(f2), std::forward<Fn>(fn)...),
         f_(std::forward<F1>(f1)) {}
 
-    template <typename... A, std::enable_if_t<invocable<F1, A...>::value, int> = 0>
+    template <typename... A, std::enable_if_t<std::is_invocable_v<F1, A...>, int> = 0>
     decltype(auto) operator()(A&&... a) { return f_(std::forward<A>(a)...); }
 
-    template <typename... A, std::enable_if_t<!invocable<F1, A...>::value, int> = 0>
+    template <typename... A, std::enable_if_t<!std::is_invocable_v<F1, A...>, int> = 0>
     decltype(auto) operator()(A&&... a) {
         return overload_impl<F2, Fn...>::operator()(std::forward<A>(a)...);
     }

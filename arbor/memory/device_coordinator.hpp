@@ -80,9 +80,18 @@ public:
         return *this;
     }
 
+    // Assigning to a reference will copy the referenced memory
     device_reference& operator=(const device_reference& ref) {
-        gpu_memcpy_d2d(pointer_, ref.pointer_, sizeof(T));
+        if (this != &ref) {
+            gpu_memcpy_d2d(pointer_, ref.pointer_, sizeof(T));
+        }
+        return *this;
     }
+
+    // No empty references
+    device_reference() = delete;
+    // Copying a reference is a shallow copy
+    device_reference(const device_reference& ref) = default;
 
     operator T() const {
         T tmp;

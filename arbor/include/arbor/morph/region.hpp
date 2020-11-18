@@ -59,7 +59,7 @@ public:
     region(mcable_list);
 
     // Implicitly convert string to named region expression.
-    region(std::string label);
+    region(const std::string& label);
     region(const char* label);
 
     friend mextent thingify(const region& r, const mprovider& m) {
@@ -133,10 +133,13 @@ region branch(msize_t);
 // Region with all segments with segment tag id.
 region tagged(int id);
 
-// Region with all segments distal from another region
+// Region corresponding to a single segment.
+region segment(int id);
+
+// Region up to `distance` distal from points in `start`.
 region distal_interval(locset start, double distance);
 
-// Region with all segments proximal from another region
+// Region up to `distance` proximal from points in `start`.
 region proximal_interval(locset end, double distance);
 
 // Region with all segments with radius less than/less than or equal to r
@@ -158,8 +161,9 @@ region z_dist_from_root_ge(double r);
 // Region with all segments in a cell.
 region all();
 
-// The extent of a region, i.e. including all fork cover points.
-region super(region);
+// Region including all covers of included fork points.
+// (Pre-image of projection onto the topological tree.)
+region complete(region);
 
 // Region associated with a name.
 region named(std::string);
@@ -171,5 +175,11 @@ region join(region, region);
 
 // Intersection of two regions.
 region intersect(region, region);
+
+// Closed complement of a region.
+region complement(region);
+
+// (Closure of) set difference of two regions.
+region difference(region a, region b);
 
 } // namespace arb

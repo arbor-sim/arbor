@@ -1,14 +1,13 @@
 #include <array>
-#include <exception>
 #include <iostream>
-#include <iterator>
 #include <fstream>
-#include <numeric>
-#include <type_traits>
-#include <vector>
+#include <sstream>
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/swcio.hpp>
+#include <arbor/morph/primitives.hpp>
+#include <arbor/morph/segment_tree.hpp>
+
+#include <arborio/swcio.hpp>
 
 #include "../gtest.h"
 
@@ -18,394 +17,1018 @@
 #   define DATADIR "../data"
 #endif
 
-using namespace arb;
+using namespace arborio;
+using arb::segment_tree;
+using arb::mpoint;
+using arb::mnpos;
 
-// SWC tests
-void expect_record_equals(const swc_record& expected,
-                          const swc_record& actual)
-{
-    EXPECT_EQ(expected.id, actual.id);
-    EXPECT_EQ(expected.tag, actual.tag);
-    EXPECT_FLOAT_EQ(expected.x, actual.x);
-    EXPECT_FLOAT_EQ(expected.y, actual.y);
-    EXPECT_FLOAT_EQ(expected.z, actual.z);
-    EXPECT_FLOAT_EQ(expected.r, actual.r);
-    EXPECT_EQ(expected.parent_id, actual.parent_id);
+TEST(swc_record, construction) {
+    swc_record record(1, 7, 1., 2., 3., 4., -1);
+    EXPECT_EQ(record.id, 1);
+    EXPECT_EQ(record.tag, 7);
+    EXPECT_EQ(record.x, 1.);
+    EXPECT_EQ(record.y, 2.);
+    EXPECT_EQ(record.z, 3.);
+    EXPECT_EQ(record.r, 4.);
+    EXPECT_EQ(record.parent_id, -1);
+
+    // Check copy ctor and copy assign.
+    swc_record r2(record);
+    EXPECT_EQ(record, r2);
+
+    swc_record r3;
+    EXPECT_NE(record, r3);
+
+    r3 = record;
+    EXPECT_EQ(record, r3);
 }
 
-TEST(swc_record, construction)
-{
-    int soma_tag = 1;
-
+TEST(swc_record, invalid_input) {
+    swc_record dummy{2, 3, 4., 5., 6., 7., 1};
     {
-        // invalid id
-        EXPECT_THROW(swc_record(soma_tag, -3, 1., 1., 1., 1., 5).assert_consistent(),
-                     swc_error);
-    }
-
-    {
-        // invalid parent id
-        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., 1., -5).assert_consistent(),
-                     swc_error);
-    }
-
-    {
-        // invalid radius
-        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., -1., -1).assert_consistent(),
-                     swc_error);
-    }
-
-    {
-        // parent_id > id
-        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., 1., 2).assert_consistent(),
-                     swc_error);
-    }
-
-    {
-        // parent_id == id
-        EXPECT_THROW(swc_record(soma_tag, 0, 1., 1., 1., 1., 0).assert_consistent(),
-                     swc_error);
-    }
-
-    {
-        // check standard construction by value
-        swc_record record(soma_tag, 0, 1., 1., 1., 1., -1);
-        EXPECT_TRUE(record.is_consistent());
-        EXPECT_EQ(record.id, 0);
-        EXPECT_EQ(record.tag, soma_tag);
-        EXPECT_EQ(record.x, 1.);
-        EXPECT_EQ(record.y, 1.);
-        EXPECT_EQ(record.z, 1.);
-        EXPECT_EQ(record.r, 1.);
-        EXPECT_EQ(record.diameter(), 2*1.);
-        EXPECT_EQ(record.parent_id, -1);
-    }
-
-    {
-        // check copy constructor
-        swc_record record_orig(soma_tag, 0, 1., 1., 1., 1., -1);
-        swc_record record(record_orig);
-        expect_record_equals(record_orig, record);
-    }
-}
-
-
-TEST(swc_parser, invalid_input_istream)
-{
-    {
-        // check incomplete lines; missing parent
+        // Incomplete line: missing parent id.
+        swc_record record(dummy);
         std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
-        swc_record record;
         is >> record;
+
         EXPECT_TRUE(is.fail());
+        EXPECT_EQ(dummy, record);
     }
 
     {
-        // Check non-parsable values
-        std::istringstream is(
-            "1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
-        swc_record record;
+        // Bad id value.
+        swc_record record(dummy);
+        std::istringstream is("1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
         is >> record;
+
         EXPECT_TRUE(is.fail());
+        EXPECT_EQ(dummy, record);
     }
 }
 
-TEST(swc_parser, invalid_input_parse)
-{
+TEST(swc_parser, bad_parse) {
     {
-        // check incomplete lines; missing parent
-        std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
-        EXPECT_THROW(parse_swc_file(is), swc_error);
+        std::string bad1 =
+            "1 1 0.1 0.2 0.3 0.4 -1\n"
+            "2 1 0.1 0.2 0.3 0.4 1\n"
+            "3 1 0.1 0.2 0.3 0.4 2\n"
+            "5 1 0.1 0.2 0.3 0.4 4\n";
+
+        EXPECT_THROW(parse_swc(bad1), swc_no_such_parent);
     }
 
     {
-        // Check non-parsable values
-        std::istringstream is(
-            "1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
-        EXPECT_THROW(parse_swc_file(is), swc_error);
+        std::string bad2 =
+            "1 1 0.1 0.2 0.3 0.4 -1\n"
+            "2 1 0.1 0.2 0.3 0.4 1\n"
+            "3 1 0.1 0.2 0.3 0.4 2\n"
+            "4 1 0.1 0.2 0.3 0.4 -1\n";
+
+        EXPECT_THROW(parse_swc(bad2), swc_no_such_parent);
     }
 
     {
-        // Non-contiguous numbering in branches is considered invalid
-        //        1
-        //       / \.
-        //      2   3
-        //     /
-        //    4
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "4 1 14.566132 34.873772 7.857000 0.717830 2\n";
+        std::string bad3 =
+            "1 1 0.1 0.2 0.3 0.4 -1\n"
+            "2 1 0.1 0.2 0.3 0.4 3\n"
+            "3 1 0.1 0.2 0.3 0.4 1\n"
+            "4 1 0.1 0.2 0.3 0.4 3\n";
 
-        EXPECT_THROW(parse_swc_file(is), swc_error);
+        EXPECT_THROW(parse_swc(bad3), swc_record_precedes_parent);
+    }
+
+    {
+        std::string bad4 =
+            "1 1 0.1 0.2 0.3 0.4 -1\n"
+            "3 1 0.1 0.2 0.3 0.4 1\n"
+            "3 1 0.1 0.2 0.3 0.4 1\n"
+            "4 1 0.1 0.2 0.3 0.4 3\n";
+
+        EXPECT_THROW(parse_swc(bad4), swc_duplicate_record_id);
+    }
+
+    {
+        std::string bad5 =
+            "1 1 0.1 0.2 0.3 0.4 -3\n"
+            "2 1 0.1 0.2 0.3 0.4 1\n"
+            "3 1 0.1 0.2 0.3 0.4 2\n"
+            "4 1 0.1 0.2 0.3 0.4 -1\n";
+
+        EXPECT_THROW(parse_swc(bad5), swc_no_such_parent);
     }
 }
 
-TEST(swc_parser, valid_input)
-{
+TEST(swc_parser, valid_parse) {
+    // Non-contiguous is okay.
     {
-        // check empty file; no record may be parsed
-        swc_record record, record_orig;
-        std::istringstream is("");
-        is >> record;
+        std::string valid1 =
+            "1 1 0.1 0.2 0.3 0.4 -1\n"
+            "2 1 0.1 0.2 0.3 0.4 1\n"
+            "3 1 0.1 0.2 0.3 0.4 2\n"
+            "5 1 0.1 0.2 0.3 0.4 3\n"; // non-contiguous
 
+        EXPECT_NO_THROW(parse_swc(valid1));
+    }
+
+    // As is out of order.
+    {
+        std::string valid2 =
+            "1 1 0.1 0.2 0.3 0.4 -1\n"
+            "3 1 0.1 0.2 0.3 0.4 2\n" // out of order
+            "2 1 0.1 0.2 0.3 0.4 1\n"
+            "4 1 0.1 0.2 0.3 0.4 3\n";
+
+        EXPECT_NO_THROW(parse_swc(valid2));
+    }
+
+    //  With comments
+    {
+        std::string valid3 =
+            "# Hello\n"
+            "# world.\n";
+
+        swc_data data = parse_swc(valid3);
+        EXPECT_EQ("Hello\nworld.\n", data.metadata());
+        EXPECT_TRUE(data.records().empty());
+    }
+
+    // Non-contiguous, out of order records with comments.
+    {
+        std::string valid4 =
+            "# Some people put\n"
+            "# <xml /> in here!\n"
+            "1 1 0.1 0.2 0.3 0.4 -1\n"
+            "2 1 0.3 0.4 0.5 0.3 1\n"
+            "5 2 0.2 0.6 0.8 0.2 2\n"
+            "4 0 0.2 0.8 0.6 0.3 2";
+
+        swc_data data = parse_swc(valid4);
+        EXPECT_EQ("Some people put\n<xml /> in here!\n", data.metadata());
+        ASSERT_EQ(4u, data.records().size());
+        EXPECT_EQ(swc_record(1, 1, 0.1, 0.2, 0.3, 0.4, -1), data.records()[0]);
+        EXPECT_EQ(swc_record(2, 1, 0.3, 0.4, 0.5, 0.3, 1), data.records()[1]);
+        EXPECT_EQ(swc_record(4, 0, 0.2, 0.8, 0.6, 0.3, 2), data.records()[2]);
+        EXPECT_EQ(swc_record(5, 2, 0.2, 0.6, 0.8, 0.2, 2), data.records()[3]);
+
+        // Trailing garbage is ignored in data records.
+        std::string valid3 =
+            "# Some people put\n"
+            "# <xml /> in here!\n"
+            "1 1 0.1 0.2 0.3 0.4 -1 # what is that?\n"
+            "2 1 0.3 0.4 0.5 0.3 1 moooooo\n"
+            "3 2 0.2 0.6 0.8 0.2 2 # it is a cow!\n"
+            "4 0 0.2 0.8 0.6 0.3 2";
+
+        swc_data data2 = parse_swc(valid4);
+        EXPECT_EQ(data.records(), data2.records());
+    }
+}
+
+TEST(swc_parser, stream_validity) {
+    {
+        std::string valid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 0.4 -1\n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(valid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(2u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
         EXPECT_TRUE(is.eof());
-        EXPECT_TRUE(is.fail());
-        EXPECT_FALSE(is.bad());
-        expect_record_equals(record_orig, record);
     }
-
     {
-        // check comment-only file not ending with a newline;
-        // no record may be parsed
-        swc_record record, record_orig;
-        std::istringstream is("#comment\n#comment");
-        is >> record;
+        std::string valid =
+                "# metadata\n"
+                "\n"
+                "1 1 0.1 0.2 0.3 0.4 -1\n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
 
+        std::istringstream is(valid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_TRUE(is.good());
+
+        is >> std::ws;
+        data = parse_swc(is);
+        ASSERT_EQ(2u, data.records().size());
+        EXPECT_TRUE(data.metadata().empty());
         EXPECT_TRUE(is.eof());
-        EXPECT_TRUE(is.fail());
-        EXPECT_FALSE(is.bad());
-        expect_record_equals(record_orig, record);
+    }
+    {
+        std::string invalid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 \n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(invalid);
+
+        auto data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_FALSE(is.good());
+    }
+    {
+        std::string invalid =
+                "# metadata\n"
+                "1 1 0.1 0.2 0.3 \n"
+                "2 1 0.1 0.2 0.3 0.4 1\n";
+
+        std::istringstream is(invalid);
+
+        auto data = parse_swc(is);
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata() == "metadata\n");
+        EXPECT_FALSE(is.good());
+
+        is >> std::ws;
+        data = parse_swc(is);
+        ASSERT_EQ(0u, data.records().size());
+        EXPECT_TRUE(data.metadata().empty());
+        EXPECT_FALSE(is.good());
     }
 
+}
+
+TEST(swc_parser, arbor_complaint) {
     {
-        // check comment not starting at first character
-        swc_record record, record_orig;
-        std::istringstream is("   #comment\n");
-        is >> record;
+        // Otherwise, ensure segment ends and tags correspond.
+        mpoint p0{0.1, 0.2, 0.3, 0.4};
+        mpoint p1{0.3, 0.4, 0.5, 0.3};
+        mpoint p2{0.2, 0.8, 0.6, 0.3};
+        mpoint p3{0.2, 0.6, 0.8, 0.2};
+        mpoint p4{0.4, 0.5, 0.5, 0.1};
 
-        EXPECT_TRUE(is.eof());
-        EXPECT_TRUE(is.fail());
-        EXPECT_FALSE(is.bad());
-        expect_record_equals(record_orig, record);
-    }
-
-    {
-        // check whitespace lines
-        swc_record record;
-        std::stringstream is;
-        is << "#comment\n";
-        is << "      \t\n";
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-
-        is >> record;
-        EXPECT_TRUE(is);
-
-        int soma_tag = 1;
-        swc_record record_expected(
-            soma_tag,
-            0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
-        expect_record_equals(record_expected, record);
-    }
-
-    {
-        // check windows eol
-        swc_record record;
-        std::stringstream is;
-        is << "#comment\r\n";
-        is << "\r\n";
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\r\n";
-
-        is >> record;
-        EXPECT_TRUE(is);
-
-        int soma_tag = 1;
-        swc_record record_expected(
-            soma_tag,
-            0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
-        expect_record_equals(record_expected, record);
-    }
-
-    {
-        // check old-style mac eol; these eol are treated as simple whitespace
-        // characters, so should look line a long comment.
-        swc_record record;
-        std::stringstream is;
-        is << "#comment\r";
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\r";
-
-        is >> record;
-        EXPECT_TRUE(is.eof());
-        EXPECT_TRUE(is.fail());
-        EXPECT_FALSE(is.bad());
-    }
-
-    {
-        // check last line case (no newline at the end)
-        std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830 -1");
-        swc_record record;
-        is >> record;
-        EXPECT_TRUE(is.eof());
-        EXPECT_FALSE(is.fail());
-        EXPECT_FALSE(is.bad());
-        EXPECT_EQ(0, record.id);    // zero-based indexing
-        EXPECT_EQ(1, record.tag);
-        EXPECT_FLOAT_EQ(14.566132, record.x);
-        EXPECT_FLOAT_EQ(34.873772, record.y);
-        EXPECT_FLOAT_EQ( 7.857000, record.z);
-        EXPECT_FLOAT_EQ( 0.717830, record.r);
-        EXPECT_FLOAT_EQ( -1, record.parent_id);
-    }
-
-    {
-
-        // check valid input with a series of records
-        std::vector<swc_record> records_orig = {
-            swc_record(1, 0,
-                        14.566132, 34.873772, 7.857000, 0.717830, -1),
-            swc_record(3, 1,
-                        14.566132+1, 34.873772+1, 7.857000+1, 0.717830+1, -1)
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius, 1},
+            {4, 3, p2.x, p2.y, p2.z, p2.radius, 2},
+            {5, 2, p3.x, p3.y, p3.z, p3.radius, 2},
+            {7, 3, p4.x, p4.y, p4.z, p4.radius, 4}
         };
 
-        std::stringstream swc_input;
-        swc_input << "# this is a comment\n";
-        swc_input << "# this is a comment\n";
-        for (auto c : records_orig)
-            swc_input << c << "\n";
+        segment_tree tree = load_swc_arbor(swc);
+        ASSERT_EQ(4u, tree.segments().size());
 
-        swc_input << "# this is a final comment\n";
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,  tree.segments()[0].tag);
+        EXPECT_EQ(p0, tree.segments()[0].prox);
+        EXPECT_EQ(p1, tree.segments()[0].dist);
 
-        using swc_iter = std::istream_iterator<swc_record>;
-        swc_iter end;
+        EXPECT_EQ(0u, tree.parents()[1]);
+        EXPECT_EQ(3,  tree.segments()[1].tag);
+        EXPECT_EQ(p1, tree.segments()[1].prox);
+        EXPECT_EQ(p2, tree.segments()[1].dist);
 
-        std::size_t nr_records = 0;
-        for (swc_iter i = swc_iter(swc_input); i!=end; ++i) {
-            ASSERT_LT(nr_records, records_orig.size());
-            expect_record_equals(records_orig[nr_records], *i);
-            ++nr_records;
-        }
-        EXPECT_EQ(2u, nr_records);
+        EXPECT_EQ(0u, tree.parents()[2]);
+        EXPECT_EQ(2,  tree.segments()[2].tag);
+        EXPECT_EQ(p1, tree.segments()[2].prox);
+        EXPECT_EQ(p3, tree.segments()[2].dist);
+
+        EXPECT_EQ(1u, tree.parents()[3]);
+        EXPECT_EQ(3,  tree.segments()[3].tag);
+        EXPECT_EQ(p2, tree.segments()[3].prox);
+        EXPECT_EQ(p4, tree.segments()[3].dist);
+    }
+    {
+        // Otherwise, ensure segment ends and tags correspond.
+        mpoint p0{0.1, 0.2, 0.3, 0.4};
+        mpoint p1{0.3, 0.4, 0.5, 0.3};
+        mpoint p2{0.2, 0.8, 0.6, 0.3};
+        mpoint p3{0.2, 0.6, 0.8, 0.2};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius, 1},
+            {3, 2, p2.x, p2.y, p2.z, p2.radius, 1},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius, 2},
+        };
+
+        segment_tree tree = load_swc_arbor(swc);
+        ASSERT_EQ(3u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,  tree.segments()[0].tag);
+        EXPECT_EQ(p0, tree.segments()[0].prox);
+        EXPECT_EQ(p1, tree.segments()[0].dist);
+
+        EXPECT_EQ(mnpos, tree.parents()[1]);
+        EXPECT_EQ(2,  tree.segments()[1].tag);
+        EXPECT_EQ(p0, tree.segments()[1].prox);
+        EXPECT_EQ(p2, tree.segments()[1].dist);
+
+        EXPECT_EQ(0u, tree.parents()[2]);
+        EXPECT_EQ(3,  tree.segments()[2].tag);
+        EXPECT_EQ(p1, tree.segments()[2].prox);
+        EXPECT_EQ(p3, tree.segments()[2].dist);
+    }
+}
+
+TEST(swc_parser, not_arbor_complaint) {
+    {
+        // Missing parent record will throw.
+        std::vector<swc_record> swc{
+            {1, 1, 0., 0., 0., 1., -1},
+            {5, 3, 1., 1., 1., 1., 2}
+        };
+        EXPECT_THROW(load_swc_arbor(swc), swc_no_such_parent);
+    }
+    {
+        // A single SWC record will throw.
+        std::vector<swc_record> swc{
+            {1, 1, 0., 0., 0., 1., -1}
+        };
+        EXPECT_THROW(load_swc_arbor(swc), swc_spherical_soma);
+    }
+    {
+        std::vector<swc_record> swc{
+            {1, 4, 0.1, 0.2, 0.3, 0.4, -1},
+            {2, 6, 0.1, 0.2, 0.3, 0.4,  1},
+            {3, 6, 0.1, 0.2, 0.3, 0.4,  2},
+            {4, 6, 0.1, 0.2, 0.3, 0.4,  1}
+        };
+        EXPECT_THROW(load_swc_arbor(swc), swc_spherical_soma);
+    }
+}
+
+TEST(swc_parser, allen_compliant) {
+    using namespace arborio;
+    {
+        // One-point soma; interpretted as 1 segment
+        mpoint p0{0, 0, 0, 10};
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1}
+        };
+        segment_tree tree = load_swc_allen(swc);
+
+        mpoint prox{p0.x, p0.y-p0.radius, p0.z, p0.radius};
+        mpoint dist{p0.x, p0.y+p0.radius, p0.z, p0.radius};
+
+        ASSERT_EQ(1u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(dist,  tree.segments()[0].dist);
+    }
+    {
+        // One-point soma, two-point dendrite
+        mpoint p0{0,   0, 0, 10};
+        mpoint p1{0,   0, 0,  5};
+        mpoint p2{0, 200, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        segment_tree tree = load_swc_allen(swc);
+
+        mpoint prox{0, -10, 0, 10};
+        mpoint dist{0,  10, 0, 10};
+
+        ASSERT_EQ(2u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(dist,    tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[1]);
+        EXPECT_EQ(3,   tree.segments()[1].tag);
+        EXPECT_EQ(p1,  tree.segments()[1].prox);
+        EXPECT_EQ(p2,  tree.segments()[1].dist);
+    }
+    {
+        // 1-point soma, 2-point dendrite, 2-point axon
+        mpoint p0{0, 0,  0,  1};
+        mpoint p1{0, 0, 10, 10};
+        mpoint p2{0, 0, 20, 10};
+        mpoint p3{0, 0, 21, 10};
+        mpoint p4{0, 0, 30, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 2, p3.x, p3.y, p3.z, p3.radius,  1},
+            {5, 2, p4.x, p4.y, p4.z, p4.radius,  4}
+        };
+        segment_tree tree = load_swc_allen(swc);
+
+        mpoint prox{0, -1, 0, 1};
+        mpoint dist{0,  1, 0, 1};
+
+        ASSERT_EQ(3u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(dist,  tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[1]);
+        EXPECT_EQ(3,   tree.segments()[1].tag);
+        EXPECT_EQ(p1,  tree.segments()[1].prox);
+        EXPECT_EQ(p2,  tree.segments()[1].dist);
+
+        EXPECT_EQ(mnpos,  tree.parents()[2]);
+        EXPECT_EQ(2,   tree.segments()[2].tag);
+        EXPECT_EQ(p3,  tree.segments()[2].prox);
+        EXPECT_EQ(p4,  tree.segments()[2].dist);
+    }
+}
+
+TEST(swc_parser, not_allen_compliant) {
+    using namespace arborio;
+    {
+        // multi-point soma
+        mpoint p0{0, 0, -10, 10};
+        mpoint p1{0, 0,   0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_non_spherical_soma);
+    }
+    {
+        // unsupported tag
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 5, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_unsupported_tag);
+    }
+    {
+        // 1-point soma; 2-point dendrite; 1-point axon connected to the proximal end of the dendrite
+        mpoint p0{0, 0, -15, 10};
+        mpoint p1{0, 0,   0, 10};
+        mpoint p2{0, 0,  80, 10};
+        mpoint p3{0, 0, -80, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 2, p3.x, p3.y, p3.z, p3.radius,  2}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_mismatched_tags);
+    }
+    {
+        // 1-point soma and 1-point dendrite
+        mpoint p0{0,   0, 0, 10};
+        mpoint p1{0, 200, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point dendrite and 1-point soma at the end
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 3, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_no_soma);
+    }
+    {
+        // non-existent parent sample
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  4}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_record_precedes_parent);
+    }
+    {
+        // parent sample is self
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  2}
+        };
+        EXPECT_THROW(load_swc_allen(swc), swc_record_precedes_parent);
+    }
+}
+
+TEST(swc_parser, neuron_compliant) {
+    using namespace arborio;
+    {
+        // One-point soma; interpretted as 1 segment
+
+        mpoint p0{0, 0, 0, 10};
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        mpoint prox{p0.x, p0.y-p0.radius, p0.z, p0.radius};
+        mpoint dist{p0.x, p0.y+p0.radius, p0.z, p0.radius};
+
+        ASSERT_EQ(1u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(dist,  tree.segments()[0].dist);
+    }
+    {
+        // Two-point soma; interpretted as 1
+        mpoint p0{0, 0, -10, 10};
+        mpoint p1{0, 0,   0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        ASSERT_EQ(1u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(p0,    tree.segments()[0].prox);
+        EXPECT_EQ(p1,    tree.segments()[0].dist);
+    }
+    {
+        // Three-point soma; interpretted as 2 segments
+        mpoint p0{0, 0, -10, 10};
+        mpoint p1{0, 0,   0, 10};
+        mpoint p2{0, 0,  10, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        ASSERT_EQ(2u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(p0,    tree.segments()[0].prox);
+        EXPECT_EQ(p1,    tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[1]);
+        EXPECT_EQ(1,   tree.segments()[1].tag);
+        EXPECT_EQ(p1,  tree.segments()[1].prox);
+        EXPECT_EQ(p2,  tree.segments()[1].dist);
+    }
+    {
+        // 6-point soma; interpretted as 5 segments
+        mpoint p0{0, 0,  -5, 2};
+        mpoint p1{0, 0,   0, 5};
+        mpoint p2{0, 0,   2, 6};
+        mpoint p3{0, 0,   6, 1};
+        mpoint p4{0, 0,  10, 7};
+        mpoint p5{0, 0,  15, 2};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 1, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 1, p4.x, p4.y, p4.z, p4.radius,  4},
+            {6, 1, p5.x, p5.y, p5.z, p5.radius,  5}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+
+        ASSERT_EQ(5u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(p0,    tree.segments()[0].prox);
+        EXPECT_EQ(p1,    tree.segments()[0].dist);
+
+        EXPECT_EQ(0u, tree.parents()[1]);
+        EXPECT_EQ(1,  tree.segments()[1].tag);
+        EXPECT_EQ(p1, tree.segments()[1].prox);
+        EXPECT_EQ(p2, tree.segments()[1].dist);
+
+        EXPECT_EQ(1u,  tree.parents()[2]);
+        EXPECT_EQ(1,   tree.segments()[2].tag);
+        EXPECT_EQ(p2,  tree.segments()[2].prox);
+        EXPECT_EQ(p3,  tree.segments()[2].dist);
+
+        EXPECT_EQ(2u, tree.parents()[3]);
+        EXPECT_EQ(1,  tree.segments()[3].tag);
+        EXPECT_EQ(p3, tree.segments()[3].prox);
+        EXPECT_EQ(p4, tree.segments()[3].dist);
+
+        EXPECT_EQ(3u, tree.parents()[4]);
+        EXPECT_EQ(1,  tree.segments()[4].tag);
+        EXPECT_EQ(p4, tree.segments()[4].prox);
+        EXPECT_EQ(p5, tree.segments()[4].dist);
+    }
+    {
+        // One-point soma, two-point dendrite
+        mpoint p0{0,   0, 0, 10};
+        mpoint p1{0,   0, 0,  5};
+        mpoint p2{0, 200, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        mpoint prox{0, -10, 0, 10};
+        mpoint dist{0,  10, 0, 10};
+
+        ASSERT_EQ(3u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(prox,  tree.segments()[0].prox);
+        EXPECT_EQ(p0,    tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,    tree.parents()[1]);
+        EXPECT_EQ(1,     tree.segments()[1].tag);
+        EXPECT_EQ(p0,    tree.segments()[1].prox);
+        EXPECT_EQ(dist,  tree.segments()[1].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[2]);
+        EXPECT_EQ(3,   tree.segments()[2].tag);
+        EXPECT_EQ(p1,  tree.segments()[2].prox);
+        EXPECT_EQ(p2,  tree.segments()[2].dist);
+    }
+    {
+        // 6-point soma, 2-point dendrite
+        mpoint p0{0, 0,  -5, 2};
+        mpoint p1{0, 0,   0, 5};
+        mpoint p2{0, 0,   2, 6};
+        mpoint p3{0, 0,   6, 1};
+        mpoint p4{0, 0,  10, 7};
+        mpoint p5{0, 0,  15, 2};
+        mpoint p6{0, 0,  16, 1};
+        mpoint p7{0, 0,  55, 9};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 1, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 1, p4.x, p4.y, p4.z, p4.radius,  4},
+            {6, 1, p5.x, p5.y, p5.z, p5.radius,  5},
+            {7, 3, p6.x, p6.y, p6.z, p6.radius,  6},
+            {8, 3, p7.x, p7.y, p7.z, p7.radius,  7}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        mpoint mid {0, 0, 5, 2.25};
+
+        ASSERT_EQ(7u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(p0,    tree.segments()[0].prox);
+        EXPECT_EQ(p1,    tree.segments()[0].dist);
+
+        EXPECT_EQ(0u, tree.parents()[1]);
+        EXPECT_EQ(1,  tree.segments()[1].tag);
+        EXPECT_EQ(p1, tree.segments()[1].prox);
+        EXPECT_EQ(p2, tree.segments()[1].dist);
+
+        EXPECT_EQ(1u,  tree.parents()[2]);
+        EXPECT_EQ(1,   tree.segments()[2].tag);
+        EXPECT_EQ(p2,  tree.segments()[2].prox);
+        EXPECT_EQ(mid, tree.segments()[2].dist);
+
+        EXPECT_EQ(2u,  tree.parents()[3]);
+        EXPECT_EQ(1,   tree.segments()[3].tag);
+        EXPECT_EQ(mid, tree.segments()[3].prox);
+        EXPECT_EQ(p3,  tree.segments()[3].dist);
+
+        EXPECT_EQ(3u, tree.parents()[4]);
+        EXPECT_EQ(1,  tree.segments()[4].tag);
+        EXPECT_EQ(p3, tree.segments()[4].prox);
+        EXPECT_EQ(p4, tree.segments()[4].dist);
+
+        EXPECT_EQ(4u, tree.parents()[5]);
+        EXPECT_EQ(1,  tree.segments()[5].tag);
+        EXPECT_EQ(p4, tree.segments()[5].prox);
+        EXPECT_EQ(p5, tree.segments()[5].dist);
+
+        EXPECT_EQ(2u, tree.parents()[6]);
+        EXPECT_EQ(3,  tree.segments()[6].tag);
+        EXPECT_EQ(p6, tree.segments()[6].prox);
+        EXPECT_EQ(p7, tree.segments()[6].dist);
+    }
+    {
+        // Two-point soma, two-point dendrite
+        mpoint p0{0,   0, -20, 10};
+        mpoint p1{0,   0,   0,  4};
+        mpoint p2{0,   0,   0, 10};
+        mpoint p3{0, 200,   0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  3}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        mpoint mid{0, 0, -10, 7};
+
+        ASSERT_EQ(3u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(p0,    tree.segments()[0].prox);
+        EXPECT_EQ(mid,   tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,    tree.parents()[1]);
+        EXPECT_EQ(1,     tree.segments()[1].tag);
+        EXPECT_EQ(mid,   tree.segments()[1].prox);
+        EXPECT_EQ(p1,    tree.segments()[1].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[2]);
+        EXPECT_EQ(3,   tree.segments()[2].tag);
+        EXPECT_EQ(p2,  tree.segments()[2].prox);
+        EXPECT_EQ(p3,  tree.segments()[2].dist);
+    }
+    {
+        // 2-point soma; 2-point dendrite; 1-point axon connected to the proximal end of the dendrite
+        mpoint p0{0, 0, -15, 10};
+        mpoint p1{0, 0,   0,  3};
+        mpoint p2{0, 0,   0, 10};
+        mpoint p3{0, 0,  80, 10};
+        mpoint p4{0, 0, -80, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 2, p4.x, p4.y, p4.z, p4.radius,  3}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        mpoint mid{0, 0, -7.5, 6.5};
+
+        ASSERT_EQ(4u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(p0,    tree.segments()[0].prox);
+        EXPECT_EQ(mid,   tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,    tree.parents()[1]);
+        EXPECT_EQ(1,     tree.segments()[1].tag);
+        EXPECT_EQ(mid,   tree.segments()[1].prox);
+        EXPECT_EQ(p1,    tree.segments()[1].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[2]);
+        EXPECT_EQ(3,   tree.segments()[2].tag);
+        EXPECT_EQ(p2,  tree.segments()[2].prox);
+        EXPECT_EQ(p3,  tree.segments()[2].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[3]);
+        EXPECT_EQ(2,   tree.segments()[3].tag);
+        EXPECT_EQ(p2,  tree.segments()[3].prox);
+        EXPECT_EQ(p4,  tree.segments()[3].dist);
+    }
+    {
+        // 2-point soma, 2-point dendrite, 2-point axon
+        mpoint p0{0, 0,  0,  1};
+        mpoint p1{0, 0,  9,  2};
+        mpoint p2{0, 0, 10, 10};
+        mpoint p3{0, 0, 20, 10};
+        mpoint p4{0, 0, 21, 10};
+        mpoint p5{0, 0, 30, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
+            {5, 2, p4.x, p4.y, p4.z, p4.radius,  4},
+            {6, 2, p5.x, p5.y, p5.z, p5.radius,  5}
+        };
+        segment_tree tree = load_swc_neuron(swc);
+
+        mpoint mid{0, 0, 4.5, 1.5};
+
+        ASSERT_EQ(5u, tree.segments().size());
+
+        EXPECT_EQ(mnpos, tree.parents()[0]);
+        EXPECT_EQ(1,     tree.segments()[0].tag);
+        EXPECT_EQ(p0,    tree.segments()[0].prox);
+        EXPECT_EQ(mid,   tree.segments()[0].dist);
+
+        EXPECT_EQ(0u,    tree.parents()[1]);
+        EXPECT_EQ(1,     tree.segments()[1].tag);
+        EXPECT_EQ(mid,   tree.segments()[1].prox);
+        EXPECT_EQ(p1,    tree.segments()[1].dist);
+
+        EXPECT_EQ(0u,  tree.parents()[2]);
+        EXPECT_EQ(3,   tree.segments()[2].tag);
+        EXPECT_EQ(p2,  tree.segments()[2].prox);
+        EXPECT_EQ(p3,  tree.segments()[2].dist);
+
+        EXPECT_EQ(2u,  tree.parents()[3]);
+        EXPECT_EQ(2,   tree.segments()[3].tag);
+        EXPECT_EQ(p3,  tree.segments()[3].prox);
+        EXPECT_EQ(p4,  tree.segments()[3].dist);
+
+        EXPECT_EQ(3u,  tree.parents()[4]);
+        EXPECT_EQ(2,   tree.segments()[4].tag);
+        EXPECT_EQ(p4,  tree.segments()[4].prox);
+        EXPECT_EQ(p5,  tree.segments()[4].dist);
+    }
+}
+
+TEST(swc_parser, not_neuron_compliant) {
+    using namespace arborio;
+    {
+        // Two-point collocated soma
+        mpoint p0{0, 0, 0, 5};
+        mpoint p1{0, 0, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+
+        EXPECT_THROW(load_swc_neuron(swc), swc_collocated_soma);
+    }
+    {
+        // 3-point soma joined in the middle (1-0-2)
+        mpoint p0{0, 0,   0, 10};
+        mpoint p1{0, 0, -10, 10};
+        mpoint p2{0, 0,  10, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  1}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_non_serial_soma);
+    }
+    {
+        // 4-point branching soma
+        mpoint p0{0,  0,  0, 10};
+        mpoint p1{0,  0, 10, 10};
+        mpoint p2{0, -5, 20, 10};
+        mpoint p3{0,  5, 20, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 1, p3.x, p3.y, p3.z, p3.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_non_serial_soma);
+    }
+    {
+        // 1-point soma and 1-point dendrite
+        mpoint p0{0,   0, 0, 10};
+        mpoint p1{0, 200, 0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 3, p1.x, p1.y, p1.z, p1.radius,  1}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point soma and 1-point dendrite
+        mpoint p0{0,   0, -10, 10};
+        mpoint p1{0,   0,   0, 10};
+        mpoint p2{0, 200,   0, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point soma and two 1-point dendrite
+        mpoint p0{0,  0, -20, 10};
+        mpoint p1{0,  0,   0, 10};
+        mpoint p2{0, -5,  80, 10};
+        mpoint p3{0,  5, -90, 10};
+
+        std::vector<swc_record> swc{
+            {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+            {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+            {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+            {4, 3, p3.x, p3.y, p3.z, p3.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_single_sample_segment);
+    }
+    {
+        // 2-point dendrite and 1-point soma at the end
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 3, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_no_soma);
+    }
+    {
+        // 3-point non-consecutive soma and a 2 point dendrite
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0,   0,  10, 10};
+        mpoint p3{0, 200,  20, 10};
+        mpoint p4{0,   0,  20,  1};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
+                {4, 3, p3.x, p3.y, p3.z, p3.radius,  3},
+                {5, 1, p4.x, p4.y, p4.z, p4.radius,  2}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_non_consecutive_soma);
+    }
+    {
+        // 3-point soma and a 2 point dendrite connected in the middle of the soma
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0,   0,  20,  1};
+        mpoint p3{0,   0,  10, 10};
+        mpoint p4{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 1, p2.x, p2.y, p2.z, p2.radius,  2},
+                {4, 3, p3.x, p3.y, p3.z, p3.radius,  2},
+                {5, 3, p4.x, p4.y, p4.z, p4.radius,  4}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_branchy_soma);
+    }
+    {
+        // non-existent parent sample
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 3, p2.x, p2.y, p2.z, p2.radius,  4}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_record_precedes_parent);
+    }
+    {
+        // parent sample is self
+        mpoint p0{0,   0,   0,  1};
+        mpoint p1{0,   0,  10,  1};
+        mpoint p2{0, 200,  20, 10};
+
+        std::vector<swc_record> swc{
+                {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
+                {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
+                {3, 3, p2.x, p2.y, p2.z, p2.radius,  3}
+        };
+        EXPECT_THROW(load_swc_neuron(swc), swc_record_precedes_parent);
     }
 }
 
 // hipcc bug in reading DATADIR
 #ifndef ARB_HIP
-TEST(swc_parser, from_allen_db)
+TEST(swc_parser, from_neuromorpho)
 {
     std::string datadir{DATADIR};
-    auto fname = datadir + "/example.swc";
+    auto fname = datadir + "/pyramidal.swc";
     std::ifstream fid(fname);
     if (!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
         return;
     }
 
-    // load the record records into a std::vector
-    std::vector<swc_record> nodes = parse_swc_file(fid);
-
-    // verify that the correct number of nodes was read
-    EXPECT_EQ(1058u, nodes.size());
+    auto data = parse_swc(fid);
+    EXPECT_EQ(5799u, data.records().size());
 }
 #endif
-
-TEST(swc_parser, input_cleaning)
-{
-    {
-        // Check duplicates
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-
-        EXPECT_THROW(parse_swc_file(is), swc_error);
-    }
-
-    {
-        // Check multiple trees
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "3 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
-
-        EXPECT_THROW(parse_swc_file(is), swc_error);
-    }
-
-    {
-        // Check unsorted input
-        std::stringstream is;
-        is << "3 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-
-        std::array<swc_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
-
-        auto records = parse_swc_file(is);
-        ASSERT_EQ(expected_id_list.size(), records.size());
-
-        for (unsigned i = 0; i< expected_id_list.size(); ++i) {
-            EXPECT_EQ(expected_id_list[i], records[i].id);
-        }
-    }
-
-    {
-        // Check holes in numbering
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "21 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "31 2 14.566132 34.873772 7.857000 0.717830 21\n";
-        is << "41 2 14.566132 34.873772 7.857000 0.717830 21\n";
-        is << "51 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "61 2 14.566132 34.873772 7.857000 0.717830 51\n";
-
-        std::array<swc_record::id_type, 6> expected_id_list =
-            {{ 0, 1, 2, 3, 4, 5 }};
-        std::array<swc_record::id_type, 6> expected_parent_list =
-            {{ -1, 0, 1, 1, 0, 4 }};
-
-        auto records = parse_swc_file(is);
-        ASSERT_EQ(expected_id_list.size(), records.size());
-        for (unsigned i = 0; i< expected_id_list.size(); ++i) {
-            EXPECT_EQ(expected_id_list[i], records[i].id);
-            EXPECT_EQ(expected_parent_list[i], records[i].parent_id);
-        }
-    }
-}
-
-TEST(swc_parser, raw)
-{
-    {
-        // Check valid usage
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "3 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
-
-        using swc_iter = std::istream_iterator<swc_record>;
-        std::vector<swc_record> records{swc_iter(is), swc_iter()};
-
-        EXPECT_EQ(4u, records.size());
-        EXPECT_EQ(3, records.back().id);
-    }
-
-    {
-        // Check parse error context
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "-3 2 14.566132 34.873772 7.857000 0.717830 1\n"; // invalid sample identifier -3
-        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
-
-        try {
-            parse_swc_file(is);
-            ADD_FAILURE() << "expected an exception\n";
-        }
-        catch (const swc_error& e) {
-            EXPECT_EQ(3u, e.line_number);
-        }
-    }
-
-    {
-        // Test empty range
-        std::stringstream is("");
-        using swc_iter = std::istream_iterator<swc_record>;
-        std::vector<swc_record> records{swc_iter(is), swc_iter()};
-
-        EXPECT_TRUE(records.empty());
-    }
-}
-

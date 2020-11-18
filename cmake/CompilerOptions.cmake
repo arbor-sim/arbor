@@ -8,6 +8,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "XL")
     string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
+
+if(${ARBDEV_COLOR})
+    set(colorflags
+        $<IF:$<CXX_COMPILER_ID:Clang>,-fcolor-diagnostics,>
+        $<IF:$<CXX_COMPILER_ID:AppleClang>,-fcolor-diagnostics,>
+        $<IF:$<CXX_COMPILER_ID:GNU>,-fdiagnostics-color=always,>)
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${colorflags}>")
+endif()
+
 # Warning options: disable specific spurious warnings as required.
 
 set(CXXOPT_WALL
@@ -30,6 +39,15 @@ set(CXXOPT_WALL
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-potentially-evaluated-expression,>
     $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-potentially-evaluated-expression,>
+
+    # Clang (Apple):
+    #
+    # * Disable 'range-loop-analysis' warning: disabled by default in
+    #   clang, but enabled in Apple clang, this will flag loops of the form
+    #   `for (auto& x: y)` where iterators for `y` dereference to proxy objects.
+    #   Such code is correct, and the warning is spurious.
+
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-range-loop-analysis,>
 
     # Clang:
     #

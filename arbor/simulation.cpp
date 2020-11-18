@@ -2,6 +2,7 @@
 #include <set>
 #include <vector>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/generic_event.hpp>
@@ -64,6 +65,8 @@ public:
 
     void remove_all_samplers();
 
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type) const;
+
     std::size_t num_spikes() const {
         return communicator_.num_spikes();
     }
@@ -97,7 +100,11 @@ private:
     std::unique_ptr<spike_double_buffer> local_spikes_;
 
     // Hash table for looking up the the local index of a cell with a given gid
-    std::unordered_map<cell_gid_type, cell_size_type> gid_to_local_;
+    struct gid_local_info {
+        cell_size_type cell_index;
+        cell_size_type group_index;
+    };
+    std::unordered_map<cell_gid_type, gid_local_info> gid_to_local_;
 
     communicator communicator_;
 
@@ -145,16 +152,18 @@ simulation_state::simulation_state(
     pending_events_.resize(num_local_cells);
 
     event_generators_.resize(num_local_cells);
-    cell_local_size_type lidx = 0;
+    cell_size_type lidx = 0;
+    cell_size_type grpidx = 0;
     for (const auto& group_info: decomp.groups) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
-            gid_to_local_[gid] = lidx;
+            gid_to_local_[gid] = gid_local_info{lidx, grpidx};
 
             // Set up the event generators for cell gid.
             event_generators_[lidx] = rec.event_generators(gid);
             ++lidx;
         }
+        ++grpidx;
     }
 
     // Generate the cell groups in parallel, with one task per cell group.
@@ -397,6 +406,15 @@ void simulation_state::remove_all_samplers() {
     sassoc_handles_.clear();
 }
 
+std::vector<probe_metadata> simulation_state::get_probe_metadata(cell_member_type probe_id) const {
+    if (auto linfo = util::value_by_key(gid_to_local_, probe_id.gid)) {
+        return cell_groups_.at(linfo->group_index)->get_probe_metadata(probe_id);
+    }
+    else {
+        return {};
+    }
+}
+
 void simulation_state::set_binning_policy(binning_kind policy, time_type bin_interval) {
     foreach_group(
         [&](cell_group_ptr& group) { group->set_binning_policy(policy, bin_interval); });
@@ -409,9 +427,9 @@ void simulation_state::inject_events(const pse_vector& events) {
         if (e.time<t_) {
             throw bad_event_time(e.time, t_);
         }
-        // gid_to_local_ maps gid to index into local set of cells.
+        // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
         if (auto lidx = util::value_by_key(gid_to_local_, e.target.gid)) {
-            pending_events_[*lidx].push_back(e);
+            pending_events_[lidx->cell_index].push_back(e);
         }
     }
 }
@@ -449,6 +467,10 @@ void simulation::remove_sampler(sampler_association_handle h) {
 
 void simulation::remove_all_samplers() {
     impl_->remove_all_samplers();
+}
+
+std::vector<probe_metadata> simulation::get_probe_metadata(cell_member_type probe_id) const {
+    return impl_->get_probe_metadata(probe_id);
 }
 
 std::size_t simulation::num_spikes() const {

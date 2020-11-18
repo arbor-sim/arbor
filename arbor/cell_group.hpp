@@ -37,6 +37,13 @@ public:
     virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) = 0;
     virtual void remove_sampler(sampler_association_handle) = 0;
     virtual void remove_all_samplers() = 0;
+
+    // Probe metadata queries might also be called while a simulation is running, and so should
+    // also be thread-safe.
+
+    virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const {
+        return {};
+    }
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

@@ -609,6 +609,7 @@ void ProcedureExpression::semantic(scope_type::symbol_map &global_symbols) {
     switch (kind_) {
     case procedureKind::derivative:
     case procedureKind::kinetic:
+    case procedureKind::linear:
     case procedureKind::initial:
     case procedureKind::breakpoint:
         scp->in_api_context(true);

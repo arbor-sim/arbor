@@ -11,7 +11,7 @@ endif()
 # Set up pybind11, which is used to generate Python bindings.
 # Pybind11 has good cmake support, so just add the pybind11 directory,
 # instead of using find_package.
-set(PYBIND11_CPP_STANDARD -std=c++14)
+set(PYBIND11_CPP_STANDARD -std=c++17)
 add_subdirectory(pybind11)
 
 set(pyarb_source
@@ -23,8 +23,8 @@ set(pyarb_source
     event_generator.cpp
     flat_cell_builder.cpp
     identifiers.cpp
+    mechanism.cpp
     morphology.cpp
-    morph_parse.cpp
     mpi.cpp
     profiler.cpp
     pyarb.cpp
@@ -34,14 +34,13 @@ set(pyarb_source
     simulation.cpp
     single_cell_model.cpp
     spikes.cpp
-    s_expr.cpp
 )
 
 # compile the pyarb sources into an object library that will be
 # use by both the Python wrapper target (pyarb) and for the
 # unit tests of the C++ components in the Python wrapper.
 add_library(pyarb_obj OBJECT ${pyarb_source})
-target_link_libraries(pyarb_obj PRIVATE arbor pybind11::module)
+target_link_libraries(pyarb_obj PRIVATE arbor arborio pybind11::module)
 
 # The Python library. MODULE will make a Python-exclusive model.
 add_library(pyarb MODULE $<TARGET_OBJECTS:pyarb_obj>)
@@ -54,7 +53,7 @@ set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "
 
 # This dependency has to be spelt out again, despite being added to
 # pyarb_obj because CMake.
-target_link_libraries(pyarb PRIVATE arbor pybind11::module)
+target_link_libraries(pyarb PRIVATE arbor arborio pybind11::module)
 
 # Add support for mpi4py if available.
 if (ARB_WITH_MPI)

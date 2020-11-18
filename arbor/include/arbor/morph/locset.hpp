@@ -49,7 +49,7 @@ public:
     locset(mlocation_list other);
 
     // Implicitly convert string to named locset expression.
-    locset(std::string label);
+    locset(const std::string& label);
     locset(const char* label);
 
     template <typename Impl,
@@ -121,9 +121,6 @@ namespace ls {
 // Explicit location on morphology.
 locset location(msize_t branch, double pos);
 
-// Location of a sample.
-locset sample(msize_t);
-
 // Set of terminal nodes on a morphology.
 locset terminal();
 
@@ -139,11 +136,21 @@ locset nil();
 // Most distal points of a region.
 locset most_distal(region reg);
 
-// Most proximal point of a region.
+// Most proximal points of a region.
 locset most_proximal(region reg);
+
+// Boundary points of a region.
+locset boundary(region reg);
+
+// Completed boundary points of a region.
+// (Boundary of completed components.)
+locset cboundary(region reg);
 
 // Returns all locations in a locset that are also in the region.
 locset restrict(locset ls, region reg);
+
+// Returns locations that mark the segments.
+locset segment_boundaries();
 
 // A range `left` to `right` of randomly selected locations with a
 // uniform distribution from region `reg` generated using `seed`
@@ -152,10 +159,19 @@ locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
 // Proportional location on every branch.
 locset on_branches(double pos);
 
+// Proportional locations on each component:
+// For each component C of the region, find locations L
+// s.t. dist(h, L) = r * max {dist(h, t) | t is a distal point in C}.
+locset on_components(double relpos, region reg);
+
+// Support of a locset (x s.t. x in locset).
+locset support(locset);
+
 } // namespace ls
 
 // Union of two locsets.
 locset join(locset, locset);
+
 // Multiset sum of two locsets.
 locset sum(locset, locset);
 

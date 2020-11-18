@@ -1,7 +1,6 @@
 #include <arbor/common_types.hpp>
 
 #include "backends/event.hpp"
-#include "backends/gpu/multi_event_stream.hpp"
 #include "gpu_common.hpp"
 
 namespace arb {
@@ -11,10 +10,10 @@ namespace kernels {
     template <typename T, typename I>
     __global__ void mark_until_after(
         unsigned n,
-        I* mark,
-        const I* span_end,
-        const T* ev_time,
-        const T* t_until)
+        I* __restrict__ const mark,
+        const I* __restrict__ const span_end,
+        const T* __restrict__ const ev_time,
+        const T* __restrict__ const t_until)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -31,10 +30,10 @@ namespace kernels {
     template <typename T, typename I>
     __global__ void mark_until(
         unsigned n,
-        I* mark,
-        const I* span_end,
-        const T* ev_time,
-        const T* t_until)
+        I* __restrict__ const mark,
+        const I* __restrict__ const span_end,
+        const T* __restrict__ const ev_time,
+        const T* __restrict__ const t_until)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -51,10 +50,10 @@ namespace kernels {
     template <typename I>
     __global__ void drop_marked_events(
         unsigned n,
-        I* n_nonempty,
-        I* span_begin,
-        const I* span_end,
-        const I* mark)
+        I* __restrict__ const n_nonempty,
+        I* __restrict__ const span_begin,
+        const I* __restrict__ const span_end,
+        const I* __restrict__ const mark)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -69,10 +68,10 @@ namespace kernels {
     template <typename T, typename I>
     __global__ void event_time_if_before(
         unsigned n,
-        const I* span_begin,
-        const I* span_end,
-        const T* ev_time,
-        T* t_until)
+        const I* __restrict__ const span_begin,
+        const I* __restrict__ const span_end,
+        const T* __restrict__ const ev_time,
+        T* __restrict__ const t_until)
     {
         unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -86,50 +85,54 @@ namespace kernels {
     }
 } // namespace kernels
 
-// Designate for processing events `ev` at head of each event stream `i`
-// until `event_time(ev)` > `t_until[i]`.
-void multi_event_stream_base::mark_until_after(const_view t_until) {
-    arb_assert(n_streams()==t_until.size());
-
-    constexpr int block_dim = 128;
-
-    unsigned n = n_stream_;
-    int nblock = impl::block_count(n, block_dim);
-    kernels::mark_until_after<<<nblock, block_dim>>>(
-        n, mark_.data(), span_end_.data(), ev_time_.data(), t_until.data());
+void mark_until_after_w(unsigned n,
+        fvm_index_type* mark,
+        fvm_index_type* span_end,
+        fvm_value_type* ev_time,
+        const fvm_value_type* t_until)
+{
+    const int nblock = impl::block_count(n, 128);
+    kernels::mark_until_after
+        <<<nblock, 128>>>
+        (n, mark, span_end, ev_time, t_until);
 }
 
-// Designate for processing events `ev` at head of each event stream `i`
-// while `t_until[i]` > `event_time(ev)`.
-void multi_event_stream_base::mark_until(const_view t_until) {
-    arb_assert(n_streams()==t_until.size());
-    constexpr int block_dim = 128;
-
-    unsigned n = n_stream_;
-    int nblock = impl::block_count(n, block_dim);
-    kernels::mark_until<<<nblock, block_dim>>>(
-        n, mark_.data(), span_end_.data(), ev_time_.data(), t_until.data());
+void mark_until_w(unsigned n,
+        fvm_index_type* mark,
+        fvm_index_type* span_end,
+        fvm_value_type* ev_time,
+        const fvm_value_type* t_until)
+{
+    const int nblock = impl::block_count(n, 128);
+    kernels::mark_until
+        <<<nblock, 128>>>
+        (n, mark, span_end, ev_time, t_until);
 }
 
-// Remove marked events from front of each event stream.
-void multi_event_stream_base::drop_marked_events() {
-    constexpr int block_dim = 128;
+void drop_marked_events_w(unsigned n,
+        fvm_index_type* n_nonempty_stream,
+        fvm_index_type* span_begin,
+        fvm_index_type* span_end,
+        fvm_index_type* mark)
+{
+    const int nblock = impl::block_count(n, 128);
+    kernels::drop_marked_events
+        <<<nblock, 128>>>
+        (n, n_nonempty_stream, span_begin, span_end, mark);
 
-    unsigned n = n_stream_;
-    int nblock = impl::block_count(n, block_dim);
-    kernels::drop_marked_events<<<nblock, block_dim>>>(
-        n, n_nonempty_stream_.data(), span_begin_.data(), span_end_.data(), mark_.data());
 }
 
-// If the head of `i`th event stream exists and has time less than `t_until[i]`, set
-// `t_until[i]` to the event time.
-void multi_event_stream_base::event_time_if_before(view t_until) {
-    constexpr int block_dim = 128;
-    int nblock = impl::block_count(n_stream_, block_dim);
-    kernels::event_time_if_before<<<nblock, block_dim>>>(
-        n_stream_, span_begin_.data(), span_end_.data(), ev_time_.data(), t_until.data());
+void event_time_if_before_w(unsigned n,
+        fvm_index_type* span_begin,
+        fvm_index_type* span_end,
+        fvm_value_type* ev_time,
+        fvm_value_type* t_until)
+{
+    const int nblock = impl::block_count(n, 128);
+    kernels::event_time_if_before
+        <<<nblock, 128>>>
+        (n, span_begin, span_end, ev_time, t_until);
 }
-
 
 } // namespace gpu
 } // namespace arb

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #coding: utf-8
 
 import argparse
@@ -54,7 +54,7 @@ def parse_backtrace(source):
             tokens = line.split()
             trace.append({'location':tokens[0], 'function':tokens[1]})
     else:
-        print "error: unable to open back trace file ", source
+        print("error: unable to open back trace file ", source)
 
     return trace
 
@@ -75,7 +75,7 @@ args = parse_clargs()
 # check that a valid executable was provided
 executable = args.executable
 if not os.path.isfile(executable):
-    print "error:", executable, "is not a valid executable"
+    print("error:", executable, "is not a valid executable")
 else:
     for frame in parse_backtrace(args.input):
         location = get_function_name(frame['location'], executable)
@@ -84,6 +84,6 @@ else:
         fname = c.yellow + location['filename'] + c.end
         line = c.cyan + location['line'] + c.end
         if args.brief:
-            print  fname + ':' + line
+            print(fname + ':' + line)
         else:
-            print  fname + ':' + line, '\n ', name
+            print(fname + ':' + line, '\n ', name)

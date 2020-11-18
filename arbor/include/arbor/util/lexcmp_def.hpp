@@ -9,7 +9,7 @@
  * To define comparison operations for a record type xyzzy
  * with fields foo, bar and baz:
  *
- * DEFINE_LEXICOGRAPHIC_ORDERING(xyzzy,(a.foo,a.bar,a.baz),(b.foo,b.bar,b.baz))
+ * ARB_DEFINE_LEXICOGRAPHIC_ORDERING(xyzzy,(a.foo,a.bar,a.baz),(b.foo,b.bar,b.baz))
  *
  * The explicit use of 'a' and 'b' in the second and third parameters
  * is needed only to save a heroic amount of preprocessor macro

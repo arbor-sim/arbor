@@ -115,9 +115,6 @@ struct matrix_state_flat {
     }
 
     // interface for exposing the solution to the outside world
-    const_view solution() const {
-        return memory::make_view(rhs);
-    }
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
@@ -132,10 +129,11 @@ struct matrix_state_flat {
             cv_to_cell.data(), dt_intdom.data(), cell_to_intdom.data(), size());
     }
 
-    void solve() {
+    void solve(array& to) {
         // perform solve on gpu
-        solve_matrix_flat(rhs.data(), d.data(), u.data(), parent_index.data(),
-                          cell_cv_divs.data(), num_matrices());
+        arb_assert(to.size() == rhs.size());
+        solve_matrix_flat(rhs.data(), d.data(), u.data(), parent_index.data(), cell_cv_divs.data(), num_matrices());
+        memory::copy(rhs, to);
     }
 
     std::size_t size() const {

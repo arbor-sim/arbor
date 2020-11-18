@@ -45,61 +45,56 @@ struct array_init_n<0, sz> {
     static void set(A& array) {}
 };
 
-// TODO: C++17. The following is much nicer with if constexpr...
-
-template <unsigned a, unsigned c, unsigned k, bool upper>
-struct rat_eval {
-    static double eval(const std::array<double, 1+a+c>& g, double x) {
-        std::array<double, a+c> h;
-        interpolate(h, g, x);
-        return rat_eval<a-1, c, k+1, upper>::eval(h, g, x);
-    }
-
-    static double eval(const std::array<double, 1+a+c>& g, const std::array<double, 2+a+c>&, double x) {
-        std::array<double, a+c> h;
-        interpolate(h, g, x);
-        return rat_eval<a-1, c, k+1, upper>::eval(h, g, x);
-    }
-
-    static void interpolate(std::array<double, a+c>& h, const std::array<double, a+c+1>& g, double x) {
-        constexpr double ook = 1./k;
-        for (unsigned i = 0; i<a+c; ++i) {
-            if (upper) {
-                h[i] = ook*((x - i)*g[i+1] + (i+k - x)*g[i]);
-            }
-            else {
-                // Using h[i] = k/(g[i+1]/(x - i) + g[i]/(i+k - x)) is more robust to
-                // singularities, but the expense should not be necessary if we stick
-                // to strictly monotonic elements for rational polynomials.
-                h[i] = k*g[i]*g[i+1]/(g[i]*(x - i) + g[i+1]*(i+k - x));
-            }
+template <unsigned k, bool upper, std::size_t m>
+void rat_interpolate(std::array<double, m>& h, const std::array<double, m+1>& g, double x) {
+    constexpr double ook = 1./k;
+    for (unsigned i = 0; i<m; ++i) {
+        if (upper) {
+            h[i] = ook*((x - i)*g[i+1] + (i+k - x)*g[i]);
+        }
+        else {
+            // Using h[i] = k/(g[i+1]/(x - i) + g[i]/(i+k - x)) is more robust to
+            // singularities, but the expense should not be necessary if we stick
+            // to strictly monotonic elements for rational polynomials.
+            h[i] = k*g[i]*g[i+1]/(g[i]*(x - i) + g[i+1]*(i+k - x));
         }
     }
-};
+}
 
-template <unsigned k, bool upper>
-struct rat_eval<0, 0, k, upper> {
-    static double eval(const std::array<double, 1>& g, double) {
+template <unsigned a, unsigned c, unsigned k, bool upper>
+double rat_eval(const std::array<double, 1+a+c>& g, const std::array<double, 2+a+c>& p, double x) {
+    if constexpr (a==0 && c==0) {
         return g[0];
     }
-
-    static double eval(const std::array<double, 1>& g, const std::array<double, 2>&, double) {
-        return g[0];
-    }
-};
-
-template <unsigned c, unsigned k, bool upper>
-struct rat_eval<0, c, k, upper> {
-    static double eval(const std::array<double, 1+c>& g, const std::array<double, 2+c>& p, double x) {
+    else if constexpr (a==0) {
         // 'rhombus' interpolation
         std::array<double, c> h;
         for (unsigned i = 0; i<c; ++i) {
             h[i] = p[i+1] + k/((x - i)/(g[i+1]-p[i+1]) + (i+k - x)/(g[i]-p[i+1]));
         }
 
-        return rat_eval<0, c-1, k+1, upper>::eval(h, g, x);
+        return rat_eval<0, c-1, k+1, upper>(h, g, x);
     }
-};
+    else {
+        std::array<double, a+c> h;
+        rat_interpolate<k, upper>(h, g, x);
+        return rat_eval<a-1, c, k+1, upper>(h, g, x);
+    }
+}
+
+
+template <unsigned a, unsigned c, unsigned k, bool upper>
+double rat_eval(const std::array<double, 1+a+c>& g, double x) {
+    if constexpr (a==0 && c==0) {
+        return g[0];
+    }
+    else {
+        std::array<double, a+c> h;
+        rat_interpolate<k, upper>(h, g, x);
+        return rat_eval<a-1, c, k+1, upper>(h, g, x);
+    }
+}
+
 
 } // namespace impl
 
@@ -146,7 +141,7 @@ struct rat_element {
         constexpr unsigned a = upper? p-q+(q>0): q-p+(p>0);
         constexpr unsigned c = p+q-a;
 
-        return impl::rat_eval<a, c, 1, upper>::eval(data_, x*(p+q));
+        return impl::rat_eval<a, c, 1, upper>(data_, x*(p+q));
     }
 
     // Node values.

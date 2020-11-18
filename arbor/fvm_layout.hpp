@@ -9,7 +9,6 @@
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/util/optional.hpp>
 
 #include "execution_context.hpp"
 #include "util/piecewise.hpp"

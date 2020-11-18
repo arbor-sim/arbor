@@ -154,17 +154,19 @@ setuptools.setup(
         'install':   install_command,
     },
 
-    author='The lovely Arbor devs.',
+    author='The Arbor dev team.',
     url='https://github.com/arbor-sim/arbor',
     description='High performance simulation of networks of multicompartment neurons.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=[
-        'Development Status :: 4 - Beta', # Upgrade to "5 - Production/Stable" on release of v0.4
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: C++',
     ],
     project_urls={
         'Source': 'https://github.com/arbor-sim/arbor',

@@ -1,11 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/util/optional.hpp>
 
 namespace arb {
 
@@ -16,12 +16,13 @@ class label_dict {
     reg_map regions_;
 
 public:
+    void import(const label_dict& other, const std::string& prefix = "");
 
     void set(const std::string& name, locset ls);
     void set(const std::string& name, region reg);
 
-    util::optional<const arb::region&> region(const std::string& name) const;
-    util::optional<const arb::locset&> locset(const std::string& name) const;
+    std::optional<arb::region> region(const std::string& name) const;
+    std::optional<arb::locset> locset(const std::string& name) const;
 
     const ps_map& locsets() const;
     const reg_map& regions() const;

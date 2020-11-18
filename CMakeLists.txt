@@ -7,6 +7,10 @@ string(REGEX MATCH "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?" numeric_version
 project(arbor VERSION ${numeric_version})
 enable_language(CXX)
 
+# Turn on this option to force the compilers to produce color output when output is
+# redirected from the terminal (e.g. when using ninja or a pager).
+
+option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
@@ -23,11 +27,6 @@ option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
-
-# For sup::glop, just wrap POSIX glob(3)?
-# Turn off for platforms without glob(3) in libc, e.g. Android Bionic.
-
-option(ARB_USE_POSIX_GLOB "wrap POSIX glob(3) for glob functionality" ON)
 
 # Use libunwind to generate stack traces on errors?
 
@@ -48,6 +47,11 @@ option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
+#----------------------------------------------------------
+# NeuroML support library:
+#----------------------------------------------------------
+
+option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
 
 #----------------------------------------------------------
 # Python front end for Arbor:
@@ -92,20 +96,24 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 if(ARB_GPU STREQUAL "cuda")
     set(ARB_WITH_NVCC TRUE)
 
+    # CMake 18 and later set the default CUDA architecture for
+    # each target according to CMAKE_CUDA_ARCHITECTURES.
+    if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    endif()
+
     enable_language(CUDA)
 
-    # Despite native CUDA support, the CUDA package is still required to find
-    # the NVML library and to export the cuda library dependencies from the
-    # installed target.
-    find_package(CUDA REQUIRED)
+    # Despite native CUDA support, the CUDA package is still required to export
+    # the cuda library dependencies from the installed target.
+    find_package(CUDA 10 REQUIRED)
 
 elseif(ARB_GPU STREQUAL "cuda-clang")
     set(ARB_WITH_CUDA_CLANG TRUE)
 
-    # The CUDA package is needed for clang compilation for the same reasons as
-    # above.
+    # The CUDA package is needed for clang compilation for the same reasons as above.
     # enable_langaue(CUDA) has a bug with clang
-    find_package(CUDA REQUIRED)
+    find_package(CUDA 10 REQUIRED)
 elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
 endif()
@@ -132,7 +140,8 @@ include("CheckCompilerXLC")
 
 include("CompilerOptions")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -145,8 +154,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # in the same CMakeLists.txt in which the target is defined.
 
 # Interface library `arbor-config-defs` collects configure-time defines
-# for arbor and arborenv, of the form ARB_HAVE_XXX. These defines should
-# _not_ be used in any installed public headers.
+# for arbor, arborenv, arborio and arbornml, of the form ARB_HAVE_XXX. These
+# defines should _not_ be used in any installed public headers.
 
 add_library(arbor-config-defs INTERFACE)
 install(TARGETS arbor-config-defs EXPORT arbor-targets)
@@ -165,12 +174,33 @@ add_library(arborenv-private-deps INTERFACE)
 target_link_libraries(arborenv-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 
+# Interface library `arbornml-private-deps` collects dependencies, options etc.
+# for the arbornml library.
+
+add_library(arbornml-private-deps INTERFACE)
+target_link_libraries(arbornml-private-deps INTERFACE arbor-config-defs)
+install(TARGETS arbornml-private-deps EXPORT arbor-targets)
+
+# Interface library `arborio-private-deps` collects dependencies, options etc.
+# for the arborio library.
+
+add_library(arborio-private-deps INTERFACE)
+target_link_libraries(arborio-private-deps INTERFACE arbor-config-defs)
+install(TARGETS arborio-private-deps EXPORT arbor-targets)
+
 # Interface library `arbor-public-deps` collects requirements for the
 # users of the arbor library (e.g. mpi) that will become part
 # of arbor's PUBLIC interface.
 
 add_library(arbor-public-deps INTERFACE)
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
+
+# Interface library `arbornml-public-deps` collects requirements for the
+# users of the arbornml library (e.g. xml libs) that will become part
+# of arbornml's PUBLIC interface.
+
+add_library(arbornml-public-deps INTERFACE)
+install(TARGETS arbornml-public-deps EXPORT arbornml-targets)
 
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
@@ -183,7 +213,8 @@ add_subdirectory(ext)
 set(arbor_export_dependencies)
 
 # Keep track of which 'components' of arbor are included (this is
-# currently just captures MPI support)
+# currently just 'MPI' support and 'neuroml' for NeuroML support in
+# libarbornml.)
 
 set(arbor_supported_components)
 
@@ -207,7 +238,6 @@ endif()
 
 # Python bindings
 #----------------------------------------------------------
-option(ARB_WITH_PYTHON "enable python front end" OFF)
 if(ARB_WITH_PYTHON)
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.
@@ -256,28 +286,6 @@ if(ARB_WITH_GPU)
     if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
         target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-        # The arborenv lib needs to use the CUDA NVML library for CUDA 9.
-
-        if (${CUDA_VERSION_MAJOR} LESS 10)
-            set(arborenv_requires_nvml TRUE)
-        endif()
-
-        if(arborenv_requires_nvml)
-            set(nvml_names nvidia-ml) # Note: platform dependent? e.g. nvml.lib on Windows.
-            find_library(CUDA_NVML
-                    NAMES ${nvml_names}
-                    NO_DEFAULT_PATH
-                    PATHS ${CMAKE_CUDA_IMPLICIT_DIRECTORIES} ${CUDA_TOOLKIT_ROOT_DIR}
-                    PATH_SUFFIXES lib64/stubs lib/stubs)
-
-            if (NOT CUDA_NVML)
-                message(FATAL_ERROR "Unable to find CUDA NVML library by: ${nvml_names}")
-            endif()
-
-            target_link_libraries(arborenv-private-deps INTERFACE ${CUDA_NVML})
-            target_compile_definitions(arborenv-private-deps INTERFACE ARBENV_USE_NVML)
-        endif()
-
         add_compile_options(
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
@@ -286,19 +294,19 @@ if(ARB_WITH_GPU)
 
     if(ARB_WITH_NVCC)
         target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
-        target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
-        target_compile_options(arbor-private-deps INTERFACE
             $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
         target_compile_options(arbor-private-deps INTERFACE
             $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+        if (${CUDA_VERSION_MAJOR} GREATER 10)
+            target_compile_options(arbor-private-deps INTERFACE
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_80,code=sm_80>)
+        endif()
 
         target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
         target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
 
     elseif(ARB_WITH_CUDA_CLANG)
-        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_35 --cuda-gpu-arch=sm_37 --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 
@@ -402,6 +410,14 @@ add_subdirectory(arbor)
 # arborenv, arborenv-public-headers:
 add_subdirectory(arborenv)
 
+# arborio, arborio-public-headers:
+add_subdirectory(arborio)
+
+# arbornml, arbornml-public-headers:
+if(ARB_WITH_NEUROML)
+    add_subdirectory(arbornml)
+endif()
+
 # unit, unit-mpi, unit-local, unit-modcc
 add_subdirectory(test)
 
@@ -412,9 +428,9 @@ add_subdirectory(example)
 add_subdirectory(doc)
 
 # python interface:
-if (ARB_WITH_PYTHON)
+if(ARB_WITH_PYTHON)
     add_subdirectory(python)
-endif ()
+endif()
 
 #----------------------------------------------------------
 # Generate CMake config/version files for install.
@@ -451,19 +467,19 @@ endif()
 set(arbor_override_import_lang)
 set(arbor_add_import_libs)
 set(arborenv_add_import_libs)
+set(arbornml_add_import_libs)
+set(arborio_add_import_libs)
 
 if(ARB_WITH_GPU)
     set(arbor_override_import_lang CXX)
     set(arbor_add_import_libs ${CUDA_LIBRARIES})
     set(arborenv_add_import_libs ${CUDA_LIBRARIES})
-
-    if(arborenv_requires_nvml)
-        list(APPEND arborenv_add_import_libs ${CUDA_NVML})
-    endif()
 endif()
 
+# (We remove old generated one so that the generation happens every time we run cmake.)
+file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake")
 configure_file(
-    cmake/arbor-config.cmake.in
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/arbor-config.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
     @ONLY)
 

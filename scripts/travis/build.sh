@@ -76,7 +76,12 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} -DARB_ARCH=${ARCH} ${CXX_FLAGS} ${PY_FLAGS}"
+# Fix CMake/Homebrew/XCode mess. See: https://github.com/apple/swift/pull/32436
+if which xcrun >/dev/null; then
+    typeset -x CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}":$(xcrun --sdk macosx --show-sdk-path)/usr
+fi
+
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_NEUROML=${WITH_NEUROML} -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} -DARB_ARCH=${ARCH} ${CXX_FLAGS} ${PY_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
@@ -102,9 +107,14 @@ fi
 
 if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Building python module"
-    make pyarb -j4                                                           || error "building pyarb"
+    make pyarb -j4                                                                              || error "building pyarb"
     progress "Python unit tests"
-    python$PY $python_path/test/unit/runner.py -v2                           || error "running python unit tests (serial)"
+    python$PY $python_path/test/unit/runner.py -v2                                              || error "running python unit tests (serial)"
+    progress "Python examples"
+    python$PY $python_path/example/network_ring.py                                              || error "running python network_ring example"
+    python$PY $python_path/example/single_cell_model.py                                         || error "running python single_cell_model example"
+    python$PY $python_path/example/single_cell_multi_branch.py                                  || error "running python single_cell_multi_branch example"
+    python$PY $python_path/example/single_cell_swc.py  $base_path/test/unit/swc/pyramidal.swc   || error "running python single_cell_swc example"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
         if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
             progress "Python distributed unit tests (MPI)"

@@ -97,7 +97,7 @@ public:
     void mark_until_after(const TimeSeq& t_until) {
         using ::arb::event_time;
 
-        arb_assert(n_streams()==util::size(t_until));
+        arb_assert(n_streams()==std::size(t_until));
 
         // note: operation on each `i` is independent.
         for (size_type i = 0; i<n_streams(); ++i) {
@@ -118,7 +118,7 @@ public:
     void mark_until(const TimeSeq& t_until) {
         using ::arb::event_time;
 
-        arb_assert(n_streams()==util::size(t_until));
+        arb_assert(n_streams()==std::size(t_until));
 
         // note: operation on each `i` is independent.
         for (size_type i = 0; i<n_streams(); ++i) {

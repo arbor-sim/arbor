@@ -85,7 +85,8 @@ public:
 
     using metadata_array = memory::device_vector<level_metadata>;
 
-    iarray cv_to_cell;
+    // Maps control volume to integration domain
+    iarray cv_to_intdom;
 
     array d;     // [μS]
     array u;     // [μS]
@@ -100,9 +101,6 @@ public:
 
     // Solution in unpacked format
     array solution_;
-
-    // Maps cell to integration domain
-    iarray cell_to_intdom;
 
     // Maximum number of branches in each level per block
     unsigned max_branches_per_level;
@@ -418,7 +416,6 @@ public:
         // d, u, rhs        : packed
         // cv_capacitance   : flat
         // invariant_d      : flat
-        // solution_        : flat
         // cv_to_cell       : flat
         // area             : flat
 
@@ -446,24 +443,27 @@ public:
         // transform u_shuffled values into packed u vector.
         flat_to_packed(u_shuffled, u);
 
-        // the invariant part of d, cv_area and the solution are in flat form
-        solution_ = array(matrix_size, 0);
+        // the invariant part of d and cv_area are in flat form
         cv_area = memory::make_const_view(area);
 
         // the cv_capacitance can be copied directly because it is
         // to be stored in flat format
         cv_capacitance = memory::make_const_view(cap);
         invariant_d = memory::make_const_view(invariant_d_tmp);
-        cell_to_intdom = memory::make_const_view(cell_intdom);
 
-        // calculte the cv -> cell mappings
+        // calculate the cv -> cell mappings
         std::vector<size_type> cv_to_cell_tmp(matrix_size);
         size_type ci = 0;
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
             util::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
             ++ci;
         }
-        cv_to_cell = memory::make_const_view(cv_to_cell_tmp);
+        std::vector<size_type> cv_to_intdom_tmp(matrix_size);
+        for (auto i = 0ul; i < cv_to_cell_tmp.size(); ++i) {
+            cv_to_intdom_tmp[i] = cell_intdom[cv_to_cell_tmp[i]];
+        }
+        cv_to_intdom = memory::make_const_view(cv_to_intdom_tmp);
+
     }
 
     // Assemble the matrix
@@ -482,49 +482,45 @@ public:
             conductivity.data(),
             cv_capacitance.data(),
             cv_area.data(),
-            cv_to_cell.data(),
+            cv_to_intdom.data(),
             dt_intdom.data(),
-            cell_to_intdom.data(),
             perm.data(),
             size());
     }
 
-    void solve() {
-        solve_matrix_fine(
-            rhs.data(), d.data(), u.data(),
-            level_meta.data(), level_lengths.data(), level_parents.data(),
-            block_index.data(),
-            num_cells_in_block.data(),
-            data_partition.data(),
-            num_cells_in_block.size(), max_branches_per_level);
-
+    void solve(array& to) {
+        solve_matrix_fine(rhs.data(),
+                          d.data(),
+                          u.data(),
+                          level_meta.data(),
+                          level_lengths.data(),
+                          level_parents.data(),
+                          block_index.data(),
+                          num_cells_in_block.data(),
+                          data_partition.data(),
+                          num_cells_in_block.size(),
+                          max_branches_per_level);
         // unpermute the solution
-        packed_to_flat(rhs, solution_);
+        packed_to_flat(rhs, to);
     }
 
-    const_view solution() const {
-        return solution_;
+private:
+    std::size_t size() const {
+        return matrix_size;
     }
 
-    template <typename VFrom, typename VTo>
-    void flat_to_packed(const VFrom& from, VTo& to ) {
+    void flat_to_packed(const array& from, array& to ) {
         arb_assert(from.size()==matrix_size);
         arb_assert(to.size()==data_size);
 
         scatter(from.data(), to.data(), perm.data(), perm.size());
     }
 
-    template <typename VFrom, typename VTo>
-    void packed_to_flat(const VFrom& from, VTo& to ) {
+    void packed_to_flat(const array& from, array& to ) {
         arb_assert(from.size()==data_size);
         arb_assert(to.size()==matrix_size);
 
         gather(from.data(), to.data(), perm.data(), perm.size());
-    }
-
-private:
-    std::size_t size() const {
-        return matrix_size;
     }
 };
 

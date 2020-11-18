@@ -10,7 +10,7 @@
 using namespace arb::multicore;
 
 using arb::util::make_span;
-using arb::util::size;
+using std::size;
 
 constexpr double dqnan = std::numeric_limits<double>::quiet_NaN();
 constexpr double dmax = std::numeric_limits<double>::max();

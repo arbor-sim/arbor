@@ -93,7 +93,7 @@ TEST(Parser, procedure) {
         "  y = a + b *c + a + b\n"
         "}"
         ,
-        "PROCEDURE trates(v) {\n"
+        "PROCEDURE trates(v (mV)) {\n"
         "    LOCAL qt\n"
         "    qt=q10^((celsius-22)/10)\n"
         "    minf=1-1/(1+exp((v-vhalfm)/km))\n"
@@ -685,6 +685,10 @@ TEST(Parser, parse_state_block) {
         "STATE {\n"
         "    h (nA)\n"
         "    m (nA) r (uA)\n"
+        "}",
+        "STATE {\n"
+        "    h FROM 0 TO 1\n"
+        "    m r (uA)\n"
         "}"
     };
 

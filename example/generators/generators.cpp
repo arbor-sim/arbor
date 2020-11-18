@@ -6,6 +6,7 @@
  * event generators, one inhibitory, and one excitatory, are attached.
  */
 
+#include <any>
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -47,15 +48,15 @@ public:
     //    capacitance: 0.01 F/m² [default]
     //    synapses: 1 * expsyn
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::sample_tree tree;
+        arb::segment_tree tree;
         double r = 18.8/2.0; // convert 18.8 μm diameter to radius
-        tree.append({{0,0,0,r}, 1});
+        tree.append(arb::mnpos, {0,0,-r,r}, {0,0,r,r}, 1);
 
         arb::label_dict d;
         d.set("soma", arb::reg::tagged(1));
 
         arb::cable_cell c(tree, d);
-        c.paint("soma", "pas");
+        c.paint("\"soma\"", "pas");
 
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
@@ -70,7 +71,7 @@ public:
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         arb::cable_cell_global_properties gprop;
         gprop.default_parameters = arb::neuron_parameter_defaults;
         return gprop;
@@ -115,19 +116,12 @@ public:
         return gens;
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        assert(gid==0); // There is only one cell in the model
-        return 1;
-    }
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        assert(gid==0);     // There is only one cell,
 
-    arb::probe_info get_probe(cell_member_type id) const override {
-        assert(id.gid==0);     // There is one cell,
-        assert(id.index==0);   // with one probe.
-
-        // Measure at the soma
+        // Measure membrane voltage at end of soma.
         arb::mlocation loc{0, 0.0};
-        return arb::probe_info{id, 0, arb::cable_probe_membrane_voltage{loc}};
+        return {arb::cable_probe_membrane_voltage{loc}};
     }
 };
 
@@ -153,7 +147,7 @@ int main() {
     // The schedule for sampling is 10 samples every 1 ms.
     auto sched = arb::regular_schedule(0.1);
     // This is where the voltage samples will be stored as (time, value) pairs
-    arb::trace_data<double> voltage;
+    arb::trace_vector<double> voltage;
     // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
     sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
@@ -161,7 +155,7 @@ int main() {
     sim.run(100, 0.01);
 
     // Write the samples to a json file.
-    write_trace_json(voltage);
+    write_trace_json(voltage.at(0));
 }
 
 void write_trace_json(const arb::trace_data<double>& trace) {

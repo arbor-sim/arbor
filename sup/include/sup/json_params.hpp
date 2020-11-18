@@ -2,8 +2,7 @@
 
 #include <array>
 #include <exception>
-
-#include <arbor/util/optional.hpp>
+#include <optional>
 
 #include <nlohmann/json.hpp>
 
@@ -12,10 +11,10 @@ namespace sup {
 // Search a json object for an entry with a given name.
 // If found, return the value and remove from json object.
 template <typename T>
-arb::util::optional<T> find_and_remove_json(const char* name, nlohmann::json& j) {
+std::optional<T> find_and_remove_json(const char* name, nlohmann::json& j) {
     auto it = j.find(name);
     if (it==j.end()) {
-        return arb::util::nullopt;
+        return std::nullopt;
     }
     T value = std::move(*it);
     j.erase(name);
