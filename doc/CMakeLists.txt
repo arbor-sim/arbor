@@ -1,8 +1,17 @@
+include(FindPythonModule) # required for find_python_module
+
 find_package(Sphinx)
 add_target_if(SPHINX_FOUND
     check-sphinx
     "Finding Sphinx"
     "Sphinx must be installed to build documentation")
+
+if (SPHINX_FOUND)
+    find_python_module(svgwrite)
+    if (NOT HAVE_SVGWRITE)
+        message(WARNING "Building documentation requires the svgwrite Python module. You can obtain it from pip like so: pip3 install svgwrite --user")
+    endif()
+endif()
 
 set(html_dir "${CMAKE_CURRENT_BINARY_DIR}/html")
 set(doctree_dir "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
@@ -11,8 +20,6 @@ get_property(theme_path TARGET ext-sphinx_rtd_theme PROPERTY INTERFACE_INCLUDE_D
 string(REPLACE ";" "," theme_path "${theme_path}")
 
 add_custom_target(html
-    COMMAND
-        pip3 install -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt --user
     COMMAND
         ${SPHINX_EXECUTABLE}
         -b html
