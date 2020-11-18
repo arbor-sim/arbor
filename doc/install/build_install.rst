@@ -200,6 +200,8 @@ For more detailed build configuration options, see the `quick start <quickstart_
     make -j 4
     # 3.2) Build Arbor unit tests.
     make -j 4 tests
+    # 3.3) Build Arbor C++ examples.
+    make -j 4 examples
 
     # 4) Run tests.
     ./bin/unit

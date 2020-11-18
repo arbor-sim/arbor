@@ -87,15 +87,19 @@ The parameters in the file:
     The total number of cells in the model = num-cells-per-rank *
     num-ranks.
   * `duration`: the length of the simulated time interval, in ms.
-  * `fan-in`: the number of incoming connections on each cell.
   * `min-delay`: the minimum delay of the network.
-  * `spike-frequency`: frequency of the independent Poisson processes that
-    generate spikes for each cell.
-  * `realtime-ratio`: the ratio between time taken to advance a single cell in
-    the simulation and the simulated time. For example, a value of 1 indicates
-    that the cell is simulated in real time, while a value of 0.1 indicates
-    that 10s can be simulated in a single second.
+  
+In addition, these parameters for the synthetic benchmark cell are
+understood:
+  * `depth`: number of levels, excluding soma (default: 5)
+  * `branch-probs`: Probability of a branch occuring (default: 1-0.5).
+  * `compartments`: Compartment count on a branch (default: 20-2).
+  * `lengths`: Length of branch in μm (default: 200-20).
+  * `synapses`: The number of synapses per cell (default: 1).
 
-The network is randomly connected with no self-connections and `fan-in`
-incoming connections on each cell, with every connection having delay of
-`min-delay`.
+Parameters given as ranges will take on the first value at the soma
+and the second at the leaves, values in between will be interpolated
+linearly.
+
+The network is randomly connected with no self-connections, with every
+connection having delay of `min-delay`.
