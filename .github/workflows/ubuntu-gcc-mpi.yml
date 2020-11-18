@@ -56,5 +56,6 @@ jobs:
         run: build/bin/unit
       - name: "Run python tests"
         run: PYTHONPATH="/usr/local/lib/python${{ matrix.py }}/site-packages/:${PYTHONPATH}" python${{ matrix.py }} python/test/unit/runner.py
-      - name: "Run python+MPI tests"
+      - if: ${{ matrix.mpi == 'ON' }}
+        name: "Run python+MPI tests"
         run: PYTHONPATH="/usr/local/lib/python${{ matrix.py }}/site-packages/:${PYTHONPATH}" python${{ matrix.py }} python/test/unit_distributed/runner.py
