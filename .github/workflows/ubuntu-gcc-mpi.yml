@@ -13,14 +13,18 @@ jobs:
     strategy:
       matrix:
         os:    ["ubuntu-20.04"]
-        gcc:   ["8", "9", "10"]
-        py:    ["3.6", "3.7", "3.8", "3.9"]
-        cmake: ["3.14.3.post1", "3.15.3.post1", "3.16.3.post1", "3.17.3", "3.18.4.post1"]
+        gcc:   ["8", "10"]
+        py:    ["3.6", "3.9"]
+        cmake: ["3.12.x", "3.18.x"]
     steps:
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.4
+        with:
+          cmake-version: ${{ matrix.cmake }}
       - name: Install OpenMPI
         run: |
            export CC=gcc-${{ matrix.gcc }}
@@ -37,9 +41,7 @@ jobs:
         with:
           python-version: ${{ matrix.py }}
       - name: "Install python packages"
-        run: python${{ matrix.py }} -mpip install mpi4py cmake==${{ matrix.cmake }}
-      - name: "Check cmake version"
-        run: cmake --version
+        run: python${{ matrix.py }} -mpip install mpi4py
       - name: Configure
         run: cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-${{ matrix.gcc }} -DCMAKE_C_COMPILER=gcc-${{ matrix.gcc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=ON
       - name: Build
