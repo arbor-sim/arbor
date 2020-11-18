@@ -45,7 +45,7 @@ using cable_sample_range = std::pair<const double*, const double*>;
 // Sampler functions receive an `any_ptr` to sampled data. The underlying pointer
 // type is a const pointer to:
 //     * `double` for scalar data;
-//     * `cable_sample_rang*` for vector data (see definition above).
+//     * `cable_sample_range*` for vector data (see definition above).
 //
 // The metadata associated with a probe is also passed to a sampler via an `any_ptr`;
 // the underlying pointer will be a const pointer to one of the following metadata types:

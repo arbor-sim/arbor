@@ -27,12 +27,14 @@ except ModuleNotFoundError:
     from test.unit_distributed import test_contexts_arbmpi
     from test.unit_distributed import test_contexts_mpi4py
     from test.unit_distributed import test_domain_decompositions
+    from test.unit_distributed import test_simulator
     # add more if needed
 
 test_modules = [\
     test_contexts_arbmpi,\
     test_contexts_mpi4py,\
-    test_domain_decompositions\
+    test_domain_decompositions,\
+    test_simulator\
 ] # add more if needed
 
 def suite():

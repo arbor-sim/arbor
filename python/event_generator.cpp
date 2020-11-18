@@ -10,15 +10,6 @@
 
 namespace pyarb {
 
-template <typename Sched>
-event_generator_shim make_event_generator(
-        arb::cell_member_type target,
-        double weight,
-        const Sched& sched)
-{
-    return event_generator_shim(target, weight, sched.schedule());
-}
-
 void register_event_generators(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -26,29 +17,13 @@ void register_event_generators(pybind11::module& m) {
 
     event_generator
         .def(pybind11::init<>(
-            [](arb::cell_member_type target, double weight, const regular_schedule_shim& sched){
-                return make_event_generator(target, weight, sched);}),
+            [](arb::cell_member_type target, double weight, const schedule_shim_base& sched) {
+                return event_generator_shim(target, weight, sched.schedule()); }),
             "target"_a, "weight"_a, "sched"_a,
             "Construct an event generator with arguments:\n"
             "  target: The target synapse (gid, local_id).\n"
             "  weight: The weight of events to deliver.\n"
-            "  sched:  A regular schedule of the events.")
-        .def(pybind11::init<>(
-            [](arb::cell_member_type target, double weight, const explicit_schedule_shim& sched){
-                return make_event_generator(target, weight, sched);}),
-            "target"_a, "weight"_a, "sched"_a,
-            "Construct an event generator with arguments:\n"
-            "  target: The target synapse (gid, local_id).\n"
-            "  weight: The weight of events to deliver.\n"
-            "  sched:  An explicit schedule of the events.")
-        .def(pybind11::init<>(
-            [](arb::cell_member_type target, double weight, const poisson_schedule_shim& sched){
-                return make_event_generator(target, weight, sched);}),
-            "target"_a, "weight"_a, "sched"_a,
-            "Construct an event generator with arguments:\n"
-            "  target: The target synapse (gid, local_id).\n"
-            "  weight: The weight of events to deliver.\n"
-            "  sched:  A poisson schedule of the events.")
+            "  sched:  A schedule of the events.")
         .def_readwrite("target", &event_generator_shim::target,
              "The target synapse (gid, local_id).")
         .def_readwrite("weight", &event_generator_shim::weight,

@@ -85,7 +85,7 @@ else:
 print("Plotting results ...")
 df_list = []
 for t in m.traces:
-    df_list.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': t.location, "Variable": t.variable}))
+    df_list.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}))
 
 df = pandas.concat(df_list)
 
