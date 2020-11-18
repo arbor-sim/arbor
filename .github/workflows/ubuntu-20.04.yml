@@ -49,6 +49,6 @@ jobs:
       - name: "Run unit tests"
         run: build/bin/unit
       - name: "Run python tests"
-        run: python${{ matrix.py }} python/test/unit/runner.py
+        run: PYTHONPATH="/usr/lib/python${{ matrix.py }}/dist-packages:/usr/lib/python3/dist-packages:${PYTHONPATH}" python${{ matrix.py }} python/test/unit/runner.py
       - name: "Run python+MPI tests"
-        run: python${{ matrix.py }} python/test/unit_distributed/runner.py
+        run: PYTHONPATH="/usr/lib/python${{ matrix.py }}/dist-packages:/usr/lib/python3/dist-packages:${PYTHONPATH}" python${{ matrix.py }} python/test/unit_distributed/runner.py
