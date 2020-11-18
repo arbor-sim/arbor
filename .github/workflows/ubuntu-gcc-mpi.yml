@@ -1,4 +1,4 @@
-name: Ubuntu + GCC + MPI
+name: Ubuntu + GCC
 
 on:
   push:
@@ -16,15 +16,16 @@ jobs:
         gcc:   ["8", "10"]
         py:    ["3.6", "3.9"]
         cmake: ["3.12.x", "3.18.x"]
+        mpi:   ["OFF"]
     steps:
-      - name: "Clone w/ submodules"
-        uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.4
         with:
           cmake-version: ${{ matrix.cmake }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
       - name: Install OpenMPI
         run: |
            export CC=gcc-${{ matrix.gcc }}
@@ -36,18 +37,19 @@ jobs:
            make -j
            sudo make install
            sudo ldconfig
-      - name: Set up Python
-        uses: actions/setup-python@v2
+           sudo python${{ matrix.py }} -mpip install mpi4py
+           cd -
+        if: ${{ matrix.mpi == "ON" }}
+      - name: "Clone w/ submodules"
+        uses: actions/checkout@v2
         with:
-          python-version: ${{ matrix.py }}
-      - name: "Install python packages"
-        run: python${{ matrix.py }} -mpip install mpi4py
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-${{ matrix.gcc }} -DCMAKE_C_COMPILER=gcc-${{ matrix.gcc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=ON
-      - name: Build
-        run: make -C build tests examples
-      - name: Install
-        run: sudo make -C build install
+          submodules: "recursive"
+      - name: Install arbor
+        run: |
+          pwd
+          cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-${{ matrix.gcc }} -DCMAKE_C_COMPILER=gcc-${{ matrix.gcc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=${{ matrix.mpi }}
+          make -C build tests examples
+          sudo make -C build install
       - name: "Run unit tests"
         run: build/bin/unit
       - name: "Run python tests"
