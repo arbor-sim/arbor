@@ -26,7 +26,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.py }}
-      - name: Install OpenMPI
+      - if: ${{ matrix.mpi }} == "ON"
+        name: Install OpenMPI
         run: |
            export CC=gcc-${{ matrix.gcc }}
            export CXX=g++-${{ matrix.gcc }}
@@ -39,7 +40,6 @@ jobs:
            sudo ldconfig
            sudo python${{ matrix.py }} -mpip install mpi4py
            cd -
-        if: ${{ matrix.mpi }} == "ON"
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
         with:
