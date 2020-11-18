@@ -16,9 +16,9 @@ jobs:
         gcc:   ["8", "10"]
         py:    ["3.6", "3.9"]
         cmake: ["3.12.x", "3.18.x"]
-        mpi:   ["OFF"]
+        mpi:   ["OFF", "ON"]
     steps:
-      - name: Setup cmake
+      - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.4
         with:
           cmake-version: ${{ matrix.cmake }}
