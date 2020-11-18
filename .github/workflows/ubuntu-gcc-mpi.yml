@@ -1,4 +1,4 @@
-name: CI
+name: Ubuntu + GCC + MPI
 
 on:
   push:
@@ -12,10 +12,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["ubuntu-20.04"]
-        gcc: ["10"]
-        py: ["3.6"]
-        cmake: ["3.14.3.post1"]
+        os:    ["ubuntu-20.04"]
+        gcc:   ["8", "9", "10"]
+        py:    ["3.6", "3.7", "3.8", "3.9"]
+        cmake: ["3.14.3.post1", "3.15.3.post1", "3.16.3.post1", "3.17.3", "3.18.4.post1"]
     steps:
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
