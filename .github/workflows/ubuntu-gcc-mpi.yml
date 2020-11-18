@@ -26,6 +26,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.py }}
+      - name: Check versions
+        run: |
+          python${{ matrix.py }} --version
+          cmake --version
+          gcc-${{ matrix.gcc }} --version
+          g++-${{ matrix.gcc }} --version
       - if: ${{ matrix.mpi == 'ON' }}
         name: Install OpenMPI
         run: |
@@ -38,7 +44,7 @@ jobs:
            make -j
            sudo make install
            sudo ldconfig
-           sudo python${{ matrix.py }} -mpip install mpi4py
+           python${{ matrix.py }} -mpip install mpi4py
            cd -
       - name: "Clone w/ submodules"
         uses: actions/checkout@v2
