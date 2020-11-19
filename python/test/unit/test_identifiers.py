@@ -21,12 +21,12 @@ all tests for identifiers, indexes, kinds
 
 class CellMembers(unittest.TestCase):
 
-    def test_gid_index_contor_cell_member(self):
+    def test_gid_index_ctor_cell_member(self):
         cm = arb.cell_member(17,42)
         self.assertEqual(cm.gid, 17)
         self.assertEqual(cm.index, 42)
 
-    def test_set_git_index_cell_member(self):
+    def test_set_gid_index_cell_member(self):
         cm = arb.cell_member(0,0)
         cm.gid = 13
         cm.index = 23

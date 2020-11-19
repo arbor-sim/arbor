@@ -111,7 +111,6 @@ Examples of expressions that define regions include:
 * ``(tag 1)``: all segments with tag 1.
 * ``(branch 2)``: branch 2.
 * ``(region "soma")``: the region with the label "soma".
-* ``"soma"``: a shortcut for the region with the label "soma".
 
 Examples of expressions that define locsets include:
 

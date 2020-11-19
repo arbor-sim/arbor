@@ -29,16 +29,6 @@ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gi
                 "Python error already thrown");
 }
 
-arb::probe_info cable_loc_probe(std::string kind, arb::mlocation loc) {
-    if (kind == "voltage") {
-        return arb::cable_probe_membrane_voltage{loc};
-    }
-    else if (kind == "ionic current density") {
-        return arb::cable_probe_total_ion_current_density{loc};
-    }
-    else throw pyarb_error(util::pprintf("unrecognized probe kind: {}", kind));
-};
-
 std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pygens, arb::cell_gid_type gid) {
     using namespace std::string_literals;
     using pybind11::isinstance;
@@ -169,11 +159,6 @@ void register_recipe(pybind11::module& m) {
         .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
 
     // Probes
-    m.def("cable_probe", &cable_loc_probe,
-        "Description of a probe at a location available for monitoring data of kind "\
-        "where kind is one of 'voltage' or 'ionic current density'.",
-        "kind"_a, "location"_a);
-
     pybind11::class_<arb::probe_info> probe(m, "probe");
     probe
         .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
