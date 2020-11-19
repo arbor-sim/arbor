@@ -330,11 +330,11 @@ public:
         : Expression(loc), value_(std::stold(value))
     {}
 
-    NumberExpression(Location loc, long double value)
+    NumberExpression(Location loc, double value)
         : Expression(loc), value_(value)
     {}
 
-    virtual long double value() const {return value_;};
+    virtual double value() const {return value_;};
 
     std::string to_string() const override {
         return purple(pprintf("%", value_));
@@ -350,7 +350,7 @@ public:
 
     void accept(Visitor *v) override;
 private:
-    long double value_;
+    double value_;
 };
 
 // an integral number
@@ -361,7 +361,7 @@ public:
     {}
 
     IntegerExpression(Location loc, long long integer)
-        : NumberExpression(loc, static_cast<long double>(integer)), integer_(integer)
+        : NumberExpression(loc, static_cast<double>(integer)), integer_(integer)
     {}
 
     long long integer_value() const {return integer_;}
