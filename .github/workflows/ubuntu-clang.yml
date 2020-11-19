@@ -1,0 +1,65 @@
+name: Ubuntu + Clang
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: "Build & Test"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:    ["ubuntu-20.04"]
+        clang: ["8", "10"]
+        py:    ["3.6", "3.9"]
+        cmake: ["3.12.x", "3.18.x"]
+        mpi:   ["OFF", "ON"]
+    steps:
+      - name: Set up cmake
+        uses: jwlawson/actions-setup-cmake@v1.4
+        with:
+          cmake-version: ${{ matrix.cmake }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
+      - name: Check versions
+        run: |
+          python${{ matrix.py }} --version
+          cmake --version
+          clang-${{ matrix.clang }} --version
+          clang++-${{ matrix.clang }} --version
+      - if: ${{ matrix.mpi == 'ON' }}
+        name: Install OpenMPI
+        run: |
+           export CC=gcc-10
+           export CXX=g++-10
+           wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
+           tar -xvf ./openmpi-4.0.2.tar.gz
+           cd openmpi-4.0.2
+           ./configure
+           make -j
+           sudo make install
+           sudo ldconfig
+           python${{ matrix.py }} -mpip install mpi4py
+           cd -
+      - name: "Clone w/ submodules"
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: Install arbor
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_CXX_COMPILER=clang++-${{ matrix.clang }} -DCMAKE_C_COMPILER=clang-${{ matrix.clang }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=${{ matrix.mpi }}
+          make tests examples
+          sudo make install
+          cd -
+      - name: "Run unit tests"
+        run: build/bin/unit
+      - name: "Run python tests"
+        run: PYTHONPATH="/usr/local/lib/python${{ matrix.py }}/site-packages/:${PYTHONPATH}" python${{ matrix.py }} python/test/unit/runner.py
+      - if: ${{ matrix.mpi == 'ON' }}
+        name: "Run python+MPI tests"
+        run: PYTHONPATH="/usr/local/lib/python${{ matrix.py }}/site-packages/:${PYTHONPATH}" python${{ matrix.py }} python/test/unit_distributed/runner.py
