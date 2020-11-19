@@ -48,7 +48,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     GCC         8.4.0
     Clang       8.0          Needs GCC 8 or later for standard library.
     Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
-    Hip Clang   Rocm 3.6     HIP support is currently experimental.
+    Hip Clang   ROCm 3.9     HIP support is currently experimental.
     =========== ============ ============================================
 
 .. _note_CC:
