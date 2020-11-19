@@ -26,6 +26,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.py }}
+      - name: Install Python packages
+        run: python${{ matrix.py }} -mpip install numpy sphinx svgwrite sphinx-rtd-theme
       - name: Check versions
         run: |
           python${{ matrix.py }} --version
