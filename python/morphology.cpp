@@ -66,6 +66,8 @@ void register_morphology(py::module& m) {
     // arb::mpoint
     py::class_<arb::mpoint> mpoint(m, "mpoint");
     mpoint
+        .def(py::init<double, double, double, double>(),
+             "x"_a, "y"_a, "z"_a, "radius"_a)
         .def(py::init([](py::tuple t) {
                 if (py::len(t)!=4) throw std::runtime_error("tuple length != 4");
                 return arb::mpoint{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), t[3].cast<double>()};
@@ -75,12 +77,13 @@ void register_morphology(py::module& m) {
         .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
         .def_readonly("radius", &arb::mpoint::radius,
             "Radius of cable at sample location centered at coordinates [μm].")
+        .def(py::self==py::self)
         .def("__str__",
             [](const arb::mpoint& p) {
                 return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}>", p.x, p.y, p.z, p.radius);
             })
         .def("__repr__",
-            [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
+            [](const arb::mpoint& p) {return util::pprintf("{}", p);});
 
     py::implicitly_convertible<py::tuple, arb::mpoint>();
 
@@ -121,36 +124,41 @@ void register_morphology(py::module& m) {
                 return iso.apply(p);
             })
         .def("__call__", [](arb::isometry& iso, py::tuple t) {
-                if (py::len(t)<3) throw std::runtime_error("tuple length < 3");
+                int len = py::len(t);
+                if (len<3) throw std::runtime_error("tuple length < 3");
+
                 arb::mpoint p{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), 0.};
                 p = iso.apply(p);
-                t[0] = p.x;
-                t[1] = p.y;
-                t[2] = p.z;
-                return t;
+
+                py::tuple result(len);
+                result[0] = p.x;
+                result[1] = p.y;
+                result[2] = p.z;
+                for (int i = 3; i<len; ++i) {
+                    result[i] = t[i];
+                }
+                return result;
             })
-        .def(py::self*py::self);
-
-    m.def("translation",
-        [](double x, double y, double z) { return arb::isometry::translate(x, y, z); },
-        "x"_a, "y"_a, "z"_a);
-    m.def("translation",
-        [](py::tuple t) {
-            if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
-            return arb::isometry::translate(t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
-        });
-    m.def("translation",
-        [](arb::mpoint p) { return arb::isometry::translate(p.x, p.y, p.z); });
-
-    m.def("rotation",
-        [](double theta, double x, double y, double z) { return arb::isometry::rotate(theta, x, y, z); },
-        "theta"_a, "x"_a, "y"_a, "z"_a);
-    m.def("rotation",
-        [](double theta, py::tuple t) {
-            if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
-            return arb::isometry::rotate(theta, t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
-        },
-        "theta"_a, "axis"_a);
+        .def(py::self*py::self)
+        .def_static("translate",
+            [](double x, double y, double z) { return arb::isometry::translate(x, y, z); },
+            "x"_a, "y"_a, "z"_a)
+        .def_static("translate",
+            [](py::tuple t) {
+                if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
+                return arb::isometry::translate(t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+            })
+        .def_static("translate",
+            [](arb::mpoint p) { return arb::isometry::translate(p.x, p.y, p.z); })
+        .def_static("rotate",
+            [](double theta, double x, double y, double z) { return arb::isometry::rotate(theta, x, y, z); },
+            "theta"_a, "x"_a, "y"_a, "z"_a)
+        .def_static("rotate",
+            [](double theta, py::tuple t) {
+                if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
+                return arb::isometry::rotate(theta, t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+            },
+            "theta"_a, "axis"_a);
 
     // arb::place_pwlin
     py::class_<arb::place_pwlin> place(m, "place_pwlin");
