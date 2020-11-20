@@ -12,13 +12,14 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
                            'center': '(location 0 0.5)'})
 
 # (3) Create cell and set properties
-cell = arbor.cable_cell(tree, labels)
-cell.set_properties(Vm=-40)
-cell.paint('"soma"', 'hh')
-cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
-cell.place('"center"', arbor.spike_detector(-10))
+decor = arbor.decor()
+decor.set_property(Vm=-40)
+decor.paint('"soma"', 'hh')
+decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
+decor.place('"center"', arbor.spike_detector(-10))
 
-# (4) Make single cell model.
+# (3) Create cell and the single cell model based on it
+cell = arbor.cable_cell(tree, labels, decor)
 m = arbor.single_cell_model(cell)
 
 # (5) Attach voltage probe sampling at 10 kHz (every 0.1 ms).

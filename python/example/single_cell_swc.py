@@ -55,13 +55,15 @@ decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5))
 decor.place('"stim_site"', arbor.iclamp(8, 1, current=4))
 # Detect spikes at the soma with a voltage threshold of -10 mV.
 decor.place('"axon_end"', arbor.spike_detector(-10))
+
+# Create the policy used to discretise the cell into CVs.
 soma_policy = arbor.cv_policy_single('"soma"')
 dflt_policy = arbor.cv_policy_max_length(1.0)
 policy = dflt_policy | soma_policy
 decor.discretization(policy)
 
 # Combine morphology with region and locset definitions to make a cable cell.
-cell = arbor.cable_cell(tree, labels, decor)
+cell = arbor.cable_cell(morpho, labels, decor)
 
 print(cell.locations('"axon_end"'))
 
