@@ -20,45 +20,50 @@ all tests for schedules (regular, explicit, poisson)
 """
 
 class RegularSchedule(unittest.TestCase):
-    def test_none_contor_regular_schedule(self):
-        rs = arb.regular_schedule(tstart=None, tstop=None)
+    def test_none_ctor_regular_schedule(self):
+        rs = arb.regular_schedule(tstart=0, dt=0.1, tstop=None)
+        self.assertEqual(rs.dt, 0.1)
 
-    def test_tstart_dt_tstop_contor_regular_schedule(self):
+    def test_tstart_dt_tstop_ctor_regular_schedule(self):
         rs = arb.regular_schedule(10., 1., 20.)
         self.assertEqual(rs.tstart, 10.)
         self.assertEqual(rs.dt, 1.)
         self.assertEqual(rs.tstop, 20.)
 
     def test_set_tstart_dt_tstop_regular_schedule(self):
-        rs = arb.regular_schedule()
+        rs = arb.regular_schedule(0.1)
+        self.assertAlmostEqual(rs.dt, 0.1, places=1)
         rs.tstart = 17.
         rs.dt = 0.5
         rs.tstop = 42.
         self.assertEqual(rs.tstart, 17.)
-        self.assertAlmostEqual(rs.dt, 0.5, places = 1)
+        self.assertAlmostEqual(rs.dt, 0.5, places=1)
         self.assertEqual(rs.tstop, 42.)
 
     def test_events_regular_schedule(self):
         expected = [0, 0.25, 0.5, 0.75, 1.0]
-        rs = arb.regular_schedule(tstart = 0., dt = 0.25, tstop = 1.25)
+        rs = arb.regular_schedule(tstart=0., dt=0.25, tstop=1.25)
         self.assertEqual(expected, rs.events(0., 1.25))
         self.assertEqual(expected, rs.events(0., 5.))
         self.assertEqual([], rs.events(5., 10.))
 
     def test_exceptions_regular_schedule(self):
         with self.assertRaisesRegex(RuntimeError,
-            "tstart must be a non-negative number, or None"):
-            arb.regular_schedule(tstart = -1.)
+            "tstart must be a non-negative number"):
+            arb.regular_schedule(tstart=-1., dt=0.1)
         with self.assertRaisesRegex(RuntimeError,
-            "dt must be a non-negative number"):
-            arb.regular_schedule(dt = -0.1)
+            "dt must be a positive number"):
+            arb.regular_schedule(dt=-0.1)
+        with self.assertRaisesRegex(RuntimeError,
+            "dt must be a positive number"):
+            arb.regular_schedule(dt=0)
         with self.assertRaises(TypeError):
-            arb.regular_schedule(dt = None)
+            arb.regular_schedule(dt=None)
         with self.assertRaises(TypeError):
-            arb.regular_schedule(dt = 'dt')
+            arb.regular_schedule(dt='dt')
         with self.assertRaisesRegex(RuntimeError,
             "tstop must be a non-negative number, or None"):
-            arb.regular_schedule(tstop = 'tstop')
+            arb.regular_schedule(tstart=0, dt=0.1, tstop='tstop')
         with self.assertRaisesRegex(RuntimeError,
             "t0 must be a non-negative number"):
             rs = arb.regular_schedule(0., 1., 10.)
@@ -99,12 +104,8 @@ class ExplicitSchedule(unittest.TestCase):
         with self.assertRaises(TypeError):
             arb.explicit_schedule([[1,2,3]])
         with self.assertRaisesRegex(RuntimeError,
-            "t0 must be a non-negative number"):
-            rs = arb.regular_schedule()
-            rs.events(-1., 1.)
-        with self.assertRaisesRegex(RuntimeError,
             "t1 must be a non-negative number"):
-            rs = arb.regular_schedule()
+            rs = arb.regular_schedule(0.1)
             rs.events(1., -1.)
 
 class PoissonSchedule(unittest.TestCase):

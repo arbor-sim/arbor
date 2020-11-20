@@ -443,7 +443,7 @@ def run():
         arb.mpi_init()
 
     comm = arb.mpi_comm()
-        
+
     alloc = arb.proc_allocation()
     ctx = arb.context(alloc, comm)
     rank = ctx.rank

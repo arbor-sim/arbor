@@ -15,6 +15,7 @@ set(PYBIND11_CPP_STANDARD -std=c++17)
 add_subdirectory(pybind11)
 
 set(pyarb_source
+    cable_probes.cpp
     cells.cpp
     config.cpp
     context.cpp
@@ -28,7 +29,6 @@ set(pyarb_source
     profiler.cpp
     pyarb.cpp
     recipe.cpp
-    sampling.cpp
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp

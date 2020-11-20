@@ -307,7 +307,7 @@ void register_cells(pybind11::module& m) {
     // arb::lif_cell
 
     pybind11::class_<arb::lif_cell> lif_cell(m, "lif_cell",
-        "A benchmarking cell, used by Arbor developers to test communication performance.");
+        "A leaky integrate-and-fire cell.");
 
     lif_cell
         .def(pybind11::init<>())

@@ -10,23 +10,31 @@
 namespace pyarb {
 
 using util::pprintf;
+namespace py = pybind11;
 
-void register_identifiers(pybind11::module& m) {
-    using namespace pybind11::literals;
+void register_identifiers(py::module& m) {
+    using namespace py::literals;
 
-    pybind11::class_<arb::cell_member_type> cell_member(m, "cell_member",
+    py::class_<arb::cell_member_type> cell_member(m, "cell_member",
         "For global identification of a cell-local item.\n\n"
         "Items of cell_member must:\n"
         "  (1) be associated with a unique cell, identified by the member gid;\n"
         "  (2) identify an item within a cell-local collection by the member index.\n");
 
     cell_member
-        .def(pybind11::init(
+        .def(py::init(
             [](arb::cell_gid_type gid, arb::cell_lid_type idx) {
                 return arb::cell_member_type{gid, idx};
             }),
             "gid"_a, "index"_a,
-            "Construct a cell member with arguments:\n"
+            "Construct a cell member identifier with arguments:\n"
+            "  gid:     The global identifier of the cell.\n"
+            "  index:   The cell-local index of the item.\n")
+        .def(py::init([](py::tuple t) {
+                if (py::len(t)!=2) throw std::runtime_error("tuple length != 4");
+                return arb::cell_member_type{t[0].cast<arb::cell_gid_type>(), t[1].cast<arb::cell_lid_type>()};
+            }),
+            "Construct a cell member identifier with tuple argument (gid, index):\n"
             "  gid:     The global identifier of the cell.\n"
             "  index:   The cell-local index of the item.\n")
         .def_readwrite("gid",   &arb::cell_member_type::gid,
@@ -36,7 +44,9 @@ void register_identifiers(pybind11::module& m) {
         .def("__str__", [](arb::cell_member_type m) {return pprintf("<arbor.cell_member: gid {}, index {}>", m.gid, m.index);})
         .def("__repr__",[](arb::cell_member_type m) {return pprintf("<arbor.cell_member: gid {}, index {}>", m.gid, m.index);});
 
-    pybind11::enum_<arb::cell_kind>(m, "cell_kind",
+    py::implicitly_convertible<py::tuple, arb::cell_member_type>();
+
+    py::enum_<arb::cell_kind>(m, "cell_kind",
         "Enumeration used to identify the cell kind, used by the model to group equal kinds in the same cell group.")
         .value("benchmark", arb::cell_kind::benchmark,
             "Proxy cell used for benchmarking.")
@@ -47,14 +57,14 @@ void register_identifiers(pybind11::module& m) {
         .value("spike_source", arb::cell_kind::spike_source,
             "Proxy cell that generates spikes from a spike sequence provided by the user.");
 
-    pybind11::enum_<arb::backend_kind>(m, "backend",
+    py::enum_<arb::backend_kind>(m, "backend",
         "Enumeration used to indicate which hardware backend to execute a cell group on.")
         .value("gpu", arb::backend_kind::gpu,
             "Use GPU backend.")
         .value("multicore", arb::backend_kind::multicore,
             "Use multicore backend.");
 
-    pybind11::enum_<arb::binning_kind>(m, "binning",
+    py::enum_<arb::binning_kind>(m, "binning",
         "Enumeration for event time binning policy.")
         .value("none", arb::binning_kind::none,
             "No binning policy.")
