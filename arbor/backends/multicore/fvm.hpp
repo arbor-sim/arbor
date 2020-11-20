@@ -48,7 +48,7 @@ struct backend {
     using ion_state = arb::multicore::ion_state;
 
     static threshold_watcher voltage_watcher(
-        const shared_state& state,
+        shared_state& state,
         const std::vector<index_type>& cv,
         const std::vector<value_type>& thresholds,
         const execution_context& context)
@@ -58,6 +58,10 @@ struct backend {
             state.time.data(),
             state.time_to.data(),
             state.voltage.data(),
+            state.src_to_spike.data(),
+            state.time_since_spike.data(),
+            state.n_cell,
+            state.n_detector,
             cv,
             thresholds,
             context);

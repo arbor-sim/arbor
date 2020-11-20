@@ -79,10 +79,13 @@ struct shared_state {
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
 
     fvm_size_type n_intdom = 0; // Number of integration domains.
+    fvm_size_type n_detector = 0; // Max number of detectors on all cells.
+    fvm_size_type n_cell = 0; // Total number of cells.
     fvm_size_type n_cv = 0;   // Total number of CVs.
     fvm_size_type n_gj = 0;   // Total number of GJs.
 
     iarray cv_to_intdom;      // Maps CV index to integration domain index.
+    iarray cv_to_cell;        // Maps CV index to the first spike
     gjarray  gap_junctions;   // Stores gap_junction info.
     array time;               // Maps intdom index to integration start time [ms].
     array time_to;            // Maps intdom index to integration stop time [ms].
@@ -96,6 +99,9 @@ struct shared_state {
     array temperature_degC;   // Maps CV to local temperature (read only) [°C].
     array diam_um;            // Maps CV to local diameter (read only) [µm].
 
+    array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
+    iarray src_to_spike;      // Maps spike source index to spike index
+
     std::unordered_map<std::string, ion_state> ion_data;
 
     deliverable_event_stream deliverable_events;
@@ -104,11 +110,15 @@ struct shared_state {
 
     shared_state(
         fvm_size_type n_intdom,
+        fvm_size_type n_cell,
+        fvm_size_type n_detector,
         const std::vector<fvm_index_type>& cv_to_intdom_vec,
+        const std::vector<fvm_index_type>& cv_to_cell_vec,
         const std::vector<fvm_gap_junction>& gj_vec,
         const std::vector<fvm_value_type>& init_membrane_potential,
         const std::vector<fvm_value_type>& temperature_K,
         const std::vector<fvm_value_type>& diam,
+        const std::vector<fvm_index_type>& src_to_spike,
         unsigned align
     );
 
