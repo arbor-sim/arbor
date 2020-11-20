@@ -365,32 +365,6 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     std::vector<cable_cell> cells;
     const std::size_t ncell = gids.size();
 
-    std::size_t max_detector = 0;
-    std::vector<fvm_index_type> src_to_spike;
-
-    // Sanity check recipe; find max num_sources and
-    // create a list of the global identifiers for the spike sources
-    for (auto cell_idx: make_span(ncell)) {
-        cell_gid_type gid = gids[cell_idx];
-        auto& cell = cells[cell_idx];
-
-        auto num_sources = rec.num_sources(gid);
-        if (num_sources > max_detector) max_detector = num_sources;
-
-        for (cell_lid_type lid = 0; lid<num_sources; ++lid) {
-            src_to_spike.push_back(cell_idx*ncell + lid);
-        }
-
-        if (num_sources > cell.detectors().size()) {
-            throw arb::bad_source_description(gid, num_sources, cell.detectors().size());
-        }
-        auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) { return syn.second.size(); });
-        if (rec.num_targets(gid) > cell_targets) {
-            throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
-        }
-    }
-    src_to_spike.shrink_to_fit();
-
     cells.resize(ncell);
     threading::parallel_for::apply(0, gids.size(), context_.thread_pool.get(),
            [&](cell_size_type i) {
@@ -417,6 +391,31 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     // Assert that all global default parameters have been set.
     // (Throws cable_cell_error on failure.)
     check_global_properties(global_props);
+
+    // Sanity check recipe; find max num_sources and
+    // create a list of the global identifiers for the spike sources
+    std::size_t max_detector = 0;
+    std::vector<fvm_index_type> src_to_spike;
+    for (auto cell_idx: make_span(ncell)) {
+        cell_gid_type gid = gids[cell_idx];
+        auto& cell = cells[cell_idx];
+
+        auto num_sources = rec.num_sources(gid);
+        if (num_sources > max_detector) max_detector = num_sources;
+
+        for (cell_lid_type lid = 0; lid<num_sources; ++lid) {
+            src_to_spike.push_back(cell_idx*ncell + lid);
+        }
+
+        if (num_sources > cell.detectors().size()) {
+            throw arb::bad_source_description(gid, num_sources, cell.detectors().size());
+        }
+        auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) { return syn.second.size(); });
+        if (rec.num_targets(gid) > cell_targets) {
+            throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
+        }
+    }
+    src_to_spike.shrink_to_fit();
 
     const mechanism_catalogue* catalogue = global_props.catalogue;
 
