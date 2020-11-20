@@ -18,6 +18,7 @@ struct schedule_shim_base {
     schedule_shim_base() = default;
     schedule_shim_base(const schedule_shim_base&) = delete;
     schedule_shim_base& operator=(schedule_shim_base&) = delete;
+    virtual ~schedule_shim_base() {}
 
     virtual arb::schedule schedule() const = 0;
 };
@@ -36,6 +37,8 @@ struct regular_schedule_shim: schedule_shim_base {
 
     regular_schedule_shim(time_type t0, time_type delta_t, pybind11::object t1);
     explicit regular_schedule_shim(time_type delta_t);
+
+    virtual ~regular_schedule_shim();
 
     // getter and setter (in order to assert when being set)
     void set_tstart(time_type t);
@@ -60,7 +63,7 @@ struct explicit_schedule_shim: schedule_shim_base {
 
     explicit_schedule_shim() = default;
     explicit_schedule_shim(std::vector<arb::time_type> t);
-
+    virtual ~explicit_schedule_shim();
     // getter and setter (in order to assert when being set)
     void set_times(std::vector<arb::time_type> t);
     std::vector<arb::time_type> get_times() const;
@@ -83,7 +86,7 @@ struct poisson_schedule_shim: schedule_shim_base {
 
     poisson_schedule_shim() = default;
     poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s);
-
+    virtual ~poisson_schedule_shim();
     void set_tstart(arb::time_type t);
     void set_freq(arb::time_type f);
 

@@ -24,6 +24,7 @@ namespace pyarb {
 // The py::recipe::cell_decription returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::unique_any.
 arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
+    pybind11::gil_scoped_acquire guard;
     return try_catch_pyexception(
                 [&](){ return convert_cell(impl_->cell_description(gid)); },
                 "Python error already thrown");
