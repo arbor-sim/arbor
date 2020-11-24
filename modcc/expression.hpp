@@ -79,6 +79,7 @@ enum class procedureKind {
     api,         ///< API PROCEDURE
     initial,     ///< INITIAL
     net_receive, ///< NET_RECEIVE
+    post_event,  ///< POST_EVENT
     breakpoint,  ///< BREAKPOINT
     kinetic,     ///< KINETIC
     derivative,  ///< DERIVATIVE

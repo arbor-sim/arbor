@@ -110,6 +110,7 @@ bool Parser::parse() {
             // INITIAL, KINETIC, DERIVATIVE, PROCEDURE, NET_RECEIVE and BREAKPOINT blocks
             // are all lowered to ProcedureExpression
             case tok::net_receive:
+            case tok::post_event :
             case tok::breakpoint :
             case tok::initial    :
             case tok::kinetic    :
