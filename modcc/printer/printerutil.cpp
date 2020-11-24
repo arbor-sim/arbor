@@ -157,7 +157,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         break;
     case sourceKind::time:
         v.data_var = "vec_t_";
-        v.cell_index_var = "vec_ci_";
+        v.cell_index_var = "vec_di_";
         v.readonly = true;
         break;
     case sourceKind::ion_current_density:

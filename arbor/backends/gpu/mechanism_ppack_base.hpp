@@ -30,7 +30,7 @@ struct mechanism_ppack_base {
 
     index_type width_;
 
-    const index_type* vec_ci_;
+    const index_type* vec_di_;
     const value_type* vec_t_;
     const value_type* vec_t_to_;
     const value_type* vec_dt_;

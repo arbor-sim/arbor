@@ -84,7 +84,7 @@ void mechanism::instantiate(unsigned id,
 
     pp->width_ = width_;
 
-    pp->vec_ci_   = shared.cv_to_intdom.data();
+    pp->vec_di_   = shared.cv_to_intdom.data();
     pp->vec_t_    = shared.time.data();
     pp->vec_t_to_ = shared.time_to.data();
     pp->vec_dt_   = shared.dt_cv.data();

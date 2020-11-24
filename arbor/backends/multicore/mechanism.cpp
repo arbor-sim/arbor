@@ -83,7 +83,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     // Assign non-owning views onto shared state:
 
-    vec_ci_   = shared.cv_to_intdom.data();
+    vec_di_   = shared.cv_to_intdom.data();
     vec_t_    = shared.time.data();
     vec_t_to_ = shared.time_to.data();
     vec_dt_   = shared.dt_cv.data();
