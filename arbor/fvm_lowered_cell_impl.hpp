@@ -394,25 +394,30 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Sanity check recipe; find max num_sources and
     // create a list of the global identifiers for the spike sources
-    std::size_t max_detector = 0;
-    std::vector<fvm_index_type> src_to_spike;
+
+    std::vector<fvm_size_type> nsources;
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
         auto& cell = cells[cell_idx];
 
         auto num_sources = rec.num_sources(gid);
-        if (num_sources > max_detector) max_detector = num_sources;
+        nsources.push_back(num_sources);
 
-        for (cell_lid_type lid = 0; lid<num_sources; ++lid) {
-            src_to_spike.push_back(cell_idx*ncell + lid);
-        }
-
-        if (num_sources > cell.detectors().size()) {
+        if (num_sources != cell.detectors().size()) {
             throw arb::bad_source_description(gid, num_sources, cell.detectors().size());
         }
         auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) { return syn.second.size(); });
         if (rec.num_targets(gid) > cell_targets) {
             throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
+        }
+    }
+
+    auto max_detector = util::max_value(nsources);
+    std::vector<fvm_index_type> src_to_spike;
+
+    for (auto cell_idx: make_span(ncell)) {
+        for (auto lid: make_span(nsources[cell_idx])) {
+            src_to_spike.push_back(cell_idx*max_detector + lid);
         }
     }
     src_to_spike.shrink_to_fit();

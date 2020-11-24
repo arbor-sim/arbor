@@ -94,7 +94,7 @@ public:
                     auto crossing_time = math::lerp(t_before_[intdom], t_after_[intdom], pos);
                     crossings_.push_back({i, crossing_time});
 
-                    time_since_spike_[src_to_spike_[i]] = std::fabs(t_after_[intdom] - crossing_time);
+                    time_since_spike_[src_to_spike_[i]] = t_after_[intdom] - crossing_time;
 
                     std::cout << "tbefore = " << t_before_[intdom] << " tafter = " <<  t_after_[intdom] << std::endl;
                     std::cout << "crossing at {" << i << ", " << crossing_time << "}" << std::endl;
