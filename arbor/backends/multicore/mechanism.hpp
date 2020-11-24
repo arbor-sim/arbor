@@ -72,9 +72,11 @@ protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)
     size_type width_padded_ = 0; // Width rounded up to multiple of pad/alignment.
     size_type n_ion_ = 0;
+    size_type n_detectors_ = 0;
 
     // Non-owning views onto shared cell state, excepting ion state.
 
+    const index_type* vec_ci_;    // CV to cell index
     const index_type* vec_di_;    // CV to indom index
     const value_type* vec_t_;     // Cell index to cell-local time.
     const value_type* vec_t_to_;  // Cell index to cell-local integration step time end.
@@ -84,7 +86,10 @@ protected:
     value_type* vec_g_;           // CV to cell membrane conductivity.
     const value_type* temperature_degC_; // CV to temperature.
     const value_type* diam_um_;   // CV to diameter.
+    const value_type* time_since_spike_; // Vector containing time since last spike, indexed by cell index and n_detectors_
     deliverable_event_stream* event_stream_ptr_;
+
+
 
     // Per-mechanism index and weight data, excepting ion indices.
 

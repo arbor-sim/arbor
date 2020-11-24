@@ -54,6 +54,7 @@ public:
     virtual void nrn_state() = 0;
     virtual void nrn_current() = 0;
     virtual void deliver_events() {};
+    virtual void post_events() {};
     virtual void write_ions() = 0;
 
     virtual ~mechanism() = default;

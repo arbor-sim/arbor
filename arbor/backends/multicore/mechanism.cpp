@@ -83,6 +83,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     // Assign non-owning views onto shared state:
 
+    vec_ci_   = shared.cv_to_cell.data();
     vec_di_   = shared.cv_to_intdom.data();
     vec_t_    = shared.time.data();
     vec_t_to_ = shared.time_to.data();
@@ -94,6 +95,9 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     temperature_degC_ = shared.temperature_degC.data();
     diam_um_  = shared.diam_um.data();
+    time_since_spike_ = shared.time_since_spike.data();
+
+    n_detectors_ = shared.n_detector;
 
     auto ion_state_tbl = ion_state_table();
     n_ion_ = ion_state_tbl.size();
