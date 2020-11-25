@@ -83,8 +83,8 @@ protected:
     const value_type* temperature_degC_; // CV to temperature.
     const value_type* diam_um_;   // CV to diameter.
 
-    const array* vec_t_;          // Cell index to cell-local time.
-    const array* vec_t_to_;       // Cell index to cell-local integration step time end.
+    const array* vec_t_ptr_;          // Cell index to cell-local time.
+    const array* vec_t_to_ptr_;       // Cell index to cell-local integration step time end.
     deliverable_event_stream* event_stream_ptr_;
 
     // Per-mechanism index and weight data, excepting ion indices.

@@ -156,7 +156,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.readonly = true;
         break;
     case sourceKind::time:
-        v.data_var = "vec_t_";
+        v.data_var = "vec_t_ptr_->data()";
         v.cell_index_var = "vec_ci_";
         v.readonly = true;
         break;
