@@ -208,8 +208,10 @@ fvm_value_type* mechanism::field_data(const std::string& field_var) {
 void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 
 void mechanism::initialize() {
-    nrn_init();
     mechanism_ppack_base* pp = ppack_ptr();
+    pp->vec_t_ = vec_t_ptr_->data();
+
+    nrn_init();
     auto states = state_table();
 
     if(mult_in_place_) {
