@@ -21,7 +21,6 @@ public:
     void nrn_init() override {}
     void nrn_state() override {}
     void nrn_current() override {
-        const fvm_value_type* vec_t_ = vec_t_ptr_->data();
         size_type n = size();
         for (size_type i=0; i<n; ++i) {
             auto cv = node_index_[i];
