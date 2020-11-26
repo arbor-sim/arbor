@@ -61,11 +61,11 @@ struct ion_state {
 };
 
 struct shared_state {
-    fvm_size_type n_intdom = 0; // Number of distinct integration domains.
-    fvm_size_type n_cell = 0;   // Total number of cells.
-    fvm_size_type n_cv = 0;     // Total number of CVs.
-    fvm_size_type n_gj = 0;     // Total number of GJs.
+    fvm_size_type n_intdom = 0;   // Number of distinct integration domains.
+    fvm_size_type n_cell = 0;     // Total number of cells.
     fvm_size_type n_detector = 0; // Max number of detectors on all cells.
+    fvm_size_type n_cv = 0;       // Total number of CVs.
+    fvm_size_type n_gj = 0;       // Total number of GJs.
 
     iarray cv_to_intdom;     // Maps CV index to intdom index.
     iarray cv_to_cell;       // Maps CV index to cell index.

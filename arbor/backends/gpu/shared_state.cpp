@@ -102,8 +102,8 @@ shared_state::shared_state(
     unsigned // alignment parameter ignored.
 ):
     n_intdom(n_intdom),
-    n_detector(n_detector),
     n_cell(n_cell),
+    n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
     n_gj(gj_vec.size()),
     cv_to_intdom(make_const_view(cv_to_intdom_vec)),

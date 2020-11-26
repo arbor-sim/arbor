@@ -57,6 +57,8 @@ public:
         t_before_(t_before),
         t_after_(t_after),
         values_(values),
+        src_to_spike_(src_to_spike),
+        time_since_spike_(time_since_spike),
         cv_index_(memory::make_const_view(cv_index)),
         is_crossed_(cv_index.size()),
         thresholds_(memory::make_const_view(thresholds)),
@@ -72,7 +74,7 @@ public:
     /// Reset all spike times to -1.0 indicating no spike has been recorded
     // on the detector
     void clear_spikes() {
-        memory::fill(*time_since_spike_, -1.0);
+        memory::fill((*time_since_spike_), -1.0);
     }
 
     /// Remove all stored crossings that were detected in previous calls to test()
