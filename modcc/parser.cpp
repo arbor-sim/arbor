@@ -971,6 +971,10 @@ symbol_ptr Parser::parse_procedure() {
             kind = procedureKind::net_receive;
             p = parse_prototype("net_receive");
             break;
+        case tok::post_event:
+            kind = procedureKind::post_event;
+            p = parse_prototype("post_event");
+            break;
         default:
             // it is a compiler error if trying to parse_procedure() without
             // having DERIVATIVE, KINETIC, PROCEDURE, INITIAL or BREAKPOINT keyword
@@ -988,14 +992,16 @@ symbol_ptr Parser::parse_procedure() {
     if(body==nullptr) return nullptr;
 
     auto proto = p->is_prototype();
-    if(kind != procedureKind::net_receive) {
-        return make_symbol<ProcedureExpression>
-            (proto->location(), proto->name(), std::move(proto->args()), std::move(body), kind);
-    }
-    else {
+    if(kind == procedureKind::net_receive) {
         return make_symbol<NetReceiveExpression>
-            (proto->location(), proto->name(), std::move(proto->args()), std::move(body));
+                (proto->location(), proto->name(), std::move(proto->args()), std::move(body));
     }
+    if(kind == procedureKind::post_event) {
+        return make_symbol<PostEventExpression>
+                (proto->location(), proto->name(), std::move(proto->args()), std::move(body));
+    }
+    return make_symbol<ProcedureExpression>
+            (proto->location(), proto->name(), std::move(proto->args()), std::move(body), kind);
 }
 
 symbol_ptr Parser::parse_function() {

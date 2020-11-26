@@ -108,6 +108,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto ns_components = namespace_components(opt.cpp_namespace);
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
+    PostEventExpression*  post_event = find_post_event(module_);
     APIMethod* init_api = find_api_method(module_, "nrn_init");
     APIMethod* state_api = find_api_method(module_, "nrn_state");
     APIMethod* current_api = find_api_method(module_, "nrn_current");
@@ -383,6 +384,11 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "\n"
         "void " << class_name << "::net_receive(int i_, value_type weight) {\n" << indent <<
         cprint(net_receive->body()) << popindent <<
+        "}\n\n";
+
+    post_event && out <<
+        "void " << class_name << "::post_events(value_type time) {\n" << indent <<
+        cprint(post_event->body()) << popindent <<
         "}\n\n";
 
     auto emit_body = [&](APIMethod *p) {

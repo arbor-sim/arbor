@@ -45,7 +45,8 @@ std::vector<ProcedureExpression*> normal_procedures(const Module& m) {
 
     for (auto& sym: m.symbols()) {
         auto proc = sym.second->is_procedure();
-        if (proc && proc->kind()==procedureKind::normal && !proc->is_api_method() && !proc->is_net_receive()) {
+        if (proc && proc->kind()==procedureKind::normal && !proc->is_api_method()
+            && !proc->is_net_receive() && !proc->is_post_event()) {
             procs.push_back(proc);
         }
     }
@@ -111,6 +112,11 @@ APIMethod* find_api_method(const Module& m, const char* which) {
 NetReceiveExpression* find_net_receive(const Module& m) {
     auto it = m.symbols().find("net_receive");
     return it==m.symbols().end()? nullptr: it->second->is_net_receive();
+}
+
+PostEventExpression* find_post_event(const Module& m) {
+    auto it = m.symbols().find("post_event");
+    return it==m.symbols().end()? nullptr: it->second->is_post_event();
 }
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {

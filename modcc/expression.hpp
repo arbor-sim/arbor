@@ -47,6 +47,7 @@ class PDiffExpression;
 class VariableExpression;
 class ProcedureExpression;
 class NetReceiveExpression;
+class PostEventExpression;
 class APIMethod;
 class IndexedVariable;
 class LocalVariable;
@@ -235,6 +236,7 @@ public :
     virtual VariableExpression*   is_variable()          {return nullptr;}
     virtual ProcedureExpression*  is_procedure()         {return nullptr;}
     virtual NetReceiveExpression* is_net_receive()       {return nullptr;}
+    virtual PostEventExpression*  is_post_event()       {return nullptr;}
     virtual APIMethod*            is_api_method()        {return nullptr;}
     virtual IndexedVariable*      is_indexed_variable()  {return nullptr;}
     virtual LocalVariable*        is_local_variable()    {return nullptr;}
@@ -1119,6 +1121,24 @@ public:
     InitialBlock* initial_block() {return initial_block_;}
 protected:
     InitialBlock* initial_block_ = nullptr;
+};
+
+/// handle PostEventExpression as a special case of ProcedureExpression
+class PostEventExpression : public ProcedureExpression {
+public:
+    PostEventExpression( Location loc,
+                          std::string name,
+                          std::vector<expression_ptr>&& args,
+                          expression_ptr&& body)
+            :   ProcedureExpression(loc, std::move(name), std::move(args), std::move(body), procedureKind::post_event)
+    {}
+
+    void semantic(scope_type::symbol_map &scp) override;
+    PostEventExpression* is_post_event() override {return this;}
+    /// hard code the kind
+    procedureKind kind() {return procedureKind::post_event;}
+
+    void accept(Visitor *v) override;
 };
 
 class FunctionExpression : public Symbol {

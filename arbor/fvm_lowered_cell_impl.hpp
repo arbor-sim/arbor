@@ -291,8 +291,15 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         PE(advance_integrate_threshold);
         threshold_watcher_.test();
-        memory::copy(state_->time_to, state_->time);
         PL();
+
+        PE(advance_integrate_post)
+        for (auto& m: mechanisms_) {
+            m->post_events();
+        }
+        PL();
+
+        memory::copy(state_->time_to, state_->time);
 
         // Check for non-physical solutions:
 

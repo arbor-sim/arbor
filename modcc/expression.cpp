@@ -31,6 +31,8 @@ inline std::string to_string(procedureKind k) {
             return "initial";
         case procedureKind::net_receive :
             return "net_receive";
+        case procedureKind::post_event :
+            return "post_event";
         case procedureKind::breakpoint  :
             return "breakpoint";
         case procedureKind::derivative  :
@@ -716,6 +718,43 @@ void NetReceiveExpression::semantic(scope_type::symbol_map &global_symbols) {
 }
 
 /*******************************************************************************
+  PostEventExpression
+*******************************************************************************/
+
+void PostEventExpression::semantic(scope_type::symbol_map &global_symbols) {
+    // assert that the symbol is already visible in the global_symbols
+    if(global_symbols.find(name()) == global_symbols.end()) {
+        throw compiler_exception(
+                "attempt to perform semantic analysis for procedure '"
+                + yellow(name())
+                + "' which has not been added to global symbol table",
+                location_);
+    }
+
+    // create the scope for this procedure
+    scope_ = std::make_shared<scope_type>(global_symbols);
+    error_ = false;
+
+    // add the argumemts to the list of local variables
+    for(auto& a : args_) {
+        a->semantic(scope_);
+        if(a->has_error()) {
+            error(a->error_message());
+        }
+    }
+
+    // perform semantic analysis for each expression in the body
+    body_->semantic(scope_);
+    if(body_->has_error()) {
+        error(body_->error_message());
+    }
+
+    // the symbol for this expression is itself
+    // this could lead to nasty self-referencing loops
+    symbol_ = scope_->find_global(name());
+}
+
+/*******************************************************************************
   FunctionExpression
 *******************************************************************************/
 
@@ -1103,6 +1142,9 @@ void ProcedureExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void NetReceiveExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void PostEventExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void APIMethod::accept(Visitor *v) {

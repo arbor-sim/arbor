@@ -502,6 +502,15 @@ bool Module::semantic() {
         return false;
     }
 
+    if (has_symbol("post_event", symbolKind::procedure)) {
+        auto post_ev_api = make_empty_api_method("post_ev_api", "post_event");
+        if (post_ev_api.second) {
+            for (auto& s: post_ev_api.second->body()->statements()) {
+                std::cout << s->to_string() << std::endl;
+            }
+        }
+    }
+
     if (has_symbol("net_receive", symbolKind::procedure)) {
         auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");
         if (net_rec_api.second) {

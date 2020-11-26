@@ -96,8 +96,6 @@ public:
 
                     time_since_spike_[src_to_spike_[i]] = t_after_[intdom] - crossing_time;
 
-                    std::cout << "tbefore = " << t_before_[intdom] << " tafter = " <<  t_after_[intdom] << std::endl;
-                    std::cout << "crossing at {" << i << ", " << crossing_time << "}" << std::endl;
                     std::cout << "spike at    {" << src_to_spike_[i] << ", " << std::fabs(t_after_[intdom] - crossing_time) << "}" << std::endl;
 
                     is_crossed_[i] = true;
