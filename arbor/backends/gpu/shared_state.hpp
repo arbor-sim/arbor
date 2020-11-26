@@ -85,7 +85,6 @@ struct shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
-
     std::unordered_map<std::string, ion_state> ion_data;
 
     deliverable_event_stream deliverable_events;
