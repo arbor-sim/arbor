@@ -55,6 +55,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     auto ns_components = namespace_components(opt.cpp_namespace);
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
+    PostEventExpression*  post_event  = find_post_event(module_);
 
     auto vars = local_module_variables(module_);
     auto ion_deps = module_.ion_deps();
@@ -85,6 +86,10 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "void " << class_name << "_deliver_events_(int mech_id, "
         << ppack_name << "&, deliverable_event_stream_state events);\n";
 
+    post_event && out <<
+        "void " << class_name << "_post_events_(" << ppack_name << "&);\n";
+
+
     out <<
         "\n"
         "class " << class_name << ": public ::arb::gpu::mechanism {\n"
@@ -113,6 +118,11 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     net_receive && out <<
         "void deliver_events(deliverable_event_stream_state events) override {\n" << indent <<
         class_name << "_deliver_events_(mechanism_id_, pp_, events);\n" << popindent <<
+        "}\n\n";
+
+    post_event && out <<
+        "void post_events() override {\n" << indent <<
+        class_name << "_post_events_(pp_);\n" << popindent <<
         "}\n\n";
 
     out << popindent <<
@@ -215,6 +225,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     const bool is_point_proc = module_.kind() == moduleKind::point;
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
+    PostEventExpression*  post_event =  find_post_event(module_);
     APIMethod* init_api = find_api_method(module_, "nrn_init");
     APIMethod* state_api = find_api_method(module_, "nrn_state");
     APIMethod* current_api = find_api_method(module_, "nrn_current");
@@ -313,6 +324,27 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << popindent << "}\n";
     }
 
+    // event delivery
+    if (post_event) {
+        std::string time_arg = post_event->args().front()->is_argument()->name();
+        out << "__global__\n"
+            << "void post_events(" <<  ppack_name << " params_) {\n" << indent
+            << "int n_ = params_.width_;\n"
+            << "auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
+            << "if (tid_<n_) {\n" << indent
+            << "auto node_index_i_ = params_.node_index_[tid_];\n"
+            << "auto cid = params_.vec_ci_[node_index_i_];\n"
+            << "auto start = params_.n_detectors_ * cid;\n"
+            << "for (unsigned c = 0; c < params_.n_detectors_; c++) {\n" << indent
+            << "auto " << time_arg << " = params_.time_since_spike_[start + c];\n"
+            << "if (" <<  time_arg << " > 0) {\n" << indent
+            << cuprint(post_event->body())
+            << popindent << "}\n"
+            << popindent << "}\n"
+            << popindent << "}\n"
+            << popindent << "}\n";
+    }
+
     out << "} // namspace\n\n"; // close anonymous namespace
 
     // Write wrappers.
@@ -343,6 +375,15 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         << "unsigned block_dim = 128;\n"
         << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
         << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
+        << popindent << "}\n\n";
+
+    post_event && out
+        << "void " << class_name << "_post_events_("
+        << ppack_name << "& p) {\n" << indent
+        << "auto n = p.width_;\n"
+        << "unsigned block_dim = 128;\n"
+        << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
+        << "post_events<<<grid_dim, block_dim>>>(p);\n"
         << popindent << "}\n\n";
 
     out << namespace_declaration_close(ns_components);
