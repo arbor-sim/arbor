@@ -255,6 +255,9 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "void deliver_events(deliverable_event_stream::state events) override;\n"
         "void net_receive(int i_, value_type weight);\n";
 
+    post_event && out <<
+        "void post_events() override;\n";
+
     with_simd && out << "unsigned simd_width() const override { return simd_width_; }\n";
 
     out <<
@@ -386,10 +389,24 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         cprint(net_receive->body()) << popindent <<
         "}\n\n";
 
-    post_event && out <<
-        "void " << class_name << "::post_events(value_type time) {\n" << indent <<
-        cprint(post_event->body()) << popindent <<
-        "}\n\n";
+    if(post_event) {
+        std::string time_arg = post_event->args().front()->is_argument()->name();
+        out <<
+            "void " << class_name << "::post_events() {\n" << indent <<
+            "int n_ = width_;\n"
+            "for (int i_ = 0; i_ < n_; ++i_) {\n" << indent <<
+            "auto node_index_i_ = node_index_[i_];\n"
+            "auto cid = vec_ci_[node_index_i_];\n"
+            "auto start = n_detectors_ * cid;\n"
+            "for (unsigned c = 0; c < n_detectors_; c++) {\n" << indent <<
+            "auto " << time_arg << " = time_since_spike_[start + c];\n"
+            "if (" <<  time_arg << " > 0) {\n" << indent <<
+            cprint(post_event->body()) << popindent <<
+            "}\n" << popindent <<
+            "}\n" << popindent <<
+            "}\n" << popindent <<
+            "}\n\n";
+    }
 
     auto emit_body = [&](APIMethod *p) {
         if (with_simd) {
