@@ -89,8 +89,6 @@ protected:
     const value_type* time_since_spike_; // Vector containing time since last spike, indexed by cell index and n_detectors_
     deliverable_event_stream* event_stream_ptr_;
 
-
-
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;

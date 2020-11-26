@@ -49,12 +49,15 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     }
     array time_before(2, 0.);
     array time_after(2, 0.);
+    iarray src_to_spike(3, 0);
+    array time_since_spike(1, 0.);
 
     // list for storing expected crossings for validation at the end
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(cell_index.data(), time_before.data(), time_after.data(), values.data(), index, thresh, context);
+    backend::threshold_watcher watch(cell_index.data(), time_before.data(), time_after.data(), values.data(),
+                                     src_to_spike.data(), &time_since_spike, index, thresh, context);
 
     // initially the first and third watch should not be spiking
     //           the second is spiking

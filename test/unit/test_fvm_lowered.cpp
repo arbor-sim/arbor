@@ -600,6 +600,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     std::vector<fvm_value_type> diam(ncv, 1.);
     std::vector<fvm_value_type> vinit(ncv, -65);
     std::vector<fvm_gap_junction> gj = {};
+    std::vector<fvm_index_type> src_to_spike = {};
 
     fvm_ion_config ion_config;
     mechanism_layout layout;
@@ -623,7 +624,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto& write_cai_mech = write_cai.mech;
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, cv_to_intdom, gj, vinit, temp, diam, read_cai_mech->data_alignment());
+            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, read_cai_mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
 
     read_cai_mech->instantiate(0, *shared_state, overrides, layout);
