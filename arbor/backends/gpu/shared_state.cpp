@@ -90,17 +90,24 @@ void ion_state::reset() {
 
 shared_state::shared_state(
     fvm_size_type n_intdom,
+    fvm_size_type n_cell,
+    fvm_size_type n_detector,
     const std::vector<fvm_index_type>& cv_to_intdom_vec,
+    const std::vector<fvm_index_type>& cv_to_cell_vec,
     const std::vector<fvm_gap_junction>& gj_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
     const std::vector<fvm_value_type>& diam,
+    const std::vector<fvm_index_type>& src_to_spike,
     unsigned // alignment parameter ignored.
 ):
     n_intdom(n_intdom),
+    n_detector(n_detector),
+    n_cell(n_cell),
     n_cv(cv_to_intdom_vec.size()),
     n_gj(gj_vec.size()),
     cv_to_intdom(make_const_view(cv_to_intdom_vec)),
+    cv_to_cell(make_const_view(cv_to_cell_vec)),
     gap_junctions(make_const_view(gj_vec)),
     time(n_intdom),
     time_to(n_intdom),
@@ -112,6 +119,8 @@ shared_state::shared_state(
     init_voltage(make_const_view(init_membrane_potential)),
     temperature_degC(make_const_view(temperature_K)),
     diam_um(make_const_view(diam)),
+    time_since_spike(n_cell*n_detector),
+    src_to_spike(make_const_view(src_to_spike)),
     deliverable_events(n_intdom)
 {
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);

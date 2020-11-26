@@ -149,7 +149,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // The tail comprises those elements between width_ and width_padded_:
     //
     // * For entries in the padded tail of weight_, set weight to zero.
-    // * For indices in the padded tail of node_i`n`dex_, set index to last valid CV index.
+    // * For indices in the padded tail of node_index_, set index to last valid CV index.
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
     node_index_ = iarray(width_padded_, pad);

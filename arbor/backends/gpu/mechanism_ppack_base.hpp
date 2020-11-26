@@ -29,7 +29,9 @@ struct mechanism_ppack_base {
     using ion_state_view = ::arb::gpu::ion_state_view;
 
     index_type width_;
+    index_type n_detectors_;
 
+    const index_type* vec_ci_;
     const index_type* vec_di_;
     const value_type* vec_t_;
     const value_type* vec_t_to_;
@@ -39,6 +41,7 @@ struct mechanism_ppack_base {
     value_type* vec_g_;
     const value_type* temperature_degC_;
     const value_type* diam_um_;
+    const value_type* time_since_spike_;
 
     const index_type* node_index_;
     const index_type* multiplicity_;

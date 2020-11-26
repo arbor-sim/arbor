@@ -22,7 +22,7 @@ namespace gpu {
 void test_thresholds_impl(
     int size,
     const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
-    stack_storage<threshold_crossing>& stack,
+    const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
 
@@ -47,6 +47,8 @@ public:
         const fvm_value_type* t_before,
         const fvm_value_type* t_after,
         const fvm_value_type* values,
+        const fvm_index_type* src_to_spike,
+        array* time_since_spike,
         const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& ctx
@@ -65,6 +67,12 @@ public:
     {
         crossings_.reserve(stack_.capacity());
         reset();
+    }
+
+    /// Reset all spike times to -1.0 indicating no spike has been recorded
+    // on the detector
+    void clear_spikes() {
+        memory::fill(*time_since_spike_, -1.0);
     }
 
     /// Remove all stored crossings that were detected in previous calls to test()
@@ -105,10 +113,12 @@ public:
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test() {
+        clear_spikes();
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
                 cv_to_intdom_, t_after_, t_before_,
+                src_to_spike_, time_since_spike_->data(),
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
                 cv_index_.data(), values_, thresholds_.data());
@@ -130,6 +140,8 @@ private:
     const fvm_value_type* t_before_ = nullptr;
     const fvm_value_type* t_after_ = nullptr;
     const fvm_value_type* values_ = nullptr;
+    const fvm_index_type* src_to_spike_ = nullptr;
+    array* time_since_spike_ = nullptr;
 
     // Threshold watch state, with data on gpu:
     iarray cv_index_;           // Compartment indexes of values to watch.

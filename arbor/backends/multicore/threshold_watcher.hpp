@@ -23,9 +23,7 @@ public:
         const fvm_value_type* t_after,
         const fvm_value_type* values,
         const fvm_index_type* src_to_spike,
-        fvm_value_type* time_since_spike,
-        const fvm_size_type ncells,
-        const fvm_size_type ndetectors,
+        array* time_since_spike,
         const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& context
@@ -36,8 +34,6 @@ public:
         values_(values),
         src_to_spike_(src_to_spike),
         time_since_spike_(time_since_spike),
-        ncells_(ncells),
-        ndetectors_(ndetectors),
         n_cv_(cv_index.size()),
         cv_index_(cv_index),
         is_crossed_(n_cv_),
@@ -57,7 +53,7 @@ public:
     /// Reset all spike times to -1.0 indicating no spike has been recorded
     // on the detector
     void clear_spikes() {
-        std::fill(time_since_spike_, time_since_spike_+(ncells_*ndetectors_), -1.0);
+        std::fill(time_since_spike_->begin(), time_since_spike_->end(), -1.0);
     }
 
     /// Reset state machine for each detector.
@@ -94,7 +90,7 @@ public:
                     auto crossing_time = math::lerp(t_before_[intdom], t_after_[intdom], pos);
                     crossings_.push_back({i, crossing_time});
 
-                    time_since_spike_[src_to_spike_[i]] = t_after_[intdom] - crossing_time;
+                    (*time_since_spike_)[src_to_spike_[i]] = t_after_[intdom] - crossing_time;
 
                     std::cout << "spike at    {" << src_to_spike_[i] << ", " << std::fabs(t_after_[intdom] - crossing_time) << "}" << std::endl;
 
@@ -128,11 +124,9 @@ private:
     const fvm_value_type* t_after_ = nullptr;
     const fvm_value_type* values_ = nullptr;
     const fvm_index_type* src_to_spike_ = nullptr;
-    fvm_value_type* time_since_spike_ = nullptr;
+    array* time_since_spike_ = nullptr;
 
     /// Threshold watcher state.
-    fvm_size_type ncells_ = 0;
-    fvm_size_type ndetectors_ = 0;
     fvm_size_type n_cv_ = 0;
     std::vector<fvm_index_type> cv_index_;
     std::vector<fvm_size_type> is_crossed_;
