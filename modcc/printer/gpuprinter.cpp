@@ -293,7 +293,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     // event delivery
     if (net_receive) {
-        std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
+        const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
         out << "__global__\n"
             << "void deliver_events(int mech_id_, " <<  ppack_name << " params_, "
             << "deliverable_event_stream_state events) {\n" << indent

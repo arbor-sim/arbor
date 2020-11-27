@@ -370,7 +370,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     // Nrn methods:
 
     if (net_receive) {
-        std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
+        const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
         out <<
             "void " << class_name << "::deliver_events(deliverable_event_stream::state events) {\n" << indent <<
             "auto ncell = events.n_streams();\n"
