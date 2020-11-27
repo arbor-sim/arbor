@@ -46,7 +46,7 @@ Cable cells
         by default everywhere on the cell. Species concentrations and reversal
         potential can be overridden on specific regions using the paint interface,
         while the method for calculating reversal potential is global for all
-        compartments in the cell, and can't be overriden locally.
+        CVs in the cell, and can't be overriden locally.
 
         :param str ion: description of the ion species.
         :param float int_con: initial internal concentration [mM].
@@ -93,6 +93,7 @@ Cable cells
             decor.paint('(tag 2)', cm=0.05, rL=80)
 
     .. method:: paint(region, name, int_con=None, ext_con=None, rev_pot=None)
+        :noindex:
 
         Set ion species properties initial conditions on a region.
 
@@ -105,6 +106,7 @@ Cable cells
         :type rev_pot: float or None
 
     .. method:: paint(region, mechanism)
+        :noindex:
 
         Apply a mechanism with a region.
 
@@ -113,6 +115,7 @@ Cable cells
         :type mechanism: :py:class:`mechanism`
 
     .. method:: paint(region, mech_name)
+        :noindex:
 
         Apply a mechanism with a region using the name of the mechanism.
         The mechanism will use the parameter values set in the mechanism catalogue.
@@ -128,34 +131,44 @@ Cable cells
         :param str mechanism: the name of the mechanism.
 
     .. method:: place(locations, mechanism)
+        :noindex:
 
         Place one instance of synapse described by ``mechanism`` to each location in ``locations``.
 
-        :param str region: description of the region.
+        :param str locations: description of the locset.
         :param mechanism: the mechanism.
         :type mechanism: :py:class:`mechanism`
 
-    .. method:: place(locations, const arb::gap_junction_site& site)
+    .. method:: place(locations, site)
+        :noindex:
 
-        Place one gap junction site at each location in ``locations``.
+        Place one gap junction site at each location at each location in ``locations``.
 
-        "locations"_a, "gapjunction"_a,
+        :param str locations: description of the locset.
+        :param site: indicates a gap junction site..
+        :type site: :py:class:`gap_junction_site`
 
-    .. method:: place(locations, const arb::i_clamp& stim)
+    .. method:: place(locations, stim)
+        :noindex:
 
-        Add a current stimulus at each location in ``locations``.
+        Add a current stimulus at each location at each location in ``locations``.
 
-        "locations"_a, "iclamp"_a,
+        :param str locations: description of the locset.
+        :param stim: the current stim.
+        :type stim: :py:class:`i_clamp`
 
-    .. method:: place(locations, const arb::threshold_detector& d)
+    .. method:: place(locations, d)
+        :noindex:
 
-        Add a voltage spike detector at each location in locations.
+        Add a voltage spike detector at each location in ``locations``.
 
-        "locations"_a, "detector"_a,
+        :param str locations: description of the locset.
+        :param d: description of the detector.
+        :type d: :py:class:`threshold_detector`
 
     .. method:: discretization(policy)
 
-        Set the cv_policy used to discretise the cell into compartments for simulation.
+        Set the cv_policy used to discretise the cell into control volumes for simulation.
 
         :param policy: The cv_policy.
         :type policy: :py:class:`cv_policy`
@@ -348,3 +361,79 @@ Ionic external concentration
 
    Metadata: the list of corresponding :class:`cable` objects.
 
+
+.. _pycable-cv-policies:
+
+Discretisation and CV policies
+------------------------------
+
+The set of boundary points used by the simulator is determined by a
+:ref:`CV policy <cablecell-cv-policies>`. These are objects of type
+:cpp:class:`cv_policy`, which has the following public methods:
+
+.. py:class:: cv_policy
+
+   .. property:: domain
+
+       A string expression describing the subset of a cell morphology (region) on which
+       this policy has been declared.
+
+   CV policies can be :ref:`composed <cablecell-cv-composition>` with
+   ``+`` and ``|`` operators.
+
+   .. code-block:: Python
+
+       # The plus operator applies 
+       policy = arbor.cv_policy_single('"soma"') + cv_policy('"dend"')
+
+       # The | operator uses CVs of length 10 μm everywhere, except
+       # on the soma, to which a single CV policy is applied.
+       policy = arbor.cv_policy_max_extent(10) | cv_policy_single('"soma"')
+
+Specific CV policy objects are created by functions described below.
+These all take a ``region`` parameter that restrict the
+domain of applicability of that policy; this facility is useful for specifying
+differing discretisations on different parts of a cell morphology. When a CV
+policy is constrained in this manner, the boundary of the domain will always
+constitute part of the CV boundary point set.
+
+.. py:function:: cv_policy_single(domain='(all)')
+
+    Use one CV for the whole cell, or one for each connected component of the
+    supplied domain.
+
+    .. code-block:: Python
+
+        # Use one CV for the entire cell (a single compartment model)
+        single_comp = arbor.cv_policy_single()
+
+        # Use a single CV for the soma.
+        single_comp_soma = arbor.cv_policy_single('"soma"')
+
+    :param str domain: The region on which the policy is applied.
+
+.. py:function:: cv_policy_every_segment(domain='(all)')
+
+    Use every sample point in the morphology definition as a CV boundary, optionally
+    restricted to the supplied domain. Each fork point in the domain is
+    represented by a trivial CV.
+
+    :param str domain: The region on which the policy is applied.
+
+.. py:function:: cv_policy_fixed_per_branch(cv_per_branch, domain='(all)')
+
+    For each branch in each connected component of the domain (or the whole cell,
+    if no domain is given), evenly distribute boundary points along the branch so
+    as to produce exactly ``cv_per_branch`` CVs.
+
+    :param int cv_per_branch: The number of CVs per branch.
+    :param str domain: The region on which the policy is applied.
+
+.. py:function:: cv_policy_max_extent(max_extent, domain='(all)')
+
+    As for :py:function:`cv_policy_fixed_per_branch`, save that the number of CVs on any
+    given branch will be chosen to be the smallest number that ensures no
+    CV will have an extent on the branch longer than ``max_extent`` micrometres.
+
+    :param float max_etent: The maximum length for generated CVs.
+    :param str domain: The region on which the policy is applied.

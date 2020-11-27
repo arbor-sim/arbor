@@ -203,11 +203,12 @@ std::string to_string(const global_props_shim& G) {
 // cv_policy helpers
 //
 
-//   cv_policy_single:
-//   cv_policy_fixed_per_branch:
-//   cv_policy_max_extent:
 arb::cv_policy make_cv_policy_single(const std::string& reg) {
     return arb::cv_policy_single(reg);
+}
+
+arb::cv_policy make_cv_policy_every_segment(const std::string& reg) {
+    return arb::cv_policy_every_segment(reg);
 }
 
 arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std::string& reg) {
@@ -378,7 +379,12 @@ void register_cells(pybind11::module& m) {
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to create one compartment per component of a region.");
 
-    m.def("cv_policy_max_length",
+    m.def("cv_policy_every_segment",
+          &make_cv_policy_every_segment,
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to create one compartment per component of a region.");
+
+    m.def("cv_policy_max_extent",
           &make_cv_policy_max_extent,
           "length"_a, "the maximum CV length",
           "domain"_a="(all)", "the domain to which the policy is to be applied",

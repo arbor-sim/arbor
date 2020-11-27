@@ -57,8 +57,9 @@ decor.place('"stim_site"', arbor.iclamp(8, 1, current=4))
 decor.place('"axon_end"', arbor.spike_detector(-10))
 
 # Create the policy used to discretise the cell into CVs.
+# Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
 soma_policy = arbor.cv_policy_single('"soma"')
-dflt_policy = arbor.cv_policy_max_length(1.0)
+dflt_policy = arbor.cv_policy_max_extent(1.0)
 policy = dflt_policy | soma_policy
 decor.discretization(policy)
 
