@@ -17,10 +17,10 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
 
    recipe
    cell
-   cable_cell
    interconnectivity
    hardware
    domdec
    simulation
    profiler
    neuroml
+   cable_cell
