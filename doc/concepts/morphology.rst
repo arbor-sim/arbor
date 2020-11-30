@@ -504,10 +504,9 @@ interpret SWC files similarly to how the NEURON simulator would, and how the All
 
 Despite the differences between the interpretations, there is a common set of checks that are always performed
 to validate an SWC file:
-
-* Check that there are no duplicate ids.
-* Check that the parent id of a sample is less than the id of the sample.
-* Check that the parent id of a sample refers to an existing sample.
+   * Check that there are no duplicate ids.
+   * Check that the parent id of a sample is less than the id of the sample.
+   * Check that the parent id of a sample refers to an existing sample.
 
 In addition, all interpretations agree that a *segment* is (in the common case) constructed between a sample and
 its parent and inherits the tag of the sample; and if more than 1 sample have the same parent, the parent sample
@@ -563,20 +562,19 @@ NEURON interpretation:
 The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function. We came up with the
 following set of rules that govern NEURON's SWC behavior and enforced them in arbor's NEURON-complaint SWC
 interpreter:
-
-* SWC files must contain a soma sample and it must to be the first sample.
-* A soma is represented by a series of n≥1 unbranched, serially listed samples.
-* A soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
-  segments forming the soma.
-* A single-sample soma at is constructed as a cylinder with length=diameter.
-* If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
-  as the parent.
-* Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
-* If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
-  instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
-  electrically as a zero-resistance wire)
-* To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
-  tag.
+   * SWC files must contain a soma sample and it must to be the first sample.
+   * A soma is represented by a series of n≥1 unbranched, serially listed samples.
+   * A soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
+     segments forming the soma.
+   * A single-sample soma at is constructed as a cylinder with length=diameter.
+   * If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
+     as the parent.
+   * Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
+   * If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
+     instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
+     electrically as a zero-resistance wire)
+   * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
+     tag.
 
 API
 ---

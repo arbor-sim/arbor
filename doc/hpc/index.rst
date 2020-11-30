@@ -1,4 +1,4 @@
-.. _hpcoverview:
+.. _hpc-overview:
 
 HPC
 ===

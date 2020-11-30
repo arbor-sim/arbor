@@ -1,4 +1,4 @@
-.. _intoverview:
+.. _internals-overview:
 
 Internals
 =========
