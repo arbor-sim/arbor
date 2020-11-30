@@ -84,8 +84,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // Assign non-owning views onto shared state:
 
     vec_ci_   = shared.cv_to_intdom.data();
-    vec_t_    = shared.time.data();
-    vec_t_to_ = shared.time_to.data();
     vec_dt_   = shared.dt_cv.data();
 
     vec_v_    = shared.voltage.data();
@@ -113,6 +111,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         ion_view.ionic_charge = oion->charge.data();
     }
 
+    vec_t_ptr_        = &shared.time;
+    vec_t_to_ptr_     = &shared.time_to;
     event_stream_ptr_ = &shared.deliverable_events;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -198,6 +198,7 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 }
 
 void mechanism::initialize() {
+    vec_t_ = vec_t_ptr_->data();
     nrn_init();
 
     auto states = state_table();
