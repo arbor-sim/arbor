@@ -52,7 +52,7 @@ This research has received funding from th  European Unions Horizon 2020 Framewo
 Innovation under the Specific Grant Agreement No. 720270 (Human Brain Project SGA1), and Specific Grant Agreement
 No. 785907 (Human Brain Project SGA2).
 
-The Arbor simulator is an [eBrains project](https://ebrains.eu/service/arbor/).
+Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
 
 .. toctree::
    :caption: Arbor documentation:
