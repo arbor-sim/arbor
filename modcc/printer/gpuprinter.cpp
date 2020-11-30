@@ -326,7 +326,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     // event delivery
     if (post_event) {
-        std::string time_arg = post_event->args().front()->is_argument()->name();
+        const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
         out << "__global__\n"
             << "void post_events(" <<  ppack_name << " params_) {\n" << indent
             << "int n_ = params_.width_;\n"

@@ -390,7 +390,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "}\n\n";
 
     if(post_event) {
-        std::string time_arg = post_event->args().front()->is_argument()->name();
+        const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
         out <<
             "void " << class_name << "::post_events() {\n" << indent <<
             "int n_ = width_;\n"
