@@ -41,3 +41,12 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
    cpp/index
    hpc/index
    internals/index
+
+.. toctree::
+   :caption: Contributing:
+   :maxdepth: 1
+
+   contrib/index
+   contrib/pr
+   contrib/coding-style
+   contrib/doc
