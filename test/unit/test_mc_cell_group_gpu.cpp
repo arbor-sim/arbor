@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
+#include <arbor/string_literals.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include "epoch.hpp"
@@ -12,6 +13,7 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
+using namespace arb::literals;
 
 namespace {
     fvm_lowered_cell_ptr lowered_cell() {
@@ -21,21 +23,22 @@ namespace {
         return make_fvm_lowered_cell(backend_kind::gpu, context);
     }
 
-    cable_cell make_cell() {
+    cable_cell_description make_cell() {
         soma_cell_builder builder(12.6157/2.0);
         builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
-        cable_cell c = builder.make_cell();
-        c.paint("\"soma\"", "hh");
-        c.paint("\"dend\"", "pas");
-        c.place(builder.location({1, 1}), i_clamp{5, 80, 0.3});
-        c.place(builder.location({0, 0}), threshold_detector{0});
-        return c;
+        auto d = builder.make_cell();
+        d.decorations.paint("soma"_lab, "hh");
+        d.decorations.paint("dend"_lab, "pas");
+        d.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
+        d.decorations.place(builder.location({0, 0}), threshold_detector{0});
+        return d;
     }
 }
 
 TEST(mc_cell_group, gpu_test)
 {
-    auto rec = cable1d_recipe(make_cell());
+    cable_cell cell = make_cell();
+    auto rec = cable1d_recipe({cell});
     rec.nernst_ion("na");
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
