@@ -69,6 +69,8 @@ struct mechanism_info {
     mechanism_fingerprint fingerprint;
 
     bool linear = false;
+
+    bool stdp_enabled = false;
 };
 
 } // namespace arb

@@ -751,6 +751,8 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     }
 
     left.n_target += right.n_target;
+    left.stdp_enabled |= right.stdp_enabled;
+
     append_divs(left.target_divs, right.target_divs);
     arb_assert(left.n_target==left.target_divs.back());
 
@@ -945,10 +947,13 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     std::vector<synapse_instance> inst_list;
     std::vector<size_type> cv_order;
 
+    bool stdp_enabled = false;
+
     for (const auto& entry: cell.synapses()) {
         const std::string& name = entry.first;
         mechanism_info info = catalogue[name];
 
+        stdp_enabled |= info.stdp_enabled;
         std::size_t n_param = info.parameters.size();
         std::size_t n_inst = entry.second.size();
 
@@ -1065,6 +1070,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         M.n_target += config.target.size();
         M.mechanisms[name] = std::move(config);
     }
+    M.stdp_enabled = stdp_enabled;
 
     // Stimuli:
 

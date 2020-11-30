@@ -38,7 +38,8 @@ public:
         cv_index_(cv_index),
         is_crossed_(n_cv_),
         thresholds_(thresholds),
-        v_prev_(values_, values_+n_cv_)
+        v_prev_(values_, values_+n_cv_),
+        record_time_since_spike_(!time_since_spike_->empty())
     {
         arb_assert(n_cv_==thresholds.size());
         reset();
@@ -90,7 +91,9 @@ public:
                     auto crossing_time = math::lerp(t_before_[intdom], t_after_[intdom], pos);
                     crossings_.push_back({i, crossing_time});
 
-                    (*time_since_spike_)[src_to_spike_[i]] = t_after_[intdom] - crossing_time;
+                    if (record_time_since_spike_) {
+                        (*time_since_spike_)[src_to_spike_[i]] = t_after_[intdom] - crossing_time;
+                    }
 
                     is_crossed_[i] = true;
                 }
@@ -131,6 +134,7 @@ private:
     std::vector<fvm_value_type> thresholds_;
     std::vector<fvm_value_type> v_prev_;
     std::vector<threshold_crossing> crossings_;
+    bool record_time_since_spike_;
 };
 
 } // namespace multicore

@@ -104,6 +104,7 @@ public:
     };
 
     bool is_linear() const { return linear_; }
+    bool is_stdp() const { return stdp_enabled_; }
 
 private:
     moduleKind kind_;
@@ -118,6 +119,7 @@ private:
     ParameterBlock parameter_block_;
     AssignedBlock assigned_block_;
     bool linear_;
+    bool stdp_enabled_;
 
     // AST storage.
     std::vector<symbol_ptr> callables_;

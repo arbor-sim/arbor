@@ -130,7 +130,8 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
     out << popindent << "\n"
         "},\n"
         "// fingerprint\n" << quote(fingerprint) << ",\n"
-        "// linear, homogeneous mechanism\n" << m.is_linear() << "\n"
+        "// linear, homogeneous mechanism\n" << m.is_linear() << ",\n"
+        "// stdp enabled mechanism\n" << m.is_stdp() << "\n"
         << popindent <<
         "};\n"
         "\n"

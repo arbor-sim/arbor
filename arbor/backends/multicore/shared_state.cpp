@@ -110,7 +110,7 @@ shared_state::shared_state(
     n_cv(cv_to_intdom_vec.size()),
     n_gj(gj_vec.size()),
     cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
-    cv_to_cell(math::round_up(n_cv, alignment), pad(alignment)),
+    cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
     gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
     time(n_intdom, pad(alignment)),
     time_to(n_intdom, pad(alignment)),
@@ -130,7 +130,8 @@ shared_state::shared_state(
     if (n_cv>0) {
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
         std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
-
+    }
+    if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
     }

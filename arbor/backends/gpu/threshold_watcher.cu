@@ -40,7 +40,8 @@ void test_thresholds_impl(
     fvm_value_type* __restrict__ const prev_values,
     const fvm_index_type* __restrict__ const cv_index,
     const fvm_value_type* __restrict__ const values,
-    const fvm_value_type* __restrict__ const thresholds)
+    const fvm_value_type* __restrict__ const thresholds,
+    const bool record_time_since_spike)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -61,7 +62,10 @@ void test_thresholds_impl(
                 // linear interpolation
                 auto pos = (thresh - v_prev)/(v - v_prev);
                 crossing_time = lerp(t_before[intdom], t_after[intdom], pos);
-                time_since_spike[src_to_spike[i]] = t_after[intdom] - crossing_time;
+
+                if(record_time_since_spike) {
+                    time_since_spike[src_to_spike[i]] = t_after[intdom] - crossing_time;
+                }
 
                 is_crossed[i] = 1;
                 crossed = true;
@@ -100,14 +104,15 @@ void test_thresholds_impl(
     const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
     const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
+    const bool record_time_since_spike)
 {
     if (size>0) {
         constexpr int block_dim = 128;
         const int grid_dim = impl::block_count(size, block_dim);
         kernel::test_thresholds_impl<<<grid_dim, block_dim>>>(
             size, cv_to_intdom, t_after, t_before, src_to_spike, time_since_spike,
-            stack, is_crossed, prev_values, cv_index, values, thresholds);
+            stack, is_crossed, prev_values, cv_index, values, thresholds, record_time_since_spike);
     }
 }
 

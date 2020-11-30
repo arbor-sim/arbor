@@ -419,16 +419,6 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-    auto max_detector = util::max_value(nsources);
-    std::vector<fvm_index_type> src_to_spike;
-
-    for (auto cell_idx: make_span(ncell)) {
-        for (auto lid: make_span(nsources[cell_idx])) {
-            src_to_spike.push_back(cell_idx*max_detector + lid);
-        }
-    }
-    src_to_spike.shrink_to_fit();
-
     const mechanism_catalogue* catalogue = global_props.catalogue;
 
     // Mechanism instantiator helper.
@@ -464,6 +454,21 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
+    // Fill src_to_spike and cv_to_cell vectors only if stdp-enabled mechanisms are present.
+
+    auto max_detector = mech_data.stdp_enabled ? util::max_value(nsources) : 0;
+    std::vector<fvm_index_type> src_to_spike, cv_to_cell;
+
+    if (mech_data.stdp_enabled) {
+        for (auto cell_idx: make_span(ncell)) {
+            for (auto lid: make_span(nsources[cell_idx])) {
+                src_to_spike.push_back(cell_idx * max_detector + lid);
+            }
+        }
+        src_to_spike.shrink_to_fit();
+        cv_to_cell = D.geometry.cv_to_cell;
+    }
+
     // Create shared cell state.
     // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)
 
@@ -472,7 +477,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     state_ = std::make_unique<shared_state>(
-                nintdom, ncell, max_detector, cv_to_intdom, D.geometry.cv_to_cell, gj_vector,
+                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell), gj_vector,
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
