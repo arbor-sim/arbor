@@ -369,21 +369,24 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     // Nrn methods:
 
-    net_receive && out <<
-        "void " << class_name << "::deliver_events(deliverable_event_stream::state events) {\n" << indent <<
-        "auto ncell = events.n_streams();\n"
-        "for (size_type c = 0; c<ncell; ++c) {\n" << indent <<
-        "auto begin = events.begin_marked(c);\n"
-        "auto end = events.end_marked(c);\n"
-        "for (auto p = begin; p<end; ++p) {\n" << indent <<
-        "if (p->mech_id==mechanism_id_) net_receive(p->mech_index, p->weight);\n" << popindent <<
-        "}\n" << popindent <<
-        "}\n" << popindent <<
-        "}\n"
-        "\n"
-        "void " << class_name << "::net_receive(int i_, value_type weight) {\n" << indent <<
-        cprint(net_receive->body()) << popindent <<
-        "}\n\n";
+    if (net_receive) {
+        const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
+        out <<
+            "void " << class_name << "::deliver_events(deliverable_event_stream::state events) {\n" << indent <<
+            "auto ncell = events.n_streams();\n"
+            "for (size_type c = 0; c<ncell; ++c) {\n" << indent <<
+            "auto begin = events.begin_marked(c);\n"
+            "auto end = events.end_marked(c);\n"
+            "for (auto p = begin; p<end; ++p) {\n" << indent <<
+            "if (p->mech_id==mechanism_id_) net_receive(p->mech_index, p->weight);\n" << popindent <<
+            "}\n" << popindent <<
+            "}\n" << popindent <<
+            "}\n"
+            "\n"
+            "void " << class_name << "::net_receive(int i_, value_type " << weight_arg << ") {\n" << indent <<
+            cprint(net_receive->body()) << popindent <<
+            "}\n\n";
+    }
 
     auto emit_body = [&](APIMethod *p) {
         if (with_simd) {

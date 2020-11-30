@@ -85,8 +85,6 @@ void mechanism::instantiate(unsigned id,
     pp->width_ = width_;
 
     pp->vec_ci_   = shared.cv_to_intdom.data();
-    pp->vec_t_    = shared.time.data();
-    pp->vec_t_to_ = shared.time_to.data();
     pp->vec_dt_   = shared.dt_cv.data();
 
     pp->vec_v_    = shared.voltage.data();
@@ -116,6 +114,8 @@ void mechanism::instantiate(unsigned id,
     }
 
     event_stream_ptr_ = &shared.deliverable_events;
+    vec_t_ptr_    = &shared.time;
+    vec_t_to_ptr_ = &shared.time_to;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width_==0) {
@@ -208,8 +208,10 @@ fvm_value_type* mechanism::field_data(const std::string& field_var) {
 void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 
 void mechanism::initialize() {
-    nrn_init();
     mechanism_ppack_base* pp = ppack_ptr();
+    pp->vec_t_ = vec_t_ptr_->data();
+
+    nrn_init();
     auto states = state_table();
 
     if(mult_in_place_) {

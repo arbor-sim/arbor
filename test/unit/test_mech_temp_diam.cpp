@@ -58,7 +58,7 @@ void run_celsius_test() {
 
     // expect temperature_C value in state 'c' after state update:
 
-    celsius_test->nrn_state();
+    celsius_test->update_state();
     expected_c_values.assign(ncv, temperature_C);
 
     EXPECT_EQ(expected_c_values, mechanism_field(celsius_test.get(), "c"));
@@ -108,7 +108,7 @@ void run_diam_test() {
 
     // expect original diam values in state 'd' after state update:
 
-    celsius_test->nrn_state();
+    celsius_test->update_state();
     expected_d_values = diam;
 
     EXPECT_EQ(expected_d_values, mechanism_field(celsius_test.get(), "d"));
