@@ -279,7 +279,7 @@ void expsyn_1_branch_current(benchmark::State& state) {
     auto& m = find_mechanism("expsyn", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_current();
+        m->update_current();
     }
 }
 
@@ -299,7 +299,7 @@ void expsyn_1_branch_state(benchmark::State& state) {
     auto& m = find_mechanism("expsyn", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_state();
+        m->update_state();
     }
 }
 
@@ -318,7 +318,7 @@ void pas_1_branch_current(benchmark::State& state) {
     auto& m = find_mechanism("pas", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_current();
+        m->update_current();
     }
 }
 
@@ -337,7 +337,7 @@ void pas_3_branches_current(benchmark::State& state) {
     auto& m = find_mechanism("pas", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_current();
+        m->update_current();
     }
 }
 
@@ -356,7 +356,7 @@ void hh_1_branch_state(benchmark::State& state) {
     auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_state();
+        m->update_state();
     }
 }
 
@@ -375,7 +375,7 @@ void hh_1_branch_current(benchmark::State& state) {
     auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_current();
+        m->update_current();
     }
 }
 
@@ -394,7 +394,7 @@ void hh_3_branches_state(benchmark::State& state) {
     auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_state();
+        m->update_state();
     }
 }
 
@@ -413,7 +413,7 @@ void hh_3_branches_current(benchmark::State& state) {
     auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        m->nrn_current();
+        m->update_current();
     }
 }
 

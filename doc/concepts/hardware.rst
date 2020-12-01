@@ -19,6 +19,8 @@ An *allocation* enumerates the computational resources to be used for a simulati
    applications/libraries.
 
 
+.. _modelcontext:
+
 Execution context
 -----------------
 
