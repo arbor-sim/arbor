@@ -1,4 +1,4 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
 
 import subprocess as sp
 import sys
@@ -89,7 +89,7 @@ def parse_arguments():
 
     return vars(parser.parse_args())
 
-cmake = r"""cmake_minimum_required(VERSION 3.9)
+cmake = r"""cmake_minimum_required(VERSION 3.19)
 
 project(catalogue LANGUAGES CXX)
 
@@ -110,7 +110,12 @@ set(src_dir ${{name}})
 set(out_dir ${{CMAKE_CURRENT_BINARY_DIR}}/${{name}})
 set(cat_src ${{out_dir}}/catalogue.cpp)
 
+set(CMAKE_CXX_COMPILER ${{ARB_CXX}})
+set(CMAKE_CXX_FLAGS ${{ARB_CXX_FLAGS}} ${{ARB_CXXOPT_ARCH}})
+
 set(inc "/usr/local/include")
+
+message(STATUS "FLAGS=${{CMAKE_CXX_FLAGS}}")
 
 file(MAKE_DIRECTORY "${{out_dir}}")
 
@@ -280,7 +285,6 @@ with TemporaryDirectory() as tmp:
     print(arb_src)
     with open(tmp / 'CMakeLists.txt', 'w') as fd:
         fd.write(cmake.format(name=name, mods=' '.join(args['modules']), arb_src=arb_src))
-    sp.run('cat ' + str(tmp / 'CMakeLists.txt'), shell=True)
     with open(tmp / 'build' / mod_dir / 'catalogue.cpp', 'w') as fd:
         fd.write(code)
     os.chdir('build')
