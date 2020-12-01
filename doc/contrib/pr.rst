@@ -3,7 +3,7 @@
 PR workflow
 ===========
 
-.. _contribpr-make
+.. _contribpr-make:
 
 Making a pull request
 ---------------------
@@ -23,7 +23,7 @@ the workflow is as follows:
    that become necessary in the future. You can upload a filled out copy
    of the agreement as a file attached to the PR, or if you prefer not
    to disclose private information, you can send it to
-   `mailto:arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
+   `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
 
    -  `Please find the Copyright Transfer Agreement
       here <https://github.com/arbor-sim/arbor-materials/tree/master/copyright-transfer-agreement>`__.
@@ -39,7 +39,7 @@ Refer to the `Github
 documentation <https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request>`__
 for more explanation of the Git workflow described above.
 
-.. _contribpr-review
+.. _contribpr-review:
 
 Reviewing a PR
 --------------
@@ -74,7 +74,7 @@ Each pull request is reviewed according to these guidelines:
 -  An Arbor team member will (squash) merge the PR with the PR change
    summery as commit message.
 
-.. _contribpr-merge
+.. _contribpr-merge:
 
 Merging a PR
 ------------

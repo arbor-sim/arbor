@@ -17,13 +17,16 @@ exceptions to the rules given in the Core Guidelines. - rules for the
 CMake build system and directory structure. - rules for external
 dependencies (e.g. Boost).
 
+.. TODO::
+    This page needs revision.
+
 Code organisation
 -----------------
 
 Source files naming conventions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO: describe the public/private header and source code organization.
+.. TODO:: describe the public/private header and source code organization.
 
 -  ``.cpp`` extension for source files
 -  ``.hpp`` extension for header files

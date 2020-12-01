@@ -4,12 +4,11 @@ Writing documentation
 =====================
 
 The source for `the documentation <https://arbor.readthedocs.io>`__ is
-found in the ``/doc`` subdirectory, C++ examples in ``/example`` and
-Python examples in ``/python/example``. You can add yours in the same
-way you would contribute code, please see the “Github workflow” section.
+found in the ``/doc`` subdirectory. You can add your contribution to the documentation
+in the same way you would contribute code, please see the :ref:`contribpr` section.
 
 .. todo::
-    Very much in progress.
+    This page is under construction.
 
 .. _contribdoc-namingconventions:
 
@@ -34,5 +33,5 @@ Language
 --------
 
 Although the primary language of Arbor is C++, we use English for most of the non-code.
-If you need some help writing English, you can consult the European Unions
+If in doubt, we recommend following the European Union's
 `English style guide <https://ec.europa.eu/info/sites/info/files/styleguide_english_dgt_en.pdf>`_.

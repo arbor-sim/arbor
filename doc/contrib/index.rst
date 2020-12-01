@@ -18,18 +18,7 @@ improving the documentation, helping other users, submitting bug reports
 and feature requests or writing code which can be incorporated into
 Arbor itself.
 
-If you come across a bug in Arbor, please `file an issue on the GitHub
-issue tracker <https://github.com/arbor-sim/arbor/issues/new>`__. You
-can attach files to issues. Data and bits of code that help to reproduce
-the issue are very welcome; they’ll make it easier for Arbor developers
-to debug and fix your issue.
-
-The source for `the documentation <https://arbor.readthedocs.io>`__ is
-found in the ``/doc`` subdirectory, and you can add yours or change existing
-documentation in the same way you would contribute code, please see :ref:`contribpr`.
-Some more details on how to write documentation can be found in :ref:`contribdoc`
-
-Please use the `Arbor Discussions <https://github.com/arbor-sim/arbor/discussions>`__
+Use the `Arbor Discussions <https://github.com/arbor-sim/arbor/discussions>`__
 page for support questions.
 
 .. _contribindex-github:
@@ -81,10 +70,34 @@ label. Don’t hesitate to post a comment to the Issue if you want to ask
 clarifying questions. If you have implemented a fix, you can make a pull
 request.
 
+Write code
+~~~~~~~~~~
+
+See :ref:`contribpr`.
+
+Add examples or unit tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+See :ref:`contribexample` and :ref:`contribtest`.
+
+Modify documentation
+~~~~~~~~~~~~~~~~~~~~
+
+See :ref:`contribdoc`.
+
 Making a pull request
 ~~~~~~~~~~~~~~~~~~~~~
 
-See :ref:`contrib-pr`.
+See :ref:`contribpr`.
+
+.. _contribindex-other:
+
+Other contributions
+-------------------
+
+We're always happy to hear about Arbor being used! Have you used Arbor to create a model?
+Have you used Arbor in a publication? Do you have a workflow or tool that involves Arbor?
+Get in touch and we'd be very happy to showcase your work through our channels.
 
 .. _contribindex-contact:
 
