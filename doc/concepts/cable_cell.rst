@@ -19,14 +19,14 @@ When a cable cell is constructued the following steps are performed using the in
 2. The default values for parameters specified in the decor, such as ion species concentration, are instantiated.
 3. Dynamics (mechanisms, parameters, synapses, etc.) are instaniated on the regions and locsets as specified by the decor.
 
-Once constructed, the cable cell can be queried for specific information about the cell, but it can't be modified (it is *imutable*).
+Once constructed, the cable cell can be queried for specific information about the cell, but it can't be modified (it is *immutable*).
 
 .. Note::
 
     The inputs used to construct the cell (morphology, label definitions and decor) are orthogonal,
     which allows a broad range of individual cells to be constructed from a handful of simple rules
     encoded in the inputs.
-    For example, let's take consider a model with the following:
+    For example, take a model with the following:
 
     * three cell types: pyramidal, purkinje and granule.
     * two different morphologies for each cell type (a total of 6 morphologies).
@@ -349,7 +349,7 @@ Discretisation and CV policies
 
 For the purpose of simulation, cable cells are decomposed into discrete
 subcomponents called *control volumes* (CVs). The CVs are
-uniquely determined by a set of *B* of ``mlocation`` boundary points.
+uniquely determined by a set of *B* ``mlocation`` boundary points.
 For each non-terminal point *h* in *B*, there is a CV comprising the points
 {*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
 geometrical partial order of locations on the morphology. A fork point is
@@ -419,6 +419,6 @@ The domain of *A* + *B* and *A* | *B* is the union of the domains of *A* and
 API
 ---
 
-* :ref:`Python <pycable_cell>`
-* :ref:`C++ <cppcable_cell>`
+* :ref:`Python <pycablecell>`
+* :ref:`C++ <cppcablecell>`
 

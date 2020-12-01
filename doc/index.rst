@@ -9,7 +9,7 @@ Welcome to the documentation for Arbor, the multi-compartment neural network sim
 You can find out how to :ref:`get Arbor<in_install>`; get started quickly with our :ref:`tutorials<gs_other_examples>`; or continue reading to learn more about Arbor.
 
 What is Arbor?
--------------
+--------------
 
 Arbor is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
 from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to

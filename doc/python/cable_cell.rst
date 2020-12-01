@@ -1,4 +1,4 @@
-.. _pycable_cell:
+.. _pycablecell:
 
 Cable cells
 ===========
@@ -15,7 +15,7 @@ Cable cells
         Construct an empty decor description.
 
     Properties for which defaults can be defined over the entire cell, specifically
-    :ref:`cable properties <cable-properties>` and :ref:`ion properties <cable-ions>`,
+    :ref:`cable properties <cablecell-properties>` and :ref:`ion properties <cablecell-ions>`,
     are set with ``set_property`` and ``set_ion`` methods.
 
     .. method:: set_property(Vm=None, cm=None, rL=None, tempK=None)
@@ -142,7 +142,7 @@ Cable cells
     .. method:: place(locations, site)
         :noindex:
 
-        Place one gap junction site at each location at each location in ``locations``.
+        Place one gap junction site at each location in ``locations``.
 
         :param str locations: description of the locset.
         :param site: indicates a gap junction site..
@@ -151,7 +151,7 @@ Cable cells
     .. method:: place(locations, stim)
         :noindex:
 
-        Add a current stimulus at each location at each location in ``locations``.
+        Add a current stimulus at each location in ``locations``.
 
         :param str locations: description of the locset.
         :param stim: the current stim.
@@ -210,13 +210,13 @@ Cable cells
 
     properties of an ionic species.
 
-.. _pycableprobes:
+.. _pycablecell-probes:
 
 Cable cell probes
 -----------------
 
 Cable cell probe addresses are defined analagously to their counterparts in
-the C++ API (see :ref:`cable-cell-probes` for details). Sample data recorded
+the C++ API (see :ref:`cablecell-probes` for details). Sample data recorded
 by the Arbor simulation object is returned in the form of a NumPy array,
 with the first column holding sample times, and subsequent columns holding
 the corresponding scalar- or vector-valued sample.
@@ -362,7 +362,7 @@ Ionic external concentration
    Metadata: the list of corresponding :class:`cable` objects.
 
 
-.. _pycable-cv-policies:
+.. _pycablecell-cv-policies:
 
 Discretisation and CV policies
 ------------------------------
@@ -373,10 +373,10 @@ The set of boundary points used by the simulator is determined by a
 
 .. py:class:: cv_policy
 
-   .. property:: domain
+   .. attribute:: domain
 
-       A string expression describing the subset of a cell morphology (region) on which
-       this policy has been declared.
+       A read only string expression describing the subset of a cell morphology
+       (region) on which this policy has been declared.
 
    CV policies can be :ref:`composed <cablecell-cv-composition>` with
    ``+`` and ``|`` operators.
@@ -431,7 +431,7 @@ constitute part of the CV boundary point set.
 
 .. py:function:: cv_policy_max_extent(max_extent, domain='(all)')
 
-    As for :py:function:`cv_policy_fixed_per_branch`, save that the number of CVs on any
+    As for :py:func:`cv_policy_fixed_per_branch`, save that the number of CVs on any
     given branch will be chosen to be the smallest number that ensures no
     CV will have an extent on the branch longer than ``max_extent`` micrometres.
 

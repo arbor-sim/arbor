@@ -1,4 +1,4 @@
-.. _py_morphology:
+.. _pymorph:
 
    .. 
 

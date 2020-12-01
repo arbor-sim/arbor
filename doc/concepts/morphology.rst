@@ -581,5 +581,5 @@ interpreter:
 API
 ---
 
-* :ref:`Python <py_morphology>`
-* :ref:`C++ <morphology-construction>`
+* :ref:`Python <pymorph>`
+* :ref:`C++ <cppcablecell-morphology-construction>`

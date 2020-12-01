@@ -1,4 +1,4 @@
-.. _cppcable_cell:
+.. _cppcablecell:
 
 Cable cells
 ===========
@@ -28,20 +28,20 @@ morphology; and an optional :ref:`decor <cablecell-decoration>`.
 
 Morphologies are constructed from a :cpp:type:`segment_tree`, but can also
 be generated via the :cpp:type:`stitch_builder`, which offers a slightly
-higher level interface. Details are described in :ref:`morphology-construction`.
+higher level interface. Details are described in :ref:`cppcablecell-morphology-construction`.
 
 Each cell has particular values for its electrical and ionic properties. These
 are determined first by the set of global defaults, then the defaults
 associated with the cell, and finally by any values specified explicitly for a
 given subsection of the morphology via the ``paint`` interface of the decor
-(see :ref:`electrical-properties` and :ref:`paint-properties`).
+(see :ref:`cppcablecell-electrical-properties` and :ref:`cppcablecell-paint-properties`).
 
 Ion channels and other distributed dynamical processes are also specified
 on the cell via the ``paint`` method; while synapses, current clamps,
 gap junction locations, and the site for testing the threshold potential
-are specified via the ``place`` method. See :ref:`cable-cell-dynamics`, below.
+are specified via the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
 
-.. _morphology-construction:
+.. _cppcablecell-morphology-construction:
 
 Constructing cell morphologies
 ------------------------------
@@ -224,7 +224,7 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
    Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
 
-.. _locsets-and-regions:
+.. _cppcablecell-locsets-and-regions:
 
 Identifying sites and subsets of the morphology
 -----------------------------------------------
@@ -233,7 +233,7 @@ Identifying sites and subsets of the morphology
 
    TODO: Region and locset documentation is under development.
 
-.. _cable-cell-dynamics:
+.. _cppcablecell-dynamics:
 
 Cell dynamics
 -------------
@@ -285,7 +285,7 @@ cable cell, are attached to a cell with:
    TODO: describe other ``place``-able things: current clamps, gap junction
    sites, threshold potential measurement point.
 
-.. _electrical-properties:
+.. _cppcablecell-electrical-properties:
 
 Electrical properties and ion values
 -------------------------------------
@@ -445,7 +445,7 @@ constants.
    gprop.default_parameters.reversal_potential_method["ca"] = "nernst1998/ca";
 
 
-.. _paint-properties:
+.. _cppcablecell-paint-properties:
 
 Overriding properties locally
 -----------------------------
@@ -456,7 +456,7 @@ Overriding properties locally
    the morphology.
 
 
-.. _cable-cell-probes:
+.. _cppcablecell--probes:
 
 Cable cell probes
 -----------------
@@ -827,7 +827,7 @@ Use the points given by ``locs`` for CV boundaries, optionally restricted to the
 supplied domain.
 
 ``cv_policy_every_segment``
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 

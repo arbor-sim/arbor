@@ -6,6 +6,7 @@
 #include <arbor/math.hpp>
 #include <arbor/mechcat.hpp>
 
+#include "arbor/cable_cell_param.hpp"
 #include "arbor/morph/morphology.hpp"
 #include "arbor/morph/segment_tree.hpp"
 #include "fvm_layout.hpp"
@@ -33,7 +34,12 @@ namespace {
         std::vector<cable_cell_description> descriptions;
 
         std::vector<arb::cable_cell> cells() const {
-            return {descriptions[0], descriptions[1]};
+            std::vector<arb::cable_cell> C;
+            C.reserve(descriptions.size());
+            for (auto& d: descriptions) {
+                C.emplace_back(d);
+            }
+            return C;
         }
 
     };

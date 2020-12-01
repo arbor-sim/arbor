@@ -98,12 +98,10 @@ Single cell model
 ----------------------------------------------------
 
 Once the cell description has been built, the next step is to build and run the simulation.
-Arbor can simulate networks with multiple cells using a :ref:`recipe <modelrecipe>` to describe all parts of the model:
-components including the cells, connections and gap junctions.
-For single cell models, Arbor provides a shortcut for building a model requiring the user to
-provide a recipe. The :class:`arbor.single_cell_model<arbor.single_cell_model>`
-helper that wraps a cell description and creates a recipe under the hood, providing an interface for
-recording outputs and running the simulation more easily.
+Arbor provides an interface for constructing single cell models with the
+:class:`arbor.single_cell_model<arbor.single_cell_model>`
+helper that creates a model from a cell description, with an interface for
+recording outputs and running the simulation.
 
 .. code-block:: python
 
