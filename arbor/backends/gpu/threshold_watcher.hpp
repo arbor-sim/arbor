@@ -45,21 +45,21 @@ public:
 
     threshold_watcher(
         const fvm_index_type* cv_to_intdom,
-        const fvm_value_type* t_before,
-        const fvm_value_type* t_after,
         const fvm_value_type* values,
         const fvm_index_type* src_to_spike,
         array* time_since_spike,
+        const array* t_before,
+        const array* t_after,
         const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& ctx
     ):
         cv_to_intdom_(cv_to_intdom),
-        t_before_(t_before),
-        t_after_(t_after),
         values_(values),
         src_to_spike_(src_to_spike),
         time_since_spike_(time_since_spike),
+        t_before_ptr_(t_before),
+        t_after_ptr_(t_after),
         cv_index_(memory::make_const_view(cv_index)),
         is_crossed_(cv_index.size()),
         thresholds_(memory::make_const_view(thresholds)),
@@ -118,10 +118,12 @@ public:
     /// performed.
     void test() {
         clear_spikes();
+        const fvm_value_type* t_before = t_before_ptr_->data();
+        const fvm_value_type* t_after  = t_after_ptr_->data();
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
-                cv_to_intdom_, t_after_, t_before_,
+                cv_to_intdom_, t_after, t_before,
                 src_to_spike_, time_since_spike_->data(),
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
@@ -139,14 +141,15 @@ public:
     }
 
 private:
-    /// Non-owning pointers to gpu-side cv-to-cell map, per-cell time data,
-    /// and the values for to test against thresholds.
+    /// Non-owning pointers to cv-to-intdom map,
+    /// the values for to test against thresholds,
+    /// and pointers to the time arrays
     const fvm_index_type* cv_to_intdom_ = nullptr;
-    const fvm_value_type* t_before_ = nullptr;
-    const fvm_value_type* t_after_ = nullptr;
     const fvm_value_type* values_ = nullptr;
     const fvm_index_type* src_to_spike_ = nullptr;
     array* time_since_spike_ = nullptr;
+    const array* t_before_ptr_ = nullptr;
+    const array* t_after_ptr_ = nullptr;
 
     // Threshold watch state, with data on gpu:
     iarray cv_index_;           // Compartment indexes of values to watch.

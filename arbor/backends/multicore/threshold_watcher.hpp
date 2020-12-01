@@ -19,21 +19,21 @@ public:
 
     threshold_watcher(
         const fvm_index_type* cv_to_intdom,
-        const fvm_value_type* t_before,
-        const fvm_value_type* t_after,
         const fvm_value_type* values,
         const fvm_index_type* src_to_spike,
         array* time_since_spike,
+        const array* t_before,
+        const array* t_after,
         const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& context
     ):
         cv_to_intdom_(cv_to_intdom),
-        t_before_(t_before),
-        t_after_(t_after),
         values_(values),
         src_to_spike_(src_to_spike),
         time_since_spike_(time_since_spike),
+        t_before_ptr_(t_before),
+        t_after_ptr_(t_after),
         n_cv_(cv_index.size()),
         cv_index_(cv_index),
         is_crossed_(n_cv_),
@@ -76,6 +76,8 @@ public:
     /// is crossed since the last call to test
     void test() {
         clear_spikes();
+        const fvm_value_type* t_before = t_before_ptr_->data();
+        const fvm_value_type* t_after  = t_after_ptr_->data();
         for (fvm_size_type i = 0; i<n_cv_; ++i) {
             auto cv     = cv_index_[i];
             auto intdom = cv_to_intdom_[cv];
@@ -88,11 +90,11 @@ public:
                     // The threshold has been passed, so estimate the time using
                     // linear interpolation.
                     auto pos = (thresh - v_prev)/(v - v_prev);
-                    auto crossing_time = math::lerp(t_before_[intdom], t_after_[intdom], pos);
+                    auto crossing_time = math::lerp(t_before[intdom], t_after[intdom], pos);
                     crossings_.push_back({i, crossing_time});
 
                     if (record_time_since_spike_) {
-                        (*time_since_spike_)[src_to_spike_[i]] = t_after_[intdom] - crossing_time;
+                        (*time_since_spike_)[src_to_spike_[i]] = t_after[intdom] - crossing_time;
                     }
 
                     is_crossed_[i] = true;
@@ -118,14 +120,15 @@ public:
     }
 
 private:
-    /// Non-owning pointers to cv-to-intdom map, per-intdom time data,
-    /// and the values for to test against thresholds.
+    /// Non-owning pointers to cv-to-intdom map,
+    /// the values for to test against thresholds,
+    /// and pointers to the time arrays
     const fvm_index_type* cv_to_intdom_ = nullptr;
-    const fvm_value_type* t_before_ = nullptr;
-    const fvm_value_type* t_after_ = nullptr;
     const fvm_value_type* values_ = nullptr;
     const fvm_index_type* src_to_spike_ = nullptr;
     array* time_since_spike_ = nullptr;
+    const array* t_before_ptr_ = nullptr;
+    const array* t_after_ptr_ = nullptr;
 
     /// Threshold watcher state.
     fvm_size_type n_cv_ = 0;

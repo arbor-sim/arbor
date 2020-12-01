@@ -62,6 +62,18 @@ public:
         // Delegate to derived class, passing in event queue state.
         deliver_events(event_stream_ptr_->marked_events());
     }
+    void update_current() override {
+        vec_t_ = vec_t_ptr_->data();
+        nrn_current();
+    }
+    void update_state() override {
+        vec_t_ = vec_t_ptr_->data();
+        nrn_state();
+    }
+    void update_ions() override {
+        vec_t_ = vec_t_ptr_->data();
+        write_ions();
+    }
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
 
@@ -87,6 +99,9 @@ protected:
     const value_type* temperature_degC_; // CV to temperature.
     const value_type* diam_um_;   // CV to diameter.
     const value_type* time_since_spike_; // Vector containing time since last spike, indexed by cell index and n_detectors_
+
+    const array* vec_t_ptr_;
+    const array* vec_t_to_ptr_;
     deliverable_event_stream* event_stream_ptr_;
 
     // Per-mechanism index and weight data, excepting ion indices.
@@ -150,7 +165,10 @@ protected:
 
     // Event delivery, given event queue state:
 
+    virtual void nrn_state() {};
+    virtual void nrn_current() {};
     virtual void deliver_events(deliverable_event_stream::state) {};
+    virtual void write_ions() {};
 };
 
 } // namespace multicore

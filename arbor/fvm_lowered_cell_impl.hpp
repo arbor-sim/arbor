@@ -228,7 +228,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Update any required reversal potentials based on ionic concs.
 
         for (auto& m: revpot_mechanisms_) {
-            m->nrn_current();
+            m->update_current();
         }
 
         // Deliver events and accumulate mechanism current contributions.
@@ -242,7 +242,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
         for (auto& m: mechanisms_) {
             m->deliver_events();
-            m->nrn_current();
+            m->update_current();
         }
 
         // Add current contribution from gap_junctions
@@ -278,7 +278,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Integrate mechanism state.
 
         for (auto& m: mechanisms_) {
-            m->nrn_state();
+            m->update_state();
         }
 
         // Update ion concentrations.
@@ -336,7 +336,7 @@ template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::update_ion_state() {
     state_->ions_init_concentration();
     for (auto& m: mechanisms_) {
-        m->write_ions();
+        m->update_ions();
     }
 }
 

@@ -51,11 +51,11 @@ public:
 
     // Simulation interfaces:
     virtual void initialize() = 0;
-    virtual void nrn_state() = 0;
-    virtual void nrn_current() = 0;
+    virtual void update_state() {};
+    virtual void update_current() {};
     virtual void deliver_events() {};
     virtual void post_events() {};
-    virtual void write_ions() = 0;
+    virtual void update_ions() {};
 
     virtual ~mechanism() = default;
 

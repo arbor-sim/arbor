@@ -381,7 +381,7 @@ TEST(fvm_lowered, stimulus) {
     // Test that no current is injected at t=0.
     memory::fill(J, 0.);
     memory::fill(T, 0.);
-    stim->nrn_current();
+    stim->update_current();
 
     for (auto j: J) {
         EXPECT_EQ(j, 0.);
@@ -390,19 +390,19 @@ TEST(fvm_lowered, stimulus) {
     // Test that 0.1 nA current is injected at soma at t=1.
     memory::fill(J, 0.);
     memory::fill(T, 1.);
-    stim->nrn_current();
+    stim->update_current();
     constexpr double unit_factor = 1e-3; // scale A/m²·µm² to nA
     EXPECT_DOUBLE_EQ(-0.1, J[soma_cv]*A[soma_cv]*unit_factor);
 
     // Test that 0.1 nA is again injected at t=1.5, for a total of 0.2 nA.
     memory::fill(T, 1.);
-    stim->nrn_current();
+    stim->update_current();
     EXPECT_DOUBLE_EQ(-0.2, J[soma_cv]*A[soma_cv]*unit_factor);
 
     // Test that at t=10, no more current is injected at soma, and that
     // that 0.3 nA is injected at dendrite tip.
     memory::fill(T, 10.);
-    stim->nrn_current();
+    stim->update_current();
     EXPECT_DOUBLE_EQ(-0.2, J[soma_cv]*A[soma_cv]*unit_factor);
     EXPECT_DOUBLE_EQ(-0.3, J[tip_cv]*A[tip_cv]*unit_factor);
 }
@@ -641,13 +641,13 @@ TEST(fvm_lowered, ionic_concentrations) {
     EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
 
     // expect 5.2 + 2.3 value in state 's' in read_cai_init after state update:
-    read_cai_mech->nrn_state();
-    write_cai_mech->nrn_state();
+    read_cai_mech->update_state();
+    write_cai_mech->update_state();
 
-    read_cai_mech->write_ions();
-    write_cai_mech->write_ions();
+    read_cai_mech->update_ions();
+    write_cai_mech->update_ions();
 
-    read_cai_mech->nrn_state();
+    read_cai_mech->update_state();
 
     expected_s_values.assign(ncv, 7.5e-4);
     EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
@@ -858,7 +858,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     }
 
     ion.init_concentration();
-    test_ca->write_ions();
+    test_ca->update_ions();
     std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
 }
