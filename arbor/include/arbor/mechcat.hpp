@@ -9,6 +9,8 @@
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
 
+#
+
 // Mechanism catalogue maintains:
 //
 // 1. Collection of mechanism metadata indexed by name.
@@ -126,5 +128,8 @@ private:
 const mechanism_catalogue& global_default_catalogue();
 const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
+
+// Load a catalogue from a shared object
+const mechanism_catalogue& load_catalogue(const std::string&);
 
 } // namespace arb

@@ -11,6 +11,8 @@
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 
+#include <dlfcn.h>
+
 /* Notes on implementation:
  *
  * The catalogue maintains the following data:
@@ -578,5 +580,23 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 }
 
 mechanism_catalogue::~mechanism_catalogue() = default;
+
+// Load a catalogue from a shared object
+const mechanism_catalogue& load_catalogue(const std::string& fn) {
+    typedef const arb::mechanism_catalogue& global_catalogue_t();
+
+    auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
+    if (!plugin) {
+        auto error = dlerror();
+        throw arb::arbor_exception(error);
+    }
+
+    auto get_catalogue = (global_catalogue_t*) dlsym(plugin, "get_catalogue");
+    auto error = dlerror();
+    if (error) {
+        throw arb::arbor_exception(error);
+    }
+    return get_catalogue();
+}
 
 } // namespace arb
