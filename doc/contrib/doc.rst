@@ -1,4 +1,4 @@
-.. _contrib-doc:
+.. _contribdoc:
 
 Writing documentation
 =====================
@@ -11,14 +11,28 @@ way you would contribute code, please see the “Github workflow” section.
 .. todo::
     Very much in progress.
 
-Labels
-------
+.. _contribdoc-namingconventions:
 
-We try to cross-link where we can, which means we label where we can. To help manage the many labels this results in,
-we try to create labels following the `filename-sectionname` pattern.
+Labels and filename conventions
+-------------------------------
+
+Although it is not absolutely essential to do so, we try to keep to the following conventions
+for naming files and labels, with the goal of making it easy to construct one from the other
+such that you don't have to remember or look anything up. We try to cross-link where we can,
+which means we label where we can, which translates to a large number of labels.
+
+Wherever possible, observe:
+
+* file names: avoid underscores as much as possible. E.g. `cpp/cable_cell.rst` -> `cpp/cablecell.rst`.
+* page-level labels in each file: the path concatenated without spaces. E.g. `cpp/cablecell.rst` -> `cppcablecell`.
+* heading labels in a file: `pagelevel-sectionname`. Feel free to slugify long headings.
+E.g. the morphology section in the C++ cable cell docs could be `cppcablecell-morph`.
+
+.. _contribdoc-lang:
 
 Language
 --------
 
 Although the primary language of Arbor is C++, we use English for most of the non-code.
-If you need some help writing clear English, you can consult the European Unions `English style guide <https://ec.europa.eu/info/sites/info/files/styleguide_english_dgt_en.pdf>`_.
+If you need some help writing English, you can consult the European Unions
+`English style guide <https://ec.europa.eu/info/sites/info/files/styleguide_english_dgt_en.pdf>`_.

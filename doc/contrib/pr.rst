@@ -1,7 +1,9 @@
-.. _contrib-pr:
+.. _contribpr:
 
 PR workflow
 ===========
+
+.. _contribpr-make
 
 Making a pull request
 ---------------------
@@ -37,6 +39,8 @@ Refer to the `Github
 documentation <https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request>`__
 for more explanation of the Git workflow described above.
 
+.. _contribpr-review
+
 Reviewing a PR
 --------------
 
@@ -69,6 +73,8 @@ Each pull request is reviewed according to these guidelines:
 -  Travis CI must produce a favourable result on your PR.
 -  An Arbor team member will (squash) merge the PR with the PR change
    summery as commit message.
+
+.. _contribpr-merge
 
 Merging a PR
 ------------

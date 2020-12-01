@@ -1,4 +1,4 @@
-.. _contrib-overview:
+.. _contribindex:
 
 Contributing to Arbor
 =====================
@@ -7,6 +7,8 @@ First off, thank you for considering contributing to Arbor! It’s people
 like you that make Arbor such a great tool. Feel welcome and read the
 following sections in order to know how to ask questions and how to work
 on something.
+
+.. _contribindex-types:
 
 Types of contributions
 ----------------------
@@ -24,11 +26,13 @@ to debug and fix your issue.
 
 The source for `the documentation <https://arbor.readthedocs.io>`__ is
 found in the ``/doc`` subdirectory, and you can add yours or change existing
-documentation in the same way you would contribute code, please see :ref:`contrib-pr`.
-Some more details on how to write documentation can be found in :ref:`contrib-doc`
+documentation in the same way you would contribute code, please see :ref:`contribpr`.
+Some more details on how to write documentation can be found in :ref:`contribdoc`
 
 Please use the `Arbor Discussions <https://github.com/arbor-sim/arbor/discussions>`__
 page for support questions.
+
+.. _contribindex-github:
 
 Github
 ------
@@ -41,6 +45,8 @@ repository and nearly all of its infrastructure.
 -  Make sure you have a `GitHub
    account <https://github.com/signup/free>`__.
 
+.. _contribindex-discuss:
+
 Start a discussion
 ~~~~~~~~~~~~~~~~~~
 
@@ -49,6 +55,8 @@ Discussions <https://github.com/arbor-sim/arbor/discussions>`__ to help
 other users of Arbor, or get help with you own simulations. Also, we’re
 eager to discover what you’re using Arbor for, so don’t hesitate to
 share your Arbor simulations or publications!
+
+.. _contribindex-fileissue:
 
 Filing an issue
 ~~~~~~~~~~~~~~~
@@ -59,6 +67,8 @@ tracker <https://github.com/arbor-sim/arbor/issues>`__. If you issue is
 not yet filed in the issue tracker, please do so and describe the
 problem, bug or feature as best you can. You can add supporting data,
 code or documents to help make your point.
+
+.. _contribindex-solveissue:
 
 Help solving an Issue
 ~~~~~~~~~~~~~~~~~~~~~
@@ -75,6 +85,8 @@ Making a pull request
 ~~~~~~~~~~~~~~~~~~~~~
 
 See :ref:`contrib-pr`.
+
+.. _contribindex-contact:
 
 Get in touch
 ------------

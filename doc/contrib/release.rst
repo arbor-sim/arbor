@@ -1,4 +1,4 @@
-.. _contrib-release:
+.. _contribrelease:
 
 Releasing Arbor
 ===============

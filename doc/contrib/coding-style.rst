@@ -1,3 +1,5 @@
+.. _contribcodingstyle
+
 Coding Guidelines
 =================
 
@@ -351,7 +353,7 @@ Use scoped enum instead of enum
 ::
 
    // good
-   enum class ionKind {sodium, calcium}; 
+   enum class ionKind {sodium, calcium};
    // bad
    enum ionKind {ion_sodium, ion_calcium};
 
