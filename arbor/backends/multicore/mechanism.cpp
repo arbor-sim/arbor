@@ -85,7 +85,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     vec_ci_   = shared.cv_to_cell.data();
     vec_di_   = shared.cv_to_intdom.data();
-    vec_ci_   = shared.cv_to_intdom.data();
     vec_dt_   = shared.dt_cv.data();
 
     vec_v_    = shared.voltage.data();

@@ -118,12 +118,10 @@ public:
     /// performed.
     void test() {
         clear_spikes();
-        const fvm_value_type* t_before = t_before_ptr_->data();
-        const fvm_value_type* t_after  = t_after_ptr_->data();
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
-                cv_to_intdom_, t_after, t_before,
+                cv_to_intdom_, t_after_ptr_->data(), t_before_ptr_->data(),
                 src_to_spike_, time_since_spike_->data(),
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),

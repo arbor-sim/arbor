@@ -299,7 +299,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
         PL();
 
-        memory::copy(state_->time_to, state_->time);
+        std::swap(state_->time_to, state_->time);
 
         // Check for non-physical solutions:
 

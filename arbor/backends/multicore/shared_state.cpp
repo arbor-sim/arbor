@@ -106,7 +106,6 @@ shared_state::shared_state(
     alloc(alignment),
     n_intdom(n_intdom),
     n_detector(n_detector),
-    n_cell(n_cell),
     n_cv(cv_to_intdom_vec.size()),
     n_gj(gj_vec.size()),
     cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),

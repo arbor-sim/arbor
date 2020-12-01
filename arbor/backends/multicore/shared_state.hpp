@@ -80,7 +80,6 @@ struct shared_state {
 
     fvm_size_type n_intdom = 0; // Number of integration domains.
     fvm_size_type n_detector = 0; // Max number of detectors on all cells.
-    fvm_size_type n_cell = 0; // Total number of cells.
     fvm_size_type n_cv = 0;   // Total number of CVs.
     fvm_size_type n_gj = 0;   // Total number of GJs.
 
