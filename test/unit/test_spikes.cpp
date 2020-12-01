@@ -42,6 +42,10 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     const std::vector<index_type> index{0, 5, 7};
     const std::vector<value_type> thresh{1., 2., 3.};
 
+    std::vector<int> src_to_spike_vec = {0, 1, 5};
+    std::vector<fvm_value_type> time_since_spike_vec(10);
+    memory::fill(time_since_spike_vec, -1.0);
+
     // all values are initially 0, except for values[5] which we set
     // to exceed the threshold of 2. for the second watch
     array values(n, 0);
@@ -56,8 +60,12 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     }
     array time_before(2, 0.);
     array time_after(2, 0.);
-    iarray src_to_spike(3, 0);
-    array time_since_spike(1, 0.);
+
+    iarray src_to_spike(src_to_spike_vec.size());
+    memory::copy(src_to_spike_vec, src_to_spike);
+
+    array time_since_spike(10, -1.0);
+    std::vector<unsigned> empty_slots = {2, 3, 4, 6, 7, 8, 9};
 
     // list for storing expected crossings for validation at the end
     list expected;
@@ -80,6 +88,11 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 0u);
+
+    memory::copy(time_since_spike, time_since_spike_vec);
+    for (auto t : time_since_spike_vec) {
+        EXPECT_EQ(-1.0, t);
+    }
 
     // test at t=2, with all values set to zero
     //  - 2nd watch should now stop spiking
@@ -109,6 +122,14 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     expected.push_back({1u, 2.250f}); // 2. + (2.5-2)*(2./4.)
     expected.push_back({2u, 2.750f}); // 2. + (3.0-2)*(3./4.)
 
+    memory::copy(time_since_spike, time_since_spike_vec);
+    EXPECT_EQ(0.375, time_since_spike_vec[src_to_spike[0]]); // 2.5 - 2.125
+    EXPECT_EQ(0.250, time_since_spike_vec[src_to_spike[1]]); // 2.5 - 2.250
+    EXPECT_EQ(0.250, time_since_spike_vec[src_to_spike[2]]); // 3.0 - 2.750
+    for (auto i : empty_slots) {
+        EXPECT_EQ(-1.0, time_since_spike_vec[i]);
+    }
+
     // test at t=4, with all values set to 0.
     //  - all watches should stop spiking
     memory::fill(values, 0.);
@@ -119,6 +140,11 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 3u);
+
+    memory::copy(time_since_spike, time_since_spike_vec);
+    for (auto t : time_since_spike_vec) {
+        EXPECT_EQ(-1.0, t);
+    }
 
     // test at t=5, with value on 3rd watch set to 6
     //  - watch 3 should be spiking
@@ -131,6 +157,14 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_TRUE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 4u);
     expected.push_back({2u, 4.5f});
+
+    memory::copy(time_since_spike, time_since_spike_vec);
+    EXPECT_EQ(-1.0, time_since_spike_vec[src_to_spike[0]]);
+    EXPECT_EQ(-1.0, time_since_spike_vec[src_to_spike[1]]);
+    EXPECT_EQ(0.50, time_since_spike_vec[src_to_spike[2]]);
+    for (auto i : empty_slots) {
+        EXPECT_EQ(-1.0, time_since_spike_vec[i]);
+    }
 
     //
     // test that all generated spikes matched the expected values

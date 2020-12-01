@@ -4,10 +4,13 @@ set(test_mechanisms
     ca_linear
     celsius_test
     diam_test
+    fixed_ica_current
+    linear_ca_conc
     param_as_state
-    test_linear_state
-    test_linear_init
-    test_linear_init_shuffle
+    point_ica_current
+    read_cai_init
+    read_eX
+    stdp
     test0_kin_diff
     test0_kin_conserve
     test0_kin_compartment
@@ -15,24 +18,22 @@ set(test_mechanisms
     test1_kin_diff
     test1_kin_conserve
     test1_kin_compartment
+    test1_kin_steadystate
     test2_kin_diff
     test3_kin_diff
     test4_kin_compartment
-    test1_kin_steadystate
-    fixed_ica_current
-    point_ica_current
-    linear_ca_conc
-    test_cl_valence
-    test_ca_read_valence
-    read_eX
-    write_Xi_Xo
-    write_multiple_eX
-    write_eX
-    read_cai_init
-    write_cai_breakpoint
     test_ca
+    test_ca_read_valence
+    test_cl_valence
+    test_linear_state
+    test_linear_init
+    test_linear_init_shuffle
     test_kin1
     test_kinlva
+    write_cai_breakpoint
+    write_eX
+    write_multiple_eX
+    write_Xi_Xo
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)

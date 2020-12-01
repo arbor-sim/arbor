@@ -11,6 +11,7 @@
 #include "mechanisms/celsius_test.hpp"
 #include "mechanisms/diam_test.hpp"
 #include "mechanisms/param_as_state.hpp"
+#include "mechanisms/stdp.hpp"
 #include "mechanisms/test0_kin_diff.hpp"
 #include "mechanisms/test_linear_state.hpp"
 #include "mechanisms/test_linear_init.hpp"
@@ -65,6 +66,7 @@ mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
     ADD_MECH(cat, celsius_test)
     ADD_MECH(cat, diam_test)
     ADD_MECH(cat, param_as_state)
+    ADD_MECH(cat, stdp)
     ADD_MECH(cat, test_linear_state)
     ADD_MECH(cat, test_linear_init)
     ADD_MECH(cat, test_linear_init_shuffle)
