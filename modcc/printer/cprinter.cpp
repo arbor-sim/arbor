@@ -256,7 +256,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "void net_receive(int i_, value_type weight);\n";
 
     post_event && out <<
-        "void post_events() override;\n";
+        "void post_event() override;\n";
 
     with_simd && out << "unsigned simd_width() const override { return simd_width_; }\n";
 
@@ -395,7 +395,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     if(post_event) {
         const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
         out <<
-            "void " << class_name << "::post_events() {\n" << indent <<
+            "void " << class_name << "::post_event() {\n" << indent <<
             "int n_ = width_;\n"
             "for (int i_ = 0; i_ < n_; ++i_) {\n" << indent <<
             "auto node_index_i_ = node_index_[i_];\n"

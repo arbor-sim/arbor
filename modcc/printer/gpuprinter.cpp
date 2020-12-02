@@ -87,7 +87,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         << ppack_name << "&, deliverable_event_stream_state events);\n";
 
     post_event && out <<
-        "void " << class_name << "_post_events_(" << ppack_name << "&);\n";
+        "void " << class_name << "_post_event_(" << ppack_name << "&);\n";
 
 
     out <<
@@ -121,8 +121,8 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "}\n\n";
 
     post_event && out <<
-        "void post_events() override {\n" << indent <<
-        class_name << "_post_events_(pp_);\n" << popindent <<
+        "void post_event() override {\n" << indent <<
+        class_name << "_post_event_(pp_);\n" << popindent <<
         "}\n\n";
 
     out << popindent <<
@@ -329,7 +329,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     if (post_event) {
         const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
         out << "__global__\n"
-            << "void post_events(" <<  ppack_name << " params_) {\n" << indent
+            << "void post_event(" <<  ppack_name << " params_) {\n" << indent
             << "int n_ = params_.width_;\n"
             << "auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
             << "if (tid_<n_) {\n" << indent
@@ -379,12 +379,12 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         << popindent << "}\n\n";
 
     post_event && out
-        << "void " << class_name << "_post_events_("
+        << "void " << class_name << "_post_event_("
         << ppack_name << "& p) {\n" << indent
         << "auto n = p.width_;\n"
         << "unsigned block_dim = 128;\n"
         << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-        << "post_events<<<grid_dim, block_dim>>>(p);\n"
+        << "post_event<<<grid_dim, block_dim>>>(p);\n"
         << popindent << "}\n\n";
 
     out << namespace_declaration_close(ns_components);

@@ -295,7 +295,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         PE(advance_integrate_post)
         for (auto& m: mechanisms_) {
-            m->post_events();
+            m->post_event();
         }
         PL();
 
