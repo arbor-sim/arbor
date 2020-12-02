@@ -334,10 +334,10 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << "auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
             << "if (tid_<n_) {\n" << indent
             << "auto node_index_i_ = params_.node_index_[tid_];\n"
-            << "auto cid = params_.vec_ci_[node_index_i_];\n"
-            << "auto start = params_.n_detectors_ * cid;\n"
+            << "auto cid_ = params_.vec_ci_[node_index_i_];\n"
+            << "auto offset_ = params_.n_detectors_ * cid_;\n"
             << "for (unsigned c = 0; c < params_.n_detectors_; c++) {\n" << indent
-            << "auto " << time_arg << " = params_.time_since_spike_[start + c];\n"
+            << "auto " << time_arg << " = params_.time_since_spike_[offset_ + c];\n"
             << "if (" <<  time_arg << " > 0) {\n" << indent
             << cuprint(post_event->body())
             << popindent << "}\n"

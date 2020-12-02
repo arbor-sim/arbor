@@ -1208,21 +1208,19 @@ TEST(fvm_lowered, stdp_shared_state) {
     arb::proc_allocation resources;
     if (auto nt = arbenv::get_env_num_threads()) {
         resources.num_threads = nt;
-    }
-    else {
+    } else {
         resources.num_threads = arbenv::thread_concurrency();
     }
     arb::execution_context context(resources);
 
-    class stdp_recipe: public arb::recipe {
+    class stdp_recipe : public arb::recipe {
     public:
-        stdp_recipe(unsigned ncv, std::vector<unsigned> detectors_per_cell, std::string synapse):
-            ncell_(detectors_per_cell.size()),
-            ncv_(ncv),
-            detectors_per_cell_(detectors_per_cell),
-            synapse_(synapse),
-            cat_(make_unit_test_catalogue())
-        {
+        stdp_recipe(unsigned ncv, std::vector<unsigned> detectors_per_cell, std::string synapse) :
+                ncell_(detectors_per_cell.size()),
+                ncv_(ncv),
+                detectors_per_cell_(detectors_per_cell),
+                synapse_(synapse),
+                cat_(make_unit_test_catalogue()) {
             const auto default_cat = arb::global_default_catalogue();
             cat_.import(default_cat, "");
         }
@@ -1239,9 +1237,9 @@ TEST(fvm_lowered, stdp_shared_state) {
             cell.default_parameters.discretization = arb::cv_policy_fixed_per_branch(ncv_);
 
             auto ndetectors = detectors_per_cell_[gid];
-            auto offset = 1.0/ndetectors;
+            auto offset = 1.0 / ndetectors;
             for (unsigned i = 0; i < ndetectors; ++i) {
-                cell.place(arb::mlocation{0, offset*i}, arb::threshold_detector{10});
+                cell.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10});
             }
 
             cell.place(arb::mlocation{0, 0.5}, synapse_);
@@ -1281,7 +1279,6 @@ TEST(fvm_lowered, stdp_shared_state) {
     probe_association_map probe_map;
 
     std::vector<unsigned> gids                 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    std::vector<fvm_index_type> cell_to_intdom = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     const unsigned ncell = gids.size();
     const unsigned cv_per_cell = 10;
 
@@ -1293,6 +1290,7 @@ TEST(fvm_lowered, stdp_shared_state) {
 
     for (const auto& detectors_per_cell: detectors_per_cell_vec){
         stdp_recipe rec(cv_per_cell, detectors_per_cell, "stdp");
+        std::vector<fvm_index_type> cell_to_intdom;
 
         fvm_cell fvcell(context);
         fvcell.initialize(gids, rec, cell_to_intdom, targets, probe_map);
@@ -1314,6 +1312,7 @@ TEST(fvm_lowered, stdp_shared_state) {
     }
     for (const auto& detectors_per_cell: detectors_per_cell_vec){
         stdp_recipe rec(cv_per_cell, detectors_per_cell, "expsyn");
+        std::vector<fvm_index_type> cell_to_intdom;
 
         fvm_cell fvcell(context);
         fvcell.initialize(gids, rec, cell_to_intdom, targets, probe_map);
