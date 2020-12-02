@@ -107,7 +107,7 @@ public:
     }
 
     py::object spikes() const {
-        return py::array_t<arb::spike>(py::ssize_t{(long) spike_record_.size()}, spike_record_.data());
+        return py::array_t<arb::spike>(py::ssize_t(spike_record_.size()), spike_record_.data());
     }
 
     py::list get_probe_metadata(arb::cell_member_type probe_id) const {

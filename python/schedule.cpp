@@ -49,8 +49,6 @@ regular_schedule_shim::regular_schedule_shim(arb::time_type delta_t) {
     set_dt(delta_t);
 }
 
-regular_schedule_shim::~regular_schedule_shim() {}
-
 void regular_schedule_shim::set_tstart(arb::time_type t) {
     pyarb::assert_throw(is_nonneg()(t), "tstart must be a non-negative number");
     tstart = t;
@@ -103,8 +101,6 @@ explicit_schedule_shim::explicit_schedule_shim(std::vector<arb::time_type> t) {
     set_times(t);
 }
 
-explicit_schedule_shim::~explicit_schedule_shim() {}
-
 // getter and setter (in order to assert when being set)
 void explicit_schedule_shim::set_times(std::vector<arb::time_type> t) {
     times = std::move(t);
@@ -151,8 +147,6 @@ poisson_schedule_shim::poisson_schedule_shim(
     set_freq(f);
     seed = s;
 }
-
-poisson_schedule_shim::~poisson_schedule_shim() {}
 
 void poisson_schedule_shim::set_tstart(arb::time_type t) {
     pyarb::assert_throw(is_nonneg()(t), "tstart must be a non-negative number");
