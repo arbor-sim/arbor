@@ -284,20 +284,20 @@ not the absolute co-ordinate axes.
 
       Construct an identity isometry.
 
-   .. cpp:function:: static translate(double x, double y, double z)
+   .. cpp:function:: static isometry translate(double x, double y, double z)
 
       Construct a translation (x, y, z) with respect to the extrinsic coordinate system.
 
-   .. cpp:function:: template <typename Point> static translate(const Point& p)
+   .. cpp:function:: template <typename Point> static isometry translate(const Point& p)
 
       Construct a translation (p.x, p.y, p.z) from an arbitrary object with the corresponding
       public member variables.
 
-   .. cpp:function:: static rotate(double theta, double x, double y, double z)
+   .. cpp:function:: static isometry rotate(double theta, double x, double y, double z)
 
       Construct a rotation of theta radians about the axis (x, y, z) with respect to the intrinsic coordinate system.
 
-   .. cpp:function:: template <typename Point> static translate(double theta, const Point& p)
+   .. cpp:function:: template <typename Point> static isometry translate(double theta, const Point& p)
 
       Construct a rotation of theta radians about the (p.x, p.y, p.z) from an arbitrary object with the corresponding
       public member variables.
