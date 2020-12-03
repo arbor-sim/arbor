@@ -236,7 +236,6 @@ def generate(path=''):
     morph_image([inputs.detached_morph], ['segments'], path+'/detached_seg.svg')
     morph_image([inputs.stacked_morph],  ['segments'], path+'/stacked_seg.svg')
     morph_image([inputs.swc_morph],      ['segments'], path+'/swc_morph.svg')
-    morph_image([inputs.example_morph0], ['segments'], path+'/example_morph0.svg')
 
     morph_image([inputs.label_morph, inputs.label_morph], ['segments', 'branches'], path+'/label_morph.svg')
     morph_image([inputs.detached_morph, inputs.detached_morph], ['segments', 'branches'], path+'/detached_morph.svg')
@@ -282,6 +281,20 @@ def generate(path=''):
     label_image(inputs.label_morph, [inputs.reg_radgt5],  path+'/radiusgt_label.svg')
     label_image(inputs.label_morph, [inputs.reg_radge5],  path+'/radiusge_label.svg')
 
+    ####################### Tutorial examples
+
+    morph_image([inputs.example_morph0], ['segments'], path+'/example0_morph.svg')
+
+    ####################### locsets
+
+    label_image(inputs.label_morph, [inputs.ex0_root, inputs.ex0_term], path+'/example0_root_term.svg')
+    label_image(inputs.label_morph, [inputs.ex0_tag4_term], path+'/example0_tag4_term.svg')
+
+
+    ####################### regions
+    label_image(inputs.example_morph0, [inputs.ex0_tag1, inputs.ex0_tag2, inputs.ex0_tag3, inputs.ex0_tag4], path+'/example0_tag.svg')
+    label_image(inputs.example_morph0, [inputs.ex0_all, inputs.ex0_gt], path+'/example0_all_gt.svg')
+    label_image(inputs.example_morph0, [inputs.ex0_tag4_gt], path+'/example0_tag4_gt.svg')
 
 if __name__ == '__main__':
     generate('.')

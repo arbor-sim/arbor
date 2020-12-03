@@ -99,7 +99,7 @@ tmp = [
 example_morph0 = representation.make_morph(tmp)
 
 
-############# locsets
+############# locsets (label_morph)
 
 ls_root  = {'type': 'locset', 'value': [(0, 0.0)]}
 ls_term  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
@@ -115,7 +115,7 @@ ls_proxint_in  = {'type': 'locset', 'value': [(1, 0.8), (2, 0.3)]}
 ls_loctest  = {'type': 'locset', 'value': [(1, 1.0), (2, 0.0), (5, 0.0)]}
 ls_restrict  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0)]}
 
-############# regions
+############# regions (label_morph)
 
 reg_empty = {'type': 'region', 'value': []}
 reg_all = {'type': 'region', 'value': [(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 1.0)]}
@@ -144,3 +144,19 @@ reg_lhs = {'type': 'region', 'value': [(0, 0.5, 1.0), (1, 0.0, 0.5)]}
 reg_rhs = {'type': 'region', 'value': [(1, 0.0, 1.0)]}
 reg_and = {'type': 'region', 'value': [(1, 0.0, 0.5)]}
 reg_or = {'type': 'region', 'value': [(0, 0.5, 1.0), (1, 0.0, 1.0)]}
+
+############# locsets (example_morph0)
+
+ex0_root       = {'type': 'locset', 'value': [(0, 0.0)]}
+ex0_term       = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
+ex0_tag4_term  = {'type': 'locset', 'value': [(3, 1.0), (4, 1.0)]}
+
+############# regions (example_morph0)
+
+ex0_tag1    = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168)]}
+ex0_tag2    = {'type': 'region', 'value': [(5, 0.0, 1.0)]}
+ex0_tag3    = {'type': 'region', 'value': [(0, 0.3324708796524168, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0)]}
+ex0_tag4    = {'type': 'region', 'value': [(3, 0.0, 1.0), (4, 0.0, 1.0)]}
+ex0_all     = {'type': 'region', 'value': [(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 1.0)]}
+ex0_gt      = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (5, 0.0, 0.21875)]}
+ex0_tag4_gt = {'type': 'region', 'value': [(3, 0.0, 1.0), (4, 0.0, 1.0), (0, 0.0, 0.3324708796524168), (5, 0.0, 0.21875)]}
