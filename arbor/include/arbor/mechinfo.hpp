@@ -70,7 +70,7 @@ struct mechanism_info {
 
     bool linear = false;
 
-    bool stdp_enabled = false;
+    bool post_events = false;
 };
 
 } // namespace arb

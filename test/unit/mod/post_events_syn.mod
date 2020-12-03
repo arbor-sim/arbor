@@ -1,5 +1,5 @@
 NEURON {
-    POINT_PROCESS stdp
+    POINT_PROCESS post_events_syn
     RANGE tau, e
     NONSPECIFIC_CURRENT i
 }

@@ -281,8 +281,8 @@ struct fvm_mechanism_data {
     // Partitions target numbers by cell.
     std::vector<std::size_t> target_divs;
 
-    // Contains STDP-enabled mechanisms.
-    bool stdp_enabled = false;
+    // Contains mechanisms with post_event
+    bool post_events = false;
 };
 
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const arb::execution_context& ctx={});

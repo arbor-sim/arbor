@@ -454,12 +454,12 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
-    // Fill src_to_spike and cv_to_cell vectors only if stdp-enabled mechanisms are present.
+    // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
 
-    auto max_detector = mech_data.stdp_enabled ? util::max_value(nsources) : 0;
+    auto max_detector = mech_data.post_events ? util::max_value(nsources) : 0;
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
 
-    if (mech_data.stdp_enabled) {
+    if (mech_data.post_events) {
         for (auto cell_idx: make_span(ncell)) {
             for (auto lid: make_span(nsources[cell_idx])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);

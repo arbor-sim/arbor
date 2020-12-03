@@ -528,7 +528,7 @@ bool Module::semantic() {
     }
     linear_ = linear;
 
-    stdp_enabled_ = has_symbol("post_event", symbolKind::procedure);
+    post_events_ = has_symbol("post_event", symbolKind::procedure);
 
     // Are we writing an ionic reversal potential? If so, change the moduleKind to
     // `revpot` and assert that the mechanism is 'pure': it has no state variables;

@@ -8,9 +8,9 @@ set(test_mechanisms
     linear_ca_conc
     param_as_state
     point_ica_current
+    post_events_syn
     read_cai_init
     read_eX
-    stdp
     test0_kin_diff
     test0_kin_conserve
     test0_kin_compartment
