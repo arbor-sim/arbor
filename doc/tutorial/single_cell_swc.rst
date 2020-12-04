@@ -3,20 +3,40 @@
 A detailed branchy cell
 -----------------------
 
-We can build on the :ref:`single segment cell example <gs_single_cell>` to create a more
-complex single cell model, in terms of the morphology, dynamics, and discretisation control.
+We can expand on the :ref:`single segment cell example <gs_single_cell>` to create a more
+complex single cell model, and going through the process in more detail.
 
-We start by building the cell, a process which can be split into 3 parts:
+We start by building the cell. This will be a *cable cell* with complex geometry and
+dynamics which can be constructed from 3 components:
 
-1. Define the geometry of the cell using a **morphology**.
-1. Define the regions and locations of interest on the cell using a **label dictionary**
-2. Set various properties and dynamics on these labeled regions and locations, using
-   a **decor**. This includes hints about how the cell is to be modeled under the hood, by
+1. A **morphology** defining the geometry of the cell.
+2. A **label dictionary** storing labeled expressions which define regions and locations of
+   interest on the cell.
+3. A **decor** defining various properties and dynamics on these labeled regions and locations.
+   The decor also includes hints about how the cell is to be modeled under the hood, by
    splitting it into discrete control volumes (CV).
+
+Next, we construct a *single cell model*. This model takes care of a lot of details
+behind the scenes: it sets up a recipe (more on recipes :ref:`here <modelrecipe>`), creates
+a simulation object, manages the hardware etc. These details become more important when modeling
+a network of cells, but can be abstracted away when working with single cell networks.
+
+The single cell model has 5 main functions:
+
+1. It holds the **global properties** of the model
+2. It registers **probes** on specific locations on the cell to measure the voltage.
+3. It **runs** the simulation.
+4. It collects **spikes** from spike detectors.
+5. It collects the voltage **traces** from registered probes.
+
+The cell
+********
+
+Before creating the actual cell object, we have to create its components.
 
 The morpholohgy
 ^^^^^^^^^^^^^^^
-Let's begin with constructing the following morphology:
+We begin by constructing the following morphology:
 
 .. figure:: ../gen-images/example0_morph.svg
    :width: 400
@@ -84,7 +104,7 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
     sample 3 and sample 2 form a segment which has length = 0.
     We use these zero-length segments to represent an abrupt radius change
     in the morphology, like we see between segment 0 and segment 1 in the above
-    morphology.
+    morphology diagram, for example.
 
 The morphology can then be loaded from ``morph.swc`` in the following way:
 
@@ -166,7 +186,7 @@ This will generate the following regions when applied to the previously defined 
 Looking at the morphology definition, we can see region "gt_1.5" includes all of segment 0 and part of
 segment 9.
 
-Finally, let's define a final region that includes our two custom regions: "last" and "gt_1.5". This can
+Finally, let's define a region that includes our two custom regions: "last" and "gt_1.5". This can
 be done as follows:
 
 .. code-block:: python
@@ -226,7 +246,7 @@ expressions.
   cell should behave, which can then be applied to any morphology, and have a different effect
   depending on the geometry.
 
-The decor object can have default values for properties, which can then be overridden for on specific
+The decor object can have default values for properties, which can then be overridden on specific
 regions. It is in general better to explicitly set all the default properties of your cell,
 to avoid the confusion to having simulator-specific default values. This will therefore be our first
 step:
@@ -253,13 +273,12 @@ step:
     decor.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
     decor.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
 
-With that, we have set the default initial membrane voltage to -55 mV; the default initial
+We have set the default initial membrane voltage to -55 mV; the default initial
 temperature to 300 K; the default axial resistivity to 35.4 Ω·cm; and the default membrane
 capacitance to 0.01 F/m².
 
 We also set the initial properties of the *na* and *k* ions because they will be utilized
-by the mechanisms we define in the coming sections.
-
+by the density mechanisms that we will be adding shortly.
 For both ions we set the default initial concentration and external concentration measures in mM;
 and we set the default initial reversal potential in mV. For the *na* ion, we additionally indicate
 the the progression on the reversal potential during the simulation will be dictated by the *nernst*
@@ -276,7 +295,7 @@ We can override the default properties by *painting* new values on the relevant 
    decor.paint('"custom"', tempK=270)
    decor.paint('"soma"', Vm=-50)
 
-With our default and initial values taken care of, we can add some density mechanisms. Let's place
+With the default and initial values taken care of, we can add some density mechanisms. Let's *paint*
 a *pas* mechanism everywhere on the cell using the previously defined "all" region; an *hh* mechanism
 on the "custom" region; and an *Ih* mechanism on the "dend" region. The *Ih* mechanism is explicitly
 constructed in order to change the default values of its 'gbar' parameter.
@@ -292,7 +311,7 @@ constructed in order to change the default values of its 'gbar' parameter.
    decor.paint('"custom"', 'hh')
    decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
 
-The decor object is also used to place stimuli and spike detectors on the cell. We *place* 3 current
+The decor object is also used to *place* stimuli and spike detectors on the cell. We place 3 current
 clamps of 0.5 nA on the "root" locset defined earlier, starting at time = 3, 5, 7 ms and lasting 1ms each.
 As well as spike detectors on the "custom_terminals" locset for voltages above -10 mV:
 
@@ -308,7 +327,7 @@ As well as spike detectors on the "custom_terminals" locset for voltages above -
 Finally, there's one last property that impacts the behavior of a model: the discretisation.
 Cells in Arbor are simulated as discrete components called control volumes (CV). The size of
 a CV has an impact on the accuracy of the results of the simulation. Usually, smaller CVs
-are more accurate because they simulate the continuous nature of a neuron more accurately.
+are more accurate because they simulate the continuous nature of a neuron more closely.
 
 The user controls the discretisation using a *cv_policy*. There are a few different policies to choose
 from. and they can be composed with one another. In this example, we would like the "soma" region
@@ -327,8 +346,8 @@ to be a single CV, and the rest of the morphology to be comprised of CVs with a 
 
    decor.discretization(policy)
 
-Constructing the cell
-^^^^^^^^^^^^^^^^^^^^^
+Putting it together
+^^^^^^^^^^^^^^^^^^^
 
 With the 3 main components defined, we can now create the cell.
 
@@ -393,6 +412,110 @@ Here is the code so far:
    decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
    decor.place('"custom_terminals"', arbor.spike_detector(-10))
 
-   # Create the cell.
+   # (4) Create the cell.
 
    cell = arbor.cable_cell(morph, labels, decor)
+
+The model
+*********
+
+We begin by constructing a *single cell model* around the cell.
+
+.. code-block:: python
+
+   import arbor
+   from arbor import mechanism as mech
+
+   #(1) -> (3) Create the morphology, label dictionary and decor.
+
+   # ...
+
+   # (4) Construct the cell.
+
+   cell = arbor.cable_cell(morph, labels, decor)
+
+   # (5) Construct the model
+
+   model = arbor.single_cell_model(cell)
+
+The global properties
+^^^^^^^^^^^^^^^^^^^^^
+
+The global properties of a single cell model include:
+
+1. The **mechanism catalogue**: A mechanism catalogue is a collection of density and point
+   mechanisms. Arbor has 3 built in mechanism catalogues: default, allen and bbp. The mechanism
+   catalogue in the global properties of the model must include the catalogues of all the
+   mechanisms on the cell.
+
+2. The default **parameters**: The initial membrane voltage; the initial temperature; the
+   axial resistivity; the membrane capacitance; the ion parameters; and the discretisation
+   policy.
+
+.. Note::
+
+   You may have noticed that the same parameters can be set both at the cell level and at
+   the model level. This is intentional. The model parameters apply to all the cells in a model,
+   whereas the cell parameters apply only to that specific cell.
+
+   The idea is that the user is able to define a set of global properties for all cells in a model
+   which can then be overridden for individual cells, and overridden yet again on certain
+   regions of the cells.
+
+   You may now be wondering why this is needed for the `single cell model` where there is only one
+   cell by design. We've added this feature to facilitate moving from a set of single cell models
+   to a network of these cells, by having a clear differentiation between model and cell parameters.
+
+Earlier in the example we mentioned that it is better to explicitly set all the default properties
+of your cell, while that is true, it is better yet to set the default properties of the entire
+model:
+
+.. code-block:: python
+
+   # Set the model default properties
+
+   model.properties.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
+   model.properties.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
+   model.properties.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+
+We set the same properties as we did earlier when we were creating the *decor* or the cell.
+
+During the decoration step, we also made use of 3 mechanisms: *pas*, *hh* and *Ih*. As it happens,
+the *pas* and *hh* mechanisms are in the default Arbor catalogue, whereas the *Ih* mechanism is in
+the "allen" catalogue. We can extend the default catalogue as follow:
+
+.. code-block:: python
+
+   # Extend the default catalogue with the allen catalogue.
+   # The function takes a second string parameter that can prefix
+   # the name of the mechanisms to avoid collisions between catalogues
+   # in this case we have no collisions so we use an empty prefix string.
+
+   model.properties.catalogue.extend(arbor.bbp_catalogue(), "")
+
+Now all three mechanisms in the *decor* object have been made available to the model.
+
+The probes
+^^^^^^^^^^
+
+The model is almost ready for simulation. Except that the only output we would be able to
+measure at this point is the spikes from the spike detectors placed in the decor.
+
+The single cell model can also measure the voltage on specific locations of the cell.
+We can indicate the location we would like to *probe* using labels from the *label dictioanry*:
+
+.. code-block:: python
+
+   # Add voltage probes on the "custom_terminals" locset
+   # which sample the voltage at 50000 Hz
+
+   model.probe('voltage', where='"custom_terminals"',  frequency=50000)
+
+The simulation
+^^^^^^^^^^^^^^
+
+The spikes
+^^^^^^^^^^
+
+The traces
+^^^^^^^^^^
