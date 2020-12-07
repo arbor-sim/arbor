@@ -4,7 +4,7 @@ A detailed branchy cell
 -----------------------
 
 We can expand on the :ref:`single segment cell example <gs_single_cell>` to create a more
-complex single cell model, and going through the process in more detail.
+complex single cell model, and go through the process in more detail.
 
 We start by building the cell. This will be a *cable cell* with complex geometry and
 dynamics which can be constructed from 3 components:
@@ -100,11 +100,11 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
        14     2   -10.0     0.0     0.0     0.4        13  # seg10 dist
 
 .. note::
-    SWC samples always form a segment with their parent segment. For example,
+    SWC samples always form a segment with their parent sample. For example,
     sample 3 and sample 2 form a segment which has length = 0.
     We use these zero-length segments to represent an abrupt radius change
     in the morphology, like we see between segment 0 and segment 1 in the above
-    morphology diagram, for example.
+    morphology diagram.
 
 The morphology can then be loaded from ``morph.swc`` in the following way:
 
@@ -164,8 +164,8 @@ This will generate the following regions when applied to the previously defined 
   From left to right: regions "soma", "axon", "dend" and "last"
 
 We can also define a region that represents the whole cell; and to make things a bit more interesting,
-a region that includes parts of the morphology that have a radius greater than 1.5 μm. This is done in
-the following way:
+a region that includes the parts of the morphology that have a radius greater than 1.5 μm. This is done
+in the following way:
 
 .. code-block:: python
 
@@ -173,7 +173,7 @@ the following way:
     labels['all'] = '(all)'
 
     # Add a label for the parts of the cell with radius greater than 1.5 μm.
-    labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
+    labels['gt_1.5'] = '(radius-gt (region "all") 1.5)'
 
 This will generate the following regions when applied to the previously defined morphology:
 
@@ -183,7 +183,7 @@ This will generate the following regions when applied to the previously defined 
 
   Left: region "all"; right: region "gt_1.5"
 
-Looking at the morphology definition, we can see region "gt_1.5" includes all of segment 0 and part of
+By comparing to the original morphology, we can see region "gt_1.5" includes all of segment 0 and part of
 segment 9.
 
 Finally, let's define a region that includes our two custom regions: "last" and "gt_1.5". This can
@@ -217,20 +217,24 @@ previously defined morphology:
   :width: 400
   :align: center
 
-To make things more interesting, let's only select the points of the morphology that are the
-terminal points, but which also belong to the previously defined region "custom":
+To make things more interesting, let's only select only the terminal points which belong to the
+previously defined "custom" region, and separately the terminal points which belong to the "axon" region:
 
 .. code-block:: python
 
-    # Add a labels for the terminal locations in the "custom" region:
+    # Add a label for the terminal locations in the "custom" region:
     labels['custom_terminals'] = '(restrict (locset "terminal") (region "custom"))'
 
-This will generate the following locset when applied to the previously defined morphology:
+    # Add a label for the terminal locations in the "axon" region:
+    labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
 
-.. figure:: ../gen-images/example0_tag4_term.svg
+This will generate the following 2 locsets when applied to the previously defined morphology:
+
+.. figure:: ../gen-images/example0_tag4_axon_term.svg
   :width: 200
   :align: center
 
+  Left: locset "custom_terminals"; right: locset "axon_terminal"
 
 The Decorations
 ^^^^^^^^^^^^^^^
@@ -295,7 +299,7 @@ We can override the default properties by *painting* new values on the relevant 
    decor.paint('"custom"', tempK=270)
    decor.paint('"soma"', Vm=-50)
 
-With the default and initial values taken care of, we can add some density mechanisms. Let's *paint*
+With the default and initial values taken care of, we now add some density mechanisms. Let's *paint*
 a *pas* mechanism everywhere on the cell using the previously defined "all" region; an *hh* mechanism
 on the "custom" region; and an *Ih* mechanism on the "dend" region. The *Ih* mechanism is explicitly
 constructed in order to change the default values of its 'gbar' parameter.
@@ -313,16 +317,16 @@ constructed in order to change the default values of its 'gbar' parameter.
 
 The decor object is also used to *place* stimuli and spike detectors on the cell. We place 3 current
 clamps of 0.5 nA on the "root" locset defined earlier, starting at time = 3, 5, 7 ms and lasting 1ms each.
-As well as spike detectors on the "custom_terminals" locset for voltages above -10 mV:
+As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV:
 
- .. code-block:: python
+.. code-block:: python
 
    # Place stimuli and spike detectors on certain locsets
 
    decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
    decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
    decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
-   decor.place('"custom_terminals"', arbor.spike_detector(-10))
+   decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
 Finally, there's one last property that impacts the behavior of a model: the discretisation.
 Cells in Arbor are simulated as discrete components called control volumes (CV). The size of
@@ -383,6 +387,7 @@ Here is the code so far:
    labels['root']     = '(root)'
    labels['terminal'] = '(terminal)'
    labels['custom_terminals'] = '(restrict (locset "terminal") (region "custom"))'
+   labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
 
    # (3) Create and populate the decor.
 
@@ -410,7 +415,7 @@ Here is the code so far:
    decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
    decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
    decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
-   decor.place('"custom_terminals"', arbor.spike_detector(-10))
+   decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
    # (4) Create the cell.
 
@@ -446,7 +451,7 @@ The global properties of a single cell model include:
 1. The **mechanism catalogue**: A mechanism catalogue is a collection of density and point
    mechanisms. Arbor has 3 built in mechanism catalogues: default, allen and bbp. The mechanism
    catalogue in the global properties of the model must include the catalogues of all the
-   mechanisms on the cell.
+   mechanisms painted on the cell decor.
 
 2. The default **parameters**: The initial membrane voltage; the initial temperature; the
    axial resistivity; the membrane capacitance; the ion parameters; and the discretisation
@@ -514,8 +519,43 @@ We can indicate the location we would like to *probe* using labels from the *lab
 The simulation
 ^^^^^^^^^^^^^^
 
+The cell and model descriptions are now complete and we can run the simulation:
+
+.. code-block:: python
+
+   # Run the simulation for 100 ms, with a dt of 0.025 ms
+   m.run(tfinal=100, dt=0.025)
+
 The spikes
 ^^^^^^^^^^
 
+Finally we move on to the data collection segment of the example. We have added a spike detector
+on the "axon_terminal" locset. The single cell model automatically registers all spikes on the
+cell from all spike detectors on the cell and saves the times at which they occurred.
+
+.. code-block:: python
+
+   # Print the number of spikes.
+   print(len(model.spikes), 'spikes recorded:')
+
+   # Print the spike times.
+   for s in model.spikes:
+       print(s)
+
+
 The traces
 ^^^^^^^^^^
+
+A more interesting result of the simulation is perhaps the output of the voltage probe previously
+placed on the "custom_terminals" locset. The model saves the output of the probes as [time, value]
+pairs which can then be plotted. We use `pandas` and `seaborn` for the plotting, but the user can
+choose the any other library:
+
+.. code-block:: python
+
+   # Plot the output of the probes
+   df = pandas.DataFrame()
+   for t in m.traces:
+      df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
+
+   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')

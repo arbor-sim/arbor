@@ -150,6 +150,7 @@ reg_or = {'type': 'region', 'value': [(0, 0.5, 1.0), (1, 0.0, 1.0)]}
 ex0_root       = {'type': 'locset', 'value': [(0, 0.0)]}
 ex0_term       = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
 ex0_tag4_term  = {'type': 'locset', 'value': [(3, 1.0), (4, 1.0)]}
+ex0_axon_term  = {'type': 'locset', 'value': [(5, 1.0)]}
 
 ############# regions (example_morph0)
 
