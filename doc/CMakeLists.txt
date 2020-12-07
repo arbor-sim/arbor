@@ -6,12 +6,11 @@ add_target_if(SPHINX_FOUND
     "Finding Sphinx"
     "Sphinx must be installed to build documentation")
 
-if (SPHINX_FOUND)
-    find_python_module(svgwrite)
-    if (NOT HAVE_SVGWRITE)
-        message(WARNING "Building documentation requires the svgwrite Python module. You can obtain it from pip like so: pip3 install svgwrite --user")
-    endif()
-endif()
+find_python_module(svgwrite)
+add_target_if(HAVE_SVGWRITE
+    ext-svgwrite
+    "Finding svgwrite"
+    "The Python module svgwrite needs to be installed to build documentation. Use pip to install svgwrite")
 
 set(html_dir "${CMAKE_CURRENT_BINARY_DIR}/html")
 set(doctree_dir "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
@@ -28,7 +27,7 @@ add_custom_target(html
         -q                          # Quiet: no output other than errors and warnings.
         ${CMAKE_CURRENT_SOURCE_DIR} # Source directory
         ${html_dir}                 # Output directory
-    DEPENDS check-sphinx ext-sphinx_rtd_theme
+    DEPENDS check-sphinx ext-sphinx_rtd_theme ext-svgwrite
     COMMENT
         "Generating Sphinx documentation")
 
