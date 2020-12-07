@@ -44,18 +44,6 @@
 *.fls
 *.bbl
 
-# cmake
-CMakeFiles
-CMakeCache.txt
-cmake_install.cmake
-CMakeFiles/
-/compile_commands.json
-arbor-config-version.cmake
-arbor-config.cmake
-bin/
-arbor/include/arbor/assert_macro.hpp
-ext/gbench-build-prefix/
-
 # install path used in gitpod
 /install
 
