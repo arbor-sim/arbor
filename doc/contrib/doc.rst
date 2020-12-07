@@ -35,3 +35,5 @@ Language
 Although the primary language of Arbor is C++, we use English for most of the non-code.
 If in doubt, we recommend following the European Union's
 `English style guide <https://ec.europa.eu/info/sites/info/files/styleguide_english_dgt_en.pdf>`_.
+
+In general we try to have a relaxed and concise approach to the language.
