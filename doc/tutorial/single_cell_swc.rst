@@ -50,7 +50,7 @@ This can be done by manually building a segment tree:
     from arbor import mpoint
     from arbor import mnpos
 
-    #(1) Define the morphology by manually building a segment tree
+    # Define the morphology by manually building a segment tree
 
     tree = arbor.segment_tree()
 
@@ -112,7 +112,7 @@ The morphology can then be loaded from ``morph.swc`` in the following way:
 
     import arbor
 
-    #(1) Read the morphology from an SWC file
+    # Read the morphology from an SWC file
 
     morph = arbor.load_swc_arbor("morph.swc")
 
@@ -130,7 +130,7 @@ can be stored in a **label dictionary**.
    applied to any morphology, and depending on its geometry, they will generate different
    regions and locations. However, we will show some figures illustrating the effect of
    applying these expressions to the above morphology, in order to better visualize the
-   final model.
+   final cell.
 
 First, we can define some **regions**, These are continuous parts of the morphology,
 They can correspond to full segments or parts of segments. Our morphology already has some
@@ -139,13 +139,7 @@ defined as follows:
 
 .. code-block:: python
 
-    import arbor
-
-    #(1) Read the morphology from an SWC file
-
-    morph = arbor.load_swc_arbor("morph.swc")
-
-    #(2) Create a label dictionary
+    #Create a label dictionary
 
     labels = arbor.label_dict()
 
@@ -169,10 +163,10 @@ in the following way:
 
 .. code-block:: python
 
-    # Add a label for a region that includes the whole cell
+    # Add a label for a region that includes the whole morphology
     labels['all'] = '(all)'
 
-    # Add a label for the parts of the cell with radius greater than 1.5 μm.
+    # Add a label for the parts of the morphology with radius greater than 1.5 μm.
     labels['gt_1.5'] = '(radius-gt (region "all") 1.5)'
 
 This will generate the following regions when applied to the previously defined morphology:
@@ -186,7 +180,7 @@ This will generate the following regions when applied to the previously defined 
 By comparing to the original morphology, we can see region "gt_1.5" includes all of segment 0 and part of
 segment 9.
 
-Finally, let's define a region that includes our two custom regions: "last" and "gt_1.5". This can
+Finally, let's define a region that includes two already defined regions: "last" and "gt_1.5". This can
 be done as follows:
 
 .. code-block:: python
@@ -217,13 +211,16 @@ previously defined morphology:
   :width: 400
   :align: center
 
-To make things more interesting, let's only select only the terminal points which belong to the
-previously defined "custom" region, and separately the terminal points which belong to the "axon" region:
+   Left: locset "root"; right: locset "terminal"
+
+To make things more interesting, let's select only the terminal points which belong to the
+previously defined "custom" region; and, separately, the terminal points which belong to the
+"axon" region:
 
 .. code-block:: python
 
     # Add a label for the terminal locations in the "custom" region:
-    labels['custom_terminals'] = '(restrict (locset "terminal") (region "custom"))'
+    labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
 
     # Add a label for the terminal locations in the "axon" region:
     labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
@@ -231,10 +228,10 @@ previously defined "custom" region, and separately the terminal points which bel
 This will generate the following 2 locsets when applied to the previously defined morphology:
 
 .. figure:: ../gen-images/example0_tag4_axon_term.svg
-  :width: 200
+  :width: 400
   :align: center
 
-  Left: locset "custom_terminals"; right: locset "axon_terminal"
+  Left: locset "custom_terminal"; right: locset "axon_terminal"
 
 The Decorations
 ^^^^^^^^^^^^^^^
@@ -248,7 +245,7 @@ expressions.
 
   Similar to the label dictionary, the decor object is merely a description of how an abstract
   cell should behave, which can then be applied to any morphology, and have a different effect
-  depending on the geometry.
+  depending on the geometry and region/locset expressions.
 
 The decor object can have default values for properties, which can then be overridden on specific
 regions. It is in general better to explicitly set all the default properties of your cell,
@@ -257,19 +254,7 @@ step:
 
 .. code-block:: python
 
-    import arbor
-
-    #(1) Read the morphology from an SWC file
-
-    morph = arbor.load_swc_arbor("morph.swc")
-
-    #(2) Create and populate the label dictionary
-
-    labels = arbor.label_dict()
-    labels['soma'] = '(tag 1)'
-    # ...
-
-    #(3) Create a decor object
+    # Create a decor object
     decor = arbor.decor()
 
     # Set the default properties
@@ -334,7 +319,7 @@ a CV has an impact on the accuracy of the results of the simulation. Usually, sm
 are more accurate because they simulate the continuous nature of a neuron more closely.
 
 The user controls the discretisation using a *cv_policy*. There are a few different policies to choose
-from. and they can be composed with one another. In this example, we would like the "soma" region
+from, and they can be composed with one another. In this example, we would like the "soma" region
 to be a single CV, and the rest of the morphology to be comprised of CVs with a maximum length of 1 μm:
 
 .. code-block:: python
@@ -386,7 +371,7 @@ Here is the code so far:
 
    labels['root']     = '(root)'
    labels['terminal'] = '(terminal)'
-   labels['custom_terminals'] = '(restrict (locset "terminal") (region "custom"))'
+   labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
    labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
 
    # (3) Create and populate the decor.
@@ -424,22 +409,11 @@ Here is the code so far:
 The model
 *********
 
-We begin by constructing a *single cell model* around the cell.
+We begin by constructing a *single cell model* of the cell we just created.
 
 .. code-block:: python
 
-   import arbor
-   from arbor import mechanism as mech
-
-   #(1) -> (3) Create the morphology, label dictionary and decor.
-
-   # ...
-
-   # (4) Construct the cell.
-
-   cell = arbor.cable_cell(morph, labels, decor)
-
-   # (5) Construct the model
+   # Construct the model
 
    model = arbor.single_cell_model(cell)
 
@@ -459,7 +433,7 @@ The global properties of a single cell model include:
 
 .. Note::
 
-   You may have noticed that the same parameters can be set both at the cell level and at
+   You may notice that the same parameters can be set both at the cell level and at
    the model level. This is intentional. The model parameters apply to all the cells in a model,
    whereas the cell parameters apply only to that specific cell.
 
@@ -479,11 +453,12 @@ model:
 
    # Set the model default properties
 
-   model.properties.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
+   model.properties.set_property(Vm =-65, tempK=300, rL=35.4, cm=0.01)
    model.properties.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
    model.properties.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
 
-We set the same properties as we did earlier when we were creating the *decor* or the cell.
+We set the same properties as we did earlier when we were creating the *decor* or the cell, except
+for the initial membrane voltage, which is -65 mV as opposed to -55 mV.
 
 During the decoration step, we also made use of 3 mechanisms: *pas*, *hh* and *Ih*. As it happens,
 the *pas* and *hh* mechanisms are in the default Arbor catalogue, whereas the *Ih* mechanism is in
@@ -511,10 +486,10 @@ We can indicate the location we would like to *probe* using labels from the *lab
 
 .. code-block:: python
 
-   # Add voltage probes on the "custom_terminals" locset
+   # Add voltage probes on the "custom_terminal" locset
    # which sample the voltage at 50000 Hz
 
-   model.probe('voltage', where='"custom_terminals"',  frequency=50000)
+   model.probe('voltage', where='"custom_terminal"',  frequency=50000)
 
 The simulation
 ^^^^^^^^^^^^^^
@@ -547,13 +522,118 @@ The traces
 ^^^^^^^^^^
 
 A more interesting result of the simulation is perhaps the output of the voltage probe previously
-placed on the "custom_terminals" locset. The model saves the output of the probes as [time, value]
+placed on the "custom_terminal" locset. The model saves the output of the probes as [time, value]
 pairs which can then be plotted. We use `pandas` and `seaborn` for the plotting, but the user can
 choose the any other library:
 
 .. code-block:: python
 
    # Plot the output of the probes
+   df = pandas.DataFrame()
+   for t in m.traces:
+      df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
+
+   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')
+
+
+The final code
+^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   import arbor
+   from arbor import mechanism as mech
+
+   #(1) Read the morphology from an SWC file.
+
+   morph = arbor.load_swc_arbor("morph.swc")
+
+   #(2) Create and populate the label dictionary.
+
+   labels = arbor.label_dict()
+
+   # Regions:
+
+   labels['soma'] = '(tag 1)'
+   labels['axon'] = '(tag 2)'
+   labels['dend'] = '(tag 3)'
+   labels['last'] = '(tag 4)'
+
+   labels['all'] = '(all)'
+
+   labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
+   labels['custom'] = '(join (region "last") (region "gt_1.5"))'
+
+   # Locsets:
+
+   labels['root']     = '(root)'
+   labels['terminal'] = '(terminal)'
+   labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
+   labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
+
+   # (3) Create and populate the decor.
+
+   decor = arbor.decor()
+
+   # Set the default properties of the cell (this overrides the model defaults).
+
+   decor.set_property(Vm =-55)
+
+   # Override the cell defaults.
+
+   decor.paint('"custom"', tempK=270)
+   decor.paint('"soma"',   Vm=-50)
+
+   # Paint density mechanisms.
+
+   decor.paint('"all"', 'pas')
+   decor.paint('"custom"', 'hh')
+   decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
+
+   # Place stimuli and spike detectors.
+
+   decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
+   decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
+   decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
+   decor.place('"axon_terminal"', arbor.spike_detector(-10))
+
+   # (4) Create the cell.
+
+   cell = arbor.cable_cell(morph, labels, decor)
+
+   # (5) Construct the model
+
+   model = arbor.single_cell_model(cell)
+
+   # (6) Set the model default properties
+
+   model.properties.set_property(Vm =-65, tempK=300, rL=35.4, cm=0.01)
+   model.properties.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
+   model.properties.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+
+   # Extend the default catalogue with the allen catalogue.
+
+   model.properties.catalogue.extend(arbor.bbp_catalogue(), "")
+
+   # (7) Add probes.
+
+   model.probe('voltage', where='"custom_terminal"',  frequency=50000)
+
+   # (8) Run the simulation.
+
+   m.run(tfinal=100, dt=0.025)
+
+   # (9) Print the spikes.
+
+   print(len(model.spikes), 'spikes recorded:')
+
+   # Print the spike times.
+
+   for s in model.spikes:
+       print(s)
+
+   # (10) Plot the voltages
+
    df = pandas.DataFrame()
    for t in m.traces:
       df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
