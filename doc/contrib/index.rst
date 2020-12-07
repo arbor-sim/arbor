@@ -64,7 +64,7 @@ Help solving an Issue
 
 If you want to help solve an issue, that’s great! Issue labels can help
 you find an something that fits your expertise or interest, and if
-you’re just getting start, you can look for the “`good 1st
+you’re just getting started, you can look for the “`good 1st
 issue <https://github.com/arbor-sim/arbor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+1st+issue%22>`__”
 label. Don’t hesitate to post a comment to the Issue if you want to ask
 clarifying questions. If you have implemented a fix, you can make a pull

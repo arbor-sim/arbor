@@ -1,6 +1,6 @@
 .. _contribtest:
 
-Adding tests
+Tests
 ============
 
 .. todo::

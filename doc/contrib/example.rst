@@ -1,6 +1,6 @@
 .. _contribexample:
 
-Adding examples
+Examples
 ===============
 
 The source for C++ examples are located in ``/example`` and

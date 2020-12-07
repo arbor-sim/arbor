@@ -1,6 +1,6 @@
 .. _contribdoc:
 
-Writing documentation
+Documentation
 =====================
 
 The source for `the documentation <https://arbor.readthedocs.io>`__ is
@@ -9,6 +9,20 @@ in the same way you would contribute code, please see the :ref:`contribpr` secti
 
 .. todo::
     This page is under construction.
+
+.. _contribdoc-update:
+
+Update policy
+-------------
+
+How to we decide if documentation is good? By observing how effective it is used
+in practice. If a question on Arbor (regardless of medium) is satisfactorily
+resolved (on both sides!) by with a pointer to the (relevant section in the) docs,
+the documentation was good. If, on the other hand, explanation was needed, the
+documentation was bad.
+
+If you found the documentation to be insufficiently clear or elaborate, you must
+consider this a bug and find or file an `issue <https://github.com/arbor-sim/arbor/issues>`__ and if you are able, make a :ref:`pull request <contribpr>`.
 
 .. _contribdoc-namingconventions:
 
