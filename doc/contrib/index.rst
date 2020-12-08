@@ -73,7 +73,18 @@ request.
 Write code
 ~~~~~~~~~~
 
-See :ref:`contribpr`.
+Some tips when contributing code:
+
+-  Consider the :ref:`contribcodingstyle`.
+-  If you add functionality, please update the documentation
+   accordingly.
+-  If you add functionality, add tests if applicable. This helps make
+   sure Arbor is stable and functionality does what it’s supposed to
+   do.
+-  If you make changes to GPU simulations, you can post a reply to
+   your PR with ``bors try``. This will run our GPU test-suite.
+-  If you add/change the public C++ API, provide Python wrappings.
+-  Make sure Arbor compiles and has no new warnings.
 
 Add examples or unit tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
