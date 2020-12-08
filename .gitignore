@@ -53,7 +53,7 @@ mechanisms/gpu/*.hpp
 mechanisms/gpu/*.cu
 
 # build path
-build*
+/build*
 
 commit.msg
 
