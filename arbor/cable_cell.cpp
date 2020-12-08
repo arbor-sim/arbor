@@ -32,19 +32,20 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& labels):
-        provider(m, labels)
-    {}
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
+        provider(m, labels),
+        decorations(decorations)
+    {
+        init(decorations);
+    }
 
-    cable_cell_impl(): cable_cell_impl({},{}) {}
+    cable_cell_impl(): cable_cell_impl({},{},{}) {}
 
-    cable_cell_impl(const cable_cell_impl& other):
-        provider(other.provider),
-        region_map(other.region_map),
-        location_map(other.location_map)
-    {}
+    cable_cell_impl(const cable_cell_impl& other) = default;
 
     cable_cell_impl(cable_cell_impl&& other) = default;
+
+    void init(const decor&);
 
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
@@ -57,6 +58,9 @@ struct cable_cell_impl {
 
     // Track number of point assignments by type for lid/target numbers.
     dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
+
+    // The decorations on the cell.
+    decor decorations;
 
     template <typename T>
     mlocation_map<T>& get_location_map(const T&) {
@@ -131,15 +135,12 @@ impl_ptr make_impl(cable_cell_impl* c) {
 }
 
 cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary, const decor& decorations):
-    impl_(make_impl(new cable_cell_impl(m, dictionary)))
-{
-    this->decorate(decorations);
-}
+    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
+{}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 
 cable_cell::cable_cell(const cable_cell& other):
-    decor_(other.decor_),
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
 
@@ -171,32 +172,23 @@ const cable_cell_region_map& cable_cell::region_assignments() const {
     return impl_->region_map;
 }
 
-// Forward paint method to implementation class.
-void cable_cell::paint(const region& target, paintable prop) {
-    std::visit(
-            [this, &target] (auto&& p) {impl_->paint(target, p);},
-            prop);
-    decor_.paintings.push_back({target, prop});
+void cable_cell_impl::init(const decor& d) {
+    for (const auto& [target, painting]: d.paintings) {
+        std::visit([this, target] (auto&& p) {this->paint(target, p);},
+                   painting);
+    }
+    for (const auto& [target, placement]: d.placements) {
+        std::visit([this, target] (auto&& p) {this->place(target, p);},
+                   placement);
+    }
 }
 
-// Forward place method to implementation class.
-lid_range cable_cell::place(const locset& target, placeable prop) {
-    auto lids = std::visit(
-            [this, &target] (auto&& p) -> lid_range {return impl_->place(target, p);},
-            prop);
-
-    decor_.placements.push_back({target, prop});
-    return lids;
+const decor& cable_cell::decorations() const {
+    return impl_->decorations;
 }
 
-void cable_cell::decorate(const decor& d) {
-    for (auto& x: d.paintings) {
-        paint(x.first, x.second);
-    }
-    for (auto& x: d.placements) {
-        place(x.first, x.second);
-    }
-    decor_.defaults = d.defaults;
+const cable_cell_parameter_set& cable_cell::default_parameters() const {
+    return impl_->decorations.defaults;
 }
 
 } // namespace arb

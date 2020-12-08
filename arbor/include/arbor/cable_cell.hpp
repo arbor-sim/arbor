@@ -286,28 +286,10 @@ public:
     const cable_cell_location_map& location_assignments() const;
 
     // View the decorations on the cell.
-    const decor& decorations() const {
-        return decor_;
-    }
-
-    const cable_cell_parameter_set& default_parameters() const {
-        return decor_.defaults;
-    }
+    const decor& decorations() const;
+    const cable_cell_parameter_set& default_parameters() const;
 
 private:
-    // Apply a set of decorations to the cell.
-    // Note: these will not remove existing paintings & placements, and
-    // will apply changes on top of existing defaults.
-    void decorate(const decor&);
-
-    // Painters and placers.
-    // Used to describe regions and locations where density channels, stimuli,
-    // synapses, gap junctions and detectors are located.
-    void paint(const region&, paintable);
-    lid_range place(const locset&, placeable);
-
-
-    decor decor_;
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 
