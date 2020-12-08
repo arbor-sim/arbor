@@ -489,9 +489,6 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
             pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
             "Set global default values for cable and cell properties.")
-        .def("foo", [](global_props_shim& G, double x, pybind11::object method) {
-                        std::cout << "foo(" << x << ", " << method << ")\n";},
-                    "x"_a, "method"_a=pybind11::none())
         // add/modify ion species
         .def("set_ion",
             [](global_props_shim& G, const char* ion,

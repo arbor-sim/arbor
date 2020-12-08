@@ -86,23 +86,20 @@ std::vector<defaultable> cable_cell_parameter_set::serialize() const {
         D.push_back(arb::membrane_capacitance{*this->membrane_capacitance});
     }
 
-    //std::unordered_map<std::string, cable_cell_ion_data> ion_data;
-    for (auto& ion: ion_data) {
-        auto& d = ion.second;
-        if (d.init_int_concentration) {
-            D.push_back(init_int_concentration{ion.first, *d.init_int_concentration});
+    for (const auto& [name, data]: ion_data) {
+        if (data.init_int_concentration) {
+            D.push_back(init_int_concentration{name, *data.init_int_concentration});
         }
-        if (d.init_ext_concentration) {
-            D.push_back(init_ext_concentration{ion.first, *d.init_ext_concentration});
+        if (data.init_ext_concentration) {
+            D.push_back(init_ext_concentration{name, *data.init_ext_concentration});
         }
-        if (d.init_reversal_potential) {
-            D.push_back(init_reversal_potential{ion.first, *d.init_reversal_potential});
+        if (data.init_reversal_potential) {
+            D.push_back(init_reversal_potential{name, *data.init_reversal_potential});
         }
     }
 
-    //std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
-    for (auto& ion: reversal_potential_method) {
-        D.push_back(ion_reversal_potential_method{ion.first, ion.second});
+    for (const auto& [name, mech]: reversal_potential_method) {
+        D.push_back(ion_reversal_potential_method{name, mech});
     }
 
     if (discretization) {
