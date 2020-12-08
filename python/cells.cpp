@@ -29,6 +29,7 @@
 #include "cells.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
+#include "pybind11/cast.h"
 #include "pybind11/pytypes.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
@@ -608,34 +609,34 @@ void register_cells(pybind11::module& m) {
             "Set ion species properties conditions on a region.")
         // Place synapses
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d) {
-                dec.place(locset, d); },
+            [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d) -> int {
+                return dec.place(locset, d); },
             "locations"_a, "mechanism"_a,
             "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
         .def("place",
-            [](arb::decor& dec, const char* locset, const char* mech_name) {
-                dec.place(locset, mech_name);
+            [](arb::decor& dec, const char* locset, const char* mech_name) -> int {
+                return dec.place(locset, mech_name);
             },
             "locations"_a, "mechanism"_a,
             "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
         // Place gap junctions.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::gap_junction_site& site) {
-                dec.place(locset, site);
+            [](arb::decor& dec, const char* locset, const arb::gap_junction_site& site) -> int {
+                return dec.place(locset, site);
             },
             "locations"_a, "gapjunction"_a,
             "Place one gap junction site at each location in 'locations'.")
         // Place current clamp stimulus.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) {
-                dec.place(locset, stim);
+            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) -> int {
+                return dec.place(locset, stim);
             },
             "locations"_a, "iclamp"_a,
             "Add a current stimulus at each location in locations.")
         // Place spike detector.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::threshold_detector& d) {
-                dec.place(locset, d);
+            [](arb::decor& dec, const char* locset, const arb::threshold_detector& d) -> int {
+                return dec.place(locset, d);
             },
             "locations"_a, "detector"_a,
             "Add a voltage spike detector at each location in locations.")
@@ -671,6 +672,14 @@ void register_cells(pybind11::module& m) {
         .def("cables",
             [](arb::cable_cell& c, const char* label) {return c.concrete_region(label).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
+        // Get lid range associated with a placement.
+        .def("placed_lid_range",
+            [](arb::cable_cell& c, int idx) -> pybind11::tuple {
+                auto range = c.placed_lid_range(idx);
+                return pybind11::make_tuple(range.begin, range.end);
+            },
+            "index"_a,
+            "The range of lids assigned to the items from a placement, for the lids assigned to synapses.")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});

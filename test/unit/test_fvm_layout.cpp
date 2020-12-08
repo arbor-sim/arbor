@@ -882,7 +882,7 @@ TEST(fvm_layout, revpot) {
     }
 
     {
-        auto& cell1_prop = const_cast<cable_cell_parameter_set&>(descriptions[1].decorations.defaults);
+        auto& cell1_prop = const_cast<cable_cell_parameter_set&>(descriptions[1].decorations.defaults());
         cell1_prop.reversal_potential_method.clear();
         descriptions[1].decorations.set_default(ion_reversal_potential_method{"b", write_eb_ec});
         descriptions[1].decorations.set_default(ion_reversal_potential_method{"c", write_eb_ec});

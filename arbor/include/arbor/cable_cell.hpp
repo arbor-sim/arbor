@@ -285,9 +285,15 @@ public:
     const cable_cell_region_map& region_assignments() const;
     const cable_cell_location_map& location_assignments() const;
 
-    // View the decorations on the cell.
+    // The decorations on the cell.
     const decor& decorations() const;
+
+    // The default parameter and ion settings on the cell.
     const cable_cell_parameter_set& default_parameters() const;
+
+    // The range of lids assigned to the items with placement index idx, where
+    // the placement index is the value returned by calling decor::place().
+    lid_range placed_lid_range(unsigned idx) const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;

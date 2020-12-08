@@ -17,7 +17,6 @@ Cells interact with each other via spike exchange and gap junctions.
                                                                 For example the 7th synapse on a cell.
     .. generic:: cell_member  tuple (:gen:`gid`, :gen:`index`)  The global identification of a cell-local item with `index`
                                                                 into a cell-local collection on the cell identified by `gid`.
-                                                                For example, the 7th synapse on cell 42.
     ========================  ================================  ===========================================================
 
 Cell interactions via :ref:`connections <modelconnections>` and :ref:`gap junctions <modelgapjunctions>` occur

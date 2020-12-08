@@ -109,6 +109,7 @@ Cable cells
         :noindex:
 
         Apply a mechanism with a region.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
 
         :param str region: description of the region.
         :param mechanism: the mechanism.
@@ -119,6 +120,7 @@ Cable cells
 
         Apply a mechanism with a region using the name of the mechanism.
         The mechanism will use the parameter values set in the mechanism catalogue.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
 
         :param str region: description of the region.
         :param str mechanism: the name of the mechanism.
@@ -126,45 +128,55 @@ Cable cells
     .. method:: place(locations, const arb::mechanism_desc& d)
 
         Place one instance of synapse described by ``mechanism`` to each location in ``locations``.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
 
         :param str locations: description of the locset.
         :param str mechanism: the name of the mechanism.
+        :rtype: int
 
     .. method:: place(locations, mechanism)
         :noindex:
 
         Place one instance of synapse described by ``mechanism`` to each location in ``locations``.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
 
         :param str locations: description of the locset.
         :param mechanism: the mechanism.
         :type mechanism: :py:class:`mechanism`
+        :rtype: int
 
     .. method:: place(locations, site)
         :noindex:
 
         Place one gap junction site at each location in ``locations``.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
 
         :param str locations: description of the locset.
         :param site: indicates a gap junction site..
         :type site: :py:class:`gap_junction_site`
+        :rtype: int
 
     .. method:: place(locations, stim)
         :noindex:
 
         Add a current stimulus at each location in ``locations``.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
 
         :param str locations: description of the locset.
         :param stim: the current stim.
         :type stim: :py:class:`i_clamp`
+        :rtype: int
 
     .. method:: place(locations, d)
         :noindex:
 
         Add a voltage spike detector at each location in ``locations``.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
 
         :param str locations: description of the locset.
         :param d: description of the detector.
         :type d: :py:class:`threshold_detector`
+        :rtype: int
 
     .. method:: discretization(policy)
 
@@ -175,8 +187,8 @@ Cable cells
 
 .. py:class:: cable_cell
 
-    A cable cell is constructed from a :ref:`morphology <morph-morphology>`
-    and an optional :ref:`label dictionary <labels-dictionary>`.
+    A cable cell is constructed from a :ref:`morphology <morph-morphology>`,
+    a :ref:`label dictionary <labels-dictionary>` and a decor.
 
     .. note::
         The regions and locsets defined in the label dictionary are
@@ -196,15 +208,42 @@ Cable cells
 
         # Construct the morphology from an SWC file.
         tree = arbor.load_swc('granule.swc')
-        morph = arbor.morphology(tree, spherical_root=True)
+        morph = arbor.morphology(tree)
 
         # Define regions using standard SWC tags
         labels = arbor.label_dict({'soma': '(tag 1)',
                                    'axon': '(tag 2)',
                                    'dend': '(join (tag 3) (tag 4))'})
 
+        # Define decorations
+        decor = arbor.decor()
+        decor.paint('"dend"', 'pas')
+        decor.paint('"axon"', 'hh')
+        decor.paint('"soma"', 'hh')
+
         # Construct a cable cell.
-        cell = arbor.cable_cell(morph, labels)
+        cell = arbor.cable_cell(morph, labels, decor)
+
+    .. method:: __init__(morphology, labels, decorations)
+
+        Constructor.
+
+        :param morphology: the morphology of the cell
+        :type morphology: :py:class:`morphology`
+        :param labels: dictionary of labeled regions and locsets
+        :type labels: :py:class:`label_dict`
+        :param decorations: the decorations on the cell
+        :type decorations: :py:class:`decor`
+
+    .. method:: placed_lid_range(index)
+
+        Returns the range of local indexes assigned to a placement in the decorations as a tuple of two integers,
+        that define the range of indexes as a half open interval.
+
+        :param index: the unique index of the placement.
+        :type index: int
+        :rtype: tuple(int, int)
+
 
 .. py:class:: ion
 

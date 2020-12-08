@@ -224,13 +224,19 @@ struct cable_cell_parameter_set {
 
 // A flat description of defaults, paintings and placings that
 // are to be applied to a morphology in a cable_cell.
-struct decor {
+class decor {
+    std::vector<std::pair<region, paintable>> paintings_;
+    std::vector<std::pair<locset, placeable>> placements_;
+    cable_cell_parameter_set defaults_;
+
+public:
+    const auto& paintings()  const {return paintings_;  }
+    const auto& placements() const {return placements_; }
+    const auto& defaults()   const {return defaults_;   }
+
     void paint(region, paintable);
-    void place(locset, placeable);
+    unsigned place(locset, placeable);
     void set_default(defaultable);
-    std::vector<std::pair<region, paintable>> paintings;
-    std::vector<std::pair<locset, placeable>> placements;
-    cable_cell_parameter_set defaults;
 };
 
 extern cable_cell_parameter_set neuron_parameter_defaults;

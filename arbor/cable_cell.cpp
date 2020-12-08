@@ -32,21 +32,6 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
-        provider(m, labels),
-        decorations(decorations)
-    {
-        init(decorations);
-    }
-
-    cable_cell_impl(): cable_cell_impl({},{},{}) {}
-
-    cable_cell_impl(const cable_cell_impl& other) = default;
-
-    cable_cell_impl(cable_cell_impl&& other) = default;
-
-    void init(const decor&);
-
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
 
@@ -61,6 +46,24 @@ struct cable_cell_impl {
 
     // The decorations on the cell.
     decor decorations;
+
+    // The lid ranges of placements.
+    std::vector<lid_range> placed_lid_ranges;
+
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
+        provider(m, labels),
+        decorations(decorations)
+    {
+        init(decorations);
+    }
+
+    cable_cell_impl(): cable_cell_impl({},{},{}) {}
+
+    cable_cell_impl(const cable_cell_impl& other) = default;
+
+    cable_cell_impl(cable_cell_impl&& other) = default;
+
+    void init(const decor&);
 
     template <typename T>
     mlocation_map<T>& get_location_map(const T&) {
@@ -127,11 +130,31 @@ struct cable_cell_impl {
     mextent concrete_region(const region& r) const {
         return thingify(r, provider);
     }
+
+    lid_range placed_lid_range(unsigned id) const {
+        if (id>=placed_lid_ranges.size()) {
+            throw cable_cell_error(util::pprintf("invalid placement identifier {}", id));
+        }
+        return placed_lid_ranges[id];
+    }
 };
 
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
 impl_ptr make_impl(cable_cell_impl* c) {
     return impl_ptr(c, [](cable_cell_impl* p){delete p;});
+}
+
+void cable_cell_impl::init(const decor& d) {
+    for (const auto& [target, painting]: d.paintings()) {
+        std::visit([this, target] (auto&& p) {this->paint(target, p);},
+                   painting);
+    }
+    for (const auto& [target, placement]: d.placements()) {
+        auto lids =
+            std::visit([this, target] (auto&& p) {return this->place(target, p);},
+                       placement);
+        placed_lid_ranges.push_back(lids);
+    }
 }
 
 cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary, const decor& decorations):
@@ -172,23 +195,16 @@ const cable_cell_region_map& cable_cell::region_assignments() const {
     return impl_->region_map;
 }
 
-void cable_cell_impl::init(const decor& d) {
-    for (const auto& [target, painting]: d.paintings) {
-        std::visit([this, target] (auto&& p) {this->paint(target, p);},
-                   painting);
-    }
-    for (const auto& [target, placement]: d.placements) {
-        std::visit([this, target] (auto&& p) {this->place(target, p);},
-                   placement);
-    }
-}
-
 const decor& cable_cell::decorations() const {
     return impl_->decorations;
 }
 
 const cable_cell_parameter_set& cable_cell::default_parameters() const {
-    return impl_->decorations.defaults;
+    return impl_->decorations.defaults();
+}
+
+lid_range cable_cell::placed_lid_range(unsigned id) const {
+    return impl_->placed_lid_range(id);
 }
 
 } // namespace arb
