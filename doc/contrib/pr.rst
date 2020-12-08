@@ -42,6 +42,9 @@ the workflow is as follows:
 5. A PR on Github is automatically tested by our CI bot called Travis.
    You can also run these tests yourself by building them first
    (``make tests``) and then running them (``./bin/*unit*``).
+
+   -  If you make changes effecting simulations on GPUs, you can post a reply to
+      your PR with ``bors try``. This will run our GPU test-suite.
 6. A member of the Arbor development team will review your contribution.
    If they approve, your PR will be merged! Normally this should happen
    within a few days.
@@ -62,7 +65,7 @@ Each pull request is reviewed according to these guidelines:
 -  Travis CI must produce a favourable result on your PR.
 -  An Arbor team member will (squash) merge the PR with the PR change
    summery as commit message.
--  Consider using Gitpod to review larger PRs (see under checks).
+-  Consider using Gitpod to review larger PRs, see under checks on the Github PR page.
 
 .. _contribpr-merge:
 
