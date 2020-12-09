@@ -15,19 +15,8 @@ the workflow is as follows:
 2. Create a branch off of master and implement your feature
 3. Make a pull request (PR) and refer to the issue(s) that the PR
    addresses.
-4. An administrative matter: Arbor requests `an explicit copyright
-   assignment <https://en.wikipedia.org/wiki/Copyright_transfer_agreement>`__
-   on your contribution. This grants us the right to defend copyright on
-   your contributions on your behalf, and allows us to change the
-   license on your contribution to another open source license should
-   that become necessary in the future. You can upload a filled out copy
-   of the agreement as a file attached to the PR, or if you prefer not
-   to disclose private information, you can send it to
-   `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
-
-   -  `Please find the Copyright Transfer Agreement
-      here <https://github.com/arbor-sim/arbor-materials/tree/master/copyright-transfer-agreement>`__.
-
+4. An administrative matter: we request that you grant us a usage license on your contribution.
+   Please contact us at `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
 5. A PR on Github is automatically tested by our CI bot called Travis.
    You can also run these tests yourself by building them first
    (``make tests``) and then running them (``./bin/*unit*``).
