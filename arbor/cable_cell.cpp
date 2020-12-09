@@ -145,14 +145,16 @@ impl_ptr make_impl(cable_cell_impl* c) {
 }
 
 void cable_cell_impl::init(const decor& d) {
-    for (const auto& [target, painting]: d.paintings()) {
-        std::visit([this, target] (auto&& p) {this->paint(target, p);},
-                   painting);
+    for (const auto& p: d.paintings()) {
+        auto& where = p.first;
+        std::visit([this, &where] (auto&& what) {this->paint(where, what);},
+                   p.second);
     }
-    for (const auto& [target, placement]: d.placements()) {
+    for (const auto& p: d.placements()) {
+        auto& where = p.first;
         auto lids =
-            std::visit([this, target] (auto&& p) {return this->place(target, p);},
-                       placement);
+            std::visit([this, &where] (auto&& what) {return this->place(where, what);},
+                       p.second);
         placed_lid_ranges.push_back(lids);
     }
 }
