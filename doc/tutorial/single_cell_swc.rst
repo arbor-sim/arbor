@@ -6,8 +6,20 @@ A detailed branchy cell
 We can expand on the :ref:`single segment cell example <gs_single_cell>` to create a more
 complex single cell model, and go through the process in more detail.
 
-We start by building the cell. This will be a *cable cell* with complex geometry and
-dynamics which can be constructed from 3 components:
+.. Note::
+
+   Concepts covered:
+
+   1. Building a morphology from a `segment_tree`.
+   2. Building a morphology from an SWC file.
+   3. Writing and visualizing region and locset expressions.
+   4. Building a decor.
+   5. Discretising the morphology.
+   6. Setting and overriding model and cell parameters.
+   7. Running a simulation and visualising the results using a `single_cell_model`.
+
+We start by building the cell. This will be a :ref:`cable cell <cablecell>` with complex
+geometry and dynamics which can be constructed from 3 components:
 
 1. A **morphology** defining the geometry of the cell.
 2. A **label dictionary** storing labeled expressions which define regions and locations of
@@ -16,7 +28,7 @@ dynamics which can be constructed from 3 components:
    The decor also includes hints about how the cell is to be modeled under the hood, by
    splitting it into discrete control volumes (CV).
 
-Next, we construct a *single cell model*. This model takes care of a lot of details
+Next, we construct a :class:`arbor.single_cell_model`. This model takes care of a lot of details
 behind the scenes: it sets up a recipe (more on recipes :ref:`here <modelrecipe>`), creates
 a simulation object, manages the hardware etc. These details become more important when modeling
 a network of cells, but can be abstracted away when working with single cell networks.
@@ -99,12 +111,15 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
        13     2    -7.0     0.0     0.0     0.4         1  # seg9 dist / seg10 prox
        14     2   -10.0     0.0     0.0     0.4        13  # seg10 dist
 
-.. note::
+.. Note::
+
     SWC samples always form a segment with their parent sample. For example,
     sample 3 and sample 2 form a segment which has length = 0.
     We use these zero-length segments to represent an abrupt radius change
     in the morphology, like we see between segment 0 and segment 1 in the above
     morphology diagram.
+
+    More information on SWC loaders can be found :ref:`here <morph-formats>`.
 
 The morphology can then be loaded from ``morph.swc`` in the following way:
 
@@ -121,7 +136,7 @@ The label dictionary
 
 Next, we can define **region** and **location** expressions and give them labels.
 The regions and locations are defined using an Arbor-specific DSL, and the labels
-can be stored in a **label dictionary**.
+can be stored in a :class:`arbor.lable_dict`.
 
 .. Note::
 
@@ -131,6 +146,8 @@ can be stored in a **label dictionary**.
    regions and locations. However, we will show some figures illustrating the effect of
    applying these expressions to the above morphology, in order to better visualize the
    final cell.
+
+   More information on region and location expressions is available :ref:`here <labels>`.
 
 First, we can define some **regions**, These are continuous parts of the morphology,
 They can correspond to full segments or parts of segments. Our morphology already has some
@@ -238,14 +255,16 @@ The Decorations
 
 With the key regions and location expressions identified and labeled, we can start to
 define certain features, properties and dynamics on the cell. This is done through a
-*decor* object, which stores a mapping of these "decorations" to certain region or location
-expressions.
+:class:`arbor.decor` object, which stores a mapping of these "decorations" to certain
+region or location expressions.
 
 .. Note::
 
   Similar to the label dictionary, the decor object is merely a description of how an abstract
   cell should behave, which can then be applied to any morphology, and have a different effect
   depending on the geometry and region/locset expressions.
+
+  More information on decors can be found :ref:`here <cablecell-decoration>`.
 
 The decor object can have default values for properties, which can then be overridden on specific
 regions. It is in general better to explicitly set all the default properties of your cell,
@@ -270,12 +289,13 @@ We also set the initial properties of the *na* and *k* ions because they will be
 by the density mechanisms that we will be adding shortly.
 For both ions we set the default initial concentration and external concentration measures in mM;
 and we set the default initial reversal potential in mV. For the *na* ion, we additionally indicate
-the the progression on the reversal potential during the simulation will be dictated by the *nernst*
-equation.
+the the progression on the reversal potential during the simulation will be dictated by the
+`nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
 
 It happens, however, that we want the temperature of the "custom" region defined in the label
 dictionary earlier to be colder, and the initial voltage of the "soma" region to be higher.
-We can override the default properties by *painting* new values on the relevant regions:
+We can override the default properties by *painting* new values on the relevant regions using
+:meth:`arbor.decor.paint`.
 
 .. code-block:: python
 
@@ -300,9 +320,9 @@ constructed in order to change the default values of its 'gbar' parameter.
    decor.paint('"custom"', 'hh')
    decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
 
-The decor object is also used to *place* stimuli and spike detectors on the cell. We place 3 current
-clamps of 0.5 nA on the "root" locset defined earlier, starting at time = 3, 5, 7 ms and lasting 1ms each.
-As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV:
+The decor object is also used to *place* stimuli and spike detectors on the cell using :meth:`arbor.decor.place`.
+We place 3 current clamps of 0.5 nA on the "root" locset defined earlier, starting at time = 3, 5, 7 ms and
+lasting 1ms each. As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV:
 
 .. code-block:: python
 
@@ -318,8 +338,8 @@ Cells in Arbor are simulated as discrete components called control volumes (CV).
 a CV has an impact on the accuracy of the results of the simulation. Usually, smaller CVs
 are more accurate because they simulate the continuous nature of a neuron more closely.
 
-The user controls the discretisation using a *cv_policy*. There are a few different policies to choose
-from, and they can be composed with one another. In this example, we would like the "soma" region
+The user controls the discretisation using a :class:`arbor.cv_policy`. There are a few different policies to
+choose from, and they can be composed with one another. In this example, we would like the "soma" region
 to be a single CV, and the rest of the morphology to be comprised of CVs with a maximum length of 1 μm:
 
 .. code-block:: python
@@ -419,7 +439,7 @@ Here is the code so far:
 The model
 *********
 
-We begin by constructing a *single cell model* of the cell we just created.
+We begin by constructing a :ref:`arbor.single_cell_model` of the cell we just created.
 
 .. code-block:: python
 
@@ -467,7 +487,7 @@ model:
    model.properties.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
    model.properties.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
 
-We set the same properties as we did earlier when we were creating the *decor* or the cell, except
+We set the same properties as we did earlier when we were creating the *decor* of the cell, except
 for the initial membrane voltage, which is -65 mV as opposed to -55 mV.
 
 During the decoration step, we also made use of 3 mechanisms: *pas*, *hh* and *Ih*. As it happens,

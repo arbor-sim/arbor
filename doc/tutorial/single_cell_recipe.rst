@@ -167,52 +167,52 @@ examine the recipe in detail: how to create one, and why it is needed.
 
 Let's go through the recipe point by point.
 
-Step **(1)** creates a :gen:`single_recipe` class that inherits from :class:`arbor.recipe`. The base recipe
+Step **(1)** creates a ``single_recipe`` class that inherits from :class:`arbor.recipe`. The base recipe
 implements all the methods defined above with default values except :meth:`arbor.recipe.num_cells`,
 :meth:`arbor.recipe.cell_kind` and :meth:`arbor.recipe.cell_description` which always have to be implemented
 by the user. The inherited recipe can implement any number of additional methods and have any number of
 instance or class variables.
 
-Step **(2)** defines the class constructor. In this case, we pass a :gen:`cell` and a set of :gen:`probes` as
-arguments. These will be used to initialize the instance variables :gen:`self.the_cell` and :gen:`self.the_probes`,
-which will be used in the overloaded :gen:`cell_description` and :gen:`get_probes` methods. Before variable
-initialization, we call the base C++ class constructor :gen:`arbor.recipe.__init__(self)`. This ensures correct
+Step **(2)** defines the class constructor. In this case, we pass a ``cell`` and a set of ``probes`` as
+arguments. These will be used to initialize the instance variables ``self.the_cell`` and ``self.the_probes``,
+which will be used in the overloaded ``cell_description`` and ``get_probes`` methods. Before variable
+initialization, we call the base C++ class constructor ``arbor.recipe.__init__(self)``. This ensures correct
 initialization of memory in the C++ class.
 
 Step **(3)** overrides the :meth:`arbor.recipe.num_cells` method. It takes 0 arguments. We simply return 1,
 as we are only simulating one cell in this example.
 
-Step **(4)** overrides the :meth:`arbor.recipe.num_sources` method. It takes one argument: :gen:`gid`.
+Step **(4)** overrides the :meth:`arbor.recipe.num_sources` method. It takes one argument: ``gid``.
 Given this global ID of a cell, the method will return the number of spike *sources* on the cell. We have defined
 our cell with one spike detector, on one location on the morphology, so we return 1.
 
-Step **(5)** overrides the :meth:`arbor.recipe.num_targets` method. It takes one argument: :gen:`gid`.
+Step **(5)** overrides the :meth:`arbor.recipe.num_targets` method. It takes one argument: ``gid``.
 Given the gid, this method returns the number of *targets* on the cell. These are typically synapses on the cell
 that are capable of receiving events from other cells. We have defined our cell with 0 synapses, so we return 0.
 
-Step **(6)** overrides the :meth:`arbor.recipe.cell_kind` method. It takes one argument: :gen:`gid`.
+Step **(6)** overrides the :meth:`arbor.recipe.cell_kind` method. It takes one argument: ``gid``.
 Given the gid, this method returns the kind of the cell. Our defined cell is a
 :class:`arbor.cell_kind.cable`, so we simply return that.
 
-Step **(7)** overrides the :meth:`arbor.recipe.cell_description` method. It takes one argument: :gen:`gid`.
+Step **(7)** overrides the :meth:`arbor.recipe.cell_description` method. It takes one argument: ``gid``.
 Given the gid, this method returns the cell description which is the cell object passed to the constructor
-of the recipe. We return :gen:`self.the_cell`.
+of the recipe. We return ``self.the_cell``.
 
-Step **(8)** overrides the :meth:`arbor.recipe.get_probes` method. It takes one argument: :gen:`gid`.
+Step **(8)** overrides the :meth:`arbor.recipe.get_probes` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the probes on the cell. The probes can be of many different kinds
 measuring different quantities on different locations of the cell. We pass these probes explicitly to the recipe
-and they are stored in :gen:`self.the_probes`, so we return that variable.
+and they are stored in ``self.the_probes``, so we return that variable.
 
-Step **(9)** overrides the :meth:`arbor.recipe.connections_on` method. It takes one argument: :gen:`gid`.
+Step **(9)** overrides the :meth:`arbor.recipe.connections_on` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the connections ending on that cell. These are typically synapse
-connections from other cell *sources* to specific *targets* on the cell with id :gen:`gid`. Since we are
+connections from other cell *sources* to specific *targets* on the cell with id ``gid``. Since we are
 simulating a single cell, and self-connections are not possible, we return an empty list.
 
-Step **(10)** overrides the :meth:`arbor.recipe.gap_junctions_on` method. It takes one argument: :gen:`gid`.
+Step **(10)** overrides the :meth:`arbor.recipe.gap_junctions_on` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the gap junctions on that cell. Gap junctions require 2 separate cells.
 Since we are simulating a single cell, we return an empty list.
 
-Step **(11)** overrides the :meth:`arbor.recipe.event_generators` method. It takes one argument: :gen:`gid`.
+Step **(11)** overrides the :meth:`arbor.recipe.event_generators` method. It takes one argument: ``gid``.
 Given the gid, this method returns *event generators* on that cell. These generators trigger events (or
 spikes) on specific *targets* on the cell. They can be used to simulate spikes from other cells, to kick-start
 a simulation for example. Our cell uses a current clamp as a stimulus, and has no targets, so we return
@@ -228,7 +228,7 @@ an empty list.
    descriptions separately saves time and resources for the user. More information on the recipe can be found
    :ref:`here <modelrecipe>`.
 
-Now we can intantiate a :gen:`single_recipe` object using the :gen:`cell` and :gen:`probe` we created in the
+Now we can intantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
 previous section:
 
 .. code-block:: python
@@ -298,13 +298,13 @@ to plot the voltage registered by the probe on the "custom_terminal" locset.
    probe_id = arbor.cell_member(0,0)
    handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
-The lines handling probe sampling warrant a second look. First, we declared :gen:`probe_id` to be a
+The lines handling probe sampling warrant a second look. First, we declared ``probe_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
 This variable serves as a global identifier of a probe on a cell, namely the first declared probe on the
 cell with gid = 0 which is the only cell in the model.
 
-Next, we instructed the simulation to sample :gen:`probe_id` at a frequency of 50KHz. That function returns a
-:gen:`handle` which we will use to extract the results of the sampling after running the simulation.
+Next, we instructed the simulation to sample ``probe_id`` at a frequency of 50KHz. That function returns a
+``handle`` which we will use to extract the results of the sampling after running the simulation.
 
 The execution
 *************
@@ -345,11 +345,11 @@ The probe results, again, warrant some more explanation:
       data.append(d)
       meta.append(m)
 
-:gen:`sim.samples()` takes a :gen:`handle` of the probe we wish to examine. It returns a list
-of :gen:`(data, meta)` terms: :gen:`data` being the time and value series of the probed quantity; and
-:gen:`meta` being the location of the probe. The size of the returned list depends on the number of
+``sim.samples()`` takes a ``handle`` of the probe we wish to examine. It returns a list
+of ``(data, meta)`` terms: ``data`` being the time and value series of the probed quantity; and
+``meta`` being the location of the probe. The size of the returned list depends on the number of
 discrete locations pointed to by the handle. We placed the probe on the "custom_terminal" locset which is
-represented by 2 locations on the morphology. We therefore expect the length of :gen:`sim.samples(handle)`
+represented by 2 locations on the morphology. We therefore expect the length of ``sim.samples(handle)``
 to be 2.
 
 We plot the results using pandas and seaborn as we did in the previous example, and expect the same results:
