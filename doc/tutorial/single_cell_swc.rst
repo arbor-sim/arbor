@@ -335,6 +335,9 @@ to be a single CV, and the rest of the morphology to be comprised of CVs with a 
 
    decor.discretization(policy)
 
+
+.. _tutorialsinglecellswc-cell:
+
 Putting it together
 ^^^^^^^^^^^^^^^^^^^
 
@@ -401,6 +404,13 @@ Here is the code so far:
    decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
    decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
    decor.place('"axon_terminal"', arbor.spike_detector(-10))
+
+   # Set cv_policy
+
+   soma_policy = arbor.cv_policy_single('"soma"')
+   dflt_policy = arbor.cv_policy_max_extent(1.0)
+   policy = dflt_policy | soma_policy
+   decor.discretization(policy)
 
    # (4) Create the cell.
 
@@ -536,7 +546,7 @@ choose the any other library:
    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')
 
 
-The final code
+The full code
 ^^^^^^^^^^^^^^
 
 .. code-block:: python
@@ -597,6 +607,13 @@ The final code
    decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
    decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
+   # Set cv_policy
+
+   soma_policy = arbor.cv_policy_single('"soma"')
+   dflt_policy = arbor.cv_policy_max_extent(1.0)
+   policy = dflt_policy | soma_policy
+   decor.discretization(policy)
+
    # (4) Create the cell.
 
    cell = arbor.cable_cell(morph, labels, decor)
@@ -638,4 +655,4 @@ The final code
    for t in m.traces:
       df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
 
-   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')
+   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('result.svg')

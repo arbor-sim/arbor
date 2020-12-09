@@ -17,3 +17,4 @@ Tutorials
 
    single_cell_model
    single_cell_swc
+   single_cell_recipe
