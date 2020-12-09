@@ -27,6 +27,7 @@ Documentation organisation
 * :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
 * :ref:`hpc-overview` details Arbor-features for distribution of computation over supercomputer nodes.
 * :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
+* Contributions to Arbor are very welcome! Under :ref:`contribindex` describe conventions and procedures for all kinds of contributions.
 
 Citing Arbor
 ------------
@@ -65,3 +66,14 @@ Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
    cpp/index
    hpc/index
    internals/index
+
+.. toctree::
+   :caption: Contributing:
+   :maxdepth: 1
+
+   contrib/index
+   contrib/pr
+   contrib/coding-style
+   contrib/doc
+   contrib/example
+   contrib/test

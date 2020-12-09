@@ -70,8 +70,8 @@ add_subdirectory(test)
 # The module contains the dynamic library, __init__.py and VERSION information.
 set(python_mod_path "${CMAKE_CURRENT_BINARY_DIR}/arbor")
 set_target_properties(pyarb PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${python_mod_path}")
-file(COPY "${CMAKE_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
-file(COPY "${CMAKE_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
+file(COPY "${PROJECT_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
+file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 
 # Determine the installation path, according to the Python version.
 # The installation for Python 3.8 would be:
