@@ -30,6 +30,10 @@ class cc_recipe(A.recipe):
         self.cell.place('(location 0 0.09)', "exp2syn")
         self.cell.paint('(all)', "hh")
 
+        self.cat = A.default_catalogue()
+        self.props = A.neuron_cable_propetries()
+        self.props.register(self.cat)
+
     def num_cells(self):
         return 1
 
@@ -41,6 +45,9 @@ class cc_recipe(A.recipe):
 
     def cell_kind(self, gid):
         return A.cell_kind.cable
+
+    def global_properties(self, kind):
+        return self.props
 
     def probes(self, gid):
         # Use keyword arguments to check that the wrappers have actually declared keyword arguments correctly.

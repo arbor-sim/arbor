@@ -29,6 +29,9 @@ class cc2_recipe(A.recipe):
         st.append(i, (1, 3, 0, 5), 1)
         st.append(i, (1, -4, 0, 3), 1)
         self.the_morphology = A.morphology(st)
+        self.the_cat = A.default_catalogue()
+        self.the_props = A.neuron_cable_propetries()
+        self.the_props.register(self.the_cat)
 
     def num_cells(self):
         return 2
@@ -47,6 +50,9 @@ class cc2_recipe(A.recipe):
 
     def event_generators(self, gid):
         return []
+
+    def global_properties(self, kind):
+        return self.the_props
 
     def probes(self, gid):
         # Cell 0 has three voltage probes:
