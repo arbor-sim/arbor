@@ -11,7 +11,6 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
-#include <arbor/lif_cell.hpp>
 
 #include "cells.hpp"
 #include "conversion.hpp"
