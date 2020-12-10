@@ -49,7 +49,12 @@ arb::util::unique_any convert_cell(pybind11::object o) {
         return arb::util::unique_any(cast<arb::benchmark_cell>(o));
     }
     if (isinstance<arb::lif_cell>(o)) {
-        return arb::util::unique_any(cast<arb::lif_cell>(o));
+        try {
+            return arb::util::unique_any(cast<arb::lif_cell>(o));
+        } catch(...) {
+            std::cerr << "ooops" << std::endl;
+            throw;
+        }
     }
     if (isinstance<arb::cable_cell>(o)) {
         return arb::util::unique_any(cast<arb::cable_cell>(o));
