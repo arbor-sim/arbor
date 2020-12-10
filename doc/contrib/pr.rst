@@ -15,7 +15,7 @@ the workflow is as follows:
 2. Create a branch off of master and implement your feature
 3. Make a pull request (PR) and refer to the issue(s) that the PR
    addresses.
-4. An administrative matter: we request that you grant us a usage license on your contribution.
+4. An administrative matter: we request that you grant us a right of use on your contribution.
    Please contact us at `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
 5. A PR on Github is automatically tested by our CI bot called Travis.
    You can also run these tests yourself by building them first
