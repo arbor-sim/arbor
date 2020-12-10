@@ -270,6 +270,7 @@ void register_single_cell(pybind11::module& m) {
                 return m.traces();},
             "Holds sample traces after a call to run().")
         .def_readwrite("properties", &single_cell_model::gprop, "Global properties.")
+        .def_readwrite("catalogue", &single_cell_model::cat, "Mechanism catalogue.")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }
