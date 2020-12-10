@@ -18,6 +18,7 @@ struct schedule_shim_base {
     schedule_shim_base() = default;
     schedule_shim_base(const schedule_shim_base&) = delete;
     schedule_shim_base& operator=(schedule_shim_base&) = delete;
+    virtual ~schedule_shim_base() {}
 
     virtual arb::schedule schedule() const = 0;
 };
