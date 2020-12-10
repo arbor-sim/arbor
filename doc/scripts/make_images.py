@@ -287,8 +287,8 @@ def generate(path=''):
 
     ####################### locsets
 
-    label_image(inputs.label_morph, [inputs.ex0_root, inputs.ex0_term], path+'/example0_root_term.svg')
-    label_image(inputs.label_morph, [inputs.ex0_tag4_term, inputs.ex0_axon_term], path+'/example0_tag4_axon_term.svg')
+    label_image(inputs.example_morph0, [inputs.ex0_root, inputs.ex0_term], path+'/example0_root_term.svg')
+    label_image(inputs.example_morph0, [inputs.ex0_tag4_term, inputs.ex0_axon_term], path+'/example0_tag4_axon_term.svg')
 
 
     ####################### regions

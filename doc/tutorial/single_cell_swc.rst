@@ -278,8 +278,8 @@ step:
 
     # Set the default properties
     decor.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
-    decor.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
-    decor.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+    decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+    decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
 We have set the default initial membrane voltage to -55 mV; the default initial
 temperature to 300 K; the default axial resistivity to 35.4 Ω·cm; and the default membrane
@@ -318,19 +318,19 @@ constructed in order to change the default values of its 'gbar' parameter.
 
    decor.paint('"all"', 'pas')
    decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
+   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
 
 The decor object is also used to *place* stimuli and spike detectors on the cell using :meth:`arbor.decor.place`.
-We place 3 current clamps of 0.5 nA on the "root" locset defined earlier, starting at time = 3, 5, 7 ms and
+We place 3 current clamps of 2 nA on the "root" locset defined earlier, starting at time = 10, 30, 50 ms and
 lasting 1ms each. As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV:
 
 .. code-block:: python
 
    # Place stimuli and spike detectors on certain locsets
 
-   decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
+   decor.place('"root"', arbor.iclamp(10, 1, current=2))
+   decor.place('"root"', arbor.iclamp(30, 1, current=2))
+   decor.place('"root"', arbor.iclamp(50, 1, current=2))
    decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
 Finally, there's one last property that impacts the behavior of a model: the discretisation.
@@ -404,8 +404,8 @@ Here is the code so far:
    # Set the default properties.
 
    decor.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
-   decor.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
-   decor.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+   decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+   decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
    # Override the defaults.
 
@@ -416,13 +416,13 @@ Here is the code so far:
 
    decor.paint('"all"', 'pas')
    decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
+   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
 
    # Place stimuli and spike detectors.
 
-   decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
+   decor.place('"root"', arbor.iclamp(10, 1, current=2))
+   decor.place('"root"', arbor.iclamp(30, 1, current=2))
+   decor.place('"root"', arbor.iclamp(50, 1, current=2))
    decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
    # Set cv_policy
@@ -484,8 +484,8 @@ model:
    # Set the model default properties
 
    model.properties.set_property(Vm =-65, tempK=300, rL=35.4, cm=0.01)
-   model.properties.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
-   model.properties.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+   model.properties.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+   model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
 We set the same properties as we did earlier when we were creating the *decor* of the cell, except
 for the initial membrane voltage, which is -65 mV as opposed to -55 mV.
@@ -501,7 +501,7 @@ the "allen" catalogue. We can extend the default catalogue as follow:
    # the name of the mechanisms to avoid collisions between catalogues
    # in this case we have no collisions so we use an empty prefix string.
 
-   model.properties.catalogue.extend(arbor.bbp_catalogue(), "")
+   model.properties.catalogue.extend(arbor.allen_catalogue(), "")
 
 Now all three mechanisms in the *decor* object have been made available to the model.
 
@@ -529,7 +529,7 @@ The cell and model descriptions are now complete and we can run the simulation:
 .. code-block:: python
 
    # Run the simulation for 100 ms, with a dt of 0.025 ms
-   m.run(tfinal=100, dt=0.025)
+   model.run(tfinal=100, dt=0.025)
 
 The spikes
 ^^^^^^^^^^
@@ -558,9 +558,12 @@ choose the any other library:
 
 .. code-block:: python
 
+   import pandas
+   import seaborn
+
    # Plot the output of the probes
    df = pandas.DataFrame()
-   for t in m.traces:
+   for t in model.traces:
       df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
 
    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')
@@ -572,6 +575,8 @@ The full code
 .. code-block:: python
 
    import arbor
+   import pandas
+   import seaborn
    from arbor import mechanism as mech
 
    #(1) Read the morphology from an SWC file.
@@ -618,13 +623,13 @@ The full code
 
    decor.paint('"all"', 'pas')
    decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
+   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
 
    # Place stimuli and spike detectors.
 
-   decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
+   decor.place('"root"', arbor.iclamp(10, 1, current=2))
+   decor.place('"root"', arbor.iclamp(30, 1, current=2))
+   decor.place('"root"', arbor.iclamp(50, 1, current=2))
    decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
    # Set cv_policy
@@ -645,12 +650,12 @@ The full code
    # (6) Set the model default properties
 
    model.properties.set_property(Vm =-65, tempK=300, rL=35.4, cm=0.01)
-   model.properties.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
-   model.properties.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+   model.properties.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+   model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
    # Extend the default catalogue with the allen catalogue.
 
-   model.properties.catalogue.extend(arbor.bbp_catalogue(), "")
+   model.properties.catalogue.extend(arbor.allen_catalogue(), "")
 
    # (7) Add probes.
 
@@ -658,7 +663,7 @@ The full code
 
    # (8) Run the simulation.
 
-   m.run(tfinal=100, dt=0.025)
+   model.run(tfinal=100, dt=0.025)
 
    # (9) Print the spikes.
 
@@ -672,7 +677,7 @@ The full code
    # (10) Plot the voltages
 
    df = pandas.DataFrame()
-   for t in m.traces:
+   for t in model.traces:
       df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
 
    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('result.svg')

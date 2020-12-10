@@ -69,8 +69,8 @@ We can immediately paste the cell description code from the
    # Set the default properties.
 
    decor.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
-   decor.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
-   decor.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+   decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+   decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
    # Override the defaults.
 
@@ -81,13 +81,13 @@ We can immediately paste the cell description code from the
 
    decor.paint('"all"', 'pas')
    decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
+   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
 
    # Place stimuli and spike detectors.
 
-   decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
+   decor.place('"root"', arbor.iclamp(10, 1, current=2))
+   decor.place('"root"', arbor.iclamp(30, 1, current=2))
+   decor.place('"root"', arbor.iclamp(50, 1, current=2))
    decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
    # Set cv_policy
@@ -100,7 +100,6 @@ We can immediately paste the cell description code from the
    # (4) Create the cell.
 
    cell = arbor.cable_cell(morph, labels, decor)
-
 
 We will add one more thing to this section. We will create the voltage probe at the "custom_terminal" locset.
 That was registered directly using the :class:`arbor.single_cell_model` object in the previous example.
@@ -155,15 +154,15 @@ examine the recipe in detail: how to create one, and why it is needed.
 
        # (9) Override the connections_on method
        def connections_on(self, gid):
-           return {}
+           return []
 
        # (10) Override the gap_junction_on method
        def gap_junction_on(self, gid):
-           return {}
+           return []
 
        # (11) Override the event_generators method
        def event_generators(self, gid):
-           return {}
+           return []
 
 Let's go through the recipe point by point.
 
@@ -367,6 +366,8 @@ The full code
 .. code-block:: python
 
    import arbor
+   import pandas
+   import seaborn
    from arbor import mechanism as mech
 
    #(1) Creat a cell.
@@ -405,8 +406,8 @@ The full code
    # Set the default properties.
 
    decor.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
-   decor.set_ion('na', int_con=10,   ex_con=140, rev_pot=50, method='nernst/na')
-   decor.set_ion('k',  int_con=54.4, ex_con=2.5, rev_pot=-77)
+   decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+   decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
    # Override the defaults.
 
@@ -417,13 +418,13 @@ The full code
 
    decor.paint('"all"', 'pas')
    decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', params={'gbar', 0.001}))
+   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
 
    # Place stimuli and spike detectors.
 
-   decor.place('"root"', arbor.iclamp(3, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(5, 1, current=0.5))
-   decor.place('"root"', arbor.iclamp(7, 1, current=0.5))
+   decor.place('"root"', arbor.iclamp(10, 1, current=2))
+   decor.place('"root"', arbor.iclamp(30, 1, current=2))
+   decor.place('"root"', arbor.iclamp(50, 1, current=2))
    decor.place('"axon_terminal"', arbor.spike_detector(-10))
 
    # Set cv_policy
@@ -471,13 +472,13 @@ The full code
            return self.the_probes
 
        def connections_on(self, gid):
-           return {}
+           return []
 
        def gap_junction_on(self, gid):
-           return {}
+           return []
 
        def event_generators(self, gid):
-           return {}
+           return []
 
    recipe = single_recipe(cell, [probe])
 
