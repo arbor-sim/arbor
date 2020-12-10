@@ -11,6 +11,7 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
+#include <arbor/lif_cell.hpp>
 
 #include "cells.hpp"
 #include "conversion.hpp"
@@ -25,8 +26,15 @@ namespace pyarb {
 // unwrapped and copied into a arb::util::unique_any.
 arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
     return try_catch_pyexception(
-                [&](){ return convert_cell(impl_->cell_description(gid)); },
-                "Python error already thrown");
+        [&](){
+            arb::util::unique_any result;
+            {
+                pybind11::gil_scoped_acquire guard;
+                result = convert_cell(impl_->cell_description(gid));
+            }
+            return result;
+        },
+        "Python error already thrown");
 }
 
 std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pygens, arb::cell_gid_type gid) {
