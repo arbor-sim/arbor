@@ -39,7 +39,7 @@ the workflow is as follows:
    -  `Please find the Copyright Transfer Agreement
       here <https://github.com/arbor-sim/arbor-materials/tree/master/copyright-transfer-agreement>`__.
 
-5. A PR on Github is automatically tested by our CI bot called Travis.
+5. A PR on Github is automatically built and tested by our CI bot called Travis.
    You can also run these tests yourself by building them first
    (``make tests``) and then running them (``./bin/*unit*``).
 

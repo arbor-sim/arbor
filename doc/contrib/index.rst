@@ -81,7 +81,7 @@ Some tips when contributing code:
 -  If you add functionality, add tests if applicable. This helps make
    sure Arbor is stable and functionality does what it’s supposed to
    do.
--  If you add/change the public C++ API, provide Python wrappings.
+-  If you work on the public C++ API, provide Python wrappings.
 -  Make sure Arbor compiles and has no new warnings.
 
 Add examples or unit tests
