@@ -38,7 +38,7 @@ jobs:
         id:   cache-ompi
         with:
           path: ~/openmpi-4.0.2
-          key:  ${{ matrix.os }}-openmpi-4.0.2-${{ matrix.cxx }}-${{ matrix.ver }}-new-1
+          key:  ${{ matrix.os }}-openmpi-4.0.2-${{ matrix.cxx }}-${{ matrix.ver }}
       - name: Build OpenMPI
         if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
         run: |
