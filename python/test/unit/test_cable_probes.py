@@ -42,7 +42,7 @@ class cc_recipe(A.recipe):
     def cell_kind(self, gid):
         return A.cell_kind.cable
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         # Use keyword arguments to check that the wrappers have actually declared keyword arguments correctly.
         # Place single-location probes at (location 0 0.01*j) where j is the index of the probe address in
         # the returned list.

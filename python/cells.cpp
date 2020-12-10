@@ -60,6 +60,15 @@ arb::util::unique_any convert_cell(pybind11::object o) {
                       + "\" which does not describe a known Arbor cell type");
 }
 
+// Convert global properties inside a Python object to a
+// std::any, as required by the recipe interface.
+std::any convert_gprop(pybind11::object o) {
+    if (o.is(pybind11::none())) {
+        return {};
+    }
+    return pybind11::cast<arb::cable_cell_global_properties>(o);
+}
+
 //
 //  proxies
 //
@@ -154,23 +163,16 @@ struct label_dict_proxy {
     }
 };
 
-global_props_shim::global_props_shim():
-    cat(arb::global_default_catalogue())
-{
-    props.catalogue = &cat;
-}
-
 // This isn't pretty. Partly because the information in the global parameters
 // is all over the place.
-std::string to_string(const global_props_shim& G) {
+std::string to_string(const arb::cable_cell_global_properties& props) {
     std::string s = "{arbor.cable_global_properties";
 
-    const auto& P = G.props;
-    const auto& D = P.default_parameters;
+    const auto& D = props.default_parameters;
     const auto& I = D.ion_data;
     // name, valence, int_con, ext_con, rev_pot, rev_pot_method
     s += "\n  ions: {";
-    for (auto& ion: P.ion_species) {
+    for (auto& ion: props.ion_species) {
         if (!I.count(ion.first)) {
             s += util::pprintf("\n    {name: '{}', valence: {}, int_con: None, ext_con: None, rev_pot: None, rev_pot_method: None}",
                     ion.first, ion.second);
@@ -391,23 +393,23 @@ void register_cells(pybind11::module& m) {
 
     // arb::cable_cell_global_properties
 
-    pybind11::class_<global_props_shim> gprop(m, "cable_global_properties");
+    pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
     gprop
         .def(pybind11::init<>())
-        .def(pybind11::init<const global_props_shim&>())
-        .def("check", [](const global_props_shim& shim) {
-                arb::check_global_properties(shim.props);},
+        .def(pybind11::init<const arb::cable_cell_global_properties&>())
+        .def("check", [](const arb::cable_cell_global_properties& props) {
+                arb::check_global_properties(props);},
                 "Test whether all default parameters and ion specids properties have been set.")
         // set cable properties
         .def("set_properties",
-            [](global_props_shim& G,
+            [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {
-                if (Vm) G.props.default_parameters.init_membrane_potential = Vm;
-                if (cm) G.props.default_parameters.membrane_capacitance=cm;
-                if (rL) G.props.default_parameters.axial_resistivity=rL;
-                if (tempK) G.props.default_parameters.temperature_K=tempK;
+                if (Vm) props.default_parameters.init_membrane_potential = Vm;
+                if (cm) props.default_parameters.membrane_capacitance=cm;
+                if (rL) props.default_parameters.axial_resistivity=rL;
+                if (tempK) props.default_parameters.temperature_K=tempK;
             },
             "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
             "Set global default values for cable and cell properties.\n"
@@ -415,26 +417,23 @@ void register_cells(pybind11::module& m) {
             " cm:    membrane capacitance [F/m²].\n"
             " rL:    axial resistivity [Ω·cm].\n"
             " tempK: temperature [Kelvin].")
-        .def("foo", [](global_props_shim& G, double x, pybind11::object method) {
-                        std::cout << "foo(" << x << ", " << method << ")\n";},
-                    "x"_a, "method"_a=pybind11::none())
         // add/modify ion species
         .def("set_ion",
-            [](global_props_shim& G, const char* ion,
+            [](arb::cable_cell_global_properties& props, const char* ion,
                optional<double> int_con, optional<double> ext_con,
                optional<double> rev_pot, pybind11::object method)
             {
-                auto& data = G.props.default_parameters.ion_data[ion];
+                auto& data = props.default_parameters.ion_data[ion];
                 if (int_con) data.init_int_concentration = *int_con;
                 if (ext_con) data.init_ext_concentration = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
                 // allow rev_pot_method to be specified with string or mechanism_desc
                 if (!method.is_none()) {
                     if (auto m=try_cast<std::string>(method)) {
-                        G.props.default_parameters.reversal_potential_method[ion] = *m;
+                        props.default_parameters.reversal_potential_method[ion] = *m;
                     }
                     else if (auto m=try_cast<arb::mechanism_desc>(method)) {
-                        G.props.default_parameters.reversal_potential_method[ion] = *m;
+                        props.default_parameters.reversal_potential_method[ion] = *m;
                     }
                     else {
                         throw std::runtime_error(util::pprintf("invalid rev_pot_method: {}", method));
@@ -456,10 +455,20 @@ void register_cells(pybind11::module& m) {
             " ext_con: initial external concentration [mM].\n"
             " rev_pot: initial reversal potential [mV].\n"
             " rev_pot_method:  method for calculating reversal potential.")
-        .def_readwrite("catalogue", &global_props_shim::cat, "The mechanism catalogue.")
-        .def("__str__", [](const global_props_shim& p){return to_string(p);});
+        .def("register", [](arb::cable_cell_global_properties& props, const arb::mechanism_catalogue& cat) {
+                props.catalogue = &cat;
+            },
+            "Register the pointer to the mechanism catalogue in the global properties")
+        .def("__str__", [](const arb::cable_cell_global_properties& p){return to_string(p);});
 
     // arb::cable_cell
+
+    m.def("neuron_cable_propetries", []() {
+        arb::cable_cell_global_properties prop;
+        prop.default_parameters = arb::neuron_parameter_defaults;
+        return prop;
+    },
+    "default NEURON cable_global_properties");
 
     pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell",
         "Represents morphologically-detailed cell models, with morphology represented as a\n"

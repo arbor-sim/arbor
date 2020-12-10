@@ -149,15 +149,14 @@ class single_cell_model {
     std::vector<trace> traces_;
 
 public:
-    // Make gprop public to make it possible to expose it as a field in Python:
-    //      model.properties.catalogue = my_custom_cat
-    //arb::cable_cell_global_properties gprop;
-    global_props_shim gprop;
+    arb::cable_cell_global_properties gprop;
+    arb::mechanism_catalogue cat;
 
     single_cell_model(arb::cable_cell c):
         cell_(std::move(c)), ctx_(arb::make_context())
     {
-        gprop.props.default_parameters = arb::neuron_parameter_defaults;
+        gprop.default_parameters = arb::neuron_parameter_defaults;
+        cat = arb::global_default_catalogue();
     }
 
     // example use:
@@ -180,7 +179,8 @@ public:
     }
 
     void run(double tfinal, double dt) {
-        single_cell_recipe rec(cell_, probes_, gprop.props);
+        gprop.catalogue = &cat;
+        single_cell_recipe rec(cell_, probes_, gprop);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 

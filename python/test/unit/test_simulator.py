@@ -48,7 +48,7 @@ class cc2_recipe(A.recipe):
     def event_generators(self, gid):
         return []
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         # Cell 0 has three voltage probes:
         #     0, 0: end of branch 1
         #     0, 1: end of branch 2
@@ -105,7 +105,7 @@ class lif2_recipe(A.recipe):
         weight = 400
         return [A.event_generator((gid,0), weight, A.regular_schedule(sched_dt)) for gid in range(0, self.num_cells())]
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         return []
 
     def cell_description(self, gid):
