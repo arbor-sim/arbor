@@ -8,15 +8,22 @@ on:
 
 jobs:
   build:
-    name: "Generate docs"
+    name: "Default test set"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os:    ["ubuntu-20.04"]
-        gcc:   ["9"]
+        cxx:   ["g++"]
+        cc:    ["gcc"]
+        ver:   ["9"]
         py:    ["3.6"]
         cmake: ["3.12.x"]
         mpi:   ["ON"]
+    env:
+        CC:         ${{ matrix.cc }}-${{ matrix.ver }}
+        CXX:        ${{ matrix.cxx }}-${{ matrix.ver }}
+        PY:         python${{ matrix.py }}
+        PYTHONPATH: /usr/local/lib/python${{ matrix.py }}/site-packages/
     steps:
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.4
@@ -26,44 +33,68 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.py }}
-      - name: Install Python packages
-        run: python${{ matrix.py }} -mpip install numpy sphinx svgwrite sphinx-rtd-theme
-      - name: Check versions
+      - name: OpenMPI cache
+        uses: actions/cache@v2
+        id:   cache-ompi
+        with:
+          path: ~/openmpi-4.0.2
+          key:  ${{ matrix.os }}-openmpi-4.0.2-${{ matrix.cxx }}-${{ matrix.ver }}-new-1
+      - name: Build OpenMPI
+        if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
         run: |
-          python${{ matrix.py }} --version
-          cmake --version
-          gcc-${{ matrix.gcc }} --version
-          g++-${{ matrix.gcc }} --version
-      - if: ${{ matrix.mpi == 'ON' }}
-        name: Install OpenMPI
-        run: |
-           export CC=gcc-${{ matrix.gcc }}
-           export CXX=g++-${{ matrix.gcc }}
+           echo cache-hit='${{ steps.cache-ompi.outputs.cache-hit }}'
+           cd ~
+           #export CC=${{ matrix.cc }}-${{ matrix.ver }}
+           #export CXX=${{ matrix.cxx }}-${{ matrix.ver }}
            wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
            tar -xvf ./openmpi-4.0.2.tar.gz
            cd openmpi-4.0.2
            ./configure --disable-mpi-fortran
            make -j4
+      - name: Install OpenMPI
+        run: |
+           echo "Going to install ompi"
+           cd ~
+           cd openmpi-4.0.2
            sudo make install
            sudo ldconfig
-           python${{ matrix.py }} -mpip install mpi4py
            cd -
-      - name: "Clone w/ submodules"
+      - name: Install Python packages
+        run:  $PY -mpip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
+      - name: Clone w/ submodules
         uses: actions/checkout@v2
         with:
-          submodules: "recursive"
+          submodules: recursive
+      - name: Check config
+        run: |
+          $CC --version
+          $CXX --version
+          $PY --version
+          echo "Hit chached MPI '${{ steps.cache-ompi.outputs.cache-hit }}'"
+          mpic++ --show
+          mpicc --show
       - name: Install arbor
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=g++-${{ matrix.gcc }} -DCMAKE_C_COMPILER=gcc-${{ matrix.gcc }} -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python${{ matrix.py }}` -DARB_WITH_MPI=${{ matrix.mpi }}
-          make tests examples html
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which $PY` -DARB_WITH_MPI=${{ matrix.mpi }}
+          make -j4 tests examples html
           sudo make install
           cd -
-      - name: "Run unit tests"
-        run: build/bin/unit
-      - name: "Run python tests"
-        run: PYTHONPATH="/usr/local/lib/python${{ matrix.py }}/site-packages/:${PYTHONPATH}" python${{ matrix.py }} python/test/unit/runner.py
-      - if: ${{ matrix.mpi == 'ON' }}
-        name: "Run python+MPI tests"
-        run: PYTHONPATH="/usr/local/lib/python${{ matrix.py }}/site-packages/:${PYTHONPATH}" python${{ matrix.py }} python/test/unit_distributed/runner.py
+      - name: Run unit tests
+        run:  build/bin/unit
+      - if:   ${{ matrix.mpi == 'ON' }}
+        name: Run MPI tests
+        run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi      
+      - name: Run python tests
+        run:  $PY python/test/unit/runner.py
+      - if:   ${{ matrix.mpi == 'ON' }}
+        name: Run python+MPI tests
+        run:  mpirun -n 4 -oversubscribe $PY python/test/unit_distributed/runner.py
+      - name: Run Python examples
+        run: |
+            $PY python/example/network_ring.py
+            $PY python/example/single_cell_model.py
+            $PY python/example/single_cell_recipe.py
+            $PY python/example/single_cell_multi_branch.py
+            $PY python/example/single_cell_swc.py test/unit/swc/pyramidal.swc
