@@ -16,5 +16,5 @@ Tutorials
    :caption: Tutorials
 
    single_cell_model
-   single_cell_swc
-   single_cell_recipe
+   single_cell_detailed
+   single_cell_detailed_recipe

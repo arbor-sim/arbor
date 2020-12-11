@@ -4,25 +4,35 @@ A single cell recipe
 --------------------
 
 This example aims to build the same single cell model as
-:ref:`a previous tutorial <tutorialsinglecellswc>`, except using a *recipe* instead
-of a *single_cell_model*.
+:ref:`the previous tutorial <tutorialsinglecellswc>`, except using a :class:`arbor.recipe`
+and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
+
+.. Note::
+
+   **Concepts covered in this example:**
+
+   1. Building a :class:`arbor.recipe`.
+   2. Building an :class:`arbor.context` and a :class:`arbor.domain_decomposition`
+   3. Using the recipe, context and domain decomposition to create a :class:`arbor.simulation`
+   4. Running the simulation and visualizing the results,
+
 
 Recipes are an important concept in Arbor. They represent the most versatile tool
-for building a complex network of cells. We start with this example of a model
+for building a complex network of cells. We will go though this example of a model
 of a single cell, before using the recipe to represent more complex networks in
 subsequent examples.
 
 We outline the following steps of this example:
 
-1. Define the *cell*. This is the same cell we have seen before.
-2. Define the *recipe* of the model.
-3. Define the *execution context* of the model: a description of the underlying system
+1. Define the **cell**. This is the same cell we have seen before.
+2. Define the **recipe** of the model.
+3. Define the **execution context** of the model: a description of the underlying system
    on which the simulation will run.
-4. Define the *domain decomposition* of the network: how the cells are distributed on
+4. Define the **domain decomposition** of the network: how the cells are distributed on
    the different ranks of the system.
-5. Define the *simulation*.
-6. *Run* the simulation.
-7. Collect and visualize the *results*.
+5. Define the **simulation**.
+6. **Run** the simulation.
+7. Collect and visualize the **results**.
 
 The cell
 ********
@@ -66,13 +76,11 @@ We can immediately paste the cell description code from the
 
    decor = arbor.decor()
 
-   # Set the default properties.
+   # Set the default properties of the cell (this overrides the model defaults)
 
-   decor.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
-   decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-   decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
+   decor.set_property(Vm =-55)
 
-   # Override the defaults.
+   # Override the cell defaults.
 
    decor.paint('"custom"', tempK=270)
    decor.paint('"soma"',   Vm=-50)
@@ -106,13 +114,14 @@ That was registered directly using the :class:`arbor.single_cell_model` object i
 Now it has to be explicitly created and registered in the recipe.
 
 .. code-block:: python
+
    probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
 
 The recipe
 **********
 
-The :class:`arbor.single_cell_model` of the previous example created a recipe under the hood, and
-abstracted away the details so we were unaware of its existence. In this example, we will
+The :class:`arbor.single_cell_model` of the previous example created a :class:`arbor.recipe` under
+the hood, and abstracted away the details so we were unaware of its existence. In this example, we will
 examine the recipe in detail: how to create one, and why it is needed.
 
 .. code-block:: python
@@ -127,6 +136,17 @@ examine the recipe in detail: how to create one, and why it is needed.
            arbor.recipe.__init__(self)
            self.the_cell = cell
            self.the_probes = probes
+
+           self.the_cat = arbor.default_catalogue()
+           self.the_cat.extend(arbor.allen_catalogue(), "")
+
+           self.the_props = arbor.cable_global_properties()
+           self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
+           self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+           self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
+           self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
+
+           self.the_props.register(self.the_cat)
 
        # (3) Override the num_cells method
        def num_cells(self):
@@ -148,8 +168,8 @@ examine the recipe in detail: how to create one, and why it is needed.
        def cell_description(self, gid):
            return self.the_cell
 
-       # (8) Override the get_probes method
-       def get_probes(self, gid):
+       # (8) Override the probes method
+       def probes(self, gid):
            return self.the_probes
 
        # (9) Override the connections_on method
@@ -164,19 +184,38 @@ examine the recipe in detail: how to create one, and why it is needed.
        def event_generators(self, gid):
            return []
 
+       # (12) Overrode the global_properties method
+       def global_properties(self, gid):
+          return self.the_props
+
 Let's go through the recipe point by point.
 
 Step **(1)** creates a ``single_recipe`` class that inherits from :class:`arbor.recipe`. The base recipe
 implements all the methods defined above with default values except :meth:`arbor.recipe.num_cells`,
 :meth:`arbor.recipe.cell_kind` and :meth:`arbor.recipe.cell_description` which always have to be implemented
-by the user. The inherited recipe can implement any number of additional methods and have any number of
-instance or class variables.
+by the user. The :meth:`arbor.recipe.gloabl_properties` also needs to be implemented for
+:class:`arbor.cell_kind.cable` cells. The inherited recipe can implement any number of additional methods and
+have any number of instance or class variables.
 
 Step **(2)** defines the class constructor. In this case, we pass a ``cell`` and a set of ``probes`` as
 arguments. These will be used to initialize the instance variables ``self.the_cell`` and ``self.the_probes``,
 which will be used in the overloaded ``cell_description`` and ``get_probes`` methods. Before variable
 initialization, we call the base C++ class constructor ``arbor.recipe.__init__(self)``. This ensures correct
 initialization of memory in the C++ class.
+
+We also create the ``self.the_cat`` variable and set it to arbor's default mechanism catalogue. This will expose
+the *hh* and *pas* mechanisms but not the *Ih* mechanism, which is present in the allen catalogue. To be able
+to use *Ih*, we extend ``self.the_cat`` to include the allen catalogue.
+
+Finally we create the ``self.the_props`` variable. This will hold the global properties of the model, which apply
+to all the cells in the network. Initially it is empty. We set all the properties of the system similar to
+what we did in the :ref:`previous example <tutorialsinglecellswc-gprop>`. One last important step is to register
+``self.the_cat`` with ``self.the_props``.
+
+.. Note::
+
+   The mechanism catalogue needs to live in the recipe as an instance variable. Its lifetime needs to extend
+   to the entire duration of the simulation.
 
 Step **(3)** overrides the :meth:`arbor.recipe.num_cells` method. It takes 0 arguments. We simply return 1,
 as we are only simulating one cell in this example.
@@ -224,8 +263,9 @@ an empty list.
    The recipe was designed to allow building simulations efficiently in a distributed system with minimum
    communication. Some parts of the model initialization require only the cell kind, or the number of
    sources and targets, not the full cell description which can be quite expensive to build. Providing these
-   descriptions separately saves time and resources for the user. More information on the recipe can be found
-   :ref:`here <modelrecipe>`.
+   descriptions separately saves time and resources for the user.
+
+   More information on the recipe can be found :ref:`here <modelrecipe>`.
 
 Now we can intantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
 previous section:

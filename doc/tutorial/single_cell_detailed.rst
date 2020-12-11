@@ -8,15 +8,15 @@ complex single cell model, and go through the process in more detail.
 
 .. Note::
 
-   Concepts covered:
+   **Concepts covered in this example:**
 
-   1. Building a morphology from a `segment_tree`.
+   1. Building a morphology from a :class:`arbor.segment_tree`.
    2. Building a morphology from an SWC file.
    3. Writing and visualizing region and locset expressions.
    4. Building a decor.
    5. Discretising the morphology.
    6. Setting and overriding model and cell parameters.
-   7. Running a simulation and visualising the results using a `single_cell_model`.
+   7. Running a simulation and visualising the results using a :class:`arbor.single_cell_model`.
 
 We start by building the cell. This will be a :ref:`cable cell <cablecell>` with complex
 geometry and dynamics which can be constructed from 3 components:
@@ -41,6 +41,7 @@ The single cell model has 5 main functions:
 4. It collects **spikes** from spike detectors.
 5. It collects the voltage **traces** from registered probes.
 
+.. _tutorialsinglecellswc-cell:
 The cell
 ********
 
@@ -67,25 +68,25 @@ This can be done by manually building a segment tree:
     tree = arbor.segment_tree()
 
     # Start with segment 0: a cylindrical soma with tag 1
-    tree.append(mnpos, mpoint(0.0, 0.0, 0.0, 2.0), mpoint( 4.0, 0.0, 0.0, 2.0), tag=1)
+    tree.append(mnpos, mpoint(0.0, 0.0, 0.0, 2.0), mpoint( 40.0, 0.0, 0.0, 2.0), tag=1)
     # Construct the first section of the dendritic tree with tag 3,
     # comprised of segments 1 and 2, attached to soma segment 0.
-    tree.append(0,     mpoint(4.0, 0.0, 0.0, 0.8), mpoint( 8.0,  0.0, 0.0, 0.8), tag=3)
-    tree.append(1,     mpoint(8.0, 0.0, 0.0, 0.8), mpoint(12.0, -0.5, 0.0, 0.8), tag=3)
+    tree.append(0,     mpoint(40.0, 0.0, 0.0, 0.8), mpoint( 80.0,  0.0, 0.0, 0.8), tag=3)
+    tree.append(1,     mpoint(80.0, 0.0, 0.0, 0.8), mpoint(120.0, -5.0, 0.0, 0.8), tag=3)
     # Construct the rest of the dendritic tree: segments 3, 4 and 5.
-    tree.append(2,     mpoint(12.0, -0.5, 0.0, 0.8), mpoint(20.0,  4.0, 0.0, 0.4), tag=3)
-    tree.append(3,     mpoint(20.0,  4.0, 0.0, 0.4), mpoint(26.0,  6.0, 0.0, 0.2), tag=3)
-    tree.append(2,     mpoint(12.0, -0.5, 0.0, 0.5), mpoint(19.0, -3.0, 0.0, 0.5), tag=3)
+    tree.append(2,     mpoint(120.0, -5.0, 0.0, 0.8), mpoint(200.0,  40.0, 0.0, 0.4), tag=3)
+    tree.append(3,     mpoint(200.0, 40.0, 0.0, 0.4), mpoint(260.0,  60.0, 0.0, 0.2), tag=3)
+    tree.append(2,     mpoint(120.0, -5.0, 0.0, 0.5), mpoint(190.0, -30.0, 0.0, 0.5), tag=3)
     # Construct a special region of the tree made of segments 6, 7, and 8
     # differentiated from the rest of the tree using tag 4.
-    tree.append(5,     mpoint(19.0, -3.0, 0.0, 0.5), mpoint(24.0, -7.0, 0.0, 0.2), tag=4)
-    tree.append(5,     mpoint(19.0, -3.0, 0.0, 0.5), mpoint(23.0, -1.0, 0.0, 0.2), tag=4)
-    tree.append(7,     mpoint(23.0, -1.0, 0.0, 0.2), mpoint(26.0, -2.0, 0.0, 0.2), tag=4)
+    tree.append(5,     mpoint(190.0, -30.0, 0.0, 0.5), mpoint(240.0, -70.0, 0.0, 0.2), tag=4)
+    tree.append(5,     mpoint(190.0, -30.0, 0.0, 0.5), mpoint(230.0, -10.0, 0.0, 0.2), tag=4)
+    tree.append(7,     mpoint(230.0, -10.0, 0.0, 0.2), mpoint(360.0, -20.0, 0.0, 0.2), tag=4)
     # Construct segments 9 and 10 that make up the axon with tag 2.
     # Segment 9 is at the root, where its proximal end will be connected to the
     # proximal end of the soma segment.
-    tree.append(mnpos, mpoint( 0.0, 0.0, 0.0, 2.0), mpoint( -7.0, 0.0, 0.0, 0.4), tag=2)
-    tree.append(9,     mpoint(-7.0, 0.0, 0.0, 0.4), mpoint(-10.0, 0.0, 0.0, 0.4), tag=2)
+    tree.append(mnpos, mpoint( 0.0, 0.0, 0.0, 2.0), mpoint(  -70.0, 0.0, 0.0, 0.4), tag=2)
+    tree.append(9,     mpoint(-70.0, 0.0, 0.0, 0.4), mpoint(-100.0, 0.0, 0.0, 0.4), tag=2)
 
     morph = arbor.morphology(tree);
 
@@ -95,21 +96,21 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
 
 .. code-block:: python
 
-    # id,  tag,      x,      y,      z,      r,    parent
-        1     1     0.0     0.0     0.0     2.0        -1  # seg0 prox / seg9 prox
-        2     1     4.0     0.0     0.0     2.0         1  # seg0 dist
-        3     3     4.0     0.0     0.0     0.8         2  # seg1 prox
-        4     3     8.0     0.0     0.0     0.8         3  # seg1 dist / seg2 prox
-        5     3    12.0    -0.5     0.0     0.8         4  # seg2 dist / seg3 prox
-        6     3    20.0     4.0     0.0     0.4         5  # seg3 dist / seg4 prox
-        7     3    26.0     6.0     0.0     0.2         6  # seg4 dist
-        8     3    12.0    -0.5     0.0     0.5         5  # seg5 prox
-        9     3    19.0    -3.0     0.0     0.5         8  # seg5 dist / seg6 prox / seg7 prox
-       10     4    24.0    -7.0     0.0     0.2         9  # seg6 dist
-       11     4    23.0    -1.0     0.0     0.2         9  # seg7 dist / seg8 prox
-       12     4    26.0    -2.0     0.0     0.2        11  # seg8 dist
-       13     2    -7.0     0.0     0.0     0.4         1  # seg9 dist / seg10 prox
-       14     2   -10.0     0.0     0.0     0.4        13  # seg10 dist
+   # id,  tag,      x,      y,      z,      r,    parent
+       1     1     0.0     0.0     0.0     2.0        -1  # seg0 prox / seg9 prox
+       2     1    40.0     0.0     0.0     2.0         1  # seg0 dist
+       3     3    40.0     0.0     0.0     0.8         2  # seg1 prox
+       4     3    80.0     0.0     0.0     0.8         3  # seg1 dist / seg2 prox
+       5     3   120.0    -5.0     0.0     0.8         4  # seg2 dist / seg3 prox
+       6     3   200.0    40.0     0.0     0.4         5  # seg3 dist / seg4 prox
+       7     3   260.0    60.0     0.0     0.2         6  # seg4 dist
+       8     3   120.0    -5.0     0.0     0.5         5  # seg5 prox
+       9     3   190.0   -30.0     0.0     0.5         8  # seg5 dist / seg6 prox / seg7 prox
+      10     4   240.0   -70.0     0.0     0.2         9  # seg6 dist
+      11     4   230.0   -10.0     0.0     0.2         9  # seg7 dist / seg8 prox
+      12     4   360.0   -20.0     0.0     0.2        11  # seg8 dist
+      13     2   -70.0     0.0     0.0     0.4         1  # seg9 dist / seg10 prox
+      14     2  -100.0     0.0     0.0     0.4        13  # seg10 dist
 
 .. Note::
 
@@ -356,90 +357,10 @@ to be a single CV, and the rest of the morphology to be comprised of CVs with a 
    decor.discretization(policy)
 
 
-.. _tutorialsinglecellswc-cell:
-
-Putting it together
-^^^^^^^^^^^^^^^^^^^
-
-With the 3 main components defined, we can now create the cell.
-
-Here is the code so far:
-
-.. code-block:: python
-
-   import arbor
-   from arbor import mechanism as mech
-
-   #(1) Read the morphology from an SWC file.
-
-   morph = arbor.load_swc_arbor("morph.swc")
-
-   #(2) Create and populate the label dictionary.
-
-   labels = arbor.label_dict()
-
-   # Regions:
-
-   labels['soma'] = '(tag 1)'
-   labels['axon'] = '(tag 2)'
-   labels['dend'] = '(tag 3)'
-   labels['last'] = '(tag 4)'
-
-   labels['all'] = '(all)'
-
-   labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-   labels['custom'] = '(join (region "last") (region "gt_1.5"))'
-
-   # Locsets:
-
-   labels['root']     = '(root)'
-   labels['terminal'] = '(terminal)'
-   labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
-   labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
-
-   # (3) Create and populate the decor.
-
-   decor = arbor.decor()
-
-   # Set the default properties.
-
-   decor.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
-   decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-   decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-
-   # Override the defaults.
-
-   decor.paint('"custom"', tempK=270)
-   decor.paint('"soma"',   Vm=-50)
-
-   # Paint density mechanisms.
-
-   decor.paint('"all"', 'pas')
-   decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
-
-   # Place stimuli and spike detectors.
-
-   decor.place('"root"', arbor.iclamp(10, 1, current=2))
-   decor.place('"root"', arbor.iclamp(30, 1, current=2))
-   decor.place('"root"', arbor.iclamp(50, 1, current=2))
-   decor.place('"axon_terminal"', arbor.spike_detector(-10))
-
-   # Set cv_policy
-
-   soma_policy = arbor.cv_policy_single('"soma"')
-   dflt_policy = arbor.cv_policy_max_extent(1.0)
-   policy = dflt_policy | soma_policy
-   decor.discretization(policy)
-
-   # (4) Create the cell.
-
-   cell = arbor.cable_cell(morph, labels, decor)
-
 The model
 *********
 
-We begin by constructing a :ref:`arbor.single_cell_model` of the cell we just created.
+We begin by constructing a :class:`arbor.single_cell_model` of the cell we just created.
 
 .. code-block:: python
 
@@ -479,6 +400,8 @@ Earlier in the example we mentioned that it is better to explicitly set all the 
 of your cell, while that is true, it is better yet to set the default properties of the entire
 model:
 
+.. _tutorialsinglecellswc-gprop:
+
 .. code-block:: python
 
    # Set the model default properties
@@ -511,8 +434,8 @@ The probes
 The model is almost ready for simulation. Except that the only output we would be able to
 measure at this point is the spikes from the spike detectors placed in the decor.
 
-The single cell model can also measure the voltage on specific locations of the cell.
-We can indicate the location we would like to *probe* using labels from the *label dictioanry*:
+The :class:`arbor.single_cell_model` can also measure the voltage on specific locations of the cell.
+We can indicate the location we would like to probe using labels from the :class:`label_dict`:
 
 .. code-block:: python
 
@@ -535,8 +458,8 @@ The spikes
 ^^^^^^^^^^
 
 Finally we move on to the data collection segment of the example. We have added a spike detector
-on the "axon_terminal" locset. The single cell model automatically registers all spikes on the
-cell from all spike detectors on the cell and saves the times at which they occurred.
+on the "axon_terminal" locset. The :class:`arbor.single_cell_model` automatically registers all
+spikes on the cell from all spike detectors on the cell and saves the times at which they occurred.
 
 .. code-block:: python
 
@@ -568,116 +491,16 @@ choose the any other library:
 
    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')
 
+The following plot is generated. The orange line is slightly delayed from the blue line, which is
+what we'd expect because branch 4 is longer than branch 3 of the morphology. We also see 3 spikes,
+corresponding to each of the current clamps placed on the cell.
+
+.. figure:: single_cell_detailed_result.svg
+    :width: 400
+    :align: center
+
+
 
 The full code
-^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-   import arbor
-   import pandas
-   import seaborn
-   from arbor import mechanism as mech
-
-   #(1) Read the morphology from an SWC file.
-
-   morph = arbor.load_swc_arbor("morph.swc")
-
-   #(2) Create and populate the label dictionary.
-
-   labels = arbor.label_dict()
-
-   # Regions:
-
-   labels['soma'] = '(tag 1)'
-   labels['axon'] = '(tag 2)'
-   labels['dend'] = '(tag 3)'
-   labels['last'] = '(tag 4)'
-
-   labels['all'] = '(all)'
-
-   labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-   labels['custom'] = '(join (region "last") (region "gt_1.5"))'
-
-   # Locsets:
-
-   labels['root']     = '(root)'
-   labels['terminal'] = '(terminal)'
-   labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
-   labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
-
-   # (3) Create and populate the decor.
-
-   decor = arbor.decor()
-
-   # Set the default properties of the cell (this overrides the model defaults).
-
-   decor.set_property(Vm =-55)
-
-   # Override the cell defaults.
-
-   decor.paint('"custom"', tempK=270)
-   decor.paint('"soma"',   Vm=-50)
-
-   # Paint density mechanisms.
-
-   decor.paint('"all"', 'pas')
-   decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
-
-   # Place stimuli and spike detectors.
-
-   decor.place('"root"', arbor.iclamp(10, 1, current=2))
-   decor.place('"root"', arbor.iclamp(30, 1, current=2))
-   decor.place('"root"', arbor.iclamp(50, 1, current=2))
-   decor.place('"axon_terminal"', arbor.spike_detector(-10))
-
-   # Set cv_policy
-
-   soma_policy = arbor.cv_policy_single('"soma"')
-   dflt_policy = arbor.cv_policy_max_extent(1.0)
-   policy = dflt_policy | soma_policy
-   decor.discretization(policy)
-
-   # (4) Create the cell.
-
-   cell = arbor.cable_cell(morph, labels, decor)
-
-   # (5) Construct the model
-
-   model = arbor.single_cell_model(cell)
-
-   # (6) Set the model default properties
-
-   model.properties.set_property(Vm =-65, tempK=300, rL=35.4, cm=0.01)
-   model.properties.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-   model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-
-   # Extend the default catalogue with the allen catalogue.
-
-   model.properties.catalogue.extend(arbor.allen_catalogue(), "")
-
-   # (7) Add probes.
-
-   model.probe('voltage', where='"custom_terminal"',  frequency=50000)
-
-   # (8) Run the simulation.
-
-   model.run(tfinal=100, dt=0.025)
-
-   # (9) Print the spikes.
-
-   print(len(model.spikes), 'spikes recorded:')
-
-   # Print the spike times.
-
-   for s in model.spikes:
-       print(s)
-
-   # (10) Plot the voltages
-
-   df = pandas.DataFrame()
-   for t in model.traces:
-      df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
-
-   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('result.svg')
+*************
+You can find the full code of the example at ``python/examples/single_cell_detailed.py``.
