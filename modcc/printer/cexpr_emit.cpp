@@ -21,8 +21,14 @@ std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
     case FP_ZERO:
         return out << (neg? "-0.": "0.");
     default:
-        return out <<
-            (std::stringstream{} << io::classic << std::setprecision(17) << wrap.value).rdbuf();
+        double val;
+        std::stringstream s;
+        if (std::modf(wrap.value, &val) == 0) {
+            s << io::classic << std::fixed << std::setprecision(1) << wrap.value;
+        } else {
+            s << io::classic << std::setprecision(1) << wrap.value;
+        }
+        return out << s.rdbuf();
     }
 }
 
