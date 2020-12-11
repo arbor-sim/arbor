@@ -113,7 +113,7 @@ for setting cell-wide defaults for properties, and the
     import arbor
 
     # Load a morphology from file and define basic regions.
-    tree = arbor.load_swc('granule.swc')
+    tree = arbor.load_swc_arbor('granule.swc')
     morph = arbor.morphology(tree, spherical_root=True)
     labels = arbor.label_dict({'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)'})
 
