@@ -56,6 +56,7 @@ static arb::util::unique_any convert_cell(pybind11::object o) {
 
 // The py::recipe::cell_decription returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::unique_any.
+ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
     return try_catch_pyexception([&](){
         pybind11::gil_scoped_acquire guard;
         return convert_cell(impl_->cell_description(gid));
