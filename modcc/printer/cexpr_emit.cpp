@@ -23,10 +23,11 @@ std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
     default:
         double val;
         std::stringstream s;
+        // If wrap.value is an int print it as X.0, this is needed for std::max and std::min
         if (std::modf(wrap.value, &val) == 0) {
             s << io::classic << std::fixed << std::setprecision(1) << wrap.value;
         } else {
-            s << io::classic << std::setprecision(1) << wrap.value;
+            s << io::classic << std::setprecision(17) << wrap.value;
         }
         return out << s.rdbuf();
     }
