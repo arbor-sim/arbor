@@ -60,12 +60,12 @@ option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
 option(ARB_WITH_PYTHON "enable Python front end" OFF)
 
 if (ARB_WITH_PYTHON)
-    # Path in which to install the Python module.
+    # Find path in which to install the Python module.
     find_package(PythonInterp REQUIRED)
     # Ask the above found Python where it keeps its system (platform) packages.
-    execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))" OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_PYTHON OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))" OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT OUTPUT_STRIP_TRAILING_WHITESPACE)
     # Default to installing in that path
-    set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_PYTHON} CACHE PATH "path for installing Python module for Arbor.")
+    set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
 endif()
 
 #----------------------------------------------------------
