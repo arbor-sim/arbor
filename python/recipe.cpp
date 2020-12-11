@@ -25,9 +25,9 @@ namespace pyarb {
 
 // Convert a cell description inside a Python object to a cell description in a
 // unique_any, as required by the recipe interface.
-// This helper is only to be called while holding the GIL We require this guard
-// across the lifetime of the description object `d`, since this function can be
-// called without holding the GIL, ie from `simulation::init`, and `d` is a
+// This helper is only to be called while holding the GIL. We require this guard
+// across the lifetime of the description object `o`, since this function can be
+// called without holding the GIL, ie from `simulation::init`, and `o` is a
 // python object that can only be destroyed while holding the GIL. The fact that
 // `cell_description` has a scoped GIL does not help with destruction as it
 // happens outside that scope. `Description` needs to be extended in Python,
@@ -93,8 +93,7 @@ static std::vector<arb::event_generator> convert_gen(std::vector<pybind11::objec
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
     return try_catch_pyexception([&](){
         pybind11::gil_scoped_acquire guard;
-        auto result = convert_gen(impl_->event_generators(gid), gid);
-        return result;
+        return convert_gen(impl_->event_generators(gid), gid);
     },
         "Python error already thrown");
 }
