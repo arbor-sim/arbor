@@ -329,11 +329,11 @@ TEST(linear_test, nonlinear) {
 TEST(linear_test, non_differentiable) {
     linear_test_result r;
 
-    r = linear_test("max(x)"_expr, {"x"});
+    r = linear_test("max(x, y)"_expr, {"x", "y"});
     EXPECT_FALSE(r.is_linear);
     EXPECT_FALSE(r.is_homogeneous);
 
-    r = linear_test("min(x)"_expr, {"x"});
+    r = linear_test("min(x, y)"_expr, {"x", "y"});
     EXPECT_FALSE(r.is_linear);
     EXPECT_FALSE(r.is_homogeneous);
 }
