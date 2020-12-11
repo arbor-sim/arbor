@@ -47,7 +47,7 @@ You are now ready to use Arbor! You can continue reading these documentation pag
     To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output
     (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
 
-Customizing Arbor
+Customising Arbor
 ^^^^^^^^^^^^^^^^^
 
 If you want to work on Arbor's code, you can get a copy of our repo and point `pip` at the local directory:
