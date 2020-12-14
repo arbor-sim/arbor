@@ -22,7 +22,7 @@ jobs:
     env:
         CC:         ${{ matrix.cc }}-${{ matrix.ver }}
         CXX:        ${{ matrix.cxx }}-${{ matrix.ver }}
-        # We set PYTHONPATH instead of installing to avoid distribution/OS specific behaviour.
+        # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
         PYTHONPATH: /home/runner/work/arbor/arbor/build/python
     steps:
       - name: Set up cmake
