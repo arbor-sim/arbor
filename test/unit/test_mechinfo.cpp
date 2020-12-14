@@ -5,6 +5,7 @@
 #include <arbor/cable_cell.hpp>
 
 #include "../gtest.h"
+#include "unit_test_catalogue.hpp"
 
 // TODO: This test is really checking part of the recipe description
 // for cable1d cells, so move it there. Make actual tests for mechinfo
@@ -39,4 +40,17 @@ TEST(mechanism_desc, setting) {
     EXPECT_EQ(p["a"], m["a"]);
     EXPECT_EQ(p["b"], m["b"]);
     EXPECT_EQ(p["d"], m["d"]);
+}
+
+TEST(mechanism_desc, linearity) {
+    {
+        mechanism_catalogue cat = arb::global_default_catalogue();
+        EXPECT_TRUE(cat["expsyn"].linear);
+        EXPECT_TRUE(cat["exp2syn"].linear);
+    }
+    {
+        mechanism_catalogue cat = make_unit_test_catalogue();
+        EXPECT_FALSE(cat["non_linear"].linear);
+    }
+
 }

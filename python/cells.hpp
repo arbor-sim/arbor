@@ -7,6 +7,11 @@
 #include <arbor/util/unique_any.hpp>
 
 namespace pyarb {
-arb::util::unique_any convert_cell(pybind11::object o);
-std::any convert_gprop(pybind11::object o);
+
+struct global_props_shim {
+    arb::mechanism_catalogue cat;
+    arb::cable_cell_global_properties props;
+    global_props_shim();
+};
+
 }
