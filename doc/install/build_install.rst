@@ -152,7 +152,8 @@ the `Github repository <https://github.com/arbor-sim/arbor>`_:
     git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
 
 We recommend using a recursive checkout, because Arbor uses Git submodules for some
-of its library dependencies.
+of its library dependencies. The usage of some of these libraries can be controlled by the
+CMAKE option `ARB_USE_BUNDLED_LIBS`.
 The CMake configuration attempts to detect if a required submodule is available, and
 will print a helpful warning
 or error message if not, but it is up to the user to ensure that all required
@@ -194,7 +195,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
     # 2) Use CMake to configure the build.
     # By default Arbor builds in release mode, i.e. with optimizations on.
     # Release mode should be used for installing and benchmarking Arbor.
-    cmake ..
+    cmake .. # add -DARB_USE_BUNDLED_LIBS=ON to use bundled/git-submoduled libs
 
     # 3.1) Build Arbor library.
     make -j 4
