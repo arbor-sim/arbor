@@ -26,7 +26,6 @@
 
 #include "arbor/cable_cell_param.hpp"
 #include "arbor/cv_policy.hpp"
-#include "cells.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "pybind11/cast.h"
@@ -129,23 +128,16 @@ struct label_dict_proxy {
     }
 };
 
-global_props_shim::global_props_shim():
-    cat(arb::global_default_catalogue())
-{
-    props.catalogue = &cat;
-}
-
 // This isn't pretty. Partly because the information in the global parameters
 // is all over the place.
-std::string to_string(const global_props_shim& G) {
+std::string to_string(const arb::cable_cell_global_properties& props) {
     std::string s = "{arbor.cable_global_properties";
 
-    const auto& P = G.props;
-    const auto& D = P.default_parameters;
+    const auto& D = props.default_parameters;
     const auto& I = D.ion_data;
     // name, valence, int_con, ext_con, rev_pot, rev_pot_method
     s += "\n  ions: {";
-    for (auto& ion: P.ion_species) {
+    for (auto& ion: props.ion_species) {
         if (!I.count(ion.first)) {
             s += util::pprintf("\n    {name: '{}', valence: {}, int_con: None, ext_con: None, rev_pot: None, rev_pot_method: None}",
                     ion.first, ion.second);
@@ -437,23 +429,23 @@ void register_cells(pybind11::module& m) {
 
     // arb::cable_cell_global_properties
 
-    pybind11::class_<global_props_shim> gprop(m, "cable_global_properties");
+    pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
     gprop
         .def(pybind11::init<>())
-        .def(pybind11::init<const global_props_shim&>())
-        .def("check", [](const global_props_shim& shim) {
-                arb::check_global_properties(shim.props);},
+        .def(pybind11::init<const arb::cable_cell_global_properties&>())
+        .def("check", [](const arb::cable_cell_global_properties& props) {
+                arb::check_global_properties(props);},
                 "Test whether all default parameters and ion species properties have been set.")
         // set cable properties
         .def("set_property",
-            [](global_props_shim& G,
+            [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {
-                if (Vm) G.props.default_parameters.init_membrane_potential = Vm;
-                if (cm) G.props.default_parameters.membrane_capacitance=cm;
-                if (rL) G.props.default_parameters.axial_resistivity=rL;
-                if (tempK) G.props.default_parameters.temperature_K=tempK;
+                if (Vm) props.default_parameters.init_membrane_potential = Vm;
+                if (cm) props.default_parameters.membrane_capacitance=cm;
+                if (rL) props.default_parameters.axial_resistivity=rL;
+                if (tempK) props.default_parameters.temperature_K=tempK;
             },
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
             pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
@@ -462,16 +454,16 @@ void register_cells(pybind11::module& m) {
             "Set global default values for cable and cell properties.")
         // add/modify ion species
         .def("set_ion",
-            [](global_props_shim& G, const char* ion,
+            [](arb::cable_cell_global_properties& props, const char* ion,
                optional<double> int_con, optional<double> ext_con,
                optional<double> rev_pot, pybind11::object method)
             {
-                auto& data = G.props.default_parameters.ion_data[ion];
+                auto& data = props.default_parameters.ion_data[ion];
                 if (int_con) data.init_int_concentration = *int_con;
                 if (ext_con) data.init_ext_concentration = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
                 if (auto m = maybe_method(method)) {
-                    G.props.default_parameters.reversal_potential_method[ion] = *m;
+                    props.default_parameters.reversal_potential_method[ion] = *m;
                 }
             },
             pybind11::arg_v("ion", "name of the ion species."),
@@ -484,9 +476,18 @@ void register_cells(pybind11::module& m) {
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
             "overriden locally.")
-        .def_readwrite("catalogue", &global_props_shim::cat, "The mechanism catalogue.")
-        .def("__str__", [](const global_props_shim& p){return to_string(p);});
+        .def("register", [](arb::cable_cell_global_properties& props, const arb::mechanism_catalogue& cat) {
+                props.catalogue = &cat;
+            },
+            "Register the pointer to the mechanism catalogue in the global properties")
+        .def("__str__", [](const arb::cable_cell_global_properties& p){return to_string(p);});
 
+    m.def("neuron_cable_propetries", []() {
+        arb::cable_cell_global_properties prop;
+        prop.default_parameters = arb::neuron_parameter_defaults;
+        return prop;
+    },
+    "default NEURON cable_global_properties");
 
     pybind11::class_<arb::decor> decor(m, "decor",
             "Description of the decorations to be applied to a cable cell, that is the painted,\n"

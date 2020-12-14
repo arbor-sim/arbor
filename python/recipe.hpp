@@ -51,9 +51,12 @@ public:
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const {
         return {};
     }
-    virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const {
+    virtual std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const {
         return {};
     }
+    virtual pybind11::object global_properties(arb::cell_kind kind) const {
+        return pybind11::none();
+    };
     //TODO: virtual pybind11::object global_properties(arb::cell_kind kind) const {return pybind11::none();};
 };
 
@@ -95,8 +98,12 @@ public:
         PYBIND11_OVERLOAD(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
     }
 
-    std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<arb::probe_info>, py_recipe, get_probes, gid);
+    std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD(std::vector<arb::probe_info>, py_recipe, probes, gid);
+    }
+
+    pybind11::object global_properties(arb::cell_kind kind) const override {
+        PYBIND11_OVERLOAD(pybind11::object, py_recipe, global_properties, kind);
     }
 };
 
@@ -152,18 +159,10 @@ public:
     }
 
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception([&](){ return impl_->get_probes(gid); }, msg);
+        return try_catch_pyexception([&](){ return impl_->probes(gid); }, msg);
     }
 
-    // TODO: make thread safe
-    std::any get_global_properties(arb::cell_kind kind) const override {
-        if (kind==arb::cell_kind::cable) {
-            arb::cable_cell_global_properties gprop;
-            gprop.default_parameters = arb::neuron_parameter_defaults;
-            return gprop;
-        }
-        return std::any{};
-    }
+    std::any get_global_properties(arb::cell_kind kind) const override;
 };
 
 } // namespace pyarb
