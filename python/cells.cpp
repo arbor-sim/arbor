@@ -30,36 +30,6 @@
 #include "strprintf.hpp"
 
 namespace pyarb {
-
-// Convert a cell description inside a Python object to a cell
-// description in a unique_any, as required by the recipe interface.
-//
-// Warning: requires that the GIL has been acquired before calling,
-// if there is a segmentation fault in the cast or isinstance calls,
-// check that the caller has the GIL.
-arb::util::unique_any convert_cell(pybind11::object o) {
-    using pybind11::isinstance;
-    using pybind11::cast;
-
-    pybind11::gil_scoped_acquire guard;
-    if (isinstance<arb::spike_source_cell>(o)) {
-        return arb::util::unique_any(cast<arb::spike_source_cell>(o));
-    }
-    if (isinstance<arb::benchmark_cell>(o)) {
-        return arb::util::unique_any(cast<arb::benchmark_cell>(o));
-    }
-    if (isinstance<arb::lif_cell>(o)) {
-        return arb::util::unique_any(cast<arb::lif_cell>(o));
-    }
-    if (isinstance<arb::cable_cell>(o)) {
-        return arb::util::unique_any(cast<arb::cable_cell>(o));
-    }
-
-    throw pyarb_error("recipe.cell_description returned \""
-                      + std::string(pybind11::str(o))
-                      + "\" which does not describe a known Arbor cell type");
-}
-
 //
 //  proxies
 //

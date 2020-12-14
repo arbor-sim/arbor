@@ -8,7 +8,7 @@ There are many ways to contribute: writing tutorials or blog posts, improving th
 documentation, submitting bug reports and feature requests or writing code which can be
 incorporated into Arbor itself.
 
-[On our wiki](https://github.com/arbor-sim/arbor/wiki/How-to-contribute) we have laid out how you
+The Arbor documentation has a [Contributing section](https://arbor.readthedocs.io/en/latest/contrib) where we have laid out how you
 can go about making your contribution.
 
 ## Get in touch

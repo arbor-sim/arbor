@@ -298,6 +298,11 @@ bool Module::semantic() {
             if (solve_proc->kind() == procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
                 auto rewrite_body = linear_rewrite(solve_proc->body(), state_vars);
+                if (!rewrite_body) {
+                    error("An error occured while compiling the LINEAR block. "
+                          "Check whether the statements are in fact linear.");
+                    return false;
+                }
 
                 rewrite_body->semantic(nrn_init_scope);
                 rewrite_body->accept(solver.get());
@@ -509,6 +514,10 @@ bool Module::semantic() {
                 if (s->is_assignment()) {
                     for (const auto &id: state_vars) {
                         auto coef = symbolic_pdiff(s->is_assignment()->rhs(), id);
+                        if(!coef) {
+                            linear = false;
+                            continue;
+                        }
                         if(coef->is_number()) {
                             if (!s->is_assignment()->lhs()->is_identifier()) {
                                 error(pprintf("Left hand side of assignment is not an identifier"));

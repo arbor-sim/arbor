@@ -9,7 +9,7 @@ Welcome to the documentation for Arbor, the multi-compartment neural network sim
 You can find out how to :ref:`get Arbor<in_install>`; get started quickly with our :ref:`tutorials<gs_other_examples>`; or continue reading to learn more about Arbor.
 
 What is Arbor?
--------------
+--------------
 
 Arbor is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
 from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to
@@ -27,6 +27,7 @@ Documentation organisation
 * :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
 * :ref:`hpc-overview` details Arbor-features for distribution of computation over supercomputer nodes.
 * :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
+* Contributions to Arbor are very welcome! Under :ref:`contribindex` describe conventions and procedures for all kinds of contributions.
 
 Citing Arbor
 ------------
@@ -65,3 +66,14 @@ Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
    cpp/index
    hpc/index
    internals/index
+
+.. toctree::
+   :caption: Contributing:
+   :maxdepth: 1
+
+   contrib/index
+   contrib/pr
+   contrib/coding-style
+   contrib/doc
+   contrib/example
+   contrib/test

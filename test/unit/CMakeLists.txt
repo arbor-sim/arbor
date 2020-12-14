@@ -6,6 +6,7 @@ set(test_mechanisms
     diam_test
     fixed_ica_current
     linear_ca_conc
+    non_linear
     param_as_state
     point_ica_current
     post_events_syn
