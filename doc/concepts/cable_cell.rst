@@ -147,18 +147,6 @@ specialised on specific regions.
         decor.paint('"soma"', Vm=-50, cm=0.01, rL=35)
         decor.paint('"axon"', Vm=-60, rL=40)
 
-.. _cablecell-discretisation:
-
-Discretisation
-~~~~~~~~~~~~~~~~
-
-For the purpose of simulation, cable cells are decomposed into discrete
-subcomponents called *control volumes* (CVs), following the finite volume method
-terminology. Each control volume comprises a connected subset of the
-morphology. Each fork point in the morphology will be the responsibility of
-a single CV, and as a special case a zero-volume CV can be used to represent
-a single fork point in isolation.
-
 .. _cablecell-density-mechs:
 
 Density mechanisms
