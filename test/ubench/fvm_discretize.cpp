@@ -28,7 +28,7 @@ arb::morphology from_swc(const std::string& path) {
     std::ifstream in(path);
     if (!in) throw std::runtime_error("could not open "+path);
 
-    return morphology(arborio::load_swc_arbor(arborio::parse_swc(in)));
+    return arborio::load_swc_arbor(arborio::parse_swc(in));
 }
 
 void run_cv_geom(benchmark::State& state) {

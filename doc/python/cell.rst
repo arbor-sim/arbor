@@ -151,4 +151,4 @@ Cell kinds
 .. class:: cable_cell
     :noindex:
 
-    See :ref:`pycable_cell`.
+    See :ref:`pycablecell`.

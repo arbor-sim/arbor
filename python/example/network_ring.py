@@ -2,6 +2,7 @@
 
 import arbor
 import pandas, seaborn
+import numpy
 from math import sqrt
 
 # Construct a cell with the following morphology.
@@ -40,15 +41,17 @@ def make_cable_cell(gid):
     # Mark the root of the tree.
     labels['root'] = '(root)'
 
-    cell = arbor.cable_cell(tree, labels)
+    decor = arbor.decor()
 
     # Put hh dynamics on soma, and passive properties on the dendrites.
-    cell.paint('"soma"', 'hh')
-    cell.paint('"dend"', 'pas')
+    decor.paint('"soma"', 'hh')
+    decor.paint('"dend"', 'pas')
     # Attach a single synapse.
-    cell.place('"synapse_site"', 'expsyn')
+    decor.place('"synapse_site"', 'expsyn')
     # Attach a spike detector with threshold of -10 mV.
-    cell.place('"root"', arbor.spike_detector(-10))
+    decor.place('"root"', arbor.spike_detector(-10))
+
+    cell = arbor.cable_cell(tree, labels, decor)
 
     return cell
 
@@ -95,8 +98,7 @@ class ring_recipe (arbor.recipe):
         return []
 
     def get_probes(self, gid):
-        loc = arbor.location(0, 0) # at the soma
-        return [arbor.cable_probe('voltage', loc)]
+        return [arbor.cable_probe_membrane_voltage('(location 0 0)')]
 
 context = arbor.context(threads=12, gpu_id=None)
 print(context)
@@ -122,14 +124,13 @@ print(f'{decomp}')
 meters.checkpoint('load-balance', context)
 
 sim = arbor.simulation(recipe, decomp, context)
+sim.record(arbor.spike_recording.all)
 
 meters.checkpoint('simulation-init', context)
 
-spike_recorder = arbor.attach_spike_recorder(sim)
-
 # Attach a sampler to the voltage probe on cell 0.
 # Sample rate of 10 sample every ms.
-samplers = [arbor.attach_sampler(sim, 0.1, arbor.cell_member(gid,0)) for gid in range(ncells)]
+handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
 tfinal=100
 sim.run(tfinal)
@@ -142,16 +143,15 @@ print(f'{arbor.meter_report(meters, context)}')
 
 # Print spike times
 print('spikes:')
-for sp in spike_recorder.spikes:
+for sp in sim.spikes():
     print(' ', sp)
 
 # Plot the recorded voltages over time.
 print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
-    times = [s.time  for s in samplers[gid].samples(arbor.cell_member(gid,0))]
-    volts = [s.value for s in samplers[gid].samples(arbor.cell_member(gid,0))]
-    df_list.append(pandas.DataFrame({'t/ms': times, 'U/mV': volts, 'Cell': f"cell {gid}"}))
+    samples, meta = sim.samples(handles[gid])[0]
+    df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
 
 df = pandas.concat(df_list)
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('network_ring_result.svg')

@@ -1,4 +1,6 @@
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
 #include <fstream>
@@ -12,6 +14,8 @@
 #include "error.hpp"
 #include "strprintf.hpp"
 
+namespace py = pybind11;
+
 namespace pyarb {
 
 void check_trailing(std::istream& in, std::string fname) {
@@ -20,8 +24,8 @@ void check_trailing(std::istream& in, std::string fname) {
     }
 }
 
-void register_morphology(pybind11::module& m) {
-    using namespace pybind11::literals;
+void register_morphology(py::module& m) {
+    using namespace py::literals;
 
     //
     //  primitives: points, segments, locations, cables... etc.
@@ -30,10 +34,10 @@ void register_morphology(pybind11::module& m) {
     m.attr("mnpos") = arb::mnpos;
 
     // arb::mlocation
-    pybind11::class_<arb::mlocation> location(m, "location",
+    py::class_<arb::mlocation> location(m, "location",
         "A location on a cable cell.");
     location
-        .def(pybind11::init(
+        .def(py::init(
             [](arb::msize_t branch, double pos) {
                 const arb::mlocation mloc{branch, pos};
                 pyarb::assert_throw(arb::test_invariants(mloc), "invalid location");
@@ -47,19 +51,24 @@ void register_morphology(pybind11::module& m) {
             "The id of the branch.")
         .def_readonly("pos", &arb::mlocation::pos,
             "The relative position on the branch (∈ [0.,1.], where 0. means proximal and 1. distal).")
+        .def(py::self==py::self)
         .def("__str__",
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); })
         .def("__repr__",
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); });
 
     // arb::mpoint
-    pybind11::class_<arb::mpoint> mpoint(m, "mpoint");
+    py::class_<arb::mpoint> mpoint(m, "mpoint");
     mpoint
-        .def(pybind11::init(
+        .def(py::init(
                 [](double x, double y, double z, double r) {
                     return arb::mpoint{x,y,z,r};
                 }),
                 "x"_a, "y"_a, "z"_a, "radius"_a, "All values in μm.")
+        .def(py::init([](py::tuple t) {
+                if (py::len(t)!=4) throw std::runtime_error("tuple length != 4");
+                return arb::mpoint{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), t[3].cast<double>()};
+            }))
         .def_readonly("x", &arb::mpoint::x, "X coordinate [μm].")
         .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
         .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
@@ -72,17 +81,19 @@ void register_morphology(pybind11::module& m) {
         .def("__repr__",
             [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
 
+    py::implicitly_convertible<py::tuple, arb::mpoint>();
+
     // arb::msegment
-    pybind11::class_<arb::msegment> msegment(m, "msegment");
+    py::class_<arb::msegment> msegment(m, "msegment");
     msegment
         .def_readonly("prox", &arb::msegment::prox, "the location and radius of the proximal end.")
         .def_readonly("dist", &arb::msegment::dist, "the location and radius of the distal end.")
         .def_readonly("tag", &arb::msegment::tag, "tag meta-data.");
 
     // arb::mcable
-    pybind11::class_<arb::mcable> cable(m, "cable");
+    py::class_<arb::mcable> cable(m, "cable");
     cable
-        .def(pybind11::init(
+        .def(py::init(
             [](arb::msize_t bid, double prox, double dist) {
                 arb::mcable c{bid, prox, dist};
                 if (!test_invariants(c)) {
@@ -97,6 +108,7 @@ void register_morphology(pybind11::module& m) {
                 "The relative position of the proximal end of the cable on its branch ∈ [0,1].")
         .def_readonly("dist", &arb::mcable::dist_pos,
                 "The relative position of the distal end of the cable on its branch ∈ [0,1].")
+        .def(py::self==py::self)
         .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
 
@@ -105,10 +117,10 @@ void register_morphology(pybind11::module& m) {
     //
 
     // arb::segment_tree
-    pybind11::class_<arb::segment_tree> segment_tree(m, "segment_tree");
+    py::class_<arb::segment_tree> segment_tree(m, "segment_tree");
     segment_tree
         // constructors
-        .def(pybind11::init<>())
+        .def(py::init<>())
         // modifiers
         .def("reserve", &arb::segment_tree::reserve)
         .def("append", [](arb::segment_tree& t, arb::msize_t parent, arb::mpoint prox, arb::mpoint dist, int tag) {
@@ -139,7 +151,7 @@ void register_morphology(pybind11::module& m) {
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
-    // Function that creates a segment_tree from an swc file.
+    // Function that creates a morphology from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc",
         [](std::string fname) {
@@ -158,14 +170,14 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "filename"_a,
-        "Generate a segment tree from an SWC file following the rules prescribed by\n"
-        "Arbor. Specifically:\n"
+        "Generate a morphology from an SWC file following the rules prescribed by Arbor.\n"
+        "Specifically:\n"
         "* Single-segment somas are disallowed. These are usually interpreted as spherical somas\n"
         "  and are a special case. This behavior is not allowed using this SWC loader.\n"
         "* There are no special rules related to somata. They can be one or multiple branches\n"
         "  and other segments can connect anywhere along them.\n"
         "* A segment is always created between a sample and its parent, meaning there\n"
-        "  are no gaps in the resulting segment tree.");
+        "  are no gaps in the resulting morphology.");
 
     m.def("load_swc_allen",
         [](std::string fname, bool no_gaps=false) {
@@ -186,8 +198,8 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "filename"_a, "no_gaps"_a=false,
-        "Generate a segment tree from an SWC file following the rules prescribed by\n"
-        "AllenDB and Sonata. Specifically:\n"
+        "Generate a morphology from an SWC file following the rules prescribed by AllenDB\n"
+        " and Sonata. Specifically:\n"
         "* The first sample (the root) is treated as the center of the soma.\n"
         "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
         "* The first sample has tag 1 (soma).\n"
@@ -221,8 +233,8 @@ void register_morphology(pybind11::module& m) {
             }
         },
         "filename"_a,
-        "Generate a segment tree from an SWC file following the rules prescribed by\n"
-        "NEURON. Specifically:\n"
+        "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
+        " Specifically:\n"
         "* The first sample must be a soma sample.\n"
         "* The soma is represented by a series of n≥1 unbranched, serially listed samples.\n"
         "* The soma is constructed as a single cylinder with diameter equal to the piecewise\n"
@@ -242,10 +254,10 @@ void register_morphology(pybind11::module& m) {
 
     // arb::morphology
 
-    pybind11::class_<arb::morphology> morph(m, "morphology");
+    py::class_<arb::morphology> morph(m, "morphology");
     morph
         // constructors
-        .def(pybind11::init(
+        .def(py::init(
                 [](arb::segment_tree t){
                     return arb::morphology(std::move(t));
                 }))

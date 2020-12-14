@@ -110,10 +110,13 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     make pyarb -j4                                                                              || error "building pyarb"
     progress "Python unit tests"
     python$PY $python_path/test/unit/runner.py -v2                                              || error "running python unit tests (serial)"
-    progress "Python examples"
+    progress "Python example: network_ring"
     python$PY $python_path/example/network_ring.py                                              || error "running python network_ring example"
+    progress "Python example: single_cell_model"
     python$PY $python_path/example/single_cell_model.py                                         || error "running python single_cell_model example"
-    python$PY $python_path/example/single_cell_multi_branch.py                                  || error "running python single_cell_multi_branch example"
+    progress "Python example: single_cell_recipe"
+    python$PY $python_path/example/single_cell_recipe.py                                        || error "running python single_cell_recipe example"
+    progress "Python example: single_cell_swc"
     python$PY $python_path/example/single_cell_swc.py  $base_path/test/unit/swc/pyramidal.swc   || error "running python single_cell_swc example"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
         if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then

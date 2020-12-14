@@ -92,7 +92,11 @@ Recipe
 
     .. function:: get_probes(gid)
 
-        Returns a list containing (in order) all the probes on a given cell `gid`.
+        Returns a list specifying the probe addresses describing probes on the cell ``gid``.
+        Each address in the list is an opaque object of type :class:`probe` produced by
+        cell kind-specific probe address functions. Each probe address in the list
+        has a corresponding probe id of type :class:`cell_member_type`: an id ``(gid, i)``
+        refers to the probes described by the ith entry in the list returned by ``get_probes(gid)``.
 
         By default returns an empty list.
 
@@ -105,29 +109,6 @@ Synapses
 --------
 
 See :ref:`pyinterconnectivity`.
-
-Probes
-------
-
-.. class:: probe
-
-        Describes the cell probe's information.
-
-.. function:: cable_probe(kind, id, location)
-
-        Returns the description of a probe at an :class:`arbor.location` on a cable cell with :attr:`id` available for monitoring data of ``voltage`` or ``current`` :attr:`kind`.
-
-        An example of a probe on a cable cell for measuring voltage at the soma reads as follows:
-
-    .. container:: example-code
-
-        .. code-block:: python
-
-            import arbor
-
-            id    = arbor.cell_member(0, 0) # cell 0, probe 0
-            loc   = arbor.location(0, 0)    # at the soma
-            probe = arbor.cable_probe('voltage', id, loc)
 
 Event generator and schedules
 -----------------------------
@@ -268,9 +249,9 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
             def num_cells(self):
                 return self.ncells
 
-            # The cell_description method returns a cell
+            # The cell_description method returns a cell.
             def cell_description(self, gid):
-                return arbor.make_cable_cell(gid, self.params)
+                return make_cable_cell(gid, self.params)
 
             def num_targets(self, gid):
                 return 1
@@ -298,5 +279,5 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
                 return []
 
             def get_probes(self, id):
-                loc = arbor.location(0, 0) # at the soma
-                return [arbor.cable_probe('voltage', loc)]
+                # Probe just the membrane voltage at a location on the soma.
+                return [arbor.cable_probe_membrane_voltage('(location 0 0)')]

@@ -11,6 +11,7 @@
 #include "mechanisms/celsius_test.hpp"
 #include "mechanisms/diam_test.hpp"
 #include "mechanisms/param_as_state.hpp"
+#include "mechanisms/non_linear.hpp"
 #include "mechanisms/test0_kin_diff.hpp"
 #include "mechanisms/test_linear_state.hpp"
 #include "mechanisms/test_linear_init.hpp"
@@ -80,6 +81,7 @@ mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
     ADD_MECH(cat, test1_kin_compartment)
     ADD_MECH(cat, test4_kin_compartment)
     ADD_MECH(cat, fixed_ica_current)
+    ADD_MECH(cat, non_linear)
     ADD_MECH(cat, point_ica_current)
     ADD_MECH(cat, linear_ca_conc)
     ADD_MECH(cat, test_cl_valence)

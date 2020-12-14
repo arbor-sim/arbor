@@ -16,6 +16,12 @@ inline cell_member_predicate one_probe(cell_member_type pid) {
     return [pid](cell_member_type x) { return pid==x; };
 }
 
+// Probe-specific metadata is provided by cell group implementations.
+//
+// User code is responsible for correctly determining the metadata type,
+// but the value of that metadata must be sufficient to determine the
+// correct interpretation of sample data provided to sampler callbacks.
+
 struct probe_metadata {
     cell_member_type id; // probe id
     probe_tag tag;       // probe tag associated with id

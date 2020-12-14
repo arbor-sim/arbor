@@ -42,13 +42,13 @@ These details are described and examples are given in the next sections :ref:`py
 
    recipe
    cell
-   cable_cell
-   morphology
-   labels
-   mechanisms
    interconnectivity
    hardware
    domdec
    simulation
    profiler
+   cable_cell
+   morphology
+   labels
+   mechanisms
    single_cell_model

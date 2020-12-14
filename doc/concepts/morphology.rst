@@ -1,4 +1,4 @@
-.. _co_morphology:
+.. _morph:
 
 Cell morphology
 ===============
@@ -495,8 +495,7 @@ Arbor supports reading morphologies described using the
 SWC files may contain comments, which are stored as metadata. A blank line anywhere in the file is
 interpreted as end of data. The description of the morphology is encoded as a list of samples with an id,
 an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
-then generates a :ref:`segment tree <morph-segment_tree>` describing the morphology according to one of three
-possible interpretations.
+then generates a morphology according to one of three possible interpretations.
 
 The SWC file format specifications are not very detailed, which has lead different simulators to interpret
 SWC files in different ways, especially when it comes to the soma. Arbor has its own an interpretation that
@@ -505,9 +504,10 @@ interpret SWC files similarly to how the NEURON simulator would, and how the All
 
 Despite the differences between the interpretations, there is a common set of checks that are always performed
 to validate an SWC file:
-   * Check that there are no duplicate ids.
-   * Check that the parent id of a sample is less than the id of the sample.
-   * Check that the parent id of a sample refers to an existing sample.
+
+* Check that there are no duplicate ids.
+* Check that the parent id of a sample is less than the id of the sample.
+* Check that the parent id of a sample refers to an existing sample.
 
 In addition, all interpretations agree that a *segment* is (in the common case) constructed between a sample and
 its parent and inherits the tag of the sample; and if more than 1 sample have the same parent, the parent sample
@@ -517,9 +517,8 @@ is interpreted as a fork point in the morphology, and acts as the proximal point
 Arbor interpretation:
 """""""""""""""""""""
 In addition to the previously listed checks, the arbor interpretation explicitly disallows SWC files where the soma is
-described by a single sample. It constructs the soma from 2 or more samples that form 1 or more segments in the segment
-tree. A *segment* is always constructed between a sample and its parent. This means that there are no gaps in the
-resulting segment tree and morphology.
+described by a single sample. It constructs the soma from 2 or more samples, forming 1 or more segments. A *segment* is
+always constructed between a sample and its parent. This means that there are no gaps in the resulting morphology.
 
 Arbor has no magic rules or transformations for the soma. It can be a single branch or multiple branches; segments
 of a different tag can connect to its distal end, proximal end or anywhere in the middle. For example, to create a
@@ -564,22 +563,23 @@ NEURON interpretation:
 The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function. We came up with the
 following set of rules that govern NEURON's SWC behavior and enforced them in arbor's NEURON-complaint SWC
 interpreter:
-   * SWC files must contain a soma sample and it must to be the first sample.
-   * A soma is represented by a series of n≥1 unbranched, serially listed samples.
-   * A soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
-     segments forming the soma.
-   * A single-sample soma at is constructed as a cylinder with length=diameter.
-   * If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
-     as the parent.
-   * Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
-   * If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
-     instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
-     electrically as a zero-resistance wire)
-   * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
-     tag.
+
+* SWC files must contain a soma sample and it must to be the first sample.
+* A soma is represented by a series of n≥1 unbranched, serially listed samples.
+* A soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
+  segments forming the soma.
+* A single-sample soma at is constructed as a cylinder with length=diameter.
+* If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
+  as the parent.
+* Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
+* If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
+  instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
+  electrically as a zero-resistance wire)
+* To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
+  tag.
 
 API
 ---
 
-* :ref:`Python <py_morphology>`
-* :ref:`C++ <morphology-construction>`
+* :ref:`Python <pymorph>`
+* :ref:`C++ <cppcablecell-morphology-construction>`

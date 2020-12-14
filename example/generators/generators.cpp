@@ -52,18 +52,18 @@ public:
         double r = 18.8/2.0; // convert 18.8 μm diameter to radius
         tree.append(arb::mnpos, {0,0,-r,r}, {0,0,r,r}, 1);
 
-        arb::label_dict d;
-        d.set("soma", arb::reg::tagged(1));
+        arb::label_dict labels;
+        labels.set("soma", arb::reg::tagged(1));
 
-        arb::cable_cell c(tree, d);
-        c.paint("\"soma\"", "pas");
+        arb::decor decor;
+        decor.paint("\"soma\"", "pas");
 
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        c.place(arb::mlocation{0, 0.5}, "expsyn");
+        decor.place(arb::mlocation{0, 0.5}, "expsyn");
 
-        return std::move(c);
+        return arb::cable_cell(tree, labels, decor);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
