@@ -79,7 +79,7 @@ model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
 # Extend the default catalogue with the allen catalogue.
 
-model.catalogue.extend(arbor.allen_catalogue(), "")
+model.properties.catalogue.extend(arbor.allen_catalogue(), "")
 
 # (7) Add probes.
 
@@ -102,6 +102,6 @@ for s in model.spikes:
 
 df = pandas.DataFrame()
 for t in model.traces:
-    df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
+    df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), 'Variable': t.variable}))
 
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_detailed_result.svg')

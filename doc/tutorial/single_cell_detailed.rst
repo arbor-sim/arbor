@@ -487,9 +487,9 @@ choose the any other library:
    # Plot the output of the probes
    df = pandas.DataFrame()
    for t in model.traces:
-      df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}) )
+      df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), 'Variable': t.variable}))
 
-   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_multi_branch_result.svg')
+   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_detailed_result.svg')
 
 The following plot is generated. The orange line is slightly delayed from the blue line, which is
 what we'd expect because branch 4 is longer than branch 3 of the morphology. We also see 3 spikes,
@@ -498,8 +498,6 @@ corresponding to each of the current clamps placed on the cell.
 .. figure:: single_cell_detailed_result.svg
     :width: 400
     :align: center
-
-
 
 The full code
 *************

@@ -110,9 +110,10 @@ We can immediately paste the cell description code from the
    cell = arbor.cable_cell(morph, labels, decor)
 
 We will add one more thing to this section. We will create the voltage probe at the "custom_terminal" locset.
-That was registered directly using the :class:`arbor.single_cell_model` object in the previous example.
+In the previous example, this probe was registered directly using the :class:`arbor.single_cell_model` object.
 Now it has to be explicitly created and registered in the recipe.
 
+.. _tutorialsinglecellrecipe-probe:
 .. code-block:: python
 
    probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
@@ -256,6 +257,10 @@ spikes) on specific *targets* on the cell. They can be used to simulate spikes f
 a simulation for example. Our cell uses a current clamp as a stimulus, and has no targets, so we return
 an empty list.
 
+Step **(12)** overrides the :meth:`arbor.recipe.global_properties` method. It takes one argument: ``kind``.
+This method returns the default global properties of the model which apply to all cells in the network of
+that kind. We return ``self.the_props`` which we defined in step **(1)**.
+
 .. Note::
 
    You may wonder why the methods:  :meth:`arbor.recipe.num_sources`, :meth:`arbor.recipe.num_targets`,
@@ -302,7 +307,7 @@ Now, we have to define it ourselves.
 
 The :class:`arbor.domain_decomposition` class can be manually created by the user, by deciding which cells
 go on which ranks. Or we can use a load balancer that can partition the cells across ranks according to
-some heuristics. Arbor provides :class:`arbor.partition_load_balance`, which, using the recipe and execution
+some rules. Arbor provides :class:`arbor.partition_load_balance`, which, using the recipe and execution
 context, creates the :class:`arbor.domain_decomposition` object for us.
 
 Our example is a simple one, with just one cell. We don't need any sophisticated partitioning algorithms, so
@@ -322,7 +327,7 @@ Finally we have the 3 components needed to create a :class:`arbor.simulation` ob
    sim = arbor.simulation(recipe, domains, context)
 
 Before we run the simulation, however, we need to register what results we expect once execution is over.
-This was handled by the :class:`arbor.single_cell_model` object in previous examples.
+This was handled by the :class:`arbor.single_cell_model` object in the previous example.
 
 We would like to get a list of the spikes on the cell during the runtime of the simulation, and we would like
 to plot the voltage registered by the probe on the "custom_terminal" locset.
@@ -340,7 +345,8 @@ to plot the voltage registered by the probe on the "custom_terminal" locset.
 The lines handling probe sampling warrant a second look. First, we declared ``probe_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
 This variable serves as a global identifier of a probe on a cell, namely the first declared probe on the
-cell with gid = 0 which is the only cell in the model.
+cell with gid = 0, which is id of the :ref:`only probe <tutorialsinglecellrecipe-probe>` we created on
+the only cell in the model.
 
 Next, we instructed the simulation to sample ``probe_id`` at a frequency of 50KHz. That function returns a
 ``handle`` which we will use to extract the results of the sampling after running the simulation.
@@ -359,7 +365,7 @@ The results
 ***********
 
 The last step is result collection. We instructed the simulation to record the spikes on the cell, and
-the sample of the probe.
+to sample the probe.
 
 We can print the times of the spikes:
 
@@ -398,167 +404,18 @@ We plot the results using pandas and seaborn as we did in the previous example, 
    df = pandas.DataFrame()
    for i in range(len(data)):
        df = df.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i])}))
-   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location", ci=None).savefig('single_cell_recipe_result.svg')
+   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_detailed_recipe_result.svg')
+
+The following plot is generated. Identical to the plot of the previous example.
+
+.. figure:: single_cell_detailed_result.svg
+    :width: 400
+    :align: center
+
 
 The full code
 *************
 
 .. code-block:: python
 
-   import arbor
-   import pandas
-   import seaborn
-   from arbor import mechanism as mech
-
-   #(1) Creat a cell.
-
-   # Create the morphology
-
-   morph = arbor.load_swc_arbor("morph.swc")
-
-   # Create and populate the label dictionary.
-
-   labels = arbor.label_dict()
-
-   # Regions:
-
-   labels['soma'] = '(tag 1)'
-   labels['axon'] = '(tag 2)'
-   labels['dend'] = '(tag 3)'
-   labels['last'] = '(tag 4)'
-
-   labels['all'] = '(all)'
-
-   labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-   labels['custom'] = '(join (region "last") (region "gt_1.5"))'
-
-   # Locsets:
-
-   labels['root']     = '(root)'
-   labels['terminal'] = '(terminal)'
-   labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
-   labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
-
-   # Create and populate the decor.
-
-   decor = arbor.decor()
-
-   # Set the default properties.
-
-   decor.set_property(Vm =-55, tempK=300, rL=35.4, cm=0.01)
-   decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-   decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-
-   # Override the defaults.
-
-   decor.paint('"custom"', tempK=270)
-   decor.paint('"soma"',   Vm=-50)
-
-   # Paint density mechanisms.
-
-   decor.paint('"all"', 'pas')
-   decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
-
-   # Place stimuli and spike detectors.
-
-   decor.place('"root"', arbor.iclamp(10, 1, current=2))
-   decor.place('"root"', arbor.iclamp(30, 1, current=2))
-   decor.place('"root"', arbor.iclamp(50, 1, current=2))
-   decor.place('"axon_terminal"', arbor.spike_detector(-10))
-
-   # Set cv_policy
-
-   soma_policy = arbor.cv_policy_single('"soma"')
-   dflt_policy = arbor.cv_policy_max_extent(1.0)
-   policy = dflt_policy | soma_policy
-   decor.discretization(policy)
-
-   # Create a cell
-
-   cell = arbor.cable_cell(morph, labels, decor)
-
-   # (2) Declare a probe.
-
-   probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
-
-   # (3) Create a recipe class and instantiate a recipe
-
-   class single_recipe (arbor.recipe):
-
-       def __init__(self, cell, probes):
-           # The base C++ class constructor must be called first, to ensure that
-           # all memory in the C++ class is initialized correctly.
-           arbor.recipe.__init__(self)
-           self.the_cell = cell
-           self.the_probes = probes
-
-       def num_cells(self):
-           return 1
-
-       def num_sources(self, gid):
-           return 1
-
-       def num_targets(self, gid):
-           return 0
-
-       def cell_kind(self, gid):
-           return arbor.cell_kind.cable
-
-       def cell_description(self, gid):
-           return self.the_cell
-
-       def get_probes(self, gid):
-           return self.the_probes
-
-       def connections_on(self, gid):
-           return []
-
-       def gap_junction_on(self, gid):
-           return []
-
-       def event_generators(self, gid):
-           return []
-
-   recipe = single_recipe(cell, [probe])
-
-   # (4) Create an execution context
-
-   context = arbor.context()
-
-   # (5) Create a domain decomposition
-
-   domains = arbor.partition_load_balance(recipe, context)
-
-   # (6) Create a simulation
-
-   sim = arbor.simulation(recipe, domains, context)
-
-   # Instruct the simulation to record the spikes and sample the probe
-
-   sim.record(arbor.spike_recording.all)
-
-   probe_id = arbor.cell_member(0,0)
-   handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
-
-   # (7) Run the simulation
-
-   sim.run(tfinal=100, dt=0.025)
-
-   # (8) Print or display the results
-
-   spikes = sim.spikes()
-   print(len(spikes), 'spikes recorded:')
-   for s in spikes:
-       print(s)
-
-   data = []
-   meta = []
-   for d, m in sim.samples(handle):
-      data.append(d)
-      meta.append(m)
-
-   df = pandas.DataFrame()
-   for i in range(len(data)):
-       df = df.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i])}))
-   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location", ci=None).savefig('single_cell_recipe_result.svg')
+You can find the full code of the example at ``python/examples/single_cell_detailed_recipe.py``.
