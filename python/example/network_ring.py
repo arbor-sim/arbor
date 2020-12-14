@@ -41,15 +41,17 @@ def make_cable_cell(gid):
     # Mark the root of the tree.
     labels['root'] = '(root)'
 
-    cell = arbor.cable_cell(tree, labels)
+    decor = arbor.decor()
 
     # Put hh dynamics on soma, and passive properties on the dendrites.
-    cell.paint('"soma"', 'hh')
-    cell.paint('"dend"', 'pas')
+    decor.paint('"soma"', 'hh')
+    decor.paint('"dend"', 'pas')
     # Attach a single synapse.
-    cell.place('"synapse_site"', 'expsyn')
+    decor.place('"synapse_site"', 'expsyn')
     # Attach a spike detector with threshold of -10 mV.
-    cell.place('"root"', arbor.spike_detector(-10))
+    decor.place('"root"', arbor.spike_detector(-10))
+
+    cell = arbor.cable_cell(tree, labels, decor)
 
     return cell
 

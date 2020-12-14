@@ -341,7 +341,7 @@ fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discreti
 // ------------------
 
 fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
-    const auto& dflt = cell.default_parameters;
+    const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
 
     D.geometry = cv_geometry_from_ends(cell,
@@ -787,7 +787,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     const auto& embedding = cell.embedding();
 
     const auto& global_dflt = gprop.default_parameters;
-    const auto& dflt = cell.default_parameters;
+    const auto& dflt = cell.default_parameters();
 
     fvm_mechanism_data M;
 

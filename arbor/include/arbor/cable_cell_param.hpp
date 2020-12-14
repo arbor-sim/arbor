@@ -5,6 +5,7 @@
 #include <optional>
 #include <unordered_map>
 #include <string>
+#include <variant>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cv_policy.hpp>
@@ -59,34 +60,41 @@ struct gap_junction_site {};
 // cell-wide default:
 
 struct init_membrane_potential {
-    double value = NAN; // [mV]
+    init_membrane_potential() = delete;
+    double value; // [mV]
 };
 
 struct temperature_K {
-    double value = NAN; // [K]
+    temperature_K() = delete;
+    double value; // [K]
 };
 
 struct axial_resistivity {
-    double value = NAN; // [[Ω·cm]
+    axial_resistivity() = delete;
+    double value; // [Ω·cm]
 };
 
 struct membrane_capacitance {
-    double value = NAN; // [F/m²]
+    membrane_capacitance() = delete;
+    double value; // [F/m²]
 };
 
 struct init_int_concentration {
+    init_int_concentration() = delete;
     std::string ion;
-    double value = NAN;
+    double value; // [mM]
 };
 
 struct init_ext_concentration {
+    init_ext_concentration() = delete;
     std::string ion;
-    double value = NAN;
+    double value; // [mM]
 };
 
 struct init_reversal_potential {
+    init_reversal_potential() = delete;
     std::string ion;
-    double value = NAN;
+    double value; // [mV]
 };
 
 // Mechanism description, viz. mechanism name and
@@ -162,6 +170,34 @@ struct ion_reversal_potential_method {
     mechanism_desc method;
 };
 
+using paintable =
+    std::variant<mechanism_desc,
+                 init_membrane_potential,
+                 axial_resistivity,
+                 temperature_K,
+                 membrane_capacitance,
+                 init_int_concentration,
+                 init_ext_concentration,
+                 init_reversal_potential>;
+
+using placeable =
+    std::variant<mechanism_desc,
+                 i_clamp,
+                 threshold_detector,
+                 gap_junction_site>;
+
+using defaultable =
+    std::variant<init_membrane_potential,
+                 axial_resistivity,
+                 temperature_K,
+                 membrane_capacitance,
+                 initial_ion_data,
+                 init_int_concentration,
+                 init_ext_concentration,
+                 init_reversal_potential,
+                 ion_reversal_potential_method,
+                 cv_policy>;
+
 // Cable cell ion and electrical defaults.
 
 // Parameters can be given as per-cell and global defaults via
@@ -182,6 +218,25 @@ struct cable_cell_parameter_set {
     std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
 
     std::optional<cv_policy> discretization;
+
+    std::vector<defaultable> serialize() const;
+};
+
+// A flat description of defaults, paintings and placings that
+// are to be applied to a morphology in a cable_cell.
+class decor {
+    std::vector<std::pair<region, paintable>> paintings_;
+    std::vector<std::pair<locset, placeable>> placements_;
+    cable_cell_parameter_set defaults_;
+
+public:
+    const auto& paintings()  const {return paintings_;  }
+    const auto& placements() const {return placements_; }
+    const auto& defaults()   const {return defaults_;   }
+
+    void paint(region, paintable);
+    unsigned place(locset, placeable);
+    void set_default(defaultable);
 };
 
 extern cable_cell_parameter_set neuron_parameter_defaults;

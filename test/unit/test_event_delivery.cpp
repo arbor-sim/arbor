@@ -31,13 +31,14 @@ struct test_recipe: public n_cable_cell_recipe {
         segment_tree st;
         st.append(mnpos, {0,0, 0,10}, {0,0,20,10}, 1);
 
-        label_dict d;
-        d.set("soma", arb::reg::tagged(1));
+        label_dict labels;
+        labels.set("soma", arb::reg::tagged(1));
 
-        cable_cell c(st, d);
-        c.place(mlocation{0, 0.5}, "expsyn");
-        c.place(mlocation{0, 0.5}, threshold_detector{-64});
-        c.place(mlocation{0, 0.5}, gap_junction_site{});
+        decor decorations;
+        decorations.place(mlocation{0, 0.5}, "expsyn");
+        decorations.place(mlocation{0, 0.5}, threshold_detector{-64});
+        decorations.place(mlocation{0, 0.5}, gap_junction_site{});
+        cable_cell c(st, labels, decorations);
 
         return c;
     }
