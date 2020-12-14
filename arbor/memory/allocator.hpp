@@ -184,7 +184,7 @@ public:
         return &r;
     }
 
-    pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
+    pointer allocate(size_type cnt) {
         if (cnt) {
             return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
         }
