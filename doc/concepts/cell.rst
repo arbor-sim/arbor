@@ -17,14 +17,13 @@ Cells interact with each other via spike exchange and gap junctions.
                                                                 For example the 7th synapse on a cell.
     .. generic:: cell_member  tuple (:gen:`gid`, :gen:`index`)  The global identification of a cell-local item with `index`
                                                                 into a cell-local collection on the cell identified by `gid`.
-                                                                For example, the 7th synapse on cell 42.
     ========================  ================================  ===========================================================
 
 Cell interactions via :ref:`connections <modelconnections>` and :ref:`gap junctions <modelgapjunctions>` occur
 between **source**, **target** and **gap junction site** locations on a cell. Connections are formed from sources
 to targets. Gap junctions are formed between two gap junction sites. An example of a source on a
-:ref:`cable cell<modelcablecell>` is a :ref:`threshold detector <cable-threshold-detectors>` (spike detector);
-an example of a target on a cable cell is a :ref:`synapse <cable-synapses>`.
+:ref:`cable cell<modelcablecell>` is a :ref:`threshold detector <cablecell-threshold-detectors>` (spike detector);
+an example of a target on a cable cell is a :ref:`synapse <cablecell-synapses>`.
 
 Each cell has a global identifier :gen:`gid`, and each **source**, **target** and **gap junction site** has a
 global identifier :gen:`cell_member`. These are used to refer to them in :ref:`recipes <modelrecipe>`.
@@ -106,7 +105,7 @@ It details everything needed to build a cell. The degree of detail differs accor
 
    The description of a cable cell can include all the following:
 
-     * :ref:`Morphology <co_morphology>`: composed of a branching tree of one-dimensional line segments.
+     * :ref:`Morphology <morph>`: composed of a branching tree of one-dimensional line segments.
        Strictly speaking, Arbor represents a morphology as an *acyclic directed graph*, with the soma at
        the root.
      * Discretisation: specifies how to split the morphology into discrete components for the simulation.
@@ -130,7 +129,7 @@ It details everything needed to build a cell. The degree of detail differs accor
 
    Most Arbor users will want to use the cable cell because it is the only cell kind that supports complex
    morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated page <cablecell>` for more info.
-   And visit the :ref:`C++ <cppcable_cell>` and :ref:`Python <pycable_cell>` APIs to learn how to programmatically
+   And visit the :ref:`C++ <cppcablecell>` and :ref:`Python <pycablecell>` APIs to learn how to programmatically
    provide the cable cell description in Arbor.
 
 2. **LIF Cells**

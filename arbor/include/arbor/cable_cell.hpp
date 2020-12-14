@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -45,7 +46,7 @@ using cable_sample_range = std::pair<const double*, const double*>;
 // Sampler functions receive an `any_ptr` to sampled data. The underlying pointer
 // type is a const pointer to:
 //     * `double` for scalar data;
-//     * `cable_sample_rang*` for vector data (see definition above).
+//     * `cable_sample_range*` for vector data (see definition above).
 //
 // The metadata associated with a probe is also passed to a sampler via an `any_ptr`;
 // the underlying pointer will be a const pointer to one of the following metadata types:
@@ -183,6 +184,7 @@ struct cable_probe_ion_ext_concentration_cell {
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
+
 // Typed maps for access to painted and placed assignments:
 //
 // Mechanisms and initial ion data are further keyed by
@@ -231,8 +233,6 @@ public:
 
     using gap_junction_instance = mlocation;
 
-    cable_cell_parameter_set default_parameters;
-
     // Default constructor.
     cable_cell();
 
@@ -240,86 +240,22 @@ public:
     cable_cell(const cable_cell& other);
     cable_cell(cable_cell&& other) = default;
 
-    // Copy and move assignment operators..
+    // Copy and move assignment operators.
     cable_cell& operator=(cable_cell&&) = default;
     cable_cell& operator=(const cable_cell& other) {
         return *this = cable_cell(other);
     }
 
-    /// construct from morphology
-    cable_cell(const class morphology& m, const label_dict& dictionary={});
+    /// Construct from morphology, label and decoration descriptions.
+    cable_cell(const class morphology&, const label_dict&, const decor&);
+    cable_cell(const class morphology& m):
+        cable_cell(m, {}, {})
+    {}
 
     /// Access to morphology and embedding
     const concrete_embedding& embedding() const;
     const arb::morphology& morphology() const;
     const mprovider& provider() const;
-
-    // Set cell-wide default physical and ion parameters.
-
-    void set_default(init_membrane_potential prop) {
-        default_parameters.init_membrane_potential = prop.value;
-    }
-
-    void set_default(axial_resistivity prop) {
-        default_parameters.axial_resistivity = prop.value;
-    }
-
-    void set_default(temperature_K prop) {
-        default_parameters.temperature_K = prop.value;
-    }
-
-    void set_default(membrane_capacitance prop) {
-        default_parameters.membrane_capacitance = prop.value;
-    }
-
-    void set_default(initial_ion_data prop) {
-        default_parameters.ion_data[prop.ion] = prop.initial;
-    }
-
-    void set_default(init_int_concentration prop) {
-        default_parameters.ion_data[prop.ion].init_int_concentration = prop.value;
-    }
-
-    void set_default(init_ext_concentration prop) {
-        default_parameters.ion_data[prop.ion].init_ext_concentration = prop.value;
-    }
-
-    void set_default(init_reversal_potential prop) {
-        default_parameters.ion_data[prop.ion].init_reversal_potential = prop.value;
-    }
-
-    void set_default(ion_reversal_potential_method prop) {
-        default_parameters.reversal_potential_method[prop.ion] = prop.method;
-    }
-
-    // Painters and placers.
-    //
-    // Used to describe regions and locations where density channels, stimuli,
-    // synapses, gap junctions and detectors are located.
-
-    // Density channels.
-    void paint(const region&, mechanism_desc);
-
-    // Properties.
-    void paint(const region&, init_membrane_potential);
-    void paint(const region&, axial_resistivity);
-    void paint(const region&, temperature_K);
-    void paint(const region&, membrane_capacitance);
-    void paint(const region&, init_int_concentration);
-    void paint(const region&, init_ext_concentration);
-    void paint(const region&, init_reversal_potential);
-
-    // Synapses.
-    lid_range place(const locset&, mechanism_desc);
-
-    // Stimuli.
-    lid_range place(const locset&, i_clamp);
-
-    // Gap junctions.
-    lid_range place(const locset&, gap_junction_site);
-
-    // Spike detectors.
-    lid_range place(const locset&, threshold_detector);
 
     // Convenience access to placed items.
 
@@ -348,6 +284,16 @@ public:
     // Generic access to painted and placed items.
     const cable_cell_region_map& region_assignments() const;
     const cable_cell_location_map& location_assignments() const;
+
+    // The decorations on the cell.
+    const decor& decorations() const;
+
+    // The default parameter and ion settings on the cell.
+    const cable_cell_parameter_set& default_parameters() const;
+
+    // The range of lids assigned to the items with placement index idx, where
+    // the placement index is the value returned by calling decor::place().
+    lid_range placed_lid_range(unsigned idx) const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;

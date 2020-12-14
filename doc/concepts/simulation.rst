@@ -16,8 +16,6 @@ To build a simulation the following are needed:
       model over the local and distributed :ref:`hardware resources <modelhardware>`.
     * An :ref:`execution context <modelcontext>` used to execute the simulation.
 
-Optionally, experimental inputs that can change between model runs, such as external spike trains, can be injected.
-
 Simulation execution and interaction
 ------------------------------------
 

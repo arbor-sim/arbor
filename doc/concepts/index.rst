@@ -37,9 +37,6 @@ of the model over the locally available computational resources.
 In order to visualize the result of detected spikes a spike recorder can be used and to analyse Arbor's performance a
 meter manager is available.
 
-Arbor concepts
-==============
-
 .. toctree::
    :maxdepth: 2
    :caption: From recipe to simulation:

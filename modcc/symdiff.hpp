@@ -25,7 +25,7 @@ bool involves_identifier(Expression* e, const identifier_set& ids);
 expression_ptr constant_simplify(Expression* e);
 
 // Extract value of expression that is a NumberExpression, or else return NAN.
-long double expr_value(Expression* e);
+double expr_value(Expression* e);
 
 // Test if expression is a NumberExpression with value zero.
 inline bool is_zero(Expression* e) {
@@ -57,11 +57,11 @@ inline expression_ptr constant_simplify(const expression_ptr& e) {
     return constant_simplify(e.get());
 }
 
-inline long double expr_value(const expression_ptr& e) {
+inline double expr_value(const expression_ptr& e) {
     return expr_value(e.get());
 }
 
-inline long double is_zero(const expression_ptr& e) {
+inline double is_zero(const expression_ptr& e) {
     return is_zero(e.get());
 }
 

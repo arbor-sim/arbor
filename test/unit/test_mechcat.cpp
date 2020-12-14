@@ -75,10 +75,10 @@ struct common_impl: concrete_mechanism<B> {
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& vs) override {}
 
     void initialize() override {}
-    void nrn_state() override {}
-    void nrn_current() override {}
+    void update_state() override {}
+    void update_current() override {}
     void deliver_events() override {}
-    void write_ions() override {}
+    void update_ions() override {}
 
     std::size_t width_ = 0;
 

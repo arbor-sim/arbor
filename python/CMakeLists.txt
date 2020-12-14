@@ -15,13 +15,13 @@ set(PYBIND11_CPP_STANDARD -std=c++17)
 add_subdirectory(pybind11)
 
 set(pyarb_source
+    cable_probes.cpp
     cells.cpp
     config.cpp
     context.cpp
     domain_decomposition.cpp
     error.cpp
     event_generator.cpp
-    flat_cell_builder.cpp
     identifiers.cpp
     mechanism.cpp
     morphology.cpp
@@ -29,7 +29,6 @@ set(pyarb_source
     profiler.cpp
     pyarb.cpp
     recipe.cpp
-    sampling.cpp
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
@@ -71,8 +70,8 @@ add_subdirectory(test)
 # The module contains the dynamic library, __init__.py and VERSION information.
 set(python_mod_path "${CMAKE_CURRENT_BINARY_DIR}/arbor")
 set_target_properties(pyarb PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${python_mod_path}")
-file(COPY "${CMAKE_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
-file(COPY "${CMAKE_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
+file(COPY "${PROJECT_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
+file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 
 # Determine the installation path, according to the Python version.
 # The installation for Python 3.8 would be:

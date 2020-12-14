@@ -15,9 +15,7 @@
 
 namespace pyarb {
 
-arb::probe_info cable_probe(std::string kind, arb::cell_member_type id, arb::mlocation loc);
-
-// pyarb::recipe is the recipe interface used by Python.
+// pyarb::py_recipe is the recipe interface used by Python.
 // Calls that return generic types return pybind11::object, to avoid
 // having to wrap some C++ types used by the C++ interface (specifically
 // util::unique_any, std::any, std::unique_ptr, etc.)
@@ -102,7 +100,7 @@ public:
     }
 };
 
-// A recipe shim that holds a pyarb::recipe implementation.
+// A recipe shim that holds a pyarb::py_recipe implementation.
 // Unwraps/translates python-side output from pyarb::recipe and forwards
 // to arb::recipe.
 // For example, unwrap cell descriptions stored in PyObject, and rewrap
@@ -123,7 +121,7 @@ public:
         return try_catch_pyexception([&](){ return impl_->num_cells(); }, msg);
     }
 
-    // The pyarb::recipe::cell_decription returns a pybind11::object, that is
+    // The pyarb::py_recipe::cell_decription method returns a pybind11::object, that is
     // unwrapped and copied into a util::unique_any.
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override;
 

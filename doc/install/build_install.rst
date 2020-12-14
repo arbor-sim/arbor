@@ -48,7 +48,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     GCC         8.4.0
     Clang       8.0          Needs GCC 8 or later for standard library.
     Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
-    Hip Clang   Rocm 3.6     HIP support is currently experimental.
+    Hip Clang   ROCm 3.9     HIP support is currently experimental.
     =========== ============ ============================================
 
 .. _note_CC:
@@ -200,6 +200,8 @@ For more detailed build configuration options, see the `quick start <quickstart_
     make -j 4
     # 3.2) Build Arbor unit tests.
     make -j 4 tests
+    # 3.3) Build Arbor C++ examples.
+    make -j 4 examples
 
     # 4) Run tests.
     ./bin/unit

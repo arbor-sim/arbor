@@ -12,22 +12,25 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
                            'center': '(location 0 0.5)'})
 
 # (3) Create cell and set properties
-cell = arbor.cable_cell(tree, labels)
-cell.set_properties(Vm=-40)
-cell.paint('"soma"', 'hh')
-cell.place('"center"', arbor.iclamp( 10, 2, 0.8))
-cell.place('"center"', arbor.spike_detector(-10))
+decor = arbor.decor()
+decor.set_property(Vm=-40)
+decor.paint('"soma"', 'hh')
+decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
+decor.place('"center"', arbor.spike_detector(-10))
 
-# (4) Make single cell model.
+# (4) Create cell and the single cell model based on it
+cell = arbor.cable_cell(tree, labels, decor)
+
+# (5) Make single cell model.
 m = arbor.single_cell_model(cell)
 
-# (5) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
+# (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
 m.probe('voltage', '"center"', frequency=10000)
 
-# (6) Run simulation for 30 ms of simulated activity.
+# (7) Run simulation for 30 ms of simulated activity.
 m.run(tfinal=30)
 
-# (7) Print spike times, if any.
+# (8) Print spike times.
 if len(m.spikes)>0:
     print('{} spikes:'.format(len(m.spikes)))
     for s in m.spikes:

@@ -63,8 +63,8 @@ which may contain multiple instances of the same location, for example:
   :align: center
 
   Examples of locsets on the example morphology.
-  The terminal points (right).
-  Fifty random locations on the dendritic tree (left).
+  The terminal points (left).
+  Fifty random locations on the dendritic tree (right).
   The :ref:`root <morph-segment-definitions>` of the morphology is shown with a red circle
   for reference.
 
@@ -111,7 +111,6 @@ Examples of expressions that define regions include:
 * ``(tag 1)``: all segments with tag 1.
 * ``(branch 2)``: branch 2.
 * ``(region "soma")``: the region with the label "soma".
-* ``"soma"``: a shortcut for the region with the label "soma".
 
 Examples of expressions that define locsets include:
 
@@ -645,4 +644,4 @@ API
 ---
 
 * :ref:`Python <py_labels>`
-* :ref:`C++ <cpp_labels>`
+* *TODO*: C++ documentation.

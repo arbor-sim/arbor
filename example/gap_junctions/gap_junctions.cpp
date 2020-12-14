@@ -286,10 +286,10 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     double dend_rad = 3./2; // μm
     tree.append(0, {0,0,2*soma_rad, dend_rad}, {0,0,2*soma_rad+300, dend_rad}, 3);  // dendrite
 
-    // Create the cell and set its electrical properties.
-    arb::cable_cell cell(tree);
-    cell.default_parameters.axial_resistivity = 100;       // [Ω·cm]
-    cell.default_parameters.membrane_capacitance = 0.018;  // [F/m²]
+    arb::decor decor;
+
+    decor.set_default(arb::axial_resistivity{100});       // [Ω·cm]
+    decor.set_default(arb::membrane_capacitance{0.018});  // [F/m²]
 
     // Define the density channels and their parameters.
     arb::mechanism_desc nax("nax");
@@ -307,28 +307,29 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     pas["e"] =  -65;
 
     // Paint density channels on all parts of the cell
-    cell.paint("(all)", nax);
-    cell.paint("(all)", kdrmt);
-    cell.paint("(all)", kamt);
-    cell.paint("(all)", pas);
+    decor.paint("(all)", nax);
+    decor.paint("(all)", kdrmt);
+    decor.paint("(all)", kamt);
+    decor.paint("(all)", pas);
 
     // Add a spike detector to the soma.
-    cell.place(arb::mlocation{0,0}, arb::threshold_detector{10});
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10});
 
     // Add two gap junction sites.
-    cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
-    cell.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
+    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
+    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
 
     // Attach a stimulus to the second cell.
     if (!gid) {
         arb::i_clamp stim(0, stim_duration, 0.4);
-        cell.place(arb::mlocation{0, 0.5}, stim);
+        decor.place(arb::mlocation{0, 0.5}, stim);
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.place(arb::mlocation{0, 0.5}, "expsyn");
+    decor.place(arb::mlocation{0, 0.5}, "expsyn");
 
-    return cell;
+    // Create the cell and set its electrical properties.
+    return arb::cable_cell(tree, {}, decor);
 }
 
 gap_params read_options(int argc, char** argv) {
@@ -352,7 +353,7 @@ gap_params read_options(int argc, char** argv) {
     }
 
     nlohmann::json json;
-    json << f;
+    f >> json;
 
     param_from_json(params.name, "name", json);
     param_from_json(params.n_cables, "n-cables", json);

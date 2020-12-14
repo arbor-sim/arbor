@@ -65,6 +65,7 @@ cv_policy operator|(const cv_policy& lhs, const cv_policy& rhs) {
 
 // Public policy implementations:
 
+// cv_policy_explicit
 locset cv_policy_explicit::cv_boundary_points(const cable_cell& cell) const {
     return
         ls::support(
@@ -76,6 +77,24 @@ locset cv_policy_explicit::cv_boundary_points(const cable_cell& cell) const {
                 components(cell.morphology(), thingify(domain_, cell.provider()))));
 }
 
+cv_policy_base_ptr cv_policy_explicit::clone() const {
+    return cv_policy_base_ptr(new cv_policy_explicit(*this));
+}
+
+region cv_policy_explicit::domain() const { return domain_; }
+
+// cv_policy_single
+locset cv_policy_single::cv_boundary_points(const cable_cell&) const {
+    return ls::cboundary(domain_);
+}
+
+cv_policy_base_ptr cv_policy_single::clone() const {
+    return cv_policy_base_ptr(new cv_policy_single(*this));
+}
+
+region cv_policy_single::domain() const { return domain_; }
+
+// cv_policy_max_extent
 locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
     const unsigned nbranch = cell.morphology().num_branches();
     const auto& embed = cell.embedding();
@@ -109,6 +128,13 @@ locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
     return unique_sum(locset(std::move(points)), ls::cboundary(domain_));
 }
 
+cv_policy_base_ptr cv_policy_max_extent::clone() const {
+    return cv_policy_base_ptr(new cv_policy_max_extent(*this));
+}
+
+region cv_policy_max_extent::domain() const { return domain_; }
+
+// cv_policy_fixed_per_branch
 locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) const {
     const unsigned nbranch = cell.morphology().num_branches();
     if (!nbranch) return ls::nil();
@@ -139,6 +165,14 @@ locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) co
     return unique_sum(locset(std::move(points)), ls::cboundary(domain_));
 }
 
+cv_policy_base_ptr cv_policy_fixed_per_branch::clone() const {
+    return cv_policy_base_ptr(new cv_policy_fixed_per_branch(*this));
+}
+
+region cv_policy_fixed_per_branch::domain() const { return domain_; }
+
+
+// cv_policy_every_segment
 locset cv_policy_every_segment::cv_boundary_points(const cable_cell& cell) const {
     const unsigned nbranch = cell.morphology().num_branches();
     if (!nbranch) return ls::nil();
@@ -147,5 +181,10 @@ locset cv_policy_every_segment::cv_boundary_points(const cable_cell& cell) const
                 ls::cboundary(domain_),
                 ls::restrict(ls::segment_boundaries(), domain_));
 }
+cv_policy_base_ptr cv_policy_every_segment::clone() const {
+    return cv_policy_base_ptr(new cv_policy_every_segment(*this));
+}
+
+region cv_policy_every_segment::domain() const { return domain_; }
 
 } // namespace arb

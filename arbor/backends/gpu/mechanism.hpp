@@ -52,6 +52,21 @@ public:
         // Delegate to derived class, passing in event queue state.
         deliver_events(event_stream_ptr_->marked_events());
     }
+    void update_current() override {
+        mechanism_ppack_base* pp = ppack_ptr();
+        pp->vec_t_ = vec_t_ptr_->data();
+        nrn_current();
+    }
+    void update_state() override {
+        mechanism_ppack_base* pp = ppack_ptr();
+        pp->vec_t_ = vec_t_ptr_->data();
+        nrn_state();
+    }
+    void update_ions() override {
+        mechanism_ppack_base* pp = ppack_ptr();
+        pp->vec_t_ = vec_t_ptr_->data();
+        write_ions();
+    }
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
 
@@ -75,6 +90,8 @@ protected:
     virtual mechanism_ppack_base* ppack_ptr() = 0;
 
     deliverable_event_stream* event_stream_ptr_;
+    const array* vec_t_ptr_;
+    const array* vec_t_to_ptr_;
 
     // Bulk storage for index vectors and state and parameter variables.
 
@@ -127,7 +144,10 @@ protected:
 
     // Event delivery, given event queue state:
 
+    virtual void nrn_state() {};
+    virtual void nrn_current() {};
     virtual void deliver_events(deliverable_event_stream::state) {};
+    virtual void write_ions() {};
 };
 
 } // namespace gpu
