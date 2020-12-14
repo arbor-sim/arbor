@@ -14,7 +14,6 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 
-#include "cells.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "event_generator.hpp"

@@ -26,7 +26,6 @@
 
 #include "arbor/cable_cell_param.hpp"
 #include "arbor/cv_policy.hpp"
-#include "cells.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "pybind11/cast.h"

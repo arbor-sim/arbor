@@ -13,7 +13,6 @@
 #include <arbor/simulation.hpp>
 #include <arbor/util/any_cast.hpp>
 
-#include "cells.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
 
