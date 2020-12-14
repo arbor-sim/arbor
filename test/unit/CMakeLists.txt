@@ -21,6 +21,7 @@ set(test_mechanisms
     test1_kin_steadystate
     fixed_ica_current
     point_ica_current
+    non_linear
     linear_ca_conc
     test_cl_valence
     test_ca_read_valence
