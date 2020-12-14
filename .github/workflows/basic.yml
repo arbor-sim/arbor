@@ -22,7 +22,8 @@ jobs:
     env:
         CC:         ${{ matrix.cc }}-${{ matrix.ver }}
         CXX:        ${{ matrix.cxx }}-${{ matrix.ver }}
-        PYTHONPATH: /usr/local/lib/python${{ matrix.py }}/site-packages/
+        # We set PYTHONPATH instead of installing to avoid distribution/OS specific behaviour.
+        PYTHONPATH: /home/runner/work/arbor/arbor/build/python
     steps:
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.4
@@ -69,13 +70,12 @@ jobs:
           python --version
           mpic++ --show
           mpicc --show
-      - name: Install arbor
+      - name: Build arbor
         run: |
           mkdir build
           cd build
           cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.mpi }}
           make -j4 tests examples html
-          sudo make install
           cd -
       - name: Run unit tests
         run:  build/bin/unit
