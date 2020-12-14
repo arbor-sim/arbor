@@ -37,7 +37,6 @@ Once constructed, the cable cell can be queried for specific information about t
     * 6 morphologies (2 for each of purkinje, granule and pyramidal).
     * 3 decors (1 for each of purkinje, granule and pyramidal).
     * 1 label dictionary that defines the region types.
->>>>>>> ac63809fb85c61e799fe30a47f6358d9420d6177
 
 .. _cablecell-decoration:
 

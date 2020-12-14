@@ -34,7 +34,7 @@ integration for each cell group. A cell group represents a collection of cells o
 on the GPU or CPU. The partitioning into cell groups is provided by :ref:`modeldomdec` which describes the distribution
 of the model over the locally available computational resources.
 
-In order to visualize the result of detected spikes a spike recorder can be used and to analyse Arbor's performance a
+In order to visualize the result of detected spikes a spike recorder can be used, and to analyse Arbor's performance a
 meter manager is available.
 
 .. toctree::

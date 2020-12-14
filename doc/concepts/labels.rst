@@ -565,7 +565,7 @@ Thingification
 --------------
 
 When a region or locset expression is applied to a cell morphology, it is represented
-as a list of unbranched *cables* or a set of *locations* on the morphology respectively.
+as a list of unbranched *cables* or a set of *locations* on the morphology.
 This process is called ``thingify`` in arbor, because it turns the abstract description
 of a region or a loscet into an actual 'thing' when it is applied to a real morphology.
 
@@ -623,8 +623,8 @@ lead to confusion.
 
 Labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
 Label dictionaries are then used to create a cable-cell along with the :ref:`morphology <co_morphology>`
-and a set of :ref:`decorations <cablecell-decoration>`. The decorations can be painted or placed on
-the regions and locsets defined in the label dictionary by referring to their labels.
+and a :ref:`decor <cablecell-decoration>`. The decorations can be painted or placed on
+the regions or locsets defined in the label dictionary by referring to their labels.
 
 .. code-block:: python
    :caption: Example of a lable dictionary in python:
@@ -634,7 +634,7 @@ the regions and locsets defined in the label dictionary by referring to their la
       'axon': '(tag 2)',  # axon is every cable with tag 2 in the morphology.
       'dend': '(tag 3)',  # dend is every cable with tab 3 in the morphology
       'root': '(root)',   # typically the start of the soma is at the root of the cell.
-      'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 1.
+      'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
       'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
     })
 

@@ -57,6 +57,7 @@ Cell kind
     ========================  ===========================================================
 
 .. _modelcablecell:
+
 1. **Cable Cells**
 
    Cable cells are morphologically-detailed cells. They can be coupled to other cells via the following
@@ -68,6 +69,7 @@ Cell kind
    2. Direct electrical coupling between two cable cells via :ref:`gap junctions <modelgapjunctions>`.
 
 .. _modellifcell:
+
 2. **LIF Cells**
 
    LIF cells are single-compartment leaky integrate and fire neurons. They are typically used to simulate
@@ -78,6 +80,7 @@ Cell kind
    be a *source* of spikes to cells that have target sites (i.e. *cable* and *lif* cells).
 
 .. _modelspikecell:
+
 3. **Spiking Cells**
 
    Spiking cells act as spike sources from user-specified values inserted via a `schedule description`.
@@ -88,6 +91,7 @@ Cell kind
    (i.e. *cable* and *lif* cells), but they can not *receive* spikes.
 
 .. _modelbenchcell:
+
 4. **Benchmark Cells**
 
    Benchmark cells are proxy cells used for benchmarking, and used by developers to benchmark the spike
