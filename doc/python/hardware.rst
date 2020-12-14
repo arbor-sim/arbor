@@ -48,6 +48,7 @@ Helper functions for checking cmake or environment variables, as well as configu
         By default sets MPI_COMM_WORLD as communicator.
 
     .. function:: mpi_comm(object)
+        :noindex:
 
         Converts a Python object to an MPI Communicator.
 
@@ -127,42 +128,8 @@ The Python wrapper provides an API for:
 
         Construct a local context with one thread, no GPU, no MPI.
 
-    .. function:: context(alloc)
-
-        Create a local context, with no distributed/MPI, that uses the local resources described by :class:`proc_allocation`.
-
-        .. attribute:: alloc
-
-            The computational resources, one thread and no GPU by default.
-
-    .. function:: context(alloc, mpi)
-
-        Create a distributed context, that uses the local resources described by :class:`proc_allocation`, and
-        uses the MPI communicator for distributed calculation.
-
-        .. attribute:: alloc
-
-            The computational resources, one thread and no GPU by default.
-
-        .. attribute:: mpi
-
-            The MPI communicator (see :class:`mpi_comm`).
-            mpi must be ``None``, or an MPI communicator.
-
-    .. function:: context(threads, gpu_id)
-
-        Create a context that uses a set number of :attr:`threads` and the GPU with id :attr:`gpu_id`.
-
-        .. attribute:: threads
-
-            The number of threads available locally for execution, 1 by default.
-
-        .. attribute:: gpu_id
-
-            The identifier of the GPU to use, ``None`` by default.
-            Must be ``None``, or a non-negative integer.
-
     .. function:: context(threads, gpu_id, mpi)
+        :noindex:
 
         Create a context that uses a set number of :attr:`threads` and gpu identifier :attr:`gpu_id` and MPI communicator :attr:`mpi` for distributed calculation.
 
@@ -179,6 +146,44 @@ The Python wrapper provides an API for:
 
             The MPI communicator (see :class:`mpi_comm`).
             mpi must be ``None``, or an MPI communicator.
+
+    .. function:: context(alloc)
+        :noindex:
+
+        Create a local context, with no distributed/MPI, that uses the local resources described by :class:`proc_allocation`.
+
+        .. attribute:: alloc
+
+            The computational resources, one thread and no GPU by default.
+
+    .. function:: context(alloc, mpi)
+        :noindex:
+
+        Create a distributed context, that uses the local resources described by :class:`proc_allocation`, and
+        uses the MPI communicator for distributed calculation.
+
+        .. attribute:: alloc
+
+            The computational resources, one thread and no GPU by default.
+
+        .. attribute:: mpi
+
+            The MPI communicator (see :class:`mpi_comm`).
+            mpi must be ``None``, or an MPI communicator.
+
+    .. function:: context(threads, gpu_id)
+        :noindex:
+
+        Create a context that uses a set number of :attr:`threads` and the GPU with id :attr:`gpu_id`.
+
+        .. attribute:: threads
+
+            The number of threads available locally for execution, 1 by default.
+
+        .. attribute:: gpu_id
+
+            The identifier of the GPU to use, ``None`` by default.
+            Must be ``None``, or a non-negative integer.
 
     Contexts can be queried for information about which features a context has enabled,
     whether it has a GPU, how many threads are in its thread pool.

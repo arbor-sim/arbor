@@ -217,6 +217,19 @@ TEST(symbolic_pdiff, nonlinear) {
     }
 }
 
+TEST(symbolic_pdiff, non_differentiable) {
+    struct { const char* exp; } tests[] = {
+            { "max(x)"},
+            { "min(a)"}
+    };
+
+    for (const auto& item: tests) {
+        SCOPED_TRACE(std::string("expressions: ")+item.exp);
+        auto exp = Parser{item.exp}.parse_expression();
+        ASSERT_FALSE(exp);
+    }
+}
+
 inline expression_ptr operator""_expr(const char* literal, std::size_t) {
     return Parser{literal}.parse_expression();
 }
@@ -311,6 +324,18 @@ TEST(linear_test, nonlinear) {
 
     r = linear_test("x+y*x"_expr, {"x", "y"});
     EXPECT_FALSE(r.is_linear);
+}
+
+TEST(linear_test, non_differentiable) {
+    linear_test_result r;
+
+    r = linear_test("max(x, y)"_expr, {"x", "y"});
+    EXPECT_FALSE(r.is_linear);
+    EXPECT_FALSE(r.is_homogeneous);
+
+    r = linear_test("min(x, y)"_expr, {"x", "y"});
+    EXPECT_FALSE(r.is_linear);
+    EXPECT_FALSE(r.is_homogeneous);
 }
 
 TEST(linear_test, diagonality) {

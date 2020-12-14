@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -23,43 +24,17 @@
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/unique_any.hpp>
 
+#include "arbor/cable_cell_param.hpp"
+#include "arbor/cv_policy.hpp"
 #include "cells.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
+#include "pybind11/cast.h"
+#include "pybind11/pytypes.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
 namespace pyarb {
-
-// Convert a cell description inside a Python object to a cell
-// description in a unique_any, as required by the recipe interface.
-//
-// Warning: requires that the GIL has been acquired before calling,
-// if there is a segmentation fault in the cast or isinstance calls,
-// check that the caller has the GIL.
-arb::util::unique_any convert_cell(pybind11::object o) {
-    using pybind11::isinstance;
-    using pybind11::cast;
-
-    pybind11::gil_scoped_acquire guard;
-    if (isinstance<arb::spike_source_cell>(o)) {
-        return arb::util::unique_any(cast<arb::spike_source_cell>(o));
-    }
-    if (isinstance<arb::benchmark_cell>(o)) {
-        return arb::util::unique_any(cast<arb::benchmark_cell>(o));
-    }
-    if (isinstance<arb::lif_cell>(o)) {
-        return arb::util::unique_any(cast<arb::lif_cell>(o));
-    }
-    if (isinstance<arb::cable_cell>(o)) {
-        return arb::util::unique_any(cast<arb::cable_cell>(o));
-    }
-
-    throw pyarb_error("recipe.cell_description returned \""
-                      + std::string(pybind11::str(o))
-                      + "\" which does not describe a known Arbor cell type");
-}
-
 //
 //  proxies
 //
@@ -195,6 +170,42 @@ std::string to_string(const global_props_shim& G) {
     return s;
 }
 
+//
+// cv_policy helpers
+//
+
+arb::cv_policy make_cv_policy_single(const std::string& reg) {
+    return arb::cv_policy_single(reg);
+}
+
+arb::cv_policy make_cv_policy_every_segment(const std::string& reg) {
+    return arb::cv_policy_every_segment(reg);
+}
+
+arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std::string& reg) {
+    return arb::cv_policy_fixed_per_branch(cv_per_branch, reg);
+}
+
+arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& reg) {
+    return arb::cv_policy_max_extent(cv_length, reg);
+}
+
+// Helper for finding a mechanism description in a Python object.
+// Allows rev_pot_method to be specified with string or mechanism_desc
+std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
+    if (!method.is_none()) {
+        if (auto m=try_cast<std::string>(method)) {
+            return *m;
+        }
+        else if (auto m=try_cast<arb::mechanism_desc>(method)) {
+            return *m;
+        }
+        else {
+            throw std::runtime_error(util::pprintf("invalid rev_pot_method: {}", method));
+        }
+    }
+    return {};
+}
 
 //
 // string printers
@@ -321,6 +332,41 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", [](const label_dict_proxy& d){return d.to_string();})
         .def("__str__",  [](const label_dict_proxy& d){return d.to_string();});
 
+    // arb::cv_policy wrappers
+
+    pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
+            "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
+    cv_policy
+        .def_property_readonly("domain",
+                               [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
+                               "The domain on which the policy is applied.")
+        .def(pybind11::self + pybind11::self)
+        .def(pybind11::self | pybind11::self)
+        .def("__repr__", [](const arb::cv_policy& p) {return "(cv-policy)";})
+        .def("__str__",  [](const arb::cv_policy& p) {return "(cv-policy)";});
+
+    m.def("cv_policy_single",
+          &make_cv_policy_single,
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to create one compartment per component of a region.");
+
+    m.def("cv_policy_every_segment",
+          &make_cv_policy_every_segment,
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to create one compartment per component of a region.");
+
+    m.def("cv_policy_max_extent",
+          &make_cv_policy_max_extent,
+          "length"_a, "the maximum CV length",
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to use as many CVs as required to ensure that no CV has a length longer than a given value.");
+
+    m.def("cv_policy_fixed_per_branch",
+          &make_cv_policy_fixed_per_branch,
+          "n"_a, "the number of CVs per branch",
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to use the same number of CVs for each branch.");
+
     // arb::gap_junction_site
 
     pybind11::class_<arb::gap_junction_site> gjsite(m, "gap_junction",
@@ -397,9 +443,9 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init<const global_props_shim&>())
         .def("check", [](const global_props_shim& shim) {
                 arb::check_global_properties(shim.props);},
-                "Test whether all default parameters and ion specids properties have been set.")
+                "Test whether all default parameters and ion species properties have been set.")
         // set cable properties
-        .def("set_properties",
+        .def("set_property",
             [](global_props_shim& G,
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
@@ -409,15 +455,11 @@ void register_cells(pybind11::module& m) {
                 if (rL) G.props.default_parameters.axial_resistivity=rL;
                 if (tempK) G.props.default_parameters.temperature_K=tempK;
             },
-            "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
-            "Set global default values for cable and cell properties.\n"
-            " Vm:    initial membrane voltage [mV].\n"
-            " cm:    membrane capacitance [F/m²].\n"
-            " rL:    axial resistivity [Ω·cm].\n"
-            " tempK: temperature [Kelvin].")
-        .def("foo", [](global_props_shim& G, double x, pybind11::object method) {
-                        std::cout << "foo(" << x << ", " << method << ")\n";},
-                    "x"_a, "method"_a=pybind11::none())
+            pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
+            pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
+            pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
+            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
+            "Set global default values for cable and cell properties.")
         // add/modify ion species
         .def("set_ion",
             [](global_props_shim& G, const char* ion,
@@ -428,36 +470,150 @@ void register_cells(pybind11::module& m) {
                 if (int_con) data.init_int_concentration = *int_con;
                 if (ext_con) data.init_ext_concentration = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
-                // allow rev_pot_method to be specified with string or mechanism_desc
-                if (!method.is_none()) {
-                    if (auto m=try_cast<std::string>(method)) {
-                        G.props.default_parameters.reversal_potential_method[ion] = *m;
-                    }
-                    else if (auto m=try_cast<arb::mechanism_desc>(method)) {
-                        G.props.default_parameters.reversal_potential_method[ion] = *m;
-                    }
-                    else {
-                        throw std::runtime_error(util::pprintf("invalid rev_pot_method: {}", method));
-                    }
+                if (auto m = maybe_method(method)) {
+                    G.props.default_parameters.reversal_potential_method[ion] = *m;
                 }
             },
-            "ion"_a,
-            "int_con"_a=pybind11::none(),
-            "ext_con"_a=pybind11::none(),
-            "rev_pot"_a=pybind11::none(),
-            "rev_pot_method"_a=pybind11::none(),
+            pybind11::arg_v("ion", "name of the ion species."),
+            pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
+            pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
+            pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
+            pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
             "Set the global default propoerties of ion species named 'ion'.\n"
             "Species concentrations and reversal potential can be overridden on\n"
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
-            "overriden locally.\n"
-            " ion:     name of ion species.\n"
-            " int_con: initial internal concentration [mM].\n"
-            " ext_con: initial external concentration [mM].\n"
-            " rev_pot: initial reversal potential [mV].\n"
-            " rev_pot_method:  method for calculating reversal potential.")
+            "overriden locally.")
         .def_readwrite("catalogue", &global_props_shim::cat, "The mechanism catalogue.")
         .def("__str__", [](const global_props_shim& p){return to_string(p);});
+
+
+    pybind11::class_<arb::decor> decor(m, "decor",
+            "Description of the decorations to be applied to a cable cell, that is the painted,\n"
+            "placed and defaulted properties, mecahanisms, ion species etc.");
+    decor
+        .def(pybind11::init<>())
+        .def(pybind11::init<const arb::decor&>())
+        // Set cell-wide default values for properties
+        .def("set_property",
+            [](arb::decor& d,
+               optional<double> Vm, optional<double> cm,
+               optional<double> rL, optional<double> tempK)
+            {
+                if (Vm) d.set_default(arb::init_membrane_potential{*Vm});
+                if (cm) d.set_default(arb::membrane_capacitance{*cm});
+                if (rL) d.set_default(arb::axial_resistivity{*rL});
+                if (tempK) d.set_default(arb::temperature_K{*tempK});
+            },
+            pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
+            pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
+            pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
+            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
+            "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
+        // modify parameters for an ion species.
+        .def("set_ion",
+            [](arb::decor& d, const char* ion,
+               optional<double> int_con, optional<double> ext_con,
+               optional<double> rev_pot, pybind11::object method)
+            {
+                if (int_con) d.set_default(arb::init_int_concentration{ion, *int_con});
+                if (ext_con) d.set_default(arb::init_ext_concentration{ion, *ext_con});
+                if (rev_pot) d.set_default(arb::init_reversal_potential{ion, *rev_pot});
+                if (auto m = maybe_method(method)) {
+                    d.set_default(arb::ion_reversal_potential_method{ion, *m});
+                }
+            },
+            pybind11::arg_v("ion", "name of the ion species."),
+            pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
+            pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
+            pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
+            pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
+            "Set the properties of ion species named 'ion' that will be applied\n"
+            "by default everywhere on the cell. Species concentrations and reversal\n"
+            "potential can be overridden on specific regions using the paint interface, \n"
+            "while the method for calculating reversal potential is global for all\n"
+            "compartments in the cell, and can't be overriden locally.")
+        // Paint mechanisms.
+        .def("paint",
+            [](arb::decor& dec, const char* region, const arb::mechanism_desc& d) {
+                dec.paint(region, d);
+            },
+            "region"_a, "mechanism"_a,
+            "Associate a mechanism with a region.")
+        .def("paint",
+            [](arb::decor& dec, const char* region, const char* mech_name) {
+                dec.paint(region, arb::mechanism_desc(mech_name));
+            },
+            "region"_a, "mechanism"_a,
+            "Associate a mechanism with a region.")
+        // Paint membrane/static properties.
+        .def("paint",
+            [](arb::decor& dec,
+                const char* region,
+               optional<double> Vm, optional<double> cm,
+               optional<double> rL, optional<double> tempK)
+            {
+                if (Vm) dec.paint(region, arb::init_membrane_potential{*Vm});
+                if (cm) dec.paint(region, arb::membrane_capacitance{*cm});
+                if (rL) dec.paint(region, arb::axial_resistivity{*rL});
+                if (tempK) dec.paint(region, arb::temperature_K{*tempK});
+            },
+            pybind11::arg_v("region", "the region label or description."),
+            pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
+            pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
+            pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
+            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
+            "Set cable properties on a region.")
+        // Paint ion species initial conditions on a region.
+        .def("paint",
+            [](arb::decor& dec, const char* region, const char* name,
+               optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
+                if (int_con) dec.paint(region, arb::init_int_concentration{name, *int_con});
+                if (ext_con) dec.paint(region, arb::init_ext_concentration{name, *ext_con});
+                if (rev_pot) dec.paint(region, arb::init_reversal_potential{name, *rev_pot});
+            },
+            "region"_a, "ion_name"_a,
+            pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
+            pybind11::arg_v("ext_con", pybind11::none(), "Intial external concentration [mM]"),
+            pybind11::arg_v("rev_pot", pybind11::none(), "Intial reversal potential [mV]"),
+            "Set ion species properties conditions on a region.")
+        // Place synapses
+        .def("place",
+            [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d) -> int {
+                return dec.place(locset, d); },
+            "locations"_a, "mechanism"_a,
+            "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
+        .def("place",
+            [](arb::decor& dec, const char* locset, const char* mech_name) -> int {
+                return dec.place(locset, mech_name);
+            },
+            "locations"_a, "mechanism"_a,
+            "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
+        // Place gap junctions.
+        .def("place",
+            [](arb::decor& dec, const char* locset, const arb::gap_junction_site& site) -> int {
+                return dec.place(locset, site);
+            },
+            "locations"_a, "gapjunction"_a,
+            "Place one gap junction site at each location in 'locations'.")
+        // Place current clamp stimulus.
+        .def("place",
+            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) -> int {
+                return dec.place(locset, stim);
+            },
+            "locations"_a, "iclamp"_a,
+            "Add a current stimulus at each location in locations.")
+        // Place spike detector.
+        .def("place",
+            [](arb::decor& dec, const char* locset, const arb::threshold_detector& d) -> int {
+                return dec.place(locset, d);
+            },
+            "locations"_a, "detector"_a,
+            "Add a voltage spike detector at each location in locations.")
+        .def("discretization",
+            [](arb::decor& dec, const arb::cv_policy& p) { dec.set_default(p); },
+            pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"));
+
 
     // arb::cable_cell
 
@@ -466,141 +622,18 @@ void register_cells(pybind11::module& m) {
         "tree of one-dimensional cable segments.");
     cable_cell
         .def(pybind11::init(
-            [](const arb::morphology& m, const label_dict_proxy& labels) {
-                return arb::cable_cell(m, labels.dict);
-            }), "morphology"_a, "labels"_a)
+            [](const arb::morphology& m, const label_dict_proxy& labels, const arb::decor& d) {
+                return arb::cable_cell(m, labels.dict, d);
+            }), "morphology"_a, "labels"_a, "decor"_a)
         .def(pybind11::init(
-            [](const arb::segment_tree& t, const label_dict_proxy& labels) {
-                return arb::cable_cell(arb::morphology(t), labels.dict);
+            [](const arb::segment_tree& t, const label_dict_proxy& labels, const arb::decor& d) {
+                return arb::cable_cell(arb::morphology(t), labels.dict, d);
             }),
-            "segment_tree"_a, "labels"_a,
+            "segment_tree"_a, "labels"_a, "decor"_a,
             "Construct with a morphology derived from a segment tree.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
-        // Set cell-wide properties
-        .def("set_properties",
-            [](arb::cable_cell& c,
-               optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK)
-            {
-                if (Vm) c.default_parameters.init_membrane_potential = Vm;
-                if (cm) c.default_parameters.membrane_capacitance=cm;
-                if (rL) c.default_parameters.axial_resistivity=rL;
-                if (tempK) c.default_parameters.temperature_K=tempK;
-            },
-            "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
-            "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.\n"
-            " Vm:    initial membrane voltage [mV].\n"
-            " cm:    membrane capacitance [F/m²].\n"
-            " rL:    axial resistivity [Ω·cm].\n"
-            " tempK: temperature [Kelvin].")
-        .def("set_ion",
-            [](arb::cable_cell& c, const char* ion,
-               optional<double> int_con, optional<double> ext_con,
-               optional<double> rev_pot, optional<arb::mechanism_desc> method)
-            {
-                auto& data = c.default_parameters.ion_data[ion];
-                if (int_con) data.init_int_concentration = *int_con;
-                if (ext_con) data.init_ext_concentration = *ext_con;
-                if (rev_pot) data.init_reversal_potential = *rev_pot;
-                if (method)  c.default_parameters.reversal_potential_method[ion] = *method;
-            },
-            "ion"_a,
-            "int_con"_a=pybind11::none(),
-            "ext_con"_a=pybind11::none(),
-            "rev_pot"_a=pybind11::none(),
-            "method"_a=pybind11::none(),
-            "Set the propoerties of ion species named 'ion' that will be applied\n"
-            "by default everywhere on the cell. Species concentrations and reversal\n"
-            "potential can be overridden on specific regions using the paint interface, \n"
-            "while the method for calculating reversal potential is global for all\n"
-            "compartments in the cell, and can't be overriden locally.\n"
-            " ion:     name of ion species.\n"
-            " int_con: initial internal concentration [mM].\n"
-            " ext_con: initial external concentration [mM].\n"
-            " rev_pot: reversal potential [mV].\n"
-            " method:  method for calculating reversal potential.")
-        // Paint mechanisms.
-        .def("paint",
-            [](arb::cable_cell& c, const char* region, const arb::mechanism_desc& d) {
-                c.paint(region, d);
-            },
-            "region"_a, "mechanism"_a,
-            "Associate a mechanism with a region.")
-        .def("paint",
-            [](arb::cable_cell& c, const char* region, const char* mech_name) {
-                c.paint(region, mech_name);
-            },
-            "region"_a, "mechanism"_a,
-            "Associate a mechanism with a region.")
-        // Paint membrane/static properties.
-        .def("paint",
-            [](arb::cable_cell& c,
-                const char* region,
-               optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK)
-            {
-                if (Vm) c.paint(region, arb::init_membrane_potential{*Vm});
-                if (cm) c.paint(region, arb::membrane_capacitance{*cm});
-                if (rL) c.paint(region, arb::axial_resistivity{*rL});
-                if (tempK) c.paint(region, arb::temperature_K{*tempK});
-            },
-            "region"_a, "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
-            "Set cable properties on a region.\n"
-            " Vm:    initial membrane voltage [mV].\n"
-            " cm:    membrane capacitance [F/m²].\n"
-            " rL:    axial resistivity [Ω·cm].\n"
-            " tempK: temperature [Kelvin].")
-
-
-
-        // Paint ion species initial conditions on a region.
-        .def("paint",
-            [](arb::cable_cell& c, const char* region, const char* name,
-               optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
-                if (int_con) c.paint(region, arb::init_int_concentration{name, *int_con});
-                if (ext_con) c.paint(region, arb::init_ext_concentration{name, *ext_con});
-                if (rev_pot) c.paint(region, arb::init_reversal_potential{name, *rev_pot});
-            },
-            "region"_a, "ion_name"_a,
-             pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
-             pybind11::arg_v("ext_con", pybind11::none(), "Intial external concentration [mM]"),
-             pybind11::arg_v("rev_pot", pybind11::none(), "Intial reversal potential [mV]"),
-            "Set ion species properties conditions on a region.")
-        // Place synapses
-        .def("place",
-            [](arb::cable_cell& c, const char* locset, const arb::mechanism_desc& d) {
-                c.place(locset, d); },
-            "locations"_a, "mechanism"_a,
-            "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
-        .def("place",
-            [](arb::cable_cell& c, const char* locset, const char* mech_name) {
-                c.place(locset, mech_name);
-            },
-            "locations"_a, "mechanism"_a,
-            "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
-        // Place gap junctions.
-        .def("place",
-            [](arb::cable_cell& c, const char* locset, const arb::gap_junction_site& site) {
-                c.place(locset, site);
-            },
-            "locations"_a, "gapjunction"_a,
-            "Place one gap junction site at each location in 'locations'.")
-        // Place current clamp stimulus.
-        .def("place",
-            [](arb::cable_cell& c, const char* locset, const arb::i_clamp& stim) {
-                c.place(locset, stim);
-            },
-            "locations"_a, "iclamp"_a,
-            "Add a current stimulus at each location in locations.")
-        // Place spike detector.
-        .def("place",
-            [](arb::cable_cell& c, const char* locset, const arb::threshold_detector& d) {
-                c.place(locset, d);
-            },
-            "locations"_a, "detector"_a,
-            "Add a voltage spike detector at each location in locations.")
         // Get locations associated with a locset label.
         .def("locations",
             [](arb::cable_cell& c, const char* label) {return c.concrete_locset(label);},
@@ -609,18 +642,14 @@ void register_cells(pybind11::module& m) {
         .def("cables",
             [](arb::cable_cell& c, const char* label) {return c.concrete_region(label).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
-        // Discretization control.
-        .def("compartments_on_segments",
-            [](arb::cable_cell& c) {c.default_parameters.discretization = arb::cv_policy_every_segment{};},
-            "Decompose each branch into compartments defined by segments.")
-        .def("compartments_length",
-            [](arb::cable_cell& c, double len) {
-                c.default_parameters.discretization = arb::cv_policy_max_extent{len};
+        // Get lid range associated with a placement.
+        .def("placed_lid_range",
+            [](arb::cable_cell& c, int idx) -> pybind11::tuple {
+                auto range = c.placed_lid_range(idx);
+                return pybind11::make_tuple(range.begin, range.end);
             },
-            "maxlen"_a, "Decompose each branch into compartments of equal length, not exceeding maxlen.")
-        .def("compartments_per_branch",
-            [](arb::cable_cell& c, unsigned n) {c.default_parameters.discretization = arb::cv_policy_fixed_per_branch{n};},
-            "n"_a, "Decompose each branch into n compartments of equal length.")
+            "index"_a,
+            "The range of lids assigned to the items from a placement, for the lids assigned to synapses.")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});

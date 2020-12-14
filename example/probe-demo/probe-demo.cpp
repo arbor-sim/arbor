@@ -114,17 +114,17 @@ struct cable_recipe: public arb::recipe {
     }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
-        using namespace arb;
         const double length = 1000; // [µm]
-        const double diam = 1; // [µm]
+        const double diam   = 1;    // [µm]
 
-        segment_tree tree;
+        arb::segment_tree tree;
         tree.append(arb::mnpos, {0, 0, 0, 0.5*diam}, {length, 0, 0, 0.5*diam}, 1);
-        cable_cell c(tree);
 
-        c.paint(reg::all(), "hh"); // HH mechanism over whole cell.
-        c.place(mlocation{0, 0.}, i_clamp{0., INFINITY, 1.}); // Inject a 1 nA current indefinitely.
-        return c;
+        arb::decor decor;
+        decor.paint(arb::reg::all(), "hh"); // HH mechanism over whole cell.
+        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{0., INFINITY, 1.}); // Inject a 1 nA current indefinitely.
+
+        return arb::cable_cell(tree, {}, decor);
     }
 };
 

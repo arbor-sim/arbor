@@ -562,6 +562,8 @@ expression_ptr symbolic_pdiff(Expression* e, const std::string& id) {
     SymPDiffVisitor pdiff_visitor(id);
     e->accept(&pdiff_visitor);
 
+    if (pdiff_visitor.has_error()) return nullptr;
+
     return constant_simplify(pdiff_visitor.result());
 }
 
@@ -664,6 +666,9 @@ linear_test_result linear_test(Expression* e, const std::vector<std::string>& va
     result.constant = e->clone();
     for (const auto& id: vars) {
         auto coef = symbolic_pdiff(e, id);
+        if (!coef) {
+            return linear_test_result{};
+        }
         if (!is_zero(coef)) result.coef[id] = std::move(coef);
 
         result.constant = substitute(result.constant, id, zero());
@@ -681,8 +686,8 @@ linear_test_result linear_test(Expression* e, const std::vector<std::string>& va
 
         for (unsigned j = i; j<vars.size(); ++j) {
             auto v2 = vars[j];
-
-            if (!is_zero(symbolic_pdiff(result.coef[v1].get(), v2).get())) {
+            auto coef = symbolic_pdiff(result.coef[v1].get(), v2);
+            if (!coef || !is_zero(coef.get())) {
                 result.is_linear = false;
                 goto done;
             }

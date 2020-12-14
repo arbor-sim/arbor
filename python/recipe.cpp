@@ -6,11 +6,13 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/lif_cell.hpp>
+#include <arbor/spike_source_cell.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/spike_source_cell.hpp>
 
 #include "cells.hpp"
 #include "conversion.hpp"
@@ -21,21 +23,52 @@
 
 namespace pyarb {
 
-// The py::recipe::cell_decription returns a pybind11::object, that is
-// unwrapped and copied into a arb::util::unique_any.
-arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
-    return try_catch_pyexception(
-                [&](){ return convert_cell(impl_->cell_description(gid)); },
-                "Python error already thrown");
-}
-
-std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pygens, arb::cell_gid_type gid) {
-    using namespace std::string_literals;
+// Convert a cell description inside a Python object to a cell description in a
+// unique_any, as required by the recipe interface.
+// This helper is only to be called while holding the GIL. We require this guard
+// across the lifetime of the description object `o`, since this function can be
+// called without holding the GIL, ie from `simulation::init`, and `o` is a
+// python object that can only be destroyed while holding the GIL. The fact that
+// `cell_description` has a scoped GIL does not help with destruction as it
+// happens outside that scope. `Description` needs to be extended in Python,
+// inheriting from the pybind11 class.
+static arb::util::unique_any convert_cell(pybind11::object o) {
     using pybind11::isinstance;
     using pybind11::cast;
 
-    // Aquire the GIL because it must be held when calling isinstance and cast.
-    pybind11::gil_scoped_acquire guard;
+    if (isinstance<arb::spike_source_cell>(o)) {
+        return arb::util::unique_any(cast<arb::spike_source_cell>(o));
+    }
+    if (isinstance<arb::benchmark_cell>(o)) {
+        return arb::util::unique_any(cast<arb::benchmark_cell>(o));
+    }
+    if (isinstance<arb::lif_cell>(o)) {
+        return arb::util::unique_any(cast<arb::lif_cell>(o));
+    }
+    if (isinstance<arb::cable_cell>(o)) {
+        return arb::util::unique_any(cast<arb::cable_cell>(o));
+    }
+
+    throw pyarb_error("recipe.cell_description returned \""
+                      + std::string(pybind11::str(o))
+                      + "\" which does not describe a known Arbor cell type");
+}
+
+// The py::recipe::cell_decription returns a pybind11::object, that is
+// unwrapped and copied into a arb::util::unique_any.
+ arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
+    return try_catch_pyexception([&](){
+        pybind11::gil_scoped_acquire guard;
+        return convert_cell(impl_->cell_description(gid));
+    },
+        "Python error already thrown");
+}
+
+// This helper is only to called while holding the GIL, see above.
+static std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pygens, arb::cell_gid_type gid) {
+    using namespace std::string_literals;
+    using pybind11::isinstance;
+    using pybind11::cast;
 
     std::vector<arb::event_generator> gens;
     gens.reserve(pygens.size());
@@ -58,9 +91,11 @@ std::vector<arb::event_generator> convert_gen(std::vector<pybind11::object> pyge
 }
 
 std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
-    return try_catch_pyexception(
-                [&](){ return convert_gen(impl_->event_generators(gid), gid); },
-                "Python error already thrown");
+    return try_catch_pyexception([&](){
+        pybind11::gil_scoped_acquire guard;
+        return convert_gen(impl_->event_generators(gid), gid);
+    },
+        "Python error already thrown");
 }
 
 std::string con_to_string(const arb::cell_connection& c) {
