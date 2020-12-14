@@ -53,6 +53,7 @@ class install_command(install):
                         'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a'),
+        ('bundled_libs', None, 'use bundled/git-submoduled 3rd party libraries (ON/OFF)')
     ]
 
     def initialize_options(self):
@@ -61,6 +62,7 @@ class install_command(install):
         self.gpu  = None
         self.arch = None
         self.vec  = None
+        self.bundled = None
 
     def finalize_options(self):
         install.finalize_options(self)
@@ -76,6 +78,8 @@ class install_command(install):
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
         opt['arch'] = "native" if self.arch is None else self.arch
+        #   bundled : use bundled/git-submoduled 3rd party libraries
+        opt['bundled'] = "ON" if self.bundled is None else self.bundled
 
         install.run(self)
 
@@ -106,6 +110,7 @@ class cmake_build(build_ext):
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(opt['arch']),
             '-DARB_GPU={}'.format(opt['gpu']),
+            '-DARB_USE_BUNDLED_LIBS={}'.format(opt['bundled']),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
