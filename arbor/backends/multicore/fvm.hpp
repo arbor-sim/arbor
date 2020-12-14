@@ -57,7 +57,6 @@ struct backend {
             state.cv_to_intdom.data(),
             state.voltage.data(),
             state.src_to_spike.data(),
-            &state.time_since_spike,
             &state.time,
             &state.time_to,
             cv,

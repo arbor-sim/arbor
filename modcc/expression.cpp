@@ -749,8 +749,6 @@ void PostEventExpression::semantic(scope_type::symbol_map &global_symbols) {
         error(body_->error_message());
     }
 
-    // the symbol for this expression is itself
-    // this could lead to nasty self-referencing loops
     symbol_ = scope_->find_global(name());
 }
 

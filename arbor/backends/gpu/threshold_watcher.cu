@@ -55,7 +55,13 @@ void test_thresholds_impl(
         const auto v_prev = prev_values[i];
         const auto v      = values[cv];
         const auto thresh = thresholds[i];
+        fvm_index_type spike_idx = 0;
 
+        // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
+        if (record_time_since_spike) {
+            spike_idx = src_to_spike[i];
+            time_since_spike[spike_idx] = -1.0;
+        }
         if (!is_crossed[i]) {
             if (v>=thresh) {
                 // The threshold has been passed, so estimate the time using
@@ -64,7 +70,7 @@ void test_thresholds_impl(
                 crossing_time = lerp(t_before[intdom], t_after[intdom], pos);
 
                 if(record_time_since_spike) {
-                    time_since_spike[src_to_spike[i]] = t_after[intdom] - crossing_time;
+                    time_since_spike[spike_idx] = t_after[intdom] - crossing_time;
                 }
 
                 is_crossed[i] = 1;

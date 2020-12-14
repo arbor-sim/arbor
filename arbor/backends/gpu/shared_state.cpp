@@ -122,6 +122,7 @@ shared_state::shared_state(
     src_to_spike(make_const_view(src_to_spike)),
     deliverable_events(n_intdom)
 {
+    memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
 }
 
@@ -141,6 +142,7 @@ void shared_state::reset() {
     memory::fill(conductivity, 0);
     memory::fill(time, 0);
     memory::fill(time_to, 0);
+    memory::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
         i.second.reset();

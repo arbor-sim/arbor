@@ -71,7 +71,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(cell_index.data(), values.data(), src_to_spike.data(), &time_since_spike,
+    backend::threshold_watcher watch(cell_index.data(), values.data(), src_to_spike.data(),
                                      &time_before, &time_after, index, thresh, context);
 
     // initially the first and third watch should not be spiking
@@ -83,7 +83,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     // test again at t=1, with unchanged values
     //  - nothing should change
     memory::fill(time_after, 1.);
-    watch.test();
+    watch.test(&time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -99,7 +99,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
     memory::fill(time_after, 2.);
-    watch.test();
+    watch.test(&time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -111,7 +111,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::copy(time_after, time_before);
     time_after[0] = 2.5;
     time_after[1] = 3.0;
-    watch.test();
+    watch.test(&time_since_spike);
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));
@@ -135,7 +135,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
     memory::fill(time_after, 4.);
-    watch.test();
+    watch.test(&time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -151,7 +151,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     values[index[2]] = 6.;
     memory::copy(time_after, time_before);
     memory::fill(time_after, 5.);
-    watch.test();
+    watch.test(&time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));

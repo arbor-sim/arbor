@@ -139,6 +139,7 @@ shared_state::shared_state(
         std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
     }
 
+    util::fill(time_since_spike, -1.0);
     for (unsigned i = 0; i<n_cv; ++i) {
         temperature_degC[i] = temperature_K[i] - 273.15;
     }
@@ -160,6 +161,7 @@ void shared_state::reset() {
     util::fill(conductivity, 0);
     util::fill(time, 0);
     util::fill(time_to, 0);
+    util::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
         i.second.reset();

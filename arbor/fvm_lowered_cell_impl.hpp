@@ -290,7 +290,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Update time and test for spike threshold crossings.
 
         PE(advance_integrate_threshold);
-        threshold_watcher_.test();
+        threshold_watcher_.test(&state_->time_since_spike);
         PL();
 
         PE(advance_integrate_post)

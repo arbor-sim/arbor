@@ -21,7 +21,6 @@ public:
         const fvm_index_type* cv_to_intdom,
         const fvm_value_type* values,
         const fvm_index_type* src_to_spike,
-        array* time_since_spike,
         const array* t_before,
         const array* t_after,
         const std::vector<fvm_index_type>& cv_index,
@@ -31,15 +30,13 @@ public:
         cv_to_intdom_(cv_to_intdom),
         values_(values),
         src_to_spike_(src_to_spike),
-        time_since_spike_(time_since_spike),
         t_before_ptr_(t_before),
         t_after_ptr_(t_after),
         n_cv_(cv_index.size()),
         cv_index_(cv_index),
         is_crossed_(n_cv_),
         thresholds_(thresholds),
-        v_prev_(values_, values_+n_cv_),
-        record_time_since_spike_(!time_since_spike_->empty())
+        v_prev_(values_, values_+n_cv_)
     {
         arb_assert(n_cv_==thresholds.size());
         reset();
@@ -49,12 +46,6 @@ public:
     /// to the test() member function.
     void clear_crossings() {
         crossings_.clear();
-    }
-
-    /// Reset all spike times to -1.0 indicating no spike has been recorded
-    // on the detector
-    void clear_spikes() {
-        std::fill(time_since_spike_->begin(), time_since_spike_->end(), -1.0);
     }
 
     /// Reset state machine for each detector.
@@ -74,8 +65,12 @@ public:
     /// Tests each target for changed threshold state
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
-    void test() {
-        clear_spikes();
+    void test(array* time_since_spike) {
+        // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
+        if (!time_since_spike->empty()) {
+            std::fill(time_since_spike->begin(), time_since_spike->end(), -1.0);
+        }
+
         const fvm_value_type* t_before = t_before_ptr_->data();
         const fvm_value_type* t_after  = t_after_ptr_->data();
         for (fvm_size_type i = 0; i<n_cv_; ++i) {
@@ -93,8 +88,8 @@ public:
                     auto crossing_time = math::lerp(t_before[intdom], t_after[intdom], pos);
                     crossings_.push_back({i, crossing_time});
 
-                    if (record_time_since_spike_) {
-                        (*time_since_spike_)[src_to_spike_[i]] = t_after[intdom] - crossing_time;
+                    if (!time_since_spike->empty()) {
+                        (*time_since_spike)[src_to_spike_[i]] = t_after[intdom] - crossing_time;
                     }
 
                     is_crossed_[i] = true;
@@ -126,7 +121,6 @@ private:
     const fvm_index_type* cv_to_intdom_ = nullptr;
     const fvm_value_type* values_ = nullptr;
     const fvm_index_type* src_to_spike_ = nullptr;
-    array* time_since_spike_ = nullptr;
     const array* t_before_ptr_ = nullptr;
     const array* t_after_ptr_ = nullptr;
 
@@ -137,7 +131,6 @@ private:
     std::vector<fvm_value_type> thresholds_;
     std::vector<fvm_value_type> v_prev_;
     std::vector<threshold_crossing> crossings_;
-    bool record_time_since_spike_;
 };
 
 } // namespace multicore
