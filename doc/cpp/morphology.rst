@@ -3,9 +3,9 @@
 Cable cell morphologies
 =======================
 
-Cell morphologies are required to describe a :ref:`cppcable_cell`.
+Cell morphologies are required to describe a :ref:`cppcablecell`.
 Morphologies can be constructed directly, or read from a number of
-file formats; see :ref:`morphology-construction` for details.
+file formats; see :ref:`cppcablecell-morphology-construction` for details.
 
 Morphology API
 --------------
@@ -14,7 +14,7 @@ Morphology API
 
    TODO: Describe morphology methods.
 
-.. _morphology-construction:
+.. _cppcablecell-morphology-construction:
 
 Constructing cell morphologies
 ------------------------------
