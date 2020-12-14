@@ -1,9 +1,9 @@
 .. _tutorialsinglecellswc:
 
-A detailed branchy cell
------------------------
+A morphologically detailed cell
+-------------------------------
 
-We can expand on the :ref:`single segment cell example <gs_single_cell>` to create a more
+We can expand on the :ref:`single segment cell example <tutorialsimplecell>` to create a more
 complex single cell model, and go through the process in more detail.
 
 .. Note::

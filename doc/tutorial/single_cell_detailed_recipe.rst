@@ -416,6 +416,4 @@ The following plot is generated. Identical to the plot of the previous example.
 The full code
 *************
 
-.. code-block:: python
-
 You can find the full code of the example at ``python/examples/single_cell_detailed_recipe.py``.
