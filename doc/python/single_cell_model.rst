@@ -1,23 +1,24 @@
-.. _pysingle_cell_model:
+.. _pysinglecellmodel:
 
-Single cell models
-==================
+Single cell model
+=================
 
 .. currentmodule:: arbor
 
 .. py:class:: single_cell_model
 
    Wrapper for simplified description and execution of single cell models.
-   Abstracts away the details of a :class:`recipe` for simulations of single,
-   stand-alone cable cells.
+   Abstracts away the details of a :class:`recipe`, :class:`context` and
+   :class:`domain_decomposition` for simulations of single, stand-alone
+   cable cells.
 
     .. method:: single_cell_model(cable_cell)
 
-       Construct a *single_cell_model* from a :class:`cable_cell`
+       Construct a :class:`single_cell_model` from a :class:`cable_cell`
 
-    .. method:: run(tfinal, dt = 0.025)
+    .. method:: run(tfinal, dt)
 
-       Run the model from time t=0 to t= ``tflinal`` with a dt= ``dt``.
+       Run the model from time t= ``0`` to t= ``tflinal`` with a dt= ``dt``.
 
     .. method:: probe(what, where, frequency)
 
@@ -29,16 +30,21 @@ Single cell models
 
     .. method:: spikes()
 
-       Returns spike times [ms] after a call to ``run()``.
+       Returns a list spike times [ms] after a call to :class:`single_cell_model.run`.
 
     .. method:: traces()
 
-       Returns a list of :class:`trace` after a call to ``run()``. Each element in the
-       list holds the trace of a probe on the cell.
+       Returns a list of :class:`trace` after a call to  :class:`single_cell_model.run`.
+       Each element in the list holds the trace of one of the probes added via
+       :class:`single_cell_model.probe`.
 
     .. attribute:: properties
 
-       The :class:`cable_global_properties` of the cell.
+       The :class:`cable_global_properties` of the model.
+
+    .. attribute:: catalogue
+
+       The :class:`mechanism_catalogue` of the model.
 
 .. py:class:: trace
 
@@ -46,7 +52,7 @@ Single cell models
 
    .. attribute:: variable
 
-      Name of the variable being recorded
+      Name of the variable being recorded. Currently only 'voltage'.
 
    .. attribute:: loc
 
@@ -62,7 +68,7 @@ Single cell models
 
 .. Note::
 
-   The *single_cell_model* is used in our :ref:`quick start <gs_single_cell>` guide.
+   The :class:`single_cell_model` is used in our :ref:`tutorials <gs_other_examples>`.
    The examples illustrate how to construct a :class:`cable_cell` and use it to form
    a :class:`single_cell_model`; how to add probes; how to run the model; and how to
    visualize the results.

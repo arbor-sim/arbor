@@ -1,4 +1,4 @@
-.. _py_labels:
+.. _pylabels:
 
 Cell labels
 ===========
@@ -9,14 +9,19 @@ Cell labels
 
    Stores labels and their associated expressions as key-value pairs.
 
-   .. function:: label_dict()
+   .. method:: label_dict()
 
       Create an empty label dictionary
 
-   .. function:: label_dict(dictionary)
+   .. method:: label_dict(dictionary)
 
       Initialize a label dictionary from a ``dictionary`` with string labels as keys,
       and corresponding string definitions as values.
+
+      .. code-block:: python
+
+         labels = arbor.label_dict({'soma':   '(tag 1)',           # region
+                                    'center': '(location 0 0.5)'}) # locset
 
    .. attribute:: regions
 

@@ -625,5 +625,5 @@ Labels are stored with their associated expressions as key-value pairs in *label
 API
 ---
 
-* :ref:`Python <py_labels>`
+* :ref:`Python <pylabels>`
 * *TODO*: C++ documentation.
