@@ -22,7 +22,6 @@ set(pyarb_source
     domain_decomposition.cpp
     error.cpp
     event_generator.cpp
-    flat_cell_builder.cpp
     identifiers.cpp
     mechanism.cpp
     morphology.cpp

@@ -1,4 +1,4 @@
-.. _cppcable_cell:
+.. _cppcablecell:
 
 Cable cells
 ===========
@@ -21,35 +21,34 @@ object of type :cpp:type:`cable_cell_global_properties`.
 The :cpp:type:`cable_cell` object
 ---------------------------------
 
-Cable cells are constructed from a :cpp:type:`morphology` and, optionally, a
+Cable cells are constructed from a :cpp:type:`morphology`; an optional
 :cpp:type:`label_dict` that associates names with particular points
 (:cpp:type:`locset` objects) or subsets (:cpp:type:`region` objects) of the
-morphology.
+morphology; and an optional :ref:`decor <cablecell-decoration>`.
 
 Morphologies are constructed from a :cpp:type:`segment_tree`, but can also
 be generated via the :cpp:type:`stitch_builder`, which offers a slightly
-higher level interface. Details are described in :ref:`morphology-construction`.
+higher level interface. Details are described in :ref:`cppcablecell-morphology-construction`.
 
 Each cell has particular values for its electrical and ionic properties. These
 are determined first by the set of global defaults, then the defaults
 associated with the cell, and finally by any values specified explicitly for a
-given subsection of the morphology via the ``paint`` method
-(see :ref:`electrical-properties` and :ref:`paint-properties`).
+given subsection of the morphology via the ``paint`` interface of the decor
+(see :ref:`cppcablecell-electrical-properties` and :ref:`cppcablecell-paint-properties`).
 
 Ion channels and other distributed dynamical processes are also specified
 on the cell via the ``paint`` method; while synapses, current clamps,
 gap junction locations, and the site for testing the threshold potential
-are specified via the ``place`` method. See :ref:`cable-cell-dynamics`, below.
+are specified via the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
 
-.. _morphology-construction:
+.. _cppcablecell-morphology-construction:
 
 Constructing cell morphologies
 ------------------------------
 
-.. todo::
-
-   TODO: Description of segment trees is in the works.
-
+Arbor provides an interface for constructing arbitrary cell morphologies
+composed of *segments*, see :ref:`the general documentation <morph>`.
+**TODO** C++ documentation for segment trees is not yet complete.
 
 The stitch-builder interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -225,7 +224,7 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
    Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
 
-.. _locsets-and-regions:
+.. _cppcablecell-locsets-and-regions:
 
 Identifying sites and subsets of the morphology
 -----------------------------------------------
@@ -234,7 +233,7 @@ Identifying sites and subsets of the morphology
 
    TODO: Region and locset documentation is under development.
 
-.. _cable-cell-dynamics:
+.. _cppcablecell-dynamics:
 
 Cell dynamics
 -------------
@@ -286,7 +285,7 @@ cable cell, are attached to a cell with:
    TODO: describe other ``place``-able things: current clamps, gap junction
    sites, threshold potential measurement point.
 
-.. _electrical-properties:
+.. _cppcablecell-electrical-properties:
 
 Electrical properties and ion values
 -------------------------------------
@@ -446,7 +445,7 @@ constants.
    gprop.default_parameters.reversal_potential_method["ca"] = "nernst1998/ca";
 
 
-.. _paint-properties:
+.. _cppcablecell-paint-properties:
 
 Overriding properties locally
 -----------------------------
@@ -457,7 +456,7 @@ Overriding properties locally
    the morphology.
 
 
-.. _cable-cell-probes:
+.. _cppcablecell--probes:
 
 Cable cell probes
 -----------------
@@ -776,18 +775,9 @@ with which it is associated.
 Discretisation and CV policies
 ------------------------------
 
-For the purpose of simulation, cable cells are decomposed into :ref:`discrete
-subcomponents <cable-discretisation>` called *control volumes* (CVs) The CVs are
-uniquely determined by a set of *B* of ``mlocation`` boundary points.
-For each non-terminal point *h* in *B*, there is a CV comprising the points
-{*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
-geometrical partial order of locations on the morphology. A fork point is
-owned by a CV if and only if all of its corresponding representative locations
-are in the CV.
-
-The set of boundary points used by the simulator is determined by a *CV policy*.
-These are objects of type ``cv_policy``, which has the following
-public methods:
+The set of boundary points used by the simulator is determined by a
+:ref:`CV policy <cablecell-cv-policies>`. These are objects of type
+:cpp:class:`cv_policy`, which has the following public methods:
 
 .. cpp:class:: cv_policy
 
@@ -808,7 +798,8 @@ differing discretisations on different parts of a cell morphology. When a CV
 policy is constrained in this manner, the boundary of the domain will always
 constitute part of the CV boundary point set.
 
-CV policies can be combined with ``+`` and ``|`` operators. For two policies
+CV policies can be :ref:`composed <cablecell-cv-composition>` with ``+`` and ``|`` operators.
+For two policies
 *A* and *B*, *A* + *B* is a policy which gives boundary points from both *A*
 and *B*, while *A* | *B* is a policy which gives all the boundary points from
 *B* together with those from *A* which do not within the domain of *B*.
@@ -835,14 +826,14 @@ supplied domain.
 Use the points given by ``locs`` for CV boundaries, optionally restricted to the
 supplied domain.
 
-``cv_policy_every_sample``
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+``cv_policy_every_segment``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
-   cv_policy_every_sample(region domain = reg::all())
+   cv_policy_every_segment(region domain = reg::all())
 
-Use every sample point in the morphology definition as a CV boundary, optionally
+Use every segment in the morphology as a CV, optionally
 restricted to the supplied domain. Each fork point in the domain is
 represented by a trivial CV.
 

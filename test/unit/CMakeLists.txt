@@ -89,6 +89,7 @@ set(unit_sources
     test_any_ptr.cpp
     test_any_visitor.cpp
     test_backend.cpp
+    test_cable_cell.cpp
     test_counter.cpp
     test_cv_geom.cpp
     test_cv_layout.cpp

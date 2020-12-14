@@ -71,10 +71,10 @@ private:
     std::tuple<E<Keys>...> tmap_;
 
     template <typename T>
-    static constexpr int index() { return 1; }
+    static constexpr std::size_t index() { return 1; }
 
     template <typename T, typename H, typename... A>
-    static constexpr int index() {
+    static constexpr std::size_t index() {
         return std::is_same<H, T>::value? 0: 1+index<T, A...>();
     }
 };

@@ -31,4 +31,4 @@ Utility wrappers and containers
     also performs analagous casting for the :cpp:class:`unique_any` and
     :cpp:class:`any_ptr` utility classes.
 
-    See :ref:`cppcable_cell`.
+    See :ref:`cppcablecell`.

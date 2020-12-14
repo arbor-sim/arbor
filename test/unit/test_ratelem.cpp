@@ -109,7 +109,9 @@ TYPED_TEST(ratelem_pq, interpolate_monotonic) {
     }
 
     for (unsigned i = 1; i<p+q; ++i) {
-        double x = (double)i/(p+q);
-        EXPECT_DOUBLE_EQ(f(x), fpq(x));
+        if constexpr (p+q!=0) { // avoid a spurious gcc 10 divide by zero warning.
+            double x = (double)i/(p+q);
+            EXPECT_DOUBLE_EQ(f(x), fpq(x));
+        }
     }
 }

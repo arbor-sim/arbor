@@ -22,15 +22,15 @@ namespace {
         return make_fvm_lowered_cell(backend_kind::multicore, context);
     }
 
-    cable_cell make_cell() {
+    cable_cell_description make_cell() {
         soma_cell_builder builder(12.6157/2.0);
         builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
-        cable_cell c = builder.make_cell();
-        c.paint("soma"_lab, "hh");
-        c.paint("dend"_lab, "pas");
-        c.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
-        c.place(builder.location({0, 0}), threshold_detector{0});
-        return c;
+        auto d = builder.make_cell();
+        d.decorations.paint("soma"_lab, "hh");
+        d.decorations.paint("dend"_lab, "pas");
+        d.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
+        d.decorations.place(builder.location({0, 0}), threshold_detector{0});
+        return d;
     }
 }
 
@@ -40,14 +40,15 @@ ACCESS_BIND(
     &mc_cell_group::spike_sources_)
 
 TEST(mc_cell_group, get_kind) {
-    auto x = make_cell();
-    mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
+    cable_cell cell = make_cell();
+    mc_cell_group group{{0}, cable1d_recipe({cell}), lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
-    auto rec = cable1d_recipe(make_cell());
+    cable_cell cell = make_cell();
+    auto rec = cable1d_recipe({cell});
     rec.nernst_ion("na");
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
@@ -66,10 +67,11 @@ TEST(mc_cell_group, sources) {
     std::vector<cable_cell> cells;
 
     for (int i=0; i<20; ++i) {
-        cells.push_back(make_cell());
+        auto desc = make_cell();
         if (i==0 || i==3 || i==17) {
-            cells.back().place(mlocation{0, 0.3}, threshold_detector{2.3});
+            desc.decorations.place(mlocation{0, 0.3}, threshold_detector{2.3});
         }
+        cells.emplace_back(desc);
 
         EXPECT_EQ(1u + (i==0 || i==3 || i==17), cells.back().detectors().size());
     }
