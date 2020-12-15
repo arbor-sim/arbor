@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys, os
 import subprocess as sp
-from tempfile import mkdtemp
+from tempfile import TemporaryDirectory
 
 html_static_path = ['static']
 
@@ -46,17 +46,17 @@ script_path=this_path+'/scripts'
 sys.path.append(script_path)
 
 # Dump inputs.py into tmpdir
-tmp = mkdtemp()
-sp.run([sys.executable, this_path + '/scripts/gen-labels.py', tmp])
-sys.path.append(tmp)
+with TemporaryDirectory() as tmp:
+    sp.run([sys.executable, this_path + '/scripts/gen-labels.py', tmp])
+    sys.path.append(tmp)
 
-import make_images
+    import make_images
 
-# Output path for generated images
-img_path=this_path+'/gen-images'
-if not os.path.exists(img_path):
-    os.mkdir(img_path)
+    # Output path for generated images
+    img_path=this_path+'/gen-images'
+    if not os.path.exists(img_path):
+        os.mkdir(img_path)
 
-make_images.generate(img_path)
+    make_images.generate(img_path)
 
 print("-------------------------")
