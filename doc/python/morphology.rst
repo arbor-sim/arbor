@@ -394,3 +394,91 @@ Cell morphology
     :param str filename: the name of the SWC file.
     :param bool no_gaps: enforce that distance between soma center and branches attached to soma is the soma radius.
     :rtype: morphology
+
+.. py:class:: place_pwlin
+
+    A :class:`place_pwlin` object allows the querying of the 3-d location of locations and cables
+    in a morphology. Refer to the C++ documentation for :cpp:type:`place_pwlin` for more details.
+
+    .. py:function:: place_pwlin(morphology, isometry)
+    .. py:function:: place_pwlin(morphology)
+       :noindex:
+
+       Construct a piecewise linear placement of the morphology in space,
+       optionally applying the given isometry.
+
+    .. py:method:: at(loc: location) -> location
+
+       Return any single point corresponding to the :class:`location` ``loc``
+       in the placement.
+
+    .. py:method:: all_at(loc: location) -> list[location]
+
+       Return all points corresponding to the given :class:`location` ``loc``
+       the placement.
+
+    .. py:method:: segments(cables: list[cable]) -> list[segment]
+
+       Return any minimal collection of segments and partial segments whose
+       union is coterminous with the sub-region of the morphology covered by
+       the given cables in the placement.
+
+    .. py:method:: all_segments(cables: list[cable]) -> list[segment]
+
+       Return the maximal set of segments and partial segments whose
+       union is coterminous with the sub-region of the morphology covered by
+       the given cables in the placement.
+
+.. py:class:: isometry
+
+    Isometries represent rotations and translations in space, and can be used with
+    :class:`place_pwlin` to position a morphology in an arbitrary spatial location
+    and orientation. Refer to the C++ documentation for :cpp:type:`isometry` for
+    more details.
+
+    .. py::function:: isometry()
+
+       Construct an identity isometry.
+
+    .. py:method:: translate(x: float, y: float, z: float) -> isometry
+       :staticmethod:
+
+       Construct a translation (x, y, z) with respect to the extrinsic coordinate system.
+
+    .. py:method:: translate(displacement: Tuple[float, float, float]) -> isometry
+       :staticmethod:
+       :noindex:
+
+       Construct a translation from the elements of the given tuple.
+
+    .. py:method:: translate(displacement: mpoint) -> isometry
+       :staticmethod:
+       :noindex:
+
+       Construct a translation from the (x, y, z) components of the given :py:class:`mpoint`.
+
+    .. py:method:: rotate(theta: float, x: float, y: float, z: float) -> isometry
+       :staticmethod:
+
+       Construct a rotation of ``theta`` radians about the axis (x, y, z) with respect to the intrinsic coordinate system.
+
+    .. py:method:: rotate(theta: float, axiss: Tuple[float, float, float]) -> isometry
+       :staticmethod:
+       :noindex:
+
+       Construct a rotation of ``theta`` radians about the axis given by the ``axis`` tuple.
+
+    .. py:method:: __call__(point: mpoint) -> mpoint
+
+       Apply the isometry to given point.
+
+    .. py:method:: __call__(point: Tuple[float, float, float, ...]) -> Tuple[float, float, float, ...]
+       :noindex:
+
+       Apply the isometry to the first three components of the given tuple, interpreted as a point.
+
+    .. py:function:: __mul__(a: isometry, b: isometry) -> isometry
+
+       Compose the two isometries to form a new isometry that applies *b* and then applies *a*.
+       Note that rotations are composed as being with respect to the *intrinsic* coordinate system,
+       while translations are always taken to be with respect to the *extrinsic* absolute coordinate system.

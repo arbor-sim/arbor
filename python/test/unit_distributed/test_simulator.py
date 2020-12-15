@@ -25,7 +25,9 @@ class lifN_recipe(A.recipe):
     def __init__(self, n_cell):
         A.recipe.__init__(self)
         self.n_cell = n_cell
-
+        self.cat = A.default_catalogue()
+        self.props = A.neuron_cable_propetries()
+        self.props.register(self.cat)
     def num_cells(self):
         return self.n_cell
 
@@ -46,8 +48,11 @@ class lifN_recipe(A.recipe):
         weight = 400
         return [A.event_generator((gid,0), weight, A.regular_schedule(sched_dt)) for gid in range(0, self.num_cells())]
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         return []
+
+    def global_properties(self,kind):
+        return self.props
 
     def cell_description(self, gid):
         c = A.lif_cell()
