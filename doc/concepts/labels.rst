@@ -388,8 +388,7 @@ Region expressions
 .. label:: (segment segment_id:integer)
 
     Refer to a segment by its id. Note that segment ids depend on the construction
-    order of the morphology. While arbor's morphology loaders are stable in this regard,
-    it can become an issue when building morphologies by hand.
+    order of the morphology. Arbor's morphology loaders are stable in this regard.
 
     .. figure:: ../gen-images/segment_label.svg
       :width: 600
