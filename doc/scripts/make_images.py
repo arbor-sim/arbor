@@ -269,6 +269,7 @@ def generate(path=''):
     label_image(inputs.label_morph, [inputs.reg_tag1, inputs.reg_tag2, inputs.reg_tag3], path+'/tag_label.svg')
     label_image(inputs.label_morph, [inputs.reg_tag1, inputs.reg_tag3], path+'/tag_label.svg')
     label_image(inputs.label_morph, [inputs.reg_branch0, inputs.reg_branch3], path+'/branch_label.svg')
+    label_image(inputs.label_morph, [inputs.reg_segment0, inputs.reg_segment3], path+'/segment_label.svg')
     label_image(inputs.label_morph, [inputs.reg_cable_1_01, inputs.reg_cable_1_31, inputs.reg_cable_1_37], path+'/cable_label.svg')
     label_image(inputs.label_morph, [inputs.ls_proxint_in, inputs.reg_proxint],    path+'/proxint_label.svg')
     label_image(inputs.label_morph, [inputs.ls_proxint_in, inputs.reg_proxintinf], path+'/proxintinf_label.svg')

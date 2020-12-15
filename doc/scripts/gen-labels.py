@@ -1,5 +1,6 @@
 import arbor
 from arbor import mpoint
+import os.path
 
 def is_collocated(l, r):
     return l[0]==r[0] and l[1]==r[1]
@@ -156,6 +157,9 @@ tree.append(mnpos, mpoint(-3.0,  0.0,  0.0, 1.5), mpoint(-5.5,-0.2,  0.0, 0.5), 
 tree.append(8,     mpoint(-14.5,-0.1,  0.0, 0.5), tag=2)
 ysoma_morph3 = arbor.morphology(tree)
 
+fn = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__), "../concepts/example.swc"))
+swc_morph = arbor.load_swc(fn)
+
 regions  = {
             'empty': '(nil)',
             'all': '(all)',
@@ -173,6 +177,8 @@ regions  = {
             'rad36':  '(intersect (radius-gt (all) 0.3) (radius-lt (all) 0.6))',
             'branch0': '(branch 0)',
             'branch3': '(branch 3)',
+            'segment0': '(segment 0)',
+            'segment3': '(segment 3)',
             'cable_1_01': '(cable 1 0 1)',
             'cable_1_31': '(cable 1 0.3 1)',
             'cable_1_37': '(cable 1 0.3 0.7)',
@@ -205,7 +211,7 @@ labels = {**regions, **locsets}
 d = arbor.label_dict(labels)
 
 # Create a cell to concretise the region and locset definitions
-cell = arbor.cable_cell(label_morph, d)
+cell = arbor.cable_cell(label_morph, d, arbor.decor())
 
 ################################################################################
 # Output all of the morphologies and reion/locset definitions to a Python script
@@ -228,6 +234,7 @@ f.write(write_morphology('yshaped_morph',  yshaped_morph))
 f.write(write_morphology('ysoma_morph1',   ysoma_morph1))
 f.write(write_morphology('ysoma_morph2',   ysoma_morph2))
 f.write(write_morphology('ysoma_morph3',   ysoma_morph3))
+f.write(write_morphology('swc_morph',      ysoma_morph3))
 
 f.write('\n############# locsets\n\n')
 for label in locsets:
@@ -240,4 +247,3 @@ for label in regions:
     f.write('reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
 
 f.close()
-
