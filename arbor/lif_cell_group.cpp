@@ -1,3 +1,5 @@
+#include <arbor/arbexcept.hpp>
+
 #include <lif_cell_group.hpp>
 
 #include "profile/profiler_macro.hpp"
@@ -9,6 +11,11 @@ using namespace arb;
 lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
     gids_(gids)
 {
+    for (auto gid: gids_) {
+        if (!rec.get_probes(gid).empty()) {
+            throw bad_cell_probe(cell_kind::lif, gid);
+        }
+    }
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
