@@ -42,6 +42,7 @@ The single cell model has 5 main functions:
 5. It collects the voltage **traces** from registered probes.
 
 .. _tutorialsinglecellswc-cell:
+
 The cell
 ********
 
@@ -51,7 +52,7 @@ The morpholohgy
 ^^^^^^^^^^^^^^^
 We begin by constructing the following morphology:
 
-.. figure:: ../gen-images/example0_morph.svg
+.. figure:: ../gen-images/tutorial_morph.svg
    :width: 400
    :align: center
 
@@ -169,7 +170,7 @@ defined as follows:
 
 This will generate the following regions when applied to the previously defined morphology:
 
-.. figure:: ../gen-images/example0_tag.svg
+.. figure:: ../gen-images/tutorial_tag.svg
   :width: 800
   :align: center
 
@@ -189,7 +190,7 @@ in the following way:
 
 This will generate the following regions when applied to the previously defined morphology:
 
-.. figure:: ../gen-images/example0_all_gt.svg
+.. figure:: ../gen-images/tutorial_all_gt.svg
   :width: 400
   :align: center
 
@@ -208,7 +209,7 @@ be done as follows:
 
 This will generate the following region when applied to the previously defined morphology:
 
-.. figure:: ../gen-images/example0_tag4_gt.svg
+.. figure:: ../gen-images/tutorial_custom.svg
   :width: 200
   :align: center
 
@@ -225,11 +226,11 @@ terminal points of the morphology.
 This will generate the following **locsets** (sets of one or more locations) when applied to the
 previously defined morphology:
 
-.. figure:: ../gen-images/example0_root_term.svg
+.. figure:: ../gen-images/tutorial_root_term.svg
   :width: 400
   :align: center
 
-   Left: locset "root"; right: locset "terminal"
+  Left: locset "root"; right: locset "terminal"
 
 To make things more interesting, let's select only the terminal points which belong to the
 previously defined "custom" region; and, separately, the terminal points which belong to the
@@ -245,7 +246,7 @@ previously defined "custom" region; and, separately, the terminal points which b
 
 This will generate the following 2 locsets when applied to the previously defined morphology:
 
-.. figure:: ../gen-images/example0_tag4_axon_term.svg
+.. figure:: ../gen-images/tutorial_custom_axon_term.svg
   :width: 400
   :align: center
 

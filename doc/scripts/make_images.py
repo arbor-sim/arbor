@@ -283,18 +283,18 @@ def generate(path=''):
 
     ####################### Tutorial examples
 
-    morph_image([inputs.example_morph0], ['segments'], path+'/example0_morph.svg')
+    morph_image([inputs.tutorial_morph], ['segments'], path+'/tutorial_morph.svg')
 
     ####################### locsets
 
-    label_image(inputs.example_morph0, [inputs.ex0_root, inputs.ex0_term], path+'/example0_root_term.svg')
-    label_image(inputs.example_morph0, [inputs.ex0_tag4_term, inputs.ex0_axon_term], path+'/example0_tag4_axon_term.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_ls_root, inputs.tut_ls_terminal], path+'/tutorial_root_term.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_ls_custom_terminal, inputs.tut_ls_axon_terminal], path+'/tutorial_custom_axon_term.svg')
 
 
     ####################### regions
-    label_image(inputs.example_morph0, [inputs.ex0_tag1, inputs.ex0_tag2, inputs.ex0_tag3, inputs.ex0_tag4], path+'/example0_tag.svg')
-    label_image(inputs.example_morph0, [inputs.ex0_all, inputs.ex0_gt], path+'/example0_all_gt.svg')
-    label_image(inputs.example_morph0, [inputs.ex0_tag4_gt], path+'/example0_tag4_gt.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_reg_soma, inputs.tut_reg_axon, inputs.tut_reg_dend, inputs.tut_reg_last], path+'/tutorial_tag.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_reg_all, inputs.tut_reg_rad_gt], path+'/tutorial_all_gt.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_reg_custom], path+'/tutorial_custom.svg')
 
 if __name__ == '__main__':
     generate('.')

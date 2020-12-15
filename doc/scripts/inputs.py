@@ -96,7 +96,7 @@ tmp = [
     [[Segment((19.0, -3.0, 0.5), (24.0, -7.0, 0.2), 4)]],
     [[Segment((19.0, -3.0, 0.5), (23.0, -1.0, 0.2), 4), Segment((23.0, -1.0, 0.2), (36.0, -2.0, 0.2), 4)]],
     [[Segment((0.0, 0.0, 2.0), (-7.0, 0.0, 0.4), 2), Segment((-7.0, 0.0, 0.4), (-10.0, 0.0, 0.4), 2)]],]
-example_morph0 = representation.make_morph(tmp)
+tutorial_morph = representation.make_morph(tmp)
 
 
 ############# locsets (label_morph)
@@ -145,19 +145,19 @@ reg_rhs = {'type': 'region', 'value': [(1, 0.0, 1.0)]}
 reg_and = {'type': 'region', 'value': [(1, 0.0, 0.5)]}
 reg_or = {'type': 'region', 'value': [(0, 0.5, 1.0), (1, 0.0, 1.0)]}
 
-############# locsets (example_morph0)
+############# locsets (tutorial_morph)
 
-ex0_root       = {'type': 'locset', 'value': [(0, 0.0)]}
-ex0_term       = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
-ex0_tag4_term  = {'type': 'locset', 'value': [(3, 1.0), (4, 1.0)]}
-ex0_axon_term  = {'type': 'locset', 'value': [(5, 1.0)]}
+tut_ls_root  = {'type': 'locset', 'value': [(0, 0.0)]}
+tut_ls_terminal  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
+tut_ls_custom_terminal  = {'type': 'locset', 'value': [(3, 1.0), (4, 1.0)]}
+tut_ls_axon_terminal  = {'type': 'locset', 'value': [(5, 1.0)]}
 
-############# regions (example_morph0)
+############# regions (tutorial_morph)
 
-ex0_tag1    = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168)]}
-ex0_tag2    = {'type': 'region', 'value': [(5, 0.0, 1.0)]}
-ex0_tag3    = {'type': 'region', 'value': [(0, 0.3324708796524168, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0)]}
-ex0_tag4    = {'type': 'region', 'value': [(3, 0.0, 1.0), (4, 0.0, 1.0)]}
-ex0_all     = {'type': 'region', 'value': [(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 1.0)]}
-ex0_gt      = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (5, 0.0, 0.21875)]}
-ex0_tag4_gt = {'type': 'region', 'value': [(3, 0.0, 1.0), (4, 0.0, 1.0), (0, 0.0, 0.3324708796524168), (5, 0.0, 0.21875)]}
+tut_reg_all = {'type': 'region', 'value': [(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 1.0)]}
+tut_reg_soma = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168)]}
+tut_reg_axon = {'type': 'region', 'value': [(5, 0.0, 1.0)]}
+tut_reg_dend = {'type': 'region', 'value': [(0, 0.3324708796524168, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0)]}
+tut_reg_last = {'type': 'region', 'value': [(3, 0.0, 1.0), (4, 0.0, 1.0)]}
+tut_reg_rad_gt = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (5, 0.0, 0.21875)]}
+tut_reg_custom = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 0.21875)]}

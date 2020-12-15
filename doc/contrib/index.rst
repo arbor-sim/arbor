@@ -75,7 +75,7 @@ Write code
 
 Some tips when contributing code:
 
--  Consider the :ref:`contribcodingstyle`.
+-  Consider the `coding style guidelines <https://github.com/arbor-sim/arbor/wiki/Coding-Style-Guidelines>`_.
 -  If you add functionality, please update the documentation
    accordingly.
 -  If you add functionality, add tests if applicable. This helps make

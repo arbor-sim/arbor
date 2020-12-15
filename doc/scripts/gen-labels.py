@@ -205,7 +205,48 @@ labels = {**regions, **locsets}
 d = arbor.label_dict(labels)
 
 # Create a cell to concretise the region and locset definitions
-cell = arbor.cable_cell(label_morph, d)
+cell = arbor.cable_cell(label_morph, d, arbor.decor())
+
+###############################################################################
+# Tutorial Example
+###############################################################################
+
+tree = arbor.segment_tree()
+tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0), tag=1)
+tree.append(0,     mpoint(4,   0.0, 0, 0.8), mpoint( 8,  0.0, 0, 0.8), tag=3)
+tree.append(1,     mpoint(8,   0.0, 0, 0.8), mpoint(12, -0.5, 0, 0.8), tag=3)
+tree.append(2,     mpoint(12, -0.5, 0, 0.8), mpoint(20,  4.0, 0, 0.4), tag=3)
+tree.append(3,     mpoint(20,  4.0, 0, 0.4), mpoint(26,  6.0, 0, 0.2), tag=3)
+tree.append(2,     mpoint(12, -0.5, 0, 0.5), mpoint(19, -3.0, 0, 0.5), tag=3)
+tree.append(5,     mpoint(19, -3.0, 0, 0.5), mpoint(24, -7.0, 0, 0.2), tag=4)
+tree.append(5,     mpoint(19, -3.0, 0, 0.5), mpoint(23, -1.0, 0, 0.2), tag=4)
+tree.append(7,     mpoint(23, -1.0, 0, 0.2), mpoint(36, -2.0, 0, 0.2), tag=4)
+tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint(-7,  0.0, 0, 0.4), tag=2)
+tree.append(9,     mpoint(-7,  0.0, 0, 0.4), mpoint(-10, 0.0, 0, 0.4), tag=2)
+tutorial_morph = arbor.morphology(tree)
+
+tutorial_regions  = {
+    'all': '(all)',
+    'soma': '(tag 1)',
+    'axon': '(tag 2)',
+    'dend': '(tag 3)',
+    'last': '(tag 4)',
+    'rad_gt': '(radius-ge (region "all") 1.5)',
+    'custom': '(join (region "last") (region "rad_gt"))'
+}
+tutorial_locsets = {
+    'root': '(root)',
+    'terminal': '(terminal)',
+    'custom_terminal': '(restrict (locset "terminal") (region "custom"))',
+    'axon_terminal': '(restrict (locset "terminal") (region "axon"))'
+
+}
+
+tutorial_labels = {**tutorial_regions, **tutorial_locsets}
+tutorial_dict = arbor.label_dict(tutorial_labels)
+
+# Create a cell to concretise the region and locset definitions
+tutorial_cell = arbor.cable_cell(tutorial_morph, tutorial_dict, arbor.decor())
 
 ################################################################################
 # Output all of the morphologies and reion/locset definitions to a Python script
@@ -228,16 +269,26 @@ f.write(write_morphology('yshaped_morph',  yshaped_morph))
 f.write(write_morphology('ysoma_morph1',   ysoma_morph1))
 f.write(write_morphology('ysoma_morph2',   ysoma_morph2))
 f.write(write_morphology('ysoma_morph3',   ysoma_morph3))
+f.write(write_morphology('tutorial_morph', tutorial_morph))
 
-f.write('\n############# locsets\n\n')
+f.write('\n############# locsets (label_morph)\n\n')
 for label in locsets:
     locs = [(l.branch, l.pos) for l in cell.locations('"{}"'.format(label))]
     f.write('ls_{}  = {{\'type\': \'locset\', \'value\': {}}}\n'.format(label, locs))
 
-f.write('\n############# regions\n\n')
+f.write('\n############# regions (label_morph)\n\n')
 for label in regions:
     comps = [(c.branch, c.prox, c.dist) for c in cell.cables('"{}"'.format(label))]
     f.write('reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
 
-f.close()
+f.write('\n############# locsets (tutorial_morph)\n\n')
+for label in tutorial_locsets:
+    locs = [(l.branch, l.pos) for l in tutorial_cell.locations('"{}"'.format(label))]
+    f.write('tut_ls_{}  = {{\'type\': \'locset\', \'value\': {}}}\n'.format(label, locs))
 
+f.write('\n############# regions (tutorial_morph)\n\n')
+for label in tutorial_regions:
+    comps = [(c.branch, c.prox, c.dist) for c in tutorial_cell.cables('"{}"'.format(label))]
+    f.write('tut_reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
+
+f.close()
