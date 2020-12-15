@@ -75,7 +75,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.mpi }}
-          make -j4 tests examples html
+          make -j4 tests examples html pyarb
           cd -
       - name: Run unit tests
         run:  build/bin/unit
