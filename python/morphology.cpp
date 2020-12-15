@@ -1,11 +1,13 @@
+#include <fstream>
+#include <tuple>
+
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
-#include <fstream>
-
 #include <arbor/morph/morphology.hpp>
+#include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
 
@@ -17,6 +19,10 @@
 namespace py = pybind11;
 
 namespace pyarb {
+
+static inline bool cable_lt(const arb::mcable& a, const arb::mcable& b) {
+    return std::tuple(a.branch, a.prox_pos, a.dist_pos)<std::tuple(b.branch, b.prox_pos, b.dist_pos);
+}
 
 void check_trailing(std::istream& in, std::string fname) {
     if (!(in >> std::ws).eof()) {
@@ -60,26 +66,25 @@ void register_morphology(py::module& m) {
     // arb::mpoint
     py::class_<arb::mpoint> mpoint(m, "mpoint");
     mpoint
-        .def(py::init(
-                [](double x, double y, double z, double r) {
-                    return arb::mpoint{x,y,z,r};
-                }),
-                "x"_a, "y"_a, "z"_a, "radius"_a, "All values in μm.")
+        .def(py::init<double, double, double, double>(),
+             "x"_a, "y"_a, "z"_a, "radius"_a,
+             "Create an mpoint object from parameters x, y, z, and radius, specified in µm.")
         .def(py::init([](py::tuple t) {
                 if (py::len(t)!=4) throw std::runtime_error("tuple length != 4");
-                return arb::mpoint{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), t[3].cast<double>()};
-            }))
+                return arb::mpoint{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), t[3].cast<double>()}; }),
+             "Create an mpoint object from a tuple (x, y, z, radius), specified in µm.")
         .def_readonly("x", &arb::mpoint::x, "X coordinate [μm].")
         .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
         .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
         .def_readonly("radius", &arb::mpoint::radius,
             "Radius of cable at sample location centered at coordinates [μm].")
+        .def(py::self==py::self)
         .def("__str__",
             [](const arb::mpoint& p) {
                 return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}>", p.x, p.y, p.z, p.radius);
             })
         .def("__repr__",
-            [](const arb::mpoint& p) {return util::pprintf("{}>", p);});
+            [](const arb::mpoint& p) {return util::pprintf("{}", p);});
 
     py::implicitly_convertible<py::tuple, arb::mpoint>();
 
@@ -111,6 +116,82 @@ void register_morphology(py::module& m) {
         .def(py::self==py::self)
         .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
+
+    // arb::isometry
+    py::class_<arb::isometry> isometry(m, "isometry");
+    isometry
+        .def(py::init<>(), "Construct a trivial isometry.")
+        .def("__call__", [](arb::isometry& iso, arb::mpoint& p) {
+                return iso.apply(p);
+            },
+            "Apply isometry to mpoint argument.")
+        .def("__call__", [](arb::isometry& iso, py::tuple t) {
+                int len = py::len(t);
+                if (len<3) throw std::runtime_error("tuple length < 3");
+
+                arb::mpoint p{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), 0.};
+                p = iso.apply(p);
+
+                py::tuple result(len);
+                result[0] = p.x;
+                result[1] = p.y;
+                result[2] = p.z;
+                for (int i = 3; i<len; ++i) {
+                    result[i] = t[i];
+                }
+                return result;
+            },
+            "Apply isometry to first three components of tuple argument.")
+        .def(py::self*py::self)
+        .def_static("translate",
+            [](double x, double y, double z) { return arb::isometry::translate(x, y, z); },
+            "x"_a, "y"_a, "z"_a,
+            "Construct a translation isometry from displacements x, y, and z.")
+        .def_static("translate",
+            [](py::tuple t) {
+                if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
+                return arb::isometry::translate(t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+            },
+            "Construct a translation isometry from the first three components of a tuple.")
+        .def_static("translate",
+            [](arb::mpoint p) { return arb::isometry::translate(p.x, p.y, p.z); },
+            "Construct a translation isometry from the x, y, and z components of an mpoint.")
+        .def_static("rotate",
+            [](double theta, double x, double y, double z) { return arb::isometry::rotate(theta, x, y, z); },
+            "theta"_a, "x"_a, "y"_a, "z"_a,
+            "Construct a rotation isometry of angle theta about the axis in direction (x, y, z).")
+        .def_static("rotate",
+            [](double theta, py::tuple t) {
+                if (py::len(t)!=3) throw std::runtime_error("tuple length != 3");
+                return arb::isometry::rotate(theta, t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+            },
+            "theta"_a, "axis"_a,
+            "Construct a rotation isometry of angle theta about the given axis in the direction described by a tuple.");
+
+    // arb::place_pwlin
+    py::class_<arb::place_pwlin> place(m, "place_pwlin");
+    place
+        .def(py::init<const arb::morphology&, const arb::isometry&>(),
+            "morphology"_a, "isometry"_a=arb::isometry{},
+            "Construct a piecewise-linear placement object from the given morphology and optional isometry.")
+        .def("at", &arb::place_pwlin::at, "location"_a,
+            "Return an interpolated mpoint corresponding to the location argument.")
+        .def("all_at", &arb::place_pwlin::all_at, "location"_a,
+            "Return list of all possible interpolated mpoints corresponding to the location argument.")
+        .def("segments",
+            [](const arb::place_pwlin& self, std::vector<arb::mcable> cables) {
+                std::sort(cables.begin(), cables.end(), cable_lt);
+                return self.segments(cables);
+            },
+            "Return minimal list of full or partial msegments whose union is coterminous "
+            "with the extent of the given list of cables.")
+        .def("all_segments",
+            [](const arb::place_pwlin& self, std::vector<arb::mcable> cables) {
+                std::sort(cables.begin(), cables.end(), cable_lt);
+                return self.all_segments(cables);
+            },
+            "Return maximal list of non-overlapping full or partial msegments whose union is coterminous "
+            "with the extent of the given list of cables.");
 
     //
     // Higher-level data structures (segment_tree, morphology)

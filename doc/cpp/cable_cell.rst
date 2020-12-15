@@ -1,4 +1,4 @@
-.. _cppcable_cell:
+.. _cppcablecell:
 
 Cable cells
 ===========
@@ -21,220 +21,27 @@ object of type :cpp:type:`cable_cell_global_properties`.
 The :cpp:type:`cable_cell` object
 ---------------------------------
 
-Cable cells are constructed from a :cpp:type:`morphology` and, optionally, a
+Cable cells are constructed from a :cpp:type:`morphology`; an optional
 :cpp:type:`label_dict` that associates names with particular points
 (:cpp:type:`locset` objects) or subsets (:cpp:type:`region` objects) of the
-morphology.
+morphology; and an optional :ref:`decor <cablecell-decoration>`.
 
 Morphologies are constructed from a :cpp:type:`segment_tree`, but can also
 be generated via the :cpp:type:`stitch_builder`, which offers a slightly
-higher level interface. Details are described in :ref:`morphology-construction`.
+higher level interface. Details are described in :ref:`cppcablecell-morphology-construction`.
 
 Each cell has particular values for its electrical and ionic properties. These
 are determined first by the set of global defaults, then the defaults
 associated with the cell, and finally by any values specified explicitly for a
-given subsection of the morphology via the ``paint`` method
-(see :ref:`electrical-properties` and :ref:`paint-properties`).
+given subsection of the morphology via the ``paint`` interface of the decor
+(see :ref:`cppcablecell-electrical-properties` and :ref:`cppcablecell-paint-properties`).
 
 Ion channels and other distributed dynamical processes are also specified
 on the cell via the ``paint`` method; while synapses, current clamps,
 gap junction locations, and the site for testing the threshold potential
-are specified via the ``place`` method. See :ref:`cable-cell-dynamics`, below.
+are specified via the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
 
-.. _morphology-construction:
-
-Constructing cell morphologies
-------------------------------
-
-.. todo::
-
-   TODO: Description of segment trees is in the works.
-
-
-The stitch-builder interface
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Like the segment tree, the :cpp:type:`stich_builder` class constructs morphologies
-through attaching simple components described by a pair of :cpp:type:`mpoint` values,
-proximal and distal. These components are :cpp:type:`mstitch` objects, and
-they differ from segments in two regards:
-
-1. Stitches are identified by a unique string identifier, in addition to an optional tag value.
-
-2. Stitches can be attached to a parent stitch at either end, or anywhere in the middle.
-
-The ability to attach a stitch some way along another stitch dictates that one
-stitch may correspond to more than one morphological segment once the morphology
-is fully specified. When these attachment points are internal to a stitch, the
-corresponding geometrical point is determined by linearly interpolating between
-the proximal and distal points.
-
-The required header file is ``arbor/morph/stitch.hpp``.
-
-:cpp:type:`mstitch` has two constructors:
-
-.. code::
-
-   mstitch::mstitch(std::string id, mpoint prox, mpoint dist, int tag = 0)
-   mstitch::mstitch(std::string id, mpoint dist, int tag = 0)
-
-If the proximal point is omitted, it will be inferred from the point at which
-the stitch is attached to its parent.
-
-The :cpp:type:`stitch_builder` class collects the stitches with the ``add`` method:
-
-.. code::
-
-   stitch_builder::add(mstitch, const std::string& parent_id, double along = 1.)
-   stitch_builder::add(mstitch, double along = 1.)
-
-The first stitch will have no parent. If no parent id is specified for a subsequent
-stitch, the last stitch added will be used as parent. The ``along`` parameter
-must lie between zero and one inclusive, and determines the point of attachment
-as a relative position between the parent's proximal and distal points.
-
-A :cpp:type:`stitched_morphology` is constructed from a :cpp:type:`stitch_builder`,
-and provides both the :cpp:type:`morphology` built from the stitches, and methods
-for querying the extent of individual stitches.
-
-.. cpp:class:: stitched_morphology
-
-   .. cpp:function:: stitched_morphology(const stitch_builder&)
-   .. cpp:function:: stitched_morphology(stitch_builder&&)
-
-   Construct from a ``stitch_builder``. Note that constructing from an
-   rvalue is more efficient, as it avoids making a copy of the underlying
-   tree structure.
-
-   .. cpp:function:: arb::morphology morphology() const
-
-   Return the constructed morphology object.
-
-   .. cpp:function:: region stitch(const std::string& id) const
-
-   Return the region expression corresponding to the specified stitch.
-
-   .. cpp:function:: std::vector<msize_t> segments(const std::string& id) const
-
-   Return the collection of segments by index comprising the specified stitch.
-
-   .. cpp:function:: label_dict labels(const std::string& prefix="") const
-
-   Provide a :cpp:type:`label_dict` with a region entry for each stitch; if
-   a prefix is provided, this prefix is applied to each segment id to determine
-   the region labels.
-
-Example code, constructing a cable cell from a T-shaped morphology specified
-by two stitches:
-
-.. code::
-
-   using namespace arb;
-
-   mpoint soma0{0, 0, 0, 10};
-   mpoint soma1{20, 0, 0, 10};
-   mpoint dend_end{10, 100, 0, 1};
-
-   stitch_builder builder;
-   builder.add({"soma", soma0, soma1, 1});
-   builder.add({"dend", dend_end, 4}, "soma", 0.5);
-
-   stitched_morphology stitched(std::move(builder));
-   cable_cell cell(stitched.morphology(), stitched.labels());
-
-   cell.paint("\"soma\"", "hh");
-
-
-Supported morphology formats
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Arbor supports morphologies described using the SWC file format and the NeuroML file format.
-
-SWC
-"""
-
-Arbor supports reading morphologies described using the
-`SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format. And
-has three different interpretation of that format.
-
-A :cpp:func:`parse_swc()` function is used to parse the SWC file and generate a :cpp:type:`swc_data` object.
-This object contains a vector of :cpp:type:`swc_record` objects that represent the SWC samples, with a number of
-basic checks performed on them. The :cpp:type:`swc_data` object can then be used to generate a
-:cpp:type:`morphology` object using one of the following functions: (See the morphology concepts
-:ref:`page <morph-formats>` for more details).
-
-  * :cpp:func:`load_swc_arbor`
-  * :cpp:func:`load_swc_allen`
-  * :cpp:func:`load_swc_neuron`
-
-.. cpp:class:: swc_record
-
-   .. cpp:member:: int id
-
-      ID of the record
-
-   .. cpp:member:: int tag
-
-       Structure identifier (tag).
-
-   .. cpp:member:: double x
-
-      x coordinate in space.
-
-   .. cpp:member:: double y
-
-      y coordinate in space.
-
-   .. cpp:member:: double z
-
-      z coordinate in space.
-
-   .. cpp:member:: double r
-
-      Sample radius.
-
-   .. cpp:member:: int parent_id
-
-      Record parent's sample ID.
-
-.. cpp:class:: swc_data
-
-   .. cpp:member:: std::string metadata
-
-      Contains the comments of an SWC file.
-
-   .. cpp:member:: std::vector<swc_record> records
-
-      Stored the list of samples from an SWC file, after performing some checks.
-
-.. cpp:function:: swc_data parse_swc(std::istream&)
-
-   Returns an :cpp:type:`swc_data` object given an std::istream object.
-
-.. cpp:function:: morphology load_swc_arbor(const swc_data& data)
-
-   Returns a :cpp:type:`morphology` constructed according to Arbor's SWC specifications.
-
-.. cpp:function:: morphology load_swc_allen(const swc_data& data, bool no_gaps=false)
-
-   Returns a :cpp:type:`morphology` constructed according to the Allen Institute's SWC
-   specifications. By default, gaps in the morphology are allowed, this can be toggled
-   using the ``no_gaps`` argument.
-
-.. cpp:function:: morphology load_swc_neuron(const swc_data& data)
-
-   Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
-
-.. _locsets-and-regions:
-
-Identifying sites and subsets of the morphology
------------------------------------------------
-
-.. todo::
-
-   TODO: Region and locset documentation is under development.
-
-.. _cable-cell-dynamics:
+.. _cppcablecell-dynamics:
 
 Cell dynamics
 -------------
@@ -286,7 +93,7 @@ cable cell, are attached to a cell with:
    TODO: describe other ``place``-able things: current clamps, gap junction
    sites, threshold potential measurement point.
 
-.. _electrical-properties:
+.. _cppcablecell-electrical-properties:
 
 Electrical properties and ion values
 -------------------------------------
@@ -446,7 +253,7 @@ constants.
    gprop.default_parameters.reversal_potential_method["ca"] = "nernst1998/ca";
 
 
-.. _paint-properties:
+.. _cppcablecell-paint-properties:
 
 Overriding properties locally
 -----------------------------
@@ -457,7 +264,7 @@ Overriding properties locally
    the morphology.
 
 
-.. _cable-cell-probes:
+.. _cppcablecell--probes:
 
 Cable cell probes
 -----------------
@@ -776,18 +583,9 @@ with which it is associated.
 Discretisation and CV policies
 ------------------------------
 
-For the purpose of simulation, cable cells are decomposed into :ref:`discrete
-subcomponents <cable-discretisation>` called *control volumes* (CVs) The CVs are
-uniquely determined by a set of *B* of ``mlocation`` boundary points.
-For each non-terminal point *h* in *B*, there is a CV comprising the points
-{*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
-geometrical partial order of locations on the morphology. A fork point is
-owned by a CV if and only if all of its corresponding representative locations
-are in the CV.
-
-The set of boundary points used by the simulator is determined by a *CV policy*.
-These are objects of type ``cv_policy``, which has the following
-public methods:
+The set of boundary points used by the simulator is determined by a
+:ref:`CV policy <cablecell-cv-policies>`. These are objects of type
+:cpp:class:`cv_policy`, which has the following public methods:
 
 .. cpp:class:: cv_policy
 
@@ -808,7 +606,8 @@ differing discretisations on different parts of a cell morphology. When a CV
 policy is constrained in this manner, the boundary of the domain will always
 constitute part of the CV boundary point set.
 
-CV policies can be combined with ``+`` and ``|`` operators. For two policies
+CV policies can be :ref:`composed <cablecell-cv-composition>` with ``+`` and ``|`` operators.
+For two policies
 *A* and *B*, *A* + *B* is a policy which gives boundary points from both *A*
 and *B*, while *A* | *B* is a policy which gives all the boundary points from
 *B* together with those from *A* which do not within the domain of *B*.
@@ -835,14 +634,14 @@ supplied domain.
 Use the points given by ``locs`` for CV boundaries, optionally restricted to the
 supplied domain.
 
-``cv_policy_every_sample``
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+``cv_policy_every_segment``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
-   cv_policy_every_sample(region domain = reg::all())
+   cv_policy_every_segment(region domain = reg::all())
 
-Use every sample point in the morphology definition as a CV boundary, optionally
+Use every segment in the morphology as a CV, optionally
 restricted to the supplied domain. Each fork point in the domain is
 represented by a trivial CV.
 

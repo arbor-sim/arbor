@@ -41,15 +41,17 @@ def make_cable_cell(gid):
     # Mark the root of the tree.
     labels['root'] = '(root)'
 
-    cell = arbor.cable_cell(tree, labels)
+    decor = arbor.decor()
 
     # Put hh dynamics on soma, and passive properties on the dendrites.
-    cell.paint('"soma"', 'hh')
-    cell.paint('"dend"', 'pas')
+    decor.paint('"soma"', 'hh')
+    decor.paint('"dend"', 'pas')
     # Attach a single synapse.
-    cell.place('"synapse_site"', 'expsyn')
+    decor.place('"synapse_site"', 'expsyn')
     # Attach a spike detector with threshold of -10 mV.
-    cell.place('"root"', arbor.spike_detector(-10))
+    decor.place('"root"', arbor.spike_detector(-10))
+
+    cell = arbor.cable_cell(tree, labels, decor)
 
     return cell
 
@@ -60,6 +62,9 @@ class ring_recipe (arbor.recipe):
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
         self.ncells = n
+        self.props = arbor.neuron_cable_propetries()
+        self.cat = arbor.default_catalogue()
+        self.props.register(self.cat)
 
     # The num_cells method that returns the total number of cells in the model
     # must be implemented.
@@ -95,8 +100,11 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         return [arbor.cable_probe_membrane_voltage('(location 0 0)')]
+
+    def global_properties(self, kind):
+        return self.props
 
 context = arbor.context(threads=12, gpu_id=None)
 print(context)

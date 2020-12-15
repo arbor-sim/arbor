@@ -32,11 +32,13 @@ ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanis
 TEST(synapses, add_to_cell) {
     using namespace arb;
 
-    auto cell = make_cell_soma_only(false);
+    auto description = make_cell_soma_only(false);
 
-    cell.place(mlocation{0, 0.1}, "expsyn");
-    cell.place(mlocation{0, 0.2}, "exp2syn");
-    cell.place(mlocation{0, 0.3}, "expsyn");
+    description.decorations.place(mlocation{0, 0.1}, "expsyn");
+    description.decorations.place(mlocation{0, 0.2}, "exp2syn");
+    description.decorations.place(mlocation{0, 0.3}, "expsyn");
+
+    cable_cell cell(description);
 
     auto syns = cell.synapses();
 
@@ -53,7 +55,8 @@ TEST(synapses, add_to_cell) {
     EXPECT_EQ("exp2syn", syns["exp2syn"][0].item.name());
 
     // adding a synapse to an invalid branch location should throw.
-    EXPECT_THROW(cell.place(mlocation{1, 0.3}, "expsyn"), std::runtime_error);
+    description.decorations.place(mlocation{1, 0.3}, "expsyn");
+    EXPECT_THROW((cell=description), std::runtime_error);
 }
 
 template <typename Seq>
