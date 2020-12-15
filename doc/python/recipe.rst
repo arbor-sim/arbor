@@ -90,7 +90,7 @@ Recipe
 
         By default returns 0.
 
-    .. function:: get_probes(gid)
+    .. function:: probes(gid)
 
         Returns a list specifying the probe addresses describing probes on the cell ``gid``.
         Each address in the list is an opaque object of type :class:`probe` produced by
@@ -99,6 +99,17 @@ Recipe
         refers to the probes described by the ith entry in the list returned by ``get_probes(gid)``.
 
         By default returns an empty list.
+
+    .. function:: global_properties(kind)
+
+        The global properties of a model.
+
+        This method needs to be implemented for :class:`arbor.cell_kind.cable`, where the
+        properties include ion concentrations and reversal potentials; initial membrane voltage;
+        temperature; axial resistivity; membrane capacitance; cv_policy; and a pointer
+        to the mechanism catalogue.
+
+        By default returns an empty object.
 
 Cells
 ------

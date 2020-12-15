@@ -62,6 +62,9 @@ class ring_recipe (arbor.recipe):
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
         self.ncells = n
+        self.props = arbor.neuron_cable_propetries()
+        self.cat = arbor.default_catalogue()
+        self.props.register(self.cat)
 
     # The num_cells method that returns the total number of cells in the model
     # must be implemented.
@@ -97,8 +100,11 @@ class ring_recipe (arbor.recipe):
             return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
         return []
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         return [arbor.cable_probe_membrane_voltage('(location 0 0)')]
+
+    def global_properties(self, kind):
+        return self.props
 
 context = arbor.context(threads=12, gpu_id=None)
 print(context)
