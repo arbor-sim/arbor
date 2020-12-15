@@ -1,6 +1,7 @@
 import arbor
 from arbor import mpoint
 import os.path
+import sys
 
 def is_collocated(l, r):
     return l[0]==r[0] and l[1]==r[1]
@@ -217,7 +218,7 @@ cell = arbor.cable_cell(label_morph, d, arbor.decor())
 # Output all of the morphologies and reion/locset definitions to a Python script
 # that can be run during the documentation build to generate images.
 ################################################################################
-f = open('inputs.py', 'w')
+f = open(sys.argv[1] + '/inputs.py', 'w')
 f.write('import representation\n')
 f.write('from representation import Segment\n')
 
