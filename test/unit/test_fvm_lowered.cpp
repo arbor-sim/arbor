@@ -1237,17 +1237,17 @@ TEST(fvm_lowered, post_events_shared_state) {
             arb::segment_tree tree;
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
 
-            arb::cable_cell cell(arb::morphology(tree), {});
-            cell.default_parameters.discretization = arb::cv_policy_fixed_per_branch(ncv_);
+            arb::decor decor;
+            decor.set_default(arb::cv_policy_fixed_per_branch(ncv_));
 
             auto ndetectors = detectors_per_cell_[gid];
             auto offset = 1.0 / ndetectors;
             for (unsigned i = 0; i < ndetectors; ++i) {
-                cell.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10});
+                decor.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10});
             }
+            decor.place(arb::mlocation{0, 0.5}, synapse_);
 
-            cell.place(arb::mlocation{0, 0.5}, synapse_);
-            return cell;
+            return arb::cable_cell(arb::morphology(tree), {}, decor);;
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
