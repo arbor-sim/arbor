@@ -234,7 +234,7 @@ f.write(write_morphology('yshaped_morph',  yshaped_morph))
 f.write(write_morphology('ysoma_morph1',   ysoma_morph1))
 f.write(write_morphology('ysoma_morph2',   ysoma_morph2))
 f.write(write_morphology('ysoma_morph3',   ysoma_morph3))
-f.write(write_morphology('swc_morph',      ysoma_morph3))
+f.write(write_morphology('swc_morph',      swc_morph))
 
 f.write('\n############# locsets\n\n')
 for label in locsets:
