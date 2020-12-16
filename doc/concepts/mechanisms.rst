@@ -1,7 +1,7 @@
 .. _mechanisms:
 
-Mechanisms
-==========
+Cable cell mechanisms
+=====================
 
 Mechanisms describe biophysical processes such as ion channels and synapses.
 Mechanisms are assigned to regions and locations on a cell morphology
