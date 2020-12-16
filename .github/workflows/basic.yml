@@ -1,0 +1,95 @@
+name: Basic Tests and Documentation
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: "Default test set"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:    ["ubuntu-20.04"]
+        cxx:   ["g++"]
+        cc:    ["gcc"]
+        ver:   ["9"]
+        py:    ["3.6"]
+        cmake: ["3.12.x"]
+        mpi:   ["ON"]
+    env:
+        CC:         ${{ matrix.cc }}-${{ matrix.ver }}
+        CXX:        ${{ matrix.cxx }}-${{ matrix.ver }}
+        # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
+        PYTHONPATH: /home/runner/work/arbor/arbor/build/python
+    steps:
+      - name: Set up cmake
+        uses: jwlawson/actions-setup-cmake@v1.4
+        with:
+          cmake-version: ${{ matrix.cmake }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
+      - name: OpenMPI cache
+        uses: actions/cache@v2
+        id:   cache-ompi
+        with:
+          path: ~/openmpi-4.0.2
+          key:  ${{ matrix.os }}-openmpi-4.0.2-${{ matrix.cxx }}-${{ matrix.ver }}
+      - name: Build OpenMPI
+        if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
+        run: |
+           echo cache-hit='${{ steps.cache-ompi.outputs.cache-hit }}'
+           cd ~
+           wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
+           tar -xvf ./openmpi-4.0.2.tar.gz
+           cd openmpi-4.0.2
+           ./configure --disable-mpi-fortran
+           make -j4
+      - name: Install OpenMPI
+        run: |
+           echo "Going to install ompi"
+           cd ~
+           cd openmpi-4.0.2
+           sudo make install
+           sudo ldconfig
+           cd -
+      - name: Install Python packages
+        run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
+      - name: Clone w/ submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Check config
+        run: |
+          $CC --version
+          $CXX --version
+          python --version
+          mpic++ --show
+          mpicc --show
+      - name: Build arbor
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.mpi }}
+          make -j4 tests examples html pyarb
+          cd -
+      - name: Run unit tests
+        run:  build/bin/unit
+      - if:   ${{ matrix.mpi == 'ON' }}
+        name: Run MPI tests
+        run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
+      - name: Run python tests
+        run:  python python/test/unit/runner.py
+      - if:   ${{ matrix.mpi == 'ON' }}
+        name: Run python+MPI tests
+        run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py
+      - name: Run Python examples
+        run: |
+            python python/example/network_ring.py
+            python python/example/single_cell_model.py
+            python python/example/single_cell_recipe.py
+            python python/example/single_cell_swc.py test/unit/swc/pyramidal.swc
