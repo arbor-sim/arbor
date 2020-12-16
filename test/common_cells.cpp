@@ -1,4 +1,5 @@
 #include <arbor/string_literals.hpp>
+#include "arbor/morph/morphology.hpp"
 #include "common_cells.hpp"
 
 namespace arb {
@@ -131,7 +132,7 @@ msize_t soma_cell_builder::add_branch(
     return bid;
 }
 
-cable_cell soma_cell_builder::make_cell() const {
+cable_cell_description  soma_cell_builder::make_cell() const {
     // Test that a valid tree was generated, that is, every branch has
     // either 0 children, or at least 2 children.
     for (auto i: branch_distal_id) {
@@ -150,14 +151,14 @@ cable_cell soma_cell_builder::make_cell() const {
         dict.set(tag.first, reg::tagged(tag.second));
     }
 
-    // Make cable_cell from sample tree and dictionary.
-    cable_cell c(tree, dict);
     auto boundaries = cv_boundaries;
     for (auto& b: boundaries) {
         b = location(b);
     }
-    c.default_parameters.discretization = cv_policy_explicit(boundaries);
-    return c;
+    decor decorations;
+    decorations.set_default(cv_policy_explicit(boundaries));
+    // Construct cable_cell from sample tree, dictionary and decorations.
+    return {std::move(tree), std::move(dict), std::move(decorations)};
 }
 
 /*
@@ -173,17 +174,17 @@ cable_cell soma_cell_builder::make_cell() const {
  *    soma centre, t=[10 ms, 110 ms), 0.1 nA
  */
 
-cable_cell make_cell_soma_only(bool with_stim) {
+cable_cell_description make_cell_soma_only(bool with_stim) {
     using namespace arb::literals;
     soma_cell_builder builder(18.8/2.0);
 
     auto c = builder.make_cell();
-    c.paint("soma"_lab, "hh");
+    c.decorations.paint("soma"_lab, "hh");
     if (with_stim) {
-        c.place(builder.location({0,0.5}), i_clamp{10., 100., 0.1});
+        c.decorations.place(builder.location({0,0.5}), i_clamp{10., 100., 0.1});
     }
 
-    return c;
+    return {c.morph, c.labels, c.decorations};
 }
 
 /*
@@ -207,25 +208,23 @@ cable_cell make_cell_soma_only(bool with_stim) {
  *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
  */
 
-cable_cell make_cell_ball_and_stick(bool with_stim) {
+cable_cell_description make_cell_ball_and_stick(bool with_stim) {
     using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
     auto c = builder.make_cell();
-    c.paint("soma"_lab, "hh");
-    c.paint("dend"_lab, "pas");
+    c.decorations.paint("soma"_lab, "hh");
+    c.decorations.paint("dend"_lab, "pas");
     if (with_stim) {
-        c.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
+        c.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
     }
 
-    return c;
+    return {c.morph, c.labels, c.decorations};
 }
 
 /*
  * Create cell with a soma and three-branch dendrite with single branch point:
- *
- * O----======
  *
  * Common properties:
  *    bulk resistivity: 100 Ω·cm [default]
@@ -246,7 +245,7 @@ cable_cell make_cell_ball_and_stick(bool with_stim) {
  *    end of second terminal branch, t=[40 ms, 50 ms), -0.2 nA
  */
 
-cable_cell make_cell_ball_and_3stick(bool with_stim) {
+cable_cell_description make_cell_ball_and_3stick(bool with_stim) {
     using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
@@ -254,13 +253,14 @@ cable_cell make_cell_ball_and_3stick(bool with_stim) {
     builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
 
     auto c = builder.make_cell();
-    c.paint("soma"_lab, "hh");
-    c.paint("dend"_lab, "pas");
+    c.decorations.paint("soma"_lab, "hh");
+    c.decorations.paint("dend"_lab, "pas");
     if (with_stim) {
-        c.place(builder.location({2,1}), i_clamp{5.,  80., 0.45});
-        c.place(builder.location({3,1}), i_clamp{40., 10.,-0.2});
+        c.decorations.place(builder.location({2,1}), i_clamp{5.,  80., 0.45});
+        c.decorations.place(builder.location({3,1}), i_clamp{40., 10.,-0.2});
     }
 
-    return c;
+    return {c.morph, c.labels, c.decorations};
 }
+
 } // namespace arb

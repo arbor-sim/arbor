@@ -12,6 +12,9 @@ class single_recipe (arbor.recipe):
         arbor.recipe.__init__(self)
         self.the_cell = cell
         self.the_probes = probes
+        self.the_props = arbor.neuron_cable_propetries()
+        self.the_cat = arbor.default_catalogue()
+        self.the_props.register(self.the_cat)
 
     def num_cells(self):
         return 1
@@ -25,22 +28,30 @@ class single_recipe (arbor.recipe):
     def cell_description(self, gid):
         return self.the_cell
 
-    def get_probes(self, gid):
+    def probes(self, gid):
         return self.the_probes
+
+    def global_properties(self, kind):
+        return self.the_props
 
 # (2) Create a cell.
 
+# Morphology
 tree = arbor.segment_tree()
 tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
+# Label dictionary
 labels = arbor.label_dict()
 labels['centre'] = '(location 0 0.5)'
 
-cell = arbor.cable_cell(tree, labels)
-cell.set_properties(Vm=-40)
-cell.paint('(all)', 'hh')
-cell.place('"centre"', arbor.iclamp( 10, 2, 0.8))
-cell.place('"centre"', arbor.spike_detector(-10))
+# Decorations
+decor = arbor.decor()
+decor.set_property(Vm=-40)
+decor.paint('(all)', 'hh')
+decor.place('"centre"', arbor.iclamp( 10, 2, 0.8))
+decor.place('"centre"', arbor.spike_detector(-10))
+
+cell = arbor.cable_cell(tree, labels, decor)
 
 # (3) Instantiate recipe with a voltage probe.
 

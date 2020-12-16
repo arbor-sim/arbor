@@ -103,7 +103,7 @@ void register_mechanisms(pybind11::module& m) {
                 [](const arb::mechanism_info& inf) {
                     return util::pprintf("(arbor.mechanism_info)"); });
 
-    pybind11::class_<arb::mechanism_catalogue> cat(m, "mechanism_catalogue");
+    pybind11::class_<arb::mechanism_catalogue> cat(m, "catalogue");
     cat
         .def(pybind11::init<const arb::mechanism_catalogue&>())
         .def("has", &arb::mechanism_catalogue::has,

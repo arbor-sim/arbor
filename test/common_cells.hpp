@@ -12,6 +12,16 @@ arb::segment_tree segments_from_points(std::vector<arb::mpoint> points,
                                        std::vector<arb::msize_t> parents,
                                        std::vector<int> tags={});
 
+struct cable_cell_description {
+    morphology morph;
+    label_dict labels;
+    decor decorations;
+
+    operator cable_cell() const {
+        return cable_cell(morph, labels, decorations);
+    }
+};
+
 class soma_cell_builder {
     segment_tree tree;
     std::vector<msize_t> branch_distal_id;
@@ -35,7 +45,7 @@ public:
     mlocation location(mlocation) const;
     mcable cable(mcable) const;
 
-    cable_cell make_cell() const;
+    cable_cell_description make_cell() const;
 };
 
 /*
@@ -51,7 +61,7 @@ public:
  *    soma centre, t=[10 ms, 110 ms), 0.1 nA
  */
 
-cable_cell make_cell_soma_only(bool with_stim = true);
+cable_cell_description make_cell_soma_only(bool with_stim = true);
 
 /*
  * Create cell with a soma and unbranched dendrite:
@@ -74,7 +84,7 @@ cable_cell make_cell_soma_only(bool with_stim = true);
  *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
  */
 
-cable_cell make_cell_ball_and_stick(bool with_stim = true);
+cable_cell_description make_cell_ball_and_stick(bool with_stim = true);
 
 /*
  * Create cell with a soma and three-branch dendrite with single branch point:
@@ -100,6 +110,6 @@ cable_cell make_cell_ball_and_stick(bool with_stim = true);
  *    end of second terminal branch, t=[40 ms, 50 ms), -0.2 nA
  */
 
-cable_cell make_cell_ball_and_3stick(bool with_stim = true);
+cable_cell_description make_cell_ball_and_3stick(bool with_stim = true);
 
 } // namespace arb

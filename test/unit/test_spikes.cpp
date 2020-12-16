@@ -1,10 +1,17 @@
 #include "../gtest.h"
 
+#include <arborenv/concurrency.hpp>
+#include <arborenv/gpu_env.hpp>
+
+#include <arbor/load_balance.hpp>
+#include <arbor/simulation.hpp>
 #include <arbor/spike.hpp>
 
 #include <backends/multicore/fvm.hpp>
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
+
+#include <simple_recipes.hpp>
 
 using namespace arb;
 
@@ -54,7 +61,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(cell_index.data(), time_before.data(), time_after.data(), values.data(), index, thresh, context);
+    backend::threshold_watcher watch(cell_index.data(), values.data(), &time_before, &time_after, index, thresh, context);
 
     // initially the first and third watch should not be spiking
     //           the second is spiking
@@ -153,5 +160,49 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
+}
+
+TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
+    double dt = 0.025;
+    double duration = 1;
+
+    arb::segment_tree tree;
+    tree.append(arb::mnpos, { -6.3, 0.0, 0.0, 6.3}, {  6.3, 0.0, 0.0, 6.3}, 1);
+    arb::morphology morpho(tree);
+
+    arb::label_dict dict;
+    dict.set("mid", arb::ls::on_branches(0.5));
+
+    arb::proc_allocation resources;
+    resources.gpu_id = arbenv::default_gpu();
+    auto context = arb::make_context(resources);
+
+    std::vector<arb::spike> spikes;
+
+    for (unsigned i = 0; i < 8; i++) {
+        arb::decor decor;
+        decor.set_default(arb::cv_policy_every_segment());
+        decor.place("\"mid\"", arb::threshold_detector{10});
+        decor.place("\"mid\"", arb::i_clamp(0.01+i*dt, duration, 0.5));
+        decor.place("\"mid\"", arb::mechanism_desc("hh"));
+
+        arb::cable_cell cell(morpho, dict, decor);
+        cable1d_recipe rec({cell});
+
+        auto decomp = arb::partition_load_balance(rec, context);
+        arb::simulation sim(rec, decomp, context);
+
+        sim.set_global_spike_callback(
+                [&spikes](const std::vector<arb::spike>& recorded_spikes) {
+                    spikes.insert(spikes.end(), recorded_spikes.begin(), recorded_spikes.end());
+                });
+
+        sim.run(duration, dt);
+        ASSERT_EQ(1u, sim.num_spikes());
+    }
+
+    for (unsigned i = 1; i < spikes.size(); ++i) {
+        EXPECT_NEAR(dt, spikes[i].time - spikes[i-1].time, 1e-4);
+    }
 }
 

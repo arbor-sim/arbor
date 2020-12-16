@@ -102,8 +102,8 @@ void mech_update(T* mech, unsigned num_iters) {
     }
 
     for (auto i=0u; i<num_iters; ++i) {
-        mech->nrn_current();
-        mech->nrn_state();
+        mech->update_current();
+        mech->update_state();
     }
 }
 
