@@ -428,7 +428,7 @@ the "allen" catalogue. We can extend the default catalogue as follow:
    # the name of the mechanisms to avoid collisions between catalogues
    # in this case we have no collisions so we use an empty prefix string.
 
-   model.properties.catalogue.extend(arbor.allen_catalogue(), "")
+   model.catalogue.extend(arbor.allen_catalogue(), "")
 
 Now all three mechanisms in the *decor* object have been made available to the model.
 

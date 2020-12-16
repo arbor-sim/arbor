@@ -88,7 +88,7 @@ model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
 # Extend the default catalogue with the allen catalogue.
 
-model.properties.catalogue.extend(arbor.allen_catalogue(), "")
+model.catalogue.extend(arbor.allen_catalogue(), "")
 
 # (7) Add probes.
 
