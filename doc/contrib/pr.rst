@@ -27,8 +27,10 @@ the workflow is as follows:
       to the features in the PR, keep the PR description updated.
    -  Use text like `fixes #123` in the description to refer to an issue.
 
-4. An administrative matter: we request that you grant us a right of use on your contribution.
-   Please contact us at `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
+4. We will accept your contribution under the same license as the project,
+   the `BSD 3-Clause "New" or "Revised" License <https://github.com/arbor-sim/arbor/blob/master/LICENSE>`__.
+   If this is a problem for you, please contact us at
+   `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
 5. A PR on Github is automatically built and tested by our CI bot called Travis.
    You can also run these tests yourself by building them first
    (``make tests``) and then running them (``./bin/*unit*``).
