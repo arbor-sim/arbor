@@ -393,8 +393,8 @@ The global properties of a single cell model include:
    regions of the cells.
 
    You may now be wondering why this is needed for the `single cell model` where there is only one
-   cell by design. We've added this feature to facilitate moving from a set of single cell models
-   to a network of these cells, by having a clear differentiation between model and cell parameters.
+   cell by design. You can use this feature to ease moving from simulating a set of single cell models
+   to simulating a network of these cells.
    For example, a user may choose to individually test several single cell models before simulating
    their interactions. By using the same global properties for each *model*, and customizing the *cell*
    global properties, it becomes possible to use the cell descriptions of each cell, unchanged, in a
