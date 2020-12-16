@@ -8,9 +8,11 @@ Single cell model
 .. py:class:: single_cell_model
 
    Wrapper for simplified description and execution of single cell models.
+   Only available in the python library.
    Abstracts away the details of a :class:`recipe`, :class:`context` and
    :class:`domain_decomposition` for simulations of single, stand-alone
    cable cells.
+   The simulation can not be distributed over several machines.
 
     .. method:: single_cell_model(cable_cell)
 
