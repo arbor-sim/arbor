@@ -1,7 +1,7 @@
 .. _tutorialsimplecell:
 
-A simple cell
-=============
+A simple single cell model
+==========================
 
 Building and testing detailed models of individual cells, then optimizing their
 parameters is usually the first step in building models with multi-compartment cells.

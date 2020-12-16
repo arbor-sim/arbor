@@ -1,7 +1,7 @@
 .. _tutorialsinglecellswc:
 
-A morphologically detailed cell
--------------------------------
+A detailed single cell model
+============================
 
 We can expand on the :ref:`single segment cell example <tutorialsimplecell>` to create a more
 complex single cell model, and go through the process in more detail.
@@ -33,13 +33,12 @@ behind the scenes: it sets up a recipe (more on recipes :ref:`here <modelrecipe>
 a simulation object, manages the hardware etc. These details become more important when modeling
 a network of cells, but can be abstracted away when working with single cell networks.
 
-The single cell model has 5 main functions:
+The single cell model has 4 main functions:
 
 1. It holds the **global properties** of the model
 2. It registers **probes** on specific locations on the cell to measure the voltage.
 3. It **runs** the simulation.
-4. It collects **spikes** from spike detectors.
-5. It collects the voltage **traces** from registered probes.
+4. It collects **spikes** from spike detectors and voltage **traces** from registered probes.
 
 .. _tutorialsinglecellswc-cell:
 
@@ -252,7 +251,7 @@ This will generate the following 2 locsets when applied to the previously define
 
   Left: locset "custom_terminal"; right: locset "axon_terminal"
 
-The Decorations
+The decorations
 ^^^^^^^^^^^^^^^
 
 With the key regions and location expressions identified and labeled, we can start to
@@ -396,6 +395,10 @@ The global properties of a single cell model include:
    You may now be wondering why this is needed for the `single cell model` where there is only one
    cell by design. We've added this feature to facilitate moving from a set of single cell models
    to a network of these cells, by having a clear differentiation between model and cell parameters.
+   For example, a user may choose to individually test several single cell models before simulating
+   their interactions. By using the same global properties for each *model*, and customizing the *cell*
+   global properties, it becomes possible to use the cell descriptions of each cell, unchanged, in a
+   larger network model.
 
 Earlier in the example we mentioned that it is better to explicitly set all the default properties
 of your cell, while that is true, it is better yet to set the default properties of the entire
@@ -455,7 +458,7 @@ The cell and model descriptions are now complete and we can run the simulation:
    # Run the simulation for 100 ms, with a dt of 0.025 ms
    model.run(tfinal=100, dt=0.025)
 
-The spikes
+The results
 ^^^^^^^^^^
 
 Finally we move on to the data collection segment of the example. We have added a spike detector
@@ -471,9 +474,6 @@ spikes on the cell from all spike detectors on the cell and saves the times at w
    for s in model.spikes:
        print(s)
 
-
-The traces
-^^^^^^^^^^
 
 A more interesting result of the simulation is perhaps the output of the voltage probe previously
 placed on the "custom_terminal" locset. The model saves the output of the probes as [time, value]

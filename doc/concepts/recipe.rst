@@ -4,18 +4,18 @@ Recipes
 =======
 
 An Arbor *recipe* is a description of a model. The recipe is queried during the model
-building phase to provide information about cells in the model, such as:
+building phase to provide information about individual cells in the model, such as:
 
   * The **number of cells** in the model.
   * The **kind** of each cell.
   * The **description** of each cell, e.g. with morphology, dynamics, synapses, detectors,
     stimuli etc.
-  * The number of **spike targets**.
-  * The number of **spike sources**.
-  * The number of **gap junction sites**.
+  * The number of **spike targets** on each cell.
+  * The number of **spike sources** on each cell.
+  * The number of **gap junction sites** on each cell.
   * Incoming **network connections** from other cells terminating on a cell.
-  * **Gap junction connections** on a cell.
-  * **Probes** on a cell.
+  * **Gap junction connections** on each cell.
+  * **Probes** on each cell.
 
 To better illustrate the content of a recipe, let's consider the following network of
 three cells:
