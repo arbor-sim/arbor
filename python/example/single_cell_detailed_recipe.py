@@ -1,13 +1,22 @@
 import arbor
 import pandas
 import seaborn
+import sys
 from arbor import mechanism as mech
 
 #(1) Creat a cell.
 
 # Create the morphology
 
-morph = arbor.load_swc_arbor("morph.swc")
+# Read the SWC filename from input
+# Example from docs: morph.swc
+
+if len(sys.argv) < 2:
+    print("No SWC file passed to the program")
+    sys.exit(0)
+
+filename = sys.argv[1]
+morph = arbor.load_swc_arbor(filename)
 
 # Create and populate the label dictionary.
 

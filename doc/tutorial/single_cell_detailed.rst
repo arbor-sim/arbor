@@ -459,7 +459,7 @@ The cell and model descriptions are now complete and we can run the simulation:
    model.run(tfinal=100, dt=0.025)
 
 The results
-^^^^^^^^^^
+^^^^^^^^^^^
 
 Finally we move on to the data collection segment of the example. We have added a spike detector
 on the "axon_terminal" locset. The :class:`arbor.single_cell_model` automatically registers all
