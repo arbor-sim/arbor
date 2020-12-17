@@ -14,6 +14,13 @@ endif()
 set(PYBIND11_CPP_STANDARD -std=c++17)
 add_subdirectory(pybind11)
 
+# Find path in which to install the Python module.
+find_package(PythonInterp REQUIRED)
+# Ask the above found Python where it keeps its system (platform) packages.
+execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))" OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+# Default to installing in that path
+set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
+
 set(pyarb_source
     cable_probes.cpp
     cells.cpp
