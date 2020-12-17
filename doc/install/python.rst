@@ -3,30 +3,18 @@
 Python Installation
 ===================
 
-Arbor's Python API will be the most convenient interface for most users. Note that we only support Python 3.6 and later.
+Arbor's Python API will be the most convenient interface for most users. Note that we support Python 3.6 and later.
 Any instruction hereafter assumes you're using `python` and `pip` no older than that.
 
 Getting Arbor
 -------------
 
-The easiest way to get Arbor is with
+Every point release of Arbor is pushed to the Python Package Index. The easiest way to get Arbor is with
 `pip <https://packaging.python.org/tutorials/installing-packages>`_:
 
 .. code-block:: bash
 
-    pip3 install arbor --user
-
-Every point release is pushed to the Python Package Index. If you wish to install another version, it is possible to use
-Setuptools directly on a local copy of the source code, or instruct `pip` to install directly from our git repository:
-
-.. code-block:: bash
-
-    # use setuptools and python directly
-    git clone https://github.com/arbor-sim/arbor.git --recursive
-    python3 install ./arbor/setup.py
-
-    # tell pip to build and install from master
-    pip3 install git+https://github.com/arbor-sim/arbor.git --user
+    pip3 install arbor
 
 .. note::
     You will need to have some development packages installed in order to build Arbor this way.
@@ -35,6 +23,13 @@ Setuptools directly on a local copy of the source code, or instruct `pip` to ins
     * Fedora/CentOS/Red Hat: `sudo yum install git @development-tools python3-devel python3-pip`
     * macOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3`
     * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
+
+If you wish to get the latest Arbor straight from
+the master branch in our git repository, you can run:
+
+.. code-block:: bash
+
+    pip3 install git+https://github.com/arbor-sim/arbor.git
 
 To test that Arbor is available, try the following in a Python interpreter
 to see information about the version and enabled features:
@@ -46,14 +41,28 @@ to see information about the version and enabled features:
     >>> print(arbor.__config__)
 
 You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the
-:ref:`Python API reference<pyoverview>` , or visit the :ref:`Quick Start page<gs_single_cell>`.
+:ref:`Python API reference<pyoverview>`, or visit the :ref:`gs_other_examples`.
 
 .. Note::
     To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output
     (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
 
+Customising Arbor
+^^^^^^^^^^^^^^^^^
+
+If you want to work on Arbor's code, you can get a copy of our repo and point `pip` at the local directory:
+
+.. code-block:: bash
+
+    # get your copy of the Arbor source
+    git clone https://github.com/arbor-sim/arbor.git --recursive
+    # make your changes and then instruct pip to build and install the local source
+    pip3 install ./arbor/
+
+Every time you make changes to the code, you'll have to repeat the second step.
+
 Advanced options
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 By default Arbor is installed with multi-threading enabled.
 To enable more advanced forms of parallelism, the following optional flags can
@@ -129,7 +138,7 @@ below demonstrate this for both pip and ``setup.py``.
     and installation.
 
 Dependencies
-^^^^^^^^^^^^^
+^^^^^^^^^^^^
 
 If a downstream dependency requires Arbor be built with
 a specific feature enabled, use ``requirements.txt`` to
@@ -142,8 +151,8 @@ with MPI support would add the following to its requirements:
     arbor >= 0.3 --install-option='--gpu=cuda' \
                  --install-option='--mpi'
 
-Performance
---------------
+Note on performance
+-------------------
 
 The Python interface can incur significant memory and runtime overheads relative to C++
 during the *model building* phase, however simulation performance is the same
