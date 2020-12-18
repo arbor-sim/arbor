@@ -3,7 +3,7 @@ import svgwrite
 import math
 import inputs
 
-tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff']
+tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff', '#81c8aa']
 
 #
 # ############################################
@@ -282,6 +282,20 @@ def generate(path=''):
     label_image(inputs.label_morph, [inputs.reg_radgt5],  path+'/radiusgt_label.svg')
     label_image(inputs.label_morph, [inputs.reg_radge5],  path+'/radiusge_label.svg')
 
+    ####################### Tutorial examples
+
+    morph_image([inputs.tutorial_morph], ['segments'], path+'/tutorial_morph.svg')
+
+    ####################### locsets
+
+    label_image(inputs.tutorial_morph, [inputs.tut_ls_root, inputs.tut_ls_terminal], path+'/tutorial_root_term.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_ls_custom_terminal, inputs.tut_ls_axon_terminal], path+'/tutorial_custom_axon_term.svg')
+
+
+    ####################### regions
+    label_image(inputs.tutorial_morph, [inputs.tut_reg_soma, inputs.tut_reg_axon, inputs.tut_reg_dend, inputs.tut_reg_last], path+'/tutorial_tag.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_reg_all, inputs.tut_reg_rad_gt], path+'/tutorial_all_gt.svg')
+    label_image(inputs.tutorial_morph, [inputs.tut_reg_custom], path+'/tutorial_custom.svg')
 
 if __name__ == '__main__':
     generate('.')

@@ -207,7 +207,7 @@ Cable cells
         import arbor
 
         # Construct the morphology from an SWC file.
-        tree = arbor.load_swc('granule.swc')
+        tree = arbor.load_swc_arbor('granule.swc')
         morph = arbor.morphology(tree)
 
         # Define regions using standard SWC tags

@@ -1,23 +1,24 @@
-.. _gs_single_cell:
+.. _tutorialsimplecell:
 
-A single cell model
-================================
+A simple single cell model
+==========================
 
 Building and testing detailed models of individual cells, then optimizing their
 parameters is usually the first step in building models with multi-compartment cells.
 Arbor supports a *single cell model* workflow for this purpose, which is a good way to
 introduce Arbor's cell modelling concepts and approach.
 
-This guide will walk through a series of single cell models of increasing complexity.
-Links are provided to separate documentation that covers relevant topics in more detail.
+.. Note::
 
-In an interactive Python interpreter, you can use ``help()`` on any class or function to
-obtain some documentation. (Try, for example, ``help(arbor.simulation``).
+   **Concepts covered in this example:**
 
-.. _single_soma:
+   1. Intro to building a morphology from a :class:`arbor.segment_tree`.
+   2. Intro to region and locset expressions.
+   3. Intro to decors and cell decorations.
+   4. Building a :class:`arbor.cable_cell` object.
+   5. Building a :class:`arbor.single_cell_model` object.
+   6. Running a simulation and visualising the results.
 
-Single segment cell with HH dynamics
-----------------------------------------------------
 
 The most trivial representation of a cell in Arbor is to model the entire cell as a
 single cylinder. The following example shows the steps required to construct a model of a

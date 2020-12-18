@@ -6,7 +6,7 @@ Arbor
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 
-You can find out how to :ref:`get Arbor<in_install>`; get started quickly with our :ref:`tutorials<gs_other_examples>`; or continue reading to learn more about Arbor.
+You can find out how to :ref:`get Arbor<in_install>`; get started quickly with our :ref:`tutorials<tutorial>`; or continue reading to learn more about Arbor.
 
 What is Arbor?
 --------------
@@ -23,7 +23,7 @@ Arbor is open source and openly developed, and we use development practices such
 Documentation organisation
 --------------------------
 
-* :ref:`gs_other_examples` contains a few ready-made examples you can use to quickly get started using Arbor. In the tutorial descriptions we link to the relevant Arbor concepts.
+* :ref:`tutorial` contains a few ready-made examples you can use to quickly get started using Arbor. In the tutorial descriptions we link to the relevant Arbor concepts.
 * :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
 * :ref:`hpc-overview` details Arbor-features for distribution of computation over supercomputer nodes.
 * :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.

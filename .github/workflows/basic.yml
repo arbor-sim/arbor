@@ -75,7 +75,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.mpi }}
-          make -j4 tests examples html pyarb
+          make -j4 tests examples pyarb html
           cd -
       - name: Run unit tests
         run:  build/bin/unit
@@ -93,3 +93,5 @@ jobs:
             python python/example/single_cell_model.py
             python python/example/single_cell_recipe.py
             python python/example/single_cell_swc.py test/unit/swc/pyramidal.swc
+            python python/example/single_cell_detailed.py python/example/morph.swc
+            python python/example/single_cell_detailed_recipe.py python/example/morph.swc
