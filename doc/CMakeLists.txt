@@ -20,6 +20,7 @@ string(REPLACE ";" "," theme_path "${theme_path}")
 
 add_custom_target(html
     COMMAND
+        PYTHONPATH=${CMAKE_BINARY_DIR}/python
         ${PYTHON_EXECUTABLE}
         -m sphinx
         -b html
