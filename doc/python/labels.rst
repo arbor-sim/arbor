@@ -1,7 +1,35 @@
-.. _py_labels:
+.. _pylabels:
 
 Cell labels
 ===========
+
+.. currentmodule:: arbor
+
+.. py:class:: label_dict
+
+   Stores labels and their associated expressions as key-value pairs.
+
+   .. method:: label_dict()
+
+      Create an empty label dictionary
+
+   .. method:: label_dict(dictionary)
+
+      Initialize a label dictionary from a ``dictionary`` with string labels as keys,
+      and corresponding string definitions as values.
+
+      .. code-block:: python
+
+         labels = arbor.label_dict({'soma':   '(tag 1)',           # region
+                                    'center': '(location 0 0.5)'}) # locset
+
+   .. attribute:: regions
+
+      The region definitons in the dictionary.
+
+   .. attribute:: locsets
+
+      The locset definitons in the dictionary.
 
 The ``arbor.label_dict`` type is used for creating and manipulating label dictionaries,
 which can be initialised with a dictionary that defines (label, expression)

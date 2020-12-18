@@ -654,5 +654,5 @@ the regions or locsets defined in the label dictionary by referring to their lab
 API
 ---
 
-* :ref:`Python <py_labels>`
+* :ref:`Python <pylabels>`
 * *TODO*: C++ documentation.
