@@ -159,7 +159,7 @@ tree.append(8,     mpoint(-14.5,-0.1,  0.0, 0.5), tag=2)
 ysoma_morph3 = arbor.morphology(tree)
 
 fn = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__), "../concepts/example.swc"))
-swc_morph = arbor.load_swc(fn)
+swc_morph = arbor.load_swc_arbor(fn)
 
 regions  = {
             'empty': '(nil)',
@@ -277,6 +277,7 @@ f.write(write_morphology('ysoma_morph1',   ysoma_morph1))
 f.write(write_morphology('ysoma_morph2',   ysoma_morph2))
 f.write(write_morphology('ysoma_morph3',   ysoma_morph3))
 f.write(write_morphology('tutorial_morph', tutorial_morph))
+f.write(write_morphology('swc_morph',      swc_morph))
 
 f.write('\n############# locsets (label_morph)\n\n')
 for label in locsets:
