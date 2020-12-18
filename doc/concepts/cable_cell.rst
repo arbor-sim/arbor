@@ -3,8 +3,8 @@
 Cable cells
 ===========
 
-An Arbor *cable cell* is a full description of a cell with morphology and cell
-dynamics like ion species and their properties, ion
+An Arbor *cable cell* is a full :ref:`description <modelcelldesc>` of a cell
+with morphology and cell dynamics like ion species and their properties, ion
 channels, synapses, gap junction sites, stimuli and spike detectors.
 
 Cable cells are constructed from three components:
@@ -41,7 +41,7 @@ Once constructed, the cable cell can be queried for specific information about t
 .. _cablecell-decoration:
 
 Decoration
-----------------
+----------
 
 The distribution and placement of dynamics on a cable cell is called the *decor* of a cell.
 A decor is composed of individual *decorations*, which associate a property or dynamic process
@@ -114,8 +114,8 @@ will override any cell-local or global definition on that region.
 
 .. _cablecell-properties:
 
-Cable properties
-~~~~~~~~~~~~~~~~
+1. Cable properties
+~~~~~~~~~~~~~~~~~~~
 
 There are four cable properties that must be defined everywhere on a cell:
 
@@ -149,8 +149,8 @@ specialised on specific regions.
 
 .. _cablecell-density-mechs:
 
-Density mechanisms
-~~~~~~~~~~~~~~~~~~~~~~
+3. Density mechanisms
+~~~~~~~~~~~~~~~~~~~~~
 
 Regions can have density mechanisms defined over their extents.
 Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
@@ -203,8 +203,8 @@ Take for example a mechanism passive leaky dynamics:
 
 .. _cablecell-ions:
 
-Ion species
-~~~~~~~~~~~
+4. Ion species
+~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
 calcium, potassium and sodium ion species.
@@ -303,32 +303,32 @@ and are assigned to specific locations.
 
 .. _cablecell-synapses:
 
-Connection sites
-~~~~~~~~~~~~~~~~
+1. Connection sites
+~~~~~~~~~~~~~~~~~~~
 
 Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
 .. _cablecell-gj-sites:
 
-Gap junction sites
-~~~~~~~~~~~~~~~~~~
+2. Gap junction sites
+~~~~~~~~~~~~~~~~~~~~~
 
 See :ref:`modelgapjunctions`.
 
 .. _cablecell-threshold-detectors:
 
-Threshold detectors (spike detectors).
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3. Threshold detectors (spike detectors).
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _cablecell-stimuli:
 
-Stimuli
-~~~~~~~~
+4. Stimuli
+~~~~~~~~~~
 
 .. _cablecell-probes:
 
-Probes
-~~~~~~
+5. Probes
+~~~~~~~~~
 
 .. _cablecell-cv-policies:
 

@@ -1,15 +1,16 @@
 .. _morph:
 
-Cell morphology
-===============
+Cable cell morphology
+=====================
 
 A cell's *morphology* describes both its geometry and branching structure.
 Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius,
-joined together to form a tree.
+joined together to form a tree. Only :ref:`cable cells <modelcablecell>` support custom
+morphologies in Arbor.
 
-The building blocks of morphology tree are points and segments.
-A *point* is a three-dimensional location and a radius, used to mark the centre and radius
-of the cable.
+The building blocks of a morphology tree are points and segments.
+A *point* is a three-dimensional location and a radius, used to mark the cross-sectional
+centre and radius of the cable.
 
 .. csv-table::
    :widths: 10, 10, 30
@@ -140,11 +141,11 @@ uses 4 segments to model the soma.
 
 .. _morph-morphology:
 
-Geometry
---------
+Morphology
+----------
 
-A *morphology* describes the geometry of a cell as unbranched cables with variable radius
-, and their associated tree structure.
+A *morphology* describes the geometry of a cell as unbranched cables with variable radius,
+and their associated tree structure.
 Every segment tree can be used to generate a unique morphology, which derives and enumerates
 *branches* from the segments.
 The branches of a morphology are unbranched cables, composed of one or more segments, where:
@@ -183,7 +184,7 @@ which is illustrated along with its branches below.
   :align: center
 
   The code used to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
-  documentation :ref:`below <morph-label-seg-code>`.
+  :ref:`python documentation <morph-label-seg-code>`.
 
 The first branch contains the soma and the first two segments of the dendritic tree.
 There are four more branches in the dendritic tree, and one representing the two
@@ -271,6 +272,18 @@ multiple soma and dendrite segments in branch 0.
     ion channels, by using referring to all parts of the cell with
     :ref:`tag 1 <labels-expressions>`.
 
+.. Note::
+   This representation of the cell morphology in terms of *branches* is what
+   Arbor uses to create a :ref:`cable cell <cablecell>`, and it is how Arbor
+   view's the cell's geometry and refers to it internally.
+   :ref:`Regions <labels-region>` and :ref:`locsets <labels-locset>` formed
+   on the cell, are eventually represented either as
+   :ref:`subsets of branches <labels-cables>` of the morphology, or exact
+   :ref:`locations on branches <labels-locations>` of the morphology.
+
+   Once the morphology is formed from a segment tree, the specific segments
+   are no longer of much use for the user and it is better to think of the
+   cell structure as Arbor does: in terms of branches.
 
 Examples
 ~~~~~~~~~~~~~~~
@@ -492,8 +505,11 @@ SWC
 
 Arbor supports reading morphologies described using the
 `SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format.
-SWC files may contain comments, which are stored as metadata. A blank line anywhere in the file is
-interpreted as end of data. The description of the morphology is encoded as a list of samples with an id,
+
+SWC files may contain comments, which are stored as metadata. And a blank line anywhere in the file is
+interpreted as end of data.
+
+The description of the morphology is encoded as a list of samples with an id,
 an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
 then generates a morphology according to one of three possible interpretations.
 
@@ -525,13 +541,10 @@ of a different tag can connect to its distal end, proximal end or anywhere in th
 morphology with a single segment soma; a single segment axon connected to one end of the soma; and a single segment
 dendrite connected to the other end of the soma, the following swc file can be used:
 
-.. code:: Python
 
-   # id, tag,   x, y, z,   r, parent
-      1,   1,   0, 0, 0,   1, -1
-      2,   1,   2, 0, 0,   1,  1
-      3,   2,  -3, 0, 0, 0.7,  1
-      4,   3,  20, 0, 0,   1,  2
+.. literalinclude :: example.swc
+   :language: python
+   :linenos:
 
 Samples 1 and 2 will form the soma; samples 1 and 3 will form the axon, connected to the soma at the proximal end;
 samples 2 and 4 will form the dendrite, connected to the soma at the distal end. The morphology will look something
@@ -577,6 +590,45 @@ interpreter:
   electrically as a zero-resistance wire)
 * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
   tag.
+
+NeuroML
+~~~~~~~
+
+Arbor offers limited support for models described in `NeuroML version 2 <https://neuroml.org/neuromlv2>`_.
+This is not built by default (see :ref:`NeuroML support <install-neuroml>` for instructions on how
+to build arbor with NeuroML).
+
+Once support is enabled, Arbor is able to parse and check the validity of morphologies described in NeuroML files,
+and present the encoded data to the user.  This is more than a simple a `segment tree`.
+
+NeuroML can encode in the same file multiple top-level morphologies, as well as cells:
+
+.. code:: XML
+
+   <neuroml xmlns="http://www.neuroml.org/schema/neuroml2">
+   <morphology id="m1">
+       <segment id="seg-0">
+           <proximal x="1" y="1" z="1" diameter="1"/>
+           <distal x="2" y="2" z="2" diameter="2"/>
+       </segment>
+       <segmentGroup id="group-0">
+           <member segment="1"/>
+       </segmentGroup>
+   </morphology>
+   <morphology id="m2"/>
+   <cell id="c1" morphology="m1"/>
+   <cell id="c2">
+       <morphology id="m3"/>
+   </cell>
+   </neuroml>
+
+The above NeuroML description defines 2 top-level morphologies ``m1`` and ``m2`` (empty); a cell ``c1`` that uses
+morphology ``m1``; and a cell ``c2`` that uses an internally defined (empty) morphology ``m3``.
+
+Arbor can query the cells and morphologies using their ids and return all the associated morphological data for each.
+The morphological data includes the actual morphology as well as the named segments and groups of the morphology.
+For example, the above ``m1`` morphology has one named segment ``seg-0`` and one named group ``group-0`` that are
+both represented using Arbor's :ref:`region expressions <labels-expressions>`.
 
 API
 ---
