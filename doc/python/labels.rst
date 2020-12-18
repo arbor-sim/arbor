@@ -115,7 +115,7 @@ two labels refer to one another:
 .. note::
     In the example above there will be no error when the label dictionary is defined.
     Instead, there will be an error later when the label dictionary is applied to
-    a morphology, and the cyclic dependency is detected when concretising the locations
+    a morphology, and the cyclic dependency is detected when thingifying the locations
     in the locsets and the cable segments in the regions.
 
 
