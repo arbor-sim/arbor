@@ -20,7 +20,8 @@ string(REPLACE ";" "," theme_path "${theme_path}")
 
 add_custom_target(html
     COMMAND
-        ${SPHINX_EXECUTABLE}
+        ${PYTHON_EXECUTABLE}
+        -m sphinx
         -b html
         -d ${doctree_dir}
         -D "html_theme_path=${theme_path}"
