@@ -385,6 +385,17 @@ Region expressions
 
       Branches 0 and 3, selected using ``(branch 0)`` and ``(branch 3)`` respectively.
 
+.. label:: (segment segment_id:integer)
+
+    Refer to a segment by its id. Note that segment ids depend on the construction
+    order of the morphology. Arbor's morphology loaders are stable in this regard.
+
+    .. figure:: ../gen-images/segment_label.svg
+      :width: 600
+      :align: center
+
+      Segments 0 and 3, selected using ``(segment 0)`` and ``(segment 3)`` respectively.
+
 .. _labels-cable-def:
 
 .. label:: (cable branch_id:integer prox:real dist:real)

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys, os
+import subprocess as sp
+from tempfile import TemporaryDirectory
 
 html_static_path = ['static']
 
@@ -22,7 +24,7 @@ html_logo = 'images/arbor-lines-proto-colour.svg'
 html_favicon = 'images/arbor-lines-proto-colour-notext.svg'
 
 project = 'Arbor'
-copyright = '2017, ETHZ & FZ Julich'
+copyright = '2017-2020, ETHZ & FZ Julich'
 author = 'ETHZ & FZ Julich'
 todo_include_todos = True
 
@@ -42,13 +44,19 @@ print("--- generating images ---")
 this_path=os.path.split(os.path.abspath(__file__))[0]
 script_path=this_path+'/scripts'
 sys.path.append(script_path)
-import make_images
 
-# Output path for generated images
-img_path=this_path+'/gen-images'
-if not os.path.exists(img_path):
-    os.mkdir(img_path)
+# Dump inputs.py into tmpdir
+with TemporaryDirectory() as tmp:
+    sp.run([sys.executable, this_path + '/scripts/gen-labels.py', tmp])
+    sys.path.append(tmp)
 
-make_images.generate(img_path)
+    import make_images
+
+    # Output path for generated images
+    img_path=this_path+'/gen-images'
+    if not os.path.exists(img_path):
+        os.mkdir(img_path)
+
+    make_images.generate(img_path)
 
 print("-------------------------")

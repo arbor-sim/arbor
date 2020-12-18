@@ -525,13 +525,10 @@ of a different tag can connect to its distal end, proximal end or anywhere in th
 morphology with a single segment soma; a single segment axon connected to one end of the soma; and a single segment
 dendrite connected to the other end of the soma, the following swc file can be used:
 
-.. code:: Python
 
-   # id, tag,   x, y, z,   r, parent
-      1,   1,   0, 0, 0,   1, -1
-      2,   1,   2, 0, 0,   1,  1
-      3,   2,  -3, 0, 0, 0.7,  1
-      4,   3,  20, 0, 0,   1,  2
+.. literalinclude :: example.swc
+   :language: python
+   :linenos:
 
 Samples 1 and 2 will form the soma; samples 1 and 3 will form the axon, connected to the soma at the proximal end;
 samples 2 and 4 will form the dendrite, connected to the soma at the distal end. The morphology will look something
