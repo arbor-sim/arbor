@@ -17,10 +17,10 @@ building phase to provide information about cells in the model, such as:
   * **Gap junction connections** on a cell.
   * **Probes** on a cell.
 
-Recipes are structured in such a way that during the lifetime of the simulation properties
-of each cell in the network can be retrieved rapidly by their global identifier (`gid`).
+Recipes are structured to provide a consistent interface for describing each cell in the
+network using their global identifier (`gid`).
 To be able to quickly look-up properties related to the connections going in and out of a
-cell (think of synapses, gap junctions, but also probes and input events) is a particularly
+cell (think of synapses, gap junctions, but also probes and spike inputs) is a particularly
 important ingredient that helps make Arbor both easily distributable over many nodes and fast.
 
 To better illustrate the content of a recipe, let's consider the following network of
