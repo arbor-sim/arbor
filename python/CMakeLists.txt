@@ -79,5 +79,6 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))" OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT OUTPUT_STRIP_TRAILING_WHITESPACE)
 # Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
 set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
+message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
 
 install(DIRECTORY ${python_mod_path} DESTINATION ${ARB_PYTHON_LIB_PATH})

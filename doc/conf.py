@@ -45,18 +45,13 @@ this_path=os.path.split(os.path.abspath(__file__))[0]
 script_path=this_path+'/scripts'
 sys.path.append(script_path)
 
+# Output path for generated images
 # Dump inputs.py into tmpdir
-with TemporaryDirectory() as tmp:
-    sp.run([sys.executable, this_path + '/scripts/gen-labels.py', tmp])
-    sys.path.append(tmp)
+img_path=this_path+'/gen-images'
+if not os.path.exists(img_path):
+    os.mkdir(img_path)
 
-    import make_images
-
-    # Output path for generated images
-    img_path=this_path+'/gen-images'
-    if not os.path.exists(img_path):
-        os.mkdir(img_path)
-
-    make_images.generate(img_path)
+import make_images
+make_images.generate(img_path)
 
 print("-------------------------")
