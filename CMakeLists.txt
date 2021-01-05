@@ -231,11 +231,27 @@ endif()
 
 # Python bindings
 #----------------------------------------------------------
+
+# The minimum version of Python supported by Arbor.
+set(arb_py_version 3.6.0)
 if(ARB_WITH_PYTHON)
+    find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
+    set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+    message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+else()
+    # If not building the Python module, the interpreter is still required
+    # to build some targets, e.g. when building the documentation.
+    find_package(Python3 ${arb_py_version} COMPONENTS Interpreter)
+    if(Python3_FOUND)
+        set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+        message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+    endif()
 endif()
+
 
 # Threading model
 #-----------------
