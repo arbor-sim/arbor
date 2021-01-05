@@ -3,7 +3,7 @@
 A detailed single cell recipe
 =============================
 
-This example aims to build the same single cell model as
+This example builds the same single cell model as
 :ref:`the previous tutorial <tutorialsinglecellswc>`, except using a :class:`arbor.recipe`
 and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
 
