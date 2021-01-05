@@ -1,10 +1,10 @@
-.. _tutorialsimplecellrecipe:
+.. _tutorialsinglecellrecipe:
 
 A simple single cell recipe
 ===========================
 
 This example builds the same single cell model as
-:ref:`the previous tutorial <tutorialsimplecell>`, except using a :class:`arbor.recipe`
+:ref:`the previous tutorial <tutorialsinglecell>`, except using a :class:`arbor.recipe`
 and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
 
 .. Note::
@@ -19,7 +19,7 @@ The cell
 --------
 
 We can immediately paste the cell description code from the
-:ref:`previous example <tutorialsinglecell-cell` where it is explained in detail.
+:ref:`previous example <tutorialsinglecell-cell>` where it is explained in detail.
 
 .. code-block:: python
 
@@ -43,19 +43,109 @@ We can immediately paste the cell description code from the
     # (4) Create cell and the single cell model based on it
     cell = arbor.cable_cell(tree, labels, decor)
 
+The recipe
+----------
+
+The :class:`arbor.single_cell_model` of the previous example created a :class:`arbor.recipe` under
+the hood, and abstracted away the details so we were unaware of its existence.
+
+Creating an analogous recipe starts with creating a class that inherits from :class:`arbor.recipe` and overrides and implements some of :class:`arbor.recipe` methods. Not all methods have to be overridden, but some will always have to be, such as :meth:`arbor.recipe.num_cells`. It returns `0` by default and models without cells are quite boring!
+
+.. code-block:: python
+
+    # (5) Define a recipe for a single cell and set of probes upon it.
+    # This constitutes the corresponding generic recipe version of
+    # `single_cell_model.py`.
+
+    class single_recipe (arbor.recipe):
+        def __init__(self, cell, probes):
+            # (5.1) The base C++ class constructor must be called first, to ensure that
+            # all memory in the C++ class is initialized correctly.
+            arbor.recipe.__init__(self)
+            self.the_cell = cell
+            self.the_probes = probes
+            self.the_props = arbor.neuron_cable_propetries()
+            self.the_cat = arbor.default_catalogue()
+            self.the_props.register(self.the_cat)
+
+        def num_cells(self):
+            # (5.2) Override the num_cells method
+            return 1
+
+        def num_sources(self, gid):
+            # (5.3) Override the num_sources method
+            return 1
+
+        def cell_kind(self, gid):
+            # (5.4) Override the cell_kind method
+            return arbor.cell_kind.cable
+
+        def cell_description(self, gid):
+            # (5.5) Override the cell_description method
+            return self.the_cell
+
+        def probes(self, gid):
+            # (5.6) Override the probes method
+            return self.the_probes
+
+        def global_properties(self, kind):
+            # (5.7) Override the global_properties method
+            return self.the_props
+
+Step **(5)** describes the recipe that will reflect our single cell model.
+
+Step **(5.1)** defines the class constructor. It can take any shape you need, but it is important to call base class' constructor. In general it's a good idea to make objects that'll be return by methods that need to be overridden members of the class. With this constructor, we could easily change the cell and probes of the model, should be want to do so. Here we initialize the cell properties to match Neuron's defaults using Arbor's built-in :meth:`arbor.neuron_cable_properties` and extend with Arbor's own :meth:`arbor.default_catalogue`.
+
+Step **(5.2)** defines that this model has one cell.
+
+Step **(5.3)** defines that this model has one source.
+
+Step **(5.4)** returns the :class:`arbor.cell_kind.cable`. Make sure you don't instantiate the model with a non cable cell! Since we have just one cell, we can ignore :gen:`gid`.
+
+Step **(5.5)** returns the cell description passed in on class initialisation. If you would have multiple cells of different kinds, make sure the right types are returned when :meth:`arbor.recipe.cell_kind` and :meth:`arbor.recipe.cell_description` are called with the same :gen:`gid`.
+
+Step **(5.6)** returns the probes passed in at class initialisation.
+
+Step **(5.7)** returns the properties that will be applied to all cells of that kind in the model.
+
+More methods can be overridden if your model requires that, see :class:`arbor.recipe` for options.
+
+Step **(6)** instantiates the recipe with the cable cell described earlier, and a single voltage probe located at "center".
+
 The context and domain decomposition
 ------------------------------------
 
-When you create and use your own recipe, you'll also need to define a context :ref:`in this tutorial<tutorialsinglecellrecipe>:`.
+:class:`arbor.single_cell_model` does not only take care of the recipe, it also takes care of defining how the simulation will be ran. When you create and use your own recipe, you'll need to do this manually, in the form of defining a hardware context and a domain decomposition. Fortunately, the default constructors of :class:`arbor.context` and :class:`arbor.partition_load_balance` are sufficient for this model, and is what :class:`arbor.single_cell_model` does under the hood! We'll leave the details of this subject for another tutorial.
+
+.. code-block:: python
+
+    # (7) Create a default execution context and a default domain decomposition.
+
+    context = arbor.context()
+    domains = arbor.partition_load_balance(recipe, context)
+
+Step **(7)** sets up a default context and domains.
 
 The simulation
 --------------
+
+.. code-block:: python
+
+    # (8) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
+    # The probe is located on cell 0, and is the 0th probe on that cell, thus has probe_id (0, 0).
+
+    sim = arbor.simulation(recipe, domains, context)
+    sim.record(arbor.spike_recording.all)
+    handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
+    sim.run(tfinal=30)
+
+Step **(8)** instantiates the simulation and sets up the probe add in step 6. In the :class:`arbor.single_cell_model` version of the model the probe was set to record at a frequency of 10 kHz, and a simulation duration of 30 ms. Note that spike recording must be switched on. For extraction of the probe traces later on, we store a handle.
 
 The results
 ----------------------------------------------------
 
 Apart from creating :class:`arbor.recipe` ourselves, we have changed nothing
-about this simulation compared to :ref:`the previous tutorial <tutorialsimplecell>`.
+about this simulation compared to :ref:`the previous tutorial <tutorialsinglecell>`.
 If we create the same analysis of the results we therefore expect the same results.
 
 .. code-block:: python
@@ -80,14 +170,14 @@ If we create the same analysis of the results we therefore expect the same resul
     df.to_csv('single_cell_recipe_result.csv', float_format='%g')
 
 Step **(9)** plots the measured potentials during the runtime of the simulation.
-Retrieving the sampled quantities is a little different, these have to be accessed through the simulation object: meth:`arbor.simulation.spikes` and meth:`arbor.simulation.handle`.
+Retrieving the sampled quantities is a little different, these have to be accessed through the simulation object: :meth:`arbor.simulation.spikes` and :meth:`arbor.simulation.samples`.
 
 We should be seeing something like this:
 
-.. figure:: single_cell_model_result.svg
+.. figure:: single_cell_recipe_result.svg
     :width: 400
     :align: center
 
     Plot of the potential over time for the voltage probe added in step (6).
 
-You can find the source code for this example in full at ``python/examples/single_cell_model.py``.
+You can find the source code for this example in full at ``python/examples/single_cell_recipe.py``.

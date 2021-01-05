@@ -1,4 +1,4 @@
-.. _tutorialsinglecellrecipe:
+.. _tutorialsinglecellswcrecipe:
 
 A detailed single cell recipe
 =============================
@@ -113,7 +113,7 @@ We will add one more thing to this section. We will create the voltage probe at 
 In the previous example, this probe was registered directly using the :class:`arbor.single_cell_model` object.
 Now it has to be explicitly created and registered in the recipe.
 
-.. _tutorialsinglecellrecipe-probe:
+.. _tutorialsinglecellswcrecipe-probe:
 .. code-block:: python
 
    probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
@@ -345,7 +345,7 @@ to plot the voltage registered by the probe on the "custom_terminal" locset.
 The lines handling probe sampling warrant a second look. First, we declared ``probe_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
 This variable serves as a global identifier of a probe on a cell, namely the first declared probe on the
-cell with gid = 0, which is id of the :ref:`only probe <tutorialsinglecellrecipe-probe>` we created on
+cell with gid = 0, which is id of the :ref:`only probe <tutorialsinglecellswcrecipe-probe>` we created on
 the only cell in the model.
 
 Next, we instructed the simulation to sample ``probe_id`` at a frequency of 50KHz. That function returns a

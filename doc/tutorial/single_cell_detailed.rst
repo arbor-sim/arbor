@@ -3,7 +3,7 @@
 A detailed single cell model
 ============================
 
-We can expand on the :ref:`single segment cell example <tutorialsimplecell>` to create a more
+We can expand on the :ref:`single segment cell example <tutorialsinglecell>` to create a more
 complex single cell model, and go through the process in more detail.
 
 .. Note::

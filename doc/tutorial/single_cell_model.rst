@@ -1,4 +1,4 @@
-.. _tutorialsimplecell:
+.. _tutorialsinglecell:
 
 A simple single cell model
 ==========================
@@ -58,8 +58,48 @@ Our *single-segment HH cell* has a simple morphology and dynamics, constructed a
     # (4) Create cell
     cell = arbor.cable_cell(tree, labels, decor)
 
-The recipe
-----------
+Step **(1)** constructs a :class:`arbor.segment_tree` (see also :ref:`segment tree<morph-segment_tree>`).
+The segment tree is the representation used to construct the morphology of a cell. A segment is
+a tapered cone with a tag; the tag can be used to classify the type of the segment (for example
+soma, dendrite etc). To create a segment tree representing our single-cylinder cell, we need to add
+one segment to our ``tree`` object. We use the :meth:`arbor.segment_tree.append` method, which takes
+4 arguments: the parent segment which does not exist for the first segment, so we use :class:`arbor.mnpos`;
+the proximal :class:`arbor.mpoint` (location and radius) of the segment; the distal :class:`arbor.mpoint`
+of the segment; and the tag.
+
+Step **(2)** creates a dictionary of labels (:class:`arbor.label_dict<arbor.label_dict>`). Labels give
+names to :ref:`regions<labels-region>` and :ref:`location<labels-locset>` described using a DSL
+based on s-expressions. Labels from the dictionary can then be used to facilitate adding synapses,
+dynamics, stimuli and probes to the cell. We add two labels:
+
+* ``soma`` defines a *region* with ``(tag  1)``. Note that this corresponds to the
+  ``tag`` parameter that was used to define the single segment in step (1).
+* ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
+  of branch ``0``, which corresponds to the center of the soma on the morphology defined in step (1).
+
+Step **(3)** constructs a :class:`arbor.decor` that describes the distribution and placement
+of dynamics and properties on a cell.  The cell's default properties can be modified, and we can use
+:meth:`arbor.decor.paint` and :meth:`arbor.decor.place` to further customise it in the
+following way:
+
+* :meth:`arbor.decor.set_property` is used to set some default properties on the entire cell.
+  In the above example we set the initial membrane potential to -40 mV.
+* :meth:`arbor.decor.paint` is used to set properties or add dynamics to a region of the cell.
+  We call this method 'painting' to convey that we are working on sections of a cell, as opposed to
+  precise locations: for example, we might want to *paint* an ion channel on all dendrites, and then
+  *place* a synapse at the tip of the axon. In the above example we paint
+  HH dynamics on the region we previously named ``"soma"`` in our label dictionary.
+* :meth:`arbor.decor.place` is used to add objects on a precise
+  :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,
+  spike detectors, current stimuli, and probes. In the above example we place a current stimulus
+  :class:`arbor.iclamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
+  on the location we previously labelled ``"center"``. We also place a :class:`arbor.spike_detector`
+  with a threshold of -10 mV on the same location.
+
+Step **(4)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labelled regions and locations.
+
+The single cell model
+---------------------
 
 Once the cell description has been built, the next step is to build and run the simulation.
 Arbor provides an interface for constructing single cell models with the
@@ -68,34 +108,24 @@ an interface for recording outputs and running the simulation.
 
 .. code-block:: python
 
-    class single_recipe (arbor.recipe):
-        def __init__(self, cell, probes):
-            # The base C++ class constructor must be called first, to ensure that
-            # all memory in the C++ class is initialized correctly.
-            arbor.recipe.__init__(self)
-            self.the_cell = cell
-            self.the_probes = probes
-            self.the_props = arbor.neuron_cable_propetries()
-            self.the_cat = arbor.default_catalogue()
-            self.the_props.register(self.the_cat)
+    # (5) Make single cell model.
+    m = arbor.single_cell_model(cell)
 
-        def num_cells(self):
-            return 1
+    # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
+    m.probe('voltage', '"center"', frequency=10000)
 
-        def num_sources(self, gid):
-            return 1
+    # (7) Run simulation for 30 ms of simulated activity.
+    m.run(tfinal=30)
 
-        def cell_kind(self, gid):
-            return arbor.cell_kind.cable
+Step **(5)** instantiates the :class:`arbor.single_cell_model`
+with our single-compartment cell.
 
-        def cell_description(self, gid):
-            return self.the_cell
+Step **(6)** adds a :meth:`arbor.single_cell_model.probe`
+used to record variables from the model. Three pieces of information are
+provided: the type of quantity we want probed (voltage), the location where we want to
+probe ('"center"'), and the frequency at which we want to sample (10kHz).
 
-        def probes(self, gid):
-            return self.the_probes
-
-        def global_properties(self, kind):
-            return self.the_props
+Step **(7)** runs the actual simulation for a duration of 30 ms.
 
 The results
 -----------

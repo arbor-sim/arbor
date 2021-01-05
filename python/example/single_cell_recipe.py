@@ -29,7 +29,7 @@ cell = arbor.cable_cell(tree, labels, decor)
 
 class single_recipe (arbor.recipe):
     def __init__(self, cell, probes):
-        # The base C++ class constructor must be called first, to ensure that
+        # (5.1) The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
         self.the_cell = cell
