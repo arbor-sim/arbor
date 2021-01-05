@@ -19,9 +19,9 @@ building phase to provide information about cells in the model, such as:
 
 Recipes are structured to provide a consistent interface for describing each cell in the
 network using their global identifier (`gid`).
-To be able to quickly look-up properties related to the connections going in and out of a
-cell (think of synapses, gap junctions, but also probes and spike inputs) is a particularly
-important ingredient that helps make Arbor both easily distributable over many nodes and fast.
+This allows the simulator to be able to quickly look-up properties related to the connections
+going in and out of a cell (think of synapses, gap junctions, but also probes and spike inputs);
+which helps make Arbor fast and easily distributable over many nodes.
 
 To better illustrate the content of a recipe, let's consider the following network of
 three cells:
