@@ -12,7 +12,7 @@ class single_recipe (arbor.recipe):
         arbor.recipe.__init__(self)
         self.the_cell = cell
         self.the_probes = probes
-        self.the_props = arbor.neuron_cable_propetries()
+        self.the_props = arbor.neuron_cable_properties()
         self.the_cat = arbor.default_catalogue()
         self.the_props.register(self.the_cat)
 
