@@ -62,7 +62,7 @@ class ring_recipe (arbor.recipe):
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
         self.ncells = n
-        self.props = arbor.neuron_cable_propetries()
+        self.props = arbor.neuron_cable_properties()
         self.cat = arbor.default_catalogue()
         self.props.register(self.cat)
 

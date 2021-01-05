@@ -482,7 +482,7 @@ void register_cells(pybind11::module& m) {
             "Register the pointer to the mechanism catalogue in the global properties")
         .def("__str__", [](const arb::cable_cell_global_properties& p){return to_string(p);});
 
-    m.def("neuron_cable_propetries", []() {
+    m.def("neuron_cable_properties", []() {
         arb::cable_cell_global_properties prop;
         prop.default_parameters = arb::neuron_parameter_defaults;
         return prop;
