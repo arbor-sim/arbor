@@ -30,7 +30,7 @@ class cc2_recipe(A.recipe):
         st.append(i, (1, -4, 0, 3), 1)
         self.the_morphology = A.morphology(st)
         self.the_cat = A.default_catalogue()
-        self.the_props = A.neuron_cable_propetries()
+        self.the_props = A.neuron_cable_properties()
         self.the_props.register(self.the_cat)
 
     def num_cells(self):
