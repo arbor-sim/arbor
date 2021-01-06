@@ -174,7 +174,7 @@ Retrieving the sampled quantities is a little different, these have to be access
 
 We should be seeing something like this:
 
-.. figure:: single_cell_result.svg
+.. figure:: single_cell_model_result.svg
     :width: 400
     :align: center
 
