@@ -19,17 +19,15 @@ decor.set_property(Vm=-40)
 decor.paint('"soma"', 'hh')
 decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
 decor.place('"center"', arbor.spike_detector(-10))
-
-# (4) Create cell and the single cell model based on it
 cell = arbor.cable_cell(tree, labels, decor)
 
-# (5) Define a recipe for a single cell and set of probes upon it.
+# (4) Define a recipe for a single cell and set of probes upon it.
 # This constitutes the corresponding generic recipe version of
 # `single_cell_model.py`.
 
 class single_recipe (arbor.recipe):
     def __init__(self, cell, probes):
-        # (5.1) The base C++ class constructor must be called first, to ensure that
+        # (4.1) The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
         self.the_cell = cell
@@ -56,16 +54,16 @@ class single_recipe (arbor.recipe):
     def global_properties(self, kind):
         return self.the_props
 
-# (6) Instantiate recipe with a voltage probe located on "center".
+# (5) Instantiate recipe with a voltage probe located on "center".
 
 recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"center"')])
 
-# (7) Create a default execution context and a default domain decomposition.
+# (6) Create a default execution context and a default domain decomposition.
 
 context = arbor.context()
 domains = arbor.partition_load_balance(recipe, context)
 
-# (8) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
+# (7) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
 # The probe is located on cell 0, and is the 0th probe on that cell, thus has probe_id (0, 0).
 
 sim = arbor.simulation(recipe, domains, context)
@@ -73,7 +71,7 @@ sim.record(arbor.spike_recording.all)
 handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
 sim.run(tfinal=30)
 
-# (9) Collect results.
+# (8) Collect results.
 
 spikes = sim.spikes()
 data, meta = sim.samples(handle)[0]
