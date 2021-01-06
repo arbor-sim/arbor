@@ -1,5 +1,6 @@
 #include <sstream>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -31,20 +32,6 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& dictionary):
-        provider(m, dictionary)
-    {}
-
-    cable_cell_impl(): cable_cell_impl({},{}) {}
-
-    cable_cell_impl(const cable_cell_impl& other):
-        provider(other.provider),
-        region_map(other.region_map),
-        location_map(other.location_map)
-    {}
-
-    cable_cell_impl(cable_cell_impl&& other) = default;
-
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
 
@@ -56,6 +43,27 @@ struct cable_cell_impl {
 
     // Track number of point assignments by type for lid/target numbers.
     dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
+
+    // The decorations on the cell.
+    decor decorations;
+
+    // The lid ranges of placements.
+    std::vector<lid_range> placed_lid_ranges;
+
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
+        provider(m, labels),
+        decorations(decorations)
+    {
+        init(decorations);
+    }
+
+    cable_cell_impl(): cable_cell_impl({},{},{}) {}
+
+    cable_cell_impl(const cable_cell_impl& other) = default;
+
+    cable_cell_impl(cable_cell_impl&& other) = default;
+
+    void init(const decor&);
 
     template <typename T>
     mlocation_map<T>& get_location_map(const T&) {
@@ -122,6 +130,13 @@ struct cable_cell_impl {
     mextent concrete_region(const region& r) const {
         return thingify(r, provider);
     }
+
+    lid_range placed_lid_range(unsigned id) const {
+        if (id>=placed_lid_ranges.size()) {
+            throw cable_cell_error(util::pprintf("invalid placement identifier {}", id));
+        }
+        return placed_lid_ranges[id];
+    }
 };
 
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
@@ -129,14 +144,28 @@ impl_ptr make_impl(cable_cell_impl* c) {
     return impl_ptr(c, [](cable_cell_impl* p){delete p;});
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary):
-    impl_(make_impl(new cable_cell_impl(m, dictionary)))
+void cable_cell_impl::init(const decor& d) {
+    for (const auto& p: d.paintings()) {
+        auto& where = p.first;
+        std::visit([this, &where] (auto&& what) {this->paint(where, what);},
+                   p.second);
+    }
+    for (const auto& p: d.placements()) {
+        auto& where = p.first;
+        auto lids =
+            std::visit([this, &where] (auto&& what) {return this->place(where, what);},
+                       p.second);
+        placed_lid_ranges.push_back(lids);
+    }
+}
+
+cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary, const decor& decorations):
+    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
 {}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 
 cable_cell::cable_cell(const cable_cell& other):
-    default_parameters(other.default_parameters),
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
 
@@ -168,24 +197,16 @@ const cable_cell_region_map& cable_cell::region_assignments() const {
     return impl_->region_map;
 }
 
-// Forward paint methods to implementation class.
-
-#define FWD_PAINT(proptype)\
-void cable_cell::paint(const region& target, proptype prop) {\
-    impl_->paint(target, prop);\
+const decor& cable_cell::decorations() const {
+    return impl_->decorations;
 }
-ARB_PP_FOREACH(FWD_PAINT,\
-    mechanism_desc, init_membrane_potential, axial_resistivity,\
-    temperature_K, membrane_capacitance, init_int_concentration,
-    init_ext_concentration, init_reversal_potential)
 
-// Forward place methods to implementation class.
-
-#define FWD_PLACE(proptype)\
-lid_range cable_cell::place(const locset& target, proptype prop) {\
-    return impl_->place(target, prop);\
+const cable_cell_parameter_set& cable_cell::default_parameters() const {
+    return impl_->decorations.defaults();
 }
-ARB_PP_FOREACH(FWD_PLACE,\
-    mechanism_desc, i_clamp, gap_junction_site, threshold_detector)
+
+lid_range cable_cell::placed_lid_range(unsigned id) const {
+    return impl_->placed_lid_range(id);
+}
 
 } // namespace arb

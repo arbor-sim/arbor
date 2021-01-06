@@ -3,58 +3,78 @@
 Cable cells
 ===========
 
-An Arbor *cable cell* is a full description of a cell with morphology and cell
-dynamics, where cell dynamics include ion species and their properties, ion
+An Arbor *cable cell* is a full :ref:`description <modelcelldesc>` of a cell
+with morphology and cell dynamics like ion species and their properties, ion
 channels, synapses, gap junction sites, stimuli and spike detectors.
-Arbor cable cells are constructed from a morphology and a label dictionary,
-and provide a rich interface for specifying the cell's dynamics.
 
-.. note::
-    The cable cell has more than *one* dedicated page, it has a few more! This page describes how to build a full
-    description of a cable cell, based on three components that are broken out into their own pages:
+Cable cells are constructed from three components:
 
-    * :ref:`Morphology descriptions <morph-morphology>`
-    * :ref:`Label dictionaries <labels-dictionary>`
-    * :ref:`Mechanisms <mechanisms>`
+* :ref:`Morphology <morph>`: a decription of the geometry and branching structure of the cell shape.
+* :ref:`Label dictionary <labels>`: a set of rules that refer to regions and locations on the cell.
+* :ref:`Decor <cablecell-decoration>`: a description of the dynamics on the cell, placed according to the named rules in the dictionary.
 
-    It can be helpful to consult those pages for some of the sections of this page.
+When a cable cell is constructued the following steps are performed using the inputs:
+
+1. Concrete regions and locsets are generated for the morphology for each labeled region and locset in the dictionary
+2. The default values for parameters specified in the decor, such as ion species concentration, are instantiated.
+3. Dynamics (mechanisms, parameters, synapses, etc.) are instaniated on the regions and locsets as specified by the decor.
+
+Once constructed, the cable cell can be queried for specific information about the cell, but it can't be modified (it is *immutable*).
+
+.. Note::
+
+    The inputs used to construct the cell (morphology, label definitions and decor) are orthogonal,
+    which allows a broad range of individual cells to be constructed from a handful of simple rules
+    encoded in the inputs.
+    For example, take a model with the following:
+
+    * three cell types: pyramidal, purkinje and granule.
+    * two different morphologies for each cell type (a total of 6 morphologies).
+    * all cells have the same basic region definitions: soma, axon, dendrites.
+    * all cells of the same type (e.g. Purkinje) have the same dynamics defined on their respective regions.
+
+    The basic building blocks required to construct all of the cells for the model would be:
+    * 6 morphologies (2 for each of purkinje, granule and pyramidal).
+    * 3 decors (1 for each of purkinje, granule and pyramidal).
+    * 1 label dictionary that defines the region types.
 
 .. _cablecell-decoration:
 
 Decoration
-----------------
+----------
 
-A cable cell is *decorated* by specifying the distribution and placement of dynamics
-on the cell. The decorations, coupled with a description of a cell morphology, are all
-that is required to build a standalone single-cell model, or a cell that is part of
-a larger network.
-
-Decorations use :ref:`region <labels-region>` and :ref:`locset <labels-locset>`
-descriptions, with their respective use for this purpose reflected in the two broad
-classes of dynamics in Arbor:
+The distribution and placement of dynamics on a cable cell is called the *decor* of a cell.
+A decor is composed of individual *decorations*, which associate a property or dynamic process
+with a :ref:`region <labels-region>` or :ref:`locset <labels-locset>`.
+The choice of region or locset is reflected in the two broad classes of dynamics on cable cells:
 
 * *Painted dynamics* are applied to regions of a cell, and are associated with
   an area of the membrane or volume of the cable.
 
-  * :ref:`Cable properties <cable-properties>`.
-  * :ref:`Density mechanisms <cable-density-mechs>`.
-  * :ref:`Ion species <cable-ions>`.
+  * :ref:`Cable properties <cablecell-properties>`.
+  * :ref:`Density mechanisms <cablecell-density-mechs>`.
+  * :ref:`Ion species <cablecell-ions>`.
 
 * *Placed dynamics* are applied to locations on the cell, and are associated
   with entities that can be counted.
 
-  * :ref:`Synapses <cable-synapses>`.
-  * :ref:`Gap junction sites <cable-gj-sites>`.
-  * :ref:`Threshold detectors <cable-threshold-detectors>` (spike detectors).
-  * :ref:`Stimuli <cable-stimuli>`.
-  * :ref:`Probes <cable-probes>`.
+  * :ref:`Synapses <cablecell-synapses>`.
+  * :ref:`Gap junction sites <cablecell-gj-sites>`.
+  * :ref:`Threshold detectors <cablecell-threshold-detectors>` (spike detectors).
+  * :ref:`Stimuli <cablecell-stimuli>`.
+  * :ref:`Probes <cablecell-probes>`.
+
+Decorations are described by a **decor** object in Arbor.
+Provides facility for
+* setting properties defined over the whole cell
+* descriptions of dynamics applied to regions and locsets
 
 .. _cablecell-paint:
 
 Painted dynamics
 ''''''''''''''''
 
-Painted dynamics are applied to a subset of the surface and/or volume of cells.
+Painted dynamics are applied to a subset of the surface or volume of cells.
 They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
@@ -66,12 +86,12 @@ us to, for example, define a global default value for calcium concentration,
 then provide a different values on specific cell regions.
 
 Some dynamics, such as membrane capacitance and the initial concentration of ion species
-must be defined for all compartments. Others need only be applied where they are
+must be defined for all CVs. Others need only be applied where they are
 present, for example ion channels.
 The types of dynamics, and where they can be defined, are
-:ref:`tabulated <cable-painted-resolution>` below.
+:ref:`tabulated <cablecell-painted-resolution>` below.
 
-.. _cable-painted-resolution:
+.. _cablecell-painted-resolution:
 
 .. csv-table:: Painted property resolution options.
    :widths: 20, 10, 10, 10
@@ -92,57 +112,45 @@ will override any cell-local or global definition on that region.
     deterministically choose the correct definition, and an error will be
     raised during model instantiation.
 
-.. _cable-properties:
+.. _cablecell-properties:
 
-Cable properties
-~~~~~~~~~~~~~~~~
+1. Cable properties
+~~~~~~~~~~~~~~~~~~~
 
-There are four cable properties that are defined everywhere on all cables:
+There are four cable properties that must be defined everywhere on a cell:
 
 * *Vm*: Initial membrane voltage [mV].
 * *cm*: Membrane capacitance [F/m²].
 * *rL*: Axial resistivity of cable [Ω·cm].
 * *tempK*: Temperature [Kelvin].
 
-In Python, the :py:class:`cable_cell` interface provides the :py:func:`cable_cell.set_properties` method
-for setting cell-wide defaults for properties, and the
-:py:meth:`cable_cell.paint` interface for overriding properties on specific regions.
+Each of the cable properties can be defined as a cell-wide default, that is then
+specialised on specific regions.
 
-.. code-block:: Python
+.. note::
 
-    import arbor
+    In Python, the :py:class:`decor` interface provides the :py:func:`decor.set_properties` method
+    for setting cell-wide defaults for properties, and the
+    :py:meth:`decor.paint` interface for overriding properties on specific regions.
 
-    # Load a morphology from file and define basic regions.
-    tree = arbor.load_swc('granule.swc')
-    morph = arbor.morphology(tree, spherical_root=True)
-    labels = arbor.label_dict({'soma': '(tag 1)', 'axon': '(tag 2)', 'dend': '(tag 3)'})
+    .. code-block:: Python
 
-    # Create a cable cell.
-    cell = arbor.cable_cell(morph, labels)
+        import arbor
 
-    # Set cell-wide properties that will be applied by default to # the entire cell.
-    cell.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
+        # Create an empty decor.
+        decor = arbor.decor
 
-    # Override specific values on the soma and axon
-    cell.paint('"soma"', Vm=-50, cm=0.01, rL=35)
-    cell.paint('"axon"', Vm=-60, rL=40)
+        # Set cell-wide properties that will be applied by default to the entire cell.
+        decor.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
 
-.. _cable-discretisation:
+        # Override specific values on regions named "soma" and "axon".
+        decor.paint('"soma"', Vm=-50, cm=0.01, rL=35)
+        decor.paint('"axon"', Vm=-60, rL=40)
 
-Discretisation
-~~~~~~~~~~~~~~~~
+.. _cablecell-density-mechs:
 
-For the purpose of simulation, cable cells are decomposed into discrete
-subcomponents called *control volumes* (CVs), following the finite volume method
-terminology. Each control volume comprises a connected subset of the
-morphology. Each fork point in the morphology will be the responsibility of
-a single CV, and as a special case a zero-volume CV can be used to represent
-a single fork point in isolation.
-
-.. _cable-density-mechs:
-
-Density mechanisms
-~~~~~~~~~~~~~~~~~~~~~~
+3. Density mechanisms
+~~~~~~~~~~~~~~~~~~~~~
 
 Regions can have density mechanisms defined over their extents.
 Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
@@ -187,14 +195,16 @@ Take for example a mechanism passive leaky dynamics:
     # Create an instance of the same mechanism, that also sets conductance (range)
     m4 = arbor.mechanism('passive/el=-45', {'g': 0.1})
 
-    cell.paint('"soma"', m1)
-    cell.paint('"soma"', m2) # error: can't place the same mechanism on overlapping regions
-    cell.paint('"soma"', m3) # error: technically a different mechanism?
+    decor = arbor.decor()
+    decor.paint('"soma"', m1)
+    decor.paint('"soma"', m2) # error: can't place the same mechanism on overlapping regions
+    decor.paint('"soma"', m3) # error: can't have overlap between two instances of a mechanism
+                              #        with different values for a global parameter.
 
-.. _cable-ions:
+.. _cablecell-ions:
 
-Ion species
-~~~~~~~~~~~
+4. Ion species
+~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
 calcium, potassium and sodium ion species.
@@ -252,14 +262,16 @@ ion at the cell level using the Python interface:
 
 .. code-block:: Python
 
-    cell = arbor.cable_cell(morph, labels)
+    decor = arbor.decor()
 
-    # method 1: create the mechanism explicitly.
+    # Method 1: create the mechanism explicitly.
     ca = arbor.mechanism('nernst/x=ca')
-    cell.set_ion(ion='ca', method=ca)
+    decor.set_ion(ion='ca', method=ca)
 
-    # method 2: set directly using a string description
-    cell.set_ion(ion='ca', method='nernst/x=ca')
+    # Method 2: set directly using a string description.
+    decor.set_ion(ion='ca', method='nernst/x=ca')
+
+    cell = arbor.cable_cell(morph, labels, decor)
 
 
 The NMODL code for the
@@ -272,14 +284,14 @@ using the *paint* interface:
 
 .. code-block:: Python
 
-    # cell is an arbor.cable_cell
+    # decor is an arbor.decor
 
     # It is possible to define all of the initial condition values
     # for a ion species.
-    cell.paint('(tag 1)', arbor.ion('ca', int_con=2e-4, ext_con=2.5, rev_pot=114))
+    decor.paint('(tag 1)', arbor.ion('ca', int_con=2e-4, ext_con=2.5, rev_pot=114))
 
     # Alternatively, one can selectively overwrite the global defaults.
-    cell.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
+    decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
 
 .. _cablecell-place:
 
@@ -289,38 +301,112 @@ Placed dynamics
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
 and are assigned to specific locations.
 
-.. _cable-synapses:
+.. _cablecell-synapses:
 
-Connection sites
-~~~~~~~~~~~~~~~~
+1. Connection sites
+~~~~~~~~~~~~~~~~~~~
 
 Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
-.. _cable-gj-sites:
+.. _cablecell-gj-sites:
 
-Gap junction sites
-~~~~~~~~~~~~~~~~~~
+2. Gap junction sites
+~~~~~~~~~~~~~~~~~~~~~
 
 See :ref:`modelgapjunctions`.
 
-.. _cable-threshold-detectors:
+.. _cablecell-threshold-detectors:
 
-Threshold detectors (spike detectors).
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3. Threshold detectors (spike detectors).
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _cable-stimuli:
+.. _cablecell-stimuli:
 
-Stimuli
-~~~~~~~~
+4. Stimuli
+~~~~~~~~~~
 
-.. _cable-probes:
+.. _cablecell-probes:
 
-Probes
-~~~~~~
+5. Probes
+~~~~~~~~~
+
+.. _cablecell-cv-policies:
+
+Discretisation and CV policies
+------------------------------
+
+For the purpose of simulation, cable cells are decomposed into discrete
+subcomponents called *control volumes* (CVs). The CVs are
+uniquely determined by a set of *B* ``mlocation`` boundary points.
+For each non-terminal point *h* in *B*, there is a CV comprising the points
+{*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
+geometrical partial order of locations on the morphology. A fork point is
+owned by a CV if and only if all of its corresponding representative locations
+are in the CV.
+
+The set of boundary points used by the simulator is determined by a *CV policy*.
+
+Specific CV policies are created by functions that take a ``region`` parameter
+that restrict the domain of applicability of that policy; this facility is useful
+for specifying differing discretisations on different parts of a cell morphology.
+When a CV policy is constrained in this manner, the boundary of the domain will
+always constitute part of the CV boundary point set.
+
+``cv_policy_single``
+''''''''''''''''''''
+
+Use one CV for each connected component of a region. When applied to the whole cell
+will generate single CV for the whole cell.
+
+``cv_policy_explicit``
+''''''''''''''''''''''
+
+Define CV boundaries according to a user-supplied set of locations, optionally
+restricted to a region.
+
+``cv_policy_every_segment``
+'''''''''''''''''''''''''''
+
+Use every segment in the morphology to define CVs, optionally
+restricted to a region. Each fork point in the domain is
+represented by a trivial CV.
+
+``cv_policy_fixed_per_branch``
+''''''''''''''''''''''''''''''
+
+For each branch in each connected component of the region (or the whole cell,
+if no region is specified), evenly distribute boundary points along the branch so
+as to produce an exact number of CVs per branch.
+
+By default, CVs will terminate at branch ends. An optional flag
+``cv_policy_flag::interior_forks`` can be passed to specify that fork points
+will be included in non-trivial, branched CVs and CVs covering terminal points
+in the morphology will be half-sized.
+
+
+``cv_policy_max_extent``
+''''''''''''''''''''''''
+
+As for ``cv_policy_fixed_per_branch``, save that the number of CVs on any
+given branch will be chosen to be the smallest number that ensures no
+CV will have an extent on the branch longer than a user-provided CV length.
+
+.. _cablecell-cv-composition:
+
+Composition of CV policies
+'''''''''''''''''''''''''''''
+
+CV policies can be combined with ``+`` and ``|`` operators. For two policies
+*A* and *B*, *A* + *B* is a policy which gives boundary points from both *A*
+and *B*, while *A* | *B* is a policy which gives all the boundary points from
+*B* together with those from *A* which do not within the domain of *B*.
+The domain of *A* + *B* and *A* | *B* is the union of the domains of *A* and
+*B*.
+
 
 API
 ---
 
-* :ref:`Python <pycable_cell>`
-* :ref:`C++ <cppcable_cell>`
+* :ref:`Python <pycablecell>`
+* :ref:`C++ <cppcablecell>`
 

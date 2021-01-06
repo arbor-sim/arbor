@@ -180,12 +180,13 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     std::vector<arb::spike> spikes;
 
     for (unsigned i = 0; i < 8; i++) {
-        arb::cable_cell cell(morpho, dict);
-        cell.default_parameters.discretization = arb::cv_policy_every_segment();
-        cell.place("\"mid\"", arb::threshold_detector{10});
-        cell.place("\"mid\"", arb::i_clamp(0.01+i*dt, duration, 0.5));
-        cell.place("\"mid\"", arb::mechanism_desc("hh"));
+        arb::decor decor;
+        decor.set_default(arb::cv_policy_every_segment());
+        decor.place("\"mid\"", arb::threshold_detector{10});
+        decor.place("\"mid\"", arb::i_clamp(0.01+i*dt, duration, 0.5));
+        decor.place("\"mid\"", arb::mechanism_desc("hh"));
 
+        arb::cable_cell cell(morpho, dict, decor);
         cable1d_recipe rec({cell});
 
         auto decomp = arb::partition_load_balance(rec, context);

@@ -25,10 +25,17 @@ class cc_recipe(A.recipe):
         st = A.segment_tree()
         st.append(A.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
 
-        self.cell = A.cable_cell(st, A.label_dict())
-        self.cell.place('(location 0 0.08)', "expsyn")
-        self.cell.place('(location 0 0.09)', "exp2syn")
-        self.cell.paint('(all)', "hh")
+        dec = A.decor()
+
+        dec.place('(location 0 0.08)', "expsyn")
+        dec.place('(location 0 0.09)', "exp2syn")
+        dec.paint('(all)', "hh")
+
+        self.cell = A.cable_cell(st, A.label_dict(), dec)
+
+        self.cat = A.default_catalogue()
+        self.props = A.neuron_cable_properties()
+        self.props.register(self.cat)
 
     def num_cells(self):
         return 1
@@ -42,7 +49,10 @@ class cc_recipe(A.recipe):
     def cell_kind(self, gid):
         return A.cell_kind.cable
 
-    def get_probes(self, gid):
+    def global_properties(self, kind):
+        return self.props
+
+    def probes(self, gid):
         # Use keyword arguments to check that the wrappers have actually declared keyword arguments correctly.
         # Place single-location probes at (location 0 0.01*j) where j is the index of the probe address in
         # the returned list.

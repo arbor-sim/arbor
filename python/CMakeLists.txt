@@ -30,7 +30,6 @@ set(pyarb_source
     domain_decomposition.cpp
     error.cpp
     event_generator.cpp
-    flat_cell_builder.cpp
     identifiers.cpp
     mechanism.cpp
     morphology.cpp
@@ -82,11 +81,12 @@ set_target_properties(pyarb PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${python_mod_pa
 file(COPY "${PROJECT_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
 file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 
-# Determine the installation path, according to the Python version.
-# The installation for Python 3.8 would be:
-#  ${ARB_PYTHON_PREFIX}/python3.8/site-packages
-# By default ARB_PYTHON_PREFIX is set to CMAKE_INSTALL_PREFIX, and can be optionally
-# used to install the Python module as a user module, or in a virtualenv.
-find_package(PythonInterp REQUIRED)
-set(arb_pyexecdir "${ARB_PYTHON_PREFIX}/lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
-install(DIRECTORY ${python_mod_path} DESTINATION ${arb_pyexecdir})
+# Set the installation path
+
+# Ask Python where it keeps its system (platform) packages.
+execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))" OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+# Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
+set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
+message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
+
+install(DIRECTORY ${python_mod_path} DESTINATION ${ARB_PYTHON_LIB_PATH})

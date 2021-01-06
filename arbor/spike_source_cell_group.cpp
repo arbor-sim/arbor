@@ -15,6 +15,12 @@ namespace arb {
 spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
     gids_(gids)
 {
+    for (auto gid: gids_) {
+        if (!rec.get_probes(gid).empty()) {
+            throw bad_cell_probe(cell_kind::spike_source, gid);
+        }
+    }
+
     time_sequences_.reserve(gids_.size());
     for (auto gid: gids_) {
         try {

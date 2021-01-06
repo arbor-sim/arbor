@@ -85,12 +85,21 @@ tmp = [
 ysoma_morph3 = representation.make_morph(tmp)
 
 tmp = [
-    [[Segment((0.0, 0.0, 1.0), (2.0, 0.0,  1.0), 1)], [Segment((-3.0, 0.0, 0.7), (0.0, 0.0, 1.0), 2)], [Segment((2.0, 0.0, 1.0), (20.0, 0.0, 1.0), 3)]],
-]
+    [[Segment((0.0, 0.0, 2.0), (4.0, 0.0, 2.0), 1), Segment((4.0, 0.0, 0.8), (8.0, 0.0, 0.8), 3), Segment((8.0, 0.0, 0.8), (12.0, -0.5, 0.8), 3)]],
+    [[Segment((12.0, -0.5, 0.8), (20.0, 4.0, 0.4), 3), Segment((20.0, 4.0, 0.4), (26.0, 6.0, 0.2), 3)]],
+    [[Segment((12.0, -0.5, 0.5), (19.0, -3.0, 0.5), 3)]],
+    [[Segment((19.0, -3.0, 0.5), (24.0, -7.0, 0.2), 4)]],
+    [[Segment((19.0, -3.0, 0.5), (23.0, -1.0, 0.2), 4), Segment((23.0, -1.0, 0.2), (36.0, -2.0, 0.2), 4)]],
+    [[Segment((0.0, 0.0, 2.0), (-7.0, 0.0, 0.4), 2), Segment((-7.0, 0.0, 0.4), (-10.0, 0.0, 0.4), 2)]],]
+tutorial_morph = representation.make_morph(tmp)
+
+tmp = [
+    [[Segment((0.0, 0.0, 1.0), (2.0, 0.0, 1.0), 1), Segment((2.0, 0.0, 1.0), (20.0, 0.0, 1.0), 3)]],
+    [[Segment((0.0, 0.0, 1.0), (-3.0, 0.0, 0.7), 2)]],]
 swc_morph = representation.make_morph(tmp)
 
 
-############# locsets
+############# locsets (label_morph)
 
 ls_root  = {'type': 'locset', 'value': [(0, 0.0)]}
 ls_term  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
@@ -106,7 +115,7 @@ ls_proxint_in  = {'type': 'locset', 'value': [(1, 0.8), (2, 0.3)]}
 ls_loctest  = {'type': 'locset', 'value': [(1, 1.0), (2, 0.0), (5, 0.0)]}
 ls_restrict  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0)]}
 
-############# regions
+############# regions (label_morph)
 
 reg_empty = {'type': 'region', 'value': []}
 reg_all = {'type': 'region', 'value': [(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 1.0)]}
@@ -124,6 +133,8 @@ reg_radge5 = {'type': 'region', 'value': [(0, 0.0, 1.0), (1, 0.0, 0.444038964494
 reg_rad36 = {'type': 'region', 'value': [(1, 0.29602597632994393, 0.796025976329944), (2, 0.0, 1.0), (3, 0.0, 0.6666666666666667), (4, 0.0, 0.39052429175127), (5, 0.6124999999999999, 1.0)]}
 reg_branch0 = {'type': 'region', 'value': [(0, 0.0, 1.0)]}
 reg_branch3 = {'type': 'region', 'value': [(3, 0.0, 1.0)]}
+reg_segment0 = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168)]}
+reg_segment3 = {'type': 'region', 'value': [(1, 0.0, 0.5920519526598877)]}
 reg_cable_1_01 = {'type': 'region', 'value': [(1, 0.0, 1.0)]}
 reg_cable_1_31 = {'type': 'region', 'value': [(1, 0.3, 1.0)]}
 reg_cable_1_37 = {'type': 'region', 'value': [(1, 0.3, 0.7)]}
@@ -135,3 +146,20 @@ reg_lhs = {'type': 'region', 'value': [(0, 0.5, 1.0), (1, 0.0, 0.5)]}
 reg_rhs = {'type': 'region', 'value': [(1, 0.0, 1.0)]}
 reg_and = {'type': 'region', 'value': [(1, 0.0, 0.5)]}
 reg_or = {'type': 'region', 'value': [(0, 0.5, 1.0), (1, 0.0, 1.0)]}
+
+############# locsets (tutorial_morph)
+
+tut_ls_root  = {'type': 'locset', 'value': [(0, 0.0)]}
+tut_ls_terminal  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
+tut_ls_custom_terminal  = {'type': 'locset', 'value': [(3, 1.0), (4, 1.0)]}
+tut_ls_axon_terminal  = {'type': 'locset', 'value': [(5, 1.0)]}
+
+############# regions (tutorial_morph)
+
+tut_reg_all = {'type': 'region', 'value': [(0, 0.0, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 1.0)]}
+tut_reg_soma = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168)]}
+tut_reg_axon = {'type': 'region', 'value': [(5, 0.0, 1.0)]}
+tut_reg_dend = {'type': 'region', 'value': [(0, 0.3324708796524168, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0)]}
+tut_reg_last = {'type': 'region', 'value': [(3, 0.0, 1.0), (4, 0.0, 1.0)]}
+tut_reg_rad_gt = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (5, 0.0, 0.21875)]}
+tut_reg_custom = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 0.21875)]}

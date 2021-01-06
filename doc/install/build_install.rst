@@ -415,36 +415,30 @@ CMake ``ARB_WITH_PYTHON`` option:
 By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
 A specific version of Python can be set when configuring with CMake using the
-``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
+``Python3_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
 system with the executable in ``/usr/bin/python3.8``:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
+    cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=/usr/bin/python3.8
 
-By default the Python module will be installed in the standard ``CMAKE_INSTALL_PREFIX``
-location. To install the module in a different location, for example as a
-user module or in a virtual environment, set ``ARB_PYTHON_PREFIX``.
-For example, the CMake configuration for targetting Python 3.8 and install as a
+By default the Python module will be installed in the directory returned by
+``${Python3_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))"``.
+This returns the directory where the supplied or found ``Python3_EXECUTABLE`` looks for system packages.
+`See Python's sysconfig documentation <https://docs.python.org/3/library/sysconfig.html#installation-paths>`_.
+If CMake is run in a `venv` or Conda environment, this should pick up on the appropriate package directory.
+To install the module in a different location, set ``ARB_PYTHON_LIB_PATH`` to a custom path.
+For example, the CMake configuration for targeting Python 3.8 and install as a
 user site package might look like the following:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON                   \
-             -DARB_PYTHON_PREFIX=${HOME}/.local     \
-             -DPYTHON_EXECUTABLE=/user/bin/python3.8
+    cmake .. -DARB_WITH_PYTHON=ON                                              \
+             -DARB_PYTHON_LIB_PATH=${HOME}/.local/lib/python3.8/site-packages/ \
+             -DPython3_EXECUTABLE=/usr/bin/python3.8
 
 On the target LINUX system, the Arbor package was installed in
 ``/home/$USER/.local/lib/python3.8/site-packages``.
-
-.. Note::
-    By default CMake sets ``CMAKE_INSTALL_PREFIX`` to ``/usr/local`` on Linux and OS X.
-    The compiled libraries are installed in ``/usr/local/lib``, headers are installed in
-    ``/usr/local/include``, and the Python module will be installed in a path like
-    ``/usr/local/lib/python3.8/site-packages``.
-    Because ``/usr/local`` is a system path, the installation phase needs to be run as root,
-    i.e. ``sudo make install``, even if ``ARB_PYTHON_PREFIX`` is set to a user path
-    that does not require root to install.
 
 The Arbor Python wrapper has optional support for the mpi4py, though
 it is not required to use Arbor with Python and MPI.

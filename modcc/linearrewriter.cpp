@@ -43,9 +43,14 @@ void LinearRewriter::visit(LinearExpression* e) {
     for (const auto& state : state_vars) {
         // To factorize w.r.t state, differentiate the lhs and rhs
         auto ident = make_expression<IdentifierExpression>(loc, state);
+        auto lhs_pdiff = symbolic_pdiff(e->lhs(), state);
+        auto rhs_pdiff = symbolic_pdiff(e->rhs(), state);
+        if (!lhs_pdiff || !rhs_pdiff) {
+            error({"expression in LINEAR system is not linear", e->location()});
+            return;
+        }
         auto coeff = constant_simplify(make_expression<SubBinaryExpression>(loc,
-                symbolic_pdiff(e->lhs(), state),
-                symbolic_pdiff(e->rhs(), state)));
+                lhs_pdiff->clone(), rhs_pdiff->clone()));
 
         if (expr_value(coeff) != 0) {
             auto local_coeff = make_unique_local_assign(scope, coeff, "l_");

@@ -448,7 +448,7 @@ TEST(cv_geom, multicell) {
     using namespace common_morphology;
     using index_type = cv_geometry::index_type;
 
-    cable_cell cell = cable_cell{m_reg_b6};
+    cable_cell cell = cable_cell(m_reg_b6);
 
     cv_geometry geom = cv_geometry_from_ends(cell, ls::on_branches(0.5));
     unsigned n_cv = geom.size();

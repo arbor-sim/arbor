@@ -1,4 +1,4 @@
-.. _contribcodingstyle
+.. _contribcodingstyle:
 
 Coding Guidelines
 =================
