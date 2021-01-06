@@ -432,16 +432,16 @@ CMake ``ARB_WITH_PYTHON`` option:
 By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
 A specific version of Python can be set when configuring with CMake using the
-``Python3_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
+``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
 system with the executable in ``/usr/bin/python3.8``:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=/usr/bin/python3.8
+    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
 By default the Python module will be installed in the directory returned by
-``${Python3_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))"``.
-This returns the directory where the supplied or found ``Python3_EXECUTABLE`` looks for system packages.
+``${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))"``.
+This returns the directory where the supplied or found ``PYTHON_EXECUTABLE`` looks for system packages.
 `See Python's sysconfig documentation <https://docs.python.org/3/library/sysconfig.html#installation-paths>`_.
 If CMake is run in a `venv` or Conda environment, this should pick up on the appropriate package directory.
 To install the module in a different location, set ``ARB_PYTHON_LIB_PATH`` to a custom path.
@@ -452,7 +452,7 @@ user site package might look like the following:
 
     cmake .. -DARB_WITH_PYTHON=ON                                              \
              -DARB_PYTHON_LIB_PATH=${HOME}/.local/lib/python3.8/site-packages/ \
-             -DPython3_EXECUTABLE=/usr/bin/python3.8
+             -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
 On the target LINUX system, the Arbor package was installed in
 ``/home/$USER/.local/lib/python3.8/site-packages``.

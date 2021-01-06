@@ -246,12 +246,15 @@ endif()
 
 # The minimum version of Python supported by Arbor.
 set(arb_py_version 3.6.0)
+
+if(DEFINED PYTHON_EXECUTABLE)
+    set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
+endif()
+
 if(ARB_WITH_PYTHON)
     cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
 
     find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
-    set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
-    message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.
@@ -260,10 +263,11 @@ else()
     # If not building the Python module, the interpreter is still required
     # to build some targets, e.g. when building the documentation.
     find_package(Python3 ${arb_py_version} COMPONENTS Interpreter)
-    if(Python3_FOUND)
-        set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
-        message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
-    endif()
+endif()
+
+if(${Python3_FOUND})
+    set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+    message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 endif()
 
 

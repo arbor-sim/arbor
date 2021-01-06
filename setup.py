@@ -106,7 +106,7 @@ class cmake_build(build_ext):
         opt = cl_opt()
         cmake_args = [
             '-DARB_WITH_PYTHON=on',
-            '-DPython3_EXECUTABLE=' + sys.executable,
+            '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DARB_WITH_MPI={}'.format( 'on' if opt['mpi'] else 'off'),
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(opt['arch']),
