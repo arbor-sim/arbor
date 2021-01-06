@@ -111,7 +111,7 @@ class cmake_build(build_ext):
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(opt['arch']),
             '-DARB_GPU={}'.format(opt['gpu']),
-            '-DARB_USE_BUNDLED_LIBS={}'.format('on' if opt['bundled'] else 'off']),
+            '-DARB_USE_BUNDLED_LIBS={}'.format('on' if opt['bundled'] else 'off'),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
