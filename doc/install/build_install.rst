@@ -141,6 +141,23 @@ install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
+
+External dependencies
+~~~~~~~~~~~~~~~~~~~~~
+
+For the (optional) python bindings Arbor uses `pybind11 <https://github.com/pybind/pybind11>`_.
+JSON parsing is faciliated through `nlohmann json <https://github.com/nlohmann/json>`_.
+
+There are two ways to obtain these libraries. The default way is to use them from the
+system, e.g., installed via `apt install python3-pybind11` and `apt install nlohmann-json3-dev`
+for a Debian based distribution.
+
+The other possiblity is to let Arbor take care via the CMAKE option `ARB_USE_BUNDLED_LIBS`.
+If set, `pybind11 <https://github.com/pybind/pybind11>`_ is retrieved from a Git submodule (see below)
+and `nlohmann json <https://github.com/nlohmann/json>`_ from a copy in the checked out sources.
+
+It is also possible to select only one of the two libraries to be taken from the system or from Arbor.
+
 Getting the code
 ================
 
@@ -152,8 +169,7 @@ the `Github repository <https://github.com/arbor-sim/arbor>`_:
     git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
 
 We recommend using a recursive checkout, because Arbor uses Git submodules for some
-of its library dependencies. The usage of some of these libraries can be controlled by the
-CMAKE option `ARB_USE_BUNDLED_LIBS`.
+of its library dependencies.
 The CMake configuration attempts to detect if a required submodule is available, and
 will print a helpful warning
 or error message if not, but it is up to the user to ensure that all required
