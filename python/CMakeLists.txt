@@ -1,18 +1,23 @@
-include(FindPythonModule) # required for find_python_module
-
-# Set up pybind11 as an external project.
-set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
-check_git_submodule(pybind11 "${pb11_src_dir}")
-
-if(NOT pybind11_avail)
-    message(FATAL_ERROR "The git submodule for pybind11 is not available, required for python support")
-endif()
-
-# Set up pybind11, which is used to generate Python bindings.
-# Pybind11 has good cmake support, so just add the pybind11 directory,
-# instead of using find_package.
 set(PYBIND11_CPP_STANDARD -std=c++17)
-add_subdirectory(pybind11)
+
+if(ARB_USE_BUNDLED_PYBIND11)
+  include(FindPythonModule) # required for find_python_module
+
+  # Set up pybind11 as an external project.
+  set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
+  check_git_submodule(pybind11 "${pb11_src_dir}")
+
+  if(NOT pybind11_avail)
+    message(FATAL_ERROR "The git submodule for pybind11 is not available, required for python support")
+  endif()
+
+  # Set up pybind11, which is used to generate Python bindings.
+  # Pybind11 has good cmake support, so just add the pybind11 directory,
+  # instead of using find_package.
+  add_subdirectory(pybind11)
+else()
+  find_package(pybind11 REQUIRED)
+endif()
 
 set(pyarb_source
     cable_probes.cpp

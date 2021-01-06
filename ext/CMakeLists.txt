@@ -1,7 +1,10 @@
 # Niels Lohmann's json library (single-header version).
 
-add_library(ext-json INTERFACE)
-target_include_directories(ext-json INTERFACE json/single_include)
+if(ARB_USE_BUNDLED_JSON)
+  add_library(ext-json INTERFACE)
+  target_include_directories(ext-json INTERFACE json/single_include)
+  set(json_library_name ext-json PARENT_SCOPE)
+endif()
 
 # tinyopt command line parsing libary (header-only).
 
