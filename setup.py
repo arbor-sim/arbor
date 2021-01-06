@@ -151,7 +151,7 @@ setuptools.setup(
     version=version_,
     python_requires='>=3.6',
 
-    install_requires=[],
+    install_requires=['numpy'],
     setup_requires=[],
     zip_safe=False,
     ext_modules=[cmake_extension('arbor')],
