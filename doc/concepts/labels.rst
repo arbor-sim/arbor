@@ -633,7 +633,7 @@ also be valid expressions in the region DSL; creating a label ``"(tag 1)"`` will
 lead to confusion.
 
 Labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
-Label dictionaries are then used to create a cable-cell along with the :ref:`morphology <co_morphology>`
+Label dictionaries are then used to create a cable-cell along with the :ref:`morphology <morph>`
 and a :ref:`decor <cablecell-decoration>`. The decorations can be painted or placed on
 the regions or locsets defined in the label dictionary by referring to their labels.
 
