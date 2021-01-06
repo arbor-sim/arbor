@@ -16,9 +16,6 @@ if(ARB_USE_BUNDLED_PYBIND11)
   # instead of using find_package.
   add_subdirectory(pybind11)
 else()
-  # force Python 3
-  find_package(PythonInterp 3 REQUIRED)
-  find_package(PythonLibs 3 REQUIRED)
   find_package(pybind11 REQUIRED)
 endif()
 
