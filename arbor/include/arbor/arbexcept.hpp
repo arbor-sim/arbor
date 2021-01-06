@@ -29,6 +29,12 @@ struct arbor_exception: std::runtime_error {
 
 // Recipe errors:
 
+struct bad_cell_probe: arbor_exception {
+    bad_cell_probe(cell_kind kind, cell_gid_type gid);
+    cell_gid_type gid;
+    cell_kind kind;
+};
+
 struct bad_cell_description: arbor_exception {
     bad_cell_description(cell_kind kind, cell_gid_type gid);
     cell_gid_type gid;

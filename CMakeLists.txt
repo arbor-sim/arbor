@@ -64,13 +64,6 @@ option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
 
 option(ARB_WITH_PYTHON "enable Python front end" OFF)
 
-# Path in which to install the Python module.
-# For Python 3.8, the module would ibe installed in
-#       ${ARB_PYTHON_PREFIX}/python3.8/site-packages
-# To install Arbor eqivalently to `pip install --user` on a linux system:
-#       -DARB_PYTHON_PREFIX="${HOME}/.local/lib""
-set(ARB_PYTHON_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE PATH "path for installing Python module for Arbor.")
-
 #----------------------------------------------------------
 # Global CMake configuration
 #----------------------------------------------------------
@@ -250,12 +243,28 @@ endif()
 
 # Python bindings
 #----------------------------------------------------------
+
+# The minimum version of Python supported by Arbor.
+set(arb_py_version 3.6.0)
 if(ARB_WITH_PYTHON)
     cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybindd1" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
+    find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
+    set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+    message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+else()
+    # If not building the Python module, the interpreter is still required
+    # to build some targets, e.g. when building the documentation.
+    find_package(Python3 ${arb_py_version} COMPONENTS Interpreter)
+    if(Python3_FOUND)
+        set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+        message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+    endif()
 endif()
+
 
 # Threading model
 #-----------------

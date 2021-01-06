@@ -23,7 +23,7 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morpho = arbor.load_swc(filename)
+morpho = arbor.load_swc_arbor(filename)
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -34,37 +34,45 @@ defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
         'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
 labels = arbor.label_dict(defs)
 
-# Combine morphology with region and locset definitions to make a cable cell.
-cell = arbor.cable_cell(morpho, labels)
-
-print(cell.locations('"axon_end"'))
+decor = arbor.decor()
 
 # Set initial membrane potential to -55 mV
-cell.set_properties(Vm=-55)
+decor.set_property(Vm=-55)
 # Use Nernst to calculate reversal potential for calcium.
-cell.set_ion('ca', method=mech('nernst/x=ca'))
+decor.set_ion('ca', method=mech('nernst/x=ca'))
+#decor.set_ion('ca', method='nernst/x=ca')
 # hh mechanism on the soma and axon.
-cell.paint('"soma"', 'hh')
-cell.paint('"axon"', 'hh')
+decor.paint('"soma"', 'hh')
+decor.paint('"axon"', 'hh')
 # pas mechanism the dendrites.
-cell.paint('"dend"', 'pas')
+decor.paint('"dend"', 'pas')
 # Increase resistivity on dendrites.
-cell.paint('"dend"', rL=500)
-# Attach stimuli that inject 0.8 nA currents for 1 ms, starting at 3 and 8 ms.
-cell.place('"stim_site"', arbor.iclamp(3, 1, current=2))
-cell.place('"stim_site"', arbor.iclamp(8, 1, current=4))
+decor.paint('"dend"', rL=500)
+# Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
+decor.place('"root"', arbor.iclamp(10, 1, current=5))
+decor.place('"stim_site"', arbor.iclamp(3, 1, current=0.5))
+decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5))
+decor.place('"stim_site"', arbor.iclamp(8, 1, current=4))
 # Detect spikes at the soma with a voltage threshold of -10 mV.
-cell.place('"axon_end"', arbor.spike_detector(-10))
+decor.place('"axon_end"', arbor.spike_detector(-10))
 
-# Have one compartment between each sample point.
-cell.compartments_on_segments()
+# Create the policy used to discretise the cell into CVs.
+# Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
+soma_policy = arbor.cv_policy_single('"soma"')
+dflt_policy = arbor.cv_policy_max_extent(1.0)
+policy = dflt_policy | soma_policy
+decor.discretization(policy)
+
+# Combine morphology with region and locset definitions to make a cable cell.
+cell = arbor.cable_cell(morpho, labels, decor)
+
+print(cell.locations('"axon_end"'))
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
 m.probe('voltage', where='"root"',  frequency=50000)
-m.probe('voltage', where=loc(2,1),  frequency=50000)
 m.probe('voltage', where='"stim_site"',  frequency=50000)
 m.probe('voltage', where='"axon_end"', frequency=50000)
 

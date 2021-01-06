@@ -4,18 +4,24 @@ Recipes
 =======
 
 An Arbor *recipe* is a description of a model. The recipe is queried during the model
-building phase to provide information about cells in the model, such as:
+building phase to provide information about individual cells in the model, such as:
 
   * The **number of cells** in the model.
   * The **kind** of each cell.
   * The **description** of each cell, e.g. with morphology, dynamics, synapses, detectors,
     stimuli etc.
-  * The number of **spike targets**.
-  * The number of **spike sources**.
-  * The number of **gap junction sites**.
+  * The number of **spike targets** on each cell.
+  * The number of **spike sources** on each cell.
+  * The number of **gap junction sites** on each cell.
   * Incoming **network connections** from other cells terminating on a cell.
-  * **Gap junction connections** on a cell.
-  * **Probes** on a cell.
+  * **Gap junction connections** on each cell.
+  * **Probes** on each cell.
+
+Recipes are structured to provide a consistent interface for describing each cell in the
+network using their global identifier (`gid`).
+This allows the simulator to be able to quickly look-up properties related to the connections
+going in and out of a cell (think of synapses, gap junctions, but also probes and spike inputs);
+which helps make Arbor fast and easily distributable over many nodes.
 
 To better illustrate the content of a recipe, let's consider the following network of
 three cells:
@@ -24,10 +30,10 @@ three cells:
      of the soma, a spike detector is attached, it generates a spiking event when the
      voltage goes above 10 mV. In the same spot on the soma, a current clamp is also
      attached, with the intention of triggering some spikes. All of the preceding info:
-     the morphology, dynamics, spike detector and current clamp are what is refered to in
+     the morphology, dynamics, spike detector and current clamp are what is referred to in
      Arbor as the **description** of the cell.
-   | ``Cell 0`` should be modeled as a :ref:`cable cell<modelcablecell>`,
-     (because cable cells allow complex dynamics such as ``hh``). This is refered to as
+   | ``Cell 0`` should be modelled as a :ref:`cable cell<modelcablecell>`,
+     (because cable cells allow complex dynamics such as ``hh``). This is referred to as
      the **kind** of the cell.
    | It's quite expensive to build cable cells, so we don't want to do this too often.
      But when the simulation is first set up, it needs to know how cells interact with
@@ -66,7 +72,7 @@ The recipe is used to distribute the model across machines and is used in the si
 Technical details of the recipe class are presented in the  :ref:`Python <pyrecipe>` and
 :ref:`C++ <cpprecipe>` APIs.
 
-Are recipes always neccessary?
+Are recipes always necessary?
 ------------------------------
 
 Yes. However, we provide a python :class:`single_cell_model <py_single_cell_model>`
