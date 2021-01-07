@@ -8,6 +8,8 @@
 
 namespace arborio {
 
+jsonio_error::jsonio_error(const std::string& msg): arbor_exception(msg) {}
+
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(nlohmann::json& params_json) {
     arb::cable_cell_parameter_set params;
 
@@ -66,12 +68,12 @@ arb::decor load_decor(nlohmann::json& decor_json) {
         for (auto l: locals_json.value()) {
             auto region = find_and_remove_json<std::string>("region", l);
             if (!region) {
-//                throw pyarb_error("Local cell parameters do not include region label (in \"" + fname + "\")");
+                throw jsonio_error("Local cell parameters do not include region label");
             }
             auto reg = region.value();
             auto region_defaults = load_cable_cell_parameter_set(l);
             if (!region_defaults.reversal_potential_method.empty()) {
-//                throw pyarb_error("Cannot implement local reversal potential methods (in \"" + fname + "\")");
+                throw jsonio_error("Cannot implement regional reversal potential methods ");
             }
             if (auto v = region_defaults.membrane_capacitance) {
                 decor.paint(reg, arb::membrane_capacitance{v.value()});
@@ -105,11 +107,11 @@ arb::decor load_decor(nlohmann::json& decor_json) {
         for (auto mech_json: mechs_json.value()) {
             auto region = find_and_remove_json<std::string>("region", mech_json);
             if (!region) {
-//                throw pyarb_error("Mechanisms do not include region label (in \"" + fname + "\")");
+                throw jsonio_error("Mechanism description does not include region label");
             }
             auto name = find_and_remove_json<std::string>("mechanism", mech_json);
             if (!name) {
-//                throw pyarb_error("Mechanisms do not include mechanism name (in \"" + fname + "\")");
+                throw jsonio_error("Mechanism description does not include mechanism name");
             }
             auto mech = arb::mechanism_desc(name.value());
             auto params = find_and_remove_json<std::unordered_map<std::string, double>>("parameters", mech_json);
@@ -199,7 +201,7 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::string fname) {
     std::ifstream fid{fname};
     if (!fid.good()) {
-//        throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+        throw jsonio_error("can't open file '{}'" + fname);
     }
     nlohmann::json defaults_json;
     fid >> defaults_json;
@@ -209,10 +211,16 @@ arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::string fname) {
 arb::decor load_decor(std::string fname) {
         std::ifstream fid{fname};
         if (!fid.good()) {
-//        throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+            throw jsonio_error("can't open file '{}'" + fname);
         }
         nlohmann::json decor_json;
         fid >> decor_json;
+        try {
+            return load_decor(decor_json);
+        }
+        catch (std::exception& e) {
+            throw jsonio_error("Error loading decor from \"" + fname + "\": " + std::string(e.what()));
+        }
         return load_decor(decor_json);
     }
 

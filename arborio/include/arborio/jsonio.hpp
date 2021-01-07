@@ -2,9 +2,14 @@
 
 #include <iomanip>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
 
 namespace arborio {
+
+struct jsonio_error: public arb::arbor_exception {
+    jsonio_error(const std::string& msg);
+};
 
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::string fname);
 arb::decor load_decor(std::string fname);
