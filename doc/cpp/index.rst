@@ -17,8 +17,6 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
 
    recipe
    cell
-   cable_cell
-   morphology
    interconnectivity
    hardware
    domdec
@@ -26,3 +24,4 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    profiler
    neuroml
    cable_cell
+   morphology
