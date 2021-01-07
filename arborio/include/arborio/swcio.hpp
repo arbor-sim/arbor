@@ -7,6 +7,8 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/morph/morphology.hpp>
 
+#include <nlohmann/json.hpp>
+
 namespace arborio {
 
 // SWC exceptions are thrown by `parse_swc`, and correspond

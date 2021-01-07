@@ -2,9 +2,14 @@
 
 if(ARB_USE_BUNDLED_JSON)
   add_library(ext-json INTERFACE)
-  target_include_directories(ext-json INTERFACE json/single_include)
+  target_include_directories(ext-json INTERFACE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/json/single_include>
+      $<INSTALL_INTERFACE:json/single_include>
+  )
   set(json_library_name ext-json PARENT_SCOPE)
 endif()
+
+install(TARGETS ext-json EXPORT arbor-targets)
 
 # tinyopt command line parsing libary (header-only).
 

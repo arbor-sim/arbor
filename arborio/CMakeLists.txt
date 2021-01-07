@@ -10,8 +10,8 @@ target_include_directories(arborio-public-headers INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
-target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps)
+target_link_libraries(arborio PUBLIC ${json_library_name} arbor arborio-public-headers)
+target_link_libraries(arborio PRIVATE ${json_library_name} arbor-config-defs arborio-private-deps)
 
 install(DIRECTORY include/arborio
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
