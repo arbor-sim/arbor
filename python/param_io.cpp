@@ -2,12 +2,14 @@
 #include <pybind11/stl.h>
 
 #include <fstream>
+#include <iomanip>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <sup/json_params.hpp>
 
 #include "error.hpp"
+#include "strprintf.hpp"
 
 namespace pyarb {
     using sup::find_and_remove_json;
@@ -103,30 +105,29 @@ namespace pyarb {
         std::vector<nlohmann::json> mechs, regions;
 
         for (const auto& entry: decor.paintings()) {
-            auto region_expr = entry.first.to_string();
-            reg = &region_map[region_expr]
+            auto region_expr = to_string(entry.first);
             std::visit(
-                    [this](auto&& p) {
+                    [&](auto&& p) {
                         using T = std::decay_t<decltype(p)>;
-                        if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                            reg["Vm"] = p.value;
-                        } else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                            reg["Ra"] = p.value;
-                        } else if constexpr (std::is_same_v<temperature_K, T>) {
-                            reg["celsius"] = p.value  - 273.15;
-                        } else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                            reg["cm"] = p.value;
-                        } else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                            reg[p.ion]["internal-concentration"] = p.value;
-                        } else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                            reg[p.ion]["external-concentration"] = p.value;
-                        } else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                            reg[p.ion]["reversal-potential"] = p.value;
-                        } else if constexpr (std::is_same_v<mechanism_dec, T>) {
+                        if constexpr (std::is_same_v<arb::init_membrane_potential, T>) {
+                            region_map[region_expr]["Vm"] = p.value;
+                        } else if constexpr (std::is_same_v<arb::axial_resistivity, T>) {
+                            region_map[region_expr]["Ra"] = p.value;
+                        } else if constexpr (std::is_same_v<arb::temperature_K, T>) {
+                            region_map[region_expr]["celsius"] = p.value  - 273.15;
+                        } else if constexpr (std::is_same_v<arb::membrane_capacitance, T>) {
+                            region_map[region_expr]["cm"] = p.value;
+                        } else if constexpr (std::is_same_v<arb::init_int_concentration, T>) {
+                            region_map[region_expr][p.ion]["internal-concentration"] = p.value;
+                        } else if constexpr (std::is_same_v<arb::init_ext_concentration, T>) {
+                            region_map[region_expr][p.ion]["external-concentration"] = p.value;
+                        } else if constexpr (std::is_same_v<arb::init_reversal_potential, T>) {
+                            region_map[region_expr][p.ion]["reversal-potential"] = p.value;
+                        } else if constexpr (std::is_same_v<arb::mechanism_desc, T>) {
                             nlohmann::json data;
                             data["region"] = region_expr;
-                            data["mechanism"] = p.value.name();
-                            data["parameters"] = p.value.values();
+                            data["mechanism"] = p.name();
+                            data["parameters"] = p.values();
                             mechs.push_back(data);
                         }
                     },
@@ -134,7 +135,7 @@ namespace pyarb {
         }
         for (auto reg: region_map) {
             reg.second["region"] = reg.first;
-            reg_vec.push_back(reg.second);
+            regions.push_back(reg.second);
         }
 
         json_file["local"] = regions;
@@ -152,7 +153,7 @@ namespace pyarb {
                       throw pyarb_error(util::pprintf("can't open file '{}'", fname));
                   }
                   nlohmann::json defaults_json;
-                  defaults_json << fid;
+                  fid >> defaults_json;
                   auto defaults = load_cable_cell_parameter_set(defaults_json);
                   try {
                       arb::cable_cell_global_properties G;
@@ -173,22 +174,22 @@ namespace pyarb {
                       throw pyarb_error(util::pprintf("can't open file '{}'", fname));
                   }
                   nlohmann::json decor_json;
-                  decor_json << fid;
+                  fid >> decor_json;
                   arb::decor decor;
 
                   // Global
                   auto globals_json = find_and_remove_json<nlohmann::json>("global", decor_json);
                   if (globals_json) {
                       auto defaults = load_cable_cell_parameter_set(globals_json.value());
-                      decor.set_default(defaults.membrane_capacitance);
-                      decor.set_default(defaults.axial_resistivity);
-                      decor.set_default(defaults.temperature_K);
-                      decor.set_default(defaults.init_membrane_potential);
+                      decor.set_default(arb::membrane_capacitance{defaults.membrane_capacitance.value()});
+                      decor.set_default(arb::axial_resistivity{defaults.axial_resistivity.value()});
+                      decor.set_default(arb::temperature_K{defaults.temperature_K.value()});
+                      decor.set_default(arb::init_membrane_potential{defaults.init_membrane_potential.value()});
                       for (auto ion: defaults.ion_data) {
                           decor.set_default(arb::initial_ion_data{ion.first, ion.second});
                       }
                       for (auto ion: defaults.reversal_potential_method) {
-                          decor.set_default(arb::initial_ion_data{ion.first, ion.second});
+                          decor.set_default(arb::ion_reversal_potential_method{ion.first, ion.second});
                       }
                   }
 
@@ -206,14 +207,14 @@ namespace pyarb {
                           }
 
                           auto reg = region.value();
-                          decor.paint(reg, region_defaults.membrane_capacitance);
-                          decor.paint(reg, region_defaults.axial_resistivity);
-                          decor.paint(reg, region_defaults.init_membrane_potential);
-                          decor.paint(reg, region_defaults.temperature_K);
+                          decor.paint(reg, arb::membrane_capacitance{region_defaults.membrane_capacitance.value()});
+                          decor.paint(reg, arb::axial_resistivity{region_defaults.axial_resistivity.value()});
+                          decor.paint(reg, arb::init_membrane_potential{region_defaults.init_membrane_potential.value()});
+                          decor.paint(reg, arb::temperature_K{region_defaults.temperature_K.value()});
                           for (auto ion: region_defaults.ion_data) {
-                              decor.paint(reg, arb::init_int_concentration{ion.first, ion.second.init_int_concentration});
-                              decor.paint(reg, arb::init_ext_concentration{ion.first, ion.second.init_ext_concentration});
-                              decor.paint(reg, arb::init_reversal_potential{ion.first, ion.second.init_reversal_potential});
+                              decor.paint(reg, arb::init_int_concentration{ion.first, ion.second.init_int_concentration.value()});
+                              decor.paint(reg, arb::init_ext_concentration{ion.first, ion.second.init_ext_concentration.value()});
+                              decor.paint(reg, arb::init_reversal_potential{ion.first, ion.second.init_reversal_potential.value()});
                           }
                       }
                   }
