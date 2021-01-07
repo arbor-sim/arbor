@@ -117,9 +117,9 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Python example: single_cell_recipe"
     python$PY $python_path/example/single_cell_recipe.py                                          || error "running python single_cell_recipe example"
     progress "Python example: single_cell_detailed"
-    python$PY $python_path/example/single_cell_detailed.py $python_path/example/morph.swc         || error "running python single_cell_detailed example"
+    python$PY $python_path/example/single_cell_detailed.py $python_path/example/inputs/morph.swc  || error "running python single_cell_detailed example"
     progress "Python example: single_cell_detailed_recipe"
-    python$PY $python_path/example/single_cell_detailed_recipe.py $python_path/example/morph.swc  || error "running python single_cell_detailed_recipe example"
+    python$PY $python_path/example/single_cell_detailed_recipe.py $python_path/example/inputs/morph.swc  || error "running python single_cell_detailed_recipe example"
     progress "Python example: single_cell_swc"
     python$PY $python_path/example/single_cell_swc.py  $base_path/test/unit/swc/pyramidal.swc     || error "running python single_cell_swc example"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
