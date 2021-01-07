@@ -170,11 +170,11 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
                     } else if constexpr (std::is_same_v<arb::membrane_capacitance, T>) {
                         region_map[region_expr]["cm"] = p.value;
                     } else if constexpr (std::is_same_v<arb::init_int_concentration, T>) {
-                        region_map[region_expr][p.ion]["internal-concentration"] = p.value;
+                        region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value;
                     } else if constexpr (std::is_same_v<arb::init_ext_concentration, T>) {
-                        region_map[region_expr][p.ion]["external-concentration"] = p.value;
+                        region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value;
                     } else if constexpr (std::is_same_v<arb::init_reversal_potential, T>) {
-                        region_map[region_expr][p.ion]["reversal-potential"] = p.value;
+                        region_map[region_expr]["ions"][p.ion]["reversal-potential"] = p.value;
                     } else if constexpr (std::is_same_v<arb::mechanism_desc, T>) {
                         nlohmann::json data;
                         data["region"] = region_expr;
