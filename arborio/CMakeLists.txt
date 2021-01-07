@@ -1,5 +1,6 @@
 set(arborio-sources
     swcio.cpp
+    jsonio.cpp
 )
 
 add_library(arborio ${arborio-sources})
