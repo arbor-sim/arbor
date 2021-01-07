@@ -70,7 +70,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             if (!region) {
                 throw jsonio_error("Local cell parameters do not include region label");
             }
-            auto reg = region.value();
+            auto reg = "\"" + region.value() + "\"";
             auto region_defaults = load_cable_cell_parameter_set(l);
             if (!region_defaults.reversal_potential_method.empty()) {
                 throw jsonio_error("Cannot implement regional reversal potential methods ");
@@ -88,7 +88,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
                 decor.paint(reg, arb::temperature_K{v.value()});
             }
             for (auto ion: region_defaults.ion_data) {
-                if (auto v = ion.second.init_reversal_potential) {
+                if (auto v = ion.second.init_int_concentration) {
                     decor.paint(reg, arb::init_int_concentration{ion.first, v.value()});
                 }
                 if (auto v = ion.second.init_ext_concentration) {
@@ -120,7 +120,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
                     mech.set(p.first, p.second);
                 }
             }
-            decor.paint(region.value(), mech);
+            decor.paint("\"" + region.value() + "\"", mech);
         }
     }
     return decor;
@@ -205,7 +205,12 @@ arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::string fname) {
     }
     nlohmann::json defaults_json;
     fid >> defaults_json;
-    return load_cable_cell_parameter_set(defaults_json);
+    try {
+        return load_cable_cell_parameter_set(defaults_json);
+    }
+    catch (std::exception& e) {
+        throw jsonio_error("Error loading cable_cell_parameter_set from \"" + fname + "\": " + std::string(e.what()));
+    }
 }
 
 arb::decor load_decor(std::string fname) {
@@ -224,12 +229,12 @@ arb::decor load_decor(std::string fname) {
         return load_decor(decor_json);
     }
 
-void write_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set, std::string fname) {
+void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set, std::string fname) {
     std::ofstream file(fname);
     file << std::setw(2) << make_cable_cell_parameter_set_json(set);
 };
 
-void write_decor(const arb::decor& decor, std::string fname) {
+void store_decor(const arb::decor& decor, std::string fname) {
     std::ofstream file(fname);
     file << std::setw(2) << make_decor_json(decor);
 }

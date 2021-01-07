@@ -439,6 +439,12 @@ void register_cells(pybind11::module& m) {
         // set cable properties
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
+               arb::cable_cell_parameter_set& set) {
+                   props.default_parameters = set;
+               },
+              "Set global default values for cable and cell properties.")
+        .def("set_property",
+            [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {

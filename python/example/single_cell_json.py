@@ -17,8 +17,8 @@ decor    = arbor.load_decor(decor_file)
 morph    = arbor.load_swc_arbor(swc_file)
 
 # Test round trip of decor and default parameter descriptions
-arbor.write_decor(decor, "cell_out.json")
-arbor.write_default_parameters(defaults, "defaults_out.json")
+arbor.store_decor(decor, "decor_out.json")
+arbor.store_default_parameters(defaults, "defaults_out.json")
 
 # Define the regions and locsets in the model.
 # These need to include the definitions of the region strings in the decor file
@@ -35,25 +35,25 @@ labels = arbor.label_dict(defs)
 # Extend decor with discretization policy
 decor.discretization(arbor.cv_policy_max_extent(0.5))
 
+# Extend decor with spike detector and current clamp.
+decor.place('"root"', arbor.spike_detector(-10))
+decor.place('"mid_soma"', arbor.iclamp(0, 3, current=3.5))
+
 # Combine morphology with region and locset definitions and decoration info to make a cable cell.
 cell = arbor.cable_cell(morph, labels, decor)
-
-# Place current clamp and spike detector.
-cell.place('mid_soma', arbor.iclamp(0, 3, current=3.5))
-cell.place('root', arbor.spike_detector(-10))
 
 # Make single cell model.
 model = arbor.single_cell_model(cell)
 
 # Set the model default parameters
-model.properties.default_parameters = defaults
+model.properties.set_property(defaults)
 
 # Extend the default catalogue
 model.catalogue.extend(arbor.bbp_catalogue(), "")
 
 # Attach voltage probes that sample at 50 kHz.
-model.probe('voltage', where='root',  frequency=50000)
-model.probe('voltage', where='mid_soma', frequency=50000)
+model.probe('voltage', where='"root"',  frequency=50000)
+model.probe('voltage', where='"mid_soma"', frequency=50000)
 
 # Simulate the cell for 20 ms.
 tfinal=20

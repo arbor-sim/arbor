@@ -15,6 +15,7 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr);
 void register_cells(pybind11::module& m);
 void register_config(pybind11::module& m);
 void register_contexts(pybind11::module& m);
+void register_param_loader(pybind11::module& m);
 void register_domain_decomposition(pybind11::module& m);
 void register_event_generators(pybind11::module& m);
 void register_identifiers(pybind11::module& m);
@@ -53,6 +54,7 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_mechanisms(m);
     pyarb::register_morphology(m);
     pyarb::register_profiler(m);
+    pyarb::register_param_loader(m);
     pyarb::register_recipe(m);
     pyarb::register_schedules(m);
     pyarb::register_simulation(m, global_ptr);
