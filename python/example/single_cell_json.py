@@ -17,8 +17,8 @@ decor    = arbor.load_decor(decor_file)
 morph    = arbor.load_swc_arbor(swc_file)
 
 # Test round trip of decor and default parameter descriptions
-arbor.store_decor(decor, "cell_out.json")
-arbor.load_default_parameters(defaults, "defaults_out.json")
+arbor.write_decor(decor, "cell_out.json")
+arbor.write_default_parameters(defaults, "defaults_out.json")
 
 # Define the regions and locsets in the model.
 # These need to include the definitions of the region strings in the decor file
@@ -46,7 +46,7 @@ cell.place('root', arbor.spike_detector(-10))
 model = arbor.single_cell_model(cell)
 
 # Set the model default parameters
-model.properties = defaults
+model.properties.default_parameters = defaults
 
 # Extend the default catalogue
 model.catalogue.extend(arbor.bbp_catalogue(), "")
