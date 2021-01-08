@@ -90,7 +90,7 @@ proper definition for a morphology:
 
 .. note::
 
-  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
+  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. Arbor uses truncated cones to represent branches and segments, Neuron uses an average radius to create cylinders. The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
 
 .. glossary::
 
@@ -211,7 +211,7 @@ Morphology
   morphology
     Morphologies in Arbor are modelled as a set of one dimensional :term:`cables <cable>` of variable radius,
     joined together to form a tree. Only :ref:`cable cells <modelcablecell>` support custom
-    morphologies in Arbor. Morphologies can be create by :ref:`loading a file<morph-formats>` with a cell description,
+    morphologies in Arbor. Morphologies can be created by :ref:`loading a file<morph-formats>` with a cell description,
     or by manually constructing one from a :term:`segment tree`.
 
 A segment tree and a morphology can both describe the exact same cable cell geometry,
