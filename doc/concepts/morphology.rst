@@ -90,7 +90,7 @@ proper definition for a morphology:
 
 .. note::
 
-  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. Arbor uses truncated cones to represent branches and segments, Neuron uses an average radius to create cylinders. The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
+  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. Arbor uses truncated cones to represent branches and segments, Neuron uses a weighted average radius to create cylinders (see "trapezoidal integration" in the `Neuron documentation <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/topology/geometry.html>`_.). The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
 
 .. glossary::
 
