@@ -352,7 +352,7 @@ Discretisation and CV policies
 .. glossary::
 
   CV policy
-    Generating the set of boundary points used by the simulator (discretisation) is controlled by a :term:`CV <control volume>` policy.
+    Generating the set of boundary points used by the simulator (discretisation) is controlled by a :term:`CV <control volume>` policy. The default policy is ``cv_policy_every_segment``.
 
 Specific CV policies are created by functions that take a ``region`` parameter
 that restrict the domain of applicability of that policy; this facility is useful
