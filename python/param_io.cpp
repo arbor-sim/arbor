@@ -6,7 +6,6 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <sup/json_params.hpp>
 
 #include <arborio/jsonio.hpp>
 

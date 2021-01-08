@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -56,9 +57,18 @@ arb::decor load_decor(nlohmann::json& decor_json) {
     // Global
     auto globals_json = find_and_remove_json<nlohmann::json>("global", decor_json);
     if (globals_json) {
-        auto defaults = load_cable_cell_parameter_set(globals_json.value());
-        for (auto def: defaults.serialize()) {
-            decor.set_default(def);
+        arb::cable_cell_parameter_set defaults;
+        try {
+            defaults = load_cable_cell_parameter_set(globals_json.value());
+        } catch (std::exception& e) {
+            throw jsonio_error("Error loading global parameters" + std::string(e.what()));
+        }
+        try {
+            for (auto def: defaults.serialize()) {
+                decor.set_default(def);
+            }
+        } catch (std::exception& e) {
+            throw jsonio_error("Error setting global parameters" + std::string(e.what()));
         }
     }
 
@@ -70,33 +80,50 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             if (!region) {
                 throw jsonio_error("Local cell parameters do not include region label");
             }
-            auto reg = "\"" + region.value() + "\"";
-            auto region_defaults = load_cable_cell_parameter_set(l);
+            std::string reg = region.value();
+
+            // if the region expression does not start with an open parenthesis
+            // it is not an s-expression, it is a label and we must add double quotes.
+            if (reg.at(0) != '(') {
+                reg = "\"" + region.value() + "\"";
+            }
+
+            arb::cable_cell_parameter_set region_defaults;
+            try {
+                region_defaults = load_cable_cell_parameter_set(l);
+            } catch (std::exception& e) {
+                throw jsonio_error("Error loading local parameters: " + std::string(e.what()));
+            }
+
             if (!region_defaults.reversal_potential_method.empty()) {
                 throw jsonio_error("Cannot implement regional reversal potential methods ");
             }
-            if (auto v = region_defaults.membrane_capacitance) {
-                decor.paint(reg, arb::membrane_capacitance{v.value()});
-            }
-            if (auto v = region_defaults.axial_resistivity) {
-                decor.paint(reg, arb::axial_resistivity{v.value()});
-            }
-            if (auto v = region_defaults.init_membrane_potential) {
-                decor.paint(reg, arb::init_membrane_potential{v.value()});
-            }
-            if (auto v = region_defaults.temperature_K) {
-                decor.paint(reg, arb::temperature_K{v.value()});
-            }
-            for (auto ion: region_defaults.ion_data) {
-                if (auto v = ion.second.init_int_concentration) {
-                    decor.paint(reg, arb::init_int_concentration{ion.first, v.value()});
+            try {
+                if (auto v = region_defaults.membrane_capacitance) {
+                    decor.paint(reg, arb::membrane_capacitance{v.value()});
                 }
-                if (auto v = ion.second.init_ext_concentration) {
-                    decor.paint(reg, arb::init_ext_concentration{ion.first, v.value()});
+                if (auto v = region_defaults.axial_resistivity) {
+                    decor.paint(reg, arb::axial_resistivity{v.value()});
                 }
-                if (auto v = ion.second.init_reversal_potential) {
-                    decor.paint(reg, arb::init_reversal_potential{ion.first, v.value()});
+                if (auto v = region_defaults.init_membrane_potential) {
+                    decor.paint(reg, arb::init_membrane_potential{v.value()});
                 }
+                if (auto v = region_defaults.temperature_K) {
+                    decor.paint(reg, arb::temperature_K{v.value()});
+                }
+                for (auto ion: region_defaults.ion_data) {
+                    if (auto v = ion.second.init_int_concentration) {
+                        decor.paint(reg, arb::init_int_concentration{ion.first, v.value()});
+                    }
+                    if (auto v = ion.second.init_ext_concentration) {
+                        decor.paint(reg, arb::init_ext_concentration{ion.first, v.value()});
+                    }
+                    if (auto v = ion.second.init_reversal_potential) {
+                        decor.paint(reg, arb::init_reversal_potential{ion.first, v.value()});
+                    }
+                }
+            } catch (std::exception& e) {
+                throw jsonio_error("Error painting local parameters on region \"" + reg + "\": " + std::string(e.what()));
             }
         }
     }
@@ -120,7 +147,18 @@ arb::decor load_decor(nlohmann::json& decor_json) {
                     mech.set(p.first, p.second);
                 }
             }
-            decor.paint("\"" + region.value() + "\"", mech);
+            auto reg = region.value();
+
+            // if the region expression does not start with an open parenthesis
+            // it is not an s-expression, it is a label and we must add double quotes.
+            if (reg.at(0) != '(') {
+                reg = "\"" + region.value() + "\"";
+            }
+            try {
+                decor.paint(reg, mech);
+            } catch (std::exception& e) {
+                throw jsonio_error("Error painting mechanism \"" + name.value() + "\" on region \"" + reg + "\": " + std::string(e.what()));
+            }
         }
     }
     return decor;
@@ -214,20 +252,20 @@ arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::string fname) {
 }
 
 arb::decor load_decor(std::string fname) {
-        std::ifstream fid{fname};
-        if (!fid.good()) {
-            throw jsonio_error("can't open file '{}'" + fname);
-        }
-        nlohmann::json decor_json;
-        fid >> decor_json;
-        try {
-            return load_decor(decor_json);
-        }
-        catch (std::exception& e) {
-            throw jsonio_error("Error loading decor from \"" + fname + "\": " + std::string(e.what()));
-        }
+    std::ifstream fid{fname};
+    if (!fid.good()) {
+        throw jsonio_error("can't open file '{}'" + fname);
+    }
+    nlohmann::json decor_json;
+    fid >> decor_json;
+    try {
         return load_decor(decor_json);
     }
+    catch (std::exception& e) {
+        throw jsonio_error("Error loading decor from \"" + fname + "\": " + std::string(e.what()));
+    }
+    return load_decor(decor_json);
+}
 
 void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set, std::string fname) {
     std::ofstream file(fname);

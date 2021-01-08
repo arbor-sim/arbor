@@ -16,9 +16,9 @@ defaults = arbor.load_default_parameters(defaults_file)
 decor    = arbor.load_decor(decor_file)
 morph    = arbor.load_swc_arbor(swc_file)
 
-# Test round trip of decor and default parameter descriptions
-arbor.store_decor(decor, "decor_out.json")
+# Test round trip of default parameter descriptions and decor.
 arbor.store_default_parameters(defaults, "defaults_out.json")
+arbor.store_decor(decor, "decor_out.json")
 
 # Define the regions and locsets in the model.
 # These need to include the definitions of the region strings in the decor file

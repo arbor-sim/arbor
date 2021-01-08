@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iomanip>
-
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
 
