@@ -3,7 +3,8 @@ import svgwrite
 import math
 import inputs
 
-tag_colors = ['white', '#ffc2c2', 'gray', '#c2caff', '#81c8aa']
+tag_colors_colorscheme = ['white', '#ffc2c2', 'gray', '#c2caff', '#81c8aa']
+tag_colors_bwscheme = ['lightgray']*len(tag_colors_colorscheme)
 
 #
 # ############################################
@@ -17,8 +18,9 @@ def translate_all(points, f, xshift):
 
 # Draw one or more morphologies, side by side.
 # Each morphology can be drawn as segments or branches.
-def morph_image(morphs, methods, filename, sc=20):
+def morph_image(morphs, methods, filename, drawnumbers=True, colors=True, sc=20):
     assert(len(morphs)==len(methods))
+    tag_colors = tag_colors_colorscheme if colors else tag_colors_bwscheme
 
     print('generating:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
@@ -79,19 +81,20 @@ def morph_image(morphs, methods, filename, sc=20):
                             lines.add(dwg.polygon(points=line, fill=tag_colors[seg.tag]))
 
                             pos = translate(seg.location(0.5), sc, offset)
-                            points.add(dwg.circle(center=pos,
-                                                  stroke='black',
-                                                  r=sc*0.55,
-                                                  fill='white'))
-                            # The svg alignment_baseline attribute:
-                            #   - works on Chrome/Chromium
-                            #   - doesn't work on Firefox
-                            # so for now we just shift the relative position by sc/3
-                            label_pos = (pos[0], pos[1]+sc/3)
-                            numbers.add(dwg.text(str(segid),
-                                                  insert=label_pos,
-                                                  stroke='black',
-                                                  fill='black'))
+                            if drawnumbers:
+                                points.add(dwg.circle(center=pos,
+                                                    stroke='black',
+                                                    r=sc*0.55,
+                                                    fill='white'))
+                                # The svg alignment_baseline attribute:
+                                #   - works on Chrome/Chromium
+                                #   - doesn't work on Firefox
+                                # so for now we just shift the relative position by sc/3
+                                label_pos = (pos[0], pos[1]+sc/3)
+                                numbers.add(dwg.text(str(segid),
+                                                    insert=label_pos,
+                                                    stroke='black',
+                                                    fill='black'))
                         segid += 1
 
             elif method=='branches':
@@ -99,20 +102,21 @@ def morph_image(morphs, methods, filename, sc=20):
                     lines.add(dwg.polygon(points=translate_all(line, sc, offset),
                                           fill=branchfillcolor))
 
-                pos = translate(branch.location(0.5), sc, offset)
-                points.add(dwg.circle(center=pos,
-                                      stroke=bcolor,
-                                      r=sc*0.55,
-                                      fill=bcolor))
-                # The svg alignment_baseline attribute:
-                #   - works on Chrome/Chromium
-                #   - doesn't work on Firefox
-                # so for now we just shift the relative position by sc/3
-                label_pos = (pos[0], pos[1]+sc/3)
-                numbers.add(dwg.text(str(i),
-                                      insert=label_pos,
-                                      stroke='white',
-                                      fill='white'))
+                if drawnumbers:
+                    pos = translate(branch.location(0.5), sc, offset)
+                    points.add(dwg.circle(center=pos,
+                                        stroke=bcolor,
+                                        r=sc*0.55,
+                                        fill=bcolor))
+                    # The svg alignment_baseline attribute:
+                    #   - works on Chrome/Chromium
+                    #   - doesn't work on Firefox
+                    # so for now we just shift the relative position by sc/3
+                    label_pos = (pos[0], pos[1]+sc/3)
+                    numbers.add(dwg.text(str(i),
+                                        insert=label_pos,
+                                        stroke='white',
+                                        fill='white'))
         offset = maxx - minx + sc
 
 
@@ -134,7 +138,7 @@ def morph_image(morphs, methods, filename, sc=20):
 # ordering don't have collocated distal-proximal locations respectively.
 # Handling this case would make rendering regions more complex, but would
 # not bee too hard to support.
-def label_image(morphology, labels, filename, sc=20):
+def label_image(morphology, labels, filename, drawroot=True, sc=20):
     morph = morphology
     print('generating:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
@@ -188,7 +192,8 @@ def label_image(morphology, labels, filename, sc=20):
 
         # Draw the root
         root = translate(morph[0].location(0), sc, offset)
-        points.add(dwg.circle(center=root, stroke='red', r=sc/2.5, fill='white'))
+        if drawroot:
+            points.add(dwg.circle(center=root, stroke='red', r=sc/2.5, fill='white'))
 
         if lab['type'] == 'locset':
             for loc in lab['value']:
@@ -229,6 +234,10 @@ def label_image(morphology, labels, filename, sc=20):
     dwg.save()
 
 def generate(path=''):
+
+    morph_image([inputs.branch_morph2], ['segments'], path+'/term_segments.svg', False, False)
+    morph_image([inputs.branch_morph2], ['branches'], path+'/term_branch.svg', False, False)
+    label_image(inputs.branch_morph2, [inputs.reg_cable_0_28], path+'/term_cable.svg', False)
 
     morph_image([inputs.label_morph],    ['branches'], path+'/label_branch.svg')
 

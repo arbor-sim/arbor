@@ -3,56 +3,117 @@
 Cable cell morphology
 =====================
 
-A cell's *morphology* describes both its geometry and branching structure.
-Morphologies in Arbor are modelled as a set of one dimensional cables of variable radius,
-joined together to form a tree. Only :ref:`cable cells <modelcablecell>` support custom
-morphologies in Arbor.
+In morphologically detailed simulations of neurons,
+`the cell is modelled <https://en.wikipedia.org/wiki/Cable_theory>`_
+as a set of round electrical cables, which have, among others properties,
+capacitances and resistances. These can in turn be expressed as a system of
+partial differential equations which can be solved to compute a current or
+voltage. The geometry of the biological cell is approximated as a tree of
+cable segments, which is a :term:`morphology` in Arbor nomenclature.
 
-The building blocks of a morphology tree are points and segments.
-A *point* is a three-dimensional location and a radius, used to mark the cross-sectional
-centre and radius of the cable.
+Let's first define the building blocks out of which we can construct a
+proper definition for a morphology:
 
-.. csv-table::
+.. glossary::
+
+  mpoint
+    A point in 3D space has three coordinates. In Arbor, we add a fourth coordinate: radius.
+
+.. csv-table:: The properties of a :term:`point <mpoint>`, in the context of cable cell morphologies.
    :widths: 10, 10, 30
+   :align: center
 
    **Field**,   **Type**, **Description**
-   ``x``,       real, x coordinate of centre of cable (μm).
-   ``y``,       real, y coordinate of centre of cable (μm).
-   ``z``,       real, z coordinate of centre of cable (μm).
+   ``x``,       real, x coordinate of center of cable (μm).
+   ``y``,       real, y coordinate of center of cable (μm).
+   ``z``,       real, z coordinate of center of cable (μm).
    ``radius``,  real, cross sectional radius of cable (μm).
 
+.. glossary::
 
-A *segment* is a frustum (cylinder or truncated cone), with the centre and radius at each
-end defined by a pair of points. In other words, in Arbor the radius between two points is interpolated
-linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
-centred at the line through the pair of points.
+  segment
+    A segment is a frustum (cylinder or truncated cone), with the center and radius at each
+    end defined by a pair of :term:`points <mpoint>`. In other words, in Arbor the radius between two points is interpolated
+    linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
+    centred at the line through the pair of points.
 
-.. csv-table::
+.. csv-table:: The properties of a :term:`segment`.
    :widths: 10, 10, 30
+   :align: center
 
-   **Field**,   **Type**, **Description**
+   **Field**,      **Type**,                           **Description**
    ``prox``,       :py:class:`point <arbor.mpoint>`,   the center and radius of the proximal end.
    ``dist``,       :py:class:`point <arbor.mpoint>`,   the center and radius of the distal end.
-   ``tag``,        integer, tag meta-data.
+   ``tag``,        integer (:term:`tag`),              "differentiate soma, axon, dendrite, etc."
 
-.. _morph-tag-definition:
+.. figure:: ../gen-images/term_segments.svg
+  :width: 300
+  :align: center
 
-A *tag* is an integer label on every segment, which can be used to define disjoint
-regions on cells.
-The meaning of tag values are not fixed in Arbor, however we typically use tag values that correspond
-to SWC `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_.
+  Four segments arranged head to toe.
+
+.. glossary::
+
+  branch
+    A branch is an unbranched sequence of :term:`segments <segment>`.
+
+.. figure:: ../gen-images/term_branch.svg
+  :width: 300
+  :align: center
+
+  A branch corresponding to the previous segments.
+
+.. glossary::
+
+  mlocation
+    A location is not a point in 3D space, but a point in the cable cell morphology's
+    coordinate system. It is defined by a specific branch, and a fraction that
+
+.. csv-table:: The properties of :term:`mlocation`.
+   :widths: 10, 10, 30
+   :align: center
+
+   **Field**,      **Type**,        **Description**
+   ``branch``,     integer,         id of the branch
+   ``pos``,        real (0≤pos≤1),  position along the length of the branch
+
+.. glossary::
+
+  cable
+    A cable is a subset of a :term:`branch`, and is thus defined as between two :term:`locations <mlocation>` on a particular branch.
+
+.. figure:: ../gen-images/term_cable.svg
+  :width: 300
+  :align: center
+
+  A cable shown in black is defined as a section :term:`located <mlocation>` between 0.2 and 0.8 of the length of the previous branch.
+
+.. note::
+
+  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`segment`, and sometimes an Arbor :term:`branch`. The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
+
+.. glossary::
+
+  tag
+    A tag is an integer label on every segment, which can be used to define disjoint regions on cells.
+    The meaning of tag values are not fixed in Arbor, however we typically use tag values that correspond
+    to SWC `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_.
+
+With these definitions, we can create proper definitions for *morphology* and *segment tree*.
 
 .. _morph-segment_tree:
 
 Segment trees
 --------------
 
-A *segment tree* describes a morphology as a set of segments and their connections,
-designed to support both the diverse descriptions
-of cell morphologies (e.g. SWC, NeuroLicida, NeuroML), and tools that
-iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
+.. glossary::
 
-Segment trees comprise a sequence of segments starting from at lease one *root* segment,
+  segment tree
+    A segment tree describes a morphology as a set of :term:`segments <segment>` and their connections,
+    designed to support both the diverse descriptions of cell morphologies (e.g. SWC, NeuroLicida, NeuroML),
+    and tools that iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
+
+:term:`Segment trees <segment tree>` comprise a sequence of segments starting from at lease one *root* segment,
 together with a parent-child adjacency relationship where a child segment is
 distal to its parent.
 Branches in the tree occur where a segment has more than one child.
@@ -82,7 +143,7 @@ The following definitions are used to refer to segments in a segment tree:
 The following segment tree models a soma as a cylinder, a branching dendritic tree and
 an axon with an axonal hillock. The segments are coloured according to their tag, which
 in this case are SWC structure identifiers: tag 1 coloured pink for soma;
-tag 2 coloured grey for axon; tag 3 coloured blue for basal dendrites.
+tag 2 coloured grey for axon; tag 3 coloured light blue for basal dendrites.
 
 .. _morph-label-seg-fig:
 
@@ -90,7 +151,8 @@ tag 2 coloured grey for axon; tag 3 coloured blue for basal dendrites.
   :width: 600
   :align: center
 
-  Example Python code to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
+  A ten segment cable cell, with soma (pink), axon (grey) and dendrite (light blue).
+  Python code to generate this cable cell is in the :class:`segment_tree<arbor.segment_tree>`
   documentation :ref:`here <morph-label-seg-code>`.
 
 * The tree is composed of 11 segments (1 soma, 2 axon, 8 dendrite).
@@ -144,11 +206,24 @@ uses 4 segments to model the soma.
 Morphology
 ----------
 
-A *morphology* describes the geometry of a cell as unbranched cables with variable radius,
-and their associated tree structure.
-Every segment tree can be used to generate a unique morphology, which derives and enumerates
-*branches* from the segments.
-The branches of a morphology are unbranched cables, composed of one or more segments, where:
+.. glossary::
+
+  morphology
+    Morphologies in Arbor are modelled as a set of one dimensional :term:`cables <cable>` of variable radius,
+    joined together to form a tree. Only :ref:`cable cells <modelcablecell>` support custom
+    morphologies in Arbor. Morphologies can be create by :ref:`loading a file<morph-formats>` with a cell description,
+    or by manually constructing one from a :term:`segment tree`.
+
+A segment tree and a morphology can both describe the exact same cable cell geometry,
+but they differ in their 'morphological coordinate system': a :term:`segment tree` is
+defined as connections between points in 3D space, while a morphology is defined in terms
+of connections between :term:`branches <branch>`. A :term:`morphology` makes accessing
+locations in terms of the cable cells shape easy: "We've placed the clamp on the midway point
+of the 53rd branch of cell B." :ref:`More on placement later <labels>`.
+
+Every segment tree can be used to generate a unique :term:`morphology`, which derives and enumerates
+:term:`branches <branch>` from the segments. The branches of a morphology are unbranched cables,
+composed of one or more segments, where:
 
   * the first (proximal) segment of the branch is either a root or the child of fork segment;
   * the last (distal) segment of the branch is either a fork or terminal segment;
@@ -183,6 +258,8 @@ which is illustrated along with its branches below.
   :width: 800
   :align: center
 
+  Left, the same 10 segment cable cell seen before. On the right, the associated morphology and branches.
+  Note that the proximal point of the soma is always the start (and possibly end) of a branch.
   The code used to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
   :ref:`python documentation <morph-label-seg-code>`.
 
@@ -356,7 +433,7 @@ distinct cable segments:
   :align: center
 
   The morphology is an unbranched cable comprised of 4 cable segments,
-  coloured according to their tags: tag 1 red; tag 2 green; tag 3 blue (left).
+  coloured according to their tags: tag 1 pink; tag 2 grey; tag 3 light blue (left).
   The four segments form one branch (right).
 
 Gaps are possible between two segments. The example below inserts a 1 μm gap between the second

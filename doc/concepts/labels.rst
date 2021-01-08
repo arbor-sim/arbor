@@ -366,7 +366,7 @@ Region expressions
 
 .. label:: (tag tag_id:integer)
 
-    All of the segments with :ref:`tag <morph-tag-definition>` ``tag_id``.
+    All of the segments with :term:`tag` ``tag_id``.
 
     .. figure:: ../gen-images/tag_label.svg
       :width: 900
@@ -604,7 +604,7 @@ Examples of locations, :ref:`expressed using the DSL <labels-location-def>`, inc
 Cables
 ~~~~~~
 
-An unbranched *cable* is a tuple of the form ``(branch, prox, dist)``,
+An unbranched :term:`cable` is a tuple of the form ``(branch, prox, dist)``,
 where ``branch`` is the branch id, and ``0 ≤ prox ≤ dist ≤ 1`` define the relative position
 of the end points of the section on the branch.
 

@@ -335,16 +335,24 @@ See :ref:`modelgapjunctions`.
 Discretisation and CV policies
 ------------------------------
 
-For the purpose of simulation, cable cells are decomposed into discrete
-subcomponents called *control volumes* (CVs). The CVs are
-uniquely determined by a set of *B* ``mlocation`` boundary points.
-For each non-terminal point *h* in *B*, there is a CV comprising the points
-{*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
-geometrical partial order of locations on the morphology. A fork point is
-owned by a CV if and only if all of its corresponding representative locations
-are in the CV.
+.. glossary::
 
-The set of boundary points used by the simulator is determined by a *CV policy*.
+  control volume
+    For the purpose of simulation, Arbor discretises cable cell :term:`morphologies <morphology>`
+    into control volumes, or CVs. Discretising happens through a :term:`CV policy`.
+    The CVs are uniquely determined by a set of *B* :term:`mlocation` boundary points. For each non-terminal
+    point *h* in *B*, there is a CV comprising the points {*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*},
+    where < and ≤ refer to the geometrical partial order of locations on the morphology. A fork
+    point is owned by a CV if and only if all of its corresponding representative locations are
+    in the CV.
+
+.. Note::
+    In NEURON discretisation is controlled through splitting a NEURON section into a number of NEURON segments (`nseg`, by default to `1`). Since NEURON sections don't exactly map to Arbor :term:`segments <segment>`, there is not always a way to match the precise discretisation. Therefore results may be slightly different for otherwise identical simulations.
+
+.. glossary::
+
+  CV policy
+    Generating the set of boundary points used by the simulator (discretisation) is controlled by a :term:`CV <control volume>` policy.
 
 Specific CV policies are created by functions that take a ``region`` parameter
 that restrict the domain of applicability of that policy; this facility is useful
@@ -382,7 +390,6 @@ By default, CVs will terminate at branch ends. An optional flag
 ``cv_policy_flag::interior_forks`` can be passed to specify that fork points
 will be included in non-trivial, branched CVs and CVs covering terminal points
 in the morphology will be half-sized.
-
 
 ``cv_policy_max_extent``
 ''''''''''''''''''''''''
