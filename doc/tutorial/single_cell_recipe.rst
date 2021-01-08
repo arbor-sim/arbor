@@ -107,8 +107,10 @@ Step **(4.2)** defines that this model has one cell.
 
 Step **(4.3)** defines that this model has one source.
 
-Step **(4.4)** returns :class:`arbor.cell_kind.cable`. Make sure you don't instantiate
-the model with a non cable cell! Since we have just one cell, we can ignore :gen:`gid`.
+Step **(4.4)** returns :class:`arbor.cell_kind.cable`, the :class:`arbor.cell_kind`
+associated with the cable cell defined above. If you mix multiple cell kinds and
+descriptions in one recipe, make sure a particular ``gid`` returns matching cell kinds
+and descriptions.
 
 Step **(4.5)** returns the cell description passed in on class initialisation. If we
 were modelling multiple cells of different kinds, we would need to make sure that the
