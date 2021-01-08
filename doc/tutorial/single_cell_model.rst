@@ -1,4 +1,4 @@
-.. _tutorialsimplecell:
+.. _tutorialsinglecell:
 
 A simple single cell model
 ==========================
@@ -19,6 +19,10 @@ introduce Arbor's cell modelling concepts and approach.
    5. Building a :class:`arbor.single_cell_model` object.
    6. Running a simulation and visualising the results.
 
+.. _tutorialsinglecell-cell:
+
+The cell
+--------
 
 The most trivial representation of a cell in Arbor is to model the entire cell as a
 single cylinder. The following example shows the steps required to construct a model of a
@@ -66,14 +70,14 @@ of the segment; and the tag.
 Step **(2)** creates a dictionary of labels (:class:`arbor.label_dict<arbor.label_dict>`). Labels give
 names to :ref:`regions<labels-region>` and :ref:`location<labels-locset>` described using a DSL
 based on s-expressions. Labels from the dictionary can then be used to facilitate adding synapses,
-dynamics, stimulii and probes to the cell. We add two labels:
+dynamics, stimuli and probes to the cell. We add two labels:
 
 * ``soma`` defines a *region* with ``(tag  1)``. Note that this corresponds to the
   ``tag`` parameter that was used to define the single segment in step (1).
 * ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
   of branch ``0``, which corresponds to the center of the soma on the morphology defined in step (1).
 
-Step **(3)** constructs a :class:`arbor.decor` that describes the distributation and placement
+Step **(3)** constructs a :class:`arbor.decor` that describes the distribution and placement
 of dynamics and properties on a cell.  The cell's default properties can be modified, and we can use
 :meth:`arbor.decor.paint` and :meth:`arbor.decor.place` to further customise it in the
 following way:
@@ -87,16 +91,15 @@ following way:
   HH dynamics on the region we previously named ``"soma"`` in our label dictionary.
 * :meth:`arbor.decor.place` is used to add objects on a precise
   :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,
-  spike detectors, current stimulii, and probes. In the above example we place a current stimulus
+  spike detectors, current stimuli, and probes. In the above example we place a current stimulus
   :class:`arbor.iclamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
   on the location we previously labelled ``"center"``. We also place a :class:`arbor.spike_detector`
   with a threshold of -10 mV on the same location.
 
-Step **(4)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labeled
-regions and locations.
+Step **(4)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labelled regions and locations.
 
-Single cell model
-----------------------------------------------------
+The single cell model
+---------------------
 
 Once the cell description has been built, the next step is to build and run the simulation.
 Arbor provides an interface for constructing single cell models with the
@@ -124,8 +127,8 @@ probe ('"center"'), and the frequency at which we want to sample (10kHz).
 
 Step **(7)** runs the actual simulation for a duration of 30 ms.
 
-Results
-----------------------------------------------------
+The results
+-----------
 
 Our cell and model have been defined and we have run our simulation. Now we can look at what
 the spike detector and a voltage probes from our model have produced.
@@ -160,13 +163,7 @@ We should be seeing something like this:
 
     Plot of the potential over time for the voltage probe added in step (6).
 
+The full code
+-------------
+
 You can find the source code for this example in full at ``python/examples/single_cell_model.py``.
-
-.. Todo::
-    An example with a more complex cell geometry (loaded from NeuroML/SWC?).
-    This would show how to define and use morphology regions and locsets.
-    Introduce CV discretization control.
-    Probe and sample state variables in hh mechanism along with voltage.
-
-.. Todo::
-    Add a small ring network implemented via a recipe. This introduces connections, gids, and reveals the recipe plumbing that is hidden inside the single_cell_model.
