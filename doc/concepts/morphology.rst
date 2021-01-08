@@ -88,10 +88,6 @@ proper definition for a morphology:
 
   A cable shown in black is defined as a section :term:`located <mlocation>` between 0.2 and 0.8 of the length of the previous branch.
 
-.. note::
-
-  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. Arbor uses truncated cones to represent branches and segments, Neuron uses a weighted average radius to create cylinders (see "trapezoidal integration" in the `Neuron documentation <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/topology/geometry.html>`_.). The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
-
 .. glossary::
 
   tag
@@ -100,6 +96,10 @@ proper definition for a morphology:
     to SWC `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_.
 
 With these definitions, we can create proper definitions for *morphology* and *segment tree*.
+
+.. note::
+
+  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. Arbor uses truncated cones to represent branches and segments, Neuron uses a weighted average radius to create cylinders (see "trapezoidal integration" in the `Neuron documentation <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/topology/geometry.html>`_.). The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
 
 .. _morph-segment_tree:
 
