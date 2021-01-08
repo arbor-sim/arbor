@@ -113,32 +113,40 @@ Segment trees
     designed to support both the diverse descriptions of cell morphologies (e.g. SWC, NeuroLicida, NeuroML),
     and tools that iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
 
-:term:`Segment trees <segment tree>` comprise a sequence of segments starting from at lease one *root* segment,
-together with a parent-child adjacency relationship where a child segment is
-distal to its parent.
-Branches in the tree occur where a segment has more than one child.
-Furthermore, a segment can not have more than one parent.
-In this manner, neuron morphologies are modelled as a *tree*, where cables that
+:term:`Segment trees <segment tree>` comprise a sequence of segments starting from
+at lease one :term:`root` segment, together with a parent-child adjacency relationship
+where a child segment is distal to its parent. Branches in the tree occur where a segment
+has more than one child. Furthermore, a segment can not have more than one parent.
+In this manner, neuron morphologies are modelled as a :term:`tree`, where cables that
 represent dendrites and axons can branch, but branches can not rejoin.
 
 .. _morph-segment-definitions:
 
 The following definitions are used to refer to segments in a segment tree:
 
-* *root*: segments at the root or start of the tree. A non-empty tree must have at least one root segment,
-  and the first segment will always be a root.
+.. glossary::
 
-* *parent*: Each segment has one parent, except for root segments which have :data:`mnpos <arbor.mnpos>` as their parent.
+  root
+    Segments at the root or start of the tree. A non-empty tree must have at least one root segment,
+    and the first segment will always be a root.
 
-  * The id of a segment is always greater than the id of its parent.
-  * The ids of segments on the same unbranched sequence of segments do not need to be contiguous.
+  parent
+    Each segment has one parent, except for root segments which have :data:`mnpos <arbor.mnpos>` as their parent.
 
-* *child*: A segment's children are the segments that have the segment as their parent.
-* *terminal*: A segment with no children. Terminals lie at the end of dendritic trees or axons.
-* *fork*: A segment with more than one child. The distal end of a fork segment are *fork points*,
-  where a cable splits into two or more branches.
+    * The id of a segment is always greater than the id of its parent.
+    * The ids of segments on the same unbranched sequence of segments do not need to be contiguous.
 
-  * Arbor allows more than two branches at a fork point.
+  child
+    A segment's children are the segments that have the segment as their parent.
+
+  terminal
+    A segment with no children. Terminals lie at the end of dendritic trees or axons.
+
+  fork
+    A segment with more than one child. The distal end of a fork segment are *fork points*,
+    where a cable splits into two or more branches.
+
+    * Arbor allows more than two branches at a fork point.
 
 The following segment tree models a soma as a cylinder, a branching dendritic tree and
 an axon with an axonal hillock. The segments are coloured according to their tag, which
@@ -214,8 +222,7 @@ Morphology
     morphologies in Arbor. Morphologies can be created by :ref:`loading a file<morph-formats>` with a cell description,
     or by manually constructing one from a :term:`segment tree`.
 
-A segment tree and a morphology can both describe the exact same cable cell geometry,
-but they differ in two ways:
+A segment tree and a morphology can both describe the exact same cable cell geometry, and if you create a morphology *from* a segment tree, they do! The two descriptions differ in two ways:
 
 #. in their 'morphological coordinate system': a :term:`segment tree` is defined in terms
    of connections between :term:`points <mpoint>` in 3D space, while a morphology is defined
@@ -266,7 +273,7 @@ which is illustrated along with its branches below.
   :align: center
 
   Left, the same 10 segment cable cell seen before. On the right, the associated morphology and branches.
-  Note that the proximal point of the soma is always the start (and possibly end) of a branch.
+  Note that the :term:`root` point of the soma is always the start (and possibly end) of a branch.
   The code used to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
   :ref:`python documentation <morph-label-seg-code>`.
 
