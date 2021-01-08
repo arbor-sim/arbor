@@ -269,12 +269,24 @@ arb::decor load_decor(std::string fname) {
 
 void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set, std::string fname) {
     std::ofstream file(fname);
-    file << std::setw(2) << make_cable_cell_parameter_set_json(set);
+    nlohmann::json json_set;
+    try {
+        json_set = make_cable_cell_parameter_set_json(set);
+    } catch (std::exception& e) {
+        throw jsonio_error("Error generating json from cable_cell_parameter_set: " + std::string(e.what()));
+    }
+    file << std::setw(2) << json_set;
 };
 
 void store_decor(const arb::decor& decor, std::string fname) {
     std::ofstream file(fname);
-    file << std::setw(2) << make_decor_json(decor);
+    nlohmann::json json_decor;
+    try {
+        json_decor = make_decor_json(decor);
+    } catch (std::exception& e) {
+        throw jsonio_error("Error generating json from decor: " + std::string(e.what()));
+    }
+    file << std::setw(2) << json_decor;
 }
 
 } // namespace arborio
