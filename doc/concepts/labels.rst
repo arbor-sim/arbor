@@ -585,6 +585,7 @@ of a region or a loscet into an actual 'thing' when it is applied to a real morp
     thingified results.
 
 .. _labels-locations:
+
 Locations
 ~~~~~~~~~
 
@@ -601,6 +602,7 @@ Examples of locations, :ref:`expressed using the DSL <labels-location-def>`, inc
 * One quarter of the way along branch 5 ``(location 5 0.25)``.
 
 .. _labels-cables:
+
 Cables
 ~~~~~~
 

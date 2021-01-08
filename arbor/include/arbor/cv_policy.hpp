@@ -182,7 +182,7 @@ private:
 };
 
 inline cv_policy default_cv_policy() {
-    return cv_policy_every_segment();
+    return cv_policy_fixed_per_branch(1);
 }
 
 } // namespace arb

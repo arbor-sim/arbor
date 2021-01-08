@@ -17,7 +17,7 @@ proper definition for a morphology:
 .. glossary::
 
   mpoint
-    A point in 3D space has three coordinates. In Arbor, we add a fourth coordinate: radius.
+    A point in 3D space has three coordinates. In Arbor, we add a fourth coordinate: radius. The mpoint thus represents the centre of a cable and the radius represents the cross-sectional radius of the cable.
 
 .. csv-table:: The properties of a :term:`point <mpoint>`, in the context of cable cell morphologies.
    :widths: 10, 10, 30
@@ -44,7 +44,7 @@ proper definition for a morphology:
    **Field**,      **Type**,                           **Description**
    ``prox``,       :py:class:`point <arbor.mpoint>`,   the center and radius of the proximal end.
    ``dist``,       :py:class:`point <arbor.mpoint>`,   the center and radius of the distal end.
-   ``tag``,        integer (:term:`tag`),              "differentiate soma, axon, dendrite, etc."
+   ``tag``,        integer (:term:`tag`),              "tag meta-data, can be used to classify segments of the same kind (ex: soma, dendrite, but also arbitrary use-defined groups"
 
 .. figure:: ../gen-images/term_segments.svg
   :width: 300
@@ -55,7 +55,7 @@ proper definition for a morphology:
 .. glossary::
 
   branch
-    A branch is an unbranched sequence of :term:`segments <segment>`.
+    A branch is the longest possible unbranched sequence of :term:`segments <segment>`.
 
 .. figure:: ../gen-images/term_branch.svg
   :width: 300
@@ -67,7 +67,7 @@ proper definition for a morphology:
 
   mlocation
     A location is not a point in 3D space, but a point in the cable cell morphology's
-    coordinate system. It is defined by a specific branch, and a fraction that
+    coordinate system. It is defined by a specific branch and a position along the length of the branch.
 
 .. csv-table:: The properties of :term:`mlocation`.
    :widths: 10, 10, 30
@@ -90,7 +90,7 @@ proper definition for a morphology:
 
 .. note::
 
-  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`segment`, and sometimes an Arbor :term:`branch`. The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
+  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
 
 .. glossary::
 
@@ -215,11 +215,18 @@ Morphology
     or by manually constructing one from a :term:`segment tree`.
 
 A segment tree and a morphology can both describe the exact same cable cell geometry,
-but they differ in their 'morphological coordinate system': a :term:`segment tree` is
-defined as connections between points in 3D space, while a morphology is defined in terms
-of connections between :term:`branches <branch>`. A :term:`morphology` makes accessing
-locations in terms of the cable cells shape easy: "We've placed the clamp on the midway point
-of the 53rd branch of cell B." :ref:`More on placement later <labels>`.
+but they differ in two ways:
+
+#. in their 'morphological coordinate system': a :term:`segment tree` is defined in terms
+   of connections between :term:`points <mpoint>` in 3D space, while a morphology is defined
+   in terms of connections between :term:`branches <branch>`. A segment tree makes it easy to
+   recreate a cell from image data, because that is usually done by setting points in space
+   and assigning a cable radius. A :term:`morphology` makes accessing locations in terms of
+   the cable cells shape easy: "We've placed the clamp on the midway point of the 53rd branch
+   of cell B." :ref:`More on placement later <labels>`.
+#. the fact that angles between branches are not defined in morphologies but are in segment trees, or,
+   equivalently, in morphologies the branching points have no specific position in space, other than in
+   relation to a specific distance from other branching points through any branch that links them.
 
 Every segment tree can be used to generate a unique :term:`morphology`, which derives and enumerates
 :term:`branches <branch>` from the segments. The branches of a morphology are unbranched cables,

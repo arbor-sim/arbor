@@ -347,12 +347,14 @@ Discretisation and CV policies
     in the CV.
 
 .. Note::
-    In NEURON discretisation is controlled through splitting a NEURON section into a number of NEURON segments (`nseg`, by default to `1`). Since NEURON sections don't exactly map to Arbor :term:`segments <segment>`, there is not always a way to match the precise discretisation. Therefore results may be slightly different for otherwise identical simulations.
+    In NEURON discretisation is controlled through splitting a NEURON section into a number of NEURON segments (`nseg`, by default to `1`). Note that a NEURON segment is not the same as an Arbor :term:`segment`!
 
 .. glossary::
 
   CV policy
-    Generating the set of boundary points used by the simulator (discretisation) is controlled by a :term:`CV <control volume>` policy. The default policy is ``cv_policy_every_segment``.
+    Generating the set of boundary points used by the simulator (discretisation) is controlled by a
+    :term:`CV <control volume>` policy. The default policy used to generate the set of boundary points is
+    ``cv_policy_fixed_per_branch(1)``.
 
 Specific CV policies are created by functions that take a ``region`` parameter
 that restrict the domain of applicability of that policy; this facility is useful
