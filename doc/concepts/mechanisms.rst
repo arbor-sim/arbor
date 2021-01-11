@@ -29,10 +29,10 @@ Catalogues provide an interface for querying mechanism metadata, which includes 
 * State variable names, units and default values.
 * Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes to its internal or external concentration or to its reversal potential value, and whether it reads or asserts the ionic charge.
 
-Default mechanisms
-''''''''''''''''''
+Built-in Catalogues
+'''''''''''''''''''
 
-Arbor provides a default catalogue with the following mechanisms:
+Arbor provides the *default* catalogue with the following mechanisms:
 
 * *pas*: Leaky current (:ref:`density mechanism <mechanisms-density>`).
 * *hh*:  Classic Hodgkin-Huxley dynamics (:ref:`density mechanism <mechanisms-density>`).
@@ -41,6 +41,14 @@ Arbor provides a default catalogue with the following mechanisms:
 * *exp2syn*: Bi-exponential conductance synapse described by two time constants: rise and decay (:ref:`point mechanism <mechanisms-point>`).
 
 With the exception of *nernst*, these mechanisms are the same as those available in NEURON.
+
+Two catalogues are provided that collect mechanisms associated with specific projects and model databases:
+
+* *bbp* For models published by the Blue Brain Project (BBP).
+* *allen* For models published on the Allen Brain Atlas Database.
+
+Further catalogues can be added by extending the list of built-in catalogues in the arbor source tree
+or by compiling a dynamically loadable catalogue (:ref:`extending catalogues <extending-catalogues>`).
 
 Parameters
 ''''''''''

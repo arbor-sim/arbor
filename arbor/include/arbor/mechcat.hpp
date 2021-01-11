@@ -9,8 +9,6 @@
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
 
-#
-
 // Mechanism catalogue maintains:
 //
 // 1. Collection of mechanism metadata indexed by name.
