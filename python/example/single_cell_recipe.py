@@ -42,20 +42,20 @@ tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), ta
 
 # Label dictionary
 labels = arbor.label_dict()
-labels['centre'] = '(location 0 0.5)'
+labels['midpoint'] = '(location 0 0.5)'
 
 # Decorations
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('(all)', 'hh')
-decor.place('"centre"', arbor.iclamp( 10, 2, 0.8))
-decor.place('"centre"', arbor.spike_detector(-10))
+decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
+decor.place('"midpoint"', arbor.spike_detector(-10))
 
 cell = arbor.cable_cell(tree, labels, decor)
 
 # (3) Instantiate recipe with a voltage probe.
 
-recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"centre"')])
+recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
 
 # (4) Instantiate simulation and set up sampling on probe id (0, 0).
 
