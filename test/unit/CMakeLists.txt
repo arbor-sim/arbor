@@ -106,6 +106,7 @@ set(unit_sources
     test_filter.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
+    test_jsonio.cpp
     test_kinetic_linear.cpp
     test_lexcmp.cpp
     test_lif_cell_group.cpp

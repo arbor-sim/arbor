@@ -51,6 +51,9 @@ arb::cable_cell_parameter_set load_cable_cell_parameter_set(nlohmann::json& para
             }
         }
     }
+    if (!params_json.empty()) {
+        throw jsonio_error("Unused input parameter: \"" + params_json.begin().key() + "\"");
+    }
     return params;
 }
 
@@ -169,6 +172,9 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             }
         }
     }
+    if (!decor_json.empty()) {
+        throw jsonio_error("Unused input parameter: \"" + decor_json.begin().key() + "\"");
+    }
     return decor;
 }
 
@@ -239,13 +245,23 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
 
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream& s) {
     nlohmann::json defaults_json;
-    s >> defaults_json;
+    try {
+        s >> defaults_json;
+    }
+    catch (std::exception& e) {
+        throw jsonio_error("Error parsing json : " + std::string(e.what()));
+    }
     return load_cable_cell_parameter_set(defaults_json);
 }
 
 arb::decor load_decor(std::istream& s) {
     nlohmann::json decor_json;
-    s >> decor_json;
+    try {
+        s >> decor_json;
+    }
+    catch (std::exception& e) {
+        throw jsonio_error("Error parsing json : " + std::string(e.what()));
+    }
     return load_decor(decor_json);
 }
 
