@@ -9,7 +9,8 @@
 
 namespace arborio {
 
-jsonio_error::jsonio_error(const std::string& msg): arbor_exception(msg) {}
+jsonio_error::jsonio_error(const std::string& msg):
+    arbor_exception(msg) {}
 
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(nlohmann::json& params_json) {
     arb::cable_cell_parameter_set params;
@@ -42,7 +43,8 @@ arb::cable_cell_parameter_set load_cable_cell_parameter_set(nlohmann::json& para
             if (auto method = find_and_remove_json<std::string>("method", ion_json)) {
                 if (method.value() == "nernst") {
                     params.reversal_potential_method.insert({ion_name, "nernst/" + ion_name});
-                } else if (method.value() != "constant") {
+                }
+                else if (method.value() != "constant") {
                     params.reversal_potential_method.insert({ion_name, method.value()});
                 }
             }
@@ -60,14 +62,16 @@ arb::decor load_decor(nlohmann::json& decor_json) {
         arb::cable_cell_parameter_set defaults;
         try {
             defaults = load_cable_cell_parameter_set(globals_json.value());
-        } catch (std::exception& e) {
+        }
+        catch (std::exception& e) {
             throw jsonio_error("Error loading global parameters" + std::string(e.what()));
         }
         try {
             for (auto def: defaults.serialize()) {
                 decor.set_default(def);
             }
-        } catch (std::exception& e) {
+        }
+        catch (std::exception& e) {
             throw jsonio_error("Error setting global parameters" + std::string(e.what()));
         }
     }
@@ -91,7 +95,8 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             arb::cable_cell_parameter_set region_defaults;
             try {
                 region_defaults = load_cable_cell_parameter_set(l);
-            } catch (std::exception& e) {
+            }
+            catch (std::exception& e) {
                 throw jsonio_error("Error loading local parameters: " + std::string(e.what()));
             }
 
@@ -122,7 +127,8 @@ arb::decor load_decor(nlohmann::json& decor_json) {
                         decor.paint(reg, arb::init_reversal_potential{ion.first, v.value()});
                     }
                 }
-            } catch (std::exception& e) {
+            }
+            catch (std::exception& e) {
                 throw jsonio_error("Error painting local parameters on region \"" + reg + "\": " + std::string(e.what()));
             }
         }
@@ -156,7 +162,8 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             }
             try {
                 decor.paint(reg, mech);
-            } catch (std::exception& e) {
+            }
+            catch (std::exception& e) {
                 throw jsonio_error("Error painting mechanism \"" + name.value() + "\" on region \"" + reg + "\": " + std::string(e.what()));
             }
         }
@@ -178,7 +185,8 @@ nlohmann::json make_cable_cell_parameter_set_json(const arb::cable_cell_paramete
         if (auto rvpot = data.init_reversal_potential) record["ions"][name]["reversal-potential"] = rvpot.value();
         if (params.reversal_potential_method.count(name)) {
             record["ions"][name]["method"] = params.reversal_potential_method.at(name).name();
-        } else {
+        }
+        else {
             record["ions"][name]["method"] = "constant";
         }
     }
@@ -197,31 +205,31 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
     for (const auto& entry: decor.paintings()) {
         auto region_expr = to_string(entry.first);
         std::visit(
-                [&](auto&& p) {
-                    using T = std::decay_t<decltype(p)>;
-                    if constexpr (std::is_same_v<arb::init_membrane_potential, T>) {
-                        region_map[region_expr]["Vm"] = p.value;
-                    } else if constexpr (std::is_same_v<arb::axial_resistivity, T>) {
-                        region_map[region_expr]["Ra"] = p.value;
-                    } else if constexpr (std::is_same_v<arb::temperature_K, T>) {
-                        region_map[region_expr]["celsius"] = p.value - 273.15;
-                    } else if constexpr (std::is_same_v<arb::membrane_capacitance, T>) {
-                        region_map[region_expr]["cm"] = p.value;
-                    } else if constexpr (std::is_same_v<arb::init_int_concentration, T>) {
-                        region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value;
-                    } else if constexpr (std::is_same_v<arb::init_ext_concentration, T>) {
-                        region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value;
-                    } else if constexpr (std::is_same_v<arb::init_reversal_potential, T>) {
-                        region_map[region_expr]["ions"][p.ion]["reversal-potential"] = p.value;
-                    } else if constexpr (std::is_same_v<arb::mechanism_desc, T>) {
-                        nlohmann::json data;
-                        data["region"] = region_expr;
-                        data["mechanism"] = p.name();
-                        data["parameters"] = p.values();
-                        mechs.push_back(data);
-                    }
-                },
-                entry.second);
+            [&](auto&& p) {
+                using T = std::decay_t<decltype(p)>;
+                if constexpr (std::is_same_v<arb::init_membrane_potential, T>) {
+                    region_map[region_expr]["Vm"] = p.value;
+                } else if constexpr (std::is_same_v<arb::axial_resistivity, T>) {
+                    region_map[region_expr]["Ra"] = p.value;
+                } else if constexpr (std::is_same_v<arb::temperature_K, T>) {
+                    region_map[region_expr]["celsius"] = p.value - 273.15;
+                } else if constexpr (std::is_same_v<arb::membrane_capacitance, T>) {
+                    region_map[region_expr]["cm"] = p.value;
+                } else if constexpr (std::is_same_v<arb::init_int_concentration, T>) {
+                    region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value;
+                } else if constexpr (std::is_same_v<arb::init_ext_concentration, T>) {
+                    region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value;
+                } else if constexpr (std::is_same_v<arb::init_reversal_potential, T>) {
+                    region_map[region_expr]["ions"][p.ion]["reversal-potential"] = p.value;
+                } else if constexpr (std::is_same_v<arb::mechanism_desc, T>) {
+                    nlohmann::json data;
+                    data["region"] = region_expr;
+                    data["mechanism"] = p.name();
+                    data["parameters"] = p.values();
+                    mechs.push_back(data);
+                }
+            },
+            entry.second);
     }
     for (auto reg: region_map) {
         reg.second["region"] = reg.first;
@@ -231,7 +239,7 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
     json_decor["local"] = regions;
     json_decor["mechanisms"] = mechs;
 
-    return  json_decor;
+    return json_decor;
 }
 
 // Public functions - read and write directly from and to files
@@ -272,7 +280,8 @@ void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set, st
     nlohmann::json json_set;
     try {
         json_set = make_cable_cell_parameter_set_json(set);
-    } catch (std::exception& e) {
+    }
+    catch (std::exception& e) {
         throw jsonio_error("Error generating json from cable_cell_parameter_set: " + std::string(e.what()));
     }
     file << std::setw(2) << json_set;
@@ -283,7 +292,8 @@ void store_decor(const arb::decor& decor, std::string fname) {
     nlohmann::json json_decor;
     try {
         json_decor = make_decor_json(decor);
-    } catch (std::exception& e) {
+    }
+    catch (std::exception& e) {
         throw jsonio_error("Error generating json from decor: " + std::string(e.what()));
     }
     file << std::setw(2) << json_decor;
