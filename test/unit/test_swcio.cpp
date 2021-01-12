@@ -1,16 +1,13 @@
 #include <array>
 #include <iostream>
 #include <fstream>
-#include <sstream>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/morph/segment_tree.hpp>
 
 #include <arborio/swcio.hpp>
 
 #include "../gtest.h"
-
 
 // Path to data directory can be overriden at compile time.
 #if !defined(DATADIR)

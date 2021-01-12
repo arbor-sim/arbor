@@ -237,59 +237,28 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
 
 // Public functions - read and write directly from and to files
 
-arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::string fname) {
-    std::ifstream fid{fname};
-    if (!fid.good()) {
-        throw jsonio_error("can't open file '{}'" + fname);
-    }
+arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream& s) {
     nlohmann::json defaults_json;
-    fid >> defaults_json;
-    try {
-        return load_cable_cell_parameter_set(defaults_json);
-    }
-    catch (std::exception& e) {
-        throw jsonio_error("Error loading cable_cell_parameter_set from \"" + fname + "\": " + std::string(e.what()));
-    }
+    s >> defaults_json;
+    return load_cable_cell_parameter_set(defaults_json);
 }
 
-arb::decor load_decor(std::string fname) {
-    std::ifstream fid{fname};
-    if (!fid.good()) {
-        throw jsonio_error("can't open file '{}'" + fname);
-    }
+arb::decor load_decor(std::istream& s) {
     nlohmann::json decor_json;
-    fid >> decor_json;
-    try {
-        return load_decor(decor_json);
-    }
-    catch (std::exception& e) {
-        throw jsonio_error("Error loading decor from \"" + fname + "\": " + std::string(e.what()));
-    }
+    s >> decor_json;
     return load_decor(decor_json);
 }
 
-void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set, std::string fname) {
-    std::ofstream file(fname);
+void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set, std::ostream& s) {
     nlohmann::json json_set;
-    try {
-        json_set = make_cable_cell_parameter_set_json(set);
-    }
-    catch (std::exception& e) {
-        throw jsonio_error("Error generating json from cable_cell_parameter_set: " + std::string(e.what()));
-    }
-    file << std::setw(2) << json_set;
+    json_set = make_cable_cell_parameter_set_json(set);
+    s << std::setw(2) << json_set;
 };
 
-void store_decor(const arb::decor& decor, std::string fname) {
-    std::ofstream file(fname);
+void store_decor(const arb::decor& decor, std::ostream& s) {
     nlohmann::json json_decor;
-    try {
-        json_decor = make_decor_json(decor);
-    }
-    catch (std::exception& e) {
-        throw jsonio_error("Error generating json from decor: " + std::string(e.what()));
-    }
-    file << std::setw(2) << json_decor;
+    json_decor = make_decor_json(decor);
+    s << std::setw(2) << json_decor;
 }
 
 } // namespace arborio
