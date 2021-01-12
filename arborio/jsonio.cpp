@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "arbor/util/any_visitor.hpp"
 #include "arborio/jsonio.hpp"
 #include "json_helpers.hpp"
 
@@ -204,32 +205,24 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
 
     for (const auto& entry: decor.paintings()) {
         auto region_expr = to_string(entry.first);
-        std::visit(
-            [&](auto&& p) {
-                using T = std::decay_t<decltype(p)>;
-                if constexpr (std::is_same_v<arb::init_membrane_potential, T>) {
-                    region_map[region_expr]["Vm"] = p.value;
-                } else if constexpr (std::is_same_v<arb::axial_resistivity, T>) {
-                    region_map[region_expr]["Ra"] = p.value;
-                } else if constexpr (std::is_same_v<arb::temperature_K, T>) {
-                    region_map[region_expr]["celsius"] = p.value - 273.15;
-                } else if constexpr (std::is_same_v<arb::membrane_capacitance, T>) {
-                    region_map[region_expr]["cm"] = p.value;
-                } else if constexpr (std::is_same_v<arb::init_int_concentration, T>) {
-                    region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value;
-                } else if constexpr (std::is_same_v<arb::init_ext_concentration, T>) {
-                    region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value;
-                } else if constexpr (std::is_same_v<arb::init_reversal_potential, T>) {
-                    region_map[region_expr]["ions"][p.ion]["reversal-potential"] = p.value;
-                } else if constexpr (std::is_same_v<arb::mechanism_desc, T>) {
-                    nlohmann::json data;
-                    data["region"] = region_expr;
-                    data["mechanism"] = p.name();
-                    data["parameters"] = p.values();
-                    mechs.push_back(data);
-                }
-            },
-            entry.second);
+
+        auto paintable_visitor = arb::util::overload(
+            [&](arb::init_membrane_potential p) { region_map[region_expr]["Vm"] = p.value; },
+            [&](arb::axial_resistivity p)       { region_map[region_expr]["Ra"] = p.value; },
+            [&](arb::temperature_K p)           { region_map[region_expr]["celsius"] = p.value - 273.15; },
+            [&](arb::membrane_capacitance p)    { region_map[region_expr]["cm"] = p.value; },
+            [&](arb::init_int_concentration p)  { region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value; },
+            [&](arb::init_ext_concentration p)  { region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value; },
+            [&](arb::init_reversal_potential p) { region_map[region_expr]["ions"][p.ion]["reversal_potential"] = p.value; },
+            [&](arb::mechanism_desc p) {
+                nlohmann::json data;
+                data["region"] = region_expr;
+                data["mechanism"] = p.name();
+                data["parameters"] = p.values();
+                mechs.push_back(data);
+            });
+
+        std::visit(paintable_visitor, entry.second);
     }
     for (auto reg: region_map) {
         reg.second["region"] = reg.first;
