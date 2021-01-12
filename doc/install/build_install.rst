@@ -120,6 +120,7 @@ Python
 ~~~~~~
 
 Arbor has a Python frontend, for which a minimum of Python 3.6 is required.
+In addition, `numpy` is a runtime requirement for the Python package.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
 Python package is recommended. See :ref:`install-python` for more information.
@@ -140,6 +141,24 @@ To build a local copy of the html documentation that you are reading now, you wi
 install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
+
+
+External dependencies
+~~~~~~~~~~~~~~~~~~~~~
+
+For the (optional) python bindings Arbor uses `pybind11 <https://github.com/pybind/pybind11>`_, and
+JSON parsing is faciliated through `nlohmann json <https://github.com/nlohmann/json>`_.
+
+There are two ways to obtain these libraries. The default way is to use them from the
+system, e.g., installed via ``apt install python3-pybind11`` and ``apt install nlohmann-json3-dev``
+for a Debian based distribution.
+
+The other possiblity is to use versions of these dependencies that are bundled with Arbor
+via the CMAKE option `ARB_USE_BUNDLED_LIBS`.
+If set, `pybind11 <https://github.com/pybind/pybind11>`_ is retrieved from a Git submodule (see below)
+and `nlohmann json <https://github.com/nlohmann/json>`_ from a copy in the checked out sources.
+
+It is also possible to select only one of the two libraries to be taken from the system or from Arbor.
 
 Getting the code
 ================
@@ -194,7 +213,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
     # 2) Use CMake to configure the build.
     # By default Arbor builds in release mode, i.e. with optimizations on.
     # Release mode should be used for installing and benchmarking Arbor.
-    cmake ..
+    cmake .. # add -DARB_USE_BUNDLED_LIBS=ON to use bundled/git-submoduled libs
 
     # 3.1) Build Arbor library.
     make -j 4
@@ -421,29 +440,23 @@ system with the executable in ``/usr/bin/python3.8``:
 
     cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
-By default the Python module will be installed in the standard ``CMAKE_INSTALL_PREFIX``
-location. To install the module in a different location, for example as a
-user module or in a virtual environment, set ``ARB_PYTHON_PREFIX``.
-For example, the CMake configuration for targetting Python 3.8 and install as a
+By default the Python module will be installed in the directory returned by
+``${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))"``.
+This returns the directory where the supplied or found ``PYTHON_EXECUTABLE`` looks for system packages.
+`See Python's sysconfig documentation <https://docs.python.org/3/library/sysconfig.html#installation-paths>`_.
+If CMake is run in a `venv` or Conda environment, this should pick up on the appropriate package directory.
+To install the module in a different location, set ``ARB_PYTHON_LIB_PATH`` to a custom path.
+For example, the CMake configuration for targeting Python 3.8 and install as a
 user site package might look like the following:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON                   \
-             -DARB_PYTHON_PREFIX=${HOME}/.local     \
-             -DPYTHON_EXECUTABLE=/user/bin/python3.8
+    cmake .. -DARB_WITH_PYTHON=ON                                              \
+             -DARB_PYTHON_LIB_PATH=${HOME}/.local/lib/python3.8/site-packages/ \
+             -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
 On the target LINUX system, the Arbor package was installed in
 ``/home/$USER/.local/lib/python3.8/site-packages``.
-
-.. Note::
-    By default CMake sets ``CMAKE_INSTALL_PREFIX`` to ``/usr/local`` on Linux and OS X.
-    The compiled libraries are installed in ``/usr/local/lib``, headers are installed in
-    ``/usr/local/include``, and the Python module will be installed in a path like
-    ``/usr/local/lib/python3.8/site-packages``.
-    Because ``/usr/local`` is a system path, the installation phase needs to be run as root,
-    i.e. ``sudo make install``, even if ``ARB_PYTHON_PREFIX`` is set to a user path
-    that does not require root to install.
 
 The Arbor Python wrapper has optional support for the mpi4py, though
 it is not required to use Arbor with Python and MPI.

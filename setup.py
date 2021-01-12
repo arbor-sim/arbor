@@ -18,7 +18,8 @@ class CL_opt:
             CL_opt.instance = {'mpi': False,
                                'gpu': 'none',
                                'vec': False,
-                               'arch': 'native'}
+                               'arch': 'native',
+                               'bundled': True}
 
     def settings(self):
         return CL_opt.instance
@@ -52,7 +53,8 @@ class install_command(install):
         ('gpu=',  None, 'enable nvidia cuda support (requires cudaruntime and nvcc) or amd hip support. Supported values: '
                         'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
-        ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a'),
+        ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
+        ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.')
     ]
 
     def initialize_options(self):
@@ -61,6 +63,7 @@ class install_command(install):
         self.gpu  = None
         self.arch = None
         self.vec  = None
+        self.sysdeps = None
 
     def finalize_options(self):
         install.finalize_options(self)
@@ -76,6 +79,9 @@ class install_command(install):
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
         opt['arch'] = "native" if self.arch is None else self.arch
+        #   bundled : use bundled/git-submoduled 3rd party libraries.
+        #             By default use bundled libs.
+        opt['bundled'] = self.sysdeps is None
 
         install.run(self)
 
@@ -106,6 +112,7 @@ class cmake_build(build_ext):
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(opt['arch']),
             '-DARB_GPU={}'.format(opt['gpu']),
+            '-DARB_USE_BUNDLED_LIBS={}'.format('on' if opt['bundled'] else 'off'),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]
 
@@ -145,7 +152,7 @@ setuptools.setup(
     version=version_,
     python_requires='>=3.6',
 
-    install_requires=[],
+    install_requires=['numpy'],
     setup_requires=[],
     zip_safe=False,
     ext_modules=[cmake_extension('arbor')],

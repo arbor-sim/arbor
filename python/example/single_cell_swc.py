@@ -23,7 +23,7 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morpho = arbor.load_swc(filename)
+morpho = arbor.load_swc_arbor(filename)
 
 # Define the regions and locsets in the model.
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.

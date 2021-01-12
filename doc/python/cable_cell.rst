@@ -192,7 +192,7 @@ Cable cells
 
     .. note::
         The regions and locsets defined in the label dictionary are
-        :ref:`concretised <labels-concretise>` when the cable cell is constructed,
+        :ref:`thingified <labels-thingify>` when the cable cell is constructed,
         and an exception will be thrown if an invalid label expression is found.
 
         There are two reasons an expression might be invalid:
@@ -207,7 +207,7 @@ Cable cells
         import arbor
 
         # Construct the morphology from an SWC file.
-        tree = arbor.load_swc('granule.swc')
+        tree = arbor.load_swc_arbor('granule.swc')
         morph = arbor.morphology(tree)
 
         # Define regions using standard SWC tags

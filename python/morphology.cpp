@@ -234,7 +234,7 @@ void register_morphology(py::module& m) {
 
     // Function that creates a morphology from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
-    m.def("load_swc",
+    m.def("load_swc_arbor",
         [](std::string fname) {
             std::ifstream fid{fname};
             if (!fid.good()) {

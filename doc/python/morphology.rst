@@ -317,7 +317,7 @@ Cell morphology
             :param int i: branch index
             :rtype: list
 
-.. py:function:: load_swc(filename)
+.. py:function:: load_swc_arbor(filename)
 
     Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
     (See the morphology concepts :ref:`page <morph-formats>` for more details).

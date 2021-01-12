@@ -246,9 +246,18 @@ Mechanism catalogues
     2. A further hierarchy of *derived* mechanisms, that allow specialization of
        global parameters, ion bindings, and implementations.
 
-    .. py:method:: has(name)
+    .. py:method:: __contains__(name)
 
         Test if mechanism with *name* is in the catalogue.
+
+        Note: This enables the following idiom
+
+        .. code-block:: Python
+
+            import arbor
+
+            if 'hh' in arbor.default_catalogue():
+              print("Found HH mechanism.")
 
         :param name: name of mechanism.
         :type name: str
@@ -280,11 +289,20 @@ Mechanism catalogues
         :return: mechanism metadata
         :rtype: :class:`mechanism_info`
 
-    .. py:method:: names()
+    .. py:method:: __iter___()
 
         Return a list names of all the mechanisms in the catalogue.
 
-        :return: list
+        Note: This enables the following idiom
+
+        .. code-block:: Python
+
+            import arbor
+
+            for name in arbor.default_catalogue():
+              print(name)
+
+        :return: :class:`py_mech_cat_iterator`
 
     .. py:method:: derive(name, parent, globals={}, ions={})
 

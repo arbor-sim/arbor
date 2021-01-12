@@ -81,7 +81,7 @@ if which xcrun >/dev/null; then
     typeset -x CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}":$(xcrun --sdk macosx --show-sdk-path)/usr
 fi
 
-cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_WITH_NEUROML=${WITH_NEUROML} -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} -DARB_ARCH=${ARCH} ${CXX_FLAGS} ${PY_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=ON -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=${WITH_NEUROML} -DARB_WITH_MPI=${WITH_MPI} -DARB_WITH_PYTHON=${ARB_WITH_PYTHON} -DARB_ARCH=${ARCH} ${CXX_FLAGS} ${PY_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
@@ -107,17 +107,21 @@ fi
 
 if [[ "${WITH_PYTHON}" == "true" ]]; then
     progress "Building python module"
-    make pyarb -j4                                                                              || error "building pyarb"
+    make pyarb -j4                                                                                || error "building pyarb"
     progress "Python unit tests"
-    python$PY $python_path/test/unit/runner.py -v2                                              || error "running python unit tests (serial)"
+    python$PY $python_path/test/unit/runner.py -v2                                                || error "running python unit tests (serial)"
     progress "Python example: network_ring"
-    python$PY $python_path/example/network_ring.py                                              || error "running python network_ring example"
+    python$PY $python_path/example/network_ring.py                                                || error "running python network_ring example"
     progress "Python example: single_cell_model"
-    python$PY $python_path/example/single_cell_model.py                                         || error "running python single_cell_model example"
+    python$PY $python_path/example/single_cell_model.py                                           || error "running python single_cell_model example"
     progress "Python example: single_cell_recipe"
-    python$PY $python_path/example/single_cell_recipe.py                                        || error "running python single_cell_recipe example"
+    python$PY $python_path/example/single_cell_recipe.py                                          || error "running python single_cell_recipe example"
+    progress "Python example: single_cell_detailed"
+    python$PY $python_path/example/single_cell_detailed.py $python_path/example/morph.swc         || error "running python single_cell_detailed example"
+    progress "Python example: single_cell_detailed_recipe"
+    python$PY $python_path/example/single_cell_detailed_recipe.py $python_path/example/morph.swc  || error "running python single_cell_detailed_recipe example"
     progress "Python example: single_cell_swc"
-    python$PY $python_path/example/single_cell_swc.py  $base_path/test/unit/swc/pyramidal.swc   || error "running python single_cell_swc example"
+    python$PY $python_path/example/single_cell_swc.py  $base_path/test/unit/swc/pyramidal.swc     || error "running python single_cell_swc example"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
         if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
             progress "Python distributed unit tests (MPI)"

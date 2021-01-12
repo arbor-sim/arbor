@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
+include(CMakeDependentOption)
 
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
@@ -39,6 +40,10 @@ option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
 set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
 set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
 
+# Use bundled 3rd party libraries
+
+option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
+
 #----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
@@ -60,13 +65,6 @@ option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
 #----------------------------------------------------------
 
 option(ARB_WITH_PYTHON "enable Python front end" OFF)
-
-# Path in which to install the Python module.
-# For Python 3.8, the module would ibe installed in
-#       ${ARB_PYTHON_PREFIX}/python3.8/site-packages
-# To install Arbor eqivalently to `pip install --user` on a linux system:
-#       -DARB_PYTHON_PREFIX="${HOME}/.local/lib""
-set(ARB_PYTHON_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE PATH "path for installing Python module for Arbor.")
 
 #----------------------------------------------------------
 # Global CMake configuration
@@ -207,6 +205,13 @@ install(TARGETS arbornml-public-deps EXPORT arbornml-targets)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
+cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
+if(NOT ARB_USE_BUNDLED_JSON)
+  find_package(nlohmann_json)
+  set(json_library_name nlohmann_json::nlohmann_json)
+else()
+  unset(nlohmann_json_DIR CACHE)
+endif()
 add_subdirectory(ext)
 
 # Keep track of packages we need to add to the generated CMake config
@@ -240,11 +245,33 @@ endif()
 
 # Python bindings
 #----------------------------------------------------------
+
+# The minimum version of Python supported by Arbor.
+set(arb_py_version 3.6.0)
+
+if(DEFINED PYTHON_EXECUTABLE)
+    set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
+endif()
+
 if(ARB_WITH_PYTHON)
+    cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
+
+    find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
+
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+else()
+    # If not building the Python module, the interpreter is still required
+    # to build some targets, e.g. when building the documentation.
+    find_package(Python3 ${arb_py_version} COMPONENTS Interpreter)
 endif()
+
+if(${Python3_FOUND})
+    set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+    message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+endif()
+
 
 # Threading model
 #-----------------

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <exception>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
@@ -17,6 +18,12 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
                                            const recipe& rec):
     gids_(gids)
 {
+    for (auto gid: gids_) {
+        if (!rec.get_probes(gid).empty()) {
+            throw bad_cell_probe(cell_kind::benchmark, gid);
+        }
+    }
+
     cells_.reserve(gids_.size());
     for (auto gid: gids_) {
         cells_.push_back(util::any_cast<benchmark_cell>(rec.get_cell_description(gid)));
