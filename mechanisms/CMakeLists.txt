@@ -1,5 +1,6 @@
 include(BuildModules.cmake)
 
+# Define catalogues
 make_catalogue(
   NAME bbp
   SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/bbp"
@@ -18,7 +19,12 @@ make_catalogue(
   OUTPUT "CAT_DEFAULT_SOURCES"
   MECHS exp2syn expsyn hh kamt kdrmt nax nernst pas)
 
-set(arbor_mechanism_sources ${CAT_BBP_SOURCES} ${CAT_ALLEN_SOURCES} ${CAT_DEFAULT_SOURCES} PARENT_SCOPE)
+# Join sources
+set(arbor_mechanism_sources
+  ${CAT_BBP_SOURCES}
+  ${CAT_ALLEN_SOURCES}
+  ${CAT_DEFAULT_SOURCES}
+  PARENT_SCOPE)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)

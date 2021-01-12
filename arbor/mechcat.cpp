@@ -588,14 +588,17 @@ const mechanism_catalogue& load_catalogue(const std::string& fn) {
     auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
     if (!plugin) {
         auto error = dlerror();
-        throw arb::arbor_exception(error);
+        throw arb::dynamic_catalogue_error(fn, error);
     }
 
     auto get_catalogue = (global_catalogue_t*) dlsym(plugin, "get_catalogue");
     auto error = dlerror();
     if (error) {
-        throw arb::arbor_exception(error);
+        throw arb::dynamic_catalogue_error(fn, error);
     }
+
+    // NOTE We do not free the handle here.
+
     return get_catalogue();
 }
 

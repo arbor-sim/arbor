@@ -35,10 +35,15 @@ Built-in Catalogues
 Arbor provides the *default* catalogue with the following mechanisms:
 
 * *pas*: Leaky current (:ref:`density mechanism <mechanisms-density>`).
-* *hh*:  Classic Hodgkin-Huxley dynamics (:ref:`density mechanism <mechanisms-density>`).
-* *nernst*: Calculate reversal potential for an ionic species using the Nernst equation (:ref:`reversal potential mechanism <mechanisms-revpot>`)
-* *expsyn*: Synapse with discontinuous change in conductance at an event followed by an exponential decay (:ref:`point mechanism <mechanisms-point>`).
-* *exp2syn*: Bi-exponential conductance synapse described by two time constants: rise and decay (:ref:`point mechanism <mechanisms-point>`).
+* *hh*: Classic Hodgkin-Huxley dynamics (:ref:`density mechanism
+  <mechanisms-density>`).
+* *nernst*: Calculate reversal potential for an ionic species using the Nernst
+  equation (:ref:`reversal potential mechanism <mechanisms-revpot>`). **NB**
+  This is not meant to be used directly
+* *expsyn*: Synapse with discontinuous change in conductance at an event
+  followed by an exponential decay (:ref:`point mechanism <mechanisms-point>`).
+* *exp2syn*: Bi-exponential conductance synapse described by two time constants:
+  rise and decay (:ref:`point mechanism <mechanisms-point>`).
 
 With the exception of *nernst*, these mechanisms are the same as those available in NEURON.
 
@@ -47,8 +52,9 @@ Two catalogues are provided that collect mechanisms associated with specific pro
 * *bbp* For models published by the Blue Brain Project (BBP).
 * *allen* For models published on the Allen Brain Atlas Database.
 
-Further catalogues can be added by extending the list of built-in catalogues in the arbor source tree
-or by compiling a dynamically loadable catalogue (:ref:`extending catalogues <extending-catalogues>`).
+Further catalogues can be added by extending the list of built-in catalogues in
+the arbor source tree or by compiling a dynamically loadable catalogue
+(:ref:`extending catalogues <extending-catalogues>`).
 
 Parameters
 ''''''''''

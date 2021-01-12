@@ -8,6 +8,7 @@
 
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
+#include <arbor/arbexcept.hpp>
 
 // Mechanism catalogue maintains:
 //
@@ -38,6 +39,11 @@
 // derived mechanism as simply "mech/newion".
 
 namespace arb {
+
+struct dynamic_catalogue_error: arbor_exception {
+    dynamic_catalogue_error(const std::string& fn, const std::string& error):
+        arbor_exception("Error while loading dynamic catalogue '" + fn + "': " + error) {}
+};
 
 // catalogue_state comprises the private implementation of mechanism_catalogue.
 struct catalogue_state;

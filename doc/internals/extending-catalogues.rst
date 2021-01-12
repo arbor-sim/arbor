@@ -1,3 +1,5 @@
+.. _extending-catalogues:
+
 Adding Catalogues to Arbor
 ==========================
 
@@ -11,13 +13,14 @@ build Arbor in addition to the installed library.
 Static Extensions
 '''''''''''''''''
 
-This will produce a catalogue of the same level of integration as the built-in catalogues
-(*default*, *bbp*, and *allen*). We briefly sketch the required steps here:
+This will produce a catalogue of the same level of integration as the built-in
+catalogues (*default*, *bbp*, and *allen*). We briefly sketch the required steps
+here:
 
 1. Go to the Arbor source tree.
-1. Create a new directory under *mechanisms*.
-1. Add your .mod files.
-1. Edit *mechanisms/CMakeLists.txt* to add a definition like this
+2. Create a new directory under *mechanisms*.
+3. Add your .mod files.
+4. Edit *mechanisms/CMakeLists.txt* to add a definition like this
 
    .. code-block :: cmake
 
@@ -28,23 +31,24 @@ This will produce a catalogue of the same level of integration as the built-in c
        MECHS <names>)                                    # Space separated list of mechanism
                                                          # names w/o .mod suffix.
 
-1. Add your `output-name` to the `arbor_mechanism_sources` list.
-1. Add a `global_NAME_catalogue` function in `mechcat.hpp` and `mechcat.cpp`
-1. Bind this function in `python/mechanisms.cpp`.
+5. Add your `output-name` to the `arbor_mechanism_sources` list.
+6. Add a `global_NAME_catalogue` function in `mechcat.hpp` and `mechcat.cpp`
+7. Bind this function in `python/mechanisms.cpp`.
 
 All steps can be more or less copied from the surrounding code.
 
 Dynamic Extensions
 ''''''''''''''''''
 
-This will produce a catalogue loadable at runtime by eg calling `load_catalogue` with a
-filename in both C++ and Python. The steps are
+This will produce a catalogue loadable at runtime by eg calling `load_catalogue`
+with a filename in both C++ and Python. The steps are
 
-1. Prepare a directory `dir` containing your NMODL files (.mod suffixes required)
-1. Call `build_catalogue.py` from the `scripts` directory like this
+1. Prepare a directory containing your NMODL files (.mod suffixes required)
+2. Call `build_catalogue` from the `scripts` directory like this
 
    .. code-block :: bash
 
-   build-catalogue.py -C <name> -I <path/to/nmodl> -S <path/to/source/tree> -A <path/to/installed/arbor>
+     build-catalogue <name> <path/to/nmodl>
 
-All files with the suffix `.mod` will be baked into a catalogue named `<name>_catalogue.so`.
+All files with the suffix `.mod` located `<path/to/nmodl>` in will be baked into
+a catalogue named `<name>.cat` and placed into your current working directory.
