@@ -20,7 +20,7 @@ class recipe(arb.recipe):
         arb.recipe.__init__(self)
         self.tree = arb.segment_tree()
         self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
-        self.props = arb.neuron_cable_propetries()
+        self.props = arb.neuron_cable_properties()
         try:
             self.cat = arb.load_catalogue('lib/default.cat')
             self.props.register(self.cat)
@@ -63,9 +63,9 @@ class Catalogues(unittest.TestCase):
         except:
             print("BBP catalogue not found. Are you running from build directory?")
             raise
-        nms = cat.keys()
+        nms = [m for m in cat]
         nms.sort()
-        exp = arb.bbp_catalogue().keys()
+        exp = [m for m in arb.bbp_catalogue()]
         exp.sort()
         self.assertEqual(nms, exp, "Expected equal names.")
         for nm in nms:
