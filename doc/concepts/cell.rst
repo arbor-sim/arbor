@@ -119,9 +119,9 @@ It details everything needed to build a cell. The degree of detail differs accor
      * Initial temperature.
      * Initial ion internal and external concentrations.
      * Initial ion reversal potential.
-     * Stimuli: such as current clamps; placed on specific :ref:`locations <labels-locset>` on the cell.
+     * Stimuli: such as current clamps; placed on specific :term:`locations <locset>` on the cell.
      * :ref:`Density mechanisms <mechanisms-density>`: commonly used to describe ion-channel dynamics across
-       :ref:`regions <labels-region>` of the cell.
+       :term:`regions <region>` of the cell.
      * :ref:`Ion reversal potential mechanisms <mechanisms-revpot>`: used to control the reversal potentials of
        ions across regions of the cell.
      * Synapses: implemented using :ref:`point mechanisms <mechanisms-point>` on specific locations of the cell;

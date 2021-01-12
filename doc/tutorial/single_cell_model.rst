@@ -64,7 +64,7 @@ the proximal :class:`arbor.mpoint` (location and radius) of the segment; the dis
 of the segment; and the tag.
 
 Step **(2)** creates a dictionary of labels (:class:`arbor.label_dict<arbor.label_dict>`). Labels give
-names to :ref:`regions<labels-region>` and :ref:`location<labels-locset>` described using a DSL
+names to :term:`regions<region>` and :term:`location<locset>` described using a DSL
 based on s-expressions. Labels from the dictionary can then be used to facilitate adding synapses,
 dynamics, stimulii and probes to the cell. We add two labels:
 
@@ -156,7 +156,7 @@ We should be seeing something like this:
 
 .. figure:: single_cell_model_result.svg
     :width: 400
-    :align: midpoint
+    :align: center
 
     Plot of the potential over time for the voltage probe added in step (6).
 

@@ -70,7 +70,7 @@ Single cell model
 
 .. Note::
 
-   The :class:`single_cell_model` is used in our :ref:`tutorials <gs_other_examples>`.
+   The :class:`single_cell_model` is used in our :ref:`tutorials <tutorial>`.
    The examples illustrate how to construct a :class:`cable_cell` and use it to form
    a :class:`single_cell_model`; how to add probes; how to run the model; and how to
    visualize the results.

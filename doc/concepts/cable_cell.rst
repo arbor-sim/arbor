@@ -45,7 +45,7 @@ Decoration
 
 The distribution and placement of dynamics on a cable cell is called the *decor* of a cell.
 A decor is composed of individual *decorations*, which associate a property or dynamic process
-with a :ref:`region <labels-region>` or :ref:`locset <labels-locset>`.
+with a :term:`region` or :term:`locset`.
 The choice of region or locset is reflected in the two broad classes of dynamics on cable cells:
 
 * *Painted dynamics* are applied to regions of a cell, and are associated with

@@ -113,7 +113,7 @@ Segment trees
     designed to support both the diverse descriptions of cell morphologies (e.g. SWC, NeuroLicida, NeuroML),
     and tools that iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
 
-:term:`Segment trees <segment tree>` comprise a sequence of segments starting from
+Segment trees comprise a sequence of segments starting from
 at lease one :term:`root` segment, together with a parent-child adjacency relationship
 where a child segment is distal to its parent. Branches in the tree occur where a segment
 has more than one child. Furthermore, a segment can not have more than one parent.
@@ -367,7 +367,7 @@ multiple soma and dendrite segments in branch 0.
    This representation of the cell morphology in terms of *branches* is what
    Arbor uses to create a :ref:`cable cell <cablecell>`, and it is how Arbor
    view's the cell's geometry and refers to it internally.
-   :ref:`Regions <labels-region>` and :ref:`locsets <labels-locset>` formed
+   :term:`Regions <region>` and :term:`locsets <locset>` formed
    on the cell, are eventually represented either as
    :ref:`subsets of branches <labels-cables>` of the morphology, or exact
    :ref:`locations on branches <labels-locations>` of the morphology.
