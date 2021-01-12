@@ -15,6 +15,43 @@ except ModuleNotFoundError:
 tests for (dynamically loaded) catalogues
 """
 
+class recipe(arb.recipe):
+    def __init__(self):
+        arb.recipe.__init__(self)
+        self.tree = arb.segment_tree()
+        self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
+        self.props = arb.neuron_cable_propetries()
+        try:
+            self.cat = arb.load_catalogue('lib/default.cat')
+            self.props.register(self.cat)
+        except:
+            print("Catalogue not found. Are you running from build directory?")
+            raise
+
+        d = arb.decor()
+        d.paint('(all)', 'pas')
+        d.set_property(Vm=0.0)
+        self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
+
+    def global_properties(self, _):
+        return self.props
+
+    def num_cells(self):
+        return 1
+
+    def num_targets(self, gid):
+        return 0
+
+    def num_sources(self, gid):
+        return 0
+
+    def cell_kind(self, gid):
+        return arb.cell_kind.cable
+
+    def cell_description(self, gid):
+        return self.cell
+
+
 class Catalogues(unittest.TestCase):
     def test_nonexistent(self):
         with self.assertRaises(RuntimeError):
@@ -31,9 +68,18 @@ class Catalogues(unittest.TestCase):
         exp = arb.bbp_catalogue().keys()
         exp.sort()
         self.assertEqual(nms, exp, "Expected equal names.")
-        mch = cat['Im']
-        prm = list(mch.parameters.keys())
-        self.assertEqual(prm, ['gImbar'], "Expected equal parameters on mechanism 'Im'.")
+        for nm in nms:
+            prm = list(cat[nm].parameters.keys())
+            exp = list(arb.bbp_catalogue()[nm].parameters.keys())
+            self.assertEqual(prm, exp, "Expected equal parameters on mechanism '{}'.".format(nm))
+
+    def test_simulation(self):
+        rcp = recipe()
+        ctx = arb.context()
+        dom = arb.partition_load_balance(rcp, ctx)
+        sim = arb.simulation(rcp, dom, ctx)
+        sim.run(tfinal=30)
+
 
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts

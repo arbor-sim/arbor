@@ -119,7 +119,6 @@ const mechanism_catalogue& global_${catalogue}_catalogue() {
 } // namespace arb
 
 #ifdef STANDALONE
-#warning "standlone ${catalogue} catalogue"
 extern "C" {
     const arb::mechanism_catalogue& get_catalogue() {
         static auto cat = arb::build_${catalogue}_catalogue();
