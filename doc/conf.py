@@ -15,7 +15,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
-    'sphinx.ext.coverage'
+    'sphinx.ext.graphviz'
 ]
 source_suffix = '.rst'
 master_doc = 'index'

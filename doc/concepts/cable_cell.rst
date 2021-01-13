@@ -9,15 +9,39 @@ channels, synapses, gap junction sites, stimuli and spike detectors.
 
 Cable cells are constructed from three components:
 
-* :ref:`Morphology <morph>`: a decription of the geometry and branching structure of the cell shape.
-* :ref:`Label dictionary <labels>`: a set of rules that refer to regions and locations on the cell.
+* :ref:`Morphology <morph>`: a description of the geometry and branching structure of the cell shape.
+* :ref:`Label dictionary <labels>`: a set of definitions and a :abbr:`DSL (domain specific language)` that refer to regions and locations on the cell morphology.
 * :ref:`Decor <cablecell-decoration>`: a description of the dynamics on the cell, placed according to the named rules in the dictionary.
 
-When a cable cell is constructued the following steps are performed using the inputs:
+The decor can make reference to particular mechanisms and mechanism catalogues. More on mechanisms at :ref:`mechanisms`.
 
-1. Concrete regions and locsets are generated for the morphology for each labeled region and locset in the dictionary
+
+.. graphviz::
+  :align: center
+  :caption: The three main ingredients of the cable cell: morphology, labels, decor. A defined morphology enables referring to parts of it through the label DSL, references which can be stored as named labels. A decor places (or paints) properties such as mechanisms onto precise places (labels) on the morphology. Straight lines represent inputs, dashed lines references.
+
+  digraph {
+    nodesep=1
+    subgraph inputs {
+      rank=same
+      morphology
+      labels
+      decor
+    }
+    morphology -> "cable cell"
+    labels -> "cable cell"
+    decor -> "cable cell"
+    labels -> morphology [style=dashed]
+    decor -> mechanisms [style=dashed]
+    decor -> labels [style=dashed]
+  }
+
+
+When a cable cell is constructed the following steps are performed using the inputs:
+
+1. Concrete regions and locsets are generated for the morphology for each labelled region and locset in the dictionary
 2. The default values for parameters specified in the decor, such as ion species concentration, are instantiated.
-3. Dynamics (mechanisms, parameters, synapses, etc.) are instaniated on the regions and locsets as specified by the decor.
+3. Dynamics (mechanisms, parameters, synapses, etc.) are instantiated on the regions and locsets as specified by the decor.
 
 Once constructed, the cable cell can be queried for specific information about the cell, but it can't be modified (it is *immutable*).
 
@@ -34,6 +58,7 @@ Once constructed, the cable cell can be queried for specific information about t
     * all cells of the same type (e.g. Purkinje) have the same dynamics defined on their respective regions.
 
     The basic building blocks required to construct all of the cells for the model would be:
+
     * 6 morphologies (2 for each of purkinje, granule and pyramidal).
     * 3 decors (1 for each of purkinje, granule and pyramidal).
     * 1 label dictionary that defines the region types.
