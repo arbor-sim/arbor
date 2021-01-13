@@ -401,13 +401,13 @@ Ionic external concentration
    Metadata: the list of corresponding :class:`cable` objects.
 
 
-.. _pycablecell-cv-policies:
+.. _pymorph-cv-policies:
 
 Discretisation and CV policies
 ------------------------------
 
 The set of boundary points used by the simulator is determined by a
-:ref:`CV policy <cablecell-cv-policies>`. These are objects of type
+:ref:`CV policy <morph-cv-policies>`. These are objects of type
 :cpp:class:`cv_policy`, which has the following public methods:
 
 .. py:class:: cv_policy
@@ -417,12 +417,12 @@ The set of boundary points used by the simulator is determined by a
        A read only string expression describing the subset of a cell morphology
        (region) on which this policy has been declared.
 
-   CV policies can be :ref:`composed <cablecell-cv-composition>` with
+   CV policies can be :ref:`composed <morph-cv-composition>` with
    ``+`` and ``|`` operators.
 
    .. code-block:: Python
 
-       # The plus operator applies 
+       # The plus operator applies
        policy = arbor.cv_policy_single('"soma"') + cv_policy('"dend"')
 
        # The | operator uses CVs of length 10 μm everywhere, except

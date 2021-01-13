@@ -586,7 +586,7 @@ Discretisation and CV policies
 ------------------------------
 
 The set of boundary points used by the simulator is determined by a
-:ref:`CV policy <cablecell-cv-policies>`. These are objects of type
+:ref:`CV policy <morph-cv-policies>`. These are objects of type
 :cpp:class:`cv_policy`, which has the following public methods:
 
 .. cpp:class:: cv_policy
@@ -608,7 +608,7 @@ differing discretisations on different parts of a cell morphology. When a CV
 policy is constrained in this manner, the boundary of the domain will always
 constitute part of the CV boundary point set.
 
-CV policies can be :ref:`composed <cablecell-cv-composition>` with ``+`` and ``|`` operators.
+CV policies can be :ref:`composed <morph-cv-composition>` with ``+`` and ``|`` operators.
 For two policies
 *A* and *B*, *A* + *B* is a policy which gives boundary points from both *A*
 and *B*, while *A* | *B* is a policy which gives all the boundary points from
