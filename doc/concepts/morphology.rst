@@ -17,7 +17,9 @@ proper definition for a morphology:
 .. glossary::
 
   mpoint
-    A point in 3D space has three coordinates. In Arbor, we add a fourth coordinate: radius. The mpoint thus represents the centre of a cable and the radius represents the cross-sectional radius of the cable.
+    A point in 3D space has three coordinates. In Arbor, we add a fourth coordinate:
+    radius. The mpoint thus represents the centre of a cable and the radius represents
+    the cross-sectional radius of the cable.
 
 .. csv-table:: The properties of a :term:`point <mpoint>`, in the context of cable cell morphologies.
    :widths: 10, 10, 30
@@ -99,7 +101,14 @@ With these definitions, we can create proper definitions for *morphology* and *s
 
 .. note::
 
-  NEURON uses different nomenclature for segments and branches. What's called a *section* in NEURON corresponds to an Arbor :term:`branch`. Arbor uses truncated cones to represent branches and segments, Neuron uses a weighted average radius to create cylinders (see "trapezoidal integration" in the `Neuron documentation <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/topology/geometry.html>`_.). The number of *segments* (`nseg`) that NEURON uses for control over discretisation corresponds to an Arbor :term:`control volume`.
+  NEURON uses different nomenclature for segments and branches. The segments that
+  NEURON uses for control over discretisation (by assigning nseg segments per section)
+  most closely correspond to :term:control volumes <control volume> in Arbor. Arbor
+  uses truncated cones to represent branches and segments, Neuron uses a weighted
+  average radius to create cylinders (see "trapezoidal integration" in the
+  `Neuron documentation <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/topology/geometry.html>`_.).
+  The number of *segments* (`nseg`) that NEURON uses for control over discretisation
+  corresponds to an Arbor :term:`control volume`.
 
 .. _morph-segment_tree:
 
@@ -117,7 +126,7 @@ Segment trees comprise a sequence of segments starting from
 at lease one :term:`root` segment, together with a parent-child adjacency relationship
 where a child segment is distal to its parent. Branches in the tree occur where a segment
 has more than one child. Furthermore, a segment can not have more than one parent.
-In this manner, neuron morphologies are modelled as a :term:`tree`, where cables that
+In this manner, neuron morphologies are modelled as a tree, where cables that
 represent dendrites and axons can branch, but branches can not rejoin.
 
 .. _morph-segment-definitions:

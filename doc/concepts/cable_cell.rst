@@ -347,7 +347,9 @@ Discretisation and CV policies
     in the CV.
 
 .. Note::
-    In NEURON discretisation is controlled through splitting a NEURON section into a number of NEURON segments (`nseg`, by default to `1`). Note that a NEURON segment is not the same as an Arbor :term:`segment`!
+    In NEURON discretisation is controlled through splitting a NEURON section into a
+    number of NEURON segments (`nseg`, `1` by default). Note that a NEURON segment is
+    not the same as an Arbor :term:`segment`!
 
 .. glossary::
 
