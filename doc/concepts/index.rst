@@ -56,3 +56,4 @@ meter manager is available.
    morphology
    labels
    mechanisms
+   decor

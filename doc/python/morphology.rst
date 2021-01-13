@@ -480,3 +480,79 @@ Cable cell morphology
        Compose the two isometries to form a new isometry that applies *b* and then applies *a*.
        Note that rotations are composed as being with respect to the *intrinsic* coordinate system,
        while translations are always taken to be with respect to the *extrinsic* absolute coordinate system.
+
+.. _pymorph-cv-policies:
+
+Discretisation and CV policies
+------------------------------
+
+The set of boundary points used by the simulator is determined by a
+:ref:`CV policy <morph-cv-policies>`. These are objects of type
+:cpp:class:`cv_policy`, which has the following public methods:
+
+.. py:class:: cv_policy
+
+   .. attribute:: domain
+
+       A read only string expression describing the subset of a cell morphology
+       (region) on which this policy has been declared.
+
+   CV policies can be :ref:`composed <morph-cv-composition>` with
+   ``+`` and ``|`` operators.
+
+   .. code-block:: Python
+
+       # The plus operator applies
+       policy = arbor.cv_policy_single('"soma"') + cv_policy('"dend"')
+
+       # The | operator uses CVs of length 10 μm everywhere, except
+       # on the soma, to which a single CV policy is applied.
+       policy = arbor.cv_policy_max_extent(10) | cv_policy_single('"soma"')
+
+Specific CV policy objects are created by functions described below.
+These all take a ``region`` parameter that restrict the
+domain of applicability of that policy; this facility is useful for specifying
+differing discretisations on different parts of a cell morphology. When a CV
+policy is constrained in this manner, the boundary of the domain will always
+constitute part of the CV boundary point set.
+
+.. py:function:: cv_policy_single(domain='(all)')
+
+    Use one CV for the whole cell, or one for each connected component of the
+    supplied domain.
+
+    .. code-block:: Python
+
+        # Use one CV for the entire cell (a single compartment model)
+        single_comp = arbor.cv_policy_single()
+
+        # Use a single CV for the soma.
+        single_comp_soma = arbor.cv_policy_single('"soma"')
+
+    :param str domain: The region on which the policy is applied.
+
+.. py:function:: cv_policy_every_segment(domain='(all)')
+
+    Use every sample point in the morphology definition as a CV boundary, optionally
+    restricted to the supplied domain. Each fork point in the domain is
+    represented by a trivial CV.
+
+    :param str domain: The region on which the policy is applied.
+
+.. py:function:: cv_policy_fixed_per_branch(cv_per_branch, domain='(all)')
+
+    For each branch in each connected component of the domain (or the whole cell,
+    if no domain is given), evenly distribute boundary points along the branch so
+    as to produce exactly ``cv_per_branch`` CVs.
+
+    :param int cv_per_branch: The number of CVs per branch.
+    :param str domain: The region on which the policy is applied.
+
+.. py:function:: cv_policy_max_extent(max_extent, domain='(all)')
+
+    As for :py:func:`cv_policy_fixed_per_branch`, save that the number of CVs on any
+    given branch will be chosen to be the smallest number that ensures no
+    CV will have an extent on the branch longer than ``max_extent`` micrometres.
+
+    :param float max_etent: The maximum length for generated CVs.
+    :param str domain: The region on which the policy is applied.
