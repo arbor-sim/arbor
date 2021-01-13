@@ -12,10 +12,16 @@ voltage. The geometry of the biological cell is approximated as a tree of
 cable segments, which is a :term:`morphology` in Arbor nomenclature.
 
 Let's first define the building blocks out of which we can construct a
-proper definition for a morphology:
+proper definition for a morphology.
+
+.. note::
+  In certain cases, a second term appears in the
+  definitions, where the second term corresponds to the associated type in Python and C++.
+  The ``m`` prefix, short for *morphology*, avoids overly generic type names.
 
 .. glossary::
 
+  point
   mpoint
     A point in 3D space has three coordinates. In Arbor, we add a fourth coordinate:
     radius. The mpoint thus represents the centre of a cable and the radius represents
@@ -34,6 +40,7 @@ proper definition for a morphology:
 .. glossary::
 
   segment
+  msegment
     A segment is a frustum (cylinder or truncated cone), with the center and radius at each
     end defined by a pair of :term:`points <mpoint>`. In other words, in Arbor the radius between two points is interpolated
     linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
@@ -44,9 +51,9 @@ proper definition for a morphology:
    :align: center
 
    **Field**,      **Type**,                           **Description**
-   ``prox``,       :py:class:`point <arbor.mpoint>`,   the center and radius of the proximal end.
-   ``dist``,       :py:class:`point <arbor.mpoint>`,   the center and radius of the distal end.
-   ``tag``,        integer (:term:`tag`),              "tag meta-data, can be used to classify segments of the same kind (ex: soma, dendrite, but also arbitrary use-defined groups"
+   ``prox``,       :term:`mpoint`,   the center and radius of the proximal end.
+   ``dist``,       :term:`mpoint`,   the center and radius of the distal end.
+   ``tag``,        integer,              ":term:`tag` meta-data, can be used to classify segments of the same kind (ex: soma, dendrite, but also arbitrary use-defined groups"
 
 .. figure:: ../gen-images/term_segments.svg
   :width: 300
@@ -67,6 +74,7 @@ proper definition for a morphology:
 
 .. glossary::
 
+  location
   mlocation
     A location is not a point in 3D space, but a point in the cable cell morphology's
     coordinate system. It is defined by a specific branch and a position along the length of the branch.
@@ -82,6 +90,7 @@ proper definition for a morphology:
 .. glossary::
 
   cable
+  mcable
     A cable is a subset of a :term:`branch`, and is thus defined as between two :term:`locations <mlocation>` on a particular branch.
 
 .. figure:: ../gen-images/term_cable.svg
@@ -97,18 +106,16 @@ proper definition for a morphology:
     The meaning of tag values are not fixed in Arbor, however we typically use tag values that correspond
     to SWC `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_.
 
-With these definitions, we can create proper definitions for *morphology* and *segment tree*.
+With these definitions, we can create proper definitions for :term:`morphology` and :term:`segment tree`.
 
 .. note::
 
   NEURON uses different nomenclature for segments and branches. The segments that
-  NEURON uses for control over discretisation (by assigning nseg segments per section)
+  NEURON uses for control over discretisation (by assigning ``nseg`` segments per section)
   most closely correspond to :term:control volumes <control volume> in Arbor. Arbor
   uses truncated cones to represent branches and segments, Neuron uses a weighted
   average radius to create cylinders (see "trapezoidal integration" in the
   `Neuron documentation <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/topology/geometry.html>`_.).
-  The number of *segments* (`nseg`) that NEURON uses for control over discretisation
-  corresponds to an Arbor :term:`control volume`.
 
 .. _morph-segment_tree:
 
@@ -118,6 +125,7 @@ Segment trees
 .. glossary::
 
   segment tree
+  segment_tree
     A segment tree describes a morphology as a set of :term:`segments <segment>` and their connections,
     designed to support both the diverse descriptions of cell morphologies (e.g. SWC, NeuroLicida, NeuroML),
     and tools that iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
