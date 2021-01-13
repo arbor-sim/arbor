@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iomanip>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -12,6 +13,50 @@ namespace arborio {
 
 jsonio_error::jsonio_error(const std::string& msg):
     arbor_exception(msg) {}
+
+jsonio_unused_input::jsonio_unused_input(const std::string& key):
+    jsonio_error("Unused input parameter: \"" + key + "\"")
+{}
+
+jsonio_decor_global_load_error::jsonio_decor_global_load_error(const std::string err):
+    jsonio_error("Decor: error loading global parameters: " + err)
+{}
+
+jsonio_decor_global_set_error::jsonio_decor_global_set_error(const std::string err):
+    jsonio_error("Decor: error setting decor global parameters: " + err)
+{}
+
+jsonio_decor_local_missing_region::jsonio_decor_local_missing_region():
+    jsonio_error("Decor: regional parameters must include region label")
+{}
+
+jsonio_decor_local_revpot_mech::jsonio_decor_local_revpot_mech(const std::string& reg, const std::string& ion, const std::string& mech):
+    jsonio_error("Decor: cannot implement regional reversal potential methods: \"" + reg + "\", (\"" + ion + "\", \"" + mech + "\")")
+{}
+
+jsonio_decor_local_load_error::jsonio_decor_local_load_error(const std::string err):
+    jsonio_error("Decor: error loading decor regional parameters: " + err)
+{}
+
+jsonio_decor_local_set_error::jsonio_decor_local_set_error(const std::string err):
+    jsonio_error("Decor: error painting regional parameters: " + err)
+{}
+
+jsonio_decor_mech_missing_region::jsonio_decor_mech_missing_region():
+    jsonio_error("Decor: mechanism description does not include region label")
+{}
+
+jsonio_decor_mech_missing_name::jsonio_decor_mech_missing_name():
+    jsonio_error("Decor: mechanism description does not include mechanism name")
+{}
+
+jsonio_decor_mech_set_error::jsonio_decor_mech_set_error(const std::string& reg, const std::string& mech, const std::string& err):
+    jsonio_error("Decor: Error painting mechanism \"" + mech + "\" on region \"" + reg + "\": " + err)
+{}
+
+jsonio_json_parse_error::jsonio_json_parse_error(const std::string err):
+    jsonio_error("Error parsing json : " + err)
+{}
 
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(nlohmann::json& params_json) {
     arb::cable_cell_parameter_set params;
@@ -52,7 +97,7 @@ arb::cable_cell_parameter_set load_cable_cell_parameter_set(nlohmann::json& para
         }
     }
     if (!params_json.empty()) {
-        throw jsonio_error("Unused input parameter: \"" + params_json.begin().key() + "\"");
+        throw jsonio_unused_input(params_json.begin().key());
     }
     return params;
 }
@@ -68,7 +113,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             defaults = load_cable_cell_parameter_set(globals_json.value());
         }
         catch (std::exception& e) {
-            throw jsonio_error("Error loading global parameters" + std::string(e.what()));
+            throw jsonio_decor_global_load_error(e.what());
         }
         try {
             for (auto def: defaults.serialize()) {
@@ -76,7 +121,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             }
         }
         catch (std::exception& e) {
-            throw jsonio_error("Error setting global parameters" + std::string(e.what()));
+            throw jsonio_decor_global_set_error(e.what());
         }
     }
 
@@ -86,7 +131,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
         for (auto l: locals_json.value()) {
             auto region = find_and_remove_json<std::string>("region", l);
             if (!region) {
-                throw jsonio_error("Local cell parameters do not include region label");
+                throw jsonio_decor_local_missing_region();
             }
             std::string reg = region.value();
 
@@ -101,11 +146,12 @@ arb::decor load_decor(nlohmann::json& decor_json) {
                 region_defaults = load_cable_cell_parameter_set(l);
             }
             catch (std::exception& e) {
-                throw jsonio_error("Error loading local parameters: " + std::string(e.what()));
+                throw jsonio_decor_local_load_error(e.what());
             }
 
             if (!region_defaults.reversal_potential_method.empty()) {
-                throw jsonio_error("Cannot implement regional reversal potential methods ");
+                auto rvpot_method = region_defaults.reversal_potential_method.begin();
+                throw jsonio_decor_local_revpot_mech(reg, rvpot_method->first, rvpot_method->second.name());
             }
             try {
                 if (auto v = region_defaults.membrane_capacitance) {
@@ -133,7 +179,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
                 }
             }
             catch (std::exception& e) {
-                throw jsonio_error("Error painting local parameters on region \"" + reg + "\": " + std::string(e.what()));
+                throw jsonio_decor_local_set_error(e.what());
             }
         }
     }
@@ -144,11 +190,11 @@ arb::decor load_decor(nlohmann::json& decor_json) {
         for (auto mech_json: mechs_json.value()) {
             auto region = find_and_remove_json<std::string>("region", mech_json);
             if (!region) {
-                throw jsonio_error("Mechanism description does not include region label");
+                throw jsonio_decor_mech_missing_region();
             }
             auto name = find_and_remove_json<std::string>("mechanism", mech_json);
             if (!name) {
-                throw jsonio_error("Mechanism description does not include mechanism name");
+                throw jsonio_decor_mech_missing_name();
             }
             auto mech = arb::mechanism_desc(name.value());
             auto params = find_and_remove_json<std::unordered_map<std::string, double>>("parameters", mech_json);
@@ -168,12 +214,12 @@ arb::decor load_decor(nlohmann::json& decor_json) {
                 decor.paint(reg, mech);
             }
             catch (std::exception& e) {
-                throw jsonio_error("Error painting mechanism \"" + name.value() + "\" on region \"" + reg + "\": " + std::string(e.what()));
+                throw jsonio_decor_mech_set_error(reg, name.value(), e.what());
             }
         }
     }
     if (!decor_json.empty()) {
-        throw jsonio_error("Unused input parameter: \"" + decor_json.begin().key() + "\"");
+        throw jsonio_unused_input(decor_json.begin().key());
     }
     return decor;
 }
@@ -206,25 +252,27 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
     json_decor["global"] = make_cable_cell_parameter_set_json(decor.defaults());
 
     // Local
-    std::unordered_map<std::string, nlohmann::json> region_map;
+    std::map<std::string, nlohmann::json> region_map;
     std::vector<nlohmann::json> mechs, regions;
 
     for (const auto& entry: decor.paintings()) {
         auto region_expr = to_string(entry.first);
 
         auto paintable_visitor = arb::util::overload(
-            [&](arb::init_membrane_potential p) { region_map[region_expr]["Vm"] = p.value; },
-            [&](arb::axial_resistivity p)       { region_map[region_expr]["Ra"] = p.value; },
-            [&](arb::temperature_K p)           { region_map[region_expr]["celsius"] = p.value - 273.15; },
-            [&](arb::membrane_capacitance p)    { region_map[region_expr]["cm"] = p.value; },
-            [&](arb::init_int_concentration p)  { region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value; },
-            [&](arb::init_ext_concentration p)  { region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value; },
-            [&](arb::init_reversal_potential p) { region_map[region_expr]["ions"][p.ion]["reversal_potential"] = p.value; },
-            [&](arb::mechanism_desc p) {
+            [&](const arb::init_membrane_potential& p) { region_map[region_expr]["Vm"] = p.value; },
+            [&](const arb::axial_resistivity& p)       { region_map[region_expr]["Ra"] = p.value; },
+            [&](const arb::temperature_K& p)           { region_map[region_expr]["celsius"] = p.value - 273.15; },
+            [&](const arb::membrane_capacitance& p)    { region_map[region_expr]["cm"] = p.value; },
+            [&](const arb::init_int_concentration& p)  { region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value; },
+            [&](const arb::init_ext_concentration& p)  { region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value; },
+            [&](const arb::init_reversal_potential& p) { region_map[region_expr]["ions"][p.ion]["reversal-potential"] = p.value; },
+            [&](const arb::mechanism_desc& p) {
                 nlohmann::json data;
                 data["region"] = region_expr;
                 data["mechanism"] = p.name();
-                data["parameters"] = p.values();
+                if (!p.values().empty()) {
+                    data["parameters"] = p.values();
+                }
                 mechs.push_back(data);
             });
 
@@ -249,7 +297,7 @@ arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream& s) {
         s >> defaults_json;
     }
     catch (std::exception& e) {
-        throw jsonio_error("Error parsing json : " + std::string(e.what()));
+        throw jsonio_json_parse_error(e.what());
     }
     return load_cable_cell_parameter_set(defaults_json);
 }
@@ -260,7 +308,7 @@ arb::decor load_decor(std::istream& s) {
         s >> decor_json;
     }
     catch (std::exception& e) {
-        throw jsonio_error("Error parsing json : " + std::string(e.what()));
+        throw jsonio_json_parse_error(e.what());
     }
     return load_decor(decor_json);
 }
