@@ -1,9 +1,7 @@
 .. _pymorph:
 
-   .. 
-
-Cell morphology
-===============
+Cable cell morphology
+=====================
 
 .. currentmodule:: arbor
 

@@ -1,7 +1,7 @@
 .. _pylabels:
 
-Cell labels
-===========
+Cable cell labels
+=================
 
 .. currentmodule:: arbor
 

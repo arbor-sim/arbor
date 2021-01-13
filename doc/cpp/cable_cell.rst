@@ -8,6 +8,8 @@ Cable cells
    has changed significantly; some of the documentation below is
    out of date.
 
+   The C++ cable cell documentation should have the same structure as the Python cable cell documentation.
+
 Cable cells, which use the :cpp:enum:`cell_kind` :cpp:expr:`cable`,
 represent morphologically-detailed neurons as 1-d trees, with
 electrical and biophysical properties mapped onto those trees.

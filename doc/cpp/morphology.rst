@@ -1,7 +1,7 @@
 .. _cppmorphology:
 
-Cable cell morphologies
-=======================
+Cable cell morphology
+=====================
 
 Cell morphologies are required to describe a :ref:`cppcablecell`.
 Morphologies can be constructed directly, or read from a number of
