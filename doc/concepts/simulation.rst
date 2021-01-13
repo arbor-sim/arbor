@@ -24,9 +24,8 @@ Simulations provide an interface for executing and interacting with the model:
     * The simulation is executed/*run* by advancing the model state from the current simulation time to another
       with maximum time step size.
     * The model state can be *reset* to its initial state before the simulation was started.
-    * *Sampling* of the simulation state can be performed during execution with samplers and probes (e.g.
-      compartment voltage and current) and spike output with the total number of spikes generated since either
-      construction or reset.
+    * *Sampling* of the simulation state can be performed during execution with samplers and probes
+      and spike output with the total number of spikes generated since either construction or reset.
 
 API
 ---

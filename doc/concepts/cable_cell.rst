@@ -338,6 +338,7 @@ Discretisation and CV policies
 .. glossary::
 
   control volume
+  compartment
     For the purpose of simulation, Arbor discretises cable cell :term:`morphologies <morphology>`
     into control volumes, or CVs. Discretising happens through a :term:`CV policy`.
     The CVs are uniquely determined by a set of *B* :term:`mlocation` boundary points. For each non-terminal
@@ -346,9 +347,13 @@ Discretisation and CV policies
     point is owned by a CV if and only if all of its corresponding representative locations are
     in the CV.
 
+    'Compartment' is often used to refer to the substructure in cable cells; the 'compartment' in multi-compartment cells.
+    A compartment is equivalent to a control volume. We avoid using 'compartment' to avoid potential confusion
+    with :term:`segments <segment>` or :term:`branches <branch>`.
+
 .. Note::
-    In NEURON discretisation is controlled through splitting a NEURON section into a
-    number of NEURON segments (`nseg`, `1` by default). Note that a NEURON segment is
+    In NEURON, discretisation is controlled through splitting a NEURON section into a
+    number of NEURON segments or NEURON compartments (`nseg`, `1` by default). Note that a NEURON segment/compartment is
     not the same as an Arbor :term:`segment`!
 
 .. glossary::

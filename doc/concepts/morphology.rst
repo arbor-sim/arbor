@@ -110,9 +110,9 @@ With these definitions, we can create proper definitions for :term:`morphology` 
 
 .. note::
 
-  NEURON uses different nomenclature for segments and branches. The segments that
+  NEURON uses different nomenclature for segments and branches. The segments (alternatively referred to as compartments) that
   NEURON uses for control over discretisation (by assigning ``nseg`` segments per section)
-  most closely correspond to :term:control volumes <control volume> in Arbor. Arbor
+  most closely correspond to :term:`control volumes <control volume>` in Arbor. Arbor
   uses truncated cones to represent branches and segments, Neuron uses a weighted
   average radius to create cylinders (see "trapezoidal integration" in the
   `Neuron documentation <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/topology/geometry.html>`_.).
@@ -586,7 +586,8 @@ because it has two children: the dendrites attached to its distal end.
 
 
 .. note::
-    The discretisation process, which converts segments and branches into compartments,
+    The discretisation process, which converts :term:`segments <segment>` and
+    :term:`branches <branch>` into :term:`control volumes <control volume>`,
     will ignore gaps between segments in the input. The cell below, in which the dendrites
     and axon have been translated to remove any gaps, is equivalent to the previous example
     for the back end simulator.

@@ -25,7 +25,7 @@ mechanism that is to be painted or placed on the cable cell.
       of a mechanism.
     * range parameters: the value of range parameters is defined for each instance
       of the mechanism on a cell. For density mechanisms, this means one value for
-      each compartment on which it is present.
+      each :term:`control volume` on which it is present.
 
     The method for setting a parameter depends on its type.
     If global parameters change, we are effectively defining a new type
@@ -160,7 +160,7 @@ mechanism that is to be painted or placed on the cable cell.
     .. py:attribute:: linear
         :type: bool
 
-        True if a synapse mechanism has linear current contributions so that multiple instances on the same compartment can be coalesced.
+        True if a synapse mechanism has linear current contributions so that multiple instances on the same :term:`control volume` can be coalesced.
 
 
 .. py:class:: ion_dependency
