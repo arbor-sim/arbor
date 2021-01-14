@@ -18,7 +18,7 @@ void register_param_loader(pybind11::module& m) {
           [](std::string fname) {
               std::ifstream fid{fname};
               if (!fid.good()) {
-                  throw pyarb_error("can't open file '{}'" + fname);
+                  throw pyarb_error("Can't open file '{}'" + fname);
               }
 
               arb::cable_cell_parameter_set params;
@@ -45,7 +45,7 @@ void register_param_loader(pybind11::module& m) {
           [](std::string fname) {
               std::ifstream fid{fname};
               if (!fid.good()) {
-                  throw pyarb_error("can't open file '{}'" + fname);
+                  throw pyarb_error("Can't open file '{}'" + fname);
               }
 
               arb::decor decor;

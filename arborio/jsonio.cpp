@@ -27,19 +27,19 @@ jsonio_decor_global_set_error::jsonio_decor_global_set_error(const std::string e
 {}
 
 jsonio_decor_local_missing_region::jsonio_decor_local_missing_region():
-    jsonio_error("Decor: regional parameters must include region label")
+    jsonio_error("Decor: local parameters must include region label")
 {}
 
 jsonio_decor_local_revpot_mech::jsonio_decor_local_revpot_mech(const std::string& reg, const std::string& ion, const std::string& mech):
-    jsonio_error("Decor: cannot implement regional reversal potential methods: \"" + reg + "\", (\"" + ion + "\", \"" + mech + "\")")
+    jsonio_error("Decor: cannot implement local reversal potential methods: \"" + reg + "\", (\"" + ion + "\", \"" + mech + "\")")
 {}
 
 jsonio_decor_local_load_error::jsonio_decor_local_load_error(const std::string err):
-    jsonio_error("Decor: error loading decor regional parameters: " + err)
+    jsonio_error("Decor: error loading local parameters: " + err)
 {}
 
 jsonio_decor_local_set_error::jsonio_decor_local_set_error(const std::string err):
-    jsonio_error("Decor: error painting regional parameters: " + err)
+    jsonio_error("Decor: error painting local parameters: " + err)
 {}
 
 jsonio_decor_mech_missing_region::jsonio_decor_mech_missing_region():
@@ -106,8 +106,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
     arb::decor decor;
 
     // Global
-    auto globals_json = find_and_remove_json<nlohmann::json>("global", decor_json);
-    if (globals_json) {
+    if (auto globals_json = find_and_remove_json<nlohmann::json>("global", decor_json)) {
         arb::cable_cell_parameter_set defaults;
         try {
             defaults = load_cable_cell_parameter_set(globals_json.value());
@@ -126,8 +125,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
     }
 
     // Local
-    auto locals_json = find_and_remove_json<std::vector<nlohmann::json>>("local", decor_json);
-    if (locals_json) {
+    if (auto locals_json = find_and_remove_json<std::vector<nlohmann::json>>("local", decor_json)) {
         for (auto l: locals_json.value()) {
             auto region = find_and_remove_json<std::string>("region", l);
             if (!region) {
@@ -135,7 +133,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             }
             std::string reg = region.value();
 
-            // if the region expression does not start with an open parenthesis
+            // if the region expression does not start with an open parenthesis,
             // it is not an s-expression, it is a label and we must add double quotes.
             if (reg.at(0) != '(') {
                 reg = "\"" + region.value() + "\"";
@@ -185,8 +183,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
     }
 
     // Mechanisms
-    auto mechs_json = find_and_remove_json<std::vector<nlohmann::json>>("mechanisms", decor_json);
-    if (mechs_json) {
+    if (auto mechs_json = find_and_remove_json<std::vector<nlohmann::json>>("mechanisms", decor_json)) {
         for (auto mech_json: mechs_json.value()) {
             auto region = find_and_remove_json<std::string>("region", mech_json);
             if (!region) {
@@ -205,7 +202,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             }
             auto reg = region.value();
 
-            // if the region expression does not start with an open parenthesis
+            // if the region expression does not start with an open parenthesis,
             // it is not an s-expression, it is a label and we must add double quotes.
             if (reg.at(0) != '(') {
                 reg = "\"" + region.value() + "\"";
@@ -251,40 +248,45 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
     nlohmann::json json_decor;
     json_decor["global"] = make_cable_cell_parameter_set_json(decor.defaults());
 
-    // Local
-    std::map<std::string, nlohmann::json> region_map;
-    std::vector<nlohmann::json> mechs, regions;
+    // Local - order of insertion is important, concatenate regional (non-mechanism) paintings into 1 JSON instance when consecutive.
+    std::map<std::string, unsigned> region_map;
+    std::vector<nlohmann::json> mech_vec, region_vec;
 
-    for (const auto& entry: decor.paintings()) {
-        auto region_expr = to_string(entry.first);
+    nlohmann::json region;
+    for (auto it = decor.paintings().begin(); it != decor.paintings().end(); ++it) {
+        auto region_expr = to_string(it->first);
 
         auto paintable_visitor = arb::util::overload(
-            [&](const arb::init_membrane_potential& p) { region_map[region_expr]["Vm"] = p.value; },
-            [&](const arb::axial_resistivity& p)       { region_map[region_expr]["Ra"] = p.value; },
-            [&](const arb::temperature_K& p)           { region_map[region_expr]["celsius"] = p.value - 273.15; },
-            [&](const arb::membrane_capacitance& p)    { region_map[region_expr]["cm"] = p.value; },
-            [&](const arb::init_int_concentration& p)  { region_map[region_expr]["ions"][p.ion]["internal-concentration"] = p.value; },
-            [&](const arb::init_ext_concentration& p)  { region_map[region_expr]["ions"][p.ion]["external-concentration"] = p.value; },
-            [&](const arb::init_reversal_potential& p) { region_map[region_expr]["ions"][p.ion]["reversal-potential"] = p.value; },
+            [&](const arb::init_membrane_potential& p) { region["Vm"] = p.value; },
+            [&](const arb::axial_resistivity& p)       { region["Ra"] = p.value; },
+            [&](const arb::temperature_K& p)           { region["celsius"] = p.value - 273.15; },
+            [&](const arb::membrane_capacitance& p)    { region["cm"] = p.value; },
+            [&](const arb::init_int_concentration& p)  { region["ions"][p.ion]["internal-concentration"] = p.value; },
+            [&](const arb::init_ext_concentration& p)  { region["ions"][p.ion]["external-concentration"] = p.value; },
+            [&](const arb::init_reversal_potential& p) { region["ions"][p.ion]["reversal-potential"] = p.value; },
             [&](const arb::mechanism_desc& p) {
-                nlohmann::json data;
-                data["region"] = region_expr;
-                data["mechanism"] = p.name();
-                if (!p.values().empty()) {
-                    data["parameters"] = p.values();
-                }
-                mechs.push_back(data);
+              nlohmann::json mech;
+              mech["region"] = region_expr;
+              mech["mechanism"] = p.name();
+              if (!p.values().empty()) {
+                  mech["parameters"] = p.values();
+              }
+              mech_vec.push_back(mech);
             });
 
-        std::visit(paintable_visitor, entry.second);
-    }
-    for (auto reg: region_map) {
-        reg.second["region"] = reg.first;
-        regions.push_back(reg.second);
+        std::visit(paintable_visitor, it->second);
+        if (region.empty()) continue;
+
+        auto it_next = it+1;
+        if (it == decor.paintings().end()-1 || region_expr != to_string(it_next->first)) {
+            region["region"] = region_expr;
+            region_vec.push_back(region);
+            region.clear();
+        }
     }
 
-    json_decor["local"] = regions;
-    json_decor["mechanisms"] = mechs;
+    json_decor["local"] = region_vec;
+    json_decor["mechanisms"] = mech_vec;
 
     return json_decor;
 }

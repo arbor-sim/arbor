@@ -11,7 +11,7 @@ struct jsonio_error: public arb::arbor_exception {
     jsonio_error(const std::string& msg);
 };
 
-// Error parsing json
+// Error parsing JSON
 struct jsonio_json_parse_error: jsonio_error {
     explicit jsonio_json_parse_error(const std::string err);
 };
@@ -21,12 +21,12 @@ struct jsonio_unused_input: jsonio_error {
     explicit jsonio_unused_input(const std::string& key);
 };
 
-// Error in loading decor global parameters
+// Error loading decor global parameters
 struct jsonio_decor_global_load_error: jsonio_error {
     explicit jsonio_decor_global_load_error(const std::string err);
 };
 
-// Error in setting decor global parameters
+// Error setting decor global parameters
 struct jsonio_decor_global_set_error: jsonio_error {
     explicit jsonio_decor_global_set_error(const std::string err);
 };
@@ -41,12 +41,12 @@ struct jsonio_decor_local_revpot_mech: jsonio_error {
     explicit jsonio_decor_local_revpot_mech(const std::string& reg, const std::string& ion, const std::string& mech);
 };
 
-// Error in loading decor local parameters
+// Error loading decor local parameters
 struct jsonio_decor_local_load_error: jsonio_error {
     explicit jsonio_decor_local_load_error(const std::string err);
 };
 
-// Error in setting decor local parameters
+// Error setting decor local parameters
 struct jsonio_decor_local_set_error: jsonio_error {
     explicit jsonio_decor_local_set_error(const std::string err);
 };
@@ -61,7 +61,7 @@ struct jsonio_decor_mech_missing_name: jsonio_error {
     explicit jsonio_decor_mech_missing_name();
 };
 
-// Error in painting mechanism on region
+// Error painting mechanism on region
 struct jsonio_decor_mech_set_error: jsonio_error {
     explicit jsonio_decor_mech_set_error(const std::string& reg, const std::string& mech, const std::string& err);
 };
