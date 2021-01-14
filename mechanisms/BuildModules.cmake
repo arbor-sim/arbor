@@ -113,19 +113,19 @@ function("make_catalogue")
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
   set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXXOPT_ARCH})
-  add_library(${MK_CAT_NAME} SHARED ${catalogue_${MK_CAT_NAME}_source})
-  target_compile_definitions(${MK_CAT_NAME} PUBLIC STANDALONE=1)
-  set_target_properties(${MK_CAT_NAME}
+  add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
+  target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
+  set_target_properties(${MK_CAT_NAME}-catalogue
     PROPERTIES
-    SUFFIX ".cat"
-    PREFIX ""
+    SUFFIX ".so"
+    PREFIX "lib"
     CXX_STANDARD 17)
-  target_include_directories(${MK_CAT_NAME} PUBLIC "${ARB_SOURCE_DIR}/arbor/")
+  target_include_directories(${MK_CAT_NAME}-catalogue PUBLIC "${ARB_SOURCE_DIR}/arbor/")
 
   if(${CMAKE_PROJECT_NAME} STREQUAL arbor)
-    target_link_libraries(${MK_CAT_NAME} PRIVATE arbor)
+    target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor)
   else()
-    target_link_libraries(${MK_CAT_NAME} PRIVATE arbor::arbor)
+    target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor::arbor)
     message(NOTICE "Standalone mode")
   endif(${CMAKE_PROJECT_NAME} STREQUAL arbor)
 

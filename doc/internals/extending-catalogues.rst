@@ -51,4 +51,8 @@ with a filename in both C++ and Python. The steps are
      build-catalogue <name> <path/to/nmodl>
 
 All files with the suffix `.mod` located `<path/to/nmodl>` in will be baked into
-a catalogue named `<name>.cat` and placed into your current working directory.
+a catalogue named `lib<name>-catalogue.so` and placed into your current working
+directory. Note that these files are platform-specific and should only be used
+on the combination of OS, compiler, arbor, and machine they were built with.
+
+See the demonstration in `python/example/dynamic-catalogue.py` for an example.

@@ -22,7 +22,7 @@ class recipe(arb.recipe):
         self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
         self.props = arb.neuron_cable_properties()
         try:
-            self.cat = arb.load_catalogue('lib/default.cat')
+            self.cat = arb.load_catalogue('lib/libdefault-catalogue.so')
             self.props.register(self.cat)
         except:
             print("Catalogue not found. Are you running from build directory?")
@@ -55,11 +55,11 @@ class recipe(arb.recipe):
 class Catalogues(unittest.TestCase):
     def test_nonexistent(self):
         with self.assertRaises(RuntimeError):
-            arb.load_catalogue("_NO_EXIST_.cat")
+            arb.load_catalogue("_NO_EXIST_.so")
 
     def test_shared_catalogue(self):
         try:
-            cat = arb.load_catalogue("lib/bbp.cat")
+            cat = arb.load_catalogue("lib/libbbp-catalogue.so")
         except:
             print("BBP catalogue not found. Are you running from build directory?")
             raise

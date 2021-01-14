@@ -4,7 +4,7 @@ from pathlib import Path
 
 import arbor as arb
 
-cat = 'cat.cat'
+cat = 'libcat-catalogue.so'
 
 class recipe(arb.recipe):
     def __init__(self):
