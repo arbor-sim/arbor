@@ -317,10 +317,11 @@ Cell morphology
             :param int i: branch index
             :rtype: list
 
+.. _pymorph-formats:
 .. py:function:: load_swc_arbor(filename)
 
     Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
-    (See the morphology concepts :ref:`page <morph-formats>` for more details).
+    (See the morphology concepts :ref:`page <formatsmorph>` for more details).
 
     The samples in the SWC files are treated as the end points of segments, where a
     sample and its parent form a segment.

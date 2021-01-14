@@ -62,6 +62,7 @@ Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
    install/index
    tutorial/index
    concepts/index
+   formats/index
    python/index
    cpp/index
    hpc/index

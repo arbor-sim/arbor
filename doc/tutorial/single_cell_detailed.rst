@@ -91,7 +91,7 @@ This can be done by manually building a segment tree:
     morph = arbor.morphology(tree);
 
 The same morphology can be represented using an SWC file (interpreted according
-to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
+to :ref:`Arbor's specifications <formatsmorph>`). We can save the following in
 ``morph.swc``.
 
 .. code-block:: python
@@ -120,7 +120,7 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
     in the morphology, like we see between segment 0 and segment 1 in the above
     morphology diagram.
 
-    More information on SWC loaders can be found :ref:`here <morph-formats>`.
+    More information on SWC loaders can be found :ref:`here <formatsmorph>`.
 
 The morphology can then be loaded from ``morph.swc`` in the following way:
 

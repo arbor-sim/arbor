@@ -28,7 +28,7 @@ morphology; and an optional :ref:`decor <cablecell-decoration>`.
 
 Morphologies are constructed from a :cpp:type:`segment_tree`, but can also
 be generated via the :cpp:type:`stitch_builder`, which offers a slightly
-higher level interface. Details are described in :ref:`cppcablecell-morphology-construction`.
+higher level interface. Details are described in :ref:`cppmorphology-construction`.
 
 Each cell has particular values for its electrical and ionic properties. These
 are determined first by the set of global defaults, then the defaults
