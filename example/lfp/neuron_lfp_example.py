@@ -13,7 +13,7 @@ import numpy as np
 
 class Cell:
     """
-    Cell class that handles interactions with NEURON. It finds the center position
+    Cell class that handles interactions with NEURON. It finds the centre position
     of each cellular compartment (cell.xmid, cell.ymid, cell.zmid), and the transmembrane currents
     cell.imem
     """
@@ -186,7 +186,7 @@ class Cell:
         self.yend = yendvec
         self.zend = zendvec
 
-        # Calculates the center position of each compartment (segment)
+        # Calculates the centre position of each compartment (segment)
         self.xmid = 0.5 * (self.xstart + self.xend)
         self.ymid = 0.5 * (self.ystart + self.yend)
         self.zmid = 0.5 * (self.zstart + self.zend)
@@ -233,7 +233,7 @@ class ExtElectrode:
         Calculates 'mapping' of size (number of electrodes) * (number of cell compartments)
         Extracellular potential can then be calculated as
         :param cell: class containing x,y,z-positions (um) of each
-        compartment (segment) center as cell.xmid, cell.ymid, cell.zmid
+        compartment (segment) centre as cell.xmid, cell.ymid, cell.zmid
 
         """
         self.mapping = np.zeros((self.num_elecs, cell.totnsegs))
