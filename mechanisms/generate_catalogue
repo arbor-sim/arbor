@@ -120,9 +120,9 @@ const mechanism_catalogue& global_${catalogue}_catalogue() {
 
 #ifdef STANDALONE
 extern "C" {
-    const arb::mechanism_catalogue& get_catalogue() {
+    const void* get_catalogue() {
         static auto cat = arb::build_${catalogue}_catalogue();
-        return cat;
+        return (void*)&cat;
     }
 }
 #endif
