@@ -65,7 +65,7 @@ Class documentation
         * **Advance model state** from one time to another and reset model
           state to its original state before simulation was started.
         * **I/O** interface for sampling simulation state during execution
-          (e.g. compartment voltage and current) and spike output.
+          (e.g. voltage and current) and spike output.
 
     **Types:**
 

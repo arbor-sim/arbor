@@ -44,16 +44,16 @@ Our *single-segment HH cell* has a simple morphology and dynamics, constructed a
     tree = arbor.segment_tree()
     tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
-    # (2) Define the soma and its center
+    # (2) Define the soma and its midpoint
     labels = arbor.label_dict({'soma':   '(tag 1)',
-                               'center': '(location 0 0.5)'})
+                               'midpoint': '(location 0 0.5)'})
 
     # (3) Create cell and set properties
     decor = arbor.decor()
     decor.set_property(Vm=-40)
     decor.paint('"soma"', 'hh')
-    decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
-    decor.place('"center"', arbor.spike_detector(-10))
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
+    decor.place('"midpoint"', arbor.spike_detector(-10))
 
     # (4) Create cell
     cell = arbor.cable_cell(tree, labels, decor)
@@ -68,14 +68,14 @@ the proximal :class:`arbor.mpoint` (location and radius) of the segment; the dis
 of the segment; and the tag.
 
 Step **(2)** creates a dictionary of labels (:class:`arbor.label_dict<arbor.label_dict>`). Labels give
-names to :ref:`regions<labels-region>` and :ref:`location<labels-locset>` described using a DSL
+names to :term:`regions<region>` and :term:`location<locset>` described using a DSL
 based on s-expressions. Labels from the dictionary can then be used to facilitate adding synapses,
 dynamics, stimuli and probes to the cell. We add two labels:
 
 * ``soma`` defines a *region* with ``(tag  1)``. Note that this corresponds to the
   ``tag`` parameter that was used to define the single segment in step (1).
-* ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
-  of branch ``0``, which corresponds to the center of the soma on the morphology defined in step (1).
+* ``midpoint`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
+  of branch ``0``, which corresponds to the midpoint of the soma on the morphology defined in step (1).
 
 Step **(3)** constructs a :class:`arbor.decor` that describes the distribution and placement
 of dynamics and properties on a cell.  The cell's default properties can be modified, and we can use
@@ -93,7 +93,7 @@ following way:
   :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,
   spike detectors, current stimuli, and probes. In the above example we place a current stimulus
   :class:`arbor.iclamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
-  on the location we previously labelled ``"center"``. We also place a :class:`arbor.spike_detector`
+  on the location we previously labelled ``"midpoint"``. We also place a :class:`arbor.spike_detector`
   with a threshold of -10 mV on the same location.
 
 Step **(4)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labelled regions and locations.
@@ -112,7 +112,7 @@ an interface for recording outputs and running the simulation.
     m = arbor.single_cell_model(cell)
 
     # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-    m.probe('voltage', '"center"', frequency=10000)
+    m.probe('voltage', '"midpoint"', frequency=10000)
 
     # (7) Run simulation for 30 ms of simulated activity.
     m.run(tfinal=30)
@@ -123,7 +123,7 @@ with our single-compartment cell.
 Step **(6)** adds a :meth:`arbor.single_cell_model.probe`
 used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
-probe ('"center"'), and the frequency at which we want to sample (10kHz).
+probe ('"midpoint"'), and the frequency at which we want to sample (10kHz).
 
 Step **(7)** runs the actual simulation for a duration of 30 ms.
 

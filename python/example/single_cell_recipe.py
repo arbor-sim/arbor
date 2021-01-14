@@ -9,16 +9,16 @@ import pandas, seaborn # You may have to pip install these.
 tree = arbor.segment_tree()
 tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
-# (2) Define the soma and its center
+# (2) Define the soma and its midpoint
 labels = arbor.label_dict({'soma':   '(tag 1)',
-                           'center': '(location 0 0.5)'})
+                           'midpoint': '(location 0 0.5)'})
 
 # (3) Create cell and set properties
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('"soma"', 'hh')
-decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
-decor.place('"center"', arbor.spike_detector(-10))
+decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
+decor.place('"midpoint"', arbor.spike_detector(-10))
 cell = arbor.cable_cell(tree, labels, decor)
 
 # (4) Define a recipe for a single cell and set of probes upon it.
@@ -54,9 +54,9 @@ class single_recipe (arbor.recipe):
     def global_properties(self, kind):
         return self.the_props
 
-# (5) Instantiate recipe with a voltage probe located on "center".
+# (5) Instantiate recipe with a voltage probe located on "midpoint".
 
-recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"center"')])
+recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
 
 # (6) Create a default execution context and a default domain decomposition.
 

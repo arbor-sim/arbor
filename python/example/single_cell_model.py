@@ -7,16 +7,16 @@ import pandas, seaborn # You may have to pip install these.
 tree = arbor.segment_tree()
 tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
-# (2) Define the soma and its center
+# (2) Define the soma and its midpoint
 labels = arbor.label_dict({'soma':   '(tag 1)',
-                           'center': '(location 0 0.5)'})
+                           'midpoint': '(location 0 0.5)'})
 
 # (3) Create cell and set properties
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('"soma"', 'hh')
-decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
-decor.place('"center"', arbor.spike_detector(-10))
+decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
+decor.place('"midpoint"', arbor.spike_detector(-10))
 
 # (4) Create cell and the single cell model based on it
 cell = arbor.cable_cell(tree, labels, decor)
@@ -25,7 +25,7 @@ cell = arbor.cable_cell(tree, labels, decor)
 m = arbor.single_cell_model(cell)
 
 # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-m.probe('voltage', '"center"', frequency=10000)
+m.probe('voltage', '"midpoint"', frequency=10000)
 
 # (7) Run simulation for 30 ms of simulated activity.
 m.run(tfinal=30)
