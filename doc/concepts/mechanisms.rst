@@ -16,6 +16,7 @@ for users who wish to compile their own mechanisms for Arbor. Unfortunately, out
 mechanism building is not yet supported in Arbor. However, we have many built-in mechanisms
 that can be used, which are oragnized in *mechanism catalogues*.
 
+.. _mechanisms-cat:
 Mechanism catalogues
 --------------------
 

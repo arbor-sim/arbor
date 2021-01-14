@@ -4,12 +4,12 @@ Default parameters
 ------------------
 
 Arbor supports reading default model parameters of cable-cells from JSON.
-These default parameters are applied at the global level of a model, affecting
+These `default parameters` are applied at the global level of a model, affecting
 all simulated cable-cells. Some of these defaults can later be overridden at the
 cell level, which can also be done using JSON (see
 :ref:`decor formats <formatsdecor>` for more details.)
 
-The default parameters of a model are:
+The `default parameters` of a model are:
 
    ========================================  =========================  =========
    parameter                                 alias                      units
@@ -26,23 +26,28 @@ The default parameters of a model are:
    ========================================  =========================  =========
 
 Of all possible default parameters, all but the CV policy can be specified using the
-JSON format. A valid set of default parameters must include:
+JSON format.
+
+The following parameters are mandatory and must be set by the user:
 
   * The initial membrane potential
   * The temperature
-  * The axial resistivty
+  * The axial resistivity
   * The membrane capacitance
   * The initial internal and external concentrations of the 'ca', 'na' and 'k' ions.
   * The initial reversal potential of the 'ca', 'na' and 'k' ions.
 
-The reversal potential method can be:
+The reversal potential method is optional can be:
 
   * "constant"  (the reversal potential of an ion doesn't change during the simulation)
   * "nernst"    (the reversal potential of an ion advances accoridng to the nernst equation)
-  * any other string that represents the name of a valid nmodl mechanism which describes the
-    progression of the reversal potential.
+  * any other string that represents the name of a valid :ref:`nmodl mechanism <mechanisms-revpot>`
+    which describes the progression of the reversal potential.
 
-The JSON format has a structure similar to the following example.
+If the reversal potential method is not set by the user, it is automatically set to
+"constant".
+
+The JSON format has a structure similar to the following example:
 
 .. code:: JSON
 

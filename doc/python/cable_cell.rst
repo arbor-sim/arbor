@@ -39,6 +39,14 @@ Cable cells
             # Set cell-wide values for properties for resistivity and capacitance
             decor.set_property(rL=100, cm=0.1)
 
+     .. method:: set_property(params)
+
+        Set default values of cable properties on the whole cell.
+        Overrides the default global values, and can be overridden by painting
+        the values onto regions.
+
+        :param cable_cell_parameter_set params: bundled set of properties.
+
     .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
 
         Set default value for one or more properties of a specific ion on the whole cell.
@@ -248,6 +256,53 @@ Cable cells
 .. py:class:: ion
 
     properties of an ionic species.
+
+.. _pycablecell-props:
+
+Cable cell properties
+---------------------
+
+Cable cells have certain parameters that can be set either at the cell, or model level.
+These properties are:
+
+   ========================================  =========
+   parameter                                 units
+   ========================================  =========
+   initial membrane potential                mV
+   temperature                               celsius
+   axial resistivity                         Ω·cm
+   membrane capacitance                      μf⋅cm⁻²
+   initial internal concentration (per ion)  mM
+   initial external concentration (per ion)  mM
+   initial reversal potential (per ion)      mV
+   reversal potential method (per ion)       --
+   cv policy                                 --
+   ========================================  =========
+
+Some of these parameters can be set individually on the decor using :meth:`arbor.decor.set_ion`
+and :meth:`arbor.decor.set_property`. They are also bundled into :class:`arbor.cable_cell_parameters` which
+can be set as a whole on the cell (using decor) or model level.
+
+.. currentmodule:: arbor
+
+.. py:class:: cable_cell_parameter_set
+
+   Bundled set of parameters that can be set at the model or cell level.
+
+   .. attribute:: init_membrane_potential
+      :type: optional<real>
+   .. attribute:: temperature_K
+      :type: optional<real>
+   .. attribute:: axial_resistivity
+         :type: optional<real>
+   .. attribute:: membrane_capacitance
+         :type: optional<real>
+   .. attribute:: ion_data
+         :type: dict[str, cable_cell_ion_data]
+   .. attribute:: reversal_potential_method
+         :type: dict[str, mechanism_desc]
+   .. attribute:: discretization
+         :type: cv_policy
 
 .. _pycablecell-probes:
 
