@@ -14,8 +14,7 @@ Static Extensions
 '''''''''''''''''
 
 This will produce a catalogue of the same level of integration as the built-in
-catalogues (*default*, *bbp*, and *allen*). We briefly sketch the required steps
-here:
+catalogues (*default*, *bbp*, and *allen*). The required steps are as follows
 
 1. Go to the Arbor source tree.
 2. Create a new directory under *mechanisms*.
@@ -40,17 +39,17 @@ All steps can be more or less copied from the surrounding code.
 Dynamic Extensions
 ''''''''''''''''''
 
-This will produce a catalogue loadable at runtime by eg calling `load_catalogue`
+This will produce a catalogue loadable at runtime by calling `load_catalogue`
 with a filename in both C++ and Python. The steps are
 
 1. Prepare a directory containing your NMODL files (.mod suffixes required)
-2. Call `build_catalogue` from the `scripts` directory like this
+2. Call `build_catalogue` from the `scripts` directory
 
    .. code-block :: bash
 
      build-catalogue <name> <path/to/nmodl>
 
-All files with the suffix `.mod` located `<path/to/nmodl>` in will be baked into
+All files with the suffix `.mod` located in `<path/to/nmodl>` will be baked into
 a catalogue named `lib<name>-catalogue.so` and placed into your current working
 directory. Note that these files are platform-specific and should only be used
 on the combination of OS, compiler, arbor, and machine they were built with.
