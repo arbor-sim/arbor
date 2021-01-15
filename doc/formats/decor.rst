@@ -60,7 +60,7 @@ Local parameters
 ~~~~~~~~~~~~~~~~
 
 The `local parameters` refer to the parameters that can be set on
-:ref:`regions <labels-region>` of the cell. All `global parameters` can
+:term:`regions <region>` of the cell. All `global parameters` can
 also be `local parameters` **except** the reversal potential method, which
 must be the same across the entire cell, and therefore can't be applied
 to a single region.
@@ -198,5 +198,5 @@ The `global parameters`, `local parameters` and `mechnaisms` can all be defined 
 API
 ~~~
 
-* :ref:`Python <pyformats>`
-* :ref:`C++ <cppformats>`
+* :ref:`Python <pyjsonformats>`
+* :ref:`C++ <cppjsonformats>`

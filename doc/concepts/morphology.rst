@@ -236,7 +236,7 @@ Morphology
   morphology
     Morphologies in Arbor are modelled as a set of one dimensional :term:`cables <cable>` of variable radius,
     joined together to form a tree. Only :ref:`cable cells <modelcablecell>` support custom
-    morphologies in Arbor. Morphologies can be created by :ref:`loading a file<morph-formats>` with a cell description,
+    morphologies in Arbor. Morphologies can be created by :ref:`loading a file<formatsmorph>` with a cell description,
     or by manually constructing one from a :term:`segment tree`.
 
 A segment tree and a morphology can both describe the exact same cable cell geometry, and if you create a morphology *from* a segment tree, they do! The two descriptions differ in two ways:

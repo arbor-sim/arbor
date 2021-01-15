@@ -1,4 +1,4 @@
-.. _cppformats:
+.. _cppjsonformats:
 
 Json Formats
 ============
