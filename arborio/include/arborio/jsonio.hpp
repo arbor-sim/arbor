@@ -38,7 +38,7 @@ struct jsonio_decor_local_missing_region: jsonio_error {
 
 // Cannot set regional revpot method in decor local parameters
 struct jsonio_decor_local_revpot_mech: jsonio_error {
-    explicit jsonio_decor_local_revpot_mech(const std::string& reg, const std::string& ion, const std::string& mech);
+    explicit jsonio_decor_local_revpot_mech();
 };
 
 // Error loading decor local parameters
@@ -66,7 +66,7 @@ struct jsonio_decor_mech_set_error: jsonio_error {
     explicit jsonio_decor_mech_set_error(const std::string& reg, const std::string& mech, const std::string& err);
 };
 
-// Load/store cable_cell_parameter_set and decor from/to file
+// Load/store cable_cell_parameter_set and decor from/to stream
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream&);
 arb::decor load_decor(std::istream&);
 void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set&, std::ostream&);

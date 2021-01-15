@@ -267,17 +267,18 @@ These properties are:
    initial external concentration (per ion)  mM
    initial reversal potential (per ion)      mV
    reversal potential method (per ion)       --
-   cv policy                                 --
+   CV policy                                 --
    ========================================  =========
 
 Some of these parameters can be set individually on the decor using :meth:`decor.set_ion`
-and :meth:`decor.set_property`, as well as :meth:`cable_global_properties.set_ion`
-and :meth:`cable_global_properties.set_property`. They are also bundled into
-:class:`cable_parameter_set` which can be set as a whole on the :class:`cable_global_properties`.
+and :meth:`decor.set_property`; and on the global properties of a model using
+:meth:`cable_global_properties.set_ion` and :meth:`cable_global_properties.set_property`.
+They are also bundled into :class:`cable_parameter_set` which can be set as a whole on the
+:class:`cable_global_properties`.
 
 .. note::
 
-   All of these parameters except the reversal potential method and the cv policy can also be set
+   All of these parameters except the reversal potential method and the CV policy can also be set
    at the region level using :meth:`decor.paint`
 
 .. currentmodule:: arbor

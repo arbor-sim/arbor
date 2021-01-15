@@ -16,13 +16,13 @@ The `default parameters` of a model are:
    ========================================  =========================  =========
    initial membrane potential                Vm                         mV
    temperature                               celsius                    celsius
-   axial resistivity                         rL                         Ω·cm
+   axial resistivity                         Ra                         Ω·cm
    membrane capacitance                      cm                         μf⋅cm⁻²
    initial internal concentration (per ion)  internal-concentration     mM
    initial external concentration (per ion)  external-concentration     mM
-   initial reversal potential (per ion)      ireversal potential        mV
+   initial reversal potential (per ion)      reversal-potential         mV
    reversal potential method (per ion)       method                     --
-   cv policy                                 --                          --
+   CV policy                                 --                         --
    ========================================  =========================  =========
 
 Of all possible default parameters, all but the CV policy can be specified using the
@@ -37,10 +37,10 @@ The following parameters are mandatory and must be set by the user:
   * The initial internal and external concentrations of the 'ca', 'na' and 'k' ions.
   * The initial reversal potential of the 'ca', 'na' and 'k' ions.
 
-The reversal potential method is optional can be:
+The reversal potential method is optional. It can be:
 
-  * "constant"  (the reversal potential of an ion doesn't change during the simulation)
-  * "nernst"    (the reversal potential of an ion advances accoridng to the nernst equation)
+  * "constant"  (the reversal potential of an ion doesn't change during the simulation.)
+  * "nernst"    (the reversal potential of an ion advances accoridng to the nernst equation.)
   * any other string that represents the name of a valid :ref:`nmodl mechanism <mechanisms-revpot>`
     which describes the progression of the reversal potential.
 

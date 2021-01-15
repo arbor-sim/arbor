@@ -23,15 +23,15 @@ jsonio_decor_global_load_error::jsonio_decor_global_load_error(const std::string
 {}
 
 jsonio_decor_global_set_error::jsonio_decor_global_set_error(const std::string err):
-    jsonio_error("Decor: error setting decor global parameters: " + err)
+    jsonio_error("Decor: error setting global parameters: " + err)
 {}
 
 jsonio_decor_local_missing_region::jsonio_decor_local_missing_region():
     jsonio_error("Decor: local parameters must include region label")
 {}
 
-jsonio_decor_local_revpot_mech::jsonio_decor_local_revpot_mech(const std::string& reg, const std::string& ion, const std::string& mech):
-    jsonio_error("Decor: cannot implement local reversal potential methods: \"" + reg + "\", (\"" + ion + "\", \"" + mech + "\")")
+jsonio_decor_local_revpot_mech::jsonio_decor_local_revpot_mech():
+    jsonio_error("Decor: cannot implement local reversal potential methods")
 {}
 
 jsonio_decor_local_load_error::jsonio_decor_local_load_error(const std::string err):
@@ -55,7 +55,7 @@ jsonio_decor_mech_set_error::jsonio_decor_mech_set_error(const std::string& reg,
 {}
 
 jsonio_json_parse_error::jsonio_json_parse_error(const std::string err):
-    jsonio_error("Error parsing json : " + err)
+    jsonio_error("Error parsing JSON : " + err)
 {}
 
 arb::cable_cell_parameter_set load_cable_cell_parameter_set(nlohmann::json& params_json) {
@@ -148,8 +148,7 @@ arb::decor load_decor(nlohmann::json& decor_json) {
             }
 
             if (!region_defaults.reversal_potential_method.empty()) {
-                auto rvpot_method = region_defaults.reversal_potential_method.begin();
-                throw jsonio_decor_local_revpot_mech(reg, rvpot_method->first, rvpot_method->second.name());
+                throw jsonio_decor_local_revpot_mech();
             }
             try {
                 if (auto v = region_defaults.membrane_capacitance) {
@@ -249,7 +248,6 @@ nlohmann::json make_decor_json(const arb::decor& decor) {
     json_decor["global"] = make_cable_cell_parameter_set_json(decor.defaults());
 
     // Local - order of insertion is important, concatenate regional (non-mechanism) paintings into 1 JSON instance when consecutive.
-    std::map<std::string, unsigned> region_map;
     std::vector<nlohmann::json> mech_vec, region_vec;
 
     nlohmann::json region;
