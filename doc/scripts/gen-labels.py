@@ -180,6 +180,7 @@ regions  = {
             'branch3': '(branch 3)',
             'segment0': '(segment 0)',
             'segment3': '(segment 3)',
+            'cable_0_28': '(cable 0 0.2 0.8)',
             'cable_1_01': '(cable 1 0 1)',
             'cable_1_31': '(cable 1 0.3 1)',
             'cable_1_37': '(cable 1 0.3 0.7)',
