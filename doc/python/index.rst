@@ -52,4 +52,4 @@ These details are described and examples are given in the next sections :ref:`py
    labels
    mechanisms
    single_cell_model
-   json_io
+   jsonio

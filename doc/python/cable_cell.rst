@@ -24,7 +24,6 @@ Cable cells
         Overrides the default global values, and can be overridden by painting
         the values onto regions.
 
-        :param str region: description of the region.
         :param Vm: Initial membrane voltage [mV].
         :type Vm: float or None
         :param cm: Membrane capacitance [F/m²].
@@ -38,14 +37,6 @@ Cable cells
 
             # Set cell-wide values for properties for resistivity and capacitance
             decor.set_property(rL=100, cm=0.1)
-
-     .. method:: set_property(params)
-
-        Set default values of cable properties on the whole cell.
-        Overrides the default global values, and can be overridden by painting
-        the values onto regions.
-
-        :param cable_cell_parameter_set params: bundled set of properties.
 
     .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
 
@@ -262,7 +253,7 @@ Cable cells
 Cable cell properties
 ---------------------
 
-Cable cells have certain parameters that can be set either at the cell, or model level.
+Cable cells have certain properties that can be set either at the cell, or model level.
 These properties are:
 
    ========================================  =========
@@ -279,30 +270,119 @@ These properties are:
    cv policy                                 --
    ========================================  =========
 
-Some of these parameters can be set individually on the decor using :meth:`arbor.decor.set_ion`
-and :meth:`arbor.decor.set_property`. They are also bundled into :class:`arbor.cable_cell_parameters` which
-can be set as a whole on the cell (using decor) or model level.
+Some of these parameters can be set individually on the decor using :meth:`decor.set_ion`
+and :meth:`decor.set_property`, as well as :meth:`cable_global_properties.set_ion`
+and :meth:`cable_global_properties.set_property`. They are also bundled into
+:class:`cable_parameter_set` which can be set as a whole on the :class:`cable_global_properties`.
+
+.. note::
+
+   All of these parameters except the reversal potential method and the cv policy can also be set
+   at the region level using :meth:`decor.paint`
 
 .. currentmodule:: arbor
 
-.. py:class:: cable_cell_parameter_set
+.. py:class:: cable_parameter_set
 
    Bundled set of parameters that can be set at the model or cell level.
 
-   .. attribute:: init_membrane_potential
+   .. attribute:: Vm
       :type: optional<real>
-   .. attribute:: temperature_K
+
+      The initial membrane voltage [mV].
+
+   .. attribute:: tempK
       :type: optional<real>
-   .. attribute:: axial_resistivity
-         :type: optional<real>
-   .. attribute:: membrane_capacitance
-         :type: optional<real>
+
+      The temperature [Kelvin].
+
+   .. attribute:: rL
+      :type: optional<real>
+
+      The axial resistivity [Ω·cm].
+
+   .. attribute:: cm
+      :type: optional<real>
+
+      The membrane capacitance [F/m²].
+
    .. attribute:: ion_data
-         :type: dict[str, cable_cell_ion_data]
-   .. attribute:: reversal_potential_method
-         :type: dict[str, mechanism_desc]
+      :type: dict[str, cable_ion_data]
+
+      The mapping from ion to the initial internal concentration [mM],
+      external concentration [mM] and reversal potential [mV].
+
+   .. attribute:: method
+      :type: dict[str, mechanism]
+
+      The mapping from ion to mechanism.
+
    .. attribute:: discretization
-         :type: cv_policy
+      :type: cv_policy
+
+      The cv_policy.
+
+To apply those parameters at the level of the model, they are further bundled with a
+:class:`catalogue` in :class:`cable_global_properties`.
+
+.. py:class:: cable_global_properties
+
+   The global properties of a model. Mainly comprise of a :class:`cable_parameter_set`,
+   and a pointer to a :class:`catalogue` which are manipulated according to the following API.
+
+    .. method:: set_property(Vm=None, cm=None, rL=None, tempK=None)
+
+        Set default values of :class:`cable_parameter_set` for the whole model.
+        Can be overridden on specific cells using :meth:`decor.set_property`,
+        and on specific regions using :meth:`decor.paint`.
+
+        :param Vm: Initial membrane voltage [mV].
+        :type Vm: float or None
+        :param cm: Membrane capacitance [F/m²].
+        :type cm: float or None
+        :param rL: Axial resistivity of cable [Ω·cm].
+        :type rL: float or None
+        :param tempK: Temperature [Kelvin].
+        :type tempK: float or None
+
+    .. method:: set_property(params)
+
+        Set default values of :class:`cable_parameter_set` for the whole model.
+        Can be overridden on specific cells using :meth:`decor.set_property`,
+        and on specific regions using :meth:`decor.paint`.
+
+       :param cable_parameter_set params: bundled set of properties.
+
+    .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
+
+        Set default value for one or more properties of a specific ion on the whole model.
+        Set the properties of ion species named ``ion`` that will be applied
+        by default on every cell in the model. Species concentrations and reversal
+        potential can be overridden on specific cells using :meth:`decor.set_ion`
+        and on specific regions using the :meth:`decor.paint`
+        while the method for calculating reversal potential is global for all
+        CVs in the cell, and can't be overridden locally.
+
+        :param str ion: description of the ion species.
+        :param float int_con: initial internal concentration [mM].
+        :type int_con: float or None.
+        :param float ext_con: initial external concentration [mM].
+        :type ext_con: float or None.
+        :param float rev_pot: reversal potential [mV].
+        :type rev_pot: float or None
+        :param method: method for calculating reversal potential.
+        :type method: :py:class:`mechanism` or None
+
+    .. method:: register(cat)
+
+        Register the pointer to the mechanism catalogue in the global properties.
+
+        .. Note::
+
+            The mechanism catalogue is **not** owned by the :class:`cable_global_properties`.
+            This class merely owns a pointer to the catalogue, which needs to live somewhere else.
+
+        :param catalogue cat: The mechanism catalogue to be used in the model.
 
 .. _pycablecell-probes:
 

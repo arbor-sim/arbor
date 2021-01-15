@@ -5,7 +5,7 @@ Cable cell morphologies
 
 Cell morphologies are required to describe a :ref:`cppcablecell`.
 Morphologies can be constructed directly, or read from a number of
-file formats; see :ref:`cppmorphology-construction` for details.
+file formats; see :ref:`morphology formats <formatsmorph>` for details.
 
 Morphology API
 --------------
@@ -134,8 +134,8 @@ has three different interpretation of that format.
 A :cpp:func:`parse_swc()` function is used to parse the SWC file and generate a :cpp:type:`swc_data` object.
 This object contains a vector of :cpp:type:`swc_record` objects that represent the SWC samples, with a number of
 basic checks performed on them. The :cpp:type:`swc_data` object can then be used to generate a
-:cpp:type:`morphology` object using one of the following functions: (See the morphology concepts
-:ref:`page <formatsmorph>` for more details).
+:cpp:type:`morphology` object using one of the following functions: (See :ref:`morphology formats <formatsmorph>`
+for more details).
 
   * :cpp:func:`load_swc_arbor`
   * :cpp:func:`load_swc_allen`

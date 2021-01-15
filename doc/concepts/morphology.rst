@@ -492,3 +492,6 @@ because it has two children: the dendrites attached to its distal end.
     .. figure:: ../gen-images/ysoma_morph3.svg
       :width: 900
       :align: center
+
+* :ref:`Python <pymorph>`
+* :ref:`C++ <cppmorphology-construction>`
