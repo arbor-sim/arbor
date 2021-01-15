@@ -13,6 +13,7 @@ An installation guide and library documentation are available online at [Read th
 The Arbor software can be cited via Zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg)](https://doi.org/10.5281/zenodo.1459678).
 
 Previous versions of Arbor can be cited specifically:
+* Version 0.5: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4428108.svg)](https://doi.org/10.5281/zenodo.4428108)
 * Version 0.2: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2583709.svg)](https://doi.org/10.5281/zenodo.2583709)
 * Version 0.1: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1459679.svg)](https://doi.org/10.5281/zenodo.1459679)
 

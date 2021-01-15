@@ -25,7 +25,7 @@ mechanism that is to be painted or placed on the cable cell.
       of a mechanism.
     * range parameters: the value of range parameters is defined for each instance
       of the mechanism on a cell. For density mechanisms, this means one value for
-      each compartment on which it is present.
+      each :term:`control volume` on which it is present.
 
     The method for setting a parameter depends on its type.
     If global parameters change, we are effectively defining a new type
@@ -160,7 +160,7 @@ mechanism that is to be painted or placed on the cable cell.
     .. py:attribute:: linear
         :type: bool
 
-        True if a synapse mechanism has linear current contributions so that multiple instances on the same compartment can be coalesced.
+        True if a synapse mechanism has linear current contributions so that multiple instances on the same :term:`control volume` can be coalesced.
 
 
 .. py:class:: ion_dependency
@@ -246,9 +246,18 @@ Mechanism catalogues
     2. A further hierarchy of *derived* mechanisms, that allow specialization of
        global parameters, ion bindings, and implementations.
 
-    .. py:method:: has(name)
+    .. py:method:: __contains__(name)
 
         Test if mechanism with *name* is in the catalogue.
+
+        Note: This enables the following idiom
+
+        .. code-block:: Python
+
+            import arbor
+
+            if 'hh' in arbor.default_catalogue():
+              print("Found HH mechanism.")
 
         :param name: name of mechanism.
         :type name: str
@@ -280,11 +289,20 @@ Mechanism catalogues
         :return: mechanism metadata
         :rtype: :class:`mechanism_info`
 
-    .. py:method:: names()
+    .. py:method:: __iter___()
 
         Return a list names of all the mechanisms in the catalogue.
 
-        :return: list
+        Note: This enables the following idiom
+
+        .. code-block:: Python
+
+            import arbor
+
+            for name in arbor.default_catalogue():
+              print(name)
+
+        :return: :class:`py_mech_cat_iterator`
 
     .. py:method:: derive(name, parent, globals={}, ions={})
 

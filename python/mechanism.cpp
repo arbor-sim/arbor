@@ -104,12 +104,29 @@ void register_mechanisms(pybind11::module& m) {
                     return util::pprintf("(arbor.mechanism_info)"); });
 
     pybind11::class_<arb::mechanism_catalogue> cat(m, "catalogue");
+
+    struct py_mech_cat_iterator {
+        py_mech_cat_iterator(const arb::mechanism_catalogue &cat, pybind11::object ref) : names(cat.mechanism_names()), ref(ref), idx{0} { }
+        std::vector<std::string> names;
+        pybind11::object ref; // keep a reference to cat lest it dies while we iterate
+        size_t idx = 0;
+        std::string next() {
+            if (idx == names.size()) throw pybind11::stop_iteration();
+            return names[idx++];
+        }
+    };
+
+    pybind11::class_<py_mech_cat_iterator>(cat, "MechCatIterator")
+        .def("__iter__", [](py_mech_cat_iterator &it) -> py_mech_cat_iterator& { return it; })
+        .def("__next__", &py_mech_cat_iterator::next);
+
     cat
         .def(pybind11::init<const arb::mechanism_catalogue&>())
-        .def("has", &arb::mechanism_catalogue::has,
+        .def("__contains__", &arb::mechanism_catalogue::has,
              "name"_a, "Is 'name' in the catalogue?")
-        .def("keys", &arb::mechanism_catalogue::mechanism_names,
-             "Return a list of all mechanisms in this catalogues.")
+        .def("__iter__",
+             [](pybind11::object cat) { return py_mech_cat_iterator(cat.cast<const arb::mechanism_catalogue &>(), cat); },
+             "Return an iterator over all mechanism names in this catalogues.")
         .def("is_derived", &arb::mechanism_catalogue::is_derived,
                 "name"_a, "Is 'name' a derived mechanism or can it be implicitly derived?")
         .def("__getitem__",

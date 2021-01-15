@@ -376,8 +376,8 @@ Cell morphology
     Loads the :class:`morphology` from an SWC file according to the AllenDB and Sonata's SWC specifications.
     Specifically:
 
-        * The first sample (the root) is treated as the center of the soma.
-        * The morphology is translated such that the soma is centered at (0,0,0).
+        * The first sample (the root) is treated as the centre of the soma.
+        * The morphology is translated such that the soma is centred at (0,0,0).
         * The first sample has tag 1 (soma).
         * All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)
 
@@ -386,14 +386,14 @@ Cell morphology
     used to enforce this requirement.
 
     Arbor does not support modelling the soma as a sphere, so a cylinder with length
-    equal to the soma diameter is used. The cylinder is centered on the origin, and
+    equal to the soma diameter is used. The cylinder is centred on the origin, and
     aligned along the z axis.
     Axons and apical dendrites are attached to the proximal end of the cylinder, and
     dendrites to the distal end, with a gap between the start of each branch and the
     end of the soma cylinder to which it is attached.
 
     :param str filename: the name of the SWC file.
-    :param bool no_gaps: enforce that distance between soma center and branches attached to soma is the soma radius.
+    :param bool no_gaps: enforce that distance between soma centre and branches attached to soma is the soma radius.
     :rtype: morphology
 
 .. py:class:: place_pwlin

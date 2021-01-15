@@ -73,7 +73,7 @@ Samples with the soma as a parent start new segments, that connect to the distal
 or to the proximal end of the soma if they are axons or apical dendrites. Only axons, dendrites and apical dendrites
 (tags 2, 3 and 4 respectively) are allowed in this interpretation, in addition to the spherical soma.
 
-Finally the Allen institute interpretation of SWC files centers the morphology around the soma at the origin (0, 0, 0)
+Finally the Allen institute interpretation of SWC files centres the morphology around the soma at the origin (0, 0, 0)
 and all samples are translated in space towards the origin.
 
 NEURON interpretation:

@@ -135,6 +135,7 @@ reg_branch0 = {'type': 'region', 'value': [(0, 0.0, 1.0)]}
 reg_branch3 = {'type': 'region', 'value': [(3, 0.0, 1.0)]}
 reg_segment0 = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168)]}
 reg_segment3 = {'type': 'region', 'value': [(1, 0.0, 0.5920519526598877)]}
+reg_cable_0_28 = {'type': 'region', 'value': [(0, 0.2, 0.8)]}
 reg_cable_1_01 = {'type': 'region', 'value': [(1, 0.0, 1.0)]}
 reg_cable_1_31 = {'type': 'region', 'value': [(1, 0.3, 1.0)]}
 reg_cable_1_37 = {'type': 'region', 'value': [(1, 0.3, 0.7)]}
