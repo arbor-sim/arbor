@@ -314,7 +314,7 @@ def generate(path=''):
 
     label_image(inputs.tutorial_morph, [inputs.tut_ls_root, inputs.tut_ls_terminal], path+'/tutorial_root_term.svg')
     label_image(inputs.tutorial_morph, [inputs.tut_ls_custom_terminal, inputs.tut_ls_axon_terminal], path+'/tutorial_custom_axon_term.svg')
-    label_image(inputs.tutorial_network_ring_morph, [inputs.tut_network_ring_ls_synapse_site], path+'/tutorial_network_ring_synapse_site.svg', drawroot=False, loc_sc=6)
+    label_image(inputs.tutorial_network_ring_morph, [inputs.tut_network_ring_ls_synapse_site], path+'/tutorial_network_ring_synapse_site.svg', loc_sc=6)
 
     ####################### regions
     label_image(inputs.tutorial_morph, [inputs.tut_reg_soma, inputs.tut_reg_axon, inputs.tut_reg_dend, inputs.tut_reg_last], path+'/tutorial_tag.svg')

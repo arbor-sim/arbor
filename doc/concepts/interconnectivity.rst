@@ -1,4 +1,4 @@
-.. _co_interconnectivity:
+.. _interconnectivity:
 
 Interconnectivity
 =================

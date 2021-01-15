@@ -272,7 +272,7 @@ that kind. We return ``self.the_props`` which we defined in step **(1)**.
 
    More information on the recipe can be found :ref:`here <modelrecipe>`.
 
-Now we can intantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
+Now we can instantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
 previous section:
 
 .. code-block:: python
@@ -292,7 +292,7 @@ behind the scenes.
 
 The details of the execution context can be customized by the user. We may specify the number of threads
 in the thread pool; determine the id of the GPU to be used; or create our own MPI communicator. However,
-the ideal settings can usually be inferred from the system, and arbor can do that with a simple command.
+the ideal settings can usually be inferred from the system, and Arbor can do that with a simple command.
 
 .. code-block:: python
 

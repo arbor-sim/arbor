@@ -3,6 +3,8 @@
 Interconnectivity
 #################
 
+.. currentmodule:: arbor
+
 .. class:: connection
 
     Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
