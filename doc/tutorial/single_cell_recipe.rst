@@ -29,16 +29,16 @@ We can immediately paste the cell description code from the
     tree = arbor.segment_tree()
     tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
-    # (2) Define the soma and its center
+    # (2) Define the soma and its midpoint
     labels = arbor.label_dict({'soma':   '(tag 1)',
-                              'center': '(location 0 0.5)'})
+                              'midpoint': '(location 0 0.5)'})
 
     # (3) Create cell and set properties
     decor = arbor.decor()
     decor.set_property(Vm=-40)
     decor.paint('"soma"', 'hh')
-    decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
-    decor.place('"center"', arbor.spike_detector(-10))
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
+    decor.place('"midpoint"', arbor.spike_detector(-10))
     cell = arbor.cable_cell(tree, labels, decor)
 
 The recipe
@@ -123,7 +123,7 @@ Step **(4.7)** returns the properties that will be applied to all cells of that 
 
 More methods can be overridden if your model requires that, see :class:`arbor.recipe` for options.
 
-Step **(5)** instantiates the recipe with the cable cell described earlier, and a single voltage probe located at "center".
+Step **(5)** instantiates the recipe with the cable cell described earlier, and a single voltage probe located at "midpoint".
 
 The context and domain decomposition
 ------------------------------------

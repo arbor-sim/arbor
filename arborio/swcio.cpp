@@ -303,7 +303,7 @@ arb::morphology load_swc_neuron(const swc_data& data) {
                         {soma_prox.x, soma_prox.y + soma_prox.r, soma_prox.z, soma_prox.r}, soma_tag);
             return tree;
         }
-        // Model the soma as a 2 cylinders with total length=2*radius, extended along the y axis, centered at the sample
+        // Model the soma as a 2 cylinders with total length=2*radius, extended along the y axis, centred at the sample
         auto p = tree.append(arb::mnpos, {soma_prox.x, soma_prox.y - soma_prox.r, soma_prox.z, soma_prox.r},
                              {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r}, soma_tag);
         tree.append(p, {soma_prox.x, soma_prox.y, soma_prox.z, soma_prox.r},
@@ -459,7 +459,7 @@ arb::morphology load_swc_allen(const swc_data& data, bool no_gaps) {
         if (r.tag > 4) throw swc_unsupported_tag{r.id};
     }
 
-    // Translate the morphology so that the soma is centered at the origin (0,0,0)
+    // Translate the morphology so that the soma is centred at the origin (0,0,0)
     arb::mpoint sloc{records[0].x, records[0].y, records[0].z, records[0].r};
     for (auto& r: records) {
         r.x -= sloc.x;

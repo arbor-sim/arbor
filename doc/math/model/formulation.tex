@@ -275,7 +275,7 @@ Furthermore, because $\alpha_{i,j} > 0$, the linear system is diagonally dominan
 \subsubsection{The Soma}
 %-------------------------------------------------------------------------------
 We model the soma as a sphere with a centre $\vv{x}_s$ and a radius $r_s$.
-The soma is conceptually treated as the center of the cell: the point from which all other parts of the cell branch.
+The soma is conceptually treated as the centre of the cell: the point from which all other parts of the cell branch.
 It requires special treatment, because of its size relative to the radius of the dendrites and axons that branch off from it.
 
 Though the soma is usually visualized as a sphere, it is \emph{worth noting} that Neuron models the soma as a cylinder
@@ -306,7 +306,7 @@ This effectivly of ``collapses'' the node that defines the start of dendrites at
 This requires a little slight of hand when loading the cell description from file (for example a \verb!.swc! file).
 In such file formats there would be 5 points used to describe the cell in \fig{fig:soma}:
 \begin{itemize}
-    \item 1 to describe the center of the soma.
+    \item 1 to describe the centre of the soma.
     \item 2 for each dendrite: 1 describing where the dendrite is attached to the soma, and 1 for the terminal end.
 \end{itemize}
 However, in the mathematical formulation there are only 3 values that are solved for: the soma and one for each of the dendrites.
