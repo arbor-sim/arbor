@@ -76,3 +76,9 @@ The JSON format has a structure similar to the following example:
        }
      }
    }
+
+API
+~~~
+
+* :ref:`Python <pyformats>`
+* :ref:`C++ <cppformats>`

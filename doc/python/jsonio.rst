@@ -11,9 +11,8 @@ Json Formats
     structure described in the :ref:`default parameters formats page <formatsdefault>`.
     The resulting :class:`cable_parameter_set` can be applied to a
     :class:`single_cell_model` or the :class:`cable_global_properties` returned by
-    :meth:`recipe.global_properties`.
-    The parameters will be applied to all cells in the model, unless overridden
-    at the cell or region level using the :class:`decor`.
+    :meth:`recipe.global_properties`, where the parameters will be applied to all cells
+    in the model, unless overridden at the cell or region level using the :class:`decor`.
 
     :param str filename: the name of the JSON file.
     :rtype: :class:`cable_parameter_set`

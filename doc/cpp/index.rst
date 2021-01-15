@@ -26,3 +26,4 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    profiler
    neuroml
    cable_cell
+   jsonio
