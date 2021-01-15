@@ -90,7 +90,8 @@ def morph_image(morphs, methods, filename, **kwargs):
                                 points.add(dwg.circle(center=pos,
                                                     stroke='black',
                                                     r=sc*0.55*lab_sc,
-                                                    fill='white'))
+                                                    fill='white',
+                                                    stroke_width=sc/20*lab_sc))
                                 # The svg alignment_baseline attribute:
                                 #   - works on Chrome/Chromium
                                 #   - doesn't work on Firefox
@@ -113,7 +114,8 @@ def morph_image(morphs, methods, filename, **kwargs):
                     points.add(dwg.circle(center=pos,
                                         stroke=bcolor,
                                         r=sc*0.55*lab_sc,
-                                        fill=bcolor))
+                                        fill=bcolor,
+                                        stroke_width=sc/20*lab_sc))
                     # The svg alignment_baseline attribute:
                     #   - works on Chrome/Chromium
                     #   - doesn't work on Firefox
@@ -205,7 +207,7 @@ def label_image(morphology, labels, filename, **kwargs):
         # Draw the root
         root = translate(morph[0].location(0), sc, offset)
         if drawroot:
-            points.add(dwg.circle(center=root, stroke='red', r=sc/2.5*loc_sc, fill='white'))
+            points.add(dwg.circle(center=root, stroke='red', r=sc/2.5*loc_sc, fill='white', stroke_width=sc/10*loc_sc))
 
         if lab['type'] == 'locset':
             for loc in lab['value']:
@@ -213,7 +215,7 @@ def label_image(morphology, labels, filename, **kwargs):
                 pos = loc[1]
 
                 loc = translate(morph[bid].location(pos), sc, offset)
-                points.add(dwg.circle(center=loc, stroke='black', r=sc/3*loc_sc, fill='white'))
+                points.add(dwg.circle(center=loc, stroke='black', r=sc/3*loc_sc, fill='white', stroke_width=sc/10*loc_sc))
 
         if lab['type'] == 'region':
             for cab in lab['value']:
