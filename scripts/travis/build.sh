@@ -122,6 +122,9 @@ if [[ "${WITH_PYTHON}" == "true" ]]; then
     python$PY $python_path/example/single_cell_detailed_recipe.py $python_path/example/inputs/morph.swc  || error "running python single_cell_detailed_recipe example"
     progress "Python example: single_cell_swc"
     python$PY $python_path/example/single_cell_swc.py  $base_path/test/unit/swc/pyramidal.swc     || error "running python single_cell_swc example"
+    progress "Python example: single_cell_json"
+    python$PY $python_path/example/single_cell_json.py $python_path/example/inputs/defaults.json  $python_path/example/inputs/decor.json\
+                                                       $python_path/example/inputs/morph2.swc     || error "running python single_cell_json example"
     if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
         if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
             progress "Python distributed unit tests (MPI)"

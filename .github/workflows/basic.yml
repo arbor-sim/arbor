@@ -95,3 +95,4 @@ jobs:
             python python/example/single_cell_swc.py test/unit/swc/pyramidal.swc
             python python/example/single_cell_detailed.py python/example/inputs/morph.swc
             python python/example/single_cell_detailed_recipe.py python/example/inputs/morph.swc
+            python python/example/single_cell_json.py python/example/inputs/defaults.json python/example/inputs/decor.json python/example/inputs/morph2.swc
