@@ -92,7 +92,7 @@ This can be done by manually building a segment tree:
 
 The same morphology can be represented using an SWC file (interpreted according
 to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
-``morph.swc``.
+``single_cell_detailed.swc``.
 
 .. code-block:: python
 
@@ -122,7 +122,7 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
 
     More information on SWC loaders can be found :ref:`here <morph-formats>`.
 
-The morphology can then be loaded from ``morph.swc`` in the following way:
+The morphology can then be loaded from ``single_cell_detailed.swc`` in the following way:
 
 .. code-block:: python
 
@@ -130,7 +130,7 @@ The morphology can then be loaded from ``morph.swc`` in the following way:
 
     # Read the morphology from an SWC file
 
-    morph = arbor.load_swc_arbor("morph.swc")
+    morph = arbor.load_swc_arbor("single_cell_detailed.swc")
 
 The label dictionary
 ^^^^^^^^^^^^^^^^^^^^

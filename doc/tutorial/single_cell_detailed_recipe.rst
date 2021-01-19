@@ -47,7 +47,7 @@ We can immediately paste the cell description code from the
 
    #(1) Read the morphology from an SWC file.
 
-   morph = arbor.load_swc_arbor("morph.swc")
+   morph = arbor.load_swc_arbor("single_cell_detailed.swc")
 
    #(2) Create and populate the label dictionary.
 
