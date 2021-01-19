@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <cmath>
+#include <map>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -142,17 +143,19 @@ void run_v_i_probe_test(const context& ctx) {
 
     // Voltage probes are interpolated, so expect fvm_probe_info
     // to wrap an fvm_probe_interpolated; ion current density is
-    // a scalar, so should wrap fvm_probe_scalar.
+    // implemented as an interpolated probe too, in order to account
+    // for stimulus contributions.
 
     ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 0}).front().info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 0}).front().info));
-    ASSERT_TRUE(std::get_if<fvm_probe_scalar>(&probe_map.data_on({0, 2}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 1}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 2}).front().info));
 
     probe_handle p0a = get_probe_raw_handle({0, 0}, 0);
     probe_handle p0b = get_probe_raw_handle({0, 0}, 1);
     probe_handle p1a = get_probe_raw_handle({0, 1}, 0);
     probe_handle p1b = get_probe_raw_handle({0, 1}, 1);
-    probe_handle p2 = get_probe_raw_handle({0, 2});
+    probe_handle p2a = get_probe_raw_handle({0, 2}, 0);
+    probe_handle p2b = get_probe_raw_handle({0, 2}, 1);
 
     // Ball-and-stick cell with default discretization policy should
     // have three CVs, one for branch 0, one trivial one covering the
@@ -172,7 +175,7 @@ void run_v_i_probe_test(const context& ctx) {
 
     // Expect initial raw probe handle values to be the resting potential for
     // the voltage probes (cell membrane potential should be constant), and
-    // zero for the current probe.
+    // zero for the current probe (including stimulus component).
 
     fvm_value_type resting = voltage[0];
     EXPECT_NE(0.0, resting);
@@ -181,7 +184,8 @@ void run_v_i_probe_test(const context& ctx) {
     EXPECT_EQ(resting, deref(p0b));
     EXPECT_EQ(resting, deref(p1a));
     EXPECT_EQ(resting, deref(p1a));
-    EXPECT_EQ(0.0, deref(p2));
+    EXPECT_EQ(0.0, deref(p2a));
+    EXPECT_EQ(0.0, deref(p2b));
 
     // After an integration step, expect voltage probe values
     // to differ from resting, and for there to be a non-zero current.
@@ -192,7 +196,8 @@ void run_v_i_probe_test(const context& ctx) {
     EXPECT_NE(resting, deref(p0b));
     EXPECT_NE(resting, deref(p1a));
     EXPECT_NE(resting, deref(p1b));
-    EXPECT_NE(0.0, deref(p2));
+    EXPECT_NE(0.0, deref(p2a));
+    EXPECT_NE(0.0, deref(p2b));
 }
 
 template <typename Backend>
@@ -770,7 +775,7 @@ void run_partial_density_probe_test(const context& ctx) {
 template <typename Backend>
 void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // On a passive cable in steady-state, the capacitive membrane current will be zero,
-    // and the axial currents should balance the ionic membrane currents in any CV.
+    // and the axial currents should balance the stimulus and ionic membrane currents in any CV.
     //
     // Membrane currents not associated with an ion are not visible, so we use a custom
     // mechanism 'ca_linear' that presents a passive, constant conductance membrane current
@@ -802,8 +807,8 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
 
     cable_cell cell(m, {}, d);
 
-    // Place axial current probes at CV boundaries and make a cell-wide probe for
-    // total ionic membrane current.
+    // Place axial current probes at CV boundaries and make cell-wide probes for
+    // total ionic membrane current and stimulus currents.
 
     mlocation_list cv_boundaries;
     util::assign(cv_boundaries,
@@ -818,8 +823,9 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
         rec.add_probe(0, 0, cable_probe_axial_current{loc});
     }
 
-    // Use tag 1 to indicate it's a whole-cell probe.
+    // Use tags 1 and 2 for the whole-cell probes.
     rec.add_probe(0, 1, cable_probe_total_ion_current_cell{});
+    rec.add_probe(0, 2, cable_probe_stimulus_current_cell{});
 
     partition_hint_map phints = {
        {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
@@ -829,7 +835,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // Take a sample at 20 tau, and run sim for just a bit longer.
 
     std::vector<double> i_axial(n_axial_probe);
-    std::vector<double> i_memb;
+    std::vector<double> i_memb, i_stim;
 
     sim.add_sampler(all_probes, explicit_schedule({20*tau}),
         [&](probe_metadata pm, std::size_t n_sample, const sample_record* samples)
@@ -837,7 +843,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
             // Expect exactly one sample.
             ASSERT_EQ(1u, n_sample);
 
-            if (pm.tag==1) { // (whole cell probe)
+            if (pm.tag!=0) { // (whole cell probe)
                 const mcable_list* m = any_cast<const mcable_list*>(pm.meta);
                 ASSERT_NE(nullptr, m);
                 // Metadata should comprise one cable per CV.
@@ -847,8 +853,9 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
                 ASSERT_NE(nullptr, s);
                 ASSERT_EQ(s->first+n_cv, s->second);
 
+                auto* i_var = pm.tag==1? &i_memb: &i_stim;
                 for (const double* p = s->first; p!=s->second; ++p) {
-                    i_memb.push_back(*p);
+                    i_var->push_back(*p);
                 }
             }
             else { // axial current probe
@@ -881,7 +888,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
         double net_axial_flux = i<n_axial_probe? i_axial[i]: 0;
         net_axial_flux -= i>0? i_axial[i-1]: 0;
 
-        EXPECT_TRUE(testing::near_relative(net_axial_flux, -i_memb[i], 1e-6));
+        EXPECT_TRUE(testing::near_relative(net_axial_flux, -i_memb[i]-i_stim[i], 1e-6));
     }
 }
 
@@ -1010,6 +1017,7 @@ void run_v_sampled_probe_test(const context& ctx) {
     EXPECT_NE(trace0[1].v, trace1[1].v);
 }
 
+
 template <typename Backend>
 void run_total_current_probe_test(const context& ctx) {
     // Model two passive Y-shaped cells with a similar but not identical
@@ -1044,8 +1052,9 @@ void run_total_current_probe_test(const context& ctx) {
     // at the fork points, and once with a non-trivial CV centred on the fork
     // point.
 
-    trace_data<std::vector<double>, mcable_list> traces[2];
+    trace_data<std::vector<double>, mcable_list> traces[2]; 
     trace_data<std::vector<double>, mcable_list> ion_traces[2];
+    trace_data<std::vector<double>, mcable_list> stim_traces[2];
 
     // Run the cells sampling at τ and 20τ for both total membrane
     // current and total membrane ionic current.
@@ -1053,7 +1062,6 @@ void run_total_current_probe_test(const context& ctx) {
     auto run_cells = [&](bool interior_forks) {
         auto flags = interior_forks? cv_policy_flag::interior_forks: cv_policy_flag::none;
         cv_policy policy = cv_policy_fixed_per_branch(n_cv_per_branch, flags);
-        //for (auto& c: cells) { c.discretization() = policy; }
         d0.set_default(policy);
         d1.set_default(policy);
         std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};
@@ -1070,6 +1078,9 @@ void run_total_current_probe_test(const context& ctx) {
             ion_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells, i,
                     cable_probe_total_ion_current_cell{}, {tau, 20*tau}).at(0);
 
+            stim_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells, i,
+                    cable_probe_stimulus_current_cell{}, {tau, 20*tau}).at(0);
+
             ASSERT_EQ(2u, traces[i].size());
             ASSERT_EQ(2u, ion_traces[i].size());
 
@@ -1083,26 +1094,30 @@ void run_total_current_probe_test(const context& ctx) {
             // same support and same metadata.
 
             ASSERT_EQ((n_cv_per_branch+(int)interior_forks)*n_branch, traces[i].meta.size());
-            EXPECT_EQ(ion_traces[i].meta, traces[i].meta);
+            ASSERT_EQ(ion_traces[i].meta, traces[i].meta);
             EXPECT_EQ(ion_traces[i][0].v.size(), traces[i][0].v.size());
             EXPECT_EQ(ion_traces[i][1].v.size(), traces[i][1].v.size());
 
-            // Check total membrane currents are individually non-zero, but sum is, both
-            // at t=τ (j=0) and t=20τ (j=1).
+            // Check total membrane currents + stimulus currents are individually non-zero, but sum is,
+            // both at t=τ (j=0) and t=20τ (j=1).
+
+            ASSERT_EQ(ion_traces[i].meta, stim_traces[i].meta);
 
             for (unsigned j: {0u, 1u}) {
-                double max_abs_i_memb = 0;
-                double sum_i_memb = 0;
-                for (auto i_memb: traces[i][j].v) {
-                    EXPECT_NE(0.0, i_memb);
-                    max_abs_i_memb = std::max(max_abs_i_memb, std::abs(i_memb));
-                    sum_i_memb += i_memb;
+                double max_abs_current = 0;
+                double sum_current = 0;
+                for (auto k: util::count_along(traces[i].meta)) {
+                    double current = traces[i][j].v[k] + stim_traces[i][j].v[k];
+
+                    EXPECT_NE(0.0, current);
+                    max_abs_current = std::max(max_abs_current, std::abs(current));
+                    sum_current += current;
                 }
 
-                EXPECT_NEAR(0.0, sum_i_memb, 1e-6*max_abs_i_memb);
+                ASSERT_NEAR(0.0, sum_current, 1e-6*max_abs_current);
             }
 
-            // Confirm that total and ion currents differ at τ but are close at 20τ.
+            // Confirm that total (non-stim) and ion currents differ at τ but are close at 20τ.
 
             for (unsigned k = 0; k<traces[i].size(); ++k) {
                 const double rtol_large = 1e-3;
@@ -1132,6 +1147,52 @@ void run_total_current_probe_test(const context& ctx) {
         SCOPED_TRACE("non-trival fork CV");
         run_cells(true);
     }
+}
+
+
+template <typename Backend>
+void run_stimulus_probe_test(const context& ctx) {
+    // Model two simple stick cable cells, 3 CVs each, and stimuli on cell 0, cv 1
+    // and cell 1, cv 2. Run both cells in the same cell group.
+
+    const double stim_until = 1.; // [ms]
+    auto m = make_stick_morphology();
+    cv_policy policy = cv_policy_fixed_per_branch(3);
+
+    decor d0, d1;
+    d0.set_default(policy);
+    d0.place(mlocation{0, 0.5}, i_clamp(0., stim_until, 10.));
+    d0.place(mlocation{0, 0.5}, i_clamp(0., stim_until, 20.));
+    double expected_stim0 = 30;
+
+    d1.set_default(policy);
+    d1.place(mlocation{0, 1}, i_clamp(0., stim_until, 30.));
+    d1.place(mlocation{0, 1}, i_clamp(0., stim_until, -10.));
+    double expected_stim1 = 20;
+
+    std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};
+
+    // Sample the cells during the stimulus, and after.
+
+    trace_data<std::vector<double>, mcable_list> traces[2];
+
+    for (unsigned i: {0u, 1u}) {
+        traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, 2.5*stim_until, cells, i,
+                cable_probe_stimulus_current_cell{}, {stim_until/2, 2*stim_until}).at(0);
+
+        ASSERT_EQ(3u, traces[i].meta.size());
+        for (unsigned cv: {0u, 1u, 2u}) {
+            ASSERT_EQ(2u, traces[i].size());
+        }
+    }
+
+    // Every sample in each trace should be zero _except_ the first sample for cell 0, cv 1
+    // and the first sample for cell 1, cv 2.
+
+    EXPECT_EQ((std::vector<double>{0, expected_stim0, 0}), traces[0][0]);
+    EXPECT_EQ((std::vector<double>{0, 0, expected_stim1}), traces[1][0]);
+    EXPECT_EQ((std::vector<double>(3)), traces[0][1]);
+    EXPECT_EQ((std::vector<double>(3)), traces[1][1]);
 }
 
 template <typename Backend>

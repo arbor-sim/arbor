@@ -6,7 +6,6 @@ set(arbor_sources
     backends/multicore/fvm.cpp
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
-    backends/multicore/stimulus.cpp
     communication/communicator.cpp
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
@@ -69,7 +68,6 @@ if(ARB_WITH_GPU)
         backends/gpu/mechanism.cpp
         backends/gpu/mechanism.cu
         backends/gpu/shared_state.cpp
-        backends/gpu/stimulus.cpp
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
         backends/gpu/matrix_assemble.cu

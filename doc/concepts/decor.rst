@@ -287,6 +287,27 @@ See :ref:`modelgapjunctions`.
 4. Stimuli
 ~~~~~~~~~~
 
+A current stimulus is described by a *frequency* in Hertz and an amplitude *envelope*.
+The envelope is specified by a sequence of points (*t*\ :sub:`i`\ , *a*\ :sub:`i`\ ), where the
+stimulus starts at *t*\ :sub:`0` ms with amplitude *a*\ :sub:`0` nA, and the amplitude
+is then interpolated linearly between successive points. The last envelope point
+(*t*\ :sub:`n`\ , *a*\ :sub:`n`\ ) describes a constant amplitude *a*\ :sub:`n` from
+the time *t*\ :sub:`n` onwards. A frequency value of 0 is used to denote a non-oscillating stimulus.
+
+Stimulus objects in the C++ and Python interfaces have simple constructors for describing
+constant stimuli and constant amplitude stimuli restricted to a fixed time interval.
+
+.. code-block:: Python
+
+    # Constant stimulus, amplitude 10 nA.
+    decor.place('(root)', arbor.iclamp(10))
+
+    # Constant ampltidude 10 nA stimulus at 20 Hz.
+    decor.place('(root)', arbor.iclamp(10, 20))
+
+    # Stimulus at 20 Hz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
+    decor.place('(root)', arbor.iclamp(30, 40, 10, 20))
+
 .. _cablecell-probes:
 
 5. Probes

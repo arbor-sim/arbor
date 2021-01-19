@@ -261,6 +261,15 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->set_dt();
         PL();
 
+        // Add stimulus current contributions.
+        // (Note: performed after dt, time_to calculation, in case we
+        // want to use mean current contributions as opposed to point
+        // sample.)
+
+        PE(advance_integrate_stimuli)
+        state_->add_stimulus_current();
+        PL();
+
         // Take samples at cell time if sample time in this step interval.
 
         PE(advance_integrate_samples);
@@ -486,7 +495,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
-    // Instantiate mechanisms and ions.
+    // Instantiate mechanisms, ions, and stimuli.
 
     for (auto& i: mech_data.ions) {
         const std::string& ion_name = i.first;
@@ -497,6 +506,10 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         else {
             throw cable_cell_error("unrecognized ion '"+ion_name+"' in mechanism");
         }
+    }
+
+    if (!mech_data.stimuli.cv.empty()) {
+        state_->configure_stimulus(mech_data.stimuli);
     }
 
     target_handles.resize(mech_data.n_target);
@@ -530,7 +543,6 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                 auto cv = layout.cv[i];
                 layout.weight[i] = 1000/D.cv_area[cv];
 
-                // (builtin stimulus, for example, has no targets)
                 if (config.target.empty()) continue;
 
                 target_handle handle(mech_id, i, cv_to_intdom[cv]);
@@ -775,6 +787,7 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
         cable_probe_total_ion_current_density,
         cable_probe_total_ion_current_cell,
         cable_probe_total_current_cell,
+        cable_probe_stimulus_current_cell,
         cable_probe_density_state,
         cable_probe_density_state_cell,
         cable_probe_point_state,
@@ -841,28 +854,44 @@ void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>&
 
 template <typename B>
 void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolution_data<B>& R) {
+    // Use interpolated probe with coeffs 1, -1 to represent difference between accumulated current density and stimulus.
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        R.result.push_back(fvm_probe_scalar{
-            {R.state->current_density.data() + R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty)},
+        fvm_index_type cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
+        const double* current_cv_ptr = R.state->current_density.data() + cv;
+
+        auto opt_i = util::binary_search_index(R.M.stimuli.cv_unique, cv);
+        const double* stim_cv_ptr = opt_i? R.state->stim_data.accu_stim_.data()+*opt_i: nullptr;
+
+        R.result.push_back(fvm_probe_interpolated{
+            {current_cv_ptr, stim_cv_ptr},
+            {1., -1.},
             loc});
     }
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_total_ion_current_cell& p, probe_resolution_data<B>& R) {
-    fvm_probe_weighted_multi r;
+    fvm_probe_interpolated_multi r;
+    std::vector<const double*> stim_handles;
 
     for (auto cv: R.D.geometry.cell_cvs(R.cell_idx)) {
-        const double* ptr = R.state->current_density.data()+cv;
+        const double* current_cv_ptr = R.state->current_density.data()+cv;
+        auto opt_i = util::binary_search_index(R.M.stimuli.cv_unique, cv);
+        const double* stim_cv_ptr = opt_i? R.state->stim_data.accu_stim_.data()+*opt_i: nullptr;
+
         for (auto cable: R.D.geometry.cables(cv)) {
             double area = R.cell.embedding().integrate_area(cable); // [µm²]
             if (area>0) {
-                r.raw_handles.push_back(ptr);
-                r.weight.push_back(0.001*area); // Scale from [µm²·A/m²] to [nA].
+                r.raw_handles.push_back(current_cv_ptr);
+                stim_handles.push_back(stim_cv_ptr);
+                r.coef[0].push_back(0.001*area); // Scale from [µm²·A/m²] to [nA].
+                r.coef[1].push_back(-r.coef[0].back());
                 r.metadata.push_back(cable);
             }
         }
     }
+
+    util::append(r.raw_handles, stim_handles);
     r.shrink_to_fit();
     R.result.push_back(std::move(r));
 }
@@ -878,6 +907,9 @@ void resolve_probe(const cable_probe_total_current_cell& p, probe_resolution_dat
         [cv0](auto cv) { return cv+1==0? cv: cv-cv0; }));
     util::assign(r.cv_parent_cond, util::subrange_view(R.D.face_conductance, cell_cv_ival));
 
+    const auto& stim_cvs = R.M.stimuli.cv_unique;
+    const fvm_value_type* stim_src = R.state->stim_data.accu_stim_.data();
+
     r.cv_cables_divs = {0};
     for (auto cv: R.D.geometry.cell_cvs(R.cell_idx)) {
         r.raw_handles.push_back(R.state->voltage.data()+cv);
@@ -892,9 +924,43 @@ void resolve_probe(const cable_probe_total_current_cell& p, probe_resolution_dat
         }
         r.cv_cables_divs.push_back(r.metadata.size());
     }
+    for (auto cv: R.D.geometry.cell_cvs(R.cell_idx)) {
+        auto opt_i = util::binary_search_index(stim_cvs, cv);
+        if (!opt_i) continue;
+
+        r.raw_handles.push_back(stim_src+*opt_i);
+        r.stim_cv.push_back(cv-cv0);
+        r.stim_scale.push_back(0.001*R.D.cv_area[cv]); // Scale from [µm²·A/m²] to [nA].
+    }
     r.shrink_to_fit();
     R.result.push_back(std::move(r));
 }
+
+template <typename B>
+void resolve_probe(const cable_probe_stimulus_current_cell& p, probe_resolution_data<B>& R) {
+    fvm_probe_weighted_multi r;
+
+    const auto& stim_cvs = R.M.stimuli.cv_unique;
+    const fvm_value_type* src = R.state->stim_data.accu_stim_.data();
+
+    for (auto cv: R.D.geometry.cell_cvs(R.cell_idx)) {
+        auto opt_i = util::binary_search_index(stim_cvs, cv);
+        const double* ptr = opt_i? src+*opt_i: nullptr;
+
+        for (auto cable: R.D.geometry.cables(cv)) {
+            double area = R.cell.embedding().integrate_area(cable); // [µm²]
+            if (area>0) {
+                r.raw_handles.push_back(ptr);
+                r.weight.push_back(0.001*area); // Scale from [µm²·A/m²] to [nA].
+                r.metadata.push_back(cable);
+            }
+        }
+    }
+
+    r.shrink_to_fit();
+    R.result.push_back(std::move(r));
+}
+
 
 template <typename B>
 void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>& R) {
