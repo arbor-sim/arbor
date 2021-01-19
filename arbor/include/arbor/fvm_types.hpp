@@ -18,8 +18,18 @@ struct fvm_gap_junction {
     value_type weight;
 
     fvm_gap_junction() {}
-    fvm_gap_junction(std::pair<index_type, index_type> l, value_type w): loc(l), weight(w) {}
+    fvm_gap_junction(std::pair<index_type, index_type> l, value_type w):
+        loc(l),
+        weight(w) {}
+};
 
+// TODO move me somewhere more sensible
+struct ion_state_view {
+    fvm_value_type* current_density;
+    fvm_value_type* reversal_potential;
+    fvm_value_type* internal_concentration;
+    fvm_value_type* external_concentration;
+    fvm_value_type* ionic_charge;
 };
 
 } // namespace arb

@@ -8,25 +8,11 @@
 namespace arb {
 namespace gpu {
 
-// Derived ppack structs may have ion_state_view fields:
-
-struct ion_state_view {
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
-
-    value_type* current_density;
-    value_type* reversal_potential;
-    value_type* internal_concentration;
-    value_type* external_concentration;
-    value_type* ionic_charge;
-};
-
 // Parameter pack base:
-
 struct mechanism_ppack_base {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
-    using ion_state_view = ::arb::gpu::ion_state_view;
+    using ion_state_view = ion_state_view;
 
     index_type width_;
 

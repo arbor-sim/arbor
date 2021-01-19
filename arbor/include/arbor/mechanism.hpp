@@ -9,17 +9,24 @@
 
 namespace arb {
 
-enum class mechanismKind {point, density, revpot};
+enum class mechanismKind { point,
+    density,
+    revpot };
 
 class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
-template <typename B> class concrete_mechanism;
+template <typename B>
+class concrete_mechanism;
 template <typename B>
 using concrete_mech_ptr = std::unique_ptr<concrete_mechanism<B>>;
 
 class mechanism {
 public:
+    using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
+    using size_type = fvm_size_type;
+
     mechanism() = default;
     mechanism(const mechanism&) = delete;
 
@@ -47,24 +54,24 @@ public:
     virtual mechanism_ptr clone() const = 0;
 
     // Non-global parameters can be set post-instantiation:
-    virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
+    virtual void set_parameter(const std::string& key, const std::vector<value_type>& values) = 0;
 
     // Simulation interfaces:
     virtual void initialize() = 0;
-    virtual void update_state() {};
-    virtual void update_current() {};
-    virtual void deliver_events() {};
-    virtual void update_ions() {};
+    virtual void update_state() {}
+    virtual void update_current() {}
+    virtual void deliver_events() {}
+    virtual void update_ions() {}
 
     virtual ~mechanism() = default;
 
     // Per-cell group identifier for an instantiated mechanism.
-    unsigned  mechanism_id() const { return mechanism_id_; }
+    unsigned mechanism_id() const { return mechanism_id_; }
 
 protected:
     // Per-cell group identifier for an instantiation of a mechanism; set by
     // concrete_mechanism<B>::instantiate()
-    unsigned  mechanism_id_ = -1;
+    unsigned mechanism_id_ = -1;
 };
 
 // Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
@@ -99,10 +106,58 @@ template <typename Backend>
 class concrete_mechanism: public mechanism {
 public:
     using backend = Backend;
-
     // Instantiation: allocate per-instance state; set views/pointers to shared data.
-    virtual void instantiate(unsigned  id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) = 0;
-};
+    virtual void instantiate(unsigned id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) = 0;
 
+    virtual value_type* field_data(const std::string& state_var);
+
+protected:
+    using deliverable_event_stream = typename backend::deliverable_event_stream;
+    using iarray = typename backend::iarray;
+
+    // Generated mechanism field, global and ion table lookup types.
+    // First component is name, second is pointer to corresponing member in
+    // the mechanism's parameter pack, or for field_default_table,
+    // the scalar value used to initialize the field.
+    using global_table_entry = std::pair<const char*, value_type*>;
+    using mechanism_global_table = std::vector<global_table_entry>;
+
+    using state_table_entry = std::pair<const char*, value_type**>;
+    using mechanism_state_table = std::vector<state_table_entry>;
+
+    using field_table_entry = std::pair<const char*, value_type**>;
+    using mechanism_field_table = std::vector<field_table_entry>;
+
+    using field_default_entry = std::pair<const char*, value_type>;
+    using mechanism_field_default_table = std::vector<field_default_entry>;
+
+    using ion_state_entry = std::pair<const char*, ion_state_view*>;
+    using mechanism_ion_state_table = std::vector<ion_state_entry>;
+
+    using ion_index_entry = std::pair<const char*, iarray*>;
+    using mechanism_ion_index_table = std::vector<ion_index_entry>;
+
+    // Generated mechanisms must implement the following methods, together with
+    // fingerprint(), clone(), kind(), nrn_init(), nrn_state(), nrn_current()
+    // and deliver_events() (if required) from arb::mechanism.
+
+    // Member tables: introspection into derived mechanism fields, views etc.
+    // Default implementations correspond to no corresponding fields/globals/ions.
+    virtual mechanism_field_table field_table() { return {}; }
+    virtual mechanism_field_default_table field_default_table() { return {}; }
+    virtual mechanism_global_table global_table() { return {}; }
+    virtual mechanism_state_table state_table() { return {}; }
+    virtual mechanism_ion_state_table ion_state_table() { return {}; }
+    virtual mechanism_ion_index_table ion_index_table() { return {}; }
+
+    virtual void nrn_state(){};
+    virtual void nrn_current(){};
+    // This should be here, but name clashes with another virtual function `void deliver_events()`
+    // virtual void deliver_events(typename deliverable_event_stream::state){};
+    virtual void write_ions(){};
+    virtual void nrn_init() = 0;
+    // Report raw size in bytes of mechanism object.
+    virtual std::size_t object_sizeof() const = 0;
+};
 
 } // namespace arb
