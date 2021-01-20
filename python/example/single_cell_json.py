@@ -16,10 +16,6 @@ defaults = arbor.load_default_parameters(defaults_file)
 decor    = arbor.load_decor(decor_file)
 morph    = arbor.load_swc_arbor(swc_file)
 
-# Test round trip of default parameter descriptions and decor.
-arbor.store_default_parameters(defaults, "defaults_out.json")
-arbor.store_decor(decor, "decor_out.json")
-
 # Define the regions and locsets in the model.
 # These need to include the definitions of the region strings in the decor file
 defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
@@ -46,7 +42,7 @@ cell = arbor.cable_cell(morph, labels, decor)
 model = arbor.single_cell_model(cell)
 
 # Set the model default parameters
-model.properties.set_property(defaults)
+model.properties.set_properties(defaults)
 
 # Extend the default catalogue
 model.catalogue.extend(arbor.bbp_catalogue(), "")

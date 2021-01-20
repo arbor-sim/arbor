@@ -437,12 +437,17 @@ void register_cells(pybind11::module& m) {
                 arb::check_global_properties(props);},
                 "Test whether all default parameters and ion species properties have been set.")
         // set cable properties
-        .def("set_property",
+        .def("set_properties",
             [](arb::cable_cell_global_properties& props,
                arb::cable_cell_parameter_set& set) {
                    props.default_parameters = set;
                },
-              "Set global default values for cable and cell properties.")
+              "Set global default values for cable-cell properties.")
+        .def("get_properties",
+             [](arb::cable_cell_global_properties& props) {
+                return props.default_parameters;
+             },
+             "Return the global default values for cable-cell properties.")
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
@@ -457,7 +462,7 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
             pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
             pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
-            "Set global default values for cable and cell properties.")
+            "Set global default values for cable-cell properties.")
         // add/modify ion species
         .def("set_ion",
             [](arb::cable_cell_global_properties& props, const char* ion,

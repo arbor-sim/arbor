@@ -253,28 +253,34 @@ Cable cells
 Cable cell properties
 ---------------------
 
-Cable cells have certain properties that can be set either at the cell, or model level.
+Cable cells have certain properties that can be set either at the region, cell, or model level.
 These properties are:
 
-   ========================================  =========
-   parameter                                 units
-   ========================================  =========
-   initial membrane potential                mV
-   temperature                               celsius
-   axial resistivity                         Ω·cm
-   membrane capacitance                      μf⋅cm⁻²
-   initial internal concentration (per ion)  mM
-   initial external concentration (per ion)  mM
-   initial reversal potential (per ion)      mV
-   reversal potential method (per ion)       --
-   CV policy                                 --
-   ========================================  =========
+   ========================================  =========  =======================
+   parameter                                 units      scope
+   ========================================  =========  =======================
+   initial membrane potential                mV         model or cell or region
+   temperature                               celsius    model or cell or region
+   axial resistivity                         Ω·cm       model or cell or region
+   membrane capacitance                      μf⋅cm⁻²    model or cell or region
+   initial internal concentration (per ion)  mM         model or cell or region
+   initial external concentration (per ion)  mM         model or cell or region
+   initial reversal potential (per ion)      mV         model or cell or region
+   reversal potential method (per ion)       --         model or cell
+   CV policy                                 --         model or cell
+   ========================================  =========  =======================
 
-Some of these parameters can be set individually on the decor using :meth:`decor.set_ion`
-and :meth:`decor.set_property`; and on the global properties of a model using
-:meth:`cable_global_properties.set_ion` and :meth:`cable_global_properties.set_property`.
-They are also bundled into :class:`cable_parameter_set` which can be set as a whole on the
-:class:`cable_global_properties`.
+* Parameters which are to be set at the region level, can be set individually using
+  :meth:`decor.paint`.
+
+* Parameters which are to be set at the cell level, can be set individually using
+  :meth:`decor.set_ion` and :meth:`decor.set_property`.
+
+* Parameters which are to be set at the model level, can be set individually using
+  :meth:`cable_global_properties.set_ion` and :meth:`cable_global_properties.set_property`.
+
+* All of the parameters are bundled into a :class:`cable_parameter_set` which can be
+  set as a whole on the model using :class:`cable_global_properties.set_properties`.
 
 .. note::
 
@@ -346,13 +352,17 @@ To apply those parameters at the level of the model, they are further bundled wi
         :param tempK: Temperature [Kelvin].
         :type tempK: float or None
 
-    .. method:: set_property(params)
+    .. method:: set_properties(params)
 
         Set default values of :class:`cable_parameter_set` for the whole model.
         Can be overridden on specific cells using :meth:`decor.set_property`,
         and on specific regions using :meth:`decor.paint`.
 
        :param cable_parameter_set params: bundled set of properties.
+
+    .. method:: get_properties()
+
+        Returns the default values of :class:`cable_parameter_set` for the whole model.
 
     .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
 

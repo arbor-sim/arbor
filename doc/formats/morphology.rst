@@ -15,8 +15,9 @@ SWC files may contain comments, which are stored as metadata. And a blank line a
 interpreted as end of data.
 
 The description of the morphology is encoded as a list of samples with an id,
-an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
-then generates a morphology according to one of three possible interpretations.
+an `x, y, z` location in space, a radius, a tag and a parent id (all delimited by white space).
+Arbor parses these samples, performs some checks, then generates a morphology according to one of
+three possible interpretations.
 
 The SWC file format specifications are not very detailed, which has lead different simulators to interpret
 SWC files in different ways, especially when it comes to the soma. Arbor has its own an interpretation that
@@ -59,6 +60,11 @@ like this:
    :width: 400
    :align: center
 
+.. Note::
+
+   As previously mentioned in its :term:`definition <morphology>`, a morphology is a 1-dimensional representation
+   of cables forming a tree. The image is merely a rendering of the underlying :term:`segment_tree` used for
+   demonstration purposes.
 
 Allen interpretation:
 """""""""""""""""""""

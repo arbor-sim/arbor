@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <memory>
 #include <set>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -67,6 +68,10 @@ public:
         return p.impl_->print(o);
     }
 
+    friend std::string to_string(const locset& p) {
+        return p.impl_->to_string();
+    }
+
     // The sum of two location sets.
     friend locset sum(locset, locset);
 
@@ -88,6 +93,7 @@ private:
         virtual ~interface() {}
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
+        virtual std::string to_string() = 0;
         virtual mlocation_list thingify(const mprovider&) = 0;
     };
 
@@ -108,6 +114,12 @@ private:
 
         virtual std::ostream& print(std::ostream& o) override {
             return o << wrapped;
+        }
+
+        virtual std::string to_string() override {
+            std::stringstream s;
+            s << wrapped;
+            return s.str();
         }
 
         Impl wrapped;
