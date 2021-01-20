@@ -24,4 +24,5 @@ Tutorials
    single_cell_recipe
    single_cell_detailed
    single_cell_detailed_recipe
+   single_cell_allen
    network_ring
