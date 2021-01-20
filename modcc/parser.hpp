@@ -8,10 +8,9 @@
 #include "lexer.hpp"
 #include "module.hpp"
 
-class Parser : public Lexer {
+class Parser: public Lexer {
 public:
-
-    explicit Parser(Module& m, bool advance=true);
+    explicit Parser(Module& m, bool advance = true);
     Parser(std::string const&);
     bool parse();
 
@@ -21,7 +20,7 @@ public:
     expression_ptr parse_integer();
     expression_ptr parse_real();
     expression_ptr parse_call();
-    expression_ptr parse_expression(int prec, tok t=tok::eq);
+    expression_ptr parse_expression(int prec, tok t = tok::eq);
     expression_ptr parse_expression();
     expression_ptr parse_expression(tok);
     expression_ptr parse_primary();
@@ -62,14 +61,14 @@ public:
     std::unordered_map<std::string, std::string> constants_map_;
 
 private:
-    Module *module_;
+    Module* module_;
 
     std::vector<Token> comma_separated_identifiers();
     std::vector<Token> unit_description();
     std::string value_literal();
     int value_signed_integer();
-    std::pair<Token, Token> range_description();
-    std::pair<Token, Token> from_to_description();
+    std::pair<std::string, std::string> range_description();
+    std::pair<std::string, std::string> from_to_description();
 
     /// build the identifier list
     void add_variables_to_symbols();
@@ -80,8 +79,8 @@ private:
 
     // disable default and copy assignment
     Parser();
-    Parser(Parser const &);
+    Parser(Parser const&);
 
-    bool expect(tok, const char *str="");
+    bool expect(tok, const char* str = "");
     bool expect(tok, std::string const& str);
 };
