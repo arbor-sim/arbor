@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include <arbornml/arbornml.hpp>
-#include <arbornml/nmlexcept.hpp>
+#include <arborio/arbornml.hpp>
+#include <arborio/nmlexcept.hpp>
 
 #include "parse_morphology.hpp"
 #include "xmlwrap.hpp"
@@ -12,7 +12,7 @@
 using std::optional;
 using std::nullopt;
 
-namespace arbnml {
+namespace arborio {
 
 struct neuroml_impl {
     xml_doc doc;
@@ -93,4 +93,4 @@ optional<morphology_data> neuroml::cell_morphology(const std::string& cell_id) c
     return M;
 }
 
-} // namespace arbnml
+} // namespace arborio

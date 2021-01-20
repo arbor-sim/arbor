@@ -6,9 +6,9 @@
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 
-#include <arbornml/arbornml.hpp>
-#include <arbornml/nmlexcept.hpp>
-#include <arbornml/with_xml.hpp>
+#include <arborio/arbornml.hpp>
+#include <arborio/nmlexcept.hpp>
+#include <arborio/with_xml.hpp>
 
 #include "../test/gtest.h"
 #include "morph_pred.hpp"
@@ -18,10 +18,10 @@ using testing::region_eq;
 TEST(neuroml, with_xml) {
     // This (hopefully) will not blow up.
     {
-        arbnml::with_xml scope;
+        arborio::with_xml scope;
     }
     {
-        arbnml::with_xml scope;
+        arborio::with_xml scope;
     }
 }
 
@@ -30,7 +30,7 @@ TEST(neuroml, with_xml) {
 TEST(neuroml, morph_badxml) {
     std::string illformed = "<wha?";
 
-    EXPECT_THROW(arbnml::neuroml{illformed}, arbnml::xml_error);
+    EXPECT_THROW(arborio::neuroml{illformed}, arborio::xml_error);
 }
 
 TEST(neuroml, morph_none) {
@@ -38,13 +38,13 @@ TEST(neuroml, morph_none) {
     {
         std::string empty1 = R"~(<?xml version="1.0" encoding="UTF-8"?><foo/>)~";
 
-        arbnml::neuroml N1(empty1);
+        arborio::neuroml N1(empty1);
         EXPECT_TRUE(N1.cell_ids().empty());
         EXPECT_TRUE(N1.morphology_ids().empty());
 
         std::string empty2 = "<foo/>";
 
-        arbnml::neuroml N2(empty2);
+        arborio::neuroml N2(empty2);
         EXPECT_TRUE(N2.cell_ids().empty());
         EXPECT_TRUE(N2.morphology_ids().empty());
     }
@@ -56,7 +56,7 @@ R"~(<?xml version="1.0" encoding="UTF-8"?>
 <neuroml xmlns="http://www.neuroml.org/schema/neuroml2">
 </neuroml>)~";
 
-        arbnml::neuroml N3(empty3);
+        arborio::neuroml N3(empty3);
         EXPECT_TRUE(N3.cell_ids().empty());
         EXPECT_TRUE(N3.morphology_ids().empty());
     }
@@ -80,7 +80,7 @@ R"~(
 
     using svector = std::vector<std::string>;
 
-    arbnml::neuroml N(doc);
+    arborio::neuroml N(doc);
 
     svector m_ids = N.morphology_ids(); // only top-level!
     std::sort(m_ids.begin(), m_ids.end());
@@ -90,7 +90,7 @@ R"~(
     std::sort(c_ids.begin(), c_ids.end());
     EXPECT_EQ((svector{"c3", "c4"}), c_ids);
 
-    arbnml::morphology_data mdata;
+    arborio::morphology_data mdata;
 
     mdata = N.cell_morphology("c4").value();
     EXPECT_EQ("c4", mdata.cell_id);
@@ -174,10 +174,10 @@ R"~(
 </neuroml>
 )~";
 
-    arbnml::neuroml N(doc);
+    arborio::neuroml N(doc);
 
     {
-        arbnml::morphology_data m1 = N.morphology("m1").value();
+        arborio::morphology_data m1 = N.morphology("m1").value();
         label_dict labels;
         labels.import(m1.segments, "seg:");
         mprovider P(m1.morphology, labels);
@@ -190,7 +190,7 @@ R"~(
     }
 
     {
-        arbnml::morphology_data m2 = N.morphology("m2").value();
+        arborio::morphology_data m2 = N.morphology("m2").value();
         label_dict labels;
         labels.import(m2.segments, "seg:");
         mprovider P(m2.morphology, labels);
@@ -218,7 +218,7 @@ R"~(
     }
 
     {
-        arbnml::morphology_data m3 = N.morphology("m3").value();
+        arborio::morphology_data m3 = N.morphology("m3").value();
         label_dict labels;
         labels.import(m3.segments, "seg:");
         mprovider P(m3.morphology, labels);
@@ -252,7 +252,7 @@ R"~(
     }
     {
         for (const char* m_name: {"m4", "m5"}) {
-            arbnml::morphology_data m4_or_5 = N.morphology(m_name).value();
+            arborio::morphology_data m4_or_5 = N.morphology(m_name).value();
             label_dict labels;
             labels.import(m4_or_5.segments, "seg:");
             mprovider P(m4_or_5.morphology, labels);
@@ -354,14 +354,14 @@ R"~(
 </neuroml>
 )~";
 
-    arbnml::neuroml N(doc);
+    arborio::neuroml N(doc);
 
-    EXPECT_THROW(N.morphology("no-proximal").value(), arbnml::bad_segment);
-    EXPECT_THROW(N.morphology("no-such-parent").value(), arbnml::bad_segment);
-    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arbnml::cyclic_dependency);
-    EXPECT_THROW(N.morphology("duplicate-id").value(), arbnml::bad_segment);
-    EXPECT_THROW(N.morphology("bad-segment-id").value(), arbnml::bad_segment);
-    EXPECT_THROW(N.morphology("another-bad-segment-id").value(), arbnml::bad_segment);
+    EXPECT_THROW(N.morphology("no-proximal").value(), arborio::bad_segment);
+    EXPECT_THROW(N.morphology("no-such-parent").value(), arborio::bad_segment);
+    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::cyclic_dependency);
+    EXPECT_THROW(N.morphology("duplicate-id").value(), arborio::bad_segment);
+    EXPECT_THROW(N.morphology("bad-segment-id").value(), arborio::bad_segment);
+    EXPECT_THROW(N.morphology("another-bad-segment-id").value(), arborio::bad_segment);
 }
 
 TEST(neuroml, simple_groups) {
@@ -441,11 +441,11 @@ R"~(
 </neuroml>
 )~";
 
-    arbnml::neuroml N(doc);
+    arborio::neuroml N(doc);
     using reg::named;
 
     {
-        arbnml::morphology_data m1 = N.morphology("m1").value();
+        arborio::morphology_data m1 = N.morphology("m1").value();
         label_dict labels;
         labels.import(m1.segments);
         labels.import(m1.groups);
@@ -456,7 +456,7 @@ R"~(
         EXPECT_TRUE(region_eq(P, named("group-c"), join(named("2"), named("1"))));
     }
     {
-        arbnml::morphology_data m2 = N.morphology("m2").value();
+        arborio::morphology_data m2 = N.morphology("m2").value();
         label_dict labels;
         labels.import(m2.segments);
         labels.import(m2.groups);
@@ -508,11 +508,11 @@ R"~(
 </neuroml>
 )~";
 
-    arbnml::neuroml N(doc);
+    arborio::neuroml N(doc);
 
-    EXPECT_THROW(N.morphology("no-such-segment").value(), arbnml::bad_segment_group);
-    EXPECT_THROW(N.morphology("no-such-group").value(), arbnml::bad_segment_group);
-    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arbnml::cyclic_dependency);
+    EXPECT_THROW(N.morphology("no-such-segment").value(), arborio::bad_segment_group);
+    EXPECT_THROW(N.morphology("no-such-group").value(), arborio::bad_segment_group);
+    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::cyclic_dependency);
 }
 
 
@@ -612,9 +612,9 @@ R"~(
 </neuroml>
 )~";
 
-    arbnml::neuroml N(doc);
+    arborio::neuroml N(doc);
 
-    arbnml::morphology_data m1 = N.morphology("m1").value();
+    arborio::morphology_data m1 = N.morphology("m1").value();
     label_dict labels;
     labels.import(m1.segments);
     labels.import(m1.groups);

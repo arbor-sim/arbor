@@ -9,7 +9,7 @@
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
 
-namespace arbnml {
+namespace arborio {
 
 // Collect and parse morphology elements from XML.
 // No validation is performed against the NeuroML v2 schema.
@@ -71,4 +71,4 @@ private:
     std::unique_ptr<neuroml_impl> impl_;
 };
 
-} // namespace arbnml
+} // namespace arborio

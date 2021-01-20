@@ -4,9 +4,9 @@
 #include <stdexcept>
 #include <string>
 
-namespace arbnml {
+namespace arborio {
 
-// Common base-class for arbnml run-time errors.
+// Common base-class for neuroml run-time errors.
 
 struct neuroml_exception: std::runtime_error {
     neuroml_exception(const std::string& what_arg):
@@ -64,4 +64,4 @@ struct cyclic_dependency: neuroml_exception {
     unsigned line;
 };
 
-} // namespace arbnml
+} // namespace arborio

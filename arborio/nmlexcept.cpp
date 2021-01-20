@@ -1,8 +1,8 @@
 #include <string>
 
-#include <arbornml/nmlexcept.hpp>
+#include <arborio/nmlexcept.hpp>
 
-namespace arbnml {
+namespace arborio {
 
 static std::string fmt_error(const char* prefix, const std::string& err, unsigned line) {
     return prefix + (line==0? err: "line " + std::to_string(line) + ": " + err);
@@ -54,4 +54,4 @@ cyclic_dependency::cyclic_dependency(const std::string& id, unsigned line):
     line(line)
 {}
 
-} // namespace arbnml
+} // namespace arborio
