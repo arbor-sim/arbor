@@ -40,7 +40,8 @@ We will replicate the "Sweep 35" experiment, which applies a current of 150 nA f
 The morphology
 --------------
 
-:ref:`In an earlier tutorial <tutorialsinglecellswc-cell>` we've seen how an ``swc`` file can be loaded **(1)** and how the labels can be set **(2)**:
+:ref:`In an earlier tutorial <tutorialsinglecellswc-cell>` we've seen how an ``swc`` file can be loaded **(1)**
+and how the labels can be set **(2)**:
 
 .. code-block:: python
 
@@ -57,14 +58,21 @@ The morphology
 
 Step **(1)** loads the ``swc`` file using :func:`arbor.load_swc_allen`. Since the ``swc`` specification is informal, a few different interpretations exist, and we use the appropriate one. The interpretations are described ::ref`here <morph-formats>`.
 
-Step **(2)** sets the labels to the defaults of the ``swc`` `specification <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_, plus a label for the midpoint of the soma. (You can verify in the ``swc`` file, the first branch is the soma.)
+Step **(2)** sets the labels to the defaults of the ``swc``
+`specification <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
+plus a label for the midpoint of the soma. (You can verify in the ``swc`` file, the first branch is the soma.)
 
 The decor
 ---------
 
-The most complicated part is transferring the values for the appropriate parameters in parameter fit file to an :class:`arbor.decor`. The file file is a ``json`` file, which is fortunate; Python comes with a ``json`` package in its standard library. The `passive` and `conditions` block contains cell-wide defaults, while the `genome` section contains the parameters for all the mechanism properties. In certain cases, parameters names include the mechanism name, so some processing needs to take place.
+The most complicated part is transferring the values for the appropriate parameters in parameter fit file to an
+:class:`arbor.decor`. The file file is a ``json`` file, which is fortunate; Python comes with a ``json`` package
+in its standard library. The `passive` and `conditions` block contains cell-wide defaults, while the `genome`
+section contains the parameters for all the mechanism properties. In certain cases, parameters names include the
+mechanism name, so some processing needs to take place.
 
-Step **(3)** shows the precise steps needed to load the fit parameter file into a list of global properties, region specific properties, reversal potentials, and mechanism parameters.
+Step **(3)** shows the precise steps needed to load the fit parameter file into a list of global properties,
+region specific properties, reversal potentials, and mechanism parameters.
 
 .. code-block:: Python
 
@@ -163,9 +171,20 @@ Step **(3)** shows the precise steps needed to load the fit parameter file into 
 
 Step **(3)** creates an empty :class:`arbor.decor`.
 
-Step **(4)** assigns global (cell-wide) properties using :func:`arbor.decor.set_property`. In addition, initial internal and external calcium concentrations are set, and configured to be mediated by the Nernst equation.
+Step **(4)** assigns global (cell-wide) properties using :func:`arbor.decor.set_property`. In addition, initial
+internal and external calcium concentrations are set, and configured to be mediated by the Nernst equation.
 
-Step **(5)** overrides the global properties for all *regions* for which the fit parameters file specifies adapted values. Regional properties are :func:`painted `arbor.paint`, and are painted over the defaults.
+.. note::
+    Setting the calcium reversal potential to be mediated by the Nernst equation has to be done manually, in order to mirror
+    `an implicit Neuron behavior <https://neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/ions.html>`_,
+    for which the fit parameters were obtained. This behavior can be stated as the following rule:
+
+    If the internal or external concentration of an ion is written, and its reversal potential is read but not
+    written, then the nernst equation is used continuously during the simulation to update the reversal potential of
+    the ion according to the nernst equation
+
+Step **(5)** overrides the global properties for all *regions* for which the fit parameters file specifies adapted
+values. Regional properties are :func:`painted `arbor.paint`, and are painted over the defaults.
 
 Step **(6)** sets the regional reversal potentials.
 
@@ -173,7 +192,10 @@ Step **(7)** assigns the regional mechanisms.
 
 Now that the electrodynamics are all set up, let's move on to the experimental setup.
 
-Step **(8)** configures the :class:`stimulus <arbor.iclamp>` of 150 nA for a duration of 1 s, starting after 200 ms of the start of the simulation. We'll also install a :class:`arbor.spike_detector` that triggers at -40 mV. (The location is usually the soma, as is confirmed by coordinates found in the experimental dataset at ``488683423.nwb/general/intracellular_ephys/Electrode 1/location``)
+Step **(8)** configures the :class:`stimulus <arbor.iclamp>` of 150 nA for a duration of 1 s, starting after 200 ms
+of the start of the simulation. We'll also install a :class:`arbor.spike_detector` that triggers at -40 mV. (The
+location is usually the soma, as is confirmed by coordinates found in the experimental dataset at
+``488683423.nwb/general/intracellular_ephys/Electrode 1/location``)
 
 Step **(9)** specifies a maximum :term:`control volume` length of 20 μm.
 
@@ -206,7 +228,9 @@ Step **(13)** starts the simulation for a duration of 1.4 s and a timestep of 5 
 The result
 ----------
 
-Let's look at the result! In step **(14)** we first load the reference generated with Neuron and the AllenSDK. Then, we place Arbor's output, accessible after the simulation ran through :class:`arbor.single_cell_model.traces`. Then, we plot them, together with the :class:`arbor.single_cell_model.spikes`.
+Let's look at the result! In step **(14)** we first load the reference generated with Neuron and the AllenSDK.
+Then, we place Arbor's output, accessible after the simulation ran through
+:class:`arbor.single_cell_model.traces`. Then, we plot them, together with the :class:`arbor.single_cell_model.spikes`.
 
 .. code-block:: python
 
@@ -233,9 +257,15 @@ Let's look at the result! In step **(14)** we first load the reference generated
 
 .. note::
 
-  The careful observer notices that this trace does not match the experimental data shown on the Allen website (or in the ``488683423.nwb`` file). Sweep 35 clearly has 5 spikes, not 4. That is because in the Allen SDK, the axon in the ``swc`` file is replaced with a stub, see `here <https://www.biorxiv.org/content/10.1101/2020.04.09.030239v1.full>`_ and `here <https://github.com/AllenInstitute/AllenSDK/issues/1683>`_. However, that adapted morphology is not exportable back to a modified ``swc`` file. When we tried to mimic the procedure, we did not obtain the experimental trace.
+  The careful observer notices that this trace does not match the experimental data shown on the Allen website
+  (or in the ``488683423.nwb`` file). Sweep 35 clearly has 5 spikes, not 4. That is because in the Allen SDK,
+  the axon in the ``swc`` file is replaced with a stub, see
+  `here <https://www.biorxiv.org/content/10.1101/2020.04.09.030239v1.full>`_ and `here <https://github.com/AllenInstitute/AllenSDK/issues/1683>`_.
+  However, that adapted morphology is not exportable back to a modified ``swc`` file. When we tried to mimic
+  the procedure, we did not obtain the experimental trace.
 
-  Therefore, we used the unmodified morphology in Arbor *and* the Neuron reference (by commenting out the changes the Allen SDK makes to the morphology) in order to make a 1:1 comparison possible.
+  Therefore, we used the unmodified morphology in Arbor *and* the Neuron reference (by commenting out the
+  changes the Allen SDK makes to the morphology) in order to make a 1:1 comparison possible.
 
 The full code
 -------------
