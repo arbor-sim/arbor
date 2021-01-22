@@ -81,7 +81,15 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 # Set the installation path
 
 # Ask Python where it keeps its system (platform) packages.
-execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))" OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
+execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} -c
+    "import sys,sysconfig;pfx=sys.stdin.read();print(sysconfig.get_path('platlib',vars={} if pfx=='' else {'base':pfx,'platbase':pfx}))"
+    INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
+    OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 # Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
 set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
 message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
