@@ -47,7 +47,7 @@ NeuroML documents are represented by the ``arborio::neuroml`` class,
 which in turn provides methods for the identification and translation
 of morphology data. ``neuroml`` objects are moveable and move-assignable, but not copyable.
 
-An implementation limitation restrictes valid segment id values to
+An implementation limitation restricts valid segment id values to
 those which can be represented by an ``unsigned long long`` value.
 
 .. cpp:class:: neuroml
@@ -110,7 +110,7 @@ segment group.
 
    .. cpp:member:: std::unordered_map<std::string, std::vector<unsigned long long>> group_segments
 
-   A map from taking each segment group id to its corresponding collection of segments.
+   A map from each segment group id to its corresponding collection of segments.
 
 
 Exceptions
