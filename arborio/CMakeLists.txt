@@ -10,7 +10,6 @@ if(ARB_WITH_NEUROML)
             xmlwrap.cpp
         )
 endif()
-message("${arborio-sources}")
 
 find_package(LibXml2 REQUIRED)
 
