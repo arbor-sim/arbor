@@ -82,7 +82,12 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 
 # Ask Python where it keeps its system (platform) packages.
 
-file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "")
+else()
+    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
+endif()
+
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -c
     "import sys,sysconfig;pfx=sys.stdin.read();print(sysconfig.get_path('platlib',vars={} if pfx=='' else {'base':pfx,'platbase':pfx}))"
