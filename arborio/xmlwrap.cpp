@@ -12,8 +12,6 @@
 
 #include <libxml/xmlerror.h>
 
-#include <arborio/nmlexcept.hpp>
-
 #include "xmlwrap.hpp"
 
 namespace arborio {

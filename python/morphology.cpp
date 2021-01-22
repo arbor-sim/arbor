@@ -16,7 +16,6 @@
 
 #ifdef ARB_NEUROML_ENABLED
 #include <arborio/arbornml.hpp>
-#include <arborio/nmlexcept.hpp>
 #endif
 
 #include "error.hpp"

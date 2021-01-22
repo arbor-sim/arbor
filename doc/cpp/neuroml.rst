@@ -116,7 +116,7 @@ segment group.
 Exceptions
 ----------
 
-All NeuroML-specific exceptions are defined in ``arborio/nmlexcept.hpp``, and are
+All NeuroML-specific exceptions are defined in ``arborio/arbornml.hpp``, and are
 derived from ``arborio::neuroml_exception`` which in turn is derived from ``std::runtime_error``.
 With the exception of the ``no_document`` exception, all contain an unsigned member ``line``
 which is intended to identify the problematic construct within the document.

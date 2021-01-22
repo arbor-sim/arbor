@@ -7,7 +7,6 @@
 #include <arbor/morph/primitives.hpp>
 
 #include <arborio/arbornml.hpp>
-#include <arborio/nmlexcept.hpp>
 #include <arborio/with_xml.hpp>
 
 #include "../test/gtest.h"

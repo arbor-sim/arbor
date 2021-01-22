@@ -4,7 +4,6 @@ set(arborio-sources
 if(ARB_WITH_NEUROML)
     list(APPEND arborio-sources
             arbornml.cpp
-            nmlexcept.cpp
             parse_morphology.cpp
             with_xml.cpp
             xmlwrap.cpp

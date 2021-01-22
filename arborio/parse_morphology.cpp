@@ -15,7 +15,6 @@
 #include <arbor/util/expected.hpp>
 
 #include <arborio/arbornml.hpp>
-#include <arborio/nmlexcept.hpp>
 
 #include "parse_morphology.hpp"
 #include "xmlwrap.hpp"
