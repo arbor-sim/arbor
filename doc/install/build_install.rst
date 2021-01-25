@@ -130,7 +130,8 @@ NeuroML
 
 Arbor supports reading cell morphologies defined in NeuroML version 2 through
 an additional support library ``arborio``. This library requires
-`libxml2 <http://xmlsoft.org>`_ for the parsing of NeuroML2 XML.
+`libxml2 <http://xmlsoft.org>`_ for the parsing of NeuroML2 XML, if it is built
+with NeuroML support enabled.
 See :ref:`install-neuroml` for more information.
 
 

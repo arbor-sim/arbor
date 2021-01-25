@@ -14,6 +14,8 @@
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 
+#include "arborio/arbornml.hpp"
+
 namespace arborio {
 
 // `non_negative` represents the corresponding constraint in the schema, which
