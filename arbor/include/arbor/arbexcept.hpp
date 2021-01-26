@@ -14,17 +14,14 @@ namespace arb {
 
 struct arbor_internal_error: std::logic_error {
     arbor_internal_error(const std::string& what_arg):
-        std::logic_error(what_arg)
-    {}
+        std::logic_error(what_arg) {}
 };
-
 
 // Common base-class for arbor run-time errors.
 
 struct arbor_exception: std::runtime_error {
     arbor_exception(const std::string& what_arg):
-        std::runtime_error(what_arg)
-    {}
+        std::runtime_error(what_arg) {}
 };
 
 // Recipe errors:
@@ -168,6 +165,12 @@ struct no_such_implementation: arbor_exception {
 struct range_check_failure: arbor_exception {
     explicit range_check_failure(const std::string& whatstr, double value);
     double value;
+};
+
+struct dynamic_catalogue_error: arbor_exception {
+    dynamic_catalogue_error(const std::string& fn, const std::string& error);
+    std::string filename;
+    std::string dlerror;
 };
 
 } // namespace arb

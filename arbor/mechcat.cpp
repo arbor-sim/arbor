@@ -576,19 +576,18 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 mechanism_catalogue::~mechanism_catalogue() = default;
 
 // Load a catalogue from a shared object
-const mechanism_catalogue& load_catalogue(const std::string& fn) {
+const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
     typedef const void* global_catalogue_t();
 
     auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
     if (!plugin) {
-        auto error = dlerror();
-        throw arb::dynamic_catalogue_error(fn, error);
+        throw arb::dynamic_catalogue_error(fn, "cannot open catalogue");
     }
 
     auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
     auto error = dlerror();
     if (error) {
-        throw arb::dynamic_catalogue_error(fn, error);
+        throw arb::dynamic_catalogue_error(fn, "failed to obtain catalogue handle");
     }
 
     /* NOTE We do not free the DSO handle here and accept retaining the handles
