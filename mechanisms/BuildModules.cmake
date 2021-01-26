@@ -58,8 +58,7 @@ function(build_modules)
 endfunction()
 
 function("make_catalogue")
-
-  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT" "MECHS" ${ARGN})
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE" "MECHS" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
 
   # Need to set ARB_WITH_EXTERNAL_MODCC *and* modcc
@@ -68,10 +67,14 @@ function("make_catalogue")
     set(external_modcc MODCC ${modcc})
   endif()
 
-  message(NOTICE "Catalogue name:       ${MK_CAT_NAME}")
-  message(NOTICE "Catalogue mechanisms: ${MK_CAT_MECHS}")
-  message(NOTICE "Catalogue sources:    ${MK_CAT_SOURCES}")
-  message(NOTICE "Catalogue output:     ${MK_CAT_OUT_DIR}")
+  message("Catalogue name:       ${MK_CAT_NAME}")
+  message("Catalogue mechanisms: ${MK_CAT_MECHS}")
+  message("Catalogue sources:    ${MK_CAT_SOURCES}")
+  message("Catalogue output:     ${MK_CAT_OUT_DIR}")
+  message("Arbor source tree:    ${MK_CAT_ARBOR}")
+  message("Build as standalone:  ${MK_CAT_STANDALONE}")
+  message("Source directory:     ${PROJECT_SOURCE_DIR}")    
+  message("Arbor arch:           ${ARB_CXXOPT_ARCH}")    
 
   file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
 
@@ -96,9 +99,9 @@ function("make_catalogue")
 
   add_custom_command(
     OUTPUT ${catalogue_${MK_CAT_NAME}_source}
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS}
+    COMMAND ${PROJECT_SOURCE_DIR}/mechanisms/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS}
     COMMENT "Building catalogue ${MK_CAT_NAME}"
-    DEPENDS generate_catalogue)
+    DEPENDS ${PROJECT_SOURCE_DIR}/mechanisms/generate_catalogue)
 
   add_custom_target(${MK_CAT_NAME}_catalogue_cpp_target DEPENDS ${catalogue_${MK_CAT_NAME}_source})
   add_dependencies(build_catalogue_${MK_CAT_NAME}_mods ${MK_CAT_NAME}_catalogue_cpp_target)
@@ -113,20 +116,22 @@ function("make_catalogue")
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
   set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXXOPT_ARCH})
-  add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
-  target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
-  set_target_properties(${MK_CAT_NAME}-catalogue
-    PROPERTIES
-    SUFFIX ".so"
-    PREFIX "lib"
-    CXX_STANDARD 17)
-  target_include_directories(${MK_CAT_NAME}-catalogue PUBLIC "${ARB_SOURCE_DIR}/arbor/")
 
-  if(${CMAKE_PROJECT_NAME} STREQUAL arbor)
-    target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor)
-  else()
-    target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor::arbor)
-    message(NOTICE "Standalone mode")
-  endif(${CMAKE_PROJECT_NAME} STREQUAL arbor)
+  if(${MK_CAT_STANDALONE})
+    add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
+    target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
+    set_target_properties(${MK_CAT_NAME}-catalogue
+      PROPERTIES
+      SUFFIX ".so"
+      PREFIX ""
+      CXX_STANDARD 17)
+    target_include_directories(${MK_CAT_NAME}-catalogue PUBLIC "${MK_CAT_ARBOR}/arbor/")
+
+    if(${CMAKE_PROJECT_NAME} STREQUAL "arbor")    
+      target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor)
+    else()
+      target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor::arbor)
+    endif(${CMAKE_PROJECT_NAME} STREQUAL "arbor")        
+  endif(${MK_CAT_STANDALONE})
 
 endfunction()
