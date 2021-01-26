@@ -22,7 +22,7 @@ class recipe(arb.recipe):
         self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
         self.props = arb.neuron_cable_properties()
         try:
-            self.cat = arb.load_catalogue('lib/libdefault-catalogue.so')
+            self.cat = arb.default_catalogue()
             self.props.register(self.cat)
         except:
             print("Catalogue not found. Are you running from build directory?")
@@ -59,19 +59,15 @@ class Catalogues(unittest.TestCase):
 
     def test_shared_catalogue(self):
         try:
-            cat = arb.load_catalogue("lib/libbbp-catalogue.so")
+            cat = arb.load_catalogue("lib/dummy-catalogue.so")
         except:
             print("BBP catalogue not found. Are you running from build directory?")
             raise
         nms = [m for m in cat]
-        nms.sort()
-        exp = [m for m in arb.bbp_catalogue()]
-        exp.sort()
-        self.assertEqual(nms, exp, "Expected equal names.")
+        self.assertEqual(nms, ['dummy'], "Expected equal names.")
         for nm in nms:
             prm = list(cat[nm].parameters.keys())
-            exp = list(arb.bbp_catalogue()[nm].parameters.keys())
-            self.assertEqual(prm, exp, "Expected equal parameters on mechanism '{}'.".format(nm))
+            self.assertEqual(prm, ['gImbar'], "Expected equal parameters on mechanism '{}'.".format(nm))
 
     def test_simulation(self):
         rcp = recipe()
