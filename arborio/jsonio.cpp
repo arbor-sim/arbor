@@ -11,10 +11,10 @@
 
 namespace arb {
 void to_json(nlohmann::json& j, const cable_cell_parameter_set& params) {
-    if (auto tempK = params.temperature_K) j["celsius"] = tempK.value() - 273.15;
-    if (auto Vm = params.init_membrane_potential) j["Vm"] = Vm.value();
-    if (auto Ra = params.axial_resistivity) j["Ra"] = Ra.value();
-    if (auto cm = params.membrane_capacitance) j["cm"] = cm.value();
+    if (auto tempK = params.temperature_K) j["temperature-K"] = tempK.value();
+    if (auto Vm = params.init_membrane_potential) j["init-membrane-potential"] = Vm.value();
+    if (auto Ra = params.axial_resistivity) j["axial-resistivity"] = Ra.value();
+    if (auto cm = params.membrane_capacitance) j["membrane-capacitance"] = cm.value();
     for (auto ion: params.ion_data) {
         auto name = ion.first;
         auto data = ion.second;
@@ -32,12 +32,10 @@ void to_json(nlohmann::json& j, const cable_cell_parameter_set& params) {
 
 void from_json(const nlohmann::json& j, cable_cell_parameter_set& params) {
     auto j_copy = j;
-    params.init_membrane_potential = find_and_remove_json<double>("Vm", j_copy);
-    params.membrane_capacitance = find_and_remove_json<double>("cm", j_copy);
-    params.axial_resistivity = find_and_remove_json<double>("Ra", j_copy);
-    if (auto temp_c = find_and_remove_json<double>("celsius", j_copy)) {
-        params.temperature_K = temp_c.value() + 273.15;
-    }
+    params.init_membrane_potential = find_and_remove_json<double>("init-membrane-potential", j_copy);
+    params.membrane_capacitance = find_and_remove_json<double>("membrane-capacitance", j_copy);
+    params.axial_resistivity = find_and_remove_json<double>("axial-resistivity", j_copy);
+    params.temperature_K = find_and_remove_json<double>("temperature-K", j_copy);
 
     if (auto ions_json = find_and_remove_json<nlohmann::json>("ions", j_copy)) {
         auto ions_map = ions_json.value().get<std::unordered_map<std::string, nlohmann::json>>();
@@ -81,10 +79,10 @@ void to_json(nlohmann::json& j, const decor& decor) {
         auto region_expr = to_string(it->first);
 
         auto paintable_visitor = arb::util::overload(
-            [&](const arb::init_membrane_potential& p) { region["Vm"] = p.value; },
-            [&](const arb::axial_resistivity& p)       { region["Ra"] = p.value; },
-            [&](const arb::temperature_K& p)           { region["celsius"] = p.value - 273.15; },
-            [&](const arb::membrane_capacitance& p)    { region["cm"] = p.value; },
+            [&](const arb::init_membrane_potential& p) { region["init-membrane-potential"] = p.value; },
+            [&](const arb::axial_resistivity& p)       { region["axial-resistivity"] = p.value; },
+            [&](const arb::temperature_K& p)           { region["temperature-K"] = p.value; },
+            [&](const arb::membrane_capacitance& p)    { region["membrane-capacitance"] = p.value; },
             [&](const arb::init_int_concentration& p)  { region["ions"][p.ion]["internal-concentration"] = p.value; },
             [&](const arb::init_ext_concentration& p)  { region["ions"][p.ion]["external-concentration"] = p.value; },
             [&](const arb::init_reversal_potential& p) { region["ions"][p.ion]["reversal-potential"] = p.value; },
@@ -140,13 +138,6 @@ void from_json(const nlohmann::json& j, decor& decor) {
                 throw arborio::jsonio_decor_local_missing_region();
             }
             std::string reg = region.value();
-
-            // if the region expression does not start with an open parenthesis,
-            // it is not an s-expression, it is a label and we must add double quotes.
-            if (reg.at(0) != '(') {
-                reg = "\"" + region.value() + "\"";
-            }
-
             arb::cable_cell_parameter_set region_defaults;
             try {
                 region_defaults = l.get<arb::cable_cell_parameter_set>();
@@ -208,12 +199,6 @@ void from_json(const nlohmann::json& j, decor& decor) {
                 }
             }
             auto reg = region.value();
-
-            // if the region expression does not start with an open parenthesis,
-            // it is not an s-expression, it is a label and we must add double quotes.
-            if (reg.at(0) != '(') {
-                reg = "\"" + region.value() + "\"";
-            }
             try {
                 decor.paint(reg, mech);
             }

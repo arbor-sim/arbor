@@ -4,32 +4,32 @@
   "data":
   {
     "global": {
-      "celsius": 34,
-      "cm": 0.01,
-      "Ra": 100
+      "temperature-K": 307.15,
+      "membrane-capacitance": 0.01,
+      "axial-resistivity": 100
     },
     "local": [
       {
-        "region": "apic",
-        "cm": 0.02,
+        "region": "\"apic\"",
+        "membrane-capacitance": 0.02,
         "ions": {
           "na": {"reversal-potential":  50},
           "k":  {"reversal-potential": -85}
         }
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "ions": {
           "na": {"reversal-potential":  50},
           "k":  {"reversal-potential": -85}
         }
       },
       {
-        "region": "dend",
-        "cm": 0.02
+        "region": "\"dend\"",
+        "membrane-capacitance": 0.02
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "ions": {
           "na": {"reversal-potential":  50},
           "k":  {"reversal-potential": -85}
@@ -38,107 +38,107 @@
     ],
     "mechanisms": [
       {
-        "region": "all",
+        "region": "\"all\"",
         "mechanism": "pas",
         "parameters": {"e": -75, "g": 3e-5}
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "mechanism": "CaDynamics_E2",
         "parameters": {"gamma": 0.000609, "decay": 210.485284, "initCai": 5e-5}
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "mechanism": "SKv3_1",
         "parameters": {"gSKv3_1bar": 0.303472}
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "mechanism": "SK_E2",
         "parameters": {"gSK_E2bar": 0.008407}
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "mechanism": "Ca_HVA",
         "parameters": {"gCa_HVAbar": 0.000994}
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "mechanism": "NaTs2_t",
         "parameters": {"gNaTs2_tbar": 0.983955}
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "mechanism": "Ih",
         "parameters": {"gIhbar": 0.000080}
       },
       {
-        "region": "soma",
+        "region": "\"soma\"",
         "mechanism": "Ca_LVAst",
         "parameters": {"gCa_LVAstbar": 0.000333}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "NaTa_t",
         "parameters": {"gNaTa_tbar": 3.137968}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "K_Tst",
         "parameters": {"gK_Tstbar": 0.089259}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "CaDynamics_E2",
         "parameters": {"gamma": 0.002910, "decay": 287.198731, "initCai": 5e-5}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "Nap_Et2",
         "parameters": {"gNap_Et2bar": 0.006827}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "SK_E2",
         "parameters": {"gSK_E2bar": 0.007104}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "Ca_HVA",
         "parameters": {"gCa_HVAbar": 0.000990}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "K_Pst",
         "parameters": {"gK_Pstbar": 0.973538}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "SKv3_1",
         "parameters": {"gSKv3_1bar": 1.021945}
       },
       {
-        "region": "axon",
+        "region": "\"axon\"",
         "mechanism": "Ca_LVAst",
         "parameters": {"gCa_LVAstbar": 0.008752}
       },
       {
-        "region": "dend",
+        "region": "\"dend\"",
         "mechanism": "Ih",
         "parameters": {"gIhbar": 0.000080}
       },
       {
-        "region": "apic",
+        "region": "\"apic\"",
         "mechanism": "NaTs2_t",
         "parameters": {"gNaTs2_tbar": 0.026145}
       },
       {
-        "region": "apic",
+        "region": "\"apic\"",
         "mechanism": "SKv3_1",
         "parameters": {"gSKv3_1bar": 0.004226}
       },
       {
-        "region": "apic",
+        "region": "\"apic\"",
         "mechanism": "Im",
         "parameters": {"gImbar": 0.00143}
       }

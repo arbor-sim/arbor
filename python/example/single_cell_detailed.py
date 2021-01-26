@@ -116,5 +116,5 @@ for t in model.traces:
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_detailed_result.svg')
 
 # (11) Optional: Print out the decor and default properties of the model in JSON format
-arbor.store_decor(decor, "decor_out.json")
-arbor.store_default_parameters(model.properties.get_properties(), "defaults_out.json")
+arbor.store_json(decor, "decor_out.json")
+arbor.store_json(model.properties.get_properties(), "defaults_out.json")

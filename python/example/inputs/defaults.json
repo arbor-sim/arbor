@@ -3,10 +3,10 @@
   "type": "global-parameters",
   "data":
   {
-    "celsius": 6.3,
-    "Vm": -60,
-    "cm": 0.01,
-    "Ra": 35.4,
+    "temperature-K": 6.3,
+    "init-membrane-potential": -60,
+    "membrane-capacitance": 0.01,
+    "axial-resistivity": 35.4,
     "ions": {
       "ca": {
         "internal-concentration": 5e-5,

@@ -20,10 +20,8 @@ std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(const std::str
     if (!fid.good()) {
         throw pyarb_error("Can't open file '{}'" + fname);
     }
-
-    std::variant<arb::decor, arb::cable_cell_parameter_set> params;
     try {
-        return params = arborio::load_json(fid);
+        return arborio::load_json(fid);
     }
     catch (std::exception& e) {
         throw pyarb_error("Error while trying to load from \"" + fname + "\": " + std::string(e.what()));
