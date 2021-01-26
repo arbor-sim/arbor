@@ -10,37 +10,92 @@
 
 #include "../gtest.h"
 
-TEST(cable_cell_parameter_set_reader, valid) {
+TEST(load_json, invalid) {
     {
         std::stringstream ss(
             "{\n"
-            "  \"celsius\": 6.3,\n"
-            "  \"Vm\": -60,\n"
-            "  \"cm\": 0.01,\n"
-            "  \"Ra\": 35.4,\n"
-            "  \"ions\": {\n"
-            "    \"ca\": {\n"
-            "      \"internal-concentration\": 5e-5,\n"
-            "      \"external-concentration\": 2.0,\n"
-            "      \"reversal-potential\": 132.4579341637009,\n"
-            "      \"method\": \"nernst\"\n"
-            "    },\n"
-            "    \"k\": {\n"
-            "      \"internal-concentration\": 54.4,\n"
-            "      \"external-concentration\": 2.5,\n"
-            "      \"reversal-potential\": -77,\n"
-            "      \"method\": \"constant\"\n"
-            "    },\n"
-            "    \"na\": {\n"
-            "      \"internal-concentration\":  10,\n"
-            "      \"external-concentration\": 140,\n"
-            "      \"reversal-potential\": 50,\n"
-            "      \"method\": \"constant\"\n"
+            "\"type\" : \"global-parameters\",\n"
+            "\"data\" : {}"
+            "}");
+
+         EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_missing_field);
+    }
+    {
+        std::stringstream ss(
+            "{\n"
+            "\"version\" : \"0.1\",\n"
+            "\"data\" : {}"
+            "}");
+
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_missing_field);
+    }
+    {
+        std::stringstream ss(
+            "{\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"global-parameters\"\n"
+            "}");
+
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_missing_field);
+    }
+    {
+        std::stringstream ss(
+            "{\n"
+            "\"version\" : \"0.2\",\n"
+            "\"type\" : \"global-parameters\",\n"
+            "\"data\" : {}"
+            "}");
+
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_version_error);
+    }
+    {
+        std::stringstream ss(
+            "{\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"global-properties\",\n"
+            "\"data\" : {}"
+            "}");
+
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_type_error);
+    }
+}
+
+TEST(load_cable_cell_parameter_set, valid) {
+    {
+        std::stringstream ss(
+            "{\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"global-parameters\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"celsius\": 6.3,\n"
+            "    \"Vm\": -60,\n"
+            "    \"cm\": 0.01,\n"
+            "    \"Ra\": 35.4,\n"
+            "    \"ions\": {\n"
+            "      \"ca\": {\n"
+            "        \"internal-concentration\": 5e-5,\n"
+            "        \"external-concentration\": 2.0,\n"
+            "        \"reversal-potential\": 132.4579341637009,\n"
+            "        \"method\": \"nernst\"\n"
+            "      },\n"
+            "      \"k\": {\n"
+            "        \"internal-concentration\": 54.4,\n"
+            "        \"external-concentration\": 2.5,\n"
+            "        \"reversal-potential\": -77,\n"
+            "        \"method\": \"constant\"\n"
+            "      },\n"
+            "      \"na\": {\n"
+            "        \"internal-concentration\":  10,\n"
+            "        \"external-concentration\": 140,\n"
+            "        \"reversal-potential\": 50,\n"
+            "        \"method\": \"constant\"\n"
+            "      }\n"
             "    }\n"
             "  }\n"
             "}");
 
-        auto params = arborio::load_cable_cell_parameter_set(ss);
+        auto params = std::get<arb::cable_cell_parameter_set>(arborio::load_json(ss));
 
         EXPECT_EQ(6.3 + 273.15, params.temperature_K.value());
         EXPECT_EQ(-60, params.init_membrane_potential.value());
@@ -65,18 +120,23 @@ TEST(cable_cell_parameter_set_reader, valid) {
     {
         std::stringstream ss(
             "{\n"
-            "  \"Vm\": -65,\n"
-            "  \"cm\": 0.02,\n"
-            "  \"Ra\": 100,\n"
-            "  \"ions\": {\n"
-            "    \"na\": {\n"
-            "      \"external-concentration\": 140,\n"
-            "      \"reversal-potential\": 50\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"global-parameters\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"Vm\": -65,\n"
+            "    \"cm\": 0.02,\n"
+            "    \"Ra\": 100,\n"
+            "    \"ions\": {\n"
+            "      \"na\": {\n"
+            "        \"external-concentration\": 140,\n"
+            "        \"reversal-potential\": 50\n"
+            "      }\n"
             "    }\n"
             "  }\n"
             "}");
 
-        auto params = arborio::load_cable_cell_parameter_set(ss);
+        auto params = std::get<arb::cable_cell_parameter_set>(arborio::load_json(ss));
 
         EXPECT_EQ(-65,  params.init_membrane_potential.value());
         EXPECT_EQ(0.02, params.membrane_capacitance.value());
@@ -102,22 +162,27 @@ TEST(cable_cell_parameter_set_reader, valid) {
     }
 }
 
-TEST(cable_cell_parameter_set_reader, invalid) {
+TEST(load_cable_cell_parameter_set, invalid) {
     {
         std::stringstream ss(
-                "{\n"
-                "  \"Vm\": -65,\n"
-                "  \"cm\": 0.02,\n"
-                "  \"Ga\": 100,\n"
-                "  \"ions\": {\n"
-                "    \"na\": {\n"
-                "      \"external-concentration\": 140,\n"
-                "      \"reversal-potential\": 50\n"
-                "    }\n"
-                "  }\n"
-                "}");
+            "{\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"global-parameters\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"Vm\": -65,\n"
+            "    \"cm\": 0.02,\n"
+            "    \"Ga\": 100,\n"
+            "    \"ions\": {\n"
+            "      \"na\": {\n"
+            "        \"external-concentration\": 140,\n"
+            "        \"reversal-potential\": 50\n"
+            "      }\n"
+            "    }\n"
+            "  }\n"
+            "}");
 
-        EXPECT_THROW(arborio::load_cable_cell_parameter_set(ss), arborio::jsonio_unused_input);
+        EXPECT_THROW(std::get<arb::cable_cell_parameter_set>(arborio::load_json(ss)), arborio::jsonio_unused_input);
     }
     {
         std::stringstream ss(
@@ -133,7 +198,7 @@ TEST(cable_cell_parameter_set_reader, invalid) {
                 "  }\n"
                 "}");
 
-        EXPECT_THROW(arborio::load_cable_cell_parameter_set(ss), arborio::jsonio_json_parse_error);
+        EXPECT_THROW(std::get<arb::cable_cell_parameter_set>(arborio::load_json(ss)), arborio::jsonio_json_parse_error);
     }
 }
 
@@ -141,40 +206,45 @@ TEST(decor_reader, valid) {
     {
         std::stringstream  ss(
             "{\n"
-            "  \"global\": {\n"
-            "    \"celsius\": 34,\n"
-            "    \"cm\": 0.01,\n"
-            "    \"Ra\": 100\n"
-            "  },\n"
-            "  \"local\": [\n"
-            "    {\n"
-            "      \"region\": \"apic\",\n"
-            "      \"cm\": 0.02,\n"
-            "      \"ions\": {\n"
-            "        \"na\": {\"reversal-potential\":  50},\n"
-            "        \"k\":  {\"reversal-potential\": -85}\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"decor\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"global\": {\n"
+            "      \"celsius\": 34,\n"
+            "      \"cm\": 0.01,\n"
+            "      \"Ra\": 100\n"
+            "    },\n"
+            "    \"local\": [\n"
+            "      {\n"
+            "        \"region\": \"apic\",\n"
+            "        \"cm\": 0.02,\n"
+            "        \"ions\": {\n"
+            "          \"na\": {\"reversal-potential\":  50},\n"
+            "          \"k\":  {\"reversal-potential\": -85}\n"
+            "        }\n"
+            "      },\n"
+            "      {\n"
+            "        \"region\": \"dend\",\n"
+            "        \"cm\": 0.02\n"
             "      }\n"
-            "    },\n"
-            "    {\n"
-            "      \"region\": \"dend\",\n"
-            "      \"cm\": 0.02\n"
-            "    }\n"
-            "  ],\n"
-            "  \"mechanisms\": [\n"
-            "    {\n"
-            "      \"region\": \"all\",\n"
-            "      \"mechanism\": \"pas\"\n"
-            "    },\n"
-            "    {\n"
-            "      \"region\": \"soma\",\n"
-            "      \"mechanism\": \"CaDynamics_E2\",\n"
-            "      \"parameters\": {\"gamma\": 0.000609, \"decay\": 210.485284}\n"
-            "    }\n"
-            "  ]\n"
+            "    ],\n"
+            "    \"mechanisms\": [\n"
+            "      {\n"
+            "        \"region\": \"all\",\n"
+            "        \"mechanism\": \"pas\"\n"
+            "      },\n"
+            "      {\n"
+            "        \"region\": \"soma\",\n"
+            "        \"mechanism\": \"CaDynamics_E2\",\n"
+            "        \"parameters\": {\"gamma\": 0.000609, \"decay\": 210.485284}\n"
+            "      }\n"
+            "    ]\n"
+            "  }\n"
             "}"
         );
 
-        auto decor = arborio::load_decor(ss);
+        auto decor = std::get<arb::decor>(arborio::load_json(ss));
 
         EXPECT_EQ(34 + 273.15, decor.defaults().temperature_K.value());
         EXPECT_EQ(0.01, decor.defaults().membrane_capacitance.value());
@@ -254,111 +324,146 @@ TEST(decor_reader, invalid) {
     {
         std::stringstream ss(
             "{\n"
-            "  \"global\": {\n"
-            "    \"celsius\": 34,\n"
-            "    \"cm\": cap,\n"
-            "    \"Ra\": 100\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"decor\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"global\": {\n"
+            "      \"celsius\": 34,\n"
+            "      \"cm\": cap,\n"
+            "      \"Ra\": 100\n"
+            "    }\n"
             "  }\n"
             "}");
 
-        EXPECT_THROW(arborio::load_decor(ss), arborio::jsonio_json_parse_error);
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_json_parse_error);
     }
     {
         std::stringstream ss(
             "{\n"
-            "  \"global\": {\n"
-            "    \"celsius\": 34,\n"
-            "    \"pm\": 22,\n"
-            "    \"Ra\": 100\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"decor\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"global\": {\n"
+            "      \"celsius\": 34,\n"
+            "      \"pm\": 22,\n"
+            "      \"Ra\": 100\n"
+            "    }\n"
             "  }\n"
             "}");
-        EXPECT_THROW(arborio::load_decor(ss), arborio::jsonio_decor_global_load_error);
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_decor_global_load_error);
     }
     {
         std::stringstream ss(
             "{\n"
-            "  \"global\": {\n"
-            "    \"celsius\": 34,\n"
-            "    \"cm\": 0.01,\n"
-            "    \"Ra\": 100\n"
-            "  },\n"
-            "  \"local\": [\n"
-            "    {\n"
-            "      \"cm\": 0.02,\n"
-            "      \"ions\": {\n"
-            "        \"na\": {\"reversal-potential\":  50},\n"
-            "        \"k\":  {\"reversal-potential\": -85}\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"decor\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"global\": {\n"
+            "      \"celsius\": 34,\n"
+            "      \"cm\": 0.01,\n"
+            "      \"Ra\": 100\n"
+            "    },\n"
+            "    \"local\": [\n"
+            "      {\n"
+            "        \"cm\": 0.02,\n"
+            "        \"ions\": {\n"
+            "          \"na\": {\"reversal-potential\":  50},\n"
+            "          \"k\":  {\"reversal-potential\": -85}\n"
+            "        }\n"
             "      }\n"
-            "    }\n"
-            "  ]\n"
+            "    ]\n"
+            "  }\n"
             "}");
-        EXPECT_THROW(arborio::load_decor(ss), arborio::jsonio_decor_local_missing_region);
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_decor_local_missing_region);
     }
     {
         std::stringstream ss(
             "{\n"
-            "  \"local\": [\n"
-            "    {\n"
-            "      \"region\": \"apic\",\n"
-            "      \"cm\": 0.02,\n"
-            "      \"ions\": {\n"
-            "        \"na\": {\"reversal-potential\":  50},\n"
-            "        \"k\":  {\"method\": \"nernst\"}\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"decor\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"local\": [\n"
+            "      {\n"
+            "        \"region\": \"apic\",\n"
+            "        \"cm\": 0.02,\n"
+            "        \"ions\": {\n"
+            "          \"na\": {\"reversal-potential\":  50},\n"
+            "          \"k\":  {\"method\": \"nernst\"}\n"
+            "        }\n"
             "      }\n"
-            "    }\n"
-            "  ]\n"
+            "    ]\n"
+            "  }\n"
             "}");
-        EXPECT_THROW(arborio::load_decor(ss), arborio::jsonio_decor_local_revpot_mech);
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_decor_local_revpot_mech);
     }
     {
         std::stringstream ss(
             "{\n"
-            "  \"mechanisms\": [\n"
-            "    {\n"
-            "      \"mechanism\": \"pas\"\n"
-            "    }\n"
-            "  ]\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"decor\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"mechanisms\": [\n"
+            "      {\n"
+            "        \"mechanism\": \"pas\"\n"
+            "      }\n"
+            "    ]\n"
+            "  }\n"
             "}");
-        EXPECT_THROW(arborio::load_decor(ss), arborio::jsonio_decor_mech_missing_region);
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_decor_mech_missing_region);
     }
     {
         std::stringstream ss(
             "{\n"
-            "  \"mechanisms\": [\n"
-            "    {\n"
-            "      \"region\": \"all\"\n"
-            "    }\n"
-            "  ]\n"
+            "\"version\" : \"0.1\",\n"
+            "\"type\" : \"decor\",\n"
+            "\"data\" :\n"
+            "  {\n"
+            "    \"mechanisms\": [\n"
+            "      {\n"
+            "        \"region\": \"all\"\n"
+            "      }\n"
+            "    ]\n"
+            "  }\n"
             "}");
-        EXPECT_THROW(arborio::load_decor(ss), arborio::jsonio_decor_mech_missing_name);
+        EXPECT_THROW(arborio::load_json(ss), arborio::jsonio_decor_mech_missing_name);
     }
 }
 
 TEST(cable_cell_parameter_set_writer, valid) {
     std::string input(
         "{\n"
-        "  \"celsius\": 6.0,\n"
-        "  \"Vm\": -60.0,\n"
-        "  \"cm\": 0.01,\n"
-        "  \"Ra\": 35.4,\n"
-        "  \"ions\": {\n"
-        "    \"ca\": {\n"
-        "      \"internal-concentration\": 5e-5,\n"
-        "      \"external-concentration\": 2.0,\n"
-        "      \"reversal-potential\": 132.4579341637009,\n"
-        "      \"method\": \"nernst/ca\"\n"
-        "    },\n"
-        "    \"k\": {\n"
-        "      \"internal-concentration\": 54.4,\n"
-        "      \"external-concentration\": 2.5,\n"
-        "      \"reversal-potential\": -77.0,\n"
-        "      \"method\": \"constant\"\n"
-        "    },\n"
-        "    \"na\": {\n"
-        "      \"internal-concentration\":  10.0,\n"
-        "      \"external-concentration\": 140.0,\n"
-        "      \"reversal-potential\": 50.0,\n"
-        "      \"method\": \"constant\"\n"
+        "\"version\" : \"0.1\",\n"
+        "\"type\" : \"global-parameters\",\n"
+        "\"data\" :\n"
+        "  {\n"
+        "    \"celsius\": 6.0,\n"
+        "    \"Vm\": -60.0,\n"
+        "    \"cm\": 0.01,\n"
+        "    \"Ra\": 35.4,\n"
+        "    \"ions\": {\n"
+        "      \"ca\": {\n"
+        "        \"internal-concentration\": 5e-5,\n"
+        "        \"external-concentration\": 2.0,\n"
+        "        \"reversal-potential\": 132.4579341637009,\n"
+        "        \"method\": \"nernst/ca\"\n"
+        "      },\n"
+        "      \"k\": {\n"
+        "        \"internal-concentration\": 54.4,\n"
+        "        \"external-concentration\": 2.5,\n"
+        "        \"reversal-potential\": -77.0,\n"
+        "        \"method\": \"constant\"\n"
+        "      },\n"
+        "      \"na\": {\n"
+        "        \"internal-concentration\":  10.0,\n"
+        "        \"external-concentration\": 140.0,\n"
+        "        \"reversal-potential\": 50.0,\n"
+        "        \"method\": \"constant\"\n"
+        "      }\n"
         "    }\n"
         "  }\n"
         "}");
@@ -367,12 +472,12 @@ TEST(cable_cell_parameter_set_writer, valid) {
     nlohmann::json j_in, j_out;
 
     ss_in << input;
-    auto params = arborio::load_cable_cell_parameter_set(ss_in);
+    auto params = std::get<arb::cable_cell_parameter_set>(arborio::load_json(ss_in));
 
     ss_in_cp << input;
     ss_in_cp >> j_in;
 
-    arborio::store_cable_cell_parameter_set(params, ss_out);
+    arborio::store_json(params, ss_out);
     ss_out >> j_out;
 
     EXPECT_TRUE(j_in == j_out);
@@ -381,44 +486,49 @@ TEST(cable_cell_parameter_set_writer, valid) {
 TEST(decor_writer, valid) {
     std::string input(
         "{\n"
-        "  \"global\": {\n"
-        "    \"celsius\": 34.0,\n"
-        "    \"cm\": 0.01,\n"
-        "    \"Ra\": 100.0\n"
-        "  },\n"
-        "  \"local\": [\n"
-        "    {\n"
-        "      \"region\": \"(region \\\"apic\\\")\",\n"
-        "      \"cm\": 0.02,\n"
-        "      \"ions\": {\n"
-        "        \"na\": {\"reversal-potential\":  50.0},\n"
-        "        \"k\":  {\"reversal-potential\": -85.0}\n"
+        "\"version\" : \"0.1\",\n"
+        "\"type\" : \"decor\",\n"
+        "\"data\" :\n"
+        "  {\n"
+        "    \"global\": {\n"
+        "      \"celsius\": 34.0,\n"
+        "      \"cm\": 0.01,\n"
+        "      \"Ra\": 100.0\n"
+        "    },\n"
+        "    \"local\": [\n"
+        "      {\n"
+        "        \"region\": \"(region \\\"apic\\\")\",\n"
+        "        \"cm\": 0.02,\n"
+        "        \"ions\": {\n"
+        "          \"na\": {\"reversal-potential\":  50.0},\n"
+        "          \"k\":  {\"reversal-potential\": -85.0}\n"
+        "        }\n"
+        "      },\n"
+        "      {\n"
+        "        \"region\": \"(region \\\"dend\\\")\",\n"
+        "        \"cm\": 0.02\n"
+        "      },\n"
+        "      {\n"
+        "        \"region\": \"(region \\\"apic\\\")\",\n"
+        "        \"cm\": 0.03\n"
         "      }\n"
-        "    },\n"
-        "    {\n"
-        "      \"region\": \"(region \\\"dend\\\")\",\n"
-        "      \"cm\": 0.02\n"
-        "    },\n"
-        "    {\n"
-        "      \"region\": \"(region \\\"apic\\\")\",\n"
-        "      \"cm\": 0.03\n"
-        "    }\n"
-        "  ],\n"
-        "  \"mechanisms\": [\n"
-        "    {\n"
-        "      \"region\": \"(region \\\"all\\\")\",\n"
-        "      \"mechanism\": \"pas\"\n"
-        "    },\n"
-        "    {\n"
-        "      \"region\": \"(region \\\"soma\\\")\",\n"
-        "      \"mechanism\": \"CaDynamics_E2\",\n"
-        "      \"parameters\": {\"gamma\": 0.000609, \"decay\": 210.485284}\n"
-        "    },\n"
-        "    {\n"
-        "      \"region\": \"(region \\\"all\\\")\",\n"
-        "      \"mechanism\": \"hh\"\n"
-        "    }\n"
-        "  ]\n"
+        "    ],\n"
+        "    \"mechanisms\": [\n"
+        "      {\n"
+        "        \"region\": \"(region \\\"all\\\")\",\n"
+        "        \"mechanism\": \"pas\"\n"
+        "      },\n"
+        "      {\n"
+        "        \"region\": \"(region \\\"soma\\\")\",\n"
+        "        \"mechanism\": \"CaDynamics_E2\",\n"
+        "        \"parameters\": {\"gamma\": 0.000609, \"decay\": 210.485284}\n"
+        "      },\n"
+        "      {\n"
+        "        \"region\": \"(region \\\"all\\\")\",\n"
+        "        \"mechanism\": \"hh\"\n"
+        "      }\n"
+        "    ]\n"
+        "  }\n"
         "}"
     );
 
@@ -426,12 +536,12 @@ TEST(decor_writer, valid) {
     nlohmann::json j_in, j_out;
 
     ss_in << input;
-    auto decor = arborio::load_decor(ss_in);
+    auto decor = std::get<arb::decor>(arborio::load_json(ss_in));
 
     ss_in_cp << input;
     ss_in_cp >> j_in;
 
-    arborio::store_decor(decor, ss_out);
+    arborio::store_json(decor, ss_out);
     ss_out >> j_out;
 
     EXPECT_TRUE(j_in == j_out);

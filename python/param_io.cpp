@@ -6,6 +6,7 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/primitives.hpp>
+#include "arbor/util/any_visitor.hpp"
 
 #include <arborio/jsonio.hpp>
 
@@ -13,75 +14,54 @@
 #include "strprintf.hpp"
 
 namespace pyarb {
+
+std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(const std::string& fname) {
+    std::ifstream fid{fname};
+    if (!fid.good()) {
+        throw pyarb_error("Can't open file '{}'" + fname);
+    }
+
+    std::variant<arb::decor, arb::cable_cell_parameter_set> params;
+    try {
+        return params = arborio::load_json(fid);
+    }
+    catch (std::exception& e) {
+        throw pyarb_error("Error while trying to load from \"" + fname + "\": " + std::string(e.what()));
+    }
+};
+
+template <typename T>
+void store_json(const T& set, const std::string& fname) {
+    std::ofstream fid(fname);
+    try {
+        return arborio::store_json(set, fid);
+    }
+    catch (std::exception& e) {
+        throw pyarb_error("Error writing \"" + fname + "\": " + std::string(e.what()));
+    }
+}
+
 void register_param_loader(pybind11::module& m) {
-    m.def("load_default_parameters",
-          [](std::string fname) {
-              std::ifstream fid{fname};
-              if (!fid.good()) {
-                  throw pyarb_error("Can't open file '{}'" + fname);
-              }
+    m.def("load_json",
+        &load_json,
+        pybind11::arg_v("filename", "the name of the file."),
+        "Load decor or cable_parameter_set from file.");
 
-              arb::cable_cell_parameter_set params;
-              try {
-                  params = arborio::load_cable_cell_parameter_set(fid);
-              }
-              catch (std::exception& e) {
-                  throw pyarb_error("Error loading default parameters from \"" + fname + "\": " + std::string(e.what()));
-              }
+    m.def("store_json",
+        [](const arb::cable_cell_parameter_set& set, std::string fname) {
+            return store_json<arb::cable_cell_parameter_set>(set, fname);
+        },
+        pybind11::arg_v("object", "the cable_parameter_set or decor object."),
+        pybind11::arg_v("filename", "the name of the file."),
+        "Write decor or cable_parameter_set to file.");
 
-              arb::cable_cell_global_properties G;
-              G.default_parameters = params;
-              try {
-                  arb::check_global_properties(G);
-              }
-              catch (std::exception& e) {
-                  throw pyarb_error("Error loading default parameters from \"" + fname + "\": default parameter check failed : " + std::string(e.what()));
-              }
-              return params;
-          },
-          "Load default model parameters from file.");
-
-    m.def("load_decor",
-          [](std::string fname) {
-              std::ifstream fid{fname};
-              if (!fid.good()) {
-                  throw pyarb_error("Can't open file '{}'" + fname);
-              }
-
-              arb::decor decor;
-              try {
-                  decor = arborio::load_decor(fid);
-              }
-              catch (std::exception& e) {
-                  throw pyarb_error("Error loading decor from \"" + fname + "\": " + std::string(e.what()));
-              }
-              return decor;
-          },
-          "Load decor from file.");
-
-    m.def("store_default_parameters",
-          [](const arb::cable_cell_parameter_set& set, std::string fname) {
-              std::ofstream fid(fname);
-              try {
-                  return arborio::store_cable_cell_parameter_set(set, fid);
-              }
-              catch (std::exception& e) {
-                  throw pyarb_error("Error writing \"" + fname + "\": " + std::string(e.what()));
-              }
-          },
-          "Write default model parameters to file.");
-
-    m.def("store_decor",
+    m.def("store_json",
           [](const arb::decor& decor, std::string fname) {
-              std::ofstream fid(fname);
-              try {
-                  return arborio::store_decor(decor, fid);
-              }
-              catch (std::exception& e) {
-                  throw pyarb_error("Error writing \"" + fname + "\": " + std::string(e.what()));
-              }
+            return store_json<arb::decor>(decor, fname);
           },
-          "Write decor to file.");
+          pybind11::arg_v("object", "the cable_parameter_set or decor object."),
+          pybind11::arg_v("filename", "the name of the file."),
+          "Write decor or cable_parameter_set to file.");
 
     // arb::cable_cell_ion_data
     pybind11::class_<arb::cable_cell_ion_data> cable_ion_data(m, "cable_ion_data");

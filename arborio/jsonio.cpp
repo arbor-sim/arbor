@@ -41,10 +41,7 @@ void from_json(const nlohmann::json& j, cable_cell_parameter_set& params) {
 
     if (auto ions_json = find_and_remove_json<nlohmann::json>("ions", j_copy)) {
         auto ions_map = ions_json.value().get<std::unordered_map<std::string, nlohmann::json>>();
-        for (auto& i: ions_map) {
-            auto ion_name = i.first;
-            auto ion_json = i.second;
-
+        for (auto& [ion_name, ion_json]: ions_map) {
             arb::cable_cell_ion_data ion_data;
             if (auto iconc = find_and_remove_json<double>("internal-concentration", ion_json)) {
                 ion_data.init_int_concentration = iconc.value();
@@ -236,15 +233,19 @@ namespace arborio {
 jsonio_error::jsonio_error(const std::string& msg):
     arbor_exception(msg) {}
 
+jsonio_json_parse_error::jsonio_json_parse_error(const std::string& err):
+    jsonio_error("Error parsing JSON : " + err)
+{}
+
 jsonio_unused_input::jsonio_unused_input(const std::string& key):
     jsonio_error("Unused input parameter: \"" + key + "\"")
 {}
 
-jsonio_decor_global_load_error::jsonio_decor_global_load_error(const std::string err):
+jsonio_decor_global_load_error::jsonio_decor_global_load_error(const std::string& err):
     jsonio_error("Decor: error loading global parameters: " + err)
 {}
 
-jsonio_decor_global_set_error::jsonio_decor_global_set_error(const std::string err):
+jsonio_decor_global_set_error::jsonio_decor_global_set_error(const std::string& err):
     jsonio_error("Decor: error setting global parameters: " + err)
 {}
 
@@ -256,11 +257,11 @@ jsonio_decor_local_revpot_mech::jsonio_decor_local_revpot_mech():
     jsonio_error("Decor: cannot implement local reversal potential methods")
 {}
 
-jsonio_decor_local_load_error::jsonio_decor_local_load_error(const std::string err):
+jsonio_decor_local_load_error::jsonio_decor_local_load_error(const std::string& err):
     jsonio_error("Decor: error loading local parameters: " + err)
 {}
 
-jsonio_decor_local_set_error::jsonio_decor_local_set_error(const std::string err):
+jsonio_decor_local_set_error::jsonio_decor_local_set_error(const std::string& err):
     jsonio_error("Decor: error painting local parameters: " + err)
 {}
 
@@ -276,41 +277,65 @@ jsonio_decor_mech_set_error::jsonio_decor_mech_set_error(const std::string& reg,
     jsonio_error("Decor: Error painting mechanism \"" + mech + "\" on region \"" + reg + "\": " + err)
 {}
 
-jsonio_json_parse_error::jsonio_json_parse_error(const std::string err):
-    jsonio_error("Error parsing JSON : " + err)
+jsonio_missing_field::jsonio_missing_field(const std::string& field):
+    jsonio_error("Missing \"" + field + "\" field.")
+{}
+
+jsonio_version_error::jsonio_version_error(const std::string& ver):
+    jsonio_error("Unsupported version: \"" + ver + "\".")
+{}
+
+jsonio_type_error::jsonio_type_error(const std::string& type):
+    jsonio_error("Unsupported type: \"" + type + "\".")
 {}
 
 // Public functions - read and write directly from and to files
 
-arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream& s) {
-    nlohmann::json defaults_json;
+std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(std::istream& s) {
+    nlohmann::json json_data;
     try {
-        s >> defaults_json;
+        s >> json_data;
     }
     catch (std::exception& e) {
         throw jsonio_json_parse_error(e.what());
     }
-    return defaults_json.get<arb::cable_cell_parameter_set>();
+    if (!json_data.count("version")) {
+        throw jsonio_missing_field("version");
+    }
+    if (auto version = json_data.at("version"); version != JSONIO_VERSION) {
+        throw jsonio_version_error(version);
+    }
+    if (!json_data.count("type")) {
+        throw jsonio_missing_field("type");
+    }
+    if (!json_data.count("data")) {
+        throw jsonio_missing_field("data");
+    }
+
+    auto type = json_data.at("type");
+    auto data = json_data.at("data");
+
+    if (type == "global-parameters") {
+        return data.get<arb::cable_cell_parameter_set>();
+    } else if (type == "decor") {
+        return data.get<arb::decor>();
+    }
+    throw jsonio_type_error(type);
 }
 
-arb::decor load_decor(std::istream& s) {
-    nlohmann::json decor_json;
-    try {
-        s >> decor_json;
-    }
-    catch (std::exception& e) {
-        throw jsonio_json_parse_error(e.what());
-    }
-    return decor_json.get<arb::decor>();
-}
-
-void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& params, std::ostream& s) {
-    nlohmann::json json_set = params;
+void store_json(const arb::cable_cell_parameter_set& params, std::ostream& s) {
+    nlohmann::json json_set;
+    json_set["version"] = JSONIO_VERSION;
+    json_set["type"] = "global-parameters";
+    json_set["data"] = params;
     s << std::setw(2) << json_set;
 };
 
-void store_decor(const arb::decor& decor, std::ostream& s) {
-    nlohmann::json json_decor = decor;
+void store_json(const arb::decor& decor, std::ostream& s) {
+    nlohmann::json json_decor;
+    json_decor["version"] = JSONIO_VERSION;
+    json_decor["type"] = "decor";
+    json_decor["data"] = decor;
     s << std::setw(2) << json_decor;
 }
 

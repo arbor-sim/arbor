@@ -12,8 +12,8 @@ decor_file    = sys.argv[2]
 swc_file      = sys.argv[3]
 
 # Load inputs from file
-defaults = arbor.load_default_parameters(defaults_file)
-decor    = arbor.load_decor(decor_file)
+defaults = arbor.load_json(defaults_file)
+decor    = arbor.load_json(decor_file)
 morph    = arbor.load_swc_arbor(swc_file)
 
 # Define the regions and locsets in the model.

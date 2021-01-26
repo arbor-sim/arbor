@@ -5,6 +5,8 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
 
+#define JSONIO_VERSION "0.1"
+
 namespace arborio {
 
 struct jsonio_error: public arb::arbor_exception {
@@ -13,7 +15,7 @@ struct jsonio_error: public arb::arbor_exception {
 
 // Error parsing JSON
 struct jsonio_json_parse_error: jsonio_error {
-    explicit jsonio_json_parse_error(const std::string err);
+    explicit jsonio_json_parse_error(const std::string& err);
 };
 
 // Input in JSON not used
@@ -23,12 +25,12 @@ struct jsonio_unused_input: jsonio_error {
 
 // Error loading decor global parameters
 struct jsonio_decor_global_load_error: jsonio_error {
-    explicit jsonio_decor_global_load_error(const std::string err);
+    explicit jsonio_decor_global_load_error(const std::string& err);
 };
 
 // Error setting decor global parameters
 struct jsonio_decor_global_set_error: jsonio_error {
-    explicit jsonio_decor_global_set_error(const std::string err);
+    explicit jsonio_decor_global_set_error(const std::string& err);
 };
 
 // Missing region label in decor local parameters
@@ -43,12 +45,12 @@ struct jsonio_decor_local_revpot_mech: jsonio_error {
 
 // Error loading decor local parameters
 struct jsonio_decor_local_load_error: jsonio_error {
-    explicit jsonio_decor_local_load_error(const std::string err);
+    explicit jsonio_decor_local_load_error(const std::string& err);
 };
 
 // Error setting decor local parameters
 struct jsonio_decor_local_set_error: jsonio_error {
-    explicit jsonio_decor_local_set_error(const std::string err);
+    explicit jsonio_decor_local_set_error(const std::string& err);
 };
 
 // Missing region label in mechanism desc
@@ -66,10 +68,22 @@ struct jsonio_decor_mech_set_error: jsonio_error {
     explicit jsonio_decor_mech_set_error(const std::string& reg, const std::string& mech, const std::string& err);
 };
 
+struct jsonio_missing_field: jsonio_error {
+    explicit jsonio_missing_field(const std::string& field);
+};
+
+struct jsonio_version_error: jsonio_error {
+    explicit jsonio_version_error(const std::string& version);
+};
+
+struct jsonio_type_error: jsonio_error {
+    explicit jsonio_type_error(const std::string& type);
+};
+
 // Load/store cable_cell_parameter_set and decor from/to stream
-arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream&);
-arb::decor load_decor(std::istream&);
-void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set&, std::ostream&);
-void store_decor(const arb::decor&, std::ostream&);
+//arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream&);
+std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(std::istream&);
+void store_json(const arb::cable_cell_parameter_set&, std::ostream&);
+void store_json(const arb::decor&, std::ostream&);
 
 } // namespace arborio
