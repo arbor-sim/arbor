@@ -173,6 +173,17 @@ set(unit_sources
     unit_test_catalogue.cpp
 )
 
+
+# for unit testing
+make_catalogue(
+  NAME dummy
+  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
+  OUTPUT "CAT_DUMMY_SOURCES"
+  MECHS dummy
+  ARBOR "${PROJECT_SOURCE_DIR}"
+  STANDALONE TRUE)
+
+
 if(ARB_WITH_GPU)
     list(APPEND unit_sources
         test_intrin.cu
@@ -221,6 +232,7 @@ endif()
 
 target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
+target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arbor-private-headers arbor-sup)
 

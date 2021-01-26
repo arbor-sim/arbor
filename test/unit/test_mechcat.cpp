@@ -11,6 +11,11 @@
 using namespace std::string_literals;
 using namespace arb;
 
+#ifndef LIBDIR
+#warning "Defaulting LIBDIR to cwd"
+#define LIBDIR "."
+#endif
+
 // Set up a small system of mechanisms and backends for testing,
 // comprising:
 //
@@ -30,22 +35,20 @@ using namespace arb;
 using field_kind = mechanism_field_spec::field_kind;
 
 mechanism_info burble_info = {
-    {{"quux",  {field_kind::global, "nA", 2.3,   0, 10.}},
-     {"xyzzy", {field_kind::global, "mV", 5.1, -20, 20.}}},
+    {{"quux", {field_kind::global, "nA", 2.3, 0, 10.}},
+        {"xyzzy", {field_kind::global, "mV", 5.1, -20, 20.}}},
     {},
     {},
     {{"x", {}}},
-    "burbleprint"
-};
+    "burbleprint"};
 
 mechanism_info fleeb_info = {
-    {{"plugh", {field_kind::global, "C",   2.3,  0, 10.}},
-     {"norf",  {field_kind::global, "mGy", 0.1,  0, 5000.}}},
+    {{"plugh", {field_kind::global, "C", 2.3, 0, 10.}},
+        {"norf", {field_kind::global, "mGy", 0.1, 0, 5000.}}},
     {},
     {},
     {{"a", {}}, {"b", {}}, {"c", {}}, {"d", {}}},
-    "fleebprint"
-};
+    "fleebprint"};
 
 // Backend classes:
 
@@ -90,21 +93,19 @@ struct common_impl: concrete_mechanism<B> {
 template <typename B>
 std::string ion_binding(const std::unique_ptr<concrete_mechanism<B>>& mech, const char* ion) {
     const common_impl<B>& impl = dynamic_cast<const common_impl<B>&>(*mech.get());
-    return impl.ion_bindings_.count(ion)? impl.ion_bindings_.at(ion): "";
+    return impl.ion_bindings_.count(ion) ? impl.ion_bindings_.at(ion) : "";
 }
-
 
 struct foo_backend {
     struct shared_state {
         std::unordered_map<std::string, fvm_value_type> overrides;
         std::unordered_map<std::string, std::string> ions = {
-            { "a", "foo_ion_a" },
-            { "b", "foo_ion_b" },
-            { "c", "foo_ion_c" },
-            { "d", "foo_ion_d" },
-            { "e", "foo_ion_e" },
-            { "f", "foo_ion_f" }
-        };
+            {"a", "foo_ion_a"},
+            {"b", "foo_ion_b"},
+            {"c", "foo_ion_c"},
+            {"d", "foo_ion_d"},
+            {"e", "foo_ion_e"},
+            {"f", "foo_ion_f"}};
     };
 };
 
@@ -114,13 +115,12 @@ struct bar_backend {
     struct shared_state {
         std::unordered_map<std::string, fvm_value_type> overrides;
         std::unordered_map<std::string, std::string> ions = {
-            { "a", "bar_ion_a" },
-            { "b", "bar_ion_b" },
-            { "c", "bar_ion_c" },
-            { "d", "bar_ion_d" },
-            { "e", "bar_ion_e" },
-            { "f", "bar_ion_f" }
-        };
+            {"a", "bar_ion_a"},
+            {"b", "bar_ion_b"},
+            {"c", "bar_ion_c"},
+            {"d", "bar_ion_d"},
+            {"e", "bar_ion_e"},
+            {"f", "bar_ion_f"}};
     };
 };
 
@@ -197,17 +197,17 @@ std::unique_ptr<concrete_mechanism<B>> make_mech() {
 
 namespace arb {
 static bool operator==(const mechanism_field_spec& a, const mechanism_field_spec& b) {
-    return a.kind==b.kind && a.units==b.units && a.default_value==b.default_value && a.lower_bound==b.lower_bound && a.upper_bound==b.upper_bound;
+    return a.kind == b.kind && a.units == b.units && a.default_value == b.default_value && a.lower_bound == b.lower_bound && a.upper_bound == b.upper_bound;
 }
 
 static bool operator==(const ion_dependency& a, const ion_dependency& b) {
-    return a.write_concentration_int==b.write_concentration_int && a.write_concentration_ext==b.write_concentration_ext;
+    return a.write_concentration_int == b.write_concentration_int && a.write_concentration_ext == b.write_concentration_ext;
 }
 
 static bool operator==(const mechanism_info& a, const mechanism_info& b) {
-    return a.globals==b.globals && a.parameters==b.parameters && a.state==b.state && a.ions==b.ions && a.fingerprint==b.fingerprint;
+    return a.globals == b.globals && a.parameters == b.parameters && a.state == b.state && a.ions == b.ions && a.fingerprint == b.fingerprint;
 }
-}
+} // namespace arb
 
 mechanism_catalogue build_fake_catalogue() {
     mechanism_catalogue cat;
@@ -217,11 +217,11 @@ mechanism_catalogue build_fake_catalogue() {
 
     // Add derived versions with global overrides:
 
-    cat.derive("fleeb1",        "fleeb",         {{"plugh", 1.0}}, {{"a", "b"}, {"b", "a"}});
-    cat.derive("special_fleeb", "fleeb",         {{"plugh", 2.0}});
-    cat.derive("fleeb2",        "special_fleeb", {{"norf", 11.0}});
-    cat.derive("fleeb3",        "fleeb1",        {}, {{"b", "c"}, {"c", "b"}});
-    cat.derive("bleeble",       "burble",        {{"quux",  10.}, {"xyzzy", -20.}});
+    cat.derive("fleeb1", "fleeb", {{"plugh", 1.0}}, {{"a", "b"}, {"b", "a"}});
+    cat.derive("special_fleeb", "fleeb", {{"plugh", 2.0}});
+    cat.derive("fleeb2", "special_fleeb", {{"norf", 11.0}});
+    cat.derive("fleeb3", "fleeb1", {}, {{"b", "c"}, {"c", "b"}});
+    cat.derive("bleeble", "burble", {{"quux", 10.}, {"xyzzy", -20.}});
 
     // Attach implementations:
 
@@ -244,11 +244,17 @@ TEST(mechcat, fingerprint) {
         arb::fingerprint_mismatch);
 }
 
+TEST(mechcat, loading) {
+    EXPECT_THROW(load_catalogue("does/not/exist-catalogue.so"), dynamic_catalogue_error);
+    auto cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
+    EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
+}
+
 TEST(mechcat, names) {
     // All names are caught; covers `add' and `derive'
     {
         auto cat = build_fake_catalogue();
-        auto names  = cat.mechanism_names();
+        auto names = cat.mechanism_names();
         auto expect = std::vector<std::string>{"bleeble", "burble", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
         std::sort(names.begin(), names.end());
         EXPECT_EQ(names, expect);
@@ -257,8 +263,8 @@ TEST(mechcat, names) {
     // Deriving names does not add to catalogue
     {
         auto cat = build_fake_catalogue();
-        auto info   = cat["burble/quux=3,xyzzy=4"];
-        auto names  = cat.mechanism_names();
+        auto info = cat["burble/quux=3,xyzzy=4"];
+        auto names = cat.mechanism_names();
         auto expect = std::vector<std::string>{"bleeble", "burble", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
         std::sort(names.begin(), names.end());
         EXPECT_EQ(names, expect);
@@ -268,7 +274,7 @@ TEST(mechcat, names) {
     {
         auto cat = build_fake_catalogue();
         cat.remove("fleeb");
-        auto names  = cat.mechanism_names();
+        auto names = cat.mechanism_names();
         auto expect = std::vector<std::string>{"bleeble", "burble"};
         std::sort(names.begin(), names.end());
         EXPECT_EQ(names, expect);
@@ -279,7 +285,7 @@ TEST(mechcat, names) {
         auto cat = build_fake_catalogue();
         cat.remove("fleeb");
         cat.remove("burble");
-        auto names  = cat.mechanism_names();
+        auto names = cat.mechanism_names();
         auto expect = std::vector<std::string>{};
         std::sort(names.begin(), names.end());
         EXPECT_EQ(names, expect);
@@ -289,7 +295,7 @@ TEST(mechcat, names) {
 TEST(mechcat, derived_info) {
     auto cat = build_fake_catalogue();
 
-    EXPECT_EQ(fleeb_info,  cat["fleeb"]);
+    EXPECT_EQ(fleeb_info, cat["fleeb"]);
     EXPECT_EQ(burble_info, cat["burble"]);
 
     mechanism_info expected_special_fleeb = fleeb_info;
@@ -384,7 +390,7 @@ TEST(mechcat, instantiate) {
     bar_state.overrides.clear();
     auto fleeb2 = cat.instance<bar_backend>("fleeb2");
     fleeb2.mech->instantiate(0, bar_state, fleeb2.overrides, layout);
-    EXPECT_EQ(2.0,  bar_state.overrides.at("plugh"));
+    EXPECT_EQ(2.0, bar_state.overrides.at("plugh"));
     EXPECT_EQ(11.0, bar_state.overrides.at("norf"));
 
     // Check ion rebinding:
@@ -498,7 +504,7 @@ TEST(mechcat, import) {
 
     EXPECT_EQ(cat["fleeb2"], cat2["fake_fleeb2"]);
 
-    auto fleeb2_inst  = cat.instance<foo_backend>("fleeb2");
+    auto fleeb2_inst = cat.instance<foo_backend>("fleeb2");
     auto fleeb2_inst2 = cat2.instance<foo_backend>("fake_fleeb2");
 
     EXPECT_EQ(typeid(*fleeb2_inst.mech.get()), typeid(*fleeb2_inst2.mech.get()));
@@ -551,7 +557,7 @@ TEST(mechcat, import_collisions) {
             mechanism_catalogue other;
             other.add("zonkers", fleeb_info);
             other.derive("fleeb", "zonkers", {{"plugh", 8.}});
-            ASSERT_FALSE(other["fleeb"]==fleeb_info);
+            ASSERT_FALSE(other["fleeb"] == fleeb_info);
 
             ASSERT_FALSE(cat.has("zonkers"));
             EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
@@ -568,7 +574,7 @@ TEST(mechcat, import_collisions) {
             other.derive("fleeb2", "zonkers", {{"plugh", 8.}});
 
             auto fleeb2_info = cat["fleeb2"];
-            ASSERT_FALSE(other["fleeb2"]==fleeb2_info);
+            ASSERT_FALSE(other["fleeb2"] == fleeb2_info);
 
             ASSERT_FALSE(cat.has("zonkers"));
             EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
