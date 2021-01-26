@@ -11,24 +11,16 @@ In this example, a small *network* of cells, arranged in a ring, will be created
 
    1. Building a basic :class:`arbor.cell` with a synapse site.
    2. Building a :class:`arbor.recipe` with a network of interconnected cells.
-   3. Building an :class:`arbor.context` and a :class:`arbor.domain_decomposition`
-      that distributes the simulation over multiple threads or GPU.
-   4. Profile the simulation using a :class:`arbor.meter_manager`.
-   5. Create and execute a :class:`arbor.simulation`.
-   6. Running the simulation and visualizing the results,
+   3. Create and execute a :class:`arbor.simulation`.
+   4. Running the simulation and visualizing the results,
 
 We outline the following steps of this example:
 
 1. Define the **cell**.
 2. Define the **recipe** of the model.
-3. Define the **execution context** of the model: a description of the underlying system
-   on which the simulation will run.
-4. Define the **meter manager** that will record execution time and memory consumption.
-5. Define the **domain decomposition** of the network: how the cells are distributed on
-   the different ranks of the system.
-6. Define the **simulation**.
-7. **Run** the simulation.
-8. Collect and visualize the **results**.
+3. Define the **execution context** and **domain decomposition** of the recipe.
+4. Define and run the **simulation**.
+5. Collect and visualize the **results**.
 
 The cell
 ********
@@ -100,14 +92,15 @@ Step **(3)** defines a basic cell decor and creates the :ref:`cable cell <cablec
 The recipe
 **********
 
-Our objective is creating a network of :ref:`connected <interconnectivity>` cells, so we need to create a :class:`arbor.recipe` accommodating multiple cells. Besides multiple cells, the recipe is also where the connections between cells is defined.
+To create a model with multiple connected cells, we need to use a :class:`recipe <arbor.recipe>` that describes the model.
+The recipe is where the different cells and the :ref:`connections <interconnectivity>` between them are defined.
 
 Before we go there, let's first create a function that returns the above cell. This tutorial's objective is to demonstrate creating the network after all. Simply wrap the above code in a function definition, and let's add the imports while we're at it:
 
 .. code-block:: python
 
    import arbor
-   import pandas, seaborn
+   import pandas, seaborn #used for plotting
    from math import sqrt
 
    def make_cable_cell(gid):
@@ -118,9 +111,11 @@ Now that we can generate as many copies of this cell as we need, let's set the r
 
 Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main difference, apart from connecting the cells, is returning a variable number of cells **(6)** and returning a new cell per ``gid`` **(7)**.
 
-Step **(8)** creates a :class:`arbor.connection` between this cell and the previous (the ``gid`` of the previous cell is ``(gid-1)%self.ncells``), with a weight of 0.1 μS and a delay of 5 ms. The two arguments to :class:`arbor.cell_member` refer to the cell ``gid`` (first argument) and the index of the synapse (second argument). Only one synapse was defined (step **(4)**), so the index is always 0. :func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one connection coming in and one going out.
+Step **(8)** creates a :class:`arbor.connection` between this cell and the previous (the ``gid`` of the previous cell is ``(gid-1)%self.ncells``), with a weight of 0.1 μS and a delay of 5 ms. The two arguments to :class:`arbor.cell_member` refer to the cell ``gid`` (first argument) and the index of the synapse (second argument). Only one synapse was defined (step **4**), so the index is always 0. :func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one connection coming in and one going out.
 
-In step **(9)** an :class:`arbor.event_generator` is created on the 0th cell. The :class:`arbor.explicit_schedule` in instantiated with a list of times with unit ms, so a schedule with a period of a millisecond is created.
+Step **(9)** creates an :class:`arbor.event_generator` on the 0th cell. The :class:`arbor.explicit_schedule` in instantiated with a list of times with unit ms, so a schedule with a period of a millisecond is created.
+
+Step **(10)** instantiates the recipe with 4 cells.
 
 .. code-block:: python
 
@@ -175,93 +170,39 @@ In step **(9)** an :class:`arbor.event_generator` is created on the 0th cell. Th
       def global_properties(self, kind):
          return self.props
 
-The execution context
-*********************
-
-The execution context contains all system-specific information needed by the simulation: it contains the
-thread pool which handles multi-threaded optimization on the CPU; it knows the relevant GPU attributes
-if a GPU is available; and it holds the MPI communicator for distributed simulations.
-The details of the execution context can be customized by the user. However,
-the ideal settings can usually be inferred from the system.
-
-In step **(10)** we specify the number of threads in the thread pool and
-let Arbor know that we have no preference for a particular GPU.
-
-Printing out the :class:`arbor.context` object will show some information of the
-capabilities of the system and the way it was configured. Most Arbor objects can
-be printed out to get obtain some information about its configuration.
-
-.. code-block:: python
-
-   # (10) Set up the hardware context
-   context = arbor.context(threads=12, gpu_id=None)
-   print(context)
-
-The meter manager
-*****************
-
-Understanding where the execution of the simulation spends time and memory is helpful for optimisation.
-The :class:`arbor.meter_manager` facilitates this. You can set one up per
-:class:`arbor.context` and set :func:`checkpoints <arbor.meter_manager.checkpoint>`
-wherever you need them.
-
-Step **(11)** creates the meters object.
-
-Step **(12)** instantiates our recipe with 4 cells. Then, we set the first checkpoint.
-
-.. code-block:: python
-
-   # (11) Set up and start the meter manager
-   meters = arbor.meter_manager()
-   meters.start(context)
-
-   # (12) Instantiate recipe
+   # (10) Instantiate recipe
    ncells = 4
    recipe = ring_recipe(ncells)
-   meters.checkpoint('recipe-create', context)
 
-The domain decomposition
-************************
+The execution context and the domain decomposition
+**************************************************
 
-The domain decomposition describes the distribution of the cells over the available computational resources.
-The :class:`arbor.domain_decomposition` class can be manually created by the user, by deciding which cells
-go on which ranks. Or we can use a load balancer that can partition the cells across ranks according to
-some rules. Arbor provides :class:`arbor.partition_load_balance`, which, using the recipe and execution
-context, creates the :class:`arbor.domain_decomposition` object for us.
-:class:`arbor.partition_load_balance` can be fed some hints as to the way we
-prefer to execute the simulation, if possible. For this, the :class:`arbor.partition_hint` object can be used.
+We have almost all the components needed to create an :class:`arbor.simulation` object. First, we must create an
+:class:`arbor.context` and :class:`arbor.domain_decomposition`. An execution context tells Arbor something about the
+hardware on which to run the simulation. A domain decomposition defines how to distribute the different components of
+a recipe over the hardware in the execution context. A follow-up tutorial will detail this further; for now we'll stick to Arbor's defaults.
 
-Step **(13)** shows how we tell Arbor to execute the simulation of cable cells on the GPU in groups of a 1000 (GPUs consists of hundreds or thousands of parallel processing units). A dictionary that maps :class:`cell kinds <arbor.cell_kind>` to :class:`hints <arbor.partition_hint>` is what we can pass to the load balancer in the next step. Note that these are just hints, so execution might still happen differently from what you specified in your hints.
-
-Step **(14)** sets up a load balancer for the recipe, context and hints. At this point, Arbor has configured the execution for you. By printing the initialized :class:`arbor.domain_decomposition` object produced by :class:`arbor.partition_load_balance`, you can observe how your simulation will be executed.
-
-lastly, let's set another checkpoint.
+Step **(11)** creates a default execution context, and uses the :func:`arbor.partition_load_balance` to create a
+default domain decomposition. You can print the objects to see what defaults they produce on your system.
 
 .. code-block:: python
 
-   # (13) Define a hint at to the execution.
-   hint = arbor.partition_hint()
-   hint.prefer_gpu = True
-   hint.gpu_group_size = 1000
-   print(hint)
-   hints = {arbor.cell_kind.cable: hint}
-
-   # (14) Domain decomp
-   decomp = arbor.partition_load_balance(recipe, context, hints)
+   # (11) Create a default execution context and a default domain decomposition.
+   context = arbor.context()
+   print(context)
+   decomp = arbor.partition_load_balance(recipe, context)
    print(decomp)
-
-   meters.checkpoint('load-balance', context)
 
 The simulation
 **************
 
-Finally we have the components needed to create a :class:`arbor.simulation` object.
+In step **(12)** we create the simulation. We set all spike recorders to record, and set all samplers to record at a frequency of 10 kHz. We save the handles to the samplers to be able to analyse their results later.
 
-In step **(15)** we create the simulation. We set all spike recorders to record, and set all samplers to record at a frequency of 10 kHz. We save the handles to the samplers to be able to analyse their results later. Let's have another checkpoint.
+Step **(13)** executes the simulation for a duration of 100 ms.
 
 .. code-block:: python
 
-   # (15) Simulation init
+   # (12) Simulation init
    sim = arbor.simulation(recipe, decomp, context)
    sim.record(arbor.spike_recording.all)
 
@@ -269,30 +210,12 @@ In step **(15)** we create the simulation. We set all spike recorders to record,
    # Sample rate of 10 sample every ms.
    handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
-   meters.checkpoint('simulation-init', context)
-
-The execution
-*************
-
-We can now run the simulation we just instantiated for a duration of 100ms, and measure the wall time.
-
-.. code-block:: python
-
-   # (16) Run simulation
+   # (13) Run simulation
    sim.run(100)
    print('Simulation finished')
 
-   meters.checkpoint('simulation-run', context)
-
 The results
 ***********
-
-The last step is result collection. First, let's look at the profiler:
-
-.. code-block:: python
-
-   # Print profiling information
-   print(f'{arbor.meter_report(meters, context)}')
 
 We can print the times of the spikes:
 
@@ -303,7 +226,7 @@ We can print the times of the spikes:
    for sp in sim.spikes():
       print(' ', sp)
 
-And let's wrap up with a plot of the sampling data:
+Let's have a plot of the sampling data:
 
 .. code-block:: python
 

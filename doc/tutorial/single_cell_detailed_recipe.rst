@@ -284,9 +284,9 @@ previous section:
 The execution context
 *********************
 
-The execution context contains all system-specific information needed by the simulation: it contains the
-thread pool which handles multi-threaded optimization on the CPU; it knows the relevant GPU attributes
-if a GPU is available; and it holds the MPI communicator for distributed simulations. In the previous
+An :ref:`execution context <modelcontext>`_ describes the hardware resources on which the simulation will run.
+It contains the thread pool used to parallelise work on the local CPU, and optionally describes GPU resources
+and the MPI communicator for distributed simulations. In the previous
 examples, the :class:`arbor.single_cell_model` object created the execution context :class:`arbor.context`
 behind the scenes.
 
