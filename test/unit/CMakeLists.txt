@@ -181,8 +181,7 @@ make_catalogue(
   OUTPUT "CAT_DUMMY_SOURCES"
   MECHS dummy
   ARBOR "${PROJECT_SOURCE_DIR}"
-  STANDALONE TRUE)
-
+  STANDALONE ON)
 
 if(ARB_WITH_GPU)
     list(APPEND unit_sources
@@ -215,6 +214,7 @@ endif()
 add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
 add_dependencies(tests unit)
+add_dependencies(tests dummy-catalogue)
 
 if(ARB_WITH_NVCC)
     target_compile_options(unit PRIVATE -DARB_CUDA)

@@ -133,5 +133,4 @@ function("make_catalogue")
       target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor::arbor)
     endif(${CMAKE_PROJECT_NAME} STREQUAL "arbor")        
   endif(${MK_CAT_STANDALONE})
-
 endfunction()
