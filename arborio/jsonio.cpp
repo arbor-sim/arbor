@@ -1,6 +1,3 @@
-#include <fstream>
-#include <iomanip>
-#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -218,10 +215,6 @@ namespace arborio {
 jsonio_error::jsonio_error(const std::string& msg):
     arbor_exception(msg) {}
 
-jsonio_json_parse_error::jsonio_json_parse_error(const std::string& err):
-    jsonio_error("Error parsing JSON : " + err)
-{}
-
 jsonio_unused_input::jsonio_unused_input(const std::string& key):
     jsonio_error("Unused input parameter: \"" + key + "\"")
 {}
@@ -266,8 +259,8 @@ jsonio_missing_field::jsonio_missing_field(const std::string& field):
     jsonio_error("Missing \"" + field + "\" field.")
 {}
 
-jsonio_version_error::jsonio_version_error(const std::string& ver):
-    jsonio_error("Unsupported version: \"" + ver + "\".")
+jsonio_version_error::jsonio_version_error(const unsigned ver):
+    jsonio_error("Unsupported version: \"" + std::to_string(ver) + "\".")
 {}
 
 jsonio_type_error::jsonio_type_error(const std::string& type):
@@ -276,14 +269,7 @@ jsonio_type_error::jsonio_type_error(const std::string& type):
 
 // Public functions - read and write directly from and to files
 
-std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(std::istream& s) {
-    nlohmann::json json_data;
-    try {
-        s >> json_data;
-    }
-    catch (std::exception& e) {
-        throw jsonio_json_parse_error(e.what());
-    }
+std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(const nlohmann::json& json_data) {
     if (!json_data.count("version")) {
         throw jsonio_missing_field("version");
     }
@@ -308,20 +294,12 @@ std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(std::istream& 
     throw jsonio_type_error(type);
 }
 
-void store_json(const arb::cable_cell_parameter_set& params, std::ostream& s) {
-    nlohmann::json json_set;
-    json_set["version"] = JSONIO_VERSION;
-    json_set["type"] = "global-parameters";
-    json_set["data"] = params;
-    s << std::setw(2) << json_set;
+nlohmann::json write_json(const arb::cable_cell_parameter_set& params) {
+    return nlohmann::json{{"version", JSONIO_VERSION}, {"type", "global-parameters"}, {"data", params}};
 };
 
-void store_json(const arb::decor& decor, std::ostream& s) {
-    nlohmann::json json_decor;
-    json_decor["version"] = JSONIO_VERSION;
-    json_decor["type"] = "decor";
-    json_decor["data"] = decor;
-    s << std::setw(2) << json_decor;
+nlohmann::json write_json(const arb::decor& decor) {
+    return nlohmann::json{{"version", JSONIO_VERSION}, {"type", "decor"}, {"data", decor}};
 }
 
 } // namespace arborio

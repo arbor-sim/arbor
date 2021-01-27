@@ -21,7 +21,9 @@ std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(const std::str
         throw pyarb_error("Can't open file '{}'" + fname);
     }
     try {
-        return arborio::load_json(fid);
+        nlohmann::json j;
+        fid >> j;
+        return arborio::load_json(j);
     }
     catch (std::exception& e) {
         throw pyarb_error("Error while trying to load from \"" + fname + "\": " + std::string(e.what()));
@@ -32,7 +34,8 @@ template <typename T>
 void store_json(const T& set, const std::string& fname) {
     std::ofstream fid(fname);
     try {
-        return arborio::store_json(set, fid);
+        auto json = arborio::write_json(set);
+        fid << std::setw(2) << json;
     }
     catch (std::exception& e) {
         throw pyarb_error("Error writing \"" + fname + "\": " + std::string(e.what()));

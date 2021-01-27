@@ -5,17 +5,14 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
 
-#define JSONIO_VERSION "0.1"
+#include <nlohmann/json.hpp>
+
+#define JSONIO_VERSION 1
 
 namespace arborio {
 
 struct jsonio_error: public arb::arbor_exception {
     jsonio_error(const std::string& msg);
-};
-
-// Error parsing JSON
-struct jsonio_json_parse_error: jsonio_error {
-    explicit jsonio_json_parse_error(const std::string& err);
 };
 
 // Input in JSON not used
@@ -73,7 +70,7 @@ struct jsonio_missing_field: jsonio_error {
 };
 
 struct jsonio_version_error: jsonio_error {
-    explicit jsonio_version_error(const std::string& version);
+    explicit jsonio_version_error(const unsigned version);
 };
 
 struct jsonio_type_error: jsonio_error {
@@ -82,8 +79,8 @@ struct jsonio_type_error: jsonio_error {
 
 // Load/store cable_cell_parameter_set and decor from/to stream
 //arb::cable_cell_parameter_set load_cable_cell_parameter_set(std::istream&);
-std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(std::istream&);
-void store_json(const arb::cable_cell_parameter_set&, std::ostream&);
-void store_json(const arb::decor&, std::ostream&);
+std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(const nlohmann::json&);
+nlohmann::json write_json(const arb::cable_cell_parameter_set&);
+nlohmann::json write_json(const arb::decor&);
 
 } // namespace arborio
