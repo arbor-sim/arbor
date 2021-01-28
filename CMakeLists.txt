@@ -162,12 +162,6 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 # for the arbor library.
 add_library(arbor-private-deps INTERFACE)
 target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS})
-# TODO this is a work-around for GCC <= 8
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    target_link_libraries(arbor-private-deps std::filesystem)
-  endif(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)    
-endif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.
