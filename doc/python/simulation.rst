@@ -135,6 +135,11 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
         Retrieve a list of sample data associated with the given ``handle``.
         There will be one entry in the list per probe associated with the probe id used when the sampling was set up.
+        E.g. if a probe was placed on a locset describing three positions, the returned list will have three elements.
+
+        An empty list will be returned if no (local) output was found. This is expected for execution contexts with
+        more than one rank, as the local simulation object does not have access to cells on other ranks.
+
         Each entry is a pair ``(samples, meta)`` where ``meta`` is the probe metadata as would be returned by
         ``probe_metadata(probe_id)``, and ``samples`` contains the recorded values.
 
