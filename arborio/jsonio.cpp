@@ -20,9 +20,7 @@ void to_json(nlohmann::json& j, const cable_cell_parameter_set& params) {
     if (auto Vm = params.init_membrane_potential) j["init-membrane-potential"] = Vm.value();
     if (auto Ra = params.axial_resistivity) j["axial-resistivity"] = Ra.value();
     if (auto cm = params.membrane_capacitance) j["membrane-capacitance"] = cm.value();
-    for (auto ion: params.ion_data) {
-        auto name = ion.first;
-        auto data = ion.second;
+    for (auto& [name, data]: params.ion_data) {
         if (auto iconc = data.init_int_concentration) j["ions"][name]["init-int-concentration"] = iconc.value();
         if (auto econc = data.init_ext_concentration) j["ions"][name]["init-ext-concentration"] = econc.value();
         if (auto rvpot = data.init_reversal_potential) j["ions"][name]["init-reversal-potential"] = rvpot.value();
