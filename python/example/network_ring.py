@@ -109,33 +109,17 @@ class ring_recipe (arbor.recipe):
     def global_properties(self, kind):
         return self.props
 
-# (10) Set up the hardware context
-context = arbor.context(threads=12, gpu_id=None)
-print(context)
-
-# (11) Set up and start the meter manager
-meters = arbor.meter_manager()
-meters.start(context)
-
-# (12) Instantiate recipe
+# (10) Instantiate recipe
 ncells = 4
 recipe = ring_recipe(ncells)
-meters.checkpoint('recipe-create', context)
 
-# (13) Define a hint at to the execution.
-hint = arbor.partition_hint()
-hint.prefer_gpu = True
-hint.gpu_group_size = 1000
-print(hint)
-hints = {arbor.cell_kind.cable: hint}
-
-# (14) Domain decomp
-decomp = arbor.partition_load_balance(recipe, context, hints)
+# (11) Create a default execution context and a default domain decomposition.
+context = arbor.context()
+print(context)
+decomp = arbor.partition_load_balance(recipe, context)
 print(decomp)
 
-meters.checkpoint('load-balance', context)
-
-# (15) Simulation init
+# (12) Simulation init
 sim = arbor.simulation(recipe, decomp, context)
 sim.record(arbor.spike_recording.all)
 
@@ -143,17 +127,11 @@ sim.record(arbor.spike_recording.all)
 # Sample rate of 10 sample every ms.
 handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
-meters.checkpoint('simulation-init', context)
-
-# (16) Run simulation
+# (13) Run simulation
 sim.run(100)
 print('Simulation finished')
 
-meters.checkpoint('simulation-run', context)
-
-# (17) Results
-# Print profiling information
-print(f'{arbor.meter_report(meters, context)}')
+# (14) Results
 
 # Print spike times
 print('spikes:')
@@ -165,6 +143,7 @@ print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
     samples, meta = sim.samples(handles[gid])[0]
+    print(sim.samples(handles[gid]))
     df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
 
 df = pandas.concat(df_list)
