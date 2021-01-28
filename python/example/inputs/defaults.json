@@ -9,22 +9,22 @@
     "axial-resistivity": 35.4,
     "ions": {
       "ca": {
-        "internal-concentration": 5e-5,
-        "external-concentration": 2.0,
-        "reversal-potential": 132.4579341637009,
-        "method": "constant"
+        "init-int-concentration": 5e-5,
+        "init-ext-concentration": 2.0,
+        "init-reversal-potential": 132.4579341637009,
+        "reversal-potential-method": {
+          "mechanism" : "nernst/ca"
+        }
       },
       "k": {
-        "internal-concentration": 54.4,
-        "external-concentration": 2.5,
-        "reversal-potential": -77,
-        "method": "constant"
+        "init-int-concentration": 54.4,
+        "init-ext-concentration": 2.5,
+        "init-reversal-potential": -77
       },
       "na": {
-        "internal-concentration": 10,
-        "external-concentration": 140,
-        "reversal-potential": 50,
-        "method": "constant"
+        "init-int-concentration": 10,
+        "init-ext-concentration": 140,
+        "init-reversal-potential": 50
       }
     }
   }

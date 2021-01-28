@@ -14,14 +14,14 @@ The `default parameters` of a model are:
    ========================================  =========================  =========
    parameter                                 alias                      units
    ========================================  =========================  =========
-   initial membrane potential                Vm                         mV
-   temperature                               celsius                    celsius
-   axial resistivity                         Ra                         Ω·cm
-   membrane capacitance                      cm                         μf⋅cm⁻²
-   initial internal concentration (per ion)  internal-concentration     mM
-   initial external concentration (per ion)  external-concentration     mM
-   initial reversal potential (per ion)      reversal-potential         mV
-   reversal potential method (per ion)       method                     --
+   initial membrane potential                init-membrane-potential    mV
+   temperature                               temperature-K              kelvin
+   axial resistivity                         axial-resistivity          Ω·cm
+   membrane capacitance                      membrane-capacitance       F⋅m⁻²
+   initial internal concentration (per ion)  init-int-concentration     mM
+   initial external concentration (per ion)  init-ext-concentration     mM
+   initial reversal potential (per ion)      init-reversal-potential    mV
+   reversal potential method (per ion)       reversal-potential-method  --
    CV policy                                 --                         --
    ========================================  =========================  =========
 
@@ -58,21 +58,22 @@ The JSON format has a structure similar to the following example:
      "cm": 0.01,
      "ions": {
        "ca": {
-         "internal-concentration": 5e-05,
-         "external-concentration": 2.0,
-         "reversal-potential": 132.4579341637009
+         "init-int-concentration": 5e-05,
+         "init-ext-concentration": 2.0,
+         "init-reversal-potential": 132.4579341637009
        },
        "k": {
-         "internal-concentration": 54.4,
-         "external-concentration": 2.5,
-         "reversal-potential": -77.0,
-         "method": "constant"
+         "init-int-concentration": 54.4,
+         "init-ext-concentration": 2.5,
+         "init-reversal-potential": -77.0,
        },
        "na": {
-         "internal-concentration": 10.0,
-         "external-concentration": 140.0,
-         "reversal-potential": 50.0,
-         "method": "nernst"
+         "init-int-concentration": 10.0,
+         "init-ext-concentration": 140.0,
+         "init-reversal-potential": 50.0,
+         "reversal-potential-method": {
+           "mechanism" :"nernst/na"
+         }
        }
      }
    }

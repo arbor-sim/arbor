@@ -6,6 +6,14 @@
 #include "arborio/jsonio.hpp"
 #include "json_helpers.hpp"
 
+namespace arborio {
+void throw_if_not_empty(const nlohmann::json& json) {
+    if (!json.empty()) {
+        throw arborio::jsonio_unused_input(json.begin().key());
+    }
+}
+}
+
 namespace arb {
 void to_json(nlohmann::json& j, const cable_cell_parameter_set& params) {
     if (auto tempK = params.temperature_K) j["temperature-K"] = tempK.value();
@@ -15,14 +23,15 @@ void to_json(nlohmann::json& j, const cable_cell_parameter_set& params) {
     for (auto ion: params.ion_data) {
         auto name = ion.first;
         auto data = ion.second;
-        if (auto iconc = data.init_int_concentration) j["ions"][name]["internal-concentration"] = iconc.value();
-        if (auto econc = data.init_ext_concentration) j["ions"][name]["external-concentration"] = econc.value();
-        if (auto rvpot = data.init_reversal_potential) j["ions"][name]["reversal-potential"] = rvpot.value();
+        if (auto iconc = data.init_int_concentration) j["ions"][name]["init-int-concentration"] = iconc.value();
+        if (auto econc = data.init_ext_concentration) j["ions"][name]["init-ext-concentration"] = econc.value();
+        if (auto rvpot = data.init_reversal_potential) j["ions"][name]["init-reversal-potential"] = rvpot.value();
         if (params.reversal_potential_method.count(name)) {
-            j["ions"][name]["method"] = params.reversal_potential_method.at(name).name();
-        }
-        else {
-            j["ions"][name]["method"] = "constant";
+            auto mech = params.reversal_potential_method.at(name);
+            j["ions"][name]["reversal-potential-method"]["mechanism"] = mech.name();
+            if (!mech.values().empty()) {
+                j["ions"][name]["reversal-potential-method"]["parameters"] = mech.values();
+            }
         }
     }
 }
@@ -34,34 +43,39 @@ void from_json(const nlohmann::json& j, cable_cell_parameter_set& params) {
     params.axial_resistivity = find_and_remove_json<double>("axial-resistivity", j_copy);
     params.temperature_K = find_and_remove_json<double>("temperature-K", j_copy);
 
-    if (auto ions_json = find_and_remove_json<nlohmann::json>("ions", j_copy)) {
-        auto ions_map = ions_json.value().get<std::unordered_map<std::string, nlohmann::json>>();
-        for (auto& [ion_name, ion_json]: ions_map) {
+    if (auto ions_map = find_and_remove_json<std::unordered_map<std::string, nlohmann::json>>("ions", j_copy)) {
+        for (auto& [ion_name, ion_json]: ions_map.value()) {
             arb::cable_cell_ion_data ion_data;
-            if (auto iconc = find_and_remove_json<double>("internal-concentration", ion_json)) {
+            if (auto iconc = find_and_remove_json<double>("init-int-concentration", ion_json)) {
                 ion_data.init_int_concentration = iconc.value();
             }
-            if (auto econc = find_and_remove_json<double>("external-concentration", ion_json)) {
+            if (auto econc = find_and_remove_json<double>("init-ext-concentration", ion_json)) {
                 ion_data.init_ext_concentration = econc.value();
             }
-            if (auto rev_pot = find_and_remove_json<double>("reversal-potential", ion_json)) {
+            if (auto rev_pot = find_and_remove_json<double>("init-reversal-potential", ion_json)) {
                 ion_data.init_reversal_potential = rev_pot.value();
             }
             params.ion_data.insert({ion_name, ion_data});
 
-            if (auto method = find_and_remove_json<std::string>("method", ion_json)) {
-                if (method.value() == "nernst") {
-                    params.reversal_potential_method.insert({ion_name, "nernst/" + ion_name});
+            if (auto method = find_and_remove_json<nlohmann::json>("reversal-potential-method", ion_json)) {
+                auto mech_name =  find_and_remove_json<std::string>("mechanism", method.value());
+                if (!mech_name) {
+                    throw arborio::jsonio_missing_revpot_mechanism(ion_name);
                 }
-                else if (method.value() != "constant") {
-                    params.reversal_potential_method.insert({ion_name, method.value()});
+                arb::mechanism_desc mech(mech_name.value());
+                auto mech_params = find_and_remove_json<std::unordered_map<std::string, double>>("parameters", method.value());
+                if (mech_params) {
+                    for (auto p: mech_params.value()) {
+                        mech.set(p.first, p.second);
+                    }
                 }
+                params.reversal_potential_method.insert({ion_name, mech});
+                arborio::throw_if_not_empty(method.value());
             }
+            arborio::throw_if_not_empty(ion_json);
         }
     }
-    if (!j_copy.empty()) {
-        throw arborio::jsonio_unused_input(j_copy.begin().key());
-    }
+    arborio::throw_if_not_empty(j_copy);
 }
 
 void to_json(nlohmann::json& j, const decor& decor) {
@@ -80,9 +94,9 @@ void to_json(nlohmann::json& j, const decor& decor) {
             [&](const arb::axial_resistivity& p)       { region["axial-resistivity"] = p.value; },
             [&](const arb::temperature_K& p)           { region["temperature-K"] = p.value; },
             [&](const arb::membrane_capacitance& p)    { region["membrane-capacitance"] = p.value; },
-            [&](const arb::init_int_concentration& p)  { region["ions"][p.ion]["internal-concentration"] = p.value; },
-            [&](const arb::init_ext_concentration& p)  { region["ions"][p.ion]["external-concentration"] = p.value; },
-            [&](const arb::init_reversal_potential& p) { region["ions"][p.ion]["reversal-potential"] = p.value; },
+            [&](const arb::init_int_concentration& p)  { region["ions"][p.ion]["init-int-concentration"] = p.value; },
+            [&](const arb::init_ext_concentration& p)  { region["ions"][p.ion]["init-ext-concentration"] = p.value; },
+            [&](const arb::init_reversal_potential& p) { region["ions"][p.ion]["init-reversal-potential"] = p.value; },
             [&](const arb::mechanism_desc& p) {
               nlohmann::json mech;
               mech["region"] = region_expr;
@@ -202,11 +216,10 @@ void from_json(const nlohmann::json& j, decor& decor) {
             catch (std::exception& e) {
                 throw arborio::jsonio_decor_mech_set_error(reg, name.value(), e.what());
             }
+            arborio::throw_if_not_empty(mech_json);
         }
     }
-    if (!j_copy.empty()) {
-        throw arborio::jsonio_unused_input(j_copy.begin().key());
-    }
+    arborio::throw_if_not_empty(j_copy);
 }
 };
 // namespace arb
@@ -214,6 +227,10 @@ namespace arborio {
 
 jsonio_error::jsonio_error(const std::string& msg):
     arbor_exception(msg) {}
+
+jsonio_missing_revpot_mechanism::jsonio_missing_revpot_mechanism(const std::string& ion):
+    jsonio_error("Reversal potential method of ion \"" + ion + "\" does not include mechanism name")
+{}
 
 jsonio_unused_input::jsonio_unused_input(const std::string& key):
     jsonio_error("Unused input parameter: \"" + key + "\"")

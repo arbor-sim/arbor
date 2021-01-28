@@ -47,22 +47,21 @@ TEST(load_cable_cell_parameter_set, valid) {
                 "axial-resistivity": 35.4,
                 "ions": {
                   "ca": {
-                    "internal-concentration": 5e-5,
-                    "external-concentration": 2.0,
-                    "reversal-potential": 132.4579341637009,
-                    "method": "nernst"
+                    "init-int-concentration": 5e-5,
+                    "init-ext-concentration": 2.0,
+                    "init-reversal-potential": 132.4579341637009,
+                    "reversal-potential-method": {"mechanism" : "nernst/ca"}
                   },
                   "k": {
-                    "internal-concentration": 54.4,
-                    "external-concentration": 2.5,
-                    "reversal-potential": -77,
-                    "method": "constant"
+                    "init-int-concentration": 54.4,
+                    "init-ext-concentration": 2.5,
+                    "init-reversal-potential": -77,
+                    "reversal-potential-method": {"mechanism" : "nernst/k", "parameters" : {}}
                   },
                   "na": {
-                    "internal-concentration":  10,
-                    "external-concentration": 140,
-                    "reversal-potential": 50,
-                    "method": "constant"
+                    "init-int-concentration":  10,
+                    "init-ext-concentration": 140,
+                    "init-reversal-potential": 50
                   }
                 }
               }
@@ -82,7 +81,7 @@ TEST(load_cable_cell_parameter_set, valid) {
         EXPECT_EQ(54.4, params.ion_data["k"].init_int_concentration.value());
         EXPECT_EQ(2.5,  params.ion_data["k"].init_ext_concentration.value());
         EXPECT_EQ(-77,  params.ion_data["k"].init_reversal_potential.value());
-        EXPECT_FALSE(params.reversal_potential_method.count("k"));
+        EXPECT_TRUE(params.reversal_potential_method.count("k"));
 
         EXPECT_EQ(10,  params.ion_data["na"].init_int_concentration.value());
         EXPECT_EQ(140, params.ion_data["na"].init_ext_concentration.value());
@@ -101,8 +100,8 @@ TEST(load_cable_cell_parameter_set, valid) {
                 "axial-resistivity": 100,
                 "ions": {
                   "na": {
-                    "external-concentration": 140,
-                    "reversal-potential": 50
+                    "init-ext-concentration": 140,
+                    "init-reversal-potential": 50
                   }
                 }
               }
@@ -145,8 +144,8 @@ TEST(load_cable_cell_parameter_set, invalid) {
             "Ga": 100,
             "ions": {
               "na": {
-                "external-concentration": 140,
-                "reversal-potential": 50
+                "init-ext-concentration": 140,
+                "init-reversal-potential": 50
               }
             }
           }
@@ -171,8 +170,8 @@ TEST(decor_reader, valid) {
                 "region": "\"apic\"",
                 "membrane-capacitance": 0.02,
                 "ions": {
-                  "na": {"reversal-potential":  50},
-                  "k":  {"reversal-potential": -85}
+                  "na": {"init-reversal-potential":  50},
+                  "k":  {"init-reversal-potential": -85}
                 }
               },
               {
@@ -301,8 +300,8 @@ TEST(decor_reader, invalid) {
                   {
                     "membrane-capacitance": 0.02,
                     "ions": {
-                      "na": {"reversal-potential":  50},
-                      "k":  {"reversal-potential": -85}
+                      "na": {"init-reversal-potential":  50},
+                      "k":  {"init-reversal-potential": -85}
                     }
                   }
                 ]
@@ -322,8 +321,8 @@ TEST(decor_reader, invalid) {
                     "region": "\"apic\"",
                     "membrane-capacitance": 0.02,
                     "ions": {
-                      "na": {"reversal-potential":  50},
-                      "k":  {"method": "nernst"}
+                      "na": {"init-reversal-potential":  50},
+                      "k":  {"reversal-potential-method": {"mechanism" : "nernst/k"}}
                     }
                   }
                 ]
@@ -378,22 +377,20 @@ TEST(cable_cell_parameter_set_writer, valid) {
             "axial-resistivity": 35.4,
             "ions": {
               "ca": {
-                "internal-concentration": 5e-5,
-                "external-concentration": 2.0,
-                "reversal-potential": 132.4579341637009,
-                "method": "nernst/ca"
+                "init-int-concentration": 5e-5,
+                "init-ext-concentration": 2.0,
+                "init-reversal-potential": 132.4579341637009,
+                "reversal-potential-method": {"mechanism": "nernst/ca"}
               },
               "k": {
-                "internal-concentration": 54.4,
-                "external-concentration": 2.5,
-                "reversal-potential": -77.0,
-                "method": "constant"
+                "init-int-concentration": 54.4,
+                "init-ext-concentration": 2.5,
+                "init-reversal-potential": -77.0
               },
               "na": {
-                "internal-concentration":  10.0,
-                "external-concentration": 140.0,
-                "reversal-potential": 50.0,
-                "method": "constant"
+                "init-int-concentration":  10.0,
+                "init-ext-concentration": 140.0,
+                "init-reversal-potential": 50.0
               }
             }
           }
@@ -421,8 +418,8 @@ TEST(decor_writer, valid) {
                 "region": "(region \"apic\")",
                 "membrane-capacitance": 0.02,
                 "ions": {
-                  "na": {"reversal-potential":  50.0},
-                  "k":  {"reversal-potential": -85.0}
+                  "na": {"init-reversal-potential":  50.0},
+                  "k":  {"init-reversal-potential": -85.0}
                 }
               },
               {

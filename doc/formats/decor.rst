@@ -24,14 +24,14 @@ cell. They contain the same elements as the `default parameters`.
    ========================================  =========================  =========
    parameter                                 alias                      units
    ========================================  =========================  =========
-   initial membrane potential                Vm                         mV
-   temperature                               celsius                    celsius
-   axial resistivity                         Ra                         Ω·cm
-   membrane capacitance                      cm                         μf⋅cm⁻²
-   initial internal concentration (per ion)  internal-concentration     mM
-   initial external concentration (per ion)  external-concentration     mM
-   initial reversal potential (per ion)      reversal-potential         mV
-   reversal potential method (per ion)       method                     --
+   initial membrane potential                init-membrane-potential    mV
+   temperature                               temperature-k              kelvin
+   axial resistivity                         axial-resistivity          Ω·cm
+   membrane capacitance                      membrane-capacitance       F⋅m⁻²
+   initial internal concentration (per ion)  init-int-concentration     mM
+   initial external concentration (per ion)  init-ext-concentration     mM
+   initial reversal potential (per ion)      init-reversal-potential         mV
+   reversal potential method (per ion)       reversal-potential-method  --
    ========================================  =========================  =========
 
 None of these parameters are mandatory. If unspecified, the corresponding
@@ -49,10 +49,10 @@ following example:
          "cm": 0.01,
          "ions": {
            "ca": {
-             "reversal-potential": 132.4579341637009
+             "init-reversal-potential": 132.4579341637009
            },
            "na": {
-             "internal-concentration": 10.0
+             "init-int-concentration": 10.0
            }
          }
       }
@@ -93,15 +93,15 @@ following example:
          "region": "(tag 4)",
          "cm": 0.02,
          "ions": {
-           "na": {"reversal-potential":  50},
-           "k":  {"reversal-potential": -85}
+           "na": {"init-reversal-potential":  50},
+           "k":  {"init-reversal-potential": -85}
          }
        },
        {
          "region": "(tag 2)",
          "ions": {
-           "na": {"reversal-potential":  50},
-           "k":  {"reversal-potential": -85}
+           "na": {"init-reversal-potential":  50},
+           "k":  {"init-reversal-potential": -85}
          }
        },
        {
@@ -167,7 +167,7 @@ The `global parameters`, `local parameters` and `mechnaisms` can all be defined 
          "Ra": 35.4,
          "cm": 0.01,
          "ions": {
-           "ca": { "reversal-potential": 132.4579341637009 }
+           "ca": { "init-reversal-potential": 132.4579341637009 }
          }
       },
      "local":
@@ -175,7 +175,7 @@ The `global parameters`, `local parameters` and `mechnaisms` can all be defined 
        {
          "region": "(tag 4)",
          "cm": 0.02,
-         "ions": { "k":  {"reversal-potential": -85} }
+         "ions": { "k":  {"init-reversal-potential": -85} }
        },
        {
          "region": "soma",

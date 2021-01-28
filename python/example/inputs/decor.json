@@ -13,15 +13,15 @@
         "region": "\"apic\"",
         "membrane-capacitance": 0.02,
         "ions": {
-          "na": {"reversal-potential":  50},
-          "k":  {"reversal-potential": -85}
+          "na": {"init-reversal-potential":  50},
+          "k":  {"init-reversal-potential": -85}
         }
       },
       {
         "region": "\"axon\"",
         "ions": {
-          "na": {"reversal-potential":  50},
-          "k":  {"reversal-potential": -85}
+          "na": {"init-reversal-potential":  50},
+          "k":  {"init-reversal-potential": -85}
         }
       },
       {
@@ -31,8 +31,8 @@
       {
         "region": "\"soma\"",
         "ions": {
-          "na": {"reversal-potential":  50},
-          "k":  {"reversal-potential": -85}
+          "na": {"init-reversal-potential":  50},
+          "k":  {"init-reversal-potential": -85}
         }
       }
     ],

@@ -20,6 +20,11 @@ struct jsonio_unused_input: jsonio_error {
     explicit jsonio_unused_input(const std::string& key);
 };
 
+// Input in JSON not used
+struct jsonio_missing_revpot_mechanism: jsonio_error {
+    explicit jsonio_missing_revpot_mechanism(const std::string& ion);
+};
+
 // Error loading decor global parameters
 struct jsonio_decor_global_load_error: jsonio_error {
     explicit jsonio_decor_global_load_error(const std::string& err);
@@ -65,14 +70,17 @@ struct jsonio_decor_mech_set_error: jsonio_error {
     explicit jsonio_decor_mech_set_error(const std::string& reg, const std::string& mech, const std::string& err);
 };
 
+// Missing field (version ,type, data)
 struct jsonio_missing_field: jsonio_error {
     explicit jsonio_missing_field(const std::string& field);
 };
 
+// Unsupported version error
 struct jsonio_version_error: jsonio_error {
     explicit jsonio_version_error(const unsigned version);
 };
 
+// Unsupported type error
 struct jsonio_type_error: jsonio_error {
     explicit jsonio_type_error(const std::string& type);
 };
