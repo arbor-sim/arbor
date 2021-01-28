@@ -24,6 +24,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
   endif(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+install(TARGETS arbor-compiler-compat EXPORT arbor-targets)
 
 # Warning options: disable specific spurious warnings as required.
 
