@@ -17,10 +17,11 @@ if(${ARBDEV_COLOR})
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${colorflags}>")
 endif()
 
+add_library(arbor-compiler-compat INTERFACE)
 # TODO Remove when upgrading GCC. Workaround for GCC 8 and less
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    target_link_libraries(arbor-private-deps stdc++fs)
+    target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
   endif(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
