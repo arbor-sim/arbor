@@ -37,42 +37,47 @@ The following parameters are mandatory and must be set by the user:
   * The initial internal and external concentrations of the 'ca', 'na' and 'k' ions.
   * The initial reversal potential of the 'ca', 'na' and 'k' ions.
 
-The reversal potential method is optional. It can be:
+The reversal potential method is an optional mechanism with settable parameters.
+If the reversal potential method is not provided, the initial reversal potential
+value remains constant for the duration of the simulation. Arbor currently only
+provides the `nernst` :ref:`reversal potential mechanism <mechanisms-revpot>`
+which can be used with any ion. The `nernst` mechanism for ion ``x`` is called
+``nernst/x``
 
-  * "constant"  (the reversal potential of an ion doesn't change during the simulation.)
-  * "nernst"    (the reversal potential of an ion advances accoridng to the nernst equation.)
-  * any other string that represents the name of a valid :ref:`nmodl mechanism <mechanisms-revpot>`
-    which describes the progression of the reversal potential.
-
-If the reversal potential method is not set by the user, it is automatically set to
-"constant".
-
-The JSON format has a structure similar to the following example:
+The JSON format has a structure similar to the following example.
+The ``type`` and ``version`` fields are mandatory.
+The ``type`` must be ``default-parameters`` to ensure correct interpretation of the file.
+Currently, the only supported version of this JSON format is ``1``.
 
 .. code:: JSON
 
    {
-     "Ra": 35.4,
-     "Vm": -60.0,
-     "celsius": 6.3,
-     "cm": 0.01,
-     "ions": {
-       "ca": {
-         "init-int-concentration": 5e-05,
-         "init-ext-concentration": 2.0,
-         "init-reversal-potential": 132.4579341637009
-       },
-       "k": {
-         "init-int-concentration": 54.4,
-         "init-ext-concentration": 2.5,
-         "init-reversal-potential": -77.0,
-       },
-       "na": {
-         "init-int-concentration": 10.0,
-         "init-ext-concentration": 140.0,
-         "init-reversal-potential": 50.0,
-         "reversal-potential-method": {
-           "mechanism" :"nernst/na"
+     "version" : 1,
+     "type" : "default-parameters",
+     "data":
+     {
+       "axial-resistivity": 35.4,
+       "init-membrane-potential": -60.0,
+       "temperature-K": 6.3,
+       "membrane-capacitance": 0.01,
+       "ions": {
+         "ca": {
+           "init-int-concentration": 5e-05,
+           "init-ext-concentration": 2.0,
+           "init-reversal-potential": 132.4579341637009
+         },
+         "k": {
+           "init-int-concentration": 54.4,
+           "init-ext-concentration": 2.5,
+           "init-reversal-potential": -77.0,
+         },
+         "na": {
+           "init-int-concentration": 10.0,
+           "init-ext-concentration": 140.0,
+           "init-reversal-potential": 50.0,
+           "reversal-potential-method": {
+             "mechanism" :"nernst/na"
+           }
          }
        }
      }

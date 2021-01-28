@@ -3,29 +3,22 @@
 Json Formats
 ============
 
-.. cpp:function:: cable_cell_parameter_set load_cable_cell_parameter_set(std::istream stream)
+.. cpp:function:: std::variant<arb::decor, arb::cable_cell_parameter_set> load_json(const nlohmann::json&);
 
-    Loads the :cpp:class:`cable_cell_parameter_set` from a ``std::istream`` of a JSON file.
-    The file must follow the structure described in the
-    :ref:`default parameters formats page <formatsdefault>`.
-    The resulting :cpp:class:`cable_cell_parameter_set` can be used in the :cpp:class:`decor`
-    of a :cpp:class:`cable_cell` or in the :cpp:class:`cable_cell_global_properties`.
+    Loads a ``std::variant`` of a :cpp:class:`cable_cell_parameter_set` or :cpp:class:`decor`
+    from a ``nlohmann::json`` object.
+    The JSON object must follow the structure described in
+    :ref:`the default parameters formats page <formatsdefault>` to return a
+    :cpp:class:`cable_cell_parameter_set`; or it must follow the structure described in
+    :ref:`the decor formats page <formatsdecor>` to return a :cpp:class:`decor`.
 
-.. cpp:function:: decor load_decor(std::istream stream)
+.. cpp:function:: nlohmann::json write_json(const arb::cable_cell_parameter_set&)
 
-    Loads the :cpp:class:`decor` from a ``std::istream`` of a JSON file. The file must follow
-    the structure described in the :ref:`decor formats page <formatsdecor>`. The resulting
-    :cpp:class:`decor` can be used in the creation of a :cpp:class:`cable_cell`.
+    Returns a ``nlohmann::json`` object representing the :cpp:class:`cable_cell_parameter_set`
+    according to the structure described in the :ref:`default parameters formats page <formatsdefault>`.
 
-.. cpp:function:: void store_cable_cell_parameter_set(const arb::cable_cell_parameter_set& set , std::ostream& stream)
+.. cpp:function::  nlohmann::json write_json(const arb::decor&)
 
-    Represents the :cpp:class:`cable_cell_parameter_set` as a JSON object with the structure
-    described in the :ref:`default parameters formats page <formatsdefault>` and writes it into
-    ``std::ostream``.
-
-.. cpp:function:: void store_decor(const arb::decor& decor, std::ostream& stream)
-
-    Represents the :cpp:class:`decor` as a JSON file following the structure described
-    in the :ref:`decor formats page <formatsdecor>` and writes it into ``std::ostream``.
-
+    Returns a ``nlohmann::json`` object representing the :cpp:class:`decor`
+    according to the structure described in the :ref:`decor formats page <formatsdecor>`.
 

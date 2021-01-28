@@ -45,8 +45,8 @@ following example:
    {
      "global":
       {
-         "Ra": 35.4,
-         "cm": 0.01,
+         "axial-resistivity": 35.4,
+         "membrane-capacitance": 0.01,
          "ions": {
            "ca": {
              "init-reversal-potential": 132.4579341637009
@@ -71,7 +71,8 @@ To specify which region the local parameters must be applied to, the
 corresponding expression of the region is used (ex: "(tag 1)").
 Alternatively, if the region has been declared in a
 :ref:`label dictionary <labels-dictionary>` associated with the same cell
-as the resulting decor, the label can be used directly (ex: "soma").
+as the resulting decor, the label can be used directly but must be surrounded
+by additional quotes (ex: "\\\"soma\\\"").
 
 The local parameters are applied to the regions in the order which they
 appear in the JSON array. This is important because if the same parameter
@@ -91,7 +92,7 @@ following example:
      [
        {
          "region": "(tag 4)",
-         "cm": 0.02,
+         "membrane-capacitance": 0.02,
          "ions": {
            "na": {"init-reversal-potential":  50},
            "k":  {"init-reversal-potential": -85}
@@ -105,8 +106,8 @@ following example:
          }
        },
        {
-         "region": "soma",
-         "cm": 0.02
+         "region": "\"soma\"",
+         "membrane-capacitance": 0.02
        }
      ]
    }
@@ -147,7 +148,7 @@ example (using mechanisms from the ``bbp`` and ``default`` catalogues):
         "parameters": {"gSKv3_1bar": 0.303472}
       },
       {
-        "region": "dend",
+        "region": "\"dend\"",
         "mechanism": "SK_E2",
         "parameters": {"gSK_E2bar": 0.008407}
       }
@@ -158,43 +159,50 @@ Full Format
 ~~~~~~~~~~~
 
 The `global parameters`, `local parameters` and `mechnaisms` can all be defined in the same json file:
+The ``type`` and ``version`` fields are mandatory. The ``type`` must be ``default-parameters`` to ensure
+correct interpretation of the file. Currently, the only supported version of this JSON format is ``1``.
 
 .. code:: JSON
 
    {
-     "global":
-      {
-         "Ra": 35.4,
-         "cm": 0.01,
-         "ions": {
-           "ca": { "init-reversal-potential": 132.4579341637009 }
+     "version" : 1,
+     "type" : "decor",
+     "data" :
+     {
+       "global":
+        {
+           "axial-resistivity": 35.4,
+           "membrane-capacitance": 0.01,
+           "ions": {
+             "ca": { "init-reversal-potential": 132.4579341637009 }
+           }
+        },
+       "local":
+       [
+         {
+           "region": "(tag 4)",
+           "membrane-capacitance": 0.02,
+           "ions": { "k":  {"init-reversal-potential": -85} }
+         },
+         {
+           "region": "\"soma\"",
+           "membrane-capacitance": 0.02
          }
-      },
-     "local":
-     [
-       {
-         "region": "(tag 4)",
-         "cm": 0.02,
-         "ions": { "k":  {"init-reversal-potential": -85} }
-       },
-       {
-         "region": "soma",
-         "cm": 0.02
-       }
-     ],
-     "mechanisms":
-     [
-       {
-         "region": "(all)",
-         "mechanism": "pas",
-         "parameters": {"e": -75, "g": 3e-5}
-       },
-       {
-         "region": "(region \"soma\")",
-         "mechanism": "CaDynamics_E2",
-         "parameters": {"gamma": 0.000609, "decay": 210.485284}
-       }
-     ]
+       ],
+       "mechanisms":
+       [
+         {
+           "region": "(all)",
+           "mechanism": "pas",
+           "parameters": {"e": -75, "g": 3e-5}
+         },
+         {
+           "region": "(region \"soma\")",
+           "mechanism": "CaDynamics_E2",
+           "parameters": {"gamma": 0.000609, "decay": 210.485284}
+         }
+       ]
+     }
    }
 
 API
