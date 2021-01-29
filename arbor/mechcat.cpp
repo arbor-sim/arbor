@@ -579,6 +579,10 @@ mechanism_catalogue::~mechanism_catalogue() = default;
 const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
     typedef const void* global_catalogue_t();
 
+    if (std::filesystem::exists(fn)) {
+        throw arb::dynamic_catalogue_error(fn, "cannot find catalogue");
+    }
+
     auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
     if (!plugin) {
         throw arb::dynamic_catalogue_error(fn, "cannot open catalogue");
