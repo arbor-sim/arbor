@@ -143,7 +143,6 @@ print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
     samples, meta = sim.samples(handles[gid])[0]
-    print(sim.samples(handles[gid]))
     df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
 
 df = pandas.concat(df_list)
