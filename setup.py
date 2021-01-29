@@ -55,7 +55,7 @@ class install_command(install):
                         'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
-        ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (regiures libxml)')
+        ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (requires libxml)')
         ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.')
     ]
 
