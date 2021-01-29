@@ -135,7 +135,7 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
     value(value) {}
 
 dynamic_catalogue_error::dynamic_catalogue_error(const std::string& fn, const std::string& err, std::any details):
-    arbor_exception(pprintf("Error while loading dynamic catalogue '{}': {}", fn, error)),
+    arbor_exception(pprintf("Error while loading dynamic catalogue '{}': {}", fn, err)),
     filename{fn},
     error{err},
     platform_error{details} {}
