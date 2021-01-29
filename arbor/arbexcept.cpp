@@ -141,10 +141,8 @@ dynamic_catalogue_error::dynamic_catalogue_error(const std::string& fn, const st
     platform_error{details} {}
 
 void dynamic_catalogue_error::print_platform_error(std::ostream& os) const {
-    try {
+    if (platform_error.has_value() && (platform_error.type() == typeid(std::string))) {
         os << std::any_cast<std::string>(platform_error);
-    }
-    catch (const std::bad_any_cast&) {
     }
 }
 
