@@ -134,9 +134,18 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
     arbor_exception(pprintf("range check failure: {} with value {}", whatstr, value)),
     value(value) {}
 
-dynamic_catalogue_error::dynamic_catalogue_error(const std::string& fn, const std::string& error):
+dynamic_catalogue_error::dynamic_catalogue_error(const std::string& fn, const std::string& err, std::any details):
     arbor_exception(pprintf("Error while loading dynamic catalogue '{}': {}", fn, error)),
     filename{fn},
-    dlerror{error} {}
+    error{err},
+    platform_error{details} {}
+
+void dynamic_catalogue_error::print_platform_error(std::ostream& os) const {
+    try {
+        os << std::any_cast<std::string>(platform_error);
+    }
+    catch (const std::bad_any_cast&) {
+    }
+}
 
 } // namespace arb

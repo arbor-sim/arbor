@@ -1,3 +1,4 @@
+#include <any>
 #include <string>
 
 #include <arbor/arbexcept.hpp>
@@ -246,8 +247,15 @@ TEST(mechcat, fingerprint) {
 
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue("does/not/exist-catalogue.so"), dynamic_catalogue_error);
-    auto cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
-    EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
+    try {
+        auto cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
+        EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
+    }
+    catch (const arb::dynamic_catalogue_error& e) {
+        std::cerr << e.what() << "; platform specifc details follow: \n";
+        e.print_platform_error(std::cerr);
+        throw;
+    }
 }
 
 TEST(mechcat, names) {

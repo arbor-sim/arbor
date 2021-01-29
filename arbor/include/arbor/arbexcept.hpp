@@ -1,5 +1,7 @@
 #pragma once
 
+#include <any>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -168,9 +170,12 @@ struct range_check_failure: arbor_exception {
 };
 
 struct dynamic_catalogue_error: arbor_exception {
-    dynamic_catalogue_error(const std::string& fn, const std::string& error);
+    dynamic_catalogue_error(const std::string& fn, const std::string& err, std::any details = {});
     std::string filename;
-    std::string dlerror;
+    std::string error;
+    std::any platform_error;
+
+    void print_platform_error(std::ostream&) const;
 };
 
 } // namespace arb

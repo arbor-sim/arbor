@@ -585,13 +585,14 @@ const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
 
     auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
     if (!plugin) {
-        throw arb::dynamic_catalogue_error(fn, "cannot open catalogue");
+        auto error = dlerror();
+        throw arb::dynamic_catalogue_error(fn, "cannot open catalogue", {error});
     }
 
     auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
     auto error = dlerror();
     if (error) {
-        throw arb::dynamic_catalogue_error(fn, "failed to obtain catalogue handle");
+        throw arb::dynamic_catalogue_error(fn, "failed to obtain catalogue handle", {error});
     }
 
     /* NOTE We do not free the DSO handle here and accept retaining the handles
