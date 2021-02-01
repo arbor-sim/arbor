@@ -83,7 +83,7 @@ class ring_recipe (arbor.recipe):
     def cell_kind(self, gid):
         return arbor.cell_kind.cable
 
-    # (8) Make a ring network. For each gid, provide a list of outgoing connections.
+    # (8) Make a ring network. For each gid, provide a list of incoming connections.
     def connections_on(self, gid):
         src = (gid-1)%self.ncells
         w = 0.01
