@@ -214,7 +214,7 @@ endif()
 add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
 add_dependencies(tests unit)
-add_dependencies(tests dummy-catalogue)
+add_dependencies(unit dummy-catalogue)
 
 if(ARB_WITH_NVCC)
     target_compile_options(unit PRIVATE -DARB_CUDA)
