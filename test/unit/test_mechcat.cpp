@@ -251,8 +251,8 @@ TEST(mechcat, loading) {
         auto cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
         EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
     }
-    catch (const arb::dynamic_catalogue_error& e) {
-        std::cerr << e.what() << "; platform specifc details follow: \n";
+    catch (arb::dynamic_catalogue_error& e) {
+        std::cerr << e.what() << '\n';
         e.print_platform_error(std::cerr);
         throw;
     }
