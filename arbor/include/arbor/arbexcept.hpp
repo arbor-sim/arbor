@@ -166,12 +166,18 @@ struct range_check_failure: arbor_exception {
 };
 
 struct dynamic_catalogue_error: arbor_exception {
-    dynamic_catalogue_error(const std::string& fn, const std::string& err, std::any details = {});
-    std::string filename;
-    std::string error;
-    std::any platform_error;
+    dynamic_catalogue_error(const std::string& fn);
+};
 
-    void print_platform_error(std::ostream&) const;
+struct file_not_found_error: arbor_exception {
+    file_not_found_error(const std::string& fn);
+    std::string filename;
+};
+
+struct bad_catalogue_error: arbor_exception {
+    bad_catalogue_error(const std::string& fn, const std::string& call);
+    std::string filename;
+    std::string failed_call;
 };
 
 } // namespace arb
