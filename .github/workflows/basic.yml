@@ -64,7 +64,7 @@ jobs:
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.9",
-            cmake: "3.19.2",
+            cmake: "3.19.x",
             mpi:   "ON"
           }
     env:
@@ -74,7 +74,7 @@ jobs:
         PYTHONPATH: /home/runner/work/arbor/arbor/build/python
     steps:
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.4
+        uses: jwlawson/actions-setup-cmake@v1.7
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
