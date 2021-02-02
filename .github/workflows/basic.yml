@@ -103,8 +103,10 @@ jobs:
            cd ~
            cd openmpi-4.0.2
            sudo make install
-           sudo ldconfig
            cd -
+      - name: Update shared library cache
+        if: ${{ startsWith(${{ matrix.config.os }}, 'ubuntu') }}
+        run: sudo ldconfig
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
       - name: Clone w/ submodules
