@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: "Default test set"
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
         config:
@@ -68,25 +68,25 @@ jobs:
             mpi:   "ON"
           }
     env:
-        CC:         ${{ matrix.cc }}
-        CXX:        ${{ matrix.cxx }}
+        CC:         ${{ matrix.config.cc }}
+        CXX:        ${{ matrix.config.cxx }}
         # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
         PYTHONPATH: /home/runner/work/arbor/arbor/build/python
     steps:
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.4
         with:
-          cmake-version: ${{ matrix.cmake }}
+          cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.py }}
+          python-version: ${{ matrix.config.py }}
       - name: OpenMPI cache
         uses: actions/cache@v2
         id:   cache-ompi
         with:
           path: ~/openmpi-4.0.2
-          key:  ${{ matrix.os }}-openmpi-4.0.2-${{ matrix.cxx }}
+          key:  ${{ matrix.config.os }}-openmpi-4.0.2-${{ matrix.config.cxx }}
       - name: Build OpenMPI
         if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
         run: |
@@ -122,17 +122,17 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.mpi }} -DARB_USE_BUNDLED_LIBS=ON
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
           make -j4 tests examples pyarb html
           cd -
       - name: Run unit tests
         run:  build/bin/unit
-      - if:   ${{ matrix.mpi == 'ON' }}
+      - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run MPI tests
         run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
       - name: Run python tests
         run:  python python/test/unit/runner.py
-      - if:   ${{ matrix.mpi == 'ON' }}
+      - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run python+MPI tests
         run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py
       - name: Run Python examples
