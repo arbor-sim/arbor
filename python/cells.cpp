@@ -389,13 +389,13 @@ void register_cells(pybind11::module& m) {
     // arb::threshold_detector
 
     pybind11::class_<arb::threshold_detector> detector(m, "spike_detector",
-            "A spike detector, generates a spike when voltage crosses a threshold.");
+            "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
         .def(pybind11::init(
             [](double thresh) {
                 return arb::threshold_detector{thresh};
             }), "threshold"_a)
-        .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [ms]")
+        .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [mV]")
         .def("__repr__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
         .def("__str__", [](const arb::threshold_detector& d){
