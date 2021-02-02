@@ -134,7 +134,9 @@ jobs:
         name: Run MPI tests
         run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
       - name: Run python tests
-        run:  python python/test/unit/runner.py
+        run:  |
+          export PYTHONPATH=/home/runner/work/arbor/arbor/build/python
+          python python/test/unit/runner.py
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run python+MPI tests
         run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py
