@@ -52,8 +52,8 @@ jobs:
         - {
             name:  "Linux Max Clang",
             os:    "ubuntu-20.04",
-            cc:    "clang-11",
-            cxx:   "clang++-11",
+            cc:    "clang-10",
+            cxx:   "clang++-10",
             py:    "3.9",
             cmake: "3.19.x",
             mpi:   "ON"
