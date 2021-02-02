@@ -72,8 +72,10 @@ public:
     // Construct a schema for a mechanism derived from an existing entry,
     // with a sequence of overrides for global scalar parameter settings
     // and a set of ion renamings.
-    void derive(const std::string& name, const std::string& parent, const std::vector<std::pair<std::string, double>>& global_params, const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
-
+    void derive(const std::string& name,
+                const std::string& parent,
+                const std::vector<std::pair<std::string, double>>& global_params,
+                const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
     void derive(const std::string& name, const std::string& parent);
 
     // Remove mechanism from catalogue, together with any derivations of it.

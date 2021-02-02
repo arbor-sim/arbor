@@ -24,14 +24,14 @@ add_library(arbor-compiler-compat INTERFACE)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
     target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
-  endif(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
-endif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  endif()
+endif()
 # TODO Remove when upgrading Clang
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
     target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
-  endif(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-endif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  endif()
+endif()
 install(TARGETS arbor-compiler-compat EXPORT arbor-targets)
 
 # Warning options: disable specific spurious warnings as required.
