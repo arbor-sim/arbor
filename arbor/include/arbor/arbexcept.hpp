@@ -1,7 +1,6 @@
 #pragma once
 
 #include <any>
-#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -16,23 +15,20 @@ namespace arb {
 
 struct arbor_internal_error: std::logic_error {
     arbor_internal_error(const std::string& what_arg):
-        std::logic_error(what_arg) {}
+        std::logic_error(what_arg)
+    {}
 };
+
 
 // Common base-class for arbor run-time errors.
 
 struct arbor_exception: std::runtime_error {
     arbor_exception(const std::string& what_arg):
-        std::runtime_error(what_arg) {}
+        std::runtime_error(what_arg)
+    {}
 };
 
 // Recipe errors:
-
-struct bad_cell_probe: arbor_exception {
-    bad_cell_probe(cell_kind kind, cell_gid_type gid);
-    cell_gid_type gid;
-    cell_kind kind;
-};
 
 struct bad_cell_description: arbor_exception {
     bad_cell_description(cell_kind kind, cell_gid_type gid);
