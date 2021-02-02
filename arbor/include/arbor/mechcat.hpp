@@ -7,9 +7,8 @@
 #include <typeindex>
 #include <vector>
 
-#include <arbor/arbexcept.hpp>
-#include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
+#include <arbor/mechanism.hpp>
 
 // Mechanism catalogue maintains:
 //
@@ -21,7 +20,7 @@
 // 3. A map taking mechanism names x back-end class -> mechanism implementation
 //    prototype object.
 //
-// Implementations for a backend `B` are represented by a pointer to a
+// Implementations for a backend `B` are represented by a pointer to a 
 // `concrete_mechanism<B>` object.
 //
 // References to mechanism_info and mechanism_fingerprint objects are invalidated
@@ -72,10 +71,10 @@ public:
     // Construct a schema for a mechanism derived from an existing entry,
     // with a sequence of overrides for global scalar parameter settings
     // and a set of ion renamings.
-    void derive(const std::string& name,
-                const std::string& parent,
+    void derive(const std::string& name, const std::string& parent,
                 const std::vector<std::pair<std::string, double>>& global_params,
                 const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
+
     void derive(const std::string& name, const std::string& parent);
 
     // Remove mechanism from catalogue, together with any derivations of it.
@@ -95,7 +94,8 @@ public:
 
         return cat_instance<B>{
             std::unique_ptr<concrete_mechanism<B>>(dynamic_cast<concrete_mechanism<B>*>(mech.first.release())),
-            std::move(mech.second)};
+            std::move(mech.second)
+        };
     }
 
     // Associate a concrete (prototype) mechanism for a given back-end B with a (possibly derived)
@@ -106,13 +106,13 @@ public:
         register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
     }
 
-    // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
-    void import(const mechanism_catalogue& other, const std::string& prefix);
+   // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
+   void import(const mechanism_catalogue& other, const std::string& prefix);
 
-    ~mechanism_catalogue();
+   ~mechanism_catalogue();
 
-    // Grab a collection of all mechanism names in the catalogue.
-    std::vector<std::string> mechanism_names() const;
+   // Grab a collection of all mechanism names in the catalogue.
+   std::vector<std::string> mechanism_names() const;
 
 private:
     std::unique_ptr<catalogue_state> state_;
@@ -121,13 +121,15 @@ private:
     void register_impl(std::type_index, const std::string&, mechanism_ptr);
 };
 
+
 // Reference to global default mechanism catalogue.
 
 const mechanism_catalogue& global_default_catalogue();
 const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
 
-// Load a catalogue from a shared object
+// Load catalogue from disk.
+
 const mechanism_catalogue& load_catalogue(const std::filesystem::path&);
 
 } // namespace arb
