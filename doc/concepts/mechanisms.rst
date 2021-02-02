@@ -1,7 +1,7 @@
 .. _mechanisms:
 
-Cell mechanisms
-===============
+Cable cell mechanisms
+=====================
 
 Mechanisms describe biophysical processes such as ion channels and synapses.
 Mechanisms are assigned to regions and locations on a cell morphology
@@ -9,8 +9,15 @@ through the process of :ref:`decoration <cablecell-decoration>`.
 Mechanisms are described using a dialect of the :ref:`NMODL <nmodl>` domain
 specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
 
+Arbor supports mechanism descriptions using the NMODL language through our ``modcc``
+compiler. ``modcc`` supports many of NMODL's features but there are a few
+additional `guidelines <https://github.com/arbor-sim/arbor/wiki/Arbor's-NMODL-guidlines>`_
+for users who wish to compile their own mechanisms for Arbor. Unfortunately, out-of-tree
+mechanism building is not yet supported in Arbor. However, we have many built-in mechanisms
+that can be used, which are oragnized in *mechanism catalogues*.
+
 Mechanism catalogues
-----------------------
+--------------------
 
 A *mechanism catalogue* is a collection of mechanisms that maintains:
 
@@ -19,7 +26,14 @@ A *mechanism catalogue* is a collection of mechanisms that maintains:
    global parameters, ion bindings, and implementations.
 3. A map for looking up a concrete mechanism implementation on a target hardware back end.
 
-Derived mechanisms will always have a different name to the mechanism from which they are derived. This name is given explicitly when the derivation is constructed, or implicitly when a mechanism is :ref:`requested <mechanisms-name-note>` with a name of the form ``"mech/param=value,..."``. In this instance, if a mechanism of that name does not already exist in the catalogue, it will be implicitly derived from an existing mechanism ``"mech"`` with global parameters and ion bindings set according to the assignments following the slash. If the mechanism ``"mech"`` depends upon only a single ion, the name of that ion can be omitted in the assignments: ``"mech/oldion=newion"`` and ``"mech/newion"`` are equivalent derivations.
+Derived mechanisms will always have a different name to the mechanism from which they are derived.
+This name is given explicitly when the derivation is constructed, or implicitly when a mechanism
+is :ref:`requested <mechanisms-name-note>` with a name of the form ``"mech/param=value,..."``.
+In this instance, if a mechanism of that name does not already exist in the catalogue, it will be
+implicitly derived from an existing mechanism ``"mech"`` with global parameters and ion bindings
+set according to the assignments following the slash. If the mechanism ``"mech"`` depends upon
+only a single ion, the name of that ion can be omitted in the assignments:
+``"mech/oldion=newion"`` and ``"mech/newion"`` are equivalent derivations.
 
 
 Catalogues provide an interface for querying mechanism metadata, which includes the following information:
@@ -27,10 +41,18 @@ Catalogues provide an interface for querying mechanism metadata, which includes 
 * Global parameter names, units, and default values.
 * Range parameter names, units, and default values.
 * State variable names, units and default values.
-* Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes to its internal or external concentration or to its reversal potential value, and whether it reads or asserts the ionic charge.
+* Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes
+  to its internal or external concentration or to its reversal potential value, and whether it reads
+  or asserts the ionic charge.
 
-Default mechanisms
-''''''''''''''''''
+Arbor provides a default catalogue of mechanisms as well as two other catalogues containing the sets of common mechanisms
+used by the `Allen Institute <https://alleninstitute.org/>`_ and the `Blue Brain Project <https://portal.bluebrain.epfl.ch/>`_.
+(Find the NMODL decsriptions of the `default mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/default>`_,
+the `Allen institute mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/allen>`_ and
+the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/bbp>`_ at the provided links.)
+
+Default catalogue
+'''''''''''''''''
 
 Arbor provides a default catalogue with the following mechanisms:
 
@@ -103,9 +125,9 @@ computing ionic reversal potentials.
 Density mechanisms
 ''''''''''''''''''''''
 
-Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
-which describe biophysical processes that are distributed in space, but whose behaviour
-is defined purely by the state of the cell and the process at any given point.
+Density mechanisms describe biophysical processes that are distributed in space,
+but whose behaviour is defined purely by the state of the cell and the process
+at any given point.
 
 Density mechanisms are commonly used to describe ion channel dynamics,
 for example the ``hh`` and ``pas`` mechanisms provided by NEURON and Arbor,

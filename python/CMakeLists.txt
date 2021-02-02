@@ -1,18 +1,23 @@
-include(FindPythonModule) # required for find_python_module
-
-# Set up pybind11 as an external project.
-set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
-check_git_submodule(pybind11 "${pb11_src_dir}")
-
-if(NOT pybind11_avail)
-    message(FATAL_ERROR "The git submodule for pybind11 is not available, required for python support")
-endif()
-
-# Set up pybind11, which is used to generate Python bindings.
-# Pybind11 has good cmake support, so just add the pybind11 directory,
-# instead of using find_package.
 set(PYBIND11_CPP_STANDARD -std=c++17)
-add_subdirectory(pybind11)
+
+if(ARB_USE_BUNDLED_PYBIND11)
+  include(FindPythonModule) # required for find_python_module
+
+  # Set up pybind11 as an external project.
+  set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
+  check_git_submodule(pybind11 "${pb11_src_dir}")
+
+  if(NOT pybind11_avail)
+    message(FATAL_ERROR "The git submodule for pybind11 is not available, required for python support")
+  endif()
+
+  # Set up pybind11, which is used to generate Python bindings.
+  # Pybind11 has good cmake support, so just add the pybind11 directory,
+  # instead of using find_package.
+  add_subdirectory(pybind11)
+else()
+  find_package(pybind11 REQUIRED)
+endif()
 
 set(pyarb_source
     cable_probes.cpp
@@ -73,11 +78,25 @@ set_target_properties(pyarb PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${python_mod_pa
 file(COPY "${PROJECT_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
 file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 
-# Determine the installation path, according to the Python version.
-# The installation for Python 3.8 would be:
-#  ${ARB_PYTHON_PREFIX}/python3.8/site-packages
-# By default ARB_PYTHON_PREFIX is set to CMAKE_INSTALL_PREFIX, and can be optionally
-# used to install the Python module as a user module, or in a virtualenv.
-find_package(PythonInterp REQUIRED)
-set(arb_pyexecdir "${ARB_PYTHON_PREFIX}/lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
-install(DIRECTORY ${python_mod_path} DESTINATION ${arb_pyexecdir})
+# Set the installation path
+
+# Ask Python where it keeps its system (platform) packages.
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "")
+else()
+    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
+endif()
+
+execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} -c
+    "import sys,sysconfig;pfx=sys.stdin.read();print(sysconfig.get_path('platlib',vars={} if pfx=='' else {'base':pfx,'platbase':pfx}))"
+    INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
+    OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
+set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
+message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
+
+install(DIRECTORY ${python_mod_path} DESTINATION ${ARB_PYTHON_LIB_PATH})

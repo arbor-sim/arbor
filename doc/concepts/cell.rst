@@ -72,7 +72,7 @@ Cell kind
 
 2. **LIF Cells**
 
-   LIF cells are single-compartment leaky integrate and fire neurons. They are typically used to simulate
+   LIF cells are :term:`single-compartment <control volume>` leaky integrate and fire neurons. They are typically used to simulate
    point-neuron networks.
 
    LIF cells can only interact with other cells via spike exchange over a
@@ -115,13 +115,13 @@ It details everything needed to build a cell. The degree of detail differs accor
      * Discretisation: specifies how to split the morphology into discrete components for the simulation.
      * Initial membrane voltage.
      * Initial axial resistivity.
-     * Intial membrane capacitance.
+     * Initial membrane capacitance.
      * Initial temperature.
      * Initial ion internal and external concentrations.
      * Initial ion reversal potential.
-     * Stimuli: such as current clamps; placed on specific :ref:`locations <labels-locset>` on the cell.
+     * Stimuli: such as current clamps; placed on specific :term:`locations <locset>` on the cell.
      * :ref:`Density mechanisms <mechanisms-density>`: commonly used to describe ion-channel dynamics across
-       :ref:`regions <labels-region>` of the cell.
+       :term:`regions <region>` of the cell.
      * :ref:`Ion reversal potential mechanisms <mechanisms-revpot>`: used to control the reversal potentials of
        ions across regions of the cell.
      * Synapses: implemented using :ref:`point mechanisms <mechanisms-point>` on specific locations of the cell;
@@ -148,7 +148,7 @@ It details everything needed to build a cell. The degree of detail differs accor
       * Firing threshold.
       * Refractory period.
 
-   The morphology of a LIF cell is automatically modeled as a single compartment; each cell has one built-in
+   The morphology of a LIF cell is automatically modelled as a single :term:`compartment <control volume>`; each cell has one built-in
    **source** and one built-in **target** which do not need to be explicitly added in the cell description.
    LIF cells do not support adding additional **sources** or **targets** to the description. They do not support
    **gap junctions**. They do not support adding density or point mechanisms.
@@ -156,7 +156,7 @@ It details everything needed to build a cell. The degree of detail differs accor
 3. **Spiking cells**
 
    The description of a spiking cell controls the spiking schedule of the cell. Its morphology is
-   automatically modeled as a single compartment; each cell has one built-in **source** which does not need to
+   automatically modelled as a single :term:`compartment <control volume>`; each cell has one built-in **source** which does not need to
    be explicitly added in the cell description, and no **targets**. Spiking cells do not support adding additional
    **sources** or **targets**. They do not support **gap junctions**. They do not support adding density or
    point mechanisms.

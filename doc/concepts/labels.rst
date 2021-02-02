@@ -1,11 +1,11 @@
 .. _labels:
 
-Cell labels
-===========
+Cable cell labels
+=================
 
-Arbor provides a domain specific language (DSL) for describing regions and
-locations on morphologies, and a dictionary for associating these descriptions
-with a string label.
+Arbor provides a domain specific language (DSL) for describing :term:`regions <region>` and
+:term:`locations <locset>` on :term:`morphologies <morphology>`, and a :ref:`dictionary <labels-dictionary>` for associating these :ref:`expressions <labels-expressions>`
+with a string :term:`label`.
 
 The labels are used to refer to regions
 and locations when setting cell properties and attributes.
@@ -44,17 +44,16 @@ tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the s
 axon proper with constant radius 0.4 μm.
 
 Label types
-------------
+-----------
 
-.. _labels-locset:
+.. glossary::
+  locset
+    A locset is a set of :term:`locations <mlocation>` on a morphology, specifically a `multiset <https://en.wikipedia.org/wiki/Multiset>`_,
+    which may contain multiple instances of the same location.
 
-Locsets
-~~~~~~~~~~~
+Possible locsets might refer to:
 
-A *locset* is a set of locations on a morphology, specifically a *multiset*,
-which may contain multiple instances of the same location, for example:
-
-* The center of the soma.
+* The centre of the soma.
 * The locations of inhibitory synapses.
 * The tips of the dendritic tree.
 
@@ -68,13 +67,12 @@ which may contain multiple instances of the same location, for example:
   The :ref:`root <morph-segment-definitions>` of the morphology is shown with a red circle
   for reference.
 
+.. glossary::
 
-.. _labels-region:
+  region
+    A region is a subset of a morphology's cable :term:`segments <segment>`.
 
-Regions
-~~~~~~~~~~~~
-
-A *region* is a subset of a morphology's cable segments, for example:
+Some common regions:
 
 * The soma.
 * The dendritic tree.
@@ -103,7 +101,7 @@ the region of cables that have radius less than 0.5 μm
 Expressions
 -----------
 
-Regions and locsets are described using *expressions* written with the DSL.
+:term:`Regions <region>` and :term:`locsets <locset>` are described using *expressions* written with the DSL.
 
 Examples of expressions that define regions include:
 
@@ -157,7 +155,7 @@ describes the region of all parts of a cell with either tag 3 or tag 4 and radiu
 .. _labels-expr-docs:
 
 Expression syntax
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 The DSL uses `s-expressions <https://en.wikipedia.org/wiki/S-expression>`_, which are composed of the following basic types:
 
@@ -201,7 +199,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
 
 
 Locset expressions
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. figure:: ../gen-images/label_branch.svg
   :width: 800
@@ -348,7 +346,7 @@ Locset expressions
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
 
 Region expressions
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. label:: (nil)
 
@@ -366,7 +364,7 @@ Region expressions
 
 .. label:: (tag tag_id:integer)
 
-    All of the segments with :ref:`tag <morph-tag-definition>` ``tag_id``.
+    All of the segments with :term:`tag` ``tag_id``.
 
     .. figure:: ../gen-images/tag_label.svg
       :width: 900
@@ -384,6 +382,17 @@ Region expressions
       :align: center
 
       Branches 0 and 3, selected using ``(branch 0)`` and ``(branch 3)`` respectively.
+
+.. label:: (segment segment_id:integer)
+
+    Refer to a segment by its id. Note that segment ids depend on the construction
+    order of the morphology. Arbor's morphology loaders are stable in this regard.
+
+    .. figure:: ../gen-images/segment_label.svg
+      :width: 600
+      :align: center
+
+      Segments 0 and 3, selected using ``(segment 0)`` and ``(segment 3)`` respectively.
 
 .. _labels-cable-def:
 
@@ -559,24 +568,26 @@ Region expressions
 
       Two regions (left and middle) and their intersection (right).
 
-.. _labels-concretise:
+.. _labels-thingify:
 
-Concretisation
-----------------
+Thingification
+--------------
 
-When a region or locset expression is applied to a cell morphology it is
-*concretised*. Concretising a locset will return a set of *locations* on the
-morphology, and concretising a region will return a list of unbranched *cables*
-on the morphology.
+When a region or locset expression is applied to a cell morphology, it is represented
+as a list of unbranched :term:`cables <cable>` or a set of :term:`locations <mlocation>` on the morphology.
+This process is called ``thingify`` in arbor, because it turns the abstract description
+of a :term:`region` or a :term:`locset` into an actual 'thing' when it is applied to a real morphology.
 
 .. note::
     Applying an expression to different morphologies may give different
-    concretised results.
+    thingified results.
+
+.. _labels-locations:
 
 Locations
 ~~~~~~~~~
 
-A *location* on a cell is described using a tuple ``(branch, pos)``, where
+A :term:`location <mlocation>` on a cell is described using a tuple ``(branch, pos)``, where
 ``branch`` is a branch id, and ``0 ≤ pos ≤ 1`` is the relative distance along
 the branch, given that 0 and 1 are the proximal and distal ends of the branch
 respectively.
@@ -588,10 +599,12 @@ Examples of locations, :ref:`expressed using the DSL <labels-location-def>`, inc
 * The end of branch 5 ``(location 5 1)``.
 * One quarter of the way along branch 5 ``(location 5 0.25)``.
 
-Cables
-~~~~~~~~~
+.. _labels-cables:
 
-An unbranched *cable* is a tuple of the form ``(branch, prox, dist)``,
+Cables
+~~~~~~
+
+An unbranched :term:`cable` is a tuple of the form ``(branch, prox, dist)``,
 where ``branch`` is the branch id, and ``0 ≤ prox ≤ dist ≤ 1`` define the relative position
 of the end points of the section on the branch.
 
@@ -613,17 +626,38 @@ Examples of cables, :ref:`expressed using the DSL <labels-cable-def>`, include:
 Label Dictionaries
 ------------------
 
-*Labels* can be assigned to expressions, and used to refer to the expression or the
-concrete region or locset generated when the expression is applied to a morphology.
+.. glossary::
+  label
+    A label is a string assigned to an :ref:`expression <labels-expressions>`, and used to refer to the expression or the
+    concrete :term:`region` or :term:`locset` generated when the expression is applied to a morphology.
+
 Although any string is a valid label, it is a good idea to avoid labels that would
 also be valid expressions in the region DSL; creating a label ``"(tag 1)"`` will only
 lead to confusion.
 
-Labels are stored with their associated expressions as key-value pairs in *label dictionaries*.
+.. glossary::
+  label dictionary
+    An Arbor structure in which labels are stored with their associated expressions as key-value pairs.
+
+Label dictionaries are used to create a cable-cell along with the :ref:`morphology <morph>`
+and a :ref:`decor <cablecell-decoration>`. The decorations can be painted or placed on
+the regions or locsets defined in the label dictionary by referring to their labels.
+
+.. code-block:: python
+   :caption: Example of a lable dictionary in python:
+
+    arbor.label_dict({
+      'soma': '(tag 1)',  # soma is every cable with tag 1 in the morphology.
+      'axon': '(tag 2)',  # axon is every cable with tag 2 in the morphology.
+      'dend': '(tag 3)',  # dend is every cable with tab 3 in the morphology
+      'root': '(root)',   # typically the start of the soma is at the root of the cell.
+      'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
+      'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
+    })
 
 
 API
 ---
 
-* :ref:`Python <py_labels>`
+* :ref:`Python <pylabels>`
 * *TODO*: C++ documentation.

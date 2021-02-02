@@ -77,7 +77,7 @@ void register_morphology(py::module& m) {
         .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
         .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
         .def_readonly("radius", &arb::mpoint::radius,
-            "Radius of cable at sample location centered at coordinates [μm].")
+            "Radius of cable at sample location centred at coordinates [μm].")
         .def(py::self==py::self)
         .def("__str__",
             [](const arb::mpoint& p) {
@@ -234,7 +234,7 @@ void register_morphology(py::module& m) {
 
     // Function that creates a morphology from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
-    m.def("load_swc",
+    m.def("load_swc_arbor",
         [](std::string fname) {
             std::ifstream fid{fname};
             if (!fid.good()) {
@@ -281,8 +281,8 @@ void register_morphology(py::module& m) {
         "filename"_a, "no_gaps"_a=false,
         "Generate a morphology from an SWC file following the rules prescribed by AllenDB\n"
         " and Sonata. Specifically:\n"
-        "* The first sample (the root) is treated as the center of the soma.\n"
-        "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
+        "* The first sample (the root) is treated as the centre of the soma.\n"
+        "* The first morphology is translated such that the soma is centred at (0,0,0).\n"
         "* The first sample has tag 1 (soma).\n"
         "* All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)\n"
         "SONATA prescribes that there should be no gaps, however the models in AllenDB\n"
@@ -290,7 +290,7 @@ void register_morphology(py::module& m) {
         "used to enforce this requirement.\n"
         "\n"
         "Arbor does not support modelling the soma as a sphere, so a cylinder with length\n"
-        "equal to the soma diameter is used. The cylinder is centered on the origin, and\n"
+        "equal to the soma diameter is used. The cylinder is centred on the origin, and\n"
         "aligned along the z axis.\n"
         "Axons and apical dendrites are attached to the proximal end of the cylinder, and\n"
         "dendrites to the distal end, with a gap between the start of each branch and the\n"

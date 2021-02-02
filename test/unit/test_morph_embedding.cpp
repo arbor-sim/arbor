@@ -216,3 +216,31 @@ TEST(embedding, partial_area) {
     double expected_ixa = 3/(9.5*8)/pi;
     EXPECT_TRUE(near_relative(expected_ixa, em.integrate_ixa(mcable{1, 0.1, 0.4}), reltol));
 }
+
+TEST(embedding, area_0_length_segment) {
+    using testing::near_relative;
+    constexpr double pi = math::pi<double>;
+    constexpr double reltol = 1e-10;
+
+    segment_tree t1, t2;
+
+    t1.append(mnpos, { 0, 0, 0, 10}, {10, 0, 0, 10}, 0);
+    t1.append(0,     {10, 0, 0, 20}, {30, 0, 0, 20}, 0);
+
+    t2.append(mnpos, { 0, 0, 0, 10}, {10, 0, 0, 10}, 0);
+    t2.append(0,     {10, 0, 0, 10}, {10, 0, 0, 20}, 0);
+    t2.append(1,     {10, 0, 0, 20}, {30, 0, 0, 20}, 0);
+
+    embedding em1{morphology(t1)}, em2{morphology(t2)};
+
+    double a1 = em1.integrate_area(mcable{0, 0, 1});
+    double expected_a1 = 2*pi*(10*10+20*20);
+    EXPECT_TRUE(near_relative(a1, expected_a1, reltol));
+
+    // The second morphology includes the anulus joining the
+    // first and last segment.
+
+    double a2 = em2.integrate_area(mcable{0, 0, 1});
+    double expected_a2 = expected_a1 + pi*(20*20-10*10);
+    EXPECT_TRUE(near_relative(a2, expected_a2, reltol));
+}

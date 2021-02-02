@@ -3,8 +3,8 @@
 Cable cells
 ===========
 
-An Arbor *cable cell* is a full description of a cell with morphology and cell
-dynamics like ion species and their properties, ion
+An Arbor *cable cell* is a full :ref:`description <modelcelldesc>` of a cell
+with morphology and cell dynamics like ion species and their properties, ion
 channels, synapses, gap junction sites, stimuli and spike detectors.
 
 Cable cells are constructed from three components:
@@ -41,11 +41,11 @@ Once constructed, the cable cell can be queried for specific information about t
 .. _cablecell-decoration:
 
 Decoration
-----------------
+----------
 
 The distribution and placement of dynamics on a cable cell is called the *decor* of a cell.
 A decor is composed of individual *decorations*, which associate a property or dynamic process
-with a :ref:`region <labels-region>` or :ref:`locset <labels-locset>`.
+with a :term:`region` or :term:`locset`.
 The choice of region or locset is reflected in the two broad classes of dynamics on cable cells:
 
 * *Painted dynamics* are applied to regions of a cell, and are associated with
@@ -114,8 +114,8 @@ will override any cell-local or global definition on that region.
 
 .. _cablecell-properties:
 
-Cable properties
-~~~~~~~~~~~~~~~~
+1. Cable properties
+~~~~~~~~~~~~~~~~~~~
 
 There are four cable properties that must be defined everywhere on a cell:
 
@@ -149,8 +149,8 @@ specialised on specific regions.
 
 .. _cablecell-density-mechs:
 
-Density mechanisms
-~~~~~~~~~~~~~~~~~~~~~~
+3. Density mechanisms
+~~~~~~~~~~~~~~~~~~~~~
 
 Regions can have density mechanisms defined over their extents.
 Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
@@ -203,8 +203,8 @@ Take for example a mechanism passive leaky dynamics:
 
 .. _cablecell-ions:
 
-Ion species
-~~~~~~~~~~~
+4. Ion species
+~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
 calcium, potassium and sodium ion species.
@@ -303,48 +303,65 @@ and are assigned to specific locations.
 
 .. _cablecell-synapses:
 
-Connection sites
-~~~~~~~~~~~~~~~~
+1. Connection sites
+~~~~~~~~~~~~~~~~~~~
 
 Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
 
 .. _cablecell-gj-sites:
 
-Gap junction sites
-~~~~~~~~~~~~~~~~~~
+2. Gap junction sites
+~~~~~~~~~~~~~~~~~~~~~
 
 See :ref:`modelgapjunctions`.
 
 .. _cablecell-threshold-detectors:
 
-Threshold detectors (spike detectors).
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3. Threshold detectors (spike detectors).
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _cablecell-stimuli:
 
-Stimuli
-~~~~~~~~
+4. Stimuli
+~~~~~~~~~~
 
 .. _cablecell-probes:
 
-Probes
-~~~~~~
+5. Probes
+~~~~~~~~~
 
 .. _cablecell-cv-policies:
 
 Discretisation and CV policies
 ------------------------------
 
-For the purpose of simulation, cable cells are decomposed into discrete
-subcomponents called *control volumes* (CVs). The CVs are
-uniquely determined by a set of *B* ``mlocation`` boundary points.
-For each non-terminal point *h* in *B*, there is a CV comprising the points
-{*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*}, where < and ≤ refer to the
-geometrical partial order of locations on the morphology. A fork point is
-owned by a CV if and only if all of its corresponding representative locations
-are in the CV.
+.. glossary::
 
-The set of boundary points used by the simulator is determined by a *CV policy*.
+  control volume
+  compartment
+    For the purpose of simulation, Arbor discretises cable cell :term:`morphologies <morphology>`
+    into control volumes, or CVs. Discretising happens through a :term:`CV policy`.
+    The CVs are uniquely determined by a set of *B* :term:`mlocation` boundary points. For each non-terminal
+    point *h* in *B*, there is a CV comprising the points {*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*},
+    where < and ≤ refer to the geometrical partial order of locations on the morphology. A fork
+    point is owned by a CV if and only if all of its corresponding representative locations are
+    in the CV.
+
+    'Compartment' is often used to refer to the substructure in cable cells; the 'compartment' in multi-compartment cells.
+    A compartment is equivalent to a control volume. We avoid using 'compartment' to avoid potential confusion
+    with :term:`segments <segment>` or :term:`branches <branch>`.
+
+.. Note::
+    In NEURON, discretisation is controlled through splitting a NEURON section into a
+    number of NEURON segments or NEURON compartments (`nseg`, `1` by default). Note that a NEURON segment/compartment is
+    not the same as an Arbor :term:`segment`!
+
+.. glossary::
+
+  CV policy
+    Generating the set of boundary points used by the simulator (discretisation) is controlled by a
+    :term:`CV <control volume>` policy. The default policy used to generate the set of boundary points is
+    ``cv_policy_fixed_per_branch(1)``.
 
 Specific CV policies are created by functions that take a ``region`` parameter
 that restrict the domain of applicability of that policy; this facility is useful
@@ -382,7 +399,6 @@ By default, CVs will terminate at branch ends. An optional flag
 ``cv_policy_flag::interior_forks`` can be passed to specify that fork points
 will be included in non-trivial, branched CVs and CVs covering terminal points
 in the morphology will be half-sized.
-
 
 ``cv_policy_max_extent``
 ''''''''''''''''''''''''

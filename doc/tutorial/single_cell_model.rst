@@ -1,23 +1,28 @@
-.. _gs_single_cell:
+.. _tutorialsinglecell:
 
-A single cell model
-================================
+A simple single cell model
+==========================
 
 Building and testing detailed models of individual cells, then optimizing their
 parameters is usually the first step in building models with multi-compartment cells.
 Arbor supports a *single cell model* workflow for this purpose, which is a good way to
 introduce Arbor's cell modelling concepts and approach.
 
-This guide will walk through a series of single cell models of increasing complexity.
-Links are provided to separate documentation that covers relevant topics in more detail.
+.. Note::
 
-In an interactive Python interpreter, you can use ``help()`` on any class or function to
-obtain some documentation. (Try, for example, ``help(arbor.simulation``).
+   **Concepts covered in this example:**
 
-.. _single_soma:
+   1. Intro to building a morphology from a :class:`arbor.segment_tree`.
+   2. Intro to region and locset expressions.
+   3. Intro to decors and cell decorations.
+   4. Building a :class:`arbor.cable_cell` object.
+   5. Building a :class:`arbor.single_cell_model` object.
+   6. Running a simulation and visualising the results.
 
-Single segment cell with HH dynamics
-----------------------------------------------------
+.. _tutorialsinglecell-cell:
+
+The cell
+--------
 
 The most trivial representation of a cell in Arbor is to model the entire cell as a
 single cylinder. The following example shows the steps required to construct a model of a
@@ -39,16 +44,16 @@ Our *single-segment HH cell* has a simple morphology and dynamics, constructed a
     tree = arbor.segment_tree()
     tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
-    # (2) Define the soma and its center
+    # (2) Define the soma and its midpoint
     labels = arbor.label_dict({'soma':   '(tag 1)',
-                               'center': '(location 0 0.5)'})
+                               'midpoint': '(location 0 0.5)'})
 
     # (3) Create cell and set properties
     decor = arbor.decor()
     decor.set_property(Vm=-40)
     decor.paint('"soma"', 'hh')
-    decor.place('"center"', arbor.iclamp( 10, 2, 0.8))
-    decor.place('"center"', arbor.spike_detector(-10))
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
+    decor.place('"midpoint"', arbor.spike_detector(-10))
 
     # (4) Create cell
     cell = arbor.cable_cell(tree, labels, decor)
@@ -63,16 +68,16 @@ the proximal :class:`arbor.mpoint` (location and radius) of the segment; the dis
 of the segment; and the tag.
 
 Step **(2)** creates a dictionary of labels (:class:`arbor.label_dict<arbor.label_dict>`). Labels give
-names to :ref:`regions<labels-region>` and :ref:`location<labels-locset>` described using a DSL
+names to :term:`regions<region>` and :term:`location<locset>` described using a DSL
 based on s-expressions. Labels from the dictionary can then be used to facilitate adding synapses,
-dynamics, stimulii and probes to the cell. We add two labels:
+dynamics, stimuli and probes to the cell. We add two labels:
 
 * ``soma`` defines a *region* with ``(tag  1)``. Note that this corresponds to the
   ``tag`` parameter that was used to define the single segment in step (1).
-* ``center`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
-  of branch ``0``, which corresponds to the center of the soma on the morphology defined in step (1).
+* ``midpoint`` defines a *location* at ``(location 0 0.5)``, which is the mid point ``0.5``
+  of branch ``0``, which corresponds to the midpoint of the soma on the morphology defined in step (1).
 
-Step **(3)** constructs a :class:`arbor.decor` that describes the distributation and placement
+Step **(3)** constructs a :class:`arbor.decor` that describes the distribution and placement
 of dynamics and properties on a cell.  The cell's default properties can be modified, and we can use
 :meth:`arbor.decor.paint` and :meth:`arbor.decor.place` to further customise it in the
 following way:
@@ -86,22 +91,20 @@ following way:
   HH dynamics on the region we previously named ``"soma"`` in our label dictionary.
 * :meth:`arbor.decor.place` is used to add objects on a precise
   :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,
-  spike detectors, current stimulii, and probes. In the above example we place a current stimulus
+  spike detectors, current stimuli, and probes. In the above example we place a current stimulus
   :class:`arbor.iclamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
-  on the location we previously labelled ``"center"``. We also place a :class:`arbor.spike_detector`
+  on the location we previously labelled ``"midpoint"``. We also place a :class:`arbor.spike_detector`
   with a threshold of -10 mV on the same location.
 
-Step **(4)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labeled
-regions and locations.
+Step **(4)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labelled regions and locations.
 
-Single cell model
-----------------------------------------------------
+The single cell model
+---------------------
 
 Once the cell description has been built, the next step is to build and run the simulation.
 Arbor provides an interface for constructing single cell models with the
-:class:`arbor.single_cell_model<arbor.single_cell_model>`
-helper that creates a model from a cell description, with an interface for
-recording outputs and running the simulation.
+:class:`arbor.single_cell_model` helper that creates a model from a cell description, with
+an interface for recording outputs and running the simulation.
 
 .. code-block:: python
 
@@ -109,23 +112,23 @@ recording outputs and running the simulation.
     m = arbor.single_cell_model(cell)
 
     # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-    m.probe('voltage', '"center"', frequency=10000)
+    m.probe('voltage', '"midpoint"', frequency=10000)
 
     # (7) Run simulation for 30 ms of simulated activity.
     m.run(tfinal=30)
 
-Step **(5)** instantiates the :class:`arbor.single_cell_model<arbor.single_cell_model>`
+Step **(5)** instantiates the :class:`arbor.single_cell_model`
 with our single-compartment cell.
 
-Step **(6)** adds a :meth:`arbor.single_cell_model.probe()<arbor.single_cell_model.probe>`
+Step **(6)** adds a :meth:`arbor.single_cell_model.probe`
 used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
-probe ('"center"'), and the frequency at which we want to sample (10kHz).
+probe ('"midpoint"'), and the frequency at which we want to sample (10kHz).
 
 Step **(7)** runs the actual simulation for a duration of 30 ms.
 
-Results
-----------------------------------------------------
+The results
+-----------
 
 Our cell and model have been defined and we have run our simulation. Now we can look at what
 the spike detector and a voltage probes from our model have produced.
@@ -146,12 +149,12 @@ the spike detector and a voltage probes from our model have produced.
     df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
     seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",ci=None).savefig('single_cell_model_result.svg')
 
-Step **(8)** accesses :meth:`arbor.single_cell_model.spikes<arbor.single_cell_model.spikes>`
+Step **(8)** accesses :meth:`arbor.single_cell_model.spikes`
 to print the spike times. A single spike should be generated at around the same time the stimulus
 we provided in step (3) gets activated (10ms).
 
 Step **(9)** plots the measured potentials during the runtime of the simulation. The sampled quantities
-can be accessed through :meth:`arbor.single_cell_model.traces<arbor.single_cell_model.traces>`.
+can be accessed through :meth:`arbor.single_cell_model.traces`.
 We should be seeing something like this:
 
 .. figure:: single_cell_model_result.svg
@@ -160,13 +163,7 @@ We should be seeing something like this:
 
     Plot of the potential over time for the voltage probe added in step (6).
 
+The full code
+-------------
+
 You can find the source code for this example in full at ``python/examples/single_cell_model.py``.
-
-.. Todo::
-    An example with a more complex cell geometry (loaded from NeuroML/SWC?).
-    This would show how to define and use morphology regions and locsets.
-    Introduce CV discretization control.
-    Probe and sample state variables in hh mechanism along with voltage.
-
-.. Todo::
-    Add a small ring network implemented via a recipe. This introduces connections, gids, and reveals the recipe plumbing that is hidden inside the single_cell_model.
