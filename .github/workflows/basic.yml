@@ -64,7 +64,7 @@ jobs:
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.19.2",
             mpi:   "ON"
           }
     env:
