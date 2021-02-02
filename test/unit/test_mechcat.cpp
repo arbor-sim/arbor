@@ -287,16 +287,9 @@ TEST(mechcat, names) {
 }
 
 TEST(mechcat, loading) {
-    EXPECT_THROW(load_catalogue("does/not/exist-catalogue.so"), dynamic_catalogue_error);
-    try {
-        auto cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
-        EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
-    }
-    catch (arb::dynamic_catalogue_error& e) {
-        std::cerr << e.what() << '\n';
-        e.print_platform_error(std::cerr);
-        throw;
-    }
+    EXPECT_THROW(load_catalogue("does/not/exist-catalogue.so"), file_not_found_error);
+    auto cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
+    EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
 }
 
 TEST(mechcat, derived_info) {

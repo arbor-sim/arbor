@@ -10,11 +10,18 @@ namespace arb {
 
 using arb::util::pprintf;
 
+bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
+    arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
+    gid(gid),
+    kind(kind)
+{}
+
 bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, kind, gid)),
     gid(gid),
     kind(kind)
 {}
+
 bad_target_description::bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
     arbor_exception(pprintf("Model building error on cell {}: recipe::num_targets(gid={}) = {} is greater than the number of synapses on the cell = {}", gid, gid, rec_val, cell_val)),
     gid(gid), rec_val(rec_val), cell_val(cell_val)
