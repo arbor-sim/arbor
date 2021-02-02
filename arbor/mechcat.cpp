@@ -8,10 +8,8 @@
 #include <arbor/mechcat.hpp>
 #include <arbor/util/expected.hpp>
 
-#include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
-
-#include <dlfcn.h>
+#include "util/maputil.hpp"
 
 /* Notes on implementation:
  *
@@ -65,8 +63,8 @@ namespace arb {
 using util::ptr_by_key;
 using util::unexpected;
 
-using std::make_exception_ptr;
 using std::make_unique;
+using std::make_exception_ptr;
 
 using mechanism_info_ptr = std::unique_ptr<mechanism_info>;
 
@@ -102,6 +100,7 @@ struct derivation {
     mechanism_info_ptr derived_info;
 };
 
+
 // (Pimpl) catalogue state.
 
 struct catalogue_state {
@@ -114,7 +113,7 @@ struct catalogue_state {
     void import(const catalogue_state& other, const std::string& prefix) {
         // Do all checks before adding anything, otherwise we might get inconsistent state.
         auto assert_undefined = [&](const std::string& key) {
-            auto pkey = prefix + key;
+            auto pkey = prefix+key;
             if (defined(pkey)) {
                 throw duplicate_mechanism(pkey);
             }
@@ -172,7 +171,7 @@ struct catalogue_state {
     // Register concrete mechanism for a back-end type.
     hopefully<void> register_impl(std::type_index tidx, const std::string& name, std::unique_ptr<mechanism> mech) {
         if (auto fptr = fingerprint_ptr(name)) {
-            if (mech->fingerprint() != *fptr.value()) {
+            if (mech->fingerprint()!=*fptr.value()) {
                 return unexpected_exception_ptr(fingerprint_mismatch(name));
             }
 
@@ -194,7 +193,7 @@ struct catalogue_state {
         std::size_t n_delete;
         do {
             n_delete = 0;
-            for (auto it = derived_map_.begin(); it != derived_map_.end();) {
+            for (auto it = derived_map_.begin(); it!=derived_map_.end(); ) {
                 const auto& parent = it->second.parent;
                 if (info_map_.count(parent) || derived_map_.count(parent)) {
                     ++it;
@@ -205,7 +204,7 @@ struct catalogue_state {
                     ++n_delete;
                 }
             }
-        } while (n_delete > 0);
+        } while (n_delete>0);
     }
 
     // Retrieve mechanism info for mechanism, derived mechanism, or implicitly
@@ -253,10 +252,10 @@ struct catalogue_state {
 
     // Construct derived mechanism based on existing parent mechanism and overrides.
     hopefully<derivation> derive(
-        const std::string& name,
-        const std::string& parent,
+        const std::string& name, const std::string& parent,
         const std::vector<std::pair<std::string, double>>& global_params,
-        const std::vector<std::pair<std::string, std::string>>& ion_remap_vec) const {
+        const std::vector<std::pair<std::string, std::string>>& ion_remap_vec) const
+    {
         if (defined(name)) {
             return unexpected_exception_ptr(duplicate_mechanism(name));
         }
@@ -313,7 +312,7 @@ struct catalogue_state {
                 if (!new_ions.insert(kv).second) {
                     // (find offending remap to report in exception)
                     for (const auto& entry: ion_remap_map) {
-                        if (entry.second == kv.first) {
+                        if (entry.second==kv.first) {
                             return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, entry.second));
                         }
                     }
@@ -334,7 +333,7 @@ struct catalogue_state {
         }
 
         auto i = name.find_last_of('/');
-        if (i == std::string::npos) {
+        if (i==std::string::npos) {
             return unexpected_exception_ptr(no_such_mechanism(name));
         }
 
@@ -343,10 +342,10 @@ struct catalogue_state {
             return unexpected_exception_ptr(no_such_mechanism(base));
         }
 
-        std::string suffix = name.substr(i + 1);
+        std::string suffix = name.substr(i+1);
 
-        const mechanism_info_ptr& info = derived_map_.count(base) ? derived_map_.at(base).derived_info : info_map_.at(base);
-        bool single_ion = info->ions.size() == 1u;
+        const mechanism_info_ptr& info = derived_map_.count(base)? derived_map_.at(base).derived_info: info_map_.at(base);
+        bool single_ion = info->ions.size()==1u;
         auto is_ion = [&info](const std::string& name) -> bool { return info->ions.count(name); };
 
         std::vector<std::pair<std::string, double>> global_params;
@@ -356,18 +355,18 @@ struct catalogue_state {
             std::string assign;
 
             auto comma = suffix.find(',');
-            if (comma == std::string::npos) {
+            if (comma==std::string::npos) {
                 assign = suffix;
                 suffix.clear();
             }
             else {
                 assign = suffix.substr(0, comma);
-                suffix = suffix.substr(comma + 1);
+                suffix = suffix.substr(comma+1);
             }
 
             std::string k, v;
             auto eq = assign.find('=');
-            if (eq == std::string::npos) {
+            if (eq==std::string::npos) {
                 if (!single_ion) {
                     return unexpected_exception_ptr(invalid_ion_remap(assign));
                 }
@@ -377,7 +376,7 @@ struct catalogue_state {
             }
             else {
                 k = assign.substr(0, eq);
-                v = assign.substr(eq + 1);
+                v = assign.substr(eq+1);
             }
 
             if (is_ion(k)) {
@@ -473,7 +472,7 @@ struct catalogue_state {
             }
         }
 
-        apply_globals(apply_globals, implicit_deriv ? implicit_deriv->parent : name, over);
+        apply_globals(apply_globals, implicit_deriv? implicit_deriv->parent: name, over);
         if (implicit_deriv) {
             apply_deriv(over, implicit_deriv.value());
         }
@@ -502,7 +501,8 @@ struct catalogue_state {
 // Mechanism catalogue method implementations.
 
 mechanism_catalogue::mechanism_catalogue():
-    state_(new catalogue_state) {}
+    state_(new catalogue_state)
+{}
 
 std::vector<std::string> mechanism_catalogue::mechanism_names() const {
     return state_->mechanism_names();
@@ -512,7 +512,8 @@ mechanism_catalogue::mechanism_catalogue(mechanism_catalogue&& other) = default;
 mechanism_catalogue& mechanism_catalogue::operator=(mechanism_catalogue&& other) = default;
 
 mechanism_catalogue::mechanism_catalogue(const mechanism_catalogue& other):
-    state_(new catalogue_state(*other.state_)) {}
+    state_(new catalogue_state(*other.state_))
+{}
 
 mechanism_catalogue& mechanism_catalogue::operator=(const mechanism_catalogue& other) {
     state_.reset(new catalogue_state(*other.state_));
@@ -542,7 +543,10 @@ const mechanism_fingerprint& mechanism_catalogue::fingerprint(const std::string&
     return *value(state_->fingerprint_ptr(name));
 }
 
-void mechanism_catalogue::derive(const std::string& name, const std::string& parent, const std::vector<std::pair<std::string, double>>& global_params, const std::vector<std::pair<std::string, std::string>>& ion_remap_vec) {
+void mechanism_catalogue::derive(const std::string& name, const std::string& parent,
+    const std::vector<std::pair<std::string, double>>& global_params,
+    const std::vector<std::pair<std::string, std::string>>& ion_remap_vec)
+{
     state_->bind(name, value(state_->derive(name, parent, global_params, ion_remap_vec)));
 }
 
