@@ -120,6 +120,7 @@ jobs:
           python --version
           mpic++ --show
           mpicc --show
+          $PYTHONPATH
       - name: Build arbor
         run: |
           mkdir build
