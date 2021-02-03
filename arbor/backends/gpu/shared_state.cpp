@@ -100,7 +100,7 @@ shared_state::shared_state(
     const std::vector<fvm_value_type>& diam,
     const std::vector<fvm_index_type>& src_to_spike,
     unsigned // alignment parameter ignored.
-):
+    ):
     n_intdom(n_intdom),
     n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
