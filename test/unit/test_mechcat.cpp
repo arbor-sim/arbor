@@ -288,7 +288,7 @@ TEST(mechcat, names) {
 
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue("does/not/exist-catalogue.so"), file_not_found_error);
-    auto cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
+    mechanism_catalogue cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
     EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
 }
 

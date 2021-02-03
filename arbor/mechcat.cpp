@@ -3,6 +3,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cassert>
+
+#include <dlfcn.h>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
