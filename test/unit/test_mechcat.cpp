@@ -8,6 +8,11 @@
 
 #include "common.hpp"
 
+#ifndef LIBDIR
+#warning "LIBDIR not set; defaulting to '.'"
+#define LIBDIR "."
+#endif
+
 using namespace std::string_literals;
 using namespace arb;
 
