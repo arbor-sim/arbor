@@ -43,7 +43,7 @@ public:
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
-        deliver_events(event_stream_ptr_->marked_events());
+        nrn_deliver_events(event_stream_ptr_->marked_events());
     }
     void update_current() override {
         vec_t_ = vec_t_ptr_->data();

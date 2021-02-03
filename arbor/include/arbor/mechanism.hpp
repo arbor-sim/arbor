@@ -150,11 +150,10 @@ protected:
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
 
-    virtual void nrn_state(){};
-    virtual void nrn_current(){};
-    // This should be here, but name clashes with another virtual function `void deliver_events()`
-    // virtual void deliver_events(typename deliverable_event_stream::state){};
-    virtual void write_ions(){};
+    virtual void nrn_state() {};
+    virtual void nrn_current() {};
+    virtual void nrn_deliver_events(typename deliverable_event_stream::state) {};
+    virtual void write_ions() {};
     virtual void nrn_init() = 0;
     // Report raw size in bytes of mechanism object.
     virtual std::size_t object_sizeof() const = 0;
