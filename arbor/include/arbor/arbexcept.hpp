@@ -171,10 +171,6 @@ struct range_check_failure: arbor_exception {
     double value;
 };
 
-struct dynamic_catalogue_error: arbor_exception {
-    dynamic_catalogue_error(const std::string& fn);
-};
-
 struct file_not_found_error: arbor_exception {
     file_not_found_error(const std::string& fn);
     std::string filename;
