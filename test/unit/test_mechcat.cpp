@@ -287,9 +287,12 @@ TEST(mechcat, names) {
 }
 
 TEST(mechcat, loading) {
-    EXPECT_THROW(load_catalogue("does/not/exist-catalogue.so"), file_not_found_error);
-    mechanism_catalogue cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
-    EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
+    EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
+    EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.a"), bad_catalogue_error);
+    const mechanism_catalogue* cat = nullptr;
+    EXPECT_NO_THROW(cat = &load_catalogue(LIBDIR "/dummy-catalogue.so"));
+    ASSERT_NE(cat, nullptr);
+    EXPECT_EQ(std::vector<std::string>{"dummy"}, cat->mechanism_names());
 }
 
 TEST(mechcat, derived_info) {
