@@ -95,9 +95,6 @@ protected:
     array data_;
 
     virtual unsigned simd_width() const { return 1; }
-
-    // This should be moved up to the base classes
-    virtual void deliver_events(typename deliverable_event_stream::state){};
 };
 
 } // namespace multicore

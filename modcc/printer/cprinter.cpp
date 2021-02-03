@@ -254,7 +254,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                          "void nrn_current() override;\n"
                          "void write_ions() override;\n";
 
-    net_receive&& out << "void deliver_events(deliverable_event_stream::state events) override;\n"
+    net_receive&& out << "void nrn_deliver_events(deliverable_event_stream::state events) override;\n"
                          "void net_receive(int i_, value_type weight);\n";
 
     with_simd&& out << "unsigned simd_width() const override { return simd_width_; }\n";
@@ -372,7 +372,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     if (net_receive) {
         const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
-        out << "void " << class_name << "::deliver_events(deliverable_event_stream::state events) {\n"
+        out << "void " << class_name << "::nrn_deliver_events(deliverable_event_stream::state events) {\n"
             << indent << "auto ncell = events.n_streams();\n"
                          "for (size_type c = 0; c<ncell; ++c) {\n"
             << indent << "auto begin = events.begin_marked(c);\n"
