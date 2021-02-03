@@ -15,7 +15,7 @@ jobs:
         os:    ["ubuntu-20.04"]
         cxx:   ["g++"]
         cc:    ["gcc"]
-        ver:   ["9"]
+        ver:   ["8"]
         py:    ["3.6"]
         cmake: ["3.12.x"]
         mpi:   ["ON"]
