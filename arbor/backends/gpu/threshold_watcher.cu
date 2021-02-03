@@ -41,7 +41,7 @@ void test_thresholds_impl(
     const fvm_index_type* __restrict__ const cv_index,
     const fvm_value_type* __restrict__ const values,
     const fvm_value_type* __restrict__ const thresholds,
-    const bool record_time_since_spike)
+    bool record_time_since_spike)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -69,7 +69,7 @@ void test_thresholds_impl(
                 auto pos = (thresh - v_prev)/(v - v_prev);
                 crossing_time = lerp(t_before[intdom], t_after[intdom], pos);
 
-                if(record_time_since_spike) {
+                if (record_time_since_spike) {
                     time_since_spike[spike_idx] = t_after[intdom] - crossing_time;
                 }
 
@@ -111,7 +111,7 @@ void test_thresholds_impl(
     const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
-    const bool record_time_since_spike)
+    bool record_time_since_spike)
 {
     if (size>0) {
         constexpr int block_dim = 128;

@@ -107,7 +107,10 @@ private:
     std::vector<mechanism_ptr> revpot_mechanisms_;
 
     // Non-physical voltage check threshold, 0 => no check.
-    value_type check_voltage_mV = 0;
+    value_type check_voltage_mV_ = 0;
+
+    // Flag indicating that at least one of the mechanisms implements the post_events procedure
+    bool post_events_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -294,8 +297,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         PE(advance_integrate_post)
-        for (auto& m: mechanisms_) {
-            m->post_event();
+        if (post_events_) {
+            for (auto& m: mechanisms_) {
+                m->post_event();
+            }
         }
         PL();
 
@@ -303,9 +308,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Check for non-physical solutions:
 
-        if (check_voltage_mV>0) {
+        if (check_voltage_mV_>0) {
             PE(advance_integrate_physicalcheck);
-            assert_voltage_bounded(check_voltage_mV);
+            assert_voltage_bounded(check_voltage_mV_);
             PL();
         }
 
@@ -429,7 +434,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Check for physically reasonable membrane volages?
 
-    check_voltage_mV = global_props.membrane_voltage_limit_mV;
+    check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
 
     auto nintdom = fvm_intdom(rec, gids, cell_to_intdom);
 
@@ -455,11 +460,11 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
-
-    auto max_detector = mech_data.post_events ? util::max_value(nsources) : 0;
+    post_events_ = mech_data.post_events;
+    auto max_detector = post_events_ ? util::max_value(nsources) : 0;
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
 
-    if (mech_data.post_events) {
+    if (post_events_) {
         for (auto cell_idx: make_span(ncell)) {
             for (auto lid: make_span(nsources[cell_idx])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);

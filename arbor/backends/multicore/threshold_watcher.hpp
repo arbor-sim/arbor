@@ -67,10 +67,6 @@ public:
     /// is crossed since the last call to test
     void test(array* time_since_spike) {
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
-        if (!time_since_spike->empty()) {
-            std::fill(time_since_spike->begin(), time_since_spike->end(), -1.0);
-        }
-
         const fvm_value_type* t_before = t_before_ptr_->data();
         const fvm_value_type* t_after  = t_after_ptr_->data();
         for (fvm_size_type i = 0; i<n_cv_; ++i) {
@@ -79,6 +75,12 @@ public:
             auto v_prev = v_prev_[i];
             auto v      = values_[cv];
             auto thresh = thresholds_[i];
+            fvm_index_type spike_idx = 0;
+
+            if (!time_since_spike->empty()) {
+                spike_idx = src_to_spike_[i];
+                (*time_since_spike)[spike_idx] = -1.0;
+            }
 
             if (!is_crossed_[i]) {
                 if (v>=thresh) {
@@ -89,7 +91,7 @@ public:
                     crossings_.push_back({i, crossing_time});
 
                     if (!time_since_spike->empty()) {
-                        (*time_since_spike)[src_to_spike_[i]] = t_after[intdom] - crossing_time;
+                        (*time_since_spike)[spike_idx] = t_after[intdom] - crossing_time;
                     }
 
                     is_crossed_[i] = true;

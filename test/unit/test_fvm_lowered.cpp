@@ -1217,9 +1217,9 @@ TEST(fvm_lowered, post_events_shared_state) {
     }
     arb::execution_context context(resources);
 
-    class detector_recipe : public arb::recipe {
+    class detector_recipe: public arb::recipe {
     public:
-        detector_recipe(unsigned ncv, std::vector<unsigned> detectors_per_cell, std::string synapse) :
+        detector_recipe(unsigned ncv, std::vector<unsigned> detectors_per_cell, std::string synapse):
                 ncell_(detectors_per_cell.size()),
                 ncv_(ncv),
                 detectors_per_cell_(detectors_per_cell),
@@ -1292,7 +1292,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             {1, 6, 2, 1, 3, 2, 1, 2, 1, 4},
     };
 
-    for (const auto& detectors_per_cell: detectors_per_cell_vec){
+    for (const auto& detectors_per_cell: detectors_per_cell_vec) {
         detector_recipe rec(cv_per_cell, detectors_per_cell, "post_events_syn");
         std::vector<fvm_index_type> cell_to_intdom;
 
@@ -1314,7 +1314,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             }
         }
     }
-    for (const auto& detectors_per_cell: detectors_per_cell_vec){
+    for (const auto& detectors_per_cell: detectors_per_cell_vec) {
         detector_recipe rec(cv_per_cell, detectors_per_cell, "expsyn");
         std::vector<fvm_index_type> cell_to_intdom;
 

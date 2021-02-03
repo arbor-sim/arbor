@@ -90,7 +90,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_EQ(watch.crossings().size(), 0u);
 
     memory::copy(time_since_spike, time_since_spike_vec);
-    for (auto t : time_since_spike_vec) {
+    for (auto t: time_since_spike_vec) {
         EXPECT_EQ(-1.0, t);
     }
 
@@ -126,7 +126,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_EQ(0.375, time_since_spike_vec[src_to_spike[0]]); // 2.5 - 2.125
     EXPECT_EQ(0.250, time_since_spike_vec[src_to_spike[1]]); // 2.5 - 2.250
     EXPECT_EQ(0.250, time_since_spike_vec[src_to_spike[2]]); // 3.0 - 2.750
-    for (auto i : empty_slots) {
+    for (auto i: empty_slots) {
         EXPECT_EQ(-1.0, time_since_spike_vec[i]);
     }
 
@@ -142,7 +142,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_EQ(watch.crossings().size(), 3u);
 
     memory::copy(time_since_spike, time_since_spike_vec);
-    for (auto t : time_since_spike_vec) {
+    for (auto t: time_since_spike_vec) {
         EXPECT_EQ(-1.0, t);
     }
 
@@ -162,7 +162,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     EXPECT_EQ(-1.0, time_since_spike_vec[src_to_spike[0]]);
     EXPECT_EQ(-1.0, time_since_spike_vec[src_to_spike[1]]);
     EXPECT_EQ(0.50, time_since_spike_vec[src_to_spike[2]]);
-    for (auto i : empty_slots) {
+    for (auto i: empty_slots) {
         EXPECT_EQ(-1.0, time_since_spike_vec[i]);
     }
 

@@ -25,7 +25,7 @@ void test_thresholds_impl(
     const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
-    const bool record);
+    bool record);
 
 void reset_crossed_impl(
     int size,

@@ -403,7 +403,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "auto offset_ = n_detectors_ * cid_;\n"
             "for (unsigned c = 0; c < n_detectors_; c++) {\n" << indent <<
             "auto " << time_arg << " = time_since_spike_[offset_ + c];\n"
-            "if (" <<  time_arg << " > 0) {\n" << indent <<
+            "if (" <<  time_arg << " >= 0) {\n" << indent <<
             cprint(post_event->body()) << popindent <<
             "}\n" << popindent <<
             "}\n" << popindent <<
