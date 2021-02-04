@@ -205,7 +205,7 @@ add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
 add_dependencies(tests unit)
 
-if($CMAKE_POSITION_INDEPENDENT_CODE)
+if(${CMAKE_POSITION_INDEPENDENT_CODE})
   make_catalogue(
     NAME dummy
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
