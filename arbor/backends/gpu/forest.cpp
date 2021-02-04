@@ -1,5 +1,4 @@
 #include "backends/gpu/forest.hpp"
-#include "tree.hpp"
 #include "util/span.hpp"
 
 namespace arb {
@@ -31,7 +30,7 @@ forest::forest(const std::vector<size_type>& p, const std::vector<size_type>& ce
         }
 
         // find the index of the first node for each branch
-        auto branch_starts = algorithms::branches(fine_tree.parents());
+        auto branch_starts = branches(fine_tree.parents());
 
         // compute branch length and apply permutation
         std::vector<unsigned> branch_lengths(branch_starts.size() - 1);
@@ -43,7 +42,7 @@ forest::forest(const std::vector<size_type>& p, const std::vector<size_type>& ce
         // we need to convert to cell_lid_type, required to construct a tree.
         std::vector<cell_lid_type> branch_p =
             util::assign_from(
-                algorithms::tree_reduce(fine_tree.parents(), branch_starts));
+                tree_reduce(fine_tree.parents(), branch_starts));
         // build tree structure that describes the branch topology
         auto cell_tree = tree(branch_p);
 

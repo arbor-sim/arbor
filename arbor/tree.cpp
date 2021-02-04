@@ -6,7 +6,6 @@
 
 #include <arbor/common_types.hpp>
 
-#include "algorithms.hpp"
 #include "memory/memory.hpp"
 #include "tree.hpp"
 #include "util/span.hpp"
@@ -15,7 +14,7 @@ namespace arb {
 
 tree::tree(std::vector<tree::int_type> parent_index) {
     // validate the input
-    if(!algorithms::is_minimal_degree(parent_index)) {
+    if(!is_minimal_degree(parent_index)) {
         throw std::domain_error(
             "parent index used to build a tree did not satisfy minimal degree ordering"
         );
@@ -29,7 +28,7 @@ tree::tree(std::vector<tree::int_type> parent_index) {
     parents_[0] = no_parent;
 
     // compute offsets into children_ array
-    memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
+    memory::copy(util::make_index(child_count(parents_)), child_index_);
 
     std::vector<int_type> pos(parents_.size(), 0);
     for (auto i = 1u; i < parents_.size(); ++i) {
@@ -181,7 +180,7 @@ tree::iarray tree::select_new_root(int_type root) {
     iarray branch_ix (num_nodes, 0);
     // we cannot use the existing `children_` array as we only updated the
     // parent structure yet
-    auto new_num_children = algorithms::child_count(parents_);
+    auto new_num_children = child_count(parents_);
     for (auto n: make_span(num_nodes)) {
         branch_ix[n] = n;
         auto prev = n;
@@ -241,7 +240,7 @@ tree::iarray tree::select_new_root(int_type root) {
 
     // recompute the children array
     memory::copy(new_parents, parents_);
-    memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
+    memory::copy(util::make_index(child_count(parents_)), child_index_);
 
     std::vector<int_type> pos(parents_.size(), 0);
     for (auto i = 1u; i < parents_.size(); ++i) {

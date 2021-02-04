@@ -6,7 +6,6 @@
 #include "memory_meter.hpp"
 #include "power_meter.hpp"
 
-#include "algorithms.hpp"
 #include "execution_context.hpp"
 #include "util/hostname.hpp"
 #include "util/strprintf.hpp"
@@ -17,6 +16,13 @@ namespace profile {
 
 using timer_type = timer<>;
 using util::strprintf;
+
+template <typename C>
+typename util::sequence_traits<C>::value_type
+mean(C const& c)
+{
+    return util::sum(c)/std::size(c);
+}
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
@@ -65,7 +71,6 @@ void meter_manager::start(const context& ctx) {
 
     start_time_ = timer_type::tic();
 };
-
 
 void meter_manager::checkpoint(std::string name, const context& ctx) {
     arb_assert(started_);
@@ -153,15 +158,16 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
         o << strprintf("%-21s", name);
         int m_index = 0;
         for (const auto& m: report.meters) {
+            auto mean = [](const auto& c){return util::sum(c)/std::size(c);};
             if (m.name=="time") {
                 // Calculate the average time per rank in s.
-                double time = algorithms::mean(m.measurements[cp_index]);
+                double time = mean(m.measurements[cp_index]);
                 sums[m_index] += time;
                 o << strprintf("%16.3f", time);
             }
             else if (m.name.find("memory")!=std::string::npos) {
                 // Calculate the average memory per rank in MB.
-                double mem = algorithms::mean(m.measurements[cp_index])*1e-6;
+                double mem = mean(m.measurements[cp_index])*1e-6;
                 sums[m_index] += mem;
                 o << strprintf("%16.3f", mem);
             }
@@ -176,7 +182,7 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
                 o << strprintf("%16.3f", energy);
             }
             else {
-                double value = algorithms::mean(m.measurements[cp_index]);
+                double value = mean(m.measurements[cp_index]);
                 sums[m_index] += value;
                 o << strprintf("%16.3f", value);
             }

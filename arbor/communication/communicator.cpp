@@ -8,13 +8,13 @@
 #include <arbor/spike.hpp>
 #include <include/arbor/arbexcept.hpp>
 
-#include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
 #include "connection.hpp"
 #include "distributed_context.hpp"
 #include "execution_context.hpp"
 #include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
+#include "util/index.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -104,7 +104,7 @@ communicator::communicator(const recipe& rec,
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
     connections_.resize(n_cons);
-    connection_part_ = algorithms::make_index(src_counts);
+    connection_part_ = util::make_index(src_counts);
     auto offsets = connection_part_;
     std::size_t pos = 0;
     for (const auto& cell: gid_infos) {

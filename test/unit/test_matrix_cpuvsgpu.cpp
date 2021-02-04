@@ -4,7 +4,6 @@
 
 #include <arbor/math.hpp>
 
-#include "algorithms.hpp"
 #include "matrix.hpp"
 #include "memory/memory.hpp"
 #include "util/span.hpp"

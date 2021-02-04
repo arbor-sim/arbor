@@ -10,10 +10,9 @@
 #include <arbor/assert.hpp>
 #include <arbor/communication/mpi_error.hpp>
 
-#include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
 #include "profile/profiler_macro.hpp"
-
+#include "util/index.hpp"
 
 namespace arb {
 namespace mpi {
@@ -101,7 +100,7 @@ inline std::vector<std::string> gather(std::string str, int root, MPI_Comm comm)
     using traits = mpi_traits<char>;
 
     auto counts = gather_all(int(str.size()), comm);
-    auto displs = algorithms::make_index(counts);
+    auto displs = util::make_index(counts);
 
     std::vector<char> buffer(displs.back());
 
@@ -131,7 +130,7 @@ std::vector<T> gather_all(const std::vector<T>& values, MPI_Comm comm) {
     for (auto& c : counts) {
         c *= traits::count();
     }
-    auto displs = algorithms::make_index(counts);
+    auto displs = util::make_index(counts);
 
     std::vector<T> buffer(displs.back()/traits::count());
     MPI_OR_THROW(MPI_Allgatherv,
@@ -158,7 +157,7 @@ gathered_vector<T> gather_all_with_partition(const std::vector<T>& values, MPI_C
     for (auto& c : counts) {
         c *= traits::count();
     }
-    auto displs = algorithms::make_index(counts);
+    auto displs = util::make_index(counts);
 
     std::vector<T> buffer(displs.back()/traits::count());
 

@@ -11,6 +11,285 @@ using namespace arb;
 using int_type = tree::int_type;
 using iarray = tree::iarray;
 
+TEST(tree, minimal_degree)
+{
+    {
+        std::vector<int> v = {0};
+        EXPECT_TRUE(arb::is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 0, 1, 2, 3, 4};
+        EXPECT_TRUE(arb::is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 0, 1, 2, 0, 4};
+        EXPECT_TRUE(arb::is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 0, 1, 2, 0, 4, 5, 4};
+        EXPECT_TRUE(arb::is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {1};
+        EXPECT_FALSE(arb::is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 2};
+        EXPECT_FALSE(arb::is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 1, 2};
+        EXPECT_FALSE(arb::is_minimal_degree(v));
+    }
+}
+
+TEST(tree, is_strictly_monotonic_increasing)
+{
+    EXPECT_TRUE(
+        arb::is_strictly_monotonic_increasing(
+            std::vector<int>{0}
+        )
+    );
+    EXPECT_TRUE(
+        arb::is_strictly_monotonic_increasing(
+            std::vector<int>{0, 1, 2, 3}
+        )
+    );
+    EXPECT_TRUE(
+        arb::is_strictly_monotonic_increasing(
+            std::vector<int>{8, 20, 42, 89}
+        )
+    );
+    EXPECT_FALSE(
+        arb::is_strictly_monotonic_increasing(
+            std::vector<int>{0, 0}
+        )
+    );
+    EXPECT_FALSE(
+        arb::is_strictly_monotonic_increasing(
+            std::vector<int>{8, 20, 20, 89}
+        )
+    );
+    EXPECT_FALSE(
+        arb::is_strictly_monotonic_increasing(
+            std::vector<int>{3, 2, 1, 0}
+        )
+    );
+}
+
+TEST(tree, all_positive) {
+    using arb::all_positive;
+
+    EXPECT_TRUE(all_positive(std::vector<int>{}));
+    EXPECT_TRUE(all_positive(std::vector<int>{3, 2, 1}));
+    EXPECT_FALSE(all_positive(std::vector<int>{3, 2, 1, 0}));
+    EXPECT_FALSE(all_positive(std::vector<int>{-1}));
+
+    EXPECT_TRUE(all_positive((double []){1., 2.}));
+    EXPECT_FALSE(all_positive((double []){1., 0.}));
+    EXPECT_FALSE(all_positive((double []){NAN}));
+
+    EXPECT_TRUE(all_positive((std::string []){"a", "b"}));
+    EXPECT_FALSE(all_positive((std::string []){"a", "", "b"}));
+}
+
+TEST(tree, has_contiguous_compartments)
+{
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\.
+    //     3 7 4
+    //    /     \.
+    //   5       6
+    //
+    EXPECT_FALSE(
+        arb::has_contiguous_compartments(
+            std::vector<int>{0, 0, 1, 2, 2, 3, 4, 2}
+        )
+    );
+
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\.
+    //     3 6 5
+    //    /     \.
+    //   4       7
+    //
+    EXPECT_FALSE(
+        arb::has_contiguous_compartments(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 2, 5}
+        )
+    );
+
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\.
+    //     3 7 5
+    //    /     \.
+    //   4       6
+    //
+    EXPECT_TRUE(
+        arb::has_contiguous_compartments(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 2}
+        )
+    );
+
+    //
+    //         0
+    //         |
+    //         1
+    //        / \.
+    //       2   7
+    //      / \.
+    //     3   5
+    //    /     \.
+    //   4       6
+    //
+    EXPECT_TRUE(
+        arb::has_contiguous_compartments(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 1}
+        )
+    );
+
+    //
+    //     0
+    //    / \.
+    //   1   2
+    //  / \.
+    // 3   4
+    //
+    EXPECT_TRUE(
+        arb::has_contiguous_compartments(
+            std::vector<int>{0, 0, 0, 1, 1}
+        )
+    );
+
+    // Soma-only list
+    EXPECT_TRUE(
+        arb::has_contiguous_compartments(
+            std::vector<int>{0}
+        )
+    );
+
+    // Empty list
+    EXPECT_TRUE(
+        arb::has_contiguous_compartments(
+            std::vector<int>{}
+        )
+    );
+}
+
+TEST(tree, child_count)
+{
+    {
+        //
+        //        0
+        //       /|\.
+        //      1 4 6
+        //     /  |  \.
+        //    2   5   7
+        //   /         \.
+        //  3           8
+        //             / \.
+        //            9   11
+        //           /     \.
+        //          10      12
+        //                   \.
+        //                    13
+        //
+        std::vector<int> parent_index =
+            { 0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12 };
+        std::vector<int> expected_child_count =
+            { 3, 1, 1, 0, 1, 0, 1, 1, 2, 1, 0, 1, 1, 0 };
+
+        // auto count = arb::child_count(parent_index);
+        EXPECT_EQ(expected_child_count,
+                  arb::child_count(parent_index));
+    }
+
+}
+
+TEST(tree, branches)
+{
+    using namespace arb;
+    {
+        //
+        //    0      0
+        //    |      |
+        //    1  =>  1
+        //    |
+        //    2
+        //    |
+        //    3
+        //
+        std::vector<int> parent_index          = { 0, 0, 1, 2 };
+        std::vector<int> expected_branches     = { 0, 1, 4 };
+        std::vector<int> expected_parent_index = { 0, 0 };
+
+        auto actual_branches = branches(parent_index);
+        EXPECT_EQ(expected_branches, actual_branches);
+
+        auto actual_parent_index =
+            tree_reduce(parent_index, actual_branches);
+        EXPECT_EQ(expected_parent_index, actual_parent_index);
+    }
+
+    {
+        //
+        //    0           0
+        //    |           |
+        //    1     =>    1
+        //    |          / \.
+        //    2         2   3
+        //   / \.
+        //  3   4
+        //       \.
+        //        5
+        //
+        std::vector<int> parent_index          = { 0, 0, 1, 2, 2, 4 };
+        std::vector<int> expected_branches     = { 0, 1, 3, 4, 6 };
+        std::vector<int> expected_parent_index = { 0, 0, 1, 1 };
+
+        auto actual_branches = branches(parent_index);
+        EXPECT_EQ(expected_branches, actual_branches);
+
+        auto actual_parent_index =
+            tree_reduce(parent_index, actual_branches);
+        EXPECT_EQ(expected_parent_index, actual_parent_index);
+    }
+
+    {
+        std::vector<int> parent_index          = { 0 };
+        std::vector<int> expected_branches     = { 0, 1 };
+        std::vector<int> expected_parent_index = { 0 };
+
+        auto actual_branches = branches(parent_index);
+        EXPECT_EQ(expected_branches, actual_branches);
+
+        auto actual_parent_index =
+            tree_reduce(parent_index, actual_branches);
+        EXPECT_EQ(expected_parent_index, actual_parent_index);
+    }
+}
+
 TEST(tree, from_segment_index) {
     auto no_parent = tree::no_parent;
 

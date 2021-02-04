@@ -84,7 +84,6 @@ endforeach()
 
 set(unit_sources
     ../common_cells.cpp
-    test_algorithms.cpp
     test_any_cast.cpp
     test_any_ptr.cpp
     test_any_visitor.cpp
@@ -106,6 +105,7 @@ set(unit_sources
     test_filter.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
+    test_index.cpp
     test_kinetic_linear.cpp
     test_lexcmp.cpp
     test_lif_cell_group.cpp
