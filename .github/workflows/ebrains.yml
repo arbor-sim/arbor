@@ -4,7 +4,7 @@ on: [push, delete]
 
 jobs:
   to_gitlab:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - uses: pixta-dev/repository-mirroring-action@v1
