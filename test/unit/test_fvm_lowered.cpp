@@ -68,22 +68,22 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
 
 using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
 using mechanism_field_table = std::vector<std::pair<const char*, arb::fvm_value_type**>>;
-using mechanism_ion_index_table = std::vector<std::pair<const char*, backend::iarray*>>;
+using mechanism_ion_index_table = std::vector<std::pair<const char*, arb::fvm_index_type*>>;
 
 ACCESS_BIND(\
-    mechanism_global_table (arb::multicore::mechanism::*)(),\
+    mechanism_global_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
     private_global_table_ptr,\
-    &arb::multicore::mechanism::global_table)
+    &arb::concrete_mechanism<arb::multicore::backend>::global_table)
 
 ACCESS_BIND(\
-    mechanism_field_table (arb::multicore::mechanism::*)(),\
+    mechanism_field_table (arb::concrete_mechanism<arb::multicore::backend>::*)(),\
     private_field_table_ptr,\
-    &arb::multicore::mechanism::field_table)
+    &arb::concrete_mechanism<arb::multicore::backend>::field_table)
 
 ACCESS_BIND(\
-    mechanism_ion_index_table (arb::multicore::mechanism::*)(),\
+    mechanism_ion_index_table (arb::concrete_mechanism<arb::multicore::backend>::*)(),\
     private_ion_index_table_ptr,\
-    &arb::multicore::mechanism::ion_index_table)
+    &arb::concrete_mechanism<arb::multicore::backend>::ion_index_table)
 
 using namespace arb;
 
@@ -846,7 +846,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_index_table_ptr)(), "ca"s);
     ASSERT_TRUE(opt_ca_index_ptr);
-    auto& test_ca_ca_index = *opt_ca_index_ptr.value();
+    auto& test_ca_ca_index = opt_ca_index_ptr.value();
 
     double cai_contrib[3] = {200., 0., 300.};
     double test_ca_weight[3] = {0.25, 0., 1.};

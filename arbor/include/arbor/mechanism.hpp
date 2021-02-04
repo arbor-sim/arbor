@@ -25,7 +25,7 @@ class mechanism {
 public:
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
-    using size_type = fvm_size_type;
+    using size_type  = fvm_size_type;
 
     mechanism() = default;
     mechanism(const mechanism&) = delete;
@@ -56,8 +56,11 @@ public:
     // Non-global parameters can be set post-instantiation:
     virtual void set_parameter(const std::string& key, const std::vector<value_type>& values) = 0;
 
+    // Peek into state variable
+    virtual value_type* field_data(const std::string& var) = 0;
+
     // Simulation interfaces:
-    virtual void initialize() = 0;
+    virtual void initialize() {};
     virtual void update_state() {}
     virtual void update_current() {}
     virtual void deliver_events() {}
@@ -109,8 +112,6 @@ public:
     // Instantiation: allocate per-instance state; set views/pointers to shared data.
     virtual void instantiate(unsigned id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) = 0;
 
-    virtual value_type* field_data(const std::string& state_var);
-
 protected:
     using deliverable_event_stream = typename backend::deliverable_event_stream;
     using iarray = typename backend::iarray;
@@ -134,7 +135,7 @@ protected:
     using ion_state_entry = std::pair<const char*, ion_state_view*>;
     using mechanism_ion_state_table = std::vector<ion_state_entry>;
 
-    using ion_index_entry = std::pair<const char*, iarray*>;
+    using ion_index_entry = std::pair<const char*, index_type*>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
     // Generated mechanisms must implement the following methods, together with
@@ -154,7 +155,7 @@ protected:
     virtual void nrn_current() {};
     virtual void nrn_deliver_events(typename deliverable_event_stream::state) {};
     virtual void write_ions() {};
-    virtual void nrn_init() = 0;
+    virtual void nrn_init() {};
     // Report raw size in bytes of mechanism object.
     virtual std::size_t object_sizeof() const = 0;
 };

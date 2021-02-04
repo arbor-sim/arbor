@@ -327,7 +327,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << "mechanism_ion_index_table ion_index_table() override {\n"
             << indent << "return {" << indent;
         for (const auto& dep: ion_deps) {
-            out << sep << "{\"" << dep.name << "\", &" << ion_state_index(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", " << ion_state_index(dep.name) << ".data() }";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
     }
@@ -343,7 +343,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << "value_type* " << array->name() << ";\n";
     }
     for (const auto& dep: ion_deps) {
-        out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
+        out << "arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
         out << "iarray " << ion_state_index(dep.name) << ";\n";
     }
 

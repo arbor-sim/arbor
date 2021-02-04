@@ -169,9 +169,10 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
         auto indices = util::index_into(node_index_, oion->node_index_);
 
-        auto& ion_index = *i.second;
-        ion_index = iarray(width_padded_, pad);
+        auto ion_index = iarray(width_padded_, pad);
         copy_extend(indices, ion_index, util::back(indices));
+
+        // auto& ion_index = i.second;
 
         arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width()));
     }

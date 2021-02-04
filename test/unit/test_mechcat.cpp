@@ -91,9 +91,14 @@ std::string ion_binding(const std::unique_ptr<concrete_mechanism<B>>& mech, cons
     return impl.ion_bindings_.count(ion) ? impl.ion_bindings_.at(ion) : "";
 }
 
-struct foo_stream {};
+struct foo_stream_state {};
+
+struct foo_stream {
+    using state = foo_stream_state;
+};
 
 struct foo_backend {
+    using iarray = std::vector<fvm_index_type>;
     using deliverable_event_stream = foo_stream;
     struct shared_state {
         std::unordered_map<std::string, fvm_value_type> overrides;
@@ -109,10 +114,14 @@ struct foo_backend {
 
 using foo_mechanism = common_impl<foo_backend>;
 
-struct bar_stream {};
+struct bar_stream_state {};
+struct bar_stream {
+    using state = bar_stream_state;
+};
 
 struct bar_backend {
     using deliverable_event_stream = bar_stream;
+    using iarray = std::vector<fvm_index_type>;
     struct shared_state {
         std::unordered_map<std::string, fvm_value_type> overrides;
         std::unordered_map<std::string, std::string> ions = {
@@ -129,7 +138,7 @@ using bar_mechanism = common_impl<bar_backend>;
 
 // Fleeb implementations:
 
-struct fleeb_foo: foo_mechanism {
+struct fleeb_foo final: foo_mechanism {
     fleeb_foo() {
         this->mech_ions = {"a", "b", "c", "d"};
     }
