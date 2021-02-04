@@ -22,9 +22,10 @@ namespace gpu {
 void test_thresholds_impl(
     int size,
     const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
-    stack_storage<threshold_crossing>& stack,
+    const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
+    bool record);
 
 void reset_crossed_impl(
     int size,
@@ -45,6 +46,7 @@ public:
     threshold_watcher(
         const fvm_index_type* cv_to_intdom,
         const fvm_value_type* values,
+        const fvm_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
         const std::vector<fvm_index_type>& cv_index,
@@ -53,6 +55,7 @@ public:
     ):
         cv_to_intdom_(cv_to_intdom),
         values_(values),
+        src_to_spike_(src_to_spike),
         t_before_ptr_(t_before),
         t_after_ptr_(t_after),
         cv_index_(memory::make_const_view(cv_index)),
@@ -104,17 +107,16 @@ public:
     /// Crossing events are recorded for each threshold that has been
     /// crossed since current time t, and the last time the test was
     /// performed.
-    void test() {
-        const fvm_value_type* t_before = t_before_ptr_->data();
-        const fvm_value_type* t_after  = t_after_ptr_->data();
-
+    void test(array* time_since_spike) {
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
-                cv_to_intdom_, t_after, t_before,
+                cv_to_intdom_, t_after_ptr_->data(), t_before_ptr_->data(),
+                src_to_spike_, time_since_spike->data(),
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
-                cv_index_.data(), values_, thresholds_.data());
+                cv_index_.data(), values_, thresholds_.data(),
+                !time_since_spike->empty());
 
             // Check that the number of spikes has not exceeded capacity.
             arb_assert(!stack_.overflow());
@@ -132,6 +134,7 @@ private:
     /// and pointers to the time arrays
     const fvm_index_type* cv_to_intdom_ = nullptr;
     const fvm_value_type* values_ = nullptr;
+    const fvm_index_type* src_to_spike_ = nullptr;
     const array* t_before_ptr_ = nullptr;
     const array* t_after_ptr_ = nullptr;
 

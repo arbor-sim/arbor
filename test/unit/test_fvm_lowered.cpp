@@ -604,6 +604,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     std::vector<fvm_value_type> diam(ncv, 1.);
     std::vector<fvm_value_type> vinit(ncv, -65);
     std::vector<fvm_gap_junction> gj = {};
+    std::vector<fvm_index_type> src_to_spike = {};
 
     fvm_ion_config ion_config;
     mechanism_layout layout;
@@ -627,7 +628,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto& write_cai_mech = write_cai.mech;
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, cv_to_intdom, gj, vinit, temp, diam, read_cai_mech->data_alignment());
+            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, read_cai_mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
 
     read_cai_mech->instantiate(0, *shared_state, overrides, layout);
@@ -1207,3 +1208,124 @@ TEST(fvm_lowered, integration_domains) {
     }
 }
 
+TEST(fvm_lowered, post_events_shared_state) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    } else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
+    class detector_recipe: public arb::recipe {
+    public:
+        detector_recipe(unsigned ncv, std::vector<unsigned> detectors_per_cell, std::string synapse):
+                ncell_(detectors_per_cell.size()),
+                ncv_(ncv),
+                detectors_per_cell_(detectors_per_cell),
+                synapse_(synapse),
+                cat_(make_unit_test_catalogue()) {
+            const auto default_cat = arb::global_default_catalogue();
+            cat_.import(default_cat, "");
+        }
+
+        cell_size_type num_cells() const override {
+            return ncell_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
+            arb::segment_tree tree;
+            tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
+
+            arb::decor decor;
+            decor.set_default(arb::cv_policy_fixed_per_branch(ncv_));
+
+            auto ndetectors = detectors_per_cell_[gid];
+            auto offset = 1.0 / ndetectors;
+            for (unsigned i = 0; i < ndetectors; ++i) {
+                decor.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10});
+            }
+            decor.place(arb::mlocation{0, 0.5}, synapse_);
+
+            return arb::cable_cell(arb::morphology(tree), {}, decor);;
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return cell_kind::cable;
+        }
+
+        // Each cell has one spike detector (at the soma).
+        cell_size_type num_sources(cell_gid_type gid) const override {
+            return detectors_per_cell_[gid];
+        }
+
+        // The cell has one target synapse, which will be connected to cell gid-1.
+        cell_size_type num_targets(cell_gid_type gid) const override {
+            return 1;
+        }
+
+        std::any get_global_properties(arb::cell_kind) const override {
+            arb::cable_cell_global_properties gprop;
+            gprop.default_parameters = arb::neuron_parameter_defaults;
+            gprop.catalogue = &cat_;
+            return gprop;
+        }
+
+    private:
+        unsigned ncell_;
+        unsigned ncv_;
+        std::vector<unsigned> detectors_per_cell_;
+        arb::mechanism_desc synapse_;
+        mechanism_catalogue cat_;
+    };
+
+    std::vector<target_handle> targets;
+    probe_association_map probe_map;
+
+    std::vector<unsigned> gids                 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    const unsigned ncell = gids.size();
+    const unsigned cv_per_cell = 10;
+
+    std::vector<std::vector<unsigned>> detectors_per_cell_vec = {
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 6, 2, 1, 3, 2, 1, 2, 1, 4},
+    };
+
+    for (const auto& detectors_per_cell: detectors_per_cell_vec) {
+        detector_recipe rec(cv_per_cell, detectors_per_cell, "post_events_syn");
+        std::vector<fvm_index_type> cell_to_intdom;
+
+        fvm_cell fvcell(context);
+        fvcell.initialize(gids, rec, cell_to_intdom, targets, probe_map);
+
+        auto& S = fvcell.*private_state_ptr;
+
+        auto expected_detectors = util::max_value(detectors_per_cell);
+
+        EXPECT_EQ(expected_detectors, S->n_detector);
+        EXPECT_EQ(util::sum(detectors_per_cell), S->src_to_spike.size());
+        EXPECT_EQ(expected_detectors * ncell, S->time_since_spike.size());
+
+        unsigned detector_id = 0;
+        for (unsigned c = 0; c < detectors_per_cell.size(); ++c) {
+            for (unsigned d = 0; d < detectors_per_cell[c]; ++d) {
+                EXPECT_EQ((int) (c * expected_detectors + d), S->src_to_spike[detector_id++]);
+            }
+        }
+    }
+    for (const auto& detectors_per_cell: detectors_per_cell_vec) {
+        detector_recipe rec(cv_per_cell, detectors_per_cell, "expsyn");
+        std::vector<fvm_index_type> cell_to_intdom;
+
+        fvm_cell fvcell(context);
+        fvcell.initialize(gids, rec, cell_to_intdom, targets, probe_map);
+
+        auto& S = fvcell.*private_state_ptr;
+
+        EXPECT_EQ(0u, S->n_detector);
+        EXPECT_EQ(0u, S->src_to_spike.size());
+        EXPECT_EQ(0u, S->time_since_spike.size());
+    }
+
+}

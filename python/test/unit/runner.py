@@ -18,10 +18,12 @@ try:
     import test_schedules
     import test_cable_probes
     import test_morphology
+    import test_catalogues
     # add more if needed
 except ModuleNotFoundError:
     from test import options
     from test.unit import test_contexts
+    from test.unit import test_catalogues
     from test.unit import test_domain_decompositions
     from test.unit import test_event_generators
     from test.unit import test_identifiers
@@ -32,6 +34,7 @@ except ModuleNotFoundError:
 
 test_modules = [\
     test_contexts,\
+    test_catalogues,\
     test_domain_decompositions,\
     test_event_generators,\
     test_identifiers,\
