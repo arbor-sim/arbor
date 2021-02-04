@@ -17,6 +17,23 @@ if(${ARBDEV_COLOR})
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${colorflags}>")
 endif()
 
+# A library to collect compiler-specific linking adjustments.
+
+add_library(arbor-compiler-compat INTERFACE)
+# TODO Remove when upgrading GCC.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
+    target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
+  endif()
+endif()
+# TODO Remove when upgrading Clang
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+    target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
+  endif()
+endif()
+install(TARGETS arbor-compiler-compat EXPORT arbor-targets)
+
 # Warning options: disable specific spurious warnings as required.
 
 set(CXXOPT_WALL

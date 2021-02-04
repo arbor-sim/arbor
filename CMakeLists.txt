@@ -160,9 +160,8 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 
 # Interface library `arbor-private-deps` collects dependencies, options etc.
 # for the arbor library.
-
 add_library(arbor-private-deps INTERFACE)
-target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123)
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS} arbor-compiler-compat)
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.

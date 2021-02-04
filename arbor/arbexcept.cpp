@@ -15,11 +15,13 @@ bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
     gid(gid),
     kind(kind)
 {}
+
 bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, kind, gid)),
     gid(gid),
     kind(kind)
 {}
+
 bad_target_description::bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
     arbor_exception(pprintf("Model building error on cell {}: recipe::num_targets(gid={}) = {} is greater than the number of synapses on the cell = {}", gid, gid, rec_val, cell_val)),
     gid(gid), rec_val(rec_val), cell_val(cell_val)
@@ -146,6 +148,17 @@ no_such_implementation::no_such_implementation(const std::string& mech_name):
 range_check_failure::range_check_failure(const std::string& whatstr, double value):
     arbor_exception(pprintf("range check failure: {} with value {}", whatstr, value)),
     value(value)
+{}
+
+file_not_found_error::file_not_found_error(const std::string &fn)
+    : arbor_exception(pprintf("Could not find file '{}'", fn)),
+      filename{fn}
+{}
+
+bad_catalogue_error::bad_catalogue_error(const std::string &fn, const std::string& call)
+    : arbor_exception(pprintf("Error in '{}' while opening catalogue '{}'", call, fn)),
+      filename{fn},
+      failed_call{call}
 {}
 
 } // namespace arb
