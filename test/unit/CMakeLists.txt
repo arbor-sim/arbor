@@ -103,6 +103,7 @@ set(unit_sources
     test_event_queue.cpp
     test_expected.cpp
     test_filter.cpp
+    test_forest.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
     test_index.cpp

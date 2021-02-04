@@ -1,15 +1,11 @@
-#include <fstream>
-#include <iostream>
-#include <numeric>
 #include <vector>
 
 #include "../gtest.h"
 
 #include <tree.hpp>
 
-using namespace arb;
-using int_type = tree::int_type;
-using iarray = tree::iarray;
+using int_type = arb::tree::int_type;
+using iarray = arb::tree::iarray;
 
 TEST(tree, minimal_degree)
 {
@@ -49,154 +45,6 @@ TEST(tree, minimal_degree)
     }
 }
 
-TEST(tree, is_strictly_monotonic_increasing)
-{
-    EXPECT_TRUE(
-        arb::is_strictly_monotonic_increasing(
-            std::vector<int>{0}
-        )
-    );
-    EXPECT_TRUE(
-        arb::is_strictly_monotonic_increasing(
-            std::vector<int>{0, 1, 2, 3}
-        )
-    );
-    EXPECT_TRUE(
-        arb::is_strictly_monotonic_increasing(
-            std::vector<int>{8, 20, 42, 89}
-        )
-    );
-    EXPECT_FALSE(
-        arb::is_strictly_monotonic_increasing(
-            std::vector<int>{0, 0}
-        )
-    );
-    EXPECT_FALSE(
-        arb::is_strictly_monotonic_increasing(
-            std::vector<int>{8, 20, 20, 89}
-        )
-    );
-    EXPECT_FALSE(
-        arb::is_strictly_monotonic_increasing(
-            std::vector<int>{3, 2, 1, 0}
-        )
-    );
-}
-
-TEST(tree, all_positive) {
-    using arb::all_positive;
-
-    EXPECT_TRUE(all_positive(std::vector<int>{}));
-    EXPECT_TRUE(all_positive(std::vector<int>{3, 2, 1}));
-    EXPECT_FALSE(all_positive(std::vector<int>{3, 2, 1, 0}));
-    EXPECT_FALSE(all_positive(std::vector<int>{-1}));
-
-    EXPECT_TRUE(all_positive((double []){1., 2.}));
-    EXPECT_FALSE(all_positive((double []){1., 0.}));
-    EXPECT_FALSE(all_positive((double []){NAN}));
-
-    EXPECT_TRUE(all_positive((std::string []){"a", "b"}));
-    EXPECT_FALSE(all_positive((std::string []){"a", "", "b"}));
-}
-
-TEST(tree, has_contiguous_compartments)
-{
-    //
-    //       0
-    //       |
-    //       1
-    //       |
-    //       2
-    //      /|\.
-    //     3 7 4
-    //    /     \.
-    //   5       6
-    //
-    EXPECT_FALSE(
-        arb::has_contiguous_compartments(
-            std::vector<int>{0, 0, 1, 2, 2, 3, 4, 2}
-        )
-    );
-
-    //
-    //       0
-    //       |
-    //       1
-    //       |
-    //       2
-    //      /|\.
-    //     3 6 5
-    //    /     \.
-    //   4       7
-    //
-    EXPECT_FALSE(
-        arb::has_contiguous_compartments(
-            std::vector<int>{0, 0, 1, 2, 3, 2, 2, 5}
-        )
-    );
-
-    //
-    //       0
-    //       |
-    //       1
-    //       |
-    //       2
-    //      /|\.
-    //     3 7 5
-    //    /     \.
-    //   4       6
-    //
-    EXPECT_TRUE(
-        arb::has_contiguous_compartments(
-            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 2}
-        )
-    );
-
-    //
-    //         0
-    //         |
-    //         1
-    //        / \.
-    //       2   7
-    //      / \.
-    //     3   5
-    //    /     \.
-    //   4       6
-    //
-    EXPECT_TRUE(
-        arb::has_contiguous_compartments(
-            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 1}
-        )
-    );
-
-    //
-    //     0
-    //    / \.
-    //   1   2
-    //  / \.
-    // 3   4
-    //
-    EXPECT_TRUE(
-        arb::has_contiguous_compartments(
-            std::vector<int>{0, 0, 0, 1, 1}
-        )
-    );
-
-    // Soma-only list
-    EXPECT_TRUE(
-        arb::has_contiguous_compartments(
-            std::vector<int>{0}
-        )
-    );
-
-    // Empty list
-    EXPECT_TRUE(
-        arb::has_contiguous_compartments(
-            std::vector<int>{}
-        )
-    );
-}
-
 TEST(tree, child_count)
 {
     {
@@ -227,70 +75,8 @@ TEST(tree, child_count)
 
 }
 
-TEST(tree, branches)
-{
-    using namespace arb;
-    {
-        //
-        //    0      0
-        //    |      |
-        //    1  =>  1
-        //    |
-        //    2
-        //    |
-        //    3
-        //
-        std::vector<int> parent_index          = { 0, 0, 1, 2 };
-        std::vector<int> expected_branches     = { 0, 1, 4 };
-        std::vector<int> expected_parent_index = { 0, 0 };
-
-        auto actual_branches = branches(parent_index);
-        EXPECT_EQ(expected_branches, actual_branches);
-
-        auto actual_parent_index =
-            tree_reduce(parent_index, actual_branches);
-        EXPECT_EQ(expected_parent_index, actual_parent_index);
-    }
-
-    {
-        //
-        //    0           0
-        //    |           |
-        //    1     =>    1
-        //    |          / \.
-        //    2         2   3
-        //   / \.
-        //  3   4
-        //       \.
-        //        5
-        //
-        std::vector<int> parent_index          = { 0, 0, 1, 2, 2, 4 };
-        std::vector<int> expected_branches     = { 0, 1, 3, 4, 6 };
-        std::vector<int> expected_parent_index = { 0, 0, 1, 1 };
-
-        auto actual_branches = branches(parent_index);
-        EXPECT_EQ(expected_branches, actual_branches);
-
-        auto actual_parent_index =
-            tree_reduce(parent_index, actual_branches);
-        EXPECT_EQ(expected_parent_index, actual_parent_index);
-    }
-
-    {
-        std::vector<int> parent_index          = { 0 };
-        std::vector<int> expected_branches     = { 0, 1 };
-        std::vector<int> expected_parent_index = { 0 };
-
-        auto actual_branches = branches(parent_index);
-        EXPECT_EQ(expected_branches, actual_branches);
-
-        auto actual_parent_index =
-            tree_reduce(parent_index, actual_branches);
-        EXPECT_EQ(expected_parent_index, actual_parent_index);
-    }
-}
-
 TEST(tree, from_segment_index) {
+    using namespace arb;
     auto no_parent = tree::no_parent;
 
     // tree with single branch corresponding to the root node
@@ -455,6 +241,8 @@ TEST(tree, from_segment_index) {
 }
 
 TEST(tree, depth_from_root) {
+    using namespace arb;
+
     // tree with single branch corresponding to the root node
     // this is equivalent to a single compartment model
     //      CASE 1 : single root node in parent_index
@@ -535,4 +323,3 @@ TEST(tree, depth_from_root) {
         EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
     }
 }
-
