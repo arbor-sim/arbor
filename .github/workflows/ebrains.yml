@@ -10,4 +10,4 @@ jobs:
     - uses: pixta-dev/repository-mirroring-action@v1
       with:
         target_repo_url:
-          https://ghpusher:${{ secrets.EBRAINS_GITLAB_SSH_PRIVATE_KEY }}@gitlab.ebrains.eu/arbor-sim/arbor.git
+          https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/arbor-sim/arbor.git
