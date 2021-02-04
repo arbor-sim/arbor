@@ -114,6 +114,8 @@ APIMethod* find_api_method(const Module& m, const char* which);
 
 NetReceiveExpression* find_net_receive(const Module& m);
 
+PostEventExpression* find_post_event(const Module& m);
+
 struct indexed_variable_info {
     std::string data_var;
     std::string node_index_var;

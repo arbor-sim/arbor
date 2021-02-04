@@ -34,9 +34,10 @@ void run_celsius_test() {
     std::vector<fvm_value_type> temp(ncv, temperature_K);
     std::vector<fvm_value_type> diam(ncv, 1.);
     std::vector<fvm_value_type> vinit(ncv, -65);
+    std::vector<fvm_index_type> src_to_spike = {};
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-        ncell, cv_to_intdom, gj, vinit, temp, diam, celsius_test->data_alignment());
+        ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;
@@ -81,6 +82,7 @@ void run_diam_test() {
     std::vector<fvm_value_type> temp(ncv, 300.);
     std::vector<fvm_value_type> vinit(ncv, -65);
     std::vector<fvm_value_type> diam(ncv);
+    std::vector<fvm_index_type> src_to_spike = {};
 
     mechanism_layout layout;
     mechanism_overrides overrides;
@@ -93,7 +95,7 @@ void run_diam_test() {
     }
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, cv_to_intdom, gj, vinit, temp, diam, celsius_test->data_alignment());
+            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
 
 
     celsius_test->instantiate(0, *shared_state, overrides, layout);

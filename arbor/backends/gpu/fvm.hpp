@@ -50,7 +50,7 @@ struct backend {
     using ion_state = arb::gpu::ion_state;
 
     static threshold_watcher voltage_watcher(
-        const shared_state& state,
+        shared_state& state,
         const std::vector<index_type>& cv,
         const std::vector<value_type>& thresholds,
         const execution_context& context)
@@ -58,6 +58,7 @@ struct backend {
         return threshold_watcher(
             state.cv_to_intdom.data(),
             state.voltage.data(),
+            state.src_to_spike.data(),
             &state.time,
             &state.time_to,
             cv,

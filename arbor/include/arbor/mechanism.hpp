@@ -54,6 +54,7 @@ public:
     virtual void update_state() {};
     virtual void update_current() {};
     virtual void deliver_events() {};
+    virtual void post_event() {};
     virtual void update_ions() {};
 
     virtual ~mechanism() = default;
