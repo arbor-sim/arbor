@@ -71,7 +71,7 @@ jobs:
         CC:         ${{ matrix.config.cc }}
         CXX:        ${{ matrix.config.cxx }}
         # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
-        PYTHONPATH: /home/runner/work/arbor/arbor/build/python
+        PYTHONPATH: ${{ github.workspace }}/build/python
     steps:
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.7
