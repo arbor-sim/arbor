@@ -54,7 +54,7 @@ enum class tok {
     neuron, units, parameter,
     constant, assigned, state, breakpoint,
     derivative, kinetic, procedure, initial, function, linear,
-    net_receive,
+    net_receive, post_event,
 
     // keywoards inside blocks
     unitsoff, unitson,

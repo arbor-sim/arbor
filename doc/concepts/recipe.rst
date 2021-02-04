@@ -100,7 +100,7 @@ runtime execution environment.
 
 During model building, the recipe is queried first by a load balancer,
 then later when building the low-level cell groups and communication network.
-The cell-centered recipe interface, whereby cell and network properties are
+The cell-centred recipe interface, whereby cell and network properties are
 specified "per-cell", facilitates this.
 
 The steps of building a simulation from a recipe are:

@@ -116,7 +116,17 @@ const mechanism_catalogue& global_${catalogue}_catalogue() {
     return cat;
 }
 
-} // namespace arb''')
+} // namespace arb
+
+#ifdef STANDALONE
+extern "C" {
+    const void* get_catalogue() {
+        static auto cat = arb::build_${catalogue}_catalogue();
+        return (void*)&cat;
+    }
+}
+#endif
+''')
 
     def indent(n, lines):
         return '{{:<{0!s}}}'.format(n+1).format('\n').join(lines)

@@ -4,10 +4,14 @@ set(test_mechanisms
     ca_linear
     celsius_test
     diam_test
+    fixed_ica_current
+    linear_ca_conc
+    non_linear
     param_as_state
-    test_linear_state
-    test_linear_init
-    test_linear_init_shuffle
+    point_ica_current
+    post_events_syn
+    read_cai_init
+    read_eX
     test0_kin_diff
     test0_kin_conserve
     test0_kin_compartment
@@ -15,25 +19,22 @@ set(test_mechanisms
     test1_kin_diff
     test1_kin_conserve
     test1_kin_compartment
+    test1_kin_steadystate
     test2_kin_diff
     test3_kin_diff
     test4_kin_compartment
-    test1_kin_steadystate
-    fixed_ica_current
-    point_ica_current
-    non_linear
-    linear_ca_conc
-    test_cl_valence
-    test_ca_read_valence
-    read_eX
-    write_Xi_Xo
-    write_multiple_eX
-    write_eX
-    read_cai_init
-    write_cai_breakpoint
     test_ca
+    test_ca_read_valence
+    test_cl_valence
+    test_linear_state
+    test_linear_init
+    test_linear_init_shuffle
     test_kin1
     test_kinlva
+    write_cai_breakpoint
+    write_eX
+    write_multiple_eX
+    write_Xi_Xo
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
@@ -205,6 +206,18 @@ add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
 add_dependencies(tests unit)
 
+if(${CMAKE_POSITION_INDEPENDENT_CODE})
+  make_catalogue(
+    NAME dummy
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
+    OUTPUT "CAT_DUMMY_SOURCES"
+    MECHS dummy
+    ARBOR "${PROJECT_SOURCE_DIR}"
+    STANDALONE ON)
+  target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
+  add_dependencies(unit dummy-catalogue)
+endif()
+
 if(ARB_WITH_NVCC)
     target_compile_options(unit PRIVATE -DARB_CUDA)
 endif()
@@ -221,6 +234,7 @@ endif()
 
 target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
+target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arbor-private-headers arbor-sup)
 

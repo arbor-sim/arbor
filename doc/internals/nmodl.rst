@@ -31,7 +31,7 @@ Ions
   must be added explicitly in Arbor along with their default properties and
   valence (this can be done in the recipe or on a single cell model).
   Simply specifying them in NMODL will not work.
-* The parameters and variabnles of each ion referenced in a ``USEION`` statement
+* The parameters and variables of each ion referenced in a ``USEION`` statement
   are available automatically to the mechanism. The exposed variables are:
   internal concentration ``Xi``, external concentration ``Xo``, reversal potential
   ``eX`` and current ``iX``. It is an error to also mark these as
@@ -42,18 +42,19 @@ Ions
 * If ``Xi``, ``Xo``, ``eX``, ``iX`` are used in a ``PROCEDURE`` or ``FUNCTION``,
   they need to be passed as arguments.
 * If ``Xi`` or ``Xo`` (internal and external concentrations) are written in the
-  NMODL mechanism they need to be specified as ``STATE`` variables.
+  NMODL mechanism they need to be declared as ``STATE`` variables and their initial
+  values have to be set in the mechanism.
 
 Special variables
 -----------------
 
 * Arbor exposes some parameters from the simulation to the NMODL mechanisms.
-  These include ``v``, ``diam``, ``celsius`` in addition to the previously
+  These include ``v``, ``diam``, ``celsius`` and ``t`` in addition to the previously
   mentioned ion parameters.
 * Special variables should not be ``ASSIGNED`` or ``CONSTANT``,
   they are ``PARAMETER``.
 * ``diam`` and ``celsius`` can be set from the simulation side.
-* ``v`` is a reserved varible name and can be written in NMODL.
+* ``v`` is a reserved variable name and can be written in NMODL.
 * If Special variables are used in a ``PROCEDURE`` or ``FUNCTION``, they need
   to be passed as arguments.
 * ``dt`` is not exposed to NMODL mechanisms.
@@ -76,4 +77,24 @@ Unsupported features
   However, ``CONSERVE`` statements are supported.
 * ``TABLE`` is not supported, calculations are exact.
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
+* `verbatim` blocks are not supported.
 
+Arbor-specific features
+-----------------------
+
+* Arbor's NMODL dialect supports the most widely used features of NEURON. It also
+  has some features unavailable in NEURON such as the ``POST_EVENT`` procedure block.
+  This procedure has a single argument representing the time since the last spike on
+  the cell. In the event of multiple detectors on the cell, and multiple spikes on the
+  detectors within the same integration period, the times of each of these spikes will
+  be processed by the ``POST_EVENT`` block. Spikes are processed only once and then
+  cleared.
+
+  Example of a ``POST_EVENT`` procedure, where ``g`` is a ``STATE`` parameter representing
+  the conductance:
+
+  .. code::
+
+    POST_EVENT(t) {
+       g = g + (0.1*t)
+    }
