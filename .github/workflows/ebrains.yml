@@ -11,5 +11,5 @@ jobs:
       with:
         target_repo_url:
           git@gitlab.ebrains.eu/arbor-sim/arbor.git
-        ssh_private_key:=
+        ssh_private_key:
           ${{ secrets.EBRAINS_GITLAB_SSH_PRIVATE_KEY }}
