@@ -53,7 +53,7 @@ mechanism_info fleeb_info = {
 // Backend classes:
 
 template <typename B>
-struct common_impl: concrete_mechanism<B> {
+struct common_impl: public concrete_mechanism<B> {
     void instantiate(fvm_size_type id, typename B::shared_state& state, const mechanism_overrides& o, const mechanism_layout& l) override {
         width_ = l.cv.size();
         // Write mechanism global values to shared state to test instatiation call and catalogue global
@@ -84,6 +84,9 @@ struct common_impl: concrete_mechanism<B> {
     void update_ions() override {}
 
     std::size_t width_ = 0;
+
+    fvm_value_type* field_data(const std::string& var) override { return nullptr; }
+    std::size_t object_sizeof() const override { return sizeof(*this); }
 
     std::vector<std::string> mech_ions;
 
