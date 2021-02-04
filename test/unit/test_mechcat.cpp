@@ -291,7 +291,7 @@ TEST(mechcat, names) {
     }
 }
 
-#ifdef ARB_USE_DYNAMIC_CATALOGUES
+#ifdef USE_DYNAMIC_CATALOGUES
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
     EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.a"), bad_catalogue_error);

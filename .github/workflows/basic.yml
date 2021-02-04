@@ -9,86 +9,36 @@ on:
 jobs:
   build:
     name: "Default test set"
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        config:
-        - {
-            name:  "Linux Min GCC",
-            os:    "ubuntu-18.04",
-            cc:    "gcc-8",
-            cxx:   "g++-8",
-            py:    "3.6",
-            cmake: "3.12.x",
-            mpi:   "ON"
-          }
-        - {
-            name:  "Linux Min Clang",
-            os:    "ubuntu-18.04",
-            cc:    "clang-8",
-            cxx:   "clang++-8",
-            py:    "3.6",
-            cmake: "3.12.x",
-            mpi:   "ON"
-          }
-        - {
-            name:  "MacOS Min",
-            os:    "macos-10.15",
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.6",
-            cmake: "3.12.x",
-            mpi:   "ON"
-          }
-        - {
-            name:  "Linux Max GCC",
-            os:    "ubuntu-20.04",
-            cc:    "gcc-10",
-            cxx:   "g++-10",
-            py:    "3.9",
-            cmake: "3.19.x",
-            mpi:   "ON"
-          }
-        - {
-            name:  "Linux Max Clang",
-            os:    "ubuntu-20.04",
-            cc:    "clang-10",
-            cxx:   "clang++-10",
-            py:    "3.9",
-            cmake: "3.19.x",
-            mpi:   "ON"
-          }
-        - {
-            name:  "MacOS Max",
-            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.9",
-            cmake: "3.19.x",
-            mpi:   "ON"
-          }
+        os:    ["ubuntu-20.04"]
+        cxx:   ["g++"]
+        cc:    ["gcc"]
+        ver:   ["8"]
+        py:    ["3.6"]
+        cmake: ["3.12.x"]
+        mpi:   ["ON"]
     env:
-        CC:         ${{ matrix.config.cc }}
-        CXX:        ${{ matrix.config.cxx }}
+        CC:         ${{ matrix.cc }}-${{ matrix.ver }}
+        CXX:        ${{ matrix.cxx }}-${{ matrix.ver }}
         # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
-        PYTHONPATH: ${{ github.workspace }}/build/python
+        PYTHONPATH: /home/runner/work/arbor/arbor/build/python
     steps:
-      - name: Poke PyPath
-        run: echo $PYTHONPATH
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.7
+        uses: jwlawson/actions-setup-cmake@v1.4
         with:
-          cmake-version: ${{ matrix.config.cmake }}
+          cmake-version: ${{ matrix.cmake }}
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.config.py }}
+          python-version: ${{ matrix.py }}
       - name: OpenMPI cache
         uses: actions/cache@v2
         id:   cache-ompi
         with:
           path: ~/openmpi-4.0.2
-          key:  ${{ matrix.config.os }}-openmpi-4.0.2-${{ matrix.config.cxx }}
+          key:  ${{ matrix.os }}-openmpi-4.0.2-${{ matrix.cxx }}-${{ matrix.ver }}
       - name: Build OpenMPI
         if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
         run: |
@@ -105,10 +55,8 @@ jobs:
            cd ~
            cd openmpi-4.0.2
            sudo make install
+           sudo ldconfig
            cd -
-      - name: Update shared library cache
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
-        run: sudo ldconfig
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
       - name: Clone w/ submodules
@@ -122,24 +70,21 @@ jobs:
           python --version
           mpic++ --show
           mpicc --show
-          echo $PYTHONPATH
       - name: Build arbor
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.mpi }} -DARB_USE_BUNDLED_LIBS=ON
           make -j4 tests examples pyarb html
           cd -
       - name: Run unit tests
         run:  build/bin/unit
-      - if:   ${{ matrix.config.mpi == 'ON' }}
+      - if:   ${{ matrix.mpi == 'ON' }}
         name: Run MPI tests
         run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
       - name: Run python tests
-        run:  |
-          ls $PYTHONPATH
-          python python/test/unit/runner.py
-      - if:   ${{ matrix.config.mpi == 'ON' }}
+        run:  python python/test/unit/runner.py
+      - if:   ${{ matrix.mpi == 'ON' }}
         name: Run python+MPI tests
         run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py
       - name: Run Python examples
