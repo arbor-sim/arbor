@@ -135,7 +135,7 @@ protected:
     using ion_state_entry = std::pair<const char*, ion_state_view*>;
     using mechanism_ion_state_table = std::vector<ion_state_entry>;
 
-    using ion_index_entry = std::pair<const char*, index_type*>;
+    using ion_index_entry = std::pair<const char*, index_type**>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
     // Generated mechanisms must implement the following methods, together with
