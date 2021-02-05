@@ -14,11 +14,11 @@ Interconnectivity
 
     .. attribute:: source
 
-        The source end point of the connection (type: :class:`arbor.cell_member` or a (gid, index) tuple).
+        The source end point of the connection (type: :class:`arbor.cell_member`, which can be initialized with a (gid, index) tuple).
 
     .. attribute:: dest
 
-        The destination end point of the connection (type: :class:`arbor.cell_member` or a (gid, index) tuple).
+        The destination end point of the connection (type: :class:`arbor.cell_member`, which can be initialized with a (gid, index) tuple).
 
     .. attribute:: weight
 
