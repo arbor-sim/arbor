@@ -4,6 +4,7 @@
 
 #include <tree.hpp>
 
+using namespace arb;
 using int_type = arb::tree::int_type;
 using iarray = arb::tree::iarray;
 
@@ -11,37 +12,37 @@ TEST(tree, minimal_degree)
 {
     {
         std::vector<int> v = {0};
-        EXPECT_TRUE(arb::is_minimal_degree(v));
+        EXPECT_TRUE(is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 0, 1, 2, 3, 4};
-        EXPECT_TRUE(arb::is_minimal_degree(v));
+        EXPECT_TRUE(is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 0, 1, 2, 0, 4};
-        EXPECT_TRUE(arb::is_minimal_degree(v));
+        EXPECT_TRUE(is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 0, 1, 2, 0, 4, 5, 4};
-        EXPECT_TRUE(arb::is_minimal_degree(v));
+        EXPECT_TRUE(is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {1};
-        EXPECT_FALSE(arb::is_minimal_degree(v));
+        EXPECT_FALSE(is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 2};
-        EXPECT_FALSE(arb::is_minimal_degree(v));
+        EXPECT_FALSE(is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 1, 2};
-        EXPECT_FALSE(arb::is_minimal_degree(v));
+        EXPECT_FALSE(is_minimal_degree(v));
     }
 }
 
@@ -68,15 +69,12 @@ TEST(tree, child_count)
         std::vector<int> expected_child_count =
             { 3, 1, 1, 0, 1, 0, 1, 1, 2, 1, 0, 1, 1, 0 };
 
-        // auto count = arb::child_count(parent_index);
-        EXPECT_EQ(expected_child_count,
-                  arb::child_count(parent_index));
+        EXPECT_EQ(expected_child_count,child_count(parent_index));
     }
 
 }
 
 TEST(tree, from_segment_index) {
-    using namespace arb;
     auto no_parent = tree::no_parent;
 
     // tree with single branch corresponding to the root node
@@ -241,8 +239,6 @@ TEST(tree, from_segment_index) {
 }
 
 TEST(tree, depth_from_root) {
-    using namespace arb;
-
     // tree with single branch corresponding to the root node
     // this is equivalent to a single compartment model
     //      CASE 1 : single root node in parent_index

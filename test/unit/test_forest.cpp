@@ -4,35 +4,36 @@
 
 #include <backends/gpu/forest.hpp>
 
+using namespace arb::gpu;
 TEST(forest, is_strictly_monotonic_increasing)
 {
     EXPECT_TRUE(
-        arb::gpu::is_strictly_monotonic_increasing(
+        is_strictly_monotonic_increasing(
             std::vector<int>{0}
         )
     );
     EXPECT_TRUE(
-        arb::gpu::is_strictly_monotonic_increasing(
+        is_strictly_monotonic_increasing(
             std::vector<int>{0, 1, 2, 3}
         )
     );
     EXPECT_TRUE(
-        arb::gpu::is_strictly_monotonic_increasing(
+        is_strictly_monotonic_increasing(
             std::vector<int>{8, 20, 42, 89}
         )
     );
     EXPECT_FALSE(
-        arb::gpu::is_strictly_monotonic_increasing(
+        is_strictly_monotonic_increasing(
             std::vector<int>{0, 0}
         )
     );
     EXPECT_FALSE(
-        arb::gpu::is_strictly_monotonic_increasing(
+        is_strictly_monotonic_increasing(
             std::vector<int>{8, 20, 20, 89}
         )
     );
     EXPECT_FALSE(
-        arb::gpu::is_strictly_monotonic_increasing(
+        is_strictly_monotonic_increasing(
             std::vector<int>{3, 2, 1, 0}
         )
     );
@@ -52,7 +53,7 @@ TEST(forest, has_contiguous_compartments)
     //   5       6
     //
     EXPECT_FALSE(
-        arb::gpu::has_contiguous_compartments(
+        has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 2, 3, 4, 2}
         )
     );
@@ -69,7 +70,7 @@ TEST(forest, has_contiguous_compartments)
     //   4       7
     //
     EXPECT_FALSE(
-        arb::gpu::has_contiguous_compartments(
+        has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 2, 5}
         )
     );
@@ -86,7 +87,7 @@ TEST(forest, has_contiguous_compartments)
     //   4       6
     //
     EXPECT_TRUE(
-        arb::gpu::has_contiguous_compartments(
+        has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 5, 2}
         )
     );
@@ -103,7 +104,7 @@ TEST(forest, has_contiguous_compartments)
     //   4       6
     //
     EXPECT_TRUE(
-        arb::gpu::has_contiguous_compartments(
+        has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 5, 1}
         )
     );
@@ -116,21 +117,21 @@ TEST(forest, has_contiguous_compartments)
     // 3   4
     //
     EXPECT_TRUE(
-        arb::gpu::has_contiguous_compartments(
+        has_contiguous_compartments(
             std::vector<int>{0, 0, 0, 1, 1}
         )
     );
 
     // Soma-only list
     EXPECT_TRUE(
-        arb::gpu::has_contiguous_compartments(
+        has_contiguous_compartments(
             std::vector<int>{0}
         )
     );
 
     // Empty list
     EXPECT_TRUE(
-        arb::gpu::has_contiguous_compartments(
+        has_contiguous_compartments(
             std::vector<int>{}
         )
     );
@@ -161,11 +162,11 @@ TEST(forest, branches) {
         std::vector<int> expected_parent_index =
             { 0, 0, 0, 0, 3, 3 };
 
-        auto actual_branches = arb::gpu::branches(parent_index);
+        auto actual_branches = branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
 
         auto actual_parent_index =
-            arb::gpu::tree_reduce(parent_index, actual_branches);
+            tree_reduce(parent_index, actual_branches);
         EXPECT_EQ(expected_parent_index, actual_parent_index);
 
         // Check expand_branches
