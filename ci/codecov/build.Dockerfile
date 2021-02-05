@@ -15,6 +15,11 @@ RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
     git tar wget curl && \
     rm -rf /var/lib/apt/lists/*
 
+# Install g++8
+RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
+    g++-8 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install cmake
 RUN wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
 
