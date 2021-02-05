@@ -16,7 +16,7 @@ stages:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u $CSCS_REGISTRY_USER -p $CSCS_REGISTRY_PASSWORD $CSCS_REGISTRY
     - docker build -f $BUILD_DOCKERFILE --network=host --cache-from $BUILD_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 -t $BUILD_IMAGE .
     - docker push $BUILD_IMAGE
     - docker build -f $DEPLOY_DOCKERFILE --network=host --build-arg BUILD_ENV=$BUILD_IMAGE -t $DEPLOY_IMAGE .
@@ -26,17 +26,17 @@ build release:
   extends: .build_docker_images
   variables:
     BUILD_DOCKERFILE: ci/release/build.Dockerfile
-    BUILD_IMAGE: $CI_REGISTRY_IMAGE/release/build:latest
+    BUILD_IMAGE: $CSCS_REGISTRY_IMAGE/release/build:latest
     DEPLOY_DOCKERFILE: ci/release/deploy.Dockerfile
-    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+    DEPLOY_IMAGE: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
 
 build codecov:
   extends: .build_docker_images
   variables:
     BUILD_DOCKERFILE: ci/codecov/build.Dockerfile
-    BUILD_IMAGE: $CI_REGISTRY_IMAGE/codecov/build:latest
+    BUILD_IMAGE: $CSCS_REGISTRY_IMAGE/codecov/build:latest
     DEPLOY_DOCKERFILE: ci/codecov/deploy.Dockerfile
-    DEPLOY_IMAGE: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+    DEPLOY_IMAGE: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
 
 notify_github_start:
   stage: build
@@ -62,7 +62,7 @@ variables:
 ### Release tests ###
 allocate release:
   stage: allocate
-  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
   extends: .daint_alloc
   variables:
@@ -71,7 +71,7 @@ allocate release:
 
 single node release:
   extends: .daint
-  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
   stage: test
   script:
@@ -85,7 +85,7 @@ single node release:
 
 multi node release:
   extends: .daint
-  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
   stage: test
   script:
@@ -97,7 +97,7 @@ multi node release:
 
 deallocate release:
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   stage: cleanup
   extends: .daint_dealloc
   variables:
@@ -107,7 +107,7 @@ deallocate release:
 allocate codecov:
   stage: allocate
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   extends: .daint_alloc
   variables:
     PULL_IMAGE: 'YES'
@@ -116,7 +116,7 @@ allocate codecov:
 single node codecov:
   extends: .daint
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
   script:
     - codecov_pre
@@ -135,7 +135,7 @@ single node codecov:
 multi node codecov:
   extends: .daint
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: test
   script:
     - codecov_pre
@@ -152,7 +152,7 @@ multi node codecov:
 upload codecov reports:
   extends: .daint
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: upload_reports
   variables:
     SLURM_JOB_NUM_NODES: 1
@@ -162,7 +162,7 @@ upload codecov reports:
 
 deallocate codecov:
   only: ['master', 'staging', 'trying']
-  image: $CI_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
+  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
   stage: cleanup
   extends: .daint_dealloc
   variables:
