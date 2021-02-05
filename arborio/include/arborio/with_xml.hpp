@@ -2,11 +2,11 @@
 
 // Wrap initialization and cleanup of libxml2 library.
 //
-// Use of `with_xml` is only necessary if arbornml is being
+// Use of `with_xml` is only necessary if arborio is being
 // used in a multithreaded context and the client code is
 // not managing libxml2 initialization and cleanup.
 
-namespace arbnml {
+namespace arborio {
 
 struct with_xml {
     with_xml();
@@ -21,4 +21,4 @@ struct with_xml {
     bool run_cleanup_;
 };
 
-} // namespace arbnml
+} // namespace arborio
