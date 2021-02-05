@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.1-devel-ubuntu18.04
+FROM nvidia/cuda:10.2-devel-ubuntu18.04
 
 WORKDIR /root
 
@@ -10,15 +10,12 @@ ENV MPICH_VERSION ${MPICH_VERSION}
 
 # Install basic tools
 RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
-    build-essential \
     python3 \
-    git tar wget curl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install g++8
-RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
-    gcc-8 g++-8 && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8 && \
+    git tar wget curl \
+    gcc-8 g++-8 make && \
+    update-alternatives \
+        --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 \
+        --slave /usr/bin/g++ g++ /usr/bin/g++-8 && \
     update-alternatives --config gcc && \
     rm -rf /var/lib/apt/lists/*
 

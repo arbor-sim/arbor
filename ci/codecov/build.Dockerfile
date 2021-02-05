@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.1-devel-ubuntu18.04
+FROM nvidia/cuda:10.2-devel-ubuntu18.04
 
 WORKDIR /root
 
@@ -10,17 +10,21 @@ ENV MPICH_VERSION ${MPICH_VERSION}
 
 # Install basic tools
 RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
-    build-essential lcov \
     python3 \
-    git tar wget curl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install g++8
-RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
-    gcc-8 g++-8 && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8 && \
+    git tar wget curl \
+    gcc-8 g++-8 make && \
+    update-alternatives \
+        --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 \
+        --slave /usr/bin/g++ g++ /usr/bin/g++-8 \
+        --slave /usr/bin/gcov gcov /usr/bin/gcov-8 && \
     update-alternatives --config gcc && \
     rm -rf /var/lib/apt/lists/*
+
+RUN wget -q "https://github.com/linux-test-project/lcov/archive/v1.14.tar.gz" && \
+    tar -xzf v1.14.tar.gz && \
+    cd lcov-1.14 && \
+    make install -j$(nproc) && \
+    rm -rf lcov-1.14 v1.14.tar.gz
 
 # Install cmake
 RUN wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
