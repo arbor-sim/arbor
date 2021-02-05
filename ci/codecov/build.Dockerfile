@@ -17,7 +17,9 @@ RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
 
 # Install g++8
 RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
-    g++-8 && \
+    gcc-8 g++-8 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8 && \
+    update-alternatives --config gcc && \
     rm -rf /var/lib/apt/lists/*
 
 # Install cmake
