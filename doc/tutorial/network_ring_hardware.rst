@@ -3,6 +3,9 @@
 A ring network
 ==============
 
+.. todo::
+   In this or the a follow-up tutorial, cells with more than one in- and outgoing connection will be described. In calling `arbor.cell_member`, source and dest indices are actually different.
+
 In this example, we will build on the :ref:`ring network example <tutorialnetworkring>`.
 We'll run a larger network on GPUs and using MPI on multiple nodes in a supercomputer.
 

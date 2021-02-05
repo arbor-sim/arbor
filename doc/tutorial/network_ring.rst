@@ -111,7 +111,7 @@ Now that we can generate as many copies of this cell as we need, let's set the r
 
 Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main difference, apart from connecting the cells, is returning a variable number of cells **(6)** and returning a new cell per ``gid`` **(7)**.
 
-Step **(8)** creates a :class:`arbor.connection` between this cell and the previous (the ``gid`` of the previous cell is ``(gid-1)%self.ncells``), with a weight of 0.1 μS and a delay of 5 ms. The two arguments to :class:`arbor.cell_member` refer to the cell ``gid`` (first argument) and the index of the synapse (second argument). Only one synapse was defined (step **4**), so the index is always 0. :func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one connection coming in and one going out.
+Step **(8)** creates a :class:`arbor.connection` between this cell and the previous (the ``gid`` of the previous cell is ``(gid-1)%self.ncells``), with a weight of 0.1 μS and a delay of 5 ms. The two arguments to :class:`arbor.cell_member` refer to the cell ``gid`` (first argument) and the index of the synapse (second argument). Only one synapse was defined (step **4**), so the index is always 0. :func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one connection coming in and one going out. Note that an `arbor.cell_member` can be initialized with a `(gid, index)` tuple.
 
 Step **(9)** creates an :class:`arbor.event_generator` on the 0th cell. The :class:`arbor.explicit_schedule` in instantiated with a list of times with unit ms, so a schedule with a period of a millisecond is created.
 
@@ -149,7 +149,7 @@ Step **(10)** instantiates the recipe with 4 cells.
          src = (gid-1)%self.ncells
          w = 0.01
          d = 5
-         return [arbor.connection(arbor.cell_member(src,0), arbor.cell_member(gid,0), w, d)]
+         return [arbor.connection((src,0), (gid,0), w, d)]
 
       def num_targets(self, gid):
          return 1
@@ -161,7 +161,7 @@ Step **(10)** instantiates the recipe with 4 cells.
       def event_generators(self, gid):
          if gid==0:
                sched = arbor.explicit_schedule([1])
-               return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
+               return [arbor.event_generator((0,0), 0.1, sched)]
          return []
 
       def probes(self, gid):
