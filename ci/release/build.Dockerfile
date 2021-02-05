@@ -31,3 +31,8 @@ RUN wget -q https://github.com/haampie/libtree/releases/download/v1.2.0/libtree_
     tar -xzf libtree_x86_64.tar.gz && \
     rm libtree_x86_64.tar.gz && \
     ln -s /root/libtree/libtree /usr/local/bin/libtree
+
+# Install libxml
+RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
+    libxml2-dev && \
+    rm -rf /var/lib/apt/lists/*
