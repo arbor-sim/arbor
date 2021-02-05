@@ -5,8 +5,8 @@
 #include <tree.hpp>
 
 using namespace arb;
-using int_type = arb::tree::int_type;
-using iarray = arb::tree::iarray;
+using int_type = tree::int_type;
+using iarray = tree::iarray;
 
 TEST(tree, minimal_degree)
 {
