@@ -8,9 +8,9 @@ if(ARB_WITH_NEUROML)
             with_xml.cpp
             xmlwrap.cpp
         )
+    find_package(LibXml2 REQUIRED)
 endif()
 
-find_package(LibXml2 REQUIRED)
 
 add_library(arborio ${arborio-sources})
 
