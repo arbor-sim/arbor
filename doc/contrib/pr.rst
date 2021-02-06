@@ -32,12 +32,13 @@ the workflow is as follows:
    as the Arbor project.
    If this is a problem for you, please contact us at
    `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
-5. A PR on Github is automatically built and tested by our CI bot called Travis.
-   You can also run these tests yourself by building them first
+5. A PR on Github is automatically built and tested by GitHub Actions CI pipelines.
+   You can run these tests yourself by building them first
    (``make tests``) and then running them (``./bin/*unit*``).
 
    -  If you make changes effecting simulations on GPUs, you can post a reply to
-      your PR with ``bors try``. This will run our GPU test-suite.
+      your PR with ``bors try``, which will run the test-suite with GPU and MPI
+      enabled on `Piz Daint <https://www.cscs.ch/computers/piz-daint/>`_.
 6. A member of the Arbor development team will review your contribution.
    If they approve, your PR will be merged! Normally this should happen
    within a few days.
@@ -55,7 +56,7 @@ Each pull request is reviewed according to these guidelines:
 
 -  At least one core Arbor team member needs to mark your PR with a
    positive review.
--  Travis CI must produce a favourable result on your PR.
+-  GitHub Actions CI must produce a favourable result on your PR.
 -  An Arbor team member will (squash) merge the PR with the PR change
    summery as commit message.
 -  Consider using Gitpod to review larger PRs, see under checks on the Github PR page.
