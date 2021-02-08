@@ -91,19 +91,25 @@ void ion_state::reset() {
 
 shared_state::shared_state(
     fvm_size_type n_intdom,
+    fvm_size_type n_cell,
+    fvm_size_type n_detector,
     const std::vector<fvm_index_type>& cv_to_intdom_vec,
+    const std::vector<fvm_index_type>& cv_to_cell_vec,
     const std::vector<fvm_gap_junction>& gj_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
     const std::vector<fvm_value_type>& diam,
+    const std::vector<fvm_index_type>& src_to_spike,
     unsigned align
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
     n_intdom(n_intdom),
+    n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
     n_gj(gj_vec.size()),
     cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
+    cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
     gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
     time(n_intdom, pad(alignment)),
     time_to(n_intdom, pad(alignment)),
@@ -115,6 +121,8 @@ shared_state::shared_state(
     init_voltage(init_membrane_potential.begin(), init_membrane_potential.end(), pad(alignment)),
     temperature_degC(n_cv, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
+    time_since_spike(n_cell*n_detector, pad(alignment)),
+    src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
     deliverable_events(n_intdom)
 {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
@@ -122,11 +130,16 @@ shared_state::shared_state(
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
         std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
     }
+    if (cv_to_cell_vec.size()) {
+        std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
+        std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
+    }
     if (n_gj>0) {
         std::copy(gj_vec.begin(), gj_vec.end(), gap_junctions.begin());
         std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
     }
 
+    util::fill(time_since_spike, -1.0);
     for (unsigned i = 0; i<n_cv; ++i) {
         temperature_degC[i] = temperature_K[i] - 273.15;
     }
@@ -148,6 +161,7 @@ void shared_state::reset() {
     util::fill(conductivity, 0);
     util::fill(time, 0);
     util::fill(time_to, 0);
+    util::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
         i.second.reset();

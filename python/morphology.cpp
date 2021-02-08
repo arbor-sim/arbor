@@ -10,10 +10,16 @@
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
+#include <arbor/version.hpp>
 
 #include <arborio/swcio.hpp>
 
+#ifdef ARB_NEUROML_ENABLED
+#include <arborio/arbornml.hpp>
+#endif
+
 #include "error.hpp"
+#include "proxy.hpp"
 #include "strprintf.hpp"
 
 namespace py = pybind11;
@@ -77,7 +83,7 @@ void register_morphology(py::module& m) {
         .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
         .def_readonly("z", &arb::mpoint::z, "Z coordinate [μm].")
         .def_readonly("radius", &arb::mpoint::radius,
-            "Radius of cable at sample location centered at coordinates [μm].")
+            "Radius of cable at sample location centred at coordinates [μm].")
         .def(py::self==py::self)
         .def("__str__",
             [](const arb::mpoint& p) {
@@ -281,8 +287,8 @@ void register_morphology(py::module& m) {
         "filename"_a, "no_gaps"_a=false,
         "Generate a morphology from an SWC file following the rules prescribed by AllenDB\n"
         " and Sonata. Specifically:\n"
-        "* The first sample (the root) is treated as the center of the soma.\n"
-        "* The first morphology is translated such that the soma is centered at (0,0,0).\n"
+        "* The first sample (the root) is treated as the centre of the soma.\n"
+        "* The first morphology is translated such that the soma is centred at (0,0,0).\n"
         "* The first sample has tag 1 (soma).\n"
         "* All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)\n"
         "SONATA prescribes that there should be no gaps, however the models in AllenDB\n"
@@ -290,7 +296,7 @@ void register_morphology(py::module& m) {
         "used to enforce this requirement.\n"
         "\n"
         "Arbor does not support modelling the soma as a sphere, so a cylinder with length\n"
-        "equal to the soma diameter is used. The cylinder is centered on the origin, and\n"
+        "equal to the soma diameter is used. The cylinder is centred on the origin, and\n"
         "aligned along the z axis.\n"
         "Axons and apical dendrites are attached to the proximal end of the cylinder, and\n"
         "dendrites to the distal end, with a gap between the start of each branch and the\n"
@@ -363,6 +369,91 @@ void register_morphology(py::module& m) {
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);
                 });
+
+#ifdef ARB_NEUROML_ENABLED
+    // arborio::morphology_data
+    py::class_<arborio::morphology_data> nml_morph_data(m, "neuroml_morph_data");
+    nml_morph_data
+        .def_readonly("cell_id",
+            &arborio::morphology_data::cell_id,
+            "Cell id, or empty if morphology was taken from a top-level <morphology> element.")
+        .def_readonly("id",
+            &arborio::morphology_data::id,
+            "Morphology id.")
+        .def_readonly("morphology",
+            &arborio::morphology_data::morphology,
+            "Morphology constructed from a signle NeuroML <morphology> element.")
+        .def("segments",
+            [](const arborio::morphology_data& md) {return label_dict_proxy(md.segments);},
+            "Label dictionary containing one region expression for each segment id.")
+        .def("named_segments",
+             [](const arborio::morphology_data& md) {return label_dict_proxy(md.named_segments);},
+            "Label dictionary containing one region expression for each name applied to one or more segments.")
+        .def("groups",
+             [](const arborio::morphology_data& md) {return label_dict_proxy(md.groups);},
+            "Label dictionary containing one region expression for each segmentGroup id.")
+        .def_readonly("group_segments",
+            &arborio::morphology_data::group_segments,
+            "Map from segmentGroup ids to their corresponding segment ids.");
+
+    // arborio::neuroml
+    py::class_<arborio::neuroml> neuroml(m, "neuroml");
+    neuroml
+        // constructors
+        .def(py::init(
+            [](std::string fname){
+              std::ifstream fid{fname};
+              if (!fid.good()) {
+                  throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+              }
+              try {
+                  std::string string_data((std::istreambuf_iterator<char>(fid)),
+                                           std::istreambuf_iterator<char>());
+                  return arborio::neuroml(string_data);
+              }
+              catch (arborio::neuroml_exception& e) {
+                  // Try to produce helpful error messages for SWC parsing errors.
+                  throw pyarb_error(
+                      util::pprintf("NeuroML error processing file {}: ", fname, e.what()));
+              }
+            }))
+        .def("cell_ids",
+             [](const arborio::neuroml& nml) {
+                try {
+                    return nml.cell_ids();
+                }
+                catch (arborio::neuroml_exception& e) {
+                    throw util::pprintf("NeuroML error: {}", e.what());
+                }
+             },"Query top-level cells.")
+        .def("morphology_ids",
+             [](const arborio::neuroml& nml) {
+                try {
+                    return nml.morphology_ids();
+                }
+                catch (arborio::neuroml_exception& e) {
+                    throw util::pprintf("NeuroML error: {}", e.what());
+                }
+             },"Query top-level standalone morphologies.")
+        .def("morphology",
+             [](const arborio::neuroml& nml, const std::string& morph_id) {
+                try {
+                    return nml.morphology(morph_id);
+                }
+                catch (arborio::neuroml_exception& e) {
+                    throw util::pprintf("NeuroML error: {}", e.what());
+                }
+             },"morph_id"_a,"Retrieve top-level nml_morph_data associated with morph_id.")
+        .def("cell_morphology",
+             [](const arborio::neuroml& nml, const std::string& cell_id) {
+               try {
+                   return nml.cell_morphology(cell_id);
+               }
+               catch (arborio::neuroml_exception& e) {
+                   throw util::pprintf("NeuroML error: {}", e.what());
+               }
+             },"morph_id"_a,"Retrieve nml_morph_data associated with cell_id.");
+#endif
 }
 
 } // namespace pyarb

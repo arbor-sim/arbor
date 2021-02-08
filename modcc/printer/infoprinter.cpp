@@ -13,7 +13,9 @@
 using io::quote;
 
 struct id_field_info {
-    id_field_info(const Id& id, const char* kind): id(id), kind(kind) {}
+    id_field_info(const Id& id, const char* kind):
+        id(id),
+        kind(kind) {}
 
     const Id& id;
     const char* kind;
@@ -24,10 +26,10 @@ std::ostream& operator<<(std::ostream& out, const id_field_info& wrap) {
 
     out << "{" << quote(id.name()) << ", "
         << "{spec::" << wrap.kind << ", " << quote(id.unit_string()) << ", "
-        << (id.has_value()? id.value: "0");
+        << (id.has_value() ? id.value : "0");
 
     if (id.has_range()) {
-        out << ", " << id.range.first.spelling << "," << id.range.second.spelling;
+        out << ", " << id.range.first << "," << id.range.second;
     }
 
     out << "}}";
@@ -35,7 +37,8 @@ std::ostream& operator<<(std::ostream& out, const id_field_info& wrap) {
 }
 
 struct ion_dep_info {
-    ion_dep_info(const IonDep& ion): ion(ion) {}
+    ion_dep_info(const IonDep& ion):
+        ion(ion) {}
 
     const IonDep& ion;
 };
@@ -45,13 +48,13 @@ std::ostream& operator<<(std::ostream& out, const ion_dep_info& wrap) {
     const IonDep& ion = wrap.ion;
 
     return out << "{\"" << ion.name << "\", {"
-        << boolalpha[ion.writes_concentration_int()] << ", "
-        << boolalpha[ion.writes_concentration_ext()] << ", "
-        << boolalpha[ion.uses_rev_potential()] << ", "
-        << boolalpha[ion.writes_rev_potential()] << ", "
-        << boolalpha[ion.uses_valence()] << ", "
-        << boolalpha[ion.verifies_valence()] << ", "
-        << ion.expected_valence << "}}";
+               << boolalpha[ion.writes_concentration_int()] << ", "
+               << boolalpha[ion.writes_concentration_ext()] << ", "
+               << boolalpha[ion.uses_rev_potential()] << ", "
+               << boolalpha[ion.writes_rev_potential()] << ", "
+               << boolalpha[ion.uses_valence()] << ", "
+               << boolalpha[ion.verifies_valence()] << ", "
+               << ion.expected_valence << "}}";
 }
 
 std::string build_info_header(const Module& m, const printer_options& opt) {
@@ -69,29 +72,28 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
 
     io::pfxstringstream out;
 
-    out <<
-        "#pragma once\n"
-        "#include <memory>\n"
-        "\n"
-        "#include <" << arb_header_prefix() << "mechanism.hpp>\n"
-        "#include <" << arb_header_prefix() << "mechinfo.hpp>\n"
-        "\n"
-        << namespace_declaration_open(ns_components) <<
-        "\n"
-        "template <typename Backend>\n"
-        "::arb::concrete_mech_ptr<Backend> make_mechanism_" << name << "();\n"
-        "\n"
-        "inline const ::arb::mechanism_info& mechanism_" << name << "_info() {\n"
+    out << "#pragma once\n"
+           "#include <memory>\n"
+           "\n"
+           "#include <"
+        << arb_header_prefix() << "mechanism.hpp>\n"
+                                  "#include <"
+        << arb_header_prefix() << "mechinfo.hpp>\n"
+                                  "\n"
+        << namespace_declaration_open(ns_components) << "\n"
+                                                        "template <typename Backend>\n"
+                                                        "::arb::concrete_mech_ptr<Backend> make_mechanism_"
+        << name << "();\n"
+                   "\n"
+                   "inline const ::arb::mechanism_info& mechanism_"
+        << name << "_info() {\n"
         << indent;
 
-   any_fields && out <<
-        "using spec = ::arb::mechanism_field_spec;\n";
+    any_fields&& out << "using spec = ::arb::mechanism_field_spec;\n";
 
-   out <<
-        "static ::arb::mechanism_info info = {\n"
-        << indent <<
-        "// globals\n"
-        "{\n"
+    out << "static ::arb::mechanism_info info = {\n"
+        << indent << "// globals\n"
+                     "{\n"
         << indent;
 
     io::separator sep(",\n");
@@ -99,8 +101,7 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         out << sep << id_field_info(id, "global");
     }
 
-    out << popindent <<
-        "\n},\n// parameters\n{\n"
+    out << popindent << "\n},\n// parameters\n{\n"
         << indent;
 
     sep.reset();
@@ -108,8 +109,7 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         out << sep << id_field_info(id, "parameter");
     }
 
-    out << popindent <<
-        "\n},\n// state variables\n{\n"
+    out << popindent << "\n},\n// state variables\n{\n"
         << indent;
 
     sep.reset();
@@ -117,8 +117,7 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         out << sep << id_field_info(id, "state");
     }
 
-    out << popindent <<
-        "\n},\n// ion dependencies\n{\n"
+    out << popindent << "\n},\n// ion dependencies\n{\n"
         << indent;
 
     sep.reset();
@@ -128,16 +127,18 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
 
     std::string fingerprint = "<placeholder>";
     out << popindent << "\n"
-        "},\n"
-        "// fingerprint\n" << quote(fingerprint) << ",\n"
-        "// linear, homogeneous mechanism\n" << m.is_linear() << "\n"
-        << popindent <<
-        "};\n"
-        "\n"
-        "return info;\n"
-        << popindent <<
-        "}\n"
-        "\n"
+                        "},\n"
+                        "// fingerprint\n"
+        << quote(fingerprint) << ",\n"
+                                 "// linear, homogeneous mechanism\n"
+        << m.is_linear() << ",\n"
+                             "// post_events enabled mechanism\n"
+        << m.has_post_events() << "\n"
+        << popindent << "};\n"
+                        "\n"
+                        "return info;\n"
+        << popindent << "}\n"
+                        "\n"
         << namespace_declaration_close(ns_components);
 
     return out.str();

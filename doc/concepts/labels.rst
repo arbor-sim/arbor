@@ -53,7 +53,7 @@ Label types
 
 Possible locsets might refer to:
 
-* The center of the soma.
+* The centre of the soma.
 * The locations of inhibitory synapses.
 * The tips of the dendritic tree.
 

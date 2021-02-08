@@ -107,7 +107,10 @@ private:
     std::vector<mechanism_ptr> revpot_mechanisms_;
 
     // Non-physical voltage check threshold, 0 => no check.
-    value_type check_voltage_mV = 0;
+    value_type check_voltage_mV_ = 0;
+
+    // Flag indicating that at least one of the mechanisms implements the post_events procedure
+    bool post_events_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -231,7 +234,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->update_current();
         }
 
-
         // Deliver events and accumulate mechanism current contributions.
 
         PE(advance_integrate_events);
@@ -291,15 +293,24 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Update time and test for spike threshold crossings.
 
         PE(advance_integrate_threshold);
-        threshold_watcher_.test();
-        std::swap(state_->time_to, state_->time);
+        threshold_watcher_.test(&state_->time_since_spike);
         PL();
+
+        PE(advance_integrate_post)
+        if (post_events_) {
+            for (auto& m: mechanisms_) {
+                m->post_event();
+            }
+        }
+        PL();
+
+        std::swap(state_->time_to, state_->time);
 
         // Check for non-physical solutions:
 
-        if (check_voltage_mV>0) {
+        if (check_voltage_mV_>0) {
             PE(advance_integrate_physicalcheck);
-            assert_voltage_bounded(check_voltage_mV);
+            assert_voltage_bounded(check_voltage_mV_);
             PL();
         }
 
@@ -393,6 +404,26 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     // (Throws cable_cell_error on failure.)
     check_global_properties(global_props);
 
+    // Sanity check recipe; find max num_sources and
+    // create a list of the global identifiers for the spike sources
+
+    std::vector<fvm_size_type> nsources;
+    for (auto cell_idx: make_span(ncell)) {
+        cell_gid_type gid = gids[cell_idx];
+        auto& cell = cells[cell_idx];
+
+        auto num_sources = rec.num_sources(gid);
+        nsources.push_back(num_sources);
+
+        if (num_sources != cell.detectors().size()) {
+            throw arb::bad_source_description(gid, num_sources, cell.detectors().size());
+        }
+        auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) { return syn.second.size(); });
+        if (rec.num_targets(gid) > cell_targets) {
+            throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
+        }
+    }
+
     const mechanism_catalogue* catalogue = global_props.catalogue;
 
     // Mechanism instantiator helper.
@@ -403,9 +434,9 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Check for physically reasonable membrane volages?
 
-    check_voltage_mV = global_props.membrane_voltage_limit_mV;
+    check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
 
-    auto num_intdoms = fvm_intdom(rec, gids, cell_to_intdom);
+    auto nintdom = fvm_intdom(rec, gids, cell_to_intdom);
 
     // Discretize cells, build matrix.
 
@@ -418,7 +449,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     arb_assert(D.n_cell() == ncell);
     matrix_ = matrix<backend>(D.geometry.cv_parent, D.geometry.cell_cv_divs,
                               D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
-    sample_events_ = sample_event_stream(num_intdoms);
+    sample_events_ = sample_event_stream(nintdom);
 
     // Discretize mechanism data.
 
@@ -428,6 +459,21 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
 
+    // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
+    post_events_ = mech_data.post_events;
+    auto max_detector = post_events_ ? util::max_value(nsources) : 0;
+    std::vector<fvm_index_type> src_to_spike, cv_to_cell;
+
+    if (post_events_) {
+        for (auto cell_idx: make_span(ncell)) {
+            for (auto lid: make_span(nsources[cell_idx])) {
+                src_to_spike.push_back(cell_idx * max_detector + lid);
+            }
+        }
+        src_to_spike.shrink_to_fit();
+        cv_to_cell = D.geometry.cv_to_cell;
+    }
+
     // Create shared cell state.
     // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)
 
@@ -436,7 +482,8 @@ void fvm_lowered_cell_impl<Backend>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     state_ = std::make_unique<shared_state>(
-                num_intdoms, cv_to_intdom, gj_vector, D.init_membrane_potential, D.temperature_K, D.diam_um,
+                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell), gj_vector,
+                D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
@@ -533,16 +580,6 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
-
-        // Sanity check recipe
-        auto& cell = cells[cell_idx];
-        if (rec.num_sources(gid) != cell.detectors().size()) {
-            throw arb::bad_source_description(gid, rec.num_sources(gid), cell.detectors().size());;
-        }
-        auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) {return syn.second.size();});
-        if (rec.num_targets(gid) > cell_targets) {
-            throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
-        }
 
         // Collect detectors, probe handles.
         for (auto entry: cells[cell_idx].detectors()) {

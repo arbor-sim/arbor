@@ -32,16 +32,16 @@ proper definition for a morphology.
    :align: center
 
    **Field**,   **Type**, **Description**
-   ``x``,       real, x coordinate of center of cable (μm).
-   ``y``,       real, y coordinate of center of cable (μm).
-   ``z``,       real, z coordinate of center of cable (μm).
+   ``x``,       real, x coordinate of centre of cable (μm).
+   ``y``,       real, y coordinate of centre of cable (μm).
+   ``z``,       real, z coordinate of centre of cable (μm).
    ``radius``,  real, cross sectional radius of cable (μm).
 
 .. glossary::
 
   segment
   msegment
-    A segment is a frustum (cylinder or truncated cone), with the center and radius at each
+    A segment is a frustum (cylinder or truncated cone), with the centre and radius at each
     end defined by a pair of :term:`points <mpoint>`. In other words, in Arbor the radius between two points is interpolated
     linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
     centred at the line through the pair of points.
@@ -51,8 +51,8 @@ proper definition for a morphology.
    :align: center
 
    **Field**,      **Type**,                           **Description**
-   ``prox``,       :term:`mpoint`,   the center and radius of the proximal end.
-   ``dist``,       :term:`mpoint`,   the center and radius of the distal end.
+   ``prox``,       :term:`mpoint`,   the centre and radius of the proximal end.
+   ``dist``,       :term:`mpoint`,   the centre and radius of the distal end.
    ``tag``,        integer,              ":term:`tag` meta-data, can be used to classify segments of the same kind (ex: soma, dendrite, but also arbitrary use-defined groups"
 
 .. figure:: ../gen-images/term_segments.svg
@@ -677,7 +677,7 @@ Samples with the soma as a parent start new segments, that connect to the distal
 or to the proximal end of the soma if they are axons or apical dendrites. Only axons, dendrites and apical dendrites
 (tags 2, 3 and 4 respectively) are allowed in this interpretation, in addition to the spherical soma.
 
-Finally the Allen institute interpretation of SWC files centers the morphology around the soma at the origin (0, 0, 0)
+Finally the Allen institute interpretation of SWC files centres the morphology around the soma at the origin (0, 0, 0)
 and all samples are translated in space towards the origin.
 
 NEURON interpretation:

@@ -14,8 +14,7 @@
 #include <arbor/morph/stitch.hpp>
 #include <arbor/util/expected.hpp>
 
-#include <arbornml/arbornml.hpp>
-#include <arbornml/nmlexcept.hpp>
+#include <arborio/arbornml.hpp>
 
 #include "parse_morphology.hpp"
 #include "xmlwrap.hpp"
@@ -25,7 +24,7 @@ using arb::region;
 using arb::util::expected;
 using arb::util::unexpected;
 
-namespace arbnml {
+namespace arborio {
 
 // Box is a container of size 0 or 1.
 
@@ -554,4 +553,4 @@ morphology_data parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
     return M;
 }
 
-} // namespace arbnml
+} // namespace arborio
