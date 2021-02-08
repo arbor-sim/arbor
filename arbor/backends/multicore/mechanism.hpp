@@ -33,8 +33,9 @@ public:
     std::size_t memory() const override {
         std::size_t s = object_sizeof();
 
-        s += sizeof(value_type) * data_.size();
-        s += sizeof(size_type) * width_padded_ * (n_ion_ + 1); // node and ion indices.
+        s += sizeof(data_[0])        * data_.size();
+        s += sizeof(ion_indices_[0]) * ion_indices_.size();
+        s += sizeof(node_index_[0])  * node_index_.size();
         return s;
     }
 

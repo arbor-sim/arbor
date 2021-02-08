@@ -105,6 +105,14 @@ struct mechanism_overrides {
     std::unordered_map<std::string, std::string> ion_rebind;
 };
 
+struct ion_state_view {
+    fvm_value_type* current_density;
+    fvm_value_type* reversal_potential;
+    fvm_value_type* internal_concentration;
+    fvm_value_type* external_concentration;
+    fvm_value_type* ionic_charge;
+};
+
 template <typename Backend>
 class concrete_mechanism: public mechanism {
 public:
