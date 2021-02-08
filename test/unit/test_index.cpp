@@ -4,33 +4,10 @@
 
 #include "../gtest.h"
 
-#include "util/index.hpp"
 #include "util/index_into.hpp"
 #include "util/rangeutil.hpp"
 
 #include "common.hpp"
-
-TEST(util, make_index)
-{
-    {
-        std::vector<int> v(10, 1);
-        auto index = arb::util::make_index(v);
-
-        EXPECT_EQ(index.size(), 11u);
-        EXPECT_EQ(index.front(), 0);
-        EXPECT_EQ(index.back(), arb::util::sum(v));
-    }
-
-    {
-        std::vector<int> v(10);
-        std::iota(v.begin(), v.end(), 1);
-        auto index = arb::util::make_index(v);
-
-        EXPECT_EQ(index.size(), 11u);
-        EXPECT_EQ(index.front(), 0);
-        EXPECT_EQ(index.back(), arb::util::sum(v));
-    }
-}
 
 template <typename Sub, typename Sup>
 ::testing::AssertionResult validate_index_into(const Sub& sub, const Sup& sup) {

@@ -18,10 +18,8 @@ using timer_type = timer<>;
 using util::strprintf;
 
 template <typename C>
-typename util::sequence_traits<C>::value_type
-mean(C const& c)
-{
-    return util::sum(c)/std::size(c);
+double mean(const C& c) {
+    return util::sum(c)/(double)std::size(c);
 }
 
 measurement::measurement(std::string n, std::string u,

@@ -14,7 +14,6 @@
 #include "execution_context.hpp"
 #include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
-#include "util/index.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -104,7 +103,7 @@ communicator::communicator(const recipe& rec,
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
     connections_.resize(n_cons);
-    connection_part_ = util::make_index(src_counts);
+    util::make_partition(connection_part_, src_counts);
     auto offsets = connection_part_;
     std::size_t pos = 0;
     for (const auto& cell: gid_infos) {

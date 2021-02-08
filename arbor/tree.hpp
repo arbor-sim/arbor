@@ -9,7 +9,6 @@
 #include <arbor/common_types.hpp>
 
 #include "memory/memory.hpp"
-#include "util/index.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 

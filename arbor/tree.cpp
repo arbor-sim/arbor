@@ -8,6 +8,7 @@
 
 #include "memory/memory.hpp"
 #include "tree.hpp"
+#include "util/partition.hpp"
 #include "util/span.hpp"
 
 namespace arb {
@@ -28,7 +29,7 @@ tree::tree(std::vector<tree::int_type> parent_index) {
     parents_[0] = no_parent;
 
     // compute offsets into children_ array
-    memory::copy(util::make_index(child_count(parents_)), child_index_);
+    arb::util::make_partition(child_index_, child_count(parents_));
 
     std::vector<int_type> pos(parents_.size(), 0);
     for (auto i = 1u; i < parents_.size(); ++i) {
@@ -240,7 +241,7 @@ tree::iarray tree::select_new_root(int_type root) {
 
     // recompute the children array
     memory::copy(new_parents, parents_);
-    memory::copy(util::make_index(child_count(parents_)), child_index_);
+    arb::util::make_partition(child_index_, child_count(parents_));
 
     std::vector<int_type> pos(parents_.size(), 0);
     for (auto i = 1u; i < parents_.size(); ++i) {
