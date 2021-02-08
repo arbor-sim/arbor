@@ -482,3 +482,86 @@ Cell morphology
        Compose the two isometries to form a new isometry that applies *b* and then applies *a*.
        Note that rotations are composed as being with respect to the *intrinsic* coordinate system,
        while translations are always taken to be with respect to the *extrinsic* absolute coordinate system.
+
+
+.. py:class:: neuroml_morph_data
+
+    A :class:`neuroml_morphology_data` object contains a representation of a morphology defined in
+    NeuroML.
+
+
+    .. py:attribute:: cell_id
+       :type: optional<str>
+
+       The id attribute of the cell that was used to find the morphology in the NeuroML document, if any.
+
+    .. py:attribute:: id
+       :type: str
+
+       The id attribute of the morphology.
+
+    .. py:attribute:: group_segments
+       :type: dict[str, list[long]]
+
+       A map from each segment group id to its corresponding collection of segments.
+
+    .. py:method:: segments
+
+       Returns a label dictionary with a region entry for each segment, keyed by the segment id (as a string).
+
+       :rtype: label_dict
+
+    .. py:method:: named_segments
+
+       Returns a label dictionary with a region entry for each name attribute given to one or more segments.
+       The region corresponds to the union of all segments sharing the same name attribute.
+
+       :rtype: label_dict
+
+    .. py:method:: groups
+
+       Returns a label dictionary  with a region entry for each defined segment group.
+
+       :rtype: label_dict
+
+.. py:class:: neuroml
+
+    A :class:`neuroml` object represent NeuroML documents, and provides methods for the identification and
+    translation of morphology data.
+
+    An implementation limitation restricts valid segment id values to those which can be represented by an
+    unsigned long long value.
+
+   .. py:method:: neuroml(filename)
+
+      Build a NeuroML document representation from the supplied file contents.
+
+      :param str filename: the name of the NeuroML file.
+
+   .. py:method:: cell_ids()
+
+      Return the id of each ``<cell>`` element defined in the NeuroML document.
+
+      :rtype: list[str]
+
+   .. py:method:: morphology_ids()
+
+      Return the id of each top-level ``<morphology>`` element defined in the NeuroML document.
+
+      :rtype: list[str]
+
+   .. py:method:: morphology(morph_id)
+
+      Returns a representation of the top-level morphology with the supplied morph_id if it could be found.
+      Parse errors or an inconsistent representation will raise an exception.
+
+      :param str morph_id: ID of the top-level morphology.
+      :rtype: optional(neuroml_morph_data)
+
+   .. py:method:: cell_morphology(cell_id)
+
+      Returns a representation of the morphology associated with the cell with the supplied cell_id if it
+      could be found. Parse errors or an inconsistent representation will raise an exception.
+
+      :param str morph_id: ID of the cell.
+      :rtype: optional(neuroml_morph_data)

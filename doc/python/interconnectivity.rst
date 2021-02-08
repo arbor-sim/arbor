@@ -14,11 +14,11 @@ Interconnectivity
 
     .. attribute:: source
 
-        The source end point of the connection (type: :class:`arbor.cell_member`).
+        The source end point of the connection (type: :class:`arbor.cell_member`, which can be initialized with a (gid, index) tuple).
 
     .. attribute:: dest
 
-        The destination end point of the connection (type: :class:`arbor.cell_member`).
+        The destination end point of the connection (type: :class:`arbor.cell_member`, which can be initialized with a (gid, index) tuple).
 
     .. attribute:: weight
 
@@ -65,3 +65,12 @@ Interconnectivity
     .. attribute:: ggap
 
         The gap junction conductance [μS].
+
+.. class:: spike_detector
+
+    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an :ref:`arbor.connection`.
+
+    .. attribute:: threshold
+
+        Voltage threshold of spike detector [mV]
+
