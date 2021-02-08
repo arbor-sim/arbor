@@ -18,9 +18,8 @@ struct fvm_gap_junction {
     value_type weight;
 
     fvm_gap_junction() {}
-    fvm_gap_junction(std::pair<index_type, index_type> l, value_type w):
-        loc(l),
-        weight(w) {}
+    fvm_gap_junction(std::pair<index_type, index_type> l, value_type w): loc(l), weight(w) {}
+
 };
 
 } // namespace arb
