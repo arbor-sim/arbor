@@ -3,6 +3,7 @@
 // Base class for parameter packs for GPU generated kernels:
 // will be included by .cu generated sources.
 
+#include <arbor/mechanism.hpp>
 #include <arbor/fvm_types.hpp>
 
 namespace arb {
@@ -12,7 +13,7 @@ namespace gpu {
 struct mechanism_ppack_base {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
-    using ion_state_view = ion_state_view;
+  using ion_state_view = arb::ion_state_view;
 
     index_type width_;
     index_type n_detectors_;

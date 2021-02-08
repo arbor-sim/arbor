@@ -31,7 +31,7 @@ std::vector<fvm_value_type> mechanism_field(multicore::mechanism* m, const std::
 // GPU mechanisms:
 
 #ifdef ARB_GPU_ENABLED
-ACCESS_BIND(field_table_type (gpu::mechanism::*)(), gpu_field_table_ptr, &gpu::mechanism::field_table)
+ACCESS_BIND(field_table_type (concrete_mechanism<gpu::backend>::*)(), gpu_field_table_ptr, &concrete_mechanism<gpu::backend>::field_table)
 
 std::vector<fvm_value_type> mechanism_field(gpu::mechanism* m, const std::string& key) {
     auto opt_ptr = util::value_by_key((m->*gpu_field_table_ptr)(), key);

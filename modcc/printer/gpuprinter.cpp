@@ -116,7 +116,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "}\n\n";
 
     net_receive && out <<
-        "void deliver_events(deliverable_event_stream_state events) override {\n" << indent <<
+        "void nrn_deliver_events(deliverable_event_stream_state events) override {\n" << indent <<
         class_name << "_deliver_events_(mechanism_id_, pp_, events);\n" << popindent <<
         "}\n\n";
 
@@ -412,7 +412,7 @@ void emit_common_defs(std::ostream& out, const Module& module_) {
     }
     for (const auto& dep: ion_deps) {
         out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "const index_type* " << ion_state_index(dep.name) << ";\n";
+        out << "index_type* " << ion_state_index(dep.name) << ";\n";
     }
 
     out << popindent << "};\n\n";

@@ -24,7 +24,7 @@ public:
     }
 
     void write_ions() override {}
-    void deliver_events(deliverable_event_stream::state events) override {}
+    void nrn_deliver_events(deliverable_event_stream::state events) override {}
 
     mechanism_ppack_base* ppack_ptr() override {
         return &pp_;
