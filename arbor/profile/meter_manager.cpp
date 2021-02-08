@@ -156,7 +156,6 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
         o << strprintf("%-21s", name);
         int m_index = 0;
         for (const auto& m: report.meters) {
-            auto mean = [](const auto& c){return util::sum(c)/std::size(c);};
             if (m.name=="time") {
                 // Calculate the average time per rank in s.
                 double time = mean(m.measurements[cp_index]);
