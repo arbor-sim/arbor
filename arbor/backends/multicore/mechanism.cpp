@@ -159,23 +159,33 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         copy_extend(pos_data.multiplicity, multiplicity_, 1);
     }
 
-    for (auto i: ion_index_table()) {
-        auto ion_binding = value_by_key(overrides.ion_rebind, i.first).value_or(i.first);
+    {
+        auto table = ion_index_table();
+        // Allocate bulk storage
+        auto count = (table.size() + 1)*width_padded_;
+        ion_indices_ = iarray(count, 0, pad);
 
-        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
-        if (!oion) {
-            throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
+        auto base_ptr = ion_indices_.data();
+        for (const auto& [ion_name, ion_index_ptr]: table) {
+            // Index into shared_state respecting ion rebindings
+            auto ion_binding = value_by_key(overrides.ion_rebind, ion_name).value_or(ion_name);
+            ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
+            if (!oion) {
+                throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
+            }
+
+            // Set the table entry, step offset to next location
+            *ion_index_ptr = base_ptr;
+            base_ptr += width_padded_;
+
+            // Obtain index and move data
+            auto indices   = util::index_into(node_index_, oion->node_index_);
+            auto ion_index = make_range(*ion_index_ptr, *ion_index_ptr + width_padded_);
+            copy_extend(indices, ion_index, util::back(indices));
+
+            // Check SIMD constraints
+            arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width()));
         }
-
-        auto indices = util::index_into(node_index_, oion->node_index_);
-
-        auto ion_index = iarray(width_padded_, pad);
-        copy_extend(indices, ion_index, util::back(indices));
-
-        auto& ion_index_ptr = *i.second;
-        
-
-        arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width()));
     }
 }
 

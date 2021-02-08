@@ -858,8 +858,8 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                 out << "auto " << index_i_name(index.source_var) << " = " << index.source_var << "[" << index.index_name << "];\n";
                 break;
             default:
-                out << "auto " << index_i_name(index.source_var) << " = simd_cast<simd_index>(indirect(" << index.source_var
-                    << ".data() + " << index.index_name << ", simd_width_)); //Hay there: " << index.source_var << "\n";
+                out << "auto " << index_i_name(index.source_var) << " = simd_cast<simd_index>(indirect(&" << index.source_var
+                    << "[0] + " << index.index_name << ", simd_width_)); //Hay there: " << index.source_var << "\n";
                 break;
             }
         }

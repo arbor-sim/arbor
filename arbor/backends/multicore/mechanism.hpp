@@ -93,6 +93,7 @@ protected:
     // Bulk storage for state and parameter variables.
 
     array data_;
+    iarray ion_indices_;
 
     virtual unsigned simd_width() const { return 1; }
 };
