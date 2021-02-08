@@ -20,6 +20,7 @@ public:
     threshold_watcher(
         const fvm_index_type* cv_to_intdom,
         const fvm_value_type* values,
+        const fvm_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
         const std::vector<fvm_index_type>& cv_index,
@@ -28,6 +29,7 @@ public:
     ):
         cv_to_intdom_(cv_to_intdom),
         values_(values),
+        src_to_spike_(src_to_spike),
         t_before_ptr_(t_before),
         t_after_ptr_(t_after),
         n_cv_(cv_index.size()),
@@ -63,23 +65,34 @@ public:
     /// Tests each target for changed threshold state
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
-    void test() {
+    void test(array* time_since_spike) {
+        // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
         const fvm_value_type* t_before = t_before_ptr_->data();
         const fvm_value_type* t_after  = t_after_ptr_->data();
         for (fvm_size_type i = 0; i<n_cv_; ++i) {
             auto cv     = cv_index_[i];
-            auto cell   = cv_to_intdom_[cv];
+            auto intdom = cv_to_intdom_[cv];
             auto v_prev = v_prev_[i];
             auto v      = values_[cv];
             auto thresh = thresholds_[i];
+            fvm_index_type spike_idx = 0;
+
+            if (!time_since_spike->empty()) {
+                spike_idx = src_to_spike_[i];
+                (*time_since_spike)[spike_idx] = -1.0;
+            }
 
             if (!is_crossed_[i]) {
                 if (v>=thresh) {
                     // The threshold has been passed, so estimate the time using
                     // linear interpolation.
                     auto pos = (thresh - v_prev)/(v - v_prev);
-                    auto crossing_time = math::lerp(t_before[cell], t_after[cell], pos);
+                    auto crossing_time = math::lerp(t_before[intdom], t_after[intdom], pos);
                     crossings_.push_back({i, crossing_time});
+
+                    if (!time_since_spike->empty()) {
+                        (*time_since_spike)[spike_idx] = t_after[intdom] - crossing_time;
+                    }
 
                     is_crossed_[i] = true;
                 }
@@ -109,6 +122,7 @@ private:
     /// and pointers to the time arrays
     const fvm_index_type* cv_to_intdom_ = nullptr;
     const fvm_value_type* values_ = nullptr;
+    const fvm_index_type* src_to_spike_ = nullptr;
     const array* t_before_ptr_ = nullptr;
     const array* t_after_ptr_ = nullptr;
 

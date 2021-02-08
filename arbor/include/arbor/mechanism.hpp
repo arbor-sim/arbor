@@ -9,15 +9,12 @@
 
 namespace arb {
 
-enum class mechanismKind { point,
-    density,
-    revpot };
+enum class mechanismKind { point, density, revpot };
 
 class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
-template <typename B>
-class concrete_mechanism;
+template <typename B> class concrete_mechanism;
 template <typename B>
 using concrete_mech_ptr = std::unique_ptr<concrete_mechanism<B>>;
 
@@ -61,10 +58,11 @@ public:
 
     // Simulation interfaces:
     virtual void initialize() {};
-    virtual void update_state() {}
-    virtual void update_current() {}
-    virtual void deliver_events() {}
-    virtual void update_ions() {}
+    virtual void update_state() {};
+    virtual void update_current() {};
+    virtual void deliver_events() {};
+    virtual void post_event() {};
+    virtual void update_ions() {};
 
     virtual ~mechanism() = default;
 

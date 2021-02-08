@@ -21,7 +21,7 @@ endforeach()
 
 set(_override_lang @arbor_override_import_lang@)
 if(_override_lang)
-    foreach(target arbor::arbor arbor::arborenv arbor::arbornml)
+    foreach(target arbor::arbor arbor::arborenv arbor::arborio)
         if(TARGET ${target})
             set_target_properties(${target} PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES_@arbor_build_config@ "${_override_lang}")
         endif()
@@ -53,5 +53,5 @@ set(ARB_CXXOPT_ARCH @ARB_CXXOPT_ARCH@)
 
 _append_property(arbor::arbor INTERFACE_LINK_LIBRARIES @arbor_add_import_libs@)
 _append_property(arbor::arborenv INTERFACE_LINK_LIBRARIES @arborenv_add_import_libs@)
-_append_property(arbor::arbornml INTERFACE_LINK_LIBRARIES @arbornml_add_import_libs@)
+_append_property(arbor::arborio INTERFACE_LINK_LIBRARIES @arborio_add_import_libs@)
 

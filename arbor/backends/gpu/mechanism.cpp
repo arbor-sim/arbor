@@ -83,8 +83,10 @@ void mechanism::instantiate(unsigned id,
     mechanism_ppack_base* pp = ppack_ptr(); // From derived class instance.
 
     pp->width_ = width_;
+    pp->n_detectors_ = shared.n_detector;
 
-    pp->vec_ci_   = shared.cv_to_intdom.data();
+    pp->vec_ci_   = shared.cv_to_cell.data();
+    pp->vec_di_   = shared.cv_to_intdom.data();
     pp->vec_dt_   = shared.dt_cv.data();
 
     pp->vec_v_    = shared.voltage.data();
@@ -93,6 +95,7 @@ void mechanism::instantiate(unsigned id,
 
     pp->temperature_degC_ = shared.temperature_degC.data();
     pp->diam_um_ = shared.diam_um.data();
+    pp->time_since_spike_ = shared.time_since_spike.data();
 
     auto ion_state_tbl = ion_state_table();
     num_ions_ = ion_state_tbl.size();

@@ -1,13 +1,13 @@
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
+#include <cmath>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechanism.hpp>
 
@@ -17,9 +17,9 @@
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 
-#include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
 #include "backends/multicore/multicore_common.hpp"
+#include "backends/multicore/fvm.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
 
 namespace arb {
@@ -44,7 +44,7 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
     auto dest_n = std::size(dest);
     auto source_n = std::size(source);
 
-    auto n = source_n < dest_n ? source_n : dest_n;
+    auto n = source_n<dest_n? source_n: dest_n;
     auto tail = std::copy_n(begin(source), n, begin(dest));
     std::fill(tail, end(dest), fill);
 }
@@ -65,7 +65,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     // Assign global scalar parameters:
 
-    for (auto& kv: overrides.globals) {
+    for (auto &kv: overrides.globals) {
         if (auto opt_ptr = value_by_key(global_table(), kv.first)) {
             // Take reference to corresponding derived (generated) mechanism value member.
             value_type& global = *opt_ptr.value();
@@ -83,15 +83,19 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     // Assign non-owning views onto shared state:
 
-    vec_ci_ = shared.cv_to_intdom.data();
-    vec_dt_ = shared.dt_cv.data();
+    vec_ci_   = shared.cv_to_cell.data();
+    vec_di_   = shared.cv_to_intdom.data();
+    vec_dt_   = shared.dt_cv.data();
 
-    vec_v_ = shared.voltage.data();
-    vec_i_ = shared.current_density.data();
-    vec_g_ = shared.conductivity.data();
+    vec_v_    = shared.voltage.data();
+    vec_i_    = shared.current_density.data();
+    vec_g_    = shared.conductivity.data();
 
     temperature_degC_ = shared.temperature_degC.data();
-    diam_um_ = shared.diam_um.data();
+    diam_um_  = shared.diam_um.data();
+    time_since_spike_ = shared.time_since_spike.data();
+
+    n_detectors_ = shared.n_detector;
 
     auto ion_state_tbl = ion_state_table();
     n_ion_ = ion_state_tbl.size();
@@ -111,12 +115,12 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         ion_view.ionic_charge = oion->charge.data();
     }
 
-    vec_t_ptr_ = &shared.time;
-    vec_t_to_ptr_ = &shared.time_to;
+    vec_t_ptr_        = &shared.time;
+    vec_t_to_ptr_     = &shared.time_to;
     event_stream_ptr_ = &shared.deliverable_events;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (width_ == 0) {
+    if (width_==0) {
         return;
     }
 
@@ -129,14 +133,14 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     std::size_t n_field = fields.size();
 
     // (First sub-array of data_ is used for width_, below.)
-    data_ = array((1 + n_field) * width_padded_, NAN, pad);
-    for (std::size_t i = 0; i < n_field; ++i) {
+    data_ = array((1+n_field)*width_padded_, NAN, pad);
+    for (std::size_t i = 0; i<n_field; ++i) {
         // Take reference to corresponding derived (generated) mechanism value pointer member.
         fvm_value_type*& field_ptr = *(fields[i].second);
-        field_ptr = data_.data() + (i + 1) * width_padded_;
+        field_ptr = data_.data()+(i+1)*width_padded_;
 
         if (auto opt_value = value_by_key(field_default_table(), fields[i].first)) {
-            std::fill(field_ptr, field_ptr + width_padded_, *opt_value);
+            std::fill(field_ptr, field_ptr+width_padded_, *opt_value);
         }
     }
     weight_ = data_.data();
@@ -151,7 +155,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     node_index_ = iarray(width_padded_, pad);
 
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
-    copy_extend(pos_data.weight, make_range(data_.data(), data_.data() + width_padded_), 0);
+    copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
     index_constraints_ = make_constraint_partition(node_index_, width_, simd_width());
 
     if (mult_in_place_) {
@@ -191,14 +195,14 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
     if (auto opt_ptr = value_by_key(field_table(), key)) {
-        if (values.size() != width_) {
+        if (values.size()!=width_) {
             throw arbor_internal_error("multicore/mechanism: mechanism parameter size mismatch");
         }
 
-        if (width_ > 0) {
+        if (width_>0) {
             // Retrieve corresponding derived (generated) mechanism value pointer member.
             value_type* field_ptr = *opt_ptr.value();
-            util::range<value_type*> field(field_ptr, field_ptr + width_padded_);
+            util::range<value_type*> field(field_ptr, field_ptr+width_padded_);
 
             copy_extend(values, field, values.back());
         }
@@ -230,6 +234,7 @@ fvm_value_type* mechanism::field_data(const std::string& field_var) {
 
     return nullptr;
 }
+
 
 } // namespace multicore
 } // namespace arb

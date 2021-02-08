@@ -152,7 +152,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # in the same CMakeLists.txt in which the target is defined.
 
 # Interface library `arbor-config-defs` collects configure-time defines
-# for arbor, arborenv, arborio and arbornml, of the form ARB_HAVE_XXX. These
+# for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
 # defines should _not_ be used in any installed public headers.
 
 add_library(arbor-config-defs INTERFACE)
@@ -171,13 +171,6 @@ add_library(arborenv-private-deps INTERFACE)
 target_link_libraries(arborenv-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 
-# Interface library `arbornml-private-deps` collects dependencies, options etc.
-# for the arbornml library.
-
-add_library(arbornml-private-deps INTERFACE)
-target_link_libraries(arbornml-private-deps INTERFACE arbor-config-defs)
-install(TARGETS arbornml-private-deps EXPORT arbor-targets)
-
 # Interface library `arborio-private-deps` collects dependencies, options etc.
 # for the arborio library.
 
@@ -192,12 +185,12 @@ install(TARGETS arborio-private-deps EXPORT arbor-targets)
 add_library(arbor-public-deps INTERFACE)
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
 
-# Interface library `arbornml-public-deps` collects requirements for the
-# users of the arbornml library (e.g. xml libs) that will become part
-# of arbornml's PUBLIC interface.
+# Interface library `arborio-public-deps` collects requirements for the
+# users of the arborio library (e.g. xml libs) that will become part
+# of arborio's PUBLIC interface.
 
-add_library(arbornml-public-deps INTERFACE)
-install(TARGETS arbornml-public-deps EXPORT arbornml-targets)
+add_library(arborio-public-deps INTERFACE)
+install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
@@ -218,7 +211,7 @@ set(arbor_export_dependencies)
 
 # Keep track of which 'components' of arbor are included (this is
 # currently just 'MPI' support and 'neuroml' for NeuroML support in
-# libarbornml.)
+# libarborio.)
 
 set(arbor_supported_components)
 
@@ -439,11 +432,6 @@ add_subdirectory(arborenv)
 # arborio, arborio-public-headers:
 add_subdirectory(arborio)
 
-# arbornml, arbornml-public-headers:
-if(ARB_WITH_NEUROML)
-    add_subdirectory(arbornml)
-endif()
-
 # unit, unit-mpi, unit-local, unit-modcc
 add_subdirectory(test)
 
@@ -493,7 +481,6 @@ endif()
 set(arbor_override_import_lang)
 set(arbor_add_import_libs)
 set(arborenv_add_import_libs)
-set(arbornml_add_import_libs)
 set(arborio_add_import_libs)
 
 if(ARB_WITH_GPU)

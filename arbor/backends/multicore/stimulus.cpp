@@ -24,7 +24,7 @@ public:
         size_type n = size();
         for (size_type i=0; i<n; ++i) {
             auto cv = node_index_[i];
-            auto t = vec_t_[vec_ci_[cv]];
+            auto t = vec_t_[vec_di_[cv]];
 
             if (t>=delay[i] && t<delay[i]+duration[i]) {
                 // Amplitudes are given as a current into a compartment, so subtract.
