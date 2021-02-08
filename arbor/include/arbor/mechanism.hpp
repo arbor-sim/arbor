@@ -51,10 +51,10 @@ public:
     virtual mechanism_ptr clone() const = 0;
 
     // Non-global parameters can be set post-instantiation:
-    virtual void set_parameter(const std::string& key, const std::vector<value_type>& values) = 0;
+    virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
 
     // Peek into state variable
-    virtual value_type* field_data(const std::string& var) = 0;
+    virtual fvm_value_type* field_data(const std::string& var) = 0;
 
     // Simulation interfaces:
     virtual void initialize() {};

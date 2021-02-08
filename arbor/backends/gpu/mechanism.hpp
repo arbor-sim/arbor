@@ -65,12 +65,12 @@ public:
 
     // Peek into mechanism state variable; implements arb::gpu::backend::mechanism_field_data.
     // Returns pointer to GPU memory corresponding to state variable data.
-    value_type* field_data(const std::string& state_var);
+    fvm_value_type* field_data(const std::string& state_var);
 
     void initialize() override;
 
 protected:
-    size_type width_ = 0; // Instance width (number of CVs/sites)
+    size_type width_ = 0;        // Instance width (number of CVs/sites)
     size_type num_ions_ = 0;
 
     // Returns pointer to (derived) parameter-pack object that holds:
