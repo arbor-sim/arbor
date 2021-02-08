@@ -252,7 +252,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "void write_ions() override;\n";
 
     net_receive && out <<
-        "void deliver_events(deliverable_event_stream::state events) override;\n"
+        "void nrn_deliver_events(deliverable_event_stream::state events) override;\n"
         "void net_receive(int i_, value_type weight);\n";
 
     post_event && out <<
@@ -348,8 +348,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << "value_type* " << array->name() << ";\n";
     }
     for (const auto& dep: ion_deps) {
-        out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "iarray " << ion_state_index(dep.name) << ";\n";
+        out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
+        out << "index_type* " << ion_state_index(dep.name) << ";\n";
     }
 
     for (auto proc: normal_procedures(module_)) {
@@ -376,7 +376,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     if (net_receive) {
         const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
         out <<
-            "void " << class_name << "::deliver_events(deliverable_event_stream::state events) {\n" << indent <<
+            "void " << class_name << "::nrn_deliver_events(deliverable_event_stream::state events) {\n" << indent <<
             "auto ncell = events.n_streams();\n"
             "for (size_type c = 0; c<ncell; ++c) {\n" << indent <<
             "auto begin = events.begin_marked(c);\n"

@@ -39,7 +39,7 @@ public:
         return s;
     }
 
-    void instantiate(size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
+    void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
@@ -61,7 +61,7 @@ public:
         write_ions();
     }
 
-    void set_parameter(const std::string& key, const std::vector<value_type>& values) override;
+    void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
 
     // Peek into mechanism state variable; implements arb::gpu::backend::mechanism_field_data.
     // Returns pointer to GPU memory corresponding to state variable data.
