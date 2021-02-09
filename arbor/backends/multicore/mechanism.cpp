@@ -214,7 +214,7 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
 void mechanism::initialize() {
     vec_t_ = vec_t_ptr_->data();
-    nrn_init();
+    init();
 
     auto states = state_table();
 

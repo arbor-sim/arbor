@@ -214,7 +214,7 @@ void mechanism::initialize() {
     mechanism_ppack_base* pp = ppack_ptr();
     pp->vec_t_ = vec_t_ptr_->data();
 
-    nrn_init();
+    init();
     auto states = state_table();
 
     if(mult_in_place_) {

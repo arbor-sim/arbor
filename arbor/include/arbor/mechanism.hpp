@@ -144,9 +144,7 @@ protected:
     using ion_index_entry = std::pair<const char*, index_type**>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
-    // Generated mechanisms must implement the following methods, together with
-    // fingerprint(), clone(), kind(), nrn_init(), nrn_state(), nrn_current()
-    // and deliver_events() (if required) from arb::mechanism.
+    // Generated mechanisms must implement the following methods
 
     // Member tables: introspection into derived mechanism fields, views etc.
     // Default implementations correspond to no corresponding fields/globals/ions.
@@ -157,11 +155,11 @@ protected:
     virtual mechanism_ion_state_table ion_state_table() { return {}; }
     virtual mechanism_ion_index_table ion_index_table() { return {}; }
 
-    virtual void nrn_state() {};
-    virtual void nrn_current() {};
-    virtual void nrn_deliver_events(typename deliverable_event_stream::state) {};
+    virtual void advance_state() {};
+    virtual void compute_currents() {};
+    virtual void apply_events(typename deliverable_event_stream::state) {};
     virtual void write_ions() {};
-    virtual void nrn_init() {};
+    virtual void init() {};
     // Report raw size in bytes of mechanism object.
     virtual std::size_t object_sizeof() const = 0;
 };

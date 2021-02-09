@@ -17,14 +17,14 @@ public:
     mechanismKind kind() const override { return ::arb::mechanismKind::point; }
     mechanism_ptr clone() const override { return mechanism_ptr(new stimulus()); }
 
-    void nrn_init() override {}
-    void nrn_state() override {}
-    void nrn_current() override {
+    void init() override {}
+    void advance_state() override {}
+    void compute_currents() override {
         stimulus_current_impl(size(), pp_);
     }
 
     void write_ions() override {}
-    void nrn_deliver_events(deliverable_event_stream::state events) override {}
+    void apply_events(deliverable_event_stream::state events) override {}
 
     mechanism_ppack_base* ppack_ptr() override {
         return &pp_;

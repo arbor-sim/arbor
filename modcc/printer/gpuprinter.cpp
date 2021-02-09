@@ -77,9 +77,9 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     emit_common_defs(out, module_);
 
     out <<
-        "void " << class_name << "_nrn_init_(" << ppack_name << "&);\n"
-        "void " << class_name << "_nrn_state_(" << ppack_name << "&);\n"
-        "void " << class_name << "_nrn_current_(" << ppack_name << "&);\n"
+        "void " << class_name << "_init_(" << ppack_name << "&);\n"
+        "void " << class_name << "_advanve_state_(" << ppack_name << "&);\n"
+        "void " << class_name << "_compute_currents_(" << ppack_name << "&);\n"
         "void " << class_name << "_write_ions_(" << ppack_name << "&);\n";
 
     net_receive && out <<
@@ -102,22 +102,22 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "::arb::mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
         "::arb::mechanism_ptr clone() const override { return ::arb::mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
-        "void nrn_init() override {\n" << indent <<
-        class_name << "_nrn_init_(pp_);\n" << popindent <<
+        "void init() override {\n" << indent <<
+        class_name << "_init_(pp_);\n" << popindent <<
         "}\n\n"
-        "void nrn_state() override {\n" << indent <<
-        class_name << "_nrn_state_(pp_);\n" << popindent <<
+        "void advance_state() override {\n" << indent <<
+        class_name << "_advance_state_(pp_);\n" << popindent <<
         "}\n\n"
-        "void nrn_current() override {\n" << indent <<
-        class_name << "_nrn_current_(pp_);\n" << popindent <<
+        "void compute_currents() override {\n" << indent <<
+        class_name << "_compute_currents_(pp_);\n" << popindent <<
         "}\n\n"
         "void write_ions() override {\n" << indent <<
         class_name << "_write_ions_(pp_);\n" << popindent <<
         "}\n\n";
 
     net_receive && out <<
-        "void nrn_deliver_events(deliverable_event_stream_state events) override {\n" << indent <<
-        class_name << "_deliver_events_(mechanism_id_, pp_, events);\n" << popindent <<
+        "void apply_events(deliverable_event_stream_state events) override {\n" << indent <<
+        class_name << "_apply_events_(mechanism_id_, pp_, events);\n" << popindent <<
         "}\n\n";
 
     post_event && out <<
@@ -226,14 +226,14 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
     PostEventExpression*  post_event =  find_post_event(module_);
-    APIMethod* init_api = find_api_method(module_, "nrn_init");
-    APIMethod* state_api = find_api_method(module_, "nrn_state");
-    APIMethod* current_api = find_api_method(module_, "nrn_current");
+    APIMethod* init_api = find_api_method(module_, "init");
+    APIMethod* state_api = find_api_method(module_, "advance_state");
+    APIMethod* current_api = find_api_method(module_, "compute_currents");
     APIMethod* write_ions_api = find_api_method(module_, "write_ions");
 
-    assert_has_scope(init_api, "nrn_init");
-    assert_has_scope(state_api, "nrn_state");
-    assert_has_scope(current_api, "nrn_current");
+    assert_has_scope(init_api, "init");
+    assert_has_scope(state_api, "advance_state");
+    assert_has_scope(current_api, "compute_currents");
 
     io::pfxstringstream out;
 

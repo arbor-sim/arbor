@@ -109,18 +109,18 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
     PostEventExpression*  post_event = find_post_event(module_);
-    APIMethod* init_api = find_api_method(module_, "nrn_init");
-    APIMethod* state_api = find_api_method(module_, "nrn_state");
-    APIMethod* current_api = find_api_method(module_, "nrn_current");
+    APIMethod* init_api = find_api_method(module_, "init");
+    APIMethod* state_api = find_api_method(module_, "advance_state");
+    APIMethod* current_api = find_api_method(module_, "compute_currents");
     APIMethod* write_ions_api = find_api_method(module_, "write_ions");
 
     bool with_simd = opt.simd.abi!=simd_spec::none;
 
     // init_api, state_api, current_api methods are mandatory:
 
-    assert_has_scope(init_api, "nrn_init");
-    assert_has_scope(state_api, "nrn_state");
-    assert_has_scope(current_api, "nrn_current");
+    assert_has_scope(init_api, "init");
+    assert_has_scope(state_api, "advance_state");
+    assert_has_scope(current_api, "compute_currents");
 
     auto vars = local_module_variables(module_);
     auto ion_deps = module_.ion_deps();
@@ -246,13 +246,13 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "::arb::mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
         "::arb::mechanism_ptr clone() const override { return ::arb::mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
-        "void nrn_init() override;\n"
-        "void nrn_state() override;\n"
-        "void nrn_current() override;\n"
+        "void init() override;\n"
+        "void advance_state() override;\n"
+        "void compute_currents() override;\n"
         "void write_ions() override;\n";
 
     net_receive && out <<
-        "void nrn_deliver_events(deliverable_event_stream::state events) override;\n"
+        "void apply_events(deliverable_event_stream::state events) override;\n"
         "void net_receive(int i_, value_type weight);\n";
 
     post_event && out <<
@@ -371,12 +371,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "return ::arb::concrete_mech_ptr<backend>(new " << class_name << "());\n" << popindent <<
         "}\n\n";
 
-    // Nrn methods:
+    // Interface methods:
 
     if (net_receive) {
         const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
         out <<
-            "void " << class_name << "::nrn_deliver_events(deliverable_event_stream::state events) {\n" << indent <<
+            "void " << class_name << "::apply_events(deliverable_event_stream::state events) {\n" << indent <<
             "auto ncell = events.n_streams();\n"
             "for (size_type c = 0; c<ncell; ++c) {\n" << indent <<
             "auto begin = events.begin_marked(c);\n"
@@ -420,17 +420,17 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         }
     };
 
-    out << "void " << class_name << "::nrn_init() {\n" << indent;
+    out << "void " << class_name << "::init() {\n" << indent;
     emit_body(init_api);
     out << popindent << "}\n\n";
 
-    out << "void " << class_name << "::nrn_state() {\n" << indent;
+    out << "void " << class_name << "::advance_state() {\n" << indent;
     out << profiler_enter("advance_integrate_state");
     emit_body(state_api);
     out << profiler_leave();
     out << popindent << "}\n\n";
 
-    out << "void " << class_name << "::nrn_current() {\n" << indent;
+    out << "void " << class_name << "::compute_currents() {\n" << indent;
     out << profiler_enter("advance_integrate_current");
     emit_body(current_api);
     out << profiler_leave();

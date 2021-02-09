@@ -43,17 +43,17 @@ public:
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
-        nrn_deliver_events(event_stream_ptr_->marked_events());
+        apply_events(event_stream_ptr_->marked_events());
     }
     void update_current() override {
         mechanism_ppack_base* pp = ppack_ptr();
         pp->vec_t_ = vec_t_ptr_->data();
-        nrn_current();
+        compute_currents();
     }
     void update_state() override {
         mechanism_ppack_base* pp = ppack_ptr();
         pp->vec_t_ = vec_t_ptr_->data();
-        nrn_state();
+        advance_state();
     }
     void update_ions() override {
         mechanism_ppack_base* pp = ppack_ptr();
