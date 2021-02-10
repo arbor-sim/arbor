@@ -972,7 +972,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             if (!info.cell_index_var.empty()) {
                 index_prop cell_idx = {info.cell_index_var, index_i_name(info.node_index_var), false};
                 it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_front(cell_idx);
+                if (it == indices.end()) indices.push_back(cell_idx);
             }
         }
         else {

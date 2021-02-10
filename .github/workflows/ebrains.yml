@@ -1,13 +1,23 @@
-name: Mirroring
+name: Mirror to Ebrains
 
-on: [push, delete]
+on: push
 
 jobs:
-  to_gitlab:
-    runs-on: ubuntu-20.04
+  to_ebrains:
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: pixta-dev/repository-mirroring-action@v1
-      with:
-        target_repo_url:
-          https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/arbor-sim/arbor.git
+      - name: sycnmaster
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "arbor-sim/arbor"
+          source_branch: "master"
+          destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/arbor-sim/arbor.git"
+          destination_branch: "master"
+      - name: synctags
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "arbor-sim/arbor"
+          source_branch: "refs/tags/*"
+          destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/arbor-sim/arbor.git"
+          destination_branch: "refs/tags/*"
+
