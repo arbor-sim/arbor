@@ -4,6 +4,11 @@ import sys, os
 import subprocess as sp
 from tempfile import TemporaryDirectory
 
+# Add /scripts to path. Used for Furo theme and to generate images
+this_path=os.path.split(os.path.abspath(__file__))[0]
+script_path=this_path+'/scripts'
+sys.path.append(script_path)
+
 html_static_path = ['static']
 
 def setup(app):
@@ -15,7 +20,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
-    'sphinx.ext.coverage'
+    'sphinx.ext.coverage',
+    'furo'
 ]
 source_suffix = '.rst'
 master_doc = 'index'
@@ -28,10 +34,9 @@ copyright = '2017-2020, ETHZ & FZ Julich'
 author = 'ETHZ & FZ Julich'
 todo_include_todos = True
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
 html_theme_options = {
-    'logo_only': True,
-    'style_nav_header_background': '#dfdcdf'}
+    "sidebar_hide_name": True,}
 
 # This style makes the source code pop out a bit more
 # from the background text, without being overpowering.
@@ -39,11 +44,6 @@ pygments_style = 'perldoc'
 
 # Generate images for the documentation.
 print("--- generating images ---")
-
-# Location of scripts used to generate images
-this_path=os.path.split(os.path.abspath(__file__))[0]
-script_path=this_path+'/scripts'
-sys.path.append(script_path)
 
 # Output path for generated images
 # Dump inputs.py into tmpdir
