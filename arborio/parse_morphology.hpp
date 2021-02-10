@@ -1,10 +1,10 @@
 #pragma once
 
-#include <arbornml/arbornml.hpp>
+#include <arborio/arbornml.hpp>
 #include "xmlwrap.hpp"
 
-namespace arbnml {
+namespace arborio {
 
 morphology_data parse_morphology_element(xml_xpathctx ctx, xml_node morph);
 
-} // namespace arbnml
+} // namespace arborio

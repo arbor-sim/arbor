@@ -8,32 +8,31 @@ Arbor offers limited support for models described in
 This is not built by default, but can be enabled by
 providing the `-DARB_NEUROML=ON` argument to CMake at
 configuration time (see :ref:`install-neuroml`). This will
-build the ``arbornml`` libray and defines the corresponding
-``arbor::arbornml`` CMake target.
+build the ``arborio`` libray with neuroml support.
 
-The ``arbornml`` library uses `libxml2 <http://xmlsoft.org/>`_
-for XML parsing. Applications using ``arbornml`` will need to
-link against ``libxml2`` in addition, though this is performed
-implicitly within CMake projects that add ``arbor::arbornml``
+The ``arborio`` library uses `libxml2 <http://xmlsoft.org/>`_
+for XML parsing. Applications using NeuroML through ``arborio``
+will need to link against ``libxml2`` in addition, though this
+is performed implicitly within CMake projects that add ``arbor::arborio``
 as a link library.
 
-All classes and functions provided by the ``arbornml`` library
-are provided in the ``arbnml`` namespace.
+All classes and functions provided by the ``arborio`` library
+are provided in the ``arborio`` namespace.
 
 
 Libxml2 interface
 -----------------
 
 Libxml2 offers threadsafe XML parsing, but not by default. If
-the application uses ``arbornml`` in an unthreaded context, or
-has already explicitly initialized ``libxml2``, nothing more
-needs to be done. Otherwise, the ``libxml2`` function ``xmlInitParser()``
-must be called explicitly.
+the application uses NeuromML support from ``arborio`` in an
+unthreaded context, or has already explicitly initialized ``libxml2``,
+nothing more needs to be done. Otherwise, the ``libxml2`` function
+``xmlInitParser()`` must be called explicitly.
 
-``arbornml`` provides a helper guard object for this purpose, defined
-in ``arbornml/with_xml.hpp``:
+``arborio`` provides a helper guard object for this purpose, defined
+in ``arborio/with_xml.hpp``:
 
-.. cpp:namespace:: arbnml
+.. cpp:namespace:: arborio
 
 .. cpp:class:: with_xml
 
@@ -44,11 +43,11 @@ in ``arbornml/with_xml.hpp``:
 NeuroML 2 morphology support
 ----------------------------
 
-NeuroML documents are represented by the ``arbnml::neuroml`` class,
+NeuroML documents are represented by the ``arborio::neuroml`` class,
 which in turn provides methods for the identification and translation
 of morphology data. ``neuroml`` objects are moveable and move-assignable, but not copyable.
 
-An implementation limitation restrictes valid segment id values to
+An implementation limitation restricts valid segment id values to
 those which can be represented by an ``unsigned long long`` value.
 
 .. cpp:class:: neuroml
@@ -111,14 +110,14 @@ segment group.
 
    .. cpp:member:: std::unordered_map<std::string, std::vector<unsigned long long>> group_segments
 
-   A map from taking each segment group id to its corresponding collection of segments.
+   A map from each segment group id to its corresponding collection of segments.
 
 
 Exceptions
 ----------
 
-All NeuroML-specific exceptions are defined in ``arbornml/nmlexcept.hpp``, and are
-derived from ``arbnml::neuroml_exception`` which in turn is derived from ``std::runtime_error``.
+All NeuroML-specific exceptions are defined in ``arborio/arbornml.hpp``, and are
+derived from ``arborio::neuroml_exception`` which in turn is derived from ``std::runtime_error``.
 With the exception of the ``no_document`` exception, all contain an unsigned member ``line``
 which is intended to identify the problematic construct within the document.
 

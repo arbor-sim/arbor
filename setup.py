@@ -19,6 +19,7 @@ class CL_opt:
                                'gpu': 'none',
                                'vec': False,
                                'arch': 'native',
+                               'neuroml': False,
                                'bundled': True}
 
     def settings(self):
@@ -54,6 +55,7 @@ class install_command(install):
                         'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
+        ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (requires libxml)'),
         ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.')
     ]
 
@@ -63,6 +65,7 @@ class install_command(install):
         self.gpu  = None
         self.arch = None
         self.vec  = None
+        self.neuroml = None
         self.sysdeps = None
 
     def finalize_options(self):
@@ -79,6 +82,8 @@ class install_command(install):
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
         opt['arch'] = "native" if self.arch is None else self.arch
+        #   neuroml : compile with neuroml support for morphologies.
+        opt['neuroml'] = self.neuroml is not None
         #   bundled : use bundled/git-submoduled 3rd party libraries.
         #             By default use bundled libs.
         opt['bundled'] = self.sysdeps is None
@@ -112,6 +117,7 @@ class cmake_build(build_ext):
             '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
             '-DARB_ARCH={}'.format(opt['arch']),
             '-DARB_GPU={}'.format(opt['gpu']),
+            '-DARB_WITH_NEUROML={}'.format( 'on' if opt['neuroml'] else 'off'),
             '-DARB_USE_BUNDLED_LIBS={}'.format('on' if opt['bundled'] else 'off'),
             '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
         ]

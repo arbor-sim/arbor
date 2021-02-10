@@ -108,6 +108,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto ns_components = namespace_components(opt.cpp_namespace);
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
+    PostEventExpression*  post_event = find_post_event(module_);
     APIMethod* init_api = find_api_method(module_, "nrn_init");
     APIMethod* state_api = find_api_method(module_, "nrn_state");
     APIMethod* current_api = find_api_method(module_, "nrn_current");
@@ -254,6 +255,9 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "void deliver_events(deliverable_event_stream::state events) override;\n"
         "void net_receive(int i_, value_type weight);\n";
 
+    post_event && out <<
+        "void post_event() override;\n";
+
     with_simd && out << "unsigned simd_width() const override { return simd_width_; }\n";
 
     out <<
@@ -385,6 +389,25 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "\n"
             "void " << class_name << "::net_receive(int i_, value_type " << weight_arg << ") {\n" << indent <<
             cprint(net_receive->body()) << popindent <<
+            "}\n\n";
+    }
+
+    if(post_event) {
+        const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
+        out <<
+            "void " << class_name << "::post_event() {\n" << indent <<
+            "int n_ = width_;\n"
+            "for (int i_ = 0; i_ < n_; ++i_) {\n" << indent <<
+            "auto node_index_i_ = node_index_[i_];\n"
+            "auto cid_ = vec_ci_[node_index_i_];\n"
+            "auto offset_ = n_detectors_ * cid_;\n"
+            "for (unsigned c = 0; c < n_detectors_; c++) {\n" << indent <<
+            "auto " << time_arg << " = time_since_spike_[offset_ + c];\n"
+            "if (" <<  time_arg << " >= 0) {\n" << indent <<
+            cprint(post_event->body()) << popindent <<
+            "}\n" << popindent <<
+            "}\n" << popindent <<
+            "}\n" << popindent <<
             "}\n\n";
     }
 
@@ -949,7 +972,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             if (!info.cell_index_var.empty()) {
                 index_prop cell_idx = {info.cell_index_var, index_i_name(info.node_index_var), false};
                 it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_front(cell_idx);
+                if (it == indices.end()) indices.push_back(cell_idx);
             }
         }
         else {

@@ -45,7 +45,8 @@ std::vector<ProcedureExpression*> normal_procedures(const Module& m) {
 
     for (auto& sym: m.symbols()) {
         auto proc = sym.second->is_procedure();
-        if (proc && proc->kind()==procedureKind::normal && !proc->is_api_method() && !proc->is_net_receive()) {
+        if (proc && proc->kind()==procedureKind::normal && !proc->is_api_method()
+            && !proc->is_net_receive() && !proc->is_post_event()) {
             procs.push_back(proc);
         }
     }
@@ -113,6 +114,11 @@ NetReceiveExpression* find_net_receive(const Module& m) {
     return it==m.symbols().end()? nullptr: it->second->is_net_receive();
 }
 
+PostEventExpression* find_post_event(const Module& m) {
+    auto it = m.symbols().find("post_event");
+    return it==m.symbols().end()? nullptr: it->second->is_post_event();
+}
+
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     indexed_variable_info v;
     v.node_index_var = "node_index_";
@@ -157,7 +163,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         break;
     case sourceKind::time:
         v.data_var = "vec_t_";
-        v.cell_index_var = "vec_ci_";
+        v.cell_index_var = "vec_di_";
         v.readonly = true;
         break;
     case sourceKind::ion_current_density:

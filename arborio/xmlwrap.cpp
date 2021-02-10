@@ -12,11 +12,9 @@
 
 #include <libxml/xmlerror.h>
 
-#include <arbornml/nmlexcept.hpp>
-
 #include "xmlwrap.hpp"
 
-namespace arbnml {
+namespace arborio {
 
 namespace detail {
 
@@ -95,14 +93,14 @@ void throw_on_xml_generic_error(void *, const char* msg, ...) {
     vsnprintf(&err[0], err.size(), msg, vb);
     va_end(vb);
 
-    throw ::arbnml::xml_error(err);
+    throw ::arborio::xml_error(err);
 }
 
 void throw_on_xml_structured_error(void *ctx, xmlErrorPtr errp) {
     if (errp->level!=1) { // ignore warnings!
         std::string msg(errp->message);
         if (!msg.empty() && msg.back()=='\n') msg.pop_back();
-        throw ::arbnml::xml_error(msg, errp->line);
+        throw ::arborio::xml_error(msg, errp->line);
     }
 }
 
@@ -125,4 +123,4 @@ xml_error_scope::~xml_error_scope() {
     xmlStructuredErrorContext = structured_context_;
 }
 
-} // namespace arbnml
+} // namespace arborio

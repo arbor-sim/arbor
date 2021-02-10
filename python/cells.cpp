@@ -28,105 +28,13 @@
 #include "arbor/cv_policy.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
+#include "proxy.hpp"
 #include "pybind11/cast.h"
 #include "pybind11/pytypes.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
 namespace pyarb {
-//
-//  proxies
-//
-
-struct label_dict_proxy {
-    using str_map = std::unordered_map<std::string, std::string>;
-    arb::label_dict dict;
-    str_map cache;
-    std::vector<std::string> locsets;
-    std::vector<std::string> regions;
-
-    label_dict_proxy() = default;
-
-    label_dict_proxy(const str_map& in) {
-        for (auto& i: in) {
-            set(i.first.c_str(), i.second.c_str());
-        }
-    }
-
-    std::size_t size() const  {
-        return locsets.size() + regions.size();
-    }
-
-    void set(const char* name, const char* desc) {
-        using namespace std::string_literals;
-        // The following code takes an input name and a region or locset
-        // description, e.g.:
-        //      name='reg', desc='(tag 4)'
-        //      name='loc', desc='(terminal)'
-        //      name='foo', desc='(join (tag 2) (tag 3))'
-        // Then it parses the description, and tests whether the description
-        // is a region or locset, and updates the label dictionary appropriately.
-        // Errors occur when:
-        //  * a region is described with a name that matches an existing locset
-        //    (and vice versa.)
-        //  * the description is not well formed, e.g. it contains a syntax error.
-        //  * the description is well-formed, but describes neither a region or locset.
-        try{
-            // Evaluate the s-expression to build a region/locset.
-            auto result = arb::parse_label_expression(desc);
-            if (!result) { // an error parsing / evaluating description.
-                throw result.error();
-            }
-            else if (result->type()==typeid(arb::region)) { // describes a region.
-                dict.set(name, std::move(std::any_cast<arb::region&>(*result)));
-                auto it = std::lower_bound(regions.begin(), regions.end(), name);
-                if (it==regions.end() || *it!=name) regions.insert(it, name);
-            }
-            else if (result->type()==typeid(arb::locset)) { // describes a locset.
-                dict.set(name, std::move(std::any_cast<arb::locset&>(*result)));
-                auto it = std::lower_bound(locsets.begin(), locsets.end(), name);
-                if (it==locsets.end() || *it!=name) locsets.insert(it, name);
-            }
-            else {
-                // Successfully parsed an expression that is neither region nor locset.
-                throw util::pprintf("The defninition of '{} = {}' does not define a valid region or locset.", name, desc);
-            }
-            // The entry was added succesfully: store it in the cache.
-            cache[name] = desc;
-        }
-        catch (std::string msg) {
-            const char* base = "\nError adding the label '{}' = '{}'\n{}\n";
-
-            throw std::runtime_error(util::pprintf(base, name, desc, msg));
-        }
-        // Exceptions are thrown in parse or eval if an unexpected error occured.
-        catch (std::exception& e) {
-            const char* msg =
-                "\n----- internal error -------------------------------------------"
-                "\nError parsing the label: '{}' = '{}'"
-                "\n"
-                "\n{}"
-                "\n"
-                "\nPlease file a bug report with this full error message at:"
-                "\n    github.com/arbor-sim/arbor/issues"
-                "\n----------------------------------------------------------------";
-            throw arb::arbor_internal_error(util::pprintf(msg, name, desc, e.what()));
-        }
-    }
-
-    std::string to_string() const {
-        std::string s;
-        s += "(label_dict";
-        for (auto& x: dict.regions()) {
-            s += util::pprintf(" (region  \"{}\" {})", x.first, x.second);
-        }
-        for (auto& x: dict.locsets()) {
-            s += util::pprintf(" (locset \"{}\" {})", x.first, x.second);
-        }
-        s += ")";
-        return s;
-    }
-};
 
 // This isn't pretty. Partly because the information in the global parameters
 // is all over the place.
@@ -389,13 +297,13 @@ void register_cells(pybind11::module& m) {
     // arb::threshold_detector
 
     pybind11::class_<arb::threshold_detector> detector(m, "spike_detector",
-            "A spike detector, generates a spike when voltage crosses a threshold.");
+            "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
         .def(pybind11::init(
             [](double thresh) {
                 return arb::threshold_detector{thresh};
             }), "threshold"_a)
-        .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [ms]")
+        .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [mV]")
         .def("__repr__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
         .def("__str__", [](const arb::threshold_detector& d){

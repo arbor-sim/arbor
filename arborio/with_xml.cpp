@@ -1,8 +1,8 @@
-#include <arbornml/with_xml.hpp>
+#include <arborio/with_xml.hpp>
 
 #include <libxml/parser.h>
 
-namespace arbnml {
+namespace arborio {
 
 with_xml::with_xml(): run_cleanup_(true) {
     // Initialize before any multithreaded access by library or client code.
@@ -19,4 +19,4 @@ with_xml::~with_xml() {
     }
 }
 
-} // namespace arbnml
+} // namespace arborio
