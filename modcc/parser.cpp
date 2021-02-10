@@ -973,6 +973,14 @@ symbol_ptr Parser::parse_function() {
     auto p = parse_prototype();
     if (p == nullptr) return nullptr;
 
+    // Functions may have a unit attached
+    if (token_.type == tok::lparen) {
+        unit_description();
+        if (status_ == lexerStatus::error) {
+            return {};
+        }
+    }
+
     // check for opening left brace {
     if (!expect(tok::lbrace)) return nullptr;
 
