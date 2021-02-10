@@ -70,7 +70,7 @@ Interconnectivity
 
 .. class:: spike_detector
 
-    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an :ref:`arbor.connection`.
+    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an :class:`arbor.connection`.
 
     .. attribute:: threshold
 

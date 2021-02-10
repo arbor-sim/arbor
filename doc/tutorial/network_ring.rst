@@ -9,18 +9,10 @@ In this example, a small *network* of cells, arranged in a ring, will be created
 
    **Concepts covered in this example:**
 
-   1. Building a basic :class:`arbor.cell` with a synapse site.
+   1. Building a basic :class:`arbor.cell` with a synapse site and spike generator.
    2. Building a :class:`arbor.recipe` with a network of interconnected cells.
    3. Create and execute a :class:`arbor.simulation`.
    4. Running the simulation and visualizing the results,
-
-We outline the following steps of this example:
-
-1. Define the **cell**.
-2. Define the **recipe** of the model.
-3. Define the **execution context** and **domain decomposition** of the recipe.
-4. Define and run the **simulation**.
-5. Collect and visualize the **results**.
 
 The cell
 ********
@@ -70,21 +62,25 @@ In step **(2)** we create a :term:`label` for both the root, and the site where 
    # Mark the root of the tree.
    labels['root'] = '(root)'
 
-Step **(3)** defines a basic cell decor and creates the :ref:`cable cell <cablecell>` :ref:`description <modelcelldesc>`. In the decor, a synapse with an exponential decay (``'expsyn'``) is placed on the ``'synapse_site'`` **(4)**. A spike detector is placed at the ``'root'``.
+Step **(3)** creates a basic cell decor, where a synapse with an exponential decay (``'expsyn'``) is placed on the ``'synapse_site'``.
+
+Step **(4)** places. A spike detector is placed at the ``'root'``. :class:`spike_detector` will send events into an
+:class:`arbor.connection`, whereas the :ref:`expsyn mechanism <mechanisms_builtins>` can receive events from an
+:class:`arbor.connection`. Note that mechanisms can be initialized with their name; ``'expsyn'`` is short for
+``arbor.mechanism('expsyn')``.
 
 .. code-block:: python
 
-   # (3) Create a decor and a cable_cell
    decor = arbor.decor()
 
    # Put hh dynamics on soma, and passive properties on the dendrites.
    decor.paint('"soma"', 'hh')
    decor.paint('"dend"', 'pas')
 
-   # (4) Attach a single synapse.
+   # (3) Attach a single synapse.
    decor.place('"synapse_site"', 'expsyn')
 
-   # Attach a spike detector with threshold of -10 mV.
+   # (4) Attach a spike detector with threshold of -10 mV.
    decor.place('"root"', arbor.spike_detector(-10))
 
    cell = arbor.cable_cell(tree, labels, decor)
@@ -95,7 +91,7 @@ The recipe
 To create a model with multiple connected cells, we need to use a :class:`recipe <arbor.recipe>` that describes the model.
 The recipe is where the different cells and the :ref:`connections <interconnectivity>` between them are defined.
 
-Before we go there, let's first create a function that returns the above cell. This tutorial's objective is to demonstrate creating the network after all. Simply wrap the above code in a function definition, and let's add the imports while we're at it:
+Let's first create a function that returns the above cell. This tutorial's objective is to demonstrate creating the network after all. Simply wrap the above code in a function definition, and let's add the imports while we're at it:
 
 .. code-block:: python
 

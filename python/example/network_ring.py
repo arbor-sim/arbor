@@ -48,7 +48,7 @@ def make_cable_cell(gid):
     decor.paint('"dend"', 'pas')
 
     # (4) Attach a single synapse.
-    decor.place('"synapse_site"', 'expsyn')
+    decor.place('"synapse_site"', arbor.mechanism('expsyn'))
 
     # Attach a spike detector with threshold of -10 mV.
     decor.place('"root"', arbor.spike_detector(-10))
@@ -113,14 +113,13 @@ class ring_recipe (arbor.recipe):
 ncells = 4
 recipe = ring_recipe(ncells)
 
-# (11) Create a default execution context and a default domain decomposition.
+# (11) Create a default execution context, domain decomposition, and simulation
 context = arbor.context()
-print(context)
 decomp = arbor.partition_load_balance(recipe, context)
-print(decomp)
-
-# (12) Simulation init
 sim = arbor.simulation(recipe, decomp, context)
+
+# (12) By default, spike generators don't keep records of the spikes they generate.
+# This sets all spike generators to record spike timestamps.
 sim.record(arbor.spike_recording.all)
 
 # Attach a sampler to the voltage probe on cell 0.
