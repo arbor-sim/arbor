@@ -32,10 +32,8 @@ public:
 
     std::size_t memory() const override {
         std::size_t s = object_sizeof();
-
-        s += sizeof(data_[0])        * data_.size();
-        s += sizeof(ion_indices_[0]) * ion_indices_.size();
-        s += sizeof(node_index_[0])  * node_index_.size();
+        s += sizeof(data_[0])    * data_.size();
+        s += sizeof(indices_[0]) * indices_.size();
         return s;
     }
 
@@ -90,7 +88,7 @@ protected:
 
     // Per-mechanism index and weight data, excepting ion indices.
 
-    iarray node_index_;
+    fvm_index_type* node_index_;
     iarray multiplicity_;
     bool mult_in_place_;
     constraint_partition index_constraints_;
@@ -99,7 +97,7 @@ protected:
     // Bulk storage for state and parameter variables.
 
     array data_;
-    iarray ion_indices_;
+    iarray indices_;
 
     virtual unsigned simd_width() const { return 1; }
 };

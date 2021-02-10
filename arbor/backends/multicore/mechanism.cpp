@@ -132,7 +132,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     auto fields = field_table();
     std::size_t n_field = fields.size();
 
-    // (First sub-array of data_ is used for width_, below.)
+    // (First sub-array of data_ is used for weight_, below.)
     data_ = array((1+n_field)*width_padded_, NAN, pad);
     for (std::size_t i = 0; i<n_field; ++i) {
         // Take reference to corresponding derived (generated) mechanism value pointer member.
@@ -152,11 +152,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // * For indices in the padded tail of node_index_, set index to last valid CV index.
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-    node_index_ = iarray(width_padded_, pad);
-
-    copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
-    index_constraints_ = make_constraint_partition(node_index_, width_, simd_width());
 
     if (mult_in_place_) {
         multiplicity_ = iarray(width_padded_, pad);
@@ -167,9 +163,17 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         auto table = ion_index_table();
         // Allocate bulk storage
         auto count = (table.size() + 1)*width_padded_;
-        ion_indices_ = iarray(count, 0, pad);
+        indices_ = iarray(count, 0, pad);
+        auto base_ptr = indices_.data();
 
-        auto base_ptr = ion_indices_.data();
+        // Setup node indices
+        node_index_ = base_ptr;
+        base_ptr += width_padded_;
+        auto node_index = make_range(node_index_, node_index_ + width_padded_);
+        copy_extend(pos_data.cv, node_index, pos_data.cv.back());
+        index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
+
+        // Create ion indices
         for (const auto& [ion_name, ion_index_ptr]: table) {
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion_name).value_or(ion_name);
@@ -183,12 +187,12 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             base_ptr += width_padded_;
 
             // Obtain index and move data
-            auto indices   = util::index_into(node_index_, oion->node_index_);
+            auto indices   = util::index_into(node_index, oion->node_index_);
             auto ion_index = make_range(*ion_index_ptr, *ion_index_ptr + width_padded_);
             copy_extend(indices, ion_index, util::back(indices));
 
             // Check SIMD constraints
-            arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width()));
+            arb_assert(compatible_index_constraints(node_index, ion_index, simd_width()));
         }
     }
 }
