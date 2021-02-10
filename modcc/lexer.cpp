@@ -19,8 +19,8 @@ inline bool is_alpha(char c) {
 inline bool is_alphanumeric(char c) {
     return (is_numeric(c) || is_alpha(c) );
 }
-inline bool is_whitespace(char c) {
-    return (c==' ' || c=='\t' || c=='\v' || c=='\f' || c=='\n' || c=='\r');
+inline bool is_newline(char c) {
+    return (c=='\v' || c=='\f' || c=='\n' || c=='\r');
 }
 inline bool is_eof(char c) {
     return (c==0);
@@ -103,8 +103,15 @@ Token Lexer::parse() {
                 if (id == "UNITSON" || id == "UNITSOFF") continue;
                 if (id == "COMMENT") {
                     while (!is_eof(*current_)) {
-                        while (is_whitespace(*current_) || !is_alpha(*current_)) current_++;
-                        if (identifier() == "ENDCOMMENT") break;
+                        while (!is_newline(*current_) && !is_alpha(*current_)) {
+                            current_++;
+                        }
+                        if (is_newline(*current_)) {
+                            current_++;
+                            line_ = current_;
+                            location_.line++;
+                        }
+                        else if (identifier() == "ENDCOMMENT") break;
                     }
                     continue;
                 }
