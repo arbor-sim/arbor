@@ -95,7 +95,6 @@ def run(dT, n_pairs=1, do_plots=False):
     handle_weight_plastic = sim.sample((0, 4), reg_sched)
 
     sim.run(tfinal=600)
-    mem, meta = sim.samples(handle_mem)[0]
 
     if do_plots:
         print("Plotting detailed results ...")
