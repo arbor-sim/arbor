@@ -252,6 +252,9 @@ public:
         cable_cell(m, {}, {})
     {}
 
+    /// Access to labels
+    const label_dict& labels() const;
+
     /// Access to morphology and embedding
     const concrete_embedding& embedding() const;
     const arb::morphology& morphology() const;

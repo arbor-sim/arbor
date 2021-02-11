@@ -385,6 +385,9 @@ parse_hopefully<std::any> eval(const s_expr& e) {
 parse_hopefully<std::any> parse_label_expression(const std::string& e) {
     return eval(parse_s_expr(e));
 }
+parse_hopefully<std::any> parse_label_expression(const s_expr& s) {
+    return eval(s);
+}
 
 parse_hopefully<arb::region> parse_region_expression(const std::string& s) {
     if (auto e = eval(parse_s_expr(s))) {

@@ -1,11 +1,11 @@
 #include <any>
+#include <typeinfo>
 
 #include "../test/gtest.h"
 
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
-#include <typeinfo>
 
 #include "s_expr.hpp"
 #include "util/strprintf.hpp"

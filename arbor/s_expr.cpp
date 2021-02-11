@@ -9,8 +9,9 @@
 
 #include <arbor/arbexcept.hpp>
 
-#include "util/strprintf.hpp"
 #include "s_expr.hpp"
+#include "util/strprintf.hpp"
+
 namespace arb {
 
 inline bool is_alphanumeric(char c) {
@@ -390,19 +391,38 @@ s_expr::operator bool() const {
     return !(is_atom() && atom().kind==tok::nil);
 }
 
-std::ostream& operator<<(std::ostream& o, const s_expr& x) {
-    if (x.is_atom()) return o << x.atom();
-#if 1
+// assume that stream indented and ready to go at location to start printing.
+std::ostream& pr(std::ostream& o, const s_expr& x, int indent) {
+    std::string in(std::string::size_type(2*indent), ' ');
+    if (x.is_atom()) {
+       return o << x.atom();
+    }
+    auto it = std::begin(x);
+    auto end = std::end(x);
+    bool first=true;
     o << "(";
-    bool first = true;
-    for (auto& e: x) {
-        o << (first? "": " ") << e;
+    while (it!=end) {
+        if (!first && !it->is_atom() && length(*it)>=0) {
+            o << "\n" << in;
+            pr(o, *it, indent+1);
+            ++it;
+            if (it!=end && it->is_atom()) {
+                o << "\n" << in;
+            }
+        }
+        else {
+            pr(o, *it, indent+1);
+            if (++it!=end) {
+                o << " ";
+            }
+        }
         first = false;
     }
     return o << ")";
-#else
-    return o << "(" << x.head() << " . " << x.tail() << ")";
-#endif
+}
+
+std::ostream& operator<<(std::ostream& o, const s_expr& x) {
+    return pr(o, x, 1);
 }
 
 std::size_t length(const s_expr& l) {
@@ -496,5 +516,4 @@ s_expr parse_s_expr(const std::string& line) {
     }
     return result;
 }
-
 } // namespace arb

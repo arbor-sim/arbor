@@ -14,6 +14,7 @@
 #include <arbor/simple_sampler.hpp>
 
 #include <arborio/swcio.hpp>
+#include <arborio/cableio.hpp>
 
 #include <tinyopt/tinyopt.h>
 
@@ -74,7 +75,10 @@ struct single_recipe: public arb::recipe {
         arb::mlocation end_last_branch = { last_branch, 1. };
         decor.place(end_last_branch, "exp2syn");
 
-        return arb::cable_cell(morpho, dict, decor);
+        auto cell = arb::cable_cell(morpho, dict, decor);
+        arborio::write_s_expr(std::cout, cell);
+        std::cout << std::endl << std::endl;
+        return cell;
     }
 
     arb::morphology morpho;
@@ -100,10 +104,19 @@ int main(int argc, char** argv) {
         arb::spike_event spike = {{0, 0}, 1., opt.syn_weight};
         sim.inject_events({spike});
 
-        sim.run(opt.t_end, opt.dt);
+//        sim.run(opt.t_end, opt.dt);
 
-        for (auto entry: traces.at(0)) {
-            std::cout << entry.t << ", " << entry.v << "\n";
+//        for (auto entry: traces.at(0)) {
+//            std::cout << entry.t << ", " << entry.v << "\n";
+//        }
+        std::string s = "(label-dict (region-def \"soma\" (tag 1)) \n"
+                        "            (region-def \"dend\" (join (join (tag 3) (tag 4)) (tag 42))))";
+        if (auto v = arborio::parse_label_dict(s)) {
+            arborio::write_s_expr(std::cout, *v);
+            std::cout << std::endl;
+        }
+        else {
+            throw v.error();
         }
     }
     catch (std::exception& e) {

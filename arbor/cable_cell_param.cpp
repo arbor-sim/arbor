@@ -7,8 +7,8 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 
-#include "util/maputil.hpp"
 #include "s_expr.hpp"
+#include "util/maputil.hpp"
 
 namespace arb {
 

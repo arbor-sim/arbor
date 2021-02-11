@@ -47,12 +47,16 @@ struct cable_cell_impl {
     // The decorations on the cell.
     decor decorations;
 
+    // Definition of labels.
+    const label_dict dictionary;
+
     // The lid ranges of placements.
     std::vector<lid_range> placed_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
-        decorations(decorations)
+        decorations(decorations),
+        dictionary(labels)
     {
         init(decorations);
     }
@@ -168,6 +172,10 @@ cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 cable_cell::cable_cell(const cable_cell& other):
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
+
+const label_dict& cable_cell::labels() const {
+    return impl_->dictionary;
+}
 
 const concrete_embedding& cable_cell::embedding() const {
     return impl_->provider.embedding();

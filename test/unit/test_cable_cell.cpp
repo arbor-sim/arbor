@@ -1,8 +1,6 @@
 #include "../gtest.h"
 #include "common_cells.hpp"
 
-#include "s_expr.hpp"
-
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/string_literals.hpp>
