@@ -21,7 +21,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
     'sphinx.ext.coverage',
-    'furo'
+    'divio_docs_theme'
 ]
 source_suffix = '.rst'
 master_doc = 'index'
@@ -34,9 +34,9 @@ copyright = '2017-2020, ETHZ & FZ Julich'
 author = 'ETHZ & FZ Julich'
 todo_include_todos = True
 
-html_theme = "furo"
+html_theme = "divio_docs_theme"
 html_theme_options = {
-    "sidebar_hide_name": True,}
+    "show_cloud_banner": False,}
 
 # This style makes the source code pop out a bit more
 # from the background text, without being overpowering.
