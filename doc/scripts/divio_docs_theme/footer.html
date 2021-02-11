@@ -46,20 +46,6 @@
     </p>
     <p>
   {%- block extrafooter %} {% endblock %}
-    {% if hasdoc(pagename) %}
-        {% if display_github %}
-        {% if check_meta and 'github_url' in meta %}
-            <!-- User defined GitHub URL -->
-            <a href="{{ meta['github_url'] }}"> {{ _('Edit on GitHub') }}</a>
-        {% else %}
-            <a href="https://{{ github_host|default("github.com") }}/{{ github_user }}/{{ github_repo }}/{{ theme_vcs_pageview_mode|default("blob") }}/{{ github_version }}{{ conf_py_path }}{{ pagename }}{{ suffix }}"> {{ _('Edit on GitHub') }}</a>
-        {% endif %}
-        {% elif show_source and source_url_prefix %}
-        <a href="{{ source_url_prefix }}{{ pagename }}{{ suffix }}">{{ _('View page source') }}</a>
-        {% elif show_source and has_source and sourcename %}
-        <a href="{{ pathto('_sources/' + sourcename, true)|e }}" rel="nofollow"> {{ _('View page source') }}</a>
-        {% endif %}
-    {% endif %}
 
     </p>
   </div>

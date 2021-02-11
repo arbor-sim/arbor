@@ -113,23 +113,6 @@
               <div class="local-toc">{{ toc }}</div>
             {% endif %}
           {% endblock %}
-
-            {% if theme_show_cloud_banner %}
-                {% if theme_cloud_banner_markup %}
-                    {{ theme_cloud_banner_markup }}
-                {% else %}
-                    <div class="divio-cloud">
-                        <span class="divio-cloud-caption">GET STARTED FASTER</span>
-                        <h2 class="divio-cloud-heading"><b>Divio</b> is built for django CMS</h2>
-                        <ul class="divio-cloud-features">
-                            <li>Powerful <b>FREE</b> instance</li>
-                            <li>Local development environment</li>
-                            <li><b>Preconfigured django CMS</b></li>
-                        </ul>
-                        <a class="btn-neutral divio-cloud-btn" target="_blank" href="{{ theme_cloud_banner_url or "https://goo.gl/nHv16j" }}">Get your free account</a>
-                    </div>
-                {% endif %}
-            {% endif %}
         </div>
       </div>
     </nav>

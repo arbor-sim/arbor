@@ -30,13 +30,13 @@ html_logo = 'images/arbor-lines-proto-colour.svg'
 html_favicon = 'images/arbor-lines-proto-colour-notext.svg'
 
 project = 'Arbor'
-copyright = '2017-2020, ETHZ & FZ Julich'
-author = 'ETHZ & FZ Julich'
+copyright = '2017-2021, ETHZ & FZJ'
+author = 'ETHZ & FZJ'
 todo_include_todos = True
 
 html_theme = "divio_docs_theme"
 html_theme_options = {
-    "show_cloud_banner": False,}
+    }
 
 # This style makes the source code pop out a bit more
 # from the background text, without being overpowering.
