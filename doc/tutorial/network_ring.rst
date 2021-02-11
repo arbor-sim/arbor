@@ -11,8 +11,7 @@ In this example, a small *network* of cells, arranged in a ring, will be created
 
    1. Building a basic :class:`arbor.cell` with a synapse site and spike generator.
    2. Building a :class:`arbor.recipe` with a network of interconnected cells.
-   3. Create and execute a :class:`arbor.simulation`.
-   4. Running the simulation and visualizing the results,
+   3. Running the simulation and extract the results.
 
 The cell
 ********
@@ -47,7 +46,7 @@ Step **(1)** shows how a simple cell with a dendrite is created. We construct th
    labels['soma'] = '(tag 1)'
    labels['dend'] = '(tag 3)'
 
-In step **(2)** we create a :term:`label` for both the root, and the site where we'll be connecting the cell to another:
+In step **(2)** we create a :term:`label` for both the root and the site of the synapse.
 
 .. figure:: ../gen-images/tutorial_network_ring_synapse_site.svg
    :width: 400
@@ -63,11 +62,11 @@ In step **(2)** we create a :term:`label` for both the root, and the site where 
    labels['root'] = '(root)'
 
 Step **(3)** creates a basic cell decor, where a synapse with an exponential decay (``'expsyn'``) is placed on the ``'synapse_site'``.
+Note that mechanisms can be initialized with their name; ``'expsyn'`` is short for ``arbor.mechanism('expsyn')``.
 
-Step **(4)** places. A spike detector is placed at the ``'root'``. :class:`spike_detector` will send events into an
+Step **(4)** places a spike detector at the ``'root'``. :class:`spike_detector` will send spikes into an
 :class:`arbor.connection`, whereas the :ref:`expsyn mechanism <mechanisms_builtins>` can receive events from an
-:class:`arbor.connection`. Note that mechanisms can be initialized with their name; ``'expsyn'`` is short for
-``arbor.mechanism('expsyn')``.
+:class:`arbor.connection`.
 
 .. code-block:: python
 
