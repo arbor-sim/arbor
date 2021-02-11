@@ -20,7 +20,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
-    'sphinx.ext.coverage',
     'divio_docs_theme'
 ]
 source_suffix = '.rst'
