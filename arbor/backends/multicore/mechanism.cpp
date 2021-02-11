@@ -29,25 +29,6 @@ using util::make_range;
 using util::ptr_by_key;
 using util::value_by_key;
 
-// Copy elements from source sequence into destination sequence,
-// and fill the remaining elements of the destination sequence
-// with the given fill value.
-//
-// Assumes that the iterators for these sequences are at least
-// forward iterators.
-template <typename Source, typename Dest, typename Fill>
-void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
-    using std::begin;
-    using std::end;
-
-    auto dest_n = std::size(dest);
-    auto source_n = std::size(source);
-
-    auto n = source_n<dest_n? source_n: dest_n;
-    auto tail = std::copy_n(begin(source), n, begin(dest));
-    std::fill(tail, end(dest), fill);
-}
-
 // The derived class (typically generated code from modcc) holds pointers that need
 // to be set to point inside the shared state, or into the allocated parameter/variable
 // data block.
