@@ -13,27 +13,6 @@ Cable cells are constructed from three components:
 * :ref:`Label dictionary <labels>`: a set of definitions and a :abbr:`DSL (domain specific language)` that refer to regions and locations on the cell morphology.
 * :ref:`Decor <cablecell-decoration>`: a description of the dynamics on the cell, placed according to the named rules in the dictionary. It can reference :ref:`mechanisms` from mechanism catalogues.
 
-.. graphviz::
-  :align: center
-  :caption: The three main ingredients of the cable cell: morphology, label dictionary, decor. Regions and locations of the morphology can be identified using a :ref:`DSL <labels>`. The definitions can be stored with a label in the label dictionary. The regions and locsets can then be referred to using those labels when painting and placing dynamics and properties using a decor. Straight lines represent inputs, dashed lines references.
-
-  digraph {
-    nodesep=1
-    subgraph inputs {
-      rank=same
-      morphology
-      labels
-      decor
-    }
-    morphology -> "cable cell"
-    labels -> "cable cell"
-    decor -> "cable cell"
-    labels -> morphology [style=dashed]
-    decor -> mechanisms [style=dashed]
-    decor -> labels [style=dashed]
-  }
-
-
 When a cable cell is constructed the following steps are performed using the inputs:
 
 1. Concrete regions and locsets are generated for the morphology for each labelled region and locset in the dictionary

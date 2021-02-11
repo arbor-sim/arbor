@@ -15,38 +15,6 @@ To be able to simulate a model, three basic steps need to be considered:
 2. Define the computational resources available to execute the model;
 3. Initiate and execute a simulation of the recipe on the chosen hardware resources.
 
-
-.. graphviz::
-  :align: center
-  :caption: An outline of what goes into an Arbor simulation.
-
-  digraph {
-    #node [shape=plaintext]
-    nodesep=0.2
-    rankdir=LR
-    subgraph inputs {
-      clusterrank=local
-      "cell kind"
-      "cell description"
-      interconnectivity
-      "number of cells"
-    }
-    subgraph inputs {
-      clusterrank=local
-      recipe
-      context
-      "domain decomposition"
-    }
-    "cell kind" -> recipe
-    "cell description" -> recipe
-    interconnectivity -> recipe
-    "number of cells" -> recipe
-    recipe -> simulation
-    context -> simulation
-    "domain decomposition" -> simulation
-  }
-
-
 The Python front-end further abstracts away some of these steps for single cell models, where users only need to
 describe the cell and simulation; and the details of the recipe and computational resources construction are
 handled under the hood. Generally speaking though, these 3 steps are the building blocks of an Arbor application.
