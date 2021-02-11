@@ -35,7 +35,6 @@ using util::value_by_key;
 //
 // Assumes that the iterators for these sequences are at least
 // forward iterators.
-
 template <typename Source, typename Dest, typename Fill>
 void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
     using std::begin;
@@ -68,7 +67,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     for (auto &kv: overrides.globals) {
         if (auto opt_ptr = value_by_key(global_table(), kv.first)) {
             // Take reference to corresponding derived (generated) mechanism value member.
-            value_type& global = *opt_ptr.value();
+            fvm_value_type& global = *opt_ptr.value();
             global = kv.second;
         }
         else {
@@ -205,8 +204,8 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
         if (width_>0) {
             // Retrieve corresponding derived (generated) mechanism value pointer member.
-            value_type* field_ptr = *opt_ptr.value();
-            util::range<value_type*> field(field_ptr, field_ptr+width_padded_);
+            fvm_value_type* field_ptr = *opt_ptr.value();
+            util::range<fvm_value_type*> field(field_ptr, field_ptr+width_padded_);
 
             copy_extend(values, field, values.back());
         }

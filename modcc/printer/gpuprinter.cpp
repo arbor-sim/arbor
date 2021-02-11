@@ -411,7 +411,7 @@ void emit_common_defs(std::ostream& out, const Module& module_) {
         out << "value_type* " << array->name() << ";\n";
     }
     for (const auto& dep: ion_deps) {
-        out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
+        out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
         out << "index_type* " << ion_state_index(dep.name) << ";\n";
     }
 
