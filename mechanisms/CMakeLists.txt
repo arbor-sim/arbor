@@ -21,7 +21,7 @@ make_catalogue(
   NAME default
   SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/default"
   OUTPUT "CAT_DEFAULT_SOURCES"
-  MECHS exp2syn expsyn hh kamt kdrmt nax nernst pas
+  MECHS exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas
   ARBOR "${PROJECT_SOURCE_DIR}"
   STANDALONE FALSE)
 
