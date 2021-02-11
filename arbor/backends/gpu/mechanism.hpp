@@ -84,7 +84,6 @@ protected:
 
     deliverable_event_stream* event_stream_ptr_;
     const array* vec_t_ptr_;
-    const array* vec_t_to_ptr_;
 
     // Bulk storage for index vectors and state and parameter variables.
 

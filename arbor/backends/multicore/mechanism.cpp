@@ -115,7 +115,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     }
 
     vec_t_ptr_        = &shared.time;
-    vec_t_to_ptr_     = &shared.time_to;
     event_stream_ptr_ = &shared.deliverable_events;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.

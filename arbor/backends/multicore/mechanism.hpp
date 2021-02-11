@@ -73,7 +73,6 @@ protected:
     const fvm_index_type* vec_ci_;    // CV to cell index
     const fvm_index_type* vec_di_;    // CV to indom index
     const fvm_value_type* vec_t_;     // Cell index to cell-local time.
-    const fvm_value_type* vec_t_to_;  // Cell index to cell-local integration step time end.
     const fvm_value_type* vec_dt_;    // CV to integration time step.
     const fvm_value_type* vec_v_;     // CV to cell membrane voltage.
     fvm_value_type* vec_i_;           // CV to cell membrane current density.
@@ -83,7 +82,6 @@ protected:
     const fvm_value_type* time_since_spike_; // Vector containing time since last spike, indexed by cell index and n_detectors_
 
     const array* vec_t_ptr_;
-    const array* vec_t_to_ptr_;
     deliverable_event_stream* event_stream_ptr_;
 
     // Per-mechanism index and weight data, excepting ion indices.

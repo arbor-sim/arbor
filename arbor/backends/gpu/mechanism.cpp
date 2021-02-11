@@ -118,7 +118,6 @@ void mechanism::instantiate(unsigned id,
 
     event_stream_ptr_ = &shared.deliverable_events;
     vec_t_ptr_    = &shared.time;
-    vec_t_to_ptr_ = &shared.time_to;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width_==0) {

@@ -20,7 +20,6 @@ struct mechanism_ppack_base {
     const index_type* vec_ci_;
     const index_type* vec_di_;
     const value_type* vec_t_;
-    const value_type* vec_t_to_;
     const value_type* vec_dt_;
     const value_type* vec_v_;
     value_type* vec_i_;
