@@ -374,11 +374,6 @@ bool Module::semantic() {
         if(!solve_expression) {
             continue;
         }
-        if(found_solve) {
-            error("Only one SOLVE statement is allowed in the BREAKPOINT block",
-                  e->location());
-            return false;
-        }
         found_solve = true;
         std::unique_ptr<SolverVisitorBase> solver;
 
