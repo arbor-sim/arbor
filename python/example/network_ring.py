@@ -48,7 +48,7 @@ def make_cable_cell(gid):
     decor.paint('"dend"', 'pas')
 
     # (4) Attach a single synapse.
-    decor.place('"synapse_site"', arbor.mechanism('expsyn'))
+    decor.place('"synapse_site"', 'expsyn')
 
     # Attach a spike detector with threshold of -10 mV.
     decor.place('"root"', arbor.spike_detector(-10))
@@ -109,6 +109,10 @@ class ring_recipe (arbor.recipe):
 
     def global_properties(self, kind):
         return self.props
+
+# (11) Instantiate recipe
+ncells = 4
+recipe = ring_recipe(ncells)
 
 # (12) Create a default execution context, domain decomposition and simulation
 context = arbor.context()
