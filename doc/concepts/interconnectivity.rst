@@ -17,9 +17,6 @@ A recipe lets you define which sites are connected to which.
 
 .. _modelconnections:
 
-Connections
------------
-
 .. glossary::
 
    connection
@@ -38,9 +35,6 @@ Connections
       Spikes travel over :term:`connections <connection>`. In a synapse, they generate an event.
 
 .. _modelgapjunctions:
-
-Gap junctions
--------------
 
 .. glossary::
 
