@@ -363,7 +363,7 @@ bool Module::semantic() {
     }
 
     api_state->semantic(symbols_);
-    scope_ptr state_scope = api_state->scope();
+    scope_ptr advance_state_scope = api_state->scope();
 
     // Grab SOLVE statements, put them in `advance_state` after translation.
     bool found_solve = false;
