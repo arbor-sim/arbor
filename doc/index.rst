@@ -1,8 +1,8 @@
 Arbor
 =====
 
-.. image:: https://travis-ci.org/arbor-sim/arbor.svg?branch=master
-    :target: https://travis-ci.org/arbor-sim/arbor
+.. image:: https://github.com/arbor-sim/arbor/workflows/Basic%20Tests%20and%20Documentation/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions?query=workflow%3A%22Basic+Tests+and+Documentation%22
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 

@@ -1,7 +1,7 @@
 .. _py_mechanisms:
 
-Cell mechanisms
-===============
+Cable cell mechanisms
+=====================
 
 When :ref:`decorating <cablecell-decoration>` a cable cell, we use a :py:class:`mechanism` type to describe a
 mechanism that is to be painted or placed on the cable cell.

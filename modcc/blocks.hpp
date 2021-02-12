@@ -23,44 +23,42 @@ struct IonDep {
         return writes_variable(name) || reads_variable(name);
     };
     bool uses_current() const {
-        return has_variable("i"+name);
+        return has_variable("i" + name);
     };
     bool uses_rev_potential() const {
-        return has_variable("e"+name);
+        return has_variable("e" + name);
     };
     bool uses_concentration_int() const {
-        return has_variable(name+"i");
+        return has_variable(name + "i");
     };
     bool uses_concentration_ext() const {
-        return has_variable(name+"o");
+        return has_variable(name + "o");
     };
     bool writes_current() const {
-        return writes_variable("i"+name);
+        return writes_variable("i" + name);
     };
     bool writes_concentration_int() const {
-        return writes_variable(name+"i");
+        return writes_variable(name + "i");
     };
     bool writes_concentration_ext() const {
-        return writes_variable(name+"o");
+        return writes_variable(name + "o");
     };
     bool writes_rev_potential() const {
-        return writes_variable("e"+name);
+        return writes_variable("e" + name);
     };
 
     bool uses_valence() const {
-        return valence_var.type==tok::identifier;
+        return valence_var.type == tok::identifier;
     }
     bool verifies_valence() const {
         return has_valence_expr && !uses_valence();
     }
 
     bool reads_variable(const std::string& name) const {
-        return std::find_if(read.begin(), read.end(),
-                [&name](const Token& t) {return t.spelling==name;}) != read.end();
+        return std::find_if(read.begin(), read.end(), [&name](const Token& t) { return t.spelling == name; }) != read.end();
     }
     bool writes_variable(const std::string& name) const {
-        return std::find_if(write.begin(), write.end(),
-                [&name](const Token& t) {return t.spelling==name;}) != write.end();
+        return std::find_if(write.begin(), write.end(), [&name](const Token& t) { return t.spelling == name; }) != write.end();
     }
 };
 
@@ -71,11 +69,12 @@ struct Id {
                        // string == no value
     unit_tokens units;
 
-    std::pair<Token, Token> range; // empty component => no range set
+    std::pair<std::string, std::string> range; // empty component => no range set
 
-    Id(Token const& t, std::string const& v, unit_tokens const& u)
-        : token(t), value(v), units(u)
-    {}
+    Id(Token const& t, std::string const& v, unit_tokens const& u):
+        token(t),
+        value(v),
+        units(u) {}
 
     Id() {}
 
@@ -84,7 +83,7 @@ struct Id {
     }
 
     bool has_range() const {
-        return !range.first.spelling.empty();
+        return !range.first.empty();
     }
 
     std::string unit_string() const {
@@ -113,7 +112,7 @@ struct NeuronBlock {
     std::vector<Token> globals;
     Token nonspecific_current;
     bool has_nonspecific_current() const {
-        return nonspecific_current.spelling.size()>0;
+        return nonspecific_current.spelling.size() > 0;
     }
 };
 

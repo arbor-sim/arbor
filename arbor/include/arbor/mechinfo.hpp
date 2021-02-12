@@ -69,6 +69,8 @@ struct mechanism_info {
     mechanism_fingerprint fingerprint;
 
     bool linear = false;
+
+    bool post_events = false;
 };
 
 } // namespace arb

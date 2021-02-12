@@ -14,9 +14,9 @@
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 
-#include <arbornml/nmlexcept.hpp>
+#include "arborio/arbornml.hpp"
 
-namespace arbnml {
+namespace arborio {
 
 // `non_negative` represents the corresponding constraint in the schema, which
 // can mean any arbitrarily large non-negtative integer value.
@@ -300,7 +300,7 @@ inline std::string xpath_escape(const std::string& x) {
 // xml_error_scope object will restore the original error handling
 // behaviour on destruction.
 //
-// Errors are turned into arbnml::xml_error exceptions and thrown,
+// Errors are turned into arborio::xml_error exceptions and thrown,
 // while warnings are ignored (libxml2 warnings are highly innocuous).
 
 struct xml_error_scope {
@@ -314,4 +314,4 @@ struct xml_error_scope {
     void* structured_context_;
 };
 
-} // namespace arbnml
+} // namespace arborio

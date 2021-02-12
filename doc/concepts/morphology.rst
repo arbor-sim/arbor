@@ -32,16 +32,16 @@ proper definition for a morphology.
    :align: center
 
    **Field**,   **Type**, **Description**
-   ``x``,       real, x coordinate of center of cable (μm).
-   ``y``,       real, y coordinate of center of cable (μm).
-   ``z``,       real, z coordinate of center of cable (μm).
+   ``x``,       real, x coordinate of centre of cable (μm).
+   ``y``,       real, y coordinate of centre of cable (μm).
+   ``z``,       real, z coordinate of centre of cable (μm).
    ``radius``,  real, cross sectional radius of cable (μm).
 
 .. glossary::
 
   segment
   msegment
-    A segment is a frustum (cylinder or truncated cone), with the center and radius at each
+    A segment is a frustum (cylinder or truncated cone), with the centre and radius at each
     end defined by a pair of :term:`points <mpoint>`. In other words, in Arbor the radius between two points is interpolated
     linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
     centred at the line through the pair of points.
@@ -51,8 +51,8 @@ proper definition for a morphology.
    :align: center
 
    **Field**,      **Type**,                           **Description**
-   ``prox``,       :term:`mpoint`,   the center and radius of the proximal end.
-   ``dist``,       :term:`mpoint`,   the center and radius of the distal end.
+   ``prox``,       :term:`mpoint`,   the centre and radius of the proximal end.
+   ``dist``,       :term:`mpoint`,   the centre and radius of the distal end.
    ``tag``,        integer,              ":term:`tag` meta-data, can be used to classify segments of the same kind (ex: soma, dendrite, but also arbitrary use-defined groups"
 
 .. figure:: ../gen-images/term_segments.svg
@@ -677,7 +677,7 @@ Samples with the soma as a parent start new segments, that connect to the distal
 or to the proximal end of the soma if they are axons or apical dendrites. Only axons, dendrites and apical dendrites
 (tags 2, 3 and 4 respectively) are allowed in this interpretation, in addition to the spherical soma.
 
-Finally the Allen institute interpretation of SWC files centers the morphology around the soma at the origin (0, 0, 0)
+Finally the Allen institute interpretation of SWC files centres the morphology around the soma at the origin (0, 0, 0)
 and all samples are translated in space towards the origin.
 
 NEURON interpretation:
@@ -739,8 +739,92 @@ The morphological data includes the actual morphology as well as the named segme
 For example, the above ``m1`` morphology has one named segment ``seg-0`` and one named group ``group-0`` that are
 both represented using Arbor's :ref:`region expressions <labels-expressions>`.
 
+.. _morph-cv-policies:
+
+Discretisation and CV policies
+------------------------------
+
+.. glossary::
+
+  control volume
+  compartment
+    For the purpose of simulation, Arbor discretises cable cell :term:`morphologies <morphology>`
+    into control volumes, or CVs. Discretising happens through a :term:`CV policy`.
+    The CVs are uniquely determined by a set of *B* :term:`mlocation` boundary points. For each non-terminal
+    point *h* in *B*, there is a CV comprising the points {*x*: *h* ≤ *x* and ¬∃ *y* ∈ *B* s.t *h* < *y* < *x*},
+    where < and ≤ refer to the geometrical partial order of locations on the morphology. A fork
+    point is owned by a CV if and only if all of its corresponding representative locations are
+    in the CV.
+
+    'Compartment' is often used to refer to the substructure in cable cells; the 'compartment' in multi-compartment cells.
+    A compartment is equivalent to a control volume. We avoid using 'compartment' to avoid potential confusion
+    with :term:`segments <segment>` or :term:`branches <branch>`.
+
+.. Note::
+    In NEURON, discretisation is controlled through splitting a NEURON section into a
+    number of NEURON segments or NEURON compartments (`nseg`, `1` by default). Note that a NEURON segment/compartment is
+    not the same as an Arbor :term:`segment`!
+
+.. glossary::
+
+  CV policy
+    Generating the set of boundary points used by the simulator (discretisation) is controlled by a
+    :term:`CV <control volume>` policy. The default policy used to generate the set of boundary points is
+    ``cv_policy_fixed_per_branch(1)``.
+
+Specific CV policies are created by functions that take a ``region`` parameter
+that restrict the domain of applicability of that policy; this facility is useful
+for specifying differing discretisations on different parts of a cell morphology.
+When a CV policy is constrained in this manner, the boundary of the domain will
+always constitute part of the CV boundary point set.
+
+.. rubric:: ``cv_policy_single``
+
+Use one CV for each connected component of a region. When applied to the whole cell
+will generate single CV for the whole cell.
+
+.. rubric:: ``cv_policy_explicit``
+
+Define CV boundaries according to a user-supplied set of locations, optionally
+restricted to a region.
+
+.. rubric:: ``cv_policy_every_segment``
+
+Use every segment in the morphology to define CVs, optionally
+restricted to a region. Each fork point in the domain is
+represented by a trivial CV.
+
+.. rubric:: ``cv_policy_fixed_per_branch``
+
+For each branch in each connected component of the region (or the whole cell,
+if no region is specified), evenly distribute boundary points along the branch so
+as to produce an exact number of CVs per branch.
+
+By default, CVs will terminate at branch ends. An optional flag
+``cv_policy_flag::interior_forks`` can be passed to specify that fork points
+will be included in non-trivial, branched CVs and CVs covering terminal points
+in the morphology will be half-sized.
+
+.. rubric:: ``cv_policy_max_extent``
+
+As for ``cv_policy_fixed_per_branch``, save that the number of CVs on any
+given branch will be chosen to be the smallest number that ensures no
+CV will have an extent on the branch longer than a user-provided CV length.
+
+.. _morph-cv-composition:
+
+Composition of CV policies
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CV policies can be combined with ``+`` and ``|`` operators. For two policies
+*A* and *B*, *A* + *B* is a policy which gives boundary points from both *A*
+and *B*, while *A* | *B* is a policy which gives all the boundary points from
+*B* together with those from *A* which do not within the domain of *B*.
+The domain of *A* + *B* and *A* | *B* is the union of the domains of *A* and
+*B*.
+
 API
 ---
 
 * :ref:`Python <pymorph>`
-* :ref:`C++ <cppcablecell-morphology-construction>`
+* :ref:`C++ <cppmorphology>`

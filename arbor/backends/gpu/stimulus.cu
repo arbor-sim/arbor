@@ -12,7 +12,7 @@ namespace kernel {
     void stimulus_current_impl(int n, stimulus_pp pp) {
         auto i = threadIdx.x + blockDim.x*blockIdx.x;
         if (i<n) {
-            auto t = pp.vec_t_[pp.vec_ci_[i]];
+            auto t = pp.vec_t_[pp.vec_di_[i]];
             if (t>=pp.delay[i] && t<pp.delay[i]+pp.duration[i]) {
                 // use subtraction because the electrode currents are specified
                 // in terms of current into the compartment

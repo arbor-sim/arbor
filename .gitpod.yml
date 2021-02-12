@@ -11,7 +11,7 @@ tasks:
       mkdir build
       cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -H/workspace/arbor -B/workspace/arbor/build \
       -DCMAKE_INSTALL_PREFIX:STRING=/workspace/arbor/install -DCMAKE_BUILD_TYPE:STRING=Debug -G "Unix Makefiles" \
-      -DARB_WITH_PYTHON:BOOL=ON
+      -DARB_WITH_PYTHON:BOOL=ON -DARB_USE_BUNDLED_LIBS:BOOL=ON
       ln -s /workspace/arbor/build/compile_commands.json /workspace/arbor
       export PYTHONPATH=/workspace/arbor/install/lib/python3.7/site-packages
     prebuild: |

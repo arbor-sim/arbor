@@ -129,9 +129,10 @@ NeuroML
 ~~~~~~~
 
 Arbor supports reading cell morphologies defined in NeuroML version 2 through
-an additional NeuroML support library ``arbornml``. This library requires
-`libxml2 <http://xmlsoft.org>`_ for the parsing of NeuroML2 XML. See :ref:`install-neuroml` for
-more information.
+an additional support library ``arborio``. This library requires
+`libxml2 <http://xmlsoft.org>`_ for the parsing of NeuroML2 XML, if it is built
+with NeuroML support enabled.
+See :ref:`install-neuroml` for more information.
 
 
 Documentation
@@ -485,27 +486,27 @@ NeuroML support
 ---------------
 
 Arbor has limited support for NeuroML version 2 through an additional library
-``arbornml``. This library will be built if the option ``-DARB_WITH_NEUROML=ON``
-is passed to CMake at configuration time. ``arbornml`` depends upon the
-the ``libxml2`` library for XML parsing.
+``arborio``. This library will be built with NeuroML support if the option
+``-DARB_WITH_NEUROML=ON`` is passed to CMake at configuration time.
+``arborio`` depends upon the the ``libxml2`` library for XML parsing.
 
-With NeuroML support enabled, Arbor will additionally install the static library
-``libarbornml.a``. Applications using this functionality will need to link
+Arbor will additionally install the static library ``libarborio.a``.
+Applications using this functionality will need to link
 against this library in addition to the main Arbor library and ``libxml2``.
 For example:
 
 .. code-block:: bash
 
-    g++ -std=c++17 -pthread mycode.cpp -larbornml -larbor -lxml2
+    g++ -std=c++17 -pthread mycode.cpp -larborio -larbor -lxml2
 
 For projects using CMake, Arbor NeuroML support can be required with the
-component ``neuroml``. The corresponding CMake library target is ``arbor::arbornml``.
+component ``neuroml``. The corresponding CMake library target is ``arbor::arborio``.
 
 .. code-block:: cmake
 
    find_package(arbor COMPONENTS neuroml)
    # ...
-   target_link_libraries(myapp arbor::arbornml)
+   target_link_libraries(myapp arbor::arborio)
 
 
 .. _install:
