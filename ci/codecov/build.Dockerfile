@@ -20,14 +20,11 @@ RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
     update-alternatives --config gcc && \
     rm -rf /var/lib/apt/lists/*
 
-RUN wget -q "https://github.com/linux-test-project/lcov/archive/v1.14.tar.gz" && \
-    tar -xzf v1.14.tar.gz && \
-    cd lcov-1.14 && \
+RUN wget -q "https://github.com/linux-test-project/lcov/archive/v1.15.tar.gz" && \
+    tar -xzf v1.15.tar.gz && \
+    cd lcov-1.15 && \
     make install -j$(nproc) && \
-    rm -rf lcov-1.14 v1.14.tar.gz
-
-# Install cmake
-RUN wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+    rm -rf lcov-1.15 v1.15.tar.gz
 
 # Install MPICH ABI compatible with Cray's lib on Piz Daint
 RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz && \
@@ -36,6 +33,10 @@ RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPIC
     ./configure --disable-fortran && \
     make install -j$(nproc) && \
     rm -rf mpich-${MPICH_VERSION}.tar.gz mpich-${MPICH_VERSION}
+
+
+# Install cmake
+RUN wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
 
 # Install bundle tooling for creating small Docker images
 RUN wget -q https://github.com/haampie/libtree/releases/download/v1.2.0/libtree_x86_64.tar.gz && \
