@@ -367,25 +367,18 @@ bool Module::semantic() {
 
     // Grab SOLVE statements, put them in `nrn_state` after translation.
     bool found_solve = false;
-    bool found_non_solve = false;
     std::set<std::string> solved_ids;
 
     for(auto& e: (breakpoint->body()->statements())) {
         SolveExpression* solve_expression = e->is_solve_statement();
-        LocalDeclaration* local_expression = e->is_local_declaration();
-        if(local_expression) {
-            continue;
-        }
         if(!solve_expression) {
-            found_non_solve = true;
             continue;
         }
-        if(found_non_solve) {
-            error("SOLVE statements must come first in BREAKPOINT block",
-                e->location());
+        if(found_solve) {
+            error("Only one SOLVE statement is allowed in the BREAKPOINT block",
+                  e->location());
             return false;
         }
-
         found_solve = true;
         std::unique_ptr<SolverVisitorBase> solver;
 
