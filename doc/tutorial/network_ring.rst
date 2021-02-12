@@ -90,25 +90,26 @@ The recipe
 To create a model with multiple connected cells, we need to use a :class:`recipe <arbor.recipe>` that describes the model.
 The recipe is where the different cells and the :ref:`connections <interconnectivity>` between them are defined.
 
-Let's first create a function that returns the above cell. This tutorial's objective is to demonstrate creating the network after all. Simply wrap the above code in a function definition, and let's add the imports while we're at it:
+Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired
+number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main differences
+are connecting the cells, returning a variable number of cells **(6)** and returning a new cell per ``gid`` **(7)**
+(``make_cable_cell()`` returns the cell above).
 
-.. code-block:: python
+Step **(8)** creates an :class:`arbor.connection` between this cell and the previous. (The ``gid`` of the previous
+cell is ``(gid-1)%self.ncells``.) The connection has a weight of 0.1 μS and a delay of 5 ms. The two arguments to
+:class:`arbor.cell_member` refer to the cell ``gid`` (first argument) and the index of the source or target site
+(second argument). The cell has one synapse (step **3**), so the target endpoint has the 0th index. The cell has one
+spike generator (step **(4)**), so its source index is 0. Remember that sources and targets are separately indexed,
+see :term:`connection`.
 
-   import arbor
-   import pandas, seaborn #used for plotting
-   from math import sqrt
+:func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one
+connection coming in and one going out. Note that an :py:class:`arbor.cell_member` can be initialized with a
+`(gid, index)` tuple.
 
-   def make_cable_cell(gid):
-      {{ The above cell }}
-      return cell
-
-Now that we can generate as many copies of this cell as we need, let's set the recipe up.
-
-Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main difference, apart from connecting the cells, is returning a variable number of cells **(6)** and returning a new cell per ``gid`` **(7)**.
-
-Step **(8)** creates a :class:`arbor.connection` between this cell and the previous (the ``gid`` of the previous cell is ``(gid-1)%self.ncells``), with a weight of 0.1 μS and a delay of 5 ms. The two arguments to :class:`arbor.cell_member` refer to the cell ``gid`` (first argument) and the index of the synapse (second argument). Only one synapse was defined (step **4**), so the index is always 0. :func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one connection coming in and one going out. Note that an `arbor.cell_member` can be initialized with a `(gid, index)` tuple.
-
-Step **(9)** creates an :class:`arbor.event_generator` on the 0th cell. The :class:`arbor.explicit_schedule` in instantiated with a list of times with unit ms, so a schedule with a period of a millisecond is created.
+Step **(9)** attaches an :class:`arbor.event_generator` on the 0th target (synapse) on the 0th cell (so, it is
+connected to the ``synapse_site`` on cell 0). This initiates the signal cascade through the network. The
+:class:`arbor.explicit_schedule` in instantiated with a list of times with unit ms, so here a single event at the 1
+ms mark is emitted.
 
 Step **(10)** instantiates the recipe with 4 cells.
 

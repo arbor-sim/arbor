@@ -21,12 +21,13 @@ A recipe lets you define which sites are connected to which.
 
    connection
       Connections implement chemical synapses between **source** and **target** cells and are characterized
-      by having a transmission delay. Connections in Arbor are defined in two steps:
+      by having a transmission delay. On a cell, sources and targets are separately indexed.
+
+      Connections in Arbor are defined in two steps:
 
       1. Create **source** and **target** on two separate cells as part of their
          :ref:`cell descriptions <modelcelldesc>` in the :ref:`recipe <modelrecipe>`. Sources typically
-         generate spiking events. Targets are typically synapses with associated biophysical model descriptions.
-         On a cell, sources and targets are separately indexed.
+         generate spikes. Targets are typically synapses with associated biophysical model descriptions.
       2. Declare the connection in the recipe: with the source and target identified using :gen:`cell_member`,
          a connection delay and a connection weight. The connection should be declared on the target cell.
 
@@ -34,13 +35,19 @@ A recipe lets you define which sites are connected to which.
    action potential
       Spikes travel over :term:`connections <connection>`. In a synapse, they generate an event.
 
+   event
+      In a synapse :term:`spikes <spike>` generate events, which constitute stimulation of the synapse mechanism and the transmission of a signal. A synapse may receive events directly from an :term:`event generator`.
+
+   event generator
+      Externally stimulate a synapse. Event can be delivered on a schedule, one time, etc. See :py:class:`arbor.event_generator` for options.
+
 .. _modelgapjunctions:
 
 .. glossary::
 
-   gap junctions
+   gap junction
       Gap junctions represent electrical synapses where transmission between cells is bidirectional and direct.
-      They are modeled as a conductance between two **gap junction sites** on two cells.
+      They are modelled as a conductance between two **gap junction sites** on two cells.
 
       Similarly to `Connections`, Gap Junctions in Arbor are defined in two steps:
 
