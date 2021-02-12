@@ -205,17 +205,46 @@ TEST(Parser, net_receive) {
 }
 
 TEST(Parser, function) {
-    char str[] =
-        "FUNCTION foo(x, y) {"
-        "  LOCAL a\n"
-        "  a = 3\n"
-        "  b = x * y + 2\n"
-        "  y = x + y * 2\n"
-        "  foo = a * x + y\n"
-        "}";
+    {
+        char str[] =
+            "FUNCTION foo(x, y) {"
+            "  LOCAL a\n"
+            "  a = 3\n"
+            "  b = x * y + 2\n"
+            "  y = x + y * 2\n"
+            "  foo = a * x + y\n"
+            "}";
 
-    std::unique_ptr<Symbol> sym;
-    EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+        std::unique_ptr<Symbol> sym;
+        EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+    }
+    {
+        char str[] =
+            "FUNCTION foo(x (mv), y (/mA)) {"
+            "  foo = x * y\n"
+            "}";
+
+        std::unique_ptr<Symbol> sym;
+        EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+    }
+    {
+        char str[] =
+            "FUNCTION foo(x (mv), y (/mA)) (mv/mA) {"
+            "  foo = x * y\n"
+            "}";
+
+        std::unique_ptr<Symbol> sym;
+        EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+    }
+    {
+        char str[] =
+            "FUNCTION foo(x (mv), y (/mA)) (mv-mA) {"
+            "  foo = x * y\n"
+            "}";
+
+        std::unique_ptr<Symbol> sym;
+        EXPECT_FALSE(check_parse(sym, &Parser::parse_function, str));
+    }
 }
 
 TEST(Parser, parse_solve) {

@@ -357,155 +357,155 @@ bool Module::semantic() {
     auto api_state  = state_api.first;
     auto breakpoint = state_api.second; // implies we are building the `advance_state()` method.
 
-    api_state->semantic(symbols_);
-    scope_ptr state_scope = api_state->scope();
-
-    if(breakpoint) {
-        // Grab SOLVE statements, put them in `advance_state` after translation.
-        bool found_solve = false;
-        bool found_non_solve = false;
-        std::set<std::string> solved_ids;
-
-        for(auto& e: (breakpoint->body()->statements())) {
-            SolveExpression* solve_expression = e->is_solve_statement();
-            LocalDeclaration* local_expression = e->is_local_declaration();
-            if(local_expression) {
-                continue;
-            }
-            if(!solve_expression) {
-                found_non_solve = true;
-                continue;
-            }
-            if(found_non_solve) {
-                error("SOLVE statements must come first in BREAKPOINT block",
-                    e->location());
-                return false;
-            }
-
-            found_solve = true;
-            std::unique_ptr<SolverVisitorBase> solver;
-
-            switch(solve_expression->method()) {
-            case solverMethod::cnexp:
-                solver = std::make_unique<CnexpSolverVisitor>();
-                break;
-            case solverMethod::sparse: {
-                solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
-                break;
-            }
-            case solverMethod::none:
-                solver = std::make_unique<DirectSolverVisitor>();
-                break;
-            }
-
-            // If the derivative block is a kinetic block, perform kinetic
-            // rewrite first.
-
-            auto deriv = solve_expression->procedure();
-
-            if (deriv->kind()==procedureKind::kinetic) {
-                auto rewrite_body = kinetic_rewrite(deriv->body());
-                bool linear_kinetic = true;
-
-                for (auto& s: rewrite_body->is_block()->statements()) {
-                    if(s->is_assignment() && !state_vars.empty()) {
-                        linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                        linear_kinetic &= r.is_linear;
-                    }
-                }
-
-                if (!linear_kinetic) {
-                    solver = std::make_unique<SparseNonlinearSolverVisitor>();
-                }
-
-                rewrite_body->semantic(state_scope);
-                rewrite_body->accept(solver.get());
-            }
-            else if (deriv->kind()==procedureKind::linear) {
-                solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                auto rewrite_body = linear_rewrite(deriv->body(), state_vars);
-
-                rewrite_body->semantic(state_scope);
-                rewrite_body->accept(solver.get());
-            }
-            else {
-                deriv->body()->accept(solver.get());
-                for (auto& s: deriv->body()->statements()) {
-                    if(s->is_assignment() && !state_vars.empty()) {
-                        linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                        linear &= r.is_linear;
-                        linear &= r.is_homogeneous;
-                    }
-                }
-            }
-
-            if (auto solve_block = solver->as_block(false)) {
-                // Check that we didn't solve an already solved variable.
-                for (const auto& id: solver->solved_identifiers()) {
-                    if (solved_ids.count(id)>0) {
-                        error("Variable "+id+" solved twice!", e->location());
-                        return false;
-                    }
-                    solved_ids.insert(id);
-                }
-
-                // May have now redundant local variables; remove these first.
-                solve_block->semantic(state_scope);
-                solve_block = remove_unused_locals(solve_block->is_block());
-
-                // Copy body into advance_state.
-                for (auto& stmt: solve_block->is_block()->statements()) {
-                    api_state->body()->statements().push_back(std::move(stmt));
-                }
-            }
-            else {
-                // Something went wrong: copy errors across.
-                append_errors(solver->errors());
-                return false;
-            }
-        }
-
-        // handle the case where there is a SOLVE in BREAKPOINT (which is the typical case)
-        if (found_solve) {
-            // Redo semantic pass in order to elimate any removed local symbols.
-            api_state->semantic(symbols_);
-        }
-
-        // Run remove locals pass again on the whole body in case `dt` was never used.
-        api_state->body(remove_unused_locals(api_state->body()));
-        api_state->semantic(symbols_);
-
-        //..........................................................
-        // compute_currents : update contributions to currents
-        //..........................................................
-        NrnCurrentRewriter current_rewriter;
-        breakpoint->accept(&current_rewriter);
-
-        for (auto& s: breakpoint->body()->statements()) {
-            if(s->is_assignment() && !state_vars.empty()) {
-                linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                linear &= r.is_linear;
-                linear &= r.is_homogeneous;
-            }
-        }
-
-        auto current_block = current_rewriter.as_block();
-        if (!current_block) {
-            append_errors(current_rewriter.errors());
-            return false;
-        }
-
-        symbols_["compute_currents"] =
-            make_symbol<APIMethod>(
-                    breakpoint->location(), "compute_currents",
-                    std::vector<expression_ptr>(),
-                    constant_simplify(current_block));
-        symbols_["compute_currents"]->semantic(symbols_);
-    }
-    else {
+    if(!breakpoint) {
         error("a BREAKPOINT block is required");
         return false;
     }
+
+    api_state->semantic(symbols_);
+    scope_ptr state_scope = api_state->scope();
+
+    // Grab SOLVE statements, put them in `advance_state` after translation.
+    bool found_solve = false;
+    bool found_non_solve = false;
+    std::set<std::string> solved_ids;
+
+    for(auto& e: (breakpoint->body()->statements())) {
+        SolveExpression* solve_expression = e->is_solve_statement();
+        LocalDeclaration* local_expression = e->is_local_declaration();
+        if(local_expression) {
+            continue;
+        }
+        if(!solve_expression) {
+            found_non_solve = true;
+            continue;
+        }
+        if(found_non_solve) {
+            error("SOLVE statements must come first in BREAKPOINT block",
+                e->location());
+            return false;
+        }
+
+        found_solve = true;
+        std::unique_ptr<SolverVisitorBase> solver;
+
+        switch(solve_expression->method()) {
+        case solverMethod::cnexp:
+            solver = std::make_unique<CnexpSolverVisitor>();
+            break;
+        case solverMethod::sparse: {
+            solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
+            break;
+        }
+        case solverMethod::none:
+            solver = std::make_unique<DirectSolverVisitor>();
+            break;
+        }
+
+        // If the derivative block is a kinetic block, perform kinetic
+        // rewrite first.
+
+        auto deriv = solve_expression->procedure();
+
+        if (deriv->kind()==procedureKind::kinetic) {
+            auto rewrite_body = kinetic_rewrite(deriv->body());
+            bool linear_kinetic = true;
+
+            for (auto& s: rewrite_body->is_block()->statements()) {
+                if(s->is_assignment() && !state_vars.empty()) {
+                    linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                    linear_kinetic &= r.is_linear;
+                }
+            }
+
+            if (!linear_kinetic) {
+                solver = std::make_unique<SparseNonlinearSolverVisitor>();
+            }
+
+            rewrite_body->semantic(advance_state_scope);
+            rewrite_body->accept(solver.get());
+        }
+        else if (deriv->kind()==procedureKind::linear) {
+            solver = std::make_unique<LinearSolverVisitor>(state_vars);
+            auto rewrite_body = linear_rewrite(deriv->body(), state_vars);
+
+            rewrite_body->semantic(advance_state_scope);
+            rewrite_body->accept(solver.get());
+        }
+        else {
+            deriv->body()->accept(solver.get());
+            for (auto& s: deriv->body()->statements()) {
+                if(s->is_assignment() && !state_vars.empty()) {
+                    linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                    linear &= r.is_linear;
+                    linear &= r.is_homogeneous;
+                }
+            }
+        }
+
+        if (auto solve_block = solver->as_block(false)) {
+            // Check that we didn't solve an already solved variable.
+            for (const auto& id: solver->solved_identifiers()) {
+                if (solved_ids.count(id)>0) {
+                    error("Variable "+id+" solved twice!", e->location());
+                    return false;
+                }
+                solved_ids.insert(id);
+            }
+
+            // May have now redundant local variables; remove these first.
+            solve_block->semantic(advance_state_scope);
+            solve_block = remove_unused_locals(solve_block->is_block());
+
+            // Copy body into advance_state.
+            for (auto& stmt: solve_block->is_block()->statements()) {
+                api_state->body()->statements().push_back(std::move(stmt));
+
+            }
+        }
+        else {
+            // Something went wrong: copy errors across.
+            append_errors(solver->errors());
+            return false;
+        }
+    }
+
+    // handle the case where there is a SOLVE in BREAKPOINT (which is the typical case)
+    if (found_solve) {
+        // Redo semantic pass in order to eliminate any removed local symbols.
+        api_state->semantic(symbols_);
+    }
+
+    // Run remove locals pass again on the whole body in case `dt` was never used.
+    api_state->body(remove_unused_locals(api_state->body()));
+    api_state->semantic(symbols_);
+
+    //..........................................................
+    // compute_currents : update contributions to currents
+    //..........................................................
+    NrnCurrentRewriter compute_currents_rewriter;
+    breakpoint->accept(&compute_currents_rewriter);
+
+    for (auto& s: breakpoint->body()->statements()) {
+        if(s->is_assignment() && !state_vars.empty()) {
+            linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+            linear &= r.is_linear;
+            linear &= r.is_homogeneous;
+        }
+    }
+
+    auto compute_currents_block = compute_currents_rewriter.as_block();
+    if (!compute_currents_block) {
+        append_errors(compute_currents_rewriter.errors());
+        return false;
+    }
+
+    symbols_["compute_currents"] =
+        make_symbol<APIMethod>(
+                breakpoint->location(), "compute_currents",
+                std::vector<expression_ptr>(),
+                constant_simplify(compute_currents_block));
+    symbols_["compute_currents"]->semantic(symbols_);
 
     if (has_symbol("net_receive", symbolKind::procedure)) {
         auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");

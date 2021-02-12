@@ -4,9 +4,7 @@ Concepts
 ========
 
 To learn how to use Arbor, it is helpful to understand some of its concepts.
-
 Arbor's design aims to enable scalability through abstraction.
-
 To achieve this, Arbor makes a distinction between the **description** of a model, and the
 **execution** of a model:
 a *recipe* describes a model, and a *simulation* is an executable instantiation of a model.
@@ -17,11 +15,11 @@ To be able to simulate a model, three basic steps need to be considered:
 2. Define the computational resources available to execute the model;
 3. Initiate and execute a simulation of the recipe on the chosen hardware resources.
 
-The python front-end further abstracts away some of these steps for single cell models, where users only need to
+The Python front-end further abstracts away some of these steps for single cell models, where users only need to
 describe the cell and simulation; and the details of the recipe and computational resources construction are
 handled under the hood. Generally speaking though, these 3 steps are the building blocks of an Arbor application.
 
-:ref:`Recipes <modelrecipe>` represent a set of neuron constructions and connections with *mechanisms* specifying
+:ref:`Recipes <modelrecipe>` represent a set of neuron constructions and connections with :ref:`mechanisms <mechanisms>` specifying
 ion channel and synapse dynamics in a cell-oriented manner. This has the advantage that cell data can be initiated
 in parallel.
 
@@ -56,3 +54,4 @@ meter manager is available.
    morphology
    labels
    mechanisms
+   decor
