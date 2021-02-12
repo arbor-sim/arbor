@@ -139,23 +139,23 @@ combination of global parameter values.
 
 Take for example a mechanism passive leaky dynamics:
 
-* Name: ``"passive"``.
-* Global variable: reversal potential ``"el"``.
+* Name: ``"passive"`` (the built-in mechanism is called just ``"pas"``).
+* Global variable: reversal potential ``"e"``.
 * Range variable: conductance ``"g"``.
 
 .. code-block:: Python
 
-    # Create pas mechanism with default parameter values (set in NMODL file).
+    # Create passive mechanism with default parameter values (set in NMODL file).
     m1 = arbor.mechanism('passive')
 
-    # Create default mechanism with custom conductance (range)
+    # Create mechanism with custom conductance (range)
     m2 = arbor.mechanism('passive', {'g': 0.1})
 
-    # Create a new pas mechanism with that changes reversal potential (global)
-    m3 = arbor.mechanism('passive/el=-45')
+    # Create a new passive mechanism with that changes reversal potential (global)
+    m3 = arbor.mechanism('passive/e=-45')
 
     # Create an instance of the same mechanism, that also sets conductance (range)
-    m4 = arbor.mechanism('passive/el=-45', {'g': 0.1})
+    m4 = arbor.mechanism('passive/e=-45', {'g': 0.1})
 
     decor = arbor.decor()
     decor.paint('"soma"', m1)
