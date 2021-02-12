@@ -20,7 +20,8 @@ jobs:
             cxx:   "g++-8",
             py:    "3.6",
             cmake: "3.12.x",
-            mpi:   "ON"
+            mpi:   "ON",
+            simd:  "OFF"
           }
         - {
             name:  "Linux Min Clang",
@@ -29,7 +30,8 @@ jobs:
             cxx:   "clang++-8",
             py:    "3.6",
             cmake: "3.12.x",
-            mpi:   "ON"
+            mpi:   "ON",
+            simd:  "OFF"
           }
         - {
             name:  "MacOS Min",
@@ -38,7 +40,8 @@ jobs:
             cxx:   "clang++",
             py:    "3.6",
             cmake: "3.12.x",
-            mpi:   "ON"
+            mpi:   "ON",
+            simd:  "OFF"
           }
         - {
             name:  "Linux Max GCC",
@@ -47,7 +50,18 @@ jobs:
             cxx:   "g++-10",
             py:    "3.9",
             cmake: "3.19.x",
-            mpi:   "ON"
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "Linux SIMD",
+            os:    "ubuntu-20.04",
+            cc:    "gcc-10",
+            cxx:   "g++-10",
+            py:    "3.9",
+            cmake: "3.19.x",
+            mpi:   "OFF",
+            simd:  "ON"
           }
         - {
             name:  "Linux Max Clang",
@@ -56,7 +70,8 @@ jobs:
             cxx:   "clang++-10",
             py:    "3.9",
             cmake: "3.19.x",
-            mpi:   "ON"
+            mpi:   "ON",
+            simd:  "OFF"
           }
         - {
             name:  "MacOS Max",
@@ -65,7 +80,8 @@ jobs:
             cxx:   "clang++",
             py:    "3.9",
             cmake: "3.19.x",
-            mpi:   "ON"
+            mpi:   "ON",
+            simd:  "OFF"
           }
     env:
         CC:         ${{ matrix.config.cc }}
@@ -125,7 +141,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
           make -j4 tests examples pyarb html
           cd -
       - name: Run unit tests
