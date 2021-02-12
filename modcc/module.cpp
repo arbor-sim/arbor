@@ -98,15 +98,8 @@ public:
             current_vars_.insert(e->lhs()->is_identifier()->name());
 
             linear_test_result L = linear_test(e->rhs(), {"v"});
-            if (!L.is_linear) {
-                error({"current update expressions must be linear in v: "+e->rhs()->to_string(),
-                       e->location()});
-                return;
-            }
-            else {
-                if (L.coef.count("v") && !visited_current) {
-                    conductivity_exps_.insert(L.coef.at("v")->clone());
-                }
+            if (L.coef.count("v") && !visited_current) {
+                conductivity_exps_.insert(L.coef.at("v")->clone());
             }
         }
     }
