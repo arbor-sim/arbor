@@ -27,3 +27,4 @@ Tutorials
    single_cell_cable
    network_ring
    network_ring_mpi
+   single_cell_allen
