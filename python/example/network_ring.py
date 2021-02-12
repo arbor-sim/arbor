@@ -88,7 +88,7 @@ class ring_recipe (arbor.recipe):
         src = (gid-1)%self.ncells
         w = 0.01
         d = 5
-        return [arbor.connection(arbor.cell_member(src,0), arbor.cell_member(gid,0), w, d)]
+        return [arbor.connection((src,0), (gid,0), w, d)]
 
     def num_targets(self, gid):
         return 1
@@ -100,44 +100,37 @@ class ring_recipe (arbor.recipe):
     def event_generators(self, gid):
         if gid==0:
             sched = arbor.explicit_schedule([1])
-            return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
+            return [arbor.event_generator((0,0), 0.1, sched)]
         return []
 
+    # (10) Place a probe at the root of each cell.
     def probes(self, gid):
         return [arbor.cable_probe_membrane_voltage('"root"')]
 
     def global_properties(self, kind):
         return self.props
 
-# (10) Instantiate recipe
-ncells = 4
-recipe = ring_recipe(ncells)
-
-# (11) Create a default execution context, domain decomposition, and simulation
+# (12) Create a default execution context, domain decomposition and simulation
 context = arbor.context()
 decomp = arbor.partition_load_balance(recipe, context)
 sim = arbor.simulation(recipe, decomp, context)
 
-# (12) By default, spike generators don't keep records of the spikes they generate.
-# This sets all spike generators to record spike timestamps.
+# (13) Set spike generators to record
 sim.record(arbor.spike_recording.all)
 
-# Attach a sampler to the voltage probe on cell 0.
-# Sample rate of 10 sample every ms.
+# (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
 handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
-# (13) Run simulation
+# (15) Run simulation
 sim.run(100)
 print('Simulation finished')
 
-# (14) Results
-
-# Print spike times
+# (16) Print spike times
 print('spikes:')
 for sp in sim.spikes():
     print(' ', sp)
 
-# Plot the recorded voltages over time.
+# (17) Plot the recorded voltages over time.
 print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
