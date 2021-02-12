@@ -251,8 +251,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
     out <<
-        "using value_type = fvm_value_type;\n"
-        "using index_type = fvm_index_type;\n"
+        "using value_type = ::arb::fvm_value_type;\n"
+        "using index_type = ::arb::fvm_index_type;\n"
         "\n";
 
     emit_common_defs(out, module_);
