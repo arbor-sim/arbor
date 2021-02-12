@@ -14,8 +14,7 @@ def setup(app):
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.coverage'
+    'sphinx.ext.mathjax'
 ]
 source_suffix = '.rst'
 master_doc = 'index'
