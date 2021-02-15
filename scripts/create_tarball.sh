@@ -43,7 +43,7 @@ git submodule update
 rm -vrf .git
 
 # wipe .git submodule files
-truncate -s 0  -- **/.git
+find -type f -name .git | xargs truncate -s 0
 
 # create tar ball
 cd ..
