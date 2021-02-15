@@ -148,7 +148,9 @@ jobs:
           make -j4 tests examples pyarb html
           cd -
       - name: Run unit tests
-        run:  build/bin/unit
+        run: |
+          build/bin/unit
+          build/bin/unit-modcc
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run MPI tests
         run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
