@@ -172,9 +172,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "\n"
         "using backend = ::arb::multicore::backend;\n"
         "using base = ::arb::multicore::mechanism;\n"
-        "using value_type = ::arb::fvm_value_type;\n"
-        "using size_type = ::arb::fvm_size_type;\n"
-        "using index_type = ::arb::fvm_index_type;\n"
         "using ::arb::math::exprelr;\n"
         "using ::arb::math::safeinv;\n"
         "using ::std::abs;\n"
@@ -253,7 +250,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     net_receive && out <<
         "void apply_events(deliverable_event_stream::state events) override;\n"
-        "void net_receive(int i_, value_type weight);\n";
+        "void net_receive(int i_, ::arb::fvm_value_type weight);\n";
 
     post_event && out <<
         "void post_event() override;\n";
@@ -342,14 +339,14 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "private:\n" << indent;
 
     for (const auto& scalar: vars.scalars) {
-        out << "value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
+        out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
     for (const auto& array: vars.arrays) {
-        out << "value_type* " << array->name() << ";\n";
+        out << "::arb::fvm_value_type* " << array->name() << ";\n";
     }
     for (const auto& dep: ion_deps) {
         out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "index_type* " << ion_state_index(dep.name) << ";\n";
+        out << "::arb::fvm_index_type* " << ion_state_index(dep.name) << ";\n";
     }
 
     for (auto proc: normal_procedures(module_)) {
@@ -387,7 +384,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "}\n" << popindent <<
             "}\n"
             "\n"
-            "void " << class_name << "::net_receive(int i_, value_type " << weight_arg << ") {\n" << indent <<
+            "void " << class_name << "::net_receive(int i_, ::arb::fvm_value_type " << weight_arg << ") {\n" << indent <<
             cprint(net_receive->body()) << popindent <<
             "}\n\n";
     }
@@ -493,7 +490,7 @@ void CPrinter::visit(BlockExpression* block) {
     if (!block->is_nested()) {
         auto locals = pure_locals(block->scope());
         if (!locals.empty()) {
-            out_ << "value_type ";
+            out_ << "::arb::fvm_value_type ";
             io::separator sep(", ");
             for (auto local: locals) {
                 out_ << sep << local->name();
@@ -517,7 +514,7 @@ static std::string index_i_name(const std::string& index_var) {
 void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(int i_";
     for (auto& arg: e->args()) {
-        out << ", value_type " << arg->is_argument()->name();
+        out << ", ::arb::fvm_value_type " << arg->is_argument()->name();
     }
     out << ")";
 }
@@ -538,7 +535,7 @@ namespace {
 }
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
-    out << "value_type " << cprint(local) << " = ";
+    out << "::arb::fvm_value_type " << cprint(local) << " = ";
 
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());
@@ -722,7 +719,7 @@ void SimdPrinter::visit(BlockExpression* block) {
 }
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(index_type i_";
+    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(::arb::fvm_index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -731,7 +728,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
-    << "(index_type i_, simd_mask mask_input_";
+    << "(::arb::fvm_index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -929,7 +926,7 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
         << ".size(); i_++) {\n"
         << indent;
 
-    out << "index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
+    out << "::arb::fvm_index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
     if (requires_weight) {
         out << "simd_value w_;\n"
             << "assign(w_, indirect((weight_+index_), simd_width_));\n";
