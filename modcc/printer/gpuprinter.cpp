@@ -78,7 +78,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
 
     out <<
         "void " << class_name << "_init_(" << ppack_name << "&);\n"
-        "void " << class_name << "_advanve_state_(" << ppack_name << "&);\n"
+        "void " << class_name << "_advance_state_(" << ppack_name << "&);\n"
         "void " << class_name << "_compute_currents_(" << ppack_name << "&);\n"
         "void " << class_name << "_write_ions_(" << ppack_name << "&);\n";
 
