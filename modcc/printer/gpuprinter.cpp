@@ -83,7 +83,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "void " << class_name << "_write_ions_(" << ppack_name << "&);\n";
 
     net_receive && out <<
-        "void " << class_name << "_deliver_events_(int mech_id, "
+        "void " << class_name << "_apply_events_(int mech_id, "
         << ppack_name << "&, deliverable_event_stream_state events);\n";
 
     post_event && out <<
@@ -301,7 +301,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     if (net_receive) {
         const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
         out << "__global__\n"
-            << "void deliver_events(int mech_id_, " <<  ppack_name << " params_, "
+            << "void apply_events(int mech_id_, " <<  ppack_name << " params_, "
             << "deliverable_event_stream_state events) {\n" << indent
             << "auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
             << "auto const ncell_ = events.n;\n\n"
@@ -364,13 +364,13 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     emit_api_wrapper(write_ions_api);
 
     net_receive && out
-        << "void " << class_name << "_deliver_events_("
+        << "void " << class_name << "_apply_events_("
         << "int mech_id, "
         << ppack_name << "& p, deliverable_event_stream_state events) {\n" << indent
         << "auto n = events.n;\n"
         << "unsigned block_dim = 128;\n"
         << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-        << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
+        << "apply_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
         << popindent << "}\n\n";
 
     post_event && out
