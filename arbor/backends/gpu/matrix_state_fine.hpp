@@ -7,7 +7,6 @@
 
 #include <arbor/common_types.hpp>
 
-#include "algorithms.hpp"
 #include "memory/memory.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"

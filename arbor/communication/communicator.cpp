@@ -8,7 +8,6 @@
 #include <arbor/spike.hpp>
 #include <include/arbor/arbexcept.hpp>
 
-#include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
 #include "connection.hpp"
 #include "distributed_context.hpp"
@@ -104,7 +103,7 @@ communicator::communicator(const recipe& rec,
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
     connections_.resize(n_cons);
-    connection_part_ = algorithms::make_index(src_counts);
+    util::make_partition(connection_part_, src_counts);
     auto offsets = connection_part_;
     std::size_t pos = 0;
     for (const auto& cell: gid_infos) {

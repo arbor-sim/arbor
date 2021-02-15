@@ -18,7 +18,6 @@
 
 #include <arborenv/concurrency.hpp>
 
-#include "algorithms.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
 #include "execution_context.hpp"
