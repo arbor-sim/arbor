@@ -28,9 +28,8 @@ RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
       -DARB_GPU=cuda \
       -DARB_USE_BUNDLED_LIBS=ON \
       -DCMAKE_BUILD_TYPE=Debug \
-      -DCMAKE_CXX_FLAGS="-g -O0 -fprofile-arcs -ftest-coverage" \
-      -DCMAKE_EXE_LINKER_FLAGS="-fprofile-arcs -ftest-coverage" \
-      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_FLAGS="-g -O0 --coverage" \
+      -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
     libtree --chrpath \
