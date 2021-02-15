@@ -91,7 +91,7 @@ private:
 
         // Add pas and hh mechanisms:
         dec.paint(reg::tagged(1), "hh"); // (default parameters)
-        dec.paint(reg::tagged(4), mechanism_desc("pas").set("e", -70));
+        dec.paint(reg::tagged(4), mechanism_desc("pas/e=-70.0"));
 
         // Add exponential synapse at centre of soma.
         synapse_location_ = ls::on_components(0.5, reg::tagged(1));
