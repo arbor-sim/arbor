@@ -250,11 +250,6 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
-    out <<
-        "using value_type = ::arb::fvm_value_type;\n"
-        "using index_type = ::arb::fvm_index_type;\n"
-        "\n";
-
     emit_common_defs(out, module_);
 
     // Print the CUDA code and kernels:
@@ -274,7 +269,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << "void " << e->name()
             << "(" << ppack_name << " params_, int tid_";
         for(auto& arg: e->args()) {
-            out << ", value_type " << arg->is_argument()->name();
+            out << ", ::arb::fvm_value_type " << arg->is_argument()->name();
         }
         out << ") {\n" << indent
             << cuprint(e->body())
@@ -405,14 +400,14 @@ void emit_common_defs(std::ostream& out, const Module& module_) {
     out << "struct " << ppack_name << ": ::arb::gpu::mechanism_ppack_base {\n" << indent;
 
     for (const auto& scalar: vars.scalars) {
-        out << "value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
+        out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
     for (const auto& array: vars.arrays) {
-        out << "value_type* " << array->name() << ";\n";
+        out << "::arb::fvm_value_type* " << array->name() << ";\n";
     }
     for (const auto& dep: ion_deps) {
         out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "index_type* " << ion_state_index(dep.name) << ";\n";
+        out << "::arb::fvm_index_type* " << ion_state_index(dep.name) << ";\n";
     }
 
     out << popindent << "};\n\n";
@@ -502,7 +497,7 @@ namespace {
 }
 
 void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
-    out << "value_type " << cuprint(local) << " = ";
+    out << "::arb::fvm_value_type " << cuprint(local) << " = ";
 
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());
