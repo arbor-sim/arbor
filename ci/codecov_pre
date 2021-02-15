@@ -7,4 +7,4 @@ LOCAL_REPORTS="/codecov-reports"
 mkdir -p "$LOCAL_REPORTS"
 
 echo "Generating baseline codecov report"
-lcov --no-external --capture --initial --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/baseline-codecov.info" &> /dev/null
+lcov --exclude "*/ext/*" --exclude "*/test/*" --exclude "*/mechanisms/*" --no-external --capture --initial --base-directory $SOURCE_DIR --directory $BUILD_DIR --output-file "$LOCAL_REPORTS/baseline-codecov.info"
