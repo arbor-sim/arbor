@@ -190,12 +190,9 @@ bool Module::semantic() {
     if(!move_symbols(callables_))  return false;
 
     // Before starting the inlining process, look for the BREAKPOINT block:
-    // If not present, raise an error; otherwise check that if it includes a
-    // SOLVE statement, it is the first statement in the block.
-    if (!has_symbol("breakpoint", symbolKind::procedure)) {
-        error("a BREAKPOINT block is required");
-        return false;
-    } else {
+    // if it includes a SOLVE statement, check that it is the first statement
+    // in the block.
+    if (has_symbol("breakpoint", symbolKind::procedure)) {
         bool found_non_solve = false;
         auto breakpoint = symbols_["breakpoint"]->is_procedure();
         for (const auto& s: breakpoint->body()->statements()) {
