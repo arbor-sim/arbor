@@ -350,7 +350,7 @@ src_location location(const s_expr& l);
 
 s_expr parse_s_expr(const std::string& line);
 s_expr parse_s_expr(transmogrifier begin);
-std::vector<s_expr> parse_multi(transmogrifier begin);
+std::vector<s_expr> parse_multi_s_expr(transmogrifier begin);
 
 } // namespace arb
 
