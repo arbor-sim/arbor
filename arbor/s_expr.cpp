@@ -127,10 +127,13 @@ private:
 
         while (!empty()) {
             switch (*stream_) {
-                // end of file
-                case 0      :       // end of string
-                    token_ = {loc(), tok::eof, "eof"s};
-                    return;
+                // white space
+                case ' '    :
+                case '\t'   :
+                case '\v'   :
+                case '\f'   :
+                    ++stream_;
+                    continue;   // skip to next character
 
                 // new line
                 case '\n'   :
@@ -139,13 +142,19 @@ private:
                     line_start_ = stream_;
                     continue;
 
-                // white space
-                case ' '    :
-                case '\t'   :
-                case '\v'   :
-                case '\f'   :
-                    character();
-                    continue;   // skip to next character
+                // carriage return (windows new line)
+                case '\r'   :
+                    ++stream_;
+                    if(*stream_ != '\n') {
+                        token_ = {loc(), tok::error, "expected new line after cariage return (bad line ending)"};
+                        return;
+                    }
+                    continue; // catch the new line on the next pass
+
+                // end of file
+                case 0      :
+                    token_ = {loc(), tok::eof, "eof"s};
+                    return;
 
                 case ';':
                     eat_comment();
@@ -172,6 +181,7 @@ private:
                     {
                         if (empty()) {
                             token_ = {loc(), tok::error, "Unexpected end of input."};
+                            return;
                         }
                         char c = stream_.peek(1);
                         if (std::isdigit(c) or c=='.') {
