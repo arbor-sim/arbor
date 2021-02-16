@@ -189,6 +189,28 @@ bool Module::semantic() {
     // move functions and procedures to the symbol table
     if(!move_symbols(callables_))  return false;
 
+    // Before starting the inlining process, look for the BREAKPOINT block:
+    // If not present, raise an error; otherwise check that if it includes a
+    // SOLVE statement, it is the first statement in the block.
+    if (!has_symbol("breakpoint", symbolKind::procedure)) {
+        error("a BREAKPOINT block is required");
+        return false;
+    } else {
+        bool found_non_solve = false;
+        auto breakpoint = symbols_["breakpoint"]->is_procedure();
+        for (const auto& s: breakpoint->body()->statements()) {
+            SolveExpression* solve_expression = s->is_solve_statement();
+            if(!solve_expression) {
+                found_non_solve = true;
+                continue;
+            }
+            if (found_non_solve) {
+                error("SOLVE statements must come first in BREAKPOINT block", s->location());
+                return false;
+            }
+        }
+    }
+
     // perform semantic analysis and inlining on function and procedure bodies
     if(auto errors = semantic_func_proc()) {
         error("There were "+std::to_string(errors)+" errors in the semantic analysis");
