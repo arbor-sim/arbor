@@ -13,128 +13,6 @@
 
 namespace arb {
 
-// Forward iterator that can translate a raw stream to valid s_expr input if,
-// perchance, you want to parse a half-hearted attempt at an s-expression
-// (looking at you, the guy who invented the Neurolucida .asc format).
-//
-// I am not fond of .asc files, which would be s-expressions, if they
-// didn't sometimes contain '|' and ',' characters which translate to ")(" and
-// " " respectively (not mentioning the spine syntax).
-//
-// To remedy such situations, the transmogrifier performs user-provided string
-// substitution on a characters in the input.
-//
-// For example, if you are unfortuinate enough to parse an asc file, you might want
-// to try the following:
-//
-// transmogrifier(str, {{',', " "},
-//                      {'|', ")("},
-//                      {'<', "(spine "},
-//                      {'>', ")"}});
-
-class transmogrifier {
-    using sub_map = std::unordered_map<char, std::string>;
-    using iterator_type = std::string::const_iterator;
-    using difference_type = std::string::difference_type;
-    using iterator = transmogrifier;
-
-    iterator_type pos_;
-    iterator_type end_;
-    sub_map sub_map_;
-
-    const char* sub_pos_ = nullptr;
-
-    void set_state() {
-        sub_pos_ = nullptr;
-        char next = *pos_;
-        if (auto it=sub_map_.find(next); it!=sub_map_.end()) {
-            sub_pos_ = it->second.c_str();
-        }
-    }
-
-    public:
-
-    transmogrifier(const std::string& s, sub_map map={}):
-        pos_(s.cbegin()),
-        end_(s.cend()),
-        sub_map_(std::move(map))
-    {
-        if (pos_!=end_) {
-            set_state();
-        }
-    }
-
-    char operator*() const {
-        if (pos_==end_) {
-            return '\0';
-        }
-        if (sub_pos_) {
-            return *sub_pos_;
-        }
-        return *pos_;
-    }
-
-    iterator& operator++() {
-        // If already at the end don't advance.
-        if (pos_==end_) {
-            return *this;
-        }
-
-        // If currently substituting a string, advance by one and
-        // test whether we have reached the end of the string.
-        if (sub_pos_) {
-            ++sub_pos_;
-            if (*sub_pos_=='\0') { // test for end of string
-                sub_pos_ = nullptr;
-            }
-            else {
-                return *this;
-            }
-        }
-
-        ++pos_;
-
-        set_state();
-        return *this;
-    }
-
-    iterator operator++(int) {
-        iterator it = *this;
-
-        ++(*this);
-
-        return it;
-    }
-
-    iterator operator+(unsigned n) {
-        iterator it = *this;
-
-        while (n--) ++it;
-
-        return it;
-    }
-
-    char peek(unsigned i) {
-        return *(*this+i);
-    }
-
-    bool operator==(const transmogrifier& other) const {
-        return pos_==other.pos_ && sub_pos_==other.sub_pos_;
-    }
-
-    bool operator!=(const transmogrifier& other) {
-        return !(*this==other);
-    }
-
-    operator bool() const {
-        return pos_ != end_;
-    }
-
-    difference_type operator-(const transmogrifier& rhs) const {
-        return pos_ - rhs.pos_;
-    }
-};
-
 struct src_location {
     unsigned line = 0;
     unsigned column = 0;
@@ -349,8 +227,6 @@ std::size_t length(const s_expr& l);
 src_location location(const s_expr& l);
 
 s_expr parse_s_expr(const std::string& line);
-s_expr parse_s_expr(transmogrifier begin);
-std::vector<s_expr> parse_multi_s_expr(transmogrifier begin);
 
 } // namespace arb
 

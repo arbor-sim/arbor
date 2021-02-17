@@ -13,30 +13,6 @@
 using namespace arb;
 using namespace std::string_literals;
 
-TEST(s_expr, transmogrify) {
-    using map_t = std::unordered_map<char, std::string>;
-    auto transform = [](std::string in, map_t map) {
-        auto t = transmogrifier(in, map);
-        std::string s;
-        while (t) s.push_back(*t++);
-        return s;
-    };
-    EXPECT_EQ(transform("(42,24)", {{',', " "}}), "(42 24)");
-    EXPECT_EQ(transform("(42,24)", {{',', "hello"}}), "(42hello24)");
-    EXPECT_EQ(transform("(42,24)", {{',', " "}}), "(42 24)");
-    EXPECT_EQ(transform("(42,,24)", {{',', " "}}), "(42  24)");
-    map_t asc_map = {{',', " "},
-                     {'|', ")("},
-                     {'<', "(spine "},
-                     {'>', ")"}};
-    EXPECT_EQ(transform("(RGB 128,128,128)", asc_map), "(RGB 128 128 128)");
-    EXPECT_EQ(transform("<color blue>", asc_map), "(spine color blue)");
-    EXPECT_EQ(transform("(1 2 3 | 4 5 6)", asc_map), "(1 2 3 )( 4 5 6)");
-    EXPECT_EQ(transform("", asc_map), "");
-    EXPECT_EQ(transform("<>", asc_map), "(spine )");
-    EXPECT_EQ(transform("<32|>", asc_map), "(spine 32)()");
-}
-
 TEST(s_expr, atoms) {
     auto get_atom = [](s_expr e) {
         return e.atom();
