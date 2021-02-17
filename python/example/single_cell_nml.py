@@ -6,6 +6,7 @@ import pandas, seaborn
 import sys
 
 # Load a cell morphology from an nml file.
+# Example present here: morph.nml
 if len(sys.argv) < 2:
     print("No NeuroML file passed to the program")
     sys.exit(0)
