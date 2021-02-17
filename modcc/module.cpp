@@ -198,9 +198,8 @@ bool Module::semantic() {
         for (const auto& s: breakpoint->body()->statements()) {
             if(!s->is_solve_statement()) {
                 found_non_solve = true;
-                continue;
             }
-            if (found_non_solve) {
+            else if (found_non_solve) {
                 error("SOLVE statements must come first in BREAKPOINT block", s->location());
                 return false;
             }
