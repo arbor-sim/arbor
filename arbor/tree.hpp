@@ -8,8 +8,8 @@
 
 #include <arbor/common_types.hpp>
 
-#include "algorithms.hpp"
 #include "memory/memory.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
 namespace arb {
@@ -115,49 +115,55 @@ private:
 // The root has depth 0, it's children have depth 1, and so on.
 tree::iarray depth_from_root(const tree& t);
 
-template <typename C>
-std::vector<tree::int_type> make_parent_index(tree const& t, C const& counts)
+// Check if c[0] == 0 and c[i] < 0 holds for i != 0
+// Also handle the valid case of c[0]==value_type(-1)
+// This means that children of a node always have larger indices than their
+// parent.
+template <
+    typename C,
+    typename = typename std::enable_if<std::is_integral<typename C::value_type>::value>
+>
+bool is_minimal_degree(C const& c)
 {
-    using util::make_span;
-    using int_type = tree::int_type;
-    constexpr auto no_parent = tree::no_parent;
+    static_assert(
+        std::is_integral<typename C::value_type>::value,
+        "is_minimal_degree only applies to integral types"
+    );
 
-    if (!algorithms::all_positive(counts) || counts.size() != t.num_segments()) {
-        throw std::domain_error(
-            "make_parent_index requires one non-zero count per segment"
-        );
-    }
-    auto index = algorithms::make_index(counts);
-    auto num_compartments = index.back();
-    std::vector<int_type> parent_index(num_compartments);
-    int_type pos = 0;
-    for (int_type i : make_span(0, t.num_segments())) {
-        // get the parent of this segment
-        // taking care for the case where the root node has -1 as its parent
-        auto parent = t.parent(i);
-        parent = parent!=no_parent ? parent : 0;
-
-        // the index of the first compartment in the segment
-        // is calculated differently for the root (i.e when i==parent)
-        if (i!=parent) {
-            parent_index[pos++] = index[parent+1]-1;
-        }
-        else {
-            parent_index[pos++] = parent;
-        }
-        // number the remaining compartments in the segment consecutively
-        while (pos<index[i+1]) {
-            parent_index[pos] = pos-1;
-            pos++;
-        }
+    if (c.size()==0u) {
+        return true;
     }
 
-    // if one of these assertions is tripped, we have to improve
-    // the input validation above
-    assert(pos==num_compartments);
-    assert(algorithms::is_minimal_degree(parent_index));
+    using value_type = typename C::value_type;
+    if (!(c[0]==value_type(0) || c[0]==value_type(-1))) {
+        return false;
+    }
+    auto i = value_type(1);
+    auto it = std::find_if(
+        c.begin()+1, c.end(), [&i](value_type v) { return v>=(i++); }
+    );
+    return it==c.end();
+}
 
-    return parent_index;
+// returns a vector containing the number of children for each node.
+template<typename C>
+std::vector<typename C::value_type> child_count(const C& parent_index)
+{
+    using value_type = typename C::value_type;
+    static_assert(
+        std::is_integral<value_type>::value,
+        "integral type required"
+    );
+
+    std::vector<value_type> count(parent_index.size(), 0);
+    for (auto i = 0u; i < parent_index.size(); ++i) {
+        auto p = parent_index[i];
+        // -1 means no parent
+        if (p != value_type(i) && p != value_type(-1)) {
+            ++count[p];
+        }
+    }
+    return count;
 }
 
 } // namespace arb

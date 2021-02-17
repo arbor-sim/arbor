@@ -302,9 +302,8 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     arb::mechanism_desc kamt("kamt");
     kamt["gbar"] = 0.004;
 
-    arb::mechanism_desc pas("pas");
+    arb::mechanism_desc pas("pas/e=-65.0");
     pas["g"] =  1.0/12000.0;
-    pas["e"] =  -65;
 
     // Paint density channels on all parts of the cell
     decor.paint("(all)", nax);

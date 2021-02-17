@@ -10,10 +10,9 @@
 #include <arbor/assert.hpp>
 #include <arbor/communication/mpi_error.hpp>
 
-#include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
 #include "profile/profiler_macro.hpp"
-
+#include "util/partition.hpp"
 
 namespace arb {
 namespace mpi {
@@ -100,8 +99,9 @@ std::vector<T> gather_all(T value, MPI_Comm comm) {
 inline std::vector<std::string> gather(std::string str, int root, MPI_Comm comm) {
     using traits = mpi_traits<char>;
 
-    auto counts = gather_all(int(str.size()), comm);
-    auto displs = algorithms::make_index(counts);
+    std::vector<int> counts, displs;
+    counts = gather_all(int(str.size()), comm);
+    util::make_partition(displs, counts);
 
     std::vector<char> buffer(displs.back());
 
@@ -127,11 +127,12 @@ template <typename T>
 std::vector<T> gather_all(const std::vector<T>& values, MPI_Comm comm) {
 
     using traits = mpi_traits<T>;
-    auto counts = gather_all(int(values.size()), comm);
+    std::vector<int> counts, displs;
+    counts = gather_all(int(values.size()), comm);
     for (auto& c : counts) {
         c *= traits::count();
     }
-    auto displs = algorithms::make_index(counts);
+    util::make_partition(displs, counts);
 
     std::vector<T> buffer(displs.back()/traits::count());
     MPI_OR_THROW(MPI_Allgatherv,
@@ -154,11 +155,12 @@ gathered_vector<T> gather_all_with_partition(const std::vector<T>& values, MPI_C
     // We have to use int for the count and displs vectors instead
     // of count_type because these are used as arguments to MPI_Allgatherv
     // which expects int arguments.
-    auto counts = gather_all(int(values.size()), comm);
+    std::vector<int> counts, displs;
+    counts = gather_all(int(values.size()), comm);
     for (auto& c : counts) {
         c *= traits::count();
     }
-    auto displs = algorithms::make_index(counts);
+    util::make_partition(displs, counts);
 
     std::vector<T> buffer(displs.back()/traits::count());
 

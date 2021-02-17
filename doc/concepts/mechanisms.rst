@@ -99,17 +99,17 @@ that specifies values for range parameters.
 For example, consider a mechanism that models passive leaky dynamics with
 the following parameters:
 
-* *Name*: ``"passive"``.
-* *Global parameter*: reversal potential ``el``, default -65 mV.
+* *Name*: ``"pas"``.
+* *Global parameter*: reversal potential ``e``, default -70 mV.
 * *Range parameter*: conductance ``g``, default 0.001 S⋅cm⁻².
 
 The following example mechanism descriptions for our passive mechanism show that parameters and
 ion species dependencies only need to be specified when they differ from their defaults:
 
-* ``("passive")``: the passive mechanism with default parameters.
-* ``("passive/el=-80")``: derive a new passive mechanism with a non-default value for global parameter.
-* ``("passive", {"gl": 0.005})``: passive mechanism with a new a non-default range parameter value.
-* ``("passive/el=-80", {"gl": 0.005})``: derive a new passive mechanism that overrides both
+* ``("pas")``: the passive mechanism with default parameters.
+* ``("pas/e=-80")``: derive a new passive mechanism with a non-default value for global parameter.
+* ``("pas", {"g": 0.005})``: passive mechanism with a new a non-default range parameter value.
+* ``("pas/e=-80", {"g": 0.005})``: derive a new passive mechanism that overrides both
 
 Similarly to global parameters, ion species can be renamed in the mechanism name.
 This allows the use of generic mechanisms that can be adapted to a specific species

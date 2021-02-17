@@ -34,7 +34,7 @@ build codecov:
   extends: .build_docker_images
   variables:
     BUILD_DOCKERFILE: ci/codecov/build.Dockerfile
-    BUILD_IMAGE: $CSCS_REGISTRY_IMAGE/codecov/build:latest
+    BUILD_IMAGE: $CSCS_REGISTRY_IMAGE/codecov/build:v2
     DEPLOY_DOCKERFILE: ci/codecov/deploy.Dockerfile
     DEPLOY_IMAGE: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
 

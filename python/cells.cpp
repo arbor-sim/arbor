@@ -225,6 +225,12 @@ void register_cells(pybind11::module& m) {
             [](const label_dict_proxy &ld) {
                 return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
             pybind11::keep_alive<0, 1>())
+        .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
+                l.import(other, prefix);
+            },
+            "other"_a, "The label_dict to be imported"
+            "prefix"_a="", "optional prefix appended to the region and locset labels",
+            "Import the entries of a another label dictionary with an optional prefix.")
         .def_readonly("regions", &label_dict_proxy::regions,
              "The region definitions.")
         .def_readonly("locsets", &label_dict_proxy::locsets,

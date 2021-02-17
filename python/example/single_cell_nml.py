@@ -1,38 +1,46 @@
 #!/usr/bin/env python3
-
-# NOTE: deprecating spherical roots changes the behavior of this model.
-# There is no soma, because only the root sample has tag 1, which will be
-# ignored as it is always the proximal end of any cable segment.
-# The fix is to:
-#   - Write an swc interpreter that inserts a cylinder with the
-#     appropriate properties.
-#   - Extend the cable-only descriptions to handle detached cables, to
-#     preserve surface area and correct starting locations of cables
-#     attached to the soma.
-
 import arbor
 from arbor import mechanism as mech
 from arbor import location as loc
 import pandas, seaborn
 import sys
 
-# Load a cell morphology from an swc file.
-# Example present here: morph.swc
+# Load a cell morphology from an nml file.
+# Example present here: morph.nml
 if len(sys.argv) < 2:
-    print("No SWC file passed to the program")
+    print("No NeuroML file passed to the program")
     sys.exit(0)
 
 filename = sys.argv[1]
-morpho = arbor.load_swc_arbor(filename)
 
-# Define the regions and locsets in the model.
-defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
-        'axon': '(tag 2)',  # axon has tag 2 in swc files.
-        'dend': '(tag 3)',  # dendrites have tag 3 in swc files.
-        'root': '(root)',   # the start of the soma in this morphology is at the root of the cell.
-        'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 1.
-        'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
-labels = arbor.label_dict(defs)
+# Read the NeuroML morphology from the file.
+morpho_nml = arbor.neuroml(filename)
+
+# Read the morphology data associated with morphology "m1".
+morpho_data = morpho_nml.morphology("m1")
+
+# Get the morphology.
+morpho = morpho_data.morphology
+
+# Get the region label dictionaries associated with the morphology.
+morpho_segments = morpho_data.segments()
+morpho_named = morpho_data.named_segments()
+morpho_groups = morpho_data.groups()
+
+# Create new label dict add to it all the NeuroML dictionaries.
+labels = arbor.label_dict()
+labels.append(morpho_segments)
+labels.append(morpho_named)
+labels.append(morpho_groups)
+
+# Add locsets to the label dictionary. 
+labels['stim_site'] = '(location 1 0.5)' # site for the stimulus, in the middle of branch 1.
+labels['axon_end']  = '(restrict (terminal) (region "axon"))' # end of the axon.
+labels['root']      = '(root)' # the start of the soma in this morphology is at the root of the cell.
+
+# Optional: print out the regions and locsets available in the label dictionary.
+print("Label dictionary regions: ", labels.regions, "\n")
+print("Label dictionary locsets: ", labels.locsets, "\n")
 
 decor = arbor.decor()
 
@@ -97,4 +105,4 @@ for t in m.traces:
 
 df = pandas.concat(df_list)
 
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_swc.svg')
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_nml.svg')

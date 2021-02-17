@@ -143,7 +143,6 @@ auto ptr_by_key(C&& c, const Key& k) {
 
 // Find the index into an ordered sequence of a value by binary search;
 // returns optional<size_type> for the size_type associated with the sequence.
-// (Note: this is pretty much all we use algorthim::binary_find for.) 
 
 template <typename C, typename Key>
 std::optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key) {
