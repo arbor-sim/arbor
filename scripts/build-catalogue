@@ -43,7 +43,7 @@ def parse_arguments():
                         metavar='source',
                         type=str,
                         default=Path(__file__).parents[1].resolve(),
-                        help='Path to arbor sources; defaults to parent of this script\'s directory')
+                        help='Path to arbor sources; defaults to parent of this script\'s directory.')
 
     parser.add_argument('modpfx',
                         metavar='modpfx',
@@ -60,7 +60,7 @@ def parse_arguments():
 
     parser.add_argument('-h', '--help',
                         action='help',
-                        help='display this help and exit')
+                        help='Display this help and exit.')
 
     return vars(parser.parse_args())
 
