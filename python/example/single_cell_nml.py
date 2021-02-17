@@ -32,13 +32,14 @@ labels.append(morpho_segments)
 labels.append(morpho_named)
 labels.append(morpho_groups)
 
-# Optional: print out the regions available in the label dictionary.
-print("Label dictionary: ", labels)
-
 # Add locsets to the label dictionary. 
 labels['stim_site'] = '(location 1 0.5)' # site for the stimulus, in the middle of branch 1.
 labels['axon_end']  = '(restrict (terminal) (region "axon"))' # end of the axon.
 labels['root']      = '(root)' # the start of the soma in this morphology is at the root of the cell.
+
+# Optional: print out the regions and locsets available in the label dictionary.
+print("Label dictionary regions: ", labels.regions, "\n")
+print("Label dictionary locsets: ", labels.locsets, "\n")
 
 decor = arbor.decor()
 
