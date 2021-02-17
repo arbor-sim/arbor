@@ -15,9 +15,6 @@ add_target_if(HAVE_SVGWRITE
 set(html_dir "${CMAKE_CURRENT_BINARY_DIR}/html")
 set(doctree_dir "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
 
-get_property(theme_path TARGET ext-sphinx_rtd_theme PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-string(REPLACE ";" "," theme_path "${theme_path}")
-
 add_custom_target(html
     COMMAND
         PYTHONPATH="${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH}"
@@ -25,11 +22,10 @@ add_custom_target(html
         -m sphinx
         -b html
         -d ${doctree_dir}
-        -D "html_theme_path=${theme_path}"
         -q                          # Quiet: no output other than errors and warnings.
         ${CMAKE_CURRENT_SOURCE_DIR} # Source directory
         ${html_dir}                 # Output directory
-    DEPENDS check-sphinx ext-sphinx_rtd_theme ext-svgwrite
+    DEPENDS check-sphinx ext-svgwrite
     COMMENT
         "Generating Sphinx documentation")
 

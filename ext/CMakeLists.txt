@@ -52,15 +52,3 @@ add_library(ext-benchmark INTERFACE)
 add_dependencies(ext-benchmark gbench-build)
 target_include_directories(ext-benchmark INTERFACE "${gbench_install_dir}/include")
 target_link_libraries(ext-benchmark INTERFACE "${gbench_install_dir}/lib/libbenchmark.a")
-
-# Sphinx RTD theme
-
-check_git_submodule(rtdtheme sphinx_rtd_theme)
-add_target_if(rtdtheme_avail
-    check-sphinx_rtd_theme
-    "Checking for Read the Docs Sphinx theme"
-    "The git submodule for read the docs is not available")
-
-add_library(ext-sphinx_rtd_theme INTERFACE)
-add_dependencies(ext-sphinx_rtd_theme check-sphinx_rtd_theme)
-target_include_directories(ext-sphinx_rtd_theme INTERFACE sphinx_rtd_theme)
