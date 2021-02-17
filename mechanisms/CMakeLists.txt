@@ -7,7 +7,8 @@ make_catalogue(
   OUTPUT "CAT_BBP_SOURCES"
   MECHS CaDynamics_E2 Ca_HVA Ca_LVAst Ih Im K_Pst K_Tst Nap_Et2 NaTa_t NaTs2_t SK_E2 SKv3_1
   ARBOR "${PROJECT_SOURCE_DIR}"
-  STANDALONE FALSE)
+  STANDALONE FALSE
+  VERBOSE ${ARB_CAT_VERBOSE})
 
 make_catalogue(
   NAME allen
@@ -15,7 +16,8 @@ make_catalogue(
   OUTPUT "CAT_ALLEN_SOURCES"
   MECHS CaDynamics Ca_HVA Ca_LVA Ih Im Im_v2 K_P K_T Kd Kv2like Kv3_1 NaTa NaTs NaV Nap SK
   ARBOR "${PROJECT_SOURCE_DIR}"
-  STANDALONE FALSE)
+  STANDALONE FALSE
+  VERBOSE ${ARB_CAT_VERBOSE})
 
 make_catalogue(
   NAME default
@@ -23,7 +25,8 @@ make_catalogue(
   OUTPUT "CAT_DEFAULT_SOURCES"
   MECHS exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas
   ARBOR "${PROJECT_SOURCE_DIR}"
-  STANDALONE FALSE)
+  STANDALONE FALSE
+  VERBOSE ${ARB_CAT_VERBOSE})
 
 # Join sources
 set(arbor_mechanism_sources

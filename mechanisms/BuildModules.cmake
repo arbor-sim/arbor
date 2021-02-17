@@ -58,7 +58,7 @@ function(build_modules)
 endfunction()
 
 function("make_catalogue")
-  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE" "MECHS" ${ARGN})
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE;VERBOSE" "MECHS" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
 
   # Need to set ARB_WITH_EXTERNAL_MODCC *and* modcc
@@ -67,14 +67,16 @@ function("make_catalogue")
     set(external_modcc MODCC ${modcc})
   endif()
 
-  message("Catalogue name:       ${MK_CAT_NAME}")
-  message("Catalogue mechanisms: ${MK_CAT_MECHS}")
-  message("Catalogue sources:    ${MK_CAT_SOURCES}")
-  message("Catalogue output:     ${MK_CAT_OUT_DIR}")
-  message("Arbor source tree:    ${MK_CAT_ARBOR}")
-  message("Build as standalone:  ${MK_CAT_STANDALONE}")
-  message("Source directory:     ${PROJECT_SOURCE_DIR}")    
-  message("Arbor arch:           ${ARB_CXXOPT_ARCH}")    
+  if(MK_CAT_VERBOSE)
+    message("Catalogue name:       ${MK_CAT_NAME}")
+    message("Catalogue mechanisms: ${MK_CAT_MECHS}")
+    message("Catalogue sources:    ${MK_CAT_SOURCES}")
+    message("Catalogue output:     ${MK_CAT_OUT_DIR}")
+    message("Arbor source tree:    ${MK_CAT_ARBOR}")
+    message("Build as standalone:  ${MK_CAT_STANDALONE}")
+    message("Source directory:     ${PROJECT_SOURCE_DIR}")
+    message("Arbor arch:           ${ARB_CXXOPT_ARCH}")
+  endif()
 
   file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
 
