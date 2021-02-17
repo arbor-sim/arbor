@@ -74,7 +74,6 @@ function("make_catalogue")
     message("Catalogue output:     ${MK_CAT_OUT_DIR}")
     message("Arbor source tree:    ${MK_CAT_ARBOR}")
     message("Build as standalone:  ${MK_CAT_STANDALONE}")
-    message("Source directory:     ${PROJECT_SOURCE_DIR}")
     message("Arbor arch:           ${ARB_CXXOPT_ARCH}")
   endif()
 
@@ -101,9 +100,9 @@ function("make_catalogue")
 
   add_custom_command(
     OUTPUT ${catalogue_${MK_CAT_NAME}_source}
-    COMMAND ${PROJECT_SOURCE_DIR}/mechanisms/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS}
+    COMMAND ${MK_CAT_ARBOR}/mechanisms/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS}
     COMMENT "Building catalogue ${MK_CAT_NAME}"
-    DEPENDS ${PROJECT_SOURCE_DIR}/mechanisms/generate_catalogue)
+    DEPENDS ${MK_CAT_ARBOR}/mechanisms/generate_catalogue)
 
   add_custom_target(${MK_CAT_NAME}_catalogue_cpp_target DEPENDS ${catalogue_${MK_CAT_NAME}_source})
   add_dependencies(build_catalogue_${MK_CAT_NAME}_mods ${MK_CAT_NAME}_catalogue_cpp_target)
