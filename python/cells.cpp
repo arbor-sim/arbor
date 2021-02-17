@@ -361,7 +361,7 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
             "Set global default values for cable and cell properties.")
         // add/modify ion species
-        .def("set_ion",
+        .def("update_ion",
             [](arb::cable_cell_global_properties& props, const char* ion,
                optional<double> int_con, optional<double> ext_con,
                optional<double> rev_pot, pybind11::object method)

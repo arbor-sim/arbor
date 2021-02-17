@@ -143,9 +143,9 @@ examine the recipe in detail: how to create one, and why it is needed.
 
            self.the_props = arbor.cable_global_properties()
            self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
-           self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-           self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-           self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
+           self.the_props.update_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+           self.the_props.update_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
+           self.the_props.update_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
 
            self.the_props.register(self.the_cat)
 
