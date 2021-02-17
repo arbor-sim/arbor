@@ -118,6 +118,7 @@ ncells = 500
 recipe = ring_recipe(ncells)
 
 # (12) Create an MPI communicator, and use it to create a hardware context
+arbor.mpi_init()
 comm = arbor.mpi_comm()
 print(comm)
 context = arbor.context(mpi=comm)
