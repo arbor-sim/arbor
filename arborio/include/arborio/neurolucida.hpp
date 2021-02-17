@@ -21,14 +21,14 @@ struct asc_no_document: asc_exception {
     asc_no_document();
 };
 
-/*
 // Generic error parsing asc data.
 struct asc_parse_error: asc_exception {
     asc_parse_error(const std::string& error_msg, unsigned line = 0);
-    std::string error_msg;
+    std::string message;
     unsigned line;
 };
 
+/*
 // NeuroML morphology error: improper segment data, e.g. bad id specification,
 // segment parent does not exist, fractionAlong is out of bounds, missing
 // required <proximal> data.
