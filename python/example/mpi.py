@@ -3,7 +3,6 @@
 import arbor
 import pandas, seaborn
 from math import sqrt
-import random
 
 # Run with srun -n NJOBS python network_ring_mpi.py
 
@@ -148,4 +147,4 @@ for gid in range(ncells):
 
 if len(df_list):
     df = pandas.concat(df_list)
-    df.to_csv(f"result_mpi_{random.randrange(1e10)}.csv", float_format='%g')
+    df.to_csv(f"result_mpi_{context.rank}.csv", float_format='%g')

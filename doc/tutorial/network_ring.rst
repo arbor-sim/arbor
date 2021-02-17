@@ -3,7 +3,7 @@
 A ring network
 ==============
 
-In this example, a small *network* of cells, arranged in a ring, will be created and the simulation distributed over multiple threads or GPUs if available. Data on execution time and memory consumption will be recorded.
+In this example, a small *network* of cells, arranged in a ring, will be created and the simulation distributed over multiple threads or GPUs if available.
 
 .. Note::
 
@@ -93,11 +93,11 @@ The recipe is where the different cells and the :ref:`connections <interconnecti
 
 Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired
 number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main differences
-are connecting the cells, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**
+are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**
 (``make_cable_cell()`` returns the cell above).
 
-Step **(8)** creates an :py:class:`arbor.connection` between this cell and the previous. (The ``gid`` of the previous
-cell is ``(gid-1)%self.ncells``.) The connection has a weight of 0.1 μS and a delay of 5 ms. The first two arguments
+Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
+previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.1 μS and a delay of 5 ms. The first two arguments
 to :py:class:`arbor.connection` are the **source** and **target** of the connection, and these are defined by the
 cell index ``gid`` and the source or target index. (:term:`Remember <connection>` that sources and targets are
 separately indexed.)
@@ -106,12 +106,12 @@ The two endpoints are of type :class:`arbor.cell_member`, and can be initialized
 The cells have one synapse (step **3**), so the target endpoint has the 0th index. The cell has one
 spike generator (step **4**), so its source index is also 0.
 
-Lastly, we must inform the recipe how many connections we have on each cell (``gid``).
+Lastly, we must inform the recipe how many sources and targets we have on each cell (``gid``).
 :func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one
 source and one target endpoint.
 
-Step **(9)** attaches an :py:class:`arbor.event_generator` on the 0th target (synapse) on the 0th cell; it is
-connected to the ``"synapse_site"`` on cell 0. This initiates the signal cascade through the network. The
+Step **(9)** attaches an :py:class:`arbor.event_generator` on the 0th target (synapse) on the 0th cell; this means it
+is connected to the ``"synapse_site"`` on cell 0. This initiates the signal cascade through the network. The
 :class:`arbor.explicit_schedule` in instantiated with a list of times in milliseconds, so here a single event at the 1
 ms mark is emitted. Note that this synapse is connected twice, once to the event generator, and once to another cell.
 
@@ -177,8 +177,8 @@ Step **(11)** instantiates the recipe with 4 cells.
    ncells = 4
    recipe = ring_recipe(ncells)
 
-Run the simulation
-******************
+The execution
+*************
 
 To create a simulation, we must create an :class:`arbor.context` and :py:class:`arbor.domain_decomposition`.
 
@@ -192,7 +192,7 @@ In addition to having the timestamps of spikes, we want to extract the voltage a
 
 Step **(14)** sets the probes (step **10**) to measure at a certain schedule. This is sometimes described as attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probe id` and the desired schedule (here: a recording frequency of 10 kHz). Note that the probe id is a separate index from those of :term:`connection` endpoints; probe ids correspond to the index of the list produced by :py:func:`arbor.recipe.probes` on cell ``gid``.
 
-:py:func:`arbor.simulation.sample` returns a handle to the :term`samples <sample>` that will be recorded. We store these handles for later use.
+:py:func:`arbor.simulation.sample` returns a handle to the :term:`samples <sample>` that will be recorded. We store these handles for later use.
 
 Step **(15)** executes the simulation for a duration of 100 ms.
 
@@ -216,7 +216,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 The results
 ***********
 
-Step **(16)**: we can print the timestamps of the spikes:
+Step **(16)** prints the timestamps of the spikes:
 
 .. code-block:: python
 
@@ -225,8 +225,8 @@ Step **(16)**: we can print the timestamps of the spikes:
    for sp in sim.spikes():
       print(' ', sp)
 
-Step **(17)**: Let's make a plot of the sampling data.
-``sim.samples()`` takes a ``handle`` of the probe we wish to examine. It returns a list
+Step **(17)** generates a plot of the sampling data.
+:py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
 of ``(data, meta)`` terms: ``data`` being the time and value series of the probed quantity; and
 ``meta`` being the location of the probe. The size of the returned list depends on the number of
 discrete locations pointed to by the handle, which in this case is 1, so we can take the first element.
@@ -246,7 +246,7 @@ It could have described a :term:`locset`.)
    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('network_ring_result.svg')
 
 
-Since we have create ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
+Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 
 We plot the results using pandas and seaborn:
 
