@@ -384,6 +384,18 @@ void register_cells(pybind11::module& m) {
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
             "overriden locally.")
+        .def("add_ion",
+             [](arb::cable_cell_global_properties& props, const char* ion,
+                int valence, double int_con, double ext_con, double rev_pot)
+             {
+               props.add_ion(ion, valence, int_con, ext_con, rev_pot);
+             },
+             pybind11::arg_v("ion", "name of the ion species."),
+             pybind11::arg_v("valence", "valence of the ion species."),
+             pybind11::arg_v("int_con", "initial internal concentration [mM]."),
+             pybind11::arg_v("ext_con", "initial external concentration [mM]."),
+             pybind11::arg_v("rev_pot", "reversal potential [mV]."),
+             "Add a new ion species named 'ion' to the global default propoerties.")
         .def("register", [](arb::cable_cell_global_properties& props, const arb::mechanism_catalogue& cat) {
                 props.catalogue = &cat;
             },
