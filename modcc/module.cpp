@@ -196,8 +196,7 @@ bool Module::semantic() {
         bool found_non_solve = false;
         auto breakpoint = symbols_["breakpoint"]->is_procedure();
         for (const auto& s: breakpoint->body()->statements()) {
-            SolveExpression* solve_expression = s->is_solve_statement();
-            if(!solve_expression) {
+            if(!s->is_solve_statement()) {
                 found_non_solve = true;
                 continue;
             }
