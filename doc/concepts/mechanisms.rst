@@ -51,6 +51,8 @@ used by the `Allen Institute <https://alleninstitute.org/>`_ and the `Blue Brain
 the `Allen institute mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/allen>`_ and
 the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/bbp>`_ at the provided links.)
 
+.. _mechanisms_builtins:
+
 Built-in Catalogues
 '''''''''''''''''''
 

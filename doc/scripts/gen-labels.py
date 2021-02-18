@@ -2,6 +2,7 @@ import arbor
 from arbor import mpoint
 import os.path
 import sys
+from math import sqrt
 
 def is_collocated(l, r):
     return l[0]==r[0] and l[1]==r[1]
@@ -180,6 +181,7 @@ regions  = {
             'branch3': '(branch 3)',
             'segment0': '(segment 0)',
             'segment3': '(segment 3)',
+            'cable_0_28': '(cable 0 0.2 0.8)',
             'cable_1_01': '(cable 1 0 1)',
             'cable_1_31': '(cable 1 0.3 1)',
             'cable_1_37': '(cable 1 0.3 0.7)',
@@ -215,7 +217,7 @@ d = arbor.label_dict(labels)
 cell = arbor.cable_cell(label_morph, d, arbor.decor())
 
 ###############################################################################
-# Tutorial Example
+# Tutorial Example: single_cell_detailed
 ###############################################################################
 
 tree = arbor.segment_tree()
@@ -255,6 +257,31 @@ tutorial_dict = arbor.label_dict(tutorial_labels)
 # Create a cell to concretise the region and locset definitions
 tutorial_cell = arbor.cable_cell(tutorial_morph, tutorial_dict, arbor.decor())
 
+###############################################################################
+# Tutorial Example: network_ring
+###############################################################################
+
+tree = arbor.segment_tree()
+s = tree.append(arbor.mnpos, arbor.mpoint(-12, 0, 0, 6), arbor.mpoint(0, 0, 0, 6), tag=1)
+b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(50, 0, 0, 2), tag=3)
+b1 = tree.append(b0, arbor.mpoint(50, 0, 0, 2), arbor.mpoint(50+50/sqrt(2), 50/sqrt(2), 0, 0.5), tag=3)
+b2 = tree.append(b0, arbor.mpoint(50, 0, 0, 1), arbor.mpoint(50+50/sqrt(2), -50/sqrt(2), 0, 1), tag=3)
+tutorial_network_ring_morph = arbor.morphology(tree)
+
+tutorial_network_ring_regions  = {
+    'soma': '(tag 1)',
+    'dend': '(tag 3)'
+}
+tutorial_network_ring_locsets = {
+    'synapse_site': '(location 1 0.5)',
+    'root': '(root)'
+}
+tutorial_network_ring_labels = {**tutorial_network_ring_regions, **tutorial_network_ring_locsets}
+tutorial_network_ring_dict = arbor.label_dict(tutorial_network_ring_labels)
+
+# Create a cell to concretise the region and locset definitions
+tutorial_network_ring_cell = arbor.cable_cell(tutorial_network_ring_morph, tutorial_network_ring_dict, arbor.decor())
+
 ################################################################################
 # Output all of the morphologies and region/locset definitions to a Python script
 # that can be run during the documentation build to generate images.
@@ -278,6 +305,7 @@ f.write(write_morphology('ysoma_morph2',   ysoma_morph2))
 f.write(write_morphology('ysoma_morph3',   ysoma_morph3))
 f.write(write_morphology('tutorial_morph', tutorial_morph))
 f.write(write_morphology('swc_morph',      swc_morph))
+f.write(write_morphology('tutorial_network_ring_morph', tutorial_network_ring_morph))
 
 f.write('\n############# locsets (label_morph)\n\n')
 for label in locsets:
@@ -298,5 +326,15 @@ f.write('\n############# regions (tutorial_morph)\n\n')
 for label in tutorial_regions:
     comps = [(c.branch, c.prox, c.dist) for c in tutorial_cell.cables('"{}"'.format(label))]
     f.write('tut_reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
+
+f.write('\n############# locsets (tutorial_network_ring_morph)\n\n')
+for label in tutorial_network_ring_locsets:
+    locs = [(l.branch, l.pos) for l in tutorial_network_ring_cell.locations('"{}"'.format(label))]
+    f.write('tut_network_ring_ls_{}  = {{\'type\': \'locset\', \'value\': {}}}\n'.format(label, locs))
+
+f.write('\n############# regions (tutorial_network_ring_morph)\n\n')
+for label in tutorial_network_ring_regions:
+    comps = [(c.branch, c.prox, c.dist) for c in tutorial_network_ring_cell.cables('"{}"'.format(label))]
+    f.write('tut_network_ring_reg_{} = {{\'type\': \'region\', \'value\': {}}}\n'.format(label, comps))
 
 f.close()
