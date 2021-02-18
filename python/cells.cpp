@@ -368,7 +368,7 @@ void register_cells(pybind11::module& m) {
                pybind11::object method)
             {
                 if (!props.ion_species.count(ion) && !valence) {
-                    throw std::runtime_error(util::pprintf("New ion: '{}', missing valence", ion));
+                    throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
                 }
                 if (valence) props.ion_species[ion] = *valence;
 
@@ -387,6 +387,10 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
             pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
             "Set the global default properties of ion species named 'ion'.\n"
+            "There are 3 ion species predefined in arbor: 'ca', 'na' and 'k'.\n"
+            "If 'ion' in not one of these ions it will be added to the list, making it\n"
+            "available to mechanisms. The user has to provide the valence of a previously\n"
+            "undefined ion the first time this function is called with it as an argument.\n"
             "Species concentrations and reversal potential can be overridden on\n"
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
