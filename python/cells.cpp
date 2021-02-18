@@ -361,14 +361,17 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
             "Set global default values for cable and cell properties.")
         // add/modify ion species
-        .def("update_ion",
+        .def("set_ion",
             [](arb::cable_cell_global_properties& props, const char* ion,
-               optional<double> int_con, optional<double> ext_con,
-               optional<double> rev_pot, pybind11::object method)
+               optional<double> valence, optional<double> int_con,
+               optional<double> ext_con, optional<double> rev_pot,
+               pybind11::object method)
             {
-                if (!props.default_parameters.ion_data.count(ion)) {
-                    throw std::runtime_error(util::pprintf("Can not update non-existing ion: '{}'", ion));
+                if (!props.ion_species.count(ion) && !valence) {
+                    throw std::runtime_error(util::pprintf("New ion: '{}', missing valence", ion));
                 }
+                if (valence) props.ion_species[ion] = *valence;
+
                 auto& data = props.default_parameters.ion_data[ion];
                 if (int_con) data.init_int_concentration = *int_con;
                 if (ext_con) data.init_ext_concentration = *ext_con;
@@ -378,6 +381,7 @@ void register_cells(pybind11::module& m) {
                 }
             },
             pybind11::arg_v("ion", "name of the ion species."),
+            pybind11::arg_v("valence", pybind11::none(), "valence of the ion species."),
             pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
@@ -387,21 +391,6 @@ void register_cells(pybind11::module& m) {
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
             "overriden locally.")
-        .def("add_ion",
-             [](arb::cable_cell_global_properties& props, const char* ion,
-                int valence, double int_con, double ext_con, double rev_pot)
-             {
-               if (props.default_parameters.ion_data.count(ion)) {
-                   throw std::runtime_error(util::pprintf("Can not add existing ion: '{}'", ion));
-               }
-               props.add_ion(ion, valence, int_con, ext_con, rev_pot);
-             },
-             pybind11::arg_v("ion", "name of the ion species."),
-             pybind11::arg_v("valence", "valence of the ion species."),
-             pybind11::arg_v("int_con", "initial internal concentration [mM]."),
-             pybind11::arg_v("ext_con", "initial external concentration [mM]."),
-             pybind11::arg_v("rev_pot", "reversal potential [mV]."),
-             "Add a new ion species named 'ion' to the global default properties.")
         .def("register", [](arb::cable_cell_global_properties& props, const arb::mechanism_catalogue& cat) {
                 props.catalogue = &cat;
             },
