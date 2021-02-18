@@ -14,5 +14,4 @@ graft sup
 graft test
 graft arborio
 
-prune ext/sphinx_rtd_theme
 prune ext/google-benchmark

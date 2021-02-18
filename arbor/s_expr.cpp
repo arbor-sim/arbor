@@ -87,14 +87,14 @@ static std::unordered_map<std::string, tok> keyword_to_tok = {
 };
 
 class lexer {
-    transmogrifier line_start_;
-    transmogrifier stream_;
+    const char* line_start_;
+    const char* stream_;
     unsigned line_;
     token token_;
 
 public:
 
-    lexer(transmogrifier begin):
+    lexer(const char* begin):
         line_start_(begin), stream_(begin), line_(0)
     {
         // Prime the first token.
@@ -183,7 +183,7 @@ private:
                             token_ = {loc(), tok::error, "Unexpected end of input."};
                             return;
                         }
-                        char c = stream_.peek(1);
+                        char c = peek(1);
                         if (std::isdigit(c) or c=='.') {
                             token_ = number();
                             return;
@@ -205,6 +205,14 @@ private:
         }
         token_ = {loc(), tok::eof, "eof"s};
         return;
+    }
+
+    // Look ahead n characters in the input stream.
+    // If peek to or past the end of the stream return '\0'.
+    char peek(int n) {
+        const char* c = stream_;
+        while (*c && n--) ++c;
+        return *c;
     }
 
     // Consumes characters in the stream until end of stream or a new line.
@@ -320,8 +328,8 @@ private:
                 }
             }
             else if (!uses_scientific_notation && (c=='e' || c=='E')) {
-                if ( std::isdigit(stream_.peek(1)) ||
-                    (is_plusminus(stream_.peek(1)) && std::isdigit(stream_.peek(2))))
+                if ( std::isdigit(peek(1)) ||
+                    (is_plusminus(peek(1)) && std::isdigit(peek(2))))
                 {
                     uses_scientific_notation++;
                     str += c;
@@ -475,8 +483,8 @@ s_expr parse(lexer& L) {
 
 }
 
-s_expr parse_s_expr(transmogrifier begin) {
-    lexer l(begin);
+s_expr parse_s_expr(const std::string& line) {
+    lexer l(line.c_str());
     s_expr result = impl::parse(l);
     const bool err = result.is_atom()? result.atom().kind==tok::error: false;
     if (!err) {
@@ -488,26 +496,5 @@ s_expr parse_s_expr(transmogrifier begin) {
     }
     return result;
 }
-
-s_expr parse_s_expr(const std::string& in) {
-    return parse_s_expr(transmogrifier{in});
-}
-
-// For parsing a file with multiple high level s expressions.
-// Returns a vector of the expressions.
-// If an error occured, terminate early and the last expression will be an error.
-std::vector<s_expr> parse_multi_s_expr(transmogrifier begin) {
-    std::vector<s_expr> result;
-    lexer l(begin);
-    bool error = false;
-    while (!error && l.current().kind!=tok::eof) {
-        result.push_back(impl::parse(l));
-        const auto& e = result.back();
-        error = e.is_atom() && e.atom().kind==tok::error;
-    }
-
-    return result;
-}
-
 
 } // namespace arb

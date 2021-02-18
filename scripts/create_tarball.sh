@@ -39,11 +39,11 @@ git checkout "$CHECKOUT"
 git submodule init
 git submodule update
 
-# remove all version control files but not the .git directories themselves
-rm -vrf -- **/.git/*
-
-# remove main .git, only submodule .gits are still present
+# remove main .git
 rm -vrf .git
+
+# wipe .git submodule files
+find -type f -name .git | xargs truncate -s 0
 
 # create tar ball
 cd ..
