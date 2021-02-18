@@ -64,8 +64,8 @@ cells over 5 nodes, simulating 100 cells each.
 
 .. code-block::
 
-   srun -n NRANKS python network_ring_mpi.py
-   mpirun -n NRANKS python network_ring_mpi.py
+   srun -n NRANKS python mpi.py
+   mpirun -n NRANKS python mpi.py
 
 The results
 ***********
