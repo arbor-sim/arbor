@@ -73,10 +73,10 @@ The results
 Before we execute the simulation, we have to understand how Arbor distributes the computational load over the ranks.
 After executing ``mpirun``, all nodes will run the same script. In the domain decomposition step, the nodes will use
 the provided MPI communicator to divide the work. Once :py:func:`arbor.simulation.run` starts, each node wil work on
-their allocated cell ``gid``s.
+their allocated cell ``gid`` s.
 
 This is relevant for the collection of results: these are not gathered for you. Remember that in step **(14)** we
-store the handles to the probes; these referred to particular ``gid``s. The ``gid``s are now distributed, so on one
+store the handles to the probes; these referred to particular ``gid`` s. The ``gid`` s are now distributed, so on one
 node, the script will not find the cell referred to by the handle and therefore return an empty list (no results were found).
 
 In step **(18)** we check, for each ``gid``, if the list returned by :py:func:`arbor.simulation.samples` has a nonzero
