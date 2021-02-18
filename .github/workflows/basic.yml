@@ -165,6 +165,6 @@ jobs:
             python python/example/single_cell_model.py
             python python/example/single_cell_recipe.py
             python python/example/single_cell_stdp.py
-            python python/example/single_cell_swc.py test/unit/swc/pyramidal.swc
-            python python/example/single_cell_detailed.py python/example/morph.swc
-            python python/example/single_cell_detailed_recipe.py python/example/morph.swc
+            python python/example/single_cell_swc.py python/example/single_cell_detailed.swc
+            python python/example/single_cell_detailed.py python/example/single_cell_detailed.swc
+            python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc

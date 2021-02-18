@@ -102,3 +102,14 @@ TEST(Module, linear_mechanisms) {
         }
     }
 }
+
+TEST(Module, breakpoint) {
+    // Test function call in BREAKPOINT block
+    Module m(io::read_all(DATADIR "/mod_files/test8.mod"), "test8.mod");
+    EXPECT_NE(m.buffer().size(), 0);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_TRUE(m.semantic());
+}

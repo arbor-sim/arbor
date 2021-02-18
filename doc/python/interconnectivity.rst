@@ -3,6 +3,8 @@
 Interconnectivity
 #################
 
+.. currentmodule:: arbor
+
 .. class:: connection
 
     Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
@@ -68,7 +70,7 @@ Interconnectivity
 
 .. class:: spike_detector
 
-    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an :ref:`arbor.connection`.
+    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an :class:`arbor.connection`.
 
     .. attribute:: threshold
 

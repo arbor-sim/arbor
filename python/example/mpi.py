@@ -4,6 +4,8 @@ import arbor
 import pandas, seaborn
 from math import sqrt
 
+# Run with srun -n NJOBS python network_ring_mpi.py
+
 # Construct a cell with the following morphology.
 # The soma (at the root of the tree) is marked 's', and
 # the end of each branch i is marked 'bi'.
@@ -111,35 +113,39 @@ class ring_recipe (arbor.recipe):
         return self.props
 
 # (11) Instantiate recipe
-ncells = 4
+ncells = 50
 recipe = ring_recipe(ncells)
 
-# (12) Create a default execution context, domain decomposition and simulation
-context = arbor.context()
+# (12) Create an MPI communicator, and use it to create a hardware context
+arbor.mpi_init()
+comm = arbor.mpi_comm()
+print(comm)
+context = arbor.context(mpi=comm)
+print(context)
+
+# (13) Create a default domain decomposition and simulation
 decomp = arbor.partition_load_balance(recipe, context)
 sim = arbor.simulation(recipe, decomp, context)
 
-# (13) Set spike generators to record
+# (14) Set spike generators to record
 sim.record(arbor.spike_recording.all)
 
-# (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
-handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
+# (15) Attach a sampler to the voltage probe on cell 0. Sample rate of 1 sample every ms.
+# Sampling period increased w.r.t network_ring.py to reduce amount of data
+handles = [sim.sample((gid, 0), arbor.regular_schedule(1)) for gid in range(ncells)]
 
-# (15) Run simulation
-sim.run(100)
+# (16) Run simulation
+sim.run(ncells*5)
 print('Simulation finished')
 
-# (16) Print spike times
-print('spikes:')
-for sp in sim.spikes():
-    print(' ', sp)
-
 # (17) Plot the recorded voltages over time.
-print("Plotting results ...")
+print("Storing results ...")
 df_list = []
 for gid in range(ncells):
-    samples, meta = sim.samples(handles[gid])[0]
-    df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
+    if len(sim.samples(handles[gid])):
+        samples, meta = sim.samples(handles[gid])[0]
+        df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
 
-df = pandas.concat(df_list)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('network_ring_result.svg')
+if len(df_list):
+    df = pandas.concat(df_list)
+    df.to_csv(f"result_mpi_{context.rank}.csv", float_format='%g')

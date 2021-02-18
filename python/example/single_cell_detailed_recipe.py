@@ -11,7 +11,7 @@ from arbor import mechanism as mech
 # Create the morphology
 
 # Read the SWC filename from input
-# Example from docs: morph.swc
+# Example from docs: single_cell_detailed.swc
 
 if len(sys.argv) < 2:
     print("No SWC file passed to the program")

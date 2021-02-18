@@ -22,15 +22,15 @@ We start by building the cell. This will be a :ref:`cable cell <cablecell>` with
 geometry and dynamics which can be constructed from 3 components:
 
 1. A **morphology** defining the geometry of the cell.
-2. A **label dictionary** storing labeled expressions which define regions and locations of
+2. A **label dictionary** storing labelled expressions which define regions and locations of
    interest on the cell.
-3. A **decor** defining various properties and dynamics on these labeled regions and locations.
-   The decor also includes hints about how the cell is to be modeled under the hood, by
+3. A **decor** defining various properties and dynamics on these  regions and locations.
+   The decor also includes hints about how the cell is to be modelled under the hood, by
    splitting it into discrete control volumes (CV).
 
 Next, we construct a :class:`arbor.single_cell_model`. This model takes care of a lot of details
 behind the scenes: it sets up a recipe (more on recipes :ref:`here <modelrecipe>`), creates
-a simulation object, manages the hardware etc. These details become more important when modeling
+a simulation object, manages the hardware etc. These details become more important when modelling
 a network of cells, but can be abstracted away when working with single cell networks.
 
 The single cell model has 4 main functions:
@@ -47,7 +47,7 @@ The cell
 
 Before creating the actual cell object, we have to create its components.
 
-The morpholohgy
+The morphology
 ^^^^^^^^^^^^^^^
 We begin by constructing the following morphology:
 
@@ -92,7 +92,7 @@ This can be done by manually building a segment tree:
 
 The same morphology can be represented using an SWC file (interpreted according
 to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
-``morph.swc``.
+``single_cell_detailed.swc``.
 
 .. code-block:: python
 
@@ -122,7 +122,7 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
 
     More information on SWC loaders can be found :ref:`here <morph-formats>`.
 
-The morphology can then be loaded from ``morph.swc`` in the following way:
+The morphology can then be loaded from ``single_cell_detailed.swc`` in the following way:
 
 .. code-block:: python
 
@@ -130,7 +130,7 @@ The morphology can then be loaded from ``morph.swc`` in the following way:
 
     # Read the morphology from an SWC file
 
-    morph = arbor.load_swc_arbor("morph.swc")
+    morph = arbor.load_swc_arbor("single_cell_detailed.swc")
 
 The label dictionary
 ^^^^^^^^^^^^^^^^^^^^
@@ -254,7 +254,7 @@ This will generate the following 2 locsets when applied to the previously define
 The decorations
 ^^^^^^^^^^^^^^^
 
-With the key regions and location expressions identified and labeled, we can start to
+With the key regions and location expressions identified and labelled, we can start to
 define certain features, properties and dynamics on the cell. This is done through a
 :class:`arbor.decor` object, which stores a mapping of these "decorations" to certain
 region or location expressions.

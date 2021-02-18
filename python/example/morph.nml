@@ -1,0 +1,72 @@
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2">
+<morphology id="m1">
+    <segment id="0">
+        <proximal x="0" y="0" z="0" diameter="4"/>
+        <distal  x="40" y="0" z="0" diameter="4"/>
+    </segment>
+    <segment id="1">
+        <parent segment="0"/>
+        <proximal x="40" y="0" z="0" diameter="1.6"/>
+        <distal   x="80" y="0" z="0" diameter="1.6"/>
+    </segment>
+    <segment id="2">
+        <parent segment="1"/>
+        <proximal x="80"  y="0"  z="0" diameter="1.6"/>
+        <distal   x="120" y="-5" z="0" diameter="1.6"/>
+    </segment>
+    <segment id="3">
+        <parent segment="2"/>
+        <proximal x="120" y="-5" z="0" diameter="1.6"/>
+        <distal   x="200" y="40" z="0" diameter="0.8"/>
+    </segment>
+    <segment id="4">
+        <parent segment="3"/>
+        <proximal x="200" y="40" z="0" diameter="0.8"/>
+        <distal   x="260" y="60" z="0" diameter="0.4"/>
+    </segment>
+    <segment id="5">
+        <parent segment="2"/>
+        <proximal x="120" y="-5"  z="0" diameter="1"/>
+        <distal   x="190" y="-30" z="0" diameter="1"/>
+    </segment>
+    <segment id="6">
+        <parent segment="5"/>
+        <proximal x="190" y="-30" z="0" diameter="1"/>
+        <distal   x="240" y="-70" z="0" diameter="0.4"/>
+    </segment>
+    <segment id="7">
+        <parent segment="5"/>
+        <proximal x="190" y="-30" z="0" diameter="1"/>
+        <distal   x="230" y="-10" z="0" diameter="0.4"/>
+    </segment>
+    <segment id="8">
+        <parent segment="7"/>
+        <proximal x="230" y="-10" z="0" diameter="0.4"/>
+        <distal   x="360" y="-20" z="0" diameter="0.4"/>
+    </segment>
+    <segment id="9">
+        <parent segment="0" fractionAlong="0.0"/>
+        <proximal x="0"   y="0" z="0" diameter="4"/>
+        <distal   x="-70" y="0" z="0" diameter="0.8"/>
+    </segment>
+    <segment id="10">
+        <parent segment="9"/>
+        <proximal x="-70"  y="0" z="0" diameter="0.8"/>
+        <distal   x="-100" y="0" z="0" diameter="0.8"/>
+    </segment>
+    <segmentGroup id="soma">
+        <member segment="0"/>
+    </segmentGroup>
+    <segmentGroup id="axon">
+        <member segment="9"/>
+        <member segment="10"/>
+    </segmentGroup>
+    <segmentGroup id="dend">
+        <member segment="1"/>
+        <member segment="2"/>
+        <member segment="3"/>
+        <member segment="4"/>
+        <member segment="5"/>
+    </segmentGroup>
+</morphology>
+</neuroml>

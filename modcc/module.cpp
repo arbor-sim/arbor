@@ -182,6 +182,23 @@ bool Module::semantic() {
     // move functions and procedures to the symbol table
     if(!move_symbols(callables_))  return false;
 
+    // Before starting the inlining process, look for the BREAKPOINT block:
+    // if it includes a SOLVE statement, check that it is the first statement
+    // in the block.
+    if (has_symbol("breakpoint", symbolKind::procedure)) {
+        bool found_non_solve = false;
+        auto breakpoint = symbols_["breakpoint"]->is_procedure();
+        for (const auto& s: breakpoint->body()->statements()) {
+            if(!s->is_solve_statement()) {
+                found_non_solve = true;
+            }
+            else if (found_non_solve) {
+                error("SOLVE statements must come first in BREAKPOINT block", s->location());
+                return false;
+            }
+        }
+    }
+
     // perform semantic analysis and inlining on function and procedure bodies
     if(auto errors = semantic_func_proc()) {
         error("There were "+std::to_string(errors)+" errors in the semantic analysis");
@@ -360,25 +377,13 @@ bool Module::semantic() {
 
     // Grab SOLVE statements, put them in `nrn_state` after translation.
     bool found_solve = false;
-    bool found_non_solve = false;
     std::set<std::string> solved_ids;
 
     for(auto& e: (breakpoint->body()->statements())) {
         SolveExpression* solve_expression = e->is_solve_statement();
-        LocalDeclaration* local_expression = e->is_local_declaration();
-        if(local_expression) {
-            continue;
-        }
         if(!solve_expression) {
-            found_non_solve = true;
             continue;
         }
-        if(found_non_solve) {
-            error("SOLVE statements must come first in BREAKPOINT block",
-                e->location());
-            return false;
-        }
-
         found_solve = true;
         std::unique_ptr<SolverVisitorBase> solver;
 
