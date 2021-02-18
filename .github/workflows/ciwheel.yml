@@ -100,7 +100,7 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_BUILD: pip install numpy setuptools
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
@@ -111,13 +111,13 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_BUILD: pip install numpy setuptools
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
 
-        run: |
-          pip install cibuildwheel
-          cibuildwheel --output-dir dist
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.whl
 
       - name: Publish distribution 📦 to Test PyPI
         if: github.ref == 'refs/heads/master'
