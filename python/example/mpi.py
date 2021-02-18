@@ -113,7 +113,7 @@ class ring_recipe (arbor.recipe):
         return self.props
 
 # (11) Instantiate recipe
-ncells = 500
+ncells = 50
 recipe = ring_recipe(ncells)
 
 # (12) Create an MPI communicator, and use it to create a hardware context
@@ -130,8 +130,9 @@ sim = arbor.simulation(recipe, decomp, context)
 # (14) Set spike generators to record
 sim.record(arbor.spike_recording.all)
 
-# (15) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
-handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
+# (15) Attach a sampler to the voltage probe on cell 0. Sample rate of 1 sample every ms.
+# Sampling period increased w.r.t network_ring.py to reduce amount of data
+handles = [sim.sample((gid, 0), arbor.regular_schedule(1)) for gid in range(ncells)]
 
 # (16) Run simulation
 sim.run(ncells*5)

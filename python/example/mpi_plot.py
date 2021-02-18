@@ -8,4 +8,4 @@ for result in results:
     df_list.append(pandas.read_csv(result))
 
 df = pandas.concat(df_list)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('mpi_result.png')
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('mpi_result.svg')

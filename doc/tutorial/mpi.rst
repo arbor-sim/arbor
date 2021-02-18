@@ -3,7 +3,7 @@
 Distributed ring network (MPI)
 ==============================
 
-In this example, the ring network created in an :ref:`earlier tutorial <tutorialnetworkring>` will be used to run in
+In this example, the ring network created in an :ref:`earlier tutorial <tutorialnetworkring>` will be used to run the model in
 a distributed context using MPI. Only the differences with that tutorial will be described.
 
 .. Note::
@@ -17,7 +17,7 @@ a distributed context using MPI. Only the differences with that tutorial will be
 The recipe
 **********
 
-Step **(11)** is changed to generate a network with a thousand cells.
+Step **(11)** is changed to generate a network with five hundred cells.
 
 .. code-block:: python
 
@@ -53,9 +53,14 @@ Step **(16)** runs the simulation. Since we have more cells this time, which are
    sim.run(ncells*5)
    print('Simulation finished')
 
-An important change in the execution is how the script is run. Whereas normally you run the Python script by passing it as an argument to the ``python`` command, you need to use ``srun`` or ``mpirun`` (depending on your MPI distribution) to execute a number of jobs in parallel. You can still execute the script using ``python``, but then MPI will not execute on more than one node.
+An important change in the execution is how the script is run. Whereas normally you run the Python script by passing
+it as an argument to the ``python`` command, you need to use ``srun`` or ``mpirun`` (depending on your MPI
+distribution) to execute a number of jobs in parallel. You can still execute the script using ``python``, but then
+MPI will not execute on more than one node.
 
-From the commandline, we can run the script using ``mpirun`` or ``srun`` and specify the number of ranks (``NRANKS``) or nodes. Arbor will spread the cells evenly over the ranks, so with ``NRANKS`` set to 5, we'd be spreading the 500 cells over 5 nodes, simulating 100 cells each.
+From the commandline, we can run the script using ``mpirun`` or ``srun`` and specify the number of ranks (``NRANKS``)
+or nodes. Arbor will spread the cells evenly over the ranks, so with ``NRANKS`` set to 5, we'd be spreading the 500
+cells over 5 nodes, simulating 100 cells each.
 
 .. code-block::
 
@@ -65,17 +70,19 @@ From the commandline, we can run the script using ``mpirun`` or ``srun`` and spe
 The results
 ***********
 
-Before we execute the simulation, we have to understand how Arbor distributes the computational load over the ranks
-and executes the rest of the script. You can visualize this as a fork from the moment :py:func:`arbor.simulation.run`
-is reached. Here the computational load will be distributed and the subsequent execution of the script be different.
-This is relevant as to the collection of results: these are not gathered for you. Remember that in step **(14)** we
+Before we execute the simulation, we have to understand how Arbor distributes the computational load over the ranks.
+After executing ``mpirun``, all nodes will run the same script. In the domain decomposition step, the nodes will use
+the provided MPI communicator to divide the work. Once :py:func:`arbor.simulation.run` starts, each node wil work on
+their allocated cell ``gid``s.
+
+This is relevant for the collection of results: these are not gathered for you. Remember that in step **(14)** we
 store the handles to the probes; these referred to particular ``gid``s. The ``gid``s are now distributed, so on one
 node, the script will not find the cell referred to by the handle and therefore return an empty list (no results were found).
 
-In step **(18)** we check if the list has a nonzero length, so we can collect the results generated on this
-particular node. Since Arbor does not collect the results automatically, we have to write the results to disk and
-analyse them later. We query :py:attr:`arbor.context.rank` for the rank id to use in the filename where the result is
-stored.
+In step **(18)** we check, for each ``gid``, if the list returned by :py:func:`arbor.simulation.samples` has a nonzero
+length. The effect is that we collect the results generated on this particular node. Since we now have ``NRANKS``
+instances of our script, and we can't access the results between nodes, we have to write the results to disk and
+analyse them later. We query :py:attr:`arbor.context.rank` to generate a unique filename for the result.
 
 .. code-block:: python
 
@@ -105,11 +112,11 @@ In a second script, ``mpi_plot.py``, we load the results stored to disk into a p
       df_list.append(pandas.read_csv(result))
 
    df = pandas.concat(df_list)
-   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('mpi_result.png')
+   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('mpi_result.svg')
 
-We plot the results using pandas and seaborn (it's a bit crowded!):
+To avoid an overcrowded plot, this plot was generated with just 50 cells:
 
-.. figure:: mpi_result.png
+.. figure:: mpi_result.svg
     :width: 400
     :align: center
 
