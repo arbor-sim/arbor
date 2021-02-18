@@ -1,7 +1,9 @@
 Arbor
 =====
 
-.. image:: https://github.com/arbor-sim/arbor/workflows/Basic%20Tests%20and%20Documentation/badge.svg
+|testbadge| |zlatest|
+
+.. |testbadge| image:: https://github.com/arbor-sim/arbor/workflows/Basic%20Tests%20and%20Documentation/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions?query=workflow%3A%22Basic+Tests+and+Documentation%22
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
@@ -32,6 +34,28 @@ Documentation organisation
 Citing Arbor
 ------------
 
+The Arbor software can be cited via Zenodo: |zlatest|
+
+.. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
+    :target: https://doi.org/10.5281/zenodo.1459678
+
+Previous versions of Arbor can be cited specifically:
+
+* Version 0.5: |z05|
+* Version 0.2: |z02|
+* Version 0.1: |z01|
+
+.. |z05| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4428108.svg
+    :target: https://doi.org/10.5281/zenodo.4428108
+
+.. |z02| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2583709.svg
+    :target: https://doi.org/10.5281/zenodo.2583709
+
+.. |z01| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459679.svg
+    :target: https://doi.org/10.5281/zenodo.1459679
+
+The following BibTeX entry can be used to cite the Arbor introductory paper:
+
 .. code-block:: latex
 
     @INPROCEEDINGS{
@@ -49,9 +73,9 @@ Alternative citation formats for the paper can be `downloaded here <https://ieee
 Acknowledgements
 ----------------
 
-This research has received funding from th  European Unions Horizon 2020 Framework Programme for Research and
-Innovation under the Specific Grant Agreement No. 720270 (Human Brain Project SGA1), and Specific Grant Agreement
-No. 785907 (Human Brain Project SGA2).
+This research has received funding from the European Unions Horizon 2020 Framework Programme for Research and
+Innovation under the Specific Grant Agreement No. 720270 (Human Brain Project SGA1), Specific Grant Agreement
+No. 785907 (Human Brain Project SGA2), and Specific Grant Agreement No. 945539 (Human Brain Project SGA3).
 
 Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
 
