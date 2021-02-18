@@ -1,4 +1,4 @@
-name: Arbor
+name: Arbor in Wheels
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
