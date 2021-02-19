@@ -53,30 +53,35 @@ parse_hopefully<tok> expect_token(asc::lexer& l, tok kind) {
     return kind;
 }
 
-double parse_double(asc::lexer& L) {
+#define EXPECT_TOKEN(L, TOK) {if (auto rval__ = expect_token(L, TOK); !rval__) return unexpected(std::move(rval__.error()));}
+
+parse_hopefully<double> parse_double(asc::lexer& L) {
     auto t = L.current();
     if (!(t.kind==tok::integer || t.kind==tok::real)) {
-        throw asc_parse_error("missing real number\n", L.current().loc.line);
+        return unexpected(parse_error("missing real number", L.current().loc));
     }
     L.next(); // consume token()
     return std::stod(t.spelling);
 }
 
-std::uint8_t parse_uint8(asc::lexer& L) {
+#define PARSE_DOUBLE(L, X) {if (auto rval__ = parse_double(L)) X=*rval__; else return unexpected(std::move(rval__.error()));}
+
+parse_hopefully<std::uint8_t> parse_uint8(asc::lexer& L) {
     auto t = L.current();
     if (t.kind!=tok::integer) {
-        throw asc_parse_error("missing uint8 number\n", L.current().loc.line);
+        return unexpected(parse_error("missing uint8 number", L.current().loc));
     }
 
     // convert to large integer and test
     auto value = std::stoll(t.spelling);
     if (value<0 || value>255) {
-        throw asc_parse_error("value out of range [0, 255]\n", L.current().loc.line);
+        return unexpected(parse_error("value out of range [0, 255]", L.current().loc));
     }
     L.next(); // consume token
     return static_cast<std::uint8_t>(value);
 }
 
+#define PARSE_UINT8(L, X) {if (auto rval__ = parse_uint8(L)) X=*rval__; else return unexpected(std::move(rval__.error()));}
 
 // Find the matching closing parenthesis, and consume it.
 // Assumes that opening paren has been consumed.
@@ -153,18 +158,18 @@ parse_hopefully<asc_color> parse_color(asc::lexer& L) {
     if (parse_if_symbol_matches("RGB", L)) {
         // Read RGB triple in the form (r, g, b)
 
-        expect_token(L, tok::lparen);
+        EXPECT_TOKEN(L, tok::lparen);
 
         asc_color color;
-        color.r = parse_uint8(L);
-        expect_token(L, tok::comma);
-        color.g = parse_uint8(L);
-        expect_token(L, tok::comma);
-        color.b = parse_uint8(L);
+        PARSE_UINT8(L, color.r);
+        EXPECT_TOKEN(L, tok::comma);
+        PARSE_UINT8(L, color.g);
+        EXPECT_TOKEN(L, tok::comma);
+        PARSE_UINT8(L, color.b);
 
 
-        expect_token(L, tok::rparen);
-        expect_token(L, tok::rparen);
+        EXPECT_TOKEN(L, tok::rparen);
+        EXPECT_TOKEN(L, tok::rparen);
 
         return color;
     }
@@ -172,46 +177,62 @@ parse_hopefully<asc_color> parse_color(asc::lexer& L) {
         // Look up the symbol in the table
         if (auto it = color_map.find(t.spelling); it!=color_map.end()) {
             L.next();
-            expect_token(L, tok::rparen);
+            EXPECT_TOKEN(L, tok::rparen);
             return it->second;
         }
         else {
-            throw asc_parse_error("unknown color value '"+t.spelling+"'", t.loc.line);
+            return unexpected(parse_error("unknown color value '"+t.spelling+"'", t.loc));
         }
     }
 
-    throw asc_parse_error("unexpected symbol in Color description \'"+t.spelling+"\'", t.loc.line);
+    return unexpected(parse_error("unexpected symbol in Color description \'"+t.spelling+"\'", t.loc));
 }
 
-arb::mpoint parse_point(asc::lexer& L) {
+#define PARSE_COLOR(L, X) {if (auto rval__ = parse_color(L)) X=*rval__; else return unexpected(std::move(rval__.error()));}
+
+parse_hopefully<arb::mpoint> parse_point(asc::lexer& L) {
     // check and consume opening paren
-    expect_token(L, tok::lparen);
+    EXPECT_TOKEN(L, tok::lparen);
 
     arb::mpoint p;
-    p.x      = parse_double(L);
-    p.y      = parse_double(L);
-    p.z      = parse_double(L);
-    p.radius = parse_double(L);
+    PARSE_DOUBLE(L, p.x);
+    PARSE_DOUBLE(L, p.y);
+    PARSE_DOUBLE(L, p.z);
+    PARSE_DOUBLE(L, p.radius);
 
     // check and consume closing paren
-    expect_token(L, tok::rparen);
+    EXPECT_TOKEN(L, tok::rparen);
 
     return p;
 }
 
-arb::mpoint parse_spine(asc::lexer& L) {
-    expect_token(L, tok::lt);
+#define PARSE_POINT(L, X) if (auto rval__ = parse_point(L)) X=*rval__; else return unexpected(std::move(rval__.error()));
+
+parse_hopefully<arb::mpoint> parse_spine(asc::lexer& L) {
+    EXPECT_TOKEN(L, tok::lt);
     auto& t = L.current();
-    while (t.kind != tok::gt && t.kind != tok::error && t.kind!=tok::eof) {
+    while (t.kind!=tok::gt && t.kind!=tok::error && t.kind!=tok::eof) {
         L.next();
     }
     //if (t.kind!=error && t.kind!=eof)
-    expect_token(L, tok::gt);
+    EXPECT_TOKEN(L, tok::gt);
 
-    return {};
+    return arb::mpoint{};
 }
 
+#define PARSE_SPINE(L, X) if (auto rval__ = parse_spine(L)) X=std::move(*rval__); else return unexpected(std::move(rval__.error()));
+
 void parse_sub_tree(asc::lexer& L) {
+    // parse the following unordered nonsense:
+    //  string label, e.g. "Cell Body"
+    //  color, e.g. (Color Red)
+    //  label, e.g. (CellBody)
+
+    //(Dendrite)
+    //(Axon)
+    //(CellBody)
+
+    // Then parse dendrites
 }
 
 asc_morphology load_asc(std::string filename) {
