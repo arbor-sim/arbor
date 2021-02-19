@@ -29,7 +29,7 @@ endif()
 # TODO Remove when upgrading Clang
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
+    target_link_libraries(arbor-compiler-compat INTERFACE c++fs)
   endif()
 endif()
 install(TARGETS arbor-compiler-compat EXPORT arbor-targets)
