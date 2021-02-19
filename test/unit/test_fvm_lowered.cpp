@@ -67,22 +67,22 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
 
 using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
 using mechanism_field_table = std::vector<std::pair<const char*, arb::fvm_value_type**>>;
-using mechanism_ion_index_table = std::vector<std::pair<const char*, backend::iarray*>>;
+using mechanism_ion_index_table = std::vector<std::pair<const char*, arb::fvm_index_type**>>;
 
 ACCESS_BIND(\
-    mechanism_global_table (arb::multicore::mechanism::*)(),\
+    mechanism_global_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
     private_global_table_ptr,\
-    &arb::multicore::mechanism::global_table)
+    &arb::concrete_mechanism<arb::multicore::backend>::global_table)
 
 ACCESS_BIND(\
-    mechanism_field_table (arb::multicore::mechanism::*)(),\
+    mechanism_field_table (arb::concrete_mechanism<arb::multicore::backend>::*)(),\
     private_field_table_ptr,\
-    &arb::multicore::mechanism::field_table)
+    &arb::concrete_mechanism<arb::multicore::backend>::field_table)
 
 ACCESS_BIND(\
-    mechanism_ion_index_table (arb::multicore::mechanism::*)(),\
+    mechanism_ion_index_table (arb::concrete_mechanism<arb::multicore::backend>::*)(),\
     private_ion_index_table_ptr,\
-    &arb::multicore::mechanism::ion_index_table)
+    &arb::concrete_mechanism<arb::multicore::backend>::ion_index_table)
 
 using namespace arb;
 

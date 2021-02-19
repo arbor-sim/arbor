@@ -18,9 +18,9 @@ public:
     mechanismKind kind() const override { return ::arb::mechanismKind::point; }
     mechanism_ptr clone() const override { return mechanism_ptr(new stimulus()); }
 
-    void nrn_init() override {}
-    void nrn_state() override {}
-    void nrn_current() override {
+    void init() override {}
+    void advance_state() override {}
+    void compute_currents() override {
         size_type n = size();
         for (size_type i=0; i<n; ++i) {
             auto cv = node_index_[i];
@@ -33,7 +33,7 @@ public:
         }
     }
     void write_ions() override {}
-    void deliver_events(deliverable_event_stream::state events) override {}
+    void apply_events(deliverable_event_stream::state events) override {}
 
 protected:
     std::size_t object_sizeof() const override { return sizeof(*this); }

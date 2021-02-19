@@ -29,26 +29,6 @@ using util::make_range;
 using util::ptr_by_key;
 using util::value_by_key;
 
-// Copy elements from source sequence into destination sequence,
-// and fill the remaining elements of the destination sequence
-// with the given fill value.
-//
-// Assumes that the iterators for these sequences are at least
-// forward iterators.
-
-template <typename Source, typename Dest, typename Fill>
-void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
-    using std::begin;
-    using std::end;
-
-    auto dest_n = std::size(dest);
-    auto source_n = std::size(source);
-
-    auto n = source_n<dest_n? source_n: dest_n;
-    auto tail = std::copy_n(begin(source), n, begin(dest));
-    std::fill(tail, end(dest), fill);
-}
-
 // The derived class (typically generated code from modcc) holds pointers that need
 // to be set to point inside the shared state, or into the allocated parameter/variable
 // data block.
@@ -68,7 +48,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     for (auto &kv: overrides.globals) {
         if (auto opt_ptr = value_by_key(global_table(), kv.first)) {
             // Take reference to corresponding derived (generated) mechanism value member.
-            value_type& global = *opt_ptr.value();
+            fvm_value_type& global = *opt_ptr.value();
             global = kv.second;
         }
         else {
@@ -116,7 +96,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     }
 
     vec_t_ptr_        = &shared.time;
-    vec_t_to_ptr_     = &shared.time_to;
     event_stream_ptr_ = &shared.deliverable_events;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -132,7 +111,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     auto fields = field_table();
     std::size_t n_field = fields.size();
 
-    // (First sub-array of data_ is used for width_, below.)
+    // (First sub-array of data_ is used for weight_, below.)
     data_ = array((1+n_field)*width_padded_, NAN, pad);
     for (std::size_t i = 0; i<n_field; ++i) {
         // Take reference to corresponding derived (generated) mechanism value pointer member.
@@ -152,33 +131,48 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // * For indices in the padded tail of node_index_, set index to last valid CV index.
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-    node_index_ = iarray(width_padded_, pad);
-
-    copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
-    index_constraints_ = make_constraint_partition(node_index_, width_, simd_width());
 
     if (mult_in_place_) {
         multiplicity_ = iarray(width_padded_, pad);
         copy_extend(pos_data.multiplicity, multiplicity_, 1);
     }
 
-    for (auto i: ion_index_table()) {
-        auto ion_binding = value_by_key(overrides.ion_rebind, i.first).value_or(i.first);
+    {
+        auto table = ion_index_table();
+        // Allocate bulk storage
+        auto count = (table.size() + 1)*width_padded_;
+        indices_ = iarray(count, 0, pad);
+        auto base_ptr = indices_.data();
 
-        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
-        if (!oion) {
-            throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
+        // Setup node indices
+        node_index_ = base_ptr;
+        base_ptr += width_padded_;
+        auto node_index = make_range(node_index_, node_index_ + width_padded_);
+        copy_extend(pos_data.cv, node_index, pos_data.cv.back());
+        index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
+
+        // Create ion indices
+        for (const auto& [ion_name, ion_index_ptr]: table) {
+            // Index into shared_state respecting ion rebindings
+            auto ion_binding = value_by_key(overrides.ion_rebind, ion_name).value_or(ion_name);
+            ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
+            if (!oion) {
+                throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
+            }
+
+            // Set the table entry, step offset to next location
+            *ion_index_ptr = base_ptr;
+            base_ptr += width_padded_;
+
+            // Obtain index and move data
+            auto indices   = util::index_into(node_index, oion->node_index_);
+            auto ion_index = make_range(*ion_index_ptr, *ion_index_ptr + width_padded_);
+            copy_extend(indices, ion_index, util::back(indices));
+
+            // Check SIMD constraints
+            arb_assert(compatible_index_constraints(node_index, ion_index, simd_width()));
         }
-
-        auto indices = util::index_into(node_index_, oion->node_index_);
-
-        // Take reference to derived (generated) mechanism ion index member.
-        auto& ion_index = *i.second;
-        ion_index = iarray(width_padded_, pad);
-        copy_extend(indices, ion_index, util::back(indices));
-
-        arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width()));
     }
 }
 
@@ -190,8 +184,8 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
         if (width_>0) {
             // Retrieve corresponding derived (generated) mechanism value pointer member.
-            value_type* field_ptr = *opt_ptr.value();
-            util::range<value_type*> field(field_ptr, field_ptr+width_padded_);
+            fvm_value_type* field_ptr = *opt_ptr.value();
+            util::range<fvm_value_type*> field(field_ptr, field_ptr+width_padded_);
 
             copy_extend(values, field, values.back());
         }
@@ -203,7 +197,7 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
 void mechanism::initialize() {
     vec_t_ = vec_t_ptr_->data();
-    nrn_init();
+    init();
 
     auto states = state_table();
 

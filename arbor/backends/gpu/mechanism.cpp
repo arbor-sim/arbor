@@ -118,7 +118,6 @@ void mechanism::instantiate(unsigned id,
 
     event_stream_ptr_ = &shared.deliverable_events;
     vec_t_ptr_    = &shared.time;
-    vec_t_to_ptr_ = &shared.time_to;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width_==0) {
@@ -214,7 +213,7 @@ void mechanism::initialize() {
     mechanism_ppack_base* pp = ppack_ptr();
     pp->vec_t_ = vec_t_ptr_->data();
 
-    nrn_init();
+    init();
     auto states = state_table();
 
     if(mult_in_place_) {

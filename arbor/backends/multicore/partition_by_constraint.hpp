@@ -99,8 +99,8 @@ bool constexpr is_constraint_stronger(index_constraint a, index_constraint b) {
            (a==index_constraint::independent && b==index_constraint::contiguous);
 }
 
-template <typename T>
-bool compatible_index_constraints(T& node_index, T& ion_index, unsigned simd_width){
+template <typename T, typename U>
+bool compatible_index_constraints(const T& node_index, const U& ion_index, unsigned simd_width){
     for (unsigned i = 0; i < node_index.size(); i+= simd_width) {
         auto nc = idx_constraint(&node_index[i], simd_width);
         auto ic = idx_constraint(&ion_index[i], simd_width);
