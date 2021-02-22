@@ -1,5 +1,6 @@
-# Compiler-aware compiler options
+include(CheckCXXSourceCompiles)
 
+# Compiler-aware compiler options
 set(CXXOPT_DEBUG "-g")
 set(CXXOPT_CXX11 "-std=c++11")
 
@@ -18,20 +19,39 @@ if(${ARBDEV_COLOR})
 endif()
 
 # A library to collect compiler-specific linking adjustments.
-
 add_library(arbor-compiler-compat INTERFACE)
-# TODO Remove when upgrading GCC.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
-    target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
-  endif()
+
+# Check how to use std::filesystem
+string(CONFIGURE [[
+  #include <cstdlib>
+  #include <filesystem>
+  int main() {
+    auto cwd = std::filesystem::current_path();
+    printf("%s", cwd.c_str());
+  }
+  ]] arb_cxx_fs_test @ONLY)
+
+set(STD_FS_LIB "")
+check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS)
+
+if(NOT ${STD_FS})
+  set(STD_FS_LIB "-lstdc++fs")
+  set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+  check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS)
 endif()
-# TODO Remove when upgrading Clang
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    target_link_libraries(arbor-compiler-compat INTERFACE c++fs)
-  endif()
+
+if(NOT ${STD_FS})
+  set(STD_FS_LIB "-lc++fs")
+  set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+  check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS)
 endif()
+
+if(NOT ${STD_FS})
+  message(FATAL_ERROR "Could not enable support for std::filesystem")
+endif()
+
+target_link_libraries(arbor-compiler-compat INTERFACE ${STD_FS_LIB})
+
 install(TARGETS arbor-compiler-compat EXPORT arbor-targets)
 
 # Warning options: disable specific spurious warnings as required.
