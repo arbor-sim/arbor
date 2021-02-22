@@ -10,7 +10,6 @@ Here we document internal components of Arbor. These pages can be useful if you'
    :maxdepth: 2
 
    util
-   nmodl
    simd_api
-   sampling_api
+   extending_catalogues
 

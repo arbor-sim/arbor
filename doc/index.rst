@@ -80,15 +80,36 @@ No. 785907 (Human Brain Project SGA2), and Specific Grant Agreement No. 945539 (
 Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
 
 .. toctree::
-   :caption: Arbor documentation:
+   :caption: Get started:
    :maxdepth: 1
 
    install/index
    tutorial/index
+   howto/index
+
+.. toctree::
+   :caption: Concepts:
+   :maxdepth: 1
+
    concepts/index
+   concepts/recipe
+   concepts/cell
+   concepts/interconnectivity
+   concepts/hardware
+   concepts/domdec
+   concepts/simulation
+   concepts/cable_cell
+   concepts/lif_cell
+   concepts/spike_source_cell
+   concepts/benchmark_cell
+
+.. toctree::
+   :caption: API reference:
+   :maxdepth: 1
+
    python/index
    cpp/index
-   hpc/index
+   fileformat/index
    internals/index
 
 .. toctree::

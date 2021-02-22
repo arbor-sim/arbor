@@ -254,7 +254,7 @@ Definitions
         A measurement that can be performed on a cell. Each cell kind will have its own sorts of probe;
         Cable cells (:py:attr:`arbor.cable_probe`) allow the monitoring of membrane voltage, total membrane
         current, mechanism state, and a number of other quantities, measured either over the whole cell,
-        or at specific sites (see :ref:`pycablecell-probes`).
+        or at specific sites (see :ref:`pycablecell-probesample`).
 
         Probes are described by probe addresses, and the collection of probe addresses for a given cell is
         provided by the :py:class:`recipe` object. One address may correspond to more than one probe:
@@ -296,7 +296,7 @@ Procedure
 
        Each probe address is an opaque object describing what to measure and where, and each cell kind
        will have its own set of functions for generating valid address specifications. Possible cable
-       cell probes are described in the cable cell documentation: :ref:`pycablecell-probes`.
+       cell probes are described in the cable cell documentation: :ref:`pycablecell-probesample`.
 
     2. Instructing the simulator to record data.
 
