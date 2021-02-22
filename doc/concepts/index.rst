@@ -1,7 +1,7 @@
 .. _modelintro:
 
-Overview
-========
+Concepts overview
+=================
 
 To learn how to use Arbor, it is helpful to understand some of its concepts.
 Arbor's design aims to enable scalability through abstraction.

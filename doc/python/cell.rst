@@ -83,70 +83,19 @@ Cell kinds
 ----------
 
 .. class:: lif_cell
+    :noindex:
 
-    A benchmarking cell (leaky integrate-and-fire), used by Arbor developers to test communication performance,
-    with neuronal parameters:
-
-    .. attribute:: tau_m
-
-        Membrane potential decaying constant [ms].
-
-    .. attribute:: V_th
-
-        Firing threshold [mV].
-
-    .. attribute:: C_m
-
-        Membrane capacitance [pF].
-
-    .. attribute:: E_L
-
-        Resting potential [mV].
-
-    .. attribute:: V_m
-
-        Initial value of the Membrane potential [mV].
-
-    .. attribute:: t_ref
-
-        Refractory period [ms].
-
-    .. attribute:: V_reset
-
-        Reset potential [mV].
+    See :ref:`pylifcell`.
 
 .. class:: spike_source_cell
+    :noindex:
 
-    A spike source cell, that generates a user-defined sequence of spikes
-    that act as inputs for other cells in the network.
-
-    .. function:: spike_source_cell(schedule)
-
-        Construct a spike source cell that generates spikes
-
-        - at regular intervals (using an :class:`arbor.regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
-        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
-
-        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
+    See :ref:`pyspikecell`.
 
 .. class:: benchmark_cell
+    :noindex:
 
-    A benchmarking cell, used by Arbor developers to test communication performance.
-
-    .. function:: benchmark_cell(schedule, realtime_ratio)
-
-        A benchmark cell generates spikes at a user-defined sequence of time points:
-
-        - at regular intervals (using an :class:`arbor.regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
-        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
-
-        and the time taken to integrate a cell can be tuned by setting the parameter ``realtime_ratio``.
-
-        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
-
-        :param realtime_ratio: Time taken to integrate a cell, for example if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.
+    See :ref:`pybenchcell`.
 
 .. class:: cable_cell
     :noindex:
