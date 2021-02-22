@@ -1,4 +1,5 @@
 include(CheckCXXSourceCompiles)
+include(CMakePushCheckState)
 
 # Compiler-aware compiler options
 set(CXXOPT_DEBUG "-g")
@@ -21,6 +22,7 @@ endif()
 # A library to collect compiler-specific linking adjustments.
 add_library(arbor-compiler-compat INTERFACE)
 
+cmake_push_check_state()
 # Check how to use std::filesystem
 string(CONFIGURE [[
   #include <cstdlib>
@@ -32,19 +34,18 @@ string(CONFIGURE [[
   ]] arb_cxx_fs_test @ONLY)
 
 set(STD_FS_LIB "")
-set(CMAKE_REQUIRED_FLAGS -std=c++17)
+set(CMAKE_REQUIRED_FLAGS -std=c++17 ${CMAKE_REQUIRED_FLAGS})
+set(prv_req_libs ${CMAKE_REQUIRED_LIBRARIES})
 check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
 
 if(NOT STD_FS_PLAIN)
   set(STD_FS_LIB -lstdc++fs)
-  set(CMAKE_REQUIRED_FLAGS -std=c++17)
-  set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+  set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB} ${prv_req_libs})
   check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX)
 
   if(NOT STD_FS_STDCXX)
     set(STD_FS_LIB -lc++fs)
-    set(CMAKE_REQUIRED_FLAGS -std=c++17)
-    set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+    set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB} ${prv_req_libs})
     check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX)
 
     if(NOT STD_FS_CXX)
@@ -52,6 +53,7 @@ if(NOT STD_FS_PLAIN)
     endif()
   endif()
 endif()
+cmake_pop_check_state()
 
 target_link_libraries(arbor-compiler-compat INTERFACE ${STD_FS_LIB})
 
