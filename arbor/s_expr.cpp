@@ -8,8 +8,8 @@
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
+#include <arbor/s_expr.hpp>
 
-#include "s_expr.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {

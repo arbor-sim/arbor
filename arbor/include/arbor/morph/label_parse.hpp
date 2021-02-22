@@ -4,8 +4,8 @@
 
 #include <arbor/morph/region.hpp>
 #include <arbor/arbexcept.hpp>
+#include <arbor/s_expr.hpp>
 #include <arbor/util/expected.hpp>
-#include "s_expr.hpp"
 
 namespace arb {
 

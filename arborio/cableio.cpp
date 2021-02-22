@@ -1,18 +1,15 @@
 #include <iostream>
+#include <numeric>
 #include <functional>
 #include <sstream>
 #include <numeric>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/label_parse.hpp>
+#include <arbor/s_expr.hpp>
 #include <arbor/util/any_visitor.hpp>
 
 #include <arborio/cableio.hpp>
-
-#include "s_expr.hpp"
-#include "util/span.hpp"
-#include "util/strprintf.hpp"
-#include "util/transform.hpp"
 
 namespace arborio{
 using namespace arb;
@@ -92,8 +89,11 @@ s_expr mksexp(const cv_policy& c) {
 
 // Paintable
 s_expr mksexp(const mechanism_desc& d) {
-    using util::transform_view;
-    return s_expr{"mechanism"_symbol, slist(d.name(), slist_range(transform_view(d.values(), as_s_expr())))};
+    std::vector<s_expr> params;
+    for (const auto& p: d.values()) {
+        params.push_back(mksexp(p));
+    }
+    return s_expr{"mechanism"_symbol, slist(d.name(), slist_range(params))};
 }
 
 // Placeable
@@ -154,20 +154,19 @@ s_expr mksexp(const msegment& seg) {
     return slist("segment"_symbol, (int)seg.id, mksexp(seg.prox), mksexp(seg.dist), seg.tag);
 }
 s_expr mksexp(const morphology& morph) {
-    // Range of morphology branches represented as s-expressions from an input morphology
-    auto branches = [] (auto& m) {
-      // s-expression representation of branch i in the morphology
-      auto branch_description = [&m] (int i) {
-        // List of msegments represented as s-expressions from an msegment sequence.
-        auto seglist = [](auto& segs) {
-          return slist_range(util::transform_view(segs, as_s_expr()));
-        };
-        return s_expr{"branch"_symbol, {i, {(int)m.branch_parent(i), seglist(m.branch_segments(i))}}};
-      };
-      auto index = util::make_span(m.num_branches());
-      return util::transform_view(index, branch_description);
+    // s-expression representation of branch i in the morphology
+    auto make_branch = [&morph] (int i) {
+        std::vector<s_expr> segments;
+        for (const auto& s: morph.branch_segments(i)) {
+            segments.push_back(mksexp(s));
+        }
+        return s_expr{"branch"_symbol, {i, {(int)morph.branch_parent(i), slist_range(segments)}}};
     };
-    return s_expr{"morphology"_symbol, slist_range(branches(morph))};
+    std::vector<s_expr> branches;
+    for (msize_t i = 0; i < morph.num_branches(); ++i) {
+      branches.push_back(make_branch(i));
+    }
+    return s_expr{"morphology"_symbol, slist_range(branches)};
 }
 
 std::ostream& write_s_expr(std::ostream& o, const label_dict& dict) {

@@ -31,7 +31,7 @@ else ()
     target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
 endif()
 
-target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps arbor-private-headers)
+target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps)
 
 install(DIRECTORY include/arborio
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

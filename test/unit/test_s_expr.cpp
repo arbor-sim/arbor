@@ -6,8 +6,8 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
+#include <arbor/s_expr.hpp>
 
-#include "s_expr.hpp"
 #include "util/strprintf.hpp"
 
 using namespace arb;
@@ -77,7 +77,7 @@ TEST(s_expr, atoms_in_parens) {
 
 template <typename L>
 std::string round_trip_label(const char* in) {
-    if (auto x = parse_label_expression(in)) {
+    if (auto x = parse_label_expression(std::string(in))) {
         return util::pprintf("{}", std::any_cast<L>(*x));
     }
     else {
@@ -201,6 +201,6 @@ TEST(regloc, errors) {
         // If an invalid label/expression was passed and handled correctly the parse
         // call will return without throwing, with the error stored in the return type.
         // So it is sufficient to assert that it evaluates to false.
-        EXPECT_FALSE(parse_label_expression(expr));
+        EXPECT_FALSE(parse_label_expression(std::string(expr)));
     }
 }

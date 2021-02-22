@@ -7,9 +7,9 @@
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/s_expr.hpp>
+#include <arbor/util/expected.hpp>
 
-#include "arbor/util/expected.hpp"
-#include "s_expr.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {

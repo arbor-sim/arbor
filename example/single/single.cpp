@@ -66,7 +66,7 @@ struct single_recipe: public arb::recipe {
         arb::decor decor;
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        decor.paint("\"soma\"", "hh");
+        decor.paint("\"soma\"", arb::mechanism_desc("hh").set("gnabar", 0.12).set("gkbar", 0.036));
         decor.paint("\"dend\"", "pas");
 
         // Add synapse to last branch.

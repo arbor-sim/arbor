@@ -202,7 +202,7 @@ struct s_expr {
     // with a std::unique_ptr via value_wrapper.
 
     using pair_type = s_pair<value_wrapper<s_expr>>;
-    std::variant<token, pair_type> state = token{{0,0}, tok::nil, "nil"};
+    std::variant<token, pair_type> state = token{{0,0}, tok::nil, "()"};
 
     s_expr(const s_expr& s): state(s.state) {}
     s_expr() = default;
