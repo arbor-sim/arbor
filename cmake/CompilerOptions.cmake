@@ -32,22 +32,22 @@ string(CONFIGURE [[
   ]] arb_cxx_fs_test @ONLY)
 
 set(STD_FS_LIB "")
-check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS)
+check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
 
-if(NOT ${STD_FS})
+if(NOT ${STD_FS_PLAIN})
   set(STD_FS_LIB "-lstdc++fs")
   set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-  check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS)
-endif()
+  check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX)
 
-if(NOT ${STD_FS})
-  set(STD_FS_LIB "-lc++fs")
-  set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-  check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS)
-endif()
+  if(NOT ${STD_FS_STDCXX})
+    set(STD_FS_LIB "-lc++fs")
+    set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+    check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX)
 
-if(NOT ${STD_FS})
-  message(FATAL_ERROR "Could not enable support for std::filesystem")
+    if(NOT ${STD_FS_CXX})
+      message(FATAL_ERROR "Could not enable support for std::filesystem")
+    endif()
+  endif()
 endif()
 
 target_link_libraries(arbor-compiler-compat INTERFACE ${STD_FS_LIB})
