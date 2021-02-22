@@ -75,6 +75,8 @@ function("make_catalogue")
     message("Arbor source tree:    ${MK_CAT_ARBOR}")
     message("Build as standalone:  ${MK_CAT_STANDALONE}")
     message("Arbor arch:           ${ARB_CXXOPT_ARCH}")
+    message("Arbor cxx compiler:   ${ARB_CXX}")
+    message("Current cxx compiler: ${CMAKE_CXX_COMPILERxb}")
   endif()
 
   file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
