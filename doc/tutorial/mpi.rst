@@ -60,11 +60,11 @@ MPI will not execute on more than one node.
 
 From the commandline, we can run the script using ``mpirun`` (``srun`` on clusters operated with SLURM) and specify the number of ranks (``NRANKS``)
 or nodes. Arbor will spread the cells evenly over the ranks, so with ``NRANKS`` set to 5, we'd be spreading the 500
-cells over 5 nodes, simulating 100 cells each.
+cells over 5 nodes, simulating 100 cells each. In this case:
 
 .. code-block::
 
-   mpirun -n NRANKS python mpi.py
+   mpirun -n 5 python mpi.py
 
 The results
 ***********
