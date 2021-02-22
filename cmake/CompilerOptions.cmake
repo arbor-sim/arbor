@@ -31,17 +31,19 @@ string(CONFIGURE [[
   }
   ]] arb_cxx_fs_test @ONLY)
 
-set(CMAKE_REQUIRED_LIBRARIES -std=c++17)
 set(STD_FS_LIB "")
+set(CMAKE_REQUIRED_LIBRARIES -std=c++17)
 check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
 
 if(NOT STD_FS_PLAIN)
-  set(STD_FS_LIB "-lstdc++fs")
+  set(STD_FS_LIB -lstdc++fs)
+set(CMAKE_REQUIRED_LIBRARIES -std=c++17)
   set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
   check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX)
 
   if(NOT STD_FS_STDCXX)
-    set(STD_FS_LIB "-lc++fs")
+    set(STD_FS_LIB -lc++fs)
+    set(CMAKE_REQUIRED_LIBRARIES -std=c++17)
     set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
     check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX)
 
