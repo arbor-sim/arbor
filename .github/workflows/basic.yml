@@ -149,7 +149,7 @@ jobs:
           cd -
       - name: Run unit tests
         run: |
-          build/bin/unit
+          catchsegv build/bin/unit
           build/bin/unit-modcc
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run MPI tests
