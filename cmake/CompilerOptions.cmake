@@ -31,6 +31,7 @@ string(CONFIGURE [[
   }
   ]] arb_cxx_fs_test @ONLY)
 
+set(CMAKE_REQUIRED_LIBRARIES -std=c++17)
 set(STD_FS_LIB "")
 check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
 
