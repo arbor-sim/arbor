@@ -1,4 +1,5 @@
 include(CheckCXXSourceCompiles)
+include(CheckCXXSourceRuns)
 include(CMakePushCheckState)
 
 # Compiler-aware compiler options
@@ -34,23 +35,38 @@ string(CONFIGURE [[
   ]] arb_cxx_fs_test @ONLY)
 
 
-message("CXX ${CMAKE_CXX_COMPILER}")
 set(STD_FS_LIB "")
 set(CMAKE_REQUIRED_FLAGS -std=c++17 ${CMAKE_REQUIRED_FLAGS})
-check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
+check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_PLAIN)
 
 if(NOT STD_FS_PLAIN)
   set(STD_FS_LIB -lstdc++fs)
   set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-  check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX)
+  check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_STDCXX)
 
   if(NOT STD_FS_STDCXX)
     set(STD_FS_LIB -lc++fs)
     set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-    check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX)
+    check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_CXX)
 
     if(NOT STD_FS_CXX)
-      message(FATAL_ERROR "Could not enable support for std::filesystem")
+      check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
+
+      if(NOT STD_FS_PLAIN)
+        set(STD_FS_LIB -lstdc++fs)
+        set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+        check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX)
+
+        if(NOT STD_FS_STDCXX)
+          set(STD_FS_LIB -lc++fs)
+          set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+          check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX)
+
+          if(NOT STD_FS_CXX)
+            message(FATAL_ERROR "Could not enable support for std::filesystem")
+          endif()
+        endif()
+      endif()
     endif()
   endif()
 endif()
