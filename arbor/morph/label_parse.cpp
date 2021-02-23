@@ -1,3 +1,4 @@
+#include <iostream>
 #include <any>
 #include <limits>
 
@@ -349,7 +350,7 @@ parse_hopefully<std::any> eval(const s_expr& e) {
         // This must be a function evaluation, where head is the function name, and
         // tail is a list of arguments.
 
-        // Evaluate the arguments, and return error state if an error ocurred.
+        // Evaluate the arguments, and return error state if an error occurred.
         auto args = eval_args(e.tail());
         if (!args) {
             return args.error();

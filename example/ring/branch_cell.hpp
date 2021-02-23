@@ -11,6 +11,8 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/string_literals.hpp>
 
+#include <arborio/cableio.hpp>
+
 #include <string>
 #include <sup/json_params.hpp>
 
@@ -53,6 +55,10 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     double r1 = r[1];
     return r[0] + p*(r1-r0);
 }
+
+std::ostream& operator<<(std::ostream& out, const arb::cv_policy&) {
+    return out;
+};
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     arb::segment_tree tree;
@@ -131,6 +137,97 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.set_default(arb::cv_policy_every_segment());
 
     arb::cable_cell cell(arb::morphology(tree), labels, decor);
+    if (!gid) {
+        std::string dicty = "(label-dict (region-def \"soma\"\n"
+                            "   (tag 1))\n"
+                            " (region-def \"dend\"\n"
+                            "   (tag 3)))";
+        std::string decory = "(decorations (place\n"
+                             "   (location 0 0.5)\n"
+                             "   (mechanism \"expsyn\"))\n"
+                             " (place\n"
+                             "   (location 0 0)\n"
+                             "   (threshold-detector 10.000000))\n"
+                             " (paint\n"
+                             "   (region \"dend\")\n"
+                             "   (mechanism \"pas\"))\n"
+                             " (paint\n"
+                             "   (region \"soma\")\n"
+                             "   (mechanism \"hh\"))\n"
+                             " (default\n"
+                             "   (axial-resistivity 100.000000)))";
+        std::string morphy = "(morphology \n"
+                             "    (branch 0 -1 \n"
+                             "      (segment 0 \n"
+                             "        (point -6.300000 0.000000 0.000000 6.300000)\n"
+                             "        (point 6.300000 0.000000 0.000000 6.300000)\n"
+                             "        1)\n"
+                             "      (segment 1 \n"
+                             "        (point 6.300000 0.000000 0.000000 0.500000)\n"
+                             "        (point 206.300000 0.000000 0.000000 0.200000)\n"
+                             "        3)))";
+        std::string celly = "(cable-cell \n"
+                            "  (morphology \n"
+                            "    (branch 0 -1 \n"
+                            "      (segment 0 \n"
+                            "        (point -6.300000 0.000000 0.000000 6.300000)\n"
+                            "        (point 6.300000 0.000000 0.000000 6.300000)\n"
+                            "        1)\n"
+                            "      (segment 1 \n"
+                            "        (point 6.300000 0.000000 0.000000 0.500000)\n"
+                            "        (point 206.300000 0.000000 0.000000 0.200000)\n"
+                            "        3)))\n"
+                            "  (label-dict \n"
+                            "    (region-def \"soma\" \n"
+                            "      (tag 1))\n"
+                            "    (region-def \"dend\" \n"
+                            "      (join \n"
+                            "        (join \n"
+                            "          (tag 3)\n"
+                            "          (tag 4))\n"
+                            "        (tag 42))))\n"
+                            "  (decorations \n"
+                            "    (place \n"
+                            "      (location 0 1)\n"
+                            "      (mechanism \"exp2syn\"))\n"
+                            "    (paint \n"
+                            "      (region \"dend\")\n"
+                            "      (mechanism \"pas\"))\n"
+                            "    (paint \n"
+                            "      (region \"soma\")\n"
+                            "      (mechanism \"hh\"))))";
+
+        if (auto v = arborio::parse_label_dict(dicty)) {
+            arborio::write_s_expr(std::cout, v.value());
+            std::cout << std::endl << std::endl;
+        }
+        else {
+            throw v.error();
+        }
+
+        if (auto v = arborio::parse_decor(decory)) {
+            arborio::write_s_expr(std::cout, v.value());
+            std::cout << std::endl << std::endl;
+        }
+        else {
+            throw v.error();
+        }
+
+        if (auto v = arborio::parse_morphology(morphy)) {
+            arborio::write_s_expr(std::cout, v.value());
+            std::cout << std::endl << std::endl;
+        }
+        else {
+            throw v.error();
+        }
+        if (auto v = arborio::parse_cable_cell(celly)) {
+            arborio::write_s_expr(std::cout, v.value());
+            std::cout << std::endl << std::endl;
+        }
+        else {
+            throw v.error();
+        }
+    }
 
     return cell;
 }

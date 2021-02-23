@@ -46,15 +46,26 @@ struct i_clamp {
     i_clamp(value_type delay, value_type duration, value_type amplitude):
         delay(delay), duration(duration), amplitude(amplitude)
     {}
+
+    friend std::ostream& operator<<(std::ostream& o, const i_clamp& p) {
+        return o << "(current-clamp " << p.amplitude << ' ' << p.delay << ' ' << p.duration << ')';
+    }
 };
 
 // Threshold detector description.
 struct threshold_detector {
     double threshold;
+    friend std::ostream& operator<<(std::ostream& o, const threshold_detector& p) {
+        return o << "(threshold-detector " << p.threshold << ')';
+    }
 };
 
 // Tag type for dispatching cable_cell::place() calls that add gap junction sites.
-struct gap_junction_site {};
+struct gap_junction_site {
+    friend std::ostream& operator<<(std::ostream& o, const gap_junction_site& p) {
+        return o << "(gap-junction-site)";
+    }
+};
 
 // Setter types for painting physical and ion parameters or setting
 // cell-wide default:
@@ -62,39 +73,60 @@ struct gap_junction_site {};
 struct init_membrane_potential {
     init_membrane_potential() = delete;
     double value; // [mV]
+    friend std::ostream& operator<<(std::ostream& o, const init_membrane_potential& p) {
+        return o << "(membrane-potential " << p.value << ')';
+    }
 };
 
 struct temperature_K {
     temperature_K() = delete;
     double value; // [K]
+    friend std::ostream& operator<<(std::ostream& o, const temperature_K& p) {
+        return o << "(temperature-K " << p.value << ')';
+    }
 };
 
 struct axial_resistivity {
     axial_resistivity() = delete;
     double value; // [Ω·cm]
+    friend std::ostream& operator<<(std::ostream& o, const axial_resistivity& p) {
+        return o << "(axial-resistivity " << p.value << ')';
+    }
 };
 
 struct membrane_capacitance {
     membrane_capacitance() = delete;
     double value; // [F/m²]
+    friend std::ostream& operator<<(std::ostream& o, const membrane_capacitance& p) {
+        return o << "(membrane-capacitance " << p.value << ')';
+    }
 };
 
 struct init_int_concentration {
     init_int_concentration() = delete;
     std::string ion;
     double value; // [mM]
+    friend std::ostream& operator<<(std::ostream& o, const init_int_concentration& p) {
+        return o << "(ion-internal-concentration " << p.ion << ' ' << p.value << ')';
+    }
 };
 
 struct init_ext_concentration {
     init_ext_concentration() = delete;
     std::string ion;
     double value; // [mM]
+    friend std::ostream& operator<<(std::ostream& o, const init_ext_concentration& p) {
+        return o << "(ion-external-concentration " << p.ion << ' ' << p.value << ')';
+    }
 };
 
 struct init_reversal_potential {
     init_reversal_potential() = delete;
     std::string ion;
     double value; // [mV]
+    friend std::ostream& operator<<(std::ostream& o, const init_reversal_potential& p) {
+        return o << "(ion-reversal-potential " << p.ion << ' ' << p.value << ')';
+    }
 };
 
 // Mechanism description, viz. mechanism name and
@@ -155,6 +187,14 @@ struct mechanism_desc {
 
     const std::string& name() const { return name_; }
 
+    friend std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
+        o << "(mechanism \"" << m.name() << "\"";
+        for (const auto& p: m.param_) {
+            o << " (" << p.first << ' ' << p.second << ')';
+        }
+        return o << ')';
+    }
+
 private:
     std::string name_;
     std::unordered_map<std::string, double> param_;
@@ -163,17 +203,20 @@ private:
 struct ion_reversal_potential_method {
     std::string ion;
     mechanism_desc method;
+    friend std::ostream& operator<<(std::ostream& o, const ion_reversal_potential_method& p) {
+        return o << "(ion-reversal-potential-method " << p.ion << ' ' << p.method << ')';
+    }
 };
 
 using paintable =
-    std::variant<mechanism_desc,
-                 init_membrane_potential,
+    std::variant<init_membrane_potential,
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
                  init_int_concentration,
                  init_ext_concentration,
-                 init_reversal_potential>;
+                 init_reversal_potential,
+                 mechanism_desc>;
 
 using placeable =
     std::variant<mechanism_desc,
