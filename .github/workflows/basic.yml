@@ -11,7 +11,6 @@ jobs:
     name: "Default"
     runs-on: ${{ matrix.config.os }}
     strategy:
-      fail-fast: false
       matrix:
         config:
         - {
@@ -47,8 +46,8 @@ jobs:
         - {
             name:  "Linux Max GCC",
             os:    "ubuntu-20.04",
-            cc:    "gcc-8",
-            cxx:   "g++-8",
+            cc:    "gcc-10",
+            cxx:   "g++-10",
             py:    "3.9",
             cmake: "3.19.x",
             mpi:   "ON",
@@ -145,7 +144,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DCMAKE_BUILD_TYPE=debug
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
           make -j4 tests examples pyarb html
           cd -
       - name: Run unit tests
