@@ -34,35 +34,36 @@ string(CONFIGURE [[
   }
   ]] arb_cxx_fs_test @ONLY)
 
-
+#Test whether we can run probes
 set(STD_FS_LIB "")
 set(CMAKE_REQUIRED_FLAGS -std=c++17 ${CMAKE_REQUIRED_FLAGS})
-check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_PLAIN)
+check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_PLAIN_RUN)
 
-if(NOT STD_FS_PLAIN)
+if(NOT STD_FS_PLAIN_RUN)
   set(STD_FS_LIB -lstdc++fs)
   set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-  check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_STDCXX)
+  check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_STDCXX_RUN)
 
-  if(NOT STD_FS_STDCXX)
+  if(NOT STD_FS_STDCXX_RUN)
     set(STD_FS_LIB -lc++fs)
     set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-    check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_CXX)
+    check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_CXX_RUN)
 
-    if(NOT STD_FS_CXX)
-      check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
+    # If running is not ok, we are possibly cross-compiling, so check linking as a fallback
+    if(NOT STD_FS_CXX_RUN)
+      check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN_LNK)
 
-      if(NOT STD_FS_PLAIN)
+      if(NOT STD_FS_PLAIN_LNK)
         set(STD_FS_LIB -lstdc++fs)
         set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-        check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX)
+        check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX_LNK)
 
-        if(NOT STD_FS_STDCXX)
+        if(NOT STD_FS_STDCXX_LNK)
           set(STD_FS_LIB -lc++fs)
           set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
-          check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX)
+          check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX_LNK)
 
-          if(NOT STD_FS_CXX)
+          if(NOT STD_FS_CXX_LNK)
             message(FATAL_ERROR "Could not enable support for std::filesystem")
           endif()
         endif()
