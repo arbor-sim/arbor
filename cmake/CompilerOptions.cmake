@@ -33,6 +33,8 @@ string(CONFIGURE [[
   }
   ]] arb_cxx_fs_test @ONLY)
 
+
+message("CXX ${CMAKE_CXX_COMPILER}")
 set(STD_FS_LIB "")
 set(CMAKE_REQUIRED_FLAGS -std=c++17 ${CMAKE_REQUIRED_FLAGS})
 set(prv_req_libs ${CMAKE_REQUIRED_LIBRARIES})
@@ -40,12 +42,12 @@ check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN)
 
 if(NOT STD_FS_PLAIN)
   set(STD_FS_LIB -lstdc++fs)
-  set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB} ${prv_req_libs})
+  set(CMAKE_REQUIRED_LIBRARIES ${prv_req_libs} ${STD_FS_LIB})
   check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX)
 
   if(NOT STD_FS_STDCXX)
     set(STD_FS_LIB -lc++fs)
-    set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB} ${prv_req_libs})
+    set(CMAKE_REQUIRED_LIBRARIES ${prv_req_libs} ${STD_FS_LIB})
     check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX)
 
     if(NOT STD_FS_CXX)
