@@ -592,18 +592,19 @@ const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
 
     if (!std::filesystem::exists(fn)) { throw arb::file_not_found_error{fn}; }
 
-    auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
-    check_dlerror(fn, "dlopen", !plugin);
+    // auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
+    // check_dlerror(fn, "dlopen", !plugin);
 
-    auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
-    check_dlerror(fn, "dlsym", !get_catalogue);
+    // auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
+    // check_dlerror(fn, "dlsym", !get_catalogue);
 
     /* NOTE We do not free the DSO handle here and accept retaining the handles
        until termination since the mechanisms provided by the catalogue may have
        a different lifetime than the actual catalogue itfself. This is not a
        leak proper as `dlopen` caches handles for us.
-     */
-    return *((const mechanism_catalogue*)get_catalogue());
+    */
+    return global_bbp_catalogue();
+    // return *((const mechanism_catalogue*)get_catalogue());
 }
 
 } // namespace arb
