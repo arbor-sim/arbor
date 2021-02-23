@@ -596,7 +596,7 @@ const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
     check_dlerror(fn, "dlopen", !plugin);
 
     auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
-    check_dlerror(fn, "dlsym");
+    check_dlerror(fn, "dlsym", !get_catalogue);
 
     /* NOTE We do not free the DSO handle here and accept retaining the handles
        until termination since the mechanisms provided by the catalogue may have
