@@ -19,7 +19,7 @@ jobs:
             os:    "ubuntu-20.04",
             cc:    "gcc-10",
             cxx:   "g++-10",
-            py:    "3.9",
+            py:    ["3.6","3.7","3.8","3.9"],
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
