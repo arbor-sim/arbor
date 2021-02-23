@@ -24,23 +24,20 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        - {
-            name:  "MacOS Max",
-            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.9",
-            cmake: "3.19.x",
-            mpi:   "ON",
-            simd:  "OFF"
-          }
+        # - {
+        #     name:  "MacOS Max",
+        #     os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
+        #     cc:    "clang",
+        #     cxx:   "clang++",
+        #     py:    "3.9",
+        #     cmake: "3.19.x",
+        #     mpi:   "ON",
+        #     simd:  "OFF"
+        #   }
 
     env:
         CC:         ${{ matrix.config.cc }}
         CXX:        ${{ matrix.config.cxx }}
-        # This is a workaround for the unfortunate interaction of MacOS and OpenMPI 4
-        # See https://github.com/open-mpi/ompi/issues/6518
-        OMPI_MCA_btl: "self,tcp"
 
     steps:
       ## system setup
@@ -63,30 +60,43 @@ jobs:
           python --version
           echo $PYTHONPATH
 
-      ##cibuildwheel setup
-      - name: Build wheels Linux
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
-        uses: joerick/cibuildwheel@v1.9.0
-        with:
-          output-dir: dist
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel
+      - name: Build the wheel
+        run: |
+          python -m cibuildwheel --output-dir dist
         env:
           CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
           CIBW_BUILD: "cp3?-manylinux_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
 
-      - name: Build wheels macos
-        if: ${{ startsWith(matrix.config.os, 'macos') }}
-        uses: joerick/cibuildwheel@v1.9.0
-        with:
-          output-dir: dist
-        env:
-          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
-          CIBW_BUILD: "cp3?-macosx_x86_64"
-          CIBW_SKIP: "cp35-*"
+      ##cibuildwheel setup
+      # - name: Build wheels Linux
+      #   if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+      #   uses: joerick/cibuildwheel@v1.9.0
+      #   with:
+      #     output-dir: dist
+      #   env:
+      #     CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
+      #     CIBW_BUILD: "cp3?-manylinux_x86_64"
+      #     CIBW_SKIP: "cp35-*"
+      #     CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+
+      # - name: Build wheels macos
+      #   if: ${{ startsWith(matrix.config.os, 'macos') }}
+      #   uses: joerick/cibuildwheel@v1.9.0
+      #   with:
+      #     output-dir: dist
+      #   env:
+      #     CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
+      #     CIBW_BUILD: "cp3?-macosx_x86_64"
+      #     CIBW_SKIP: "cp35-*"
 
       - uses: actions/upload-artifact@v2
         with:
+          name: wheels
           path: dist/*.whl
 
       - name: Publish distribution 📦 to Test PyPI
