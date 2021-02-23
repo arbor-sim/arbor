@@ -29,7 +29,7 @@ string(CONFIGURE [[
   #include <filesystem>
   int main() {
     auto cwd = std::filesystem::current_path();
-    printf("%s", cwd.c_str());
+    printf("%s %d", cwd.c_str(), std::filesystem::exists(cwd));
   }
   ]] arb_cxx_fs_test @ONLY)
 
