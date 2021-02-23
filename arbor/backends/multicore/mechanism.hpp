@@ -11,6 +11,7 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism.hpp>
 
+#include "backends/multicore/mechanism_ppack_base.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
@@ -66,31 +67,23 @@ protected:
     fvm_size_type width_ = 0;        // Instance width (number of CVs/sites)
     fvm_size_type width_padded_ = 0; // Width rounded up to multiple of pad/alignment.
     fvm_size_type n_ion_ = 0;
-    fvm_size_type n_detectors_ = 0;
+
+    // Returns pointer to (derived) parameter-pack object that holds:
+    // * pointers to shared cell state `vec_ci_` et al.,
+    // * pointer to mechanism weights `weight_`,
+    // * pointer to mechanism node indices `node_index_`,
+    // * mechanism global scalars and pointers to mechanism range parameters.
+    // * mechanism ion_state_view objects and pointers to mechanism ion indices.
+
+    virtual mechanism_ppack_base* ppack_ptr() = 0;
 
     // Non-owning views onto shared cell state, excepting ion state.
-
-    const fvm_index_type* vec_ci_;    // CV to cell index
-    const fvm_index_type* vec_di_;    // CV to indom index
-    const fvm_value_type* vec_t_;     // Cell index to cell-local time.
-    const fvm_value_type* vec_dt_;    // CV to integration time step.
-    const fvm_value_type* vec_v_;     // CV to cell membrane voltage.
-    fvm_value_type* vec_i_;           // CV to cell membrane current density.
-    fvm_value_type* vec_g_;           // CV to cell membrane conductivity.
-    const fvm_value_type* temperature_degC_; // CV to temperature.
-    const fvm_value_type* diam_um_;   // CV to diameter.
-    const fvm_value_type* time_since_spike_; // Vector containing time since last spike, indexed by cell index and n_detectors_
-
-    const array* vec_t_ptr_;
     deliverable_event_stream* event_stream_ptr_;
+    const array* vec_t_ptr_;
 
     // Per-mechanism index and weight data, excepting ion indices.
-
-    fvm_index_type* node_index_;
-    iarray multiplicity_;
     bool mult_in_place_;
     constraint_partition index_constraints_;
-    const fvm_value_type* weight_;    // Points within data_ after instantiation.
 
     // Bulk storage for state and parameter variables.
 
