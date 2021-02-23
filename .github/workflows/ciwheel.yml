@@ -87,23 +87,23 @@ jobs:
         with:
           path: dist/*.whl
 
-  upload:
-    name: upload to pypi
-    runs-on: "ubuntu-20.04"
-    depends-on: "build_wheels"
-      - uses: actions/download-artifact@v2
-        with:
-          name: my-artifact
-          path: path/to/artifact
+  # upload:
+  #   name: upload to pypi
+  #   runs-on: "ubuntu-20.04"
+  #   depends-on: "build_wheels"
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: my-artifact
+  #         path: path/to/artifact
 
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: path/to/artifact
-      - name: Publish distribution 📦 to Test PyPI
-        if: github.ref == 'refs/heads/master'
-        run: |
-          pip install twine
-          twine upload -r testpypi wheelhouse/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
+  #     - name: Display structure of downloaded files
+  #       run: ls -R
+  #       working-directory: path/to/artifact
+  #     - name: Publish distribution 📦 to Test PyPI
+  #       if: github.ref == 'refs/heads/master'
+  #       run: |
+  #         pip install twine
+  #         twine upload -r testpypi wheelhouse/*
+  #       env:
+  #         TWINE_USERNAME: __token__
+  #         TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
