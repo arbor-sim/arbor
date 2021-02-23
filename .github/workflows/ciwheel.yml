@@ -65,7 +65,7 @@ jobs:
           python -m pip install wheel numpy
       - name: Build the wheel
         run: |
-          python ./arbor/setup.py build_ext bdist_wheel
+          python setup.py build_ext bdist_wheel
 
       ##cibuildwheel setup
       # - name: Build wheels Linux
