@@ -382,6 +382,7 @@ void register_cells(pybind11::module& m) {
                 if (int_con) data.init_int_concentration = *int_con;
                 if (ext_con) data.init_ext_concentration = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
+
                 if (auto m = maybe_method(method)) {
                     props.default_parameters.reversal_potential_method[ion] = *m;
                 }
