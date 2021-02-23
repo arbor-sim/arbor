@@ -24,16 +24,16 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        - {
-            name:  "MacOS Max",
-            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.9",
-            cmake: "3.19.x",
-            mpi:   "ON",
-            simd:  "OFF"
-          }
+        # - {
+        #     name:  "MacOS Max",
+        #     os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
+        #     cc:    "clang",
+        #     cxx:   "clang++",
+        #     py:    "3.9",
+        #     cmake: "3.19.x",
+        #     mpi:   "ON",
+        #     simd:  "OFF"
+        #   }
 
     env:
         CC:         ${{ matrix.config.cc }}
@@ -50,7 +50,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      ##cibuildwheel setup
+      ##cibuildwheel setup. produces wheels already manylinux, so no auditwheel needed.
       - name: Build wheels Linux
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         uses: joerick/cibuildwheel@v1.9.0
@@ -72,22 +72,44 @@ jobs:
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
 
-      - name: auditwheel
-        run: |
-          pip install auditwheel
-          for whl in ./dist/*.whl; do
-              auditwheel repair "$whl"
-          done
+      # - name: auditwheel
+      #   run: |
+      #     pip install auditwheel
+      #     for whl in ./dist/*.whl; do
+      #         auditwheel repair "$whl"
+      #     done
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: wheelhouse
-          path: wheelhouse/*.whl
+      # - uses: actions/upload-artifact@v2
+      #   with:
+      #     name: wheelhouse
+      #     path: wheelhouse/*.whl
 
       - uses: actions/upload-artifact@v2
         with:
           name: dist
           path: dist/*.whl
+
+  upload:
+    name: upload to pypi
+    runs-on: "ubuntu-20.04"
+    needs: [build_wheels]
+    steps:
+      - uses: actions/download-artifact@v2
+        # with:
+        #   name: build_wheels
+        #   path: path/to/artifact
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: path/to/artifact
+      - name: Publish distribution 📦 to Test PyPI
+        if: github.ref == 'refs/heads/master'
+        run: |
+          pip install twine
+          twine upload -r testpypi wheelhouse/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
 
   upload:
     name: upload to pypi
