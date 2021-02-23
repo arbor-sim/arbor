@@ -44,6 +44,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
 
+      ## get arbor
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
       ##cibuildwheel setup
       - name: Build wheels Linux
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
