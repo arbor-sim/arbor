@@ -582,9 +582,9 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 
 mechanism_catalogue::~mechanism_catalogue() = default;
 
-static void check_dlerror(const std::string& fn, const std::string& call) {
+static void check_dlerror(const std::string& fn, const std::string& call, bool force=false) {
     auto error = dlerror();
-    if (error) { throw arb::bad_catalogue_error{fn, call}; }
+    if (error || force) { throw arb::bad_catalogue_error{fn, call}; }
 }
 
 const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
@@ -593,8 +593,7 @@ const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
     if (!std::filesystem::exists(fn)) { throw arb::file_not_found_error{fn}; }
 
     auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
-    check_dlerror(fn, "dlopen");
-    assert(plugin);
+    check_dlerror(fn, "dlopen", !plugin);
 
     auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
     check_dlerror(fn, "dlsym");
