@@ -7,44 +7,16 @@ on:
       - v*
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.config.os }}
-    runs-on: ${{ matrix.config.os }}
+  build_binary_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        config:
-        # - {
-        #     name:  "Linux Max GCC",
-        #     os:    "ubuntu-20.04",
-        #     cc:    "gcc-10",
-        #     cxx:   "g++-10",
-        #     py:    "3.9",
-        #     cmake: "3.19.x",
-        #     mpi:   "OFF",
-        #     simd:  "OFF"
-        #   }
-        - {
-            name:  "MacOS Max",
-            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.9",
-            cmake: "3.19.x",
-            mpi:   "OFF",
-            simd:  "OFF"
-          }
-
-    env:
-        CC:         ${{ matrix.config.cc }}
-        CXX:        ${{ matrix.config.cxx }}
+        os: [ubuntu-latest, macos-latest]
 
     steps:
-      ## system setup
       - name: Set up Python
         uses: actions/setup-python@v2
-
-      ## get arbor
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -52,7 +24,7 @@ jobs:
 
       ##cibuildwheel setup. produces wheels already manylinux, so no auditwheel needed.
       - name: Build wheels Linux
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         uses: joerick/cibuildwheel@v1.9.0
         with:
           output-dir: dist
@@ -64,12 +36,12 @@ jobs:
           # CIBW_TEST_COMMAND: TODO
 
       - name: Build wheels macos
-        if: ${{ startsWith(matrix.config.os, 'macos') }}
+        if: ${{ startsWith(matrix.os, 'macos') }}
         uses: joerick/cibuildwheel@v1.9.0
         with:
           output-dir: dist
         env:
-          MACOSX_DEPLOYMENT_TARGET: "10.15"
+          MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
           CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
@@ -85,10 +57,28 @@ jobs:
           name: dist
           path: dist/*.whl
 
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Make sdist
+        run:  python setup.py sdist
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/*.tar.gz
+
   upload_test_pypi:
     name: upload to test pypi
     runs-on: ubuntu-latest
-    needs: [build_wheels]
+    needs: [build_wheels, build_sdist]
     steps:
       - uses: actions/download-artifact@v2
         with:
@@ -108,7 +98,7 @@ jobs:
   upload_pypi:
     name: upload to pypi
     runs-on: ubuntu-latest
-    needs: [build_wheels]
+    needs: [build_wheels, build_sdist]
     if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/download-artifact@v2
