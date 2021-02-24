@@ -78,7 +78,7 @@ jobs:
   upload_test_pypi:
     name: upload to test pypi
     runs-on: ubuntu-latest
-    needs: [build_wheels, build_sdist]
+    needs: [build_binary_wheels, build_sdist]
     steps:
       - uses: actions/download-artifact@v2
         with:
@@ -98,7 +98,7 @@ jobs:
   upload_pypi:
     name: upload to pypi
     runs-on: ubuntu-latest
-    needs: [build_wheels, build_sdist]
+    needs: [build_binary_wheels, build_sdist]
     if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/download-artifact@v2
