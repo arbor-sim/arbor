@@ -34,19 +34,22 @@ string(CONFIGURE [[
   }
   ]] arb_cxx_fs_test @ONLY)
 
-#Test whether we can run probes
+# Remember some state to avoid constant push/pop
+set(arb_req_libs ${CMAKE_REQUIRED_LIBRARIES})
+
+# Test whether we can run probes
 set(STD_FS_LIB "")
 set(CMAKE_REQUIRED_FLAGS -std=c++17 ${CMAKE_REQUIRED_FLAGS})
 check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_PLAIN_RUN)
 
 if(NOT STD_FS_PLAIN_RUN)
   set(STD_FS_LIB -lstdc++fs)
-  set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+  set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
   check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_STDCXX_RUN)
 
   if(NOT STD_FS_STDCXX_RUN)
     set(STD_FS_LIB -lc++fs)
-    set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+    set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
     check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_CXX_RUN)
 
     # If running is not ok, we are possibly cross-compiling, so check linking as a fallback
@@ -55,12 +58,12 @@ if(NOT STD_FS_PLAIN_RUN)
 
       if(NOT STD_FS_PLAIN_LNK)
         set(STD_FS_LIB -lstdc++fs)
-        set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+        set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
         check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX_LNK)
 
         if(NOT STD_FS_STDCXX_LNK)
           set(STD_FS_LIB -lc++fs)
-          set(CMAKE_REQUIRED_LIBRARIES ${STD_FS_LIB})
+          set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
           check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX_LNK)
 
           if(NOT STD_FS_CXX_LNK)
