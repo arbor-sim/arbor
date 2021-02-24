@@ -14,16 +14,16 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {
-            name:  "Linux Max GCC",
-            os:    "ubuntu-20.04",
-            cc:    "gcc-10",
-            cxx:   "g++-10",
-            py:    "3.9",
-            cmake: "3.19.x",
-            mpi:   "ON",
-            simd:  "OFF"
-          }
+        # - {
+        #     name:  "Linux Max GCC",
+        #     os:    "ubuntu-20.04",
+        #     cc:    "gcc-10",
+        #     cxx:   "g++-10",
+        #     py:    "3.9",
+        #     cmake: "3.19.x",
+        #     mpi:   "OFF",
+        #     simd:  "OFF"
+        #   }
         - {
             name:  "MacOS Max",
             os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
@@ -31,7 +31,7 @@ jobs:
             cxx:   "clang++",
             py:    "3.9",
             cmake: "3.19.x",
-            mpi:   "ON",
+            mpi:   "OFF",
             simd:  "OFF"
           }
 
@@ -69,6 +69,10 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print:ProductName" \
           -c "Print:ProductVersion" \
           -c "Print:ProductBuildVersion" /System/Library/CoreServices/SystemVersion.plist
+          clang --version         # Print apple gcc/clang version
+          xcode-select --install  # Try to install CLI tools (may error 'already installed')
+          softwareupdate --all --install --force  # Try to update
+          clang --version         # see our presents
       - name: Build wheels macos
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         uses: joerick/cibuildwheel@v1.9.0
