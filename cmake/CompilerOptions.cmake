@@ -26,11 +26,11 @@ add_library(arbor-compiler-compat INTERFACE)
 cmake_push_check_state()
 # Check how to use std::filesystem
 string(CONFIGURE [[
-  #include <cstdlib>
+  #include <cstdio>
   #include <filesystem>
   int main() {
     auto cwd = std::filesystem::current_path();
-    printf("%s %d", cwd.c_str(), std::filesystem::exists(cwd));
+    std::printf("%s %d", cwd.c_str(), std::filesystem::exists(cwd));
   }
   ]] arb_cxx_fs_test @ONLY)
 
