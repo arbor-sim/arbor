@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v2
         with:
-          name: artifact
+          name: dist
         #   path: path/to/artifact
       - name: Display structure of downloaded files
         run: ls -R
@@ -103,7 +103,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v2
         with:
-          name: artifact
+          name: dist
         #   path: path/to/artifact
       - name: Display structure of downloaded files
         run: ls -R
