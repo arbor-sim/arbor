@@ -65,16 +65,6 @@ jobs:
 
       - name: Build wheels macos
         if: ${{ startsWith(matrix.config.os, 'macos') }}
-        run: |
-          /usr/libexec/PlistBuddy -c "Print:ProductName" \
-          -c "Print:ProductVersion" \
-          -c "Print:ProductBuildVersion" /System/Library/CoreServices/SystemVersion.plist
-          clang --version         # Print apple gcc/clang version
-          xcode-select --install  # Try to install CLI tools (may error 'already installed')
-          softwareupdate --all --install --force  # Try to update
-          clang --version         # see our presents
-      - name: Build wheels macos
-        if: ${{ startsWith(matrix.config.os, 'macos') }}
         uses: joerick/cibuildwheel@v1.9.0
         with:
           output-dir: dist
