@@ -214,7 +214,8 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     OUTPUT "CAT_DUMMY_SOURCES"
     MECHS dummy
     ARBOR "${PROJECT_SOURCE_DIR}"
-    STANDALONE ON)
+    STANDALONE ON
+    VERBOSE ON)
   target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
   add_dependencies(unit dummy-catalogue)
 endif()
