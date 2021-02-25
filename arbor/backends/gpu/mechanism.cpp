@@ -177,7 +177,7 @@ void mechanism::instantiate(unsigned id,
     }
 
     if (mult_in_place_) {
-        memory::copy(make_const_view(pos_data.multiplicity), device_view(indices_.data() + width_padded_, width_));
+        memory::copy(make_const_view(pos_data.multiplicity), device_view(indices_.data() + (num_ions_ + 1)*width_padded_, width_));
         pp->multiplicity_ = indices_.data() + (num_ions_ + 1)*width_padded_;
     }
 }
