@@ -6,7 +6,7 @@
     Abstract base class for all mechanisms
 
     This works well for the standard interface that is exported by all mechanisms,
-    i.e. nrn_jacobian(), nrn_current(), etc. The overhead of using virtual dispatch
+    i.e. compute_currents(), etc. The overhead of using virtual dispatch
     for such functions is negligable compared to the cost of the operations themselves.
     However, the friction between compile time and run time dispatch has to be considered
     carefully:

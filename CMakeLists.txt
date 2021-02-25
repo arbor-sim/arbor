@@ -43,6 +43,14 @@ set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
 option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
 
 #----------------------------------------------------------
+# Debug support
+#----------------------------------------------------------
+
+# Print builtin catalogue configuration while building
+option(ARB_CAT_VERBOSE "Print catalogue build information" OFF)
+mark_as_advanced(ARB_CAT_VERBOSE)
+
+#----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
 
