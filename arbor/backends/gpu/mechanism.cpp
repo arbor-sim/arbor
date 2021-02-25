@@ -152,8 +152,8 @@ void mechanism::instantiate(unsigned id,
 
     auto base_ptr = indices_.data();
 
+    memory::copy(make_const_view(pos_data.cv), device_view(base_ptr, width_));
     pp->node_index_ = base_ptr;
-    memory::copy(make_const_view(pos_data.cv), device_view(pp->node_index_, width_));
     base_ptr += width_padded_;
 
     auto ion_index_tbl = ion_index_table();
@@ -173,14 +173,14 @@ void mechanism::instantiate(unsigned id,
         std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
 
         // Take reference to derived (generated) mechanism ion index pointer.
+        memory::copy(make_const_view(mech_ion_index), device_view(base_ptr, width_));
         *ion_ptr = base_ptr;
-        memory::copy(make_const_view(mech_ion_index), device_view(*ion_ptr, width_));
         base_ptr += width_padded_;
     }
 
     if (mult_in_place_) {
+        memory::copy(make_const_view(pos_data.multiplicity), device_view(base_ptr, width_));
         pp->multiplicity_ = base_ptr;
-        memory::copy(make_const_view(pos_data.multiplicity), device_view(pp->multiplicity_, width_));
         base_ptr += width_padded_; // Theoretically redundant, but for consistency
     }
 }
