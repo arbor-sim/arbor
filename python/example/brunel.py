@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import arbor
-import pandas, seaborn
-import numpy
-from math import sqrt
+import numpy,argparse
+from dataclasses import dataclass
 
 '''
 A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
@@ -16,154 +15,76 @@ Because of the refractory period, the activity is mostly driven by Poisson neuro
 recurrent connections have a small effect.
 '''
 
+## ./brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123 -f
+
+# Samples m unique values in interval [start, end) - gid.
+# We exclude gid because we don't want self-loops.
+def sample_subset(gid, start, end, m):
+    s = set()
+    while len(s) < m:
+        val = numpy.random.randint(start, end - 1)
+        if val != gid:
+            s.add(val)
+    return s
+
 class brunel_recipe (arbor.recipe):
+    def __init__(self, nexc, ninh, next, in_degree_prop, weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
 
-    def __init__(nexc, ninh, next, in_degree_prop,
-                  weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
-        self.ncells_exc_(nexc)
-        brunel_recipenexc, ninh, next, in_degree_prop,
-                    weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
-        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed) {
-        // Make sure that in_degree_prop in the interval (0, 1]
-        if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
-            throw std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
-        }
-
-        // Set up the parameters.
-        weight_exc_ = weight;
-        weight_inh_ = -rel_inh_strength * weight_exc_;
-        weight_ext_ =  weight;
-        in_degree_exc_ = std::round(in_degree_prop * nexc);
-        in_degree_inh_ = std::round(in_degree_prop * ninh);
-        // each cell receives next incoming Poisson sources with mean rate poiss_lambda, which is equivalent
-        // to a single Poisson source with mean rate next*poiss_lambda
-        lambda_ = next * poiss_lambda;
-    }
-
-    num_cells() const override {
-        return ncells_exc_ + ncells_inh_;
-    }
-
-    cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::lif;
-    }
-
-    std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-        std::vector<cell_connection> connections;
-        // Add incoming excitatory connections.
-        for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
-            cell_member_type source{cell_gid_type(i), 0};
-            cell_member_type target{gid, 0};
-            cell_connection conn(source, target, weight_exc_, delay_);
-            connections.push_back(conn);
-        }
-
-        // Add incoming inhibitory connections.
-        for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
-            cell_member_type source{cell_gid_type(i), 0};
-            cell_member_type target{gid, 0};
-            cell_connection conn(source, target, weight_inh_, delay_);
-            connections.push_back(conn);
-        }
-        return connections;
-    }
-
-    util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell();
-        cell.tau_m = 10;
-        cell.V_th = 10;
-        cell.C_m = 20;
-        cell.E_L = 0;
-        cell.V_m = 0;
-        cell.V_reset = 0;
-        cell.t_ref = 2;
-        return cell;
-    }
-
-    std::vector<event_generator> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator> gens;
-
-        std::mt19937_64 G;
-        G.seed(gid + seed_);
-
-        time_type t0 = 0;
-        cell_member_type target{gid, 0};
-
-        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
-        return gens;
-    }
-
-    num_sources(cell_gid_type) const override {
-         return 1;
-    }
-
-    num_targets(cell_gid_type) const override {
-        return 1;
-    }
-
-private:
-    // Number of excitatory cells.
-    ncells_exc_;
-
-    // Number of inhibitory cells.
-    ncells_inh_;
-
-    // Weight of excitatory synapses.
-    weight_exc_;
-
-    // Weight of inhibitory synapses.
-    weight_inh_;
-
-    // Weight of external Poisson cell synapses.
-    weight_ext_;
-
-    // Delay of all synapses.
-    delay_;
-
-    // Number of connections that each neuron receives from excitatory population.
-    in_degree_exc_;
-
-    // Number of connections that each neuron receives from inhibitory population.
-    in_degree_inh_;
-
-    // Expected number of poisson spikes.
-    lambda_;
-
-    // Seed used for the Poisson spikes generation.
-    seed_;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-class ring_recipe (arbor.recipe):
-
-    def __init__(self, n=10):
-        # The base C++ class constructor must be called first, to ensure that
-        # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
-        self.ncells = n
         self.props = arbor.neuron_cable_properties()
         self.cat = arbor.default_catalogue()
         self.props.register(self.cat)
 
-    # The num_cells method that returns the total number of cells in the model
-    # must be implemented.
-    def num_cells(self):
-        return self.ncells
+        self.ncells_exc_ = nexc
+        self.ncells_inh_ = ninh
+        self.delay_ = delay
+        self.seed_ = seed
 
-    # The cell_description method returns a cell
+        # Make sure that in_degree_prop in the interval (0, 1]
+        if 0.0>=in_degree_prop>1.0:
+            print("The proportion of incoming connections should be in the interval (0, 1].")
+            quit()
+
+        # Set up the parameters.
+        self.weight_exc_ = weight
+        self.weight_inh_ = -rel_inh_strength * weight
+        self.weight_ext_ =  weight
+        self.in_degree_exc_ = round(in_degree_prop * nexc)
+        self.in_degree_inh_ = round(in_degree_prop * ninh)
+        # each cell receives next incoming Poisson sources with mean rate poiss_lambda, which is equivalent
+        # to a single Poisson source with mean rate next*poiss_lambda
+        self.lambda_ = next * poiss_lambda
+
+    def num_cells(self):
+        return self.ncells_exc_ + self.ncells_inh_
+
+    def cell_kind(self, gid):
+        return arbor.cell_kind.lif
+
+    def connections_on(self, gid):
+        connections=[]
+        # Add incoming excitatory connections.
+        for i in sample_subset(gid, 0, self.ncells_exc_, self.in_degree_exc_):
+            connections.append(arbor.connection((i,0), (gid,0), self.weight_exc_, self.delay_))
+        # Add incoming inhibitory connections.
+        for i in sample_subset(gid, self.ncells_exc_, self.ncells_exc_ + self.ncells_inh_, self.in_degree_inh_):
+            connections.append(arbor.connection((i,0), (gid,0), self.weight_inh_, self.delay_))
+        return connections
+
     def cell_description(self, gid):
-        return make_cable_cell(gid)
+        cell = arbor.lif_cell()
+        cell.tau_m = 10
+        cell.V_th = 10
+        cell.C_m = 20
+        cell.E_L = 0
+        cell.V_m = 0
+        cell.V_reset = 0
+        cell.t_ref = 2
+        return cell
+
+    def event_generators(self, gid):
+        t0 = arbor.explicit_schedule([0])
+        return [arbor.event_generator(arbor.cell_member(gid,0), self.weight_ext_, t0)]#, self.lambda_)]
 
     def num_targets(self, gid):
         return 1
@@ -171,83 +92,68 @@ class ring_recipe (arbor.recipe):
     def num_sources(self, gid):
         return 1
 
-    # The kind method returns the type of cell with gid.
-    # Note: this must agree with the type returned by cell_description.
-    def cell_kind(self, gid):
-        return arbor.cell_kind.cable
+@dataclass
+class options:
+    pass
 
-    # Make a ring network
-    def connections_on(self, gid):
-        src = (gid-1)%self.ncells
-        w = 0.01
-        d = 5
-        return [arbor.connection(arbor.cell_member(src,0), arbor.cell_member(gid,0), w, d)]
+if __name__ == "__main__":
+    opt=options()
 
-    # Attach a generator to the first cell in the ring.
-    def event_generators(self, gid):
-        if gid==0:
-            sched = arbor.explicit_schedule([1])
-            return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
-        return []
+    parser = argparse.ArgumentParser(description='Brunel model miniapp.')
+    parser.add_argument('-n', '--n-excitatory', dest='nexc', type=int, default=400, help='Number of cells in the excitatory population')
+    parser.add_argument('-m', '--n-inhibitory', dest='ninh', type=int, default=100, help='Number of cells in the inhibitory population')
+    parser.add_argument('-e', '--n-external', dest='next', type=int, default=40, help='Number of incoming Poisson (external) connections per cell')
+    parser.add_argument('-p', '--in-degree-prop', dest='syn_per_cell_prop', type=float, default=0.05, help='Proportion of the connections received per cell')
+    parser.add_argument('-w', '--weight', dest='weight', type=float, default=1.2, help='Weight of excitatory connections')
+    parser.add_argument('-d', '--delay', dest='delay', type=float, default=0.1, help='Delay of all connections')
+    parser.add_argument('-g', '--rel-inh-w', dest='rel_inh_strength', type=float, default=1, help='Relative strength of inhibitory synapses with respect to the excitatory ones')
+    parser.add_argument('-l', '--lambda', dest='poiss_lambda', type=float, default=1, help='Expected number of spikes from a single poisson cell per ms')
+    parser.add_argument('-t', '--tfinal', dest='tfinal', type=float, default=100, help='Length of the simulation period (ms)')
+    parser.add_argument('-s', '--dt', dest='dt', type=float, default=1, help='Simulation time step (ms)')
+    parser.add_argument('-G', '--group-size', dest='group_size', type=int, default=10, help='Number of cells per cell group')
+    #FIXME: these are being ignored:
+    parser.add_argument('-S', '--seed', dest='seed', type=int, default=42, help='Seed for poisson spike generators')
+    parser.add_argument('-f', '--write-spikes', dest='spike_file_output', action='store_true', help='Save spikes to file')
+    parser.add_argument('-z', '--profile-rank-zero', dest='profile_only_zero', action='store_true', help='Only output profile information for rank 0')
+    parser.add_argument('-V', '--verbose', dest='verbose', action='store_true', help='Print more verbose information to stdout')
 
-    def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('(location 0 0)')]
+    for k,v in vars(parser.parse_args()).items():
+        setattr(opt, k, v)
 
-    def global_properties(self, kind):
-        return self.props
+    context = arbor.context()
+    print(context)
 
-context = arbor.context(threads=12, gpu_id=None)
-print(context)
+    meters = arbor.meter_manager()
+    meters.start(context)
 
-meters = arbor.meter_manager()
-meters.start(context)
+    recipe = brunel_recipe(opt.nexc, opt.ninh, opt.next, opt.syn_per_cell_prop, opt.weight, opt.delay, opt.rel_inh_strength, opt.poiss_lambda, opt.seed)
 
-ncells = 4
-recipe = ring_recipe(ncells)
-print(f'{recipe}')
+    meters.checkpoint('recipe-create', context)
 
-meters.checkpoint('recipe-create', context)
+    hint = arbor.partition_hint()
+    hint.prefer_gpu = True
+    hint.gpu_group_size = 1000
 
-h= arbor.partition_hint()
-hint.prefer_gpu = True
-hint.gpu_group_size = 1000
-print(f'{hint}')
+    hints = {arbor.cell_kind.lif, hint}
+    decomp = arbor.partition_load_balance(recipe, context)#, hints)
+    print(decomp)
 
-hints = dict([(arbor.cell_kind.cable, hint)])
-decomp = arbor.partition_load_balance(recipe, context, hints)
-print(f'{decomp}')
+    meters.checkpoint('load-balance', context)
 
-meters.checkpoint('load-balance', context)
+    sim = arbor.simulation(recipe, decomp, context)
+    sim.record(arbor.spike_recording.all)
 
-sim = arbor.simulation(recipe, decomp, context)
-sim.record(arbor.spike_recording.all)
+    meters.checkpoint('simulation-init', context)
 
-meters.checkpoint('simulation-init', context)
+    sim.run(opt.tfinal,opt.dt)
+    print('Simulation finished')
 
-# Attach a sampler to the voltage probe on cell 0.
-# Sample rate of 10 sample every ms.
-handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
+    meters.checkpoint('simulation-run', context)
 
-tfinal=100
-sim.run(tfinal)
-print(f'{sim} finished')
+    # Print profiling information
+    print(f'{arbor.meter_report(meters, context)}')
 
-meters.checkpoint('simulation-run', context)
-
-# Prprofiling information
-print(f'{arbor.meter_report(meters, context)}')
-
-# Prspike times
-print('spikes:')
-for sp in sim.spikes():
-    print(' ', sp)
-
-# Plot the recorded voltages over time.
-print("Plotting results ...")
-df_list = []
-for gid in range(ncells):
-    samples, meta = sim.samples(handles[gid])[0]
-    df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
-
-df = pandas.concat(df_list)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('network_ring_result.svg')
+    # Print spike times
+    print('spikes:')
+    for sp in sim.spikes():
+        print(' ', sp)

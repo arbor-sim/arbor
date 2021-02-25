@@ -382,7 +382,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
             { opt.tfinal,            "-t", "--tfinal" },
             { opt.dt,                "-s", "--dt" },
             { opt.group_size,        "-G", "--group-size" },
-            { opt.seed,              "-S", "--seed" },
+            { opt.seed,              "-s", "--seed" },
             { to::set(opt.spike_file_output), to::flag, "-f", "--write-spikes" },
             { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
             { to::set(opt.verbose),           to::flag, "-v", "--verbose" },
@@ -390,7 +390,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
     };
 
     if (!to::run(options, argc, argv+1)) return {};
-    if (argv[1]) throw to::option_error("unrecognized argument", argv[1]);
+    if (argv[1]) throw to::option_error("unrecogonized argument", argv[1]);
 
     if (opt.group_size < 1) {
         throw std::runtime_error("minimum of one cell per group");

@@ -119,9 +119,9 @@ Cable cell decoration
         :noindex:
 
         Apply a mechanism with a region using the name of the mechanism.
-        The mechanism will use the parameter values set in the mechan
-        ism catalogue.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        The mechanism will use the parameter values set in the mechanism catalogue.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`)
+        assigned to the placed items on the cable cell.
 
         :param str region: description of the region.
         :param str mechanism: the name of the mechanism.
