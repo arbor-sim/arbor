@@ -315,32 +315,6 @@ void register_cells(pybind11::module& m) {
         .def("__str__", [](const arb::threshold_detector& d){
             return util::pprintf("(threshold_detector {})", d.threshold);});
 
-    // arb::cable_cell_ion_data
-
-    pybind11::class_<arb::initial_ion_data> ion_data(m, "ion",
-        "For setting ion properties (internal and external concentration and reversal potential) on cells and regions.");
-    ion_data
-        .def(pybind11::init(
-                [](const char* name,
-                   optional<double> int_con,
-                   optional<double> ext_con,
-                   optional<double> rev_pot)
-                {
-                    arb::initial_ion_data x;
-                    x.ion = name;
-                    if (int_con) x.initial.init_int_concentration = *int_con;
-                    if (ext_con) x.initial.init_ext_concentration = *ext_con;
-                    if (rev_pot) x.initial.init_reversal_potential = *rev_pot;
-                    return x;
-                }
-            ),
-            "ion_name"_a,
-            pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
-            pybind11::arg_v("ext_con", pybind11::none(), "Intial external concentration [mM]"),
-            pybind11::arg_v("rev_pot", pybind11::none(), "Intial reversal potential [mV]"),
-            "If concentrations or reversal potential are specified as 'None',"
-            " cell default or global default value will be used, in that order if set.");
-
     // arb::cable_cell_global_properties
 
     pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
