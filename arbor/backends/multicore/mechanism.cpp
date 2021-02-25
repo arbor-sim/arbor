@@ -142,10 +142,11 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         auto base_ptr = indices_.data();
 
         // Setup node indices
+        auto node_index = make_range(base_ptr, base_ptr + width_padded_);
+        copy_extend(pos_data.cv, node_index, pos_data.cv.back());
         pp->node_index_ = base_ptr;
         base_ptr += width_padded_;
-        auto node_index = make_range(pp->node_index_, pp->node_index_ + width_padded_);
-        copy_extend(pos_data.cv, node_index, pos_data.cv.back());
+
         index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
 
         // Create ion indices
@@ -171,8 +172,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         }
 
         if (mult_in_place_) {
+            copy_extend(pos_data.multiplicity, make_range(base_ptr, base_ptr + width_padded_), 0);
             pp->multiplicity_ = base_ptr;
-            memory::copy(pos_data.multiplicity, pp->multiplicity_, width_);
             base_ptr += width_padded_;
         }
 
