@@ -4,10 +4,17 @@
 
 #include "backends/builtin_mech_proto.hpp"
 #include "backends/multicore/mechanism.hpp"
+#include "backends/multicore/mechanism_ppack_base.hpp"
 
 namespace arb {
-
 namespace multicore {
+
+struct stimulus_pp: mechanism_ppack_base {
+    fvm_value_type* delay;
+    fvm_value_type* duration;
+    fvm_value_type* amplitude;
+};
+
 class stimulus: public arb::multicore::mechanism {
 public:
     const mechanism_fingerprint& fingerprint() const override {
@@ -23,12 +30,12 @@ public:
     void compute_currents() override {
         size_type n = size();
         for (size_type i=0; i<n; ++i) {
-            auto cv = node_index_[i];
-            auto t = vec_t_[vec_di_[cv]];
+            auto cv = pp_.node_index_[i];
+            auto t = pp_.vec_t_[pp_.vec_di_[cv]];
 
-            if (t>=delay[i] && t<delay[i]+duration[i]) {
+            if (t>=pp_.delay[i] && t<pp_.delay[i]+pp_.duration[i]) {
                 // Amplitudes are given as a current into a compartment, so subtract.
-                vec_i_[cv] -= weight_[i]*amplitude[i];
+                pp_.vec_i_[cv] -= pp_.weight_[i]*pp_.amplitude[i];
             }
         }
     }
@@ -37,12 +44,13 @@ public:
 
 protected:
     std::size_t object_sizeof() const override { return sizeof(*this); }
+    virtual mechanism_ppack_base* ppack_ptr() override { return &pp_; }
 
     mechanism_field_table field_table() override {
         return {
-            {"delay", &delay},
-            {"duration", &duration},
-            {"amplitude", &amplitude}
+            {"delay", &pp_.delay},
+            {"duration", &pp_.duration},
+            {"amplitude", &pp_.amplitude}
         };
     }
 
@@ -54,9 +62,8 @@ protected:
         };
     }
 private:
-    fvm_value_type* delay;
-    fvm_value_type* duration;
-    fvm_value_type* amplitude;
+
+    stimulus_pp pp_;
 };
 } // namespace multicore
 

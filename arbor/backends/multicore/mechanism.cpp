@@ -62,20 +62,21 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     width_ = pos_data.cv.size();
 
     // Assign non-owning views onto shared state:
+    auto pp = ppack_ptr();
 
-    vec_ci_   = shared.cv_to_cell.data();
-    vec_di_   = shared.cv_to_intdom.data();
-    vec_dt_   = shared.dt_cv.data();
+    pp->vec_ci_   = shared.cv_to_cell.data();
+    pp->vec_di_   = shared.cv_to_intdom.data();
+    pp->vec_dt_   = shared.dt_cv.data();
 
-    vec_v_    = shared.voltage.data();
-    vec_i_    = shared.current_density.data();
-    vec_g_    = shared.conductivity.data();
+    pp->vec_v_    = shared.voltage.data();
+    pp->vec_i_    = shared.current_density.data();
+    pp->vec_g_    = shared.conductivity.data();
 
-    temperature_degC_ = shared.temperature_degC.data();
-    diam_um_  = shared.diam_um.data();
-    time_since_spike_ = shared.time_since_spike.data();
+    pp->temperature_degC_ = shared.temperature_degC.data();
+    pp->diam_um_  = shared.diam_um.data();
+    pp->time_since_spike_ = shared.time_since_spike.data();
 
-    n_detectors_ = shared.n_detector;
+    pp->n_detectors_ = shared.n_detector;
 
     auto ion_state_tbl = ion_state_table();
     n_ion_ = ion_state_tbl.size();
@@ -117,12 +118,11 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         // Take reference to corresponding derived (generated) mechanism value pointer member.
         fvm_value_type*& field_ptr = *(fields[i].second);
         field_ptr = data_.data()+(i+1)*width_padded_;
-
         if (auto opt_value = value_by_key(field_default_table(), fields[i].first)) {
             std::fill(field_ptr, field_ptr+width_padded_, *opt_value);
         }
     }
-    weight_ = data_.data();
+    pp->weight_ = data_.data();
 
     // Allocate and copy local state: weight, node indices, ion indices.
     // The tail comprises those elements between width_ and width_padded_:
@@ -131,24 +131,20 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // * For indices in the padded tail of node_index_, set index to last valid CV index.
     // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-    copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
+    util::copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
 
-    if (mult_in_place_) {
-        multiplicity_ = iarray(width_padded_, pad);
-        copy_extend(pos_data.multiplicity, multiplicity_, 1);
-    }
-
+    // Make index bulk storage
     {
         auto table = ion_index_table();
         // Allocate bulk storage
-        auto count = (table.size() + 1)*width_padded_;
-        indices_ = iarray(count, 0, pad);
+        auto count = table.size() + 1 + (mult_in_place_ ? 1 : 0);
+        indices_ = iarray(count*width_padded_, 0, pad);
         auto base_ptr = indices_.data();
 
         // Setup node indices
-        node_index_ = base_ptr;
+        pp->node_index_ = base_ptr;
         base_ptr += width_padded_;
-        auto node_index = make_range(node_index_, node_index_ + width_padded_);
+        auto node_index = make_range(pp->node_index_, pp->node_index_ + width_padded_);
         copy_extend(pos_data.cv, node_index, pos_data.cv.back());
         index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
 
@@ -173,6 +169,13 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             // Check SIMD constraints
             arb_assert(compatible_index_constraints(node_index, ion_index, simd_width()));
         }
+
+        if (mult_in_place_) {
+            pp->multiplicity_ = base_ptr;
+            memory::copy(pos_data.multiplicity, pp->multiplicity_, width_);
+            base_ptr += width_padded_;
+        }
+
     }
 }
 
@@ -196,7 +199,8 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 }
 
 void mechanism::initialize() {
-    vec_t_ = vec_t_ptr_->data();
+    auto pp_ptr = ppack_ptr();
+    pp_ptr->vec_t_ = vec_t_ptr_->data();
     init();
 
     auto states = state_table();
@@ -204,7 +208,7 @@ void mechanism::initialize() {
     if (mult_in_place_) {
         for (auto& state: states) {
             for (std::size_t j = 0; j < width_; ++j) {
-                (*state.second)[j] *= multiplicity_[j];
+                (*state.second)[j] *= pp_ptr->multiplicity_[j];
             }
         }
     }

@@ -25,9 +25,7 @@ using value_type = backend::value_type;
 using size_type = backend::size_type;
 
 // Access to more mechanism protected data:
-
-ACCESS_BIND(const value_type* multicore::mechanism::*, vec_v_ptr, &multicore::mechanism::vec_v_)
-ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanism::vec_i_)
+ACCESS_BIND(multicore::mechanism_ppack_base* (multicore::mechanism::*)(), pp_ptr, &multicore::mechanism::ppack_ptr)
 
 TEST(synapses, add_to_cell) {
     using namespace arb;
@@ -130,17 +128,17 @@ TEST(synapses, syn_basic_state) {
     // Current and voltage views correctly hooked up?
 
     const value_type* v_ptr;
-    v_ptr = expsyn.get()->*vec_v_ptr;
+    v_ptr = (expsyn.get()->*pp_ptr)()->vec_v_;
     EXPECT_TRUE(all_equal_to(util::make_range(v_ptr, v_ptr+num_comp), -65.));
 
-    v_ptr = exp2syn.get()->*vec_v_ptr;
+    v_ptr = (exp2syn.get()->*pp_ptr)()->vec_v_;
     EXPECT_TRUE(all_equal_to(util::make_range(v_ptr, v_ptr+num_comp), -65.));
 
     const value_type* i_ptr;
-    i_ptr = expsyn.get()->*vec_i_ptr;
+    i_ptr = (expsyn.get()->*pp_ptr)()->vec_i_;
     EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
 
-    i_ptr = exp2syn.get()->*vec_i_ptr;
+    i_ptr = (exp2syn.get()->*pp_ptr)()->vec_i_;
     EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
 
     // Initialize state then check g, A, B have been set to zero.
