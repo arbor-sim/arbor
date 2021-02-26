@@ -152,9 +152,17 @@ void mechanism::instantiate(unsigned id,
 
     auto base_ptr = indices_.data();
 
-    memory::copy(make_const_view(pos_data.cv), device_view(base_ptr, width_));
-    pp->node_index_ = base_ptr;
-    base_ptr += width_padded_;
+    auto append_chunk = [](const auto& input, auto& base_ptr, auto& output) {
+        memory::copy(make_const_view(input), device_view(base_ptr, width_));
+        output = base_ptr;
+        base_ptr += width_padded_;
+    };
+
+    append_chunk(pos_data.cv, base_ptr, pp->node_index);
+
+    // memory::copy(make_const_view(pos_data.cv), device_view(base_ptr, width_));
+    // pp->node_index_ = base_ptr;
+    // base_ptr += width_padded_;
 
     auto ion_index_tbl = ion_index_table();
     arb_assert(num_ions_==ion_index_tbl.size());
