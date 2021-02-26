@@ -158,7 +158,7 @@ void mechanism::instantiate(unsigned id,
         base_ptr += width_padded_;
     };
 
-    append_chunk(pos_data.cv, pp->node_index);
+    append_chunk(pos_data.cv, pp->node_index_);
 
     auto ion_index_tbl = ion_index_table();
     arb_assert(num_ions_==ion_index_tbl.size());
@@ -181,7 +181,7 @@ void mechanism::instantiate(unsigned id,
     }
 
     if (mult_in_place_) {
-        append_chunk(pos_data.multiplicity, pp->multiplicity);
+        append_chunk(pos_data.multiplicity, pp->multiplicity_);
     }
 }
 
