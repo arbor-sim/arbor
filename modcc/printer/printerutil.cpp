@@ -170,35 +170,29 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     case sourceKind::ion_current_density:
         v.data_var = ion_pfx+".current_density";
         v.scale = 0.1;
-        v.access_var = "";
         v.readonly = false;
         break;
     case sourceKind::ion_current:
         // unit scale; sourceKind for point processes updating an ionic current variable.
         v.data_var = ion_pfx+".current_density";
-        v.access_var = "";
         v.readonly = false;
         break;
     case sourceKind::ion_revpot:
         v.data_var = ion_pfx+".reversal_potential";
         v.accumulate = false;
-        v.access_var = "";
         v.readonly = false;
         break;
     case sourceKind::ion_iconc:
         v.data_var = ion_pfx+".internal_concentration";
-        v.access_var = "";
         v.readonly = false;
         break;
     case sourceKind::ion_econc:
         v.data_var = ion_pfx+".external_concentration";
-        v.access_var = "";
         v.readonly = false;
         break;
     case sourceKind::ion_valence:
         v.data_var = ion_pfx+".ionic_charge";
         v.node_index_var = ""; // scalar global
-        v.access_var = "";
         v.readonly = true;
         break;
     case sourceKind::temperature:

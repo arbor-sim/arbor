@@ -11,6 +11,7 @@
 #include "printer/cprinter.hpp"
 #include "printer/printeropt.hpp"
 #include "printer/printerutil.hpp"
+#include "printer/marks.hpp"
 
 using io::indent;
 using io::popindent;
@@ -156,6 +157,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     io::pfxstringstream out;
 
+    ENTER(out);
     out <<
         "#include <algorithm>\n"
         "#include <cmath>\n"
@@ -238,9 +240,18 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "\n";
     }
 
-    out << "struct " << ppack_name << ": public ::arb::multicore::mechanism_ppack_base {\n"
-        << "\n"
-        << "};\n";
+    out << "struct " << ppack_name << ": public ::arb::multicore::mechanism_ppack_base {\n" << indent;
+    for (const auto& scalar: vars.scalars) {
+        out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
+    }
+    for (const auto& array: vars.arrays) {
+        out << "::arb::fvm_value_type* " << array->name() << ";\n";
+    }
+    for (const auto& dep: ion_deps) {
+        out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
+        out << "::arb::fvm_index_type* " << ion_state_index(dep.name) << ";\n";
+    }
+    out << popindent << "};\n";
 
     
     out <<
@@ -282,7 +293,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
         for (const auto& scalar: vars.scalars) {
             auto memb = scalar->name();
-            out << sep << "{" << quote(memb) << ", &" << memb << "}";
+            out << sep << "{" << quote(memb) << ", &pp_." << memb << "}";
         }
         out << popindent << "\n};\n" << popindent << "}\n";
     }
@@ -295,7 +306,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         sep.reset();
         for (const auto& array: vars.arrays) {
             auto memb = array->name();
-            out << sep << "{" << quote(memb) << ", &" << memb << "}";
+            out << sep << "{" << quote(memb) << ", &pp_." << memb << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
 
@@ -321,7 +332,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         for (const auto& array: vars.arrays) {
             auto memb = array->name();
             if(array->is_state()) {
-                out << sep << "{" << quote(memb) << ", &" << memb << "}";
+                out << sep << "{" << quote(memb) << ", &pp_." << memb << "}";
             }
         }
         out << popindent << "\n};" << popindent << "\n}\n";
@@ -335,32 +346,20 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
         sep.reset();
         for (const auto& dep: ion_deps) {
-            out << sep << "{\"" << dep.name << "\", &" << ion_state_field(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &pp_." << ion_state_field(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
 
         sep.reset();
         out << "mechanism_ion_index_table ion_index_table() override {\n" << indent << "return {" << indent;
         for (const auto& dep: ion_deps) {
-            out << sep << "{\"" << dep.name << "\", &" << ion_state_index(dep.name) << "}";
+            out << sep << "{\"" << dep.name << "\", &pp_." << ion_state_index(dep.name) << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
     }
 
     out << popindent << "\n"
         "private:\n" << indent;
-
-    for (const auto& scalar: vars.scalars) {
-        out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
-    }
-    for (const auto& array: vars.arrays) {
-        out << "::arb::fvm_value_type* " << array->name() << ";\n";
-    }
-    for (const auto& dep: ion_deps) {
-        out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "::arb::fvm_index_type* " << ion_state_index(dep.name) << ";\n";
-    }
-
     out << ppack_name << " pp_;\n";
 
     for (auto proc: normal_procedures(module_)) {
@@ -398,7 +397,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "}\n" << popindent <<
             "}\n"
             "\n"
-            "void " << class_name << "::net_receive(int i_, ::arb::fvm_value_type " << weight_arg << ") {\n" << indent <<
+            "void " << class_name << "::net_receive(int i_, ::arb::fvm_value_type " << weight_arg << ") {//MARK\n" << indent <<
             cprint(net_receive->body()) << popindent <<
             "}\n\n";
     }
@@ -473,6 +472,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     }
 
     out << namespace_declaration_close(ns_components);
+    EXIT(out);
     return out.str();
 }
 
@@ -487,7 +487,7 @@ void CPrinter::visit(LocalVariable* sym) {
 }
 
 void CPrinter::visit(VariableExpression *sym) {
-    out_ << sym->name() << (sym->is_range()? "[i_]": "");
+    out_ << "pp_." << sym->name() << (sym->is_range()? "[i_]": "");
 }
 
 void CPrinter::visit(CallExpression* e) {
@@ -500,6 +500,7 @@ void CPrinter::visit(CallExpression* e) {
 }
 
 void CPrinter::visit(BlockExpression* block) {
+    ENTERM(out_, "c:block");
     // Only include local declarations in outer-most block.
     if (!block->is_nested()) {
         auto locals = pure_locals(block->scope());
@@ -519,6 +520,7 @@ void CPrinter::visit(BlockExpression* block) {
             out_ << (stmt->is_if()? "": ";\n");
         }
     }
+    EXITM(out_, "c:block");
 }
 
 static std::string index_i_name(const std::string& index_var) {
@@ -560,8 +562,6 @@ namespace {
         return i.node_index_var;
     }
 
-
-
     // Convenience I/O wrapper for emitting indexed access to an external variable.
 
     struct deref {
@@ -578,6 +578,7 @@ namespace {
 }
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
+    ENTER(out);
     out << "::arb::fvm_value_type " << cprint(local) << " = ";
 
     if (local->is_read()) {
@@ -590,11 +591,12 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     else {
         out << "0;\n";
     }
+    EXIT(out);
 }
 
 void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
     if (!external->is_write()) return;
-
+    ENTER(out);
     auto d = decode_indexed_variable(external);
     double coeff = 1./d.scale;
 
@@ -607,7 +609,7 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
         if (coeff != 1) {
             out << as_c_double(coeff) << '*';
         }
-        out << "weight_[i_], " << from->name() << ", " << deref(d) << ");\n";
+        out << "pp_.weight_[i_], " << from->name() << ", " << deref(d) << ");\n";
     }
     else {
         out << deref(d) << " = ";
@@ -616,9 +618,11 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
         }
         out << from->name() << ";\n";
     }
+    EXIT(out);
 }
 
 void emit_api_body(std::ostream& out, APIMethod* method) {
+    ENTER(out);
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
@@ -626,7 +630,7 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            index_prop node_idx = {node_index_name(d), "i_", d.access_var, true};
+            index_prop node_idx = {d.node_index_var, "i_", d.access_var, true};
             auto it = std::find(indices.begin(), indices.end(), node_idx);
             if (it == indices.end()) indices.push_front(node_idx);
             if (!d.cell_index_var.empty()) {
@@ -656,29 +660,37 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
         }
         out << popindent << "}\n";
     }
+    EXIT(out);
 }
 
 // SIMD printing:
 
 void SimdPrinter::visit(IdentifierExpression *e) {
+    ENTERM(out_, "identifier");
     e->symbol()->accept(this);
+    EXITM(out_, "identifier");
 }
 
 void SimdPrinter::visit(LocalVariable* sym) {
+    ENTERM(out_, "local");
     out_ << sym->name();
+    EXITM(out_, "local");
 }
 
 void SimdPrinter::visit(VariableExpression *sym) {
+    ENTERM(out_, "variable");
     if (sym->is_range()) {
         auto index = is_indirect_? "index_": "i_";
-        out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+" << index << ", simd_width_))";
+        out_ << "simd_cast<simd_value>(indirect (pp_." << sym->name() << "+" << index << ", simd_width_))";
     }
     else {
-        out_ << sym->name();
+        out_ << "pp_." << sym->name();
     }
+    EXITM(out_, "variable");
 }
 
 void SimdPrinter::visit(AssignmentExpression* e) {
+    ENTERM(out_, "assign");
     if (!e->lhs() || !e->lhs()->is_identifier() || !e->lhs()->is_identifier()->symbol()) {
         throw compiler_exception("Expect symbol on lhs of assignment: "+e->to_string());
     }
@@ -693,10 +705,11 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     if (scalars_.count(e->lhs()->is_identifier()->name()))  cast = false;
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
+        std::string pfx = lhs->is_local_variable() ? "" : "pp_.";
         if(is_indirect_)
-            out_ << "indirect(" << lhs->name() << "+index_, simd_width_) = ";
+            out_ << "indirect(" << pfx << lhs->name() << "+index_, simd_width_) = ";
         else
-            out_ << "indirect(" << lhs->name() << "+i_, simd_width_) = ";
+            out_ << "indirect(" << pfx << lhs->name() << "+i_, simd_width_) = ";
 
         if (!input_mask_.empty())
             out_ << "S::where(" << input_mask_ << ", ";
@@ -707,15 +720,15 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
         if (!input_mask_.empty())
             out_ << ")";
-    }
-    else {
-        out_ << "assign(" << lhs->name() << ", ";
+    } else {
+        std::string pfx = lhs->is_local_variable() ? "" : "pp_.";
+        out_ << "assign(" << pfx << lhs->name() << ", ";
         if (auto rhs = e->rhs()->is_identifier()) {
             if (auto sym = rhs->symbol()) {
                 // We shouldn't call the rhs visitor in this case because it automatically casts indirect expressions
                 if (sym->is_variable() && sym->is_variable()->is_range()) {
                     auto index = is_indirect_ ? "index_" : "i_";
-                    out_ << "indirect(" << rhs->name() << "+" << index << ", simd_width_))";
+                    out_ << "indirect(pp_." << rhs->name() << "+" << index << ", simd_width_))";
                     return;
                 }
             }
@@ -723,9 +736,11 @@ void SimdPrinter::visit(AssignmentExpression* e) {
         e->rhs()->accept(this);
         out_ << ")";
     }
+    EXITM(out_, "assign");
 }
 
 void SimdPrinter::visit(CallExpression* e) {
+    ENTERM(out_, "call");
     if(is_indirect_)
         out_ << e->name() << "(index_";
     else
@@ -735,10 +750,12 @@ void SimdPrinter::visit(CallExpression* e) {
         arg->accept(this);
     }
     out_ << ")";
+    EXITM(out_, "call");
 }
 
 void SimdPrinter::visit(BlockExpression* block) {
     // Only include local declarations in outer-most block.
+    ENTERM(out_, "block");
     if (!block->is_nested()) {
         auto locals = pure_locals(block->scope());
         if (!locals.empty()) {
@@ -759,32 +776,38 @@ void SimdPrinter::visit(BlockExpression* block) {
             }
         }
     }
+    EXITM(out_, "block");
 }
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
+    ENTER(out);
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(::arb::fvm_index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
     out << ")";
+    EXIT(out);
 }
 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
+    ENTER(out);
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
     << "(::arb::fvm_index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
     out << ")";
+    EXIT(out);
 }
 
 void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_constraint constraint) {
+    ENTER(out);
     out << "simd_value " << local->name();
 
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());
         if (d.scalar()) {
-            out << " = simd_cast<simd_value>(" << d.data_var
+            out << " = simd_cast<simd_value>(pp_." << d.data_var
                 << "[0]);\n";
         }
         else {
@@ -819,6 +842,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
     else {
         out << " = simd_cast<simd_value>(0);\n";
     }
+    EXIT(out);
 }
 
 void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, simd_expr_constraint constraint) {
@@ -830,6 +854,8 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
     if (d.readonly) {
         throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
+
+    ENTER(out);
 
     if (d.accumulate) {
         if (d.cell_index_var.empty()) {
@@ -902,10 +928,13 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
             out << from->name() << ";\n";
         }
     }
+
+    EXIT(out);
 }
 
 void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices,
-                           simd_expr_constraint constraint) {
+                                simd_expr_constraint constraint) {
+    ENTER(out);
     for (auto& index: indices) {
         if (index.node_index) {
             switch (constraint) {
@@ -915,7 +944,7 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                     break;
                 default:
                     out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(indirect(&" << source_var(index)
-                        << "[0] + " << index.index_name << ", simd_width_)); // MARK\n";
+                        << "[0] + " << index.index_name << ", simd_width_));\n";
                     break;
             }
         } else {
@@ -935,6 +964,7 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
             }
         }
     }
+    EXIT(out);
 }
 
 void emit_simd_body_for_loop(
@@ -944,6 +974,7 @@ void emit_simd_body_for_loop(
         const std::vector<VariableExpression*>& scalars,
         const std::list<index_prop>& indices,
         const simd_expr_constraint& constraint) {
+    ENTER(out);
     emit_simd_index_initialize(out, indices, constraint);
 
     for (auto& sym: indexed_vars) {
@@ -958,6 +989,7 @@ void emit_simd_body_for_loop(
     for (auto& sym: indexed_vars) {
         emit_simd_state_update(out, sym, sym->external_variable(), constraint);
     }
+    EXIT(out);
 }
 
 void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
@@ -967,7 +999,7 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   const std::list<index_prop>& indices,
                                   const simd_expr_constraint& constraint,
                                   std::string underlying_constraint_name) {
-
+    ENTER(out);
     out << "constraint_category_ = index_constraint::"<< underlying_constraint_name << ";\n";
     out << "for (unsigned i_ = 0; i_ < index_constraints_." << underlying_constraint_name
         << ".size(); i_++) {\n"
@@ -982,6 +1014,7 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
     emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint);
 
     out << popindent << "}\n";
+    EXIT(out);
 }
 
 void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<VariableExpression*>& scalars) {
@@ -991,6 +1024,8 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
 
     std::vector<LocalVariable*> scalar_indexed_vars;
     std::list<index_prop> indices;
+
+    ENTER(out);
 
     for (auto& s: body->is_block()->statements()) {
         if (s->is_assignment()) {
@@ -1066,5 +1101,6 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
                 "}\n";
         }
     }
+    EXIT(out);
 }
 

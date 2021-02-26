@@ -221,6 +221,20 @@ void SimdExprEmitter::visit(UnaryExpression* e) {
     }
 }
 
+std::string id_prefix(IdentifierExpression* id) {
+    if (id) {
+        if (auto symbol = id->symbol()->is_symbol()) {
+            if (auto var = symbol->is_variable()) {
+                if (!var->is_local_variable()) {
+                    return "pp_.";
+                }
+            }
+        }
+    }
+    return "";
+}
+
+
 void SimdExprEmitter::visit(BinaryExpression* e) {
     static std::unordered_map<tok, const char *> func_tbl = {
             {tok::minus,    "S::sub"},
@@ -262,7 +276,7 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
                 "CExprEmitter: unsupported binary operator " + token_string(e->op()), e->location());
     }
 
-    std::string rhs_name, lhs_name;
+    std::string rhs_name, lhs_name, rhs_pfx, lhs_pfx;
 
     auto rhs = e->rhs();
     auto lhs = e->lhs();
@@ -270,11 +284,13 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
     const char *op_spelling = binop_tbl.at(e->op());
     const char *func_spelling = func_tbl.at(e->op());
 
-    if (rhs->is_identifier()) {
-        rhs_name = rhs->is_identifier()->name();
+    if (auto id = rhs->is_identifier()) {
+        rhs_name = id->name();
+        rhs_pfx  = id_prefix(id);
     }
-    if (lhs->is_identifier()) {
-        lhs_name = lhs->is_identifier()->name();
+    if (auto id = lhs->is_identifier()) {
+        lhs_name = id->name();
+        lhs_pfx  = id_prefix(id);
     }
 
     if (scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
@@ -313,10 +329,10 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
     } else if (scalars_.count(rhs_name) && !scalars_.count(lhs_name)) {
         out_ << func_spelling << '(';
         lhs->accept(this);
-        out_ << ", simd_cast<simd_value>(" << rhs_name ;
+        out_ << ", simd_cast<simd_value>(" << rhs_pfx << rhs_name ;
         out_ << "))";
     } else if (!scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
-        out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_name << "), ";
+        out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_pfx << lhs_name << "), ";
         rhs->accept(this);
         out_ << ")";
     } else {
@@ -365,14 +381,17 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
     auto mask = processing_true_ ? current_mask_ : current_mask_bar_;
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
 
+    auto lhs_pfx  = id_prefix(e->lhs()->is_identifier());
+
+
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         if (!input_mask_.empty()) {
             mask = "S::logical_and(" + mask + ", " + input_mask_ + ")";
         }
         if(is_indirect_)
-            out_ << "indirect(" << lhs->name() << "+index_, simd_width_) = ";
+            out_ << "indirect(" << lhs_pfx << lhs->name() << "+index_, simd_width_) = ";
         else
-            out_ << "indirect(" << lhs->name() << "+i_, simd_width_) = ";
+            out_ << "indirect(" << lhs_pfx << lhs->name() << "+i_, simd_width_) = ";
 
         out_ << "S::where(" << mask << ", ";
 
