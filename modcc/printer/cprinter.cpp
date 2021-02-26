@@ -122,7 +122,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     bool with_simd = opt.simd.abi!=simd_spec::none;
 
-    options_trace_codegen = true;
+    options_trace_codegen = opt.trace_codegen;
     
     // init_api, state_api, current_api methods are mandatory:
 
