@@ -125,7 +125,6 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     v.scale = 1;
     v.accumulate = true;
     v.readonly = true;
-    v.access_var = "pp_";
 
     std::string ion_pfx;
     if (sym->is_ion()) {

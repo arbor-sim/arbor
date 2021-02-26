@@ -1,6 +1,6 @@
 #pragma once
 
-#include <backends/gpu/mechanism_ppack_base.hpp>
+#include <arbor/mechanism_ppack_base.hpp>
 
 namespace arb {
 namespace gpu {

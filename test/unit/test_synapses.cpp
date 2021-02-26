@@ -25,7 +25,7 @@ using value_type = backend::value_type;
 using size_type = backend::size_type;
 
 // Access to more mechanism protected data:
-ACCESS_BIND(multicore::mechanism_ppack_base* (multicore::mechanism::*)(), pp_ptr, &multicore::mechanism::ppack_ptr)
+ACCESS_BIND(::arb::mechanism_ppack_base* (multicore::mechanism::*)(), pp_ptr, &multicore::mechanism::ppack_ptr)
 
 TEST(synapses, add_to_cell) {
     using namespace arb;

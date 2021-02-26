@@ -120,7 +120,6 @@ struct indexed_variable_info {
     std::string data_var;
     std::string node_index_var;
     std::string cell_index_var;
-    std::string access_var;
 
     bool accumulate = true; // true => add with weight_ factor on assignment
     bool readonly = false;  // true => can never be assigned to by a mechanism

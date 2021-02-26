@@ -1,10 +1,11 @@
 #include <cmath>
 
 #include <arbor/fvm_types.hpp>
+#include <arbor/mechanism_ppack_base.hpp>
 
 #include "backends/builtin_mech_proto.hpp"
 #include "backends/multicore/mechanism.hpp"
-#include "backends/multicore/mechanism_ppack_base.hpp"
+
 
 namespace arb {
 namespace multicore {

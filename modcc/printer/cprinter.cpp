@@ -32,10 +32,9 @@ inline static std::string make_cpu_ppack_name(const std::string& module_name) { 
 struct index_prop {
     std::string source_var; // array holding the indices
     std::string index_name; // index into the array
-    std::string access;     // indirection (ppack)
     bool        node_index; // node index (cv) or cell index
     bool operator==(const index_prop& other) const {
-        return (source_var == other.source_var) && (index_name == other.index_name) && (access == other.access);
+        return (source_var == other.source_var) && (index_name == other.index_name);
     }
 };
 
@@ -240,7 +239,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "\n";
     }
 
-    out << "struct " << ppack_name << ": public ::arb::multicore::mechanism_ppack_base {\n" << indent;
+    out << "struct " << ppack_name << ": public ::arb::mechanism_ppack_base {\n" << indent;
     for (const auto& scalar: vars.scalars) {
         out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
@@ -283,7 +282,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "\n" << popindent <<
         "protected:\n" << indent <<
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n" <<
-        "virtual ::arb::multicore::mechanism_ppack_base* ppack_ptr() override { return &pp_; }\n";
+        "virtual ::arb::mechanism_ppack_base* ppack_ptr() override { return &pp_; }\n";
 
     io::separator sep("\n", ",\n");
     if (!vars.scalars.empty()) {
@@ -537,30 +536,11 @@ void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::
 
 namespace {
     // Access through ppack
-    std::string data_via_ppack(const indexed_variable_info& i) {
-        if (!i.access_var.empty()) {
-            return i.access_var + "." + i.data_var;
-        }
-        return i.data_var;
-    }
-
+    std::string data_via_ppack(const indexed_variable_info& i) { return "pp_." + i.data_var; }
+    std::string node_index_name(const indexed_variable_info& i) { return "pp_." + i.node_index_var; }
     std::string node_index_i_name(const indexed_variable_info& i) { return i.node_index_var + "i_"; }
     std::string source_index_i_name(const index_prop& i) { return i.source_var + "i_"; }
-
-    std::string source_var(const index_prop& i) {
-        if (!i.access.empty()) {
-            return i.access + "." + i.source_var;
-        }
-        return i.source_var;
-    }
-
-
-    std::string node_index_name(const indexed_variable_info& i) {
-        if (!i.access_var.empty()) {
-            return i.access_var + "." + i.node_index_var;
-        }
-        return i.node_index_var;
-    }
+    std::string source_var(const index_prop& i) { return "pp_." + i.source_var; }
 
     // Convenience I/O wrapper for emitting indexed access to an external variable.
 
@@ -571,7 +551,7 @@ namespace {
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
             auto index_var = wrap.d.cell_index_var.empty() ? wrap.d.node_index_var : wrap.d.cell_index_var;
             auto i_name    = index_i_name(index_var);
-            index_var = (wrap.d.access_var.empty() ? "" : (wrap.d.access_var + ".")) + index_var;
+            index_var = "pp_." + index_var;
             return o << data_via_ppack(wrap.d) << '[' << (wrap.d.scalar() ? "0": i_name) << ']';
         }
     };
@@ -630,11 +610,11 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            index_prop node_idx = {d.node_index_var, "i_", d.access_var, true};
+            index_prop node_idx = {d.node_index_var, "i_", true};
             auto it = std::find(indices.begin(), indices.end(), node_idx);
             if (it == indices.end()) indices.push_front(node_idx);
             if (!d.cell_index_var.empty()) {
-                index_prop cell_idx = {d.cell_index_var, node_index_i_name(d), d.access_var, false};
+                index_prop cell_idx = {d.cell_index_var, node_index_i_name(d), false};
                 auto it = std::find(indices.begin(), indices.end(), cell_idx);
                 if (it == indices.end()) indices.push_back(cell_idx);
             }
@@ -1044,12 +1024,12 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
     for (auto& sym: indexed_vars) {
         auto info = decode_indexed_variable(sym->external_variable());
         if (!info.scalar()) {
-            index_prop node_idx = {info.node_index_var, "index_", info.access_var, true};
+            index_prop node_idx = {info.node_index_var, "index_", true};
             auto it = std::find(indices.begin(), indices.end(), node_idx);
             if (it == indices.end()) indices.push_front(node_idx);
 
             if (!info.cell_index_var.empty()) {
-                index_prop cell_idx = {info.cell_index_var, node_index_i_name(info), info.access_var, false};
+                index_prop cell_idx = {info.cell_index_var, node_index_i_name(info), false};
                 it = std::find(indices.begin(), indices.end(), cell_idx);
                 if (it == indices.end()) indices.push_back(cell_idx);
             }
