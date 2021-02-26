@@ -1,14 +1,19 @@
 #pragma once
+#include "printeropt.hpp"
 
-// #define MARK_REGIONS 1
-#ifdef MARK_REGIONS
-#define ENTER(stream) (stream) << " /* " << __FUNCTION__ << ":enter*/ "
-#define EXIT(stream)  (stream) << " /* " << __FUNCTION__ << ":exit*/ "
-#define ENTERM(stream, m) (stream) << " /* " << __FUNCTION__ << ":" << m << ":enter */ "
-#define EXITM(stream, m)  (stream) << " /* " << __FUNCTION__ << ":" << m << ":exit */ "
-#else
-#define ENTER(stream)
-#define EXIT(stream)
-#define ENTERM(stream, m)
-#define EXITM(stream, m)
-#endif
+extern bool options_trace_codegen;
+
+#define ENTERM(stream, msg) do {                        \
+        if (options_trace_codegen) {                            \
+            (stream) << " /* " << __FUNCTION__ << ":enter */ "; \
+        }                                                       \
+    } while(0)
+
+#define EXITM(stream, msg) do {                                 \
+        if (options_trace_codegen) {                                    \
+            (stream) << " /* " << __FUNCTION__ << ":" << (msg) << ":exit */ "; \
+        }                                                               \
+    } while(0)
+
+#define ENTER(stream) ENTERM(stream, "")
+#define EXIT(stream) EXITM(stream, "")
