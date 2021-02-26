@@ -1,6 +1,6 @@
 #pragma once
 
-#define MARK_REGIONS 1
+// #define MARK_REGIONS 1
 #ifdef MARK_REGIONS
 #define ENTER(stream) (stream) << " /* " << __FUNCTION__ << ":enter*/ "
 #define EXIT(stream)  (stream) << " /* " << __FUNCTION__ << ":exit*/ "
