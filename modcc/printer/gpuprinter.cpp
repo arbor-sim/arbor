@@ -69,7 +69,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
 
     out <<
-        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n";
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
