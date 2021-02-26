@@ -1,13 +1,9 @@
 #pragma once
 
-// Base class for parameter packs for GPU generated kernels:
-// will be included by .cu generated sources.
-
 #include <arbor/mechanism.hpp>
 #include <arbor/fvm_types.hpp>
 
 namespace arb {
-namespace gpu {
 
 // Parameter pack base:
 struct mechanism_ppack_base {
@@ -31,5 +27,4 @@ struct mechanism_ppack_base {
     const fvm_value_type* weight_;
 };
 
-} // namespace gpu
 } // namespace arb

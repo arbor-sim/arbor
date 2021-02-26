@@ -10,10 +10,10 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism.hpp>
+#include <arbor/mechanism_ppack_base.hpp>
 
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/multicore_common.hpp"
-#include "backends/multicore/mechanism_ppack_base.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
 
 namespace arb {

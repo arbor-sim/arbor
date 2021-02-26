@@ -64,13 +64,14 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // Assign non-owning views onto shared state:
     auto pp = ppack_ptr();
 
-    pp->vec_ci_   = shared.cv_to_cell.data();
-    pp->vec_di_   = shared.cv_to_intdom.data();
-    pp->vec_dt_   = shared.dt_cv.data();
+    pp->width_  = width_;
+    pp->vec_ci_ = shared.cv_to_cell.data();
+    pp->vec_di_ = shared.cv_to_intdom.data();
+    pp->vec_dt_ = shared.dt_cv.data();
 
-    pp->vec_v_    = shared.voltage.data();
-    pp->vec_i_    = shared.current_density.data();
-    pp->vec_g_    = shared.conductivity.data();
+    pp->vec_v_  = shared.voltage.data();
+    pp->vec_i_  = shared.current_density.data();
+    pp->vec_g_  = shared.conductivity.data();
 
     pp->temperature_degC_ = shared.temperature_degC.data();
     pp->diam_um_  = shared.diam_um.data();

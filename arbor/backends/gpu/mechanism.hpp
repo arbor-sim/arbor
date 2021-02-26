@@ -10,10 +10,10 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism.hpp>
+#include <arbor/mechanism_ppack_base.hpp>
 
 #include "backends/gpu/fvm.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
-#include "backends/gpu/mechanism_ppack_base.hpp"
 
 namespace arb {
 namespace gpu {
