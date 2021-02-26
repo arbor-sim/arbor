@@ -152,7 +152,7 @@ void mechanism::instantiate(unsigned id,
 
     auto base_ptr = indices_.data();
 
-    auto append_chunk = [](const auto& input, auto& base_ptr, auto& output) {
+    auto append_chunk = [&](const auto& input, auto& base_ptr, auto& output) {
         memory::copy(make_const_view(input), device_view(base_ptr, width_));
         output = base_ptr;
         base_ptr += width_padded_;
