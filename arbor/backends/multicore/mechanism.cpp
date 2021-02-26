@@ -142,12 +142,16 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         indices_ = iarray(count*width_padded_, 0, pad);
         auto base_ptr = indices_.data();
 
-        // Setup node indices
-        auto node_index = make_range(base_ptr, base_ptr + width_padded_);
-        copy_extend(pos_data.cv, node_index, pos_data.cv.back());
-        pp->node_index_ = base_ptr;
-        base_ptr += width_padded_;
+        auto append_chunk = [&](const auto& input, auto& output, const auto& pad) {
+            copy_extend(input, make_range(base_ptr, base_ptr + width_padded_), pad);
+            output = base_ptr;
+            base_ptr += width_padded_;
+        };
 
+        // Setup node indices
+        append_chunk(pos_data.cv, pp->node_index_, pos_data.cv.back());
+
+        auto node_index = make_range(pp->node_index_, pp->node_index_ + width_padded_);
         index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
 
         // Create ion indices
@@ -158,26 +162,18 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             if (!oion) {
                 throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
             }
-
-            // Set the table entry, step offset to next location
-            *ion_index_ptr = base_ptr;
-            base_ptr += width_padded_;
-
             // Obtain index and move data
-            auto indices   = util::index_into(node_index, oion->node_index_);
-            auto ion_index = make_range(*ion_index_ptr, *ion_index_ptr + width_padded_);
-            copy_extend(indices, ion_index, util::back(indices));
+            auto indices = util::index_into(node_index, oion->node_index_);
+            append_chunk(indices, *ion_index_ptr, util::back(indices));
 
             // Check SIMD constraints
+            auto ion_index = make_range(*ion_index_ptr, *ion_index_ptr + width_padded_);
             arb_assert(compatible_index_constraints(node_index, ion_index, simd_width()));
         }
 
         if (mult_in_place_) {
-            copy_extend(pos_data.multiplicity, make_range(base_ptr, base_ptr + width_padded_), 0);
-            pp->multiplicity_ = base_ptr;
-            base_ptr += width_padded_;
+            append_chunk(pos_data.multiplicity, pp->multiplicity_, 0);
         }
-
     }
 }
 
