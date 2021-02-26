@@ -152,17 +152,13 @@ void mechanism::instantiate(unsigned id,
 
     auto base_ptr = indices_.data();
 
-    auto append_chunk = [&](const auto& input, auto& base_ptr, auto& output) {
+    auto append_chunk = [&](const auto& input, auto& output) {
         memory::copy(make_const_view(input), device_view(base_ptr, width_));
         output = base_ptr;
         base_ptr += width_padded_;
     };
 
-    append_chunk(pos_data.cv, base_ptr, pp->node_index);
-
-    // memory::copy(make_const_view(pos_data.cv), device_view(base_ptr, width_));
-    // pp->node_index_ = base_ptr;
-    // base_ptr += width_padded_;
+    append_chunk(pos_data.cv, pp->node_index);
 
     auto ion_index_tbl = ion_index_table();
     arb_assert(num_ions_==ion_index_tbl.size());
@@ -181,15 +177,11 @@ void mechanism::instantiate(unsigned id,
         std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
 
         // Take reference to derived (generated) mechanism ion index pointer.
-        memory::copy(make_const_view(mech_ion_index), device_view(base_ptr, width_));
-        *ion_ptr = base_ptr;
-        base_ptr += width_padded_;
+        append_chunk(mech_ion_index, *ion_ptr);
     }
 
     if (mult_in_place_) {
-        memory::copy(make_const_view(pos_data.multiplicity), device_view(base_ptr, width_));
-        pp->multiplicity_ = base_ptr;
-        base_ptr += width_padded_; // Theoretically redundant, but for consistency
+        append_chunk(pos_data.multiplicity, pp->multiplicity);
     }
 }
 
