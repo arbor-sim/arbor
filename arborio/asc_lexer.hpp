@@ -54,7 +54,7 @@ public:
     lexer(const char* begin);
 
     const token& current();
-    const token& next();
+    const token& next(unsigned n=1);
     token peek(unsigned n=1);
 
     ~lexer();

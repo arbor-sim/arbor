@@ -10,8 +10,251 @@
 #include "../gtest.h"
 
 TEST(asc, parse) {
-    auto y = arborio::load_asc("/home/bcumming/software/github/arbor/test/unit/neurolucida/01bc.asc");
-    auto z = arborio::load_asc("/home/bcumming/software/github/arbor/test/unit/neurolucida/pair-140514-C2-1_split_1.asc");
-    auto a = arborio::load_asc("/home/bcumming/software/github/arbor/test/unit/neurolucida/soma_10c.asc");
-    auto b = arborio::load_asc("/home/bcumming/software/github/arbor/test/unit/neurolucida/stellate.asc");
+    for (auto& f: {
+            "xy.asc",
+            //"01bc.asc",
+            //"pair-140514-C2-1_split_1.asc",
+            //"soma_10c.asc",
+            //"stellate.asc"
+            })
+    {
+        std::string fname = "/home/bcumming/software/github/arbor/test/unit/neurolucida/" + std::string(f);
+        std::cout << "\nFILE " << fname << "\n"; auto y = arborio::load_asc(fname);
+    }
 }
+
+TEST(asc, asc_no_document) {
+    EXPECT_THROW(arborio::load_asc("this-file-does-not-exist.asc"), arborio::asc_no_document);
+}
+
+// Declare the implementation of the parser that takes a string input
+namespace arborio {
+asc_morphology parse_asc_string(const char* input);
+}
+
+// Test different forms of empty files.
+TEST(asc, empty_file) {
+    // A file with no contents at all.
+    {
+        const char* empty_file = "";
+        auto m = arborio::parse_asc_string(empty_file);
+        EXPECT_TRUE(m.morphology.empty());
+    }
+
+    // Inputs with header meta-data, but no sub-trees.
+    {
+        const char * input =
+" (Description \
+)  ;  End of description \
+(ImageCoords Filename \
+ \"C:\\local\\input.lsm\" \
+ Merge 65535 65535 65535 0 \
+ Coords 0.057299 0.057299 0 0 0 0.057299 0.057299 0 0 -0.360149 0.057299 \
+ 0.057299 0 0 -0.720299 0.057299 0.057299 0 0 -1.080448 0.057299 0.057299 0 0 \
+ -1.440598 0.057299 0.057299 0 0 -1.800747 0.057299 0.057299 0 0 -2.160896 \
+) ; End of ImageCoord";
+        auto m = arborio::parse_asc_string(input);
+        EXPECT_TRUE(m.morphology.empty());
+    }
+}
+
+// Morphologies with only the CellBody
+TEST(asc, only_cell_body) {
+    { // CellBody with no samples: should be an error.
+        const char* input = "((CellBody))";
+        EXPECT_THROW(arborio::parse_asc_string(input), arborio::asc_parse_error);
+    }
+
+    { // CellBody with a single sample defining the center and radius of a sphere.
+        const char* input = "((CellBody) (0 0 1 2))";
+        auto m = arborio::parse_asc_string(input);
+
+        // Soma is a cylinder composed of two cylinders attached to the root.
+        EXPECT_EQ(m.morphology.num_branches(), 2u);
+
+        auto& segs1 = m.morphology.branch_segments(0);
+        EXPECT_EQ(segs1.size(), 1u);
+        EXPECT_EQ(segs1[0].prox, (arb::mpoint{0., 0., 1., 2.}));
+        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0., 0., -1., 2.}));
+
+        auto& segs2 = m.morphology.branch_segments(1);
+        EXPECT_EQ(segs2.size(), 1u);
+        EXPECT_EQ(segs2[0].prox, (arb::mpoint{0., 0., 1., 2.}));
+        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 0., 3., 2.}));
+    }
+
+
+    { // CellBody with a circular contour defined by 4 points
+        const char* input = "((CellBody) (-2 0 1 0) (0 2 1 0) (2 0 1 0) (0 -2 1 0))";
+        auto m = arborio::parse_asc_string(input);
+
+        // Soma is a cylinder composed of two cylinders attached to the root.
+        EXPECT_EQ(m.morphology.num_branches(), 2u);
+
+        auto& segs1 = m.morphology.branch_segments(0);
+        EXPECT_EQ(segs1.size(), 1u);
+        EXPECT_EQ(segs1[0].prox, (arb::mpoint{0., 0., 1., 2.}));
+        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0., 0., -1., 2.}));
+
+        auto& segs2 = m.morphology.branch_segments(1);
+        EXPECT_EQ(segs2.size(), 1u);
+        EXPECT_EQ(segs2[0].prox, (arb::mpoint{0., 0., 1., 2.}));
+        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 0., 3., 2.}));
+    }
+
+    { // Cell with two CellBodys: unsupported feature ATM.
+        const char* input =
+"((CellBody)\
+  (-2 0 1 0)\
+  (0 2 1 0))\
+ ((CellBody)\
+  (-2 0 3 0)\
+  (0 2 3 0))";
+        EXPECT_THROW(arborio::parse_asc_string(input), arborio::asc_unsupported);
+    }
+}
+
+// Test parsing of basic meta data that can be added to the start of a 
+// This information is discarded and not used for building the morphology,
+// however it is still required that it should be parsed, and throw an error
+// if ill-formed or unexpected meta-data is encountered.
+TEST(asc, sub_tree_meta) {
+    {   // String 
+        const char * input = "(\"Soma\" (CellBody) (237.86 -189.71 -6.49 0.06))";
+        auto m = arborio::parse_asc_string(input);
+        EXPECT_EQ(m.morphology.num_branches(), 2u);
+    }
+
+    {  // Named color
+        const char * input = "((Color Red) (CellBody) (237.86 -189.71 -6.49 0.06))";
+        auto m = arborio::parse_asc_string(input);
+        EXPECT_EQ(m.morphology.num_branches(), 2u);
+    }
+
+    {   // RGB color
+        const char * input = "((Color RGB(128, 128, 96)) (CellBody) (237.86 -189.71 -6.49 0.06))";
+        auto m = arborio::parse_asc_string(input);
+        EXPECT_EQ(m.morphology.num_branches(), 2u);
+    }
+
+    {   // badly formatted RGB color: missing comma
+        const char * input = "((Color RGB(128  128, 96)) (CellBody) (237.86 -189.71 -6.49 0.06))";
+        EXPECT_THROW(arborio::parse_asc_string(input), arborio::asc_parse_error);
+    }
+
+    {   // badly formatted RGB color: out of range triple value
+        const char * input = "((Color RGB(128,  128, 256)) (CellBody) (237.86 -189.71 -6.49 0.06))";
+        EXPECT_THROW(arborio::parse_asc_string(input), arborio::asc_parse_error);
+    }
+}
+
+TEST(asc, branching) {
+    {
+        // Soma composed of 2 branches, and stick and fork dendrite composed of 3 branches.
+        const char* input =
+"((CellBody)\
+ (0 0 0 2)\
+)\
+((Dendrite)\
+ (0 2 0 1)\
+ (0 5 0 1)\
+ (\
+  (-5 5 0 1)\
+  |\
+  (6 5 0 1)\
+ )\
+ )";
+        auto result = arborio::parse_asc_string(input);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 5u);
+        EXPECT_EQ(m.branch_children(0).size(), 0u);
+        EXPECT_EQ(m.branch_children(1).size(), 0u);
+        EXPECT_EQ(m.branch_children(2).size(), 2u);
+        EXPECT_EQ(m.branch_children(2)[0], 3u);
+        EXPECT_EQ(m.branch_children(2)[1], 4u);
+        EXPECT_EQ(m.branch_children(3).size(), 0u);
+        EXPECT_EQ(m.branch_children(4).size(), 0u);
+    }
+    {
+        // Soma composed of 2 branches, and a dendrite with a bit more interesting branching.
+        const char* input =
+"((CellBody)\
+ (0 0 0 2)\
+)\
+((Dendrite)\
+ (0 2 0 1)\
+ (0 5 0 1)\
+ (\
+  (-5 5 0 1)\
+  (\
+   (-5 5 0 1)\
+   |\
+   (6 5 0 1)\
+  )\
+  |\
+  (6 5 0 1)\
+ )\
+ )";
+        auto result = arborio::parse_asc_string(input);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 7u);
+        EXPECT_EQ(m.branch_children(0).size(), 0u);
+        EXPECT_EQ(m.branch_children(1).size(), 0u);
+        EXPECT_EQ(m.branch_children(2).size(), 2u);
+        EXPECT_EQ(m.branch_children(2)[0], 3u);
+        EXPECT_EQ(m.branch_children(2)[1], 6u);
+        EXPECT_EQ(m.branch_children(3).size(), 2u);
+        EXPECT_EQ(m.branch_children(3)[0], 4u);
+        EXPECT_EQ(m.branch_children(3)[1], 5u);
+        EXPECT_EQ(m.branch_children(4).size(), 0u);
+        EXPECT_EQ(m.branch_children(5).size(), 0u);
+        EXPECT_EQ(m.branch_children(6).size(), 0u);
+    }
+    {
+        // Soma composed of 2 branches, and stick and fork dendrite and axon
+        // composed of 3 branches each.
+        const char* input =
+"((CellBody)\
+ (0 0 0 2)\
+)\
+((Dendrite)\
+ (0 2 0 1)\
+ (0 5 0 1)\
+ (\
+  (-5 5 0 1)\
+  |\
+  (6 5 0 1)\
+ )\
+)\
+((Axon)\
+ (0 -2 0 1)\
+ (0 -5 0 1)\
+ (\
+  (-5 -5 0 1)\
+  |\
+  (6 -5 0 1)\
+ )\
+)";
+        auto result = arborio::parse_asc_string(input);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 8u);
+        EXPECT_EQ(m.branch_children(0).size(), 0u);
+        EXPECT_EQ(m.branch_children(1).size(), 0u);
+        EXPECT_EQ(m.branch_children(2).size(), 2u);
+        EXPECT_EQ(m.branch_children(2)[0], 3u);
+        EXPECT_EQ(m.branch_children(2)[1], 4u);
+        EXPECT_EQ(m.branch_children(3).size(), 0u);
+        EXPECT_EQ(m.branch_children(4).size(), 0u);
+        EXPECT_EQ(m.branch_children(5).size(), 2u);
+        EXPECT_EQ(m.branch_children(5)[0], 6u);
+        EXPECT_EQ(m.branch_children(5)[1], 7u);
+        EXPECT_EQ(m.branch_children(6).size(), 0u);
+        EXPECT_EQ(m.branch_children(7).size(), 0u);
+    }
+
+}
+
+/*
+("Soma" (Color Red) (CellBody) (  237.86  -189.71    -6.49     0.06) )
+*/
+

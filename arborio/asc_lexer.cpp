@@ -8,22 +8,6 @@ namespace arborio {
 
 namespace asc {
 
-    /*
-enum class tok {
-  lparen,     //  lparen,     // left parenthesis '('             
-  rparen,     //  rparen,     // right parenthesis ')'
-  lt,         //  lt,         // less than '<'
-  gt,         //  gt,         // less than '>'
-  comma,      //  comma,      // comma ','
-  real,       //  real,       // real number
-  integer,    //  integer,    // integer
-  symbol,     //  symbol,     // symbol
-  string,     //  string,     // string, written as "spelling"
-  pipe,       //  eof,        // end of file/input
-  eof,        //  error       // special error state marker
-};error       //
-    */
-
 std::ostream& operator<<(std::ostream& o, const tok& t) {
     switch (t) {
         case tok::lparen:
@@ -59,7 +43,10 @@ std::ostream& operator<<(std::ostream& o, const src_location& l) {
 }
 
 std::ostream& operator<<(std::ostream& o, const token& t) {
-    return o << "(token " << t.kind << " \"" << t.spelling << "\" " << t.loc << ")";
+    const char* spelling = t.spelling.c_str();
+    if      (t.kind==tok::eof)   spelling = "\\0";
+    else if (t.kind==tok::error) spelling = "";
+    return o << "(token " << t.kind << " \"" << spelling << "\" " << t.loc << ")";
 }
 
 inline bool is_alphanumeric(char c) {
@@ -111,8 +98,8 @@ public:
         return token_;
     }
 
-    const token& next() {
-        parse();
+    const token& next(unsigned n=1) {
+        while (n--) parse();
         return token_;
     }
 
@@ -124,7 +111,7 @@ public:
         auto t  = token_;
 
         // Advance n tokens.
-        while (n--) next();
+        next(n);
 
         // Restore state.
         std::swap(t, token_);
@@ -288,8 +275,7 @@ private:
 
         // Assert that current position is at the start of an identifier
         if( !(std::isalpha(c)) ) {
-            throw asc_parse_error(
-                "Lexer attempting to read identifier when none is available", loc().line);
+            throw asc_parse_error("Lexer attempting to read identifier when none is available", loc().line, loc().column);
         }
 
         symbol += c;
@@ -320,7 +306,7 @@ private:
         using namespace std::string_literals;
         if (*stream_ != '"') {
             asc_parse_error(
-                "attempting to read string without opening \"", loc().line);
+                "attempting to read string without opening \"", loc().line, loc().column);
         }
 
         auto start = loc();
@@ -406,8 +392,8 @@ const token& lexer::current() {
     return impl_->current();
 }
 
-const token& lexer::next() {
-    return impl_->next();
+const token& lexer::next(unsigned n) {
+    return impl_->next(n);
 }
 
 token lexer::peek(unsigned n) {
