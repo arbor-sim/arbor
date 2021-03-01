@@ -1052,7 +1052,7 @@ void run_total_current_probe_test(const context& ctx) {
     // at the fork points, and once with a non-trivial CV centred on the fork
     // point.
 
-    trace_data<std::vector<double>, mcable_list> traces[2]; 
+    trace_data<std::vector<double>, mcable_list> traces[2];
     trace_data<std::vector<double>, mcable_list> ion_traces[2];
     trace_data<std::vector<double>, mcable_list> stim_traces[2];
 

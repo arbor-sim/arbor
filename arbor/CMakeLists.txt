@@ -9,7 +9,6 @@ set(arbor_sources
     communication/communicator.cpp
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
-    builtin_mechanisms.cpp
     cable_cell.cpp
     cable_cell_param.cpp
     cell_group_factory.cpp

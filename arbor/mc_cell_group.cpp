@@ -266,8 +266,10 @@ void run_samples(
 
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
+        const auto* raw_a = raw_samples + offset;
+        const auto* raw_b = raw_a + n_interp_per_sample;
         for (sample_size_type i = 0; i<n_interp_per_sample; ++i) {
-            tmp.push_back(raw_samples[offset+i]*p.coef[0][i]+raw_samples[offset+n_interp_per_sample+i]*p.coef[1][i]);
+            tmp.push_back(raw_a[i]*p.coef[0][i]+raw_b[i]*p.coef[1][i]);
         }
     }
 

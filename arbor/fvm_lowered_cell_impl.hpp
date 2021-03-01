@@ -23,7 +23,6 @@
 #include <arbor/recipe.hpp>
 #include <arbor/util/any_visitor.hpp>
 
-#include "builtin_mechanisms.hpp"
 #include "execution_context.hpp"
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
@@ -437,8 +436,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Mechanism instantiator helper.
     auto mech_instance = [&catalogue](const std::string& name) {
-        auto cat = builtin_mechanisms().has(name)? &builtin_mechanisms(): catalogue;
-        return cat->instance<backend>(name);
+        return catalogue->instance<backend>(name);
     };
 
     // Check for physically reasonable membrane volages?
@@ -960,7 +958,6 @@ void resolve_probe(const cable_probe_stimulus_current_cell& p, probe_resolution_
     r.shrink_to_fit();
     R.result.push_back(std::move(r));
 }
-
 
 template <typename B>
 void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>& R) {

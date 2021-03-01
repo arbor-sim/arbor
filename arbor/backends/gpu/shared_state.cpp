@@ -137,7 +137,8 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
     ppack_.envl_divs = envl_divs_.data();
     ppack_.accu_stim = accu_stim_.data();
     ppack_.envl_index = envl_index_.data();
-    ppack_.time = nullptr; // These fields must be set in add_current() before queing kernel.
+    // The following ppack fields must be set in add_current() before queuing kernel.
+    ppack_.time = nullptr;
     ppack_.cv_to_intdom = nullptr;
     ppack_.current_density = nullptr;
 }

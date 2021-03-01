@@ -287,12 +287,17 @@ See :ref:`modelgapjunctions`.
 4. Stimuli
 ~~~~~~~~~~
 
-A current stimulus is described by a *frequency* in Hertz and an amplitude *envelope*.
-The envelope is specified by a sequence of points (*t*\ :sub:`i`\ , *a*\ :sub:`i`\ ), where the
-stimulus starts at *t*\ :sub:`0` ms with amplitude *a*\ :sub:`0` nA, and the amplitude
+A current stimulus is a DC or sinusoidal current of fixed frequemcy with a time-varying amplitude
+governed by a piecewise-linear envelope.
+
+The stimulus is described by two parameters: a frequency in Hertz, where a value of zero denotes DC;
+and a sequence of points (*t*\ :sub:`i`\ , *a*\ :sub:`i`\ ) describing the envelope, where the times
+*t*\ :sub:`i` are in milliseconds and the amplitudes *a*\ :sub:`i` are in nanoamperes.
+
+The stimulus starts at the first timepoint *t*\ :sub:`0` with amplitude *a*\ :sub:`0`, and the amplitude
 is then interpolated linearly between successive points. The last envelope point
 (*t*\ :sub:`n`\ , *a*\ :sub:`n`\ ) describes a constant amplitude *a*\ :sub:`n` from
-the time *t*\ :sub:`n` onwards. A frequency value of 0 is used to denote a non-oscillating stimulus.
+the time *t*\ :sub:`n` onwards.
 
 Stimulus objects in the C++ and Python interfaces have simple constructors for describing
 constant stimuli and constant amplitude stimuli restricted to a fixed time interval.
@@ -302,11 +307,16 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
     # Constant stimulus, amplitude 10 nA.
     decor.place('(root)', arbor.iclamp(10))
 
-    # Constant ampltidude 10 nA stimulus at 20 Hz.
+    # Constant amplitude 10 nA stimulus at 20 Hz.
     decor.place('(root)', arbor.iclamp(10, 20))
 
     # Stimulus at 20 Hz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
     decor.place('(root)', arbor.iclamp(30, 40, 10, 20))
+
+    # Piecewise linear stimulus with amplitude ranging from 0 nA to 10 nA,
+    # starting at t = 30 ms and stopping at t = 50 ms.
+    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)])
+
 
 .. _cablecell-probes:
 
