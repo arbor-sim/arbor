@@ -241,7 +241,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "\n";
     }
 
-    out << "struct " << ppack_name << ": public ::arb::mechanism_ppack_base {\n" << indent;
+    out << "struct " << ppack_name << ": public ::arb::mechanism_ppack {\n" << indent;
     for (const auto& scalar: vars.scalars) {
         out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
@@ -284,7 +284,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "\n" << popindent <<
         "protected:\n" << indent <<
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n" <<
-        "virtual ::arb::mechanism_ppack_base* ppack_ptr() override { return &pp_; }\n";
+        "virtual ::arb::mechanism_ppack* ppack_ptr() override { return &pp_; }\n";
 
     io::separator sep("\n", ",\n");
     if (!vars.scalars.empty()) {

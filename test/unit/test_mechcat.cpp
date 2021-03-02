@@ -91,7 +91,7 @@ struct common_impl: concrete_mechanism<B> {
     std::unordered_map<std::string, std::string> ion_bindings_;
 
 protected:
-    mechanism_ppack_base* ppack_ptr() override { return nullptr; }
+    mechanism_ppack* ppack_ptr() override { return nullptr; }
 };
 
 template <typename B>

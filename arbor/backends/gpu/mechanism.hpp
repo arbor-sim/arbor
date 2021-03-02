@@ -22,9 +22,9 @@ namespace gpu {
 class mechanism: public arb::concrete_mechanism<arb::gpu::backend> {
 public:
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
+    void initialize() override;
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
     fvm_value_type* field_data(const std::string& state_var) override;
-    void initialize() override;
 };
 
 } // namespace gpu

@@ -1,7 +1,7 @@
 #include <cmath>
 
 #include <arbor/fvm_types.hpp>
-#include <arbor/mechanism_ppack_base.hpp>
+#include <arbor/mechanism_ppack.hpp>
 
 #include "backends/builtin_mech_proto.hpp"
 #include "backends/multicore/mechanism.hpp"
@@ -10,7 +10,7 @@
 namespace arb {
 namespace multicore {
 
-struct stimulus_pp: ::arb::mechanism_ppack_base {
+struct stimulus_pp: ::arb::mechanism_ppack {
     fvm_value_type* delay;
     fvm_value_type* duration;
     fvm_value_type* amplitude;
@@ -45,7 +45,7 @@ public:
 
 protected:
     std::size_t object_sizeof() const override { return sizeof(*this); }
-    virtual mechanism_ppack_base* ppack_ptr() override { return &pp_; }
+    virtual mechanism_ppack* ppack_ptr() override { return &pp_; }
 
     mechanism_field_table field_table() override {
         return {

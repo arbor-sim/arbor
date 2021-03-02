@@ -6,7 +6,7 @@
 
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechinfo.hpp>
-#include <arbor/mechanism_ppack_base.hpp>
+#include <arbor/mechanism_ppack.hpp>
 
 namespace arb {
 
@@ -180,7 +180,7 @@ protected:
     // * pointer to mechanism node indices `node_index_`,
     // * mechanism global scalars and pointers to mechanism range parameters.
     // * mechanism ion_state_view objects and pointers to mechanism ion indices.
-    virtual mechanism_ppack_base* ppack_ptr() = 0;
+    virtual mechanism_ppack* ppack_ptr() = 0;
 
     // to be overridden in mechanism implemetations
     virtual void advance_state() {};

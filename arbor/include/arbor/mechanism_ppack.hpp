@@ -3,7 +3,7 @@
 #include <arbor/fvm_types.hpp>
 
 namespace arb {
-struct mechanism_ppack_base {
+struct mechanism_ppack {
     fvm_index_type width_;
     fvm_index_type n_detectors_;
     const fvm_index_type* vec_ci_;

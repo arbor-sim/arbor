@@ -1,12 +1,4 @@
-#include <iostream>
-
-#include <arbor/mechanism_ppack_base.hpp>
-
-#include <backends/event.hpp>
-#include <backends/multi_event_stream_state.hpp>
-#include <backends/gpu/gpu_common.hpp>
-#include <backends/gpu/math_cu.hpp>
-#include <backends/gpu/reduce_by_key.hpp>
+#include <arbor/fvm_types.hpp>
 
 namespace arb {
 namespace gpu {
