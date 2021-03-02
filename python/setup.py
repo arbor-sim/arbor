@@ -9,7 +9,7 @@ setuptools.setup(
     name='arbor',
     packages=['arbor'],
     version=version_,
-    author='CSCS and FSJ',
+    author='CSCS and FZJ',
     url='https://github.com/arbor-sim/arbor',
     description='High performance simulation of networks of multicompartment neurons.',
     long_description='',

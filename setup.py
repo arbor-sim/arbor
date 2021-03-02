@@ -5,8 +5,14 @@ import pathlib
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
-from wheel.bdist_wheel import bdist_wheel
 import subprocess
+try:
+    from wheel.bdist_wheel import bdist_wheel
+    WHEEL_INSTALLED = True
+except:
+    #wheel package not installed.
+    WHEEL_INSTALLED = False
+    pass
 
 # Singleton class that holds the settings configured using command line
 # options. This information has to be stored in a singleton so that it
@@ -91,48 +97,48 @@ class install_command(install):
 
         install.run(self)
 
-#https://wheel.readthedocs.io/en/stable/
-class bdist_wheel_command(bdist_wheel):
-    user_options = bdist_wheel.user_options + [
-        ('mpi',   None, 'enable mpi support (requires MPI library)'),
-        ('gpu=',  None, 'enable nvidia cuda support (requires cudaruntime and nvcc) or amd hip support. Supported values: '
-                        'none, cuda, cuda-clang, hip'),
-        ('vec',   None, 'enable vectorization'),
-        ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
-        ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (requires libxml)'),
-        ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.')
-    ]
+if not WHEEL_INSTALLED:
+    class bdist_wheel_command(bdist_wheel):
+        user_options = bdist_wheel.user_options + [
+            ('mpi',   None, 'enable mpi support (requires MPI library)'),
+            ('gpu=',  None, 'enable nvidia cuda support (requires cudaruntime and nvcc) or amd hip support. Supported values: '
+                            'none, cuda, cuda-clang, hip'),
+            ('vec',   None, 'enable vectorization'),
+            ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
+            ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (requires libxml)'),
+            ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.')
+        ]
 
-    def initialize_options(self):
-        bdist_wheel.initialize_options(self)
-        self.mpi  = None
-        self.gpu  = None
-        self.arch = None
-        self.vec  = None
-        self.neuroml = None
-        self.sysdeps = None
+        def initialize_options(self):
+            bdist_wheel.initialize_options(self)
+            self.mpi  = None
+            self.gpu  = None
+            self.arch = None
+            self.vec  = None
+            self.neuroml = None
+            self.sysdeps = None
 
-    def finalize_options(self):
-        bdist_wheel.finalize_options(self)
+        def finalize_options(self):
+            bdist_wheel.finalize_options(self)
 
-    def run(self):
-        # The options are stored in global variables:
-        opt = cl_opt()
-        #   mpi  : build with MPI support (boolean).
-        opt['mpi']  = self.mpi is not None
-        #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
-        opt['gpu']  = "none" if self.gpu is None else self.gpu
-        #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
-        opt['vec']  = self.vec is not None
-        #   arch : target CPU micro-architecture (string).
-        opt['arch'] = "native" if self.arch is None else self.arch
-        #   neuroml : compile with neuroml support for morphologies.
-        opt['neuroml'] = self.neuroml is not None
-        #   bundled : use bundled/git-submoduled 3rd party libraries.
-        #             By default use bundled libs.
-        opt['bundled'] = self.sysdeps is None
+        def run(self):
+            # The options are stored in global variables:
+            opt = cl_opt()
+            #   mpi  : build with MPI support (boolean).
+            opt['mpi']  = self.mpi is not None
+            #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
+            opt['gpu']  = "none" if self.gpu is None else self.gpu
+            #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
+            opt['vec']  = self.vec is not None
+            #   arch : target CPU micro-architecture (string).
+            opt['arch'] = "native" if self.arch is None else self.arch
+            #   neuroml : compile with neuroml support for morphologies.
+            opt['neuroml'] = self.neuroml is not None
+            #   bundled : use bundled/git-submoduled 3rd party libraries.
+            #             By default use bundled libs.
+            opt['bundled'] = self.sysdeps is None
 
-        bdist_wheel.run(self)
+            bdist_wheel.run(self)
 
 class cmake_extension(Extension):
     def __init__(self, name):
@@ -210,6 +216,9 @@ setuptools.setup(
         'build_ext':   cmake_build,
         'install':     install_command,
         'bdist_wheel': bdist_wheel_command,
+    } if WHEEL_INSTALLED else {
+        'build_ext':   cmake_build,
+        'install':     install_command,
     },
 
     author='The Arbor dev team.',
