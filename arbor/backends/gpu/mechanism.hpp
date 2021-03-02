@@ -20,10 +20,6 @@ namespace gpu {
 // Base class for all generated mechanisms for gpu back-end.
 
 class mechanism: public arb::concrete_mechanism<arb::gpu::backend> {
-protected:
-    using array = arb::gpu::array;
-    using iarray = arb::gpu::iarray;
-
 public:
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;

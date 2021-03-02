@@ -21,10 +21,6 @@ namespace multicore {
 // Base class for all generated mechanisms for multicore back-end.
 
 class mechanism: public arb::concrete_mechanism<arb::multicore::backend> {
-protected:
-    using array  = arb::multicore::array;
-    using iarray = arb::multicore::iarray;
-
 public:
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void initialize() override;
