@@ -97,7 +97,7 @@ class install_command(install):
 
         install.run(self)
 
-if not WHEEL_INSTALLED:
+if WHEEL_INSTALLED:
     class bdist_wheel_command(bdist_wheel):
         user_options = bdist_wheel.user_options + [
             ('mpi',   None, 'enable mpi support (requires MPI library)'),
