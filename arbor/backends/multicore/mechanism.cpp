@@ -80,7 +80,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     pp->n_detectors_ = shared.n_detector;
 
     auto ion_state_tbl = ion_state_table();
-    n_ion_ = ion_state_tbl.size();
+    num_ions_ = ion_state_tbl.size();
     for (auto i: ion_state_tbl) {
         auto ion_binding = value_by_key(overrides.ion_rebind, i.first).value_or(i.first);
 

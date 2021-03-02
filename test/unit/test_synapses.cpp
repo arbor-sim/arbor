@@ -6,6 +6,8 @@
 
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/mechanism.hpp>
+#include <arbor/mechanism_ppack_base.hpp>
 #include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
@@ -25,7 +27,7 @@ using value_type = backend::value_type;
 using size_type = backend::size_type;
 
 // Access to more mechanism protected data:
-ACCESS_BIND(::arb::mechanism_ppack_base* (multicore::mechanism::*)(), pp_ptr, &multicore::mechanism::ppack_ptr)
+ACCESS_BIND(::arb::mechanism_ppack_base* (::arb::concrete_mechanism<backend>::*)(), pp_ptr, &::arb::concrete_mechanism<backend>::ppack_ptr);
 
 TEST(synapses, add_to_cell) {
     using namespace arb;

@@ -57,7 +57,7 @@ mechanism_info fleeb_info = {
 template <typename B>
 struct common_impl: concrete_mechanism<B> {
     void instantiate(fvm_size_type id, typename B::shared_state& state, const mechanism_overrides& o, const mechanism_layout& l) override {
-        width_ = l.cv.size();
+        this->width_ = l.cv.size();
         // Write mechanism global values to shared state to test instatiation call and catalogue global
         // variable overrides.
         for (auto& kv: o.globals) {
@@ -67,15 +67,13 @@ struct common_impl: concrete_mechanism<B> {
         for (auto& ion: mech_ions) {
             if (o.ion_rebind.count(ion)) {
                 ion_bindings_[ion] = state.ions.at(o.ion_rebind.at(ion));
-            }
-            else {
+            } else {
                 ion_bindings_[ion] = state.ions.at(ion);
             }
         }
     }
 
     std::size_t memory() const override { return 10u; }
-    std::size_t size() const override { return width_; }
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& vs) override {}
 
@@ -88,11 +86,12 @@ struct common_impl: concrete_mechanism<B> {
     void deliver_events() override {}
     void update_ions() override {}
 
-    std::size_t width_ = 0;
-
     std::vector<std::string> mech_ions;
 
     std::unordered_map<std::string, std::string> ion_bindings_;
+
+protected:
+    mechanism_ppack_base* ppack_ptr() override { return nullptr; }
 };
 
 template <typename B>
@@ -105,10 +104,13 @@ struct foo_stream_state {};
 
 struct foo_stream {
     using state = foo_stream_state;
+    state& marked_events() { return state_; }
+    state state_;
 };
 
 struct foo_backend {
     using iarray = std::vector<fvm_index_type>;
+    using array  = std::vector<fvm_value_type>;
     using deliverable_event_stream = foo_stream;
 
     struct shared_state {
@@ -130,10 +132,13 @@ struct bar_stream_state {};
 
 struct bar_stream {
     using state = bar_stream_state;
+    state& marked_events() { return state_; }
+    state state_;
 };
 
 struct bar_backend {
     using iarray = std::vector<fvm_index_type>;
+    using array  = std::vector<fvm_value_type>;
     using deliverable_event_stream = bar_stream;
     struct shared_state {
         std::unordered_map<std::string, fvm_value_type> overrides;
@@ -310,6 +315,7 @@ TEST(mechcat, names) {
     }
 }
 
+#define USE_DYNAMIC_CATALOGUES 1
 #ifdef USE_DYNAMIC_CATALOGUES
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
