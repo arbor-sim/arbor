@@ -22,7 +22,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      ##cibuildwheel setup. produces wheels already manylinux, so no auditwheel needed.
       - name: Build wheels Linux
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         uses: joerick/cibuildwheel@v1.9.0
@@ -75,43 +74,19 @@ jobs:
           name: dist
           path: dist/*.tar.gz
 
-  upload_test_pypi:
-    name: upload to test pypi
-    runs-on: ubuntu-latest
-    needs: [build_binary_wheels, build_sdist]
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: dist
-        #   path: path/to/artifact
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: path/to/artifact
-      - name: Publish distribution 📦 to Test PyPI
-        run: |
-          pip install twine
-          twine upload -r testpypi dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
-
-  upload_pypi:
-    name: upload to pypi
-    runs-on: ubuntu-latest
-    needs: [build_binary_wheels, build_sdist]
-    if: github.ref == 'refs/heads/master'
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: dist
-        #   path: path/to/artifact
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: path/to/artifact
-      - name: Publish distribution 📦 to PyPI
-        run: |
-          pip install twine
-          twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.ciwheel }}
+# TODO
+  # upload_test_pypi:
+  #   name: upload to test pypi
+  #   runs-on: ubuntu-latest
+  #   needs: [build_binary_wheels, build_sdist]
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: dist
+  #     - name: Publish distribution 📦 to Test PyPI
+  #       run: |
+  #         pip install twine
+  #         twine upload -r testpypi dist/*
+  #       env:
+  #         TWINE_USERNAME: __token__
+  #         TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
