@@ -83,8 +83,8 @@ class brunel_recipe (arbor.recipe):
         return cell
 
     def event_generators(self, gid):
-        t0 = arbor.explicit_schedule([0])
-        return [arbor.event_generator(arbor.cell_member(gid,0), self.weight_ext_, t0)]#, self.lambda_)]
+        t0 = arbor.poisson_schedule(0,self.lambda_,self.seed_)
+        return [arbor.event_generator(arbor.cell_member(gid,0), self.weight_ext_, t0)]
 
     def num_targets(self, gid):
         return 1
