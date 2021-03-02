@@ -242,6 +242,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/gpu_common.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/math_cu.hpp>\n"
+        "#include <arbor/mechanism.hpp>\n" <<
         "#include <arbor/mechanism_ppack.hpp>\n";
 
     is_point_proc && out <<
