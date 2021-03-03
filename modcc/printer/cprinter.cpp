@@ -301,7 +301,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "void net_receive(" << ppack_name << "* pp, int i_, ::arb::fvm_value_type " << weight_arg << ") {\n" << indent <<
             cprint(net_receive->body()) << popindent <<
             "}\n\n"
-            "void apply_events(" << ppack_name << "* pp, cell_local_size_type mechanism_id, ::arb::multicore::deliverable_event_stream::state events) {\n" << indent <<
+            "void apply_events(" << ppack_name << "* pp, fvm_size_type mechanism_id, ::arb::multicore::deliverable_event_stream::state events) {\n" << indent <<
             "auto ncell = events.n_streams();\n"
             "for (::arb::fvm_size_type c = 0; c<ncell; ++c) {\n" << indent <<
             "auto begin = events.begin_marked(c);\n"
@@ -323,7 +323,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "auto node_index_i_ = pp->node_index_[i_];\n"
             "auto cid_ = pp->vec_ci_[node_index_i_];\n"
             "auto offset_ = pp->n_detectors_ * cid_;\n"
-            "for (fvm_index_type c = 0; c < pp->n_detectors_; c++) {\n" << indent <<
+            "for (::arb::fvm_index_type c = 0; c < pp->n_detectors_; c++) {\n" << indent <<
             "auto " << time_arg << " = pp->time_since_spike_[offset_ + c];\n"
             "if (" <<  time_arg << " >= 0) {\n" << indent <<
             cprint(post_event->body()) << popindent <<
