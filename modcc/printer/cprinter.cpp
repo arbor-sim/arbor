@@ -538,7 +538,6 @@ void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::
 namespace {
     // Access through ppack
     std::string data_via_ppack(const indexed_variable_info& i) { return "pp->" + i.data_var; }
-    std::string node_index_name(const indexed_variable_info& i) { return "pp->" + i.node_index_var; }
     std::string node_index_i_name(const indexed_variable_info& i) { return i.node_index_var + "i_"; }
     std::string source_index_i_name(const index_prop& i) { return i.source_var + "i_"; }
     std::string source_var(const index_prop& i) { return "pp->" + i.source_var; }
