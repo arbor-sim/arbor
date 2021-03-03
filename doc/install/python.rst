@@ -136,7 +136,7 @@ below demonstrate this for both pip and ``setup.py``.
     :ref:`Python configuration <install-python>` section of the
     :ref:`installation guide <in_build_install>`.
     CMake is recommended for developers, integration with package managers such as
-    Spack and EasyBuild, and users who require fine grained control over compilation
+    Spack and EasyBuild, and expert users who require fine grained control over compilation
     and installation.
 
 Dependencies
