@@ -39,8 +39,8 @@ struct index_prop {
 };
 
 void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
-void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
-void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
+void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
+void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 
 void emit_api_body(std::ostream&, APIMethod*);
 void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
@@ -242,7 +242,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "\n";
     }
 
-    out << "struct " << ppack_name << ": public ::arb::mechanism_ppack {\n" << indent;
+    out << "struct " << ppack_name << ": public ::arb::multicore::mechanism_ppack {\n" << indent;
     for (const auto& scalar: vars.scalars) {
         out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
@@ -263,9 +263,9 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << "// procedure prototypes\n";
     for (auto proc: normal_procedures(module_)) {
         if (with_simd) {
-            emit_simd_procedure_proto(out, proc);
+            emit_simd_procedure_proto(out, proc, ppack_name);
             out << ";\n";
-            emit_masked_simd_procedure_proto(out, proc);
+            emit_masked_simd_procedure_proto(out, proc, ppack_name);
             out << ";\n";
         } else {
             emit_procedure_proto(out, proc, ppack_name);
@@ -337,11 +337,11 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << "// Procedure definitions\n";
     for (auto proc: normal_procedures(module_)) {
         if (with_simd) {
-            emit_simd_procedure_proto(out, proc, class_name);
+            emit_simd_procedure_proto(out, proc, ppack_name);
             auto simd_print = simdprint(proc->body(), vars.scalars);
             out << " {\n" << indent << simd_print << popindent <<  "}\n\n";
 
-            emit_masked_simd_procedure_proto(out, proc, class_name);
+            emit_masked_simd_procedure_proto(out, proc, ppack_name);
             auto masked_print = simdprint(proc->body(), vars.scalars);
             masked_print.set_masked();
             out << " {\n" << indent << masked_print << popindent << "}\n\n";
@@ -723,9 +723,9 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 void SimdPrinter::visit(CallExpression* e) {
     ENTERM(out_, "call");
     if(is_indirect_)
-        out_ << e->name() << "(index_";
+        out_ << e->name() << "(pp, index_";
     else
-        out_ << e->name() << "(i_";
+        out_ << e->name() << "(pp, i_";
     for (auto& arg: e->args()) {
         out_ << ", ";
         arg->accept(this);
@@ -760,9 +760,9 @@ void SimdPrinter::visit(BlockExpression* block) {
     EXITM(out_, "block");
 }
 
-void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
+void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(::arb::fvm_index_type i_";
+    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(" << ppack_name << "* pp, ::arb::fvm_index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -770,10 +770,10 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
     EXIT(out);
 }
 
-void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
+void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
-    << "(::arb::fvm_index_type i_, simd_mask mask_input_";
+    << "(" << ppack_name << "* pp, ::arb::fvm_index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -982,11 +982,11 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   std::string underlying_constraint_name) {
     ENTER(out);
     out << "constraint_category_ = index_constraint::"<< underlying_constraint_name << ";\n";
-    out << "for (unsigned i_ = 0; i_ < index_constraints_." << underlying_constraint_name
+    out << "for (unsigned i_ = 0; i_ < pp->index_constraints_." << underlying_constraint_name
         << ".size(); i_++) {\n"
         << indent;
 
-    out << "::arb::fvm_index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
+    out << "::arb::fvm_index_type index_ = pp->index_constraints_." << underlying_constraint_name << "[i_];\n";
     if (requires_weight) {
         out << "simd_value w_;\n"
             << "assign(w_, indirect((pp->weight_+index_), simd_width_));\n";
@@ -1076,7 +1076,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             }
 
             out <<
-                "unsigned n_ = width_;\n\n"
+                "unsigned n_ = pp->width_;\n\n"
                 "for (unsigned i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent <<
                 simdprint(body, scalars) << popindent <<
                 "}\n";
@@ -1084,4 +1084,3 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
     }
     EXIT(out);
 }
-

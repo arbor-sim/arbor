@@ -10,7 +10,7 @@
 namespace arb {
 namespace multicore {
 
-struct stimulus_pp: ::arb::mechanism_ppack {
+struct stimulus_pp: mechanism_ppack {
     fvm_value_type* delay;
     fvm_value_type* duration;
     fvm_value_type* amplitude;

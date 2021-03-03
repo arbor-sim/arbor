@@ -62,7 +62,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     width_ = pos_data.cv.size();
 
     // Assign non-owning views onto shared state:
-    auto pp = ppack_ptr();
+    auto pp = (arb::multicore::mechanism_ppack*) ppack_ptr();
 
     pp->width_  = width_;
     pp->vec_ci_ = shared.cv_to_cell.data();
@@ -152,7 +152,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         append_chunk(pos_data.cv, pp->node_index_, pos_data.cv.back());
 
         auto node_index = make_range(pp->node_index_, pp->node_index_ + width_padded_);
-        index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
+        pp->index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
 
         // Create ion indices
         for (const auto& [ion_name, ion_index_ptr]: table) {

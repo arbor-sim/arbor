@@ -226,7 +226,7 @@ std::string id_prefix(IdentifierExpression* id) {
         if (auto symbol = id->symbol()->is_symbol()) {
             if (auto var = symbol->is_variable()) {
                 if (!var->is_local_variable()) {
-                    return "pp.";
+                    return "pp->";
                 }
             }
         }

@@ -19,8 +19,12 @@
 namespace arb {
 namespace multicore {
 
-// Base class for all generated mechanisms for multicore back-end.
+// Parameter pack extended for multicore.
+struct mechanism_ppack: arb::mechanism_ppack {
+    constraint_partition index_constraints_;    // Per-mechanism index and weight data, excepting ion indices.
+};
 
+// Base class for all generated mechanisms for multicore back-end.
 class mechanism: public arb::concrete_mechanism<arb::multicore::backend> {
 public:
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
@@ -31,7 +35,6 @@ public:
 protected:
     virtual unsigned simd_width() const { return 1; }
     fvm_size_type width_padded_ = 0;            // Width rounded up to multiple of pad/alignment.
-    constraint_partition index_constraints_;    // Per-mechanism index and weight data, excepting ion indices.
 };
 
 } // namespace multicore
