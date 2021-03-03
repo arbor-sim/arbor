@@ -108,6 +108,11 @@ if(ARB_GPU STREQUAL "cuda")
         set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
     endif()
 
+    # This fixes nvcc picking up a wrong host compiler for linking, causing issues
+    # with outdated libraries, eg libstdc++ and std::filesystem. Must happend before
+    # all calls to enable_language(CUDA)
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+
     enable_language(CUDA)
 
     # Despite native CUDA support, the CUDA package is still required to export
