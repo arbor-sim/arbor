@@ -301,7 +301,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "void net_receive(" << ppack_name << "* pp, int i_, ::arb::fvm_value_type " << weight_arg << ") {\n" << indent <<
             cprint(net_receive->body()) << popindent <<
             "}\n\n"
-            "void apply_events(" << ppack_name << "* pp, fvm_size_type mechanism_id, ::arb::multicore::deliverable_event_stream::state events) {\n" << indent <<
+            "void apply_events(" << ppack_name << "* pp, ::arb::fvm_size_type mechanism_id, ::arb::multicore::deliverable_event_stream::state events) {\n" << indent <<
             "auto ncell = events.n_streams();\n"
             "for (::arb::fvm_size_type c = 0; c<ncell; ++c) {\n" << indent <<
             "auto begin = events.begin_marked(c);\n"
