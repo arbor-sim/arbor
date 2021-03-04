@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <arbor/morph/label_parse.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
 
@@ -8,6 +9,10 @@
 namespace arborio {
 
 using namespace arb;
+
+cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
+    arb::arbor_exception(msg+" at :"+std::to_string(loc.line)+":"+std::to_string(loc.column))
+{}
 
 inline arb::symbol operator"" _symbol(const char* chars, size_t size) {
     return {chars};
@@ -537,29 +542,35 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
             // An arbitrary symbol in a region/locset expression is an error, and is
             // often a result of not quoting a label correctly.
         case tok::symbol:
-            return util::unexpected(cableio_unexpected_symbol(e.atom().spelling, location(e)));
+            return util::unexpected(cableio_parse_error("Unexpected symbol "+e.atom().spelling, location(e)));
         case tok::error:
-            return util::unexpected(cableio_parse_error(e.atom().spelling, location(e)));
+            return util::unexpected(cableio_parse_error("Unexpected term "+e.atom().spelling, location(e)));
         default:
             return util::unexpected(cableio_parse_error("Unexpected term "+e.atom().spelling, location(e)));
         }
     }
     if (e.head().is_atom()) {
-        // If this is a string, it must be a parameter pair
+        // If this is a string, it must be a parameter pair of the form ("param" val)
+        // where val is a double or int
         if (e.head().atom().kind == tok::string) {
             auto args = eval_args(e.tail(), map);
             if (!args) {
                 return util::unexpected(args.error());
             }
-            if (args->size() != 1 || (!match<int>(args->front().type()) && !match<double>(args->front().type()))) {
-                return util::unexpected(cableio_parse_error("Parameter "+e.head().atom().spelling+" can only have an integer or real value.", location(e)));
+            if (args->size() != 1) {
+                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (\"param\" val). "
+                                                            "Got more than 1 val for param \"" + e.head().atom().spelling +"\".", location(e)));
+            }
+            if (!match<double>(args->front().type())) {
+                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (\"param\" val) where val is int or double"
+                                                            "Got a val with type other than int or double for param \"" + e.head().atom().spelling +"\".",location(e)));
             }
             return std::any{param_pair{e.head().atom().spelling, eval_cast<double>(args->front())}};
         };
-        // This must be a function evaluation, where head is the function name, and
-        // tail is a list of arguments.
 
-        // Evaluate the arguments, and return error state if an error ocurred.
+        // Otherwise this must be a function evaluation, where head is the function name,
+        // and tail is a list of arguments.
+        // Evaluate the arguments, and return error state if an error occurred.
         auto args = eval_args(e.tail(), map);
         if (!args) {
             return util::unexpected(args.error());
@@ -582,63 +593,93 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
             if (match<region>(l->type())) return eval_cast<region>(l.value());
             if (match<locset>(l->type())) return eval_cast<locset>(l.value());
         }
-        std::cout << e << std::endl;
-        return util::unexpected(cableio_parse_error("No matches for "+name, location(e)));
+
+        // Unable to find a match: try to return a helpful error message.
+        const auto nc = std::distance(matches.first, matches.second);
+        std::string msg = "No matches for found for "+name+" with "+std::to_string(args->size())+" arguments.\n"
+                          "There are "+std::to_string(nc)+" potential candiates"+(nc?":":".");
+        int count = 0;
+        for (auto i=matches.first; i!=matches.second; ++i) {
+            msg += "\n  Candidate "+std::to_string(++count)+": "+i->second.message;
+        }
+        return util::unexpected(cableio_parse_error(msg, location(e)));
     }
-    return util::unexpected(cableio_parse_error("expression is neither integer, real expression of the form (op <args>)", location(e)));
+    return util::unexpected(cableio_parse_error("Expression is neither integer, real expression of the form (op <args>) or (\"param\", val)", location(e)));
 }
 
+eval_map map{
+    {"membrane-potential", make_call<double>(make_init_membrane_potential,
+                               "'membrane-potential' with 1 argument (val:real)")},
+    {"temperature-kelvin", make_call<double>(make_temperature_K,
+                               "'temperature-kelvin' with 1 argument (val:real)")},
+    {"axial-resistivity", make_call<double>(make_axial_resistivity,
+                              "'axial-resistivity' with 1 argument (val:real)")},
+    {"membrane-capacitance", make_call<double>(make_membrane_capacitance,
+                                 "'membrane-capacitance' with 1 argument (val:real)")},
+    {"ion-internal-concentration", make_call<std::string, double>(make_init_int_concentration,
+                                       "'ion_internal_concentration' with 2 arguments (ion:string val:real)")},
+    {"ion-external-concentration", make_call<std::string, double>(make_init_ext_concentration,
+                                       "'ion_external_concentration' with 2 arguments (ion:string val:real)")},
+    {"ion-reversal-potential", make_call<std::string, double>(make_init_reversal_potential,
+                                   "'ion_reversal_potential' with 2 arguments (ion:string val:real)")},
+    {"current-clamp", make_call<double, double, double>(make_i_clamp,
+                          "'current-clamp' with 3 arguments (delay:real duration:real amplitude:real)")},
+    {"threshold-detector", make_call<double>(make_threshold_detector,
+                               "'threshold-detector' with 1 argument (threshold:real)")},
+    {"gap-junction-site", make_call<>(make_gap_junction_site,
+                              "'gap-junction-site' with 0 arguments")},
+    {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(make_ion_reversal_potential_method,
+                                          "'ion-reversal-potential-method' with 2 ""arguments (ion:string mech:mechanism)")},
+    {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
+                                      "(name:string (param:string val:real))")},
+
+    {"place", make_call<locset, gap_junction_site>(make_place, "'place' with 2 arguments (locset gap-junction-site)")},
+    {"place", make_call<locset, i_clamp>(make_place, "'place' with 2 arguments (locset current-clamp)")},
+    {"place", make_call<locset, threshold_detector>(make_place, "'place' with 2 arguments (locset threshold-detector)")},
+    {"place", make_call<locset, mechanism_desc>(make_place, "'place' with 2 arguments (locset mechanism)")},
+
+    {"paint", make_call<region, init_membrane_potential>(make_paint, "'paint' with 2 arguments (region membrane-potential)")},
+    {"paint", make_call<region, temperature_K>(make_paint, "'paint' with 2 arguments (region temperature-kelvin)")},
+    {"paint", make_call<region, membrane_capacitance>(make_paint, "'paint' with 2 arguments (region membrane-capacitance)")},
+    {"paint", make_call<region, axial_resistivity>(make_paint, "'paint' with 2 arguments (region axial-resistivity)")},
+    {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with 2 arguments (region ion-internal-concentration)")},
+    {"paint", make_call<region, init_ext_concentration>(make_paint, "'paint' with 2 arguments (region ion-external-concentration)")},
+    {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with 2 arguments (region ion-reversal-potential)")},
+    {"paint", make_call<region, mechanism_desc>(make_paint, "'paint' with 2 arguments (region mechanism)")},
+
+    {"default", make_call<init_membrane_potential>(make_default, "'default' with 1 argument (membrane-potential)")},
+    {"default", make_call<temperature_K>(make_default, "'default' with 1 argument (temperature-kelvin)")},
+    {"default", make_call<membrane_capacitance>(make_default, "'default' with 1 argument (membrane-capacitance)")},
+    {"default", make_call<axial_resistivity>(make_default, "'default' with 1 argument (axial-resistivity)")},
+    {"default", make_call<init_int_concentration>(make_default, "'default' with 1 argument (ion-internal-concentration)")},
+    {"default", make_call<init_ext_concentration>(make_default, "'default' with 1 argument (ion-external-concentration)")},
+    {"default", make_call<init_reversal_potential>(make_default, "'default' with 1 argument (ion-reversal-potential)")},
+    {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with 1 argument (ion-reversal-potential-method)")},
+
+    {"locset-def", make_call<std::string, locset>(make_locset_pair,
+                       "'locset-def' with 2 arguments (name:string ls:locset)")},
+    {"region-def", make_call<std::string, region>(make_region_pair,
+                       "'region-def' with 2 arguments (name:string reg:region)")},
+
+    {"point",   make_call<double, double, double, double>(make_point,
+                  "'point' with 4 arguments (x:real y:real z:real radius:real)")},
+    {"segment", make_call<int, mpoint, mpoint, int>(make_segment,
+                    "'segment' with 4 arguments (parent:int prox:point dist:point tag:int)")},
+    {"branch",  make_branch_call(
+                   "'branch' with 1 or more segment arguments (s0:segment s1:segment ..)")},
+
+    {"decorations", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,
+                        "'decor' with 1 or more `paint`, `place` or `default` arguments")},
+    {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
+                       "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
+    {"morphology", make_arg_vec_call<branch>(make_morphology,
+                       "'morphology' 1 or more `branch` arguments")},
+
+    {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable,
+                       "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")}
+};
+
 parse_hopefully<std::any> parse_expression(const arb::s_expr& s) {
-    eval_map map{
-        {"membrane-potential", make_call<double>(make_init_membrane_potential, "'membrane-potential' with 1 argument")},
-        {"temperature-kelvin", make_call<double>(make_temperature_K, "'temperature-kelvin' with 1 argument")},
-        {"axial-resistivity", make_call<double>(make_axial_resistivity, "'axial-resistivity' with 1 argument")},
-        {"membrane-capacitance", make_call<double>(make_membrane_capacitance, "'membrane-capacitance' with 1 argument")},
-        {"ion-internal-concentration", make_call<std::string, double>(make_init_int_concentration, "'ion_internal_concentration' with 2 arguments")},
-        {"ion-external-concentration", make_call<std::string, double>(make_init_ext_concentration, "'ion_external_concentration' with 2 arguments")},
-        {"ion-reversal-potential", make_call<std::string, double>(make_init_reversal_potential, "'ion_reversal_potential' with 2 arguments")},
-        {"current-clamp", make_call<double, double, double>(make_i_clamp, "'current-clamp' with 3 arguments")},
-        {"threshold-detector", make_call<double>(make_threshold_detector, "'threshold-detector' with 1 argument")},
-        {"gap-junction-site", make_call<>(make_gap_junction_site, "'gap-junction-site' with 0 arguments")},
-        {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(make_ion_reversal_potential_method, "'ion-reversal-potential-method' with 2 arguments")},
-        {"mechanism", make_mech_call("'mechanism' with at least one argument")},
-
-        {"place", make_call<locset, gap_junction_site>(make_place, "'place' with two arguments")},
-        {"place", make_call<locset, i_clamp>(make_place, "'place' with two arguments")},
-        {"place", make_call<locset, threshold_detector>(make_place, "'place' with two arguments")},
-        {"place", make_call<locset, mechanism_desc>(make_place, "'place' with two arguments")},
-
-        {"paint", make_call<region, init_membrane_potential>(make_paint, "'paint' with two arguments")},
-        {"paint", make_call<region, temperature_K>(make_paint, "'paint' with two arguments")},
-        {"paint", make_call<region, membrane_capacitance>(make_paint, "'paint' with two arguments")},
-        {"paint", make_call<region, axial_resistivity>(make_paint, "'paint' with two arguments")},
-        {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with two arguments")},
-        {"paint", make_call<region, init_ext_concentration>(make_paint, "'paint' with two arguments")},
-        {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with two arguments")},
-        {"paint", make_call<region, mechanism_desc>(make_paint, "'paint' with two arguments")},
-
-        {"default", make_call<init_membrane_potential>(make_default, "'default' with one argument")},
-        {"default", make_call<temperature_K>(make_default, "'default' with one argument")},
-        {"default", make_call<membrane_capacitance>(make_default, "'default' with one argument")},
-        {"default", make_call<axial_resistivity>(make_default, "'default' with one argument")},
-        {"default", make_call<init_int_concentration>(make_default, "'default' with one argument")},
-        {"default", make_call<init_ext_concentration>(make_default, "'default' with one argument")},
-        {"default", make_call<init_reversal_potential>(make_default, "'default' with one argument")},
-        {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with one argument")},
-
-        {"locset-def", make_call<std::string, locset>(make_locset_pair, "'locset-def' with 2 arguments")},
-        {"region-def", make_call<std::string, region>(make_region_pair, "'region-def' with 2 arguments")},
-
-        {"point",   make_call<double, double, double, double>(make_point, "'point' with 4 arguments")},
-        {"segment", make_call<int, mpoint, mpoint, int>(make_segment, "'segment' with 4 arguments")},
-        {"branch",  make_branch_call("'branch' with at least 1 argument")},
-
-        {"decorations", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,"'decor' with at least one argument")},
-        {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict, "'label-dict' with at least 1 argument")},
-        {"morphology", make_arg_vec_call<branch>(make_morphology,"'morphology' with at least 1 argument")},
-
-        {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable, "'cable-cell' with at least 1 argument")}
-    };
     return eval(std::move(s), map);
 }
 
@@ -649,7 +690,7 @@ parse_hopefully<cable_cell_component> parse(const arb::s_expr& s) {
     }
     auto comp = eval_cast_variant<cable_cell_component>(try_parse.value());
     if (!comp) {
-        return util::unexpected(cableio_parse_error("expected cable cell component", {}));
+        return util::unexpected(cableio_parse_error("Expected cable-cell component", location(s)));
     }
     return comp.value();
 };

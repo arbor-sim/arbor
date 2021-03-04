@@ -1,6 +1,5 @@
 set(arborio-sources
     swcio.cpp
-    cableio_error.cpp
     cableio.cpp
 )
 if(ARB_WITH_NEUROML)
