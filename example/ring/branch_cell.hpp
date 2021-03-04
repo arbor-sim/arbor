@@ -167,16 +167,6 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
                              "        (point 206.300000 0.000000 0.000000 0.200000)\n"
                              "        3)))";
         std::string celly = "(cable-cell \n"
-                            "  (morphology \n"
-                            "    (branch 0 -1 \n"
-                            "      (segment 0 \n"
-                            "        (point -6.300000 0.000000 0.000000 6.300000)\n"
-                            "        (point 6.300000 0.000000 0.000000 6.300000)\n"
-                            "        1)\n"
-                            "      (segment 1 \n"
-                            "        (point 6.300000 0.000000 0.000000 0.500000)\n"
-                            "        (point 206.300000 0.000000 0.000000 0.200000)\n"
-                            "        3)))\n"
                             "  (label-dict \n"
                             "    (region-def \"soma\" \n"
                             "      (tag 1))\n"
@@ -195,10 +185,11 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
                             "      (mechanism \"pas\"))\n"
                             "    (paint \n"
                             "      (region \"soma\")\n"
-                            "      (mechanism \"hh\"))))";
+                            "      (mechanism \"hh\")))"
+                            ")";
 
         if (auto v = arborio::parse_label_dict(dicty)) {
-            arborio::write_s_expr(std::cout, v.value());
+//            arborio::write_s_expr(std::cout, v.value());
             std::cout << std::endl << std::endl;
         }
         else {
@@ -206,7 +197,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
         }
 
         if (auto v = arborio::parse_decor(decory)) {
-            arborio::write_s_expr(std::cout, v.value());
+//            arborio::write_s_expr(std::cout, v.value());
             std::cout << std::endl << std::endl;
         }
         else {
@@ -214,7 +205,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
         }
 
         if (auto v = arborio::parse_morphology(morphy)) {
-            arborio::write_s_expr(std::cout, v.value());
+//            arborio::write_s_expr(std::cout, v.value());
             std::cout << std::endl << std::endl;
         }
         else {

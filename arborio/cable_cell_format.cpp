@@ -1,4 +1,5 @@
 #include <iostream>
+
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
 
@@ -141,6 +142,10 @@ std::optional<T> eval_cast_variant(const std::any& a) {
     return std::nullopt;
 }
 
+using cable_cell_component = std::variant<morphology, label_dict, decor, cable_cell>;
+using place_pair = std::pair<arb::locset, arb::placeable>;
+using paint_pair = std::pair<arb::region, arb::paintable>;
+
 // Define makers for defaultables, paintables, placeables
 #define ARBIO_DEFINE_SINGLE_ARG(name) arb::name make_##name(double val) { return arb::name{val}; }
 #define ARBIO_DEFINE_DOUBLE_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
@@ -161,8 +166,6 @@ arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std:
 #undef ARBIO_DEFINE_DOUBLE_ARG
 
 // Define makers for place_pair, paint_pair and decor
-using place_pair = std::pair<arb::locset, arb::placeable>;
-using paint_pair = std::pair<arb::region, arb::paintable>;
 place_pair make_place(locset where, placeable what) {
     return place_pair{where, what};
 }
@@ -204,18 +207,17 @@ label_dict make_label_dict(std::vector<std::variant<locset_pair, region_pair>> a
     return d;
 }
 // Define makers for mpoints and msegments and morphology
+struct branch {
+    int id;
+    int parent_id;
+    std::vector<arb::msegment> segments;
+};
 arb::mpoint make_point(double x, double y, double z, double r) {
     return arb::mpoint{x, y, z, r};
 }
 arb::msegment make_segment(unsigned id, arb::mpoint prox, arb::mpoint dist, int tag) {
     return arb::msegment{id, prox, dist, tag};
 }
-struct branch {
-    int id;
-    int parent_id;
-    std::vector<arb::msegment> segments;
-};
-
 morphology make_morphology(std::vector<std::variant<branch>> args) {
     segment_tree tree;
     std::vector<unsigned> branch_final_seg(args.size());
@@ -231,7 +233,19 @@ morphology make_morphology(std::vector<std::variant<branch>> args) {
 }
 
 // Define cable-cell maker
-cable_cell make_cable(morphology morpho, label_dict dict, decor dec) {
+// If multiple decors, label_dict or morphologiea are provided, the last of each will
+// be used.
+cable_cell make_cable(std::vector<std::variant<morphology, label_dict, decor>> args) {
+    decor dec;
+    label_dict dict;
+    morphology morpho;
+    for(const auto& a: args) {
+        auto cable_cell_visitor = arb::util::overload(
+            [&](const morphology & p) { morpho = p; },
+            [&](const label_dict & p) { dict = p; },
+            [&](const decor & p){ dec = p; });
+        std::visit(cable_cell_visitor, a);
+    }
    return cable_cell(morpho, dict, dec);
 }
 
@@ -355,7 +369,7 @@ struct make_arg_vec_call {
     evaluator state;
 
     template <typename F>
-    make_arg_vec_call(F&& f, const char* msg="arg_vec"):
+    make_arg_vec_call(F&& f, const char* msg="argument vector"):
         state(arg_vec_eval<Args...>(std::forward<F>(f)), arg_vec_match<Args...>(), msg)
     {}
     operator evaluator() const {
@@ -386,7 +400,7 @@ struct mech_eval {
 };
 struct make_mech_call {
     evaluator state;
-    make_mech_call(const char* msg="arg_vec"):
+    make_mech_call(const char* msg="mechanism"):
         state(mech_eval(), mech_match(), msg)
     {}
     operator evaluator() const {
@@ -419,9 +433,55 @@ struct branch_eval {
 };
 struct make_branch_call {
     evaluator state;
-    make_branch_call(const char* msg="arg_vec"):
+    make_branch_call(const char* msg="branch"):
         state(branch_eval(), branch_match(), msg)
     {}
+    operator evaluator() const {
+        return state;
+    }
+};
+
+// check that we have one of each argument type
+template <typename... Args>
+struct unordered_call_match {
+    template <typename T, typename Q, typename... Rest>
+    bool match_args_impl(const std::vector<std::any>& args) const {
+        bool found_match = false;
+        for (const auto& a: args) {
+            auto new_match = match<T>(a.type());
+            if (new_match && found_match) return false;
+            found_match = new_match;
+        }
+        return found_match || match_args_impl<Q, Rest...>(args);
+    }
+
+    template <typename T>
+    bool match_args_impl(const std::vector<std::any>& args) const {
+        bool found_match = false;
+        for (const auto& a: args) {
+            auto new_match = match<T>(a.type());
+            if (new_match && found_match) return false;
+            found_match = new_match;
+        }
+        return found_match;
+    }
+
+    bool operator()(const std::vector<std::any>& args) const {
+        const auto nargs_in = args.size();
+        const auto nargs_ex = sizeof...(Args);
+        return (nargs_in == nargs_ex) && match_args_impl<Args...>(args);
+    }
+};
+// Use the arg_vec evaluator with a different matcher
+template <typename... Args>
+struct make_unordered_call {
+    evaluator state;
+
+    template <typename F>
+    make_unordered_call(F&& f, const char* msg="call"):
+        state(arg_vec_eval<Args...>(std::forward<F>(f)), unordered_call_match<Args...>(), msg)
+    {}
+
     operator evaluator() const {
         return state;
     }
@@ -561,14 +621,13 @@ parse_hopefully<std::any> parse_expression(const arb::s_expr& s) {
         {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict, "'label-dict' with at least 1 argument")},
         {"morphology", make_arg_vec_call<branch>(make_morphology,"'morphology' with at least 1 argument")},
 
-        {"cable-cell", make_call<morphology, label_dict, decor>(make_cable, "'cable-cell' with at least 1 argument")}
+        {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable, "'cable-cell' with at least 1 argument")}
     };
     return eval(std::move(s), map);
 }
 
-using cable_cell_components = std::variant<morphology, label_dict, decor, cable_cell>;
-std::optional<cable_cell_components> parse(const arb::s_expr& s) {
-    return eval_cast_variant<cable_cell_components>(parse_expression(s));
+std::optional<cable_cell_component> parse(const arb::s_expr& s) {
+    return eval_cast_variant<cable_cell_component>(parse_expression(s));
 };
 
 } // namespace arborio
