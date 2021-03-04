@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
@@ -14,12 +12,9 @@ cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_
     arb::arbor_exception(msg+" at :"+std::to_string(loc.line)+":"+std::to_string(loc.column))
 {}
 
-inline arb::symbol operator"" _symbol(const char* chars, size_t size) {
-    return {chars};
-}
 struct nil_tag {};
 
-// S-expression makers
+// Define s-expr makers for various types
 s_expr mksexp(const mpoint& p) {
     return slist("point"_symbol, p.x, p.y, p.z, p.radius);
 }
@@ -119,7 +114,7 @@ s_expr mksexp(const morphology& morph) {
     return s_expr{"morphology"_symbol, slist_range(branches)};
 }
 
-// Write s-expr
+// Implement public facing s-expr writers
 std::ostream& write_s_expr(std::ostream& o, const label_dict& dict) {
     return o << mksexp(dict);
 }
@@ -156,11 +151,12 @@ double eval_cast<double>(std::any arg) {
     return std::any_cast<double>(arg);
 }
 
+// Convert a value wrapped in a std::any to an optional std::variant type
 template <typename T, std::size_t I=0>
 std::optional<T> eval_cast_variant(const std::any& a) {
     if constexpr (I<std::variant_size_v<T>) {
         using var_type = std::variant_alternative_t<I, T>;
-        return typeid(var_type) == a.type()? eval_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
+        return match<var_type>(a.type())? eval_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
     }
     return std::nullopt;
 }
@@ -184,7 +180,7 @@ arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std:
 #undef ARBIO_DEFINE_SINGLE_ARG
 #undef ARBIO_DEFINE_DOUBLE_ARG
 
-// Define makers for place_pair, paint_pair and decor
+// Define makers for placeable pairs, paintable pairs, defaultables and decors
 using place_pair = std::pair<arb::locset, arb::placeable>;
 using paint_pair = std::pair<arb::region, arb::paintable>;
 place_pair make_place(locset where, placeable what) {
@@ -208,7 +204,7 @@ decor make_decor(std::vector<std::variant<place_pair, paint_pair, defaultable>> 
     return d;
 }
 
-// Define maker for locset_pair, region_pair and label_dict
+// Define maker for locset pairs, region pairs and label_dicts
 using locset_pair = std::pair<std::string, locset>;
 using region_pair = std::pair<std::string, region>;
 locset_pair make_locset_pair(std::string name, locset desc) {
@@ -227,7 +223,7 @@ label_dict make_label_dict(std::vector<std::variant<locset_pair, region_pair>> a
     }
     return d;
 }
-// Define makers for mpoints and msegments and morphology
+// Define makers for mpoints and msegments and morphologies
 struct branch {
     int id;
     int parent_id;
@@ -254,8 +250,7 @@ morphology make_morphology(std::vector<std::variant<branch>> args) {
 }
 
 // Define cable-cell maker
-// If multiple decors, label_dict or morphologiea are provided, the last of each will
-// be used.
+// Accepts the morphology, decor and label_dict arguments in any order as a vector
 cable_cell make_cable(std::vector<std::variant<morphology, label_dict, decor>> args) {
     decor dec;
     label_dict dict;
@@ -267,10 +262,10 @@ cable_cell make_cable(std::vector<std::variant<morphology, label_dict, decor>> a
             [&](const decor & p){ dec = p; });
         std::visit(cable_cell_visitor, a);
     }
-   return cable_cell(morpho, dict, dec);
+    return cable_cell(morpho, dict, dec);
 }
 
-// Evaluation
+// Evaluator: member of make_call, make_arg_vec_call, make_mech_call, make_branch_call, make_unordered_call
 struct evaluator {
     using any_vec = std::vector<std::any>;
     using eval_fn = std::function<std::any(any_vec)>;
@@ -337,7 +332,7 @@ struct call_eval {
         return expand_args_then_eval(std::move(args), std::make_index_sequence<sizeof...(Args)>());
     }
 };
-// wrap call_match and call_eval
+// Wrap call_match and call_eval in an evaluator
 template <typename... Args>
 struct make_call {
     evaluator state;
@@ -346,12 +341,17 @@ struct make_call {
     make_call(F&& f, const char* msg="call"):
         state(call_eval<Args...>(std::forward<F>(f)), call_match<Args...>(), msg)
     {}
-
     operator evaluator() const {
         return state;
     }
 };
 
+// Test whether a list of arguments passed as a std::vector<std::any> can be converted
+// to a std::vector<std::variant<Args...>>.
+//
+// For example, the following would return true:
+//
+//  call_match<int, string>(vector<any(4), any(12), any(string("hello"))>)
 template <typename... Args>
 struct arg_vec_match {
     template <typename T, typename Q, typename... Rest>
@@ -371,6 +371,8 @@ struct arg_vec_match {
         return true;
     }
 };
+// Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
+// The arguments are converted to std::variant<Args...> and passed to the function as a std::vector.
 template <typename... Args>
 struct arg_vec_eval {
     using ftype = std::function<std::any(std::vector<std::variant<Args...>>)>;
@@ -378,13 +380,14 @@ struct arg_vec_eval {
     arg_vec_eval(ftype f): f(std::move(f)) {}
 
     std::any operator()(std::vector<std::any> args) {
-        std::vector<std::variant<Args...>> vars;
+        std::vector<std::variant<Args...>> vars(args.size());
         for (const auto& a: args) {
             vars.push_back(eval_cast_variant<std::variant<Args...>>(a).value());
         }
         return f(vars);
     }
 };
+// Wrap arg_vec_match and arg_vec_eval in an evaluator
 template <typename... Args>
 struct make_arg_vec_call {
     evaluator state;
@@ -398,6 +401,8 @@ struct make_arg_vec_call {
     }
 };
 
+// Test whether a list of arguments passed as a std::vector<std::any> can be converted
+// to a string followed by any number of std::pair<std::string, double>
 using param_pair = std::pair<std::string, double>;
 struct mech_match {
     bool operator()(const std::vector<std::any>& args) const {
@@ -408,6 +413,7 @@ struct mech_match {
         return true;
     }
 };
+// Create a mechanism_desc from a std::vector<std::any>.
 struct mech_eval {
     arb::mechanism_desc operator()(std::vector<std::any> args) {
         auto name = eval_cast<std::string>(args.front());
@@ -419,6 +425,7 @@ struct mech_eval {
         return mech;
     }
 };
+// Wrap mech_match and mech_eval in an evaluator
 struct make_mech_call {
     evaluator state;
     make_mech_call(const char* msg="mechanism"):
@@ -429,17 +436,21 @@ struct make_mech_call {
     }
 };
 
+// Test whether a list of arguments passed as a std::vector<std::any> can be converted
+// to 2 integers followed by at least 1 msegment
 struct branch_match {
     bool operator()(const std::vector<std::any>& args) const {
         auto it = args.begin();
         if (!match<int>(it++->type())) return false;
         if (!match<int>(it++->type()))  return false;
+        if (it == args.end()) return false;
         for (; it != args.end(); ++it) {
             if(!match<arb::msegment>(it->type())) return false;
         }
         return true;
     }
 };
+// Create a `branch` from a std::vector<std::any>.
 struct branch_eval {
     branch operator()(std::vector<std::any> args) {
         std::vector<msegment> segs;
@@ -452,6 +463,7 @@ struct branch_eval {
         return branch{id, parent, segs};
     }
 };
+// Wrap branch_match and branch_eval in an evaluator
 struct make_branch_call {
     evaluator state;
     make_branch_call(const char* msg="branch"):
@@ -462,9 +474,22 @@ struct make_branch_call {
     }
 };
 
-// check that we have one of each argument type
+// Test whether a list of arguments passed as a std::vector<std::any> `args` can be
+// converted to a std::vector<std::variant<Args...>>.
+// - `args` must have the same size as Args...
+// - no more than one element in `args` can match a given template parameter of Args...
+//
+// For example, the following would return true:
+//
+// call_match<int, string>(vector<any(4), any(string("hello"))>)
+// call_match<int, string>(vector<any(string("hello")), any(4)>)
+//
+// And the following would return false:
+//
+// call_match<int, string>(vector<any(4), any(string("hello")), any(string("bye"))>)
+// call_match<int, string>(vector<any(4), any(2)>)
 template <typename... Args>
-struct unordered_call_match {
+struct unordered_match {
     template <typename T, typename Q, typename... Rest>
     bool match_args_impl(const std::vector<std::any>& args) const {
         bool found_match = false;
@@ -493,28 +518,28 @@ struct unordered_call_match {
         return (nargs_in == nargs_ex) && match_args_impl<Args...>(args);
     }
 };
-// Use the arg_vec evaluator with a different matcher
+// Wrap unordered_match and arg_vec_eval in an evaluator
 template <typename... Args>
 struct make_unordered_call {
     evaluator state;
 
     template <typename F>
     make_unordered_call(F&& f, const char* msg="call"):
-        state(arg_vec_eval<Args...>(std::forward<F>(f)), unordered_call_match<Args...>(), msg)
+        state(arg_vec_eval<Args...>(std::forward<F>(f)), unordered_match<Args...>(), msg)
     {}
-
     operator evaluator() const {
         return state;
     }
 };
 } // anonymous namespace
 
-// Parse s-expression into std::any based on function eval_map
 using eval_map = std::unordered_multimap<std::string, evaluator>;
+
+// Parse s-expression into std::any given a function evaluation map.
 parse_hopefully<std::any> eval(const arb::s_expr&, const eval_map&);
 
 parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map& map) {
-    if (!e) return {std::vector<std::any>{}}; // empty argument list
+    if (!e) return {std::vector<std::any>{}};
     std::vector<std::any> args;
     for (auto& h: e) {
         if (auto arg=eval(h, map)) {
@@ -558,12 +583,12 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
                 return util::unexpected(args.error());
             }
             if (args->size() != 1) {
-                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (\"param\" val). "
-                                                            "Got more than 1 val for param \"" + e.head().atom().spelling +"\".", location(e)));
+                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (param:string val:real). "
+                                                              "Got more than 1 `val` for `param` \"" + e.head().atom().spelling +"\".", location(e)));
             }
             if (!match<double>(args->front().type())) {
-                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (\"param\" val) where val is int or double"
-                                                            "Got a val with type other than int or double for param \"" + e.head().atom().spelling +"\".",location(e)));
+                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (param:string val:real). "
+                                                              "Got a `val` with a non-real type for `param` \"" + e.head().atom().spelling +"\".",location(e)));
             }
             return std::any{param_pair{e.head().atom().spelling, eval_cast<double>(args->front())}};
         };
@@ -666,7 +691,7 @@ eval_map map{
     {"segment", make_call<int, mpoint, mpoint, int>(make_segment,
                     "'segment' with 4 arguments (parent:int prox:point dist:point tag:int)")},
     {"branch",  make_branch_call(
-                   "'branch' with 1 or more segment arguments (s0:segment s1:segment ..)")},
+                   "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
 
     {"decorations", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,
                         "'decor' with 1 or more `paint`, `place` or `default` arguments")},

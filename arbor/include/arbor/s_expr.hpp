@@ -11,8 +11,6 @@
 #include <variant>
 #include <vector>
 
-#include "arbor/arbexcept.hpp"
-
 namespace arb {
 
 struct src_location {
@@ -54,6 +52,10 @@ struct symbol {
     std::string str;
     operator std::string() const { return str; }
 };
+
+inline symbol operator"" _symbol(const char* chars, size_t size) {
+    return {chars};
+}
 
 struct s_expr {
     template <typename U>

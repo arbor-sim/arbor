@@ -75,6 +75,65 @@ TEST(s_expr, atoms_in_parens) {
     }
 }
 
+TEST(s_expr, list) {
+    {
+        auto l = slist();
+        EXPECT_EQ(0u, std::distance(l.begin(), l.end()));
+    }
+    {
+        auto l = slist(1);
+        EXPECT_EQ(1u, std::distance(l.begin(), l.end()));
+    }
+    {
+        auto l = slist(1, 2.3);
+        EXPECT_EQ(2u, std::distance(l.begin(), l.end()));
+    }
+    {
+        auto l = slist(1, 2.3, "hello");
+        EXPECT_EQ(3u, std::distance(l.begin(), l.end()));
+    }
+    {
+        auto l = slist(1, 2.3, "hello"_symbol);
+        EXPECT_EQ(3u, std::distance(l.begin(), l.end()));
+        EXPECT_EQ(tok::symbol, (l.begin()+2)->atom().kind);
+    }
+    {
+        auto l = slist(1, slist(1, 2), 3);
+        EXPECT_EQ(3u, std::distance(l.begin(), l.end()));
+        EXPECT_EQ(tok::integer, (l.begin()+2)->atom().kind);
+        auto l1 = *(l.begin()+1);
+        EXPECT_EQ(2u, std::distance(l1.begin(), l1.end()));
+    }
+}
+
+TEST(s_expr, list_range) {
+    std::cout << slist_range(std::vector{1,2,3}) << "\n";
+    std::cout << slist_range(std::vector<int>{}) << "\n";
+    std::cout << slist_range(std::vector{12.1, 0.1}) << "\n";
+    std::cout << slist_range(slist(1, 2, "hello world")) << "\n";
+}
+
+TEST(s_expr, iterate) {
+    {
+        auto l = slist();
+        EXPECT_EQ(0u, std::distance(l.begin(), l.end()));
+    }
+    {
+        auto l = slist(1, 2, 3., "hello");
+        auto b = l.begin();
+        auto e = l.end();
+        EXPECT_EQ(4u, std::distance(b, e));
+        EXPECT_EQ(tok::integer, b->atom().kind);
+        ++b;
+        EXPECT_EQ(tok::integer, b->atom().kind);
+        ++b;
+        EXPECT_EQ(tok::real, b->atom().kind);
+        ++b;
+        EXPECT_EQ(tok::string, b->atom().kind);
+        EXPECT_EQ("hello", b->atom().spelling);
+    }
+}
+
 template <typename L>
 std::string round_trip_label(const char* in) {
     if (auto x = parse_label_expression(std::string(in))) {

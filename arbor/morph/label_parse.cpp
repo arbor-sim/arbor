@@ -1,13 +1,10 @@
-#include <iostream>
 #include <any>
 #include <limits>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/morph/region.hpp>
-#include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
-#include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/morph/region.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/expected.hpp>
 
