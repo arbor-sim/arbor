@@ -81,7 +81,7 @@ both represented using Arbor's :ref:`region expressions <labels-expressions>`.
 C++
 ^^^
 
-NeuroML documents are represented by the ``arbnml::neuroml`` class,
+NeuroML documents are represented by the ``arborio::neuroml`` class,
 which in turn provides methods for the identification and translation
 of morphology data. ``neuroml`` objects are moveable and move-assignable, but not copyable.
 
