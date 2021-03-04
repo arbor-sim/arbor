@@ -23,10 +23,29 @@ struct label_dict_proxy {
         }
     }
 
-    label_dict_proxy(const arb::label_dict& label_dict): dict(label_dict) {}
+    label_dict_proxy(const arb::label_dict& label_dict): dict(label_dict) {
+        for (const auto& [l, reg]: dict.regions()) {
+            regions.push_back(l);
+        }
+        for (const auto& [l, ls]: dict.locsets()) {
+            locsets.push_back(l);
+        }
+    }
 
     std::size_t size() const  {
         return locsets.size() + regions.size();
+    }
+
+    void import(const label_dict_proxy& other, std::string prefix) {
+        regions.clear();
+        locsets.clear();
+        dict.import(other.dict, prefix);
+        for (const auto& [l, reg]: dict.regions()) {
+            regions.push_back(l);
+        }
+        for (const auto& [l, ls]: dict.locsets()) {
+            locsets.push_back(l);
+        }
     }
 
     void set(const char* name, const char* desc) {

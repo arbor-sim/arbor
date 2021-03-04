@@ -1,0 +1,246 @@
+{# TEMPLATE VAR SETTINGS #}
+{%- set url_root = pathto('', 1) %}
+{%- if url_root == '#' %}{% set url_root = '' %}{% endif %}
+{%- if not embedded and docstitle %}
+  {%- set titlesuffix = " &mdash; "|safe + docstitle|e %}
+{%- else %}
+  {%- set titlesuffix = "" %}
+{%- endif %}
+{%- set lang_attr = 'en' if language == None else (language | replace('_', '-')) %}
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="{{ lang_attr }}" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="{{ lang_attr }}" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  {{ metatags }}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% block htmltitle %}
+  <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
+  {% endblock %}
+
+  {# FAVICON #}
+  {% if favicon %}
+    <link rel="shortcut icon" href="{{ pathto('_static/' + favicon, 1) }}"/>
+  {% endif %}
+  {# CANONICAL URL #}
+  {% if theme_canonical_url %}
+    <link rel="canonical" href="{{ theme_canonical_url }}{{ pagename }}.html"/>
+  {% endif %}
+
+  {# CSS #}
+
+  {# OPENSEARCH #}
+  {% if not embedded %}
+    {% if use_opensearch %}
+      <link rel="search" type="application/opensearchdescription+xml"
+            title="{% trans docstitle=docstitle|e %}Search within {{ docstitle }}{% endtrans %}"
+            href="{{ pathto('_static/opensearch.xml', 1) }}"/>
+    {% endif %}
+
+  {% endif %}
+
+
+  <link rel="preload" href="{{ pathto('_static/fonts/fontawesome-webfont.woff2?v=4.7.0', 1) }}" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" />
+  <link rel="stylesheet" href="{{ pathto('_static/css/divio.css', 1) }}" type="text/css" />
+
+  <link rel="apple-touch-icon" href="{{ pathto('_static/favicon.png', 1) }}">
+  <link rel="icon" type="image/png" href="{{ pathto('_static/favicon.png', 1) }}">
+  <!--[if IE]><link rel="shortcut icon" href="{{ pathto('_static/favicon.png', 1) }}"><![endif]-->
+  {%- for cssfile in extra_css_files %}
+    <link rel="stylesheet" href="{{ pathto(cssfile, 1) }}" type="text/css" />
+  {%- endfor %}
+
+  {%- block linktags %}
+    {%- if hasdoc('about') %}
+    <link rel="author" title="{{ _('About these documents') }}" href="{{ pathto('about') }}" />
+    {%- endif %}
+    {%- if hasdoc('genindex') %}
+    <link rel="index" title="{{ _('Index') }}" href="{{ pathto('genindex') }}" />
+    {%- endif %}
+    {%- if hasdoc('search') %}
+    <link rel="search" title="{{ _('Search') }}" href="{{ pathto('search') }}" />
+    {%- endif %}
+    {%- if hasdoc('copyright') %}
+    <link rel="copyright" title="{{ _('Copyright') }}" href="{{ pathto('copyright') }}" />
+    {%- endif %}
+    {%- if next %}
+    <link rel="next" title="{{ next.title|striptags|e }}" href="{{ next.link|e }}" />
+    {%- endif %}
+    {%- if prev %}
+    <link rel="prev" title="{{ prev.title|striptags|e }}" href="{{ prev.link|e }}" />
+    {%- endif %}
+  {%- endblock %}
+  {%- block extrahead %} {% endblock %}
+
+  <!-- {# Keep modernizr in head &#45; http://modernizr.com/docs/#installing #} -->
+  <!-- <script src="{{ pathto('_static/js/modernizr.min.js', 1) }}"></script> -->
+  <!--  -->
+</head>
+
+<body class="wy-body-for-nav">
+  {% block extrabody %} {% endblock %}
+  <div class="wy-grid-for-nav">
+
+    {# SIDE NAV, TOGGLES ON MOBILE #}
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          {% block sidebartitle %}
+
+          {% include "searchbox.html" %}
+
+          {% endblock %}
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          {% block menu %}
+            {#
+              The singlehtml builder doesn't handle this toctree call when the
+              toctree is empty. Skip building this for now.
+            #}
+            {% if 'singlehtml' not in builder %}
+              {% set global_toc = toctree(maxdepth=theme_navigation_depth|int,
+                                          collapse=theme_collapse_navigation|tobool,
+                                          includehidden=theme_includehidden|tobool,
+                                          titles_only=theme_titles_only|tobool) %}
+            {% endif %}
+            {% if global_toc %}
+              {{ global_toc }}
+            {% else %}
+              <!-- Local TOC -->
+              <div class="local-toc">{{ toc }}</div>
+            {% endif %}
+          {% endblock %}
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+
+
+      <div class="wy-nav-content">
+    <div class="header">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <div class="header-title-wrap">
+            <a class="header-title" href="{{ pathto(master_doc) }}">{{ project }}</a>
+        </div>
+        <a class="logo-link" target="_blank" href="{{ pathto(master_doc) }}"><img src="{{ pathto('_static/' + logo, 1) }}" class="logo" alt="{{ project }}"/></a>
+    </div>
+
+          {% include "breadcrumbs.html" %}
+      {%- block content %}
+        {% if theme_style_external_links|tobool %}
+        <div class="rst-content style-external-links">
+        {% else %}
+        <div class="rst-content">
+        {% endif %}
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+          {%- block document %}
+           <div itemprop="articleBody">
+            {% block body %}{% endblock %}
+           </div>
+           {% if self.comments()|trim %}
+           <div class="articleComments">
+            {% block comments %}{% endblock %}
+           </div>
+           {% endif%}
+          </div>
+          {%- endblock %}
+          {% include "footer.html" %}
+        </div>
+      {%- endblock %}
+      </div>
+
+    </section>
+
+  </div>
+  {% include "versions.html" %}
+
+  {% if not embedded %}
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'{{ url_root }}',
+            VERSION:'{{ release|e }}',
+            LANGUAGE:'{{ language }}',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'{{ '' if no_search_suffix else file_suffix }}',
+            HAS_SOURCE:  {{ has_source|lower }},
+            SOURCELINK_SUFFIX: '{{ sourcelink_suffix }}'
+        };
+    </script>
+    {%- for scriptfile in script_files %}
+      <script type="text/javascript" src="{{ pathto(scriptfile, 1) }}"></script>
+    {%- endfor %}
+
+  {% endif %}
+
+  {# RTD hosts this file, so just load on non RTD builds #}
+  {% if not READTHEDOCS %}
+    <script type="text/javascript" src="{{ pathto('_static/js/theme.js', 1) }}"></script>
+  {% endif %}
+
+  <script type="text/javascript">
+      jQuery(function () {
+        try {
+            SphinxRtdTheme.Navigation.enableSticky();
+        } catch (e) {
+            SphinxRtdTheme.StickyNav.enable();
+        }
+    });
+
+    jQuery(function ($) {
+        var adjustAnchor = function() {
+            var $anchor = $(':target');
+            var fixedElementHeight = 80;
+
+            if ($anchor.length > 0) {
+                setTimeout(function () {
+                    $('html, body').scrollTop($anchor.offset().top - fixedElementHeight);
+                });
+            }
+        };
+
+        adjustAnchor();
+        $(window).on('hashchange load', adjustAnchor);
+    });
+  </script>
+  <script type="text/javascript">
+      $(function () {
+          $('.tabs').each(function () {
+              var tabs = $(this);
+              var links = tabs.find('.tabs__link');
+              var contents = tabs.find('.tabs__content').find('.tabs-pane');
+
+              links.on('click', function (e) {
+                  var index = links.index(this);
+
+                  links.removeClass('tabs__link--active');
+                  $(this).addClass('tabs__link--active');
+
+                  contents.hide();
+                  contents.eq(index).show();
+              });
+
+              var index = 0;
+
+              if (window.location.hash) {
+                  var maybeLink = $('.tabs__link[href="' + window.location.hash + '"]');
+
+                  if (maybeLink.length && links.index(maybeLink) !== -1) {
+                      index = links.index(maybeLink);
+                  }
+              }
+
+          links.eq(index).trigger('click');
+        });
+      });
+  </script>
+
+  {%- block footer %} {% endblock %}
+
+</body>
+</html>

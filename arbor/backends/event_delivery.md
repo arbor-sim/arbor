@@ -12,7 +12,7 @@ destinations and event information.
 The back-end event management structure is supplied by the corresponding `backend`
 class as `backend::multi_event_stream`. It presents a limited public interface to
 the lowered cell, and is passed by reference as a parameter to the mechanism
-`deliver_events` method.
+`apply_events` method.
 
 ### Target handles
 
@@ -84,10 +84,10 @@ For `fvm_multicell` one integration step comprises:
 
 2.  Each mechanism is requested to deliver to itself any marked events that
     are associated with that mechanism, via the virtual
-    `mechanism::deliver_events(backend::multi_event_stream&)` method.
+    `mechanism::apply_events(backend::multi_event_stream&)` method.
 
     This action must precede the computation of mechanism current contributions
-    with `mechanism::nrn_current()`.
+    with `mechanism::compute_currents()`.
 
 3.  Marked events are discarded with `events_.drop_marked_events()`.
 
@@ -102,7 +102,7 @@ For `fvm_multicell` one integration step comprises:
 6.  The solver matrix is assembled and solved to compute the voltages, using the
     newly computed currents and integration step times.
 
-7.  The mechanism states are updated with `mechanism::nrn_state()`.
+7.  The mechanism states are updated with `mechanism::advance_state()`.
 
 8.  The cell times `time_` are set to the integration step stop times `time_to_`.
 
@@ -114,7 +114,7 @@ For `fvm_multicell` one integration step comprises:
 Towards the end of the integration period, an integration step may have a zero _dt_
 for one or more cells within the group, and this needs to be handled correctly:
 
-*   Generated mechanism `nrn_state()` methods should be numerically correct with
+*   Generated mechanism `advance_state()` methods should be numerically correct with
     zero _dt_; a possibility is to guard the integration step with a _dt_ check.
 
 *   Matrix assemble and solve must check for zero _dt_. In the FVM `multicore`

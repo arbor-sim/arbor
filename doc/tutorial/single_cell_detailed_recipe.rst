@@ -47,7 +47,7 @@ We can immediately paste the cell description code from the
 
    #(1) Read the morphology from an SWC file.
 
-   morph = arbor.load_swc_arbor("morph.swc")
+   morph = arbor.load_swc_arbor("single_cell_detailed.swc")
 
    #(2) Create and populate the label dictionary.
 
@@ -272,7 +272,7 @@ that kind. We return ``self.the_props`` which we defined in step **(1)**.
 
    More information on the recipe can be found :ref:`here <modelrecipe>`.
 
-Now we can intantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
+Now we can instantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
 previous section:
 
 .. code-block:: python
@@ -284,15 +284,15 @@ previous section:
 The execution context
 *********************
 
-The execution context contains all system-specific information needed by the simulation: it contains the
-thread pool which handles multi-threaded optimization on the CPU; it knows the relevant GPU attributes
-if a GPU is available; and it holds the MPI communicator for distributed simulations. In the previous
+An :ref:`execution context <modelcontext>`_ describes the hardware resources on which the simulation will run.
+It contains the thread pool used to parallelise work on the local CPU, and optionally describes GPU resources
+and the MPI communicator for distributed simulations. In the previous
 examples, the :class:`arbor.single_cell_model` object created the execution context :class:`arbor.context`
 behind the scenes.
 
 The details of the execution context can be customized by the user. We may specify the number of threads
 in the thread pool; determine the id of the GPU to be used; or create our own MPI communicator. However,
-the ideal settings can usually be inferred from the system, and arbor can do that with a simple command.
+the ideal settings can usually be inferred from the system, and Arbor can do that with a simple command.
 
 .. code-block:: python
 

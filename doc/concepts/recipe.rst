@@ -66,7 +66,7 @@ on ``cell 2``. All this information is also registered via the recipe.
 
 There are additional docs on :ref:`cell kinds <modelcellkind>`;
 :ref:`cell descriptions <modelcelldesc>`; :ref:`network connections <modelconnections>`;
-:ref:`gap junction connections <modelgapjunctions>`; :ref:`probes <cablecell-probes>`
+:ref:`gap junction connections <modelgapjunctions>`; :ref:`probes <cablecell-probes>`.
 
 The recipe is used to distribute the model across machines and is used in the simulation.
 Technical details of the recipe class are presented in the  :ref:`Python <pyrecipe>` and

@@ -100,7 +100,7 @@ specialised on specific regions.
         import arbor
 
         # Create an empty decor.
-        decor = arbor.decor
+        decor = arbor.decor()
 
         # Set cell-wide properties that will be applied by default to the entire cell.
         decor.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)

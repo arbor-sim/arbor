@@ -1,8 +1,8 @@
 #pragma once
 
 #include <algorithm>
-#include <cstddef>
 #include <cmath>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
@@ -22,15 +22,8 @@ namespace gpu {
 
 class mechanism: public arb::concrete_mechanism<arb::gpu::backend> {
 public:
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
-    using size_type = fvm_size_type;
-
 protected:
-    using backend = arb::gpu::backend;
-    using deliverable_event_stream = backend::deliverable_event_stream;
-
-    using array  = arb::gpu::array;
+    using array = arb::gpu::array;
     using iarray = arb::gpu::iarray;
 
 public:
@@ -50,17 +43,17 @@ public:
 
     void deliver_events() override {
         // Delegate to derived class, passing in event queue state.
-        deliver_events(event_stream_ptr_->marked_events());
+        apply_events(event_stream_ptr_->marked_events());
     }
     void update_current() override {
         mechanism_ppack_base* pp = ppack_ptr();
         pp->vec_t_ = vec_t_ptr_->data();
-        nrn_current();
+        compute_currents();
     }
     void update_state() override {
         mechanism_ppack_base* pp = ppack_ptr();
         pp->vec_t_ = vec_t_ptr_->data();
-        nrn_state();
+        advance_state();
     }
     void update_ions() override {
         mechanism_ppack_base* pp = ppack_ptr();
@@ -72,7 +65,7 @@ public:
 
     // Peek into mechanism state variable; implements arb::gpu::backend::mechanism_field_data.
     // Returns pointer to GPU memory corresponding to state variable data.
-    fvm_value_type* field_data(const std::string& state_var);
+    fvm_value_type* field_data(const std::string& state_var) override;
 
     void initialize() override;
 
@@ -91,63 +84,12 @@ protected:
 
     deliverable_event_stream* event_stream_ptr_;
     const array* vec_t_ptr_;
-    const array* vec_t_to_ptr_;
 
     // Bulk storage for index vectors and state and parameter variables.
 
     iarray indices_;
     array data_;
     bool mult_in_place_;
-
-    // Generated mechanism field, global and ion table lookup types.
-    // First component is name, second is pointer to corresponing member in 
-    // the mechanism's parameter pack, or for field_default_table,
-    // the scalar value used to initialize the field.
-
-    using global_table_entry = std::pair<const char*, value_type*>;
-    using mechanism_global_table = std::vector<global_table_entry>;
-
-    using state_table_entry = std::pair<const char*, value_type**>;
-    using mechanism_state_table = std::vector<state_table_entry>;
-
-    using field_table_entry = std::pair<const char*, value_type**>;
-    using mechanism_field_table = std::vector<field_table_entry>;
-
-    using field_default_entry = std::pair<const char*, value_type>;
-    using mechanism_field_default_table = std::vector<field_default_entry>;
-
-    using ion_state_entry = std::pair<const char*, ion_state_view*>;
-    using mechanism_ion_state_table = std::vector<ion_state_entry>;
-
-    using ion_index_entry = std::pair<const char*, const index_type**>;
-    using mechanism_ion_index_table = std::vector<ion_index_entry>;
-
-    virtual void nrn_init() = 0;
-
-    // Generated mechanisms must implement the following methods, together with
-    // fingerprint(), clone(), kind(), nrn_init(), nrn_state(), nrn_current()
-    // and deliver_events() (if required) from arb::mechanism.
-
-    // Member tables: introspection into derived mechanism fields, views etc.
-    // Default implementations correspond to no corresponding fields/globals/ions.
-
-    virtual mechanism_field_table field_table() { return {}; }
-    virtual mechanism_field_default_table field_default_table() { return {}; }
-    virtual mechanism_global_table global_table() { return {}; }
-    virtual mechanism_state_table state_table() { return {}; }
-    virtual mechanism_ion_state_table ion_state_table() { return {}; }
-    virtual mechanism_ion_index_table ion_index_table() { return {}; }
-
-    // Report raw size in bytes of mechanism object.
-
-    virtual std::size_t object_sizeof() const = 0;
-
-    // Event delivery, given event queue state:
-
-    virtual void nrn_state() {};
-    virtual void nrn_current() {};
-    virtual void deliver_events(deliverable_event_stream::state) {};
-    virtual void write_ions() {};
 };
 
 } // namespace gpu

@@ -109,18 +109,18 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
     PostEventExpression*  post_event = find_post_event(module_);
-    APIMethod* init_api = find_api_method(module_, "nrn_init");
-    APIMethod* state_api = find_api_method(module_, "nrn_state");
-    APIMethod* current_api = find_api_method(module_, "nrn_current");
+    APIMethod* init_api = find_api_method(module_, "init");
+    APIMethod* state_api = find_api_method(module_, "advance_state");
+    APIMethod* current_api = find_api_method(module_, "compute_currents");
     APIMethod* write_ions_api = find_api_method(module_, "write_ions");
 
     bool with_simd = opt.simd.abi!=simd_spec::none;
 
     // init_api, state_api, current_api methods are mandatory:
 
-    assert_has_scope(init_api, "nrn_init");
-    assert_has_scope(state_api, "nrn_state");
-    assert_has_scope(current_api, "nrn_current");
+    assert_has_scope(init_api, "init");
+    assert_has_scope(state_api, "advance_state");
+    assert_has_scope(current_api, "compute_currents");
 
     auto vars = local_module_variables(module_);
     auto ion_deps = module_.ion_deps();
@@ -172,9 +172,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "\n"
         "using backend = ::arb::multicore::backend;\n"
         "using base = ::arb::multicore::mechanism;\n"
-        "using value_type = base::value_type;\n"
-        "using size_type = base::size_type;\n"
-        "using index_type = base::index_type;\n"
         "using ::arb::math::exprelr;\n"
         "using ::arb::math::safeinv;\n"
         "using ::std::abs;\n"
@@ -246,14 +243,14 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "::arb::mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
         "::arb::mechanism_ptr clone() const override { return ::arb::mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
-        "void nrn_init() override;\n"
-        "void nrn_state() override;\n"
-        "void nrn_current() override;\n"
+        "void init() override;\n"
+        "void advance_state() override;\n"
+        "void compute_currents() override;\n"
         "void write_ions() override;\n";
 
     net_receive && out <<
-        "void deliver_events(deliverable_event_stream::state events) override;\n"
-        "void net_receive(int i_, value_type weight);\n";
+        "void apply_events(deliverable_event_stream::state events) override;\n"
+        "void net_receive(int i_, ::arb::fvm_value_type weight);\n";
 
     post_event && out <<
         "void post_event() override;\n";
@@ -342,14 +339,14 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "private:\n" << indent;
 
     for (const auto& scalar: vars.scalars) {
-        out << "value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
+        out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
     for (const auto& array: vars.arrays) {
-        out << "value_type* " << array->name() << ";\n";
+        out << "::arb::fvm_value_type* " << array->name() << ";\n";
     }
     for (const auto& dep: ion_deps) {
-        out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "iarray " << ion_state_index(dep.name) << ";\n";
+        out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
+        out << "::arb::fvm_index_type* " << ion_state_index(dep.name) << ";\n";
     }
 
     for (auto proc: normal_procedures(module_)) {
@@ -371,12 +368,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "return ::arb::concrete_mech_ptr<backend>(new " << class_name << "());\n" << popindent <<
         "}\n\n";
 
-    // Nrn methods:
+    // Interface methods:
 
     if (net_receive) {
         const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
         out <<
-            "void " << class_name << "::deliver_events(deliverable_event_stream::state events) {\n" << indent <<
+            "void " << class_name << "::apply_events(deliverable_event_stream::state events) {\n" << indent <<
             "auto ncell = events.n_streams();\n"
             "for (size_type c = 0; c<ncell; ++c) {\n" << indent <<
             "auto begin = events.begin_marked(c);\n"
@@ -387,7 +384,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "}\n" << popindent <<
             "}\n"
             "\n"
-            "void " << class_name << "::net_receive(int i_, value_type " << weight_arg << ") {\n" << indent <<
+            "void " << class_name << "::net_receive(int i_, ::arb::fvm_value_type " << weight_arg << ") {\n" << indent <<
             cprint(net_receive->body()) << popindent <<
             "}\n\n";
     }
@@ -420,17 +417,17 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         }
     };
 
-    out << "void " << class_name << "::nrn_init() {\n" << indent;
+    out << "void " << class_name << "::init() {\n" << indent;
     emit_body(init_api);
     out << popindent << "}\n\n";
 
-    out << "void " << class_name << "::nrn_state() {\n" << indent;
+    out << "void " << class_name << "::advance_state() {\n" << indent;
     out << profiler_enter("advance_integrate_state");
     emit_body(state_api);
     out << profiler_leave();
     out << popindent << "}\n\n";
 
-    out << "void " << class_name << "::nrn_current() {\n" << indent;
+    out << "void " << class_name << "::compute_currents() {\n" << indent;
     out << profiler_enter("advance_integrate_current");
     emit_body(current_api);
     out << profiler_leave();
@@ -493,7 +490,7 @@ void CPrinter::visit(BlockExpression* block) {
     if (!block->is_nested()) {
         auto locals = pure_locals(block->scope());
         if (!locals.empty()) {
-            out_ << "value_type ";
+            out_ << "::arb::fvm_value_type ";
             io::separator sep(", ");
             for (auto local: locals) {
                 out_ << sep << local->name();
@@ -517,7 +514,7 @@ static std::string index_i_name(const std::string& index_var) {
 void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(int i_";
     for (auto& arg: e->args()) {
-        out << ", value_type " << arg->is_argument()->name();
+        out << ", ::arb::fvm_value_type " << arg->is_argument()->name();
     }
     out << ")";
 }
@@ -538,7 +535,7 @@ namespace {
 }
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
-    out << "value_type " << cprint(local) << " = ";
+    out << "::arb::fvm_value_type " << cprint(local) << " = ";
 
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());
@@ -722,7 +719,7 @@ void SimdPrinter::visit(BlockExpression* block) {
 }
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(index_type i_";
+    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(::arb::fvm_index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -731,7 +728,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
-    << "(index_type i_, simd_mask mask_input_";
+    << "(::arb::fvm_index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -870,8 +867,8 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                     out << "auto " << index_i_name(index.source_var) << " = " << index.source_var << "[" << index.index_name << "];\n";
                     break;
                 default:
-                    out << "auto " << index_i_name(index.source_var) << " = simd_cast<simd_index>(indirect(" << index.source_var
-                        << ".data() + " << index.index_name << ", simd_width_));\n";
+                    out << "auto " << index_i_name(index.source_var) << " = simd_cast<simd_index>(indirect(&" << index.source_var
+                        << "[0] + " << index.index_name << ", simd_width_));\n";
                     break;
             }
         } else {
@@ -929,7 +926,7 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
         << ".size(); i_++) {\n"
         << indent;
 
-    out << "index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
+    out << "::arb::fvm_index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
     if (requires_weight) {
         out << "simd_value w_;\n"
             << "assign(w_, indirect((weight_+index_), simd_width_));\n";

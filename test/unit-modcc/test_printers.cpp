@@ -124,7 +124,7 @@ TEST(CPrinter, proc_body) {
             "    htau = 1500\n"
             "}"
             ,
-            "value_type k;\n"
+            "::arb::fvm_value_type k;\n"
             "minf[i_] = 1.0-1.0/(1.0+exp((v-k)/k));\n"
             "hinf[i_] = 1.0/(1.0+exp((v-k)/k));\n"
             "mtau[i_] = 0.5;\n"

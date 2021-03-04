@@ -134,9 +134,6 @@ void decor::set_default(defaultable what) {
                 else if constexpr (std::is_same_v<membrane_capacitance, T>) {
                     defaults_.membrane_capacitance = p.value;
                 }
-                else if constexpr (std::is_same_v<initial_ion_data, T>) {
-                    defaults_.ion_data[p.ion] = p.initial;
-                }
                 else if constexpr (std::is_same_v<init_int_concentration, T>) {
                     defaults_.ion_data[p.ion].init_int_concentration = p.value;
                 }

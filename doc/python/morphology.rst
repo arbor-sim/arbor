@@ -562,7 +562,6 @@ constitute part of the CV boundary point set.
     A :class:`neuroml_morphology_data` object contains a representation of a morphology defined in
     NeuroML.
 
-
     .. py:attribute:: cell_id
        :type: optional<str>
 
@@ -577,6 +576,11 @@ constitute part of the CV boundary point set.
        :type: dict[str, list[long]]
 
        A map from each segment group id to its corresponding collection of segments.
+
+    .. py:attribute:: morphology
+       :type: morphology
+
+       The morphology associated with the :class:`neuroml_morph_data` object.
 
     .. py:method:: segments
 
