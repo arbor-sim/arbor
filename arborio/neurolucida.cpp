@@ -51,9 +51,11 @@ struct parse_error {
     }
 
     asc_parse_error make_exception() const {
-        for (auto& frame: stack) {
-            std::cout << "  " << frame.file << ":" << frame.line << "\n";
-        }
+        // Uncomment to print a stack trace of the parser.
+        // A very useful tool for investigating invalid inputs or parser bugs.
+
+        //for (auto& frame: stack) std::cout << "  " << frame.file << ":" << frame.line << "\n";
+
         return {msg, loc.line, loc.column};
     }
 };
@@ -67,11 +69,9 @@ using asc::tok;
 #define FORWARD_PARSE_ERROR(err) arb::util::unexpected(parse_error(std::move(err).append({__FILE__, __LINE__})))
 
 // The parse_* functions will attempt to parse an expected token from the lexer.
-// On success the token is consumed
-// If unable to parse the token:
-//  - an asc_parse_error exception is thrown
-//  - the token is not consumed
 
+// Attempt to parse a token of the expected kind. On succes the token is returned,
+// otherwise a parse_error.
 parse_hopefully<tok> expect_token(asc::lexer& l, tok kind) {
     auto& t = l.current();
     if (t.kind != kind) {
@@ -83,17 +83,20 @@ parse_hopefully<tok> expect_token(asc::lexer& l, tok kind) {
 
 #define EXPECT_TOKEN(L, TOK) {if (auto rval__ = expect_token(L, TOK); !rval__) return FORWARD_PARSE_ERROR(rval__.error());}
 
+// Attempt to parse a double precision value from the input stream.
+// Will consume both integer and real values.
 parse_hopefully<double> parse_double(asc::lexer& L) {
     auto t = L.current();
     if (!(t.kind==tok::integer || t.kind==tok::real)) {
         return unexpected(PARSE_ERROR("missing real number", L.current().loc));
     }
-    L.next(); // consume token()
+    L.next(); // consume the number
     return std::stod(t.spelling);
 }
 
 #define PARSE_DOUBLE(L, X) {if (auto rval__ = parse_double(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
 
+// Attempt to parse an integer in the range [0, 256).
 parse_hopefully<std::uint8_t> parse_uint8(asc::lexer& L) {
     auto t = L.current();
     if (t.kind!=tok::integer) {
@@ -110,6 +113,7 @@ parse_hopefully<std::uint8_t> parse_uint8(asc::lexer& L) {
 }
 
 #define PARSE_UINT8(L, X) {if (auto rval__ = parse_uint8(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
+
 // Find the matching closing parenthesis, and consume it.
 // Assumes that opening paren has been consumed.
 void parse_to_closing_paren(asc::lexer& L, unsigned depth=0) {
@@ -338,8 +342,7 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
         return t.kind == tok::pipe || t.kind == tok::rparen;
     };
 
-    // TODO: the terminals marked incomplete, low, normal, generated, etc. could
-    // be recorded in separate locsets.
+    // One of these symbols must always be present at what Arbor calls a terminal.
     auto branch_end_symbol = [] (const asc::token& t) {
         return symbol_matches("Incomplete", t)
             || symbol_matches("Low", t)
@@ -347,32 +350,34 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
             || symbol_matches("Generated", t);
     };
 
-    // Parse the samples in this branch up to either a terminal or child branches.
+    // Parse the samples in this branch up to either a terminal or an explicit fork.
     while (!finished) {
         auto p = L.peek();
-        // Test for a sample (we assume)
+        // Assume that a sample has been found if the first value after a parenthesis
+        // is a number. An error will be returned if that is not the case.
         if (t.kind==tok::lparen && (p.kind==tok::integer || p.kind==tok::real)) {
             arb::mpoint sample;
             PARSE_POINT(L, sample);
             B.samples.push_back(sample);
         }
+        // Spines are marked by a "less than", i.e. "<", symbol.
         else if (t.kind==tok::lt) {
             arb::mpoint spine;
             PARSE_SPINE(L, spine);
         }
+        // Test for a symbol that indicates a terminal.
         else if (branch_end_symbol(t)) {
             L.next(); // Consume symbol
             if (!branch_end(t)) {
-                return unexpected(
-                        PARSE_ERROR("Incomplete or Normal not at a branch terminal", t.loc));
+                return unexpected(PARSE_ERROR("Incomplete, Normal, Low or Generated not at a branch terminal", t.loc));
             }
             finished = true;
         }
         else if (branch_end(t)) {
             finished = true;
         }
+        // The end of the branch followed by an explicit fork point.
         else if (t.kind==tok::lparen) {
-            // Break to start processing children.
             finished = true;
         }
         else {
@@ -380,6 +385,7 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
         }
     }
 
+    // Recursively parse any child branches.
     if (t.kind==tok::lparen) {
         if (auto kids = parse_children(L)) {
             B.children = std::move(*kids);
@@ -420,14 +426,15 @@ parse_hopefully<std::vector<branch>> parse_children(asc::lexer& L) {
 }
 
 parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
-    // parse the following unordered nonsense:
-    //  string label, e.g. "Cell Body"
-    //  color, e.g. (Color Red)
-    //  label, e.g. (CellBody)
     EXPECT_TOKEN(L, tok::lparen);
 
     sub_tree tree;
 
+    // Parse the arbitrary, unordered and optional meta-data that may be prepended to the sub-tree.
+    //  string label, e.g. "Cell Body"
+    //  color, e.g. (Color Red)
+    //  z-smear, i.e. (zSmear alpha beta)
+    // And the required demarcation of CellBody, Axon, Dendrite or Apical.
     while (true) {
         auto& t = L.current();
         // ASC files have an option to attach a string to the start of a sub-tree.
@@ -495,7 +502,8 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
         return unexpected(PARSE_ERROR("Missing sub-tree label (CellBody, Axon, Dendrite or Apical)", L.current().loc));
     }
 
-    // Parse the segment tree.
+    // Now that the meta data has been read, process the samples.
+    // parse_branch will recursively construct the sub-tree.
     if (auto branches = parse_branch(L)) {
         tree.root = std::move(*branches);
     }
@@ -509,6 +517,7 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
 }
 
 
+// Perform the parsing of the input as a string.
 asc_morphology parse_asc_string(const char* input) {
     asc::lexer lexer(input);
 
