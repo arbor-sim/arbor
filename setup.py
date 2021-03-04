@@ -9,18 +9,10 @@ import subprocess
 try:
     from wheel.bdist_wheel import bdist_wheel
     WHEEL_INSTALLED = True
-    cmdclasses_ = {
-        'build_ext':   cmake_build,
-        'install':     install_command,
-        'bdist_wheel': bdist_wheel_command,
-    }
 except:
     #wheel package not installed.
     WHEEL_INSTALLED = False
-    cmdclasses_ = {
-        'build_ext':   cmake_build,
-        'install':     install_command,
-    }
+    pass
 
 # Singleton class that holds the settings configured using command line
 # options. This information has to be stored in a singleton so that it
@@ -215,7 +207,14 @@ setuptools.setup(
     setup_requires=[],
     zip_safe=False,
     ext_modules=[cmake_extension('arbor')],
-    cmdclass=cmdclasses_,
+    cmdclass={
+        'build_ext':   cmake_build,
+        'install':     install_command,
+        'bdist_wheel': bdist_wheel_command,
+    } if WHEEL_INSTALLED else {
+        'build_ext':   cmake_build,
+        'install':     install_command,
+    },
 
     author='The Arbor dev team.',
     url='https://github.com/arbor-sim/arbor',
