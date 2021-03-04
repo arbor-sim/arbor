@@ -442,16 +442,9 @@ system with the executable in ``/usr/bin/python3.8``:
     cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
 
-TODO: install Arbor python package in CMAKE_INSTALL_PREFIX by default, only using sysconfig.get_path to
-determine the appropriate ``lib/site-packages/python3.x/`` sub-directory in which to install.
-
-By default the Python module will be installed in the directory returned by
-``${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))"``.
-This returns the directory where the supplied or found ``PYTHON_EXECUTABLE`` looks for system packages.
-`See Python's sysconfig documentation <https://docs.python.org/3/library/sysconfig.html#installation-paths>`_.
-
-The Python package will be installed in the appropriate sub-directory inside ``CMAKE_INSTALL_PREFIX``
-by querying Python's sysconfig library. For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.9/site-packages/``.
+By default the Python package will be installed in the appropriate sub-directory
+inside ``CMAKE_INSTALL_PREFIX``, determined by querying Python's sysconfig library.
+For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.9/site-packages/``.
 
 To install the module in a different location, independent of ``CMAKE_INSTALL_PREFIX``,
 use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is to be installed.
@@ -461,12 +454,12 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     cmake .. -DARB_WITH_PYTHON=on -DARB_PYTHON_PATH_LIB=/custom/path
 
 If CMake is run in a `venv` or Conda environment, set ``CMAKE_INSTALL_PREFIX`` to the
-path with of the venv. The example below shows a workflow that creates a virtual
-environment, and installs Arbor inside the environment.
+base path of the venv. The example below shows a workflow that creates a virtual
+environment, then installs Arbor inside the environment.
 
 .. code-block:: bash
 
-    # Set up your virtual env.
+    # Set up your venv.
     mkdir myenv
     cd myenv/
     python3 -m venv env
@@ -494,14 +487,14 @@ environment, and installs Arbor inside the environment.
                    -DARB_USE_BUNDLED_LIBS=on  \       # use bundled versions of deps.
                    -DCMAKE_INSTALL_PREFIX="$pyprefix" # set custom installation path.
 
-    # Build then install
+    # Build and install
     make -j4
     make install
 
     # Test it out!
     python -c "import arbor; print(arbor.__config__)"
 
-The Arbor Python wrapper has optional support for the mpi4py, though
+The Arbor Python wrapper has optional support for mpi4py, though
 it is not required to use Arbor with Python and MPI.
 CMake will attempt to automatically detect ``mpi4py`` if configured
 with both ``-DARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
