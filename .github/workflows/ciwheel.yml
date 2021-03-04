@@ -2,7 +2,6 @@ name: Arbor on Wheels
 
 on:
   push:
-    branches: [ master, ciwheel ]
     tags:
       - v*
 
