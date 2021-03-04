@@ -2,6 +2,7 @@ name: Arbor on Wheels
 
 on:
   push:
+    branches: [ ciwheel ]
     tags:
       - v*
 
@@ -14,8 +15,6 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v2
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -44,7 +43,6 @@ jobs:
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_ARCHS_MACOS: x86_64 universal2
-          CIBW_BUILD_VERBOSITY: 3
           # CIBW_TEST_COMMAND: TODO
 
       # this action runs auditwheel automatically with the following args:
