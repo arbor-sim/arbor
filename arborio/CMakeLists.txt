@@ -1,7 +1,7 @@
 set(arborio-sources
     swcio.cpp
+    cableio_error.cpp
     cableio.cpp
-    cable_cell_format.cpp
 )
 if(ARB_WITH_NEUROML)
     list(APPEND arborio-sources

@@ -157,16 +157,26 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
                              " (default\n"
                              "   (axial-resistivity 100.000000)))";
         std::string morphy = "(morphology \n"
-                             "    (branch 0 -1 \n"
-                             "      (segment 0 \n"
-                             "        (point -6.300000 0.000000 0.000000 6.300000)\n"
-                             "        (point 6.300000 0.000000 0.000000 6.300000)\n"
-                             "        1)\n"
-                             "      (segment 1 \n"
-                             "        (point 6.300000 0.000000 0.000000 0.500000)\n"
-                             "        (point 206.300000 0.000000 0.000000 0.200000)\n"
-                             "        3)))";
+                             "  (branch 0 -1 \n"
+                             "    (segment 0 \n"
+                             "      (point -6.300000 0.000000 0.000000 6.300000)\n"
+                             "      (point 6.300000 0.000000 0.000000 6.300000)\n"
+                             "      1)\n"
+                             "    (segment 1 \n"
+                             "      (point 6.300000 0.000000 0.000000 0.500000)\n"
+                             "      (point 206.300000 0.000000 0.000000 0.200000)\n"
+                             "      3)))";
         std::string celly = "(cable-cell \n"
+                            "  (morphology \n"
+                            "    (branch 0 -1 \n"
+                            "      (segment 0 \n"
+                            "        (point -6.300000 0.000000 0.000000 6.300000)\n"
+                            "        (point 6.300000 0.000000 0.000000 6.300000)\n"
+                            "        1)\n"
+                            "      (segment 1 \n"
+                            "        (point 6.300000 0.000000 0.000000 0.500000)\n"
+                            "        (point 206.300000 0.000000 0.000000 0.200000)\n"
+                            "        3)))\n"
                             "  (label-dict \n"
                             "    (region-def \"soma\" \n"
                             "      (tag 1))\n"
@@ -188,31 +198,32 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
                             "      (mechanism \"hh\")))"
                             ")";
 
-        if (auto v = arborio::parse_label_dict(dicty)) {
-//            arborio::write_s_expr(std::cout, v.value());
+        auto writer = [](auto&& t) {arborio::write_s_expr(std::cout, t);};
+        if (auto v = arborio::parse_component(dicty)) {
+            std::visit(writer, v.value());
             std::cout << std::endl << std::endl;
         }
         else {
             throw v.error();
         }
 
-        if (auto v = arborio::parse_decor(decory)) {
-//            arborio::write_s_expr(std::cout, v.value());
+        if (auto v = arborio::parse_component(decory)) {
+            std::visit(writer, v.value());
             std::cout << std::endl << std::endl;
         }
         else {
             throw v.error();
         }
 
-        if (auto v = arborio::parse_morphology(morphy)) {
-//            arborio::write_s_expr(std::cout, v.value());
+        if (auto v = arborio::parse_component(morphy)) {
+            std::visit(writer, v.value());
             std::cout << std::endl << std::endl;
         }
         else {
             throw v.error();
         }
-        if (auto v = arborio::parse_cable_cell(celly)) {
-            arborio::write_s_expr(std::cout, v.value());
+        if (auto v = arborio::parse_component(celly)) {
+            std::visit(writer, v.value());
             std::cout << std::endl << std::endl;
         }
         else {

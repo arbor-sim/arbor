@@ -14,8 +14,9 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/util/any_visitor.hpp>
 
-#include <arborio/swcio.hpp>
 #include <arborio/cableio.hpp>
+#include <arborio/cableio_error.hpp>
+#include <arborio/swcio.hpp>
 
 #include <tinyopt/tinyopt.h>
 
