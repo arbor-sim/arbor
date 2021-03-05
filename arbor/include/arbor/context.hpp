@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <thread>
+#include "../../../arborenv/include/arborenv/concurrency.hpp"
 
 namespace arb {
 
@@ -26,7 +26,7 @@ struct proc_allocation {
     // See documenation for cuda[/hip]SetDevice and cuda[/hip]DeviceGetAttribute.
     int gpu_id;
 
-    proc_allocation(): proc_allocation( (std::thread::hardware_concurrency()>0) ? std::thread::hardware_concurrency() : 1, -1) {}
+    proc_allocation(): proc_allocation( arbenv::thread_concurrency(), -1) {}
 
     proc_allocation(unsigned threads, int gpu):
         num_threads(threads),
