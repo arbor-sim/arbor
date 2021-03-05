@@ -15,4 +15,5 @@ If you wish to use the C++ API, you'll need to build Arbor from source. Note tha
    :caption: Install Arbor:
 
    python
+   spack
    build_install

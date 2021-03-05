@@ -38,8 +38,6 @@ The :gen:`gid` of a cell is used to determine its cell :ref:`kind <modelcellkind
 target or gap junction site is used to form :ref:`connections <modelconnections>` and
 :ref:`gap junctions <modelgapjunctions>` in the recipe.
 
-
-
 .. _modelcellkind:
 
 Cell kind
@@ -107,64 +105,19 @@ It details everything needed to build a cell. The degree of detail differs accor
 
 1. **Cable Cells**
 
-   The description of a cable cell can include all the following:
-
-     * :ref:`Morphology <morph>`: composed of a branching tree of one-dimensional line segments.
-       Strictly speaking, Arbor represents a morphology as an *acyclic directed graph*, with the soma at
-       the root.
-     * Discretisation: specifies how to split the morphology into discrete components for the simulation.
-     * Initial membrane voltage.
-     * Initial axial resistivity.
-     * Initial membrane capacitance.
-     * Initial temperature.
-     * Initial ion internal and external concentrations.
-     * Initial ion reversal potential.
-     * Stimuli: such as current clamps; placed on specific :term:`locations <locset>` on the cell.
-     * :ref:`Density mechanisms <mechanisms-density>`: commonly used to describe ion-channel dynamics across
-       :term:`regions <region>` of the cell.
-     * :ref:`Ion reversal potential mechanisms <mechanisms-revpot>`: used to control the reversal potentials of
-       ions across regions of the cell.
-     * Synapses: implemented using :ref:`point mechanisms <mechanisms-point>` on specific locations of the cell;
-       typically act as **targets** of :ref:`connections <modelconnections>` in the recipe.
-     * Detectors: used to generate spiking events on specific locations on the cell when the voltage
-       increases above a certain threshold; typically act as **sources** of :ref:`connections <modelconnections>`.
-     * Gap junction sites: placed on a specific location on a cell and used to electrically couple the cell to
-       another gap junction site on another cell by forming a :ref:`gap junction <modelgapjunctions>`.
-
-   Most Arbor users will want to use the cable cell because it is the only cell kind that supports complex
-   morphologies and user-defined mechanisms. See the cable cell's :ref:`dedicated page <cablecell>` for more info.
-   And visit the :ref:`C++ <cppcablecell>` and :ref:`Python <pycablecell>` APIs to learn how to programmatically
-   provide the cable cell description in Arbor.
+   See :ref:`cablecell`.
 
 2. **LIF Cells**
 
-   The description of a LIF cell is used to control the leaky integrate-and-fire dynamics:
-
-      * Resting potential.
-      * Reset potential.
-      * Initial value of membrane potential.
-      * Membrane potential decaying constant.
-      * Membrane capacitance.
-      * Firing threshold.
-      * Refractory period.
-
-   The morphology of a LIF cell is automatically modelled as a single :term:`compartment <control volume>`; each cell has one built-in
-   **source** and one built-in **target** which do not need to be explicitly added in the cell description.
-   LIF cells do not support adding additional **sources** or **targets** to the description. They do not support
-   **gap junctions**. They do not support adding density or point mechanisms.
+   See :ref:`lifcell`.
 
 3. **Spiking cells**
 
-   The description of a spiking cell controls the spiking schedule of the cell. Its morphology is
-   automatically modelled as a single :term:`compartment <control volume>`; each cell has one built-in **source** which does not need to
-   be explicitly added in the cell description, and no **targets**. Spiking cells do not support adding additional
-   **sources** or **targets**. They do not support **gap junctions**. They do not support adding density or
-   point mechanisms.
+   See :ref:`spikecell`.
 
 4. **Benchmark Cells**
 
-   The description of a benchmark cell is used to determine the spiking schedule of the cell and manipulate its
-   performance efficiency. This cell is mainly used by developers.
+   See :ref:`benchcell`.
 
 API
 ---

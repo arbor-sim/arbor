@@ -160,11 +160,6 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
-struct initial_ion_data {
-    std::string ion;
-    cable_cell_ion_data initial;
-};
-
 struct ion_reversal_potential_method {
     std::string ion;
     mechanism_desc method;
@@ -191,7 +186,6 @@ using defaultable =
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
-                 initial_ion_data,
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,

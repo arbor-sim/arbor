@@ -39,6 +39,14 @@ Once constructed, the cable cell can be queried for specific information about t
     * 3 decors (1 for each of purkinje, granule and pyramidal).
     * 1 label dictionary that defines the region types.
 
+.. toctree::
+   :maxdepth: 2
+
+   morphology
+   labels
+   mechanisms
+   decor
+   probe_sample
 
 API
 ---

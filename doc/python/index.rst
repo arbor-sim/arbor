@@ -48,8 +48,7 @@ These details are described and examples are given in the next sections :ref:`py
    simulation
    profiler
    cable_cell
-   morphology
-   labels
-   mechanisms
-   decor
+   lif_cell
+   spike_source_cell
+   benchmark_cell
    single_cell_model

@@ -108,6 +108,11 @@ if(ARB_GPU STREQUAL "cuda")
         set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
     endif()
 
+    # This fixes nvcc picking up a wrong host compiler for linking, causing issues
+    # with outdated libraries, eg libstdc++ and std::filesystem. Must happend before
+    # all calls to enable_language(CUDA)
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+
     enable_language(CUDA)
 
     # Despite native CUDA support, the CUDA package is still required to export
@@ -254,7 +259,11 @@ endif()
 if(ARB_WITH_PYTHON)
     cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
 
-    find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
+    if(DEFINED ENV{CIBUILDWHEEL})
+        find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development.Module REQUIRED)
+    else()
+        find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
+    endif()
 
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.

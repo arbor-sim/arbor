@@ -359,6 +359,9 @@ to implement these kernels. Arbor currently has vectorization support for x86 ar
 with AVX, AVX2 or AVX512 ISA extensions; and for AArch64 ARM architectures with NEON and SVE
 (first available on ARMv8-A).
 
+.. note::
+  Note that on x86-64 platforms compilation will fail if you enable vectorization, but the CPU or ``-DARB_ARCH`` does not support any form of AVX.
+
 .. _install-gpu:
 
 GPU backend

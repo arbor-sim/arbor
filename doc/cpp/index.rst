@@ -22,6 +22,4 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    domdec
    simulation
    profiler
-   neuroml
    cable_cell
-   morphology

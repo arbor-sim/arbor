@@ -1,4 +1,4 @@
-.. _nmodl:
+.. _formatnmodl:
 
 NMODL
 ======
