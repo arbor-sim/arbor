@@ -31,19 +31,19 @@ class brunel_recipe (arbor.recipe):
     def __init__(self, nexc, ninh, next, in_degree_prop, weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
 
         arbor.recipe.__init__(self)
-        self.props = arbor.neuron_cable_properties()
-        self.cat = arbor.default_catalogue()
-        self.props.register(self.cat)
-
-        self.ncells_exc_ = nexc
-        self.ncells_inh_ = ninh
-        self.delay_ = delay
-        self.seed_ = seed
+        # self.props = arbor.neuron_cable_properties()
+        # self.cat = arbor.default_catalogue()
+        # self.props.register(self.cat)
 
         # Make sure that in_degree_prop in the interval (0, 1]
         if 0.0>=in_degree_prop>1.0:
             print("The proportion of incoming connections should be in the interval (0, 1].")
             quit()
+
+        self.ncells_exc_ = nexc
+        self.ncells_inh_ = ninh
+        self.delay_ = delay
+        self.seed_ = seed
 
         # Set up the parameters.
         self.weight_exc_ = weight
@@ -83,8 +83,9 @@ class brunel_recipe (arbor.recipe):
         return cell
 
     def event_generators(self, gid):
-        t0 = arbor.poisson_schedule(0,self.lambda_,self.seed_)
-        return [arbor.event_generator(arbor.cell_member(gid,0), self.weight_ext_, t0)]
+        t0 = 0
+        sched = arbor.poisson_schedule(t0, self.lambda_, gid + self.seed_)
+        return [arbor.event_generator(arbor.cell_member(gid,0), self.weight_ext_, sched)]
 
     def num_targets(self, gid):
         return 1
@@ -112,10 +113,9 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--dt', dest='dt', type=float, default=1, help='Simulation time step (ms)')
     parser.add_argument('-G', '--group-size', dest='group_size', type=int, default=10, help='Number of cells per cell group')
     parser.add_argument('-S', '--seed', dest='seed', type=int, default=42, help='Seed for poisson spike generators')
-    #FIXME: these are being ignored:
     parser.add_argument('-f', '--write-spikes', dest='spike_file_output', action='store_true', help='Save spikes to file')
     parser.add_argument('-z', '--profile-rank-zero', dest='profile_only_zero', action='store_true', help='Only output profile information for rank 0')
-    parser.add_argument('-V', '--verbose', dest='verbose', action='store_true', help='Print more verbose information to stdout')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Print more verbose information to stdout')
 
     for k,v in vars(parser.parse_args()).items():
         setattr(opt, k, v)
@@ -155,3 +155,8 @@ if __name__ == "__main__":
     print('spikes:')
     for sp in sim.spikes():
         print(' ', sp)
+
+    if opt.spike_file_output:
+        with open('spikes.txt', 'a') as the_file:
+            for sp in sim.spikes():
+                    the_file.write('{:3.3f}'.format(sp))
