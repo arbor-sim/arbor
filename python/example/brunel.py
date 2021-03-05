@@ -111,8 +111,8 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--tfinal', dest='tfinal', type=float, default=100, help='Length of the simulation period (ms)')
     parser.add_argument('-s', '--dt', dest='dt', type=float, default=1, help='Simulation time step (ms)')
     parser.add_argument('-G', '--group-size', dest='group_size', type=int, default=10, help='Number of cells per cell group')
-    #FIXME: these are being ignored:
     parser.add_argument('-S', '--seed', dest='seed', type=int, default=42, help='Seed for poisson spike generators')
+    #FIXME: these are being ignored:
     parser.add_argument('-f', '--write-spikes', dest='spike_file_output', action='store_true', help='Save spikes to file')
     parser.add_argument('-z', '--profile-rank-zero', dest='profile_only_zero', action='store_true', help='Only output profile information for rank 0')
     parser.add_argument('-V', '--verbose', dest='verbose', action='store_true', help='Print more verbose information to stdout')
@@ -131,11 +131,9 @@ if __name__ == "__main__":
     meters.checkpoint('recipe-create', context)
 
     hint = arbor.partition_hint()
-    hint.prefer_gpu = True
-    hint.gpu_group_size = 1000
-
-    hints = {arbor.cell_kind.lif, hint}
-    decomp = arbor.partition_load_balance(recipe, context)#, hints)
+    hint.cpu_group_size = opt.group_size
+    hints = {arbor.cell_kind.lif: hint}
+    decomp = arbor.partition_load_balance(recipe, context, hints)
     print(decomp)
 
     meters.checkpoint('load-balance', context)
