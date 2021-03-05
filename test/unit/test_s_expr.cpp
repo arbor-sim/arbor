@@ -8,6 +8,8 @@
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
 
+#include <arborio/cableio.hpp>
+
 #include "util/strprintf.hpp"
 
 using namespace arb;
@@ -263,3 +265,458 @@ TEST(regloc, errors) {
         EXPECT_FALSE(parse_label_expression(std::string(expr)));
     }
 }
+
+template <typename T, std::size_t I=0>
+std::optional<T> eval_cast_variant(const std::any& a) {
+    if constexpr (I<std::variant_size_v<T>) {
+        using var_type = std::variant_alternative_t<I, T>;
+        return (typeid(var_type) == a.type())? std::any_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
+    }
+    return std::nullopt;
+}
+
+using branch = std::tuple<int, int, std::vector<arb::msegment>>;
+using place_pair = std::pair<arb::locset, arb::placeable>;
+using paint_pair = std::pair<arb::region, arb::paintable>;
+using locset_pair = std::pair<std::string, locset>;
+using region_pair = std::pair<std::string, region>;
+
+std::ostream& operator<<(std::ostream& o, const cv_policy&) {
+    return o;
+}
+std::ostream& operator<<(std::ostream& o, const branch& b) {
+    o << "(branch " << std::to_string(std::get<0>(b)) << " " << std::to_string(std::get<1>(b));
+    for (auto s: std::get<2>(b)) {
+        o << " " << s;
+    }
+    return o << ")";
+}
+std::ostream& operator<<(std::ostream& o, const paint_pair& p) {
+    o << "(paint " << p.first << " ";
+    std::visit([&](auto&& x){ o << x;}, p.second);
+    return o << ")";
+}
+std::ostream& operator<<(std::ostream& o, const place_pair& p) {
+    o << "(place " << p.first << " ";
+    std::visit([&](auto&& x){ o << x;}, p.second);
+    return o << ")";
+}
+std::ostream& operator<<(std::ostream& o, const defaultable & p) {
+    o << "(default ";
+    std::visit([&](auto&& x){ o << x;}, p);
+    return o << ")";
+}
+std::ostream& operator<<(std::ostream& o, const locset_pair &p) {
+    return o << "(locset-def \"" << p.first << "\" " << p.second << ")";
+}
+std::ostream& operator<<(std::ostream& o, const region_pair &p) {
+    return o << "(region-def \"" << p.first << "\" " << p.second << ")";
+}
+
+template <typename T>
+std::string to_string(const T& obj) {
+    std::stringstream s;
+    s << obj;
+    return s.str();
+}
+std::string to_string(const decor& obj) {
+    std::stringstream s;
+    arborio::write_s_expr(s, obj);
+    return s.str();
+}
+std::string to_string(const morphology& obj) {
+    std::stringstream s;
+    arborio::write_s_expr(s, obj);
+    return s.str();
+}
+std::string to_string(const label_dict& obj) {
+    std::stringstream s;
+    arborio::write_s_expr(s, obj);
+    return s.str();
+}
+std::string to_string(const cable_cell& obj) {
+    std::stringstream s;
+    arborio::write_s_expr(s, obj);
+    return s.str();
+}
+
+template <typename T>
+std::string round_trip_variant(const char* in) {
+    if (auto x = arborio::parse_expression(std::string(in))) {
+        std::string str;
+        std::visit([&](auto&& p){str = to_string(p);}, *(eval_cast_variant<T>(*x)));
+        return str;
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+template <typename T>
+std::string round_trip(const char* in) {
+    if (auto x = arborio::parse_expression(std::string(in))) {
+        return to_string(std::any_cast<T>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+std::string round_trip_component(const char* in) {
+    if (auto x = arborio::parse_component(std::string(in))) {
+        return std::visit([](auto&& p) {return to_string(p);}, *x);
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+TEST(decor_literals, round_tripping) {
+    auto paint_default_literals = {
+        "(membrane-potential -65.1)",
+        "(temperature-kelvin 301)",
+        "(axial-resistivity 102)",
+        "(membrane-capacitance 0.01)",
+        "(ion-internal-concentration \"ca\" 75.1)",
+        "(ion-external-concentration \"h\" -50.1)",
+        "(ion-reversal-potential \"na\" 30)"};
+    auto paint_literals = {
+        "(mechanism \"hh\")",
+        "(mechanism \"pas\" (\"g\" 0.02))",
+    };
+    auto default_literals = {
+        "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))"};
+    auto place_literals = {
+        "(current-clamp 10 100 0.5)",
+        "(threshold-detector -10)",
+        "(gap-junction-site)",
+        "(mechanism \"expsyn\")"};
+    for (auto l: paint_default_literals) {
+        EXPECT_EQ(l, round_trip_variant<defaultable>(l));
+        EXPECT_EQ(l, round_trip_variant<paintable>(l));
+    }
+    for (auto l: paint_literals) {
+        EXPECT_EQ(l, round_trip_variant<paintable>(l));
+    }
+    for (auto l: default_literals) {
+        EXPECT_EQ(l, round_trip_variant<defaultable>(l));
+    }
+    for (auto l: place_literals) {
+        EXPECT_EQ(l, round_trip_variant<placeable>(l));
+    }
+
+    std::string mech_str = "(mechanism \"kamt\" (\"gbar\" 50) (\"zetam\" 0.1) (\"q10\" 5))";
+    auto maybe_mech = arborio::parse_expression(mech_str);
+    EXPECT_TRUE(maybe_mech);
+
+    auto any_mech = maybe_mech.value();
+    EXPECT_TRUE(typeid(mechanism_desc) == any_mech.type());
+
+    auto mech = std::any_cast<mechanism_desc>(any_mech);
+    EXPECT_EQ("kamt", mech.name());
+    EXPECT_EQ(3u, mech.values().size());
+
+    EXPECT_EQ(50, mech.values().at("gbar"));
+    EXPECT_EQ(0.1, mech.values().at("zetam"));
+    EXPECT_EQ(5, mech.values().at("q10"));
+}
+
+TEST(decor_expressions, round_tripping) {
+    auto decorate_paint_literals = {
+        "(paint (region \"all\") (membrane-potential -65.1))",
+        "(paint (tag 1) (temperature-kelvin 301))",
+        "(paint (distal-interval (location 3 0)) (axial-resistivity 102))",
+        "(paint (join (region \"dend\") (all)) (membrane-capacitance 0.01))",
+        "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" 75.1))",
+        "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" -50.1))",
+        "(paint (region \"my_region\") (ion-reversal-potential \"na\" 30))",
+        "(paint (cable 2 0.1 0.4) (mechanism \"hh\"))",
+        "(paint (all) (mechanism \"pas\" (\"g\" 0.02)))"
+    };
+    auto decorate_default_literals = {
+        "(default (membrane-potential -65.1))",
+        "(default (temperature-kelvin 301))",
+        "(default (axial-resistivity 102))",
+        "(default (membrane-capacitance 0.01))",
+        "(default (ion-internal-concentration \"ca\" 75.1))",
+        "(default (ion-external-concentration \"h\" -50.1))",
+        "(default (ion-reversal-potential \"na\" 30))",
+        "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))"
+    };
+    auto decorate_place_literals = {
+        "(place (location 3 0.2) (current-clamp 10 100 0.5))",
+        "(place (terminal) (threshold-detector -10))",
+        "(place (root) (gap-junction-site))",
+        "(place (locset \"my!ls\") (mechanism \"expsyn\"))"};
+
+    for (auto l: decorate_paint_literals) {
+        EXPECT_EQ(l, round_trip<paint_pair>(l));
+    }
+    for (auto l: decorate_place_literals) {
+        EXPECT_EQ(l, round_trip<place_pair>(l));
+    }
+    for (auto l: decorate_default_literals) {
+        EXPECT_EQ(l, round_trip<defaultable>(l));
+    }
+}
+
+TEST(label_dict_expressions, round_tripping) {
+    auto locset_def_literals = {
+        "(locset-def \"my! locset~\" (root))",
+        "(locset-def \"ls0\" (location 0 1))"
+    };
+    auto region_def_literals = {
+        "(region-def \"my region\" (all))",
+        "(region-def \"reg42\" (cable 0 0.1 0.9))"
+    };
+    for (auto l: locset_def_literals) {
+        EXPECT_EQ(l, round_trip<locset_pair>(l));
+    }
+    for (auto l: region_def_literals) {
+        EXPECT_EQ(l, round_trip<region_pair>(l));
+    }
+}
+
+TEST(morphology_literals, round_tripping) {
+    auto point = "(point 701.6 -3.1 -10 0.6)";
+    auto segment = "(segment 5 (point 5 2 3 1) (point 5 2 5 6) 42)";
+    auto branches = {
+        "(branch -1 5 (segment 5 (point 5 2 3 1) (point 5 2 3.1 0.5) 2))",
+        "(branch -1 5"
+        " (segment 2 (point 5 2 3 1) (point 5 2 5 6) 42)"
+        " (segment 3 (point 5 2 3 1) (point 5 2 3.1 0.5) 2)"
+        ")"
+    };
+
+    EXPECT_EQ(point, round_trip<mpoint>(point));
+    EXPECT_EQ(segment, round_trip<msegment>(segment));
+    for (auto l: branches) {
+        EXPECT_EQ(l, round_trip<branch>(l));
+    }
+}
+
+TEST(full_decor, round_tripping) {
+    auto decor_str = "(decorations \n"
+                     "  (default \n"
+                     "    (axial-resistivity 100.000000))\n"
+                     "  (default \n"
+                     "    (ion-reversal-potential-method \"na\" \n"
+                     "      (mechanism \"nernst\")))\n"
+                     "  (paint \n"
+                     "    (region \"dend\")\n"
+                     "    (mechanism \"pas\"))\n"
+                     "  (paint \n"
+                     "    (region \"soma\")\n"
+                     "    (mechanism \"hh\"))\n"
+                     "  (paint \n"
+                     "    (join \n"
+                     "      (tag 1)\n"
+                     "      (tag 2))\n"
+                     "    (ion-internal-concentration \"ca\" 0.500000))\n"
+                     "  (place \n"
+                     "    (location 0 0)\n"
+                     "    (threshold-detector 10.000000))\n"
+                     "  (place \n"
+                     "    (location 0 0.5)\n"
+                     "    (mechanism \"expsyn\" \n"
+                     "      (\"tau\" 1.500000))))";
+
+    EXPECT_EQ(decor_str, round_trip<decor>(decor_str));
+    EXPECT_EQ(decor_str, round_trip_component(decor_str));
+}
+
+TEST(full_label_dict, round_tripping) {
+    auto label_str = "(label-dict \n"
+                     "  (region-def \"soma\" \n"
+                     "    (tag 1))\n"
+                     "  (region-def \"dend\" \n"
+                     "    (tag 3))\n"
+                     "  (locset-def \"root\" \n"
+                     "    (root)))";
+
+    EXPECT_EQ(label_str, round_trip<label_dict>(label_str));
+    EXPECT_EQ(label_str, round_trip_component(label_str));
+}
+
+TEST(full_morphology, round_tripping) {
+    auto morpho_str = "(morphology \n"
+                      "  (branch 0 -1 \n"
+                      "    (segment 0 \n"
+                      "      (point 0.000000 0.000000 -6.307850 6.307850)\n"
+                      "      (point 0.000000 0.000000 6.307850 6.307850)\n"
+                      "      1))\n"
+                      "  (branch 1 0 \n"
+                      "    (segment 1 \n"
+                      "      (point 0.000000 0.000000 6.307850 6.307850)\n"
+                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 2 \n"
+                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
+                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 3 \n"
+                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
+                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
+                      "      3))\n"
+                      "  (branch 2 0 \n"
+                      "    (segment 4 \n"
+                      "      (point 0.000000 0.000000 6.307850 6.307850)\n"
+                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 5 \n"
+                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
+                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 6 \n"
+                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
+                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
+                      "      3))\n"
+                      "  (branch 3 2 \n"
+                      "    (segment 7 \n"
+                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 8 \n"
+                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
+                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 9 \n"
+                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
+                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
+                      "      3))\n"
+                      "  (branch 4 2 \n"
+                      "    (segment 10 \n"
+                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 11 \n"
+                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
+                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 12 \n"
+                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
+                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
+                      "      3))\n"
+                      "  (branch 5 3 \n"
+                      "    (segment 13 \n"
+                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 14 \n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 21 \n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 22 \n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 29 \n"
+                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 556.307850 0.500000)\n"
+                      "      3))\n"
+                      "  (branch 6 3 \n"
+                      "    (segment 15 \n"
+                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 16 \n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 23 \n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 24 \n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
+                      "      3))\n"
+                      "  (branch 7 4 \n"
+                      "    (segment 17 \n"
+                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 18 \n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 25 \n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 26 \n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
+                      "      3))\n"
+                      "  (branch 8 4 \n"
+                      "    (segment 19 \n"
+                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 20 \n"
+                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 27 \n"
+                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      3)\n"
+                      "    (segment 28 \n"
+                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
+                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
+                      "      3)))";
+
+    EXPECT_EQ(morpho_str, round_trip<morphology>(morpho_str));
+    EXPECT_EQ(morpho_str, round_trip_component(morpho_str));
+}
+
+/*
+TEST(regloc, errors) {
+    for (auto expr: {"axon",         // unquoted region name
+                     "(tag 1.2)",    // invalid argument in an otherwise valid region expression
+                     "(tag 1 2)",    // too many arguments to otherwise valid region expression
+                     "(tag 1) (tag 2)", // more than one valid description
+                     "(tag",         // syntax error in region expression
+                     "(terminal)",   // a valid locset expression
+                     "\"my region",  // unclosed quote on label
+    })
+    {
+        // If an invalid label/expression was passed and handled correctly the parse
+        // call will return without throwing, with the error stored in the return type.
+        // So it is sufficient to assert that it evaluates to false.
+        EXPECT_FALSE(parse_region_expression(expr));
+    }
+
+    for (auto expr: {"axon",         // unquoted locset name
+                     "(location 1 \"0.5\")",  // invalid argument in an otherwise valid locset expression
+                     "(location 1 0.2 0.2)",  // too many arguments to otherwise valid locset expression
+                     "(root) (location 2 0)", // more than one valid description
+                     "(tag",         // syntax error in locset expression
+                     "(tag 3)",      // a valid region expression
+                     "\"my locset",  // unclosed quote on label
+    })
+    {
+        // If an invalid label/expression was passed and handled correctly the parse
+        // call will return without throwing, with the error stored in the return type.
+        // So it is sufficient to assert that it evaluates to false.
+        EXPECT_FALSE(parse_locset_expression(expr));
+    }
+
+    for (auto expr: {"axon",         // unquoted locset name
+                     "(location 1 \"0.5\")",  // invalid argument in an otherwise valid locset expression
+                     "(location 1 0.2 0.2)",  // too many arguments to otherwise valid locset expression
+                     "(root) (location 2 0)", // more than one valid description
+                     "(tag",         // syntax error in locset expression
+                     "\"my locset",  // unclosed quote on label
+    })
+    {
+        // If an invalid label/expression was passed and handled correctly the parse
+        // call will return without throwing, with the error stored in the return type.
+        // So it is sufficient to assert that it evaluates to false.
+        EXPECT_FALSE(parse_label_expression(std::string(expr)));
+    }
+}*/

@@ -28,8 +28,8 @@ struct cell_parameters {
     // The following parameters are described as ranges.
     // The first value is at the soma, and the last value is used on the last level.
     // Values at levels in between are found by linear interpolation.
-    std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
-    std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
+    std::array<double,2> branch_probs = {0.9, 0.4}; //  Probability of a branch occuring.
+    std::array<unsigned,2> compartments = {3, 1};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
     // The number of synapses per cell.
@@ -229,6 +229,9 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
         else {
             throw v.error();
         }
+
+//        arborio::write_s_expr(std::cout, arb::morphology(tree));
+
     }
 
     return cell;

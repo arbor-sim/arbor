@@ -48,7 +48,7 @@ struct i_clamp {
     {}
 
     friend std::ostream& operator<<(std::ostream& o, const i_clamp& p) {
-        return o << "(current-clamp " << p.amplitude << ' ' << p.delay << ' ' << p.duration << ')';
+        return o << "(current-clamp " << p.delay << ' ' << p.duration << ' ' << p.amplitude << ')';
     }
 };
 
@@ -82,7 +82,7 @@ struct temperature_K {
     temperature_K() = delete;
     double value; // [K]
     friend std::ostream& operator<<(std::ostream& o, const temperature_K& p) {
-        return o << "(temperature-K " << p.value << ')';
+        return o << "(temperature-kelvin " << p.value << ')';
     }
 };
 
@@ -107,7 +107,7 @@ struct init_int_concentration {
     std::string ion;
     double value; // [mM]
     friend std::ostream& operator<<(std::ostream& o, const init_int_concentration& p) {
-        return o << "(ion-internal-concentration " << p.ion << ' ' << p.value << ')';
+        return o << "(ion-internal-concentration \"" << p.ion << "\" " << p.value << ')';
     }
 };
 
@@ -116,7 +116,7 @@ struct init_ext_concentration {
     std::string ion;
     double value; // [mM]
     friend std::ostream& operator<<(std::ostream& o, const init_ext_concentration& p) {
-        return o << "(ion-external-concentration " << p.ion << ' ' << p.value << ')';
+        return o << "(ion-external-concentration \"" << p.ion << "\" " << p.value << ')';
     }
 };
 
@@ -125,7 +125,7 @@ struct init_reversal_potential {
     std::string ion;
     double value; // [mV]
     friend std::ostream& operator<<(std::ostream& o, const init_reversal_potential& p) {
-        return o << "(ion-reversal-potential " << p.ion << ' ' << p.value << ')';
+        return o << "(ion-reversal-potential \"" << p.ion << "\" " << p.value << ')';
     }
 };
 
@@ -190,7 +190,7 @@ struct mechanism_desc {
     friend std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
         o << "(mechanism \"" << m.name() << "\"";
         for (const auto& p: m.param_) {
-            o << " (" << p.first << ' ' << p.second << ')';
+            o << " (\"" << p.first << "\" " << p.second << ')';
         }
         return o << ')';
     }
@@ -204,7 +204,7 @@ struct ion_reversal_potential_method {
     std::string ion;
     mechanism_desc method;
     friend std::ostream& operator<<(std::ostream& o, const ion_reversal_potential_method& p) {
-        return o << "(ion-reversal-potential-method " << p.ion << ' ' << p.method << ')';
+        return o << "(ion-reversal-potential-method \"" << p.ion << "\" " << p.method << ')';
     }
 };
 

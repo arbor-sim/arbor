@@ -4,6 +4,8 @@
 
 #include <arborio/cableio.hpp>
 
+#include <iostream>
+
 namespace arborio {
 
 using namespace arb;
@@ -71,17 +73,17 @@ s_expr mksexp(const decor& d) {
         s << x;
         return parse_s_expr(s.str());
     };
-    s_expr lst = slist();
+    std::vector<s_expr> decorations;
     for (const auto& p: d.defaults().serialize()) {
-        lst = {std::visit([&](auto& x) { return slist("default"_symbol, mksexp(x)); }, p), std::move(lst)};
+        decorations.push_back(std::visit([&](auto& x) { return slist("default"_symbol, mksexp(x)); }, p));
     }
     for (const auto& p: d.paintings()) {
-        lst = {std::visit([&](auto& x) { return slist("paint"_symbol, round_trip(p.first), mksexp(x)); }, p.second), std::move(lst)};
+        decorations.push_back(std::visit([&](auto& x) { return slist("paint"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
     for (const auto& p: d.placements()) {
-        lst = {std::visit([&](auto& x) { return slist("place"_symbol, round_trip(p.first), mksexp(x)); }, p.second), std::move(lst)};
+        decorations.push_back(std::visit([&](auto& x) { return slist("place"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
-    return {"decorations"_symbol, std::move(lst)};
+    return {"decorations"_symbol, slist_range(decorations)};
 }
 s_expr mksexp(const label_dict& dict) {
     auto round_trip = [](auto& x) {
@@ -90,11 +92,11 @@ s_expr mksexp(const label_dict& dict) {
         return parse_s_expr(s.str());
     };
     auto defs = slist();
-    for (auto& r: dict.regions()) {
-        defs = s_expr(slist("region-def"_symbol, r.first, round_trip(r.second)), std::move(defs));
-    }
     for (auto& r: dict.locsets()) {
         defs = s_expr(slist("locset-def"_symbol, r.first, round_trip(r.second)), std::move(defs));
+    }
+    for (auto& r: dict.regions()) {
+        defs = s_expr(slist("region-def"_symbol, r.first, round_trip(r.second)), std::move(defs));
     }
     return {"label-dict"_symbol, std::move(defs)};
 }
@@ -192,7 +194,7 @@ paint_pair make_paint(region where, paintable what) {
 defaultable make_default(defaultable what) {
     return what;
 }
-decor make_decor(std::vector<std::variant<place_pair, paint_pair, defaultable>> args) {
+decor make_decor(const std::vector<std::variant<place_pair, paint_pair, defaultable>>& args) {
     decor d;
     for(const auto& a: args) {
         auto decor_visitor = arb::util::overload(
@@ -213,7 +215,7 @@ locset_pair make_locset_pair(std::string name, locset desc) {
 region_pair make_region_pair(std::string name, region desc) {
     return region_pair{name, desc};
 }
-label_dict make_label_dict(std::vector<std::variant<locset_pair, region_pair>> args) {
+label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pair>>& args) {
     label_dict d;
     for(const auto& a: args) {
         auto label_dict_visitor = arb::util::overload(
@@ -224,34 +226,33 @@ label_dict make_label_dict(std::vector<std::variant<locset_pair, region_pair>> a
     return d;
 }
 // Define makers for mpoints and msegments and morphologies
-struct branch {
-    int id;
-    int parent_id;
-    std::vector<arb::msegment> segments;
-};
+using branch = std::tuple<int, int, std::vector<arb::msegment>>;
 arb::mpoint make_point(double x, double y, double z, double r) {
     return arb::mpoint{x, y, z, r};
 }
 arb::msegment make_segment(unsigned id, arb::mpoint prox, arb::mpoint dist, int tag) {
     return arb::msegment{id, prox, dist, tag};
 }
-morphology make_morphology(std::vector<std::variant<branch>> args) {
+morphology make_morphology(const std::vector<std::variant<branch>>& args) {
     segment_tree tree;
     std::vector<unsigned> branch_final_seg(args.size());
     for (const auto& br: args) {
         auto b = std::get<branch>(br);
-        auto pseg_id = b.parent_id==-1? arb::mnpos: branch_final_seg[b.parent_id];
-        for (const auto& s: b.segments) {
+        auto id = std::get<0>(b);
+        auto parent_id = std::get<1>(b);
+        auto segments = std::get<2>(b);
+        auto pseg_id = parent_id==-1? arb::mnpos: branch_final_seg[parent_id];
+        for (const auto& s: segments) {
             pseg_id = tree.append(pseg_id, s.prox, s.dist, s.tag);
         }
-        branch_final_seg[b.id] = pseg_id;
+        branch_final_seg[id] = pseg_id;
     }
     return morphology(tree);
 }
 
 // Define cable-cell maker
 // Accepts the morphology, decor and label_dict arguments in any order as a vector
-cable_cell make_cable(std::vector<std::variant<morphology, label_dict, decor>> args) {
+cable_cell make_cable(const std::vector<std::variant<morphology, label_dict, decor>>& args) {
     decor dec;
     label_dict dict;
     morphology morpho;
@@ -324,11 +325,11 @@ struct call_eval {
     call_eval(ftype f): f(std::move(f)) {}
 
     template<std::size_t... I>
-    std::any expand_args_then_eval(std::vector<std::any> args, std::index_sequence<I...>) {
+    std::any expand_args_then_eval(const std::vector<std::any>& args, std::index_sequence<I...>) {
         return f(eval_cast<Args>(std::move(args[I]))...);
     }
 
-    std::any operator()(std::vector<std::any> args) {
+    std::any operator()(const std::vector<std::any>& args) {
         return expand_args_then_eval(std::move(args), std::make_index_sequence<sizeof...(Args)>());
     }
 };
@@ -379,8 +380,8 @@ struct arg_vec_eval {
     ftype f;
     arg_vec_eval(ftype f): f(std::move(f)) {}
 
-    std::any operator()(std::vector<std::any> args) {
-        std::vector<std::variant<Args...>> vars(args.size());
+    std::any operator()(const std::vector<std::any>& args) {
+        std::vector<std::variant<Args...>> vars;
         for (const auto& a: args) {
             vars.push_back(eval_cast_variant<std::variant<Args...>>(a).value());
         }
@@ -415,7 +416,7 @@ struct mech_match {
 };
 // Create a mechanism_desc from a std::vector<std::any>.
 struct mech_eval {
-    arb::mechanism_desc operator()(std::vector<std::any> args) {
+    arb::mechanism_desc operator()(const std::vector<std::any>& args) {
         auto name = eval_cast<std::string>(args.front());
         arb::mechanism_desc mech(name);
         for (auto it = args.begin()+1; it != args.end(); ++it) {
@@ -452,7 +453,7 @@ struct branch_match {
 };
 // Create a `branch` from a std::vector<std::any>.
 struct branch_eval {
-    branch operator()(std::vector<std::any> args) {
+    branch operator()(const std::vector<std::any>& args) {
         std::vector<msegment> segs;
         auto it = args.begin();
         auto id = eval_cast<int>(*it++);
@@ -488,6 +489,8 @@ struct make_branch_call {
 //
 // call_match<int, string>(vector<any(4), any(string("hello")), any(string("bye"))>)
 // call_match<int, string>(vector<any(4), any(2)>)
+//
+// Not an efficient implementation, but should be okay for a few arguments.
 template <typename... Args>
 struct unordered_match {
     template <typename T, typename Q, typename... Rest>
@@ -704,12 +707,17 @@ eval_map map{
                        "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")}
 };
 
-parse_hopefully<std::any> parse_expression(const arb::s_expr& s) {
+inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
     return eval(std::move(s), map);
 }
 
-parse_hopefully<cable_cell_component> parse(const arb::s_expr& s) {
-    auto try_parse = parse_expression(s);
+parse_hopefully<std::any> parse_expression(const std::string& s) {
+    return parse(parse_s_expr(s));
+}
+
+// Read s-expr
+parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
+    auto try_parse = parse(parse_s_expr(s));
     if (!try_parse) {
         return util::unexpected(cableio_parse_error(try_parse.error()));
     }
@@ -718,11 +726,6 @@ parse_hopefully<cable_cell_component> parse(const arb::s_expr& s) {
         return util::unexpected(cableio_parse_error("Expected cable-cell component", location(s)));
     }
     return comp.value();
-};
-
-// Read s-expr
-parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
-    return parse(parse_s_expr(s));
 };
 
 } // namespace arborio
