@@ -674,6 +674,42 @@ TEST(full_morphology, round_tripping) {
     EXPECT_EQ(morpho_str, round_trip_component(morpho_str));
 }
 
+TEST(full_cable_cell, round_tripping) {
+    auto cell_str = "(cable-cell \n"
+                    "  (morphology \n"
+                    "    (branch 0 -1 \n"
+                    "      (segment 0 \n"
+                    "        (point -6.300000 0.000000 0.000000 6.300000)\n"
+                    "        (point 6.300000 0.000000 0.000000 6.300000)\n"
+                    "        1)\n"
+                    "      (segment 1 \n"
+                    "        (point 6.300000 0.000000 0.000000 0.500000)\n"
+                    "        (point 206.300000 0.000000 0.000000 0.200000)\n"
+                    "        3)))\n"
+                    "  (label-dict \n"
+                    "    (region-def \"soma\" \n"
+                    "      (tag 1))\n"
+                    "    (region-def \"dend\" \n"
+                    "      (join \n"
+                    "        (join \n"
+                    "          (tag 3)\n"
+                    "          (tag 4))\n"
+                    "        (tag 42))))\n"
+                    "  (decorations \n"
+                    "    (paint \n"
+                    "      (region \"dend\")\n"
+                    "      (mechanism \"pas\"))\n"
+                    "    (paint \n"
+                    "      (region \"soma\")\n"
+                    "      (mechanism \"hh\"))\n"
+                    "    (place \n"
+                    "      (location 0 1)\n"
+                    "      (mechanism \"exp2syn\"))))";
+
+    EXPECT_EQ(cell_str, round_trip<cable_cell>(cell_str));
+    EXPECT_EQ(cell_str, round_trip_component(cell_str));
+}
+
 /*
 TEST(regloc, errors) {
     for (auto expr: {"axon",         // unquoted region name
