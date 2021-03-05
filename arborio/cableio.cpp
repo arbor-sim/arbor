@@ -236,16 +236,25 @@ arb::msegment make_segment(unsigned id, arb::mpoint prox, arb::mpoint dist, int 
 morphology make_morphology(const std::vector<std::variant<branch>>& args) {
     segment_tree tree;
     std::vector<unsigned> branch_final_seg(args.size());
+    std::vector<std::pair<msegment, int>> segs;
     for (const auto& br: args) {
         auto b = std::get<branch>(br);
-        auto id = std::get<0>(b);
-        auto parent_id = std::get<1>(b);
-        auto segments = std::get<2>(b);
-        auto pseg_id = parent_id==-1? arb::mnpos: branch_final_seg[parent_id];
-        for (const auto& s: segments) {
-            pseg_id = tree.append(pseg_id, s.prox, s.dist, s.tag);
+        auto b_id = std::get<0>(b);
+        auto b_pid = std::get<1>(b);
+        auto b_segments = std::get<2>(b);
+
+        auto s_pid = b_pid==-1? arb::mnpos: branch_final_seg[b_pid];
+        for (const auto& s: b_segments) {
+            segs.emplace_back(s, s_pid);
+            s_pid = s.id;
         }
-        branch_final_seg[id] = pseg_id;
+        branch_final_seg[b_id] = s_pid;
+    }
+    std::sort(segs.begin(), segs.end(), [](const auto& lhs, const auto& rhs){return lhs.first.id < rhs.first.id;});
+    for (const auto& spair: segs) {
+        auto seg = spair.first;
+        auto s_pid = spair.second;
+        tree.append(s_pid, seg.prox, seg.dist, seg.tag);
     }
     return morphology(tree);
 }
