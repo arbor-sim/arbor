@@ -7,6 +7,7 @@
 
 #include <arbor/context.hpp>
 #include <arbor/version.hpp>
+#include <arborenv/concurrency.hpp>
 
 #include "context.hpp"
 #include "conversion.hpp"
@@ -41,7 +42,7 @@ struct proc_allocation_shim {
         set_gpu_id(gpu);
     }
 
-    proc_allocation_shim(): proc_allocation_shim(1, pybind11::none()) {}
+    proc_allocation_shim(): proc_allocation_shim(arbenv::thread_concurrency(), pybind11::none()) {}
 
     // getter and setter (in order to assert when being set)
     void set_gpu_id(pybind11::object gpu) {
