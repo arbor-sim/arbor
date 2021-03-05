@@ -3,7 +3,8 @@ name: Bug report
 about: Create a report to help us improve. If you need help setting up your simulation
   with Arbor, please start a new topic in Discussions.
 title: ''
-labels: 'bug'
+labels:
+- 'bug'
 assignees: ''
 
 ---
