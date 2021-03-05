@@ -10,6 +10,7 @@
 
 #include <arborio/cableio.hpp>
 
+#include "parse_expression.hpp"
 #include "util/strprintf.hpp"
 
 using namespace arb;
@@ -266,11 +267,13 @@ TEST(regloc, errors) {
     }
 }
 
-template <typename T, std::size_t I=0>
+namespace arb {
+namespace cable_s_expr {
+template <typename T, std::size_t I = 0>
 std::optional<T> eval_cast_variant(const std::any& a) {
     if constexpr (I<std::variant_size_v<T>) {
         using var_type = std::variant_alternative_t<I, T>;
-        return (typeid(var_type) == a.type())? std::any_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
+        return (typeid(var_type)==a.type())? std::any_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
     }
     return std::nullopt;
 }
@@ -293,23 +296,23 @@ std::ostream& operator<<(std::ostream& o, const branch& b) {
 }
 std::ostream& operator<<(std::ostream& o, const paint_pair& p) {
     o << "(paint " << p.first << " ";
-    std::visit([&](auto&& x){ o << x;}, p.second);
+    std::visit([&](auto&& x) {o << x;}, p.second);
     return o << ")";
 }
 std::ostream& operator<<(std::ostream& o, const place_pair& p) {
     o << "(place " << p.first << " ";
-    std::visit([&](auto&& x){ o << x;}, p.second);
+    std::visit([&](auto&& x) {o << x;}, p.second);
     return o << ")";
 }
-std::ostream& operator<<(std::ostream& o, const defaultable & p) {
+std::ostream& operator<<(std::ostream& o, const defaultable& p) {
     o << "(default ";
-    std::visit([&](auto&& x){ o << x;}, p);
+    std::visit([&](auto&& x) {o << x;}, p);
     return o << ")";
 }
-std::ostream& operator<<(std::ostream& o, const locset_pair &p) {
+std::ostream& operator<<(std::ostream& o, const locset_pair& p) {
     return o << "(locset-def \"" << p.first << "\" " << p.second << ")";
 }
-std::ostream& operator<<(std::ostream& o, const region_pair &p) {
+std::ostream& operator<<(std::ostream& o, const region_pair& p) {
     return o << "(region-def \"" << p.first << "\" " << p.second << ")";
 }
 
@@ -339,9 +342,12 @@ std::string to_string(const cable_cell& obj) {
     arborio::write_s_expr(s, obj);
     return s.str();
 }
+} // namespace
+} // namespace arb
 
 template <typename T>
 std::string round_trip_variant(const char* in) {
+    using namespace cable_s_expr;
     if (auto x = arborio::parse_expression(std::string(in))) {
         std::string str;
         std::visit([&](auto&& p){str = to_string(p);}, *(eval_cast_variant<T>(*x)));
@@ -354,6 +360,7 @@ std::string round_trip_variant(const char* in) {
 
 template <typename T>
 std::string round_trip(const char* in) {
+    using namespace cable_s_expr;
     if (auto x = arborio::parse_expression(std::string(in))) {
         return to_string(std::any_cast<T>(*x));
     }
@@ -363,6 +370,7 @@ std::string round_trip(const char* in) {
 }
 
 std::string round_trip_component(const char* in) {
+    using namespace cable_s_expr;
     if (auto x = arborio::parse_component(std::string(in))) {
         return std::visit([](auto&& p) {return to_string(p);}, *x);
     }
@@ -422,6 +430,7 @@ TEST(decor_literals, round_tripping) {
 }
 
 TEST(decor_expressions, round_tripping) {
+    using namespace cable_s_expr;
     auto decorate_paint_literals = {
         "(paint (region \"all\") (membrane-potential -65.1))",
         "(paint (tag 1) (temperature-kelvin 301))",
@@ -461,6 +470,7 @@ TEST(decor_expressions, round_tripping) {
 }
 
 TEST(label_dict_expressions, round_tripping) {
+    using namespace cable_s_expr;
     auto locset_def_literals = {
         "(locset-def \"my! locset~\" (root))",
         "(locset-def \"ls0\" (location 0 1))"
@@ -478,6 +488,7 @@ TEST(label_dict_expressions, round_tripping) {
 }
 
 TEST(morphology_literals, round_tripping) {
+    using namespace cable_s_expr;
     auto point = "(point 701.6 -3.1 -10 0.6)";
     auto segment = "(segment 5 (point 5 2 3 1) (point 5 2 5 6) 42)";
     auto branches = {
@@ -495,7 +506,7 @@ TEST(morphology_literals, round_tripping) {
     }
 }
 
-TEST(full_decor, round_tripping) {
+TEST(decor, round_tripping) {
     auto decor_str = "(decorations \n"
                      "  (default \n"
                      "    (axial-resistivity 100.000000))\n"
@@ -538,7 +549,7 @@ TEST(full_label_dict, round_tripping) {
     EXPECT_EQ(label_str, round_trip_component(label_str));
 }
 
-TEST(full_morphology, round_tripping) {
+TEST(morphology, round_tripping) {
     auto morpho_str = "(morphology \n"
                       "  (branch 0 -1 \n"
                       "    (segment 0 \n"
@@ -674,7 +685,7 @@ TEST(full_morphology, round_tripping) {
     EXPECT_EQ(morpho_str, round_trip_component(morpho_str));
 }
 
-TEST(full_cable_cell, round_tripping) {
+TEST(cable_cell, round_tripping) {
     auto cell_str = "(cable-cell \n"
                     "  (morphology \n"
                     "    (branch 0 -1 \n"
@@ -710,49 +721,47 @@ TEST(full_cable_cell, round_tripping) {
     EXPECT_EQ(cell_str, round_trip_component(cell_str));
 }
 
-/*
-TEST(regloc, errors) {
-    for (auto expr: {"axon",         // unquoted region name
-                     "(tag 1.2)",    // invalid argument in an otherwise valid region expression
-                     "(tag 1 2)",    // too many arguments to otherwise valid region expression
-                     "(tag 1) (tag 2)", // more than one valid description
-                     "(tag",         // syntax error in region expression
-                     "(terminal)",   // a valid locset expression
-                     "\"my region",  // unclosed quote on label
+TEST(cable_cell_literals, errors) {
+    for (auto expr: {"(membrane-potential \"56\")",  // invalid argument
+                     "(axial-resistivity 1 2)",      // too many arguments to otherwise valid decor literal
+                     "(membrane-capacitance ",       // syntax error
+                     "(mem-capacitance 3.5)",        // invalid function
+                     "(ion-initial-concentration ca 0.1)",   // unquoted ion
+                     "(mechanism \"hh\" (gl 3.5))",          // unqouted parameter
+                     "(mechanism \"pas\" ((\"g\" 0.5) (\"e\" 0.2)))",   // paranthesis around params
+                     "(gap-junction-site 0)",                // too many arguments
+                     "(current-clamp 1 2)",                  // too few arguments
+                     "(paint (region) (mechanism \"hh\"))",  // invalid region
+                     "(paint (tag 1) (mechanims hh))",       // invalid painting
+                     "(paint (terminals) (membrance-capacitance 0.2))", // can't paint a locset
+                     "(paint (tag 3))",                      // too few arguments
+                     "(place (locset) (gap-junction-site))", // invalid locset
+                     "(place (gap-junction-site) (location 0 1))",      // swapped argument order
+                     "(region-def my_region (tag 3))",       // unquoted region name
+                     "(locset-def \"my_ls\" (tag 3))",       // invalid locset
+                     "(locset-def \"my_ls\")",               // too few arguments
+                     "(branch 0 1)",                         // branch with zero segments
+                     "(segment -1 (point 1 2 3 4) 3)",       // segment with 1 point
+                     "(point 1 2 3)",                        // too few arguments
+                     "(morphology (segment -1 (point 1 2 3 4) (point 2 3 4 5) 3))", // morphology with segment instead of branch
+                     "(decor (region-def \"reg\" (tag 3)))", // decor with label definiton
+                     "(cable-cell (paint (tag 3) (axial-resistivity 3.1)))" // cable-cell with paint
     })
     {
-        // If an invalid label/expression was passed and handled correctly the parse
-        // call will return without throwing, with the error stored in the return type.
+        // If an expression was passed and handled correctly the parse call will
+        // return without throwing, with the error stored in the return type.
         // So it is sufficient to assert that it evaluates to false.
-        EXPECT_FALSE(parse_region_expression(expr));
+        EXPECT_FALSE(arborio::parse_expression(expr));
     }
-
-    for (auto expr: {"axon",         // unquoted locset name
-                     "(location 1 \"0.5\")",  // invalid argument in an otherwise valid locset expression
-                     "(location 1 0.2 0.2)",  // too many arguments to otherwise valid locset expression
-                     "(root) (location 2 0)", // more than one valid description
-                     "(tag",         // syntax error in locset expression
-                     "(tag 3)",      // a valid region expression
-                     "\"my locset",  // unclosed quote on label
+    for (auto expr: {"(membrane-potential 56)",  // invalid component
+                     "(morphology (segment -1 (point 1 2 3 4) (point 2 3 4 5) 3))", // morphology with segment instead of branch
+                     "(decor (region-def \"reg\" (tag 3)))", // decor with label definiton
+                     "(cable-cell (paint (tag 3) (axial-resistivity 3.1)))" // cable-cell with paint
     })
     {
-        // If an invalid label/expression was passed and handled correctly the parse
-        // call will return without throwing, with the error stored in the return type.
+        // If an expression was passed and handled correctly the parse call will
+        // return without throwing, with the error stored in the return type.
         // So it is sufficient to assert that it evaluates to false.
-        EXPECT_FALSE(parse_locset_expression(expr));
+        EXPECT_FALSE(arborio::parse_component(expr));
     }
-
-    for (auto expr: {"axon",         // unquoted locset name
-                     "(location 1 \"0.5\")",  // invalid argument in an otherwise valid locset expression
-                     "(location 1 0.2 0.2)",  // too many arguments to otherwise valid locset expression
-                     "(root) (location 2 0)", // more than one valid description
-                     "(tag",         // syntax error in locset expression
-                     "\"my locset",  // unclosed quote on label
-    })
-    {
-        // If an invalid label/expression was passed and handled correctly the parse
-        // call will return without throwing, with the error stored in the return type.
-        // So it is sufficient to assert that it evaluates to false.
-        EXPECT_FALSE(parse_label_expression(std::string(expr)));
-    }
-}*/
+}

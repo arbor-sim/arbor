@@ -4,6 +4,8 @@
 
 #include <arborio/cableio.hpp>
 
+#include "parse_expression.hpp"
+
 #include <iostream>
 
 namespace arborio {

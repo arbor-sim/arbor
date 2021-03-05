@@ -18,7 +18,6 @@ std::ostream& write_s_expr(std::ostream&, const arb::decor&);
 std::ostream& write_s_expr(std::ostream&, const arb::morphology&);
 std::ostream& write_s_expr(std::ostream&, const arb::cable_cell&);
 
-parse_hopefully<std::any> parse_expression(const std::string&);
 parse_hopefully<cable_cell_component> parse_component(const std::string&);
 
 } // namespace arborio

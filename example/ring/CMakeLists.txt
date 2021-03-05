@@ -1,4 +1,4 @@
 add_executable(ring EXCLUDE_FROM_ALL ring.cpp)
 add_dependencies(examples ring)
 
-target_link_libraries(ring PRIVATE arbor arborenv arborio arbor-sup ${json_library_name})
+target_link_libraries(ring PRIVATE arbor arborenv arbor-sup ${json_library_name})

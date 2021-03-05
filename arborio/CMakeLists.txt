@@ -16,10 +16,14 @@ endif()
 add_library(arborio ${arborio-sources})
 
 add_library(arborio-public-headers INTERFACE)
+add_library(arborio-private-headers INTERFACE)
+
 target_include_directories(arborio-public-headers INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+target_include_directories(arborio-private-headers INTERFACE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
 if(ARB_WITH_NEUROML)
     target_link_libraries(arborio PUBLIC arbor arborio-public-headers LibXml2::LibXml2)

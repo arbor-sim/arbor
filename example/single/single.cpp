@@ -12,10 +12,7 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/simple_sampler.hpp>
-#include <arbor/util/any_visitor.hpp>
 
-#include <arborio/cableio.hpp>
-#include <arborio/cableio_error.hpp>
 #include <arborio/swcio.hpp>
 
 #include <tinyopt/tinyopt.h>
@@ -68,7 +65,7 @@ struct single_recipe: public arb::recipe {
         arb::decor decor;
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        decor.paint("\"soma\"", arb::mechanism_desc("hh").set("gnabar", 0.12).set("gkbar", 0.036));
+        decor.paint("\"soma\"", "hh");
         decor.paint("\"dend\"", "pas");
 
         // Add synapse to last branch.
@@ -77,17 +74,11 @@ struct single_recipe: public arb::recipe {
         arb::mlocation end_last_branch = { last_branch, 1. };
         decor.place(end_last_branch, "exp2syn");
 
-        auto cell = arb::cable_cell(morpho, dict, decor);
-        arborio::write_s_expr(std::cout, cell);
-        std::cout << std::endl << std::endl;
-        return cell;
+        return arb::cable_cell(morpho, dict, decor);
     }
 
     arb::morphology morpho;
     arb::cable_cell_global_properties gprop;
-};
-std::ostream& operator<<(std::ostream& out, const arb::cv_policy&) {
-    return out;
 };
 
 int main(int argc, char** argv) {
@@ -109,63 +100,10 @@ int main(int argc, char** argv) {
         arb::spike_event spike = {{0, 0}, 1., opt.syn_weight};
         sim.inject_events({spike});
 
-//        sim.run(opt.t_end, opt.dt);
+        sim.run(opt.t_end, opt.dt);
 
-//        for (auto entry: traces.at(0)) {
-//            std::cout << entry.t << ", " << entry.v << "\n";
-//        }
-        std::string s = "((place \n"
-                        "  (location 0 1)\n"
-                        "  (mechanism \"exp2syn\"))\n"
-                        " (paint \n"
-                        "  (region \"dend\")\n"
-                        "  (mechanism \"pas\"))\n"
-                        " (paint \n"
-                        "  (region \"soma\")\n"
-                        "  (mechanism \"hh\" \n"
-                        "   (\"gkbar\" 0.036000)\n"
-                        "   (\"gnabar\" 0.120000))))";
-        if (auto v = arborio::parse_decor(s)) {
-            for (const auto& a: v->paintings()) {
-                std:: cout << "paint on " << a.first << " : ";
-                std::visit([](auto&& t){std::cout << t;}, a.second);
-                std::cout << std::endl;
-            }
-            for (const auto& a: v->placements()) {
-                std:: cout << "place on " << a.first << " : ";
-                std::visit([](auto&& t){std::cout << t;}, a.second);
-                std::cout << std::endl;
-            }
-            for (const auto& a: v->defaults().serialize()) {
-                std:: cout << "default : ";
-                std::visit([](auto&& t){std::cout << t;}, a);
-                std::cout << std::endl;
-            }
-            std::cout << std::endl;
-        }
-        else {
-            throw v.error();
-        }
-
-        s = "   ((region-def \"soma\" \n"
-            "      (tag 1))\n"
-            "    (region-def \"dend\" \n"
-            "      (join \n"
-            "        (join \n"
-            "          (tag 3)\n"
-            "          (tag 4))\n"
-            "        (tag 42))))";
-        if (auto v = arborio::parse_label_dict(s)) {
-            for (const auto& a: v->locsets()) {
-                std:: cout << "locset " << a.first << " : " << a.second << std::endl;
-            }
-            for (const auto& a: v->regions()) {
-                std:: cout << "region " << a.first << " : " << a.second << std::endl;
-            }
-            std::cout << std::endl;
-        }
-        else {
-            throw v.error();
+        for (auto entry: traces.at(0)) {
+            std::cout << entry.t << ", " << entry.v << "\n";
         }
     }
     catch (std::exception& e) {
