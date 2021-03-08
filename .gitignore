@@ -66,6 +66,10 @@ commit.msg
 # eclipse remote sync folders
 .ptp-sync-folder
 
+# kdev project file and folders
+.kdev/
+*.kdev4
+
 # Mac default files
 .DS_Store
 
