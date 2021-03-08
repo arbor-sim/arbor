@@ -64,7 +64,7 @@ struct label_dict_proxy {
         //  * the description is well-formed, but describes neither a region or locset.
         try{
             // Evaluate the s-expression to build a region/locset.
-            auto result = arb::parse_label_expression(desc);
+            auto result = arb::parse_label_expression(std::string(desc));
             if (!result) { // an error parsing / evaluating description.
                 throw result.error();
             }

@@ -61,7 +61,7 @@ s_expr mksexp(const init_reversal_potential& e) {
     return slist("ion-reversal-potential"_symbol, e.ion, e.value);
 }
 s_expr mksexp(const i_clamp& c) {
-    return slist("current-clamp"_symbol, c.amplitude, c.delay, c.duration);
+    return slist("current-clamp"_symbol, c.delay, c.duration, c.amplitude);
 }
 s_expr mksexp(const threshold_detector& d) {
     return slist("threshold-detector"_symbol, d.threshold);
@@ -755,16 +755,17 @@ parse_hopefully<std::any> parse_expression(const std::string& s) {
 
 // Read s-expr
 parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
-    auto try_parse = parse(parse_s_expr(s));
+    auto sexp = parse_s_expr(s);
+    auto try_parse = parse(sexp);
     if (!try_parse) {
         return util::unexpected(cableio_parse_error(try_parse.error()));
     }
     if (!match<cable_cell_component>(try_parse.value().type())) {
-        return util::unexpected(cableio_parse_error("Expected arbor-component", location(s)));
+        return util::unexpected(cableio_parse_error("Expected arbor-component", location(sexp)));
     }
     auto comp = eval_cast<cable_cell_component>(try_parse.value());
     if (comp.meta.version != CABLE_CELL_FORMAT_VERSION) {
-        return util::unexpected(cableio_parse_error("Unsupported cable-cell format version "+std::to_string(comp.meta.version), location(s)));
+        return util::unexpected(cableio_parse_error("Unsupported cable-cell format version "+std::to_string(comp.meta.version), location(sexp)));
     }
     return comp;
 };
