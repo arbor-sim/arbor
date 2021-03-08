@@ -117,19 +117,27 @@ s_expr mksexp(const morphology& morph) {
     }
     return s_expr{"morphology"_symbol, slist_range(branches)};
 }
+s_expr mksexp(const meta_data& meta) {
+    return slist("meta-data"_symbol, slist("version"_symbol, meta.version));
+}
 
 // Implement public facing s-expr writers
-std::ostream& write_s_expr(std::ostream& o, const label_dict& dict) {
-    return o << mksexp(dict);
+std::ostream& write_component(std::ostream& o, const decor& x, const meta_data& m) {
+    return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_s_expr(std::ostream& o, const decor& decorations) {
-    return o << mksexp(decorations);
+std::ostream& write_component(std::ostream& o, const label_dict& x, const meta_data& m) {
+    return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_s_expr(std::ostream& o, const morphology& morphology) {
-    return o << mksexp(morphology);
+std::ostream& write_component(std::ostream& o, const morphology& x, const meta_data& m) {
+    return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_s_expr(std::ostream& o, const cable_cell& c) {
-    return o << s_expr{"cable-cell"_symbol, slist(mksexp(c.morphology()), mksexp(c.labels()), mksexp(c.decorations()))};
+std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
+    return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()))})};
+}
+std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
+    auto meta = x.meta;
+    std::visit([&](auto&& c){write_component(o, c, meta);}, x.component);
+    return o;
 }
 
 // Anonymous namespace containing helper functions and types for parsing s-expr
@@ -263,7 +271,7 @@ morphology make_morphology(const std::vector<std::variant<branch>>& args) {
 
 // Define cable-cell maker
 // Accepts the morphology, decor and label_dict arguments in any order as a vector
-cable_cell make_cable(const std::vector<std::variant<morphology, label_dict, decor>>& args) {
+cable_cell make_cablecell(const std::vector<std::variant<morphology, label_dict, decor>>& args) {
     decor dec;
     label_dict dict;
     morphology morpho;
@@ -275,6 +283,17 @@ cable_cell make_cable(const std::vector<std::variant<morphology, label_dict, dec
         std::visit(cable_cell_visitor, a);
     }
     return cable_cell(morpho, dict, dec);
+}
+using version = std::tuple<int>;
+version make_version(int v) {
+    return version{v};
+}
+meta_data make_meta_data(version v) {
+    return meta_data{std::get<0>(v)};
+}
+template <typename T>
+cable_cell_component make_component(const meta_data& m, const T& d) {
+    return cable_cell_component{m, d};
 }
 
 // Evaluator: member of make_call, make_arg_vec_call, make_mech_call, make_branch_call, make_unordered_call
@@ -701,21 +720,29 @@ eval_map map{
                        "'region-def' with 2 arguments (name:string reg:region)")},
 
     {"point",   make_call<double, double, double, double>(make_point,
-                  "'point' with 4 arguments (x:real y:real z:real radius:real)")},
+                    "'point' with 4 arguments (x:real y:real z:real radius:real)")},
     {"segment", make_call<int, mpoint, mpoint, int>(make_segment,
                     "'segment' with 4 arguments (parent:int prox:point dist:point tag:int)")},
     {"branch",  make_branch_call(
-                   "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
+                    "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
 
     {"decorations", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,
-                        "'decor' with 1 or more `paint`, `place` or `default` arguments")},
+                        "'decorations' with 1 or more `paint`, `place` or `default` arguments")},
     {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
                        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
     {"morphology", make_arg_vec_call<branch>(make_morphology,
                        "'morphology' 1 or more `branch` arguments")},
 
-    {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable,
-                       "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")}
+    {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cablecell,
+                       "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
+
+    {"version", make_call<int>(make_version, "'version' with one argment (val:int)")},
+    {"meta-data", make_call<version>(make_meta_data, "'meta-data' with one argument (v:version)")},
+
+    { "arbor-component", make_call<meta_data, decor>(make_component<decor>, "'arbor-component' with 2 arguments (m:meta_data p:decoration)")},
+    { "arbor-component", make_call<meta_data, label_dict>(make_component<label_dict>, "'arbor-component' with 2 arguments (m:meta_data p:decoration)")},
+    { "arbor-component", make_call<meta_data, morphology>(make_component<morphology>, "'arbor-component' with 2 arguments (m:meta_data p:label_dict)")},
+    { "arbor-component", make_call<meta_data, cable_cell>(make_component<cable_cell>, "'arbor-component' with 2 arguments (m:meta_data p:cable_cell)")}
 };
 
 inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
@@ -732,11 +759,14 @@ parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
     if (!try_parse) {
         return util::unexpected(cableio_parse_error(try_parse.error()));
     }
-    auto comp = eval_cast_variant<cable_cell_component>(try_parse.value());
-    if (!comp) {
-        return util::unexpected(cableio_parse_error("Expected cable-cell component", location(s)));
+    if (!match<cable_cell_component>(try_parse.value().type())) {
+        return util::unexpected(cableio_parse_error("Expected arbor-component", location(s)));
     }
-    return comp.value();
+    auto comp = eval_cast<cable_cell_component>(try_parse.value());
+    if (comp.meta.version != CABLE_CELL_FORMAT_VERSION) {
+        return util::unexpected(cableio_parse_error("Unsupported cable-cell format version "+std::to_string(comp.meta.version), location(s)));
+    }
+    return comp;
 };
 
 } // namespace arborio

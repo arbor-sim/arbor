@@ -322,24 +322,9 @@ std::string to_string(const T& obj) {
     s << obj;
     return s.str();
 }
-std::string to_string(const decor& obj) {
+std::string to_string(const arborio::cable_cell_component& c) {
     std::stringstream s;
-    arborio::write_s_expr(s, obj);
-    return s.str();
-}
-std::string to_string(const morphology& obj) {
-    std::stringstream s;
-    arborio::write_s_expr(s, obj);
-    return s.str();
-}
-std::string to_string(const label_dict& obj) {
-    std::stringstream s;
-    arborio::write_s_expr(s, obj);
-    return s.str();
-}
-std::string to_string(const cable_cell& obj) {
-    std::stringstream s;
-    arborio::write_s_expr(s, obj);
+    arborio::write_component(s, c);
     return s.str();
 }
 } // namespace
@@ -372,7 +357,7 @@ std::string round_trip(const char* in) {
 std::string round_trip_component(const char* in) {
     using namespace cable_s_expr;
     if (auto x = arborio::parse_component(std::string(in))) {
-        return std::visit([](auto&& p) {return to_string(p);}, *x);
+        return to_string(x.value());
     }
     else {
         return x.error().what();
@@ -507,218 +492,226 @@ TEST(morphology_literals, round_tripping) {
 }
 
 TEST(decor, round_tripping) {
-    auto decor_str = "(decorations \n"
-                     "  (default \n"
-                     "    (axial-resistivity 100.000000))\n"
-                     "  (default \n"
-                     "    (ion-reversal-potential-method \"na\" \n"
-                     "      (mechanism \"nernst\")))\n"
-                     "  (paint \n"
-                     "    (region \"dend\")\n"
-                     "    (mechanism \"pas\"))\n"
-                     "  (paint \n"
-                     "    (region \"soma\")\n"
-                     "    (mechanism \"hh\"))\n"
-                     "  (paint \n"
-                     "    (join \n"
-                     "      (tag 1)\n"
-                     "      (tag 2))\n"
-                     "    (ion-internal-concentration \"ca\" 0.500000))\n"
-                     "  (place \n"
-                     "    (location 0 0)\n"
-                     "    (threshold-detector 10.000000))\n"
-                     "  (place \n"
-                     "    (location 0 0.5)\n"
-                     "    (mechanism \"expsyn\" \n"
-                     "      (\"tau\" 1.500000))))";
+    auto component_str = "(arbor-component \n"
+                         "  (meta-data \n"
+                         "    (version 1))\n"
+                         "  (decorations \n"
+                         "    (default \n"
+                         "      (axial-resistivity 100.000000))\n"
+                         "    (default \n"
+                         "      (ion-reversal-potential-method \"na\" \n"
+                         "        (mechanism \"nernst\")))\n"
+                         "    (paint \n"
+                         "      (region \"dend\")\n"
+                         "      (mechanism \"pas\"))\n"
+                         "    (paint \n"
+                         "      (region \"soma\")\n"
+                         "      (mechanism \"hh\"))\n"
+                         "    (paint \n"
+                         "      (join \n"
+                         "        (tag 1)\n"
+                         "        (tag 2))\n"
+                         "      (ion-internal-concentration \"ca\" 0.500000))\n"
+                         "    (place \n"
+                         "      (location 0 0)\n"
+                         "      (threshold-detector 10.000000))\n"
+                         "    (place \n"
+                         "      (location 0 0.5)\n"
+                         "      (mechanism \"expsyn\" \n"
+                         "        (\"tau\" 1.500000)))))";
 
-    EXPECT_EQ(decor_str, round_trip<decor>(decor_str));
-    EXPECT_EQ(decor_str, round_trip_component(decor_str));
+    EXPECT_EQ(component_str, round_trip_component(component_str));
 }
 
-TEST(full_label_dict, round_tripping) {
-    auto label_str = "(label-dict \n"
-                     "  (region-def \"soma\" \n"
-                     "    (tag 1))\n"
-                     "  (region-def \"dend\" \n"
-                     "    (tag 3))\n"
-                     "  (locset-def \"root\" \n"
-                     "    (root)))";
+TEST(label_dict, round_tripping) {
+    auto component_str = "(arbor-component \n"
+                         "  (meta-data \n"
+                         "    (version 1))\n"
+                         "  (label-dict \n"
+                         "    (region-def \"soma\" \n"
+                         "      (tag 1))\n"
+                         "    (region-def \"dend\" \n"
+                         "      (tag 3))\n"
+                         "    (locset-def \"root\" \n"
+                         "      (root))))";
 
-    EXPECT_EQ(label_str, round_trip<label_dict>(label_str));
-    EXPECT_EQ(label_str, round_trip_component(label_str));
+    EXPECT_EQ(component_str, round_trip_component(component_str));
 }
 
 TEST(morphology, round_tripping) {
-    auto morpho_str = "(morphology \n"
-                      "  (branch 0 -1 \n"
-                      "    (segment 0 \n"
-                      "      (point 0.000000 0.000000 -6.307850 6.307850)\n"
-                      "      (point 0.000000 0.000000 6.307850 6.307850)\n"
-                      "      1))\n"
-                      "  (branch 1 0 \n"
-                      "    (segment 1 \n"
-                      "      (point 0.000000 0.000000 6.307850 6.307850)\n"
-                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 2 \n"
-                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
-                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 3 \n"
-                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
-                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
-                      "      3))\n"
-                      "  (branch 2 0 \n"
-                      "    (segment 4 \n"
-                      "      (point 0.000000 0.000000 6.307850 6.307850)\n"
-                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 5 \n"
-                      "      (point 0.000000 0.000000 72.974517 0.500000)\n"
-                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 6 \n"
-                      "      (point 0.000000 0.000000 139.641183 0.500000)\n"
-                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
-                      "      3))\n"
-                      "  (branch 3 2 \n"
-                      "    (segment 7 \n"
-                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 8 \n"
-                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
-                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 9 \n"
-                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
-                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
-                      "      3))\n"
-                      "  (branch 4 2 \n"
-                      "    (segment 10 \n"
-                      "      (point 0.000000 0.000000 206.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 11 \n"
-                      "      (point 0.000000 0.000000 257.974517 0.500000)\n"
-                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 12 \n"
-                      "      (point 0.000000 0.000000 309.641183 0.500000)\n"
-                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
-                      "      3))\n"
-                      "  (branch 5 3 \n"
-                      "    (segment 13 \n"
-                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 14 \n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 21 \n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 22 \n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 29 \n"
-                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 556.307850 0.500000)\n"
-                      "      3))\n"
-                      "  (branch 6 3 \n"
-                      "    (segment 15 \n"
-                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 16 \n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 23 \n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 24 \n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
-                      "      3))\n"
-                      "  (branch 7 4 \n"
-                      "    (segment 17 \n"
-                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 18 \n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 25 \n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 26 \n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
-                      "      3))\n"
-                      "  (branch 8 4 \n"
-                      "    (segment 19 \n"
-                      "      (point 0.000000 0.000000 361.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 20 \n"
-                      "      (point 0.000000 0.000000 416.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 27 \n"
-                      "      (point 0.000000 0.000000 471.307850 0.500000)\n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      3)\n"
-                      "    (segment 28 \n"
-                      "      (point 0.000000 0.000000 503.807850 0.500000)\n"
-                      "      (point 0.000000 0.000000 536.307850 0.500000)\n"
-                      "      3)))";
+    auto component_str = "(arbor-component \n"
+                         "  (meta-data \n"
+                         "    (version 1))\n"
+                         "  (morphology \n"
+                         "    (branch 0 -1 \n"
+                         "      (segment 0 \n"
+                         "        (point 0.000000 0.000000 -6.307850 6.307850)\n"
+                         "        (point 0.000000 0.000000 6.307850 6.307850)\n"
+                         "        1))\n"
+                         "    (branch 1 0 \n"
+                         "      (segment 1 \n"
+                         "        (point 0.000000 0.000000 6.307850 6.307850)\n"
+                         "        (point 0.000000 0.000000 72.974517 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 2 \n"
+                         "        (point 0.000000 0.000000 72.974517 0.500000)\n"
+                         "        (point 0.000000 0.000000 139.641183 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 3 \n"
+                         "        (point 0.000000 0.000000 139.641183 0.500000)\n"
+                         "        (point 0.000000 0.000000 206.307850 0.500000)\n"
+                         "        3))\n"
+                         "    (branch 2 0 \n"
+                         "      (segment 4 \n"
+                         "        (point 0.000000 0.000000 6.307850 6.307850)\n"
+                         "        (point 0.000000 0.000000 72.974517 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 5 \n"
+                         "        (point 0.000000 0.000000 72.974517 0.500000)\n"
+                         "        (point 0.000000 0.000000 139.641183 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 6 \n"
+                         "        (point 0.000000 0.000000 139.641183 0.500000)\n"
+                         "        (point 0.000000 0.000000 206.307850 0.500000)\n"
+                         "        3))\n"
+                         "    (branch 3 2 \n"
+                         "      (segment 7 \n"
+                         "        (point 0.000000 0.000000 206.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 257.974517 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 8 \n"
+                         "        (point 0.000000 0.000000 257.974517 0.500000)\n"
+                         "        (point 0.000000 0.000000 309.641183 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 9 \n"
+                         "        (point 0.000000 0.000000 309.641183 0.500000)\n"
+                         "        (point 0.000000 0.000000 361.307850 0.500000)\n"
+                         "        3))\n"
+                         "    (branch 4 2 \n"
+                         "      (segment 10 \n"
+                         "        (point 0.000000 0.000000 206.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 257.974517 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 11 \n"
+                         "        (point 0.000000 0.000000 257.974517 0.500000)\n"
+                         "        (point 0.000000 0.000000 309.641183 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 12 \n"
+                         "        (point 0.000000 0.000000 309.641183 0.500000)\n"
+                         "        (point 0.000000 0.000000 361.307850 0.500000)\n"
+                         "        3))\n"
+                         "    (branch 5 3 \n"
+                         "      (segment 13 \n"
+                         "        (point 0.000000 0.000000 361.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 14 \n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 21 \n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 22 \n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        (point 0.000000 0.000000 536.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 29 \n"
+                         "        (point 0.000000 0.000000 536.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 556.307850 0.500000)\n"
+                         "        3))\n"
+                         "    (branch 6 3 \n"
+                         "      (segment 15 \n"
+                         "        (point 0.000000 0.000000 361.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 16 \n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 23 \n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 24 \n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        (point 0.000000 0.000000 536.307850 0.500000)\n"
+                         "        3))\n"
+                         "    (branch 7 4 \n"
+                         "      (segment 17 \n"
+                         "        (point 0.000000 0.000000 361.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 18 \n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 25 \n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 26 \n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        (point 0.000000 0.000000 536.307850 0.500000)\n"
+                         "        3))\n"
+                         "    (branch 8 4 \n"
+                         "      (segment 19 \n"
+                         "        (point 0.000000 0.000000 361.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 20 \n"
+                         "        (point 0.000000 0.000000 416.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 27 \n"
+                         "        (point 0.000000 0.000000 471.307850 0.500000)\n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        3)\n"
+                         "      (segment 28 \n"
+                         "        (point 0.000000 0.000000 503.807850 0.500000)\n"
+                         "        (point 0.000000 0.000000 536.307850 0.500000)\n"
+                         "        3))))";
 
-    EXPECT_EQ(morpho_str, round_trip<morphology>(morpho_str));
-    EXPECT_EQ(morpho_str, round_trip_component(morpho_str));
+    EXPECT_EQ(component_str, round_trip_component(component_str));
 }
 
 TEST(cable_cell, round_tripping) {
-    auto cell_str = "(cable-cell \n"
-                    "  (morphology \n"
-                    "    (branch 0 -1 \n"
-                    "      (segment 0 \n"
-                    "        (point -6.300000 0.000000 0.000000 6.300000)\n"
-                    "        (point 6.300000 0.000000 0.000000 6.300000)\n"
-                    "        1)\n"
-                    "      (segment 1 \n"
-                    "        (point 6.300000 0.000000 0.000000 0.500000)\n"
-                    "        (point 206.300000 0.000000 0.000000 0.200000)\n"
-                    "        3)))\n"
-                    "  (label-dict \n"
-                    "    (region-def \"soma\" \n"
-                    "      (tag 1))\n"
-                    "    (region-def \"dend\" \n"
-                    "      (join \n"
-                    "        (join \n"
-                    "          (tag 3)\n"
-                    "          (tag 4))\n"
-                    "        (tag 42))))\n"
-                    "  (decorations \n"
-                    "    (paint \n"
-                    "      (region \"dend\")\n"
-                    "      (mechanism \"pas\"))\n"
-                    "    (paint \n"
-                    "      (region \"soma\")\n"
-                    "      (mechanism \"hh\"))\n"
-                    "    (place \n"
-                    "      (location 0 1)\n"
-                    "      (mechanism \"exp2syn\"))))";
+    auto component_str = "(arbor-component \n"
+                         "  (meta-data \n"
+                         "    (version 1))\n"
+                         "  (cable-cell \n"
+                         "    (morphology \n"
+                         "      (branch 0 -1 \n"
+                         "        (segment 0 \n"
+                         "          (point -6.300000 0.000000 0.000000 6.300000)\n"
+                         "          (point 6.300000 0.000000 0.000000 6.300000)\n"
+                         "          1)\n"
+                         "        (segment 1 \n"
+                         "          (point 6.300000 0.000000 0.000000 0.500000)\n"
+                         "          (point 206.300000 0.000000 0.000000 0.200000)\n"
+                         "          3)))\n"
+                         "    (label-dict \n"
+                         "      (region-def \"soma\" \n"
+                         "        (tag 1))\n"
+                         "      (region-def \"dend\" \n"
+                         "        (join \n"
+                         "          (join \n"
+                         "            (tag 3)\n"
+                         "            (tag 4))\n"
+                         "          (tag 42))))\n"
+                         "    (decorations \n"
+                         "      (paint \n"
+                         "        (region \"dend\")\n"
+                         "        (mechanism \"pas\"))\n"
+                         "      (paint \n"
+                         "        (region \"soma\")\n"
+                         "        (mechanism \"hh\"))\n"
+                         "      (place \n"
+                         "        (location 0 1)\n"
+                         "        (mechanism \"exp2syn\")))))";
 
-    EXPECT_EQ(cell_str, round_trip<cable_cell>(cell_str));
-    EXPECT_EQ(cell_str, round_trip_component(cell_str));
+    EXPECT_EQ(component_str, round_trip_component(component_str));
 }
 
 TEST(cable_cell_literals, errors) {
@@ -753,10 +746,14 @@ TEST(cable_cell_literals, errors) {
         // So it is sufficient to assert that it evaluates to false.
         EXPECT_FALSE(arborio::parse_expression(expr));
     }
-    for (auto expr: {"(membrane-potential 56)",  // invalid component
-                     "(morphology (segment -1 (point 1 2 3 4) (point 2 3 4 5) 3))", // morphology with segment instead of branch
-                     "(decor (region-def \"reg\" (tag 3)))", // decor with label definiton
-                     "(cable-cell (paint (tag 3) (axial-resistivity 3.1)))" // cable-cell with paint
+    for (auto expr: {"(arbor-component (meta-data (version 2)) (decorations))",  // invalid component
+                     "(arbor-component (morphology))", // arbor-component missing meta-data
+                     "(arbor-component (meta-data (version 1)))", // arbor-component missing component
+                     "(arbor-component (meta-data (version 1)) (membrane-potential 56))",  // invalid component
+                     "(arbor-component (meta-data (version 1)) (morphology (segment 1 (point 1 2 3 4) (point 2 3 4 5) 3)))", // morphology with segment instead of branch
+                     "(arbor-component (meta-data (version 1)) (decorations (region-def \"reg\" (tag 3))))", // decor with label definition
+                     "(arbor-component (meta-data (version 1)) (cable-cell (paint (tag 3) (axial-resistivity 3.1))))", // cable-cell with paint
+                     "(morphology (branch 0 -1 (segment 0 (point 0 1 2 3 ) (point 1 2 3 4) 3)))", // morphology without arbor-component
     })
     {
         // If an expression was passed and handled correctly the parse call will
