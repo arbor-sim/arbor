@@ -769,4 +769,7 @@ parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
     return comp;
 };
 
+parse_hopefully<cable_cell_component> parse_component(std::istream& s) {
+    return parse_component(std::string(std::istreambuf_iterator<char>(s), {}));
+}
 } // namespace arborio

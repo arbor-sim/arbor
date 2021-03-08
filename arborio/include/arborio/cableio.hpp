@@ -30,5 +30,6 @@ std::ostream& write_component(std::ostream& o, const arb::morphology& x, const m
 std::ostream& write_component(std::ostream& o, const arb::cable_cell& x, const meta_data& m = {});
 
 parse_hopefully<cable_cell_component> parse_component(const std::string&);
+parse_hopefully<cable_cell_component> parse_component(std::istream&);
 
 } // namespace arborio

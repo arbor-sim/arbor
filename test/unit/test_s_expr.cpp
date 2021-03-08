@@ -364,6 +364,17 @@ std::string round_trip_component(const char* in) {
     }
 }
 
+std::string round_trip_component(std::istream& stream) {
+    using namespace cable_s_expr;
+    if (auto x = arborio::parse_component(stream)) {
+        return to_string(x.value());
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+
 TEST(decor_literals, round_tripping) {
     auto paint_default_literals = {
         "(membrane-potential -65.1)",
@@ -712,6 +723,9 @@ TEST(cable_cell, round_tripping) {
                          "        (mechanism \"exp2syn\")))))";
 
     EXPECT_EQ(component_str, round_trip_component(component_str));
+
+    std::stringstream stream(component_str);
+    EXPECT_EQ(component_str, round_trip_component(stream));
 }
 
 TEST(cable_cell_literals, errors) {
