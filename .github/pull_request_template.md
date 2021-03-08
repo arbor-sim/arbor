@@ -1,0 +1,1 @@
+Please make sure your PR follows our [contribution guidelines](https://github.com/arbor-sim/arbor/tree/master/doc/contrib) and agree to the terms outlined in the [PR procedure](https://github.com/arbor-sim/arbor/tree/master/doc/contrib/pr.rst).

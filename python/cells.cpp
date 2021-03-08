@@ -315,32 +315,6 @@ void register_cells(pybind11::module& m) {
         .def("__str__", [](const arb::threshold_detector& d){
             return util::pprintf("(threshold_detector {})", d.threshold);});
 
-    // arb::cable_cell_ion_data
-
-    pybind11::class_<arb::initial_ion_data> ion_data(m, "ion",
-        "For setting ion properties (internal and external concentration and reversal potential) on cells and regions.");
-    ion_data
-        .def(pybind11::init(
-                [](const char* name,
-                   optional<double> int_con,
-                   optional<double> ext_con,
-                   optional<double> rev_pot)
-                {
-                    arb::initial_ion_data x;
-                    x.ion = name;
-                    if (int_con) x.initial.init_int_concentration = *int_con;
-                    if (ext_con) x.initial.init_ext_concentration = *ext_con;
-                    if (rev_pot) x.initial.init_reversal_potential = *rev_pot;
-                    return x;
-                }
-            ),
-            "ion_name"_a,
-            pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
-            pybind11::arg_v("ext_con", pybind11::none(), "Intial external concentration [mM]"),
-            pybind11::arg_v("rev_pot", pybind11::none(), "Intial reversal potential [mV]"),
-            "If concentrations or reversal potential are specified as 'None',"
-            " cell default or global default value will be used, in that order if set.");
-
     // arb::cable_cell_global_properties
 
     pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
@@ -369,23 +343,35 @@ void register_cells(pybind11::module& m) {
         // add/modify ion species
         .def("set_ion",
             [](arb::cable_cell_global_properties& props, const char* ion,
-               optional<double> int_con, optional<double> ext_con,
-               optional<double> rev_pot, pybind11::object method)
+               optional<double> valence, optional<double> int_con,
+               optional<double> ext_con, optional<double> rev_pot,
+               pybind11::object method)
             {
+                if (!props.ion_species.count(ion) && !valence) {
+                    throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
+                }
+                if (valence) props.ion_species[ion] = *valence;
+
                 auto& data = props.default_parameters.ion_data[ion];
                 if (int_con) data.init_int_concentration = *int_con;
                 if (ext_con) data.init_ext_concentration = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
+
                 if (auto m = maybe_method(method)) {
                     props.default_parameters.reversal_potential_method[ion] = *m;
                 }
             },
             pybind11::arg_v("ion", "name of the ion species."),
+            pybind11::arg_v("valence", pybind11::none(), "valence of the ion species."),
             pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
             pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
-            "Set the global default propoerties of ion species named 'ion'.\n"
+            "Set the global default properties of ion species named 'ion'.\n"
+            "There are 3 ion species predefined in arbor: 'ca', 'na' and 'k'.\n"
+            "If 'ion' in not one of these ions it will be added to the list, making it\n"
+            "available to mechanisms. The user has to provide the valence of a previously\n"
+            "undefined ion the first time this function is called with it as an argument.\n"
             "Species concentrations and reversal potential can be overridden on\n"
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
