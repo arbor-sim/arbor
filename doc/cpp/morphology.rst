@@ -118,86 +118,6 @@ by two stitches:
    cell.paint("\"soma\"", "hh");
 
 
-Supported morphology formats
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Arbor supports morphologies described using the SWC file format and the NeuroML file format.
-
-SWC
-"""
-
-Arbor supports reading morphologies described using the
-`SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format. And
-has three different interpretation of that format.
-
-A :cpp:func:`parse_swc()` function is used to parse the SWC file and generate a :cpp:type:`swc_data` object.
-This object contains a vector of :cpp:type:`swc_record` objects that represent the SWC samples, with a number of
-basic checks performed on them. The :cpp:type:`swc_data` object can then be used to generate a
-:cpp:type:`morphology` object using one of the following functions: (See the morphology concepts
-:ref:`page <morph-formats>` for more details).
-
-  * :cpp:func:`load_swc_arbor`
-  * :cpp:func:`load_swc_allen`
-  * :cpp:func:`load_swc_neuron`
-
-.. cpp:class:: swc_record
-
-   .. cpp:member:: int id
-
-      ID of the record
-
-   .. cpp:member:: int tag
-
-       Structure identifier (tag).
-
-   .. cpp:member:: double x
-
-      x coordinate in space.
-
-   .. cpp:member:: double y
-
-      y coordinate in space.
-
-   .. cpp:member:: double z
-
-      z coordinate in space.
-
-   .. cpp:member:: double r
-
-      Sample radius.
-
-   .. cpp:member:: int parent_id
-
-      Record parent's sample ID.
-
-.. cpp:class:: swc_data
-
-   .. cpp:member:: std::string metadata
-
-      Contains the comments of an SWC file.
-
-   .. cpp:member:: std::vector<swc_record> records
-
-      Stored the list of samples from an SWC file, after performing some checks.
-
-.. cpp:function:: swc_data parse_swc(std::istream&)
-
-   Returns an :cpp:type:`swc_data` object given an std::istream object.
-
-.. cpp:function:: morphology load_swc_arbor(const swc_data& data)
-
-   Returns a :cpp:type:`morphology` constructed according to Arbor's SWC specifications.
-
-.. cpp:function:: morphology load_swc_allen(const swc_data& data, bool no_gaps=false)
-
-   Returns a :cpp:type:`morphology` constructed according to the Allen Institute's SWC
-   specifications. By default, gaps in the morphology are allowed, this can be toggled
-   using the ``no_gaps`` argument.
-
-.. cpp:function:: morphology load_swc_neuron(const swc_data& data)
-
-   Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
-
 .. _locsets-and-regions:
 
 Identifying sites and subsets of the morphology
@@ -413,3 +333,235 @@ given branch will be chosen to be the smallest number that ensures no
 CV will have an extent on the branch longer than ``max_extent`` micrometres.
 
 
+Supported morphology formats
+----------------------------
+
+Arbor supports morphologies described using the SWC file format and the NeuroML file format.
+
+.. _cppswc:
+
+SWC
+^^^
+
+Arbor supports reading morphologies described using the
+`SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format. And
+has three different interpretation of that format.
+
+A :cpp:func:`parse_swc()` function is used to parse the SWC file and generate a :cpp:type:`swc_data` object.
+This object contains a vector of :cpp:type:`swc_record` objects that represent the SWC samples, with a number of
+basic checks performed on them. The :cpp:type:`swc_data` object can then be used to generate a
+:cpp:type:`morphology` object using one of the following functions: (See the morphology concepts
+:ref:`page <morph-formats>` for more details).
+
+  * :cpp:func:`load_swc_arbor`
+  * :cpp:func:`load_swc_allen`
+  * :cpp:func:`load_swc_neuron`
+
+.. cpp:class:: swc_record
+
+   .. cpp:member:: int id
+
+      ID of the record
+
+   .. cpp:member:: int tag
+
+       Structure identifier (tag).
+
+   .. cpp:member:: double x
+
+      x coordinate in space.
+
+   .. cpp:member:: double y
+
+      y coordinate in space.
+
+   .. cpp:member:: double z
+
+      z coordinate in space.
+
+   .. cpp:member:: double r
+
+      Sample radius.
+
+   .. cpp:member:: int parent_id
+
+      Record parent's sample ID.
+
+.. cpp:class:: swc_data
+
+   .. cpp:member:: std::string metadata
+
+      Contains the comments of an SWC file.
+
+   .. cpp:member:: std::vector<swc_record> records
+
+      Stored the list of samples from an SWC file, after performing some checks.
+
+.. cpp:function:: swc_data parse_swc(std::istream&)
+
+   Returns an :cpp:type:`swc_data` object given an std::istream object.
+
+.. cpp:function:: morphology load_swc_arbor(const swc_data& data)
+
+   Returns a :cpp:type:`morphology` constructed according to Arbor's SWC specifications.
+
+.. cpp:function:: morphology load_swc_allen(const swc_data& data, bool no_gaps=false)
+
+   Returns a :cpp:type:`morphology` constructed according to the Allen Institute's SWC
+   specifications. By default, gaps in the morphology are allowed, this can be toggled
+   using the ``no_gaps`` argument.
+
+.. cpp:function:: morphology load_swc_neuron(const swc_data& data)
+
+   Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
+
+.. _cppneuroml:
+
+NeuroML
+^^^^^^^
+
+Arbor offers limited support for models described in
+`NeuroML version 2 <https://neuroml.org/neuromlv2>`_.
+This is not built by default, but can be enabled by
+providing the `-DARB_NEUROML=ON` argument to CMake at
+configuration time (see :ref:`install-neuroml`). This will
+build the ``arborio`` libray with neuroml support.
+
+The ``arborio`` library uses `libxml2 <http://xmlsoft.org/>`_
+for XML parsing. Applications using NeuroML through ``arborio``
+will need to link against ``libxml2`` in addition, though this
+is performed implicitly within CMake projects that add ``arbor::arborio``
+as a link library.
+
+All classes and functions provided by the ``arborio`` library
+are provided in the ``arborio`` namespace.
+
+Libxml2 interface
+=================
+
+Libxml2 offers threadsafe XML parsing, but not by default. If
+the application uses NeuromML support from ``arborio`` in an
+unthreaded context, or has already explicitly initialized ``libxml2``,
+nothing more needs to be done. Otherwise, the ``libxml2`` function
+``xmlInitParser()`` must be called explicitly.
+
+``arborio`` provides a helper guard object for this purpose, defined
+in ``arborio/with_xml.hpp``:
+
+.. cpp:namespace:: arborio
+
+.. cpp:class:: with_xml
+
+   An RAII guard object that calls ``xmlInitParser()`` upon construction, and
+   ``xmlCleanupParser()`` upon destruction. The constructor takes no parameters.
+
+NeuroML2 morphology support
+===========================
+
+NeuroML documents are represented by the ``arborio::neuroml`` class,
+which in turn provides methods for the identification and translation
+of morphology data. ``neuroml`` objects are moveable and move-assignable, but not copyable.
+
+An implementation limitation restricts valid segment id values to
+those which can be represented by an ``unsigned long long`` value.
+
+.. cpp:class:: neuroml
+
+   .. cpp:function:: neuroml(std::string)
+
+   Build a NeuroML document representation from the supplied string.
+
+   .. cpp:function:: std::vector<std::string> cell_ids() const
+
+   Return the id of each ``<cell>`` element defined in the NeuroML document.
+
+   .. cpp:function:: std::vector<std::string> morphology_ids() const
+
+   Return the id of each top-level ``<morphology>`` element defined in the NeuroML document.
+
+   .. cpp:function:: std::optional<morphology_data> morphology(const std::string&) const
+
+   Return a representation of the top-level morphology with the supplied identifier, or
+   ``std::nullopt`` if no such morphology could be found. Parse errors or an inconsistent
+   representation will raise an exception derived from ``neuroml_exception``.
+
+   .. cpp:function:: std::optional<morphology_data> cell_morphology(const std::string&) const
+
+   Return a representation of the morphology associated with the cell with the supplied identifier,
+   or ``std::nullopt`` if the cell or its morphology could not be found. Parse errors or an
+   inconsistent representation will raise an exception derived from ``neuroml_exception``.
+
+The morphology representation contains the corresponding Arbor ``arb::morphology`` object,
+label dictionaries for regions corresponding to its segments and segment groups by name
+and id, and a map providing the explicit list of segments contained within each defined
+segment group.
+
+.. cpp:class:: morphology_data
+
+   .. cpp:member:: std::optional<std::string> cell_id
+
+   The id attribute of the cell that was used to find the morphology in the NeuroML document, if any.
+
+   .. cpp:member:: std::string id
+
+   The id attribute of the morphology.
+
+   .. cpp:member:: arb::morphology morphology
+
+   The corresponding Arbor morphology.
+
+   .. cpp:member:: arb::label_dict segments
+
+   A label dictionary with a region entry for each segment, keyed by the segment id (as a string).
+
+   .. cpp:member:: arb::label_dict named_segments
+
+   A label dictionary with a region entry for each name attribute given to one or more segments.
+   The region corresponds to the union of all segments sharing the same name attribute.
+
+   .. cpp:member:: arb::label_dict groups
+
+   A label dictionary with a region entry for each defined segment group
+
+   .. cpp:member:: std::unordered_map<std::string, std::vector<unsigned long long>> group_segments
+
+   A map from each segment group id to its corresponding collection of segments.
+
+
+Exceptions
+==========
+
+All NeuroML-specific exceptions are defined in ``arborio/arbornml.hpp``, and are
+derived from ``arborio::neuroml_exception`` which in turn is derived from ``std::runtime_error``.
+With the exception of the ``no_document`` exception, all contain an unsigned member ``line``
+which is intended to identify the problematic construct within the document.
+
+.. cpp:class:: xml_error: neuroml_exception
+
+   A generic XML error generated by the ``libxml2`` library.
+
+.. cpp:class:: no_document: neuroml_exception
+
+   A request was made on an :cpp:class:`neuroml` document without any content.
+
+.. cpp:class:: parse_error: neuroml_exception
+
+   Failure parsing an element or attribute in the NeuroML document. These
+   can be generated if the document does not confirm to the NeuroML2 schema,
+   for example.
+
+.. cpp:class:: bad_segment: neuroml_exception
+
+   A ``<segment>`` element has an improper ``id`` attribue, refers to a non-existent
+   parent, is missing a required parent or proximal element, or otherwise is missing
+   a mandatory child element or has a malformed child element.
+
+.. cpp:class:: bad_segment_group: neuroml_exception
+
+   A ``<segmentGroup>`` element has a malformed child element or references
+   a non-existent segment group or segment.
+
+.. cpp:class:: cyclic_dependency: neuroml_exception
+
+   A segment or segment group ultimately refers to itself via ``parent``
+   or ``include`` elements respectively.
