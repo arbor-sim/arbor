@@ -213,9 +213,9 @@ struct s_expr {
         state(pair_type(std::move(l), std::move(r)))
     {}
 
-    s_expr(std::string s):
+    explicit s_expr(std::string s):
         s_expr(token{{0,0}, tok::string, std::move(s)}) {}
-    s_expr(const char* s):
+    explicit s_expr(const char* s):
         s_expr(token{{0,0}, tok::string, s}) {}
     s_expr(double x):
         s_expr(token{{0,0}, tok::real, std::to_string(x)}) {}
@@ -244,42 +244,6 @@ struct s_expr {
 
     friend std::ostream& operator<<(std::ostream& o, const s_expr& x);
 };
-
-std::ostream& operator<<(std::ostream&, const s_expr&);
-
-// Helper function for programmatically building lists
-//     slist(1, 2, "hello world", "banjax@cat/3"_symbol);
-// Produces the following s-expression:
-//     (1 2 "hello world" banjax@cat/3)
-// Can be nested:
-//     slist(1, slist(2, 3), 4, 5 );
-// Produces:
-//     (1 (2 3) 4 5)
-
-template <typename T>
-s_expr slist(T v) {
-    return {v, {}};
-}
-
-template <typename T, typename... Args>
-s_expr slist(T v, Args... args) {
-    return {v, slist(args...)};
-}
-
-inline s_expr slist() {
-    return {};
-}
-
-template <typename I, typename S>
-s_expr slist_range(I b, S e) {
-    return b==e ? s_expr{}
-                : s_expr{*b, slist_range(++b,e)};
-}
-
-template <typename Range>
-s_expr slist_range(const Range& range) {
-    return slist_range(std::begin(range), std::end(range));
-}
 
 // Build s-expr from string
 s_expr parse_s_expr(const std::string& line);

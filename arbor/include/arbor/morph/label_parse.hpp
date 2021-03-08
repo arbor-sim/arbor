@@ -2,8 +2,8 @@
 
 #include <any>
 
-#include <arbor/morph/region.hpp>
 #include <arbor/arbexcept.hpp>
+#include <arbor/morph/region.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/expected.hpp>
 

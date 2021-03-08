@@ -1,7 +1,6 @@
 #pragma once
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/s_expr.hpp>
 
 #define CABLE_CELL_FORMAT_VERSION 1
 

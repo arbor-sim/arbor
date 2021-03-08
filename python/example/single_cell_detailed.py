@@ -49,7 +49,7 @@ decor.set_property(Vm =-55)
 
 # Override the cell defaults.
 
-decor.paint('"custom"', tempK=270)
+decor.paint('(distal-interval (locset "terminal"))', tempK=270)
 decor.paint('"soma"',   Vm=-50)
 
 # Paint density mechanisms.

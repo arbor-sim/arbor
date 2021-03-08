@@ -44,19 +44,19 @@ struct cable_cell_impl {
     // Track number of point assignments by type for lid/target numbers.
     dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
 
+    // The label dictionary.
+    const label_dict dictionary;
+
     // The decorations on the cell.
     decor decorations;
-
-    // Definition of labels.
-    const label_dict dictionary;
 
     // The lid ranges of placements.
     std::vector<lid_range> placed_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
-        decorations(decorations),
-        dictionary(labels)
+        dictionary(labels),
+        decorations(decorations)
     {
         init(decorations);
     }

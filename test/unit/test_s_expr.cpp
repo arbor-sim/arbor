@@ -10,7 +10,7 @@
 
 #include <arborio/cableio.hpp>
 
-#include "parse_expression.hpp"
+#include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"
 
 using namespace arb;
@@ -79,6 +79,7 @@ TEST(s_expr, atoms_in_parens) {
 }
 
 TEST(s_expr, list) {
+    using namespace arborio;
     {
         auto l = slist();
         EXPECT_EQ(0u, std::distance(l.begin(), l.end()));
@@ -92,7 +93,7 @@ TEST(s_expr, list) {
         EXPECT_EQ(2u, std::distance(l.begin(), l.end()));
     }
     {
-        auto l = slist(1, 2.3, "hello");
+        auto l = slist(1, 2.3, s_expr("hello"));
         EXPECT_EQ(3u, std::distance(l.begin(), l.end()));
     }
     {
@@ -110,19 +111,37 @@ TEST(s_expr, list) {
 }
 
 TEST(s_expr, list_range) {
-    std::cout << slist_range(std::vector{1,2,3}) << "\n";
-    std::cout << slist_range(std::vector<int>{}) << "\n";
-    std::cout << slist_range(std::vector{12.1, 0.1}) << "\n";
-    std::cout << slist_range(slist(1, 2, "hello world")) << "\n";
+    using namespace arborio;
+    auto to_string = [](const s_expr& obj) {
+        std::stringstream s;
+        s << obj;
+        return s.str();
+    };
+    auto s0 = slist_range(std::vector{1,2,3});
+    EXPECT_EQ("(1 2 3)", to_string(s0));
+    EXPECT_EQ(3u, length(s0));
+
+    auto s1 = slist_range(std::vector<int>{});
+    EXPECT_EQ("()", to_string(s1));
+    EXPECT_EQ(0u, length(s1));
+
+    auto s2 = slist_range(std::vector{12.1, 0.1});
+    EXPECT_EQ("(12.100000 0.100000)", to_string(s2));
+    EXPECT_EQ(2u, length(s2));
+
+    auto s3 = slist_range(slist(1, 2, s_expr("hello world")));
+    EXPECT_EQ("(1 2 \"hello world\")", to_string(s3));
+    EXPECT_EQ(3u, length(s3));
 }
 
 TEST(s_expr, iterate) {
+    using namespace arborio;
     {
         auto l = slist();
         EXPECT_EQ(0u, std::distance(l.begin(), l.end()));
     }
     {
-        auto l = slist(1, 2, 3., "hello");
+        auto l = slist(1, 2, 3., s_expr("hello"));
         auto b = l.begin();
         auto e = l.end();
         EXPECT_EQ(4u, std::distance(b, e));
@@ -139,7 +158,7 @@ TEST(s_expr, iterate) {
 
 template <typename L>
 std::string round_trip_label(const char* in) {
-    if (auto x = parse_label_expression(std::string(in))) {
+    if (auto x = parse_label_expression(in)) {
         return util::pprintf("{}", std::any_cast<L>(*x));
     }
     else {
@@ -263,7 +282,7 @@ TEST(regloc, errors) {
         // If an invalid label/expression was passed and handled correctly the parse
         // call will return without throwing, with the error stored in the return type.
         // So it is sufficient to assert that it evaluates to false.
-        EXPECT_FALSE(parse_label_expression(std::string(expr)));
+        EXPECT_FALSE(parse_label_expression(expr));
     }
 }
 
@@ -333,7 +352,7 @@ std::string to_string(const arborio::cable_cell_component& c) {
 template <typename T>
 std::string round_trip_variant(const char* in) {
     using namespace cable_s_expr;
-    if (auto x = arborio::parse_expression(std::string(in))) {
+    if (auto x = arborio::parse_expression(in)) {
         std::string str;
         std::visit([&](auto&& p){str = to_string(p);}, *(eval_cast_variant<T>(*x)));
         return str;
@@ -346,7 +365,7 @@ std::string round_trip_variant(const char* in) {
 template <typename T>
 std::string round_trip(const char* in) {
     using namespace cable_s_expr;
-    if (auto x = arborio::parse_expression(std::string(in))) {
+    if (auto x = arborio::parse_expression(in)) {
         return to_string(std::any_cast<T>(*x));
     }
     else {
@@ -356,7 +375,7 @@ std::string round_trip(const char* in) {
 
 std::string round_trip_component(const char* in) {
     using namespace cable_s_expr;
-    if (auto x = arborio::parse_component(std::string(in))) {
+    if (auto x = arborio::parse_component(in)) {
         return to_string(x.value());
     }
     else {

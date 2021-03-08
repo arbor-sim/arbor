@@ -1,10 +1,11 @@
 #include <arbor/morph/label_parse.hpp>
+#include <arbor/s_expr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
 
 #include <arborio/cableio.hpp>
 
-#include "parse_expression.hpp"
+#include "parse_s_expr.hpp"
 
 #include <iostream>
 
@@ -13,32 +14,14 @@ namespace arborio {
 using namespace arb;
 
 cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
-    arb::arbor_exception(msg+" at :"+std::to_string(loc.line)+":"+std::to_string(loc.column))
+    arb::arbor_exception(msg+" at :"+
+                         std::to_string(loc.line)+ ":"+
+                         std::to_string(loc.column))
 {}
 
 struct nil_tag {};
 
 // Define s-expr makers for various types
-s_expr mksexp(const mpoint& p) {
-    return slist("point"_symbol, p.x, p.y, p.z, p.radius);
-}
-s_expr mksexp(const msegment& seg) {
-    return slist("segment"_symbol, (int)seg.id, mksexp(seg.prox), mksexp(seg.dist), seg.tag);
-}
-s_expr mksexp(const mechanism_desc& d) {
-    std::vector<s_expr> mech;
-    mech.push_back(d.name());
-    for (const auto& p: d.values()) {
-        mech.push_back(slist(p.first, p.second));
-    }
-    return s_expr{"mechanism"_symbol, slist_range(mech)};
-}
-s_expr mksexp(const ion_reversal_potential_method& e) {
-    return slist("ion-reversal-potential-method"_symbol, e.ion, mksexp(e.method));
-}
-s_expr mksexp(const cv_policy& c) {
-    return s_expr();
-}
 s_expr mksexp(const init_membrane_potential& p) {
     return slist("membrane-potential"_symbol, p.value);
 }
@@ -52,13 +35,13 @@ s_expr mksexp(const membrane_capacitance& c) {
     return slist("membrane-capacitance"_symbol, c.value);
 }
 s_expr mksexp(const init_int_concentration& c) {
-    return slist("ion-internal-concentration"_symbol, c.ion, c.value);
+    return slist("ion-internal-concentration"_symbol, s_expr(c.ion), c.value);
 }
 s_expr mksexp(const init_ext_concentration& c) {
-    return slist("ion-external-concentration"_symbol, c.ion, c.value);
+    return slist("ion-external-concentration"_symbol, s_expr(c.ion), c.value);
 }
-s_expr mksexp(const init_reversal_potential& e) {
-    return slist("ion-reversal-potential"_symbol, e.ion, e.value);
+s_expr mksexp(const init_reversal_potential& c) {
+    return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value);
 }
 s_expr mksexp(const i_clamp& c) {
     return slist("current-clamp"_symbol, c.delay, c.duration, c.amplitude);
@@ -69,6 +52,27 @@ s_expr mksexp(const threshold_detector& d) {
 s_expr mksexp(const gap_junction_site& s) {
     return slist("gap-junction-site"_symbol);
 }
+s_expr mksexp(const mechanism_desc& d) {
+    std::vector<s_expr> mech;
+    mech.push_back(s_expr(d.name()));
+    for (const auto& p: d.values()) {
+        mech.push_back(slist(s_expr(p.first), p.second));
+    }
+    return s_expr{"mechanism"_symbol, slist_range(mech)};
+}
+s_expr mksexp(const ion_reversal_potential_method& e) {
+    return slist("ion-reversal-potential-method"_symbol, s_expr(e.ion), mksexp(e.method));
+}
+s_expr mksexp(const mpoint& p) {
+    return slist("point"_symbol, p.x, p.y, p.z, p.radius);
+}
+s_expr mksexp(const msegment& seg) {
+    return slist("segment"_symbol, (int)seg.id, mksexp(seg.prox), mksexp(seg.dist), seg.tag);
+}
+// This can be removed once cv_policy is removed from the decor.
+s_expr mksexp(const cv_policy& c) {
+    return s_expr();
+}
 s_expr mksexp(const decor& d) {
     auto round_trip = [](auto& x) {
         std::stringstream s;
@@ -77,13 +81,16 @@ s_expr mksexp(const decor& d) {
     };
     std::vector<s_expr> decorations;
     for (const auto& p: d.defaults().serialize()) {
-        decorations.push_back(std::visit([&](auto& x) { return slist("default"_symbol, mksexp(x)); }, p));
+        decorations.push_back(std::visit([&](auto& x)
+            { return slist("default"_symbol, mksexp(x)); }, p));
     }
     for (const auto& p: d.paintings()) {
-        decorations.push_back(std::visit([&](auto& x) { return slist("paint"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
+        decorations.push_back(std::visit([&](auto& x)
+            { return slist("paint"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
     for (const auto& p: d.placements()) {
-        decorations.push_back(std::visit([&](auto& x) { return slist("place"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
+        decorations.push_back(std::visit([&](auto& x)
+            { return slist("place"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
     return {"decorations"_symbol, slist_range(decorations)};
 }
@@ -95,10 +102,10 @@ s_expr mksexp(const label_dict& dict) {
     };
     auto defs = slist();
     for (auto& r: dict.locsets()) {
-        defs = s_expr(slist("locset-def"_symbol, r.first, round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("locset-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
     }
     for (auto& r: dict.regions()) {
-        defs = s_expr(slist("region-def"_symbol, r.first, round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
     }
     return {"label-dict"_symbol, std::move(defs)};
 }
@@ -132,11 +139,11 @@ std::ostream& write_component(std::ostream& o, const morphology& x, const meta_d
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
 std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
-    return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()))})};
+    auto cell = s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()))};
+    return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), cell)};
 }
 std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
-    auto meta = x.meta;
-    std::visit([&](auto&& c){write_component(o, c, meta);}, x.component);
+    std::visit([&](auto&& c){write_component(o, c, x.meta);}, x.component);
     return o;
 }
 
@@ -765,7 +772,8 @@ parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
     }
     auto comp = eval_cast<cable_cell_component>(try_parse.value());
     if (comp.meta.version != CABLE_CELL_FORMAT_VERSION) {
-        return util::unexpected(cableio_parse_error("Unsupported cable-cell format version "+std::to_string(comp.meta.version), location(sexp)));
+        return util::unexpected(cableio_parse_error("Unsupported cable-cell format version "+
+                                                        std::to_string(comp.meta.version), location(sexp)));
     }
     return comp;
 };

@@ -391,7 +391,7 @@ s_expr::operator bool() const {
     return !(is_atom() && atom().kind==tok::nil);
 }
 
-// assume that stream indented and ready to go at location to start printing.
+// Assume that stream indented and ready to go at location to start printing.
 std::ostream& pr(std::ostream& o, const s_expr& x, int indent) {
     std::string in(std::string::size_type(2*indent), ' ');
     if (x.is_atom()) {
