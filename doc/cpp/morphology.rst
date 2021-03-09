@@ -437,7 +437,7 @@ All classes and functions provided by the ``arborio`` library
 are provided in the ``arborio`` namespace.
 
 Libxml2 interface
-=================
+-----------------
 
 Libxml2 offers threadsafe XML parsing, but not by default. If
 the application uses NeuromML support from ``arborio`` in an
@@ -456,7 +456,7 @@ in ``arborio/with_xml.hpp``:
    ``xmlCleanupParser()`` upon destruction. The constructor takes no parameters.
 
 NeuroML2 morphology support
-===========================
+---------------------------
 
 NeuroML documents are represented by the ``arborio::neuroml`` class,
 which in turn provides methods for the identification and translation
@@ -529,7 +529,7 @@ segment group.
 
 
 Exceptions
-==========
+----------
 
 All NeuroML-specific exceptions are defined in ``arborio/arbornml.hpp``, and are
 derived from ``arborio::neuroml_exception`` which in turn is derived from ``std::runtime_error``.

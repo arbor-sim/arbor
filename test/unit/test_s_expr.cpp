@@ -706,6 +706,17 @@ TEST(morphology, round_tripping) {
     EXPECT_EQ(component_str, round_trip_component(component_str));
 }
 
+TEST(morphology, invalid) {
+    auto component_str = "(morphology\n"
+                         "   (branch 0 -1\n"
+                         "     (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1))\n"
+                         "   (branch 1 0\n"
+                         "     (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)\n"
+                         "     (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3))\n"
+                         ")";
+    EXPECT_THROW(round_trip_component(component_str), arborio::cableio_morphology_error);
+}
+
 TEST(cable_cell, round_tripping) {
     auto component_str = "(arbor-component \n"
                          "  (meta-data \n"

@@ -3,6 +3,16 @@
 Cable cells
 ===========
 
+.. toctree::
+   :maxdepth: 1
+
+   morphology
+   labels
+   mechanisms
+   decor
+   probe_sample
+   format
+
 .. currentmodule:: arbor
 
 .. py:class:: cable_cell
@@ -68,14 +78,3 @@ Cable cells
 .. py:class:: ion
 
     properties of an ionic species.
-
-.. _pycablecell-probes:
-
-.. toctree::
-   :maxdepth: 1
-
-   morphology
-   labels
-   mechanisms
-   decor
-   probe_sample

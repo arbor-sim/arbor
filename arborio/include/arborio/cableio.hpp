@@ -11,6 +11,10 @@ struct cableio_parse_error: arb::arbor_exception {
     explicit cableio_parse_error(const std::string& msg, const arb::src_location& loc);
 };
 
+struct cableio_morphology_error: arb::arbor_exception {
+    explicit cableio_morphology_error(const unsigned bid);
+};
+
 template <typename T>
 using parse_hopefully = arb::util::expected<T, cableio_parse_error>;
 using cable_cell_variant = std::variant<arb::morphology, arb::label_dict, arb::decor, arb::cable_cell>;

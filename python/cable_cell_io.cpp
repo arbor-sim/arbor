@@ -31,6 +31,11 @@ void write_component(const T& component, const std::string& fname) {
     arborio::write_component(fid, component, arborio::meta_data{});
 }
 
+void write_component(const arborio::cable_cell_component& component, const std::string& fname) {
+    std::ofstream fid(fname);
+    arborio::write_component(fid, component);
+}
+
 void register_cable_loader(pybind11::module& m) {
     m.def("load_component",
           &load_component,
@@ -38,7 +43,15 @@ void register_cable_loader(pybind11::module& m) {
           "Load arbor-component (decor, morphology, label_dict, cable_cell) from file.");
 
     m.def("write_component",
-          [](const arb::decor& d, std::string fname) {
+          [](const arborio::cable_cell_component& d, const std::string& fname) {
+            return write_component(d, fname);
+          },
+          pybind11::arg_v("object", "the cable_cell_component object."),
+          pybind11::arg_v("filename", "the name of the file."),
+          "Write cable_cell_component to file.");
+
+    m.def("write_component",
+          [](const arb::decor& d, const std::string& fname) {
             return write_component<arb::decor>(d, fname);
           },
           pybind11::arg_v("object", "the decor object."),
@@ -46,7 +59,7 @@ void register_cable_loader(pybind11::module& m) {
           "Write decor to file.");
 
     m.def("write_component",
-          [](const arb::label_dict& d, std::string fname) {
+          [](const arb::label_dict& d, const std::string& fname) {
             return write_component<arb::label_dict>(d, fname);
           },
           pybind11::arg_v("object", "the label_dict object."),
@@ -54,7 +67,7 @@ void register_cable_loader(pybind11::module& m) {
           "Write label_dict to file.");
 
     m.def("write_component",
-          [](const arb::morphology& d, std::string fname) {
+          [](const arb::morphology& d, const std::string& fname) {
             return write_component<arb::morphology>(d, fname);
           },
           pybind11::arg_v("object", "the morphology object."),
@@ -62,7 +75,7 @@ void register_cable_loader(pybind11::module& m) {
           "Write morphology to file.");
 
     m.def("write_component",
-          [](const arb::cable_cell& d, std::string fname) {
+          [](const arb::cable_cell& d, const std::string& fname) {
             return write_component<arb::cable_cell>(d, fname);
           },
           pybind11::arg_v("object", "the cable_cell object."),

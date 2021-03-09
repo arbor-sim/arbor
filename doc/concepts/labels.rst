@@ -197,6 +197,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
     thing could be achieved using hoc in NEURON, and whether it would be free of bugs
     and applicable to arbitrary morphologies.
 
+.. _labels-locset-expr:
 
 Locset expressions
 ~~~~~~~~~~~~~~~~~~
@@ -344,6 +345,8 @@ Locset expressions
     .. code-block:: lisp
 
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
+
+.. _labels-region-expr:
 
 Region expressions
 ~~~~~~~~~~~~~~~~~~

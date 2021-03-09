@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/pp_util.hpp>
@@ -7,8 +9,6 @@
 
 #include "parse_s_expr.hpp"
 
-#include <iostream>
-
 namespace arborio {
 
 using namespace arb;
@@ -17,6 +17,11 @@ cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_
     arb::arbor_exception(msg+" at :"+
                          std::to_string(loc.line)+ ":"+
                          std::to_string(loc.column))
+{}
+
+cableio_morphology_error::cableio_morphology_error(const unsigned bid):
+    arb::arbor_exception("Invalid morphology: branch `" +std::to_string(bid) +
+                         "` only has one child branch, making it an invalid branch specification")
 {}
 
 struct nil_tag {};
@@ -253,6 +258,7 @@ arb::msegment make_segment(unsigned id, arb::mpoint prox, arb::mpoint dist, int 
 morphology make_morphology(const std::vector<std::variant<branch>>& args) {
     segment_tree tree;
     std::vector<unsigned> branch_final_seg(args.size());
+    std::vector<unsigned> branch_children(args.size(), 0);
     std::vector<std::pair<msegment, int>> segs;
     for (const auto& br: args) {
         auto b = std::get<branch>(br);
@@ -266,7 +272,14 @@ morphology make_morphology(const std::vector<std::variant<branch>>& args) {
             s_pid = s.id;
         }
         branch_final_seg[b_id] = s_pid;
+        branch_children[b_pid] = b_id;
     }
+    // A branch should have either 0 or >1 children.
+    auto it = std::find_if(branch_children.begin(), branch_children.end(), [](unsigned i){return i==1;});
+    if (it != branch_children.end()) {
+        throw cableio_morphology_error(it - branch_children.begin());
+    }
+
     std::sort(segs.begin(), segs.end(), [](const auto& lhs, const auto& rhs){return lhs.first.id < rhs.first.id;});
     for (const auto& spair: segs) {
         auto seg = spair.first;
