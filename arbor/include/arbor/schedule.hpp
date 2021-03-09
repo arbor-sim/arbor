@@ -22,7 +22,7 @@ inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
 }
 
 // A schedule describes a sequence of time values used for sampling. Schedules
-// are queried monotonically in time: if two method calls `events(t0, t1)` 
+// are queried monotonically in time: if two method calls `events(t0, t1)`
 // and `events(t2, t3)` are made without an intervening call to `reset()`,
 // then 0 ≤ _t0_ ≤ _t1_ ≤ _t2_ ≤ _t3_.
 
@@ -175,8 +175,8 @@ inline schedule explicit_schedule(const std::initializer_list<time_type>& seq) {
 template <typename RandomNumberEngine>
 class poisson_schedule_impl {
 public:
-    poisson_schedule_impl(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng):
-        tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart)
+    poisson_schedule_impl(time_type tstart, time_type rate_Hz, const RandomNumberEngine& rng):
+        tstart_(tstart), exp_(rate_Hz), rng_(rng), reset_state_(rng), next_(tstart)
     {
         arb_assert(tstart_>=0);
         step();
@@ -205,7 +205,8 @@ public:
 
 private:
     void step() {
-        next_ += exp_(rng_);
+        // next_ is [ms], exp_ is [Hz], so a factor is required
+        next_ += exp_(rng_)*1000.;
     }
 
     time_type tstart_;
@@ -217,13 +218,13 @@ private:
 };
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type rate_kHz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_kHz, rng));
+inline schedule poisson_schedule(time_type rate_Hz, const RandomNumberEngine& rng) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_Hz, rng));
 }
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_kHz, rng));
+inline schedule poisson_schedule(time_type tstart, time_type rate_Hz, const RandomNumberEngine& rng) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_Hz, rng));
 }
 
 } // namespace arb

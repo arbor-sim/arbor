@@ -145,7 +145,7 @@ public:
         std::mt19937_64 G;
         G.seed(gid + seed_);
         time_type t0 = 0;
-        return {poisson_generator(target{gid, 0}, weight_ext_, t0, lambda_, G)};
+        return {poisson_generator({gid, 0}, weight_ext_, t0, lambda_, G)};
     }
 
     cell_size_type num_sources(cell_gid_type) const override {

@@ -15,7 +15,7 @@ Because of the refractory period, the activity is mostly driven by Poisson neuro
 recurrent connections have a small effect.
 '''
 
-## ./brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123 -f
+## ./brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5000 -t 100 -s 1 -G 50 -S 123 -f
 
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.

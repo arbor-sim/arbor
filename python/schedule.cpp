@@ -167,8 +167,7 @@ arb::time_type poisson_schedule_shim::get_freq() const {
 }
 
 arb::schedule poisson_schedule_shim::schedule() const {
-    // convert frequency to kHz.
-    return arb::poisson_schedule(tstart, freq/1000., rng_type(seed));
+    return arb::poisson_schedule(tstart, freq, rng_type(seed));
 }
 
 std::vector<arb::time_type> poisson_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
