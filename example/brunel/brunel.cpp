@@ -148,16 +148,12 @@ public:
     }
 
     std::vector<event_generator> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator> gens;
-
         std::mt19937_64 G;
         G.seed(gid + seed_);
-
         time_type t0 = 0;
         cell_member_type target{gid, 0};
-
-        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
-        return gens;
+        return {poisson_generator(target, weight_ext_, t0, lambda_, G)};
+        // return {regular_generator(target, weight_ext_, 0,1,100)};
     }
 
     cell_size_type num_sources(cell_gid_type) const override {
