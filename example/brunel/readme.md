@@ -19,7 +19,7 @@ The parameters that can be passed as command-line arguments are the following:
 * `-w` (`--weight`): weight of all excitatory connections.
 * `-g` (`--rel_inh_w`): relative strength of inhibitory synapses with respect to the excitatory ones.
 * `-d` (`--delay`): the delay of all connections.
-* `-l` (`--lambda`): rate of Poisson cells (kHz).
+* `-l` (`--lambda`): rate of Poisson cells (Hz).
 * `-t` (`--tfinal`): length of the simulation period (ms).
 * `-s` (`--delta_t`): simulation time step (ms). (this parameter is ignored)
 * `-G` (`--group-size`): number of cells per cell group
@@ -31,5 +31,5 @@ The parameters that can be passed as command-line arguments are the following:
 For example, we could run the miniapp as follows:
 
 ```
-./brunel -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123 -f
+./brunel -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5000 -t 100 -s 1 -G 50 -S 123 -f
 ```
