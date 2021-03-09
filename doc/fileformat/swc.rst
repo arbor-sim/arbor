@@ -30,8 +30,8 @@ its parent and inherits the tag of the sample; and if more than 1 sample have th
 is interpreted as a fork point in the morphology, and acts as the proximal point to a new branch for each of its
 "child" samples. There a couple of exceptions to these rules which are listed below.
 
-Arbor interpretation:
-"""""""""""""""""""""
+Arbor interpretation
+""""""""""""""""""""
 In addition to the previously listed checks, the arbor interpretation explicitly disallows SWC files where the soma is
 described by a single sample. It constructs the soma from 2 or more samples, forming 1 or more segments. A *segment* is
 always constructed between a sample and its parent. This means that there are no gaps in the resulting morphology.
@@ -55,8 +55,8 @@ like this:
    :align: center
 
 
-Allen interpretation:
-"""""""""""""""""""""
+Allen interpretation
+""""""""""""""""""""
 In addition to the previously mentioned checks, the Allen interpretation expects a single-sample soma to be the first
 sample of the file and to be interpreted as a spherical soma. Arbor represents the spherical soma as a cylinder with
 length and diameter equal to the diameter of the sample representing the sphere.
@@ -71,8 +71,8 @@ or to the proximal end of the soma if they are axons or apical dendrites. Only a
 Finally the Allen institute interpretation of SWC files centres the morphology around the soma at the origin (0, 0, 0)
 and all samples are translated in space towards the origin.
 
-NEURON interpretation:
-""""""""""""""""""""""
+NEURON interpretation
+"""""""""""""""""""""
 The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function. We came up with the
 following set of rules that govern NEURON's SWC behavior and enforced them in arbor's NEURON-complaint SWC
 interpreter:
@@ -91,3 +91,8 @@ interpreter:
 * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
   tag.
 
+API
+"""
+
+* :ref:`Python <pyswc>`
+* :ref:`C++ <cppswc>`

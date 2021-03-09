@@ -27,7 +27,7 @@ Documentation organisation
 
 * :ref:`tutorial` contains a few ready-made examples you can use to quickly get started using Arbor. In the tutorial descriptions we link to the relevant Arbor concepts.
 * :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
-* The API section details our :ref:`pyoverview` and :ref:`cppoverview` API, as well as :ref:`supported file formats <format-overview>`. :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
+* The API section details our :ref:`pyoverview` and :ref:`cppoverview` API. :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
 * Contributions to Arbor are very welcome! Under :ref:`contribindex` describe conventions and procedures for all kinds of contributions.
 
 Citing Arbor
@@ -102,12 +102,19 @@ Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
    concepts/benchmark_cell
 
 .. toctree::
+   :caption: File formats:
+   :maxdepth: 1
+
+   fileformat/swc
+   fileformat/neuroml
+   fileformat/nmodl
+
+.. toctree::
    :caption: API reference:
    :maxdepth: 1
 
    python/index
    cpp/index
-   fileformat/index
    internals/index
 
 .. toctree::
