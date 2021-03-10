@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
