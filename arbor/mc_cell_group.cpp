@@ -339,7 +339,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             auto curr_intdom = cell_to_intdom_[lid];
 
             for (auto e: lane) {
-                if (e.time>=ep.tfinal) break;
+                if (e.time>=ep.t1) break;
                 e.time = binners_[lid].bin(e.time, tstart);
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
                 auto ev = deliverable_event(e.time, h, e.weight);
@@ -393,7 +393,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             // Ignore sampler_association_handle, just need the association itself.
             sampler_association& sa = sm_entry.second;
 
-            auto sample_times = util::make_range(sa.sched.events(tstart, ep.tfinal));
+            auto sample_times = util::make_range(sa.sched.events(tstart, ep.t1));
             if (sample_times.empty()) {
                 continue;
             }
@@ -452,7 +452,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(ep.tfinal, dt, staged_events_, std::move(sample_events));
+    auto result = lowered_->integrate(ep.t1, dt, staged_events_, std::move(sample_events));
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

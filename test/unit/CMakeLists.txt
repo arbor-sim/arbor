@@ -97,7 +97,6 @@ set(unit_sources
     test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
-    test_double_buffer.cpp
     test_event_binner.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
@@ -147,6 +146,7 @@ set(unit_sources
     test_scope_exit.cpp
     test_segment_tree.cpp
     test_simd.cpp
+    test_simulation.cpp
     test_span.cpp
     test_spike_source.cpp
     test_spikes.cpp
