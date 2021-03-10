@@ -240,10 +240,7 @@ region_pair make_region_pair(std::string name, region desc) {
 label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pair>>& args) {
     label_dict d;
     for(const auto& a: args) {
-        auto label_dict_visitor = arb::util::overload(
-            [&](const locset_pair& p) { d.set(p.first, p.second); },
-            [&](const region_pair& p) { d.set(p.first, p.second); });
-        std::visit(label_dict_visitor, a);
+        std::visit([&](auto&& x){d.set(x.first, x.second);}, a);
     }
     return d;
 }
@@ -266,13 +263,14 @@ morphology make_morphology(const std::vector<std::variant<branch>>& args) {
         auto b_pid = std::get<1>(b);
         auto b_segments = std::get<2>(b);
 
+        if (b_pid!=-1) branch_children[b_pid]++;
+
         auto s_pid = b_pid==-1? arb::mnpos: branch_final_seg[b_pid];
         for (const auto& s: b_segments) {
             segs.emplace_back(s, s_pid);
             s_pid = s.id;
         }
         branch_final_seg[b_id] = s_pid;
-        branch_children[b_pid] = b_id;
     }
     // A branch should have either 0 or >1 children.
     auto it = std::find_if(branch_children.begin(), branch_children.end(), [](unsigned i){return i==1;});
@@ -280,6 +278,7 @@ morphology make_morphology(const std::vector<std::variant<branch>>& args) {
         throw cableio_morphology_error(it - branch_children.begin());
     }
 
+    // Append segments according to id order.
     std::sort(segs.begin(), segs.end(), [](const auto& lhs, const auto& rhs){return lhs.first.id < rhs.first.id;});
     for (const auto& spair: segs) {
         auto seg = spair.first;
@@ -457,6 +456,7 @@ struct make_arg_vec_call {
 using param_pair = std::pair<std::string, double>;
 struct mech_match {
     bool operator()(const std::vector<std::any>& args) const {
+        if (args.size() < 1) return false;
         if (!match<std::string>(args.front().type())) return false;
         for (auto it = args.begin()+1; it != args.end(); ++it) {
             if(!match<param_pair>(it->type())) return false;
@@ -491,6 +491,7 @@ struct make_mech_call {
 // to 2 integers followed by at least 1 msegment
 struct branch_match {
     bool operator()(const std::vector<std::any>& args) const {
+        if (args.size() < 2) return false;
         auto it = args.begin();
         if (!match<int>(it++->type())) return false;
         if (!match<int>(it++->type()))  return false;

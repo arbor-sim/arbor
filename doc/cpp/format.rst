@@ -49,7 +49,7 @@ Reading arbor-components
 
    This function will attempt to construct a :cpp:class:`cable_cell_component` object by parsing the
    contents of a string. It will return a :cpp:type:`parse_hopefully` containing the constructed object,
-   or, if the parsing fails, a helpful ``cableio_parse_error``.
+   or, if parsing fails, a helpful ``cableio_parse_error``.
 
 .. cpp:function:: parse_hopefully<cable_cell_component> parse_component(std::istream&)
 
@@ -80,7 +80,6 @@ Writing arbor-components
    Constructs a :cpp:class:`cable_cell_component` from a :cpp:class:`morphology` object, and optional
    :cpp:class:`meta_data`. If no meta_data is provided, the most recent version of
    the format is used to create it. The resulting object is written to the given ``std::ostream``.
-
 
 .. cpp:function:: std::ostream& write_component(std::ostream& o, const arb::cable_cell& x, const meta_data& m = {})
 

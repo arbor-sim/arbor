@@ -80,29 +80,40 @@ TEST(s_expr, atoms_in_parens) {
 
 TEST(s_expr, list) {
     using namespace arborio;
+    auto to_string = [](const s_expr& obj) {
+      std::stringstream s;
+      s << obj;
+      return s.str();
+    };
     {
         auto l = slist();
+        EXPECT_EQ("()", to_string(l));
         EXPECT_EQ(0u, std::distance(l.begin(), l.end()));
     }
     {
         auto l = slist(1);
+        EXPECT_EQ("(1)", to_string(l));
         EXPECT_EQ(1u, std::distance(l.begin(), l.end()));
     }
     {
         auto l = slist(1, 2.3);
+        EXPECT_EQ("(1 2.300000)", to_string(l));
         EXPECT_EQ(2u, std::distance(l.begin(), l.end()));
     }
     {
         auto l = slist(1, 2.3, s_expr("hello"));
+        EXPECT_EQ("(1 2.300000 \"hello\")", to_string(l));
         EXPECT_EQ(3u, std::distance(l.begin(), l.end()));
     }
     {
         auto l = slist(1, 2.3, "hello"_symbol);
+        EXPECT_EQ("(1 2.300000 hello)", to_string(l));
         EXPECT_EQ(3u, std::distance(l.begin(), l.end()));
         EXPECT_EQ(tok::symbol, (l.begin()+2)->atom().kind);
     }
     {
         auto l = slist(1, slist(1, 2), 3);
+        EXPECT_EQ("(1 \n  (1 2)\n  3)", to_string(l));
         EXPECT_EQ(3u, std::distance(l.begin(), l.end()));
         EXPECT_EQ(tok::integer, (l.begin()+2)->atom().kind);
         auto l1 = *(l.begin()+1);
@@ -145,12 +156,9 @@ TEST(s_expr, iterate) {
         auto b = l.begin();
         auto e = l.end();
         EXPECT_EQ(4u, std::distance(b, e));
-        EXPECT_EQ(tok::integer, b->atom().kind);
-        ++b;
-        EXPECT_EQ(tok::integer, b->atom().kind);
-        ++b;
-        EXPECT_EQ(tok::real, b->atom().kind);
-        ++b;
+        EXPECT_EQ(tok::integer, b++->atom().kind);
+        EXPECT_EQ(tok::integer, b++->atom().kind);
+        EXPECT_EQ(tok::real, b++->atom().kind);
         EXPECT_EQ(tok::string, b->atom().kind);
         EXPECT_EQ("hello", b->atom().spelling);
     }
@@ -350,12 +358,10 @@ std::string to_string(const arborio::cable_cell_component& c) {
 } // namespace arb
 
 template <typename T>
-std::string round_trip_variant(const char* in) {
+std::string round_trip(const char* in) {
     using namespace cable_s_expr;
     if (auto x = arborio::parse_expression(in)) {
-        std::string str;
-        std::visit([&](auto&& p){str = to_string(p);}, *(eval_cast_variant<T>(*x)));
-        return str;
+        return to_string(std::any_cast<T>(*x));
     }
     else {
         return x.error().what();
@@ -363,10 +369,12 @@ std::string round_trip_variant(const char* in) {
 }
 
 template <typename T>
-std::string round_trip(const char* in) {
+std::string round_trip_variant(const char* in) {
     using namespace cable_s_expr;
     if (auto x = arborio::parse_expression(in)) {
-        return to_string(std::any_cast<T>(*x));
+        std::string str;
+        std::visit([&](auto&& p){str = to_string(p);}, *(eval_cast_variant<T>(*x)));
+        return str;
     }
     else {
         return x.error().what();
@@ -770,7 +778,7 @@ TEST(cable_cell_literals, errors) {
                      "(current-clamp 1 2)",                  // too few arguments
                      "(paint (region) (mechanism \"hh\"))",  // invalid region
                      "(paint (tag 1) (mechanims hh))",       // invalid painting
-                     "(paint (terminals) (membrance-capacitance 0.2))", // can't paint a locset
+                     "(paint (terminal) (membrance-capacitance 0.2))", // can't paint a locset
                      "(paint (tag 3))",                      // too few arguments
                      "(place (locset) (gap-junction-site))", // invalid locset
                      "(place (gap-junction-site) (location 0 1))",      // swapped argument order
@@ -804,5 +812,132 @@ TEST(cable_cell_literals, errors) {
         // return without throwing, with the error stored in the return type.
         // So it is sufficient to assert that it evaluates to false.
         EXPECT_FALSE(arborio::parse_component(expr));
+    }
+}
+
+// Check that the examples used in the docs are valid (formats/cable_cell.rst)
+TEST(doc_expressions, parse) {
+    // literals
+    for (auto expr: {"(region-def \"my_region\" (branch 1))",
+                     "(locset-def \"my_locset\" (location 3 0.5))",
+                     "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
+                     "(ion-reversal-potential-method \"ca\" (mechanism \"nersnt/ca\"))",
+                     "(paint (tag 1) (membrane-capacitance 0.02))",
+                     "(place (locset \"mylocset\") (threshold-detector 10))",
+                     "(default (membrane-potential -65))",
+                     "(segment 3 (point 0 0 0 5) (point 0 0 10 2) 1)"})
+    {
+        EXPECT_TRUE(arborio::parse_expression(expr));
+    }
+
+    // objects
+    for (auto expr: {"(label-dict"
+                     "  (region-def \"my_soma\" (tag 1))\n"
+                     "  (locset-def \"root\" (root))\n"
+                     "  (region-def \"all\" (all))\n"
+                     "  (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
+                     "  (locset-def \"terminal\" (terminal)))",
+                     "(decorations\n"
+                     "  (default (membrane-potential -55.000000))\n"
+                     "  (paint (region \"custom\") (temperature-kelvin 270))\n"
+                     "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
+                     "  (paint (all) (mechanism \"pas\"))\n"
+                     "  (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
+                     "  (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "  (place (terminal) (gap-junction-site)))",
+                     "(morphology\n"
+                     "  (branch 0 -1\n"
+                     "    (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
+                     "    (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)\n"
+                     "    (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3))\n"
+                     "  (branch 1 0\n"
+                     "    (segment 3 (point 12 -0.5 0 0.8) (point 20 4 0 0.4) 3)\n"
+                     "    (segment 4 (point 20 4 0 0.4) (point 26 6 0 0.2) 3))\n"
+                     "  (branch 2 0\n"
+                     "    (segment 5 (point 12 -0.5 0 0.5) (point 19 -3 0 0.5) 3))\n"
+                     "  (branch 3 2\n"
+                     "    (segment 6 (point 19 -3 0 0.5) (point 24 -7 0 0.2) 3))\n"
+                     "  (branch 4 2\n"
+                     "    (segment 7 (point 19 -3 0 0.5) (point 23 -1 0 0.2) 3)\n"
+                     "    (segment 8 (point 23 -1 0 0.3) (point 26 -2 0 0.2) 3))\n"
+                     "  (branch 5 -1\n"
+                     "    (segment 9 (point 0 0 0 2) (point -7 0 0 0.4) 2)\n"
+                     "    (segment 10 (point -7 0 0 0.4) (point -10 0 0 0.4) 2)))",
+                     "(cable-cell\n"
+                     "  (label-dict\n"
+                     "    (region-def \"my_soma\" (tag 1))\n"
+                     "    (locset-def \"root\" (root))\n"
+                     "    (region-def \"all\" (all))\n"
+                     "    (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
+                     "    (locset-def \"terminal\" (terminal)))\n"
+                     "  (decorations\n"
+                     "    (default (membrane-potential -55.000000))\n"
+                     "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
+                     "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
+                     "    (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
+                     "    (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "    (place (location 1 0.2) (gap-junction-site)))\n"
+                     "  (morphology\n"
+                     "    (branch 0 -1\n"
+                     "      (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
+                     "      (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)\n"
+                     "      (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3))\n"
+                     "    (branch 1 0\n"
+                     "      (segment 3 (point 12 -0.5 0 0.8) (point 20 4 0 0.4) 3)\n"
+                     "      (segment 4 (point 20 4 0 0.4) (point 26 6 0 0.2) 3))\n"
+                     "    (branch 2 0\n"
+                     "      (segment 5 (point 12 -0.5 0 0.5) (point 19 -3 0 0.5) 3))\n"
+                     "    (branch 3 2\n"
+                     "      (segment 6 (point 19 -3 0 0.5) (point 24 -7 0 0.2) 3))\n"
+                     "    (branch 4 2\n"
+                     "      (segment 7 (point 19 -3 0 0.5) (point 23 -1 0 0.2) 3)\n"
+                     "      (segment 8 (point 23 -1 0 0.3) (point 26 -2 0 0.2) 3))\n"
+                     "    (branch 5 -1\n"
+                     "      (segment 9 (point 0 0 0 2) (point -7 0 0 0.4) 2)\n"
+                     "      (segment 10 (point -7 0 0 0.4) (point -10 0 0 0.4) 2))))"})
+    {
+            auto t = arborio::parse_expression(expr);
+            if (!t) {
+                std::cout << t.error().what() << std::endl;
+            }
+        EXPECT_TRUE(arborio::parse_expression(expr));
+    }
+
+    // components
+    for (auto expr: {"(arbor-component\n"
+                     "  (meta-data (version 1))\n"
+                     "  (label-dict\n"
+                     "    (region-def \"my_soma\" (tag 1))\n"
+                     "    (locset-def \"root\" (root))))",
+                     "(arbor-component\n"
+                     "  (meta-data (version 1))\n"
+                     "  (decorations\n"
+                     "    (default (membrane-potential -55.000000))\n"
+                     "    (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
+                     "(arbor-component\n"
+                     "  (meta-data (version 1))\n"
+                     "  (morphology\n"
+                     "     (branch 0 -1\n"
+                     "       (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
+                     "       (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)\n"
+                     "       (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3))))\n",
+                     "(arbor-component\n"
+                     "  (meta-data (version 1))\n"
+                     "  (cable-cell\n"
+                     "    (label-dict\n"
+                     "      (region-def \"my_soma\" (tag 1))\n"
+                     "      (locset-def \"root\" (root)))\n"
+                     "    (decorations\n"
+                     "      (default (membrane-potential -55.000000))\n"
+                     "      (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
+                     "    (morphology\n"
+                     "       (branch 0 -1\n"
+                     "         (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
+                     "         (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)\n"
+                     "         (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3)))))"})
+    {
+        EXPECT_TRUE(arborio::parse_expression(expr));
     }
 }

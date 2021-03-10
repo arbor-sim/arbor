@@ -46,9 +46,9 @@ void register_cable_loader(pybind11::module& m) {
           [](const arborio::cable_cell_component& d, const std::string& fname) {
             return write_component(d, fname);
           },
-          pybind11::arg_v("object", "the cable_cell_component object."),
+          pybind11::arg_v("object", "the cable_component object."),
           pybind11::arg_v("filename", "the name of the file."),
-          "Write cable_cell_component to file.");
+          "Write cable_component to file.");
 
     m.def("write_component",
           [](const arb::decor& d, const std::string& fname) {
@@ -95,12 +95,12 @@ void register_cable_loader(pybind11::module& m) {
         .def("__repr__", [](const arborio::cable_cell_component& comp) {
             std::stringstream stream;
             arborio::write_component(stream, comp);
-            return stream.str();
+            return "<arbor.cable_component>\n"+stream.str();
         })
         .def("__str__", [](const arborio::cable_cell_component& comp) {
           std::stringstream stream;
           arborio::write_component(stream, comp);
-          return stream.str();
+          return "<arbor.cable_component>\n"+stream.str();
         });
 }
 }

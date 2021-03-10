@@ -47,7 +47,7 @@ Any number of locset and region definitions can be grouped in a label dictionary
 
 .. label:: (label-dict [...def:region-def/locset-def])
 
-   This defines a label dictionary of zero or more region and locset definitons.
+   This describes a label dictionary of zero or more region and locset definitons.
    For example:
 
    .. code:: lisp
@@ -92,35 +92,35 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (membrane-potential val:real)
 
-   This defines an *initial membrane potential* object with value ``val`` (unit [mV]).
+   This describes an *initial membrane potential* object with value ``val`` (unit [mV]).
 
 .. label:: (axial-resistivity val:real)
 
-   This defines an *axial resistivity* object with value ``val`` (unit [Ω·cm]).
+   This describes an *axial resistivity* object with value ``val`` (unit [Ω·cm]).
 
 .. label:: (temperature-kelvin val:real)
 
-   This defines a *temperature* object with value ``val`` (unit [kelvin]).
+   This describes a *temperature* object with value ``val`` (unit [kelvin]).
 
 .. label:: (membrane-capacitance val:real)
 
-   This defines a *membrane capacitance* object with value ``val`` (unit [F/m²]).
+   This describes a *membrane capacitance* object with value ``val`` (unit [F/m²]).
 
 .. label:: (ion-internal-concentration ion:string val:real)
 
-   This defines an *initial internal concentration* object for ion ``ion`` with value ``val`` (unit [mM]]).
+   This describes an *initial internal concentration* object for ion ``ion`` with value ``val`` (unit [mM]]).
 
 .. label:: (ion-external-concentration ion:string val:real)
 
-   This defines an *initial external concentration* object for ion ``ion`` with value ``val`` (unit [mM]]).
+   This describes an *initial external concentration* object for ion ``ion`` with value ``val`` (unit [mM]]).
 
 .. label:: (ion-reversal-potential ion:string val:real)
 
-   This defines an *initial reversal potential* object for ion ``ion`` with value ``val`` (unit [mV]]).
+   This describes an *initial reversal potential* object for ion ``ion`` with value ``val`` (unit [mV]]).
 
 .. label:: (mechanism name:string [...(param:string val:real)])
 
-   This instantiates a (point or density) mechanism object of the mechanism called ``name``. This expression
+   This describes a (point or density) mechanism object of the mechanism called ``name``. This expression
    accepts zero or more ``(param:string val:real)`` expressions. Each of these expressions sets the value of
    parameter ``param`` to ``val``.
    For example:
@@ -149,11 +149,11 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (threshold-detector val:real).
 
-   This defines a *threshold-detector* object with value ``val`` (unit [mV]]).
+   This describes a *threshold-detector* object with value ``val`` (unit [mV]]).
 
 .. label:: (gap-junction-site)
 
-   This defines a *gap-junction-site*.
+   This describes a *gap-junction-site*.
 
 *Paintable* and *placeable* properties and dynamics are placed on regions and locsets respectively.
 Arbor provides many useful :ref:`region expressions <labels-region-expr>` and
@@ -201,7 +201,7 @@ Any number of paint, place and default expressions can be used to create a decor
 
 .. label:: (decorations [...def:paint/place/default])
 
-   This defines a decor object with zero or more paint, place or default expressions in any order.
+   This describes a decor object with zero or more paint, place or default expressions in any order.
    For example:
 
    .. code:: lisp
@@ -213,7 +213,7 @@ Any number of paint, place and default expressions can be used to create a decor
         (paint (all) (mechanism "pas"))
         (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
         (place (locset "root") (current-clamp 10 1 2))
-        (place (terminals) (gap-junction-site)))
+        (place (terminal) (gap-junction-site)))
 
 Morphology
 ----------
@@ -333,7 +333,7 @@ expressions.
 Parsable arbor-components and meta-data
 ---------------------------------------
 
-Each of the formats described above can be used to generate a :ref:`label dictionary <labels>`,
+The formats described above can be used to generate a :ref:`label dictionary <labels>`,
 :ref:`decoration <cablecell-decoration>`, :ref:`morphology <morph>`, or :ref:`cable cell <cablecell>`
 object. These are denoted as arbor-components. Arbor-components need to be accompanied by *meta-data*
 specifying the version of the format being used. The only version currently supported is 1.
@@ -395,15 +395,16 @@ Cable-cell
 
    (arbor-component
      (meta-data (version 1))
-     (label-dict
-       (region-def "my_soma" (tag 1))
-       (locset-def "root" (root)))
-     (decorations
-       (default (membrane-potential -55.000000))
-       (place (locset "root") (current-clamp 10 1 2))
-       (paint (region "my_soma") (temperature-kelvin 270)))
-     (morphology
-        (branch 0 -1
-          (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
-          (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)
-          (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3))))
+     (cable-cell
+       (label-dict
+         (region-def "my_soma" (tag 1))
+         (locset-def "root" (root)))
+       (decorations
+         (default (membrane-potential -55.000000))
+         (place (locset "root") (current-clamp 10 1 2))
+         (paint (region "my_soma") (temperature-kelvin 270)))
+       (morphology
+          (branch 0 -1
+            (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
+            (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)
+            (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3)))))
