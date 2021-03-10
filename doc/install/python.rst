@@ -21,9 +21,9 @@ Every point release of Arbor is pushed to the Python Package Index. The easiest 
 .. note::
     You will need to have some development packages installed in order to build Arbor this way.
 
-    * Ubuntu/Debian: `sudo apt install git build-essential python3-dev python3-pip`
-    * Fedora/CentOS/Red Hat: `sudo yum install git @development-tools python3-devel python3-pip`
-    * macOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3`
+    * Ubuntu/Debian: `sudo apt install git build-essential python3-dev python3-pip libxml2-dev`
+    * Fedora/CentOS/Red Hat: `sudo yum install git @development-tools python3-devel python3-pip libxml2-devel`
+    * macOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3 libxml2`
     * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
 
 If you wish to get the latest Arbor straight from
@@ -73,7 +73,7 @@ be used to configure the installation:
 * ``--mpi``: Enable MPI support (requires MPI library).
 * ``--gpu``: Enable GPU support for NVIDIA GPUs with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require cudaruntime).
   Enable GPU support for AMD GPUs with hipcc using ``hip``. By default set to ``none``, which disables gpu support.
-* ``--vec``: Enable vectorization. This might require choosing an appropriate architecture using ``--arch``.
+* ``--vec``: Enable vectorization. This might require choosing an appropriate architecture using ``--arch``. Note that on x86-64 platforms compilation will fail if you enable vectorization, but the CPU or ``--arch`` does not support any form of AVX.
 * ``--arch``: CPU micro-architecture to target. By default this is set to ``native``.
 
 If calling ``setup.py`` the flags must come after ``install`` on the command line,

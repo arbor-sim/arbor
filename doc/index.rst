@@ -27,8 +27,7 @@ Documentation organisation
 
 * :ref:`tutorial` contains a few ready-made examples you can use to quickly get started using Arbor. In the tutorial descriptions we link to the relevant Arbor concepts.
 * :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
-* :ref:`hpc-overview` details Arbor-features for distribution of computation over supercomputer nodes.
-* :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
+* The API section details our :ref:`pyoverview` and :ref:`cppoverview` API. :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
 * Contributions to Arbor are very welcome! Under :ref:`contribindex` describe conventions and procedures for all kinds of contributions.
 
 Citing Arbor
@@ -80,15 +79,42 @@ No. 785907 (Human Brain Project SGA2), and Specific Grant Agreement No. 945539 (
 Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
 
 .. toctree::
-   :caption: Arbor documentation:
+   :caption: Get started:
    :maxdepth: 1
 
    install/index
    tutorial/index
+
+.. toctree::
+   :caption: Concepts:
+   :maxdepth: 1
+
    concepts/index
+   concepts/recipe
+   concepts/cell
+   concepts/interconnectivity
+   concepts/hardware
+   concepts/domdec
+   concepts/simulation
+   concepts/cable_cell
+   concepts/lif_cell
+   concepts/spike_source_cell
+   concepts/benchmark_cell
+
+.. toctree::
+   :caption: File formats:
+   :maxdepth: 1
+
+   fileformat/swc
+   fileformat/neuroml
+   fileformat/nmodl
+
+.. toctree::
+   :caption: API reference:
+   :maxdepth: 1
+
    python/index
    cpp/index
-   hpc/index
    internals/index
 
 .. toctree::

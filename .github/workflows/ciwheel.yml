@@ -1,0 +1,89 @@
+name: Arbor on Wheels
+
+on:
+  push:
+    branches: [ ciwheel ]
+    tags:
+      - v*
+
+jobs:
+  build_binary_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Build wheels Linux
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        uses: joerick/cibuildwheel@v1.9.0
+        with:
+          output-dir: dist
+        env:
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
+          CIBW_BUILD: "cp3?-manylinux_x86_64"
+          CIBW_SKIP: "cp35-*"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          # CIBW_TEST_COMMAND: TODO
+
+      - name: Build wheels macos
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        uses: joerick/cibuildwheel@v1.9.0
+        with:
+          output-dir: dist
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
+          CIBW_BUILD: "cp3?-macosx_x86_64"
+          CIBW_SKIP: "cp35-*"
+          CIBW_ARCHS_MACOS: x86_64 universal2
+          # CIBW_TEST_COMMAND: TODO
+
+      # this action runs auditwheel automatically with the following args:
+      # https://cibuildwheel.readthedocs.io/en/stable/options/#repair-wheel-command
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/*.whl
+
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Make sdist
+        run:  python setup.py sdist
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/*.tar.gz
+
+# TODO
+  # upload_test_pypi:
+  #   name: upload to test pypi
+  #   runs-on: ubuntu-latest
+  #   needs: [build_binary_wheels, build_sdist]
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: dist
+  #     - name: Publish distribution 📦 to Test PyPI
+  #       run: |
+  #         pip install twine
+  #         twine upload -r testpypi dist/*
+  #       env:
+  #         TWINE_USERNAME: __token__
+  #         TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
