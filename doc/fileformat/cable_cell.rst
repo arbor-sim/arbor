@@ -100,7 +100,7 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (temperature-kelvin val:real)
 
-   This describes a *temperature* object with value ``val`` (unit [kelvin]).
+   This describes a *temperature* object with value ``val`` (unit [K]).
 
 .. label:: (membrane-capacitance val:real)
 

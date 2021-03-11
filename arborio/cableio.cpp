@@ -281,9 +281,7 @@ morphology make_morphology(const std::vector<std::variant<branch>>& args) {
 
     // Append segments according to id order.
     std::sort(segs.begin(), segs.end(), [](const auto& lhs, const auto& rhs){return lhs.first.id < rhs.first.id;});
-    for (const auto& spair: segs) {
-        auto seg = spair.first;
-        auto s_pid = spair.second;
+    for (const auto& [seg, s_pid]: segs) {
         tree.append(s_pid, seg.prox, seg.dist, seg.tag);
     }
     return morphology(tree);
@@ -291,7 +289,7 @@ morphology make_morphology(const std::vector<std::variant<branch>>& args) {
 
 // Define cable-cell maker
 // Accepts the morphology, decor and label_dict arguments in any order as a vector
-cable_cell make_cablecell(const std::vector<std::variant<morphology, label_dict, decor>>& args) {
+cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict, decor>>& args) {
     decor dec;
     label_dict dict;
     morphology morpho;
@@ -755,7 +753,7 @@ eval_map map{
     {"morphology", make_arg_vec_call<branch>(make_morphology,
                        "'morphology' 1 or more `branch` arguments")},
 
-    {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cablecell,
+    {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable_cell,
                        "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
 
     {"version", make_call<int>(make_version, "'version' with one argment (val:int)")},
