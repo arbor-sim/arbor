@@ -148,6 +148,12 @@ poisson_schedule_shim::poisson_schedule_shim(
     seed = s;
 }
 
+poisson_schedule_shim::poisson_schedule_shim(arb::time_type f) {
+    set_tstart(0.);
+    set_freq(f);
+    seed = 0;
+}
+
 void poisson_schedule_shim::set_tstart(arb::time_type t) {
     pyarb::assert_throw(is_nonneg()(t), "tstart must be a non-negative number");
     tstart = t;
@@ -235,11 +241,15 @@ void register_schedules(py::module& m) {
 
     poisson_schedule
         .def(py::init<time_type, time_type, std::mt19937_64::result_type>(),
-            "tstart"_a = 0., "freq"_a = 10., "seed"_a = 0,
+            "tstart"_a = 0., "freq"_a, "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
             "  freq:   The expected frequency [kHz], 10 by default.\n"
             "  seed:   The seed for the random number generator, 0 by default.")
+        .def(py::init<time_type>(),
+            "freq"_a,
+            "Construct a Poisson schedule, starting from t = 0, default seed, with:\n"
+            "  freq:   The expected frequency [kHz], 10 by default.\n")
         .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence [ms].")
         .def_property("freq", &poisson_schedule_shim::get_freq, &poisson_schedule_shim::set_freq,

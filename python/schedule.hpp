@@ -84,6 +84,7 @@ struct poisson_schedule_shim: schedule_shim_base {
 
     poisson_schedule_shim() = default;
     poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s);
+    poisson_schedule_shim(arb::time_type f);
 
     void set_tstart(arb::time_type t);
     void set_freq(arb::time_type f);
