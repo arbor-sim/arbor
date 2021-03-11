@@ -1,30 +1,72 @@
 #!/usr/bin/env bash
 
-# arguments: version-string [feature...]
+function usage () {
+    helpstr="Usage: ${0##*/} version arch config [feature ...]"
+    if [ -n "$1" ]; then
+        echo "${0##*/}: $1" >&2
+        echo "$helpstr" >&2
+        exit 1
+    else
+        echo "$helpstr"
+        exit 0
+    fi
+}
+
+if [ -z "$1" -o "$1" = "--help" -o "$1" = "-h" ]; then usage; fi
+if [ -z "$2" ]; then usage "missing arch"; fi
+if [ -z "$3" ]; then usage "missing config"; fi
 
 version="$1"
 arch="$2"
-shift 2
+config="$3"
+shift 3
 
-if gitlog=$(git log -1 --pretty=format:'%ci %H' 2>/dev/null); then
+if [[ "$version" =~ ^([0-9]+)\.([0-9]+)(\.([0-9]+))?(-(.*))?$ ]]; then
+    version_major="${BASH_REMATCH[1]}"
+    version_minor="${BASH_REMATCH[2]}"
+    version_patch="${BASH_REMATCH[4]:-0}"
+    version_dev="${BASH_REMATCH[6]}"
+else
+    usage "bad version format"
+fi
+
+if gitlog=$(git log -1 --pretty=format:'%cI %H' 2>/dev/null); then
     git diff --quiet HEAD 2>/dev/null || gitlog="${gitlog} modified"
 else
     gitlog='unknown commit'
 fi
 
+full_build_id="source_id=${gitlog};version=${version};arch=${arch};config=${config};"
+for feature in "$@"; do
+    full_build_id="${full_build_id}${feature}_ENABLED;"
+done
+
 cat << __end__
 #pragma once
 
-#define ARB_VERSION "${version}"
+namespace arb {
+extern const char* source_id;
+extern const char* arch;
+extern const char* build_config;
+extern const char* version;
+extern const char* full_build_id;
+constexpr int version_major = ${version_major};
+constexpr int version_minor = ${version_minor};
+constexpr int version_patch = ${version_patch};
+extern const char* version_dev;
+}
+
 #define ARB_SOURCE_ID "${gitlog}"
 #define ARB_ARCH "${arch}"
-
-namespace arb {
-extern const char version[];
-extern const char source_id[];
-extern const char arch[];
-}
+#define ARB_BUILD_CONFIG "${config}"
+#define ARB_FULL_BUILD_ID "${full_build_id}"
+#define ARB_VERSION "${version}"
+#define ARB_VERSION_MAJOR ${version_major}
+#define ARB_VERSION_MINOR ${version_minor}
+#define ARB_VERSION_PATCH ${version_patch}
 __end__
+
+if [ -n "$version_dev" ]; then echo "#define ARB_VERSION_DEV \"${version_dev}\""; fi
 
 for feature in "$@"; do
     echo "#define ARB_${feature}_ENABLED"
