@@ -175,8 +175,8 @@ inline schedule explicit_schedule(const std::initializer_list<time_type>& seq) {
 template <typename RandomNumberEngine>
 class poisson_schedule_impl {
 public:
-    poisson_schedule_impl(time_type tstart, time_type rate_Hz, const RandomNumberEngine& rng):
-        tstart_(tstart), exp_(rate_Hz), rng_(rng), reset_state_(rng), next_(tstart)
+    poisson_schedule_impl(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng):
+        tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart)
     {
         arb_assert(tstart_>=0);
         step();
@@ -205,8 +205,7 @@ public:
 
 private:
     void step() {
-        // next_ is [ms], exp_ is [Hz], so a factor is required
-        next_ += exp_(rng_)*1000.;
+        next_ += exp_(rng_);
     }
 
     time_type tstart_;
@@ -218,13 +217,13 @@ private:
 };
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type rate_Hz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_Hz, rng));
+inline schedule poisson_schedule(time_type rate_kHz, const RandomNumberEngine& rng) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_kHz, rng));
 }
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type tstart, time_type rate_Hz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_Hz, rng));
+inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_kHz, rng));
 }
 
 } // namespace arb

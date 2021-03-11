@@ -344,7 +344,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
                      "-w|--weight            [Weight of excitatory connections]\n"
                      "-d|--delay             [Delay of all connections]\n"
                      "-g|--rel-inh-w         [Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
-                     "-l|--lambda            [Expected number of spikes from a single poisson cell (Hz)]\n"
+                     "-l|--lambda            [Expected number of spikes from a single poisson cell (kHz)]\n"
                      "-t|--tfinal            [Length of the simulation period (ms)]\n"
                      "-s|--dt                [Simulation time step (ms)]\n"
                      "-G|--group-size        [Number of cells per cell group]\n"

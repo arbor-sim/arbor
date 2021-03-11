@@ -177,10 +177,10 @@ inline event_generator poisson_generator(
     cell_member_type target,
     float weight,
     time_type tstart,
-    time_type rate_Hz,
+    time_type rate_kHz,
     const RNG& rng)
 {
-    return schedule_generator(target, weight, poisson_schedule(tstart, rate_Hz, rng));
+    return schedule_generator(target, weight, poisson_schedule(tstart, rate_kHz, rng));
 }
 
 

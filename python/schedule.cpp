@@ -26,7 +26,7 @@ std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
     return o << "<arbor.poisson_schedule: tstart " << p.tstart << " ms"
-             << ", freq " << p.freq << " Hz"
+             << ", freq " << p.freq << " kHz"
              << ", seed " << p.seed << ">";
 };
 
@@ -238,12 +238,12 @@ void register_schedules(py::module& m) {
             "tstart"_a = 0., "freq"_a = 10., "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
-            "  freq:   The expected frequency [Hz], 10 by default.\n"
+            "  freq:   The expected frequency [kHz], 10 by default.\n"
             "  seed:   The seed for the random number generator, 0 by default.")
         .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence [ms].")
         .def_property("freq", &poisson_schedule_shim::get_freq, &poisson_schedule_shim::set_freq,
-            "The expected frequency [Hz].")
+            "The expected frequency [kHz].")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed for the random number generator.")
         .def("events", &poisson_schedule_shim::events,

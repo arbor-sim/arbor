@@ -190,9 +190,14 @@ This means the timestamps of the generated events will be kept in memory. Be def
 
 In addition to having the timestamps of spikes, we want to extract the voltage as a function of time.
 
-Step **(14)** sets the probes (step **10**) to measure at a certain schedule. This is sometimes described as attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probe id` and the desired schedule (here: a recording frequency of 10 kHz). Note that the probe id is a separate index from those of :term:`connection` endpoints; probe ids correspond to the index of the list produced by :py:func:`arbor.recipe.probes` on cell ``gid``.
+Step **(14)** sets the probes (step **10**) to measure at a certain schedule. This is sometimes described as
+attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probe id` and the
+desired schedule (here: a recording frequency of 10 kHz). Note that the probe id is a separate index from those of
+:term:`connection` endpoints; probe ids correspond to the index of the list produced by :py:func:`arbor.recipe.
+probes` on cell ``gid``.
 
-:py:func:`arbor.simulation.sample` returns a handle to the :term:`samples <sample>` that will be recorded. We store these handles for later use.
+:py:func:`arbor.simulation.sample` returns a handle to the :term:`samples <sample>` that will be recorded. We store
+these handles for later use.
 
 Step **(15)** executes the simulation for a duration of 100 ms.
 
