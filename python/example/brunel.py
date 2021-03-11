@@ -2,7 +2,6 @@
 
 import arbor
 import numpy,argparse
-from dataclasses import dataclass
 
 '''
 A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
@@ -96,7 +95,6 @@ class brunel_recipe (arbor.recipe):
     def num_sources(self, gid):
         return 1
 
-@dataclass
 class options:
     pass
 
@@ -155,9 +153,7 @@ if __name__ == "__main__":
     print(f'{arbor.meter_report(meters, context)}')
 
     # Print spike times
-    print('spikes:')
-    for sp in sim.spikes():
-        print(' ', sp)
+    print(f"{len(sim.spikes())} spikes generated.")
 
     if opt.spike_file_output:
         with open('spikes.txt', 'w') as the_file:
