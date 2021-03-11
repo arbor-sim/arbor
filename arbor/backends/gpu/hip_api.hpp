@@ -83,7 +83,7 @@ inline api_error_type device_mem_get_info(ARGS&&... args) {
 
 __device__
 inline double gpu_atomic_add(double* address, double val) {
-return atomicAdd(address, val);
+    return atomicAdd(address, val);
 }
 
 __device__

@@ -84,7 +84,7 @@ struct cable_probe_axial_current {
     locset locations;
 };
 
-// Total current density [A/m²] across membrane _excluding_ capacitive current at `location`.
+// Total current density [A/m²] across membrane _excluding_ capacitive and stimulus current at `location`.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mlocation`
 struct cable_probe_total_ion_current_density {
@@ -96,10 +96,15 @@ struct cable_probe_total_ion_current_density {
 // Sample metadata type: `mcable_list`
 struct cable_probe_total_ion_current_cell {};
 
-// Total membrane current [nA] across components of the cell.
+// Total membrane current [nA] across components of the cell _excluding_ stimulus currents.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
 struct cable_probe_total_current_cell {};
+
+// Stimulus currents [nA] across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_stimulus_current_cell {};
 
 // Value of state variable `state` in density mechanism `mechanism` in CV at `location`.
 // Sample value type: `double`

@@ -242,6 +242,53 @@ void run_samples(
 }
 
 void run_samples(
+    const fvm_probe_interpolated_multi& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch& scratch)
+{
+    const sample_size_type n_raw_per_sample = p.raw_handles.size();
+    const sample_size_type n_interp_per_sample = n_raw_per_sample/2;
+    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
+    arb_assert((unsigned)n_interp_per_sample==p.coef[0].size());
+    arb_assert((unsigned)n_interp_per_sample==p.coef[1].size());
+
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    sample_ranges.clear();
+    sample_records.clear();
+
+    auto& tmp = std::get<std::vector<double>>(scratch);
+    tmp.clear();
+    tmp.reserve(n_interp_per_sample*n_sample);
+
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        const auto* raw_a = raw_samples + offset;
+        const auto* raw_b = raw_a + n_interp_per_sample;
+        for (sample_size_type i = 0; i<n_interp_per_sample; ++i) {
+            tmp.push_back(raw_a[i]*p.coef[0][i]+raw_b[i]*p.coef[1][i]);
+        }
+    }
+
+    const double* tmp_ptr = tmp.data();
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        sample_ranges.push_back({tmp_ptr, tmp_ptr+n_interp_per_sample});
+        tmp_ptr += n_interp_per_sample;
+    }
+
+    const auto& csample_ranges = sample_ranges;
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_interp_per_sample+sc.begin_offset;
+        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+    }
+
+    sc.sampler({sc.probe_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+}
+
+void run_samples(
     const fvm_probe_membrane_currents& p,
     const sampler_call_info& sc,
     const fvm_value_type* raw_times,
@@ -256,6 +303,8 @@ void run_samples(
     const auto n_cable = p.metadata.size();
     const auto n_cv = p.cv_parent_cond.size();
     const auto cables_by_cv = util::partition_view(p.cv_cables_divs);
+    const auto n_stim = p.stim_scale.size();
+    arb_assert(n_stim+n_cv==(unsigned)n_raw_per_sample);
 
     auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
@@ -291,6 +340,16 @@ void run_samples(
             }
         }
 
+        const double* stim = raw_samples+offset+n_cv;
+        for (auto i: util::make_span(n_stim)) {
+            double cv_stim_I = stim[i]*p.stim_scale[i];
+            unsigned cv = p.stim_cv[i];
+            arb_assert(cv<n_cv);
+
+            for (auto cable_i: util::make_span(cables_by_cv[cv])) {
+                tmp_base[cable_i] -= cv_stim_I*p.weight[cable_i];
+            }
+        }
         sample_ranges.push_back({tmp_base, tmp_base+n_cable});
     }
 
