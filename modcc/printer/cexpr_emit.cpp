@@ -226,12 +226,12 @@ std::string id_prefix(IdentifierExpression* id) {
         if (auto symbol = id->symbol()->is_symbol()) {
             if (auto var = symbol->is_variable()) {
                 if (!var->is_local_variable()) {
-                    return "pp->";
+                    return "pp->"+id->name();
                 }
             }
         }
     }
-    return "";
+    return id->name();
 }
 
 
@@ -276,7 +276,7 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
                 "CExprEmitter: unsupported binary operator " + token_string(e->op()), e->location());
     }
 
-    std::string rhs_name, lhs_name, rhs_pfx, lhs_pfx;
+    std::string rhs_name, lhs_name, rhs_pfxd, lhs_pfxd;
 
     auto rhs = e->rhs();
     auto lhs = e->lhs();
@@ -286,11 +286,11 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
 
     if (auto id = rhs->is_identifier()) {
         rhs_name = id->name();
-        rhs_pfx  = id_prefix(id);
+        rhs_pfxd = id_prefix(id);
     }
     if (auto id = lhs->is_identifier()) {
         lhs_name = id->name();
-        lhs_pfx  = id_prefix(id);
+        lhs_pfxd = id_prefix(id);
     }
 
     if (scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
@@ -329,10 +329,10 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
     } else if (scalars_.count(rhs_name) && !scalars_.count(lhs_name)) {
         out_ << func_spelling << '(';
         lhs->accept(this);
-        out_ << ", simd_cast<simd_value>(" << rhs_pfx << rhs_name ;
+        out_ << ", simd_cast<simd_value>(" << rhs_pfxd;
         out_ << "))";
     } else if (!scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
-        out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_pfx << lhs_name << "), ";
+        out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_pfxd << "), ";
         rhs->accept(this);
         out_ << ")";
     } else {
@@ -381,7 +381,7 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
     auto mask = processing_true_ ? current_mask_ : current_mask_bar_;
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
 
-    auto lhs_pfx  = id_prefix(e->lhs()->is_identifier());
+    auto lhs_pfxd = id_prefix(e->lhs()->is_identifier());
 
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
@@ -389,9 +389,9 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
             mask = "S::logical_and(" + mask + ", " + input_mask_ + ")";
         }
         if(is_indirect_)
-            out_ << "indirect(" << lhs_pfx << lhs->name() << "+index_, simd_width_) = ";
+            out_ << "indirect(" << lhs_pfxd << "+index_, simd_width_) = ";
         else
-            out_ << "indirect(" << lhs_pfx << lhs->name() << "+i_, simd_width_) = ";
+            out_ << "indirect(" << lhs_pfxd << "+i_, simd_width_) = ";
 
         out_ << "S::where(" << mask << ", ";
 

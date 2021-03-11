@@ -256,7 +256,13 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << popindent << "};\n\n";
 
     // Make implementations
-    auto emit_body = [&](APIMethod *p) { if (with_simd) { emit_simd_api_body(out, p, vars.scalars); } else { emit_api_body(out, p); } };
+    auto emit_body = [&](APIMethod *p) {
+        if (with_simd) {
+            emit_simd_api_body(out, p, vars.scalars);
+        } else {
+            emit_api_body(out, p);
+        }
+    };
 
     out << "namespace " << namespace_name << " {\n";
 
@@ -661,7 +667,7 @@ void SimdPrinter::visit(VariableExpression *sym) {
     ENTERM(out_, "variable");
     if (sym->is_range()) {
         auto index = is_indirect_? "index_": "i_";
-        out_ << "simd_cast<simd_value>(indirect (pp->" << sym->name() << "+" << index << ", simd_width_))";
+        out_ << "simd_cast<simd_value>(indirect(pp->" << sym->name() << "+" << index << ", simd_width_))";
     }
     else {
         out_ << "pp->" << sym->name();

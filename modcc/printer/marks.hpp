@@ -3,10 +3,10 @@
 
 extern bool options_trace_codegen;
 
-#define ENTERM(stream, msg) do {                                \
-        if (options_trace_codegen) {                            \
-            (stream) << " /* " << __FUNCTION__ << ":enter */ "; \
-        }                                                       \
+#define ENTERM(stream, msg) do {                                        \
+        if (options_trace_codegen) {                                    \
+            (stream) << " /* " << __FUNCTION__ << ":" << (msg) << ":enter */ "; \
+        }                                                               \
     } while(0)
 
 #define EXITM(stream, msg) do {                                         \
