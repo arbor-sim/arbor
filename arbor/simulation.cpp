@@ -270,11 +270,11 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     //
     // 1. Update:
     //    Ask each cell group to update their state to the end of the integration epoch.
-    //    Generated spikes are stored in local_spikes_->current().
+    //    Generated spikes are stored in local_spikes_ for this epoch.
     //
     // 2. Exchange:
-    //    Consume local spikes held in local_spikes_->previous(), and collect such spikes
-    //    from across all ranks.
+    //    Consume local spikes held in local_spikes_ from a previous update, and collect
+    //    such spikes from across all ranks.
     //    Translate spikes to local postsynaptic spike events, to be appended to pending_events_.
     //
     // 3. Enqueue events:
@@ -373,7 +373,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     threading::task_group g(task_system_.get());
 
-    epoch current = next_epoch(epoch_, t_interval_);
+    epoch prev = epoch_;
+    epoch current = next_epoch(prev, t_interval_);
     epoch next = next_epoch(current, t_interval_);
 
     if (next.empty()) {
@@ -388,7 +389,6 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         g.run([&]() { update(current); });
         g.wait();
 
-        epoch prev;
         for (;;) {
             prev = current;
             current = next;
