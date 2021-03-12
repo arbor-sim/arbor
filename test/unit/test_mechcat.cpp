@@ -315,7 +315,6 @@ TEST(mechcat, names) {
     }
 }
 
-#define USE_DYNAMIC_CATALOGUES 1
 #ifdef USE_DYNAMIC_CATALOGUES
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
