@@ -154,6 +154,20 @@ jobs:
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run MPI tests
         run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
+      - if:   ${{ matrix.config.mpi == 'OFF' }}
+        name: Run examples
+        run: |
+          for c in bench brunel dryrun gap_junctions generators lfp probe-demo ring single-cell
+          do
+            build/bin/$c
+          done
+      - if:   ${{ matrix.config.mpi == 'ON' }}
+        name: Run examples with MPI
+        run: |
+          for c in bench brunel dryrun gap_junctions generators lfp probe-demo ring single-cell
+          do
+            mpirun -n 4 -oversubscribe build/bin/$c
+          done          
       - name: Run python tests
         run: python python/test/unit/runner.py
       - if:   ${{ matrix.config.mpi == 'ON' }}
