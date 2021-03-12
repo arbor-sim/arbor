@@ -153,17 +153,27 @@ jobs:
       - if:   ${{ matrix.config.mpi == 'OFF' }}
         name: Run examples
         run: |
-          for c in bench brunel dryrun gap_junctions generators lfp probe-demo ring single-cell
-          do
-            build/bin/$c
-          done
+            build/bin/bench 
+            build/bin/brunel
+            build/bin/dryrun
+            build/bin/gap_junctions
+            build/bin/generators
+            build/bin/lfp
+            build/bin/probe-demo v
+            build/bin/ring 
+            build/bin/single-cell
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run examples with MPI
         run: |
-          for c in bench brunel dryrun gap_junctions generators lfp probe-demo ring single-cell
-          do
-            mpirun -n 4 -oversubscribe build/bin/$c
-          done          
+            mpirun -n 4 -oversubscribe build/bin/bench 
+            mpirun -n 4 -oversubscribe build/bin/brunel
+            mpirun -n 4 -oversubscribe build/bin/dryrun
+            mpirun -n 4 -oversubscribe build/bin/gap_junctions
+            mpirun -n 4 -oversubscribe build/bin/generators
+            mpirun -n 4 -oversubscribe build/bin/lfp
+            mpirun -n 4 -oversubscribe build/bin/probe-demo v
+            mpirun -n 4 -oversubscribe build/bin/ring 
+            mpirun -n 4 -oversubscribe build/bin/single-cell     
       - name: Run python tests
         run: python python/test/unit/runner.py
       - if:   ${{ matrix.config.mpi == 'ON' }}
