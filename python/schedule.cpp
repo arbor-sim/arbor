@@ -244,7 +244,7 @@ void register_schedules(py::module& m) {
             "tstart"_a = 0., "freq"_a, "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
-            "  freq:   The expected frequency [kHz], 10 by default.\n"
+            "  freq:   The expected frequency [kHz].\n"
             "  seed:   The seed for the random number generator, 0 by default.")
         .def(py::init<time_type>(),
             "freq"_a,
