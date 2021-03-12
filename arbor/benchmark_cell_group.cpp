@@ -33,8 +33,6 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
 }
 
 void benchmark_cell_group::reset() {
-    t_ = 0;
-
     for (auto& c: cells_) {
         c.time_sequence.reset();
     }
@@ -55,7 +53,7 @@ void benchmark_cell_group::advance(epoch ep,
 
     PE(advance_bench_cell);
     // Micro-seconds to advance in this epoch.
-    auto us = 1e3*(ep.tfinal-t_);
+    auto us = 1e3*(ep.duration());
     for (auto i: util::make_span(0, gids_.size())) {
         // Expected time to complete epoch in micro seconds.
         const double duration_us = cells_[i].realtime_ratio*us;
@@ -64,7 +62,7 @@ void benchmark_cell_group::advance(epoch ep,
         // Start timer.
         auto start = high_resolution_clock::now();
 
-        auto spike_times = util::make_range(cells_[i].time_sequence.events(t_, ep.tfinal));
+        auto spike_times = util::make_range(cells_[i].time_sequence.events(ep.t0, ep.t1));
         for (auto t: spike_times) {
             spikes_.push_back({{gid, 0u}, t});
         }
@@ -74,7 +72,6 @@ void benchmark_cell_group::advance(epoch ep,
         // has elapsed, to emulate a "real" cell.
         while (duration_type(high_resolution_clock::now()-start).count() < duration_us);
     }
-    t_ = ep.tfinal;
 
     PL();
 };

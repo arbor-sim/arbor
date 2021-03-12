@@ -43,11 +43,10 @@ void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_s
     for (auto i: util::count_along(gids_)) {
         const auto gid = gids_[i];
 
-        for (auto t: util::make_range(time_sequences_[i].events(t_, ep.tfinal))) {
+        for (auto t: util::make_range(time_sequences_[i].events(ep.t0, ep.t1))) {
             spikes_.push_back({{gid, 0u}, t});
         }
     }
-    t_ = ep.tfinal;
 
     PL();
 };
@@ -56,8 +55,6 @@ void spike_source_cell_group::reset() {
     for (auto& s: time_sequences_) {
         s.reset();
     }
-    t_ = 0;
-
     clear_spikes();
 }
 

@@ -34,8 +34,6 @@ public:
     void remove_all_samplers() override {}
 
 private:
-    time_type t_;
-
     std::vector<benchmark_cell> cells_;
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;

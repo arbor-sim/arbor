@@ -36,7 +36,6 @@ public:
     void remove_all_samplers() override {}
 
 private:
-    time_type t_ = 0;
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
     std::vector<schedule> time_sequences_;

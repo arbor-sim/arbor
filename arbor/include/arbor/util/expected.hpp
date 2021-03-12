@@ -14,6 +14,8 @@
 #include <utility>
 #include <variant>
 
+#include <arbor/util/extra_traits.hpp>
+
 namespace arb {
 namespace util {
 
@@ -32,10 +34,6 @@ struct conversion_hazard: std::integral_constant<bool,
 
 template <typename T, typename X>
 inline constexpr bool conversion_hazard_v = conversion_hazard<T, X>::value;
-
-// TODO: C++20 replace with std::remove_cvref_t
-template <typename X>
-using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<X>>;
 } // namespace detail
 
 struct unexpect_t {};
@@ -89,8 +87,8 @@ struct unexpected {
 
     template <typename F,
         typename = std::enable_if_t<std::is_constructible_v<E, F&&>>,
-        typename = std::enable_if_t<!std::is_same_v<std::in_place_t, detail::remove_cvref_t<F>>>,
-        typename = std::enable_if_t<!std::is_same_v<unexpected, detail::remove_cvref_t<F>>>
+        typename = std::enable_if_t<!std::is_same_v<std::in_place_t, remove_cvref_t<F>>>,
+        typename = std::enable_if_t<!std::is_same_v<unexpected, remove_cvref_t<F>>>
     >
     explicit unexpected(F&& f): value_(std::forward<F>(f)) {}
 
@@ -207,9 +205,9 @@ struct expected {
 
     template <
         typename S,
-        typename = std::enable_if_t<!std::is_same_v<std::in_place_t, detail::remove_cvref_t<S>>>,
-        typename = std::enable_if_t<!std::is_same_v<expected, detail::remove_cvref_t<S>>>,
-        typename = std::enable_if_t<!std::is_same_v<unexpected<E>, detail::remove_cvref_t<S>>>,
+        typename = std::enable_if_t<!std::is_same_v<std::in_place_t, remove_cvref_t<S>>>,
+        typename = std::enable_if_t<!std::is_same_v<expected, remove_cvref_t<S>>>,
+        typename = std::enable_if_t<!std::is_same_v<unexpected<E>, remove_cvref_t<S>>>,
         typename = std::enable_if_t<std::is_constructible_v<T, S&&>>
     >
     expected(S&& x): data_(std::in_place_index<0>, std::forward<S>(x)) {}
@@ -234,7 +232,7 @@ struct expected {
 
     template <
         typename S,
-        typename = std::enable_if_t<!std::is_same_v<expected, detail::remove_cvref_t<S>>>,
+        typename = std::enable_if_t<!std::is_same_v<expected, remove_cvref_t<S>>>,
         typename = std::enable_if_t<std::is_constructible_v<T, S>>,
         typename = std::enable_if_t<std::is_assignable_v<T&, S>>
     >
