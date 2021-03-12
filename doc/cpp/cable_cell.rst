@@ -3,6 +3,12 @@
 Cable cells
 ===========
 
+.. toctree::
+   :maxdepth: 1
+
+   morphology
+   probe_sample
+
 .. Warning::
    The interface for building and modifying cable cell objects
    has changed significantly; some of the documentation below is
@@ -264,9 +270,3 @@ Overriding properties locally
 
    TODO: using ``paint`` to specify electrical properties on subsections of
    the morphology.
-
-.. toctree::
-   :maxdepth: 1
-
-   morphology
-   probe_sample

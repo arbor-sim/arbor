@@ -285,20 +285,42 @@ void register_cells(pybind11::module& m) {
     // arb::i_clamp
 
     pybind11::class_<arb::i_clamp> i_clamp(m, "iclamp",
-        "A current clamp, for injecting a single pulse of current with fixed duration and current.");
+        "A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.");
     i_clamp
         .def(pybind11::init(
-                [](double ts, double dur, double cur) {
-                    return arb::i_clamp{ts, dur, cur};
-                }), "tstart"_a=0, "duration"_a=0, "current"_a=0)
-        .def_readonly("tstart", &arb::i_clamp::delay,       "Time at which current starts [ms]")
-        .def_readonly("duration", &arb::i_clamp::duration,  "Duration of the current injection [ms]")
-        .def_readonly("current", &arb::i_clamp::amplitude,  "Amplitude of the injected current [nA]")
-        .def("__repr__", [](const arb::i_clamp& c){
-            return util::pprintf("(iclamp {} {} {})", c.delay, c.duration, c.amplitude);})
-        .def("__str__", [](const arb::i_clamp& c){
-            return util::pprintf("<arbor.iclamp: tstart {} ms, duration {} ms, current {} nA>",
-                                 c.delay, c.duration, c.amplitude);});
+                [](double ts, double dur, double cur, double frequency) {
+                    return arb::i_clamp{ts, dur, cur, frequency};
+                }), "tstart"_a, "duration"_a, "current"_a, "frequency"_a=0,
+                "Construct finite duration current clamp, constant amplitude")
+        .def(pybind11::init(
+                [](double cur, double frequency) {
+                    return arb::i_clamp{cur, frequency};
+                }), "current"_a, "frequency"_a=0,
+                "Construct constant amplitude current clamp")
+        .def(pybind11::init(
+                [](std::vector<std::pair<double, double>> envl, double frequency) {
+                    arb::i_clamp clamp;
+                    for (const auto& p: envl) {
+                        clamp.envelope.push_back({p.first, p.second});
+                    }
+                    clamp.frequency = frequency;
+                    return clamp;
+                }), "envelope"_a, "frequency"_a=0,
+                "Construct current clamp according to (time, amplitude) linear envelope")
+        .def_property_readonly("envelope",
+                [](const arb::i_clamp& obj) {
+                    std::vector<std::pair<double, double>> envl;
+                    for (const auto& p: obj.envelope) {
+                        envl.push_back({p.t, p.amplitude});
+                    }
+                    return envl;
+                },
+                "List of (time [ms], amplitude [nA]) points comprising the piecewise linear envelope")
+        .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency [Hz], zero implies DC stimulus.")
+        .def("__repr__", [](const arb::i_clamp& c) {
+            return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);})
+        .def("__str__", [](const arb::i_clamp& c) {
+            return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);});
 
     // arb::threshold_detector
 

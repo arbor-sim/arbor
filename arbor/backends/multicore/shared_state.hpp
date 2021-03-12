@@ -69,9 +69,39 @@ struct ion_state {
     // Set ionic current density to zero.
     void zero_current();
 
-    // Zero currents, reset concentrations, and reset reversal potential from
-    // initial values.
+    // Zero currents, reset concentrations, and reset reversal potential from initial values.
     void reset();
+};
+
+struct istim_state {
+    unsigned alignment = 1; // Alignment and padding multiple.
+
+    // Immutable data (post initialization):
+    iarray accu_index_;     // Instance to accumulator index (accu_stim_ index) map.
+    iarray accu_to_cv_;     // Accumulator index to CV map.
+
+    array frequency_;       // (Hz) stimulus frequency per instance.
+    array envl_amplitudes_; // (A/m²) stimulus envelope amplitudes, partitioned by instance.
+    array envl_times_;      // (A/m²) stimulus envelope timepoints, partitioned by instance.
+    iarray envl_divs_;      // Partition divisions for envl_ arrays,
+
+    // Mutable data:
+    array accu_stim_;       // (A/m²) accumulated stim current / CV area, one per CV with a stimulus.
+    iarray envl_index_;     // Per instance index into envl_ arrays, corresponding to last sample time.
+
+    // Zero stim current.
+    void zero_current();
+
+    // Zero stim current, reset indices.
+    void reset();
+
+    // Contribute to current density:
+    void add_current(const array& time, const iarray& cv_to_intdom, array& current_density);
+
+    // Construct state from i_clamp data:
+    istim_state(const fvm_stimulus_config& stim_data, unsigned align);
+
+    istim_state() = default;
 };
 
 struct shared_state {
@@ -101,8 +131,8 @@ struct shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
+    istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-
     deliverable_event_stream deliverable_events;
 
     shared_state() = default;
@@ -126,6 +156,8 @@ struct shared_state {
         int charge,
         const fvm_ion_config& ion_data);
 
+    void configure_stimulus(const fvm_stimulus_config&);
+
     void zero_currents();
 
     void ions_init_concentration();
@@ -140,6 +172,9 @@ struct shared_state {
 
     // Update gap_junction state
     void add_gj_current();
+
+    // Update stimulus state and add current contributions.
+    void add_stimulus_current();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;

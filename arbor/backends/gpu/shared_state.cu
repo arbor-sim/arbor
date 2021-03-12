@@ -79,7 +79,7 @@ __global__ void take_samples_impl(
         auto end = s.ev_data+s.end_offset[i];
         for (auto p = begin; p!=end; ++p) {
             sample_time[p->offset] = time[i];
-            sample_value[p->offset] = *p->handle;
+            sample_value[p->offset] = p->handle? *p->handle: 0;
         }
     }
 }

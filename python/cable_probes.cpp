@@ -157,6 +157,10 @@ arb::probe_info cable_probe_total_current_cell() {
     return arb::cable_probe_total_current_cell{};
 }
 
+arb::probe_info cable_probe_stimulus_current_cell() {
+    return arb::cable_probe_stimulus_current_cell{};
+}
+
 arb::probe_info cable_probe_density_state(const char* where, const char* mechanism, const char* state) {
     return arb::cable_probe_density_state{arb::locset(where), mechanism, state};
 };
@@ -243,12 +247,15 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     m.def("cable_probe_total_current_cell", &cable_probe_total_current_cell,
         "Probe specification for cable cell total transmembrane current for each cable in each CV.");
 
+    m.def("cable_probe_stimulus_current_cell", &cable_probe_stimulus_current_cell,
+        "Probe specification for cable cell stimulus current across each cable in each CV.");
+
     m.def("cable_probe_density_state", &cable_probe_density_state,
         "Probe specification for a cable cell density mechanism state variable at points in a location set.",
         "where"_a, "mechanism"_a, "state"_a);
 
     m.def("cable_probe_density_state_cell", &cable_probe_density_state_cell,
-        "Probe specification for a cable cell density mechanism state variable on each cable in each CV.",
+        "Probe specification for a cable cell density mechanism state variable on each cable in each CV where defined.",
         "mechanism"_a, "state"_a);
 
     m.def("cable_probe_point_state", &cable_probe_point_state,

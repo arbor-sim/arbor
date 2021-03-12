@@ -315,6 +315,8 @@ Cable cell morphology
             :param int i: branch index
             :rtype: list
 
+.. _pyswc:
+
 .. py:function:: load_swc_arbor(filename)
 
     Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
@@ -556,6 +558,8 @@ constitute part of the CV boundary point set.
 
     :param float max_etent: The maximum length for generated CVs.
     :param str domain: The region on which the policy is applied.
+
+.. _pyneuroml:
 
 .. py:class:: neuroml_morph_data
 
