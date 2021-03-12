@@ -9,20 +9,6 @@
 
 #include "../gtest.h"
 
-TEST(asc, parse) {
-    for (auto& f: {
-            "xy.asc",
-            //"01bc.asc",
-            //"pair-140514-C2-1_split_1.asc",
-            //"soma_10c.asc",
-            //"stellate.asc"
-            })
-    {
-        std::string fname = "/home/bcumming/software/github/arbor/test/unit/neurolucida/" + std::string(f);
-        std::cout << "\nFILE " << fname << "\n"; auto y = arborio::load_asc(fname);
-    }
-}
-
 TEST(asc, asc_no_document) {
     EXPECT_THROW(arborio::load_asc("this-file-does-not-exist.asc"), arborio::asc_no_document);
 }
@@ -253,8 +239,4 @@ TEST(asc, branching) {
     }
 
 }
-
-/*
-("Soma" (Color Red) (CellBody) (  237.86  -189.71    -6.49     0.06) )
-*/
 

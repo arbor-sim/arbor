@@ -415,6 +415,29 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
    Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
 
+.. _cppasc:
+
+Neurolucida ASCII
+^^^^^^^^^^^^^^^^^^
+
+Arbor supports reading morphologies described using the
+:ref:`Neurolucida <format_asc>`_ file format.
+
+The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`asc_morphology` object,
+which a simple struct with two members representing the morphology and a label dictionary with labeled
+regions and locations.
+
+.. cpp:class:: asc_morphology
+
+   .. cpp:member:: arb::morphology morphology
+
+   .. cpp:member:: arb::label_dict labels
+
+.. cpp:function:: asc_morphology load_asc(const std::string& filename)
+
+   Parse a Neurolucida ASCII file.
+   Throws an exception if there is an error parsing the file.
+
 .. _cppneuroml:
 
 NeuroML
@@ -564,4 +587,3 @@ which is intended to identify the problematic construct within the document.
 .. cpp:class:: cyclic_dependency: neuroml_exception
 
    A segment or segment group ultimately refers to itself via ``parent``
-   or ``include`` elements respectively.
