@@ -44,7 +44,7 @@ TEST(mc_cell_group, gpu_test)
     rec.nernst_ion("k");
 
     mc_cell_group group{{0}, rec, lowered_cell()};
-    group.advance(epoch(0, 50), 0.01, {});
+    group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // The model is expected to generate 4 spikes as a result of the
     // fixed stimulus over 50 ms
