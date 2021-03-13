@@ -1,6 +1,6 @@
 name: Arbor
 
-on: push
+on:
   push:
     branches: [ master ]
   pull_request:
