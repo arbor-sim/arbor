@@ -5,6 +5,7 @@
 
 #include "expression.hpp"
 #include "visitor.hpp"
+#include "marks.hpp"
 
 // Common functionality for generating source from binary expressions
 // and conditional structures with C syntax.

@@ -51,8 +51,10 @@ Special variables
 * Arbor exposes some parameters from the simulation to the NMODL mechanisms.
   These include ``v``, ``diam``, ``celsius`` and ``t`` in addition to the previously
   mentioned ion parameters.
-* Special variables should not be ``ASSIGNED`` or ``CONSTANT``,
-  they are ``PARAMETER``.
+* The ``area`` is not currently exposed to NMODL.
+* Special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
+  ``PARAMETER``. This is different from NEURON where a built-in variable is
+  declared ``ASSIGNED`` to make it accessible.
 * ``diam`` and ``celsius`` can be set from the simulation side.
 * ``v`` is a reserved variable name and can be written in NMODL.
 * If Special variables are used in a ``PROCEDURE`` or ``FUNCTION``, they need
@@ -77,7 +79,7 @@ Unsupported features
   However, ``CONSERVE`` statements are supported.
 * ``TABLE`` is not supported, calculations are exact.
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
-* `verbatim` blocks are not supported.
+* ``VERBATIM`` blocks are not supported.
 
 Arbor-specific features
 -----------------------
