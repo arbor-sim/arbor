@@ -213,6 +213,7 @@ int main(int argc, char** argv) {
     }
     catch (std::exception& e) {
         std::cerr << "exception caught running benchmark miniapp:\n" << e.what() << std::endl;
+        return 1;
     }
 }
 
