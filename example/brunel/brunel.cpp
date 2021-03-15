@@ -405,7 +405,7 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  Weight of excitatory synapses                              : " << options.weight << "\n";
     o << "  Relative strength of inhibitory synapses                   : " << options.rel_inh_strength << "\n";
     o << "  Delay of all synapses                                      : " << options.delay << "\n";
-    o << "  Expected number of spikes from a single poisson cell per s : " << options.poiss_lambda << "\n";
+    o << "  Expected number of spikes from a single poisson cell per ms: " << options.poiss_lambda << "\n";
     o << "\n";
     o << "  Simulation time                                            : " << options.tfinal << "\n";
     o << "  dt                                                         : " << options.dt << "\n";

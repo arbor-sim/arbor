@@ -145,7 +145,6 @@ if __name__ == "__main__":
     meters.checkpoint('simulation-init', context)
 
     sim.run(opt.tfinal,opt.dt)
-    print('Simulation finished')
 
     meters.checkpoint('simulation-run', context)
 
