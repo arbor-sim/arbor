@@ -57,7 +57,7 @@ struct cl_options {
     uint32_t seed = 42;
 
     // Parameters for spike output.
-    bool spike_file_output = false;
+    std::string spike_file_output = "";
 
     // Turn on/off profiling output for all ranks.
     bool profile_only_zero = false;
@@ -222,8 +222,9 @@ int main(int argc, char** argv) {
         cl_options options = o.value();
 
         std::fstream spike_out;
-        if (options.spike_file_output && root) {
-            spike_out = sup::open_or_throw("./spikes.gdf", std::ios_base::out, false);
+        auto spike_file_output = options.spike_file_output;
+        if (spike_file_output != "" && root) {
+            spike_out = sup::open_or_throw(spike_file_output, std::ios_base::out, false);
         }
 
         meters.checkpoint("setup", context);
@@ -371,8 +372,8 @@ std::optional<cl_options> read_options(int argc, char** argv) {
             { opt.dt,                "-s", "--dt" },
             { opt.group_size,        "-G", "--group-size" },
             { opt.seed,              "-S", "--seed" },
-            { to::set(opt.spike_file_output), to::flag, "-f", "--write-spikes" },
-            { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
+            { opt.spike_file_output, "-f", "--write-spikes" },
+            // { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
             { to::set(opt.verbose),           to::flag, "-v", "--verbose" },
             { to::action(help),               to::flag, to::exit, "-h", "--help" }
     };
@@ -411,5 +412,6 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  dt                                                         : " << options.dt << "\n";
     o << "  Group size                                                 : " << options.group_size << "\n";
     o << "  Seed                                                       : " << options.seed << "\n";
+    o << "  Spike file output                                          : " << options.spike_file_output << "\n";
     return o;
 }

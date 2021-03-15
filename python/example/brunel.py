@@ -95,11 +95,7 @@ class brunel_recipe (arbor.recipe):
     def num_sources(self, gid):
         return 1
 
-class options:
-    pass
-
 if __name__ == "__main__":
-    opt=options()
 
     parser = argparse.ArgumentParser(description='Brunel model miniapp.')
     parser.add_argument('-n', '--n-excitatory', dest='nexc', type=int, default=400, help='Number of cells in the excitatory population')
@@ -114,12 +110,15 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--dt', dest='dt', type=float, default=1, help='Simulation time step (ms)')
     parser.add_argument('-G', '--group-size', dest='group_size', type=int, default=10, help='Number of cells per cell group')
     parser.add_argument('-S', '--seed', dest='seed', type=int, default=42, help='Seed for poisson spike generators')
-    parser.add_argument('-f', '--write-spikes', dest='spike_file_output', action='store_true', help='Save spikes to file')
-    parser.add_argument('-z', '--profile-rank-zero', dest='profile_only_zero', action='store_true', help='Only output profile information for rank 0')
+    parser.add_argument('-f', '--write-spikes', dest='spike_file_output', type=str, help='Save spikes to file')
+    # parser.add_argument('-z', '--profile-rank-zero', dest='profile_only_zero', action='store_true', help='Only output profile information for rank 0')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Print more verbose information to stdout')
 
-    for k,v in vars(parser.parse_args()).items():
-        setattr(opt, k, v)
+    opt = parser.parse_args()
+    if opt.verbose:
+        print("Running brunel.py with the following settings:")
+        for k,v in vars(opt).items():
+            print(f"{k} = {v}")
 
     context = arbor.context()
     print(context)
@@ -155,6 +154,6 @@ if __name__ == "__main__":
     print(f"{len(sim.spikes())} spikes generated.")
 
     if opt.spike_file_output:
-        with open('spikes.txt', 'w') as the_file:
+        with open(opt.spike_file_output, 'w') as the_file:
             for sp in sim.spikes():
                 the_file.write('{:3.3f}\n'.format(sp[-1]))
