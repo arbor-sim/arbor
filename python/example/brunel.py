@@ -21,10 +21,10 @@ Call with parameters, for example:
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.
 def sample_subset(gid, start, end, m):
-    gen = numpy.random.default_rng(gid+42)
+    gen = numpy.random.RandomState(gid+42)
     s = set()
     while len(s) < m:
-        val = gen.integers(low=start,high=end - 1)
+        val = gen.randint(low=start,high=end)
         if val != gid:
             s.add(val)
     return s
@@ -33,12 +33,9 @@ class brunel_recipe (arbor.recipe):
     def __init__(self, nexc, ninh, next, in_degree_prop, weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
 
         arbor.recipe.__init__(self)
-        # self.props = arbor.neuron_cable_properties()
-        # self.cat = arbor.default_catalogue()
-        # self.props.register(self.cat)
 
         # Make sure that in_degree_prop in the interval (0, 1]
-        if 0.0>=in_degree_prop>1.0:
+        if not 0.0<=in_degree_prop<1.0:
             print("The proportion of incoming connections should be in the interval (0, 1].")
             quit()
 
@@ -155,5 +152,5 @@ if __name__ == "__main__":
 
     if opt.spike_file_output:
         with open(opt.spike_file_output, 'w') as the_file:
-            for sp in sim.spikes():
-                the_file.write('{:3.3f}\n'.format(sp[-1]))
+            for meta, data in sim.spikes():
+                the_file.write(f"{meta[0]} {data:3.3f}\n")
