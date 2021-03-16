@@ -21,14 +21,17 @@ and locsets from the meta data.
     However Arbor will throw an error when it encounters content that it can't interpret,
     unlike some other readers that will ignore anything they don't recognise.
 
-    As a result, 
-    Please open an issue if:
+    Because Arbor does not yet recognise all common asc file patterns, it is possible that your
+    model might return an error message when you try to load it in Arbor.
+    We add support for features as they are bought to our attention, because we must rely on users
+    in place of a formal specification.
+
+    Please open an `issue <https://github.com/arbor-sim/arbor/issues>`_ if:
 
       * you have an ``.asc`` file that Arbor can't parse;
-      * there is meta data, such as spine locations, that is missing in the output.
+      * or there is meta data, such as spine locations, that you would like to see in the output;
 
-    and we will 
-    add support to our parser for the features in your file. Over time Arbor's support.
+    and we will add support for your ASCII files.
 
 Soma / CellBody
 """"""""""""""""
@@ -37,7 +40,7 @@ The soma, or CellBody, is described in one of three different methods (that we a
 an ASCII file.
 
   1. As a CellBody statement containing a single location and radius, which models **a sphere**.
-  2. As a CellBody statement containing an ubranched sequence of locations that define **a single contour**.
+  2. As a CellBody statement containing an unbranched sequence of locations that define **a single contour**.
   3. As multiple CellBody statements, each defining a contour, that describe the soma as **a stack of contours**.
 
 Arbor supports description methods 1 and 2, and support for method 3 can be added on request

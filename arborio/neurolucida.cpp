@@ -6,16 +6,13 @@
 #include <arbor/util/expected.hpp>
 
 #include <arborio/neurolucida.hpp>
+#include "arbor/arbexcept.hpp"
 #include "arbor/morph/primitives.hpp"
 #include "asc_lexer.hpp"
 
 #include <optional>
 
 namespace arborio {
-
-asc_no_document::asc_no_document():
-    asc_exception("asc no document: no asc file to read")
-{}
 
 asc_parse_error::asc_parse_error(const std::string& error_msg, unsigned line, unsigned column):
     asc_exception("asc parser error (line "+std::to_string(line)+" col "+std::to_string(column)+"): "+error_msg),
@@ -682,7 +679,7 @@ asc_morphology load_asc(std::string filename) {
     std::ifstream fid(filename);
 
     if (!fid.good()) {
-        throw asc_no_document();
+        throw arb::file_not_found_error(filename);
     }
 
     // load contents of the file into a string.

@@ -1,3 +1,4 @@
+#include <cctype>
 #include <string>
 
 #include <arborio/neurolucida.hpp>
@@ -50,7 +51,7 @@ std::ostream& operator<<(std::ostream& o, const token& t) {
 }
 
 inline bool is_alphanumeric(char c) {
-    return std::isdigit(c) || std::isalpha(c);
+    return std::isalnum(static_cast<unsigned char>(c));
 }
 inline bool is_plusminus(char c) {
     return (c=='-' || c=='+');
@@ -226,7 +227,8 @@ private:
         }
 
         if (!empty()) {
-            // todo: handle error: should never hit this
+            token_ = {loc(), tok::error, "Internal lexer error: expected end of input, please open a bug report"s};
+            return;
         }
         token_ = {loc(), tok::eof, "eof"s};
         return;
@@ -269,13 +271,14 @@ private:
     //
     // Returns the appropriate token kind if symbol is a keyword.
     token symbol() {
+        using namespace std::string_literals;
         auto start = loc();
         std::string symbol;
         char c = *stream_;
 
         // Assert that current position is at the start of an identifier
         if( !(std::isalpha(c)) ) {
-            throw asc_parse_error("Lexer attempting to read identifier when none is available", loc().line, loc().column);
+            return {start, tok::error, "Internal error: lexer attempting to read identifier when none is available '.'"s};
         }
 
         symbol += c;
@@ -292,21 +295,13 @@ private:
             }
         }
 
-        /*
-        // test if the symbol matches a keyword
-        auto it = keyword_to_tok.find(symbol.c_str());
-        if (it!=keyword_to_tok.end()) {
-            return {start, it->second, std::move(symbol)};
-        }
-        */
         return {start, tok::symbol, std::move(symbol)};
     }
 
     token string() {
         using namespace std::string_literals;
         if (*stream_ != '"') {
-            asc_parse_error(
-                "attempting to read string without opening \"", loc().line, loc().column);
+            return {loc(), tok::error, "Internal error: lexer attempting to read identifier when none is available '.'"s};
         }
 
         auto start = loc();

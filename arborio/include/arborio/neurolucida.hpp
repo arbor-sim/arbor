@@ -4,21 +4,17 @@
 #include <stdexcept>
 #include <string>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
 
 namespace arborio {
 
-// Common base-class for neuroml run-time errors.
-struct asc_exception: std::runtime_error {
+// Common base-class for arborio run-time errors.
+struct asc_exception: public arb::arbor_exception {
     asc_exception(const std::string& what_arg):
-        std::runtime_error(what_arg)
+        arb::arbor_exception(what_arg)
     {}
-};
-
-// Can't parse asc if we don't have a document.
-struct asc_no_document: asc_exception {
-    asc_no_document();
 };
 
 // Generic error parsing asc data.

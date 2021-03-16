@@ -8,9 +8,10 @@
 #include <arborio/neurolucida.hpp>
 
 #include "../gtest.h"
+#include "arbor/arbexcept.hpp"
 
-TEST(asc, asc_no_document) {
-    EXPECT_THROW(arborio::load_asc("this-file-does-not-exist.asc"), arborio::asc_no_document);
+TEST(asc, file_not_found) {
+    EXPECT_THROW(arborio::load_asc("this-file-does-not-exist.asc"), arb::file_not_found_error);
 }
 
 // Declare the implementation of the parser that takes a string input
