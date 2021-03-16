@@ -82,7 +82,6 @@ struct poisson_schedule_shim: schedule_shim_base {
     arb::time_type freq; // kHz
     rng_type::result_type seed;
 
-    poisson_schedule_shim() = default;
     poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s);
     poisson_schedule_shim(arb::time_type f);
 
