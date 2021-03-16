@@ -18,13 +18,13 @@ Call with parameters, for example:
 
 '''
 
-
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.
 def sample_subset(gid, start, end, m):
+    gen = numpy.random.default_rng(gid+42)
     s = set()
     while len(s) < m:
-        val = numpy.random.randint(start, end - 1)
+        val = gen.integers(low=start,high=end - 1)
         if val != gid:
             s.add(val)
     return s
