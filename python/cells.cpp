@@ -111,12 +111,6 @@ std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
 // string printers
 //
 
-std::string lif_str(const arb::lif_cell& c){
-    return util::pprintf(
-        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}, V_reset {}>",
-        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref, c.V_reset);
-}
-
 
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
     return util::pprintf("mechanism('{}', {})",
@@ -197,8 +191,12 @@ void register_cells(pybind11::module& m) {
             "Refractory period [ms].")
         .def_readwrite("V_reset", &arb::lif_cell::V_reset,
             "Reset potential [mV].")
-        .def("__repr__", &lif_str)
-        .def("__str__",  &lif_str);
+        .def("__repr__", [](const arb::lif_cell &c){util::pprintf("{}",c);})
+        .def("__str__",  [](const arb::lif_cell &c){
+                std::stringstream stream;
+                stream << c;
+                return stream.str();
+            });
 
     // arb::label_dict
 

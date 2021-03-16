@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 namespace arb {
 
 // Model parameteres of leaky integrate and fire neuron model.
@@ -13,5 +15,19 @@ struct lif_cell {
     double V_reset = E_L; // Reset potential [mV].
     double t_ref = 2;     // Refractory period [ms].
 };
+
+inline std::ostream& operator<<(std::ostream& o, const lif_cell& v) {
+    return
+        o << "<arbor.lif_cell:"
+          << " tau_m " << v.tau_m
+          << ", V_th " << v.V_th
+          << ", C_m " << v.C_m
+          << ", E_L " << v.E_L
+          << ", V_m " << v.V_m
+          << ", V_reset " << v.V_reset
+          << ", t_ref " << v.t_ref
+          << "; at " << &v
+          << ">";
+}
 
 } // namespace arb
