@@ -102,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('-w', '--weight', dest='weight', type=float, default=1.2, help='Weight of excitatory connections')
     parser.add_argument('-d', '--delay', dest='delay', type=float, default=0.1, help='Delay of all connections')
     parser.add_argument('-g', '--rel-inh-w', dest='rel_inh_strength', type=float, default=1, help='Relative strength of inhibitory synapses with respect to the excitatory ones')
-    parser.add_argument('-l', '--lambda', dest='poiss_lambda', type=float, default=1, help='Expected number of spikes from a single poisson cell (kHz)')
+    parser.add_argument('-l', '--lambda', dest='poiss_lambda', type=float, default=1, help='Mean firing rate from a single poisson cell (kHz)')
     parser.add_argument('-t', '--tfinal', dest='tfinal', type=float, default=100, help='Length of the simulation period (ms)')
     parser.add_argument('-s', '--dt', dest='dt', type=float, default=1, help='Simulation time step (ms)')
     parser.add_argument('-G', '--group-size', dest='group_size', type=int, default=10, help='Number of cells per cell group')
