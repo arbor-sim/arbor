@@ -35,7 +35,7 @@ class brunel_recipe (arbor.recipe):
         arbor.recipe.__init__(self)
 
         # Make sure that in_degree_prop in the interval (0, 1]
-        if not 0.0<=in_degree_prop<1.0:
+        if not 0.0<in_degree_prop<=1.0:
             print("The proportion of incoming connections should be in the interval (0, 1].")
             quit()
 
