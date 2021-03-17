@@ -112,7 +112,7 @@ an interface for recording outputs and running the simulation.
     m = arbor.single_cell_model(cell)
 
     # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-    m.probe('voltage', '"midpoint"', frequency=10000)
+    m.probe('voltage', '"midpoint"', frequency=10)
 
     # (7) Run simulation for 30 ms of simulated activity.
     m.run(tfinal=30)
@@ -123,7 +123,7 @@ with our single-compartment cell.
 Step **(6)** adds a :meth:`arbor.single_cell_model.probe`
 used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
-probe ('"midpoint"'), and the frequency at which we want to sample (10kHz).
+probe ('"midpoint"'), and the frequency at which we want to sample (10 kHz).
 
 Step **(7)** runs the actual simulation for a duration of 30 ms.
 

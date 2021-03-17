@@ -109,6 +109,15 @@ class ExplicitSchedule(unittest.TestCase):
             rs.events(1., -1.)
 
 class PoissonSchedule(unittest.TestCase):
+    def test_freq_poisson_schedule(self):
+        ps = arb.poisson_schedule(42.)
+        self.assertEqual(ps.freq, 42.)
+
+    def test_freq_tstart_contor_poisson_schedule(self):
+        ps = arb.poisson_schedule(freq = 5., tstart = 4.3)
+        self.assertEqual(ps.freq, 5.)
+        self.assertEqual(ps.tstart, 4.3)
+
     def test_freq_seed_contor_poisson_schedule(self):
         ps = arb.poisson_schedule(freq = 5., seed = 42)
         self.assertEqual(ps.freq, 5.)
@@ -120,18 +129,9 @@ class PoissonSchedule(unittest.TestCase):
         self.assertEqual(ps.freq, 100.)
         self.assertEqual(ps.seed, 1000)
 
-    def test_set_tstart_freq_seed_poisson_schedule(self):
-        ps = arb.poisson_schedule()
-        ps.tstart = 4.5
-        ps.freq = 5.5
-        ps.seed = 83
-        self.assertAlmostEqual(ps.tstart, 4.5)
-        self.assertAlmostEqual(ps.freq, 5.5)
-        self.assertEqual(ps.seed, 83)
-
     def test_events_poisson_schedule(self):
         expected = [17.4107, 502.074, 506.111, 597.116]
-        ps = arb.poisson_schedule(0., 10., 0)
+        ps = arb.poisson_schedule(0., 0.01, 0)
         for i in range(len(expected)):
             self.assertAlmostEqual(expected[i], ps.events(0., 600.)[i], places = 3)
         expected = [5030.22, 5045.75, 5069.84, 5091.56, 5182.17, 5367.3, 5566.73, 5642.13, 5719.85, 5796, 5808.33]
@@ -139,33 +139,39 @@ class PoissonSchedule(unittest.TestCase):
             self.assertAlmostEqual(expected[i], ps.events(5000., 6000.)[i], places = 2)
 
     def test_exceptions_poisson_schedule(self):
+        with self.assertRaises(TypeError):
+            arb.poisson_schedule()
+        with self.assertRaises(TypeError):
+            arb.poisson_schedule(tstart = 10.)
+        with self.assertRaises(TypeError):
+            arb.poisson_schedule(seed = 1432)
         with self.assertRaisesRegex(RuntimeError,
             "tstart must be a non-negative number"):
-            arb.poisson_schedule(tstart = -10.)
+            arb.poisson_schedule(freq=34., tstart = -10.)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(tstart = None)
+            arb.poisson_schedule(freq=34., tstart = None)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(tstart = 'tstart')
+            arb.poisson_schedule(freq=34., tstart = 'tstart')
         with self.assertRaisesRegex(RuntimeError,
             "frequency must be a non-negative number"):
             arb.poisson_schedule(freq = -100.)
         with self.assertRaises(TypeError):
             arb.poisson_schedule(freq = 'freq')
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed = -1)
+            arb.poisson_schedule(freq=34., seed = -1)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed = 10.)
+            arb.poisson_schedule(freq=34., seed = 10.)
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed = 'seed')
+            arb.poisson_schedule(freq=34., seed = 'seed')
         with self.assertRaises(TypeError):
-            arb.poisson_schedule(seed = None)
+            arb.poisson_schedule(freq=34., seed = None)
         with self.assertRaisesRegex(RuntimeError,
             "t0 must be a non-negative number"):
-            ps = arb.poisson_schedule()
+            ps = arb.poisson_schedule(0,0.01)
             ps.events(-1., 1.)
         with self.assertRaisesRegex(RuntimeError,
             "t1 must be a non-negative number"):
-            ps = arb.poisson_schedule()
+            ps = arb.poisson_schedule(0,0.01)
             ps.events(1., -1.)
 
 def suite():

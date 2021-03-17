@@ -28,7 +28,7 @@ Single cell model
 
        :param what: Name of the variable to record (currently only 'voltage').
        :param where: :class:`location` at which to sample the variable.
-       :param frequency: The frequency at which to sample [Hz].
+       :param frequency: The frequency at which to sample [kHz].
 
     .. method:: spikes()
 
