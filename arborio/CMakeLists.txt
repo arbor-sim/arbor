@@ -1,4 +1,6 @@
 set(arborio-sources
+    asc_lexer.cpp
+    neurolucida.cpp
     swcio.cpp
 )
 if(ARB_WITH_NEUROML)

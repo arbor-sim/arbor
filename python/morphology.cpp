@@ -13,6 +13,7 @@
 #include <arbor/version.hpp>
 
 #include <arborio/swcio.hpp>
+#include <arborio/neurolucida.hpp>
 
 #ifdef ARB_NEUROML_ENABLED
 #include <arborio/arbornml.hpp>
@@ -370,6 +371,31 @@ void register_morphology(py::module& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);
                 });
 
+    // Neurolucida ASCII, or .asc, file format support.
+
+    py::class_<arborio::asc_morphology> asc_morphology(m, "asc_morphology",
+            "The morphology and label dictionary meta-data loaded from a Neurolucida ASCII (.asc) file.");
+    asc_morphology
+        .def_readonly("morphology",
+                &arborio::asc_morphology::morphology,
+                "The cable cell morphology")
+        .def_property_readonly("labels",
+            [](const arborio::asc_morphology& m) {return label_dict_proxy(m.labels);},
+            "The four canonical regions are labeled 'soma', 'axon', 'dend' and 'apic'.");
+
+    m.def("load_asc",
+        [](std::string fname) {
+            try {
+                return arborio::load_asc(fname);
+            }
+            catch (std::exception& e) {
+                // Try to produce helpful error messages for SWC parsing errors.
+                throw pyarb_error(util::pprintf("error loading neurolucida asc file: {}", e.what()));
+            }
+        },
+        "filename"_a, "Load a morphology and meta data from a Neurolucida ASCII .asc file.");
+
+
 #ifdef ARB_NEUROML_ENABLED
     // arborio::morphology_data
     py::class_<arborio::morphology_data> nml_morph_data(m, "neuroml_morph_data");
@@ -412,7 +438,7 @@ void register_morphology(py::module& m) {
                   return arborio::neuroml(string_data);
               }
               catch (arborio::neuroml_exception& e) {
-                  // Try to produce helpful error messages for SWC parsing errors.
+                  // Try to produce helpful error messages for NeuroML parsing errors.
                   throw pyarb_error(
                       util::pprintf("NeuroML error processing file {}: ", fname, e.what()));
               }

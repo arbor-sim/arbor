@@ -21,6 +21,8 @@
 *.swm
 *.swl
 
+.cache
+
 # tar files
 *.tar
 

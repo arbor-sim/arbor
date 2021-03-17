@@ -646,3 +646,37 @@ constitute part of the CV boundary point set.
 
       :param str morph_id: ID of the cell.
       :rtype: optional(neuroml_morph_data)
+
+.. _pyasc:
+
+.. py:class:: asc_morphology
+
+   The morphology and label dictionary meta-data loaded from a Neurolucida ASCII ``.asc`` file.
+
+   .. py:attribute:: morphology
+
+       The cable cell morphology.
+
+   .. py:attribute:: labels
+
+       The labeled regions and locations extracted from the meta data. The four canonical regions are labeled
+       ``'soma'``, ``'axon'``, ``'dend'`` and ``'apic'``.
+
+.. py:function:: load_asc(filename)
+
+   Loads the :class:`asc_morphology` from a :ref:`Neurolucida ASCII file <formatasc>`.
+
+   .. code-block:: Python
+
+       import arbor
+
+       # Load morphology and labels from file.
+       asc = arbor.load_asc('granule.asc')
+
+       # Construct a cable cell.
+       decor = arbor.decor()
+       cell = arbor.cable_cell(asc.morphology, asc.labels, decor)
+
+
+   :param str filename: the name of the input file.
+   :rtype: asc_morphology
