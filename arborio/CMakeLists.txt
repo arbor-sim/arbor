@@ -5,9 +5,9 @@ set(arborio-sources
 )
 if(ARB_WITH_NEUROML)
     list(APPEND arborio-sources
-            arbornml.cpp
-            parse_morphology.cpp
-            with_xml.cpp
+            neuroml.cpp
+            nml_parse_morphology.cpp
+            xml.cpp
             xmlwrap.cpp
         )
     find_package(LibXml2 REQUIRED)

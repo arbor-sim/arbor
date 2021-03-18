@@ -16,7 +16,7 @@
 #include <arborio/neurolucida.hpp>
 
 #ifdef ARB_NEUROML_ENABLED
-#include <arborio/arbornml.hpp>
+#include <arborio/neuroml.hpp>
 #endif
 
 #include "error.hpp"
@@ -398,28 +398,28 @@ void register_morphology(py::module& m) {
 
 #ifdef ARB_NEUROML_ENABLED
     // arborio::morphology_data
-    py::class_<arborio::morphology_data> nml_morph_data(m, "neuroml_morph_data");
+    py::class_<arborio::nml_morphology_data> nml_morph_data(m, "neuroml_morph_data");
     nml_morph_data
         .def_readonly("cell_id",
-            &arborio::morphology_data::cell_id,
+            &arborio::nml_morphology_data::cell_id,
             "Cell id, or empty if morphology was taken from a top-level <morphology> element.")
         .def_readonly("id",
-            &arborio::morphology_data::id,
+            &arborio::nml_morphology_data::id,
             "Morphology id.")
         .def_readonly("morphology",
-            &arborio::morphology_data::morphology,
+            &arborio::nml_morphology_data::morphology,
             "Morphology constructed from a signle NeuroML <morphology> element.")
         .def("segments",
-            [](const arborio::morphology_data& md) {return label_dict_proxy(md.segments);},
+            [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.segments);},
             "Label dictionary containing one region expression for each segment id.")
         .def("named_segments",
-             [](const arborio::morphology_data& md) {return label_dict_proxy(md.named_segments);},
+             [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.named_segments);},
             "Label dictionary containing one region expression for each name applied to one or more segments.")
         .def("groups",
-             [](const arborio::morphology_data& md) {return label_dict_proxy(md.groups);},
+             [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.groups);},
             "Label dictionary containing one region expression for each segmentGroup id.")
         .def_readonly("group_segments",
-            &arborio::morphology_data::group_segments,
+            &arborio::nml_morphology_data::group_segments,
             "Map from segmentGroup ids to their corresponding segment ids.");
 
     // arborio::neuroml
