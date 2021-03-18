@@ -643,12 +643,22 @@ asc_morphology parse_asc_string(const char* input) {
             tails.pop_back();
 
             auto parent = head.parent_id;
+            auto& branch = *head.child;
             auto prox_sample = head.sample;
-            auto& b = *head.child;
 
-            for (auto& dist_sample: b.samples) {
-                parent = stree.append(parent, prox_sample, dist_sample, tag);
-                prox_sample = dist_sample;
+            if (!branch.samples.empty()) { // Skip empty branches, which are permitted
+                auto it = branch.samples.begin();
+                // Don't conect the first sample to the distal end of the parent
+                // branch if the parent is the soma center.
+                if (parent==arb::mnpos) {
+                    prox_sample = *it;
+                    ++it;
+                }
+                do {
+                    parent = stree.append(parent, prox_sample, *it, tag);
+                    prox_sample = *it;
+                    ++it;
+                } while (it!=branch.samples.end());
             }
 
             // Push child branches to stack in reverse order.
@@ -656,7 +666,8 @@ asc_morphology parse_asc_string(const char* input) {
             // order they were described in the file, so that segments in the
             // segment tree were added in the same order they are described
             // in the file, to give deterministic branch numbering.
-            for (auto it=b.children.rbegin(); it!=b.children.rend(); ++it) {
+            const auto& kids = branch.children;
+            for (auto it=kids.rbegin(); it!=kids.rend(); ++it) {
                 tails.push_back({&(*it), parent, prox_sample});
             }
         }
