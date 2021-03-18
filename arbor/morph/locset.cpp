@@ -392,7 +392,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const on_components_& x) {
-    return o << "(on_components " << x.relpos << " " << x.reg << ")";
+    return o << "(on-components " << x.relpos << " " << x.reg << ")";
 }
 
 // Uniform locset.
