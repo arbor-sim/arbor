@@ -613,6 +613,10 @@ constitute part of the CV boundary point set.
     An implementation limitation restricts valid segment id values to those which can be represented by an
     unsigned long long value.
 
+    The ``allow_spherical_root`` optional parameter below, if set to true, will instruct the parser to
+    interpret a zero-length constant radius root segment as denoting a spherical segment, and this will
+    in turn be represented in the resultant morphology by a cylinder of equivalent surface area.
+
    .. py:method:: neuroml(filename)
 
       Build a NeuroML document representation from the supplied file contents.
@@ -631,20 +635,22 @@ constitute part of the CV boundary point set.
 
       :rtype: list[str]
 
-   .. py:method:: morphology(morph_id)
+   .. py:method:: morphology(morph_id, allow_spherical_root=false)
 
       Returns a representation of the top-level morphology with the supplied morph_id if it could be found.
       Parse errors or an inconsistent representation will raise an exception.
 
       :param str morph_id: ID of the top-level morphology.
+      :param bool allow_spherical_root: Treat zero length root segments especially.
       :rtype: optional(neuroml_morph_data)
 
-   .. py:method:: cell_morphology(cell_id)
+   .. py:method:: cell_morphology(cell_id, allow_spherical_root=false)
 
       Returns a representation of the morphology associated with the cell with the supplied cell_id if it
       could be found. Parse errors or an inconsistent representation will raise an exception.
 
       :param str morph_id: ID of the cell.
+      :param bool allow_spherical_root: Treat zero length root segments especially.
       :rtype: optional(neuroml_morph_data)
 
 .. _pyasc:

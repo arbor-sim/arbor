@@ -385,6 +385,35 @@ TEST(place_pwlin, all_at) {
         EXPECT_TRUE(mpoint_almost_eq(p1d, points_end_b0[1]));
         EXPECT_TRUE(mpoint_almost_eq(p2d, points_end_b0[2]));
     }
+
+    // Zero length branch comprising single zero-length segment with differing radius.
+    // (Please don't do this either.)
+    {
+        mpoint p0p{2, 3, 4, 5};
+        mpoint p0d{2, 3, 4, 8};
+
+        segment_tree tree;
+        (void)tree.append(mnpos, p0p, p0d, 0);
+
+        morphology m(tree);
+        mprovider p(m, label_dict{});
+        place_pwlin place(m);
+
+        auto points_begin_b0 = place.all_at(mlocation{0, 0});
+        ASSERT_EQ(2u, points_begin_b0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0p, points_begin_b0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_begin_b0[1]));
+
+        auto points_mid_b0 = place.all_at(mlocation{0, 0.5});
+        ASSERT_EQ(2u, points_begin_b0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0p, points_begin_b0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_begin_b0[1]));
+
+        auto points_end_b0 = place.all_at(mlocation{0, 1});
+        ASSERT_EQ(2u, points_begin_b0.size());
+        EXPECT_TRUE(mpoint_almost_eq(p0p, points_begin_b0[0]));
+        EXPECT_TRUE(mpoint_almost_eq(p0d, points_begin_b0[1]));
+    }
 }
 
 TEST(place_pwlin, segments) {

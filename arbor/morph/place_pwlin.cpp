@@ -62,7 +62,16 @@ std::vector<mpoint> place_pwlin::all_at(mlocation loc) const {
     double pos = is_degenerate(pw_index)? 0: loc.pos;
 
     for (auto [bounds, index]: util::make_range(pw_index.equal_range(pos))) {
-        result.push_back(interpolate_segment(bounds, data_->segments.at(index), pos));
+        auto seg = data_->segments.at(index);
+
+        // Add both ends of zero length segment, if they differ.
+        if (bounds.first==bounds.second && seg.prox!=seg.dist) {
+            result.push_back(seg.prox);
+            result.push_back(seg.dist);
+        }
+        else {
+            result.push_back(interpolate_segment(bounds, seg, pos));
+        }
     }
     return result;
 }

@@ -116,15 +116,15 @@ std::vector<std::string> neuroml::morphology_ids() const {
     return result;
 }
 
-optional<nml_morphology_data> neuroml::morphology(const std::string& morph_id) const {
+optional<nml_morphology_data> neuroml::morphology(const std::string& morph_id, enum neuroml_options::values options) const {
     xml_error_scope err;
     auto ctx = impl_->make_context();
     auto matches = ctx.query("//nml:neuroml/nml:morphology[@id="+xpath_escape(morph_id)+"]");
 
-    return matches.empty()? nullopt: optional(nml_parse_morphology_element(ctx, matches[0]));
+    return matches.empty()? nullopt: optional(nml_parse_morphology_element(ctx, matches[0], options));
 }
 
-optional<nml_morphology_data> neuroml::cell_morphology(const std::string& cell_id) const {
+optional<nml_morphology_data> neuroml::cell_morphology(const std::string& cell_id, enum neuroml_options::values options) const {
     xml_error_scope err;
     auto ctx = impl_->make_context();
     auto matches = ctx.query(
@@ -133,7 +133,7 @@ optional<nml_morphology_data> neuroml::cell_morphology(const std::string& cell_i
 
     if (matches.empty()) return nullopt;
 
-    nml_morphology_data M = nml_parse_morphology_element(ctx, matches[0]);
+    nml_morphology_data M = nml_parse_morphology_element(ctx, matches[0], options);
     M.cell_id = cell_id;
     return M;
 }
