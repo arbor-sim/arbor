@@ -188,18 +188,13 @@ protected:
     virtual void apply_events(typename deliverable_event_stream::state) {};
     virtual void write_ions() {};
     virtual void init() {};
-    // Report raw size in bytes of mechanism object.
-    virtual std::size_t object_sizeof() const = 0;
+    virtual std::size_t object_sizeof() const = 0;   // Report raw size in bytes of mechanism object.
 
-    // events to be processed
-
-    // indirection for accessing time in mechanisms
-    const array* vec_t_ptr_;
-
-    deliverable_event_stream* event_stream_ptr_;
-    size_type width_ = 0;         // Instance width (number of CVs/sites)
-    size_type num_ions_ = 0;      // Ion count
-    bool mult_in_place_;          // perform multipliction in place?
+    const array* vec_t_ptr_;                         // indirection for accessing time in mechanisms
+    deliverable_event_stream* event_stream_ptr_;     // events to be processed
+    size_type width_ = 0;                            // Instance width (number of CVs/sites)
+    size_type num_ions_ = 0;                         // Ion count
+    bool mult_in_place_;                             // perform multipliction in place?
 
     // Bulk storage for index vectors and state and parameter variables.
     iarray indices_;

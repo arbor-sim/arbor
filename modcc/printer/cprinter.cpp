@@ -242,7 +242,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "\n";
     }
 
-    out << "struct " << ppack_name << ": public ::arb::multicore::mechanism_ppack {\n" << indent;
+    out << "struct " << ppack_name << ": public ::arb::mechanism_ppack {\n" << indent;
     for (const auto& scalar: vars.scalars) {
         out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }

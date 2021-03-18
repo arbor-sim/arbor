@@ -12,6 +12,7 @@
 #include <arbor/mechanism.hpp>
 
 #include "util/index_into.hpp"
+#include "util/strprintf.hpp"
 #include "util/maputil.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/range.hpp"
@@ -39,187 +40,152 @@ using util::value_by_key;
 // extend the vectors to a multiple of the SIMD width: sites/CVs corresponding to
 // these past-the-end values are given a weight of zero, and any corresponding
 // indices into shared state point to the last valid slot.
+// The tail comprises those elements between width_ and width_padded_:
+//
+// * For entries in the padded tail of weight_, set weight to zero.
+// * For indices in the padded tail of node_index_, set index to last valid CV index.
+// * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
 void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
-    using util::make_range;
-
-    // Assign global scalar parameters:
-
-    for (auto &kv: overrides.globals) {
-        if (auto opt_ptr = value_by_key(global_table(), kv.first)) {
-            // Take reference to corresponding derived (generated) mechanism value member.
-            fvm_value_type& global = *opt_ptr.value();
-            global = kv.second;
-        }
-        else {
-            throw arbor_internal_error("multicore/mechanism: no such mechanism global");
-        }
-    }
-
-    mult_in_place_ = !pos_data.multiplicity.empty();
     util::padded_allocator<> pad(shared.alignment);
-    mechanism_id_ = id;
-    width_ = pos_data.cv.size();
 
-    // Assign non-owning views onto shared state:
-    auto pp = (arb::multicore::mechanism_ppack*) ppack_ptr();
-
-    pp->width_  = width_;
-    pp->vec_ci_ = shared.cv_to_cell.data();
-    pp->vec_di_ = shared.cv_to_intdom.data();
-    pp->vec_dt_ = shared.dt_cv.data();
-
-    pp->vec_v_  = shared.voltage.data();
-    pp->vec_i_  = shared.current_density.data();
-    pp->vec_g_  = shared.conductivity.data();
-
-    pp->temperature_degC_ = shared.temperature_degC.data();
-    pp->diam_um_  = shared.diam_um.data();
-    pp->time_since_spike_ = shared.time_since_spike.data();
-
-    pp->n_detectors_ = shared.n_detector;
-
-    auto ion_state_tbl = ion_state_table();
-    num_ions_ = ion_state_tbl.size();
-    for (auto i: ion_state_tbl) {
-        auto ion_binding = value_by_key(overrides.ion_rebind, i.first).value_or(i.first);
-
-        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
-        if (!oion) {
-            throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
+    // Assign global scalar parameters
+    for (auto& [k, v]: overrides.globals) {
+        auto found = false;
+        for (auto idx = 0; idx < mech_->n_globals; ++idx) {
+            if (mech_->globals[idx] == k) {
+                *(ppack_->globals[idx]) = v;
+                found = true;
+                break;
+            }
         }
-
-        ion_state_view& ion_view = *i.second;
-        ion_view.current_density = oion->iX_.data();
-        ion_view.reversal_potential = oion->eX_.data();
-        ion_view.internal_concentration = oion->Xi_.data();
-        ion_view.external_concentration = oion->Xo_.data();
-        ion_view.ionic_charge = oion->charge.data();
+        if (!found) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism global '{}'", k));
     }
 
+    // Set internal variables
+    mult_in_place_    = !pos_data.multiplicity.empty();
+    mechanism_id_     = id;
+    width_            = pos_data.cv.size();
+    num_ions_         = mech_->n_ions;
     vec_t_ptr_        = &shared.time;
     event_stream_ptr_ = &shared.deliverable_events;
+    width_padded_     = math::round_up(width_, shared.alignment);     // Extend width to account for requisite SIMD padding.
+
+    // Assign non-owning views onto shared state:
+    ppack_->width            = width_;
+    ppack_->vec_ci           = shared.cv_to_cell.data();
+    ppack_->vec_di           = shared.cv_to_intdom.data();
+    ppack_->vec_dt           = shared.dt_cv.data();
+    ppack_->vec_v            = shared.voltage.data();
+    ppack_->vec_i            = shared.current_density.data();
+    ppack_->vec_g            = shared.conductivity.data();
+    ppack_->temperature_degC = shared.temperature_degC.data();
+    ppack_->diam_um          = shared.diam_um.data();
+    ppack_->time_since_spike = shared.time_since_spike.data();
+    ppack_->n_detectors      = shared.n_detector;
+
+    for (auto idx = 0; idx < mech_->n_ions; ++idx) {
+        auto ion = mech_->ions[idx];
+        auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
+        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
+        if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
+        ppack_->ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
+    }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (width_==0) {
-        return;
-    }
+    if (width_==0) return;
 
-    // Extend width to account for requisite SIMD padding.
-    width_padded_ = math::round_up(width_, shared.alignment);
+    auto append_chunk = [n=width_padded_](const auto& in, auto& out, const auto& pad, auto& ptr) {
+        copy_extend(in, util::range_n(ptr, n), pad);
+        out = ptr;
+        ptr += n;
+    };
+
+    auto append_const = [n=width_padded_](const auto& input, auto& output, auto& ptr) {
+        std::fill(output, output + n, input);
+        output = ptr;
+        ptr += n;
+    };
 
     // Allocate and initialize state and parameter vectors with default values.
-
-    auto fields = field_table();
-    std::size_t n_field = fields.size();
-
-    // (First sub-array of data_ is used for weight_, below.)
-    data_ = array((1+n_field)*width_padded_, NAN, pad);
-    for (std::size_t i = 0; i<n_field; ++i) {
-        // Take reference to corresponding derived (generated) mechanism value pointer member.
-        fvm_value_type*& field_ptr = *(fields[i].second);
-        field_ptr = data_.data()+(i+1)*width_padded_;
-        if (auto opt_value = value_by_key(field_default_table(), fields[i].first)) {
-            std::fill(field_ptr, field_ptr+width_padded_, *opt_value);
+    {
+        // Allocate bulk storage
+        auto count = mech_->n_state_vars + mech_->n_parameters + 1;
+        data_ = array(count*width_padded_, NAN, pad);
+        auto base_ptr = data_.data();
+        // First sub-array of data_ is used for weight_
+        append_chunk(pos_data.weight, ppack_->weight, 0, base_ptr);
+        // Set fields
+        for (auto idx = 0; idx < mech_->n_parameters; ++idx) {
+            append_const(mech_->parameter_defaults[idx], ppack_->parameters[idx], base_ptr);
+        }
+        for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
+            append_const(mech_->state_var_defaults[idx], ppack_->state_vars[idx], base_ptr);
         }
     }
-    pp->weight_ = data_.data();
-
-    // Allocate and copy local state: weight, node indices, ion indices.
-    // The tail comprises those elements between width_ and width_padded_:
-    //
-    // * For entries in the padded tail of weight_, set weight to zero.
-    // * For indices in the padded tail of node_index_, set index to last valid CV index.
-    // * For indices in the padded tail of ion index maps, set index to last valid ion index.
-
-    util::copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
 
     // Make index bulk storage
     {
-        auto table = ion_index_table();
         // Allocate bulk storage
-        auto count = table.size() + 1 + (mult_in_place_ ? 1 : 0);
-        indices_ = iarray(count*width_padded_, 0, pad);
+        auto count    = mech_->n_ions + 1 + (mult_in_place_ ? 1 : 0);
+        indices_      = iarray(count*width_padded_, 0, pad);
         auto base_ptr = indices_.data();
-
-        auto append_chunk = [&](const auto& input, auto& output, const auto& pad) {
-            copy_extend(input, make_range(base_ptr, base_ptr + width_padded_), pad);
-            output = base_ptr;
-            base_ptr += width_padded_;
-        };
-
         // Setup node indices
-        append_chunk(pos_data.cv, pp->node_index_, pos_data.cv.back());
-
-        auto node_index = make_range(pp->node_index_, pp->node_index_ + width_padded_);
-        pp->index_constraints_ = make_constraint_partition(node_index, width_, simd_width());
-
+        append_chunk(pos_data.cv, ppack_->node_index, pos_data.cv.back(), base_ptr);
+        auto node_index = util::range_n(ppack_->node_index, width_padded_);
+        // Make SIMD index constraints
+        auto tmp = make_constraint_partition(node_index, width_, simd_width());        // TODO this should not be a memcpy ;)
+        std::memcpy(&(ppack_->index_constraints), &tmp, sizeof(tmp));
         // Create ion indices
-        for (const auto& [ion_name, ion_index_ptr]: table) {
+        for (auto idx = 0; idx < mech_->n_ions; ++idx) {
+            auto  ion = mech_->ions[idx];
+            auto& index_ptr = ppack_->ion_states[idx].index;
             // Index into shared_state respecting ion rebindings
-            auto ion_binding = value_by_key(overrides.ion_rebind, ion_name).value_or(ion_name);
+            auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
             ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
-            if (!oion) {
-                throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
-            }
+            if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state ", ion));
             // Obtain index and move data
             auto indices = util::index_into(node_index, oion->node_index_);
-            append_chunk(indices, *ion_index_ptr, util::back(indices));
-
+            append_chunk(indices, index_ptr, util::back(indices), base_ptr);
             // Check SIMD constraints
-            auto ion_index = make_range(*ion_index_ptr, *ion_index_ptr + width_padded_);
+            auto ion_index = util::range_n(index_ptr, width_padded_);
             arb_assert(compatible_index_constraints(node_index, ion_index, simd_width()));
         }
-
-        if (mult_in_place_) {
-            append_chunk(pos_data.multiplicity, pp->multiplicity_, 0);
-        }
+        if (mult_in_place_) append_chunk(pos_data.multiplicity, ppack_->multiplicity, 0, base_ptr);
     }
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
-    if (auto opt_ptr = value_by_key(field_table(), key)) {
-        if (values.size()!=width_) {
-            throw arbor_internal_error("multicore/mechanism: mechanism parameter size mismatch");
-        }
-
-        if (width_>0) {
-            // Retrieve corresponding derived (generated) mechanism value pointer member.
-            fvm_value_type* field_ptr = *opt_ptr.value();
-            util::range<fvm_value_type*> field(field_ptr, field_ptr+width_padded_);
-
-            copy_extend(values, field, values.back());
-        }
-    }
-    else {
-        throw arbor_internal_error("multicore/mechanism: no such mechanism parameter");
-    }
+    if (values.size()!=width_) throw arbor_internal_error("multicore/mechanism: mechanism parameter size mismatch");
+    auto field_ptr = field_data(key);
+    if (!field_ptr) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism parameter '{}'", key));
+    if (width_ == 0) return;
+    auto field = util::range_n(field_ptr, width_padded_);
+    copy_extend(values, field, values.back());
 }
+
 
 void mechanism::initialize() {
-    auto pp_ptr = ppack_ptr();
-    pp_ptr->vec_t_ = vec_t_ptr_->data();
+    ppack_->vec_t = vec_t_ptr_->data();
     init();
-
-    auto states = state_table();
-
-    if (mult_in_place_) {
-        for (auto& state: states) {
-            for (std::size_t j = 0; j < width_; ++j) {
-                (*state.second)[j] *= pp_ptr->multiplicity_[j];
-            }
-        }
+    if (!mult_in_place_) return;
+    for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
+        std::transform(ppack_->multiplicity, ppack_->multiplicity + width_,
+                       ppack_->state_vars[idx],
+                       ppack_->state_vars[idx],
+                       std::multiplies<fvm_value_type>{});
     }
 }
 
-fvm_value_type* mechanism::field_data(const std::string& field_var) {
-    if (auto opt_ptr = value_by_key(field_table(), field_var)) {
-        return *opt_ptr.value();
+fvm_value_type* mechanism::field_data(const std::string& var) {
+    for (auto idx = 0; idx < mech_->n_parameters; ++idx) {
+        if (var == mech_->parameters[idx]) return ppack_->parameters[idx];
     }
-
+    for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
+        if (var == mech_->state_vars[idx]) return ppack_->state_vars[idx];
+    }
     return nullptr;
 }
-
 
 } // namespace multicore
 } // namespace arb

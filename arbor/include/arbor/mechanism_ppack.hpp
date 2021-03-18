@@ -3,6 +3,18 @@
 #include <arbor/fvm_types.hpp>
 
 namespace arb {
+
+struct constraint_partition {
+    size_t n_contiguous  = 0ul;
+    size_t n_constant    = 0ul;
+    size_t n_independent = 0ul;
+    size_t n_none        = 0ul;
+    fvm_index_type* contiguous  = nullptr;
+    fvm_index_type* constant    = nullptr;
+    fvm_index_type* independent = nullptr;
+    fvm_index_type* none        = nullptr;
+};
+
 struct mechanism_ppack {
     fvm_index_type width_;
     fvm_index_type n_detectors_;
@@ -19,5 +31,7 @@ struct mechanism_ppack {
     const fvm_index_type* node_index_;
     const fvm_index_type* multiplicity_;
     const fvm_value_type* weight_;
+
+    constraint_partition index_constraints_;
 };
 } // namespace arb
