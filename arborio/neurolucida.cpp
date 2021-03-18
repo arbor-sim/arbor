@@ -648,7 +648,7 @@ asc_morphology parse_asc_string(const char* input) {
 
             if (!branch.samples.empty()) { // Skip empty branches, which are permitted
                 auto it = branch.samples.begin();
-                // Don't conect the first sample to the distal end of the parent
+                // Don't connect the first sample to the distal end of the parent
                 // branch if the parent is the soma center.
                 if (parent==arb::mnpos) {
                     prox_sample = *it;
