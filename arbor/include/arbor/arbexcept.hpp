@@ -79,6 +79,18 @@ struct bad_connection_target_lid: arbor_exception {
     cell_size_type num_targets;
 };
 
+struct bad_event_generator_target_gid: arbor_exception {
+    bad_event_generator_target_gid(cell_gid_type gid, cell_gid_type tgt_gid);
+    cell_gid_type gid, tgt_gid;
+};
+
+struct bad_event_generator_target_lid: arbor_exception {
+    bad_event_generator_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets);
+    cell_gid_type gid;
+    cell_lid_type tgt_lid;
+    cell_size_type num_targets;
+};
+
 struct bad_global_property: arbor_exception {
     explicit bad_global_property(cell_kind kind);
     cell_kind kind;
