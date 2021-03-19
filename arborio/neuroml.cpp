@@ -3,13 +3,15 @@
 #include <string>
 #include <vector>
 
-#include <arborio/arbornml.hpp>
+#include <arborio/neuroml.hpp>
 
-#include "parse_morphology.hpp"
+#include "nml_parse_morphology.hpp"
 #include "xmlwrap.hpp"
 
 using std::optional;
 using std::nullopt;
+
+using namespace arborio::xmlwrap;
 
 namespace arborio {
 
@@ -17,23 +19,17 @@ static std::string fmt_error(const char* prefix, const std::string& err, unsigne
     return prefix + (line==0? err: "line " + std::to_string(line) + ": " + err);
 }
 
-xml_error::xml_error(const std::string& xml_error_msg, unsigned line):
-    neuroml_exception(fmt_error("xml error: ", xml_error_msg, line)),
-    xml_error_msg(xml_error_msg),
-    line(line)
-{}
-
-no_document::no_document():
+nml_no_document::nml_no_document():
     neuroml_exception("no NeuroML document to parse")
 {}
 
-parse_error::parse_error(const std::string& error_msg, unsigned line):
+nml_parse_error::nml_parse_error(const std::string& error_msg, unsigned line):
     neuroml_exception(fmt_error("parse error: ", error_msg, line)),
     error_msg(error_msg),
     line(line)
 {}
 
-bad_segment::bad_segment(unsigned long long segment_id, unsigned line):
+nml_bad_segment::nml_bad_segment(unsigned long long segment_id, unsigned line):
     neuroml_exception(
         fmt_error(
             "bad morphology segment: ",
@@ -43,7 +39,7 @@ bad_segment::bad_segment(unsigned long long segment_id, unsigned line):
     line(line)
 {}
 
-bad_segment_group::bad_segment_group(const std::string& group_id, unsigned line):
+nml_bad_segment_group::nml_bad_segment_group(const std::string& group_id, unsigned line):
     neuroml_exception(
         fmt_error(
             "bad morphology segmentGroup: ",
@@ -53,7 +49,7 @@ bad_segment_group::bad_segment_group(const std::string& group_id, unsigned line)
     line(line)
 {}
 
-cyclic_dependency::cyclic_dependency(const std::string& id, unsigned line):
+nml_cyclic_dependency::nml_cyclic_dependency(const std::string& id, unsigned line):
     neuroml_exception(
         fmt_error(
             "cyclic dependency: ",
@@ -74,7 +70,7 @@ struct neuroml_impl {
     }
 
     xml_xpathctx make_context() const {
-        if (!doc) throw no_document{};
+        if (!doc) throw nml_no_document{};
 
         auto ctx = xpath_context(doc);
         ctx.register_ns("nml", "http://www.neuroml.org/schema/neuroml2");
@@ -120,15 +116,15 @@ std::vector<std::string> neuroml::morphology_ids() const {
     return result;
 }
 
-optional<morphology_data> neuroml::morphology(const std::string& morph_id) const {
+optional<nml_morphology_data> neuroml::morphology(const std::string& morph_id) const {
     xml_error_scope err;
     auto ctx = impl_->make_context();
     auto matches = ctx.query("//nml:neuroml/nml:morphology[@id="+xpath_escape(morph_id)+"]");
 
-    return matches.empty()? nullopt: optional(parse_morphology_element(ctx, matches[0]));
+    return matches.empty()? nullopt: optional(nml_parse_morphology_element(ctx, matches[0]));
 }
 
-optional<morphology_data> neuroml::cell_morphology(const std::string& cell_id) const {
+optional<nml_morphology_data> neuroml::cell_morphology(const std::string& cell_id) const {
     xml_error_scope err;
     auto ctx = impl_->make_context();
     auto matches = ctx.query(
@@ -137,7 +133,7 @@ optional<morphology_data> neuroml::cell_morphology(const std::string& cell_id) c
 
     if (matches.empty()) return nullopt;
 
-    morphology_data M = parse_morphology_element(ctx, matches[0]);
+    nml_morphology_data M = nml_parse_morphology_element(ctx, matches[0]);
     M.cell_id = cell_id;
     return M;
 }

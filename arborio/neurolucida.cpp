@@ -26,6 +26,10 @@ asc_unsupported::asc_unsupported(const std::string& error_msg):
     message(error_msg)
 {}
 
+
+namespace {
+// Parse functions and internal representations kept in unnamed namespace.
+
 struct parse_error {
     struct cpp_info {
         const char* file;
@@ -512,6 +516,8 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
 
     return tree;
 }
+
+} // namespace
 
 
 // Perform the parsing of the input as a string.

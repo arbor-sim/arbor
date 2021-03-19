@@ -6,8 +6,8 @@
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 
-#include <arborio/arbornml.hpp>
-#include <arborio/with_xml.hpp>
+#include <arborio/neuroml.hpp>
+#include <arborio/xml.hpp>
 
 #include "../test/gtest.h"
 #include "morph_pred.hpp"
@@ -89,7 +89,7 @@ R"~(
     std::sort(c_ids.begin(), c_ids.end());
     EXPECT_EQ((svector{"c3", "c4"}), c_ids);
 
-    arborio::morphology_data mdata;
+    arborio::nml_morphology_data mdata;
 
     mdata = N.cell_morphology("c4").value();
     EXPECT_EQ("c4", mdata.cell_id);
@@ -176,7 +176,7 @@ R"~(
     arborio::neuroml N(doc);
 
     {
-        arborio::morphology_data m1 = N.morphology("m1").value();
+        arborio::nml_morphology_data m1 = N.morphology("m1").value();
         label_dict labels;
         labels.import(m1.segments, "seg:");
         mprovider P(m1.morphology, labels);
@@ -189,7 +189,7 @@ R"~(
     }
 
     {
-        arborio::morphology_data m2 = N.morphology("m2").value();
+        arborio::nml_morphology_data m2 = N.morphology("m2").value();
         label_dict labels;
         labels.import(m2.segments, "seg:");
         mprovider P(m2.morphology, labels);
@@ -217,7 +217,7 @@ R"~(
     }
 
     {
-        arborio::morphology_data m3 = N.morphology("m3").value();
+        arborio::nml_morphology_data m3 = N.morphology("m3").value();
         label_dict labels;
         labels.import(m3.segments, "seg:");
         mprovider P(m3.morphology, labels);
@@ -251,7 +251,7 @@ R"~(
     }
     {
         for (const char* m_name: {"m4", "m5"}) {
-            arborio::morphology_data m4_or_5 = N.morphology(m_name).value();
+            arborio::nml_morphology_data m4_or_5 = N.morphology(m_name).value();
             label_dict labels;
             labels.import(m4_or_5.segments, "seg:");
             mprovider P(m4_or_5.morphology, labels);
@@ -355,12 +355,12 @@ R"~(
 
     arborio::neuroml N(doc);
 
-    EXPECT_THROW(N.morphology("no-proximal").value(), arborio::bad_segment);
-    EXPECT_THROW(N.morphology("no-such-parent").value(), arborio::bad_segment);
-    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::cyclic_dependency);
-    EXPECT_THROW(N.morphology("duplicate-id").value(), arborio::bad_segment);
-    EXPECT_THROW(N.morphology("bad-segment-id").value(), arborio::bad_segment);
-    EXPECT_THROW(N.morphology("another-bad-segment-id").value(), arborio::bad_segment);
+    EXPECT_THROW(N.morphology("no-proximal").value(), arborio::nml_bad_segment);
+    EXPECT_THROW(N.morphology("no-such-parent").value(), arborio::nml_bad_segment);
+    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::nml_cyclic_dependency);
+    EXPECT_THROW(N.morphology("duplicate-id").value(), arborio::nml_bad_segment);
+    EXPECT_THROW(N.morphology("bad-segment-id").value(), arborio::nml_bad_segment);
+    EXPECT_THROW(N.morphology("another-bad-segment-id").value(), arborio::nml_bad_segment);
 }
 
 TEST(neuroml, simple_groups) {
@@ -444,7 +444,7 @@ R"~(
     using reg::named;
 
     {
-        arborio::morphology_data m1 = N.morphology("m1").value();
+        arborio::nml_morphology_data m1 = N.morphology("m1").value();
         label_dict labels;
         labels.import(m1.segments);
         labels.import(m1.groups);
@@ -455,7 +455,7 @@ R"~(
         EXPECT_TRUE(region_eq(P, named("group-c"), join(named("2"), named("1"))));
     }
     {
-        arborio::morphology_data m2 = N.morphology("m2").value();
+        arborio::nml_morphology_data m2 = N.morphology("m2").value();
         label_dict labels;
         labels.import(m2.segments);
         labels.import(m2.groups);
@@ -509,9 +509,9 @@ R"~(
 
     arborio::neuroml N(doc);
 
-    EXPECT_THROW(N.morphology("no-such-segment").value(), arborio::bad_segment_group);
-    EXPECT_THROW(N.morphology("no-such-group").value(), arborio::bad_segment_group);
-    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::cyclic_dependency);
+    EXPECT_THROW(N.morphology("no-such-segment").value(), arborio::nml_bad_segment_group);
+    EXPECT_THROW(N.morphology("no-such-group").value(), arborio::nml_bad_segment_group);
+    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::nml_cyclic_dependency);
 }
 
 
@@ -613,7 +613,7 @@ R"~(
 
     arborio::neuroml N(doc);
 
-    arborio::morphology_data m1 = N.morphology("m1").value();
+    arborio::nml_morphology_data m1 = N.morphology("m1").value();
     label_dict labels;
     labels.import(m1.segments);
     labels.import(m1.groups);

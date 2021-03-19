@@ -14,9 +14,9 @@
 #include <arbor/morph/stitch.hpp>
 #include <arbor/util/expected.hpp>
 
-#include <arborio/arbornml.hpp>
+#include <arborio/neuroml.hpp>
 
-#include "parse_morphology.hpp"
+#include "nml_parse_morphology.hpp"
 #include "xmlwrap.hpp"
 
 using std::optional;
@@ -24,8 +24,14 @@ using arb::region;
 using arb::util::expected;
 using arb::util::unexpected;
 
+using namespace std::literals;
+using namespace arborio::xmlwrap;
+
 namespace arborio {
 
+// Implementation utility classes:
+
+namespace {
 // Box is a container of size 0 or 1.
 
 template <typename X>
@@ -126,6 +132,25 @@ expected<std::vector<std::size_t>, cycle_detected> topological_sort(std::size_t 
     return depth;
 }
 
+template <typename T>
+struct propx {
+    explicit propx(xml_node n, const char* attr, optional<T> dflt = std::nullopt) {
+        if (auto x = n.prop<T>(attr, dflt)) {
+            result_ = std::move(x.value());
+        }
+        else {
+             throw nml_parse_error(x.error().error, x.error().line);
+        }
+    }
+
+    operator T() && { return std::move(result_); }
+    operator T() const& { return result_; }
+    T result_;
+};
+
+} // namespace
+
+
 // Internal representations of NeuroML segment and segmentGroup data:
 
 struct neuroml_segment {
@@ -201,14 +226,14 @@ struct neuroml_segment_tree {
         // Build index, throw on duplicate id.
         for (std::size_t i = 0; i<n_seg; ++i) {
             if (!index_.insert({segments_[i].id, i}).second) {
-                throw bad_segment(segments_[i].id, segments_[i].line);
+                throw nml_bad_segment(segments_[i].id, segments_[i].line);
             }
         }
 
         // Check parent relationship is sound.
         for (const auto& s: segments_) {
             if (s.parent_id && !index_.count(*s.parent_id)) {
-                throw bad_segment(s.id, s.line); // No such parent id.
+                throw nml_bad_segment(s.id, s.line); // No such parent id.
             }
         }
 
@@ -225,12 +250,12 @@ struct neuroml_segment_tree {
         }
         else {
             const auto& seg = segments_[depths.error().index];
-            throw cyclic_dependency(nl_to_string(seg.id), seg.line);
+            throw nml_cyclic_dependency(nl_to_string(seg.id), seg.line);
         }
         std::sort(segments_.begin(), segments_.end(), [](auto& a, auto& b) { return a.tdepth<b.tdepth; });
 
         // Check for multiple roots:
-        if (n_seg>1 && segments_[1].tdepth==0) throw bad_segment(segments_[1].id, segments_[1].line);
+        if (n_seg>1 && segments_[1].tdepth==0) throw nml_bad_segment(segments_[1].id, segments_[1].line);
 
         // Update index:
         for (std::size_t i = 0; i<n_seg; ++i) {
@@ -251,7 +276,7 @@ private:
     std::unordered_map<non_negative, std::vector<non_negative>> children_;
 };
 
-std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_groups(
+static std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_groups(
     std::vector<neuroml_segment_group_info> groups,
     const neuroml_segment_tree& segtree)
 {
@@ -300,7 +325,7 @@ std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_grou
             }
         }
         catch (...) {
-            throw bad_segment_group(g.id, line);
+            throw nml_bad_segment_group(g.id, line);
         }
     }
 
@@ -308,7 +333,7 @@ std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_grou
     std::unordered_map<std::string, std::size_t> index;
     for (std::size_t i = 0; i<n_group; ++i) {
         if (!index.insert({groups[i].id, i}).second) {
-            throw bad_segment_group(groups[i].id, groups[i].line);
+            throw nml_bad_segment_group(groups[i].id, groups[i].line);
         }
     }
 
@@ -318,7 +343,7 @@ std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_grou
         const auto& includes = groups[i].includes;
         index_to_included_indices[i].reserve(includes.size());
         for (auto& id: includes) {
-            if (!index.count(id)) throw bad_segment_group(groups[i].id, groups[i].line);
+            if (!index.count(id)) throw nml_bad_segment_group(groups[i].id, groups[i].line);
             index_to_included_indices[i].push_back(index.at(id));
         }
     }
@@ -332,7 +357,7 @@ std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_grou
     }
     else {
         const auto& group = groups[depths.error().index];
-        throw cyclic_dependency(group.id, group.line);
+        throw nml_cyclic_dependency(group.id, group.line);
     }
 
     // Accumulate included group segments, following topological order.
@@ -363,7 +388,7 @@ std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_grou
     return group_seg_map;
 }
 
-arb::stitched_morphology construct_morphology(const neuroml_segment_tree& segtree) {
+static arb::stitched_morphology construct_morphology(const neuroml_segment_tree& segtree) {
     arb::stitch_builder builder;
     if (segtree.empty()) return arb::stitched_morphology{builder};
 
@@ -384,9 +409,9 @@ arb::stitched_morphology construct_morphology(const neuroml_segment_tree& segtre
     return arb::stitched_morphology(std::move(builder));
 }
 
-morphology_data parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
-    morphology_data M;
-    M.id = morph.prop<std::string>("id", std::string{});
+nml_morphology_data nml_parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
+    nml_morphology_data M;
+    M.id = propx<std::string>(morph, "id", ""s);
 
     std::vector<neuroml_segment> segments;
 
@@ -401,47 +426,47 @@ morphology_data parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
 
         try {
             seg.id = -1;
-            seg.id = n.prop<non_negative>("id");
-            std::string name = n.prop<std::string>("name", std::string{});
+            seg.id = propx<non_negative>(n, "id");
+            std::string name = propx<std::string>(n, "name", ""s);
 
             auto result = ctx.query(n, q_parent);
             if (!result.empty()) {
                 line = result[0].line();
-                seg.parent_id = result[0].prop<non_negative>("segment");
-                seg.along = result[0].prop<double>("fractionAlong", 1.0);
+                seg.parent_id = propx<non_negative>(result[0], "segment");
+                seg.along = propx<double>(result[0], "fractionAlong", 1.0);
             }
 
             result = ctx.query(n, q_proximal);
             if (!result.empty()) {
                 line = result[0].line();
-                double x = result[0].prop<double>("x");
-                double y = result[0].prop<double>("y");
-                double z = result[0].prop<double>("z");
-                double diameter = result[0].prop<double>("diameter");
-                if (diameter<0) throw bad_segment(seg.id, n.line());
+                double x = propx<double>(result[0], "x");
+                double y = propx<double>(result[0], "y");
+                double z = propx<double>(result[0], "z");
+                double diameter = propx<double>(result[0], "diameter");
+                if (diameter<0) throw nml_bad_segment(seg.id, n.line());
 
                 seg.proximal = arb::mpoint{x, y, z, diameter/2};
             }
 
-            if (!seg.parent_id && !seg.proximal) throw bad_segment(seg.id, n.line());
+            if (!seg.parent_id && !seg.proximal) throw nml_bad_segment(seg.id, n.line());
 
             result = ctx.query(n, q_distal);
             if (!result.empty()) {
                 line = result[0].line();
-                double x = result[0].prop<double>("x");
-                double y = result[0].prop<double>("y");
-                double z = result[0].prop<double>("z");
-                double diameter = result[0].prop<double>("diameter");
-                if (diameter<0) throw bad_segment(seg.id, n.line());
+                double x = propx<double>(result[0], "x");
+                double y = propx<double>(result[0], "y");
+                double z = propx<double>(result[0], "z");
+                double diameter = propx<double>(result[0], "diameter");
+                if (diameter<0) throw nml_bad_segment(seg.id, n.line());
 
                 seg.distal = arb::mpoint{x, y, z, diameter/2};
             }
             else {
-                throw bad_segment(seg.id, n.line());
+                throw nml_bad_segment(seg.id, n.line());
             }
         }
-        catch (parse_error& e) {
-            throw bad_segment(seg.id, line);
+        catch (nml_parse_error& e) {
+            throw nml_bad_segment(seg.id, line);
         }
 
         seg.line = n.line();
@@ -468,16 +493,16 @@ morphology_data parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
         int line = n.line(); // for error context!
 
         try {
-            group.id = n.prop<std::string>("id");
+            group.id = propx<std::string>(n, "id");
             for (auto elem: ctx.query(n, q_member)) {
                 line = elem.line();
-                auto seg_id = elem.prop<non_negative>("segment");
-                if (!segtree.contains(seg_id)) throw bad_segment_group(group.id, line);
-                group.segments.push_back(elem.prop<non_negative>("segment"));
+                auto seg_id = propx<non_negative>(elem, "segment");
+                if (!segtree.contains(seg_id)) throw nml_bad_segment_group(group.id, line);
+                group.segments.push_back(propx<non_negative>(elem, "segment"));
             }
             for (auto elem: ctx.query(n, q_include)) {
                 line = elem.line();
-                group.includes.push_back(elem.prop<std::string>("segmentGroup"));
+                group.includes.push_back(propx<std::string>(elem, "segmentGroup"));
             }
 
             // Treat `<path>` and `<subTree>` identically:
@@ -490,11 +515,11 @@ morphology_data parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
                 sub.line = line;
                 if (!froms.empty()) {
                     line = froms[0].line();
-                    sub.from = froms[0].template prop<non_negative>("segment");
+                    sub.from = propx<non_negative>(froms[0], "segment");
                 }
                 if (!tos.empty()) {
                     line = tos[0].line();
-                    sub.to = tos[0].template prop<non_negative>("segment");
+                    sub.to = propx<non_negative>(tos[0], "segment");
                 }
 
                 return sub;
@@ -507,8 +532,8 @@ morphology_data parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
                 group.subtrees.push_back(parse_subtree_elem(elem));
             }
         }
-        catch (parse_error& e) {
-            throw bad_segment_group(group.id, line);
+        catch (nml_parse_error& e) {
+            throw nml_bad_segment_group(group.id, line);
         }
 
         group.line = n.line();
