@@ -16,12 +16,12 @@ namespace arb {
 
 // An `event_generator` generates a sequence of events to be delivered to a cell.
 // The sequence of events is always in ascending order, i.e. each event will be
-// greater than the event that proceded it, where events are ordered by:
+// greater than the event that proceeded it, where events are ordered by:
 //  - delivery time;
 //  - then target id for events with the same delivery time;
 //  - then weight for events with the same delivery time and target.
 //
-// An `event_generator` supports two operations:
+// An `event_generator` supports three operations:
 //
 // `void event_generator::reset()`
 //
@@ -31,6 +31,10 @@ namespace arb {
 //
 //     Provide a non-owning view on to the events in the time interval
 //     [to, from).
+//
+// `std::vector<cell_member_type> targets()`
+//
+//     Return a vector of all the targets of the generator.
 //
 // The `event_seq` type is a pair of `spike_event` pointers that
 // provide a view onto an internally-maintained contiguous sequence
