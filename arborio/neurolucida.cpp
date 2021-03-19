@@ -591,39 +591,48 @@ asc_morphology parse_asc_string(const char* input) {
 
     arb::segment_tree stree;
 
-    // Form a soma composed of two cylinders, extended along the positive and negative
-    // z axis from the center of the soma.
+/*
+
+
+
+
+
+
+
+*/
+    // Form a soma composed of two cylinders, extended along the negative then positive
+    // y axis from the center of the soma.
     //
-    //          --------  soma_b
+    //          --------  soma_2
     //          |      |
-    //          |      |
-    //          --------  soma_c
-    //          |      |
-    //          |      |
-    //          --------  soma_e
+    //          |      |             y
+    //          --------  soma_0     |  z
+    //          |      |             | /
+    //          |      |             |/
+    //          --------  soma_1     o---  x
     //
 
-    arb::mpoint soma_c, soma_b, soma_e;
+    arb::mpoint soma_0, soma_1, soma_2;
     if (soma_count==1u) {
         const auto& st = sub_trees[soma_contours.front()];
         const auto& samples = st.root.samples;
         if (samples.size()==1u) {
             // The soma is described as a sphere with a single sample.
-            soma_c = samples.front();
+            soma_0 = samples.front();
         }
         else {
             // The soma is described by a contour.
             const auto ns = samples.size();
-            soma_c.x = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.x;}) / ns;
-            soma_c.y = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.y;}) / ns;
-            soma_c.z = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.z;}) / ns;
-            soma_c.radius = std::accumulate(samples.begin(), samples.end(), 0.,
-                    [&soma_c](double a, auto& c) {return a+arb::distance(c, soma_c);}) / ns;
+            soma_0.x = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.x;}) / ns;
+            soma_0.y = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.y;}) / ns;
+            soma_0.z = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.z;}) / ns;
+            soma_0.radius = std::accumulate(samples.begin(), samples.end(), 0.,
+                    [&soma_0](double a, auto& c) {return a+arb::distance(c, soma_0);}) / ns;
         }
-        soma_b = {soma_c.x, soma_c.y, soma_c.z-soma_c.radius, soma_c.radius};
-        soma_e = {soma_c.x, soma_c.y, soma_c.z+soma_c.radius, soma_c.radius};
-        stree.append(arb::mnpos, soma_c, soma_b, 1);
-        stree.append(arb::mnpos, soma_c, soma_e, 1);
+        soma_1 = {soma_0.x, soma_0.y-soma_0.radius, soma_0.z, soma_0.radius};
+        soma_2 = {soma_0.x, soma_0.y+soma_0.radius, soma_0.z, soma_0.radius};
+        stree.append(arb::mnpos, soma_0, soma_1, 1);
+        stree.append(arb::mnpos, soma_0, soma_2, 1);
     }
 
     // Append the dend, axon and apical dendrites.
@@ -633,7 +642,7 @@ asc_morphology parse_asc_string(const char* input) {
         // Skip soma contours.
         if (tag==1) continue;
 
-        // For now attach everything to the center of the soma at soma_c.
+        // For now attach everything to the center of the soma at soma_0.
         // Later we could try to attach to whichever end of the soma is closest.
         // Also need to push parent id
         struct binf {
@@ -642,7 +651,7 @@ asc_morphology parse_asc_string(const char* input) {
             arb::mpoint sample;
         };
 
-        std::vector<binf> tails = {{&st.root, arb::mnpos, soma_c}};
+        std::vector<binf> tails = {{&st.root, arb::mnpos, soma_0}};
 
         while (!tails.empty()) {
             auto head = tails.back();
