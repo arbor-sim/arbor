@@ -135,10 +135,8 @@ TEST(asc, sub_tree_meta) {
     }
 }
 
-TEST(asc, branching) {
-    {
-        // Soma composed of 2 branches, and stick and fork dendrite composed of 3 branches.
-        const char* input =
+// Soma composed of 2 branches, and stick and fork dendrite composed of 3 branches.
+const char *asc_ball_and_y_dendrite =
 "((CellBody)\
  (0 0 0 2)\
 )\
@@ -151,20 +149,9 @@ TEST(asc, branching) {
   (6 5 0 1)\
  )\
  )";
-        auto result = arborio::parse_asc_string(input);
-        const auto& m = result.morphology;
-        EXPECT_EQ(m.num_branches(), 5u);
-        EXPECT_EQ(m.branch_children(0).size(), 0u);
-        EXPECT_EQ(m.branch_children(1).size(), 0u);
-        EXPECT_EQ(m.branch_children(2).size(), 2u);
-        EXPECT_EQ(m.branch_children(2)[0], 3u);
-        EXPECT_EQ(m.branch_children(2)[1], 4u);
-        EXPECT_EQ(m.branch_children(3).size(), 0u);
-        EXPECT_EQ(m.branch_children(4).size(), 0u);
-    }
-    {
-        // Soma composed of 2 branches, and a dendrite with a bit more interesting branching.
-        const char* input =
+
+// Soma composed of 2 branches, and a dendrite with a bit more interesting branching.
+const char *asc_ball_and_fancy_dendrite=
 "((CellBody)\
  (0 0 0 2)\
 )\
@@ -182,25 +169,10 @@ TEST(asc, branching) {
   (6 5 0 1)\
  )\
  )";
-        auto result = arborio::parse_asc_string(input);
-        const auto& m = result.morphology;
-        EXPECT_EQ(m.num_branches(), 7u);
-        EXPECT_EQ(m.branch_children(0).size(), 0u);
-        EXPECT_EQ(m.branch_children(1).size(), 0u);
-        EXPECT_EQ(m.branch_children(2).size(), 2u);
-        EXPECT_EQ(m.branch_children(2)[0], 3u);
-        EXPECT_EQ(m.branch_children(2)[1], 6u);
-        EXPECT_EQ(m.branch_children(3).size(), 2u);
-        EXPECT_EQ(m.branch_children(3)[0], 4u);
-        EXPECT_EQ(m.branch_children(3)[1], 5u);
-        EXPECT_EQ(m.branch_children(4).size(), 0u);
-        EXPECT_EQ(m.branch_children(5).size(), 0u);
-        EXPECT_EQ(m.branch_children(6).size(), 0u);
-    }
-    {
-        // Soma composed of 2 branches, and stick and fork dendrite and axon
-        // composed of 3 branches each.
-        const char* input =
+
+// Soma composed of 2 branches, and stick and fork dendrite and axon
+// composed of 3 branches each.
+const char* asc_ball_and_y_dendrite_and_y_axon =
 "((CellBody)\
  (0 0 0 2)\
 )\
@@ -222,7 +194,38 @@ TEST(asc, branching) {
   (6 -5 0 1)\
  )\
 )";
-        auto result = arborio::parse_asc_string(input);
+
+TEST(asc, branching) {
+    {
+        auto result = arborio::parse_asc_string(asc_ball_and_y_dendrite);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 5u);
+        EXPECT_EQ(m.branch_children(0).size(), 0u);
+        EXPECT_EQ(m.branch_children(1).size(), 0u);
+        EXPECT_EQ(m.branch_children(2).size(), 2u);
+        EXPECT_EQ(m.branch_children(2)[0], 3u);
+        EXPECT_EQ(m.branch_children(2)[1], 4u);
+        EXPECT_EQ(m.branch_children(3).size(), 0u);
+        EXPECT_EQ(m.branch_children(4).size(), 0u);
+    }
+    {
+        auto result = arborio::parse_asc_string(asc_ball_and_fancy_dendrite);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 7u);
+        EXPECT_EQ(m.branch_children(0).size(), 0u);
+        EXPECT_EQ(m.branch_children(1).size(), 0u);
+        EXPECT_EQ(m.branch_children(2).size(), 2u);
+        EXPECT_EQ(m.branch_children(2)[0], 3u);
+        EXPECT_EQ(m.branch_children(2)[1], 6u);
+        EXPECT_EQ(m.branch_children(3).size(), 2u);
+        EXPECT_EQ(m.branch_children(3)[0], 4u);
+        EXPECT_EQ(m.branch_children(3)[1], 5u);
+        EXPECT_EQ(m.branch_children(4).size(), 0u);
+        EXPECT_EQ(m.branch_children(5).size(), 0u);
+        EXPECT_EQ(m.branch_children(6).size(), 0u);
+    }
+    {
+        auto result = arborio::parse_asc_string(asc_ball_and_y_dendrite_and_y_axon);
         const auto& m = result.morphology;
         EXPECT_EQ(m.num_branches(), 8u);
         EXPECT_EQ(m.branch_children(0).size(), 0u);
@@ -238,6 +241,62 @@ TEST(asc, branching) {
         EXPECT_EQ(m.branch_children(6).size(), 0u);
         EXPECT_EQ(m.branch_children(7).size(), 0u);
     }
-
 }
 
+// Test that
+//  * first segment in branches connected to the soma has as its
+//    proximal sample the first sample in the branch
+//  * all other non-soma branches have the distal end of the parent
+//    branch as their proximal sample.
+//  * the soma is composed of two branches, attached to the soma center,
+//    and extending along the z axis
+TEST(asc, soma_connection) {
+    {
+        auto result = arborio::parse_asc_string(asc_ball_and_y_dendrite);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 5u);
+        // Test soma
+        EXPECT_EQ(m.branch_segments(0)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0, 0,-2, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 0, 2, 2}));
+        // Test dendrite proximal ends
+        EXPECT_EQ(m.branch_segments(2)[0].prox, (arb::mpoint{0, 2, 0, 1}));
+        EXPECT_EQ(m.branch_segments(3)[0].prox, (arb::mpoint{0, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(4)[0].prox, (arb::mpoint{0, 5, 0, 1}));
+    }
+    {
+        auto result = arborio::parse_asc_string(asc_ball_and_fancy_dendrite);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 7u);
+        // Test soma
+        EXPECT_EQ(m.branch_segments(0)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0, 0,-2, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 0, 2, 2}));
+        // Test dendrite proximal ends
+        EXPECT_EQ(m.branch_segments(2)[0].prox, (arb::mpoint{ 0, 2, 0, 1}));
+        EXPECT_EQ(m.branch_segments(3)[0].prox, (arb::mpoint{ 0, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(4)[0].prox, (arb::mpoint{-5, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(5)[0].prox, (arb::mpoint{-5, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(6)[0].prox, (arb::mpoint{ 0, 5, 0, 1}));
+    }
+    {
+        auto result = arborio::parse_asc_string(asc_ball_and_y_dendrite_and_y_axon);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 8u);
+        // Test soma
+        EXPECT_EQ(m.branch_segments(0)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0, 0,-2, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 0, 2, 2}));
+        // Test dendrite proximal ends
+        EXPECT_EQ(m.branch_segments(2)[0].prox, (arb::mpoint{0, 2, 0, 1}));
+        EXPECT_EQ(m.branch_segments(3)[0].prox, (arb::mpoint{0, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(4)[0].prox, (arb::mpoint{0, 5, 0, 1}));
+        // Test axon proximal ends
+        EXPECT_EQ(m.branch_segments(5)[0].prox, (arb::mpoint{0,-2, 0, 1}));
+        EXPECT_EQ(m.branch_segments(6)[0].prox, (arb::mpoint{0,-5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(7)[0].prox, (arb::mpoint{0,-5, 0, 1}));
+    }
+}
