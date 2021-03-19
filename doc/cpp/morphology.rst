@@ -334,14 +334,14 @@ CV will have an extent on the branch longer than ``max_extent`` micrometres.
 
 
 Supported morphology formats
-----------------------------
+============================
 
 Arbor supports morphologies described using the SWC file format and the NeuroML file format.
 
 .. _cppswc:
 
 SWC
-^^^
+---
 
 Arbor supports reading morphologies described using the
 `SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format. And
@@ -415,13 +415,14 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
    Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
 
+
 .. _cppasc:
 
 Neurolucida ASCII
-^^^^^^^^^^^^^^^^^^
+-----------------
 
 Arbor supports reading morphologies described using the
-:ref:`Neurolucida <format_asc>`_ file format.
+:ref:`Neurolucida ASCII file format <formatasc>`.
 
 The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`asc_morphology` object,
 which a simple struct with two members representing the morphology and a label dictionary with labeled
@@ -438,38 +439,36 @@ regions and locations.
    Parse a Neurolucida ASCII file.
    Throws an exception if there is an error parsing the file.
 
+
 .. _cppneuroml:
 
 NeuroML
-^^^^^^^
+-------
 
-Arbor offers limited support for models described in
-`NeuroML version 2 <https://neuroml.org/neuromlv2>`_.
-This is not built by default, but can be enabled by
-providing the `-DARB_NEUROML=ON` argument to CMake at
-configuration time (see :ref:`install-neuroml`). This will
-build the ``arborio`` libray with neuroml support.
+Arbor offers limited support for models described in `NeuroML version 2
+<https://neuroml.org/neuromlv2>`_. This is not built by default, but can be
+enabled by providing the `-DARB_WITH_NEUROML=ON` argument to CMake at configuration
+time (see :ref:`install-neuroml`). This will build the ``arborio`` libray with
+neuroml support.
 
-The ``arborio`` library uses `libxml2 <http://xmlsoft.org/>`_
-for XML parsing. Applications using NeuroML through ``arborio``
-will need to link against ``libxml2`` in addition, though this
-is performed implicitly within CMake projects that add ``arbor::arborio``
-as a link library.
+The ``arborio`` library uses `libxml2 <http://xmlsoft.org/>`_ for XML parsing.
+Applications using NeuroML through ``arborio`` will need to link against
+``libxml2`` in addition, though this is performed implicitly within CMake
+projects that add ``arbor::arborio`` as a link library.
 
-All classes and functions provided by the ``arborio`` library
-are provided in the ``arborio`` namespace.
+All classes and functions provided by the ``arborio`` library are provided in
+the ``arborio`` namespace.
 
 Libxml2 interface
-=================
+^^^^^^^^^^^^^^^^^
 
-Libxml2 offers threadsafe XML parsing, but not by default. If
-the application uses NeuromML support from ``arborio`` in an
-unthreaded context, or has already explicitly initialized ``libxml2``,
-nothing more needs to be done. Otherwise, the ``libxml2`` function
-``xmlInitParser()`` must be called explicitly.
+Libxml2 offers threadsafe XML parsing, but not by default. If the application
+uses NeuromML support from ``arborio`` in an unthreaded context, or has already
+explicitly initialized ``libxml2``, nothing more needs to be done. Otherwise,
+the ``libxml2`` function ``xmlInitParser()`` must be called explicitly.
 
 ``arborio`` provides a helper guard object for this purpose, defined
-in ``arborio/with_xml.hpp``:
+in ``arborio/xml.hpp``:
 
 .. cpp:namespace:: arborio
 
@@ -478,15 +477,24 @@ in ``arborio/with_xml.hpp``:
    An RAII guard object that calls ``xmlInitParser()`` upon construction, and
    ``xmlCleanupParser()`` upon destruction. The constructor takes no parameters.
 
+Unhandleable exceptions from ``libxml2`` are forwarded via an exception
+``xml_error``, derived from ``std::runtime_error``.
+
 NeuroML2 morphology support
-===========================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 NeuroML documents are represented by the ``arborio::neuroml`` class,
 which in turn provides methods for the identification and translation
-of morphology data. ``neuroml`` objects are moveable and move-assignable, but not copyable.
+of morphology data. ``neuroml`` objects are moveable and move-assignable,
+but not copyable.
 
 An implementation limitation restricts valid segment id values to
 those which can be represented by an ``unsigned long long`` value.
+
+``arborio::neuroml`` methods can throw an ``arborio::xml_error`` in the instance that
+the underlying libxml2 library reports a problem that cannot be handled by the ``arborio``
+library. Otherwise, exceptions derived from ``aborio::neuroml_exception`` can be thrown
+when encountering problems interpreting the NeuroML document (see :ref:`cppneuromlexceptions` below).
 
 .. cpp:class:: neuroml
 
@@ -502,24 +510,22 @@ those which can be represented by an ``unsigned long long`` value.
 
    Return the id of each top-level ``<morphology>`` element defined in the NeuroML document.
 
-   .. cpp:function:: std::optional<morphology_data> morphology(const std::string&) const
+   .. cpp:function:: std::optional<nml_morphology_data> morphology(const std::string&) const
 
    Return a representation of the top-level morphology with the supplied identifier, or
-   ``std::nullopt`` if no such morphology could be found. Parse errors or an inconsistent
-   representation will raise an exception derived from ``neuroml_exception``.
+   ``std::nullopt`` if no such morphology could be found.
 
-   .. cpp:function:: std::optional<morphology_data> cell_morphology(const std::string&) const
+   .. cpp:function:: std::optional<nml_morphology_data> cell_morphology(const std::string&) const
 
    Return a representation of the morphology associated with the cell with the supplied identifier,
-   or ``std::nullopt`` if the cell or its morphology could not be found. Parse errors or an
-   inconsistent representation will raise an exception derived from ``neuroml_exception``.
+   or ``std::nullopt`` if the cell or its morphology could not be found.
 
 The morphology representation contains the corresponding Arbor ``arb::morphology`` object,
 label dictionaries for regions corresponding to its segments and segment groups by name
 and id, and a map providing the explicit list of segments contained within each defined
 segment group.
 
-.. cpp:class:: morphology_data
+.. cpp:class:: nml_morphology_data
 
    .. cpp:member:: std::optional<std::string> cell_id
 
@@ -551,39 +557,37 @@ segment group.
    A map from each segment group id to its corresponding collection of segments.
 
 
-Exceptions
-==========
+.. _cppneuromlexceptions:
 
-All NeuroML-specific exceptions are defined in ``arborio/arbornml.hpp``, and are
+Exceptions
+^^^^^^^^^^
+
+All NeuroML-specific exceptions are defined in ``arborio/neuroml.hpp``, and are
 derived from ``arborio::neuroml_exception`` which in turn is derived from ``std::runtime_error``.
-With the exception of the ``no_document`` exception, all contain an unsigned member ``line``
+With the exception of the ``nml_no_document`` exception, all contain an unsigned member ``line``
 which is intended to identify the problematic construct within the document.
 
-.. cpp:class:: xml_error: neuroml_exception
+.. cpp:class:: nml_no_document: neuroml_exception
 
-   A generic XML error generated by the ``libxml2`` library.
+   A request was made to parse text which could not be interpreted as an XML document.
 
-.. cpp:class:: no_document: neuroml_exception
-
-   A request was made on an :cpp:class:`neuroml` document without any content.
-
-.. cpp:class:: parse_error: neuroml_exception
+.. cpp:class:: nml_parse_error: neuroml_exception
 
    Failure parsing an element or attribute in the NeuroML document. These
    can be generated if the document does not confirm to the NeuroML2 schema,
    for example.
 
-.. cpp:class:: bad_segment: neuroml_exception
+.. cpp:class:: nml_bad_segment: neuroml_exception
 
    A ``<segment>`` element has an improper ``id`` attribue, refers to a non-existent
    parent, is missing a required parent or proximal element, or otherwise is missing
    a mandatory child element or has a malformed child element.
 
-.. cpp:class:: bad_segment_group: neuroml_exception
+.. cpp:class:: nml_bad_segment_group: neuroml_exception
 
    A ``<segmentGroup>`` element has a malformed child element or references
    a non-existent segment group or segment.
 
-.. cpp:class:: cyclic_dependency: neuroml_exception
+.. cpp:class:: nml_cyclic_dependency: neuroml_exception
 
    A segment or segment group ultimately refers to itself via ``parent``
