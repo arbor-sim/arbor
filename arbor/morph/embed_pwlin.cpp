@@ -249,11 +249,18 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
         if (branch_length!=0) {
             for (auto& d: seg_pos) {
                 d /= branch_length;
+                all_segment_ends_.push_back({bid, d});
             }
         }
-
-        for (auto d: seg_pos) {
-            all_segment_ends_.push_back({bid, d});
+        else {
+            // In zero length branch, set all segment ends to be 0,
+            // except for last, which is 1. This ensures that the
+            // union of the cables corresponding to a branch cover
+            // the branch.
+            seg_pos.back() = 1;
+            for (auto d: seg_pos) {
+                all_segment_ends_.push_back({bid, d});
+            }
         }
 
         // Second pass over segments to store associated cables.
