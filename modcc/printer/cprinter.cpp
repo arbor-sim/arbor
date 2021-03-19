@@ -42,7 +42,7 @@ void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string
 void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 
-void emit_api_body(std::ostream&, APIMethod*);
+void emit_api_body(std::ostream&, APIMethod*, bool cv_loop = true);
 void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
 
 void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices, simd_expr_constraint constraint);
@@ -114,12 +114,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto ppack_name     = make_cpu_ppack_name(name);
     auto ns_components  = namespace_components(opt.cpp_namespace);
 
-    NetReceiveExpression* net_receive = find_net_receive(module_);
-    PostEventExpression*  post_event = find_post_event(module_);
-    APIMethod* init_api       = find_api_method(module_, "init");
-    APIMethod* state_api      = find_api_method(module_, "advance_state");
-    APIMethod* current_api    = find_api_method(module_, "compute_currents");
-    APIMethod* write_ions_api = find_api_method(module_, "write_ions");
+    APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
+    APIMethod* post_event_api  = find_api_method(module_, "post_event_api");
+    APIMethod* init_api        = find_api_method(module_, "init");
+    APIMethod* state_api       = find_api_method(module_, "advance_state");
+    APIMethod* current_api     = find_api_method(module_, "compute_currents");
+    APIMethod* write_ions_api  = find_api_method(module_, "write_ions");
 
     bool with_simd = opt.simd.abi!=simd_spec::none;
 
@@ -301,11 +301,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     emit_body(write_ions_api);
     out << popindent << "}\n\n";
 
-    if (net_receive) {
-        const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
+    if (net_receive_api) {
+        const std::string weight_arg = net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name();
         out <<
-            "void net_receive(" << ppack_name << "* pp, int i_, ::arb::fvm_value_type " << weight_arg << ") {\n" << indent <<
-            cprint(net_receive->body()) << popindent <<
+            "void net_receive(" << ppack_name << "* pp, int i_, ::arb::fvm_value_type " << weight_arg << ") {\n" << indent;
+            emit_api_body(out, net_receive_api, false);
+            out << popindent <<
             "}\n\n"
             "void apply_events(" << ppack_name << "* pp, ::arb::fvm_size_type mechanism_id, ::arb::multicore::deliverable_event_stream::state events) {\n" << indent <<
             "auto ncell = events.n_streams();\n"
@@ -320,8 +321,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "\n";
     }
 
-    if(post_event) {
-        const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
+    if(post_event_api) {
+        const std::string time_arg = post_event_api->args().empty() ? "time" : post_event_api->args().front()->is_argument()->name();
         out <<
             "void post_event(" << ppack_name << "* pp) {\n" << indent <<
             "int n_ = pp->width_;\n"
@@ -331,8 +332,9 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "auto offset_ = pp->n_detectors_ * cid_;\n"
             "for (::arb::fvm_index_type c = 0; c < pp->n_detectors_; c++) {\n" << indent <<
             "auto " << time_arg << " = pp->time_since_spike_[offset_ + c];\n"
-            "if (" <<  time_arg << " >= 0) {\n" << indent <<
-            cprint(post_event->body()) << popindent <<
+            "if (" <<  time_arg << " >= 0) {\n" << indent;
+            emit_api_body(out, post_event_api, false);
+            out << popindent <<
             "}\n" << popindent <<
             "}\n" << popindent <<
             "}\n" << popindent <<
@@ -378,10 +380,10 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "void compute_currents() override { " << namespace_name << "::compute_currents(&pp_); }\n"
         "void write_ions() override{ " << namespace_name << "::write_ions(&pp_); }\n";
 
-    net_receive &&
+    net_receive_api &&
         out << "void apply_events(deliverable_event_stream::state events) override { " << namespace_name << "::apply_events(&pp_, mechanism_id_, events); }\n";
 
-    post_event &&
+    post_event_api &&
         out << "void post_event() override { " << namespace_name <<  "::post_event(&pp_); };\n";
 
     with_simd &&
@@ -563,6 +565,24 @@ namespace {
     };
 }
 
+std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& indexed_vars, const std::string& index) {
+    std::list<index_prop> indices;
+    for (auto& sym: indexed_vars) {
+        auto d = decode_indexed_variable(sym->external_variable());
+        if (!d.scalar()) {
+            index_prop node_idx = {d.node_index_var, index, true};
+            auto it = std::find(indices.begin(), indices.end(), node_idx);
+            if (it == indices.end()) indices.push_front(node_idx);
+            if (!d.cell_index_var.empty()) {
+                index_prop cell_idx = {d.cell_index_var, node_index_i_name(d), false};
+                auto it = std::find(indices.begin(), indices.end(), cell_idx);
+                if (it == indices.end()) indices.push_back(cell_idx);
+            }
+        }
+    }
+    return indices;
+};
+
 void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
     out << "::arb::fvm_value_type " << cprint(local) << " = ";
@@ -607,33 +627,19 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     EXIT(out);
 }
 
-void emit_api_body(std::ostream& out, APIMethod* method) {
+void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop) {
     ENTER(out);
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
-    std::list<index_prop> indices;
-    for (auto& sym: indexed_vars) {
-        auto d = decode_indexed_variable(sym->external_variable());
-        if (!d.scalar()) {
-            index_prop node_idx = {d.node_index_var, "i_", true};
-            auto it = std::find(indices.begin(), indices.end(), node_idx);
-            if (it == indices.end()) indices.push_front(node_idx);
-            if (!d.cell_index_var.empty()) {
-                index_prop cell_idx = {d.cell_index_var, node_index_i_name(d), false};
-                auto it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_back(cell_idx);
-            }
-        }
-    }
-
+    std::list<index_prop> indices = gather_indexed_vars(indexed_vars, "i_");
     if (!body->statements().empty()) {
-        out <<
+        cv_loop && out <<
             "int n_ = pp->width_;\n"
             "for (int i_ = 0; i_ < n_; ++i_) {\n" << indent;
 
         for (auto index: indices) {
-            out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "  ];\n";
+            out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "];\n";
         }
 
         for (auto& sym: indexed_vars) {
@@ -644,7 +650,7 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
         for (auto& sym: indexed_vars) {
             emit_state_update(out, sym, sym->external_variable());
         }
-        out << popindent << "}\n";
+        cv_loop && out << popindent << "}\n";
     }
     EXIT(out);
 }
@@ -1008,9 +1014,6 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
     auto indexed_vars = indexed_locals(method->scope());
     bool requires_weight = false;
 
-    std::vector<LocalVariable*> scalar_indexed_vars;
-    std::list<index_prop> indices;
-
     ENTER(out);
 
     for (auto& s: body->is_block()->statements()) {
@@ -1026,21 +1029,10 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             }
         }
     }
-
+    std::list<index_prop> indices = gather_indexed_vars(indexed_vars, "index_");
+    std::vector<LocalVariable*> scalar_indexed_vars;
     for (auto& sym: indexed_vars) {
-        auto info = decode_indexed_variable(sym->external_variable());
-        if (!info.scalar()) {
-            index_prop node_idx = {info.node_index_var, "index_", true};
-            auto it = std::find(indices.begin(), indices.end(), node_idx);
-            if (it == indices.end()) indices.push_front(node_idx);
-
-            if (!info.cell_index_var.empty()) {
-                index_prop cell_idx = {info.cell_index_var, node_index_i_name(info), false};
-                it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_back(cell_idx);
-            }
-        }
-        else {
+        if (decode_indexed_variable(sym->external_variable()).scalar()) {
             scalar_indexed_vars.push_back(sym);
         }
     }
