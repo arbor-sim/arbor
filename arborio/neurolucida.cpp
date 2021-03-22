@@ -591,15 +591,6 @@ asc_morphology parse_asc_string(const char* input) {
 
     arb::segment_tree stree;
 
-/*
-
-
-
-
-
-
-
-*/
     // Form a soma composed of two cylinders, extended along the negative then positive
     // y axis from the center of the soma.
     //
