@@ -54,7 +54,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         auto found = false;
         for (auto idx = 0; idx < mech_->n_globals; ++idx) {
             if (mech_->globals[idx] == k) {
-                *(ppack_->globals[idx]) = v;
+                *(ppack_.globals[idx]) = v;
                 found = true;
                 break;
             }
@@ -72,24 +72,24 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     width_padded_     = math::round_up(width_, shared.alignment);     // Extend width to account for requisite SIMD padding.
 
     // Assign non-owning views onto shared state:
-    ppack_->width            = width_;
-    ppack_->vec_ci           = shared.cv_to_cell.data();
-    ppack_->vec_di           = shared.cv_to_intdom.data();
-    ppack_->vec_dt           = shared.dt_cv.data();
-    ppack_->vec_v            = shared.voltage.data();
-    ppack_->vec_i            = shared.current_density.data();
-    ppack_->vec_g            = shared.conductivity.data();
-    ppack_->temperature_degC = shared.temperature_degC.data();
-    ppack_->diam_um          = shared.diam_um.data();
-    ppack_->time_since_spike = shared.time_since_spike.data();
-    ppack_->n_detectors      = shared.n_detector;
+    ppack_.width            = width_;
+    ppack_.vec_ci           = shared.cv_to_cell.data();
+    ppack_.vec_di           = shared.cv_to_intdom.data();
+    ppack_.vec_dt           = shared.dt_cv.data();
+    ppack_.vec_v            = shared.voltage.data();
+    ppack_.vec_i            = shared.current_density.data();
+    ppack_.vec_g            = shared.conductivity.data();
+    ppack_.temperature_degC = shared.temperature_degC.data();
+    ppack_.diam_um          = shared.diam_um.data();
+    ppack_.time_since_spike = shared.time_since_spike.data();
+    ppack_.n_detectors      = shared.n_detector;
 
     for (auto idx = 0; idx < mech_->n_ions; ++idx) {
         auto ion = mech_->ions[idx];
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
-        ppack_->ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
+        ppack_.ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -114,13 +114,13 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         data_ = array(count*width_padded_, NAN, pad);
         auto base_ptr = data_.data();
         // First sub-array of data_ is used for weight_
-        append_chunk(pos_data.weight, ppack_->weight, 0, base_ptr);
+        append_chunk(pos_data.weight, ppack_.weight, 0, base_ptr);
         // Set fields
         for (auto idx = 0; idx < mech_->n_parameters; ++idx) {
-            append_const(mech_->parameter_defaults[idx], ppack_->parameters[idx], base_ptr);
+            append_const(mech_->parameter_defaults[idx], ppack_.parameters[idx], base_ptr);
         }
         for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
-            append_const(mech_->state_var_defaults[idx], ppack_->state_vars[idx], base_ptr);
+            append_const(mech_->state_var_defaults[idx], ppack_.state_vars[idx], base_ptr);
         }
     }
 
@@ -131,15 +131,15 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         indices_      = iarray(count*width_padded_, 0, pad);
         auto base_ptr = indices_.data();
         // Setup node indices
-        append_chunk(pos_data.cv, ppack_->node_index, pos_data.cv.back(), base_ptr);
-        auto node_index = util::range_n(ppack_->node_index, width_padded_);
+        append_chunk(pos_data.cv, ppack_.node_index, pos_data.cv.back(), base_ptr);
+        auto node_index = util::range_n(ppack_.node_index, width_padded_);
         // Make SIMD index constraints
         auto tmp = make_constraint_partition(node_index, width_, simd_width());        // TODO this should not be a memcpy ;)
-        std::memcpy(&(ppack_->index_constraints), &tmp, sizeof(tmp));
+        std::memcpy(&(ppack_.index_constraints), &tmp, sizeof(tmp));
         // Create ion indices
         for (auto idx = 0; idx < mech_->n_ions; ++idx) {
             auto  ion = mech_->ions[idx];
-            auto& index_ptr = ppack_->ion_states[idx].index;
+            auto& index_ptr = ppack_.ion_states[idx].index;
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
             ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
@@ -151,7 +151,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             auto ion_index = util::range_n(index_ptr, width_padded_);
             arb_assert(compatible_index_constraints(node_index, ion_index, simd_width()));
         }
-        if (mult_in_place_) append_chunk(pos_data.multiplicity, ppack_->multiplicity, 0, base_ptr);
+        if (mult_in_place_) append_chunk(pos_data.multiplicity, ppack_.multiplicity, 0, base_ptr);
     }
 }
 
@@ -166,23 +166,23 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
 
 void mechanism::initialize() {
-    ppack_->vec_t = vec_t_ptr_->data();
+    ppack_.vec_t = vec_t_ptr_->data();
     init();
     if (!mult_in_place_) return;
     for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
-        std::transform(ppack_->multiplicity, ppack_->multiplicity + width_,
-                       ppack_->state_vars[idx],
-                       ppack_->state_vars[idx],
+        std::transform(ppack_.multiplicity, ppack_.multiplicity + width_,
+                       ppack_.state_vars[idx],
+                       ppack_.state_vars[idx],
                        std::multiplies<fvm_value_type>{});
     }
 }
 
 fvm_value_type* mechanism::field_data(const std::string& var) {
     for (auto idx = 0; idx < mech_->n_parameters; ++idx) {
-        if (var == mech_->parameters[idx]) return ppack_->parameters[idx];
+        if (var == mech_->parameters[idx]) return ppack_.parameters[idx];
     }
     for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
-        if (var == mech_->state_vars[idx]) return ppack_->state_vars[idx];
+        if (var == mech_->state_vars[idx]) return ppack_.state_vars[idx];
     }
     return nullptr;
 }

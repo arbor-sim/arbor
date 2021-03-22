@@ -13,6 +13,8 @@
 
 std::vector<std::string> namespace_components(const std::string& qualified_namespace);
 
+const static std::string pp_var_pfx = "___pp_";
+
 inline const char* arb_header_prefix() {
     static const char* prefix = "arbor/";
     return prefix;
@@ -54,8 +56,8 @@ struct namespace_declaration_close {
 
 inline const char* module_kind_str(const Module& m) {
     return m.kind()==moduleKind::density?
-        "::arb::mechanismKind::density":
-        "::arb::mechanismKind::point";
+        "arb_mechanism_kind::density":
+        "arb_mechanism_kind::point";
 }
 
 // Check expression non-null and scoped, or else throw.

@@ -3,6 +3,7 @@
 #include <ostream>
 #include <unordered_map>
 
+#include "printerutil.hpp"
 #include "cexpr_emit.hpp"
 #include "error.hpp"
 #include "lexer.hpp"
@@ -226,7 +227,7 @@ std::string id_prefix(IdentifierExpression* id) {
         if (auto symbol = id->symbol()->is_symbol()) {
             if (auto var = symbol->is_variable()) {
                 if (!var->is_local_variable()) {
-                    return "pp->"+id->name();
+                    return pp_var_pfx + id->name();
                 }
             }
         }

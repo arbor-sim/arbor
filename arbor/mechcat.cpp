@@ -9,10 +9,13 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/mechanism_abi.h>
 #include <arbor/util/expected.hpp>
 
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
+#include "backends/multicore/mechanism.hpp"
+#include "backends/gpu/mechanism.hpp"
 
 /* Notes on implementation:
  *
@@ -566,6 +569,19 @@ void mechanism_catalogue::remove(const std::string& name) {
         throw no_such_mechanism(name);
     }
     state_->remove(name);
+}
+
+void mechanism_catalogue::register_implementation(const std::string& name, arb_mechanism_type* m) {
+    arb_assert(m);
+    if (m->backend == arb_backend_kind::cpu) {
+        concrete_mech_ptr<multicore::backend> ptr = nullptr;
+        return register_implementation(name, std::move(ptr));
+    }
+    if (m->backend == arb_backend_kind::gpu) {
+        concrete_mech_ptr<gpu::backend> ptr = nullptr;
+        return register_implementation(name, std::move(ptr));
+    }
+    throw arbor_internal_error("unexpected mechanism kind");
 }
 
 void mechanism_catalogue::register_impl(std::type_index tidx, const std::string& name, std::unique_ptr<mechanism> mech) {

@@ -162,7 +162,7 @@ struct fleeb_foo: foo_mechanism {
         this->mech_ions = {"a", "b", "c", "d"};
     }
 
-    const mechanism_fingerprint& fingerprint() const override {
+    const mechanism_fingerprint fingerprint() const override {
         static mechanism_fingerprint hash = "fleebprint";
         return hash;
     }
@@ -177,7 +177,7 @@ struct special_fleeb_foo: foo_mechanism {
         this->mech_ions = {"a", "b", "c", "d"};
     }
 
-    const mechanism_fingerprint& fingerprint() const override {
+    const mechanism_fingerprint fingerprint() const override {
         static mechanism_fingerprint hash = "fleebprint";
         return hash;
     }
@@ -192,7 +192,7 @@ struct fleeb_bar: bar_mechanism {
         this->mech_ions = {"a", "b", "c", "d"};
     }
 
-    const mechanism_fingerprint& fingerprint() const override {
+    const mechanism_fingerprint fingerprint() const override {
         static mechanism_fingerprint hash = "fleebprint";
         return hash;
     }
@@ -205,7 +205,7 @@ struct fleeb_bar: bar_mechanism {
 // Burble implementation:
 
 struct burble_bar: bar_mechanism {
-    const mechanism_fingerprint& fingerprint() const override {
+    const mechanism_fingerprint fingerprint() const override {
         static mechanism_fingerprint hash = "fnord";
         return hash;
     }

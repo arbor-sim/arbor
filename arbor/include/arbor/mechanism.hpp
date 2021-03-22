@@ -29,7 +29,7 @@ public:
     mechanism(const mechanism&) = delete;
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.
-    virtual const mechanism_fingerprint& fingerprint() const = 0;
+    virtual const mechanism_fingerprint fingerprint() const = 0;
 
     // Name as given in mechanism source.
     virtual std::string internal_name() const { return ""; }

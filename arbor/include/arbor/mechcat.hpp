@@ -9,6 +9,7 @@
 
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
+#include <arbor/mechanism_abi.h>
 
 // Mechanism catalogue maintains:
 //
@@ -104,6 +105,8 @@ public:
         mechanism_ptr generic_proto = mechanism_ptr(proto.release());
         register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
     }
+
+    void register_implementation(const std::string& name, arb_mechanism_type* m);
 
    // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
    void import(const mechanism_catalogue& other, const std::string& prefix);

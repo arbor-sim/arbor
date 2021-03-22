@@ -1,6 +1,11 @@
 #include <ostream>
 #include <set>
 #include <string>
+#include <regex>
+
+#define FMT_HEADER_ONLY YES
+#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "blocks.hpp"
 #include "infoprinter.hpp"
@@ -140,6 +145,13 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         << popindent << "}\n"
                         "\n"
         << namespace_declaration_close(ns_components);
+
+    out << fmt::format(//"extern \"C\" {{\n"
+                       "  arb_mechanism_type* make_{0}_multicore_{1}();"
+                       "  arb_mechanism_type* make_{0}_gpu_{1}();",
+                       // "}}"
+                       std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
+                       name);
 
     return out.str();
 }
