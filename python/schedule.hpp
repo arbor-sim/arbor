@@ -78,12 +78,12 @@ struct explicit_schedule_shim: schedule_shim_base {
 struct poisson_schedule_shim: schedule_shim_base {
     using rng_type = std::mt19937_64;
 
-    arb::time_type tstart = arb::terminal_time;
-    arb::time_type freq = 10.;  // Hz
-    rng_type::result_type seed = 0;
+    arb::time_type tstart; // ms
+    arb::time_type freq; // kHz
+    rng_type::result_type seed;
 
-    poisson_schedule_shim() = default;
     poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s);
+    poisson_schedule_shim(arb::time_type f);
 
     void set_tstart(arb::time_type t);
     void set_freq(arb::time_type f);

@@ -3,6 +3,7 @@
 #include <lif_cell_group.hpp>
 
 #include "profile/profiler_macro.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
 using namespace arb;
@@ -36,7 +37,7 @@ void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& 
     if (event_lanes.size() > 0) {
         for (auto lid: util::make_span(gids_.size())) {
             // Advance each cell independently.
-            advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
+            advance_cell(ep.t1, dt, lid, event_lanes[lid]);
         }
     }
     PL();
@@ -62,7 +63,7 @@ void lif_cell_group::set_binning_policy(binning_kind policy, time_type bin_inter
 
 void lif_cell_group::reset() {
     spikes_.clear();
-    last_time_updated_.clear();
+    util::fill(last_time_updated_, 0.);
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).

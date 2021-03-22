@@ -68,9 +68,8 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
 
-    out <<
-        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
+    out << "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n"
+        << "#include <arbor/mechanism_ppack.hpp>\n";
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
@@ -128,7 +127,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     out << popindent <<
         "protected:\n" << indent <<
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n"
-        "::arb::gpu::mechanism_ppack_base* ppack_ptr() override { return &pp_; }\n\n";
+        "::arb::mechanism_ppack* ppack_ptr() override { return &pp_; }\n\n";
 
     io::separator sep("\n", ",\n");
     if (!vars.scalars.empty()) {
@@ -243,7 +242,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/gpu_common.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/math_cu.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
+        "#include <arbor/mechanism.hpp>\n" <<
+        "#include <arbor/mechanism_ppack.hpp>\n";
 
     is_point_proc && out <<
         "#include <" << arb_private_header_prefix() << "backends/gpu/reduce_by_key.hpp>\n";
@@ -397,7 +397,7 @@ void emit_common_defs(std::ostream& out, const Module& module_) {
         "using deliverable_event_stream_state =\n"
         "    ::arb::multi_event_stream_state<::arb::deliverable_event_data>;\n\n";
 
-    out << "struct " << ppack_name << ": ::arb::gpu::mechanism_ppack_base {\n" << indent;
+    out << "struct " << ppack_name << ": ::arb::mechanism_ppack {\n" << indent;
 
     for (const auto& scalar: vars.scalars) {
         out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";

@@ -26,7 +26,7 @@ std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
     return o << "<arbor.poisson_schedule: tstart " << p.tstart << " ms"
-             << ", freq " << p.freq << " Hz"
+             << ", freq " << p.freq << " kHz"
              << ", seed " << p.seed << ">";
 };
 
@@ -148,6 +148,12 @@ poisson_schedule_shim::poisson_schedule_shim(
     seed = s;
 }
 
+poisson_schedule_shim::poisson_schedule_shim(arb::time_type f) {
+    set_tstart(0.);
+    set_freq(f);
+    seed = 0;
+}
+
 void poisson_schedule_shim::set_tstart(arb::time_type t) {
     pyarb::assert_throw(is_nonneg()(t), "tstart must be a non-negative number");
     tstart = t;
@@ -167,8 +173,7 @@ arb::time_type poisson_schedule_shim::get_freq() const {
 }
 
 arb::schedule poisson_schedule_shim::schedule() const {
-    // convert frequency to kHz.
-    return arb::poisson_schedule(tstart, freq/1000., rng_type(seed));
+    return arb::poisson_schedule(tstart, freq, rng_type(seed));
 }
 
 std::vector<arb::time_type> poisson_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
@@ -236,15 +241,19 @@ void register_schedules(py::module& m) {
 
     poisson_schedule
         .def(py::init<time_type, time_type, std::mt19937_64::result_type>(),
-            "tstart"_a = 0., "freq"_a = 10., "seed"_a = 0,
+            "tstart"_a = 0., "freq"_a, "seed"_a = 0,
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
-            "  freq:   The expected frequency [Hz], 10 by default.\n"
+            "  freq:   The expected frequency [kHz].\n"
             "  seed:   The seed for the random number generator, 0 by default.")
+        .def(py::init<time_type>(),
+            "freq"_a,
+            "Construct a Poisson schedule, starting from t = 0, default seed, with:\n"
+            "  freq:   The expected frequency [kHz], 10 by default.\n")
         .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence [ms].")
         .def_property("freq", &poisson_schedule_shim::get_freq, &poisson_schedule_shim::set_freq,
-            "The expected frequency [Hz].")
+            "The expected frequency [kHz].")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed for the random number generator.")
         .def("events", &poisson_schedule_shim::events,

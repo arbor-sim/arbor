@@ -23,3 +23,4 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    simulation
    profiler
    cable_cell
+   version

@@ -4,12 +4,13 @@
 #include <iterator>
 #include <memory>
 #include <random>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/compat.hpp>
+#include <arbor/util/extra_traits.hpp>
 
 // Time schedules for probe–sampler associations.
 
@@ -22,7 +23,7 @@ inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
 }
 
 // A schedule describes a sequence of time values used for sampling. Schedules
-// are queried monotonically in time: if two method calls `events(t0, t1)` 
+// are queried monotonically in time: if two method calls `events(t0, t1)`
 // and `events(t2, t3)` are made without an intervening call to `reset()`,
 // then 0 ≤ _t0_ ≤ _t1_ ≤ _t2_ ≤ _t3_.
 
@@ -30,11 +31,11 @@ class schedule {
 public:
     schedule();
 
-    template <typename Impl>
+    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(const Impl& impl):
         impl_(new wrap<Impl>(impl)) {}
 
-    template <typename Impl>
+    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(Impl&& impl):
         impl_(new wrap<Impl>(std::move(impl))) {}
 

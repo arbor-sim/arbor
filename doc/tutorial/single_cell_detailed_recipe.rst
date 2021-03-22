@@ -338,7 +338,7 @@ to plot the voltage registered by the probe on the "custom_terminal" locset.
    sim.record(arbor.spike_recording.all)
 
    # Instruct the simulation to sample the probe (0, 0)
-   # at a regular schedule with period = 0.02 ms (50000 Hz)
+   # at a regular schedule with period = 0.02 ms (50 kHz)
    probe_id = arbor.cell_member(0,0)
    handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
@@ -348,7 +348,7 @@ This variable serves as a global identifier of a probe on a cell, namely the fir
 cell with gid = 0, which is id of the :ref:`only probe <tutorialsinglecellswcrecipe-probe>` we created on
 the only cell in the model.
 
-Next, we instructed the simulation to sample ``probe_id`` at a frequency of 50KHz. That function returns a
+Next, we instructed the simulation to sample ``probe_id`` at a frequency of 50 kHz. That function returns a
 ``handle`` which we will use to extract the results of the sampling after running the simulation.
 
 The execution

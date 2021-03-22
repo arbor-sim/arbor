@@ -13,9 +13,10 @@
 #include <arbor/version.hpp>
 
 #include <arborio/swcio.hpp>
+#include <arborio/neurolucida.hpp>
 
 #ifdef ARB_NEUROML_ENABLED
-#include <arborio/arbornml.hpp>
+#include <arborio/neuroml.hpp>
 #endif
 
 #include "error.hpp"
@@ -370,30 +371,55 @@ void register_morphology(py::module& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);
                 });
 
+    // Neurolucida ASCII, or .asc, file format support.
+
+    py::class_<arborio::asc_morphology> asc_morphology(m, "asc_morphology",
+            "The morphology and label dictionary meta-data loaded from a Neurolucida ASCII (.asc) file.");
+    asc_morphology
+        .def_readonly("morphology",
+                &arborio::asc_morphology::morphology,
+                "The cable cell morphology")
+        .def_property_readonly("labels",
+            [](const arborio::asc_morphology& m) {return label_dict_proxy(m.labels);},
+            "The four canonical regions are labeled 'soma', 'axon', 'dend' and 'apic'.");
+
+    m.def("load_asc",
+        [](std::string fname) {
+            try {
+                return arborio::load_asc(fname);
+            }
+            catch (std::exception& e) {
+                // Try to produce helpful error messages for SWC parsing errors.
+                throw pyarb_error(util::pprintf("error loading neurolucida asc file: {}", e.what()));
+            }
+        },
+        "filename"_a, "Load a morphology and meta data from a Neurolucida ASCII .asc file.");
+
+
 #ifdef ARB_NEUROML_ENABLED
     // arborio::morphology_data
-    py::class_<arborio::morphology_data> nml_morph_data(m, "neuroml_morph_data");
+    py::class_<arborio::nml_morphology_data> nml_morph_data(m, "neuroml_morph_data");
     nml_morph_data
         .def_readonly("cell_id",
-            &arborio::morphology_data::cell_id,
+            &arborio::nml_morphology_data::cell_id,
             "Cell id, or empty if morphology was taken from a top-level <morphology> element.")
         .def_readonly("id",
-            &arborio::morphology_data::id,
+            &arborio::nml_morphology_data::id,
             "Morphology id.")
         .def_readonly("morphology",
-            &arborio::morphology_data::morphology,
+            &arborio::nml_morphology_data::morphology,
             "Morphology constructed from a signle NeuroML <morphology> element.")
         .def("segments",
-            [](const arborio::morphology_data& md) {return label_dict_proxy(md.segments);},
+            [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.segments);},
             "Label dictionary containing one region expression for each segment id.")
         .def("named_segments",
-             [](const arborio::morphology_data& md) {return label_dict_proxy(md.named_segments);},
+             [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.named_segments);},
             "Label dictionary containing one region expression for each name applied to one or more segments.")
         .def("groups",
-             [](const arborio::morphology_data& md) {return label_dict_proxy(md.groups);},
+             [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.groups);},
             "Label dictionary containing one region expression for each segmentGroup id.")
         .def_readonly("group_segments",
-            &arborio::morphology_data::group_segments,
+            &arborio::nml_morphology_data::group_segments,
             "Map from segmentGroup ids to their corresponding segment ids.");
 
     // arborio::neuroml
@@ -412,7 +438,7 @@ void register_morphology(py::module& m) {
                   return arborio::neuroml(string_data);
               }
               catch (arborio::neuroml_exception& e) {
-                  // Try to produce helpful error messages for SWC parsing errors.
+                  // Try to produce helpful error messages for NeuroML parsing errors.
                   throw pyarb_error(
                       util::pprintf("NeuroML error processing file {}: ", fname, e.what()));
               }

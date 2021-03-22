@@ -69,7 +69,7 @@ Total ionic current
    .. py:function:: cable_probe_total_ion_current_cell()
 
    Transmembrane current (nA) _excluding_ capacitive currents across each
-   cable in each CV of the cell discretization.
+   cable in each CV of the cell discretization. Stimulus currents are not included.
 
    Metadata: the list of corresponding :class:`cable` objects.
 
@@ -77,7 +77,14 @@ Total transmembrane current
    .. py:function:: cable_probe_total_current_cell()
 
    Transmembrane current (nA) _including_ capacitive currents across each
-   cable in each CV of the cell discretization.
+   cable in each CV of the cell discretization. Stimulus currents are not included.
+
+   Metadata: the list of corresponding :class:`cable` objects.
+
+Total stimulus current
+   .. py:function:: cable_probe_stimulus_current_cell()
+
+   Total stimulus current (nA) across each cable in each CV of the cell discretization.
 
    Metadata: the list of corresponding :class:`cable` objects.
 

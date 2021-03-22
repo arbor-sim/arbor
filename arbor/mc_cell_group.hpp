@@ -18,12 +18,7 @@
 #include "event_binner.hpp"
 #include "event_queue.hpp"
 #include "fvm_lowered_cell.hpp"
-#include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
-#include "util/double_buffer.hpp"
-#include "util/filter.hpp"
-#include "util/partition.hpp"
-#include "util/range.hpp"
 
 namespace arb {
 

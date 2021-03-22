@@ -750,6 +750,12 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         }
     }
 
+    append(left.stimuli.cv, right.stimuli.cv);
+    append(left.stimuli.cv_unique, right.stimuli.cv_unique);
+    append(left.stimuli.frequency, right.stimuli.frequency);
+    append(left.stimuli.envelope_time, right.stimuli.envelope_time);
+    append(left.stimuli.envelope_amplitude, right.stimuli.envelope_amplitude);
+
     left.n_target += right.n_target;
     left.post_events |= right.post_events;
 
@@ -1076,6 +1082,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     if (!cell.stimuli().empty()) {
         const auto& stimuli = cell.stimuli();
+        fvm_stimulus_config config;
 
         std::vector<size_type> stimuli_cv;
         assign_by(stimuli_cv, stimuli, [&D, cell_idx](auto& p) {
@@ -1085,19 +1092,38 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         assign(cv_order, count_along(stimuli));
         sort_by(cv_order, [&](size_type i) { return stimuli_cv[i]; });
 
-        fvm_mechanism_config config;
-        config.kind = mechanismKind::point;
-        // (param_values entries must be ordered by parameter name)
-        config.param_values = {{"amplitude", {}}, {"delay", {}}, {"duration", {}}};
+        std::size_t n = stimuli.size();
+        config.cv.reserve(n);
+        config.cv_unique.reserve(n);
+        config.frequency.reserve(n);
+        config.envelope_time.reserve(n);
+        config.envelope_amplitude.reserve(n);
 
         for (auto i: cv_order) {
-            config.cv.push_back(stimuli_cv[i]);
-            config.param_values[0].second.push_back(stimuli[i].item.amplitude);
-            config.param_values[1].second.push_back(stimuli[i].item.delay);
-            config.param_values[2].second.push_back(stimuli[i].item.duration);
+            const i_clamp& stim = stimuli[i].item;
+            auto cv = stimuli_cv[i];
+            double cv_area_scale = 1000./D.cv_area[cv]; // constant scales from nA/µm² to A/m².
+
+            config.cv.push_back(cv);
+            config.frequency.push_back(stim.frequency);
+
+            std::size_t envl_n = stim.envelope.size();
+            std::vector<double> envl_t, envl_a;
+            envl_t.reserve(envl_n);
+            envl_a.reserve(envl_n);
+
+            for (auto [t, a]: stim.envelope) {
+                envl_t.push_back(t);
+                envl_a.push_back(a*cv_area_scale);
+            }
+            config.envelope_time.push_back(std::move(envl_t));
+            config.envelope_amplitude.push_back(std::move(envl_a));
         }
 
-        M.mechanisms["_builtin_stimulus"] = std::move(config);
+        std::unique_copy(config.cv.begin(), config.cv.end(), std::back_inserter(config.cv_unique));
+        config.cv_unique.shrink_to_fit();
+
+        M.stimuli = std::move(config);
     }
 
     // Ions:

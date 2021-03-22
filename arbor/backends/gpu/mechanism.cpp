@@ -80,7 +80,7 @@ void mechanism::instantiate(unsigned id,
 
     // Assign non-owning views onto shared state:
 
-    mechanism_ppack_base* pp = ppack_ptr(); // From derived class instance.
+    mechanism_ppack* pp = ppack_ptr(); // From derived class instance.
 
     pp->width_ = width_;
     pp->n_detectors_ = shared.n_detector;
@@ -213,7 +213,7 @@ fvm_value_type* mechanism::field_data(const std::string& field_var) {
 void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 
 void mechanism::initialize() {
-    mechanism_ppack_base* pp = ppack_ptr();
+    mechanism_ppack* pp = ppack_ptr();
     pp->vec_t_ = vec_t_ptr_->data();
 
     init();

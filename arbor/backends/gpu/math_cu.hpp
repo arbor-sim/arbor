@@ -1,9 +1,11 @@
 #pragma once
+
+// Implementations of mathematical operations required by generated CUDA mechanisms and back-end methods.
+
 #include <cfloat>
+#include <cmath>
 
 #include "gpu_api.hpp"
-// Implementations of mathematical operations required
-// by generated CUDA mechanisms.
 
 namespace arb {
 namespace gpu {
@@ -37,6 +39,14 @@ __device__
 inline T max(T lhs, T rhs) {
     return lhs<rhs? rhs: lhs;
 }
+
+template <typename T>
+__device__
+inline T lerp(T a, T b, T u) {
+    return std::fma(u, b, std::fma(-u, a, a));
+}
+
+constexpr double pi = 3.1415926535897932384626433832795l;
 
 } // namespace gpu
 } // namespace arb

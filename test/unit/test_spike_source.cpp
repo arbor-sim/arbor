@@ -43,14 +43,14 @@ TEST(spike_source, matches_time_seq)
         spike_source_cell_group group({0}, rec);
 
         // epoch ending at 10ms
-        epoch ep(0, 10);
+        epoch ep(0, 0., 10.);
         group.advance(ep, 1, {});
         EXPECT_EQ(spike_times(group.spikes()), as_vector(seq.events(0, 10)));
 
         group.clear_spikes();
 
         // advance to 20 ms and repeat
-        ep.advance(20);
+        ep.advance_to(20);
         group.advance(ep, 1, {});
         EXPECT_EQ(spike_times(group.spikes()), as_vector(seq.events(10, 20)));
     };
@@ -70,7 +70,7 @@ TEST(spike_source, reset)
         spike_source_cell_group group({0}, rec);
 
         // Advance for 10 ms and store generated spikes in spikes1.
-        epoch ep(0, 10);
+        epoch ep(0, 0., 10.);
         group.advance(ep, 1, {});
         auto spikes1 = group.spikes();
 
@@ -100,7 +100,7 @@ TEST(spike_source, exhaust)
         spike_source_cell_group group({0}, rec);
 
         // epoch ending at 10ms
-        epoch ep(0, 10);
+        epoch ep(0, 0., 10.);
         group.advance(ep, 1, {});
         EXPECT_EQ(spike_times(group.spikes()), as_vector(seq.events(0, 10)));
 

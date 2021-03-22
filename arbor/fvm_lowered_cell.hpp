@@ -84,15 +84,33 @@ struct fvm_probe_weighted_multi {
     util::any_ptr get_metadata_ptr() const { return &metadata; }
 };
 
+struct fvm_probe_interpolated_multi {
+    std::vector<probe_handle> raw_handles; // First half take coef[0], second half coef[1].
+    std::vector<double> coef[2];
+    mcable_list metadata;
+
+    void shrink_to_fit() {
+        raw_handles.shrink_to_fit();
+        coef[0].shrink_to_fit();
+        coef[1].shrink_to_fit();
+        metadata.shrink_to_fit();
+    }
+
+    util::any_ptr get_metadata_ptr() const { return &metadata; }
+};
+
 // Trans-membrane currents require special handling!
 struct fvm_probe_membrane_currents {
-    std::vector<probe_handle> raw_handles; // Voltage per CV.
+    std::vector<probe_handle> raw_handles; // Voltage per CV, followed by stim current densities.
     std::vector<mcable> metadata;          // Cables from each CV, in CV order.
 
     std::vector<unsigned> cv_parent;       // Parent CV index for each CV.
     std::vector<double> cv_parent_cond;    // Face conductance between CV and parent.
     std::vector<double> weight;            // Area of cable : area of CV.
     std::vector<unsigned> cv_cables_divs;  // Partitions metadata by CV index.
+
+    std::vector<double> stim_scale;        // CV area for scaling raw stim current densities.
+    std::vector<unsigned> stim_cv;         // CV index corresponding to each stim raw handle.
 
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();
@@ -101,6 +119,8 @@ struct fvm_probe_membrane_currents {
         cv_parent_cond.shrink_to_fit();
         weight.shrink_to_fit();
         cv_cables_divs.shrink_to_fit();
+        stim_scale.shrink_to_fit();
+        stim_cv.shrink_to_fit();
     }
 
     util::any_ptr get_metadata_ptr() const { return &metadata; }
@@ -120,6 +140,7 @@ struct fvm_probe_data {
     fvm_probe_data(fvm_probe_interpolated p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_weighted_multi p): info(std::move(p)) {}
+    fvm_probe_data(fvm_probe_interpolated_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_membrane_currents p): info(std::move(p)) {}
 
     std::variant<
@@ -128,6 +149,7 @@ struct fvm_probe_data {
         fvm_probe_interpolated,
         fvm_probe_multi,
         fvm_probe_weighted_multi,
+        fvm_probe_interpolated_multi,
         fvm_probe_membrane_currents
     > info = missing_probe_info{};
 

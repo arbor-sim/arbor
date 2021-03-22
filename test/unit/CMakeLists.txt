@@ -85,6 +85,7 @@ endforeach()
 
 set(unit_sources
     ../common_cells.cpp
+    test_asc.cpp
     test_any_cast.cpp
     test_any_ptr.cpp
     test_any_visitor.cpp
@@ -97,7 +98,6 @@ set(unit_sources
     test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
-    test_double_buffer.cpp
     test_event_binner.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
@@ -147,6 +147,7 @@ set(unit_sources
     test_scope_exit.cpp
     test_segment_tree.cpp
     test_simd.cpp
+    test_simulation.cpp
     test_span.cpp
     test_spike_source.cpp
     test_spikes.cpp
@@ -215,7 +216,7 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     MECHS dummy
     ARBOR "${PROJECT_SOURCE_DIR}"
     STANDALONE ON
-    VERBOSE ON)
+    VERBOSE OFF)
   target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
   add_dependencies(unit dummy-catalogue)
 endif()
