@@ -940,24 +940,12 @@ void IfExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     condition_->semantic(scp);
-    if(condition_->has_error()) {
-        error(condition()->error_message());
-    }
-
-    if(!condition_->is_conditional()) {
+    if(!condition_->has_error() && !condition_->is_conditional()) {
         error("not a valid conditional expression");
     }
-
     true_branch_->semantic(scp);
-    if(true_branch_->has_error()) {
-        error(true_branch_->error_message());
-    }
-
     if(false_branch_) {
         false_branch_->semantic(scp);
-        if(false_branch_->has_error()) {
-            error(false_branch_->error_message());
-        }
     }
 }
 
