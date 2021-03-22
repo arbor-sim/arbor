@@ -244,6 +244,10 @@ std::string ArgumentExpression::to_string() const {
     return blue("arg") + " " + yellow(name_);
 }
 
+expression_ptr ArgumentExpression::clone() const {
+    return make_expression<ArgumentExpression>(location_, token_);
+}
+
 void ArgumentExpression::semantic(scope_ptr scp) {
     error_ = false;
     scope_ = scp;
@@ -686,6 +690,8 @@ void NetReceiveExpression::semantic(scope_type::symbol_map &global_symbols) {
 
     // create the scope for this procedure
     scope_ = std::make_shared<scope_type>(global_symbols);
+    scope_->in_api_context(true);
+
     error_ = false;
 
     // add the argumemts to the list of local variables
@@ -733,6 +739,8 @@ void PostEventExpression::semantic(scope_type::symbol_map &global_symbols) {
 
     // create the scope for this procedure
     scope_ = std::make_shared<scope_type>(global_symbols);
+    scope_->in_api_context(true);
+
     error_ = false;
 
     // add the argumemts to the list of local variables

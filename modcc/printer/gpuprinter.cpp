@@ -15,7 +15,7 @@ using io::popindent;
 using io::quote;
 
 void emit_common_defs(std::ostream&, const Module& module_);
-void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc);
+void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc, bool cv_loop = true);
 void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* proc);
 void emit_state_read_cu(std::ostream& out, LocalVariable* local);
 void emit_state_update_cu(std::ostream& out, Symbol* from,
@@ -223,8 +223,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     auto ns_components = namespace_components(opt.cpp_namespace);
     const bool is_point_proc = module_.kind() == moduleKind::point;
 
-    NetReceiveExpression* net_receive = find_net_receive(module_);
-    PostEventExpression*  post_event =  find_post_event(module_);
+    APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
+    APIMethod* post_event_api = find_api_method(module_, "post_event_api");
     APIMethod* init_api = find_api_method(module_, "init");
     APIMethod* state_api = find_api_method(module_, "advance_state");
     APIMethod* current_api = find_api_method(module_, "compute_currents");
@@ -286,7 +286,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         if (!e->body()->statements().empty()) {
             out << "__global__\n"
                 << "void " << e->name() << "(" << ppack_name << " params_) {\n" << indent
-                << "int n_ = params_.width_;\n";
+                << "int n_ = params_.width_;\n"
+                << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
             emit_api_body_cu(out, e, is_point_proc);
             out << popindent << "}\n\n";
         }
@@ -298,8 +299,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     emit_api_kernel(write_ions_api);
 
     // event delivery
-    if (net_receive) {
-        const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
+    if (net_receive_api) {
+        const std::string weight_arg = net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name();
         out << "__global__\n"
             << "void apply_events(int mech_id_, " <<  ppack_name << " params_, "
             << "deliverable_event_stream_state events) {\n" << indent
@@ -312,17 +313,17 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << "for (auto p = begin; p<end; ++p) {\n" << indent
             << "if (p->mech_id==mech_id_) {\n" << indent
             << "auto tid_ = p->mech_index;\n"
-            << "auto " << weight_arg << " = p->weight;\n"
-            << cuprint(net_receive->body())
-            << popindent << "}\n"
+            << "auto " << weight_arg << " = p->weight;\n";
+            emit_api_body_cu(out, net_receive_api, is_point_proc, false);
+            out << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n";
     }
 
     // event delivery
-    if (post_event) {
-        const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
+    if (post_event_api) {
+        const std::string time_arg = post_event_api->args().empty() ? "time" : post_event_api->args().front()->is_argument()->name();
         out << "__global__\n"
             << "void post_event(" <<  ppack_name << " params_) {\n" << indent
             << "int n_ = params_.width_;\n"
@@ -333,9 +334,9 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << "auto offset_ = params_.n_detectors_ * cid_;\n"
             << "for (unsigned c = 0; c < params_.n_detectors_; c++) {\n" << indent
             << "auto " << time_arg << " = params_.time_since_spike_[offset_ + c];\n"
-            << "if (" <<  time_arg << " >= 0) {\n" << indent
-            << cuprint(post_event->body())
-            << popindent << "}\n"
+            << "if (" <<  time_arg << " >= 0) {\n" << indent;
+            emit_api_body_cu(out, post_event_api, is_point_proc, false);
+            out << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n";
@@ -363,7 +364,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     emit_api_wrapper(state_api);
     emit_api_wrapper(write_ions_api);
 
-    net_receive && out
+    net_receive_api && out
         << "void " << class_name << "_apply_events_("
         << "int mech_id, "
         << ppack_name << "& p, deliverable_event_stream_state events) {\n" << indent
@@ -373,7 +374,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         << "apply_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
         << popindent << "}\n\n";
 
-    post_event && out
+    post_event_api && out
         << "void " << class_name << "_post_event_("
         << ppack_name << "& p) {\n" << indent
         << "auto n = p.width_;\n"
@@ -417,7 +418,7 @@ static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
-void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
+void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool cv_loop) {
     auto body = e->body();
     auto indexed_vars = indexed_locals(e->scope());
 
@@ -445,7 +446,6 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
     }
 
     if (!body->statements().empty()) {
-        out << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
         if (is_point_proc) {
             // The run length information is only required if this method will
             // update an indexed variable, like current or conductance.
@@ -457,7 +457,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
             }
         }
 
-        out << "if (tid_<n_) {\n" << indent;
+        cv_loop && out << "if (tid_<n_) {\n" << indent;
 
         for (auto& index: indices) {
             out << "auto " << index_i_name(index.source_var)
@@ -473,7 +473,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
         for (auto& sym: indexed_vars) {
             emit_state_update_cu(out, sym, sym->external_variable(), is_point_proc);
         }
-        out << popindent << "}\n";
+        cv_loop && out << popindent << "}\n";
     }
 }
 
