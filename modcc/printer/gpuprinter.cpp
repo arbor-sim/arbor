@@ -286,7 +286,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         if (!e->body()->statements().empty()) {
             out << "__global__\n"
                 << "void " << e->name() << "(" << ppack_name << " params_) {\n" << indent
-                << "int n_ = params_.width_;\n";
+                << "int n_ = params_.width_;\n"
+                << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
             emit_api_body_cu(out, e, is_point_proc);
             out << popindent << "}\n\n";
         }
@@ -445,7 +446,6 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
     }
 
     if (!body->statements().empty()) {
-        cv_loop && out << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
         if (is_point_proc) {
             // The run length information is only required if this method will
             // update an indexed variable, like current or conductance.
