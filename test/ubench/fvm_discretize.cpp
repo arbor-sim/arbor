@@ -93,12 +93,12 @@ void run_discretize_every_segment(benchmark::State& state) {
 void run_discretize_explicit(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
 
+    decor dec;
     auto morpho = from_swc(SWCFILE);
     auto ends = cv_policy_every_segment().cv_boundary_points(cable_cell{morpho});
+    dec.set_default(cv_policy_explicit(std::move(ends)));
 
     while (state.KeepRunning()) {
-        decor dec;
-        dec.set_default(cv_policy_explicit(ends));
         benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, dec}, gdflt));
     }
 }

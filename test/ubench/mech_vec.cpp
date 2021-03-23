@@ -238,6 +238,7 @@ public:
         arb::decor decor;
         decor.paint(arb::reg::all(), "hh");
         decor.set_default(arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_));
+
         return arb::cable_cell{arb::morphology(tree), {}, decor};
     }
 
