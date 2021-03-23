@@ -8,7 +8,7 @@ set(bench_sources
     event_setup.cpp
     event_binning.cpp
     #    fvm_discretize.cpp
-    #    mech_vec.cpp
+    mech_vec.cpp
     task_system.cpp
 )
 
