@@ -50,7 +50,7 @@ s_expr mksexp(const init_reversal_potential& c) {
     return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value);
 }
 s_expr mksexp(const i_clamp& c) {
-    return slist("current-clamp"_symbol, c.delay, c.duration, c.amplitude);
+    return slist("current-clamp"_symbol, 1, 1, 1);
 }
 s_expr mksexp(const threshold_detector& d) {
     return slist("threshold-detector"_symbol, d.threshold);
@@ -452,13 +452,22 @@ struct make_arg_vec_call {
 
 // Test whether a list of arguments passed as a std::vector<std::any> can be converted
 // to a string followed by any number of std::pair<std::string, double>
-using param_pair = std::pair<std::string, double>;
 struct mech_match {
     bool operator()(const std::vector<std::any>& args) const {
+        // First argument is the mech name
         if (args.size() < 1) return false;
         if (!match<std::string>(args.front().type())) return false;
+
+        // The rest of the arguments should be std::vector<std::any> of size 2
+        // First element should be a string, second should be a double
         for (auto it = args.begin()+1; it != args.end(); ++it) {
-            if(!match<param_pair>(it->type())) return false;
+            if (!match<std::vector<std::any>>(it->type())) return false;
+            auto param_pair = eval_cast<std::vector<std::any>>(*it);
+            if (param_pair.size()!=2 ||
+                !match<std::string>(param_pair[0].type()) ||
+                !match<double>(param_pair[1].type())) {
+                return false;
+            }
         }
         return true;
     }
@@ -469,8 +478,8 @@ struct mech_eval {
         auto name = eval_cast<std::string>(args.front());
         arb::mechanism_desc mech(name);
         for (auto it = args.begin()+1; it != args.end(); ++it) {
-            auto p = eval_cast<param_pair>(*it);
-            mech.set(p.first, p.second);
+            auto p = eval_cast<std::vector<std::any>>(*it);
+            mech.set(eval_cast<std::string>(p[0]), eval_cast<double>(p[1]));
         }
         return mech;
     }
@@ -630,20 +639,12 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
     if (e.head().is_atom()) {
         // If this is a string, it must be a parameter pair of the form ("param" val)
         // where val is a double or int
-        if (e.head().atom().kind == tok::string) {
-            auto args = eval_args(e.tail(), map);
+        if (e.head().atom().kind != tok::symbol) {
+            auto args = eval_args(e, map);
             if (!args) {
                 return util::unexpected(args.error());
             }
-            if (args->size() != 1) {
-                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (param:string val:real). "
-                                                              "Got more than 1 `val` for `param` \"" + e.head().atom().spelling +"\".", location(e)));
-            }
-            if (!match<double>(args->front().type())) {
-                return util::unexpected(cableio_parse_error("Expected parameter pair of the form (param:string val:real). "
-                                                              "Got a `val` with a non-real type for `param` \"" + e.head().atom().spelling +"\".",location(e)));
-            }
-            return std::any{param_pair{e.head().atom().spelling, eval_cast<double>(args->front())}};
+            return args.value();
         };
 
         // Otherwise this must be a function evaluation, where head is the function name,
