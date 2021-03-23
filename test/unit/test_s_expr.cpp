@@ -312,8 +312,12 @@ using paint_pair = std::pair<arb::region, arb::paintable>;
 using locset_pair = std::pair<std::string, locset>;
 using region_pair = std::pair<std::string, region>;
 
-std::ostream& operator<<(std::ostream& o, const i_clamp&) {
-    return o;
+std::ostream& operator<<(std::ostream& o, const i_clamp& c) {
+    o << "(current-clamp (envelope";
+    for (const auto& p: c.envelope) {
+        o << " (" << p.t << " " << p.amplitude << ')';
+    }
+    return o << ") " << c.frequency << ')';
 }
 std::ostream& operator<<(std::ostream& o, const threshold_detector& p) {
     return o << "(threshold-detector " << p.threshold << ')';
@@ -444,7 +448,7 @@ std::string round_trip_component(std::istream& stream) {
 
 
 TEST(decor_literals, round_tripping) {
-/*    auto paint_default_literals = {
+    auto paint_default_literals = {
         "(membrane-potential -65.1)",
         "(temperature-kelvin 301)",
         "(axial-resistivity 102)",
@@ -459,7 +463,7 @@ TEST(decor_literals, round_tripping) {
     auto default_literals = {
         "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))"};
     auto place_literals = {
-        "(current-clamp 10 100 0.5)",
+        "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0)",
         "(threshold-detector -10)",
         "(gap-junction-site)",
         "(mechanism \"expsyn\")"};
@@ -475,7 +479,9 @@ TEST(decor_literals, round_tripping) {
     }
     for (auto l: place_literals) {
         EXPECT_EQ(l, round_trip_variant<placeable>(l));
-    }*/
+    }
+    auto clamp_literal = "(current-clamp (envelope-pulse 10 5 0.1) 50)";
+    EXPECT_EQ("(current-clamp (envelope (10 0.1) (15 0.1) (15 0)) 50)", round_trip_variant<placeable>(clamp_literal));
 
     std::string mech_str = "(mechanism \"kamt\" (\"gbar\" 50) (\"zetam\" 0.1) (\"q10\" 5))";
     auto maybe_mech = arborio::parse_expression(mech_str);
@@ -491,6 +497,7 @@ TEST(decor_literals, round_tripping) {
     EXPECT_EQ(50, mech.values().at("gbar"));
     EXPECT_EQ(0.1, mech.values().at("zetam"));
     EXPECT_EQ(5, mech.values().at("q10"));
+
 }
 
 TEST(decor_expressions, round_tripping) {
@@ -517,7 +524,7 @@ TEST(decor_expressions, round_tripping) {
         "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))"
     };
     auto decorate_place_literals = {
-        "(place (location 3 0.2) (current-clamp 10 100 0.5))",
+        "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0))",
         "(place (terminal) (threshold-detector -10))",
         "(place (root) (gap-junction-site))",
         "(place (locset \"my!ls\") (mechanism \"expsyn\"))"};
@@ -816,7 +823,7 @@ TEST(cable_cell_literals, errors) {
                      "(mechanism \"hh\" (gl 3.5))",          // unqouted parameter
                      "(mechanism \"pas\" ((\"g\" 0.5) (\"e\" 0.2)))",   // paranthesis around params
                      "(gap-junction-site 0)",                // too many arguments
-                     "(current-clamp 1 2)",                  // too few arguments
+                     "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)))",  // too few arguments
                      "(paint (region) (mechanism \"hh\"))",  // invalid region
                      "(paint (tag 1) (mechanims hh))",       // invalid painting
                      "(paint (terminal) (membrance-capacitance 0.2))", // can't paint a locset
@@ -884,7 +891,7 @@ TEST(doc_expressions, parse) {
                      "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
                      "  (paint (all) (mechanism \"pas\"))\n"
                      "  (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "  (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "  (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
                      "  (place (terminal) (gap-junction-site)))",
                      "(morphology\n"
                      "  (branch 0 -1\n"
@@ -916,7 +923,7 @@ TEST(doc_expressions, parse) {
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
                      "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
                      "    (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "    (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "    (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
                      "    (place (location 1 0.2) (gap-junction-site)))\n"
                      "  (morphology\n"
                      "    (branch 0 -1\n"
@@ -954,7 +961,7 @@ TEST(doc_expressions, parse) {
                      "  (meta-data (version 1))\n"
                      "  (decorations\n"
                      "    (default (membrane-potential -55.000000))\n"
-                     "    (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "    (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
                      "(arbor-component\n"
                      "  (meta-data (version 1))\n"
@@ -971,7 +978,7 @@ TEST(doc_expressions, parse) {
                      "      (locset-def \"root\" (root)))\n"
                      "    (decorations\n"
                      "      (default (membrane-potential -55.000000))\n"
-                     "      (place (locset \"root\") (current-clamp 10 1 2))\n"
+                     "      (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
                      "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
                      "    (morphology\n"
                      "       (branch 0 -1\n"

@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <sstream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
@@ -50,7 +52,11 @@ s_expr mksexp(const init_reversal_potential& c) {
     return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value);
 }
 s_expr mksexp(const i_clamp& c) {
-    return slist("current-clamp"_symbol, 1, 1, 1);
+    std::vector<s_expr> evlps;
+    std::transform(c.envelope.begin(), c.envelope.end(), std::back_inserter(evlps),
+        [](const auto& x){return slist(x.t, x.amplitude);});
+    auto envelope = slist("envelope"_symbol, slist_range(evlps));
+    return slist("current-clamp"_symbol, envelope, c.frequency);
 }
 s_expr mksexp(const threshold_detector& d) {
     return slist("threshold-detector"_symbol, d.threshold);
@@ -193,8 +199,23 @@ std::optional<T> eval_cast_variant(const std::any& a) {
 ARB_PP_FOREACH(ARBIO_DEFINE_SINGLE_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
 ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
 
-arb::i_clamp make_i_clamp(double delay, double duration, double amplitude) {
-    return arb::i_clamp(delay, duration, amplitude);
+std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::variant<std::tuple<double,double>>>& vec) {
+    std::vector<arb::i_clamp::envelope_point> envlp;
+    std::transform(vec.begin(), vec.end(), std::back_inserter(envlp),
+        [](const auto& x){
+            auto t = std::get<std::tuple<double,double>>(x);
+            return arb::i_clamp::envelope_point{std::get<0>(t), std::get<1>(t)};
+        });
+    return envlp;
+}
+std::tuple<double, double, double> make_envelope_pulse(double delay, double duration, double amplitude) {
+    return std::make_tuple(delay, duration, amplitude);
+}
+arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp, double freq) {
+    return arb::i_clamp(envlp, freq);
+}
+arb::i_clamp make_i_clamp_pulse(std::tuple<double, double, double> t, double freq) {
+    return arb::i_clamp(std::get<0>(t), std::get<1>(t), std::get<2>(t), freq);
 }
 arb::gap_junction_site make_gap_junction_site() {
     return arb::gap_junction_site{};
@@ -458,16 +479,9 @@ struct mech_match {
         if (args.size() < 1) return false;
         if (!match<std::string>(args.front().type())) return false;
 
-        // The rest of the arguments should be std::vector<std::any> of size 2
-        // First element should be a string, second should be a double
+        // The rest of the arguments should be std::tuple<std::string, double>
         for (auto it = args.begin()+1; it != args.end(); ++it) {
-            if (!match<std::vector<std::any>>(it->type())) return false;
-            auto param_pair = eval_cast<std::vector<std::any>>(*it);
-            if (param_pair.size()!=2 ||
-                !match<std::string>(param_pair[0].type()) ||
-                !match<double>(param_pair[1].type())) {
-                return false;
-            }
+            if (!match<std::tuple<std::string, double>>(it->type())) return false;
         }
         return true;
     }
@@ -478,8 +492,8 @@ struct mech_eval {
         auto name = eval_cast<std::string>(args.front());
         arb::mechanism_desc mech(name);
         for (auto it = args.begin()+1; it != args.end(); ++it) {
-            auto p = eval_cast<std::vector<std::any>>(*it);
-            mech.set(eval_cast<std::string>(p[0]), eval_cast<double>(p[1]));
+            auto p = eval_cast<std::tuple<std::string, double>>(*it);
+            mech.set(std::get<0>(p), std::get<1>(p));
         }
         return mech;
     }
@@ -596,15 +610,16 @@ struct make_unordered_call {
 } // anonymous namespace
 
 using eval_map = std::unordered_multimap<std::string, evaluator>;
+using eval_vec = std::vector<evaluator>;
 
 // Parse s-expression into std::any given a function evaluation map.
-parse_hopefully<std::any> eval(const arb::s_expr&, const eval_map&);
+parse_hopefully<std::any> eval(const arb::s_expr&, const eval_map&, const eval_vec&);
 
-parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map& map) {
+parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map& map, const eval_vec& vec) {
     if (!e) return {std::vector<std::any>{}};
     std::vector<std::any> args;
     for (auto& h: e) {
-        if (auto arg=eval(h, map)) {
+        if (auto arg=eval(h, map, vec)) {
             args.push_back(std::move(*arg));
         }
         else {
@@ -614,7 +629,7 @@ parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map
     return args;
 }
 
-parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
+parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_vec& vec) {
     if (e.is_atom()) {
         auto& t = e.atom();
         switch (t.kind) {
@@ -637,20 +652,33 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
         }
     }
     if (e.head().is_atom()) {
-        // If this is a string, it must be a parameter pair of the form ("param" val)
-        // where val is a double or int
+        // If this is not a symbol, parse as a tuple
         if (e.head().atom().kind != tok::symbol) {
-            auto args = eval_args(e, map);
+            auto args = eval_args(e, map, vec);
             if (!args) {
                 return util::unexpected(args.error());
             }
-            return args.value();
+            for (auto& e: vec) {
+                if (e.match_args(*args)) { // found a match: evaluate and return.
+                    return e.eval(*args);
+                }
+            }
+
+            // Unable to find a match: try to return a helpful error message.
+            const auto nc = vec.size();
+            std::string msg = "No matches for found for unnamed tuple with "+std::to_string(args->size())+" arguments.\n"
+                              "There are "+std::to_string(nc)+" potential candiates"+(nc?":":".");
+            int count = 0;
+            for (auto& e: vec) {
+                msg += "\n  Candidate "+std::to_string(++count)+": "+e.message;
+            }
+            return util::unexpected(cableio_parse_error(msg, location(e)));
         };
 
         // Otherwise this must be a function evaluation, where head is the function name,
         // and tail is a list of arguments.
         // Evaluate the arguments, and return error state if an error occurred.
-        auto args = eval_args(e.tail(), map);
+        auto args = eval_args(e.tail(), map, vec);
         if (!args) {
             return util::unexpected(args.error());
         }
@@ -686,7 +714,7 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map ) {
     return util::unexpected(cableio_parse_error("Expression is neither integer, real expression of the form (op <args>) or (\"param\", val)", location(e)));
 }
 
-eval_map map{
+eval_map named_evals{
     {"membrane-potential", make_call<double>(make_init_membrane_potential,
                                "'membrane-potential' with 1 argument (val:real)")},
     {"temperature-kelvin", make_call<double>(make_temperature_K,
@@ -701,8 +729,14 @@ eval_map map{
                                        "'ion_external_concentration' with 2 arguments (ion:string val:real)")},
     {"ion-reversal-potential", make_call<std::string, double>(make_init_reversal_potential,
                                    "'ion_reversal_potential' with 2 arguments (ion:string val:real)")},
-    {"current-clamp", make_call<double, double, double>(make_i_clamp,
-                          "'current-clamp' with 3 arguments (delay:real duration:real amplitude:real)")},
+    {"envelope", make_arg_vec_call<std::tuple<double,double>>(make_envelope,
+                     "`envelope` with one or more pairs of start time and amplitude (start:real amplitude:real)")},
+    {"envelope-pulse", make_call<double, double, double>(make_envelope_pulse,
+                          "'envelope-pulse' with 3 arguments (delay:real duration:real amplitude:real)")},
+    {"current-clamp", make_call<std::vector<arb::i_clamp::envelope_point>, double>(make_i_clamp,
+                          "`current-clamp` withe 2 arguments (env:envelope freq:real)")},
+    {"current-clamp", make_call<std::tuple<double, double, double>, double>(make_i_clamp_pulse,
+                          "`current-clamp` withe 2 arguments (env:envelope_pulse freq:real)")},
     {"threshold-detector", make_call<double>(make_threshold_detector,
                                "'threshold-detector' with 1 argument (threshold:real)")},
     {"gap-junction-site", make_call<>(make_gap_junction_site,
@@ -766,8 +800,13 @@ eval_map map{
     { "arbor-component", make_call<meta_data, cable_cell>(make_component<cable_cell>, "'arbor-component' with 2 arguments (m:meta_data p:cable_cell)")}
 };
 
+eval_vec unnamed_evals{
+    make_call<std::string, double>(std::make_tuple<std::string, double>, "tuple<std::string, double>"),
+    make_call<double, double>(std::make_tuple<double, double>, "tuple<double, double>")
+};
+
 inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
-    return eval(std::move(s), map);
+    return eval(std::move(s), named_evals, unnamed_evals);
 }
 
 parse_hopefully<std::any> parse_expression(const std::string& s) {
