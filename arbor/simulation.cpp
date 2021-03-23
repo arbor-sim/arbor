@@ -203,8 +203,23 @@ simulation_state::simulation_state(
             // Store mapping of gid to local cell index.
             gid_to_local_[gid] = gid_local_info{lidx, grpidx};
 
+            // Check validity of event_generator targets
+            auto event_gens = rec.event_generators(gid);
+            auto num_targets = rec.num_targets(gid);
+            for (const auto& g: event_gens) {
+                for (const auto& t: g.targets()) {
+                    if (t.gid != gid) {
+                        throw arb::bad_event_generator_target_gid(gid,  t.gid);
+                    }
+                    if (t.index >= num_targets) {
+                        throw arb::bad_event_generator_target_lid(gid, t.index, num_targets);
+                    }
+                }
+            }
+
             // Set up the event generators for cell gid.
-            event_generators_[lidx] = rec.event_generators(gid);
+            event_generators_[lidx] = event_gens;
+
             ++lidx;
         }
         ++grpidx;

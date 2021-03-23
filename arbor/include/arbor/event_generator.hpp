@@ -16,12 +16,12 @@ namespace arb {
 
 // An `event_generator` generates a sequence of events to be delivered to a cell.
 // The sequence of events is always in ascending order, i.e. each event will be
-// greater than the event that proceded it, where events are ordered by:
+// greater than the event that proceeded it, where events are ordered by:
 //  - delivery time;
 //  - then target id for events with the same delivery time;
 //  - then weight for events with the same delivery time and target.
 //
-// An `event_generator` supports two operations:
+// An `event_generator` supports three operations:
 //
 // `void event_generator::reset()`
 //
@@ -31,6 +31,10 @@ namespace arb {
 //
 //     Provide a non-owning view on to the events in the time interval
 //     [to, from).
+//
+// `std::vector<cell_member_type> targets()`
+//
+//     Return a vector of all the targets of the generator.
 //
 // The `event_seq` type is a pair of `spike_event` pointers that
 // provide a view onto an internally-maintained contiguous sequence
@@ -64,6 +68,9 @@ struct empty_generator {
     event_seq events(time_type, time_type) {
         return {nullptr, nullptr};
     }
+    std::vector<cell_member_type> targets() {
+        return {};
+    };
 };
 
 class event_generator {
@@ -95,10 +102,15 @@ public:
         return impl_->events(t0, t1);
     }
 
+    std::vector<cell_member_type> targets() const {
+        return impl_->targets();
+    }
+
 private:
     struct interface {
         virtual void reset() = 0;
         virtual event_seq events(time_type, time_type) = 0;
+        virtual std::vector<cell_member_type> targets() = 0;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual ~interface() {}
     };
@@ -112,6 +124,10 @@ private:
 
         event_seq events(time_type t0, time_type t1) override {
             return wrapped.events(t0, t1);
+        }
+
+        std::vector<cell_member_type> targets() override {
+            return wrapped.targets();
         }
 
         void reset() override {
@@ -151,6 +167,10 @@ struct schedule_generator {
         }
 
         return {events_.data(), events_.data()+events_.size()};
+    }
+
+    std::vector<cell_member_type> targets() {
+        return {target_};
     }
 
 private:
@@ -215,6 +235,12 @@ struct explicit_generator {
 
         start_index_ = ub-events_.data();
         return {lb, ub};
+    }
+
+    std::vector<cell_member_type> targets() {
+        std::vector<cell_member_type> tgts;
+        std::transform(events_.begin(), events_.end(), std::back_inserter(tgts), [](auto&& e){ return e.target;});
+        return tgts;
     }
 
 private:
