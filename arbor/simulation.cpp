@@ -316,8 +316,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     //     * For k≥0,  U(k) and D(k) have completed.
     //
     // Requires state at end of run(), with epoch_.id==k:
-    //     * U(k) and D(k) have compelted.
-
+    //     * U(k) and D(k) have completed.
 
     if (tfinal<=epoch_.t1) return epoch_.t1;
 
@@ -370,7 +369,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     };
 
     // Enqueue task: build event_lanes for next epoch from pending events, event-generator events for the
-    // next epoch, and with any unprocessed events the current event_lanes.
+    // next epoch, and with any unprocessed events from the current event_lanes.
     auto enqueue = [this](epoch next) {
         foreach_cell(
             [&](cell_size_type i) {
