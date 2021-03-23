@@ -522,7 +522,6 @@ installation comprises:
 
 - The static libraries ``libarbor.a`` and ``libarborenv.a``.
 - Public header files.
-- The ``lmorpho`` l-system morphology generation utility
 - The ``modcc`` NMODL compiler if built.
 - The python module if built.
 - The HTML documentation if built.

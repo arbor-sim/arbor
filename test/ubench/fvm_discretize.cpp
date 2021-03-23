@@ -17,10 +17,8 @@
 #define DATADIR "."
 #endif
 
-#define STRING(s) #s
-
 #undef SWCFILE
-#define SWCFILE STRING(DATADIR) "/motoneuron.swc"
+#define SWCFILE DATADIR "/pyramidal.swc"
 
 using namespace arb;
 
@@ -71,35 +69,37 @@ void run_discretize(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
     const std::size_t ncv_per_branch = state.range(0);
 
-    cable_cell c(from_swc(SWCFILE));
-    c.default_parameters.discretization = cv_policy_fixed_per_branch(ncv_per_branch);
+    decor dec;
+    auto morpho = from_swc(SWCFILE);
+    dec.set_default(cv_policy_fixed_per_branch(ncv_per_branch));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(fvm_cv_discretize(c, gdflt));
+        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, dec}, gdflt));
     }
 }
 
 void run_discretize_every_segment(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
 
-    cable_cell c(from_swc(SWCFILE));
-    c.default_parameters.discretization = cv_policy_every_segment();
+    decor dec;
+    auto morpho = from_swc(SWCFILE);
+    dec.set_default(cv_policy_every_segment());
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(fvm_cv_discretize(c, gdflt));
+        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, dec}, gdflt));
     }
 }
 
 void run_discretize_explicit(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
 
-    cable_cell c(from_swc(SWCFILE));
+    auto morpho = from_swc(SWCFILE);
+    auto ends = cv_policy_every_segment().cv_boundary_points(cable_cell{morpho});
 
     while (state.KeepRunning()) {
-        auto ends = cv_policy_every_segment().cv_boundary_points(c);
-        c.default_parameters.discretization = cv_policy_explicit(std::move(ends));
-
-        benchmark::DoNotOptimize(fvm_cv_discretize(c, gdflt));
+        decor dec;
+        dec.set_default(cv_policy_explicit(ends));
+        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, dec}, gdflt));
     }
 }
 
