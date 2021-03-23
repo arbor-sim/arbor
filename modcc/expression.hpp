@@ -45,7 +45,6 @@ class Symbol;
 class ConductanceExpression;
 class PDiffExpression;
 class VariableExpression;
-class ProcedureExpression;
 class NetReceiveExpression;
 class PostEventExpression;
 class APIMethod;
